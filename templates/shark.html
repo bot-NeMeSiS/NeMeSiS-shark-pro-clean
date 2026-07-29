@@ -31,11 +31,11 @@
   {% elif calendar.get('matches') %}
     {{ intelligence_brief('Hay partidos completos disponibles', 'Todavía no existe una selección publicable', 'Revisar la agenda antes de buscar una oportunidad', 'Explorar partidos', '/calendar', false) }}
   {% else %}
-    {{ intelligence_brief('No hay contexto deportivo completo', 'Una respuesta avanzada podría inducir a una conclusión falsa', 'Esperar sincronización o explorar las capacidades seguras', 'Ver calendario', '/calendar', false) }}
+    {{ intelligence_brief('No hay contexto deportivo completo', 'Una respuestá avanzada podría inducir a una conclusión falsa', 'Esperar sincronización o explorar las capacidades seguras', 'Ver calendario', '/calendar', false) }}
     <aside class="v933-safe-copy"><strong>Decisión SHARK:</strong> no recomiendo una selección hoy porque no existe evidencia completa suficiente. Esperar también es una decisión responsable.</aside>
   {% endif %}
 
-  {{ customer_decision('Usa SHARK para entender, no para adivinar', 'Cada respuesta debe separar evidencia, riesgo y recomendación. Si falta contexto, SHARK te dirige a la siguiente fuente útil.', 'Hacer una pregunta rápida', '#v936-shark-questions', 'cyan', 'Cómo obtener valor', 'Ver metodología', '/track-record', 'Las limitaciones permanecen visibles') }}
+  {{ customer_decision('Usa SHARK para entender, no para adivinar', 'Cada respuestá debe separar evidencia, riesgo y recomendación. Si falta contexto, SHARK te dirige a la siguiente fuente útil.', 'Hacer una pregunta rápida', '#v936-shark-questions', 'cyan', 'Cómo obtener valor', 'Ver metodología', '/track-record', 'Las limitaciones permanecen visibles') }}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
@@ -47,8 +47,8 @@
   <section class="v933-two-col">
     <div class="v933-main-stack">
       <section class="v933-panel v933-shark-conversation">
-        {{ section_header('Respuesta actual', (answer.get('focus') or 'resumen')|capitalize) }}
-        {% if answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Sin respuesta ampliada', 'Usa uno de los accesos rápidos. SHARK no rellenará huecos con datos inventados.', '', '', 'shark') }}{% endif %}
+        {{ section_header('Respuestá actual', (answer.get('focus') or 'resumen')|capitalize) }}
+        {% if answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Sin respuestá ampliada', 'Usa uno de los accesos rápidos. SHARK no rellenará huecos con datos inventados.', '', '', 'shark') }}{% endif %}
         {% if answer.get('actions') %}<div class="v933-page-actions v933-inline-actions">{% for action in answer.get('actions') %}{{ action_button(action.get('label'), action.get('url'), loop.first, 'blue') }}{% endfor %}</div>{% endif %}
       </section>
 

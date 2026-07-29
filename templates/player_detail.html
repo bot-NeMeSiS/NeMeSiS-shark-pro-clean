@@ -20,11 +20,11 @@
         {% endif %}
       </div>
       <div class="player-center-title-block">
-        <div class="player-center-kicker">Player Center · {{ player.team or 'No disponible' }}</div>
+        <div class="player-center-kicker">Centro del jugador · {{ player.team or 'No disponible' }}</div>
         <h1>{{ player.display_name or player.official_name or 'Jugador no disponible' }}</h1>
-        <p>Centro de identidad deportiva construido con Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence. No crea datos sin evidencia.</p>
+        <p>Centro de identidad deportiva construido sobre Modelo deportivo, Conocimiento deportivo, Grafo deportivo, Inteligencia SHARK y Inteligencia de usuario. No crea datos sin evidencia.</p>
         <div class="player-center-tags" aria-label="Estado del jugador">
-          <span>{{ player.state or 'Informacion parcial' }}</span>
+          <span>{{ player.state or 'Información parcial' }}</span>
           <span>{{ player.position or 'No disponible' }}</span>
           <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
         </div>
@@ -34,9 +34,9 @@
       <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
       <div><span>Procedencia</span><strong>{{ data_quality.source or 'No disponible' }}</strong></div>
       <nav class="player-center-actions" aria-label="Acciones rapidas">
-        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% endif %}
-        {% if links.team_center %}<a href="{{ links.team_center }}">Team Center</a>{% endif %}
-        {% if links.competition_center %}<a href="{{ links.competition_center }}">Competition Center</a>{% endif %}
+        {% if links.match_center %}<a href="{{ links.match_center }}">Centro del partido</a>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">Centro del equipo</a>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competicion</a>{% endif %}
       </nav>
     </aside>
   </header>
@@ -58,7 +58,7 @@
 
   <main class="player-center-layout">
     <section class="player-center-panel" data-player-center-section="basic-information">
-      <div class="player-center-section-head"><span>Informacion basica</span><strong>{{ player.official_name or 'No disponible' }}</strong></div>
+      <div class="player-center-section-head"><span>Información basica</span><strong>{{ player.official_name or 'No disponible' }}</strong></div>
       <dl class="player-center-data-list">
         <div><dt>Nombre oficial</dt><dd>{{ player.official_name or 'No disponible' }}</dd></div>
         <div><dt>Nombre visible</dt><dd>{{ player.display_name or 'No disponible' }}</dd></div>
@@ -80,7 +80,7 @@
 
     <section class="player-center-panel" data-player-center-section="shark-context">
       <div class="player-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
-      <p>{{ center.shark_context.summary or 'No hay suficiente informacion para construir contexto SHARK del jugador.' }}</p>
+      <p>{{ center.shark_context.summary or 'No hay suficiente información para construir contexto SHARK del jugador.' }}</p>
       {% if center.shark_context.evidence %}<ul class="player-center-evidence-list">{% for item in center.shark_context.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
       {% if center.shark_context.limitations %}<ul class="player-center-evidence-list">{% for item in center.shark_context.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
@@ -114,23 +114,23 @@
     </section>
 
     <section class="player-center-panel" data-player-center-section="sports-knowledge">
-      <div class="player-center-section-head"><span>Sports Knowledge</span><strong>{{ center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
+      <div class="player-center-section-head"><span>Conocimiento deportivo</span><strong>{{ center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
       <dl class="player-center-data-list">
-        <div><dt>Player Knowledge</dt><dd>{{ center.player_knowledge_contract or 'No disponible' }}</dd></div>
-        <div><dt>Sports Core</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
-        <div><dt>Knowledge Layer</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Conocimiento del jugador</dt><dd>{{ center.player_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Modelo deportivo</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
+        <div><dt>Capa de conocimiento</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
       </dl>
       {% if center.player_knowledge.limitations %}<ul class="player-center-evidence-list">{% for item in center.player_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="sports-graph">
-      <div class="player-center-section-head"><span>Sports Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
+      <div class="player-center-section-head"><span>Grafo deportivo</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
       <p>Relaciones internas preparadas sin persistir grafo ni crear datos ficticios.</p>
-      {% if center.sports_graph.relationships %}<ul class="player-center-evidence-list">{% for item in center.sports_graph.relationships[:9] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Informacion pendiente.</p>{% endif %}
+      {% if center.sports_graph.relationships %}<ul class="player-center-evidence-list">{% for item in center.sports_graph.relationships[:9] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Información pendiente.</p>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="user-intelligence">
-      <div class="player-center-section-head"><span>User Intelligence</span><strong>{{ center.user_intelligence.state or 'PREPARED_NOT_APPLIED' }}</strong></div>
+      <div class="player-center-section-head"><span>Inteligencia de usuario</span><strong>{{ center.user_intelligence.state or 'PREPARED_NOT_APPLIED' }}</strong></div>
       <p>{{ center.user_intelligence.summary or 'Preparado, no aplicado automaticamente.' }}</p>
       {% if center.user_intelligence.limitations %}<ul class="player-center-evidence-list">{% for item in center.user_intelligence.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
@@ -147,20 +147,20 @@
     </section>
 
     <section class="player-center-panel" data-player-center-section="information-state">
-      <div class="player-center-section-head"><span>Informacion disponible</span><strong>{{ center.available_information|length }}</strong></div>
+      <div class="player-center-section-head"><span>Información disponible</span><strong>{{ center.available_information|length }}</strong></div>
       {% if center.available_information %}<ul class="player-center-evidence-list">{% for item in center.available_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">No disponible.</p>{% endif %}
-      <div class="player-center-section-head is-sub"><span>Informacion ausente</span><strong>{{ center.missing_information|length }}</strong></div>
+      <div class="player-center-section-head is-sub"><span>Información ausente</span><strong>{{ center.missing_information|length }}</strong></div>
       {% if center.missing_information %}<ul class="player-center-evidence-list">{% for item in center.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Sin ausencias relevantes detectadas.</p>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="future-links">
-      <div class="player-center-section-head"><span>Conexiones</span><strong>Sports Core</strong></div>
+      <div class="player-center-section-head"><span>Conexiones</span><strong>Modelo deportivo</strong></div>
       <nav class="player-center-link-grid" aria-label="Centros deportivos relacionados">
-        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% else %}<span>Match Center · No disponible</span>{% endif %}
-        {% if links.team_center %}<a href="{{ links.team_center }}">Team Center</a>{% else %}<span>Team Center · No disponible</span>{% endif %}
-        {% if links.competition_center %}<a href="{{ links.competition_center }}">Competition Center</a>{% else %}<span>Competition Center · No disponible</span>{% endif %}
-        <a href="{{ links.user_intelligence or '/user-intelligence' }}">User Intelligence</a>
-        <span>Sports Graph · Contrato interno</span>
+        {% if links.match_center %}<a href="{{ links.match_center }}">Centro del partido</a>{% else %}<span>Centro del partido · No disponible</span>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">Centro del equipo</a>{% else %}<span>Centro del equipo · No disponible</span>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competicion</a>{% else %}<span>Centro de la competicion · No disponible</span>{% endif %}
+        <a href="{{ links.user_intelligence or '/user-intelligence' }}">Inteligencia de usuario</a>
+        <span>Grafo deportivo · Contrato interno</span>
       </nav>
     </section>
   </main>

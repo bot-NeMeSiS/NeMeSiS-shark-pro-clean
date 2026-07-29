@@ -1,21 +1,21 @@
 {% extends 'base.html' %}
 {% block content %}
 <section class="hero compact-hero admin-hero v735-hero go-live-hero">
-  <div class="eyebrow">Admin · Go Live V735</div>
+  <div class="eyebrow">Admin · Salida a producción V735</div>
   <h1>Certificación para beta pública controlada</h1>
-  <p>Panel único para decidir si NeMeSiS SHARK PRO puede abrirse a más usuarios con producción, Telegram, Data Memory, track record, pagos y cliente bajo control.</p>
+  <p>Panel único para decidir si NeMeSiS SHARK PRO puede abrirse a más usuarios con producción, Telegram, Memoria de datos, track record, pagos y cliente bajo control.</p>
 </section>
 
 <section class="grid cards-4 v735-go-live-score">
   <article class="card stat-card launch-score-card">
-    <span>Score Go Live</span>
+    <span>Score Salida a producción</span>
     <strong>{{ data.go_live.global_score }}%</strong>
     <small>{{ data.go_live.status|replace('_',' ')|title }}</small>
   </article>
   <article class="card stat-card">
     <span>Bloqueos críticos</span>
     <strong>{{ data.go_live.critical_blockers|length }}</strong>
-    <small>Render / Telegram / Data Memory</small>
+    <small>Render / Telegram / Memoria de datos</small>
   </article>
   <article class="card stat-card">
     <span>Bloqueos totales</span>
@@ -25,7 +25,7 @@
   <article class="card stat-card">
     <span>Versión</span>
     <strong>{{ data.version }}</strong>
-    <small>Render Ready</small>
+    <small>Listo para Render</small>
   </article>
 </section>
 
@@ -114,7 +114,7 @@
 <section class="grid cards-4 quick-admin-links">
   <a class="card mini-card" href="/admin/public-launch"><strong>Público grande</strong><span>Roadmap global</span></a>
   <a class="card mini-card" href="/admin/telegram/command-center"><strong>Telegram</strong><span>Status y dry-run</span></a>
-  <a class="card mini-card" href="/admin/data-memory"><strong>Data Memory</strong><span>Memoria real</span></a>
+  <a class="card mini-card" href="/admin/data-memory"><strong>Memoria de datos</strong><span>Memoria real</span></a>
   <a class="card mini-card" href="/admin/track-record"><strong>Track Record</strong><span>ROI real</span></a>
 </section>
 {% endblock %}

@@ -15,7 +15,7 @@
   </article>
 {%- endmacro %}
 
-{% macro shell(active='Dashboard', title='Panel admin', subtitle='Centro de control') -%}
+{% macro shell(active='Panel', title='Panel admin', subtitle='Centro de control') -%}
 <section class="v794-admin-shell v796-admin-shell" data-v794-admin="true" data-v794-refresh="30" data-v796-admin="true" data-v797-admin="true">
   <aside class="v794-admin-sidebar">
     <a class="v794-admin-brand" href="/admin/dashboard">
@@ -23,7 +23,7 @@
       <b>NeMeSiS</b><strong>SHARK PRO</strong>
     </a>
     {% set nav = [
-      ('Dashboard','/admin/dashboard','▦'),
+      ('Panel','/admin/dashboard','▦'),
       ('Telegram','/admin/telegram/command-center','✈'),
       ('Clientes','/admin/users','♙'),
       ('Pagos','/admin/payments','▣'),

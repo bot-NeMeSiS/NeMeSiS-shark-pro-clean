@@ -6,7 +6,7 @@
 {% set matches = realtime.get('matches') or [] %}
 {% set picks = realtime.get('picks') or [] %}
 <div class="v933-page v933-admin-command-center v934-admin-realtime" data-v933-template="admin_realtime_center" data-v934-template="admin_realtime_center">
-  {{ page_header('Centro de tiempo real', 'Partidos, live, picks y cuotas desde DB y caché, sin llamadas de proveedor durante el render.', 'live', [{'label':'Data Center','href':'/admin/data-center','icon':'database'},{'label':'Workforce','href':'/admin/automation-workforce','primary':true,'icon':'automation'}]) }}
+  {{ page_header('Centro de tiempo real', 'Partidos, live, picks y cuotas desde DB y caché, sin llamadas de proveedor durante el render.', 'live', [{'label':'Centro de datos','href':'/admin/data-center','icon':'database'},{'label':'Workforce','href':'/admin/automation-workforce','primary':true,'icon':'automation'}]) }}
   {{ realtime_state_bar(realtime, 'all', true) }}
 
   <section class="v933-kpi-grid is-six">

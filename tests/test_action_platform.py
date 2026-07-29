@@ -143,7 +143,7 @@ def test_action_platform_routes_are_session_protected(client, app_module, monkey
     api = client.get("/api/action-platform/summary")
 
     assert page.status_code == 200
-    assert b"Action Platform" in page.data
+    assert "Plataforma de acciones".encode("utf-8") in page.data
     assert b"Procedencia" in page.data
     assert b"Evidencia" in page.data
     assert api.status_code == 200

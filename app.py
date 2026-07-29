@@ -546,7 +546,7 @@ def sanitize_runtime_error_value(value, limit=700):
     text = sanitize_http_header_value(value, limit=limit)
     text = text.replace("\\r", "").replace("\\n", "").strip()
     if "Invalid header value" in text:
-        return "Invalid header value detectado en runtime; valor saneado para diagn?stico seguro."
+        return "Invalid header value detectado en runtime; valor saneado para diagnóstico seguro."
     return text
 
 
@@ -558,7 +558,7 @@ def runtime_error_state(value):
         return {
             "active": False,
             "status": "Histórico saneado",
-            "message": "Invalid header value hist?rico detectado y saneado; validar tras deploy.",
+            "message": "Invalid header value histórico detectado y saneado; validar tras deploy.",
         }
     return {"active": True, "status": "Revisar", "message": sanitize_runtime_error_value(text)}
 
@@ -681,8 +681,8 @@ def csrf_failure_response():
         reason="token_csrf_invalido_o_ausente",
     )
     if request.path.startswith("/api/") or request.is_json:
-        return jsonify({"ok": False, "error": "csrf_required", "message": "Sesi?n caducada o formulario no v?lido. Recarga la p?gina e int?ntalo de nuevo."}), 403
-    return Response("Sesi?n caducada o formulario no v?lido. Recarga la p?gina e int?ntalo de nuevo.", status=403, mimetype="text/plain; charset=utf-8")
+        return jsonify({"ok": False, "error": "csrf_required", "message": "Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo."}), 403
+    return Response("Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo.", status=403, mimetype="text/plain; charset=utf-8")
 
 
 def rate_limit_failure_response(scope: str, status: dict):
@@ -832,7 +832,7 @@ def automation_secret_status():
 
 
 def automation_access_allowed():
-    # Rutas antiguas pueden seguir aceptando sesi?n admin o secret. Los endpoints Cron nuevos usan validaci?n estricta.
+    # Rutas antiguas pueden seguir aceptando sesión admin o secret. Los endpoints Cron nuevos usan validaci?n estricta.
     return is_admin_session() or automation_secret_valid()
 
 
@@ -970,7 +970,7 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
             "ok": False,
             "status": "ERROR",
             "error": f"{label}_{type(exc).__name__}",
-            "safe_message": "La sincronizacion fallo de forma controlada. Revisa el diagnostico interno.",
+            "safe_message": "La sincronización fallo de forma controlada. Revisa el diagnóstico interno.",
         }
 
 
@@ -1213,7 +1213,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         result = {
             "ok": False,
             "error": "cron_execution_error",
-            "message": "El endpoint Cron se autentic? correctamente, pero la automatizaci?n fall? de forma controlada. Revisa logs Render.",
+            "message": "El endpoint Cron se autentic? correctamente, pero la automatización fall? de forma controlada. Revisa logs Render.",
             "detail": str(exc)[:500],
         }
     finished_at = now_iso()
@@ -1258,7 +1258,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
                 pass
     except Exception:
         pass
-    # El detalle largo queda solo para admin/diagn?stico interno, no en la respuesta p?blica del Cron.
+    # El detalle largo queda solo para admin/diagnóstico interno, no en la respuestá pública del Cron.
     automation_safe_set(f"{endpoint}_last_detail", {
         "called_at": called_at,
         "finished_at": finished_at,
@@ -2658,14 +2658,14 @@ def fallback_crest_url(name):
 
 
 V779_COUNTRY_HINTS = {
-    "laliga": "Espa?a", "spain": "Espa?a", "espa?a": "Espa?a", "segunda": "Espa?a", "copa del rey": "Espa?a", "rfef": "Espa?a",
+    "laliga": "España", "spain": "España", "españa": "España", "segunda": "España", "copa del rey": "España", "rfef": "España",
     "premier": "Inglaterra", "england": "Inglaterra", "championship": "Inglaterra", "fa cup": "Inglaterra",
     "serie a": "Italia", "italy": "Italia", "coppa": "Italia",
     "bundesliga": "Alemania", "germany": "Alemania", "dfb": "Alemania",
     "ligue 1": "Francia", "france": "Francia", "coupe de france": "Francia",
     "primeira": "Portugal", "portugal": "Portugal",
     "eredivisie": "Países Bajos", "netherlands": "Países Bajos",
-    "argentina": "Argentina", "brasil": "Brasil", "brazil": "Brasil", "libertadores": "Sudam?rica", "sudamericana": "Sudam?rica",
+    "argentina": "Argentina", "brasil": "Brasil", "brazil": "Brasil", "libertadores": "Sudamérica", "sudamericana": "Sudamérica",
     "mls": "Estados Unidos", "usa": "Estados Unidos", "united states": "Estados Unidos",
     "mundial": "Global", "world cup": "Global", "champions": "Europa", "europa league": "Europa", "conference": "Europa",
 }
@@ -2772,7 +2772,7 @@ def thesportsdb_key():
 
 
 SPORTSDB_SEARCH_ALIASES = {
-    "atletico-de-madrid": ["Atletico Madrid", "Atl?tico Madrid"],
+    "atletico-de-madrid": ["Atletico Madrid", "Atlético Madrid"],
     "barcelona": ["Barcelona", "FC Barcelona"],
     "real-betis": ["Real Betis", "Real Betis Balompie"],
     "cadiz": ["Cadiz", "Cadiz CF"],
@@ -3231,10 +3231,10 @@ def canonical_match_status(match):
     if date_value and date_value < today_iso() and not has_score:
         return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
     if date_value and date_value > today_iso() and not is_live_status_value(status):
-        return {"key": "UPCOMING", "label": "Pr?ximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
+        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
     if score and date_value and date_value < today_iso():
         return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
-    return {"key": "UPCOMING", "label": "Pr?ximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
+    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
 
 def sportsdb_event_time(event):
     timestamp = str(event.get("strTimestamp") or "").strip()
@@ -3518,7 +3518,7 @@ def ensure_client_live_fresh(force=False):
             "reason": "page_render_cache_only",
             "external_calls": 0,
             "no_render_api_call": True,
-            "message": "Render cache-only; la sincronizacion se ejecuta por job o refresh explicito.",
+            "message": "Render cache-only; la sincronización se ejecuta por job o refresh explicito.",
         }
     if not thesportsdb_key():
         return {"ok": False, "skipped": True, "reason": "missing_thesportsdb_key"}
@@ -4058,7 +4058,7 @@ def sync_odds_snapshots(limit=80, force=False):
     if not os.getenv("THE_ODDS_API_KEY"):
         return empty_sync("odds", "odds", "Falta THE_ODDS_API_KEY.")
     if not odds_enabled():
-        result = empty_sync("odds", "odds", "ENABLE_ODDS_API no esta activo.")
+        result = empty_sync("odds", "odds", "ENABLE_ODDS_API no está activo.")
         result["disabled"] = True
         return result
     if odds_recently_synced() and not force:
@@ -4104,7 +4104,7 @@ def data_center_summary():
 def client_source_label(diagnostics):
     source = str((diagnostics or {}).get("active_data_source") or "")
     if (diagnostics or {}).get("total_matches", 0) <= 0:
-        return "Pendiente de sincronizacion"
+        return "Pendiente de sincronización"
     if "Odds" in source or "SportsDB" in source:
         return "Calendario real sincronizado"
     if "import" in source.lower():
@@ -4627,7 +4627,7 @@ def sync_odds_events(limit=250, force=False):
     if not os.getenv("THE_ODDS_API_KEY"):
         return {"ok": False, "sin_key": True, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THE_ODDS_API_KEY."]}
     if not odds_enabled():
-        return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no esta activo."]}
+        return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no está activo."]}
     if odds_recently_synced() and not force:
         last = odds_last_sync()
         return {"ok": True, "skipped": True, "reason": "cache_activa", "cache_minutes": odds_cache_minutes(), **last}
@@ -5003,7 +5003,7 @@ def import_competitions(import_rows, source_name="manual autorizado", legal_note
                 item.get("country") or item.get("pais") or "",
                 item.get("region") or "",
                 as_int(item.get("tier"), 60),
-                item.get("source_strategy") or "Import legal",
+                item.get("source_strategy") or "Importación legal",
                 json.dumps([item.get("tag") or "import"]),
                 item.get("external_id") or "",
                 source_name,
@@ -5200,7 +5200,7 @@ def normalize_pick_row(pick):
     pick["membership_required"] = normalize_role(pick.get("membership_required") or "FREE")
     pick["market"] = raw_market or "Principal"
     pick["bookmaker"] = pick.get("bookmaker") or ""
-    pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir p?rdidas."
+    pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
     pick["result_status"] = str(pick.get("result_status") or "pending").lower()
     pick = apply_pick_localization(pick)
     pick["home_identity"] = professionalize_identity(pick.get("home_identity"), pick.get("home_team"), pick.get("home_logo"), pick.get("country") or pick.get("safe_country"), "pick")
@@ -5537,10 +5537,10 @@ def build_client_alerts(limit=12, user_id=None):
         alerts.append({
             "type": "analysis",
             "priority": 74,
-            "title": "Partidos próximos listos para an?lisis",
-            "body": "A?n no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "title": "Partidos próximos listos para análisis",
+            "body": "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
             "href": "/picks",
-            "badge": "AN?LISIS",
+            "badge": "ANÁLISIS",
         })
     if favs:
         alerts.append({
@@ -5556,7 +5556,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "favorites",
             "priority": 58,
             "title": "Personaliza tu experiencia",
-            "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean m?s útiles.",
+            "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.",
             "href": "/favorites",
             "badge": "PERSONALIZA",
         })
@@ -5565,7 +5565,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "telegram",
             "priority": 52,
             "title": "Telegram pendiente de configurar",
-            "body": "Cuando est? conectado podr?s recibir partidos del día, picks y alertas premium.",
+            "body": "Cuando está conectado podrás recibir partidos del día, picks y alertas premium.",
             "href": "/telegram",
             "badge": "TELEGRAM",
         })
@@ -5574,10 +5574,10 @@ def build_client_alerts(limit=12, user_id=None):
         alerts.append({
             "type": "match",
             "priority": 70,
-            "title": "Pr?ximo partido destacado",
+            "title": "Próximo partido destacado",
             "body": f"{first.get('home_team')} vs {first.get('away_team')} - {first.get('competition_name') or first.get('league_name') or 'Competición'}",
             "href": f"/match/{first.get('id')}",
-            "badge": "PR?XIMO",
+            "badge": "PRÓXIMO",
         })
     alerts = sorted(alerts, key=lambda x: x.get("priority", 0), reverse=True)
     return alerts[: int(limit)]
@@ -5643,7 +5643,7 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     if favs:
         priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
     if upcoming:
-        priorities.append({"label": "Pr?ximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
+        priorities.append({"label": "Próximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
     if not priorities:
         priorities.append({"label": "Sincronización pendiente", "value": "OK", "href": "/match-hub", "tone": "empty"})
     return {
@@ -5671,7 +5671,7 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
         "message": (
             "Tienes contenido listo para revisar hoy."
             if (today_matches or upcoming or picks or favs)
-            else "A?n faltan datos sincronizados; la app mostrar? contenido real cuando entren SportsDB, Odds o import legal."
+            else "Aún faltan datos sincronizados; la app mostrar? contenido real cuando entren SportsDB, Odds o import legal."
         ),
     }
 
@@ -5845,7 +5845,7 @@ def annotate_match(match, favs=None):
         match["live_depth"]["minute"] = "FT"
     elif match["status_info"].get("is_upcoming"):
         match["live_depth"]["state"] = "UPCOMING"
-        match["live_depth"]["label"] = "Pr?ximo"
+        match["live_depth"]["label"] = "Próximo"
         match["live_depth"]["badge"] = "upcoming"
         match["live_depth"]["minute"] = jinja_match_time_short(match) if has_request_context() else (normalize_kickoff_for_display(match).get("madrid_time") or "Hora")
         if not (match.get("home_score") or match.get("away_score") or match.get("score")):
@@ -5956,7 +5956,7 @@ def team_lookup(team_id):
     team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
     if team:
         return team
-    # Crear vista virtual m?nima si el equipo aparece en partidos pero todavía no existe en teams.
+    # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
     sample = one("""SELECT home_team AS name, home_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(home_team)=lower(?)
                     UNION ALL
                     SELECT away_team AS name, away_logo AS logo_url, country, competition_name AS league FROM matches WHERE lower(away_team)=lower(?) LIMIT 1""", (str(team_id or ""), str(team_id or "")))
@@ -6297,7 +6297,7 @@ def _player_primary_fact(player_id, player_rows):
         "team_name": source_row.get("team_name"),
         "position": source_row.get("position"),
         "shirt_number": source_row.get("number") or source_row.get("shirt_number"),
-        "status": source_row.get("status") or ("Con registros" if any((lineups, injuries, events)) else "Informacion parcial"),
+        "status": source_row.get("status") or ("Con registros" if any((lineups, injuries, events)) else "Información parcial"),
         "injury_status": source_row.get("reason") if injuries else None,
         "source": source_row.get("source") or "route_fallback",
     }
@@ -6403,13 +6403,13 @@ def shark_context_summary(context):
     pieces = [f"Contexto SHARK para {team} preparado con datos cacheados reales."]
     if upcoming:
         first = upcoming[0]
-        pieces.append(f"Pr?ximo partido: {first.get('home_team')} vs {first.get('away_team')} ({client_match_display_context(first).get('client_full_datetime_label')}).")
+        pieces.append(f"Próximo partido: {first.get('home_team')} vs {first.get('away_team')} ({client_match_display_context(first).get('client_full_datetime_label')}).")
     else:
         pieces.append("No hay próximos partidos sincronizados para este equipo todavía.")
     if picks:
         pieces.append(f"Hay {len(picks)} picks relacionados publicados o preparados.")
     else:
-        pieces.append("A?n no hay picks relacionados publicados.")
+        pieces.append("Aún no hay picks relacionados publicados.")
     return " ".join(pieces)
 
 
@@ -6527,7 +6527,7 @@ def match_depth_payload(match, *, preannotated=False, timeline=None, related_pic
     if h2h:
         shark_notes.append(f"Hay {len(h2h)} enfrentamientos directos guardados para comparar contexto.")
     else:
-        shark_notes.append("A?n no hay hist?rico directo suficiente guardado para este cruce.")
+        shark_notes.append("Aún no hay histórico directo suficiente guardado para este cruce.")
     if picks:
         shark_notes.append(f"Hay {len(picks)} picks relacionados publicados o preparados para este partido.")
     else:
@@ -6535,7 +6535,7 @@ def match_depth_payload(match, *, preannotated=False, timeline=None, related_pic
     if live_depth.get("state") in {"LIVE", "HT"}:
         shark_notes.append("Partido activo: priorizar lectura live y evitar decisiones tardías sin revisar marcador/minuto.")
     elif live_depth.get("state") == "FT":
-        shark_notes.append("Partido finalizado: útil para hist?rico, forma y aprendizaje futuro.")
+        shark_notes.append("Partido finalizado: útil para histórico, forma y aprendizaje futuro.")
     else:
         shark_notes.append("Partido próximo: contexto preparado para picks, favoritos y alertas.")
     quality = _match_data_quality(annotated, picks)
@@ -6623,13 +6623,13 @@ def league_category(match):
     country = str(match.get("country") or "").lower()
     text = f"{comp} {comp_name}"
     if any(x in text for x in ["andalucia", "cadiz", "sevilla", "malaga", "granada", "cordoba", "huelva", "jaen", "almeria"]):
-        return "Andaluc?a"
+        return "Andalucía"
     if any(x in text for x in ["champions", "europa league", "conference", "uefa"]):
         return "UEFA"
     if any(x in text for x in ["world", "euro", "copa america", "copa-america", "nations league"]):
         return "Selecciones"
     if country == "spain" or any(x in text for x in ["laliga", "rfef", "segunda", "tercera"]):
-        return "Espa?a"
+        return "España"
     return "Internacional"
 
 
@@ -6641,7 +6641,7 @@ def date_display_label(date_value):
     try:
         target = datetime.fromisoformat(str(date_value)).date()
         today = datetime.now(TZ).date()
-        weekdays = ["lunes", "martes", "mi?rcoles", "jueves", "viernes", "s?bado", "domingo"]
+        weekdays = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
         if target == today:
             prefix = "Hoy"
         elif target == today + timedelta(days=1):
@@ -6734,7 +6734,7 @@ def pick_candidate_matches(limit=80, days=21):
         info = canonical_match_status(match)
         if info.get("is_upcoming") and match.get("home_team") and match.get("away_team"):
             annotated = annotate_match(match)
-            annotated["pick_readiness"] = "Listo para an?lisis" if (match.get("bookmaker") or match.get("odds_h2h_json")) else "Sin cuota todavía"
+            annotated["pick_readiness"] = "Listo para análisis" if (match.get("bookmaker") or match.get("odds_h2h_json")) else "Sin cuota todavía"
             candidates.append(annotated)
         if len(candidates) >= limit:
             break
@@ -6749,7 +6749,7 @@ def build_combi_candidates_from_matches(count=3):
         "matches": matches[:count],
         "available": len(matches),
         "mode": "partidos_reales_proximos",
-        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o an?lisis admin; no se fabrican apuestas falsas.",
+        "notice": "Base real de partidos próximos. La selección final debe salir de picks publicados o análisis admin; no se fabrican apuestas falsas.",
     }
 
 
@@ -6757,7 +6757,7 @@ def smart_pick_board(user=None, limit=24):
     """Panel comercial de picks con ranking de calidad SHARK.
 
     Solo muestra como premium picks con cuota real, selección clara y calidad
-    suficiente. Lo dudoso queda en estudio para no vender se?ales d?biles.
+    suficiente. Lo dudoso queda en estudio para no vender señales débiles.
     """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     published = sort_picks_by_quality(published_picks_for_user(user, limit=max(limit, 50)))
@@ -7227,7 +7227,7 @@ def client_match_display_context(match):
     elif status_info.get("is_live") or any(x in status_key for x in ("live", "directo", "inplay", "1h", "2h")) or minute:
         status_label = f"En directo - {minute}" if minute else "En directo"
     else:
-        status_label = "Pr?ximo"
+        status_label = "Próximo"
     if time_label and time_label != "Hora pendiente":
         datetime_label = f"{date_label} - {time_label}"
         full_label = (f"{date_label} - {safe_date} - {time_label} - Madrid" if safe_date and safe_date not in date_label else f"{datetime_label} - Madrid")
@@ -7235,7 +7235,7 @@ def client_match_display_context(match):
         datetime_label = f"{date_label} - Hora pendiente"
         full_label = f"{datetime_label} - Madrid" if "Madrid" not in datetime_label else datetime_label
     item.update({
-        "client_timezone_label": "Hora oficial de Espa?a (Madrid)",
+        "client_timezone_label": "Hora oficial de España (Madrid)",
         "client_home": home,
         "client_away": away,
         "client_teams": f"{home} vs {away}",
@@ -7307,10 +7307,10 @@ def enrich_pick_client_context(pick):
         pick_state = "Selección pendiente"
     elif odds_missing:
         pick_state = "Cuota pendiente"
-    elif any(token in raw_status for token in ("revision", "revisi?n", "review", "draft", "study", "pending")):
-        pick_state = "Pick en revisi?n"
+    elif any(token in raw_status for token in ("revision", "revisión", "review", "draft", "study", "pending")):
+        pick_state = "Pick en revisión"
     else:
-        pick_state = pick.get("app_pick_state") or "Pick en revisi?n"
+        pick_state = pick.get("app_pick_state") or "Pick en revisión"
     pick["client_market_label"] = market
     pick["client_selection_label"] = selection
     pick["client_pick_title"] = f"{selection} - {market}" if market and market != selection else selection
@@ -7471,8 +7471,8 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         factor("Cuota utilizable y fresca", odds_points, 15)
         factor("Fuente confirmada", 15 if _v937_present(data_source) else 0, 15)
         factor("Marca temporal", 10 if _v937_present(timestamp) else 0, 10)
-        factor("Estado can?nico", 10 if lifecycle not in {"", "INCOMPLETE"} else 0, 10)
-        factor("Riesgo y explicaci?n", 10 if _v937_present(reasoning) and _v937_present(risk) else 5 if _v937_present(reasoning) or _v937_present(risk) else 0, 10)
+        factor("Estado canónico", 10 if lifecycle not in {"", "INCOMPLETE"} else 0, 10)
+        factor("Riesgo y explicación", 10 if _v937_present(reasoning) and _v937_present(risk) else 5 if _v937_present(reasoning) or _v937_present(risk) else 0, 10)
     elif kind == "odds":
         odds = _v937_number(source.get("odds") or source.get("price") or source.get("client_odds_label"))
         data_source = source.get("odds_source") or source.get("source")
@@ -7508,14 +7508,14 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         factor("Fecha y hora Madrid", 15 if _v937_present(kickoff) else 0, 15)
         factor("Fuente confirmada", 15 if _v937_present(data_source) else 0, 15)
         factor("Marca temporal", 10 if _v937_present(timestamp) else 0, 10)
-        factor("Estado can?nico", 10 if lifecycle != "INCOMPLETE" else 0, 10)
+        factor("Estado canónico", 10 if lifecycle != "INCOMPLETE" else 0, 10)
         factor("Evidencia del estado", evidence_points, 15)
 
     score = int(round(100 * sum(part["points"] for part in factors) / max(1, sum(part["maximum"] for part in factors))))
     if score >= 85:
         label, tone = "Alta", "success"
     elif score >= 70:
-        label, tone = "S?lida", "cyan"
+        label, tone = "Sólida", "cyan"
     elif score >= 50:
         label, tone = "Limitada", "warning"
     else:
@@ -7527,7 +7527,7 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         "tone": tone,
         "factors": factors,
         "missing": missing,
-        "summary": "Calidad alta y trazable." if score >= 85 else "Utilizable con límites visibles." if score >= 70 else "Requiere revisar la evidencia disponible." if score >= 50 else "No hay evidencia suficiente para sostener una decisi?n.",
+        "summary": "Calidad alta y trazable." if score >= 85 else "utilizable con límites visibles." if score >= 70 else "Requiere revisar la evidencia disponible." if score >= 50 else "No hay evidencia suficiente para sostener una decisi?n.",
         "disclaimer": "Mide calidad del dato, no probabilidad de ganar.",
     }
 
@@ -7537,19 +7537,19 @@ def get_v937_attention_priority(match):
     lifecycle = str(item.get("v935_lifecycle") or "INCOMPLETE")
     has_pick = bool(item.get("has_pick") or item.get("pick_id") or item.get("published_pick"))
     if lifecycle == "LIVE":
-        level, label = (5, "Atenci?n inmediata") if has_pick else (4, "En directo")
+        level, label = (5, "Atención inmediata") if has_pick else (4, "En directo")
     elif lifecycle == "HALFTIME":
         level, label = 4, "Descanso"
     elif lifecycle == "UPCOMING" and has_pick:
-        level, label = 4, "Con an?lisis"
+        level, label = 4, "Con análisis"
     elif lifecycle == "UPCOMING":
-        level, label = 3, "Pr?ximo"
+        level, label = 3, "Próximo"
     elif lifecycle in {"FINISHED", "ARCHIVED"}:
         level, label = 2, "Resultado disponible"
     elif lifecycle == "RESULT_PENDING":
         level, label = 2, "Resultado pendiente"
     else:
-        level, label = 1, "Requiere revisi?n"
+        level, label = 1, "Requiere revisión"
     return {"level": level, "label": label, "lifecycle": lifecycle, "disclaimer": "Prioridad informativa, no valor de apuesta."}
 
 
@@ -7557,13 +7557,13 @@ def get_v937_pick_learning(pick):
     item = v935_enrich_pick_lifecycle(dict(pick or {})) if isinstance(pick, dict) else {}
     lifecycle = str(item.get("v935_lifecycle") or "INCOMPLETE")
     if lifecycle == "WON":
-        return {"label": "Hipótesis cumplida", "tone": "success", "detail": "El resultado cerr? a favor; revisa tambi?n cuota y riesgo asumido."}
+        return {"label": "Hipótesis cumplida", "tone": "success", "detail": "El resultado cerró a favor; revisa también cuota y riesgo asumido."}
     if lifecycle == "LOST":
         return {"label": "Hipótesis no cumplida", "tone": "danger", "detail": "El resultado no validó la selección; conserva la evidencia para aprendizaje."}
     if lifecycle == "VOID":
-        return {"label": "Sin evaluaci?n", "tone": "neutral", "detail": "El pick qued? void y no debe alterar el rendimiento."}
+        return {"label": "Sin evaluación", "tone": "neutral", "detail": "El pick quedó void y no debe alterar el rendimiento."}
     if lifecycle in {"EXPIRED", "CANCELLED", "ARCHIVED"}:
-        return {"label": "Cierre no evaluable", "tone": "warning", "detail": "El expediente permanece trazable, fuera de ROI si no existe grading v?lido."}
+        return {"label": "Cierre no evaluable", "tone": "warning", "detail": "El expediente permanece trazable, fuera de ROI si no existe grading válido."}
     return {"label": "Pendiente", "tone": "warning", "detail": "Todavía no existe un resultado evaluable."}
 
 
@@ -7712,7 +7712,7 @@ def create_user(name, username, email, password, role="FREE", membership="FREE")
     cur = conn.cursor()
     try:
         if not username_available(conn, username):
-            raise ValueError("Ese nombre de usuario ya esta registrado.")
+            raise ValueError("Ese nombre de usuario ya está registrado.")
         cur.execute(
             """INSERT INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
                VALUES (?,?,?,?,?,?,?,?,?)""",
@@ -7722,8 +7722,8 @@ def create_user(name, username, email, password, role="FREE", membership="FREE")
     except sqlite3.IntegrityError as exc:
         message = str(exc).lower()
         if "username" in message:
-            raise ValueError("Ese nombre de usuario ya esta registrado.") from exc
-        raise ValueError("Ese email ya esta registrado.") from exc
+            raise ValueError("Ese nombre de usuario ya está registrado.") from exc
+        raise ValueError("Ese email ya está registrado.") from exc
     finally:
         conn.close()
     return get_user_by_email(email)
@@ -7741,7 +7741,7 @@ def authenticate_user(identifier, password, admin_only=False):
     except Exception:
         valid_password = False
     # Compatibilidad defensiva: si alguna DB legacy guard? texto plano, permitir entrada
-    # y rehashear inmediatamente para no dejar la contrase?a en claro.
+    # y rehashear inmediatamente para no dejar la contraseña en claro.
     needs_rehash = False
     if not valid_password and stored_hash and stored_hash == raw_password:
         valid_password = True
@@ -7846,7 +7846,7 @@ def mark_password_reset_used(token):
 def reset_user_password(user_id, password):
     password = str(password or "")
     if len(password) < 8:
-        raise ValueError("La contrase?a debe tener al menos 8 caracteres.")
+        raise ValueError("La contraseña debe tener al menos 8 caracteres.")
     conn = db()
     conn.execute("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(password), user_id))
     conn.commit()
@@ -7863,12 +7863,12 @@ def password_reset_request(identifier, scope="client"):
         reset_url = url_for(endpoint, token=token, _external=True)
         body = (
             "Hola,\n\n"
-            "Hemos recibido una solicitud para restablecer tu contrase?a de NeMeSiS SHARK PRO.\n"
+            "Hemos recibido una solicitud para restablecer tu contraseña de NeMeSiS SHARK PRO.\n"
             "El enlace caduca en 30 minutos y solo puede usarse una vez:\n\n"
             f"{reset_url}\n\n"
             "Si no has solicitado este cambio, ignora este mensaje."
         )
-        delivery = send_email_message(user.get("email"), "Restablecer contrase?a - NeMeSiS SHARK PRO", body)
+        delivery = send_email_message(user.get("email"), "Restablecer contraseña - NeMeSiS SHARK PRO", body)
     try:
         telegram_log("security", "password_reset_requested", "Solicitud de recuperaci?n registrada.", {
             "scope": scope,
@@ -7995,13 +7995,13 @@ def import_users_from_old_database(path=None):
         columns = [row["name"] for row in info]
         email_col = legacy_column(columns, "email", "correo", "mail")
         password_hash_col = legacy_column(columns, "password_hash", "pass_hash", "hash")
-        password_col = legacy_column(columns, "password", "contrasena", "contrase?a", "clave")
+        password_col = legacy_column(columns, "password", "contrasena", "contraseña", "clave")
         name_col = legacy_column(columns, "name", "nombre", "display_name")
         username_col = legacy_column(columns, "username", "user", "usuario")
         role_col = legacy_column(columns, "role", "rol")
         membership_col = legacy_column(columns, "membership", "membresia", "plan")
         created_col = legacy_column(columns, "created_at", "alta", "created")
-        last_login_col = legacy_column(columns, "last_login", "ultimo_login")
+        last_login_col = legacy_column(columns, "last_login", "último_login")
         if not email_col or not (password_hash_col or password_col):
             result["errors"].append("La tabla antigua no tiene email y password/password_hash suficientes.")
             return result
@@ -8139,12 +8139,12 @@ def shark_briefing(sports_summary=None):
         "priority": [
             "Publicar solo picks con cuota real y mercado claro.",
             "Separar oportunidades en estudio de picks premium listos.",
-            "Usar stake responsable: mejor pocos picks buenos que muchas se?ales medias.",
+            "Usar stake responsable: mejor pocos picks buenos que muchas señales medias.",
         ],
         "picks": picks,
         "quality_groups": quality_groups,
         "explained_picks": explained,
-        "legal_policy": "NeMeSiS ofrece an?lisis deportivo y se?ales de valor; no garantiza resultados. Apuesta siempre con responsabilidad.",
+        "legal_policy": "NeMeSiS ofrece análisis deportivo y señales de valor; no garantiza resultados. Apuestá siempre con responsabilidad.",
     }
 
 
@@ -8169,7 +8169,7 @@ def _shark_line_match(match):
     comp = spanish_competition_name(match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición")
     time = client_match_display_context(match).get("client_full_datetime_label") or match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
     live_depth = match.get("live_depth") or {}
-    status = live_depth.get("label") or match.get("status") or "Pr?ximo"
+    status = live_depth.get("label") or match.get("status") or "Próximo"
     score = live_depth.get("score") or match.get("score") or ""
     suffix = f" - {score}" if score else ""
     return f"{time} - {home} vs {away} - {comp} - {status}{suffix}"
@@ -8188,7 +8188,7 @@ def _shark_pick_parts(pick):
     confidence = as_int(pick.get("confidence") or pick.get("quality_score"), 50)
     qscore = as_int(pick.get("quality_score"), confidence)
     risk = pick.get("risk_level") or "MEDIO"
-    reason = pick.get("reasoning") or "SHARK detecta mercado claro, cuota real y se?al suficiente para revisarlo como pick premium."
+    reason = pick.get("reasoning") or "SHARK detecta mercado claro, cuota real y señal suficiente para revisarlo como pick premium."
     caution = pick.get("warning_reason") or "Revisa alineaciones antes de entrar y no subas stake si la cuota baja demasiado."
     return {
         "home": home,
@@ -8270,7 +8270,7 @@ def _shark_recommendation_lines(limit=4):
         score = as_int(rec.get("quality_score") or rec.get("shark_score") or rec.get("score"), 0)
         odds = as_float(rec.get("odds") or rec.get("odds_value"), 0)
         odds_txt = f" - cuota {odds:.2f}" if odds > 1 else " - cuota pendiente"
-        label = rec.get("quality_label") or "Se?al SHARK"
+        label = rec.get("quality_label") or "Señal SHARK"
         lines.append(f"{home} vs {away} - {comp}: {selection}{odds_txt} - {label} {score}/100")
         if len(lines) >= limit:
             break
@@ -8403,10 +8403,10 @@ def v845_shark_admin_summary():
         "safe_answers": True,
         "test_answer": v845_build_fallback_answer("estado", sample_context).get("answer", "")[:420],
         "rules": [
-            "No inventa picks, cuotas, marcadores, minutos, estad?sticas ni ROI.",
+            "No inventa picks, cuotas, marcadores, minutos, estadísticas ni ROI.",
             "Explica riesgo y recomienda esperar si faltan datos.",
-            "Usa Telegram V844 solo como criterio de calidad, no env?a mensajes reales desde SHARK.",
-            "No expone claves ni errores t?cnicos al cliente.",
+            "Usa Telegram V844 solo como criterio de calidad, no envía mensajes reales desde SHARK.",
+            "No expone claves ni errores técnicos al cliente.",
         ],
     }
     return base
@@ -8444,7 +8444,7 @@ def shark_answer(question):
             "Lectura SHARK de riesgo:\n\n"
             "Ahora mismo evitaría entrar fuerte en cualquier selección sin cuota real, mercado claro o motivo completo.\n"
             "Tambi?n evitaría combinadas largas si no hay al menos 9 picks premium limpios.\n\n"
-            "Se?ales que dejar?a en estudio:\n"
+            "Señales que dejar?a en estudio:\n"
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
         )
         next_url = "/picks"
@@ -8469,7 +8469,7 @@ def shark_answer(question):
                 f"Selecciones: {len(usable)}\n"
                 f"Cuota total aproximada: {total:.2f}\n"
                 f"Riesgo: {risk}\n"
-                f"Recomendaci?n: {warning}\n\n"
+                f"Recomendación: {warning}\n\n"
                 + "\n".join(f"{i+1}. {_shark_line_pick(p)}" for i, p in enumerate(usable))
             )
         else:
@@ -8508,7 +8508,7 @@ def shark_answer(question):
         rec_lines = _shark_recommendation_lines(limit=5)
         body = (
             "Radar SHARK de value:\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay se?ales de valor suficientes ahora mismo.")
+            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay señales de valor suficientes ahora mismo.")
             + "\n\nValue no significa pick seguro: si la cuota está pendiente o el mercado cambia, se queda en estudio."
         )
         next_url = "/recommendations"
@@ -8521,7 +8521,7 @@ def shark_answer(question):
         body = (
             f"Directo SHARK:\n{hub['counts'].get('live', len(live_matches))} partidos en directo y {hub['counts'].get('upcoming', 0)} próximos.\n\n"
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Sin directos reales ahora mismo. En cuanto entren minuto y marcador, los priorizo aquí.")
-            + "\n\nEn live solo entrar?a con se?al fuerte y stake m?nimo."
+            + "\n\nEn live solo entraría con señal fuerte y stake mínimo."
         )
         next_url = "/live"
         actions = _shark_actions(("Abrir directo", "/live"), ("Ver calendario", "/calendar"))
@@ -8550,7 +8550,7 @@ def shark_answer(question):
             f"Riesgo general: {briefing['risk']['level']}\n\n"
         )
         if best_pick:
-            body += _shark_card_pick(best_pick[0], "Pick m?s claro")
+            body += _shark_card_pick(best_pick[0], "Pick más claro")
         elif rec_lines:
             body += "Oportunidades a revisar:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines))
         else:
@@ -8711,7 +8711,7 @@ def update_telegram_settings(payload):
     )
     conn.commit()
     conn.close()
-    telegram_log("settings", "updated", "Configuracion Telegram actualizada.", merged)
+    telegram_log("settings", "updated", "Configuración Telegram actualizada.", merged)
     return get_telegram_settings()
 
 
@@ -8800,7 +8800,7 @@ def link_telegram_chat_by_code(code, chat_id, username="", first_name=""):
     seed_core()
     clean = str(code or "").strip().upper().replace("/LINK", "").replace("/START", "").strip()
     if not clean:
-        return {"ok": False, "status": "NO_CODE", "message": "Falta codigo de vinculacion."}
+        return {"ok": False, "status": "NO_CODE", "message": "Falta código de vinculacion."}
     user = one("SELECT * FROM users WHERE UPPER(telegram_link_code)=?", (clean,))
     if not user:
         telegram_log("link", "failed", "Codigo Telegram no encontrado.", {"code": clean, "chat_id": str(chat_id)})
@@ -9461,14 +9461,14 @@ def telegram_candidate_fix_suggestion(reason, item=None, window=None):
         "MISSING_MATCH_TIME": "A?adir hora de inicio o kickoff ISO. Solo fecha no basta para Telegram automático.",
         "OLD_MATCH": "No enviar: el partido ya está pasado según hora Madrid.",
         "MATCH_STARTED": "No enviar como pick prepartido: el partido ya empez?.",
-        "TOO_EARLY": f"Esperar a ventana previa. Pr?xima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
-        "TOO_LATE": "No enviar: queda menos del margen m?nimo antes del inicio.",
-        "WAITING_FOR_PRO_SLOT": f"El pick es futuro y v?lido, pero espera slot profesional. Pr?xima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
+        "TOO_EARLY": f"Esperar a ventana previa. Próxima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
+        "TOO_LATE": "No enviar: queda menos del margen mínimo antes del inicio.",
+        "WAITING_FOR_PRO_SLOT": f"El pick es futuro y válido, pero espera slot profesional. Próxima ventana: {window.get('next_send_window_madrid') or telegram_next_pick_send_window() or 'pendiente'}.",
         "NO_DESTINATION": "Configurar TELEGRAM_CHAT_ID o usuario privado vinculado.",
-        "DUPLICATE_ALREADY_SENT": "No reenviar: ya existe env?o automático para ese pick/destino/mercado.",
-        "NOT_TELEGRAM_ELIGIBLE": "No cumple score, riesgo o calidad m?nima para Telegram.",
+        "DUPLICATE_ALREADY_SENT": "No reenviar: ya existe envío automático para ese pick/destino/mercado.",
+        "NOT_TELEGRAM_ELIGIBLE": "No cumple score, riesgo o calidad mínima para Telegram.",
     }
-    return suggestions.get(reason, "Revisar datos del pick en Command Center.")
+    return suggestions.get(reason, "Revisar datos del pick en Centro de mando.")
 
 
 def _sqlite_table_columns(table):
@@ -9604,7 +9604,7 @@ def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
         risk_raw = str(pick.get("risk_level") or pick.get("risk") or "").lower()
         if ("alto" in risk_raw or "high" in risk_raw) and score < cfg["elite_pick_score"]:
             reason_counts["NOT_TELEGRAM_ELIGIBLE"] = reason_counts.get("NOT_TELEGRAM_ELIGIBLE", 0) + 1
-            item = {**base, "eligible": False, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score, "fix_suggestion": "Riesgo alto: requiere score ELITE o revisi?n manual."}
+            item = {**base, "eligible": False, "reason": "NOT_TELEGRAM_ELIGIBLE", "reasons": ["NOT_TELEGRAM_ELIGIBLE"], "score": score, "fix_suggestion": "Riesgo alto: requiere score ELITE o revisión manual."}
             discarded.append(item)
             reviewed_items.append(item)
             continue
@@ -10083,7 +10083,7 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     body = build_daily_matches_message()
     if not body:
-        return {"ok": True, "status": "SKIPPED_NO_TOP_MATCHES", "message": "No se envi? nada: no hab?a partidos top suficientes para Telegram.", "processed": 0, "inserted": 0, "updated": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["SKIPPED_NO_TOP_MATCHES"]}
+        return {"ok": True, "status": "SKIPPED_NO_TOP_MATCHES", "message": "No se envió nada: no había partidos top suficientes para Telegram.", "processed": 0, "inserted": 0, "updated": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["SKIPPED_NO_TOP_MATCHES"]}
     inserted = skipped = 0
     for sub in subscribers:
         result = enqueue_telegram_message(
@@ -10104,10 +10104,10 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_picks_start"], cfg["daily_picks_end"]):
-        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Picks diarios fuera de ventana PRO; no se fuerza envio.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
+        return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Picks diarios fuera de ventana PRO; no se fuerza envío.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     body = build_daily_picks_message(force_empty=force_empty)
     if not body:
-        return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks premium activos ahora mismo. SHARK esta esperando valor real.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_ELIGIBLE_PICKS"]}
+        return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks premium activos ahora mismo. SHARK está esperando valor real.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_ELIGIBLE_PICKS"]}
     subscribers = telegram_auto_destinations("PRO", include_global=True)
     if forced_chat_id and not subscribers:
         subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
@@ -10244,7 +10244,7 @@ def telegram_plain_text_from_html(value):
 def telegram_error_category(description):
     desc = str(description or "").lower()
     if not desc:
-        return "UNKNOWN_ERROR", "Telegram devolvi? un error sin descripci?n."
+        return "UNKNOWN_ERROR", "Telegram devolvió un error sin descripción."
     if "chat not found" in desc or "peer_id_invalid" in desc:
         return "CHAT_NOT_FOUND", "Revisa TELEGRAM_CHAT_ID. En canales suele empezar por -100 y el bot debe estar dentro."
     if "bot was blocked" in desc or "blocked by the user" in desc:
@@ -10252,16 +10252,16 @@ def telegram_error_category(description):
     if "not enough rights" in desc or "not a member" in desc or "administrator" in desc:
         return "BOT_NOT_ADMIN_OR_MEMBER", "A?ade el bot al canal/grupo y dale permisos para publicar."
     if "can't parse entities" in desc or "parse entities" in desc or "unsupported start tag" in desc:
-        return "HTML_PARSE_ERROR", "El mensaje ten?a HTML inv?lido; la app reintenta automáticamente en texto plano."
+        return "HTML_PARSE_ERROR", "El mensaje tenía HTML inválido; la app reintenta automáticamente en texto plano."
     if "message is too long" in desc:
-        return "MESSAGE_TOO_LONG", "El mensaje supera el l?mite de Telegram; reduce texto o picks por env?o."
+        return "MESSAGE_TOO_LONG", "El mensaje supera el límite de Telegram; reduce texto o picks por envío."
     if "too many requests" in desc or "retry after" in desc or "429" in desc:
-        return "RATE_LIMITED", "Telegram ha limitado temporalmente los env?os; espera y reintenta."
+        return "RATE_LIMITED", "Telegram ha limitado temporalmente los envíos; espera y reintenta."
     if "forbidden" in desc or "403" in desc:
         return "FORBIDDEN", "Telegram no permite enviar a ese destino con este bot."
     if "bad request" in desc or "400" in desc:
         return "BAD_REQUEST", "Petici?n rechazada por Telegram; revisa destino, botones o formato."
-    return "TELEGRAM_API_ERROR", "Error devuelto por Telegram; mira la descripci?n exacta en el panel."
+    return "TELEGRAM_API_ERROR", "Error devuelto por Telegram; mira la descripción exacta en el panel."
 
 
 def telegram_http_error_payload(exc):
@@ -10385,7 +10385,7 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
                 second["retry_plain"] = True
                 return second
             except Exception as retry_exc:
-                return {"ok": False, "sent": False, "status": "NETWORK_ERROR", "category": "NETWORK_ERROR", "action": "Reintento sin HTML fallido; revisa conexi?n/Render.", "error": str(retry_exc)[:700], "first_error": first, "retry_plain": True}
+                return {"ok": False, "sent": False, "status": "NETWORK_ERROR", "category": "NETWORK_ERROR", "action": "Reintento sin HTML fallido; revisa conexión/Render.", "error": str(retry_exc)[:700], "first_error": first, "retry_plain": True}
         return first
     except urllib.error.URLError as exc:
         return {"ok": False, "sent": False, "status": "NETWORK_ERROR", "category": "NETWORK_ERROR", "action": "Render no pudo conectar con api.telegram.org; reintenta o revisa red/salida.", "error": str(exc)[:700]}
@@ -10534,14 +10534,14 @@ def telegram_diagnostics():
     if not env_flags["AUTOMATION_SECRET"]:
         missing_required.append("AUTOMATION_SECRET para Render Cron")
     if missing_required:
-        automatic_status = "pendiente_configuracion"
+        automatic_status = "pendiente_configuración"
         automatic_reason = "Faltan variables: " + ", ".join(missing_required)
     elif not (settings.get("enabled") or telegram_env_should_enable()):
         automatic_status = "desactivado"
-        automatic_reason = "telegram_settings.enabled esta desactivado y las variables auto no lo activan."
+        automatic_reason = "telegram_settings.enabled está desactivado y las variables auto no lo activan."
     else:
         automatic_status = "funcionando" if ((one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,''))='auto_pick' AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0) or 0) > 0 else "preparado"
-        automatic_reason = "Preparado para cron. Sin envio auto_pick hoy todavia." if automatic_status == "preparado" else "Auto pick enviado hoy."
+        automatic_reason = "Preparado para cron. Sin envío auto_pick hoy todavia." if automatic_status == "preparado" else "Auto pick enviado hoy."
     pending = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=?", (QUEUE_PENDING,)) or {}).get("total", 0)
     sent_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND sent_at LIKE ?", (QUEUE_SENT, today + "%")) or {}).get("total", 0)
     failed_today = (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND updated_at LIKE ?", (QUEUE_FAILED, today + "%")) or {}).get("total", 0)
@@ -11228,7 +11228,7 @@ def telegram_daily_message():
     summary = briefing["summary"]
     return (
         "<b>NeMeSiS SHARK PRO</b>\n"
-        f"Version: {APP_VERSION}\n"
+        f"Versión: {APP_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
         "Cobertura: mundial, competiciones top, directo, resultados y picks con hora Madrid.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."
@@ -11512,7 +11512,7 @@ def annotate_sports_hub_matches(matches, picks=None):
         match["safe_competition"] = spanish_competition_name(match.get("safe_competition") or match.get("competition_name") or match.get("league_name") or match.get("competition_key") or "") or "Competición"
         match["safe_time"] = match.get("safe_time") or match.get("kickoff_time") or match.get("match_time") or live_depth.get("minute") or "Hora pendiente"
         match["safe_score"] = live_depth.get("score") or match.get("score") or "vs"
-        match["safe_status"] = live_depth.get("label") or match.get("status") or "Pr?ximo"
+        match["safe_status"] = live_depth.get("label") or match.get("status") or "Próximo"
         out.append(match)
     return out
 
@@ -11949,7 +11949,7 @@ def api_admin_not_found_events():
 
 
 def _home_count_sql(query, params=()):
-    """Contador ligero para home: no dispara APIs ni rompe si la DB a?n no existe."""
+    """Contador ligero para home: no dispara APIs ni rompe si la DB aún no existe."""
     try:
         conn = db()
         try:
@@ -11988,8 +11988,8 @@ def _v930_home_live_summary_data_legacy():
 
     V739 corrige el panel "Hoy en NeMeSiS": antes usaba home_light_data()
     con ceros estáticos para acelerar Render. Ahora consulta la SQLite real de forma
-    segura, sin llamar APIs externas, sin inventar partidos y sin romper si la DB a?n
-    está vac?a. Si no hay sincronización real, el estado visible será "Pendiente de
+    segura, sin llamar APIs externas, sin inventar partidos y sin romper si la DB aún
+    está vacía. Si no hay sincronización real, el estado visible será "Pendiente de
     sincronización" en vez de vender una cifra falsa.
     """
     today = today_iso()
@@ -12236,7 +12236,7 @@ def v932_record_authenticated_issue(route, error, scope="client", cause=""):
             "last_seen_madrid": now_iso(),
             "cause": str(cause or "authenticated_route_guard")[:180],
             "evidence": message or error_type,
-            "safe_message": "Fallo autenticado protegido y deduplicado; no contiene usuarios ni sesiones.",
+            "safe_message": "Fallo autenticado protegido y deduplicado; no contiene usuarios ni sesiónes.",
         })
         issue_path.parent.mkdir(parents=True, exist_ok=True)
         issue_path.write_text(
@@ -12681,7 +12681,7 @@ def _build_public_home_sports_summary():
         safe_message = "Hay registros pendientes de completar; no se muestran como partidos validos."
     elif storage_status == "database_locked":
         provider_status = "temporarily_unavailable"
-        safe_message = "La agenda esta ocupada temporalmente. La pagina sigue disponible sin inventar datos."
+        safe_message = "La agenda está ocupada temporalmente. La pagina sigue disponible sin inventar datos."
     else:
         provider_status = "waiting_for_sync"
         safe_message = "Sin agenda real completa disponible. Esperando sincronización."
@@ -12752,7 +12752,7 @@ def _v932_locked_sports_summary():
         "raw_matches_count": 0,
         "provider_status": "temporarily_unavailable",
         "last_sync": "",
-        "safe_message": "La agenda esta ocupada temporalmente. La pagina sigue disponible sin inventar datos.",
+        "safe_message": "La agenda está ocupada temporalmente. La pagina sigue disponible sin inventar datos.",
         "storage_status": "database_locked",
         "storage_attempts": 2,
         "storage_error_type": "OperationalError",
@@ -12866,7 +12866,7 @@ def home_live_summary_data(sports_summary=None):
 
 
 def home_light_data(sports_summary=None, include_payments=True):
-    """Datos seguros para / con resumen real de producci?n cuando exista DB."""
+    """Datos seguros para / con resumen real de producción cuando exista DB."""
     live = home_live_summary_data(sports_summary)
     counts = live.get("counts") or {}
     try:
@@ -13001,7 +13001,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "odds": {},
         "matches_diagnostics": {"status": summary.get("provider_status")},
         "client_lifecycle_sync": {"ok": True, "skipped": True, "no_render_api_call": True},
-        "client_source_label": "Datos locales disponibles" if upcoming else "Esperando sincronizacion",
+        "client_source_label": "Datos locales disponibles" if upcoming else "Esperando sincronización",
         "data_center": {},
         "live": {"live": live, "scheduled": upcoming, "finished": []},
         "home_summary": legacy_home,
@@ -13376,7 +13376,7 @@ def v758_adaptive_context(data=None, user=None, page_key=""):
             "mode_label": "Adaptativo",
             "device_hint": "Seguro",
             "headline": "Experiencia adaptativa SHARK",
-            "subtitle": "Vista PC y m?vil preparada con fallback seguro.",
+            "subtitle": "Vista PC y móvil preparada con fallback seguro.",
             "warnings": [str(exc)[:140]],
             "quick_actions": [
                 {"label": "Inicio", "href": "/app", "badge": "App"},
@@ -13507,7 +13507,7 @@ def _v764_competition_bucket(match):
         return "champions"
     if any(t in text for t in ["europa league", "conference league", "uefa"]):
         return "europe"
-    if any(t in text for t in ["laliga", "la liga", "spain", "espana", "espa?a", "segunda", "primera federacion"]):
+    if any(t in text for t in ["laliga", "la liga", "spain", "espana", "españa", "segunda", "primera federacion"]):
         return "spain"
     if any(t in text for t in ["premier", "england", "bundesliga", "serie a", "ligue 1", "portugal", "eredivisie"]):
         return "top_leagues"
@@ -13520,13 +13520,13 @@ def _v764_mode_label(mode_key):
         "world_cup": "Modo Mundial",
         "champions": "Modo Champions",
         "europe": "Modo Europa",
-        "spain": "Modo Espa?a",
+        "spain": "Modo España",
         "weekend": "Modo Fin de semana",
         "picks": "Modo Picks del día",
         "results": "Modo Resultados",
         "top_leagues": "Modo Ligas top",
         "agenda": "Modo Agenda",
-        "quiet": "Modo Pr?ximos focos",
+        "quiet": "Modo Próximos focos",
     }
     return labels.get(mode_key or "agenda", "Modo Agenda")
 
@@ -13537,7 +13537,7 @@ def _v764_mode_description(mode_key):
         "world_cup": "El Mundial o selecciones mandan: se priorizan partidos internacionales, picks vinculados y horarios Madrid.",
         "champions": "Jornada europea: Champions y competiciones UEFA suben al foco principal.",
         "europe": "Competición europea activa: se ordenan los partidos continentales y picks de mayor inter?s.",
-        "spain": "Foco Espa?a: LaLiga y competiciones nacionales suben en prioridad cuando est?n disponibles.",
+        "spain": "Foco España: LaLiga y competiciones nacionales suben en prioridad cuando están disponibles.",
         "weekend": "Fin de semana de f?tbol: agenda amplia con ligas top, picks y próximos directos.",
         "picks": "Hay picks activos: el cliente debe ver qué apostar, de qué partido es y cu?ndo se juega.",
         "results": "Hay partidos finalizados: se destacan resultados y picks pendientes de validar sin inventar ROI.",
@@ -13645,7 +13645,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
     elif finished:
         mode_key, reason = "results", "partidos finalizados recientes"
     elif buckets.get("spain"):
-        mode_key, reason = "spain", "foco Espa?a disponible"
+        mode_key, reason = "spain", "foco España disponible"
     elif now.weekday() in {4, 5, 6} and enriched:
         mode_key, reason = "weekend", "fin de semana con agenda"
     elif buckets.get("top_leagues"):
@@ -13669,10 +13669,10 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         "world_cup": {"label": "Abrir Mundial", "href": "/mundial"},
         "champions": {"label": "Ver jornada", "href": "/calendar?lane=top"},
         "europe": {"label": "Ver Europa", "href": "/calendar?lane=top"},
-        "spain": {"label": "Ver Espa?a", "href": "/calendar?lane=spain"},
+        "spain": {"label": "Ver España", "href": "/calendar?lane=spain"},
         "weekend": {"label": "Ver semana", "href": "/calendar?lane=week"},
         "picks": {"label": "Ver picks", "href": "/picks"},
-        "results": {"label": "Ver hist?rico", "href": "/track-record"},
+        "results": {"label": "Ver histórico", "href": "/track-record"},
         "top_leagues": {"label": "Ver ligas top", "href": "/calendar?lane=top"},
         "agenda": {"label": "Ver calendario", "href": "/calendar"},
         "quiet": {"label": "Ver próximos", "href": "/calendar?lane=upcoming"},
@@ -13808,7 +13808,7 @@ def v766_highlights_key_present():
 
 
 def v766_highlight_map(match_ids, limit_per_match=2):
-    """Mapa seguro match_id -> highlights guardados. No hace llamadas externas en p?ginas cliente."""
+    """Mapa seguro match_id -> highlights guardados. No hace llamadas externas en páginas cliente."""
     ids = [str(x or "").strip() for x in (match_ids or []) if str(x or "").strip()]
     if not ids:
         return {}
@@ -13884,8 +13884,8 @@ def v766_highlights_context(limit=12):
         "enriched_matches": summary.get("enriched_matches", 0),
         "latest": latest,
         "recent_runs": summary.get("recent_runs") or [],
-        "note": summary.get("note") or "Highlights desde API permitida. No se descargan ni se rehostean v?deos.",
-        "client_note": "Los resúmenes se muestran como enlaces externos cuando la API los aporta. NeMeSiS no descarga ni rehostea v?deos.",
+        "note": summary.get("note") or "Highlights desde API permitida. No se descargan ni se rehostean vídeos.",
+        "client_note": "Los resúmenes se muestran como enlaces externos cuando la API los aporta. NeMeSiS no descarga ni rehostea vídeos.",
     }
 
 
@@ -13901,7 +13901,7 @@ def v766_calendar_order_context(calendar=None):
         "rules": [
             "Directo primero cuando haya partidos en juego.",
             "Resultados finalizados con marcador y resumen si la API lo trae.",
-            "Pr?ximos partidos con día y hora Madrid visibles.",
+            "Próximos partidos con día y hora Madrid visibles.",
             "Picks siempre ligados a partido, mercado, cuota y riesgo.",
         ],
         "counts": {"live": len(live), "finished": len(finished), "upcoming": len(upcoming), "with_highlights": len(with_highlights)},
@@ -14042,10 +14042,10 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
     status = "ACTIVO" if base.get("key_present") and (available or pending or recent_runs) else ("CONFIGURADO" if base.get("key_present") else "FALTA KEY")
     if available:
         headline = "Centro de resúmenes activo"
-        description = "Resultados pasados con v?deo externo, partido enlazado y contexto de la app."
+        description = "Resultados pasados con vídeo externo, partido enlazado y contexto de la app."
     elif base.get("key_present"):
-        headline = "Res?menes listos para sincronizar"
-        description = "La key está configurada. El Cron a?adir? v?deos cuando TheSportsDB/YouTube los publique."
+        headline = "Resúmenes listos para sincronizar"
+        description = "La key está configurada. El Cron a?adir? vídeos cuando TheSportsDB/YouTube los publique."
     else:
         headline = "Activa la key de highlights"
         description = "Configura THESPORTSDB_API_KEY o THESPORTSDB_KEY en Render para detectar resúmenes automáticamente."
@@ -14082,7 +14082,7 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
             "command": "python tools/render_cron_highlights_sync.py",
             "recommended": "Cada día por la ma?ana y otra pasada por la noche en días con muchos partidos.",
         },
-        "rights_note": "Los v?deos se enlazan o embeben desde el proveedor externo permitido. NeMeSiS no descarga, copia ni rehostea contenido.",
+        "rights_note": "Los vídeos se enlazan o embeben desde el proveedor externo permitido. NeMeSiS no descarga, copia ni rehostea contenido.",
     }
 
 @app.route("/highlights")
@@ -14186,7 +14186,7 @@ CALENDAR_LANE_LABELS = {
     "today": "Hoy",
     "tomorrow": "Mañana",
     "week": "Semana",
-    "upcoming": "Pr?ximos",
+    "upcoming": "Próximos",
     "live": "Directo",
     "results": "Resultados",
     "finished": "Resultados",
@@ -14194,8 +14194,8 @@ CALENDAR_LANE_LABELS = {
     "with_pick": "Con pick",
     "picks": "Con pick",
     "top": "Top mundial",
-    "spain": "Espa?a",
-    "andalucia": "Andaluc?a",
+    "spain": "España",
+    "andalucia": "Andalucía",
     "international": "Internacional",
     "uefa": "UEFA",
     "national": "Selecciones",
@@ -14285,7 +14285,7 @@ def _calendar_enrich_matches(matches, picks):
         item["calendar_country"] = country
         item["calendar_date_label"] = jinja_match_date_label(item)
         item["calendar_time"] = live_depth.get("minute") if live_depth.get("badge") == "live" else jinja_match_time_short(item)
-        item["calendar_status"] = live_depth.get("label") or item.get("status") or "Pr?ximo"
+        item["calendar_status"] = live_depth.get("label") or item.get("status") or "Próximo"
         item["calendar_score"] = live_depth.get("score") or item.get("score") or "vs"
         item["calendar_rank"] = v565_league_rank(item)
         item["calendar_priority"] = max(0, 100 - int(item.get("calendar_rank") or 80))
@@ -14445,7 +14445,7 @@ def _calendar_href(**params):
 def _calendar_base_matches(lane, date):
     lane = (lane or "today").strip().lower()
     if lane == "andalucia":
-        # Andaluc?a vive dentro de Espa?a pero filtrada por nombre/competición.
+        # Andalucía vive dentro de España pero filtrada por nombre/competición.
         base = get_upcoming_matches(today_iso(), days=21, limit=520) + get_results_matches(today_iso(), days_back=10, limit=180)
         return [m for m in dedupe_matches_list(base) if match_lane_filter(m, "andalucia")]
     date = _safe_date_value(date)
@@ -14462,7 +14462,7 @@ def _calendar_base_matches(lane, date):
     if lane == "favorites":
         return favorite_feed_full().get("matches") or []
     if lane in {"with_pick", "picks"}:
-        # No limitar a hoy: el usuario necesita ver todos los partidos reales con se?al.
+        # No limitar a hoy: el usuario necesita ver todos los partidos reales con señal.
         return get_upcoming_matches(today_iso(), days=21, limit=620) + get_results_matches(today_iso(), days_back=7, limit=160)
     if lane in {"top", "international", "uefa", "national", "world", "spain"}:
         base = get_upcoming_matches(today_iso(), days=21, limit=620) + get_results_matches(today_iso(), days_back=7, limit=160)
@@ -14502,7 +14502,7 @@ def _calendar_important_shortcuts(matches, filters, limit=18):
             "href": _calendar_href(lane=lane, date=date, league=name),
             "active": normalized_label(filters.get("league") or "") == norm,
         })
-    # Prioriza las que tienen partidos reales en esta ventana, sin ocultar las top si a?n no han sincronizado.
+    # Prioriza las que tienen partidos reales en esta ventana, sin ocultar las top si aún no han sincronizado.
     shortcuts.sort(key=lambda x: (0 if x.get("count") else 1, x.get("group") != "spain", x.get("label")))
     return shortcuts[:limit]
 
@@ -14515,7 +14515,7 @@ def _calendar_league_collections(shortcuts):
     Solo reordena accesos ya calculados sobre datos reales/sincronizados; no crea partidos.
     """
     groups = [
-        ("spain", "Espa?a", "LaLiga, Copa, RFEF y foco Andaluc?a si está sincronizado"),
+        ("spain", "España", "LaLiga, Copa, RFEF y foco Andalucía si está sincronizado"),
         ("england", "Inglaterra", "Premier y competiciones inglesas principales"),
         ("europe", "Europa", "Champions, Europa League, Conference y grandes ligas"),
         ("national", "Selecciones", "Mundial, Euro, Nations y ventanas internacionales"),
@@ -14596,8 +14596,8 @@ def _calendar_source_summary(filters, counts):
     if lane == "live":
         return "No hay directo real ahora mismo. La app no fabrica marcadores."
     if lane in {"with_pick", "picks"}:
-        return "No hay picks publicados para esta ventana. SHARK no muestra se?ales falsas."
-    return "Esperando sincronización real de SportsDB, Odds API o importaci?n legal."
+        return "No hay picks publicados para esta ventana. SHARK no muestra señales falsas."
+    return "Esperando sincronización real de SportsDB, Odds API o importación legal."
 
 
 V940_CALENDAR_STATE_KEYS = (
@@ -14708,7 +14708,7 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
         or item.get("status_label")
         or item.get("display_status")
         or item.get("status")
-        or "Pr?ximo"
+        or "Próximo"
     )
     item["calendar_rank"] = int(item.get("calendar_rank") or 80)
     item["calendar_text"] = _calendar_match_text(item)
@@ -15020,7 +15020,7 @@ def calendar_experience_data():
         {"key": "live", "label": "Directo", "href": _calendar_href(lane="live"), "count": counts["live"]},
         {"key": "with_pick", "label": "Con pick", "href": _calendar_href(lane="with_pick"), "count": counts["picks"]},
         {"key": "top", "label": "Top mundial", "href": _calendar_href(lane="top"), "count": ""},
-        {"key": "spain", "label": "Espa?a", "href": _calendar_href(lane="spain"), "count": ""},
+        {"key": "spain", "label": "España", "href": _calendar_href(lane="spain"), "count": ""},
         {"key": "uefa", "label": "UEFA", "href": _calendar_href(lane="uefa"), "count": ""},
         {"key": "national", "label": "Selecciones", "href": _calendar_href(lane="national"), "count": ""},
         {"key": "results", "label": "Resultados", "href": _calendar_href(lane="results"), "count": ""},
@@ -15446,7 +15446,7 @@ def enforce_checkout_legal_gate(user: dict, plan: str):
         return False, (jsonify({
             "ok": False,
             "version": APP_VERSION,
-            "error": "Antes de pagar debes aceptar +18, t?rminos, privacidad, no garant?a y que NeMeSiS no es casa de apuestas.",
+            "error": "Antes de pagar debes aceptar +18, términos, privacidad, no garantía y que NeMeSiS no es casa de apuestas.",
             "legal_required": checkout_legal_checklist(),
         }), 400)
     qs = {"plan": selected or "PRO", "legal_pendiente": "1"}
@@ -15512,7 +15512,7 @@ def client_login_page():
             set_login_session(user)
             return _post_auth_redirect("/app")
         security_event_for_auth("login_attempt", False, identifier, "credenciales_cliente_invalidas")
-        error = "Email, usuario o contrase?a incorrectos."
+        error = "Email, usuario o contraseña incorrectos."
     if auth_backend_error:
         error = "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos."
     auth_data = home_light_data()
@@ -15530,7 +15530,7 @@ def forgot_password_page():
         security_event_for_auth("password_reset_request", True, identifier, "solicitud_cliente")
         result = password_reset_request(identifier, scope="client")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
-        message = "Si existe una cuenta con esos datos, recibir?s un enlace para restablecer la contrase?a."
+        message = "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña."
     return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
 
 
@@ -15569,7 +15569,7 @@ def admin_login_page():
             set_login_session(user)
             return redirect(_safe_admin_next(request.form.get("next") or request.args.get("next")))
         security_event_for_auth("login_attempt", False, request.form.get("login"), "credenciales_admin_invalidas")
-        error = "Acceso admin no v?lido."
+        error = "Acceso admin no válido."
     if auth_backend_error:
         error = "Acceso admin temporalmente no disponible. Int?ntalo de nuevo en unos minutos."
     return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
@@ -15584,7 +15584,7 @@ def admin_forgot_password_page():
         security_event_for_auth("password_reset_request", True, identifier, "solicitud_admin")
         result = password_reset_request(identifier, scope="admin")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
-        message = "Si existe una cuenta admin con esos datos, recibir?s un enlace para restablecer la contrase?a."
+        message = "Si existe una cuenta admin con esos datos, recibirás un enlace para restablecer la contraseña."
     return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
 
 
@@ -15732,7 +15732,7 @@ def admin_sportsdb_sync_page():
             refresh=request.form.get("refresh") in {"1", "true", "yes"},
             limit=as_int(request.form.get("limit"), 40),
         )
-        message = "Sincronizacion ejecutada: %s actualizados, %s fallidos." % (result.get("updated", 0), result.get("failed", 0))
+        message = "Sincronización ejecutada: %s actualizados, %s fallidos." % (result.get("updated", 0), result.get("failed", 0))
         if result.get("sin_key"):
             message = "Falta configurar THESPORTSDB_API_KEY o THESPORTSDB_KEY."
     data = dashboard_data()
@@ -15771,7 +15771,7 @@ def admin_matches_sync_page():
             result = sync_sportsdb_crests(refresh=True, limit=as_int(request.form.get("limit"), 40))
         else:
             result = sync_sportsdb_feed(limit=as_int(request.form.get("limit"), 80))
-        message = "Sincronizacion ejecutada."
+        message = "Sincronización ejecutada."
         if result and result.get("errors"):
             message += " Revisa errores recientes."
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
@@ -16144,7 +16144,7 @@ def api_admin_telegram_pick_dry_run():
     preview["dry_run"] = True
     preview["sent"] = False
     preview["queue_touched"] = False
-    preview["safe_note"] = "Dry-run V889: no envia Telegram real ni escribe en la cola."
+    preview["safe_note"] = "Dry-run V889: no envía Telegram real ni escribe en la cola."
     return jsonify(preview)
 
 
@@ -16161,7 +16161,7 @@ def api_admin_telegram_pick_quality_summary():
     summary.update({
         "version": APP_VERSION,
         "membership": str(membership or "PRO").upper(),
-        "no_filler_policy": "No hay envio si faltan cuota, seleccion, partido real o calidad suficiente.",
+        "no_filler_policy": "No hay envío si faltan cuota, seleccion, partido real o calidad suficiente.",
     })
     return jsonify(summary)
 
@@ -16201,7 +16201,7 @@ def api_admin_telegram_dry_run_premium_picks():
         "dry_run": True,
         "sent": False,
         "queue_touched": False,
-        "safe_note": "Dry-run premium V891: preview sin envio real y sin escribir cola.",
+        "safe_note": "Dry-run premium V891: preview sin envío real y sin escribir cola.",
     })
     return jsonify(preview)
 
@@ -16268,7 +16268,7 @@ def api_admin_telegram_preview_next():
 def api_admin_telegram_test_send():
     if not is_admin_session():
         return admin_json_forbidden()
-    text = f"Test Telegram NeMeSiS SHARK PRO - conexi?n correcta - hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
+    text = f"Test Telegram NeMeSiS SHARK PRO - conexión correcta - hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
     result = enqueue_telegram_message(
         "admin_connectivity_test",
         "Test Telegram controlado",
@@ -16402,7 +16402,7 @@ def admin_data_center_page():
             result = run_scheduler_task("live", force=True, limit=limit)
         elif action == "warmup":
             result = run_scheduler_task("warmup", force=True, limit=limit)
-        message = "Accion ejecutada desde Data Center."
+        message = "Accion ejecutada desde Centro de datos."
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
     sports = data.get("v932_sports_value") or {}
     data["data_center"] = v932_safe_context(
@@ -17059,7 +17059,7 @@ def api_admin_sentinel_issue_codex_prompt(issue_id):
 @app.route("/admin/sentinel-autopilot")
 @app.route("/admin/autopilot")
 @app.route("/admin/self-improvement")
-@app.route("/admin/mejoras-automaticas")
+@app.route("/admin/mejoras-automáticas")
 def admin_sentinel_autopilot_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/sentinel-autopilot")
@@ -17178,7 +17178,7 @@ def v901_register_admin_api_issue(route, exc, mode="", dry_run=True):
         error_type = type(exc).__name__
         evidence = v896_safe_request_text(f"{error_type}: {str(exc)}", 320)
         issue = {
-            "title": "Endpoint admin devolvi? error interno",
+            "title": "Endpoint admin devolvió error interno",
             "area": "admin_api",
             "severity": "critical",
             "route": route,
@@ -17242,7 +17242,7 @@ def api_admin_continuous_sentinel_run():
         return jsonify({
             "ok": False,
             "error": "continuous_sentinel_run_failed",
-            "safe_message": "No se pudo ejecutar la revisi?n. Se ha registrado la incidencia.",
+            "safe_message": "No se pudo ejecutar la revisión. Se ha registrado la incidencia.",
             "mode": mode,
             "dry_run": bool(dry_run),
             "version": APP_VERSION,
@@ -17692,13 +17692,13 @@ def shark_page():
         provider_message = "Render debe incluir API_FOOTBALL_KEY o API_SPORTS_KEY para activar fixtures/live reales."
     elif provider_status.get("last_error"):
         provider_label = "Esperando proveedor"
-        provider_message = "La clave existe, pero el ?ltimo estado del proveedor tiene error seguro. Se mantiene cach?/fallback."
+        provider_message = "La clave existe, pero el último estado del proveedor tiene error seguro. Se mantiene caché/fallback."
     elif provider_status.get("fixtures_cached") or provider_status.get("live_cached"):
-        provider_label = "Proveedor activo con cach?"
+        provider_label = "Proveedor activo con caché"
         provider_message = "La app tiene datos API-SPORTS/API-Football cacheados y no necesita llamar al proveedor en cada render."
     else:
-        provider_label = "Proveedor configurado sin cach? visible"
-        provider_message = "La clave está configurada, pero a?n no hay fixtures/live cacheados en las tablas detectadas."
+        provider_label = "Proveedor configurado sin caché visible"
+        provider_message = "La clave está configurada, pero aún no hay fixtures/live cacheados en las tablas detectadas."
     provider_state = {"label": provider_label, "message": provider_message, "status": provider_status}
     context = timed_phase(
         "assistant_context",
@@ -17767,7 +17767,7 @@ def _shark_intelligence_pick_subset(summary, match_id):
 
 
 def build_shark_intelligence_page_context():
-    """Build SHARK Intelligence Center from existing local Sports Core facts."""
+    """Build Inteligencia SHARK Center from existing local Modelo deportivo facts."""
     summary = get_public_home_sports_summary()
     metrics = get_sports_metrics_contract(summary)
     anchor = _shark_intelligence_anchor_match(summary)
@@ -17894,7 +17894,7 @@ def _save_user_intelligence_preferences(user, preferences, action="update"):
            VALUES (?,?,?,?,?,?,?,?,?)""",
         (
             profile_id,
-            "User Intelligence Profile",
+            "Inteligencia de usuario Profile",
             normalize_role(user.get("membership") or user.get("role") or "FREE"),
             json.dumps([], ensure_ascii=False),
             json.dumps([], ensure_ascii=False),
@@ -18069,7 +18069,7 @@ ACTION_PLATFORM_SECTIONS = {
     "smart_home": {
         "title": "Smart Home",
         "route": "/smart-home",
-        "goal": "Reducir el tiempo hasta la siguiente accion util del usuario.",
+        "goal": "Reducir el tiempo hasta la siguiente accion útil del usuario.",
     },
     "smart_favorites": {
         "title": "Smart Favorites",
@@ -18084,7 +18084,7 @@ ACTION_PLATFORM_SECTIONS = {
     "alert_center": {
         "title": "Alert Center",
         "route": "/alert-center",
-        "goal": "Mostrar alertas utiles sin ruido ni spam.",
+        "goal": "Mostrar alertas útiles sin ruido ni spam.",
     },
     "daily_briefing": {
         "title": "Daily Briefing",
@@ -18137,7 +18137,7 @@ def _action_meta(source, evidence=None, freshness=None, quality=None, limitation
     return {
         "provenance": _action_text(source, "No disponible"),
         "source": _action_text(source, "No disponible"),
-        "evidence": _action_list(evidence or [], 6) or ["Contrato Action Platform read-only"],
+        "evidence": _action_list(evidence or [], 6) or ["Contrato Plataforma de acciones read-only"],
         "freshness": _action_text(freshness, now_iso()),
         "quality": _action_text(quality, "PARTIALLY_VERIFIED"),
         "limitations": limitation_items,
@@ -18170,7 +18170,7 @@ def _action_wrap_item(title, body="", href="", badge="", meta=None, value=None):
         "href": _safe_client_next(href, "/smart-home") if href else "",
         "badge": _action_text(badge, ""),
         "value": value,
-        "meta": meta or _action_meta("Action Platform", [title]),
+        "meta": meta or _action_meta("Plataforma de acciones", [title]),
     }
 
 
@@ -18246,7 +18246,7 @@ def build_action_platform_snapshot(user=None):
             "claim_key": "favorites_count",
             "source": "user_intelligence",
             "value": str((user_intelligence.get("metrics") or {}).get("favorites") or 0),
-            "evidence": "User Intelligence metrics.favorites",
+            "evidence": "Inteligencia de usuario metrics.favorites",
             "freshness": observed,
             "quality": (user_intelligence.get("confidence") or {}).get("state") or "PARTIALLY_VERIFIED",
             "limitations": ["Comparison is useful only when a user session exists."],
@@ -18274,8 +18274,8 @@ def build_action_platform_snapshot(user=None):
     smart_home_cards = [
         _action_wrap_item("Partidos hoy", "Agenda real disponible en calendario.", "/calendar", "HOY", _action_meta("sports-metrics-v1", ["today_matches", counts.get("today")], observed, "VERIFIED" if counts.get("today") else "INSUFFICIENT_DATA"), counts.get("today", 0)),
         _action_wrap_item("Directos", "Solo directos con evidencia suficiente.", "/live", "LIVE", _action_meta("sports-metrics-v1", ["live_confirmed", sports_metrics.get("live_confirmed")], observed, "VERIFIED" if sports_metrics.get("live_confirmed") else "INSUFFICIENT_DATA"), sports_metrics.get("live_confirmed", 0)),
-        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favorites", "FAV", _action_meta("User Intelligence", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
-        _action_wrap_item("Alertas", "Avisos existentes, no spam ni envios externos.", "/alert-center", "ALERT", _action_meta("Client Alert Center", ["alerts", len(alerts_raw)], observed, "PARTIALLY_VERIFIED"), len(alerts_raw)),
+        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favorites", "FAV", _action_meta("Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
+        _action_wrap_item("Alertas", "Avisos existentes, no spam ni envíos externos.", "/alert-center", "ALERT", _action_meta("Client Alert Center", ["alerts", len(alerts_raw)], observed, "PARTIALLY_VERIFIED"), len(alerts_raw)),
     ]
 
     by_kind = favorite_summary.get("by_kind") or {"team": [], "league": [], "match": []}
@@ -18295,7 +18295,7 @@ def build_action_platform_snapshot(user=None):
             f"{_action_text(match.get('competition_name') or match.get('league_name'), 'Competicion no disponible')} - {_action_text(status)}",
             _action_match_href(match),
             "MATCH",
-            _action_meta("Sports Graph + Favorite Feed", evidence, match.get("updated_at") or match.get("match_date") or observed, "PARTIALLY_VERIFIED", ["La watchlist ordena informacion existente; no decide por el usuario."]),
+            _action_meta("Grafo deportivo + Favorite Feed", evidence, match.get("updated_at") or match.get("match_date") or observed, "PARTIALLY_VERIFIED", ["La watchlist ordena información existente; no decide por el usuario."]),
         ))
 
     alert_center = []
@@ -18312,7 +18312,7 @@ def build_action_platform_snapshot(user=None):
         body_map = {
             "live": "Hay actividad en directo confirmada por datos reales.",
             "picks": "Existen picks publicados visibles segun membresia; no se crean recomendaciones nuevas.",
-            "favorites": "Tus favoritos ayudan a ordenar informacion ya disponible.",
+            "favorites": "Tus favoritos ayudan a ordenar información ya disponible.",
             "telegram": "La conexion se muestra como estado; no se envia ningun mensaje.",
             "match": "Hay un partido proximo real que puede abrirse para revisar contexto.",
             "analysis": "SHARK puede contextualizar partidos cuando existen datos suficientes.",
@@ -18322,7 +18322,7 @@ def build_action_platform_snapshot(user=None):
             body_map.get(alert_type, "Aviso creado desde datos internos disponibles."),
             alert.get("href") or "/smart-home",
             alert.get("badge") or alert_type.upper(),
-            _action_meta("Client Alert Center", [alert_type, alert.get("priority")], observed, "PARTIALLY_VERIFIED", ["No hay envio Telegram ni accion automatica desde esta pantalla."]),
+            _action_meta("Client Alert Center", [alert_type, alert.get("priority")], observed, "PARTIALLY_VERIFIED", ["No hay envío Telegram ni accion automatica desde esta pantalla."]),
         ))
 
     daily_briefing = [
@@ -18333,7 +18333,7 @@ def build_action_platform_snapshot(user=None):
 
     evening_recap = [
         _action_wrap_item("Actividad de hoy", "Eventos propios registrados en la cuenta.", "/activity-center", "ACT", _action_meta("user_activity", ["events", len(activity)], observed, "PARTIALLY_VERIFIED" if activity else "INSUFFICIENT_DATA"), len(activity)),
-        _action_wrap_item("Pendientes", "Informacion que falta antes de personalizar mas.", "/user-intelligence", "PEND", _action_meta("User Intelligence", user_intelligence.get("missing_information") or [], observed, user_intelligence.get("certification_state") or "INSUFFICIENT_DATA"), len(user_intelligence.get("missing_information") or [])),
+        _action_wrap_item("Pendientes", "Información que falta antes de personalizar mas.", "/user-intelligence", "PEND", _action_meta("Inteligencia de usuario", user_intelligence.get("missing_information") or [], observed, user_intelligence.get("certification_state") or "INSUFFICIENT_DATA"), len(user_intelligence.get("missing_information") or [])),
     ]
 
     activity_center = []
@@ -18364,10 +18364,10 @@ def build_action_platform_snapshot(user=None):
         count = answer.get("count") if isinstance(answer, dict) else 0
         decision_cards.append(_action_wrap_item(
             titles.get(key, key),
-            f"{count or 0} elemento(s) trazados por Decision Engine.",
+            f"{count or 0} elemento(s) trazados por Motor de decisiones.",
             "/decision-history",
             "DEC",
-            _action_meta("Decision Engine", answer.get("evidence") if isinstance(answer, dict) else [key], observed, "PARTIALLY_VERIFIED", answer.get("limitations") if isinstance(answer, dict) else []),
+            _action_meta("Motor de decisiones", answer.get("evidence") if isinstance(answer, dict) else [key], observed, "PARTIALLY_VERIFIED", answer.get("limitations") if isinstance(answer, dict) else []),
             count or 0,
         ))
 
@@ -18376,18 +18376,18 @@ def build_action_platform_snapshot(user=None):
         "Empieza por partidos reales y guarda favoritos para personalizar tu experiencia.",
         "/calendar",
         "SIGUIENTE",
-        _action_meta("Action Platform", ["fallback_next_action"], observed, "INSUFFICIENT_DATA"),
+        _action_meta("Plataforma de acciones", ["fallback_next_action"], observed, "INSUFFICIENT_DATA"),
     )
 
     sections = {
-        "smart_home": {"items": smart_home_cards, "meta": _action_meta("Sports Core + User Intelligence + Decision Engine", ["dashboard_counts", "user_profile", "decision_snapshot"], observed, "PARTIALLY_VERIFIED")},
-        "smart_favorites": {"items": smart_favorites, "raw_groups": by_kind, "meta": _action_meta("Favorites + User Intelligence", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA")},
-        "watchlist": {"items": watchlist, "meta": _action_meta("Sports Graph + Favorites + Calendar", ["watch_matches", len(watchlist)], observed, "PARTIALLY_VERIFIED" if watchlist else "INSUFFICIENT_DATA")},
+        "smart_home": {"items": smart_home_cards, "meta": _action_meta("Modelo deportivo + Inteligencia de usuario + Motor de decisiones", ["dashboard_counts", "user_profile", "decision_snapshot"], observed, "PARTIALLY_VERIFIED")},
+        "smart_favorites": {"items": smart_favorites, "raw_groups": by_kind, "meta": _action_meta("Favorites + Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA")},
+        "watchlist": {"items": watchlist, "meta": _action_meta("Grafo deportivo + Favorites + Calendar", ["watch_matches", len(watchlist)], observed, "PARTIALLY_VERIFIED" if watchlist else "INSUFFICIENT_DATA")},
         "alert_center": {"items": alert_center, "meta": _action_meta("Client Alert Center", ["alerts", len(alert_center)], observed, "PARTIALLY_VERIFIED")},
         "daily_briefing": {"items": daily_briefing, "meta": _action_meta("Daily Briefing", ["counts", counts], observed, "PARTIALLY_VERIFIED")},
-        "evening_recap": {"items": evening_recap, "meta": _action_meta("User Activity + User Intelligence", ["activity", len(activity)], observed, "PARTIALLY_VERIFIED" if activity else "INSUFFICIENT_DATA")},
+        "evening_recap": {"items": evening_recap, "meta": _action_meta("User Activity + Inteligencia de usuario", ["activity", len(activity)], observed, "PARTIALLY_VERIFIED" if activity else "INSUFFICIENT_DATA")},
         "activity_center": {"items": activity_center, "meta": _action_meta("user_activity", ["activity", len(activity)], observed, "VERIFIED" if activity else "INSUFFICIENT_DATA")},
-        "decision_history": {"items": decision_cards, "decision": decision, "meta": _action_meta("Decision Engine", ["evidence_items", len(decision.get("evidence_items") or [])], observed, "PARTIALLY_VERIFIED")},
+        "decision_history": {"items": decision_cards, "decision": decision, "meta": _action_meta("Motor de decisiones", ["evidence_items", len(decision.get("evidence_items") or [])], observed, "PARTIALLY_VERIFIED")},
     }
 
     return {
@@ -18449,8 +18449,8 @@ def build_action_platform_snapshot(user=None):
         },
         "limitaciones": [
             "No hay IA generativa ni predicciones en esta fase.",
-            "La personalizacion solo usa favoritos y actividad propia disponible.",
-            "Produccion no certificada en este sprint local.",
+            "La personalización solo usa favoritos y actividad propia disponible.",
+            "Producción no certificada en este sprint local.",
         ],
     }
 
@@ -18539,7 +18539,7 @@ def telegram_page():
     return render_template("telegram.html", data=data)
 
 
-@app.route("/telegram/regenerar-codigo", methods=["POST", "GET"])
+@app.route("/telegram/regenerar-código", methods=["POST", "GET"])
 def telegram_regenerate_code():
     user = current_session_user()
     if not user:
@@ -18605,7 +18605,7 @@ def telegram_webhook():
             "ok": False,
             "version": APP_VERSION,
             "error": "telegram_webhook_secret_missing" if status_code == 503 else "telegram_webhook_signature_invalid",
-            "safe_message": "Webhook Telegram no autorizado o pendiente de configuracion segura.",
+            "safe_message": "Webhook Telegram no autorizado o pendiente de configuración segura.",
             "signed_secret_configured": bool(security_status.get("configured")),
         }), status_code
     update = request.get_json(silent=True) or {}
@@ -18621,11 +18621,11 @@ def telegram_webhook():
     code = parts[1] if len(parts) > 1 else ""
     if command in {"/start", "/link"} and code:
         result = link_telegram_chat_by_code(code, chat_id, username=username, first_name=first_name)
-        reply = "Telegram vinculado a tu cuenta NeMeSiS SHARK PRO." if result.get("ok") else f"Atenci?n: {result.get('message') or 'No se pudo vincular Telegram.'}"
+        reply = "Telegram vinculado a tu cuenta NeMeSiS SHARK PRO." if result.get("ok") else f"Atención: {result.get('message') or 'No se pudo vincular Telegram.'}"
         telegram_send_http(chat_id, reply, message_type="link_reply")
         return jsonify({"ok": result.get("ok"), "version": APP_VERSION, "result": result})
     if command == "/start":
-        telegram_send_http(chat_id, "Entra en NeMeSiS > Telegram y env?ame el comando /link CODIGO para vincular tu cuenta.", message_type="start_reply")
+        telegram_send_http(chat_id, "Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", message_type="start_reply")
         return jsonify({"ok": True, "version": APP_VERSION, "message": "start_help"})
     telegram_log("webhook", "received", "Mensaje Telegram recibido sin accion.", {"chat_id": chat_id, "text": text[:120]})
     return jsonify({"ok": True, "version": APP_VERSION, "message": "ignored"})
@@ -19182,8 +19182,8 @@ def v912_video_admin_ui_copy_polish_runtime_summary() -> dict:
     except Exception:
         css_text = ""
     public_copy_ok = (
-        "La app gu?a al cliente" in home_text
-        and "Informacion deportiva" not in base_text
+        "La app guía al cliente" in home_text
+        and "Información deportiva" not in base_text
         and "Terminos" not in base_text
     )
     return {
@@ -21081,7 +21081,7 @@ def api_runtime_version():
         runtime_stability["last_error"] = sanitize_runtime_error_value(runtime_stability.get("last_error"))
     last_error_state = runtime_error_state(runtime_stability.get("last_error") if isinstance(runtime_stability, dict) else "")
     openai_ready = env_present("OPENAI_API_KEY")
-    openai_state = "Configurado" if openai_ready else "SHARK IA avanzada pendiente de configuraci?n"
+    openai_state = "Configurado" if openai_ready else "SHARK IA avanzada pendiente de configuración"
     logo_cache_count = int((runtime_stability or {}).get("team_logo_cache_count") or 0) + int((runtime_stability or {}).get("league_logo_cache_count") or 0)
     logo_cache_state = "Cache de logos disponible" if logo_cache_count else "Fallback premium activo"
     version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
@@ -21388,12 +21388,12 @@ def api_runtime_version():
         "has_v911_browser_qa_execution": (Path(__file__).resolve().parent / "reports" / "V911_BROWSER_QA_ENVIRONMENT_STATUS.md").exists() and (Path(__file__).resolve().parent / "tools" / "run_browser_reference_qa.py").exists(),
         "has_v911_visual_queue_unblocker": (Path(__file__).resolve().parent / "reports" / "V911_VISUAL_FIX_QUEUE_UNBLOCK_REPORT.md").exists() and (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
         "has_v911_video_admin_ui_binding_fix": "data-v911-video-admin-fix" in base_template and "V911 admin observed video fix" in css_text,
-        "has_v911_admin_client_nav_separation_video_fix": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesi?n admin" in base_template,
+        "has_v911_admin_client_nav_separation_video_fix": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesión admin" in base_template,
         "has_v911_browser_qa_queue_panel_fix": "v911-browser-qa-panel" in base_template or "v911-browser-qa-panel" in css_text,
         "has_v912_video_admin_ui_copy_polish": "data-v912-video-admin-fix" in base_template and "V912 video admin UI + copy polish" in css_text,
-        "has_v912_admin_client_nav_separation": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesi?n admin" in base_template,
+        "has_v912_admin_client_nav_separation": "show_mobile_bottom_nav = (not current_user and not is_admin_surface) or is_client_area" in base_template and "Cerrar sesión admin" in base_template,
         "has_v912_browser_qa_queue_panel_polish": "v912-browser-qa-panel" in base_template or "v912-browser-qa-panel" in css_text,
-        "has_v912_public_spanish_copy_polish": "La app gu?a al cliente" in (base_template + css_text + app_py_text + (Path(__file__).resolve().parent / "templates" / "home.html").read_text(encoding="utf-8", errors="replace")),
+        "has_v912_public_spanish_copy_polish": "La app guía al cliente" in (base_template + css_text + app_py_text + (Path(__file__).resolve().parent / "templates" / "home.html").read_text(encoding="utf-8", errors="replace")),
         "has_v913_browser_qa_execution_status_truth": "v913_browser_qa_runtime_truth_summary" in app_py_text,
         "has_v913_runtime_status_cleanup": bool(v913_summary.get("v913_runtime_status_cleanup_applied")),
         "has_v913_visual_fix_queue_truth": (Path(__file__).resolve().parent / "data" / "runtime" / "autonomous_company_sentinel" / "visual_fix_queue.json").exists(),
@@ -22872,7 +22872,7 @@ def admin_not_found_events_page():
 
 @app.errorhandler(500)
 def client_safe_500(error):
-    """Evita pantalla blanca en cliente y deja diagn?stico claro sin exponer secretos."""
+    """Evita pantalla blanca en cliente y deja diagnóstico claro sin exponer secretos."""
     try:
         print("NeMeSiS SHARK PRO 500:", str(error)[:500])
     except Exception:
@@ -22917,7 +22917,7 @@ def client_safe_500(error):
             "a{display:inline-block;margin:10px 10px 0 0;color:#06111f;background:#5bd6ff;padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:800}"
             ".ghost{background:transparent;color:#bfefff;border:1px solid rgba(91,214,255,.35)}</style></head><body><main class='box'>"
             "<p>Admin SHARK</p><h1>Se ha producido un error controlado.</h1>"
-            "<p>No se muestran detalles t?cnicos ni secretos. Revisa incidencias o vuelve al panel.</p>"
+            "<p>No se muestran detalles técnicos ni secretos. Revisa incidencias o vuelve al panel.</p>"
             "<a href='/admin/dashboard'>Volver al panel admin</a><a class='ghost' href='/admin/sentinel-issues'>Ver incidencias</a><a class='ghost' href='/'>Ir al inicio</a>"
             "</main></body></html>"
         ), 500
@@ -22942,7 +22942,7 @@ def api_deep_route_check():
 
 @app.route("/api/client-experience-check")
 def api_client_experience_check():
-    """Chequeo de experiencia cliente: rutas p?blicas, cliente y admin separadas."""
+    """Chequeo de experiencia cliente: rutas públicas, cliente y admin separadas."""
     public_routes = ["/", "/membresias", "/cliente-login", "/registro"]
     client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/highlights", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
     admin_routes = ["/admin", "/admin/users", "/admin/data-center", "/admin/picks", "/admin/telegram", "/admin/import-center"]
@@ -22980,12 +22980,12 @@ def api_product_experience_check():
             "client_admin_split": True,
             "empty_states_premium": True,
         },
-        "message": "Experiencia cliente V535 revisada: nunca debe quedar una secci?n clave sin explicaci?n clara.",
+        "message": "Experiencia cliente V535 revisada: nunca debe quedar una secci?n clave sin explicación clara.",
     })
 
 
 # -----------------------------
-# V538 - Quality Center + Data Health Polish
+# V538 - Calidad Center + Data Health Polish
 # -----------------------------
 
 def safe_count(table, where="1=1", params=()):
@@ -23030,7 +23030,7 @@ def quality_center_summary():
     score = round((sum(score_parts) / len(score_parts)) * 100)
     recommendations = []
     if total_matches == 0:
-        recommendations.append("Sincroniza calendario desde Data Center para poblar partidos reales.")
+        recommendations.append("Sincroniza calendario desde Centro de datos para poblar partidos reales.")
     if teams and teams_with_logo < max(1, teams // 3):
         recommendations.append("Ejecuta SportsDB Sync para mejorar escudos e identidad visual.")
     if published_picks == 0:
@@ -23038,7 +23038,7 @@ def quality_center_summary():
     if telegram_pending > 20:
         recommendations.append("Revisa la cola de Telegram: hay muchos mensajes pendientes.")
     if not recommendations:
-        recommendations.append("Ecosistema estable. Siguiente paso: densidad de datos, live profundo y automatizaci?n.")
+        recommendations.append("Ecosistema estable. Siguiente paso: densidad de datos, live profundo y automatización.")
     return {
         "score": score,
         "version": APP_VERSION,
@@ -23069,7 +23069,7 @@ def api_quality_center_summary():
 
 @app.route("/api/client/app-pulse")
 def api_client_app_pulse():
-    """Pulso comercial seguro para cliente: no muestra detalles t?cnicos ni secretos."""
+    """Pulso comercial seguro para cliente: no muestra detalles técnicos ni secretos."""
     q = quality_center_summary()
     return jsonify({
         "ok": True,
@@ -23147,7 +23147,7 @@ def membership_revenue_summary():
         "recommendations": [
             "Mantener FREE como puerta de entrada con calendario, favoritos y SHARK base.",
             "Empujar PRO con picks, combinadas y Telegram premium.",
-            "Reservar ELITE para SHARK contextual, alertas live y prioridad de an?lisis.",
+            "Reservar ELITE para SHARK contextual, alertas live y prioridad de análisis.",
         ],
     }
 
@@ -23540,7 +23540,7 @@ def api_admin_payments():
 def api_payments_checkout():
     user = current_session_user()
     if not user:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesi?n antes de pagar."}), 401
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión antes de pagar."}), 401
     payload = request.get_json(silent=True) or request.form or {}
     plan = str(payload.get("plan") or request.args.get("plan") or "").upper()
     ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
@@ -23579,7 +23579,7 @@ def payments_checkout_plan(plan):
 def api_payments_customer_portal():
     user = current_session_user()
     if not user:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesi?n para gestionar tu suscripci?n."}), 401
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para gestionar tu suscripci?n."}), 401
     result = create_customer_portal_session(DB_PATH, user)
     status_code = 200 if result.get("ok") else 400
     if request.form and result.get("ok") and result.get("url"):
@@ -23606,7 +23606,7 @@ def payments_success_page():
         next_url = "/membresias?pago=exito" + (("&session_id=" + urllib.parse.quote(session_id, safe="")) if session_id else "")
         return redirect("/cliente-login?next=" + urllib.parse.quote(next_url, safe=""))
     # V786: el webhook sigue siendo la fuente principal, pero al volver de Stripe
-    # sincronizamos la sesi?n como red de seguridad para no dejar al cliente esperando.
+    # sincronizamos la sesión como red de seguridad para no dejar al cliente esperando.
     sync_result = sync_checkout_session(DB_PATH, user, session_id) if session_id else {"ok": False, "reason": "sin_session_id"}
     plan = str(sync_result.get("plan") or request.args.get("plan") or "").upper()
     qs = {"pago": "exito", "sync": "ok" if sync_result.get("ok") else "pendiente"}
@@ -23665,7 +23665,7 @@ def v565_match_status(match):
     if info.get("is_live"):
         minute = str(match.get("minute") or "").strip()
         return {"label": f"{minute}'" if minute and minute.isdigit() else "En directo", "tone": "live", "is_live": True, "is_finished": False}
-    label = info.get("label") or "Pr?ximo"
+    label = info.get("label") or "Próximo"
     return {"label": label if label != "LIVE" else "En directo", "tone": "scheduled", "is_live": False, "is_finished": False}
 
 
@@ -23756,7 +23756,7 @@ def v565_recommendation_for_match(match):
         "risk": risk,
         "membership_required": membership,
         "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
-        "reason": "Liga prioritaria y partido próximo con datos suficientes para an?lisis." if score >= 70 else "Candidato preparado; falta m?s información de cuotas/live para elevar confianza.",
+        "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
         "warning": "No decidir si la cuota cambia mucho o falta confirmaci?n de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
         "league_rank": league_rank,
     }
@@ -23795,11 +23795,11 @@ def v565_data_picks_health():
     score = min(100, score)
     actions = []
     if not upcoming:
-        actions.append("Sincronizar calendario desde Data Center para poblar partidos próximos reales.")
+        actions.append("Sincronizar calendario desde Centro de datos para poblar partidos próximos reales.")
     if not odds_count:
         actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
     if not published:
-        actions.append("Generar recomendaciones autom?ticas y convertir las mejores en picks publicados.")
+        actions.append("Generar recomendaciones automáticas y convertir las mejores en picks publicados.")
     if logos < max(1, total_teams // 3):
         actions.append("Ejecutar SportsDB Crest Sync para subir identidad visual.")
     if not actions:
@@ -23863,13 +23863,13 @@ def api_v565_convert_recommendation():
             rec = item
             break
     if not rec:
-        return jsonify({"ok": False, "error": "Recomendaci?n no encontrada o partido no v?lido."}), 404
+        return jsonify({"ok": False, "error": "Recomendación no encontrada o partido no válido."}), 404
     pick_payload = {
         "match_id": rec["match_id"],
         "league_name": rec["league_name"],
         "home_team": rec["home_team"],
         "away_team": rec["away_team"],
-        "market": "Resultado / an?lisis SHARK",
+        "market": "Resultado / análisis SHARK",
         "pick_type": "SHARK Auto",
         "selection": rec["selection"],
         "odds": rec["odds_value"],
@@ -23892,7 +23892,7 @@ def api_v565_convert_recommendation():
 # -----------------------------
 
 def v566_client_menu_items():
-    # V777: mapa cliente final por intenci?n. No esconder funciones clave ni mezclar p?ginas sueltas.
+    # V777: mapa cliente final por intención. No esconder funciones clave ni mezclar páginas sueltas.
     return [
         {"group": "01 - Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, picks, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
         {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
@@ -23920,15 +23920,15 @@ def v566_membership_ui(user=None):
     ctx = membership_context(user or current_session_user() or {"membership": "FREE", "role": "FREE"})
     membership = ctx["membership"]
     if membership == "FREE":
-        ctx.update({"headline": "Est?s en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
+        ctx.update({"headline": "Estás en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
     elif membership == "PRO":
-        ctx.update({"headline": "Est?s en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
+        ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
         ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
             {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automaticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
@@ -23953,8 +23953,8 @@ def v566_dashboard_summary(user=None):
         "favorites": {"total": len(favs)},
         "membership": membership,
         "focus": [
-            {"type": "LIVE", "title": "Live limpio", "body": "Estados Pr?ximo, En directo, Descanso y Finalizado.", "href": "/live"},
-            {"type": "PICKS", "title": "Picks y se?ales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
+            {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
+            {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
             {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, directo y oportunidades de hoy.", "href": "/shark"},
         ],
     }
@@ -23969,73 +23969,73 @@ def v566_admin_items():
     """
     return [
         {"group": "Centro", "title": "Control Center", "body": "Entrada principal del administrador y estado global.", "href": "/admin/control-center"},
-        {"group": "Centro", "title": "Dashboard", "body": "Resumen visual del ecosistema.", "href": "/admin/dashboard"},
-        {"group": "Centro", "title": "Sistema", "body": "Diagn?stico interno, versi?n y estado general.", "href": "/admin/system"},
+        {"group": "Centro", "title": "Panel", "body": "Resumen visual del ecosistema.", "href": "/admin/dashboard"},
+        {"group": "Centro", "title": "Sistema", "body": "Diagnóstico interno, version y estado general.", "href": "/admin/system"},
         {"group": "Centro", "title": "Salud de rutas", "body": "Comprueba accesos críticos y botones perdidos.", "href": "/admin/route-health"},
-        {"group": "Centro", "title": "Observabilidad", "body": "Errores, logs y se?ales operativas.", "href": "/admin/observability"},
+        {"group": "Centro", "title": "Observabilidad", "body": "Errores, logs y señales operativas.", "href": "/admin/observability"},
         {"group": "Centro", "title": "Errores", "body": "Vista directa de errores detectados.", "href": "/admin/observability/errors"},
 
         {"group": "Clientes", "title": "Usuarios", "body": "Altas, roles, regalos y estado de cuenta.", "href": "/admin/users"},
         {"group": "Clientes", "title": "Membresías", "body": "FREE, PRO, ELITE, caducidad y origen.", "href": "/admin/memberships"},
-        {"group": "Clientes", "title": "Importar usuarios", "body": "Importaci?n controlada de clientes.", "href": "/admin/user-import"},
+        {"group": "Clientes", "title": "Importar usuarios", "body": "Importación controlada de clientes.", "href": "/admin/user-import"},
         {"group": "Clientes", "title": "Client Success", "body": "Guía, soporte, onboarding y claridad para cliente.", "href": "/admin/client-success"},
-        {"group": "Clientes", "title": "Auditor?a cliente", "body": "Pantallas cliente, enlaces, legibilidad y ruido t?cnico.", "href": "/admin/client-screen-audit"},
+        {"group": "Clientes", "title": "Auditoría cliente", "body": "Pantallas cliente, enlaces, legibilidad y ruido técnico.", "href": "/admin/client-screen-audit"},
         {"group": "Clientes", "title": "Calidad cliente", "body": "Mapa visual y organizaci?n de experiencia cliente.", "href": "/admin/client-screen-quality"},
         {"group": "Clientes", "title": "Vista cliente", "body": "Entrar a la experiencia real de usuario.", "href": "/sports-hub"},
 
-        {"group": "Partidos y datos", "title": "Data Center", "body": "Sync de calendario, cuotas, escudos y fuentes.", "href": "/admin/data-center"},
+        {"group": "Partidos y datos", "title": "Centro de datos", "body": "Sync de calendario, cuotas, escudos y fuentes.", "href": "/admin/data-center"},
         {"group": "Partidos y datos", "title": "Partidos", "body": "Calendario, resultados y sincronización.", "href": "/admin/matches-sync"},
         {"group": "Partidos y datos", "title": "SportsDB Sync", "body": "Escudos, equipos y feed legal.", "href": "/admin/sportsdb-sync"},
         {"group": "Partidos y datos", "title": "SportsDB Feed", "body": "Inspecci?n de feed y datos guardados.", "href": "/admin/sportsdb-feed"},
-        {"group": "Partidos y datos", "title": "Import Center", "body": "CSV/JSON legales para datos deportivos.", "href": "/admin/import-center"},
-        {"group": "Partidos y datos", "title": "Data Memory", "body": "Memoria persistente y auditor?a de datos.", "href": "/admin/data-memory"},
+        {"group": "Partidos y datos", "title": "Centro de importación", "body": "CSV/JSON legales para datos deportivos.", "href": "/admin/import-center"},
+        {"group": "Partidos y datos", "title": "Memoria de datos", "body": "Memoria persistente y auditor?a de datos.", "href": "/admin/data-memory"},
         {"group": "Partidos y datos", "title": "Data Vault", "body": "Backups, manifiestos y protecci?n.", "href": "/admin/data-vault"},
         {"group": "Partidos y datos", "title": "Datos comerciales", "body": "Exportaciones agregadas, ROI y privacidad.", "href": "/admin/data-marketplace"},
 
         {"group": "Directo y SHARK", "title": "Live Experience", "body": "Experiencia live, estados y lectura visual.", "href": "/admin/live-experience"},
         {"group": "Directo y SHARK", "title": "Live Depth", "body": "Profundidad de directo, API-Football y tracker.", "href": "/admin/live-depth"},
-        {"group": "Directo y SHARK", "title": "Match Intelligence", "body": "Lectura avanzada por partido.", "href": "/admin/match-intelligence"},
-        {"group": "Directo y SHARK", "title": "SHARK Center", "body": "Motor SHARK, memoria, se?ales y salud.", "href": "/admin/shark-center"},
+        {"group": "Directo y SHARK", "title": "Inteligencia del partido", "body": "Lectura avanzada por partido.", "href": "/admin/match-intelligence"},
+        {"group": "Directo y SHARK", "title": "SHARK Center", "body": "Motor SHARK, memoria, señales y salud.", "href": "/admin/shark-center"},
         {"group": "Directo y SHARK", "title": "Inteligencia", "body": "Centro de inteligencia unificado.", "href": "/admin/unified-intelligence"},
         {"group": "Directo y SHARK", "title": "Motor picks", "body": "Value, riesgo, confianza y picks revisados.", "href": "/admin/intelligence-engine"},
 
         {"group": "Picks y rendimiento", "title": "Picks", "body": "Crear, publicar y archivar picks reales.", "href": "/admin/picks"},
-        {"group": "Picks y rendimiento", "title": "Recomendaciones", "body": "Convertir se?ales en picks revisados.", "href": "/admin/recommendations"},
+        {"group": "Picks y rendimiento", "title": "Recomendaciones", "body": "Convertir señales en picks revisados.", "href": "/admin/recommendations"},
         {"group": "Picks y rendimiento", "title": "Picks deportivos", "body": "Data picks desde fuentes deportivas.", "href": "/admin/sports-data-picks"},
         {"group": "Picks y rendimiento", "title": "Rendimiento picks", "body": "Resultados, ROI y control de picks.", "href": "/admin/pick-performance"},
         {"group": "Picks y rendimiento", "title": "Track Record", "body": "Histórico auditado y credibilidad.", "href": "/admin/track-record"},
-        {"group": "Picks y rendimiento", "title": "Betting Center", "body": "Recomendaciones y mercados.", "href": "/admin/betting-center"},
+        {"group": "Picks y rendimiento", "title": "Centro de apuestas", "body": "Recomendaciones y mercados.", "href": "/admin/betting-center"},
 
-        {"group": "Telegram y automatizaci?n", "title": "Telegram", "body": "Configuraci?n, cola y pruebas.", "href": "/admin/telegram"},
-        {"group": "Telegram y automatizaci?n", "title": "Command Center Telegram", "body": "Diagn?stico visual de Telegram y automatizaci?n.", "href": "/admin/telegram/command-center"},
-        {"group": "Telegram y automatizaci?n", "title": "Mensajes PRO", "body": "Preview del robot profesional y filtro de competiciones TOP.", "href": "/admin/telegram/pro-preview"},
-        {"group": "Telegram y automatizaci?n", "title": "Auditor?a Telegram", "body": "Estado de env?os y producci?n.", "href": "/admin/telegram/diagnostics"},
-        {"group": "Telegram y automatizaci?n", "title": "Automatizaci?n", "body": "Cron diario, grading, Telegram, highlights y backups.", "href": "/admin/automation-center"},
-        {"group": "Telegram y automatizaci?n", "title": "Automatizaci?n cl?sica", "body": "Panel hist?rico de tareas autom?ticas.", "href": "/admin/automation"},
-        {"group": "Telegram y automatizaci?n", "title": "Backups", "body": "Respaldos y descargas controladas.", "href": "/admin/backups"},
+        {"group": "Telegram y automatización", "title": "Telegram", "body": "Configuración, cola y pruebas.", "href": "/admin/telegram"},
+        {"group": "Telegram y automatización", "title": "Centro de mando Telegram", "body": "Diagnóstico visual de Telegram y automatización.", "href": "/admin/telegram/command-center"},
+        {"group": "Telegram y automatización", "title": "Mensajes PRO", "body": "Vista previa del robot profesional y filtro de competiciones TOP.", "href": "/admin/telegram/pro-preview"},
+        {"group": "Telegram y automatización", "title": "Auditoría Telegram", "body": "Estado de envíos y producción.", "href": "/admin/telegram/diagnostics"},
+        {"group": "Telegram y automatización", "title": "Automatizaci?n", "body": "Cron diario, grading, Telegram, highlights y backups.", "href": "/admin/automation-center"},
+        {"group": "Telegram y automatización", "title": "Automatizaci?n cl?sica", "body": "Panel histórico de tareas automáticas.", "href": "/admin/automation"},
+        {"group": "Telegram y automatización", "title": "Backups", "body": "Respaldos y descargas controladas.", "href": "/admin/backups"},
 
-        {"group": "Contenido", "title": "Res?menes", "body": "Highlights seguros y contenido enlazado.", "href": "/admin/highlights-center"},
-        {"group": "Contenido", "title": "Video highlights", "body": "Control de v?deos externos permitidos.", "href": "/admin/video-highlights"},
+        {"group": "Contenido", "title": "Resúmenes", "body": "Highlights seguros y contenido enlazado.", "href": "/admin/highlights-center"},
+        {"group": "Contenido", "title": "Video highlights", "body": "Control de vídeos externos permitidos.", "href": "/admin/video-highlights"},
         {"group": "Contenido", "title": "Alertas", "body": "Base de alertas futuras y actividad.", "href": "/admin/alerts"},
         {"group": "Contenido", "title": "Identidad equipos", "body": "Escudos, nombres y calidad visual.", "href": "/admin/team-identity"},
-        {"group": "Contenido", "title": "Derechos de contenido", "body": "Pol?tica legal de logos, v?deos y fuentes.", "href": "/admin/content-rights"},
+        {"group": "Contenido", "title": "Derechos de contenido", "body": "Pol?tica legal de logos, vídeos y fuentes.", "href": "/admin/content-rights"},
 
         {"group": "Calidad y lanzamiento", "title": "Calidad app", "body": "Revisi?n visual, rutas, textos y limpieza.", "href": "/admin/app-experience-quality"},
         {"group": "Calidad y lanzamiento", "title": "Visual Experience", "body": "Sistema visual cliente/admin.", "href": "/admin/visual-experience"},
         {"group": "Calidad y lanzamiento", "title": "Client Visual QA", "body": "QA visual de pantallas cliente.", "href": "/admin/client-visual-qa"},
         {"group": "Calidad y lanzamiento", "title": "Calendar QA", "body": "Calendario, filtros y b?squedas de partidos.", "href": "/admin/calendar-experience"},
-        {"group": "Calidad y lanzamiento", "title": "QA final", "body": "Auditor?a final y salud del producto.", "href": "/admin/final-qa"},
-        {"group": "Calidad y lanzamiento", "title": "Production Readiness", "body": "Render, env y producci?n.", "href": "/admin/production-readiness"},
-        {"group": "Calidad y lanzamiento", "title": "Go Live", "body": "Certificaci?n beta p?blica.", "href": "/admin/go-live"},
+        {"group": "Calidad y lanzamiento", "title": "QA final", "body": "Auditoría final y salud del producto.", "href": "/admin/final-qa"},
+        {"group": "Calidad y lanzamiento", "title": "Preparación de producción", "body": "Render, env y producción.", "href": "/admin/production-readiness"},
+        {"group": "Calidad y lanzamiento", "title": "Salida a producción", "body": "Certificación beta pública.", "href": "/admin/go-live"},
         {"group": "Calidad y lanzamiento", "title": "Final Release", "body": "Release candidate comercial.", "href": "/admin/final-release"},
-        {"group": "Calidad y lanzamiento", "title": "Certificaci?n final", "body": "Checklist final de producci?n.", "href": "/admin/final-certification"},
+        {"group": "Calidad y lanzamiento", "title": "Certificación final", "body": "Checklist final de producción.", "href": "/admin/final-certification"},
         {"group": "Calidad y lanzamiento", "title": "Lanzamiento real", "body": "Stripe, legal, Render, Telegram y datos antes de vender.", "href": "/admin/real-launch"},
-        {"group": "Calidad y lanzamiento", "title": "Sale Ready", "body": "Estado comercial y venta.", "href": "/admin/sale-ready"},
+        {"group": "Calidad y lanzamiento", "title": "Preparación comercial", "body": "Estado comercial y venta.", "href": "/admin/sale-ready"},
 
         {"group": "Negocio", "title": "Pagos", "body": "Stripe, suscripciones y monetizaci?n segura.", "href": "/admin/payments"},
-        {"group": "Negocio", "title": "Public Launch", "body": "Apertura a p?blico grande sin improvisar.", "href": "/admin/public-launch"},
-        {"group": "Negocio", "title": "Top App Readiness", "body": "Preparaci?n top app y crecimiento.", "href": "/admin/top-app-readiness"},
-        {"group": "Negocio", "title": "Legal real", "body": "+18, t?rminos, privacidad y checkout responsable.", "href": "/admin/legal-compliance"},
+        {"group": "Negocio", "title": "Lanzamiento p?blico", "body": "Apertura a público grande sin improvisar.", "href": "/admin/public-launch"},
+        {"group": "Negocio", "title": "Top App Readiness", "body": "Preparación top app y crecimiento.", "href": "/admin/top-app-readiness"},
+        {"group": "Negocio", "title": "Legal real", "body": "+18, términos, privacidad y checkout responsable.", "href": "/admin/legal-compliance"},
         {"group": "Negocio", "title": "Soporte", "body": "Feedback e incidencias de clientes.", "href": "/admin/support-center"},
     ]
 
@@ -24064,7 +24064,7 @@ def v566_product_polish_report():
             "Detalle de partido sin redirecci?n err?nea: /match/<id> muestra estado limpio si falta el ID.",
             "Navegaci?n cliente compactada y admin separado.",
             "Live filtrado para que próximos/finalizados no se traten como directo por minuto residual.",
-            "Rutas V566 de dashboard, men?, intelligence hub y admin dashboard registradas.",
+            "Rutas V566 de dashboard, menú, intelligence hub y admin dashboard registradas.",
         ],
         "score_final": min(100, 82 + (5 if health.get("upcoming_matches") else 0) + (5 if health.get("recommendations") else 0) + (4 if health.get("published_picks") else 0)),
     }
@@ -24082,7 +24082,7 @@ def v566_live_depth_summary():
 
 def v566_responsible_payload():
     return {
-        "disclaimer": "NeMeSiS SHARK PRO informa y organiza se?ales deportivas. No garantiza beneficios ni sustituye tu criterio.",
+        "disclaimer": "NeMeSiS SHARK PRO informa y organiza señales deportivas. No garantiza beneficios ni sustituye tu criterio.",
         "score": 92,
         "acknowledged": bool(current_session_user()),
         "principles": [
@@ -24091,7 +24091,7 @@ def v566_responsible_payload():
             {"title": "Mayor?a de edad", "body": "Contenido solo para usuarios adultos donde sea legal."},
         ],
         "limits": {"monthly_bankroll_limit": "", "max_stake_per_pick": "", "risk_profile": "moderado", "cooling_off_enabled": False},
-        "checklist": [{"label": "Entiendo que no hay garant?as", "ok": True}, {"label": "Uso stake responsable", "ok": True}],
+        "checklist": [{"label": "Entiendo que no hay garantías", "ok": True}, {"label": "Uso stake responsable", "ok": True}],
     }
 
 
@@ -24255,7 +24255,7 @@ def api_admin_v787_legal_compliance():
 @app.route("/admin/real-launch")
 @app.route("/admin/live-launch")
 @app.route("/admin/lanzamiento-real")
-@app.route("/admin/certificacion-real")
+@app.route("/admin/certificación-real")
 def admin_v789_real_launch_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/real-launch")
@@ -24563,7 +24563,7 @@ def api_v566_timezone_check():
 
 
 # ================================
-# V570 - SHARK Intelligence Core
+# V570 - Inteligencia SHARK Core
 # ================================
 
 def ensure_shark_memory_table():
@@ -24664,9 +24664,9 @@ def v570_shark_admin_summary():
         "picks": picks,
         "recommendations": recommendations,
         "live_now": live_now,
-        "status": "Operativo" if score >= 70 else "Necesita m?s datos",
+        "status": "Operativo" if score >= 70 else "Necesita más datos",
         "actions": [
-            "Conectar SHARK a m?s datos hist?ricos.",
+            "Conectar SHARK a más datos históricos.",
             "Aumentar picks automáticos con cuotas reales.",
             "Usar favoritos para personalizar resúmenes diarios.",
             "Enviar Top oportunidades por Telegram cuando haya datos suficientes.",
@@ -24717,7 +24717,7 @@ def api_v570_system_check():
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
-        "module": "SHARK Intelligence Core",
+        "module": "Inteligencia SHARK Core",
         "routes": ["/shark-core", "/inteligencia", "/admin/shark-center", "/api/shark/core-summary"],
         "memory_table": True,
         "app_goal": "SHARK conectado a favoritos, picks, recomendaciones, live y calendario.",
@@ -24927,11 +24927,11 @@ def v742_sale_ready_context():
     visual = v740_client_visual_perfection_context()
     warnings = []
     if (telegram.get("diagnosis") or {}).get("status") not in {"READY_TO_SEND", "NO_CANDIDATES", "NO_PREMIUM_PICKS", "ALL_ALREADY_SENT", "BLOCKED_BY_QUIET_HOURS"}:
-        warnings.append("Telegram requiere revisi?n de producci?n real.")
+        warnings.append("Telegram requiere revisión de producción real.")
     if track.get("decided_total", 0) == 0:
         warnings.append("Track Record pendiente de resultados reales evaluables.")
     if not (calendar_snap.get("ok") or calendar_snap.get("status")):
-        warnings.append("Calendario necesita revisi?n.")
+        warnings.append("Calendario necesita revisión.")
     return {
         "version": APP_VERSION,
         "status": "SALE_READY_CONTROLADO" if len(warnings) <= 2 else "REVISAR_ANTES_DE_VENDER",
@@ -24985,11 +24985,11 @@ def v742_content_rights_context():
     return {
         "version": APP_VERSION,
         "summary": summary,
-        "client_notice": "V?deos, escudos y contenido externo pueden pertenecer a sus respectivos titulares. NeMeSiS SHARK PRO muestra enlaces o contenido embebido desde fuentes externas cuando está disponible.",
-        "zip_policy": "El release no debe incluir v?deos, logos externos descargados, capturas locales ni assets dudosos.",
+        "client_notice": "Vídeos, escudos y contenido externo pueden pertenecer a sus respectivos titulares. NeMeSiS SHARK PRO muestra enlaces o contenido embebido desde fuentes externas cuando está disponible.",
+        "zip_policy": "El release no debe incluir vídeos, logos externos descargados, capturas locales ni assets dudosos.",
         "admin_notes": [
-            "No se descargan v?deos.",
-            "No se rehostean v?deos.",
+            "No se descargan vídeos.",
+            "No se rehostean vídeos.",
             "No se cachean binarios externos sin permiso.",
             "Los escudos usan URL permitida o fallback propio.",
             "Las noticias no se copian completas.",
@@ -25189,7 +25189,7 @@ def api_automation_data_backup_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
     if not env_bool("DATA_BACKUP_ENABLED", False):
-        result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no esta activo."}
+        result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no está activo."}
     else:
         result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
     automation_safe_set("last_cron_data_backup_call", {"time": now_iso(), "result": result})
@@ -25473,10 +25473,10 @@ def v774_client_screen_quality_snapshot():
         "status": "V774_CLIENT_SCREEN_REORGANIZED",
         "screens": checks,
         "rules": [
-            "Cliente primero: inicio, partidos, directo, picks, hist?rico y SHARK",
-            "Sin duplicar landing p?blica dentro de sesi?n cliente",
+            "Cliente primero: inicio, partidos, directo, picks, histórico y SHARK",
+            "Sin duplicar landing pública dentro de sesión cliente",
             "Hora visible siempre por filtros/contexto Madrid",
-            "Men? cliente compacto, con extras agrupados en M?s",
+            "Menú cliente compacto, con extras agrupados en M?s",
         ],
     }
 
@@ -25506,7 +25506,7 @@ def v776_client_information_architecture_snapshot():
         ("Picks", "/picks", "selección recomendada"),
         ("Combis", "/combis", "combinadas"),
         ("Mercados", "/mercados", "mercados básicos"),
-        ("Res?menes", "/highlights", "resultados y v?deos"),
+        ("Resúmenes", "/highlights", "resultados y vídeos"),
         ("Histórico", "/track-record", "ROI real"),
         ("Telegram", "/telegram", "canal y bot"),
         ("Cuenta", "/perfil", "plan y ajustes"),
@@ -25600,7 +25600,7 @@ def v777_client_product_context(data=None, user=None):
     elif counts["today"]:
         next_action = {"label": "Hay agenda", "body": "Revisa partidos de hoy y marca favoritos.", "href": "/calendar?lane=today", "cta": "Ver partidos"}
     else:
-        next_action = {"label": "Sin se?al real", "body": "La app no inventa. Revisa resultados, gu?a o Telegram.", "href": "/menu", "cta": "Ver mapa"}
+        next_action = {"label": "Sin señal real", "body": "La app no inventa. Revisa resultados, guía o Telegram.", "href": "/menu", "cta": "Ver mapa"}
     intents = [
         {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "Partidos"},
         {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "Live"},
@@ -25625,7 +25625,7 @@ def v777_client_product_context(data=None, user=None):
         "principles": [
             "Lo importante primero: Hoy, Directo, Picks, SHARK y Resultados.",
             "Sin datos inventados: si falta partido, cuota, resultado o ROI se marca pendiente.",
-            "M?vil y PC comparten el mismo mapa de producto.",
+            "Móvil y PC comparten el mismo mapa de producto.",
         ],
     }
 
@@ -25659,7 +25659,7 @@ def v777_client_product_quality_snapshot():
         "checks": checks,
         "rules": [
             "Home = centro de mando, no landing duplicada.",
-            "Navegaci?n por intenci?n: ver partidos, revisar picks, resultados, SHARK y cuenta.",
+            "Navegaci?n por intención: ver partidos, revisar picks, resultados, SHARK y cuenta.",
             "Nada cr?tico escondido detr?s de textos ambiguos.",
             "Hora Madrid visible y sin UTC crudo en cliente.",
         ],
@@ -25707,7 +25707,7 @@ def v778_client_product_organization_context(data=None, user=None):
     base = v777_client_product_context(data, user)
     counts = base.get("counts") or {}
     primary_flow = [
-        {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de Espa?a.", "href": "/calendar?lane=today"},
+        {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de España.", "href": "/calendar?lane=today"},
         {"step": 2, "label": "Directo", "title": "Seguir en vivo", "body": "Solo marcador/minuto real si la API lo aporta; si no, queda pendiente.", "href": "/live"},
         {"step": 3, "label": "Picks", "title": "Qu? recomienda SHARK", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de decidir.", "href": "/picks"},
         {"step": 4, "label": "SHARK", "title": "Resolver dudas", "body": "Explica picks, mercados, partidos y qué evitar sin inventar datos.", "href": "/shark"},
@@ -25716,8 +25716,8 @@ def v778_client_product_organization_context(data=None, user=None):
     sections = [
         {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
         {"key": "picks", "title": "Picks", "body": "Picks, mercados básicos y combis responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combis", "Riesgo"]},
-        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e hist?rico real.", "href": "/track-record", "items": ["Resultados", "Res?menes", "ROI", "Grading"]},
-        {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como gu?a, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
+        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
+        {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
     ]
     if counts.get("live"):
         next_action = {"label": "Prioridad: Directo", "body": "Hay partidos en vivo. Revisa marcador/minuto antes de mirar picks.", "href": "/live", "cta": "Abrir directo"}
@@ -25736,8 +25736,8 @@ def v778_client_product_organization_context(data=None, user=None):
         "primary_flow": primary_flow,
         "sections": sections,
         "rules": [
-            "Una sola navegación principal: top en PC, bottom en m?vil, sin rail duplicado.",
-            "Hora oficial de Espa?a/Madrid en todas las cards visibles.",
+            "Una sola navegación principal: top en PC, bottom en móvil, sin rail duplicado.",
+            "Hora oficial de España/Madrid en todas las cards visibles.",
             "Estados vac?os claros: pendiente no significa roto.",
             "Todo lo avanzado existe, pero lo básico siempre aparece primero.",
         ],
@@ -25793,7 +25793,7 @@ def v778_client_organization_quality_snapshot():
         },
         "checks": checks,
         "rules": [
-            "Sin barras duplicadas: PC usa top nav, m?vil usa bottom nav y cada pantalla usa filtros propios.",
+            "Sin barras duplicadas: PC usa top nav, móvil usa bottom nav y cada pantalla usa filtros propios.",
             "Horarios visibles mediante contexto Madrid o filtro madrid_datetime_label.",
             "Pantallas cliente con jerarquía: cabecera, prioridad, contenido y acción útil.",
             "Nada cr?tico queda escondido en rutas raras: /app y /menu son los mapas oficiales.",
@@ -25912,7 +25912,7 @@ def v808_support_center_context():
         "actions": [
             {"title": "Revisar experiencia cliente", "body": "Recorre Inicio, Partidos, Directo, Picks, SHARK, Telegram y Cuenta desde Vista cliente."},
             {"title": "Comprobar botones perdidos", "body": "Usa el Mapa admin V808 para verificar que todas las pantallas importantes siguen accesibles."},
-            {"title": "Validar datos reales", "body": "Sincroniza calendario/live/cuotas desde Data Center antes de revisar pantallas vac?as."},
+            {"title": "Validar datos reales", "body": "Sincroniza calendario/live/cuotas desde Centro de datos antes de revisar pantallas vacías."},
         ],
     }
 
@@ -25946,9 +25946,9 @@ def v808_betting_center_context():
     score = min(100, 40 + min(25, upcoming) + min(20, odds) + min(15, picks_published))
     issues = []
     if not upcoming:
-        issues.append("No hay partidos próximos cargados. Ejecuta Data Center > Calendario.")
+        issues.append("No hay partidos próximos cargados. Ejecuta Centro de datos > Calendario.")
     if not odds:
-        issues.append("No hay cuotas cacheadas detectadas. Ejecuta Data Center > Cuotas.")
+        issues.append("No hay cuotas cacheadas detectadas. Ejecuta Centro de datos > Cuotas.")
     if not picks_published:
         issues.append("No hay picks publicados ahora mismo.")
     data["betting_check"] = {
@@ -25973,7 +25973,7 @@ def v808_intelligence_status_context():
     return {
         "score": score,
         "blockers": blockers,
-        "next_actions": ["Regenerar recomendaciones", "Revisar VALUE/HOT", "Convertir solo picks validados", "Enviar a Telegram desde Command Center"],
+        "next_actions": ["Regenerar recomendaciones", "Revisar VALUE/HOT", "Convertir solo picks validados", "Enviar a Telegram desde Centro de mando"],
         "intelligence": {
             "total": len(recs),
             "value_count": len(value_recs),
@@ -26039,7 +26039,7 @@ def api_v808_betting_convert_to_pick():
     recs = v566_template_recommendations(limit=80)
     rec = next((r for r in recs if str(r.get("id") or r.get("recommendation_id") or r.get("match_id")) == str(rec_id)), None)
     if not rec:
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Recomendaci?n no encontrada o no generada con datos actuales."}), 404
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Recomendación no encontrada o no generada con datos actuales."}), 404
     payload = {
         "match_id": rec.get("match_id") or "",
         "home_team": rec.get("home_team") or "",
@@ -26084,15 +26084,15 @@ def v809_client_navigation_items():
         {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, picks y SHARK.","href":"/app","icon":"Inicio"},
         {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y b?squeda.","href":"/calendar?lane=today","icon":"Partidos"},
         {"group":"Inicio y uso diario","title":"Directo","body":"Marcador live, minuto, presi?n y tracker si API-Football lo aporta.","href":"/live","icon":"Live"},
-        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicaci?n.","href":"/picks","icon":"Picks"},
-        {"group":"SHARK y an?lisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
-        {"group":"SHARK y an?lisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"SHARK Core"},
-        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando est?n cerrados con datos reales.","href":"/track-record","icon":"Histórico"},
+        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicación.","href":"/picks","icon":"Picks"},
+        {"group":"SHARK y análisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
+        {"group":"SHARK y análisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"SHARK Core"},
+        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando están cerrados con datos reales.","href":"/track-record","icon":"Histórico"},
         {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"Favoritos"},
-        {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar env?os.","href":"/telegram","icon":"Telegram"},
-        {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesi?n, ajustes y cierre de sesi?n.","href":"/mi-cuenta","icon":"Cuenta"},
+        {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"Telegram"},
+        {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"Cuenta"},
         {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},
-        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesi?n de forma visible y segura.","href":"/logout","icon":"Salir"},
+        {"group":"Alertas y cuenta","title":"Salir","body":"Cerrar sesión de forma visible y segura.","href":"/logout","icon":"Salir"},
     ]
 
 
@@ -26179,10 +26179,10 @@ def admin_v808_launch_center_page():
         "metrics": {"items": metrics},
         "items": [
             {"title": "Datos reales", "body": "Calendario, live y picks dependen de tus APIs/DB.", "status": "OK" if metrics[1]["value"] else "Pendiente"},
-            {"title": "Telegram", "body": "Usa Command Center para certificar canal y Cron.", "status": "OK" if metrics[3]["value"] else "Pendiente"},
+            {"title": "Telegram", "body": "Usa Centro de mando para certificar canal y Cron.", "status": "OK" if metrics[3]["value"] else "Pendiente"},
             {"title": "Cliente", "body": "Revisar Vista cliente antes de venta.", "status": "Revisar"},
         ],
-        "actions": ["Abrir vista cliente", "Revisar mapa admin", "Ejecutar Data Center", "Validar Telegram"],
+        "actions": ["Abrir vista cliente", "Revisar mapa admin", "Ejecutar Centro de datos", "Validar Telegram"],
     }
     return render_template("admin_launch_center.html", data=data)
 
@@ -26239,7 +26239,7 @@ def v810_telegram_preview_samples():
         "live_alert": format_v771_live_alert_message(sample_match),
         "pick_alert": format_v771_pick_message(sample_pick),
         "config": telegram_activity_config(),
-        "note": "Vista previa visual: no se env?a, no toca cola y no inventa mensajes de producci?n.",
+        "note": "Vista previa visual: no se envía, no toca cola y no inventa mensajes de producción.",
     }
 
 
@@ -26290,7 +26290,7 @@ def v818_backup_maintenance():
     if env_bool("DATA_BACKUP_ENABLED", False):
         backup = v818_callback_result("data_vault_backup", create_sqlite_backup, DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="v818_master_tick")
     else:
-        backup = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no esta activo."}
+        backup = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no está activo."}
     return {"ok": cleanup.get("ok", True) and backup.get("ok", True), "cleanup": cleanup, "backup": backup}
 
 
@@ -26939,7 +26939,7 @@ def api_v939_automation_company_intelligence_run():
 
 
 # -----------------------------
-# Founder Mode - Company Command Center
+# Modo fundador - Centro de mando de empresa
 # -----------------------------
 
 FOUNDER_COMMAND_CENTER_CONTRACT = "NEMESIS-FOUNDER-COMMAND-CENTER-V1"
@@ -26991,7 +26991,7 @@ def _founder_report_metadata(name):
             "state": "NO_CERTIFICADO",
             "bytes": 0,
             "updated_at_madrid": "",
-            "summary": "Informe pendiente o no versionado en esta carpeta.",
+            "summary": "Informe pendiente o no versionado en está carpeta.",
         }
     try:
         stat = path.stat()
@@ -27124,7 +27124,7 @@ def founder_command_center_snapshot():
         _founder_system_card(systems_by_id, sections, "cron", "Cron", "/admin/daily-automation"),
         _founder_system_card(systems_by_id, sections, "telegram", "Telegram", "/admin/telegram/command-center"),
         _founder_system_card(systems_by_id, sections, "stripe", "Stripe", "/admin/payments"),
-        _founder_system_card(systems_by_id, sections, "sports_gateway", "Sports Gateway", "/admin/data-trust-center"),
+        _founder_system_card(systems_by_id, sections, "sports_gateway", "Pasarela deportiva", "/admin/data-trust-center"),
         _founder_system_card(systems_by_id, sections, "sentinel", "Sentinel", "/admin/sentinel-autopilot"),
     ]
     beta_control = {

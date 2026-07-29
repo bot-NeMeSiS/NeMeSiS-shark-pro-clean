@@ -5,21 +5,21 @@
   <header class="v861-auto-hero">
     <span>NeMeSiS Auto-Improvement OS</span>
     <h1>Mejora Continua SHARK</h1>
-    <p>Sistema interno de diagnostico, priorizacion y prompts para Codex. No modifica codigo, no despliega, no toca secretos, no borra datos y no envia Telegram real.</p>
+    <p>Sistema interno de diagnóstico, priorización y prompts para Codex. No modifica código, no despliega, no toca secretos, no borra datos y no envía Telegram real.</p>
     <div class="v861-auto-actions">
       {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
       {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
       {{ action_button('SHARK Sentinel', '/admin/shark-sentinel', 'brand') }}
-      {{ action_button('Dashboard', '/admin/dashboard', 'neutral') }}
+      {{ action_button('Panel', '/admin/dashboard', 'neutral') }}
       {{ action_button('Runtime', '/api/runtime-version', 'success') }}
     </div>
   </header>
 
   <section class="v861-auto-summary v860-kpi-row">
-    {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Diagnostico seguro', 'brand') }}
+    {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Diagnóstico seguro', 'brand') }}
     {{ stat_card('Health score', summary.health_score ~ '/10', 'Score interno, no comercial', 'info') }}
     {{ stat_card('Modo', summary.mode, 'dry_run=' ~ summary.dry_run, 'warning') }}
-    {{ stat_card('Seguridad', 'Sin secretos', 'Sin deploy ni cambios de codigo', 'success') }}
+    {{ stat_card('Seguridad', 'Sin secretos', 'Sin deploy ni cambios de código', 'success') }}
   </section>
 
   <section class="v861-auto-grid">
@@ -47,13 +47,13 @@
       <p><strong>Siguiente foco:</strong> {{ area.next_focus }}</p>
     </article>
     {% else %}
-    {{ empty_state('Sin diagnostico', 'No hay areas cargadas en Auto-Improvement OS.', '', '', 'muted') }}
+    {{ empty_state('Sin diagnóstico', 'No hay areas cargadas en Auto-Improvement OS.', '', '', 'muted') }}
     {% endfor %}
   </section>
 
   <section class="v861-auto-panels">
     <article>
-      <h2>Requiere aprobacion admin</h2>
+      <h2>Requiere aprobación admin</h2>
       <ul>
         {% for action in summary.approval_required_actions %}
         <li>{{ action }}</li>
@@ -92,7 +92,7 @@
     </article>
     <article>
       <h2>Endpoints seguros</h2>
-      <p><code>/api/admin/auto-improvement/summary</code> requiere sesion admin.</p>
+      <p><code>/api/admin/auto-improvement/summary</code> requiere sesión admin.</p>
       <p><code>/api/automation/auto-improvement/run?dry_run=1</code> requiere AUTOMATION_SECRET.</p>
     </article>
   </section>

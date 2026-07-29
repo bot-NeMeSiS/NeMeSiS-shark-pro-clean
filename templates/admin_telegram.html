@@ -6,7 +6,7 @@
   <p class="lead">Bot, canal, usuarios vinculados, cola, duplicados y últimos envíos en una vista clara.</p>
   <div class="admin-menu">
     <a class="btn primary" href="/admin/telegram">Telegram</a>
-    <a class="btn" href="/admin/telegram/command-center">Command Center</a>
+    <a class="btn" href="/admin/telegram/command-center">Centro de mando</a>
     <a class="btn" href="/admin/telegram/diagnostics">Diagnóstico</a>
     <a class="btn" href="/admin/automation">Automatización</a>
     <a class="btn" href="/admin/data-center">Datos</a>
@@ -69,7 +69,7 @@
   </form>
   <div class="card telegram-actions-v638">
     <h2>Acciones</h2>
-    <p class="small">Estas acciones son manuales. El Cron real se valida solo en Command Center con Render Cron.</p>
+    <p class="small">Estas acciones son manuales. El Cron real se valida solo en Centro de mando con Render Cron.</p>
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola manualmente</button></form>
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_private"><button type="submit">Enviar prueba privada manual</button></form>
     <form method="post" action="/admin/telegram"><input type="hidden" name="action" value="test_channel"><button type="submit">Enviar prueba canal manual</button></form>

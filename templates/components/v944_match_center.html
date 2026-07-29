@@ -137,7 +137,7 @@
 {% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
 {% set risk = conclusions.get('riesgo') or {} %}
 {% set risk_value = risk.get('value') or {} %}
-{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, inteligencia y riesgo desde el Sports Core.', 'story') }}
+{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, inteligencia y riesgo desde el Modelo deportivo.', 'story') }}
   <div class="v944-experience-grid" data-sports-domain-model="unified-v1">
     <article>
       <span>Estado actual</span>
@@ -224,7 +224,7 @@
 {% macro shark_panel(context) -%}
 {% set component = context.get('components', {}).get('SharkPanel') or {} %}
 {% set shark = context.get('shark_context') or {} %}
-{{ panel_start('SharkPanel', component, 'Inteligencia', 'Match Intelligence y SHARK reutilizan el mismo snapshot.', 'shark') }}
+{{ panel_start('SharkPanel', component, 'Inteligencia', 'Inteligencia del partido y SHARK reutilizan el mismo snapshot.', 'shark') }}
   {% if shark.get('available') %}
   <div class="v944-shark-context"
        data-shark-evidence="confirmed"
@@ -308,7 +308,7 @@
     <div>
       <span class="v944-match-panel__eyebrow">Evidencia</span>
       <h2>Calidad, frescura e información ausente</h2>
-      <p>Todo lo que el Match Center sabe, no sabe y deja pendiente.</p>
+      <p>Todo lo que el Centro del partido sabe, no sabe y deja pendiente.</p>
     </div>
   </header>
   <div class="v944-quality-grid">

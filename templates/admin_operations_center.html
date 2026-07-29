@@ -14,14 +14,14 @@
 {% set section_order = ['platform_health','render','cron','telegram','stripe','sports_gateway','sports_core','database','cache','observability','security'] %}
 
 <div class="v933-page v933-admin-command-center operations-center-v1" data-v938-template="admin_operations_center" data-v938-read-only="true" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Operations Center', 'Control interno de plataforma, evidencia y Release 1.0. No despliega, no envia Telegram, no cobra y no escribe en la DB de producto.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Developer','href':'/admin/developer-center','icon':'code'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
+  {{ page_header('Centro de operaciones', 'Control interno de plataforma, evidencia y Release 1.0. No despliega, no envía Telegram, no cobra y no escribe en la DB de producto.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Developer','href':'/admin/developer-center','icon':'code'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
 
   {% if release_gate.status == 'BLOCKED' %}
     {{ executive_focus('Release 1.0 bloqueada por evidencias pendientes', (release_gate.missing_for_ready[0] if release_gate.missing_for_ready else snapshot.next_action), 'Ver incidencias', '#operations-incidents', 'Release Gate BLOCKED', 'danger', 'Abrir AutoPilot', '/admin/sentinel-autopilot') }}
   {% elif release_gate.status == 'PASS' %}
-    {{ executive_focus('Release 1.0 operativamente lista', snapshot.next_action, 'Ejecutar diagnostico local', '#v938-safe-actions', 'Release Gate PASS', 'success', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
+    {{ executive_focus('Release 1.0 operativamente lista', snapshot.next_action, 'Ejecutar diagnóstico local', '#v938-safe-actions', 'Release Gate PASS', 'success', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
   {% else %}
-    {{ executive_focus('Release 1.0 parcialmente lista', 'La arquitectura local esta controlada, pero la certificacion comercial/productiva aun necesita evidencia externa autorizada.', 'Ver gate', '#release-gate', 'Release Gate PARTIAL', 'warning', 'Abrir Developer Center', '/admin/developer-center') }}
+    {{ executive_focus('Release 1.0 parcialmente lista', 'La arquitectura local está controlada, pero la certificación comercial/productiva aún necesita evidencia externa autorizada.', 'Ver gate', '#release-gate', 'Release Gate PARTIAL', 'warning', 'Abrir Centro de desarrollo', '/admin/developer-center') }}
   {% endif %}
 
   <section class="v933-kpi-grid is-six" aria-label="Resumen operativo">
@@ -97,7 +97,7 @@
       </section>
 
       <section class="v933-admin-panel" id="operations-incidents">
-        <header><div><h2>Incidencias y certificaciones</h2><p>Un NO_CERTIFICADO no se muestra como caida; solo como evidencia pendiente.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Centro Sentinel {{ icon('arrow') }}</a></header>
+        <header><div><h2>Incidencias y certificaciónes</h2><p>Un NO_CERTIFICADO no se muestra como caida; solo como evidencia pendiente.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Centro Sentinel {{ icon('arrow') }}</a></header>
         <div class="v933-admin-panel-body">
           {% if snapshot.incidents %}
           {% call data_table(['Prioridad','Area','Clasificacion','Evidencia','Accion']) %}
@@ -112,7 +112,7 @@
           {% endfor %}
           {% endcall %}
           {% else %}
-            {{ empty_state('Sin hallazgos abiertos', 'El ultimo scan no contiene incidencias ni certificaciones pendientes.', '', '', 'shield') }}
+            {{ empty_state('Sin hallazgos abiertos', 'El último scan no contiene incidencias ni certificaciónes pendientes.', '', '', 'shield') }}
           {% endif %}
         </div>
       </section>
@@ -120,7 +120,7 @@
 
     <aside class="v933-side-stack">
       <section class="v933-admin-panel" id="v938-safe-actions">
-        <header><div><h2>Acciones seguras</h2><p>Solo lectura, diagnostico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
+        <header><div><h2>Acciones seguras</h2><p>Solo lectura, diagnóstico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
         <div class="v933-admin-panel-body">
           <div class="operations-action-grid">
             {% for action in snapshot.safe_actions or [] %}
@@ -137,7 +137,7 @@
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Dead-man externo</h2><p>Vigilancia independiente de la propia aplicacion.</p></div>{{ status_chip(monitoring.dead_man.status or 'NOT_CERTIFIED', 'success' if monitoring.dead_man.status == 'READY' else 'warning') }}</header>
+        <header><div><h2>Dead-man externo</h2><p>Vigilancia independiente de la propia aplicación.</p></div>{{ status_chip(monitoring.dead_man.status or 'NOT_CERTIFIED', 'success' if monitoring.dead_man.status == 'READY' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
           <p class="v933-safe-copy">{{ monitoring.dead_man.safe_message }}</p>
           {% if monitoring.dead_man.external_checks_missing %}<div class="v933-chip-cloud">{% for item in monitoring.dead_man.external_checks_missing %}{{ status_chip(item,'neutral') }}{% endfor %}</div>{% endif %}
@@ -173,7 +173,7 @@
         const payload=kind==='prompt'
           ? await post('/api/admin/operations-center/generate-prompt',{issue_id:nextIssue})
           : await post('/api/admin/operations-center/run-safe-scan',{});
-        if(output) output.textContent=kind==='prompt' ? (payload.prompt||'No hay prompt pendiente.') : ('Scan completado: '+((payload.snapshot||{}).incident_counts||{}).total+' elementos requieren atencion o certificacion.');
+        if(output) output.textContent=kind==='prompt' ? (payload.prompt||'No hay prompt pendiente.') : ('Scan completado: '+((payload.snapshot||{}).incident_counts||{}).total+' elementos requieren atencion o certificación.');
       }catch(error){ if(output) output.textContent='No se completo la accion: '+error.message; }
       finally{ button.disabled=false; button.removeAttribute('aria-busy'); }
     });

@@ -36,7 +36,7 @@ def classify_path(path: Path, root: Path) -> dict:
     lower_name = path.name.lower()
     size = path.stat().st_size if path.exists() and path.is_file() else 0
     if parts & FORBIDDEN_DIRS or any(lower.endswith(s) for s in FORBIDDEN_SUFFIXES) or path.name in {".DS_Store", "Thumbs.db"}:
-        return {"path": rel, "size": size, "category": "BASURA_SEGURA", "reason": "cach?, entorno, base local, log, zip o artefacto temporal", "action": "excluir del ZIP; borrar solo con purge --apply", "risk": "bajo", "auto_delete": True}
+        return {"path": rel, "size": size, "category": "BASURA_SEGURA", "reason": "caché, entorno, base local, log, zip o artefacto temporal", "action": "excluir del ZIP; borrar solo con purge --apply", "risk": "bajo", "auto_delete": True}
     allowed_env_examples = {".env.example", ".env.render.clean", "env.example"}
     if path.name not in allowed_env_examples and (any(marker in lower_name for marker in SECRET_MARKERS) or lower_name == ".env"):
         return {"path": rel, "size": size, "category": "PELIGROSO", "reason": "posible secreto/credencial", "action": "excluir siempre y revisar manualmente", "risk": "alto", "auto_delete": False}
@@ -44,7 +44,7 @@ def classify_path(path: Path, root: Path) -> dict:
     necessary_files = {"app.py", "database_manager.py", "requirements.txt", "requirements-dev.txt", "VERSION.txt", ".gitignore", "render.yaml", "Procfile", "runtime.txt", "pytest.ini", "README_MASTER.md", "CODEX_DAILY_AUTOMATION_GUIDE.md", "CHATGPT_CONTINUATION_REPORT.md", "RELEASE_MANIFEST_V723.json"}
     if path.name in necessary_files or (path.relative_to(root).parts and path.relative_to(root).parts[0] in necessary_roots):
         return {"path": rel, "size": size, "category": "NECESARIO", "reason": "archivo/carpeta activo del proyecto", "action": "conservar", "risk": "bajo", "auto_delete": False}
-    return {"path": rel, "size": size, "category": "DUDOSO_REVISAR", "reason": "no clasificado como producci?n ni basura segura", "action": "revisar manualmente", "risk": "medio", "auto_delete": False}
+    return {"path": rel, "size": size, "category": "DUDOSO_REVISAR", "reason": "no clasificado como producción ni basura segura", "action": "revisar manualmente", "risk": "medio", "auto_delete": False}
 
 def audit_tree(root: Path) -> dict:
     files = [p for p in root.rglob("*") if p.is_file()]

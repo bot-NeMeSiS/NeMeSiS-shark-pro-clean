@@ -8,14 +8,14 @@
   ]) }}
   <section class="v933-kpi-grid">
     {{ kpi_card('Propuestas', (experiments.counts or {}).total, 'Catalogo local', 'blue', 'target') }}
-    {{ kpi_card('Validas', (experiments.counts or {}).valid, 'Aun requieren aprobacion', 'cyan', 'check') }}
+    {{ kpi_card('Validas', (experiments.counts or {}).valid, 'Aún requieren aprobación', 'cyan', 'check') }}
     {{ kpi_card('Bloqueadas', (experiments.counts or {}).blocked, 'Incumplen guardrails', 'yellow', 'shield') }}
     {{ kpi_card('Activas', 0, 'Activacion automatica deshabilitada', 'neutral', 'pause') }}
   </section>
   <section class="v933-admin-layout">
     <div class="v933-admin-main">
       <section class="v933-admin-panel">
-        <header><div><h2>Catalogo</h2><p>Cada propuesta necesita metrica, muestra, guardrails y condicion de parada.</p></div>{{ status_chip(evidence_label(experiments.certification_state or 'INSUFFICIENT_DATA'),'warning') }}</header>
+        <header><div><h2>Catalogo</h2><p>Cada propuestá necesita metrica, muestra, guardrails y condicion de parada.</p></div>{{ status_chip(evidence_label(experiments.certification_state or 'INSUFFICIENT_DATA'),'warning') }}</header>
         <div class="v933-admin-panel-body">
           {% if experiments.experiments %}
           <div class="v933-truth-list">

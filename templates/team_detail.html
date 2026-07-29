@@ -16,9 +16,9 @@
     <div class="team-center-identity">
       <div class="team-center-crest">{{ crest(t.identity, team.name or t.name, 'mega') }}</div>
       <div class="team-center-title-block">
-        <div class="team-center-kicker">Team Center · {{ team.competition or 'No disponible' }}</div>
+        <div class="team-center-kicker">Centro del equipo · {{ team.competition or 'No disponible' }}</div>
         <h1>{{ team.official_name or team.name or t.name }}</h1>
-        <p>Centro de conocimiento del club construido con Sports Core, Sports Knowledge Layer y Sports Graph.</p>
+        <p>Centro de conocimiento del club construido sobre Modelo deportivo, Capa de conocimiento deportivo y Grafo deportivo.</p>
         <div class="team-center-tags" aria-label="Contexto del equipo">
           <span>{{ team.state or 'Información parcial' }}</span>
           <span>{{ team.country or 'No disponible' }}</span>
@@ -147,7 +147,7 @@
       <dl class="team-center-data-list">
         <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
         <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
-        <div><dt>Sports Core</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
+        <div><dt>Modelo deportivo</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
         <div><dt>Knowledge</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
       </dl>
       {% if data_quality.limitations %}<ul class="team-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
@@ -161,18 +161,18 @@
     </section>
 
     <section class="team-center-panel" data-team-center-section="sports-graph">
-      <div class="team-center-section-head"><span>Sports Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
+      <div class="team-center-section-head"><span>Grafo deportivo</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
       <p>Relaciones preparadas sin persistir grafo ni crear datos ficticios.</p>
       {% if center.sports_graph.relationships %}<ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">Información pendiente.</p>{% endif %}
     </section>
 
     <section class="team-center-panel" data-team-center-section="future-links">
-      <div class="team-center-section-head"><span>Conexiones preparadas</span><strong>Sports Core</strong></div>
+      <div class="team-center-section-head"><span>Conexiones preparadas</span><strong>Modelo deportivo</strong></div>
       <nav class="team-center-link-grid" aria-label="Centros deportivos preparados">
-        {% if links.competition_center %}<a href="{{ links.competition_center }}">Competition Center</a>{% else %}<span>Competition Center · No disponible</span>{% endif %}
-        {% if links.player_center %}<a href="{{ links.player_center }}">Player Center</a>{% else %}<span>Player Center · Información pendiente</span>{% endif %}
-        {% if links.match_center %}<a href="{{ links.match_center }}">Match Center</a>{% else %}<span>Match Center · No disponible</span>{% endif %}
-        {% if links.sports_graph %}<a href="{{ links.sports_graph }}">Sports Graph</a>{% else %}<span>Sports Graph · Contrato interno</span>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competicion</a>{% else %}<span>Centro de la competicion · No disponible</span>{% endif %}
+        {% if links.player_center %}<a href="{{ links.player_center }}">Centro del jugador</a>{% else %}<span>Centro del jugador · Información pendiente</span>{% endif %}
+        {% if links.match_center %}<a href="{{ links.match_center }}">Centro del partido</a>{% else %}<span>Centro del partido · No disponible</span>{% endif %}
+        {% if links.sports_graph %}<a href="{{ links.sports_graph }}">Grafo deportivo</a>{% else %}<span>Grafo deportivo · Contrato interno</span>{% endif %}
       </nav>
     </section>
   </main>

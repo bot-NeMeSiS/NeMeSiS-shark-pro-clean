@@ -150,7 +150,7 @@ SAFE_STATE_TOKENS = [
     'Sin picks activos',
     'Cuota pendiente',
     'Selección pendiente',
-    'Pick en revisiÃ³n',
+    'Pick en revisión',
     'Sin pick real publicado',
     'Proveedor sin datos ahora mismo',
     'No configurado',
@@ -161,12 +161,12 @@ SAFE_STATE_TOKENS = [
     'Fallback visual activo',
     'Resultado pendiente',
     'Pick pendiente',
-    'Checkout pendiente de configuraciÃ³n',
+    'Checkout pendiente de configuración',
     'Stripe no configurado',
-    'SHARK IA avanzada pendiente de configuraciÃ³n',
+    'SHARK IA avanzada pendiente de configuración',
 ]
 
-MOJIBAKE_RE = re.compile(r"(Ãƒ|Ã‚|ï¿½|Ã¯Â¿Â½)")
+MOJIBAKE_RE = re.compile(r"(Ãƒ|Ã‚|ï¿½|Ã¯¿Â½)")
 TECHNICAL_RE = re.compile(r"\b(None|null|undefined|Traceback|sqlite3\.|werkzeug\.)\b", re.I)
 BAD_HREF_RE = re.compile(r"href=[\"'](?:#|javascript:void\(0\)|javascript:;|)[\"']", re.I)
 
@@ -243,7 +243,7 @@ def build_safe_fix_plan(issue: dict[str, Any]) -> dict[str, Any]:
         next_step = "Puede prepararse como correccion segura de copy/estado visual y revalidarse con Sentinel."
         bucket = "Seguro"
     elif approval:
-        next_step = "Requiere aprobacion humana antes de tocar codigo, datos, pagos, Telegram, deploy o seguridad."
+        next_step = "Requiere aprobacion humana antes de tocar código, datos, pagos, Telegram, deploy o seguridad."
         bucket = "Requiere aprobacion"
     else:
         next_step = "Mantener como diagnostico y repetir scan."
@@ -582,11 +582,11 @@ def build_client_copy_audience_contract_snapshot(
         client_fallback in polling_js
         and "var message = technical" in polling_js
         and "DB/caché:" in polling_js
-        and "La vista se mantiene operativa con DB y cachÃ©." not in polling_js
+        and "La vista se mantiene operativa con DB y caché." not in polling_js
     )
     live_contract = (
         "Los últimos datos confirmados siguen accesibles" in live_template
-        and "DB y cachÃ© durante render" not in live_template
+        and "DB y caché durante render" not in live_template
     )
     admin_contract = all(
         re.search(r"realtime_state_bar\([^\n]*true\)", _read(path))
@@ -2359,10 +2359,10 @@ def detect_product_quality_contract_issues(
             "priority": "P2",
             "profile": "CLIENT",
             "component": "madrid_sync_timestamp_presentation",
-            "description": "Una marca ISO de mÃ¡quina puede volver a mostrarse como texto visible al cliente.",
-            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia tÃ©cnica.",
-            "actual_behavior": "El contrato de presentaciÃ³n de fecha Madrid está incompleto o fue modificado.",
-            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin tÃ©cnico.",
+            "description": "Una marca ISO de máquina puede volver a mostrarse como texto visible al cliente.",
+            "expected_behavior": "El cliente ve una fecha Madrid legible y el ISO permanece disponible solo como evidencia técnica.",
+            "actual_behavior": "El contrato de presentación de fecha Madrid está incompleto o fue modificado.",
+            "suggested_fix": "Restaurar el formateador compartido y validar render inicial, polling y modo admin técnico.",
             "safe_auto_fix_possible": False,
             "requires_admin_approval": True,
             "requires_approval": True,
@@ -2374,8 +2374,8 @@ def detect_product_quality_contract_issues(
                 "static/v934-realtime.js",
             ],
             "codex_prompt_suggestion": (
-                "Revisar PQV939-007, mantener el ISO solo como evidencia de mÃ¡quina/admin y restaurar "
-                "la etiqueta Madrid cliente. Validar desktop, mÃ³vil y polling. No autoaplicar cÃ³digo."
+                "Revisar PQV939-007, mantener el ISO solo como evidencia de máquina/admin y restaurar "
+                "la etiqueta Madrid cliente. Validar desktop, móvil y polling. No autoaplicar código."
             ),
             "product_quality_contract": timestamp_snapshot,
         })
@@ -2439,7 +2439,7 @@ def detect_product_quality_contract_issues(
     )
     if match_center_snapshot and match_center_snapshot["validation_result"] != "PASS":
         issue = _new_issue(
-            "El Match Center pierde su contrato de contexto Ãºnico",
+            "El Match Center pierde su contrato de contexto único",
             "sports_data_contract",
             "high",
             "/match/<id>",
@@ -2451,9 +2451,9 @@ def detect_product_quality_contract_issues(
             "priority": "P1",
             "profile": "CLIENT",
             "component": "match_center_foundation",
-            "description": "Una regiÃ³n del partido ha dejado de compartir contexto, estado o fallback canÃ³nico.",
+            "description": "Una región del partido ha dejado de compartir contexto, estado o fallback canónico.",
             "expected_behavior": "Diez componentes consumen un MatchContext puro, responsive y sin efectos laterales.",
-            "actual_behavior": "Una o mÃ¡s garantÃ­as de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
+            "actual_behavior": "Una o más garantías de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
             "suggested_fix": "Restaurar solo el contrato incumplido y repetir tests y Browser QA en tres viewports.",
             "safe_auto_fix_possible": False,
             "requires_admin_approval": True,

@@ -4,7 +4,7 @@
 <section class="v933-page v933-admin-command-center v933-admin-sentinel-issues ns-admin-page v924-no-dead-space v924-admin-shell v924-page-shell v892-sentinel-issues v904-admin-rebuild v904-sentinel-issues v908-admin-shell v908-command-grid v911-admin-shell v912-admin-shell v912-command-center-polish v913-browser-qa-truth-panel v926-desktop-shell v926-desktop-command-center v926-admin-desktop v928-admin-command-center" data-v933-template="admin_sentinel_issues" data-v933-reference="canonical-admin-sentinel-issues" data-v928-template="admin_sentinel_issues" data-v926-template="admin_sentinel_issues" data-v904-template="admin_sentinel_issues" data-v908-template="admin_sentinel_issues" data-v911-template="admin_sentinel_issues" data-v912-template="admin_sentinel_issues" data-v913-template="admin_sentinel_issues" data-v924-template="admin_sentinel_issues">
   <div class="ns-page-header v933-legacy-admin-header v927-admin-desktop-shell v927-no-dead-space" data-v927-template="admin_sentinel_issues">
     <span class="ns-chip">V892 Centro de Incidencias</span>
-    <h1>Sentinel Issues Command Center</h1>
+    <h1>Sentinel Issues Centro de mando</h1>
     <p>Incidencias reales de Sentinel, AutoPilot y Visual Worker convertidas en tareas, evidencia y prompts Codex copiables. No ejecuta deploy, Telegram real, pagos ni acciones peligrosas.</p>
     <div class="ns-actions">
       <form method="get" action="/api/admin/sentinel/issues/scan" target="_blank">
@@ -25,7 +25,7 @@
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Abiertas</span><strong class="v912-kpi-value">{{ summary.counts.open }}</strong><small class="v912-kpi-hint">incidencias activas</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Críticas</span><strong class="v912-kpi-value">{{ summary.counts.severity.critical }}</strong><small class="v912-kpi-hint">histórico total</small></article>
     <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Altas</span><strong class="v912-kpi-value">{{ summary.counts.severity.high }}</strong><small class="v912-kpi-hint">prioridad operativa</small></article>
-    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Codex Ready</span><strong class="v912-kpi-value">{{ summary.codex_ready_issues|length }}</strong><small class="v912-kpi-hint">prompt preparado</small></article>
+    <article class="ns-stat v912-kpi-card"><span class="v912-kpi-label">Listo para Codex</span><strong class="v912-kpi-value">{{ summary.codex_ready_issues|length }}</strong><small class="v912-kpi-hint">prompt preparado</small></article>
   </section>
 
   <section class="ns-grid ns-grid-3 v927-admin-ops-grid v927-sports-filters">
@@ -48,7 +48,7 @@
         <button class="ns-button ns-button-secondary" type="button" data-filter="all">Todas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="critical">Solo críticas</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="open">Abiertas</button>
-        <button class="ns-button ns-button-secondary" type="button" data-filter="codex">Codex Ready</button>
+        <button class="ns-button ns-button-secondary" type="button" data-filter="codex">Listo para Codex</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="reference">Reference gap</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="browser">Browser QA</button>
         <button class="ns-button ns-button-secondary" type="button" data-filter="mobile">Mobile</button>
@@ -57,7 +57,7 @@
         <button class="ns-button ns-button-secondary" type="button" data-filter="client">Client</button>
       </div>
       <label class="ns-form-label" for="v892-search">Buscar incidencia</label>
-      <input class="ns-input" id="v892-search" type="search" placeholder="Ruta, area, evidencia o titulo" data-v892-search>
+      <input class="ns-input" id="v892-search" type="search" placeholder="Ruta, área, evidencia o título" data-v892-search>
     </article>
     <article class="ns-admin-card">
       <h2>Política segura</h2>

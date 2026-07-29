@@ -9,7 +9,7 @@
 <div class="v933-page v933-admin-command-center v933-admin-payments" data-v933-template="admin_payments" data-v933-reference="canonical-admin-payments">
   {{ page_header('Pagos y membresías', 'Suscripciones, Stripe y facturación en modo seguro', 'payments', [{'label':'Membresías','href':'/admin/memberships'},{'label':'Lanzamiento real','href':'/admin/real-launch','primary':true}]) }}
   {% if stripe.get('blockers') or payments.get('blockers') %}
-    {{ executive_focus('Cerrar bloqueadores de pago antes de vender', 'Planes, precios, webhook y entorno deben quedar verificados. Esta vista no ejecuta cobros ni oculta configuraciones pendientes.', 'Revisar lanzamiento', '/admin/real-launch', 'Bloqueo comercial', 'warning', 'Abrir membresías', '/admin/memberships') }}
+    {{ executive_focus('Cerrar bloqueadores de pago antes de vender', 'Planes, precios, webhook y entorno deben quedar verificados. Está vista no ejecuta cobros ni oculta configuraciónes pendientes.', 'Revisar lanzamiento', '/admin/real-launch', 'Bloqueo comercial', 'warning', 'Abrir membresías', '/admin/memberships') }}
   {% elif not stripe.get('configured') %}
     {{ executive_focus('Configurar Stripe en el entorno autorizado', 'La experiencia de planes puede revisarse, pero el checkout no debe abrirse hasta validar claves, precios y webhook.', 'Revisar lanzamiento', '/admin/real-launch', 'Configuración pendiente', 'warning', 'Ver membresías', '/admin/memberships') }}
   {% else %}

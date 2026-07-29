@@ -20,7 +20,7 @@
     </div>
     <aside class="v928-stack">
       <section class="v928-admin-panel"><header><div><h2>Acciones prioritarias</h2></div></header><div class="v928-admin-panel-body">{% if qa.priority_actions %}<ol class="v928-step-list">{% for action in qa.priority_actions %}<li>{{ action }}</li>{% endfor %}</ol>{% else %}{{ empty_state('Sin acciones registradas','No hay una acción prioritaria en el snapshot actual.', '', '', 'shield') }}{% endif %}</div></section>
-      <section class="v928-admin-panel"><header><div><h2>Centros relacionados</h2></div></header><div class="v928-admin-panel-body"><div class="v928-command-list">{{ quick_action('Data Center','Calidad y sincronización','/admin/data-center','database') }}{{ quick_action('Picks','Puerta editorial','/admin/picks','target') }}{{ quick_action('Telegram','Cola y dedupe','/admin/telegram/command-center','telegram') }}{{ quick_action('Rutas','Integridad de navegación','/admin/navigation-integrity','routes') }}</div></div></section>
+      <section class="v928-admin-panel"><header><div><h2>Centros relacionados</h2></div></header><div class="v928-admin-panel-body"><div class="v928-command-list">{{ quick_action('Centro de datos','Calidad y sincronización','/admin/data-center','database') }}{{ quick_action('Picks','Puerta editorial','/admin/picks','target') }}{{ quick_action('Telegram','Cola y dedupe','/admin/telegram/command-center','telegram') }}{{ quick_action('Rutas','Integridad de navegación','/admin/navigation-integrity','routes') }}</div></div></section>
     </aside>
   </section>
 </section>

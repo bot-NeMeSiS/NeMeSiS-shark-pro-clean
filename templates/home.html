@@ -80,7 +80,7 @@
           {% for match in matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}
         </div>
         {% else %}
-          {{ empty_state('Sin agenda real cargada', safe_message, 'Ver esta semana', '/calendar?lane=week', 'calendar') }}
+          {{ empty_state('Sin agenda real cargada', safe_message, 'Ver está semana', '/calendar?lane=week', 'calendar') }}
         {% endif %}
       </section>
 

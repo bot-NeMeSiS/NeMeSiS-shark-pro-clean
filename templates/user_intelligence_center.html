@@ -16,10 +16,10 @@
          data-shark-intelligence-contract="{{ u.source_contracts.shark_intelligence if u.source_contracts else '' }}">
   <header class="user-intelligence-hero" data-user-intelligence-section="header">
     <div class="user-intelligence-title">
-      <span>User Intelligence Platform</span>
+      <span>Inteligencia de usuario Platform</span>
       <h1>Tu experiencia deportiva bajo tu control</h1>
-      <p>{{ summary.body or 'NeMeSiS prepara personalizacion solo con uso propio observado, sin IA generativa y sin vender datos.' }}</p>
-      <div class="user-intelligence-tags" aria-label="Estado de personalizacion">
+      <p>{{ summary.body or 'NeMeSiS prepara personalización solo con uso propio observado, sin IA generativa y sin vender datos.' }}</p>
+      <div class="user-intelligence-tags" aria-label="Estado de personalización">
         <span>{{ u.certification_state or 'REQUIRES_REVIEW' }}</span>
         <span>{{ privacy.consent_state or 'NOT_GRANTED' }}</span>
         <span>{{ u.observed_at_madrid or 'No disponible' }}</span>
@@ -121,7 +121,7 @@
         {% endfor %}
       </div>
       {% else %}
-      <p class="user-intelligence-empty">No disponible. Aun no hay muestra suficiente o consentimiento activo.</p>
+      <p class="user-intelligence-empty">No disponible. Aún no hay muestra suficiente o consentimiento activo.</p>
       {% endif %}
     </section>
 
@@ -135,7 +135,7 @@
     </section>
 
     <section class="user-intelligence-panel" data-user-intelligence-section="missing">
-      <div class="user-intelligence-section-head"><span>Informacion ausente</span><strong>{{ u.missing_information|length if u.missing_information else 0 }}</strong></div>
+      <div class="user-intelligence-section-head"><span>Información ausente</span><strong>{{ u.missing_information|length if u.missing_information else 0 }}</strong></div>
       {% if u.missing_information %}
       <ul class="user-intelligence-evidence-list">{% for item in u.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>
       {% else %}

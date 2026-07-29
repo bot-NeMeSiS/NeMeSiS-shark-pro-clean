@@ -35,7 +35,7 @@
     {{ kpi_card('Deploy hook', 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente', 'Solo desde entorno seguro', 'success' if summary.v916_deploy_hook_configured else 'warning', 'rocket') }}
     {{ kpi_card('Browser QA', browser_status, (screenshots|string) ~ ' capturas válidas', 'success' if screenshots else 'warning', 'image') }}
     {{ kpi_card('Cola visual', queue_blocked, 'bloqueados de ' ~ queue_total, 'warning' if queue_blocked else 'success', 'target') }}
-    {{ kpi_card('Ready for Codex', queue_ready, 'Con evidencia asociada', 'cyan', 'check') }}
+    {{ kpi_card('Listo para Codex', queue_ready, 'Con evidencia asociada', 'cyan', 'check') }}
     {{ kpi_card('Secret Guard', 'Listo' if summary.v916_secret_guard_ready else 'Revisar', 'Sin secretos visibles', 'success' if summary.v916_secret_guard_ready else 'warning', 'shield') }}
   </section>
 

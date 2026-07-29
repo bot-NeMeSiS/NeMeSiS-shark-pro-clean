@@ -9,8 +9,8 @@
   ]) }}
   <section class="v933-kpi-grid">
     {{ kpi_card('Escenarios', (recovery.counts or {}).total, 'Catalogo controlado', 'blue', 'history') }}
-    {{ kpi_card('Con evidencia local', (recovery.counts or {}).with_local_evidence, 'No certifica produccion', 'cyan', 'data') }}
-    {{ kpi_card('Certificados en produccion', (recovery.counts or {}).production_certified, 'Requiere ejercicio aislado', 'yellow', 'shield') }}
+    {{ kpi_card('Con evidencia local', (recovery.counts or {}).with_local_evidence, 'No certifica producción', 'cyan', 'data') }}
+    {{ kpi_card('Certificados en producción', (recovery.counts or {}).production_certified, 'Requiere ejercicio aislado', 'yellow', 'shield') }}
     {{ kpi_card('Restores ejecutados', 0, 'Simulacion unicamente', 'neutral', 'pause') }}
   </section>
   <section class="v933-admin-panel">
@@ -24,13 +24,13 @@
     </div>
   </section>
   <section class="v933-admin-panel">
-    <header><div><h2>Garantias</h2><p>Limites de esta simulacion.</p></div></header>
+    <header><div><h2>Garantias</h2><p>Limites de está simulacion.</p></div></header>
     <div class="v933-admin-panel-body">
       <div class="v933-chip-cloud">
         {{ status_chip('Sin restore','success') }}
         {{ status_chip('Sin escritura DB','success') }}
         {{ status_chip('Sin llamadas externas','success') }}
-        {{ status_chip('Sin cambios en produccion','success') }}
+        {{ status_chip('Sin cambios en producción','success') }}
       </div>
     </div>
   </section>

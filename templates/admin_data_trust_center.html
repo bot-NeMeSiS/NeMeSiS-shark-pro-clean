@@ -9,13 +9,13 @@
 {% set issues = trust.get('issues') or [] %}
 {% set realtime = data.get('v934_realtime') or {} %}
 <div class="v933-page v933-admin-command-center v935-data-trust-center" data-v933-template="admin_data_trust_center" data-v935-template="data-trust-center">
-  {{ page_header('Data Trust Center', 'Ciclo de vida, frescura y trazabilidad de datos deportivos sin tocar proveedores durante el render.', 'shield', [{'label':'Tiempo real','href':'/admin/realtime-center','icon':'live'},{'label':'Data Center','href':'/admin/data-center','primary':true,'icon':'database'}]) }}
+  {{ page_header('Centro de confianza de datos', 'Ciclo de vida, frescura y trazabilidad de datos deportivos sin tocar proveedores durante el render.', 'shield', [{'label':'Tiempo real','href':'/admin/realtime-center','icon':'live'},{'label':'Centro de datos','href':'/admin/data-center','primary':true,'icon':'database'}]) }}
   {{ realtime_state_bar(realtime, 'all', true) }}
 
   {% if issues %}
-    {{ executive_focus('Resolver causas de calidad antes de publicar', 'Las incidencias están deduplicadas por causa. Corrige primero la de mayor impacto y repite la validación segura.', 'Revisar incidencias', '#v936-data-workspace', 'Calidad bloqueada', 'warning', 'Abrir Data Center', '/admin/data-center') }}
+    {{ executive_focus('Resolver causas de calidad antes de publicar', 'Las incidencias están deduplicadas por causa. Corrige primero la de mayor impacto y repite la validación segura.', 'Revisar incidencias', '#v936-data-workspace', 'Calidad bloqueada', 'warning', 'Abrir Centro de datos', '/admin/data-center') }}
   {% elif not match_counts.get('UPCOMING') and not match_counts.get('LIVE') %}
-    {{ executive_focus('Recuperar una fuente real para demostrar valor', 'El ciclo de vida funciona, pero no hay agenda evaluable. Ejecuta la sincronización únicamente desde el entorno autorizado y valida después.', 'Abrir Data Center', '/admin/data-center', 'Esperando datos', 'warning', 'Validar datos', '#v936-data-workspace') }}
+    {{ executive_focus('Recuperar una fuente real para demostrar valor', 'El ciclo de vida funciona, pero no hay agenda evaluable. Ejecuta la sincronización únicamente desde el entorno autorizado y valida después.', 'Abrir Centro de datos', '/admin/data-center', 'Esperando datos', 'warning', 'Validar datos', '#v936-data-workspace') }}
   {% else %}
     {{ executive_focus('Mantener frescura y trazabilidad', 'Partidos, picks e histórico tienen estados canónicos. Vigila resultados pendientes y cuotas que pasan a stale.', 'Abrir tiempo real', '/admin/realtime-center', 'Datos operativos', 'success', 'Revisar picks', '/admin/picks') }}
   {% endif %}
@@ -24,7 +24,7 @@
   <section class="v933-admin-panel">
     <header><div><h2>Índice de Confianza NeMeSiS</h2><p>Calidad y trazabilidad del dato, nunca probabilidad de ganar.</p></div>{{ status_chip('Metodología activa', 'success') }}</header>
     <div class="v933-admin-panel-body v937-trust-explainer">
-      <div class="v937-trust-copy"><strong>Qué responde</strong><p>Comprueba identidad, competición, fecha, fuente, frescura y evidencia del estado. Un resultado bajo bloquea o limita la presentación; no completa datos ausentes.</p><strong>Qué no responde</strong><p>No estima acierto, beneficio, valor de apuesta ni resultado futuro.</p></div>
+      <div class="v937-trust-copy"><strong>Qué responde</strong><p>Comprueba identidad, competición, fecha, fuente, frescura y evidencia del estado. Un resultado bajo bloquea o limita la presentación; no completa datos ausentes.</p><strong>Qué no responde</strong><p>No estima acierto, beneficio, valor de apuestá ni resultado futuro.</p></div>
       <div class="v937-trust-legend"><div><span>85-100</span><b>Alta y trazable</b></div><div><span>70-84</span><b>Sólida con evidencia</b></div><div><span>50-69</span><b>Limitada, revisar</b></div><div><span>0-49</span><b>Insuficiente</b></div></div>
     </div>
   </section>
@@ -74,7 +74,7 @@
     <aside class="v933-side-stack">
       <section class="v933-admin-panel"><header><div><h2>Frescura de cuotas</h2><p>La etiqueta depende del timestamp y la fuente.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list">{% for state, tone in [('FRESH','success'),('RECORDED','blue'),('STALE','warning'),('EXPIRED','neutral'),('INVALID','danger')] %}<div>{{ icon('odds') }}<span><strong>{{ state }}</strong><small>{{ odds_counts.get(state, 0) }} registros</small></span>{{ status_chip(odds_counts.get(state, 0), tone) }}</div>{% endfor %}</div></div></section>
       <section class="v933-admin-panel"><header><div><h2>Acciones seguras</h2><p>Dry-run y caché local, sin sincronización remota.</p></div></header><div class="v933-admin-panel-body v934-admin-actions"><button type="button" class="v933-action is-primary is-blue" data-v934-admin-action="/api/admin/data-trust/run-safe-validation">Validar ahora</button><button type="button" class="v933-action is-cyan" data-v934-admin-action="/api/admin/data-trust/refresh-cache">Refrescar caché local</button><output class="v933-workforce-output" data-v934-admin-output aria-live="polite">Listo para validación segura.</output></div></section>
-      <section class="v933-admin-panel"><header><div><h2>Fuente y sincronizacion</h2><p>Estado operativo sin exponer configuracion.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('database') }}<span><strong>Proveedor</strong><small>{{ trust.get('provider_status') or 'Esperando sync' }}</small></span></div><div>{{ icon('clock') }}<span><strong>Ultima sync</strong><small>{{ trust.get('last_safe_sync') or 'Sin marca confirmada' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Render GET</strong><small>0 llamadas externas, 0 escrituras</small></span></div></div></div></section>
+      <section class="v933-admin-panel"><header><div><h2>Fuente y sincronización</h2><p>Estado operativo sin exponer configuración.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('database') }}<span><strong>Proveedor</strong><small>{{ trust.get('provider_status') or 'Esperando sync' }}</small></span></div><div>{{ icon('clock') }}<span><strong>última sync</strong><small>{{ trust.get('last_safe_sync') or 'Sin marca confirmada' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Render GET</strong><small>0 llamadas externas, 0 escrituras</small></span></div></div></div></section>
     </aside>
   </section>
 </div>

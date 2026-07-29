@@ -26,10 +26,10 @@
          data-gateway-contract="{{ a.source_contracts.gateway if a.source_contracts else '' }}">
   <header class="action-platform-hero" data-action-platform-section="hero">
     <div class="action-platform-title">
-      <span>Action Platform</span>
+      <span>Plataforma de acciones</span>
       <h1>Tu experiencia deportiva personal</h1>
       <p>{{ a.summary.body or 'NeMeSiS organiza tu dia deportivo con datos reales, evidencia visible y control humano.' }}</p>
-      <div class="action-platform-tags" aria-label="Estado Action Platform">
+      <div class="action-platform-tags" aria-label="Estado Plataforma de acciones">
         <span>{{ a.certification_state or 'REQUIRES_REVIEW' }}</span>
         <span>Plan {{ a.membership or 'FREE' }}</span>
         <span>{{ a.observed_at_madrid or 'No disponible' }}</span>
@@ -47,7 +47,7 @@
     </aside>
   </header>
 
-  <nav class="action-platform-nav" aria-label="Secciones Action Platform">
+  <nav class="action-platform-nav" aria-label="Secciones Plataforma de acciones">
     {% for key, item in nav.items() %}
       <a href="{{ item.route }}"{% if key == active %} class="is-active" aria-current="page"{% endif %}>
         <span>{{ item.title }}</span>
@@ -58,7 +58,7 @@
 
   <section class="action-platform-next" data-action-platform-section="next-action">
     <div>
-      <span>Siguiente accion util</span>
+      <span>Siguiente accion útil</span>
       <h2>{{ a.next_action.title if a.next_action else 'Abrir calendario' }}</h2>
       <p>{{ a.next_action.body if a.next_action else 'Empieza por partidos reales disponibles.' }}</p>
     </div>
@@ -71,7 +71,7 @@
         <span>{{ nav[active].title if active in nav else 'Smart Home' }}</span>
         <strong>{{ current['items']|length if current and current['items'] else 0 }}</strong>
       </div>
-      <p class="action-platform-section-intro">{{ nav[active].goal if active in nav else 'Organizar informacion real disponible.' }}</p>
+      <p class="action-platform-section-intro">{{ nav[active].goal if active in nav else 'Organizar información real disponible.' }}</p>
       <div class="action-platform-card-grid">
         {% for item in current['items'] or [] %}
         <article class="action-platform-card" data-action-platform-card>
@@ -85,7 +85,7 @@
           {% if item.href %}<a href="{{ item.href }}">Abrir</a>{% endif %}
         </article>
         {% else %}
-        <p class="action-platform-empty">No disponible. No hay evidencia suficiente para mostrar elementos en esta seccion.</p>
+        <p class="action-platform-empty">No disponible. No hay evidencia suficiente para mostrar elementos en está seccion.</p>
         {% endfor %}
       </div>
     </section>
@@ -120,13 +120,13 @@
         <li>Calidad visible en cada bloque.</li>
         <li>Limitaciones visibles en cada bloque.</li>
         <li>No hay recomendaciones de apuestas ni predicciones nuevas.</li>
-        <li>El usuario conserva control desde User Intelligence.</li>
+        <li>El usuario conserva control desde Inteligencia de usuario.</li>
       </ul>
     </section>
 
     <section class="action-platform-panel" data-action-platform-section="privacy">
       <div class="action-platform-section-head"><span>Privacidad</span><strong>Controlada</strong></div>
-      <p>La personalizacion usa solo datos propios de NeMeSiS. Puede exportarse, reiniciarse, desactivarse o borrarse desde User Intelligence.</p>
+      <p>La personalización usa solo datos propios de NeMeSiS. Puede exportarse, reiniciarse, desactivarse o borrarse desde Inteligencia de usuario.</p>
       <div class="action-platform-actions is-stacked">
         <a href="/user-intelligence">Gestionar privacidad</a>
         <a href="/api/user-intelligence/export">Exportar datos</a>

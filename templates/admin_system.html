@@ -5,7 +5,7 @@
 {% set sportsdb = data.get('sportsdb') or {} %}
 {% set feed = system.get('sportsdb_feed') or {} %}
 <section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-system" data-v930-template="admin_system">
-  {{ page_header('Estado del sistema', 'Runtime, datos y servicios conectados sin exponer configuración sensible', 'settings', [{'label':'Rutas','href':'/admin/navigation-integrity'},{'label':'Data Center','href':'/admin/data-center','primary':true}]) }}
+  {{ page_header('Estado del sistema', 'Runtime, datos y servicios conectados sin exponer configuración sensible', 'settings', [{'label':'Rutas','href':'/admin/navigation-integrity'},{'label':'Centro de datos','href':'/admin/data-center','primary':true}]) }}
   <section class="v928-kpi-grid">
     {{ kpi_card('Base de datos', system.get('sqlite') or 'Sin estado', 'Persistencia local del servicio', 'green' if system.get('sqlite') == 'OK' else 'gold', 'database') }}
     {{ kpi_card('Equipos', system.get('teams'), 'Registros reales', 'blue', 'users') }}

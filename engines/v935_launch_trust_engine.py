@@ -26,8 +26,8 @@ _PLACEHOLDERS = {
     "", "none", "null", "undefined", "pending", "pendiente", "por confirmar",
     "sin dato", "sin datos", "unknown", "n/a", "na", "tbd", "placeholder",
     "esperar cuota disponible", "cuota pendiente", "mercado pendiente",
-    "seleccion pendiente", "selecciÃ³n pendiente", "competicion pendiente",
-    "competiciÃ³n pendiente", "hora pendiente",
+    "seleccion pendiente", "selección pendiente", "competicion pendiente",
+    "competición pendiente", "hora pendiente",
 }
 
 
@@ -165,7 +165,7 @@ def normalize_match_lifecycle(item: dict[str, Any], now: datetime | None = None)
         item.get("lifecycle") or item.get("match_status") or item.get("fixture_status")
         or item.get("sports_status") or item.get("calendar_status") or item.get("status")
     )
-    if raw in {"archived", "archive", "historical", "historico", "histÃ³rico"} or item.get("archived_at"):
+    if raw in {"archived", "archive", "historical", "historico", "histórico"} or item.get("archived_at"):
         return "ARCHIVED"
     if raw in {"postponed", "ppd", "aplazado", "aplazada", "suspended", "suspendido"}:
         return "POSTPONED"
@@ -344,7 +344,7 @@ def normalize_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) 
         return "INCOMPLETE"
     raw = _key(item.get("lifecycle") or item.get("pick_status") or item.get("status"))
     result = _key(item.get("result_status") or item.get("result") or item.get("grading_status"))
-    if raw in {"archived", "archive", "historical", "historico", "histÃ³rico"}:
+    if raw in {"archived", "archive", "historical", "historico", "histórico"}:
         return "ARCHIVED"
     if result in {"won", "win", "ganado", "acertado"}:
         return "WON"
@@ -359,7 +359,7 @@ def normalize_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) 
         return "EXPIRED"
     if raw in {"draft", "borrador"}:
         return "DRAFT"
-    if raw in {"review", "pending_review", "revision", "revisiÃ³n"}:
+    if raw in {"review", "pending_review", "revision", "revisión"}:
         return "REVIEW"
     if raw in {"approved", "aprobado"}:
         return "APPROVED"

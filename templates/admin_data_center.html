@@ -7,7 +7,7 @@
 {% set sports_value = data.get('v932_sports_value') or {} %}
 {% set realtime = data.get('v934_realtime') or {} %}
 <div class="v933-page v933-admin-command-center v933-admin-data" data-v933-template="admin_data_center" data-v933-reference="canonical-admin-data">
-  {{ page_header('Data Center', 'Fuentes, sincronizaciones, cache y calidad de datos', 'database', [{'label':'Partidos','href':'/admin/matches-sync'},{'label':'Data Marketplace','href':'/admin/data-marketplace','primary':true}]) }}
+  {{ page_header('Centro de datos', 'Fuentes, sincronizaciones, cach? y calidad de datos', 'database', [{'label':'Partidos','href':'/admin/matches-sync'},{'label':'Mercado de datos','href':'/admin/data-marketplace','primary':true}]) }}
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   {{ realtime_state_bar(realtime, 'all', true) }}
   <section class="v933-kpi-grid is-six">{{ kpi_card('Competiciones', center.get('total_competitions'), 'Guardadas', 'blue', 'matches') }}{{ kpi_card('Equipos', center.get('total_teams'), 'Identidades cacheadas', 'blue', 'users') }}{{ kpi_card('Partidos', center.get('total_matches'), 'Registros reales', 'blue', 'calendar') }}{{ kpi_card('Próximos', center.get('upcoming_matches'), 'Agenda disponible', 'cyan', 'calendar') }}{{ kpi_card('En directo', center.get('live_matches'), 'Feed actual', 'success', 'live') }}{{ kpi_card('Cuotas', center.get('odds_snapshots'), 'Snapshots reales', 'gold', 'odds') }}</section>

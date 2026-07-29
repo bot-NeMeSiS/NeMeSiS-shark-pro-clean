@@ -132,7 +132,7 @@
       });
       const payload = await response.json().catch(() => ({
         ok: false,
-        safe_message: "No se pudo leer la respuesta segura del servidor."
+        safe_message: "No se pudo leer la respuestá segura del servidor."
       }));
       setText(statusEl, payload.ok ? "Revisión completada en modo seguro." : (payload.safe_message || "No se pudo ejecutar la revisión. Se ha registrado el fallo para corregirlo."));
       setText(modeEl, payload.mode || mode);

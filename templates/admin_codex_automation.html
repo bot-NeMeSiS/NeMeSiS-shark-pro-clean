@@ -4,7 +4,7 @@
   <div>
     <div class="kicker">Admin · Codex</div>
     <h1>Automatización diaria y release</h1>
-    <p class="lead">Control de limpieza, entregables, ZIP Render Ready y prompt de continuidad para seguir trabajando sin arrastrar basura.</p>
+    <p class="lead">Control de limpieza, entregables, ZIP Listo para Render y prompt de continuidad para seguir trabajando sin arrastrar basura.</p>
   </div>
   <div class="scoreboard-kpis identity-kpis">
     <div><strong>{{ report.audit.total_files or 0 }}</strong><span>archivos</span></div>
@@ -22,7 +22,7 @@
   <div class="grid compact-grid">
     <article class="card"><strong>{{ report.cleanliness.score }}/100</strong><p class="small">limpieza del proyecto</p></article>
     <article class="card"><strong>{{ report.cleanliness.status }}</strong><p class="small">estado general</p></article>
-    <article class="card"><strong>{{ report.zip.name or 'Sin ZIP' }}</strong><p class="small">último ZIP Render Ready</p></article>
+    <article class="card"><strong>{{ report.zip.name or 'Sin ZIP' }}</strong><p class="small">último ZIP Listo para Render</p></article>
     <article class="card"><strong>{{ report.data_memory.status }}</strong><p class="small">memoria de datos</p></article>
   </div>
 </section>

@@ -45,7 +45,7 @@
 {%- endmacro %}
 
 {% macro canonical_admin_sidebar() -%}
-{% set links = [('Dashboard','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Sentinel','/admin/autonomous-company-sentinel','shield'),('Rutas','/admin/navigation-integrity','routes'),('Lanzamiento','/admin/launch-certification','rocket'),('Ajustes','/admin/system','settings')] %}
+{% set links = [('Panel','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Pagos','/admin/payments','payments'),('Usuarios','/admin/users','users'),('Picks','/admin/picks','target'),('Partidos','/admin/matches-sync','matches'),('Datos','/admin/data-center','database'),('Automatización','/admin/automation-center','automation'),('Sentinel','/admin/autonomous-company-sentinel','shield'),('Rutas','/admin/navigation-integrity','routes'),('Lanzamiento','/admin/launch-certification','rocket'),('Ajustes','/admin/system','settings')] %}
 <aside class="v930-admin-sidebar canonical-admin-sidebar" data-nav-zone="admin-sidebar">
   <div class="v930-admin-brand">{{ nemesis_brand('/admin/dashboard', 'admin') }}</div>
   <nav aria-label="Navegación de administración">

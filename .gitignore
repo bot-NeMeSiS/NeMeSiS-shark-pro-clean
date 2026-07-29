@@ -95,3 +95,14 @@ reports/archive/
 archive_legacy/
 video_review_frames/
 cron_video_frames/
+
+# LRM-001 Gate 1 release hygiene
+browser_qa/**/tmp/
+browser_qa/**/temp/
+browser_qa/**/debug/
+browser_qa/**/*_tmp.*
+browser_qa/**/*.tmp
+*.tmp.json
+*.tmp.md
+data/runtime/*.local.json
+data/runtime/*.tmp.json

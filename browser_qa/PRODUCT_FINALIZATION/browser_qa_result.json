@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "generated_at_madrid": "2026-07-29T13:25:14+02:00",
-  "base_url": "http://127.0.0.1:52751",
+  "generated_at_madrid": "2026-07-29T18:03:13+02:00",
+  "base_url": "http://127.0.0.1:63336",
   "database": "temporary_sqlite",
   "production_modified": false,
   "external_provider_calls": 0,
@@ -49,7 +49,7 @@
           "Conocer SHARK",
           "Comparar planes",
           "Abrir agenda",
-          "Ver esta semana",
+          "Ver está semana",
           "Partidos Radar del día por fecha y competición",
           "Directo Solo marcadores y eventos confirmados"
         ],
@@ -527,7 +527,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/match/m-1",
-        "text_length": 3712,
+        "text_length": 3729,
         "has_h1": true,
         "action_count": 10,
         "primary_actions_sample": [
@@ -577,7 +577,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/team/Club%20Norte",
-        "text_length": 2642,
+        "text_length": 2699,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -586,8 +586,8 @@
           "SHARK",
           "Partido relacionado",
           "Ver partido",
-          "Competition Center",
-          "Match Center"
+          "Centro de la competicion",
+          "Centro del partido"
         ],
         "horizontal_overflow": false,
         "document_width": 1366,
@@ -624,7 +624,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/competition/140",
-        "text_length": 2884,
+        "text_length": 2959,
         "has_h1": true,
         "action_count": 19,
         "primary_actions_sample": [
@@ -674,11 +674,11 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/player/101",
-        "text_length": 2928,
+        "text_length": 3020,
         "has_h1": true,
         "action_count": 1,
         "primary_actions_sample": [
-          "User Intelligence"
+          "Inteligencia de usuario"
         ],
         "horizontal_overflow": false,
         "document_width": 1366,
@@ -765,7 +765,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/shark-intelligence",
-        "text_length": 4517,
+        "text_length": 4520,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -815,17 +815,17 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/smart-home",
-        "text_length": 3041,
+        "text_length": 3066,
         "has_h1": true,
         "action_count": 18,
         "primary_actions_sample": [
           "Calendario",
           "Privacidad",
           "Favoritos",
-          "Smart Home Reducir el tiempo hasta la siguiente accion util del usuario.",
+          "Smart Home Reducir el tiempo hasta la siguiente accion útil del usuario.",
           "Smart Favorites Organizar favoritos reales sin inferencias no observadas.",
           "Watchlist Mantener partidos relacionados accesibles sin busqueda repetida.",
-          "Alert Center Mostrar alertas utiles sin ruido ni spam.",
+          "Alert Center Mostrar alertas útiles sin ruido ni spam.",
           "Daily Briefing Resumir que revisar hoy con datos reales disponibles.",
           "Evening Recap Cerrar el dia con actividad observada y pendientes honestos.",
           "Activity Center Dar transparencia sobre el uso propio registrado."
@@ -865,7 +865,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/user-intelligence",
-        "text_length": 2171,
+        "text_length": 2177,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -912,7 +912,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/dashboard",
-        "text_length": 2063,
+        "text_length": 2059,
         "has_h1": true,
         "action_count": 26,
         "primary_actions_sample": [
@@ -962,7 +962,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9506,
+        "text_length": 9510,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -1009,7 +1009,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7449,
+        "text_length": 7460,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -1059,7 +1059,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 10954,
+        "text_length": 10958,
         "has_h1": true,
         "action_count": 12,
         "primary_actions_sample": [
@@ -1153,12 +1153,12 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/system",
-        "text_length": 996,
+        "text_length": 1000,
         "has_h1": true,
         "action_count": 8,
         "primary_actions_sample": [
           "Rutas",
-          "Data Center",
+          "Centro de datos",
           "Usuarios Cuentas y membresías →",
           "Partidos Sincronización controlada →",
           "Datos Fuentes, cache y jobs →",
@@ -1212,7 +1212,7 @@
           "Conocer SHARK",
           "Comparar planes",
           "Abrir agenda",
-          "Ver esta semana",
+          "Ver está semana",
           "Partidos Radar del día por fecha y competición",
           "Directo Solo marcadores y eventos confirmados"
         ],
@@ -1690,7 +1690,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/match/m-1",
-        "text_length": 3712,
+        "text_length": 3729,
         "has_h1": true,
         "action_count": 10,
         "primary_actions_sample": [
@@ -1740,7 +1740,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/team/Club%20Norte",
-        "text_length": 2642,
+        "text_length": 2699,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -1749,8 +1749,8 @@
           "SHARK",
           "Partido relacionado",
           "Ver partido",
-          "Competition Center",
-          "Match Center"
+          "Centro de la competicion",
+          "Centro del partido"
         ],
         "horizontal_overflow": false,
         "document_width": 834,
@@ -1787,7 +1787,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/competition/140",
-        "text_length": 2884,
+        "text_length": 2959,
         "has_h1": true,
         "action_count": 19,
         "primary_actions_sample": [
@@ -1837,11 +1837,11 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/player/101",
-        "text_length": 2928,
+        "text_length": 3020,
         "has_h1": true,
         "action_count": 1,
         "primary_actions_sample": [
-          "User Intelligence"
+          "Inteligencia de usuario"
         ],
         "horizontal_overflow": false,
         "document_width": 834,
@@ -1928,7 +1928,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/shark-intelligence",
-        "text_length": 4517,
+        "text_length": 4520,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -1978,17 +1978,17 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/smart-home",
-        "text_length": 3041,
+        "text_length": 3066,
         "has_h1": true,
         "action_count": 18,
         "primary_actions_sample": [
           "Calendario",
           "Privacidad",
           "Favoritos",
-          "Smart Home Reducir el tiempo hasta la siguiente accion util del usuario.",
+          "Smart Home Reducir el tiempo hasta la siguiente accion útil del usuario.",
           "Smart Favorites Organizar favoritos reales sin inferencias no observadas.",
           "Watchlist Mantener partidos relacionados accesibles sin busqueda repetida.",
-          "Alert Center Mostrar alertas utiles sin ruido ni spam.",
+          "Alert Center Mostrar alertas útiles sin ruido ni spam.",
           "Daily Briefing Resumir que revisar hoy con datos reales disponibles.",
           "Evening Recap Cerrar el dia con actividad observada y pendientes honestos.",
           "Activity Center Dar transparencia sobre el uso propio registrado."
@@ -2028,7 +2028,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/user-intelligence",
-        "text_length": 2171,
+        "text_length": 2177,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -2075,7 +2075,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/dashboard",
-        "text_length": 2063,
+        "text_length": 2059,
         "has_h1": true,
         "action_count": 26,
         "primary_actions_sample": [
@@ -2125,7 +2125,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9506,
+        "text_length": 9510,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -2172,7 +2172,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7449,
+        "text_length": 7460,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -2222,7 +2222,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 10954,
+        "text_length": 10958,
         "has_h1": true,
         "action_count": 12,
         "primary_actions_sample": [
@@ -2316,12 +2316,12 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/system",
-        "text_length": 996,
+        "text_length": 1000,
         "has_h1": true,
         "action_count": 8,
         "primary_actions_sample": [
           "Rutas",
-          "Data Center",
+          "Centro de datos",
           "Usuarios Cuentas y membresías →",
           "Partidos Sincronización controlada →",
           "Datos Fuentes, cache y jobs →",
@@ -2375,7 +2375,7 @@
           "Conocer SHARK",
           "Comparar planes",
           "Abrir agenda",
-          "Ver esta semana",
+          "Ver está semana",
           "Partidos Radar del día por fecha y competición",
           "Directo Solo marcadores y eventos confirmados"
         ],
@@ -2853,7 +2853,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/match/m-1",
-        "text_length": 3712,
+        "text_length": 3729,
         "has_h1": true,
         "action_count": 10,
         "primary_actions_sample": [
@@ -2903,7 +2903,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/team/Club%20Norte",
-        "text_length": 2621,
+        "text_length": 2678,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -2912,8 +2912,8 @@
           "SHARK",
           "Partido relacionado",
           "Ver partido",
-          "Competition Center",
-          "Match Center"
+          "Centro de la competicion",
+          "Centro del partido"
         ],
         "horizontal_overflow": false,
         "document_width": 390,
@@ -2950,7 +2950,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/competition/140",
-        "text_length": 2855,
+        "text_length": 2930,
         "has_h1": true,
         "action_count": 19,
         "primary_actions_sample": [
@@ -3000,11 +3000,11 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/player/101",
-        "text_length": 2928,
+        "text_length": 3020,
         "has_h1": true,
         "action_count": 1,
         "primary_actions_sample": [
-          "User Intelligence"
+          "Inteligencia de usuario"
         ],
         "horizontal_overflow": false,
         "document_width": 390,
@@ -3091,7 +3091,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/shark-intelligence",
-        "text_length": 4517,
+        "text_length": 4520,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -3141,17 +3141,17 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/smart-home",
-        "text_length": 3041,
+        "text_length": 3066,
         "has_h1": true,
         "action_count": 18,
         "primary_actions_sample": [
           "Calendario",
           "Privacidad",
           "Favoritos",
-          "Smart Home Reducir el tiempo hasta la siguiente accion util del usuario.",
+          "Smart Home Reducir el tiempo hasta la siguiente accion útil del usuario.",
           "Smart Favorites Organizar favoritos reales sin inferencias no observadas.",
           "Watchlist Mantener partidos relacionados accesibles sin busqueda repetida.",
-          "Alert Center Mostrar alertas utiles sin ruido ni spam.",
+          "Alert Center Mostrar alertas útiles sin ruido ni spam.",
           "Daily Briefing Resumir que revisar hoy con datos reales disponibles.",
           "Evening Recap Cerrar el dia con actividad observada y pendientes honestos.",
           "Activity Center Dar transparencia sobre el uso propio registrado."
@@ -3191,7 +3191,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/user-intelligence",
-        "text_length": 2171,
+        "text_length": 2177,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -3238,7 +3238,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/dashboard",
-        "text_length": 1968,
+        "text_length": 1964,
         "has_h1": true,
         "action_count": 24,
         "primary_actions_sample": [
@@ -3288,7 +3288,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9459,
+        "text_length": 9463,
         "has_h1": true,
         "action_count": 3,
         "primary_actions_sample": [
@@ -3335,7 +3335,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7414,
+        "text_length": 7425,
         "has_h1": true,
         "action_count": 10,
         "primary_actions_sample": [
@@ -3385,7 +3385,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 10927,
+        "text_length": 10931,
         "has_h1": true,
         "action_count": 9,
         "primary_actions_sample": [
@@ -3479,12 +3479,12 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/system",
-        "text_length": 874,
+        "text_length": 878,
         "has_h1": true,
         "action_count": 8,
         "primary_actions_sample": [
           "Rutas",
-          "Data Center",
+          "Centro de datos",
           "Usuarios Cuentas y membresías →",
           "Partidos Sincronización controlada →",
           "Datos Fuentes, cache y jobs →",

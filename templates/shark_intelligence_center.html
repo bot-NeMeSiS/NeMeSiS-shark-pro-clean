@@ -13,7 +13,7 @@
          data-match-intelligence-contract="{{ s.source_contracts.match_intelligence if s.source_contracts else '' }}">
   <header class="shark-intelligence-hero" data-shark-intelligence-section="header">
     <div class="shark-intelligence-title">
-      <span>SHARK Intelligence Platform</span>
+      <span>Inteligencia SHARK Platform</span>
       <h1>El cerebro deportivo de NeMeSiS</h1>
       <p>{{ summary.body or 'SHARK organiza el contexto deportivo disponible sin inventar datos, predicciones ni opiniones.' }} No inventa hechos.</p>
       <div class="shark-intelligence-tags" aria-label="Estado SHARK">
@@ -49,7 +49,7 @@
         <article class="shark-intelligence-claim" data-shark-intelligence-claim data-shark-claim>
           <header>
             <span>{{ claim.certification_state or 'REQUIRES_REVIEW' }}</span>
-            <strong>{{ claim.title or 'Sin titulo' }}</strong>
+            <strong>{{ claim.title or 'Sin título' }}</strong>
           </header>
           <p>{{ claim.body or 'No disponible' }}</p>
           <dl>
@@ -82,13 +82,13 @@
             <a href="{{ module.link }}" data-shark-intelligence-module data-shark-module>
               <span>{{ module.name }}</span>
               <strong>{{ module.state or 'No disponible' }}</strong>
-              <small>{{ module.evidence or module.contract or 'Informacion pendiente' }}</small>
+              <small>{{ module.evidence or module.contract or 'Información pendiente' }}</small>
             </a>
           {% else %}
             <div data-shark-intelligence-module data-shark-module>
               <span>{{ module.name }}</span>
               <strong>{{ module.state or 'No disponible' }}</strong>
-              <small>{{ module.evidence or module.contract or 'Informacion pendiente' }}</small>
+              <small>{{ module.evidence or module.contract or 'Información pendiente' }}</small>
             </div>
           {% endif %}
         {% endfor %}
@@ -96,7 +96,7 @@
     </section>
 
     <section class="shark-intelligence-panel" data-shark-intelligence-section="sports-graph">
-      <div class="shark-intelligence-section-head"><span>Sports Graph</span><strong>{{ graph.edge_count or 0 }}</strong></div>
+      <div class="shark-intelligence-section-head"><span>Grafo deportivo</span><strong>{{ graph.edge_count or 0 }}</strong></div>
       <p>SHARK consume relaciones existentes. No persiste un grafo nuevo ni crea relaciones artificiales.</p>
       {% if graph.relationships %}
       <ul class="shark-intelligence-evidence-list">{% for item in graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>
@@ -126,7 +126,7 @@
 
     <section class="shark-intelligence-panel" data-shark-intelligence-section="assistant-preparation">
       <div class="shark-intelligence-section-head"><span>Asistente futuro</span><strong>{{ 'Preparado' if s.assistant_preparation.future_assistant_ready else 'Pendiente' }}</strong></div>
-      <p>No hay conversacion IA en esta fase. La infraestructura queda lista para explicar evidencia existente con aprobacion futura.</p>
+      <p>No hay conversacion IA en esta fase. La infraestructura queda lista para explicar evidencia existente con aprobación futura.</p>
       <ul class="shark-intelligence-evidence-list">
         {% for item in s.assistant_preparation.blocked_actions or [] %}<li>Bloqueado: {{ item }}</li>{% endfor %}
       </ul>

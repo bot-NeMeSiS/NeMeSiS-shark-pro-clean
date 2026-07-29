@@ -10,7 +10,7 @@
 {% set dry = data.get('dry_run') or {} %}
 
 <div class="v933-page v933-admin-command-center v933-admin-telegram" data-v933-template="admin_telegram_command_center" data-v933-reference="canonical-admin-telegram">
-  {{ page_header('Telegram Command Center', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista.', 'telegram', [{'label':'Configurar','href':'/admin/telegram','icon':'settings'},{'label':'Preview seguro','href':'/admin/telegram/pro-preview','primary':true,'icon':'telegram'}]) }}
+  {{ page_header('Telegram Centro de mando', 'Automatización, entregas y calidad sin enviar mensajes desde esta vista.', 'telegram', [{'label':'Configurar','href':'/admin/telegram','icon':'settings'},{'label':'Vista previa seguro','href':'/admin/telegram/pro-preview','primary':true,'icon':'telegram'}]) }}
 
   {% if not env.get('bot_token_configured') or not env.get('chat_id_configured') %}
     {{ executive_focus('Completar la configuración protegida del canal', 'El command center puede auditar calidad y dedupe, pero no debe presentarse como operativo hasta disponer de bot y destino en el entorno seguro.', 'Revisar configuración', '/admin/telegram', 'Configuración pendiente', 'warning', 'Abrir preview', '/admin/telegram/pro-preview') }}

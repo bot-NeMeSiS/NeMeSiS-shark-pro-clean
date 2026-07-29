@@ -87,11 +87,11 @@ def test_founder_dashboard_renders_read_only_center(client, app_module, monkeypa
     response = client.get("/admin/founder-dashboard")
 
     assert response.status_code == 200
-    assert b"Founder Dashboard" in response.data
-    assert b"Company Command Center" in response.data
+    assert "Panel fundador".encode("utf-8") in response.data
+    assert "Centro de mando de empresa".encode("utf-8") in response.data
     assert b"Beta Control" in response.data
-    assert b"Operations Summary" in response.data
-    assert b"Exportacion de informes" in response.data
+    assert "Resumen operativo".encode("utf-8") in response.data
+    assert "Exportación de informes".encode("utf-8") in response.data
     assert b"data-founder-mode=\"read-only\"" in response.data
 
     template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")

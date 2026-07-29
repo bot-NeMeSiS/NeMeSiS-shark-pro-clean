@@ -2,11 +2,11 @@
 {% block content %}
 {% set sr = data.sale_ready or {} %}
 <section class="hero compact-hero admin-hero v742-sale-ready">
-  <div class="eyebrow">Admin · Sale Ready</div>
+  <div class="eyebrow">Admin · Preparación comercial</div>
   <h1>Control final comercial</h1>
-  <p>Vista ejecutiva de Live, Calendario, Picks, Track Record, Telegram, Render, DB/Data Memory y avisos pendientes.</p>
+  <p>Vista ejecutiva de Live, Calendario, Picks, Track Record, Telegram, Render, DB/Memoria de datos y avisos pendientes.</p>
   <div class="admin-menu">
-    <a class="btn primary" href="/admin/sale-ready">Sale Ready</a>
+    <a class="btn primary" href="/admin/sale-ready">Preparación comercial</a>
     <a class="btn" href="/admin/live-experience">Live QA</a>
     <a class="btn" href="/admin/telegram/command-center">Telegram</a>
     <a class="btn" href="/admin/calendar-experience">Calendario</a>
@@ -19,7 +19,7 @@
   <article class="card stat-card"><span>Estado</span><strong>{{ sr.status }}</strong><small>{{ sr.version }}</small></article>
   <article class="card stat-card"><span>Telegram</span><strong>{{ sr.telegram.status }}</strong><small>{{ sr.telegram.severity }}</small></article>
   <article class="card stat-card"><span>Track Record</span><strong>{{ sr.track_record.decided_total or 0 }}</strong><small>picks decididos</small></article>
-  <article class="card stat-card"><span>Warnings</span><strong>{{ sr.warnings|length }}</strong><small>pendientes reales</small></article>
+  <article class="card stat-card"><span>Avisos</span><strong>{{ sr.warnings|length }}</strong><small>pendientes reales</small></article>
 </section>
 
 <section class="band compact-band">

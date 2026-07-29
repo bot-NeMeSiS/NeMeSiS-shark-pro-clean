@@ -38,7 +38,7 @@ SAFE_STATES = [
 
 
 FORBIDDEN_AUTOMATIC_ACTIONS = [
-    "Modificar app.py o codigo de producto",
+    "Modificar app.py o código de producto",
     "Hacer deploy automatico a Render",
     "Leer, mostrar o modificar secretos",
     "Borrar DB, usuarios, sesiones, membresias o pagos",
@@ -214,13 +214,13 @@ def build_auto_improvement_summary(version: str = "", runtime: dict[str, Any] | 
             9 if _flag(runtime, "has_v857_company_os") and _flag(runtime, "has_v859_company_audit_board") else 7,
             [
                 "Workers V857 y Boards V859 quedan integrados con Auto-Improvement OS.",
-                "La mejora continua observa y prioriza; no reescribe codigo.",
+                "La mejora continua observa y prioriza; no reescribe código.",
                 "Las acciones sensibles quedan pendientes de aprobacion admin.",
             ],
             ["Si no se revisa periodicamente, el sistema puede convertirse en solo un panel informativo."],
             ["Usar los prompts generados para preparar siguientes versiones con foco."],
             ["Refrescar diagnostico", "Actualizar recomendaciones"],
-            ["Ejecutar prompts Codex automaticamente", "Aplicar cambios de codigo"],
+            ["Ejecutar prompts Codex automaticamente", "Aplicar cambios de código"],
             "Convertir hallazgos recurrentes en tareas de producto priorizadas.",
         ),
         _area(

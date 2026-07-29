@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
-{% block title %}Founder Dashboard | NeMeSiS SHARK PRO{% endblock %}
+{% block title %}Panel fundador | NeMeSiS SHARK PRO{% endblock %}
 {% block content %}
 {% set kpis = founder.business_kpis or {} %}
 {% set customer = founder.customer_overview or {} %}
@@ -10,8 +10,8 @@
 {% set roadmap = founder.roadmap or {} %}
 {% set company = founder.company_intelligence or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
-  {{ page_header('Founder Dashboard', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
-    {'label':'Operations Center','href':'/admin/operations-center','icon':'shield'},
+  {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
+    {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
     {'label':'Developer','href':'/admin/developer-center','icon':'code'},
     {'label':'API JSON','href':'/api/admin/founder-dashboard','primary':true,'icon':'data'}
@@ -30,7 +30,7 @@
     <div class="v933-main-stack">
       <section class="v933-admin-panel">
         <header>
-          <div><h2>Company Command Center</h2><p>Lectura unificada de negocio, beta, operaciones, calidad y roadmap.</p></div>
+          <div><h2>Centro de mando de empresa</h2><p>Lectura unificada de negocio, beta, operaciones, calidad y roadmap.</p></div>
           {{ status_chip(founder.mode|upper, 'success') }}
         </header>
         <div class="v933-admin-panel-body">
@@ -43,7 +43,7 @@
       </section>
 
       <section class="v933-admin-panel" id="beta-control">
-        <header><div><h2>Beta Control</h2><p>Preparacion para primeros usuarios sin activar produccion ni proveedores.</p></div>{{ status_chip(beta.state or 'NO_CERTIFICADO', 'warning') }}</header>
+        <header><div><h2>Beta Control</h2><p>Preparacion para primeros usuarios sin activar producción ni proveedores.</p></div>{{ status_chip(beta.state or 'NO_CERTIFICADO', 'warning') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
             {{ kpi_card('Usuarios beta potenciales', beta.users_total, 'Base local disponible', 'blue', 'users') }}
@@ -57,7 +57,7 @@
       </section>
 
       <section class="v933-admin-panel" id="operations-summary">
-        <header><div><h2>Operations Summary</h2><p>Estado operativo reutilizado desde Operations Center. Un no certificado no se convierte en PASS.</p></div>{{ status_chip('READ ONLY','success') }}</header>
+        <header><div><h2>Resumen operativo</h2><p>Estado operativo reutilizado desde Centro de operaciones. Un no certificado no se convierte en PASS.</p></div>{{ status_chip('SOLO LECTURA','success') }}</header>
         <div class="v933-admin-panel-body">
           {% call data_table(['Sistema','Estado','Evidencia','Resumen','Accion']) %}
           {% for item in founder.operations_summary %}
@@ -74,13 +74,13 @@
       </section>
 
       <section class="v933-admin-panel" id="release-readiness">
-        <header><div><h2>Release Readiness</h2><p>Estado comercial y operativo para beta/release, sin certificar produccion desde esta pantalla.</p></div>{{ status_chip(release.status or 'PARTIAL', 'success' if release.status == 'PASS' else 'danger' if release.status == 'BLOCKED' else 'warning') }}</header>
+        <header><div><h2>Release Readiness</h2><p>Estado comercial y operativo para beta/release, sin certificar producción desde esta pantalla.</p></div>{{ status_chip(release.status or 'PARTIAL', 'success' if release.status == 'PASS' else 'danger' if release.status == 'BLOCKED' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
-            {{ kpi_card('Score release', release.score, 'Procede de Operations Center', 'blue', 'target') }}
+            {{ kpi_card('Score release', release.score, 'Procede de Centro de operaciones', 'blue', 'target') }}
             {{ kpi_card('Bloqueos', release.missing|length, 'Evidencia pendiente', 'warning', 'alert') }}
             {{ kpi_card('TOP 100', top100.total, top100.summary, 'cyan', 'list') }}
-            {{ kpi_card('Reportes exportables', founder.reports|selectattr('available')|list|length, 'Catalogo local', 'neutral', 'download') }}
+            {{ kpi_card('Reportes exportables', founder.reports|selectattr('available')|list|length, 'Catálogo local', 'neutral', 'download') }}
           </div>
           {% if release.missing %}
           <div class="v933-truth-list is-no-icon">
@@ -135,9 +135,9 @@
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Action Platform</h2><p>Dependencia existente, no ampliada en este sprint.</p></div>{{ evidence_chip(founder.action_platform.state) }}</header>
+        <header><div><h2>Plataforma de acciones</h2><p>Dependencia existente, no ampliada en este sprint.</p></div>{{ evidence_chip(founder.action_platform.state) }}</header>
         <div class="v933-admin-panel-body">
-          <p class="v933-safe-copy">{{ founder.action_platform.summary.body or 'Action Platform disponible como experiencia personal evidence-first.' }}</p>
+          <p class="v933-safe-copy">{{ founder.action_platform.summary.body or 'Plataforma de acciones disponible como experiencia personal evidence-first.' }}</p>
           <div class="v933-chip-cloud">
             {% for key, value in founder.action_platform.guardrails.items() %}
               {{ status_chip(key|replace('_',' ') ~ ': ' ~ value, 'neutral') }}
@@ -147,7 +147,7 @@
       </section>
 
       <section class="v933-admin-panel" id="report-export">
-        <header><div><h2>Exportacion de informes</h2><p>Catalogo de informes listos para revision; no genera archivos nuevos desde la UI.</p></div>{{ status_chip('PREPARADA','success') }}</header>
+        <header><div><h2>Exportación de informes</h2><p>Catálogo de informes listos para revisión; no genera archivos nuevos desde la UI.</p></div>{{ status_chip('PREPARADA','success') }}</header>
         <div class="v933-admin-panel-body">
           {% if founder.reports %}
           <div class="v933-truth-list is-no-icon">
@@ -156,7 +156,7 @@
             {% endfor %}
           </div>
           {% else %}
-            {{ empty_state('Sin informes', 'No se encontro catalogo de informes para exportacion.', '', '', 'data') }}
+            {{ empty_state('Sin informes', 'No se encontró catálogo de informes para exportación.', '', '', 'data') }}
           {% endif %}
         </div>
       </section>
@@ -168,7 +168,7 @@
             {% for item in (company.next_actions or [])[:4] %}
               <div><span><strong>{{ item.title or 'Accion' }}</strong><small>{{ item.action or item.description or 'Revisar evidencia.' }}</small></span>{{ evidence_chip(item.state or item.certification_state) }}</div>
             {% else %}
-              <div><span><strong>Sin acciones locales</strong><small>Esto no certifica produccion; solo indica que el snapshot no trae acciones nuevas.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
+              <div><span><strong>Sin acciones locales</strong><small>Esto no certifica producción; solo indica que el snapshot no trae acciones nuevas.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
             {% endfor %}
           </div>
           <a class="v933-action is-blue" href="/admin/company-intelligence">{{ icon('arrow') }}<span>Abrir Direccion</span></a>

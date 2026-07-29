@@ -74,7 +74,7 @@
       </section>
 
       <section class="v933-admin-panel" id="company-roadmap">
-        <header><div><h2>Product Roadmap permanente</h2><p>Orden estratégico derivado de capacidades presentes y certificaciones pendientes.</p></div>{{ status_chip('ROADMAP ACTIVO', 'blue') }}</header>
+        <header><div><h2>Product Roadmap permanente</h2><p>Orden estratégico derivado de capacidades presentes y certificaciónes pendientes.</p></div>{{ status_chip('ROADMAP ACTIVO', 'blue') }}</header>
         <div class="v933-admin-panel-body">
           {% call data_table(['Módulo','Estado','Evidencia']) %}
           {% for module in roadmap.modules %}
@@ -125,7 +125,7 @@
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Calidad estructural</h2><p>Resumen compartido con Developer Center.</p></div></header>
+        <header><div><h2>Calidad estructural</h2><p>Resumen compartido con Centro de desarrollo.</p></div></header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             <div><span>Duplicados exactos</span><strong>{{ company.developer_summary.exact_duplicate_groups }}</strong></div>
@@ -133,12 +133,12 @@
             <div><span>CSS cruzado</span><strong>{{ company.developer_summary.css_cross_file_selectors }}</strong></div>
             <div><span>HTML exacto</span><strong>{{ company.developer_summary.html_duplicate_groups }}</strong></div>
           </div>
-          <a class="v933-action is-blue" href="/admin/developer-center">Abrir Developer Center</a>
+          <a class="v933-action is-blue" href="/admin/developer-center">Abrir Centro de desarrollo</a>
         </div>
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Guardrails</h2><p>Acciones que este board nunca ejecuta.</p></div>{{ status_chip('READ ONLY', 'success') }}</header>
+        <header><div><h2>Guardrails</h2><p>Acciones que este board nunca ejecuta.</p></div>{{ status_chip('SOLO LECTURA', 'success') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             <div><span>Proveedores</span><strong>No</strong></div>
