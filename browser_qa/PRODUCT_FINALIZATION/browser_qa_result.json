@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "generated_at_madrid": "2026-07-29T10:30:37+02:00",
-  "base_url": "http://127.0.0.1:54938",
+  "generated_at_madrid": "2026-07-29T13:25:14+02:00",
+  "base_url": "http://127.0.0.1:52751",
   "database": "temporary_sqlite",
   "production_modified": false,
   "external_provider_calls": 0,

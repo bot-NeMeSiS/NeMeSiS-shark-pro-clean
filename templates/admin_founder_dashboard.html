@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
+{% block title %}Founder Dashboard | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+{% set kpis = founder.business_kpis or {} %}
+{% set customer = founder.customer_overview or {} %}
+{% set beta = founder.beta_control or {} %}
+{% set release = founder.release_readiness or {} %}
+{% set top100 = founder.top100 or {} %}
+{% set roadmap = founder.roadmap or {} %}
+{% set company = founder.company_intelligence or {} %}
+<div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
+  {{ page_header('Founder Dashboard', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
+    {'label':'Operations Center','href':'/admin/operations-center','icon':'shield'},
+    {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
+    {'label':'Developer','href':'/admin/developer-center','icon':'code'},
+    {'label':'API JSON','href':'/api/admin/founder-dashboard','primary':true,'icon':'data'}
+  ]) }}
+
+  <section class="v933-kpi-grid is-six" aria-label="Business KPIs">
+    {{ kpi_card('Usuarios', kpis.users_total, 'Cuentas persistidas; sin PII', 'blue', 'users') }}
+    {{ kpi_card('FREE', kpis.free, 'Plan gratuito observado', 'cyan', 'users') }}
+    {{ kpi_card('PRO', kpis.pro, 'Plan PRO observado', 'blue', 'star') }}
+    {{ kpi_card('ELITE', kpis.elite, 'ELITE y ELITE+ agregados', 'gold', 'award') }}
+    {{ kpi_card('Conversion', kpis.conversion_registered_to_paid, kpis.conversion_state, 'warning', 'target') }}
+    {{ kpi_card('MRR', kpis.mrr, kpis.mrr_state, 'neutral', 'chart') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header>
+          <div><h2>Company Command Center</h2><p>Lectura unificada de negocio, beta, operaciones, calidad y roadmap.</p></div>
+          {{ status_chip(founder.mode|upper, 'success') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list">
+            <div>{{ icon('shield') }}<span><strong>Guardrails activos</strong><small>{{ founder.guardrails|join(' / ') }}</small></span>{{ status_chip('SAFE', 'success') }}</div>
+            <div>{{ icon('history') }}<span><strong>Generado Madrid</strong><small>{{ founder.generated_at_madrid|madrid_datetime_label }}</small></span>{{ status_chip('LOCAL', 'neutral') }}</div>
+            <div>{{ icon('target') }}<span><strong>Siguiente accion</strong><small>{{ founder.next_action }}</small></span>{{ status_chip('BETA', 'warning') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="beta-control">
+        <header><div><h2>Beta Control</h2><p>Preparacion para primeros usuarios sin activar produccion ni proveedores.</p></div>{{ status_chip(beta.state or 'NO_CERTIFICADO', 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Usuarios beta potenciales', beta.users_total, 'Base local disponible', 'blue', 'users') }}
+            {{ kpi_card('Feedback abierto', beta.feedback_open, 'Sin datos personales', 'cyan', 'message') }}
+            {{ kpi_card('Tickets abiertos', beta.tickets_open, 'Soporte local', 'warning', 'alert') }}
+            {{ kpi_card('Salud soporte', beta.support_health ~ '%', 'Indicador interno', 'success' if beta.support_health >= 90 else 'warning', 'heart') }}
+          </div>
+          <p class="v933-safe-copy">{{ beta.next_action }}</p>
+          <div class="v933-page-actions"><a class="v933-action is-blue" href="{{ beta.href }}">{{ icon('arrow') }}<span>Abrir Beta Center</span></a><a class="v933-action is-blue" href="/admin/support-center">{{ icon('message') }}<span>Soporte</span></a></div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="operations-summary">
+        <header><div><h2>Operations Summary</h2><p>Estado operativo reutilizado desde Operations Center. Un no certificado no se convierte en PASS.</p></div>{{ status_chip('READ ONLY','success') }}</header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Sistema','Estado','Evidencia','Resumen','Accion']) %}
+          {% for item in founder.operations_summary %}
+          <tr>
+            <td><strong>{{ item.label }}</strong><br><small>{{ item.source }}</small></td>
+            <td>{{ status_chip(item.status, 'success' if item.status in ['PASS','READY','HEALTHY','CONFIGURED'] else 'danger' if item.status in ['FAIL','BLOCKED','MISSING','LOCKED'] else 'warning') }}</td>
+            <td>{{ evidence_chip(item.evidence_state) }}</td>
+            <td>{{ item.summary }}</td>
+            <td><a class="v933-action is-blue" href="{{ item.href }}">{{ icon('arrow') }}<span>Abrir</span></a><small>{{ item.next_action }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="release-readiness">
+        <header><div><h2>Release Readiness</h2><p>Estado comercial y operativo para beta/release, sin certificar produccion desde esta pantalla.</p></div>{{ status_chip(release.status or 'PARTIAL', 'success' if release.status == 'PASS' else 'danger' if release.status == 'BLOCKED' else 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Score release', release.score, 'Procede de Operations Center', 'blue', 'target') }}
+            {{ kpi_card('Bloqueos', release.missing|length, 'Evidencia pendiente', 'warning', 'alert') }}
+            {{ kpi_card('TOP 100', top100.total, top100.summary, 'cyan', 'list') }}
+            {{ kpi_card('Reportes exportables', founder.reports|selectattr('available')|list|length, 'Catalogo local', 'neutral', 'download') }}
+          </div>
+          {% if release.missing %}
+          <div class="v933-truth-list is-no-icon">
+            {% for item in release.missing[:6] %}<div><span><strong>Pendiente</strong><small>{{ item }}</small></span>{{ status_chip('NO_CERTIFICADO','warning') }}</div>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="customer-overview">
+        <header><div><h2>Customer Overview</h2><p>Vision agregada y respetuosa con privacidad. No se muestran emails, tokens ni datos personales.</p></div>{{ evidence_chip(customer.privacy_state) }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Registrados', customer.registered, 'Usuarios agregados', 'blue', 'users') }}
+            {{ kpi_card('Actividad', customer.active_events, 'Eventos propios si existen', 'cyan', 'activity') }}
+            {{ kpi_card('Interes PRO', customer.pro_interest, 'Solo senales observadas', 'warning', 'target') }}
+            {{ kpi_card('Soporte', customer.support_items, 'Feedback + tickets abiertos', 'neutral', 'message') }}
+          </div>
+          <div class="v933-chip-cloud">
+            {{ status_chip('Ver datos','success') }}
+            {{ status_chip('Exportar preferencias','success') }}
+            {{ status_chip('Reiniciar','success') }}
+            {{ status_chip('Desactivar','success') }}
+            {{ status_chip('Borrar perfil','success') }}
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Roadmap</h2><p>Ruta del producto desde Company Board.</p></div>{{ status_chip(roadmap.current_sprint or 'Sin sprint', 'blue') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list">
+            <div>{{ icon('check') }}<span><strong>Completados</strong><small>{{ (roadmap.completed or [])|length }} modulos</small></span></div>
+            <div>{{ icon('history') }}<span><strong>Actual</strong><small>{{ roadmap.current_sprint or 'No disponible' }}</small></span></div>
+            <div>{{ icon('arrow') }}<span><strong>Siguiente</strong><small>{{ roadmap.next_sprint or 'No disponible' }}</small></span></div>
+          </div>
+          <a class="v933-action is-blue" href="/admin/company-board">{{ icon('chart') }}<span>Abrir Company Board</span></a>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>TOP 100 progreso</h2><p>Plan maestro de mejoras, no ejecucion inventada.</p></div>{{ evidence_chip(top100.state) }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span><strong>Total definido</strong><small>{{ top100.total }} mejoras en el documento.</small></span>{{ status_chip('PLAN','blue') }}</div>
+            <div><span><strong>Completadas verificables</strong><small>{% if top100.completed is not none %}{{ top100.completed }}{% else %}Sin tracking de ejecucion en el informe{% endif %}</small></span>{{ status_chip(top100.state,'warning') }}</div>
+            <div><span><strong>P1 / P2</strong><small>{{ top100.priorities.P1 or 0 }} / {{ top100.priorities.P2 or 0 }}</small></span>{{ status_chip('PRIORIZADO','neutral') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Action Platform</h2><p>Dependencia existente, no ampliada en este sprint.</p></div>{{ evidence_chip(founder.action_platform.state) }}</header>
+        <div class="v933-admin-panel-body">
+          <p class="v933-safe-copy">{{ founder.action_platform.summary.body or 'Action Platform disponible como experiencia personal evidence-first.' }}</p>
+          <div class="v933-chip-cloud">
+            {% for key, value in founder.action_platform.guardrails.items() %}
+              {{ status_chip(key|replace('_',' ') ~ ': ' ~ value, 'neutral') }}
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="report-export">
+        <header><div><h2>Exportacion de informes</h2><p>Catalogo de informes listos para revision; no genera archivos nuevos desde la UI.</p></div>{{ status_chip('PREPARADA','success') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if founder.reports %}
+          <div class="v933-truth-list is-no-icon">
+            {% for report in founder.reports %}
+            <div><span><strong>{{ report.name }}</strong><small>{{ report.path }}{% if report.updated_at_madrid %} · {{ report.updated_at_madrid|madrid_datetime_label }}{% endif %}</small></span>{{ evidence_chip(report.state) }}</div>
+            {% endfor %}
+          </div>
+          {% else %}
+            {{ empty_state('Sin informes', 'No se encontro catalogo de informes para exportacion.', '', '', 'data') }}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Company Intelligence</h2><p>Prioridades y decisiones con evidencia.</p></div>{{ evidence_chip(company.state) }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for item in (company.next_actions or [])[:4] %}
+              <div><span><strong>{{ item.title or 'Accion' }}</strong><small>{{ item.action or item.description or 'Revisar evidencia.' }}</small></span>{{ evidence_chip(item.state or item.certification_state) }}</div>
+            {% else %}
+              <div><span><strong>Sin acciones locales</strong><small>Esto no certifica produccion; solo indica que el snapshot no trae acciones nuevas.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
+            {% endfor %}
+          </div>
+          <a class="v933-action is-blue" href="/admin/company-intelligence">{{ icon('arrow') }}<span>Abrir Direccion</span></a>
+        </div>
+      </section>
+
+      {{ next_action('Siguiente decision founder', founder.next_action, '/admin/operations-center', 'Abrir operaciones') }}
+    </aside>
+  </section>
+</div>
+{% endblock %}

@@ -1,7 +1,7 @@
 {
   "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
   "links": {
-    "templates_scanned": 193,
+    "templates_scanned": 194,
     "direct_api_hrefs": [
       {
         "file": "templates/admin_api_sports_audit.html",
@@ -93,7 +93,7 @@
     "forms_without_action": []
   },
   "smoke": {
-    "routes_registered": 738,
+    "routes_registered": 747,
     "smoke_results": [
       {
         "path": "/",

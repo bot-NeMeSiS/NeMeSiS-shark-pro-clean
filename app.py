@@ -389,6 +389,7 @@ from engines.experimentation_engine import build_experimentation_snapshot
 from engines.version_regression_engine import build_version_regression_snapshot
 from engines.recovery_simulator_engine import build_recovery_simulator_snapshot
 from engines.autonomous_quality_platform_engine import build_autonomous_quality_snapshot
+from engines.project_operating_system_engine import build_product_roadmap
 
 
 from engines.madrid_time_engine import (
@@ -26928,6 +26929,300 @@ def api_v939_automation_company_intelligence_run():
     })
 
 
+# -----------------------------
+# Founder Mode - Company Command Center
+# -----------------------------
+
+FOUNDER_COMMAND_CENTER_CONTRACT = "NEMESIS-FOUNDER-COMMAND-CENTER-V1"
+FOUNDER_REPORT_CATALOG = [
+    "FOUNDER_MODE_REPORT.md",
+    "COMPANY_COMMAND_CENTER_REPORT.md",
+    "BETA_CONTROL_PANEL_REPORT.md",
+    "RELEASE_1_CERTIFICATION_REPORT.md",
+    "PRODUCTION_READINESS_FINAL.md",
+    "GO_TO_MARKET_CHECKLIST.md",
+    "LAUNCH_RISK_MATRIX.md",
+    "COMMERCIAL_RELEASE_PLAN.md",
+    "WORLD_CLASS_PLATFORM_REPORT.md",
+    "BETA_ACCEPTANCE_CHECKLIST.md",
+    "FIRST_USERS_GUIDE.md",
+    "SUPPORT_RUNBOOK.md",
+    "KNOWN_LIMITATIONS.md",
+    "BETA_FEEDBACK_PLAN.md",
+    "TOP_100_IMPROVEMENTS.md",
+]
+
+
+def _founder_safe_int(value):
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _founder_percent_label(rate):
+    rate = rate or {}
+    value = rate.get("value")
+    if value is None or value == "":
+        return "Sin muestra"
+    try:
+        return f"{float(value):.1f}%"
+    except (TypeError, ValueError):
+        return "Sin muestra"
+
+
+def _founder_report_metadata(name):
+    safe_name = Path(str(name or "")).name
+    path = BASE_DIR / "reports" / safe_name
+    if not path.exists() or not path.is_file():
+        return {
+            "name": safe_name,
+            "path": f"reports/{safe_name}",
+            "available": False,
+            "state": "NO_CERTIFICADO",
+            "bytes": 0,
+            "updated_at_madrid": "",
+            "summary": "Informe pendiente o no versionado en esta carpeta.",
+        }
+    try:
+        stat = path.stat()
+        updated = datetime.fromtimestamp(stat.st_mtime, ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds")
+        first_heading = ""
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            stripped = line.strip().lstrip("#").strip()
+            if stripped:
+                first_heading = stripped[:180]
+                break
+        return {
+            "name": safe_name,
+            "path": f"reports/{safe_name}",
+            "available": True,
+            "state": "CONFIRMADO",
+            "bytes": stat.st_size,
+            "updated_at_madrid": updated,
+            "summary": first_heading or "Informe disponible.",
+        }
+    except Exception:
+        return {
+            "name": safe_name,
+            "path": f"reports/{safe_name}",
+            "available": True,
+            "state": "REQUIERE_REVISION",
+            "bytes": 0,
+            "updated_at_madrid": "",
+            "summary": "El informe existe pero no pudo leerse de forma segura.",
+        }
+
+
+def _founder_top100_progress():
+    report = _founder_report_metadata("TOP_100_IMPROVEMENTS.md")
+    path = BASE_DIR / report["path"]
+    priorities = {"P0": 0, "P1": 0, "P2": 0, "P3": 0, "P4": 0, "OTHER": 0}
+    total = 0
+    checked = 0
+    has_checkbox_tracking = False
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines() if path.exists() else []
+    except Exception:
+        lines = []
+    for line in lines:
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 3 or not cells[0].isdigit():
+            continue
+        total += 1
+        priority = cells[1].upper() if len(cells) > 1 else "OTHER"
+        priorities[priority if priority in priorities else "OTHER"] += 1
+        text = line.lower()
+        if "[x]" in text or "resuelto" in text or "completado" in text:
+            has_checkbox_tracking = True
+            checked += 1
+        elif "[ ]" in text:
+            has_checkbox_tracking = True
+    if not report.get("available"):
+        state = "NO_CERTIFICADO"
+        summary = "TOP 100 no disponible como evidencia local."
+    elif has_checkbox_tracking:
+        state = "CONFIRMADO"
+        summary = f"{checked} de {total} elementos marcados como completados en el documento."
+    else:
+        state = "NO_CERTIFICADO"
+        summary = f"{total} mejoras definidas; el documento no contiene marcas de ejecucion verificables."
+    return {
+        "total": total,
+        "completed": checked if has_checkbox_tracking else None,
+        "state": state,
+        "summary": summary,
+        "priorities": priorities,
+        "report": report,
+    }
+
+
+def _founder_system_card(systems_by_id, sections, key, label, href):
+    system = systems_by_id.get(key) or {}
+    section = sections.get(key) or {}
+    if key == "sports_gateway" and not system:
+        system = systems_by_id.get("sports_data") or {}
+    status = section.get("status") or system.get("status") or "NOT_CERTIFIED"
+    evidence_state = section.get("evidence_state") or system.get("evidence_state") or "NO_CERTIFICADO"
+    return {
+        "key": key,
+        "label": label,
+        "status": status,
+        "evidence_state": evidence_state,
+        "summary": section.get("summary") or system.get("summary") or "Sin evidencia disponible.",
+        "source": system.get("source") or "panel existente",
+        "href": href,
+        "next_action": section.get("next_action") or system.get("next_action") or "Revisar evidencia antes de actuar.",
+    }
+
+
+def founder_command_center_snapshot():
+    """Compose a founder-level read-only command center from existing surfaces."""
+    operations = v938_operations_snapshot()
+    intelligence = v939_company_intelligence_bundle()
+    product = intelligence.get("product") or {}
+    business = intelligence.get("business") or {}
+    company = intelligence.get("company") or {}
+    support = v808_support_center_context()
+    action_platform = build_action_platform_snapshot({"id": "", "role": "ADMIN", "membership": "ADMIN"})
+    roadmap = build_product_roadmap(BASE_DIR)
+    reports = [_founder_report_metadata(name) for name in FOUNDER_REPORT_CATALOG]
+    top100 = _founder_top100_progress()
+    systems_by_id = {item.get("id"): item for item in operations.get("systems") or []}
+    sections = operations.get("operations_sections") or {}
+    funnel = product.get("funnel") or {}
+    memberships = business.get("memberships") or (product.get("users") or {}).get("memberships") or {}
+    free_count = _founder_safe_int(memberships.get("FREE"))
+    pro_count = _founder_safe_int(memberships.get("PRO"))
+    elite_count = _founder_safe_int(memberships.get("ELITE")) + _founder_safe_int(memberships.get("ELITE+"))
+    users_total = _founder_safe_int(funnel.get("registered") or (product.get("users") or {}).get("registered_users"))
+    paid_total = pro_count + elite_count
+    business_kpis = {
+        "users_total": users_total,
+        "free": free_count,
+        "pro": pro_count,
+        "elite": elite_count,
+        "paid_total": paid_total,
+        "conversion_registered_to_paid": _founder_percent_label(product.get("conversion_registered_to_paid")),
+        "conversion_state": (product.get("conversion_registered_to_paid") or {}).get("state") or "INSUFFICIENT_DATA",
+        "checkout_started": _founder_safe_int(funnel.get("checkout_started")),
+        "payments_confirmed": _founder_safe_int((business.get("payment_event_counts") or {}).get("payments_confirmed")),
+        "mrr": business.get("mrr"),
+        "mrr_state": "NO_CERTIFICADO" if business.get("mrr") in (None, "") else "CONFIRMADO",
+    }
+    operations_summary = [
+        _founder_system_card(systems_by_id, sections, "render", "Render", "/admin/operations-center"),
+        _founder_system_card(systems_by_id, sections, "cron", "Cron", "/admin/daily-automation"),
+        _founder_system_card(systems_by_id, sections, "telegram", "Telegram", "/admin/telegram/command-center"),
+        _founder_system_card(systems_by_id, sections, "stripe", "Stripe", "/admin/payments"),
+        _founder_system_card(systems_by_id, sections, "sports_gateway", "Sports Gateway", "/admin/data-trust-center"),
+        _founder_system_card(systems_by_id, sections, "sentinel", "Sentinel", "/admin/sentinel-autopilot"),
+    ]
+    beta_control = {
+        "state": "PARTIAL" if users_total else "NO_CERTIFICADO",
+        "users_total": users_total,
+        "feedback_open": _founder_safe_int(support.get("open_feedback")),
+        "tickets_open": _founder_safe_int(support.get("open_tickets")),
+        "support_health": _founder_safe_int(support.get("health")),
+        "next_action": "Usar beta cerrada con usuarios reales y feedback seguro antes de mercado abierto.",
+        "href": "/admin/beta-center",
+    }
+    customer_overview = {
+        "registered": users_total,
+        "active_events": funnel.get("active"),
+        "pro_interest": funnel.get("pro_interest"),
+        "support_items": _founder_safe_int(support.get("open_feedback")) + _founder_safe_int(support.get("open_tickets")),
+        "privacy_state": (intelligence.get("product") or {}).get("certification_state") or "INSUFFICIENT_DATA",
+        "user_intelligence_controls": {
+            "transparent": True,
+            "disable": True,
+            "delete": True,
+            "export": True,
+        },
+    }
+    release_gate = operations.get("release_1_gate") or {}
+    return {
+        "contract": FOUNDER_COMMAND_CENTER_CONTRACT,
+        "version": APP_VERSION,
+        "generated_at_madrid": now_iso(),
+        "mode": "read_only",
+        "production_modified": False,
+        "dangerous_actions_executed": False,
+        "database_written": False,
+        "external_calls": 0,
+        "telegram_sent": False,
+        "stripe_called": False,
+        "business_kpis": business_kpis,
+        "customer_overview": customer_overview,
+        "beta_control": beta_control,
+        "operations_summary": operations_summary,
+        "release_readiness": {
+            "status": release_gate.get("status") or "PARTIAL",
+            "score": release_gate.get("score") or ((operations.get("global_score") or {}).get("overall_score")),
+            "missing": release_gate.get("missing_for_ready") or [],
+            "report": _founder_report_metadata("RELEASE_READINESS_REPORT.md"),
+        },
+        "top100": top100,
+        "roadmap": roadmap,
+        "reports": reports,
+        "action_platform": {
+            "contract": action_platform.get("contract"),
+            "state": action_platform.get("certification_state") or "INSUFFICIENT_DATA",
+            "summary": action_platform.get("summary") or {},
+            "guardrails": action_platform.get("guardrails") or {},
+            "href": "/smart-home",
+        },
+        "developer_center": {"href": "/admin/developer-center", "state": "REUTILIZADO"},
+        "company_board": {"href": "/admin/company-board", "state": "REUTILIZADO"},
+        "operations_center": {"href": "/admin/operations-center", "state": "REUTILIZADO"},
+        "company_intelligence": {
+            "state": (company.get("executive_summary") or {}).get("certification_state") or company.get("certification_state") or "PARTIALLY_VERIFIED",
+            "next_actions": company.get("next_actions") or [],
+            "priorities": company.get("priorities") or [],
+            "href": "/admin/company-intelligence",
+        },
+        "guardrails": [
+            "solo lectura",
+            "sin deploy",
+            "sin push",
+            "sin Telegram real",
+            "sin Stripe",
+            "sin escritura DB real",
+            "sin secretos",
+        ],
+        "next_action": beta_control.get("next_action") or operations.get("next_action") or "Revisar evidencia antes de lanzar beta.",
+    }
+
+
+@app.route("/admin/founder-dashboard")
+@app.route("/admin/founder")
+@app.route("/admin/company-command-center")
+@app.route("/admin/business-kpis")
+@app.route("/admin/beta-control")
+@app.route("/admin/customer-overview")
+@app.route("/admin/operations-summary")
+def admin_founder_dashboard_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    return render_template(
+        "admin_founder_dashboard.html",
+        data=dashboard_data(),
+        founder=founder_command_center_snapshot(),
+    )
+
+
+@app.route("/api/admin/founder-dashboard")
+@app.route("/api/admin/company-command-center")
+def api_admin_founder_dashboard_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "founder": founder_command_center_snapshot(),
+        "production_modified": False,
+        "dangerous_actions_executed": False,
+    })
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
 
 if __name__ == "__main__":
