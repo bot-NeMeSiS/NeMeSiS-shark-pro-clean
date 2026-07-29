@@ -631,6 +631,17 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Auditoria read-only de experiencia, consistencia UX, navegacion y densidad visual para convertir la arquitectura existente en una experiencia mas clara sin tocar logica ni produccion.",
         },
         {
+            "name": "Action Platform",
+            "state": "COMPLETED"
+            if complete(
+                "templates/action_platform.html",
+                "tests/test_action_platform.py",
+                "tools/check_action_platform.py",
+            )
+            else "PENDING",
+            "evidence": "Smart Home, favoritos, watchlist, alertas, briefing, recap, actividad e historial de decision reutilizan Sports Core, Decision Engine, SHARK, User Intelligence y Gateway sin IA ni predicciones.",
+        },
+        {
             "name": "Telegram asistente",
             "state": "CONTRACT_READY" if complete("engines/sports_platform_contracts.py", "engines/telegram_intelligence_engine.py") else "PENDING",
             "evidence": "Context envelope sin envíos automáticos",
@@ -661,6 +672,19 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             else "PENDING",
             "evidence": "Player Center Premium Sports Identity consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence sin modelo paralelo.",
         },        {
+            "name": "Product Finalization Release Candidate",
+            "state": "COMPLETED"
+            if complete(
+                "reports/PRODUCT_FINALIZATION_REPORT.md",
+                "reports/EXPERIENCE_SCORE_REPORT.md",
+                "reports/RELEASE_READINESS_REPORT.md",
+                "reports/MASTER_PRODUCT_AUDIT.md",
+                "tools/run_product_finalization_browser_qa.py",
+            )
+            else "PENDING",
+            "evidence": "Auditoria comercial completa: Experience Score, Release Readiness y Browser QA 24 superficies x 3 viewports.",
+        },
+        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",

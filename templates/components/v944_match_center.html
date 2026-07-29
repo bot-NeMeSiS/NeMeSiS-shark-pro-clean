@@ -79,6 +79,7 @@
         data-match-component="MatchHeader"
         data-component-state="{{ state }}"
         data-match-region="header">
+  <h1 class="sr-only">{{ home.get('name') or 'No disponible' }} vs {{ away.get('name') or 'No disponible' }}</h1>
   <div class="v944-match-header__meta">
     <a href="/calendar" class="v944-back-link">{{ icon('arrow') }}<span>Calendario</span></a>
     {% if competition.get('href') %}

@@ -349,6 +349,26 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/experience_platform_engine.py + tools/check_experience_platform.py",
         },
         {
+            "key": "action_platform",
+            "name": "NeMeSiS Action Platform",
+            "contract": "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1",
+            "state": "INTEGRATED"
+            if exists("templates/action_platform.html")
+            and exists("tools/check_action_platform.py")
+            else "CONTRACT_READY",
+            "implementation": "app.py + templates/action_platform.html + tools/check_action_platform.py",
+        },
+        {
+            "key": "product_finalization_release_candidate",
+            "name": "Product Finalization Release Candidate",
+            "contract": "NEMESIS-PRODUCT-FINALIZATION-RELEASE-CANDIDATE-V1",
+            "state": "INTEGRATED"
+            if exists("tools/run_product_finalization_browser_qa.py")
+            and exists("reports/PRODUCT_FINALIZATION_REPORT.md")
+            else "CONTRACT_READY",
+            "implementation": "tools/run_product_finalization_browser_qa.py + reports/PRODUCT_FINALIZATION_REPORT.md",
+        },
+        {
             "key": "telegram_assistant",
             "name": "Telegram Assistant",
             "contract": "TELEGRAM-ASSISTANT-CONTEXT-V1",

@@ -26,15 +26,15 @@ La plataforma de experiencia queda creada como auditoria local read-only. No cam
 
 | area | estado | evidencia |
 | --- | --- | --- |
-| Pantallas | PASS | 173 screens, 19 components |
-| Navegacion | PASS | 695 rutas, 756 hrefs |
-| Consistencia UX | PASS | 135 hallazgos |
-| Densidad visual | PASS_WITH_REVIEW_ITEMS | 40 hallazgos revisables |
+| Pantallas | PASS | 174 screens, 19 components |
+| Navegacion | PASS | 713 rutas, 764 hrefs |
+| Consistencia UX | PASS | 136 hallazgos |
+| Densidad visual | PASS_WITH_REVIEW_ITEMS | 41 hallazgos revisables |
 
 
 ## Findings
 
-Total: 198 (P2=32, P3=166).
+Total: 200 (P2=32, P3=168).
 
 | severity | category | screen | title |
 | --- | --- | --- | --- |

@@ -69,3 +69,19 @@ Siguiente modulo visible completado localmente: Player Center Premium Sports Ide
 ## Experience Platform
 
 La experiencia deportiva pasa a tener una capa transversal de auditoria: exceso de scroll, espacios vacios, botones inconsistentes, textos tecnicos, estados vacios, navegacion incoherente y baja densidad se convierten en hallazgos priorizados antes de cualquier cambio visual. No aplica cambios automaticos.
+## Action Platform
+
+- Estado local: implementado como experiencia personal, sin deploy.
+- Contrato: `NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1`.
+- Impacto: Smart Home, Smart Favorites, Watchlist, Alert Center, Daily Briefing, Evening Recap, Activity Center y Decision History reutilizan Sports Core, Sports Knowledge, Sports Graph, Decision Engine, SHARK, User Intelligence y Gateway.
+- Guardrails: no IA generativa, no predicciones, no picks nuevos, no recomendaciones de apuestas, no Telegram, no Stripe, no llamadas externas y no escrituras DB por GET.
+- Produccion: no certificada; no hubo push ni deploy.
+
+## Product Finalization Release Candidate
+
+- Estado local: finalizacion de producto ejecutada sobre cliente, admin, desktop, tablet y movil, sin deploy.
+- Contrato: `NEMESIS-PRODUCT-FINALIZATION-RELEASE-CANDIDATE-V1`.
+- Evidencia: Browser QA local read-only sobre 24 superficies x 3 viewports, score de experiencia 100/100, 0 fallos, 0 llamadas externas, 0 Telegram, 0 Stripe y 0 escrituras DB reales.
+- Cambios permitidos: pulido de copy visible, accesibilidad, targets tactiles, densidad visual y auditoria.
+- Guardrails: no cambia Sports Core, SHARK, Gateway, datos deportivos, pagos, Telegram ni produccion.
+- Produccion: no certificada; no hubo push ni deploy.

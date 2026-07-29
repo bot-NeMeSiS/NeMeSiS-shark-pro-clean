@@ -1,0 +1,19 @@
+{
+  "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+  "issues": [
+    {
+      "id": "a68ce73681af0bdba8be75f2",
+      "area": "client_routes",
+      "severity": "critical",
+      "route": "/smart-home",
+      "exception": "RuntimeError",
+      "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+      "count": 1,
+      "created_at_madrid": "2026-07-28T23:15:14+02:00",
+      "last_seen_madrid": "2026-07-28T23:15:14+02:00",
+      "evidence": "Working outside of request context.\n\nThis typically means that you attempted to use functionality that needed\nan active HTTP request. Consult the documentation on testing for\ninformation about how to avoid this problem.",
+      "cause": "action_alerts",
+      "safe_message": "Ruta cliente protegida con contexto degradable; revisar DB/migracion."
+    }
+  ]
+}

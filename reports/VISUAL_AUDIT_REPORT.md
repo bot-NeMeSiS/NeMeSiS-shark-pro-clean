@@ -6,7 +6,7 @@ PASS_WITH_REVIEW_ITEMS
 
 ## Coverage
 
-- Screens scanned: 173
+- Screens scanned: 174
 - CSS files scanned: 8
 - CSS findings capped: 0
 
@@ -14,6 +14,7 @@ PASS_WITH_REVIEW_ITEMS
 
 | severity | category | screen | title | evidence |
 | --- | --- | --- | --- | --- |
+| P3 | density | templates/action_platform.html | Pantalla fragmentada en demasiados bloques | sections=14, words=113 |
 | P3 | density | templates/adaptive_experience.html | Muchas cards con baja densidad informativa | cards=12, words_per_card=5.5 |
 | P3 | density | templates/admin_automation.html | Muchas cards con baja densidad informativa | cards=12, words_per_card=4.9 |
 | P3 | density | templates/admin_autonomous_ecosystem.html | Muchas cards con baja densidad informativa | cards=12, words_per_card=7.6 |

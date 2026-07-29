@@ -118,7 +118,7 @@
   const routesEl = document.getElementById("v901-shark-sentinel-routes");
   const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
   function setText(el, value) {
-    if (el) el.textContent = String(value ?? "Sin datos");
+    if (el) el.textContent = String(value ? "Sin datos");
   }
   if (!button) return;
   button.addEventListener("click", async () => {

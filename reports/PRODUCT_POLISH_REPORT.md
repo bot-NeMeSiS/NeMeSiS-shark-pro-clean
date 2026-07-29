@@ -10,8 +10,8 @@ PASS
 
 ## Backlog Summary
 
-- Total findings: 198
-- By severity: P2=32, P3=166
+- Total findings: 200
+- By severity: P2=32, P3=168
 - Autofix allowed: False
 
 ## Next Actions

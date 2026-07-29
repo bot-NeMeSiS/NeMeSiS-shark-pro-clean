@@ -153,3 +153,36 @@ Auditores asociados:
 - `NEMESIS-VISUAL-DENSITY-AUDITOR-V1`
 
 Regla: la plataforma solo organiza evidencia de UX y recomendaciones. No modifica logica deportiva, SHARK, rutas, APIs, DB, Telegram, Stripe ni produccion. Todo cambio visual derivado requiere Browser QA y aprobacion humana.
+## Action Platform Contract
+
+Contrato: `NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1`.
+
+Consume:
+
+- `SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1` y `sports-metrics-v1`;
+- `SPORTS-KNOWLEDGE-LAYER-V1`;
+- `SPORTS-GRAPH-FOUNDATION-RELATIONSHIPS-V1`;
+- `NEMESIS-DECISION-ENGINE-EVIDENCE-FIRST-V1`;
+- `SHARK-INTELLIGENCE-PLATFORM-V1`;
+- `USER-INTELLIGENCE-PLATFORM-V1`;
+- `SPORTS-INTELLIGENCE-GATEWAY-V1`.
+
+Secciones visibles: Smart Home, Smart Favorites, Watchlist, Alert Center, Daily Briefing, Evening Recap, Activity Center y Decision History.
+
+Regla: Action Platform presenta y ordena informacion existente para ayudar al usuario, no para decidir por el. No puede crear datos, picks, predicciones, recomendaciones de apuestas, Telegram, pagos, llamadas externas ni escrituras DB por GET. Cada bloque debe mostrar procedencia, evidencia, frescura, calidad y limitaciones.
+
+## Product Finalization Release Candidate Contract
+
+Contrato: `NEMESIS-PRODUCT-FINALIZATION-RELEASE-CANDIDATE-V1`.
+
+Objetivo: convertir el producto existente en candidato comercial sin crear motores, APIs ni pantallas grandes.
+
+Consumidores: Developer Center, Company Board, Roadmap, Experience Platform, Sentinel y QA de release.
+
+Reglas:
+
+- No modificar Sports Core, SHARK, Gateway ni logica deportiva.
+- No inventar datos ni metricas.
+- No ejecutar produccion, Telegram, Stripe ni proveedores externos.
+- Toda mejora debe pasar Browser QA desktop/tablet/mobile y quedar trazada en informes.
+- El resultado local no certifica Render ni produccion hasta un deploy autorizado.

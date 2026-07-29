@@ -6,7 +6,7 @@ PASS
 
 ## Coverage
 
-- Templates scanned: 192
+- Templates scanned: 193
 - Buttons scanned: 145
 
 ## Findings
@@ -17,6 +17,7 @@ PASS
 | P2 | copy | templates/account_center.html | Texto tecnico puede quedar visible | todo |
 | P3 | component | templates/account_center.html | Demasiados enlaces sin sistema visual compartido | unstyled_links=11 |
 | P3 | visual_system | templates/account_center.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
+| P3 | visual_system | templates/action_platform.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 | P3 | visual_system | templates/activity.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 | P3 | visual_system | templates/adaptive_experience.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 | P3 | visual_system | templates/admin_alerts.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
@@ -52,7 +53,6 @@ PASS
 | P3 | visual_system | templates/admin_go_live.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 | P3 | visual_system | templates/admin_growth_center.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 | P3 | visual_system | templates/admin_highlights_center.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
-| P3 | visual_system | templates/admin_intelligence.html | Pantalla fuera del sistema visual actual | No se detectan clases ns- ni v933. |
 
 
 ## Permanent Rule

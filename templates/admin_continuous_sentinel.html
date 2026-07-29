@@ -112,7 +112,7 @@
   const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
 
   function setText(el, value) {
-    if (el) el.textContent = String(value ?? "Sin datos");
+    if (el) el.textContent = String(value ? "Sin datos");
   }
 
   async function runSentinel(mode, button) {
@@ -137,8 +137,8 @@
       setText(statusEl, payload.ok ? "Revisión completada en modo seguro." : (payload.safe_message || "No se pudo ejecutar la revisión. Se ha registrado el fallo para corregirlo."));
       setText(modeEl, payload.mode || mode);
       setText(dryRunEl, payload.dry_run === false ? "No" : "Sí");
-      setText(issuesEl, payload.issues_created ?? 0);
-      setText(promptsEl, payload.prompts_generated ?? 0);
+      setText(issuesEl, payload.issues_created ? 0);
+      setText(promptsEl, payload.prompts_generated ? 0);
       setText(lastRunEl, payload.last_run_madrid || "Sin datos");
     } catch (error) {
       setText(statusEl, "No se pudo ejecutar la revisión. Se ha registrado el fallo para corregirlo.");

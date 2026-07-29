@@ -70,3 +70,17 @@ Decision Engine queda como motor evidence-first para organizar lo que NeMeSiS sa
 Estado local: PASS inicial.
 
 La Experience Platform introduce una auditoria read-only de experiencia, consistencia UX, navegacion y densidad visual. No cambia Sports Core, SHARK, APIs, DB, Telegram, Stripe ni produccion. Cualquier pulido visual derivado exige evidencia, aprobacion humana, Browser QA desktop/tablet/mobile y Sentinel limpio.
+## Action Platform
+
+Estado local: PASS inicial pendiente de QA final.
+
+Action Platform convierte la arquitectura existente en una experiencia personal: Smart Home, favoritos inteligentes, watchlist, alertas, briefing, recap, actividad e historial de decision. No crea motor nuevo. No decide por el usuario. No genera picks, predicciones, Telegram ni pagos. Cada bloque conserva procedencia, evidencia, frescura, calidad y limitaciones.
+
+## Product Finalization Release Candidate
+
+- Estado local: finalizacion de producto ejecutada sobre cliente, admin, desktop, tablet y movil, sin deploy.
+- Contrato: `NEMESIS-PRODUCT-FINALIZATION-RELEASE-CANDIDATE-V1`.
+- Evidencia: Browser QA local read-only sobre 24 superficies x 3 viewports, score de experiencia 100/100, 0 fallos, 0 llamadas externas, 0 Telegram, 0 Stripe y 0 escrituras DB reales.
+- Cambios permitidos: pulido de copy visible, accesibilidad, targets tactiles, densidad visual y auditoria.
+- Guardrails: no cambia Sports Core, SHARK, Gateway, datos deportivos, pagos, Telegram ni produccion.
+- Produccion: no certificada; no hubo push ni deploy.

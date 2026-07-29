@@ -1,0 +1,137 @@
+﻿{% extends "base.html" %}
+{% block content %}
+{# ACTION PLATFORM CONTRACT V1: Smart Home | Smart Favorites | Watchlist | Alert Center | Daily Briefing | Evening Recap | Activity Center | Decision History. Every visible block must expose Procedencia, Evidencia, Frescura, Calidad and Limitaciones. No hay recomendaciones de apuestas ni predicciones nuevas. #}
+{% set a = action_platform or data.action_platform or {} %}
+{% set nav = a.section_nav or {} %}
+{% set sections = a.sections or {} %}
+{% set active = active_section or 'smart_home' %}
+{% set current = sections[active] if active in sections else sections.smart_home %}
+
+{% macro meta_block(meta) -%}
+  {% set m = meta or {} %}
+  <dl class="action-platform-meta" data-action-platform-meta>
+    <div><dt>Procedencia</dt><dd>{{ m.provenance or m.source or 'No disponible' }}</dd></div>
+    <div><dt>Frescura</dt><dd>{{ m.freshness or 'No disponible' }}</dd></div>
+    <div><dt>Calidad</dt><dd>{{ m.quality or 'No disponible' }}</dd></div>
+    <div><dt>Evidencia</dt><dd>{{ (m.evidence or ['No disponible'])[:3]|join(' / ') }}</dd></div>
+    <div><dt>Limitaciones</dt><dd>{{ (m.limitations or ['No disponible'])[:2]|join(' / ') }}</dd></div>
+  </dl>
+{%- endmacro %}
+
+<section class="action-platform-v1"
+         data-action-platform-contract="{{ a.contract or '' }}"
+         data-decision-engine-contract="{{ a.source_contracts.decision_engine if a.source_contracts else '' }}"
+         data-user-intelligence-contract="{{ a.source_contracts.user_intelligence if a.source_contracts else '' }}"
+         data-shark-intelligence-contract="{{ a.source_contracts.shark if a.source_contracts else '' }}"
+         data-gateway-contract="{{ a.source_contracts.gateway if a.source_contracts else '' }}">
+  <header class="action-platform-hero" data-action-platform-section="hero">
+    <div class="action-platform-title">
+      <span>Action Platform</span>
+      <h1>Tu experiencia deportiva personal</h1>
+      <p>{{ a.summary.body or 'NeMeSiS organiza tu dia deportivo con datos reales, evidencia visible y control humano.' }}</p>
+      <div class="action-platform-tags" aria-label="Estado Action Platform">
+        <span>{{ a.certification_state or 'REQUIRES_REVIEW' }}</span>
+        <span>Plan {{ a.membership or 'FREE' }}</span>
+        <span>{{ a.observed_at_madrid or 'No disponible' }}</span>
+      </div>
+    </div>
+    <aside class="action-platform-status">
+      <div><span>Secciones</span><strong>{{ a.summary.sections or 0 }}</strong></div>
+      <div><span>Favoritos</span><strong>{{ a.summary.favorites or 0 }}</strong></div>
+      <div><span>Watchlist</span><strong>{{ a.summary.watchlist or 0 }}</strong></div>
+      <nav class="action-platform-actions" aria-label="Acciones principales">
+        <a href="/calendar">Calendario</a>
+        <a href="/user-intelligence">Privacidad</a>
+        <a href="/favorites">Favoritos</a>
+      </nav>
+    </aside>
+  </header>
+
+  <nav class="action-platform-nav" aria-label="Secciones Action Platform">
+    {% for key, item in nav.items() %}
+      <a href="{{ item.route }}"{% if key == active %} class="is-active" aria-current="page"{% endif %}>
+        <span>{{ item.title }}</span>
+        <small>{{ item.goal }}</small>
+      </a>
+    {% endfor %}
+  </nav>
+
+  <section class="action-platform-next" data-action-platform-section="next-action">
+    <div>
+      <span>Siguiente accion util</span>
+      <h2>{{ a.next_action.title if a.next_action else 'Abrir calendario' }}</h2>
+      <p>{{ a.next_action.body if a.next_action else 'Empieza por partidos reales disponibles.' }}</p>
+    </div>
+    {% if a.next_action and a.next_action.href %}<a href="{{ a.next_action.href }}">Continuar</a>{% endif %}
+  </section>
+
+  <main class="action-platform-layout">
+    <section class="action-platform-panel action-platform-wide" data-action-platform-active-section="{{ active }}">
+      <div class="action-platform-section-head">
+        <span>{{ nav[active].title if active in nav else 'Smart Home' }}</span>
+        <strong>{{ current['items']|length if current and current['items'] else 0 }}</strong>
+      </div>
+      <p class="action-platform-section-intro">{{ nav[active].goal if active in nav else 'Organizar informacion real disponible.' }}</p>
+      <div class="action-platform-card-grid">
+        {% for item in current['items'] or [] %}
+        <article class="action-platform-card" data-action-platform-card>
+          <header>
+            <span>{{ item.badge or 'INFO' }}</span>
+            <strong>{{ item.title or 'No disponible' }}</strong>
+          </header>
+          <p>{{ item.body or 'No disponible' }}</p>
+          {% if item.value is not none %}<b class="action-platform-value">{{ item.value }}</b>{% endif %}
+          {{ meta_block(item.meta) }}
+          {% if item.href %}<a href="{{ item.href }}">Abrir</a>{% endif %}
+        </article>
+        {% else %}
+        <p class="action-platform-empty">No disponible. No hay evidencia suficiente para mostrar elementos en esta seccion.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="action-platform-panel" data-action-platform-section="contracts">
+      <div class="action-platform-section-head"><span>Contratos reutilizados</span><strong>{{ a.source_contracts|length if a.source_contracts else 0 }}</strong></div>
+      <dl class="action-platform-data-list">
+        {% for key, value in a.source_contracts.items() %}
+        <div><dt>{{ key }}</dt><dd>{{ value or 'No disponible' }}</dd></div>
+        {% endfor %}
+      </dl>
+    </section>
+
+    <section class="action-platform-panel" data-action-platform-section="guardrails">
+      <div class="action-platform-section-head"><span>Guardrails</span><strong>Activos</strong></div>
+      <dl class="action-platform-data-list">
+        <div><dt>Llamadas externas</dt><dd>{{ a.guardrails.external_calls if a.guardrails else 0 }}</dd></div>
+        <div><dt>Escrituras GET</dt><dd>{{ a.guardrails.database_writes_by_get if a.guardrails else 0 }}</dd></div>
+        <div><dt>Telegram</dt><dd>{{ a.guardrails.telegram_sends if a.guardrails else 0 }}</dd></div>
+        <div><dt>Stripe</dt><dd>{{ a.guardrails.stripe_calls if a.guardrails else 0 }}</dd></div>
+        <div><dt>IA generativa</dt><dd>{{ a.guardrails.generative_ai_calls if a.guardrails else 0 }}</dd></div>
+        <div><dt>Predicciones</dt><dd>{{ a.guardrails.predictions_created if a.guardrails else 0 }}</dd></div>
+      </dl>
+    </section>
+
+    <section class="action-platform-panel" data-action-platform-section="transparency">
+      <div class="action-platform-section-head"><span>Transparencia</span><strong>{{ 'PASS' if a.transparency.all_sections_have_metadata else 'REVISAR' }}</strong></div>
+      <ul class="action-platform-evidence-list">
+        <li>Procedencia visible en cada bloque.</li>
+        <li>Evidencia visible en cada bloque.</li>
+        <li>Frescura visible en cada bloque.</li>
+        <li>Calidad visible en cada bloque.</li>
+        <li>Limitaciones visibles en cada bloque.</li>
+        <li>No hay recomendaciones de apuestas ni predicciones nuevas.</li>
+        <li>El usuario conserva control desde User Intelligence.</li>
+      </ul>
+    </section>
+
+    <section class="action-platform-panel" data-action-platform-section="privacy">
+      <div class="action-platform-section-head"><span>Privacidad</span><strong>Controlada</strong></div>
+      <p>La personalizacion usa solo datos propios de NeMeSiS. Puede exportarse, reiniciarse, desactivarse o borrarse desde User Intelligence.</p>
+      <div class="action-platform-actions is-stacked">
+        <a href="/user-intelligence">Gestionar privacidad</a>
+        <a href="/api/user-intelligence/export">Exportar datos</a>
+      </div>
+    </section>
+  </main>
+</section>
+{% endblock %}

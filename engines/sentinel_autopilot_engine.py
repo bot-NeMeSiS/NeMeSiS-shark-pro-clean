@@ -2146,6 +2146,127 @@ def build_experience_platform_contract_snapshot(
         "approval_required": True,
         "production_certified": False,
     }
+
+def build_action_platform_contract_snapshot(
+    root: str | Path | None = None,
+    app_version: str = "",
+) -> dict[str, Any]:
+    """Inspect the Action Platform personal sports experience contract without writes."""
+    project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+
+    def _read(relative_path: str) -> str:
+        try:
+            return (project_root / relative_path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    app_text = _read("app.py")
+    template = _read("templates/action_platform.html")
+    platform_contracts = _read("engines/sports_platform_contracts.py")
+    operating_system = _read("engines/project_operating_system_engine.py")
+    tool = _read("tools/check_action_platform.py")
+    legacy_engine_exists = (project_root / "engines/action_platform_engine.py").exists()
+
+    app_contract = all(marker in app_text for marker in (
+        'ACTION_PLATFORM_CONTRACT = "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1"',
+        "build_action_platform_snapshot(",
+        "build_decision_engine_snapshot(",
+        "build_user_intelligence_platform_snapshot(",
+        "build_sports_intelligence_gateway_snapshot(",
+        "build_shark_intelligence_platform_snapshot(",
+        '"/smart-home"',
+        '"/smart-favorites"',
+        '"/watchlist"',
+        '"/alert-center"',
+        '"/daily-briefing"',
+        '"/evening-recap"',
+        '"/activity-center"',
+        '"/decision-history"',
+        '"external_calls": 0',
+        '"database_writes_by_get": 0',
+        '"telegram_sends": 0',
+        '"stripe_calls": 0',
+        '"generative_ai_calls": 0',
+        '"predictions_created": 0',
+        '"betting_recommendations_created": 0',
+        '"automatic_user_decisions": 0',
+    ))
+    template_contract = all(marker in template for marker in (
+        "data-action-platform-contract",
+        "Smart Home",
+        "Smart Favorites",
+        "Watchlist",
+        "Alert Center",
+        "Daily Briefing",
+        "Evening Recap",
+        "Activity Center",
+        "Decision History",
+        "Procedencia",
+        "Evidencia",
+        "Frescura",
+        "Calidad",
+        "Limitaciones",
+        "No hay recomendaciones de apuestas ni predicciones nuevas.",
+    ))
+    registry_contract = all(marker in platform_contracts for marker in (
+        '"key": "action_platform"',
+        '"contract": "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1"',
+        '"implementation": "app.py + templates/action_platform.html + tools/check_action_platform.py"',
+    ))
+    roadmap_contract = all(marker in operating_system for marker in (
+        '"name": "Action Platform"',
+        '"templates/action_platform.html"',
+        '"tools/check_action_platform.py"',
+    ))
+    tool_contract = all(marker in tool for marker in (
+        "ACTION_PLATFORM_REPORT.md",
+        "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1",
+        "engines/action_platform_engine.py",
+        "database_writes_by_get",
+        "betting_recommendations_created",
+    ))
+
+    violations: list[str] = []
+    if legacy_engine_exists:
+        violations.append("action_platform_engine_created_instead_of_reusing_existing_engines")
+    if not app_contract:
+        violations.append("action_platform_app_contract_missing")
+    if not template_contract:
+        violations.append("action_platform_template_transparency_missing")
+    if not registry_contract:
+        violations.append("sports_platform_registry_not_updated_for_action_platform")
+    if not roadmap_contract:
+        violations.append("company_roadmap_not_updated_for_action_platform")
+    if not tool_contract:
+        violations.append("action_platform_check_missing")
+
+    passed = not violations
+    return {
+        "issue_id": "NEMESIS-ACTION-PLATFORM-CONTRACT",
+        "version": app_version,
+        "component": "action_platform",
+        "affected_routes": ["/smart-home", "/smart-favorites", "/watchlist", "/alert-center", "/daily-briefing", "/evening-recap", "/activity-center", "/decision-history"],
+        "cause": "Action Platform must personalize the sports experience by composing existing NeMeSiS engines without becoming AI, a betting recommender or a parallel data source.",
+        "solution": "Keep Smart Home, Smart Favorites, Watchlist, Alert Center, Daily Briefing, Evening Recap, Activity Center and Decision History evidence-first, read-only on GET and transparent about source, evidence, freshness, quality and limitations.",
+        "evidence": {
+            "legacy_engine_absent": not legacy_engine_exists,
+            "app_contract": app_contract,
+            "template_contract": template_contract,
+            "registry_contract": registry_contract,
+            "roadmap_contract": roadmap_contract,
+            "tool_contract": tool_contract,
+            "violations": violations,
+        },
+        "preventive_rule": "Action Platform cannot create an action_platform_engine, invent facts, create picks, predict outcomes, send Telegram, call Stripe/providers, write DB on GET or hide provenance/evidence/freshness/quality/limitations.",
+        "validation_result": "PASS" if passed else "REGRESSION",
+        "certification_state": "VERIFIED" if passed else "REQUIRES_REVIEW",
+        "status": "RESOLVED_LOCALLY" if passed else "OPEN",
+        "evaluated_at_madrid": _now(),
+        "autofix_allowed": False,
+        "approval_required": True,
+        "production_certified": False,
+    }
+
 def detect_product_quality_contract_issues(
     root: str | Path | None = None,
     app_version: str = "",
@@ -2715,6 +2836,50 @@ def detect_product_quality_contract_issues(
         })
         issue["codex_prompt"] = issue["codex_prompt_suggestion"]
         issues.append(classify_autopilot_issue(issue))
+    action_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
+    action_present = (action_root / "templates/action_platform.html").exists()
+    action_snapshot = (
+        build_action_platform_contract_snapshot(root, app_version)
+        if action_present
+        else None
+    )
+    if action_snapshot and action_snapshot["validation_result"] != "PASS":
+        issue = _new_issue(
+            "Action Platform pierde su contrato personal evidence-first",
+            "personal_sports_experience",
+            "high",
+            "/smart-home",
+            "Action Platform; " + ",".join(action_snapshot["evidence"]["violations"]),
+            app_version,
+        )
+        issue.update({
+            "id": "NEMESIS-ACTION-PLATFORM-CONTRACT",
+            "priority": "P1",
+            "profile": "CLIENT",
+            "component": "action_platform",
+            "description": "La experiencia personalizada podria inventar datos, decidir por el usuario, crear recomendaciones de apuestas o duplicar motores.",
+            "expected_behavior": "Smart Home, favoritos, watchlist, alertas, briefing, recap, actividad e historial de decision reutilizan motores existentes y exponen procedencia, evidencia, frescura, calidad y limitaciones.",
+            "actual_behavior": "Una o mas garantias del contrato Action Platform no se pueden demostrar.",
+            "suggested_fix": "Restaurar solo el contrato incumplido y repetir Action Platform check, Browser QA, Sentinel y Privacy Guard.",
+            "safe_auto_fix_possible": False,
+            "requires_admin_approval": True,
+            "requires_approval": True,
+            "likely_files": [
+                "app.py",
+                "templates/action_platform.html",
+                "static/v933-product.css",
+                "engines/sports_platform_contracts.py",
+                "engines/project_operating_system_engine.py",
+                "tools/check_action_platform.py",
+            ],
+            "codex_prompt_suggestion": (
+                "Revisar Action Platform con la evidencia indicada. No crear motores nuevos, IA, predicciones, picks, "
+                "llamadas externas, Telegram, Stripe ni escrituras GET; conservar fuente, evidencia, frescura, calidad y limitaciones."
+            ),
+            "product_quality_contract": action_snapshot,
+        })
+        issue["codex_prompt"] = issue["codex_prompt_suggestion"]
+        issues.append(classify_autopilot_issue(issue))
     return issues
 
 def _issues_from_sentinel(sentinel_result: dict[str, Any] | None, app_version: str) -> list[dict[str, Any]]:
@@ -2872,6 +3037,7 @@ def run_autopilot_scan(
         "sports_intelligence_gateway_contract": build_sports_intelligence_gateway_contract_snapshot(project_root, app_version),
         "decision_engine_contract": build_decision_engine_contract_snapshot(project_root, app_version),
         "experience_platform_contract": build_experience_platform_contract_snapshot(project_root, app_version),
+        "action_platform_contract": build_action_platform_contract_snapshot(project_root, app_version),
     }
     if save_memory:
         result["memory"] = save_autopilot_memory(result, root=memory_root)
