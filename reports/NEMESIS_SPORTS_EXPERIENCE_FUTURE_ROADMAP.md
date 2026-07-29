@@ -85,3 +85,10 @@ La experiencia deportiva pasa a tener una capa transversal de auditoria: exceso 
 - Cambios permitidos: pulido de copy visible, accesibilidad, targets tactiles, densidad visual y auditoria.
 - Guardrails: no cambia Sports Core, SHARK, Gateway, datos deportivos, pagos, Telegram ni produccion.
 - Produccion: no certificada; no hubo push ni deploy.
+## Release 1.0 Operations Center
+
+- Estado local: implementado como centro interno de control, sin deploy.
+- Contrato: `NEMESIS-RELEASE-1-OPERATIONS-SCORE-V1`.
+- Impacto: centraliza salud de plataforma, Render, cron, Telegram, Stripe, Sports Gateway, Sports Core, DB, cache, observabilidad, seguridad y readiness comercial.
+- Guardrails: no push, no deploy, no Telegram real, no pagos, no escrituras DB de producto, no llamadas externas nuevas y no secretos visibles.
+- Produccion: no certificada en este sprint; cualquier certificacion real requiere lectura externa autorizada.

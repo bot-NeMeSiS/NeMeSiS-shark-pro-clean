@@ -402,6 +402,17 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             else "CONTRACT_READY",
             "implementation": "engines/player_center_engine.py + templates/player_detail.html",
         },
+
+        {
+            "key": "operations_center_release_gate",
+            "name": "Operations Center Release Gate",
+            "contract": "NEMESIS-RELEASE-1-OPERATIONS-SCORE-V1",
+            "state": "INTEGRATED"
+            if exists("engines/company_operations_center_engine.py")
+            and exists("templates/admin_operations_center.html")
+            else "CONTRACT_READY",
+            "implementation": "engines/company_operations_center_engine.py + templates/admin_operations_center.html",
+        },
         {
             "key": "sports_memory",
             "name": "Sports Memory",

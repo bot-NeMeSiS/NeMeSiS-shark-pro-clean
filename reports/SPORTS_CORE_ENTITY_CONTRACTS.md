@@ -186,3 +186,12 @@ Reglas:
 - No ejecutar produccion, Telegram, Stripe ni proveedores externos.
 - Toda mejora debe pasar Browser QA desktop/tablet/mobile y quedar trazada en informes.
 - El resultado local no certifica Render ni produccion hasta un deploy autorizado.
+## Operations Center Release Gate Contract
+
+Contract: NEMESIS-RELEASE-1-OPERATIONS-SCORE-V1
+
+The Operations Center is an internal admin control layer. It consumes existing evidence from runtime, Render metadata, cron records, Telegram status, Stripe configuration state, Sports Gateway, Sports Core, Database, Cache, Observability, Security, Developer Center and Company Board.
+
+Rule: it never creates sports data, never recalculates Sports Core facts, never sends Telegram, never contacts Stripe, never deploys, never pushes and never writes the product database.
+
+Release scores are deterministic gates: PASS=1, PARTIAL=0.5, BLOCKED=0. No commercial metric, conversion, revenue or production certification can be invented.

@@ -33,6 +33,7 @@ REPORTS = [
     "V938_EXTERNAL_MONITORING_DEAD_MAN_ALERTS.md",
     "V938_SECOND_OPERATOR_EMERGENCY_RUNBOOK.md",
     "V938_COMPANY_OPERATIONS_RECOVERY_OBSERVABILITY_CENTER_REPORT.md",
+    "OPERATIONS_CENTER_REPORT.md",
 ]
 
 
@@ -134,6 +135,8 @@ def main() -> int:
     require("data-v938-operations-shell" in base, "base V938 shell marker missing", failures)
     require("/admin/operations-center" in base, "admin navigation link missing", failures)
     require("data-v938-template=\"admin_operations_center\"" in template, "operations template marker missing", failures)
+    for token in ["Commercial Readiness", "Global Score", "SAFE_ONLY"]:
+        require(token in template, f"operations static template marker missing: {token}", failures)
     require(EXPECTED_CACHE in app_source, "service worker cache does not match active version", failures)
     require("has_v938_company_operations_recovery_observability_center" in app_source, "runtime V938 flag missing", failures)
     require("has_v937_product_perfection_closeout" in app_source, "V937 runtime flag not preserved", failures)
@@ -214,7 +217,9 @@ def main() -> int:
             page = client.get("/admin/operations-center")
             html = page.get_data(as_text=True)
             require(page.status_code == 200, "admin Operations Center not 200", failures)
-            require("Centro de Operaciones" in html, "Operations Center title missing", failures)
+            require("Operations Center" in html, "Operations Center title missing", failures)
+            for token in ["Platform Health", "Render", "Cron", "Telegram", "Stripe", "Sports Gateway", "Sports Core", "Database", "Cache", "Observability", "Security"]:
+                require(token in html, f"operations rendered section missing: {token}", failures)
             require('data-nav-zone="client-bottom"' not in html, "admin page mixes client bottom navigation", failures)
             require("TELEGRAM_BOT_TOKEN=" not in html and "STRIPE_SECRET_KEY=" not in html, "admin page exposes secret values", failures)
             for route in admin_gets:
@@ -228,6 +233,18 @@ def main() -> int:
             snapshot = app_module.v938_operations_snapshot()
             require(snapshot.get("mode") == "read_only", "snapshot is not read-only", failures)
             require(snapshot.get("readiness", {}).get("dangerous_actions_executed") is False, "snapshot executed dangerous action", failures)
+            for key in ["operations_sections", "commercial_readiness", "global_score", "safe_actions", "release_1_gate"]:
+                require(key in snapshot, f"snapshot missing {key}", failures)
+            expected_sections = {"platform_health", "render", "cron", "telegram", "stripe", "sports_gateway", "sports_core", "database", "cache", "observability", "security"}
+            require(expected_sections.issubset(set((snapshot.get("operations_sections") or {}).keys())), "operations sections incomplete", failures)
+            require(all((item.get("status") in {"PASS", "PARTIAL", "BLOCKED"}) for item in (snapshot.get("commercial_readiness") or [])), "commercial readiness status invalid", failures)
+            require(snapshot.get("global_score", {}).get("contract") == "NEMESIS-RELEASE-1-OPERATIONS-SCORE-V1", "global score contract missing", failures)
+            require(snapshot.get("release_1_gate", {}).get("production_modified") is False, "release gate reports production modified", failures)
+            require(snapshot.get("release_1_gate", {}).get("dangerous_actions_executed") is False, "release gate executed dangerous action", failures)
+            require(all(item.get("dangerous") is False for item in snapshot.get("safe_actions", [])), "unsafe operation action exposed", failures)
+            forbidden_action_text = " ".join(str(item).lower() for item in snapshot.get("safe_actions", []))
+            for forbidden in ["deploy", "push", "stripe_charge", "telegram_send", "delete", "restart"]:
+                require(forbidden not in forbidden_action_text, f"forbidden safe action exposed: {forbidden}", failures)
             require(all(item.get("evidence_state") in {"CONFIRMADO", "NO_CERTIFICADO", "HIPOTESIS", "BLOQUEADO_POR_ACCESO", "REQUIERE_REVISION"} for item in snapshot.get("systems", [])), "invalid evidence classification", failures)
             require(all("score" in score and "gaps" in score and "evidence" in score for score in snapshot.get("scores", {}).values()), "scores lack evidence or gaps", failures)
             require(app_module.app.config.get("SESSION_COOKIE_HTTPONLY") is True, "HttpOnly runtime false", failures)

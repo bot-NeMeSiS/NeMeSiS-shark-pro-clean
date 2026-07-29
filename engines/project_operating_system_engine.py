@@ -685,6 +685,21 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Auditoria comercial completa: Experience Score, Release Readiness y Browser QA 24 superficies x 3 viewports.",
         },
         {
+            "name": "Release 1.0 Operations Center",
+            "state": "COMPLETED"
+            if complete(
+                "engines/company_operations_center_engine.py",
+                "templates/admin_operations_center.html",
+                "tools/check_v938_company_operations_center.py",
+                "reports/OPERATIONS_CENTER_REPORT.md",
+                "reports/PRODUCTION_OPERATIONS_REPORT.md",
+                "reports/OBSERVABILITY_REPORT.md",
+                "reports/RELEASE_GATE_STATUS.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Operations Center interno consolida plataforma, Render, cron, Telegram, Stripe, DB, cache, observabilidad, seguridad y Release 1.0 sin acciones externas.",
+        },
+        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",
@@ -829,8 +844,8 @@ def build_company_board_snapshot(
         {
             "name": "Empresa",
             "state": "CONFIRMED",
-            "evidence": "Operations Center, Company Intelligence, Sentinel y AutoPilot presentes.",
-            "next_action": "Resolver el primer bloqueo confirmado.",
+            "evidence": "Operations Center, Release Gate, Company Intelligence, Sentinel y AutoPilot presentes.",
+            "next_action": "Cerrar los bloqueos Release 1.0 con evidencia: Render, Telegram, Stripe, persistencia, UX y observabilidad.",
             "href": "/admin/operations-center",
         },
         {

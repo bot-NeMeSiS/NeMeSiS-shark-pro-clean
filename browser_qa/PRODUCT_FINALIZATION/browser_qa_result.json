@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "generated_at_madrid": "2026-07-29T05:51:51+02:00",
-  "base_url": "http://127.0.0.1:57937",
+  "generated_at_madrid": "2026-07-29T10:30:37+02:00",
+  "base_url": "http://127.0.0.1:54938",
   "database": "temporary_sqlite",
   "production_modified": false,
   "external_provider_calls": 0,
@@ -962,7 +962,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9149,
+        "text_length": 9506,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -1009,7 +1009,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7094,
+        "text_length": 7449,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -1059,20 +1059,20 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 5532,
+        "text_length": 10954,
         "has_h1": true,
-        "action_count": 11,
+        "action_count": 12,
         "primary_actions_sample": [
           "Sentinel",
-          "Backups",
+          "Developer",
           "Runtime",
-          "Abrir runtime",
-          "Ver lanzamiento",
-          "Centro Sentinel",
-          "Ejecutar scan seguro",
-          "Generar prompt del siguiente caso",
+          "Ver incidencias",
           "Abrir AutoPilot",
-          "Abrir Workforce"
+          "Centro Sentinel",
+          "Ver Release Gate",
+          "Diagnostico local",
+          "Abrir Sentinel",
+          "Developer Center"
         ],
         "horizontal_overflow": false,
         "document_width": 1366,
@@ -2125,7 +2125,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9149,
+        "text_length": 9506,
         "has_h1": true,
         "action_count": 7,
         "primary_actions_sample": [
@@ -2172,7 +2172,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7094,
+        "text_length": 7449,
         "has_h1": true,
         "action_count": 14,
         "primary_actions_sample": [
@@ -2222,20 +2222,20 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 5532,
+        "text_length": 10954,
         "has_h1": true,
-        "action_count": 11,
+        "action_count": 12,
         "primary_actions_sample": [
           "Sentinel",
-          "Backups",
+          "Developer",
           "Runtime",
-          "Abrir runtime",
-          "Ver lanzamiento",
-          "Centro Sentinel",
-          "Ejecutar scan seguro",
-          "Generar prompt del siguiente caso",
+          "Ver incidencias",
           "Abrir AutoPilot",
-          "Abrir Workforce"
+          "Centro Sentinel",
+          "Ver Release Gate",
+          "Diagnostico local",
+          "Abrir Sentinel",
+          "Developer Center"
         ],
         "horizontal_overflow": false,
         "document_width": 834,
@@ -3288,7 +3288,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/developer-center",
-        "text_length": 9102,
+        "text_length": 9459,
         "has_h1": true,
         "action_count": 3,
         "primary_actions_sample": [
@@ -3335,7 +3335,7 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/company-board",
-        "text_length": 7059,
+        "text_length": 7414,
         "has_h1": true,
         "action_count": 10,
         "primary_actions_sample": [
@@ -3385,20 +3385,20 @@
       "inspection": {
         "title": "NeMeSiS SHARK PRO",
         "path": "/admin/operations-center",
-        "text_length": 5507,
+        "text_length": 10927,
         "has_h1": true,
-        "action_count": 8,
+        "action_count": 9,
         "primary_actions_sample": [
           "Sentinel",
-          "Backups",
+          "Developer",
           "Runtime",
-          "Abrir runtime",
-          "Ver lanzamiento",
-          "Centro Sentinel",
-          "Ejecutar scan seguro",
-          "Generar prompt del siguiente caso",
+          "Ver incidencias",
           "Abrir AutoPilot",
-          "Abrir Workforce"
+          "Centro Sentinel",
+          "Ver Release Gate",
+          "Diagnostico local",
+          "Abrir Sentinel",
+          "Developer Center"
         ],
         "horizontal_overflow": false,
         "document_width": 390,
