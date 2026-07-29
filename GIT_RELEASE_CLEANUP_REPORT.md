@@ -32,3 +32,19 @@ Se agrego el bloque `LRM-001 Gate 1 release hygiene` para evitar Browser QA temp
 ## Decision de Gate 1
 
 BLOCKED. El arbol esta completamente entendido y no quedan archivos desconocidos en el inventario, pero Git no puede declararse limpio porque hay cambios definitivos pendientes y residuos bloqueados por permisos. No se hizo staging ni commit por restriccion explicita.
+
+## Revalidacion Gate 1B - 2026-07-29
+
+La decision anterior queda superada por la revalidacion posterior al lock recovery.
+
+| Elemento | Resultado | Decision |
+|---|---|---|
+| `.git/index.lock` | Ausente | Recuperado en Gate 1A |
+| Cambios tracked antes de documentar Gate 1B | 0 | Sin residuos pendientes |
+| Untracked antes de documentar Gate 1B | 0 | Sin archivos desconocidos |
+| Runtime regenerable generado por QA | Restaurado a HEAD | No release |
+| Temporales `tmp/pytest-*` | Eliminados | No release |
+| Browser QA temporal Gate 1B | Eliminado tras registrar resultado | No release |
+| `.pytest_cache` fisica | Ignorada por Git | No bloquea Gate Git |
+
+Decision Gate 1B: PASS condicionado a que el commit documental selectivo deje `git status` limpio. No se hizo push ni deploy.

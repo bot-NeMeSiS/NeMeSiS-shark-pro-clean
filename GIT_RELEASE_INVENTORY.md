@@ -215,3 +215,20 @@ Staging/commit/push/deploy: no ejecutados
 | `tests/test_founder_mode_command_center.py` | M | B - Test definitivo | Product Finalization / Founder Mode / Action Platform | SI | Test de regresion activo. |
 | `TOP_500_PRODUCT_IDEAS.md` | ?? | D - Documentacion definitiva | Master Vision / Product Strategy / Roadmap | SI | Documento estrategico aprobado o fuente consolidada por el Living Roadmap. |
 | `UNTRACKED_FILES_REPORT.md` | ?? | D - Documentacion definitiva | LRM-001 Gate 1 Git Clean | SI | Informe oficial del objetivo activo LRM-001. |
+
+## Revalidacion Gate 1B - 2026-07-29
+
+Esta seccion actualiza el estado despues de recuperar el lock Git y antes del cierre documental final. El inventario anterior queda como evidencia historica del estado sucio ya consolidado.
+
+| Control | Resultado |
+|---|---|
+| HEAD local revalidado | `ad3755dd5abdfa7a34545b26af54896ff70ba713` |
+| origin/main revalidado | `ad3755dd5abdfa7a34545b26af54896ff70ba713` |
+| Distancia origin/main...HEAD | `0 0` |
+| Tracked modificados antes de documentar Gate 1B | 0 |
+| Untracked antes de documentar Gate 1B | 0 |
+| Runtime regenerable pendiente | 0 |
+| Browser QA temporal pendiente | 0 tras limpieza |
+| Archivos desconocidos | 0 |
+
+Decision: el arbol estaba limpio antes de generar la documentacion final de Gate 1B. Los unicos cambios permitidos a partir de esta revalidacion son documentales y pertenecen a LRM-001 Gate 1.

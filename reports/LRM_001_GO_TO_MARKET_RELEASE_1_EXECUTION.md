@@ -87,3 +87,38 @@ Cerrar el gate Git de LRM-001: revisar el arbol completo, separar cambios previo
 ## Estado de LRM-001
 
 IN_PROGRESS
+
+## Actualizacion Gate 1B - Git Clean Certification
+
+Fecha Madrid: 2026-07-29
+
+| Control | Resultado |
+|---|---|
+| HEAD local revalidado | `ad3755dd5abdfa7a34545b26af54896ff70ba713` |
+| origin/main revalidado | `ad3755dd5abdfa7a34545b26af54896ff70ba713` |
+| Distancia origin/main...HEAD antes del cierre documental | `0 0` |
+| Lock Git | Recuperado |
+| Git fsck | PASS en Gate 1A |
+| Tracked modificados antes de documentar Gate 1B | 0 |
+| Untracked antes de documentar Gate 1B | 0 |
+| Runtime regenerable | Restaurado/excluido |
+| Browser QA temporal | PASS y eliminado de `tmp/` |
+| Produccion | No modificada |
+| Push/deploy | No ejecutados |
+
+QA Gate 1B:
+
+- `py_compile`: PASS.
+- `compileall`: PASS.
+- `pytest completo`: PASS usando temporales locales controlados.
+- `Jinja parse`: PASS, 194 templates.
+- `Privacy/Secret Guard`: PASS, 0 secretos confirmados.
+- `Sentinel static`: PASS, score 10.0, 0 issues.
+- `Imports/rutas`: PASS.
+- `Route/link audit`: PASS.
+- `Smoke routes`: PASS.
+- `Browser QA representativa`: PASS, 72 checks, score medio 100.0.
+
+Estado de LRM-001: IN_PROGRESS.
+
+Gate 1 queda cerrado localmente como PASS tras commit documental selectivo. No avanzar a Gate 2 hasta autorizacion expresa para push controlado y posterior certificacion Render.

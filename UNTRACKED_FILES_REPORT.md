@@ -27,3 +27,13 @@ Archivos sin seguimiento clasificados: 17
 ## Decision
 
 No se hizo staging. Los archivos sin seguimiento quedan entendidos, pero mantienen el gate Git bloqueado hasta una decision explicita de inclusion, archivo por archivo o por paquete documental.
+
+## Revalidacion Gate 1B - 2026-07-29
+
+El estado anterior queda como historico. Tras la recuperacion del lock y la consolidacion observada en `ad3755dd5abdfa7a34545b26af54896ff70ba713`, se ejecuto:
+
+`git ls-files --others --exclude-standard`
+
+Resultado: 0 archivos sin seguimiento antes de generar la documentacion final de Gate 1B.
+
+Los temporales creados durante QA (`tmp/pytest-basetemp`, `tmp/pytest-cache`, `tmp/browser_qa_gate1b_product_finalization` y la DB SQLite temporal) quedaron ignorados por Git y fueron eliminados de forma segura.

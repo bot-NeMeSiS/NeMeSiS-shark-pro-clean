@@ -203,3 +203,20 @@ Decision: manifestar todo el estado sucio sin staging ni commit.
 - Release SI: 182
 - Release NO: 2
 - Desconocidos: 0
+
+## Revalidacion Gate 1B - Manifiesto final
+
+Los cambios de producto, QA y documentacion acumulados estaban ya contenidos en `ad3755dd5abdfa7a34545b26af54896ff70ba713`, commit observado al inicio de Gate 1B y alineado con `origin/main`.
+
+El manifiesto final de Gate 1B solo autoriza un cierre documental local con:
+
+| Ruta | Categoria | Sprint | Motivo |
+|---|---|---|---|
+| `GIT_RELEASE_INVENTORY.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Revalidacion del inventario limpio. |
+| `GIT_RELEASE_MANIFEST.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Manifiesto final de cierre Git. |
+| `GIT_RELEASE_CLEANUP_REPORT.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Resultado de limpieza y restauracion de runtime regenerable. |
+| `UNTRACKED_FILES_REPORT.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Confirmacion de 0 archivos sin seguimiento. |
+| `reports/LRM_001_GO_TO_MARKET_RELEASE_1_EXECUTION.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Estado actualizado del objetivo LRM-001. |
+| `reports/LRM_001_GATE_1_GIT_CLEAN_CERTIFICATION.md` | D - Documentacion definitiva | LRM-001 Gate 1B | Certificacion final de Gate 1 Git limpio. |
+
+No entran en release temporales `tmp/`, caches, DB locales, logs, ZIPs, memorias runtime regenerables ni Browser QA temporal.
