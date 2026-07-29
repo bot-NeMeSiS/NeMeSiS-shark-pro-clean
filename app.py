@@ -21624,7 +21624,16 @@ def api_runtime_version():
         "dangerous_requires_approval_count": v903_dangerous_count,
         "codex_outbox_active_prompts": v902_truth_summary.get("codex_outbox_active_prompts", 0),
         "codex_outbox_archived_prompts": v902_truth_summary.get("codex_outbox_archived_prompts", 0),
-        "secret_masking_ok": "mask_secret_for_url" in app_py_text and "***hidden***" in (Path(__file__).resolve().parent / "tools" / "render_cron_telegram_tick.py").read_text(encoding="utf-8", errors="replace"),
+        "secret_masking_ok": (
+            "mask_secret_for_url" in app_py_text
+            and (
+                telegram_cron_runner_text := (Path(__file__).resolve().parent / "tools" / "render_cron_telegram_tick.py").read_text(encoding="utf-8", errors="replace")
+            )
+            and "X-Automation-Secret" in telegram_cron_runner_text
+            and "PRESENT_MASKED" in telegram_cron_runner_text
+            and "?secret=" not in telegram_cron_runner_text
+            and 'urlencode({"secret"' not in telegram_cron_runner_text
+        ),
         "admin_health": "protected_json_403_without_session",
         "client_health": "static_smoke_safe",
         "telegram_dry_run_health": "protected_403_without_secret",
