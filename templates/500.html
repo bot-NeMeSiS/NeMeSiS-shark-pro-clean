@@ -3,11 +3,12 @@
 {% block content %}
 <section class="v928-page v930-page v930-public-page v931-safe-error" data-v931-template="safe_500">
   {{ page_header('Servicio temporalmente no disponible', 'La ruta permanece protegida y no muestra detalles técnicos.', 'shield') }}
-  <section class="v928-panel">
-    {{ empty_state('No hemos podido cargar esta pantalla', 'Puedes volver al inicio o entrar de nuevo mientras revisamos el contexto de datos.', '', '', 'shield') }}
+  <section class="v928-panel" data-top100-improvement="31">
+    {{ empty_state('No hemos podido cargar esta pantalla', 'La información segura sigue protegida. Vuelve al inicio, entra de nuevo o revisa el estado si eres administrador.', '', '', 'shield') }}
     <div class="v928-actions">
       <a class="v928-button is-primary" href="/">Inicio</a>
       <a class="v928-button" href="/cliente-login">Entrar</a>
+      <a class="v928-button" href="/support">Soporte</a>
     </div>
   </section>
 </section>

@@ -25,6 +25,16 @@
     {{ customer_decision('No hay una decisión publicable ahora', 'Consulta la agenda o SHARK. Ninguna selección aparece hasta disponer de todos los campos y una cuota utilizable.', 'Ver calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Consultar SHARK', '/shark', 'Calidad antes que cantidad') }}
   {% endif %}
 
+
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="8">
+    {{ section_header('Antes de decidir', 'NeMeSiS te ayuda a entender, no a perseguir una apuesta.') }}
+    <div class="v933-excellence-steps is-compact">
+      <article>{{ icon('odds') }}<span>Cuota</span><strong>Solo real o no disponible</strong><p>Si la cuota falta o no está confirmada, no se sustituye por una estimación.</p></article>
+      <article>{{ icon('shield') }}<span>Riesgo</span><strong>Siempre visible</strong><p>La selección no elimina incertidumbre; el stake es orientativo y debe ser responsable.</p></article>
+      <article>{{ icon('history') }}<span>Resultado</span><strong>Auditable</strong><p>El histórico solo gana valor cuando hay muestra real suficiente y cierre verificado.</p></article>
+    </div>
+  </section>
+
   <section class="v933-kpi-grid">
     {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}

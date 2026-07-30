@@ -3779,3 +3779,96 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .operations-score-row { align-items: flex-start; }
   .operations-score-row > div { min-width: 0; width: 100%; }
 }
+
+/* Product Excellence Sprint 01: first-value guidance, premium previews and accessible touch targets. */
+.v933-product-excellence-band {
+  border-color: rgba(72, 211, 255, 0.24);
+}
+.v933-excellence-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 18px);
+}
+.v933-excellence-steps article,
+.v933-telegram-preview-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  padding: clamp(14px, 2vw, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+.v933-excellence-steps article > .v933-icon {
+  width: 32px;
+  height: 32px;
+}
+.v933-excellence-steps article > span,
+.v933-telegram-preview-card > span {
+  color: var(--v933-muted, #9fb0c8);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.v933-excellence-steps article > strong,
+.v933-telegram-preview-card > strong {
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  line-height: 1.2;
+}
+.v933-excellence-steps article > p,
+.v933-telegram-preview-card p {
+  margin: 0;
+  color: var(--v933-muted, #a9b5c8);
+  line-height: 1.45;
+}
+.v933-telegram-preview-card {
+  font-family: inherit;
+  max-width: 560px;
+}
+.v933-action,
+.v933-quick-action,
+.v933-filter-tabs a,
+.ns-button,
+.v928-button,
+button,
+a[href] {
+  -webkit-tap-highlight-color: rgba(72, 211, 255, 0.22);
+}
+.v933-action,
+.v933-quick-action,
+.v933-filter-tabs a,
+.ns-button,
+.v928-button {
+  min-height: 44px;
+}
+.v933-action:focus-visible,
+.v933-quick-action:focus-visible,
+.v933-filter-tabs a:focus-visible,
+.ns-button:focus-visible,
+.v928-button:focus-visible,
+button:focus-visible,
+a[href]:focus-visible {
+  outline: 3px solid rgba(72, 211, 255, 0.92);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(72, 211, 255, 0.12);
+}
+.ns-next-step {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(72, 211, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(72, 211, 255, 0.08);
+}
+.ns-next-step p {
+  margin: 4px 0 0;
+}
+@media (max-width: 820px) {
+  .v933-excellence-steps {
+    grid-template-columns: 1fr;
+  }
+  .v933-excellence-steps article,
+  .v933-telegram-preview-card {
+    padding: 14px;
+  }
+}

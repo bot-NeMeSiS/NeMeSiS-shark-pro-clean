@@ -6,6 +6,7 @@
 {% set sections = a.sections or {} %}
 {% set active = active_section or 'smart_home' %}
 {% set current = sections[active] if active in sections else sections.smart_home %}
+{% set state_labels = {'VERIFIED':'Confirmado','CONFIRMED':'Confirmado','PASS':'Correcto','PARTIALLY_VERIFIED':'Verificación parcial','REQUIRES_REVIEW':'Requiere revisión','NOT_CERTIFIED':'No certificado','NOT_CONFIGURED':'No configurado','INSUFFICIENT_DATA':'Sin datos suficientes','BLOCKED_BY_ACCESS':'Bloqueado por acceso','HYPOTHESIS':'Hipótesis','STALE':'Datos desactualizados'} %}
 
 {% macro meta_block(meta) -%}
   {% set m = meta or {} %}
@@ -28,9 +29,9 @@
     <div class="action-platform-title">
       <span>Plataforma de acciones</span>
       <h1>Tu experiencia deportiva personal</h1>
-      <p>{{ a.summary.body or 'NeMeSiS organiza tu dia deportivo con datos reales, evidencia visible y control humano.' }}</p>
+      <p>{{ a.summary.body or 'NeMeSiS organiza tu día deportivo con datos reales, evidencia visible y control humano.' }}</p>
       <div class="action-platform-tags" aria-label="Estado Plataforma de acciones">
-        <span>{{ a.certification_state or 'REQUIRES_REVIEW' }}</span>
+        <span>{{ state_labels.get(a.certification_state, a.certification_state or 'Requiere revisión') }}</span>
         <span>Plan {{ a.membership or 'FREE' }}</span>
         <span>{{ a.observed_at_madrid or 'No disponible' }}</span>
       </div>

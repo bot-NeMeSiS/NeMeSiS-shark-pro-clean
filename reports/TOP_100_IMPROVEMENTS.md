@@ -115,3 +115,28 @@ Estas mejoras no anaden motores ni pantallas grandes por defecto. Priorizan clar
 ## Regla de ejecucion
 
 No implementar en bloque. Ejecutar por sprints pequenos: una mejora, una hipotesis, evidencia, QA, Sentinel, validacion de usuario o negocio cuando corresponda.
+
+## Estado Sprint 01 - Product Excellence
+
+Fecha Madrid: 2026-07-30
+Alcance: mejoras visibles de UX, conversion responsable, estados seguros y accesibilidad sobre pantallas existentes.
+Decision local: PASS tras QA tecnica, Browser QA y Sentinel.
+Version modificada: no.
+Produccion modificada: false.
+Commit/push/deploy: no ejecutados.
+
+| TOP | Estado | Mejora aplicada | Evidencia local | Archivos principales |
+|---:|---|---|---|---|
+| 2 | DONE | Onboarding de primer valor en menos de 60 segundos mediante una banda de tres pasos en Home. | El usuario recibe una ruta directa: calendario, SHARK y briefing. | templates/home.html |
+| 3 | DONE | Primera tarea para encontrar un partido. | CTA principal hacia calendario desde Home sin crear rutas nuevas. | templates/home.html |
+| 4 | DONE | Explicacion simple de SHARK en contexto. | SHARK se presenta en tres capas: dato confirmado, contexto y riesgo. | templates/shark.html |
+| 5 | DONE | Preview premium responsable en FREE. | Vista previa estructural en Telegram y comparativa de planes sin envio real. | templates/telegram.html, templates/membership.html |
+| 6 | DONE | Comparativa PRO vs ELITE basada en casos de uso. | FREE, PRO y ELITE se explican por problema resuelto, no por presion comercial. | templates/membership.html |
+| 8 | DONE | Juego responsable en puntos de apuesta. | Picks incluye lectura previa de cuota, riesgo y resultado auditable. | templates/picks.html |
+| 13 | DONE | Estados tecnicos traducidos a lenguaje cliente. | Action Platform muestra estados legibles y conserva el dato tecnico fuera de la experiencia principal. | templates/action_platform.html |
+| 19 | DONE | Daily Briefing como entrada principal. | Home dirige al briefing diario como tercer paso de valor. | templates/home.html |
+| 31 | DONE | Estados de error con accion siguiente. | 404 y 500 ofrecen siguiente paso claro sin exponer informacion tecnica. | templates/404.html, templates/500.html |
+| 58/61 | DONE | Focus states visibles y objetivos tactiles minimos. | CSS comun mejora teclado y tap targets en botones y acciones existentes. | static/v933-product.css |
+
+IN_PROGRESS: 0.
+PENDING: resto del TOP 100, sin cambio de prioridad en este sprint.

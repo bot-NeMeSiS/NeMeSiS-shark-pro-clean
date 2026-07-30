@@ -712,6 +712,18 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Operations Center interno consolida plataforma, Render, cron, Telegram, Stripe, DB, cache, observabilidad, seguridad y Release 1.0 sin acciones externas.",
         },
         {
+            "name": "Product Excellence Sprint 01",
+            "state": "COMPLETED"
+            if complete(
+                "reports/TOP100_SPRINT_01_REPORT.md",
+                "reports/PRODUCT_EXCELLENCE_REPORT.md",
+                "reports/UX_IMPROVEMENTS_REPORT.md",
+                "tests/test_product_excellence_sprint_01.py",
+            )
+            else "IN_PROGRESS",
+            "evidence": "10 mejoras TOP 100 de UX, conversion responsable, estados seguros y accesibilidad sin crear modulos nuevos.",
+        },
+        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",

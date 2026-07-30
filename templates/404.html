@@ -2,7 +2,7 @@
 
 {% block content %}
 <main class="ns-page ns-not-found-page" data-v896-not-found="true" data-v898-not-found="true">
-  <section class="ns-card ns-empty ns-not-found-card">
+  <section class="ns-card ns-empty ns-not-found-card" data-top100-improvement="31">
     <div class="ns-chip ns-chip-warning">Ruta no encontrada</div>
     <h1>Esta pantalla no existe o pertenece a una versión anterior.</h1>
     <p>
@@ -15,6 +15,7 @@
     {% else %}
       <p class="ns-muted">No se muestran datos técnicos ni se inventa información.</p>
     {% endif %}
+    <aside class="ns-next-step"><strong>Siguiente paso recomendado</strong><p>Vuelve a una zona principal y continúa desde navegación segura. Ningún dato privado se muestra en esta pantalla.</p></aside>
     <div class="ns-action-row ns-not-found-actions">
       {% for item in safe_links %}
         <a class="ns-button {% if loop.first %}ns-button-primary{% else %}ns-button-secondary{% endif %}" href="{{ item.href }}">{{ item.label }}</a>

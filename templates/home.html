@@ -71,6 +71,34 @@
   {{ realtime_state_bar(realtime, 'all') }}
   {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
 
+
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="2,3,19">
+    {{ section_header('Primer valor en menos de un minuto', 'Tres accesos para entender la jornada sin recorrer toda la app.') }}
+    <div class="v933-excellence-steps">
+      <article>
+        {{ icon('calendar') }}
+        <span>Paso 1</span>
+        <strong>Encuentra un partido</strong>
+        <p>Abre el calendario y usa la agenda validada por fecha, competición y estado.</p>
+        {{ action_button('Abrir calendario', '/calendar', true, 'blue', false, 'calendar') }}
+      </article>
+      <article>
+        {{ icon('shark') }}
+        <span>Paso 2</span>
+        <strong>Entiende el contexto</strong>
+        <p>SHARK separa datos confirmados, riesgos y limitaciones antes de sugerir cualquier lectura.</p>
+        {{ action_button('Ver SHARK', '/shark', false, 'cyan', false, 'shark') }}
+      </article>
+      <article>
+        {{ icon('data') }}
+        <span>Paso 3</span>
+        <strong>Revisa tu briefing</strong>
+        <p>Smart Home resume lo importante del día sin inventar actividad ni empujar apuestas.</p>
+        {{ action_button('Abrir briefing', '/smart-home', false, 'gold', false, 'data') }}
+      </article>
+    </div>
+  </section>
+
   <section class="v933-two-col">
     <div class="v933-main-stack">
       <section class="v933-panel">
