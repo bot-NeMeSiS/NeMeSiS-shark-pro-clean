@@ -195,3 +195,12 @@ The Operations Center is an internal admin control layer. It consumes existing e
 Rule: it never creates sports data, never recalculates Sports Core facts, never sends Telegram, never contacts Stripe, never deploys, never pushes and never writes the product database.
 
 Release scores are deterministic gates: PASS=1, PARTIAL=0.5, BLOCKED=0. No commercial metric, conversion, revenue or production certification can be invented.
+## Communication Design System Contract
+
+Contract: NEMESIS-COMMUNICATION-DESIGN-SYSTEM-V1
+
+Consumes: Telegram Assistant, SHARK Intelligence, Decision Engine, Sports Core, Sports Knowledge, Sports Graph and existing delivery queues.
+
+Rule: the communication layer may change presentation, hierarchy, copy and transparency labels, but must not change send logic, scheduler, cron, destinations, dedupe, security, source selection or sports facts.
+
+Every sports communication must expose provenance, evidence, freshness, quality and limitations when applicable. Missing information remains unavailable; it is never simulated.

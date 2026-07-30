@@ -14,8 +14,10 @@
 | Beta | Support Center y Beta Center | feedback abierto, tickets, salud soporte y siguiente accion |
 | Operaciones | Operations Center | Render, Cron, Telegram, Stripe, Sports Gateway y Sentinel |
 | Roadmap | Project Operating System | sprint actual, siguiente sprint y modulos completados |
-| TOP 100 | eports/TOP_100_IMPROVEMENTS.md | total planificado y estado de ejecucion documental |
-| Informes | eports/ | catalogo de exportacion preparado |
+| TOP 100 |
+eports/TOP_100_IMPROVEMENTS.md | total planificado y estado de ejecucion documental |
+| Informes |
+eports/ | catalogo de exportacion preparado |
 
 ## Seguridad Operativa
 
@@ -53,3 +55,6 @@ PASS local condicionado a QA completa y Browser QA final.
 | Smoke general | PASS con warnings historicos V601/V602 no relacionados |
 
 Produccion modificada: false. Push: no. Deploy: no. Telegram real: no. Stripe: no.
+## Communication System Update - 2026-07-30
+
+El Company Command Center puede considerar la comunicación Telegram como EN VALIDACIÓN LOCAL: identidad premium, microcopy en español, transparencia, evidencia, frescura, calidad y limitaciones visibles. Telegram productivo sigue certificado solo por gates específicos; este sprint no envió mensajes reales ni cambió destinos.

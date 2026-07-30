@@ -7,7 +7,7 @@
     "normal": false,
     "explanation": "Telegram no puede enviar porque falta TELEGRAM_BOT_TOKEN.",
     "action": "Configurar TELEGRAM_BOT_TOKEN en Render y redeployar.",
-    "madrid_now": "2026-07-29T16:04:17+02:00",
+    "madrid_now": "2026-07-30T11:55:24+02:00",
     "data": {
       "counts": {
         "candidate_picks": 0,
@@ -348,7 +348,7 @@
     "/api/v495/telegram-auto-run",
     "/telegram",
     "/telegram/desvincular",
-    "/telegram/regenerar-codigo",
+    "/telegram/regenerar-código",
     "/telegram/webhook"
   ],
   "dry_run": {

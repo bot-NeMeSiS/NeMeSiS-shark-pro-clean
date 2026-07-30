@@ -25,6 +25,13 @@ from engines.spanish_localization_engine import (
     spanish_team_name,
 )
 from engines.madrid_time_engine import format_telegram_match_time_madrid, normalize_kickoff_for_display
+from engines.telegram_message_formatter import (
+    BRAND_HEADER as _COMMUNICATION_BRAND_HEADER,
+    MESSAGE_SEPARATOR as _COMMUNICATION_SEPARATOR,
+    MESSAGE_SOFT_SEPARATOR as _COMMUNICATION_SOFT_SEPARATOR,
+    RESPONSIBLE_FOOTER as _COMMUNICATION_RESPONSIBLE_FOOTER,
+    TRANSPARENCY_FOOTER as _COMMUNICATION_TRANSPARENCY_FOOTER,
+)
 
 
 DEFAULT_SETTINGS = {
@@ -46,8 +53,8 @@ QUEUE_FAILED = "failed"
 QUEUE_SKIPPED = "skipped"
 
 
-_SEPARATOR = "━━━━━━━━━━━━━━━━"
-_SOFT_SEPARATOR = "────────────"
+_SEPARATOR = _COMMUNICATION_SEPARATOR
+_SOFT_SEPARATOR = _COMMUNICATION_SOFT_SEPARATOR
 
 _COUNTRY_FLAGS = {
     "spain": "🇪🇸",
@@ -147,6 +154,17 @@ def compact_text(value, max_len=220) -> str:
     if len(text) <= max_len:
         return text
     return text[: max(0, max_len - 1)].rstrip() + "…"
+
+
+def _html_header(title: str, subtitle: str = "") -> list[str]:
+    lines = [f"<b>{safe_html(_COMMUNICATION_BRAND_HEADER)}</b>", _SEPARATOR, f"<b>{safe_html(title)}</b>"]
+    if subtitle:
+        lines.append(f"<i>{safe_html(subtitle)}</i>")
+    return lines
+
+
+def _html_transparency_footer() -> str:
+    return safe_html(_COMMUNICATION_TRANSPARENCY_FOOTER)
 
 
 def telegram_dedupe_key(message_type, date_key, target_key="global", pick_id="", match_id="", market="", source="automatic") -> str:
@@ -574,7 +592,7 @@ def _entry_rule_text(pick) -> str:
 
 
 def _professional_footer() -> str:
-    return "⚠️ Gestión SHARK: stake responsable, sin perseguir pérdidas y sin convertir una señal en obligación."
+    return "\u26a0\ufe0f Gesti\u00f3n responsable: stake orientativo, sin perseguir p\u00e9rdidas y sin convertir una se\u00f1al en obligaci\u00f3n."
 
 
 def _localize_pick_for_telegram(pick) -> dict:
@@ -609,7 +627,7 @@ def _premium_pick_card(pick, index: int | None = None, detailed: bool = True) ->
         f"💰 <b>Cuota:</b> {safe_html(odds)} · {_bookmaker_text(pick)}",
         f"🧮 <b>Stake:</b> {_stake_text(pick)} · {_stake_money_text(pick)}",
         f"📊 <b>SHARK:</b> {score}/100 {_confidence_bar(pick)} · {quality}",
-        f"💎 <b>Edge:</b> {_ev_text(pick)} · Prob. SHARK: {_probability_text(pick)}",
+        f"💎 <b>Valor:</b> {_ev_text(pick)} · Prob. SHARK: {_probability_text(pick)}",
         f"⚠️ <b>Riesgo:</b> {risk}",
     ]
     if not detailed:
@@ -660,20 +678,16 @@ def format_match_line(match) -> str:
 
 
 def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK PRO") -> str:
-    lines = [
-        "<b>🦈 RESUMEN SHARK DEL DÍA</b>",
-        f"📅 <b>{safe_html(_format_date(date_key))}</b>",
-        _SEPARATOR,
-    ]
+    lines = _html_header("📅 Resumen premium del día", _format_date(date_key))
     matches = [item for item in (matches or []) if is_telegram_football_item(item)]
     if not matches:
         lines.extend([
+            "",
             "Hoy no hay partidos destacados cargados todavía.",
             "SHARK seguirá revisando calendario, directo y cuotas reales.",
         ])
     else:
-        lines.append(f"⚽ <b>{len(matches)} partidos monitorizados</b>")
-        lines.append("🔥 Selección destacada:")
+        lines.extend(["", f"⚽ <b>{len(matches)} partidos monitorizados</b>", "🔥 Selección destacada:"])
         for index, match in enumerate(matches[:6], start=1):
             match = apply_match_localization(match)
             comp = safe_html(_competition_name(match))
@@ -686,13 +700,15 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
             lines.append(f"   {_competition_emoji(match)} {comp} · 🕘 {time} · {status}{score_part}")
     lines.extend([
         _SEPARATOR,
-        "🧠 SHARK solo publicará picks premium cuando haya cuota real, mercado claro y riesgo controlado.",
-        "⚠️ Apuesta siempre con responsabilidad.",
+        "<b>🧠 Criterio SHARK</b>",
+        "Solo se publica cuando hay contexto suficiente y competiciones relevantes.",
+        _html_transparency_footer(),
+        _professional_footer(),
     ])
     return _limit_message("\n".join(lines).strip(), 3600)
 
 
-def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="🦈 PICK SHARK PREMIUM") -> str:
+def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="🎯 PICK PREMIUM SHARK") -> str:
     if not is_telegram_football_item(pick or {}):
         return ""
     pick = enrich_pick_quality(_localize_pick_for_telegram(pick))
@@ -700,16 +716,12 @@ def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="�
     odds = _odds_text(pick.get("odds"))
     if not selection:
         return ""
-    lines = [
-        f"<b>{safe_html(title)}</b>",
-        f"<b>{safe_html(premium_name)}</b> · <i>Lectura profesional prepartido</i>",
-        _SEPARATOR,
-    ]
+    lines = _html_header(title, "Lectura profesional prepartido")
     lines.extend(_premium_pick_card(pick, detailed=True))
     match_url = _match_url_line(pick, "Abrir partido, cuotas y análisis SHARK")
     if match_url:
         lines.extend(["", _SOFT_SEPARATOR, match_url])
-    lines.extend(["", _SOFT_SEPARATOR, _professional_footer()])
+    lines.extend(["", _SOFT_SEPARATOR, _html_transparency_footer(), _professional_footer()])
     return _limit_message("\n".join(line for line in lines if line is not None).strip(), 3900)
 
 
@@ -726,24 +738,21 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         if not force_empty:
             return ""
         return "\n".join([
-            "<b>🦈 SHARK PICKS PREMIUM</b>",
-            f"<b>{safe_html(premium_name)}</b>",
-            _SEPARATOR,
+            *_html_header("🎯 SHARK Picks Premium", "Sin señales publicables ahora mismo"),
             "Ahora mismo no hay picks premium cerrados con cuota real, mercado claro y riesgo controlado.",
             "SHARK seguirá revisando calendario, cuotas y señales antes de publicar.",
-            "⚠️ Mejor no enviar una apuesta débil que forzar una señal sin valor.",
+            _html_transparency_footer(),
+            _professional_footer(),
         ])
     if len(clean) == 1:
         return build_single_pick_message(clean[0], premium_name=premium_name)
     top = clean[:3]
-    lines = [
-        "<b>🦈 PICKS SHARK PREMIUM</b>",
-        f"<b>{safe_html(premium_name)}</b> · <i>Selección profesional del día</i>",
-        _SEPARATOR,
+    lines = _html_header("🎯 Picks SHARK Premium", "Selección profesional del día")
+    lines.extend([
         f"✅ <b>{len(top)} señales con cuota real y filtro SHARK</b>",
         "📍 Ordenadas por calidad, relevancia, riesgo y hora Madrid.",
         "",
-    ]
+    ])
     for index, pick in enumerate(top, start=1):
         lines.extend(_premium_pick_card(pick, index=index, detailed=False))
         if index != len(top):
@@ -751,6 +760,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
     lines.extend([
         _SEPARATOR,
         "🧠 SHARK publica menos, pero mejor: cuota real, mercado entendible y stake controlado.",
+        _html_transparency_footer(),
         _professional_footer(),
     ])
     return _limit_message("\n".join(lines).strip(), 3900)
@@ -776,32 +786,33 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
         return ""
     legs = len(clean)
     if legs <= 4:
-        label = "COMBI SEGURA SHARK"
+        label = "Combi controlada SHARK"
         risk = "Controlado"
         stake = "1/10"
     elif legs <= 8:
-        label = "COMBI MEDIA SHARK"
+        label = "Combi media SHARK"
         risk = "Medio/Alto"
         stake = "0.5/10"
     else:
-        label = "COMBI LARGA SHARK — ALTO RIESGO"
+        label = "Combi larga SHARK · alto riesgo"
         risk = "Alto"
         stake = "0.25/10"
-    lines = [
-        f"<b>🦈 {label}</b>",
-        _SEPARATOR,
+    lines = _html_header(f"🧩 {label}", "Cuota real y selecciones deduplicadas")
+    lines.extend([
         f"📌 <b>{legs} selecciones</b>",
         f"💰 <b>Cuota total aprox.:</b> {total_odds:.2f}",
         f"⚠️ <b>Riesgo:</b> {risk}",
         f"📌 <b>Stake recomendado:</b> {stake}",
         "",
-    ]
+    ])
     for idx, (pick, selection, odds) in enumerate(clean[:15], start=1):
         lines.append(f"{idx}. {safe_html(selection)} @ {safe_html(odds)}")
         lines.append(f"   {_match_title(pick)}")
     lines.extend([
         _SEPARATOR,
-        "Nota SHARK: a más selecciones, más riesgo. No vendas una combi larga como segura.",
+        "A más selecciones, más riesgo. Una combinada larga nunca se presenta como segura.",
+        _html_transparency_footer(),
+        _professional_footer(),
     ])
     return _limit_message("\n".join(lines).strip(), 3800)
 
@@ -815,27 +826,28 @@ def build_live_alert_message(match, event=None, internal_url="/live") -> str:
     minute = safe_html((match.get("live_depth") or {}).get("minute") or match.get("minute") or "LIVE")
     detail = safe_html(compact_text(event.get("title") or event.get("detail") or "Seguimiento en directo", 150))
     url = safe_url(match.get("match_url") or internal_url)
-    lines = [
-        "<b>🔴 ALERTA LIVE SHARK</b>",
-        _SEPARATOR,
+    lines = _html_header("🔴 Alerta LIVE SHARK", "Cambio relevante detectado")
+    lines.extend([
         f"{_competition_emoji(match)} <b>{safe_html(_competition_name(match))}</b>",
         f"⏱️ <b>{minute}</b> · Marcador: <b>{safe_html(score)}</b>",
         f"<b>{_match_title(match)}</b>",
         f"🧠 {detail}",
-    ]
+    ])
     if url:
         lines.append(f'🔗 <a href="{url}">Abrir live en NeMeSiS</a>')
+    lines.extend([_SOFT_SEPARATOR, _html_transparency_footer()])
     return _limit_message("\n".join(lines).strip(), 3500)
 
 
 def build_system_test_message(now_iso, premium_name="NeMeSiS SHARK PRO") -> str:
     madrid_time = format_telegram_match_time_madrid({"kickoff_iso": now_iso})
-    return "\n".join([
-        f"<b>🦈 {safe_html(premium_name)}</b>",
-        "✅ Mensaje de prueba admin.",
+    lines = _html_header("✅ Prueba técnica controlada", "Telegram administrativo")
+    lines.extend([
         f"🕘 Hora Madrid: {safe_html(madrid_time.get('datetime_label') or now_iso)}",
-        "Canal Telegram premium operativo si recibes este aviso.",
+        "Canal Telegram operativo si recibes este aviso.",
+        "No es un pick ni una recomendación.",
     ])
+    return "\n".join(lines)
 
 
 def queue_summary(rows) -> dict:

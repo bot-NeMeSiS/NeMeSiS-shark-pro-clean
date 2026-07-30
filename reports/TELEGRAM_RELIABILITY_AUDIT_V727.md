@@ -80,7 +80,7 @@
 - `/api/v495/telegram-auto-run`
 - `/telegram`
 - `/telegram/desvincular`
-- `/telegram/regenerar-codigo`
+- `/telegram/regenerar-código`
 - `/telegram/webhook`
 
 ## Conteos

@@ -11,6 +11,13 @@ from engines.company_intelligence_engine import MADRID_TZ, classify_freshness, r
 from engines.pick_intelligence_pipeline_engine import build_pick_pipeline_snapshot
 from engines.sports_platform_contracts import build_assistant_context
 from engines.sports_domain_model_engine import build_telegram_readonly_contract
+from engines.telegram_message_formatter import (
+    BRAND_HEADER,
+    MESSAGE_SEPARATOR,
+    MESSAGE_SOFT_SEPARATOR,
+    RESPONSIBLE_FOOTER,
+    TRANSPARENCY_FOOTER,
+)
 
 
 def _first(row: dict[str, Any], *keys: str) -> Any:
@@ -85,14 +92,14 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
         "membership": plan,
         "competition": item.get("competition") or "",
         "match": " vs ".join(part for part in (str(item.get("home_team") or ""), str(item.get("away_team") or "")) if part),
-        "responsible_note": "Analisis informativo. No garantiza resultados; stake orientativo.",
+        "responsible_note": "Análisis informativo. No garantiza resultados; stake orientativo.",
     }
     if plan == "FREE":
         base.update({
             "market": "",
             "selection": "",
             "odds": None,
-            "summary": "Existe un analisis validado. El detalle completo esta reservado a membresias premium.",
+            "summary": "Existe un análisis validado. El detalle completo está reservado a membresías premium.",
             "premium_analysis_revealed": False,
         })
     else:
@@ -108,26 +115,42 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
         })
         if plan in {"ELITE", "ELITE+"}:
             base["advanced_reading"] = "Disponible solo cuando la evidencia SHARK persistida la respalda."
-            base["bankroll_guidance"] = "Gestion responsable; nunca perseguir perdidas."
+            base["bankroll_guidance"] = "Gestión responsable; nunca perseguir pérdidas."
     return base
 
 
 def build_premium_message(candidate: dict[str, Any], membership: str = "PRO") -> dict[str, Any]:
     variant = build_membership_variant(candidate, membership)
-    lines = ["NeMeSiS SHARK PRO", variant.get("match") or "Partido validado"]
+    plan = membership.upper()
+    lines = [
+        BRAND_HEADER,
+        MESSAGE_SEPARATOR,
+        f"🎯 Preview Telegram {plan}",
+        variant.get("match") or "Partido validado",
+    ]
     if variant.get("premium_analysis_revealed"):
         lines.extend((
-            f"Mercado: {variant.get('market')}",
-            f"Seleccion: {variant.get('selection')}",
-            f"Cuota registrada: {variant.get('odds')}",
-            f"Riesgo: {variant.get('risk') or 'requiere revision'}",
+            "",
+            "Entrada",
+            f"Mercado: {variant.get('market') or 'No disponible'}",
+            f"Selección: {variant.get('selection') or 'No disponible'}",
+            f"Cuota registrada: {variant.get('odds') or 'No disponible'}",
+            f"Riesgo: {variant.get('risk') or 'requiere revisión'}",
+            "",
+            "Contexto SHARK",
             f"Motivo: {variant.get('reason') or 'sin motivo publicable'}",
-            f"Que puede invalidarlo: {variant.get('counterargument') or 'sin contraargumento publicable'}",
+            f"Qué puede invalidarlo: {variant.get('counterargument') or 'sin contraargumento publicable'}",
         ))
     else:
-        lines.append(str(variant.get("summary") or ""))
-    lines.append(str(variant.get("responsible_note") or ""))
-    return {"membership": membership.upper(), "preview": "\n".join(lines), "send_executed": False}
+        lines.extend(("", "Preview FREE", str(variant.get("summary") or "")))
+    lines.extend((
+        "",
+        MESSAGE_SOFT_SEPARATOR,
+        TRANSPARENCY_FOOTER,
+        str(variant.get("responsible_note") or RESPONSIBLE_FOOTER),
+    ))
+    return {"membership": plan, "preview": "\n".join(lines), "send_executed": False}
+
 
 
 def build_visual_card_payload(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -348,7 +371,7 @@ def build_telegram_intelligence_snapshot(
         "telegram_api_called": False,
         "database_written": False,
         "limitations": [
-            "No se valida el token ni el destino de produccion desde esta lectura local.",
-            "No se ejecuta envio real, ni siquiera cuando existe un preview listo.",
+            "No se valida el token ni el destino de producci?n desde esta lectura local.",
+            "No se ejecuta env?o real, ni siquiera cuando existe un preview listo.",
         ],
     }

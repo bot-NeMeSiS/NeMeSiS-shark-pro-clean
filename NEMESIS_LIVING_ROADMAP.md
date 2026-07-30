@@ -269,3 +269,6 @@ Sub-gates obligatorios de `LRM-001`:
 8. Browser QA, Sentinel, Privacy Guard y Secret Guard en PASS.
 
 Hasta que `LRM-001` no este en READY_FOR_CLOSED_BETA o COMPLETED, la decision responsable es no iniciar otro objetivo LRM.
+## Communication System Update - 2026-07-30
+
+Estado: EN VALIDACIÓN LOCAL. El objetivo LRM-055 queda reforzado con un sistema visual común para mensajes Telegram: cabecera NeMeSiS, jerarquía compacta, transparencia, juego responsable y QA de longitud/HTML/mojibake. No cambia envío, cron, dedupe, destinos ni seguridad. Documentación relacionada: `reports/NEMESIS_COMMUNICATION_SYSTEM_REPORT.md`, `reports/TELEGRAM_PREMIUM_MESSAGE_GUIDE.md`, `reports/MESSAGE_STYLE_GUIDE.md`, `reports/COMMUNICATION_QA_REPORT.md`.

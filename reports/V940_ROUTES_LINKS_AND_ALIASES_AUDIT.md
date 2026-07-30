@@ -1,7 +1,7 @@
 # V940 Routes Links And Aliases Audit
 
 - version: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
-- generated_at: `2026-07-29T16:04:39`
+- generated_at: `2026-07-30T11:50:20`
 - routes_registered: `747`
 - templates_scanned: `194`
 - direct_api_hrefs: `21`

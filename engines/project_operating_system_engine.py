@@ -647,6 +647,18 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "Context envelope sin envíos automáticos",
         },
         {
+            "name": "Communication & Messaging System",
+            "state": "COMPLETED"
+            if complete(
+                "engines/telegram_message_formatter.py",
+                "engines/telegram_delivery_engine.py",
+                "tests/test_telegram_premium_communication_system.py",
+                "reports/NEMESIS_COMMUNICATION_SYSTEM_REPORT.md",
+            )
+            else "PENDING",
+            "evidence": "Sistema premium de mensajes Telegram: identidad, jerarquía, transparencia y QA sin cambiar envío, cron, dedupe, destinos ni seguridad.",
+        },
+        {
             "name": "Sports Memory y Sports Graph",
             "state": "CONTRACT_READY" if complete("engines/sports_platform_contracts.py") else "PENDING",
             "evidence": "Referencias, memoria y aristas con evidencia",

@@ -4,59 +4,54 @@ Fecha Madrid: 2026-07-30
 Modo: read-only / no send
 Produccion modificada: false
 Telegram enviado: false
+Mensajes enviados: 0
+Secretos expuestos: 0
 
 ## Decision
 
-TELEGRAM DELIVERY: PARTIAL
+TELEGRAM DELIVERY: BLOCKED
 
-El producto contiene cola, deduplicacion, retry, limites y memoria de entrega. La evidencia de produccion disponible no permite confirmar ultima entrega, ultimo error ni permisos reales del destino.
+El producto contiene cola, deduplicacion, retry, limites y memoria de entrega. La evidencia productiva necesaria para cerrar delivery no fue accesible sin sesion admin ni token Telegram.
 
-## Controles de entrega
+## Cola y deduplicacion
 
 | Control | Estado | Evidencia | Limitacion |
 |---|---|---|---|
-| Cola | PARTIAL | Tabla `telegram_queue` existe en el modelo; endpoints de cola/status estan protegidos | No se pudo leer contenido de cola en produccion sin sesion admin. |
-| Dedupe | PASS | Existe indice unico `idx_telegram_queue_dedupe`; `enqueue_telegram_message` omite duplicados sin `force` | No se valido dedupe con datos productivos por falta de acceso admin. |
-| Ultima entrega | BLOCKED_BY_ACCESS | Campos disponibles en `telegram_reliability_snapshot` y admin status | `/api/admin/telegram/status` y `/api/telegram/status` devuelven 403. |
-| Ultimo error | BLOCKED_BY_ACCESS | Campos disponibles en snapshot/admin status | Requiere admin read-only. |
-| Retry | PASS | `telegram_send_http` reintenta en texto plano si Telegram rechaza HTML; cola usa `attempts < max_attempts` | No se provoco error real. |
-| Throttle | PASS | Ventanas silenciosas, limites por hora y por dia en `process_premium_telegram_queue` | No se forzaron envios reales. |
-| Rate limit | PASS | Diagnostico clasifica `RATE_LIMITED`; test local valida bloqueo por limite diario | No se ejercito rate limit real de Telegram. |
-| Mensajes multiples | PASS | Gate 3 no envio mensajes; no ejecuto scheduler ni process queue | Sin evidencia de entrega real. |
-| Entrega a canal | PARTIAL | Destino global configurado | Permisos no certificados. |
-| Entrega privada | BLOCKED_BY_ACCESS | Requiere listado de subscribers admin | No visible sin sesion admin. |
+| Cola | BLOCKED_BY_ACCESS | `/api/telegram/status` y `/api/admin/telegram/status` devuelven 403 sin sesion | No se pudo leer contenido productivo de cola. |
+| Dedupe productivo | BLOCKED_BY_ACCESS | `/api/admin/telegram/dedupe-status` devuelve 403 sin sesion | No se pudo verificar duplicados reales. |
+| Dedupe local | PASS | Simulacion local: clave estable para mismo tipo/fecha/destino; tests 8/8 PASS | No sustituye evidencia productiva. |
+| Ultima entrega | BLOCKED_BY_ACCESS | Disponible en snapshot admin, no publico | Requiere admin read-only. |
+| Ultimo intento | BLOCKED_BY_ACCESS | Disponible en cron/status admin, no publico | Requiere admin read-only o logs Render. |
+| Ultimo error | BLOCKED_BY_ACCESS | Disponible en snapshot admin, no publico | Requiere admin read-only. |
+| Retry | PASS | Simulacion local clasifica error HTML como `TELEGRAM_PARSE_MODE_ERROR`; codigo reintenta texto plano | No se provoco error real. |
+| Throttle | PASS | Simulacion local clasifica limite diario como `BLOCKED_BY_DAILY_LIMIT`; existen limites hora/dia/quiet hours | No se forzaron envios reales. |
+| Rate limit | PASS | Diagnostico clasifica rate limit y tests validan bloqueos | No se ejercito rate limit real de Telegram. |
+| Entrega a canal | BLOCKED_BY_ACCESS | Runtime indica destino configurado, pero no permisos | Requiere getChat/getChatMember o mensaje unico posterior. |
+| Entrega privada | BLOCKED_BY_ACCESS | Requiere listado admin de subscribers | No visible sin sesion admin. |
 
-## Pruebas locales seguras
+## Dry-run y preview
 
-Se ejecutaron 8 pruebas especificas como funciones directas porque el runtime incluido no tiene `pytest` instalado.
-
-Resultado: PASS 8/8.
-
-Cobertura validada:
-
-- filtro football_only bloquea NBA;
-- filtro football_only permite UEFA, LaLiga y FIFA;
-- falta de chat_id se clasifica como `MISSING_CHAT_ID`;
-- limite diario se clasifica como `BLOCKED_BY_DAILY_LIMIT`;
-- ausencia de cuotas explica no envio;
-- modo Telegram por defecto es football_only.
-
-## Endpoints observados sin sesion
-
-| Endpoint | HTTP | Interpretacion |
+| Endpoint | HTTP | Resultado |
 |---|---:|---|
-| `/api/admin/telegram/status` | 403 | Protegido. |
-| `/api/admin/telegram/dry-run` | 403 | Protegido. |
-| `/api/admin/telegram/preview-next` | 403 | Protegido. |
-| `/api/admin/telegram/dedupe-status` | 403 | Protegido. |
-| `/api/admin/telegram/environment-audit` | 403 | Protegido. |
-| `/api/telegram/status` | 403 | Protegido. |
-| `/api/telegram/diagnostics` | 403 | Protegido. |
+| `/api/admin/telegram/dry-run` | 403 | Protegido; contenido bloqueado por acceso. |
+| `/api/admin/telegram/preview-next` | 403 | Protegido; contenido bloqueado por acceso. |
+| `/api/admin/telegram/dedupe-status` | 403 | Protegido; contenido bloqueado por acceso. |
+| `/api/admin/telegram/environment-audit` | 403 | Protegido; contenido bloqueado por acceso. |
+| `/api/telegram/status` | 403 | Protegido; contenido bloqueado por acceso. |
+| `/api/telegram/diagnostics` | 403 | Protegido; contenido bloqueado por acceso. |
 | `/admin/telegram/command-center` | 302 | Redirige a login. |
+
+## QA local segura
+
+- Tests Telegram directos: PASS 8/8.
+- `tools/check_v744_telegram_certification.py`: PASS con tokens vacios, `no_real_send=true`.
+- `tools/check_v887_telegram_queue_skipped_hotfix.py`: PASS.
+- `tools/check_v889_telegram_premium_picks.py`: FAIL por incompatibilidad legacy de version literal V889-V896 frente a V940; no es fallo Telegram.
+- Jinja parse: PASS, 175 templates.
+- Imports/rutas: PASS, 695 rutas, sin templates/static faltantes.
+- Privacy/Secret Guard: PASS, 1052 archivos, 0 secretos confirmados, 0 hallazgos privacy, `values_printed=false`.
+- Dedupe/retry/rate-limit simulation: PASS.
 
 ## Resultado
 
-Delivery no puede ser PASS sin una de estas dos evidencias:
-
-1. prueba controlada autorizada de un unico mensaje a un destino de test, con log de entrega y dedupe;
-2. o lectura admin/Telegram API read-only que certifique token, chat, permisos, ultima entrega, ultimo error y cola sin enviar mensaje.
+Delivery productivo no esta certificado. No hubo envio, ni reintento, ni modificacion de cola.

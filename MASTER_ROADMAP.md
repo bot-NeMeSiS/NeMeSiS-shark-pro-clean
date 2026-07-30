@@ -85,3 +85,6 @@
 ## Regla de avance
 
 Una fase no empieza por ganas. Empieza cuando el gate anterior tiene evidencia suficiente.
+## Communication System - 2026-07-30
+
+La fase Telegram premium incorpora un lenguaje de mensajes único para picks, resumen diario/nocturno, live, resultados, SHARK, Action Platform y administración. El avance es de comunicación y QA: no cambia lógica de envío, scheduler, cron, dedupe, destinos ni seguridad.

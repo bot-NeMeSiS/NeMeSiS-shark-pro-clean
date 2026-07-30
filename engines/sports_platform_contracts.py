@@ -376,6 +376,20 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/telegram_intelligence_engine.py",
         },
         {
+            "key": "communication_design_system",
+            "name": "NeMeSiS Communication Design System",
+            "contract": "NEMESIS-COMMUNICATION-DESIGN-SYSTEM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/telegram_message_formatter.py")
+            and exists("engines/telegram_delivery_engine.py")
+            and exists("tests/test_telegram_premium_communication_system.py")
+            else "CONTRACT_READY",
+            "implementation": (
+                "engines/telegram_message_formatter.py + "
+                "engines/telegram_delivery_engine.py + tests/test_telegram_premium_communication_system.py"
+            ),
+        },
+        {
             "key": "team_center",
             "name": "Team Center Premium Club Experience",
             "contract": "TEAM-CENTER-PREMIUM-CLUB-EXPERIENCE-V1",
