@@ -59,7 +59,7 @@
 
   <section class="action-platform-next" data-action-platform-section="next-action">
     <div>
-      <span>Siguiente accion útil</span>
+      <span>Siguiente acción útil</span>
       <h2>{{ a.next_action.title if a.next_action else 'Abrir calendario' }}</h2>
       <p>{{ a.next_action.body if a.next_action else 'Empieza por partidos reales disponibles.' }}</p>
     </div>
@@ -86,8 +86,19 @@
           {% if item.href %}<a href="{{ item.href }}">Abrir</a>{% endif %}
         </article>
         {% else %}
-        <p class="action-platform-empty">No disponible. No hay evidencia suficiente para mostrar elementos en está seccion.</p>
+        <p class="action-platform-empty">No disponible. No hay evidencia suficiente para mostrar elementos en esta sección.</p>
         {% endfor %}
+      </div>
+    </section>
+
+
+    <section class="action-platform-panel action-platform-wide" data-top100-improvement="20" data-action-platform-section="evening-recap-guide">
+      <div class="action-platform-section-head"><span>Recap nocturno</span><strong>Sin ruido</strong></div>
+      <p class="action-platform-section-intro">Cierra el día con resultados disponibles, actividad propia y pendientes honestos. Si no hay datos suficientes, el recap lo dice claramente.</p>
+      <div class="action-platform-card-grid">
+        <article class="action-platform-card"><header><span>RESULTADOS</span><strong>Qué terminó</strong></header><p>Solo partidos cerrados o evidencia ya registrada. Nada de marcadores inventados.</p></article>
+        <article class="action-platform-card"><header><span>PENDIENTES</span><strong>Qué falta</strong></header><p>Picks sin grading, datos stale o eventos sin confirmar quedan como pendientes.</p></article>
+        <article class="action-platform-card"><header><span>HÁBITO</span><strong>Qué revisar mañana</strong></header><p>Favoritos y actividad propia preparan la siguiente jornada sin enviar datos externos.</p><a href="/evening-recap">Abrir recap</a></article>
       </div>
     </section>
 

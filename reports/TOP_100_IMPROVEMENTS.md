@@ -1,8 +1,8 @@
 # TOP 100 IMPROVEMENTS
 
-Fecha Madrid: 2026-07-29  
-Alcance: plan maestro Release 1.0. No implementado.  
-Produccion modificada: false  
+Fecha Madrid: 2026-07-29
+Alcance: plan maestro Release 1.0. No implementado.
+Produccion modificada: false
 Commit/push/deploy: no ejecutados
 
 ## Criterio
@@ -140,3 +140,38 @@ Commit/push/deploy: no ejecutados.
 
 IN_PROGRESS: 0.
 PENDING: resto del TOP 100, sin cambio de prioridad en este sprint.
+
+## Estado Sprint 02 - Product Excellence
+
+Fecha Madrid: 2026-07-30
+Alcance: 9 mejoras P1 locales del TOP 100 sobre pantallas existentes, sin crear modulos, motores, rutas, APIs ni cambios de arquitectura.
+Decision local: PASS tras QA tecnica, Browser QA y Sentinel.
+Version modificada: no.
+Produccion modificada: false.
+Commit/push/deploy: no ejecutados.
+
+### Mejoras ejecutadas
+
+| TOP | Estado | Mejora aplicada | Evidencia local | Archivos principales |
+| --- | --- | --- | --- | --- |
+| 7 | DONE | Track record con metodologia visible | El historico explica que entra, que queda fuera y cuando la muestra es insuficiente. | templates/track_record.html |
+| 9 | DONE | Centro de soporte basico | Soporte orienta datos necesarios, cuenta, cancelacion y privacidad sin pedir informacion sensible. | templates/support.html |
+| 10 | DONE | Flujo de cancelacion claro | Membresias y soporte explican cambio/cancelacion sin presion comercial. | templates/membership.html, templates/support.html |
+| 14 | DONE | Centro de privacidad de personalizacion visible | Perfil y User Intelligence muestran control, exportacion, reseteo, desactivacion y borrado. | templates/profile.html, templates/user_intelligence_center.html |
+| 15 | DONE | Medicion real de activacion | Perfil y User Intelligence describen primer uso real sin inventar conversion. | templates/profile.html, templates/user_intelligence_center.html |
+| 16 | DONE | Medicion real de retencion | Favoritos, actividad y modulos observados se explican como senales propias y limitadas. | templates/profile.html, templates/user_intelligence_center.html |
+| 17 | DONE | Panel de estado de datos deportivos para cliente | Home muestra disponibilidad, snapshot sports-metrics-v1 y calidad pendiente. | templates/home.html |
+| 18 | DONE | Primer favorito guiado | Favoritos incorpora guia de tres pasos y acceso al alta manual existente. | templates/favorites.html |
+| 20 | DONE | Evening Recap con resultados y pendientes | Action Platform y briefing diario conectan el recap nocturno con resultados reales y pendientes honestos. | templates/action_platform.html, templates/daily_briefing.html |
+
+### Mejoras descartadas de este sprint
+
+| TOP | Estado | Mejora no ejecutada | Motivo |
+| --- | --- | --- | --- |
+| 1 | BLOCKED_BY_ACCESS | Certificacion Render de Release 1.0 | Requiere evidencia read-only real de produccion/Render; no corresponde a un sprint local de UX. |
+| 11 | BLOCKED_BY_ACCESS | Certificacion Stripe en modo test | Requiere credenciales test/autorizacion de Stripe; no se ejecuta sin acceso controlado. |
+| 12 | NOT_EXECUTED | Certificacion Telegram controlada | Telegram ya tuvo gate especifico; este sprint no envia mensajes ni modifica cola/destinos. |
+
+IN_PROGRESS: 0.
+PENDING: resto del TOP 100, sin cambio de prioridad en este sprint.
+Regla: los puntos 1, 11 y 12 no se marcan como DONE sin evidencia externa autorizada.

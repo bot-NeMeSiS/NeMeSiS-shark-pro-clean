@@ -69,6 +69,30 @@
   {% endif %}
 
   {{ realtime_state_bar(realtime, 'all') }}
+
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="17">
+    {{ section_header('Estado de datos deportivos', 'La jornada muestra el mismo estado seguro que consumen calendario, directo, picks y SHARK.') }}
+    <div class="v933-excellence-steps is-compact">
+      <article>
+        {{ icon('database') }}
+        <span>Disponibilidad</span>
+        <strong>{{ 'Datos reales cargados' if summary.get('has_real_data') else 'Esperando sincronización' }}</strong>
+        <p>{{ safe_message }}</p>
+      </article>
+      <article>
+        {{ icon('calendar') }}
+        <span>Snapshot</span>
+        <strong>{{ sports_metrics.get('contract') or 'sports-metrics-v1' }}</strong>
+        <p>{{ sports_metrics.get('matches_synchronized', 0) }} partidos sincronizados, {{ live_count }} en directo y {{ pick_count }} picks publicables.</p>
+      </article>
+      <article>
+        {{ icon('shield') }}
+        <span>Calidad</span>
+        <strong>{{ incomplete_count }} pendiente(s)</strong>
+        <p>Los registros incompletos quedan fuera de la experiencia principal hasta tener equipos, competición, fecha, hora y fuente.</p>
+      </article>
+    </div>
+  </section>
   {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
 
 

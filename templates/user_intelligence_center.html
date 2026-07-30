@@ -6,6 +6,8 @@
 {% set prefs = u.preferences or {} %}
 {% set signals = u.signals or {} %}
 {% set metrics = u.metrics or {} %}
+{% set personalization = u.personalization or {} %}
+{% set state_labels = {'VERIFIED':'Confirmado','CONFIRMED':'Confirmado','PASS':'Correcto','PARTIALLY_VERIFIED':'Verificación parcial','REQUIRES_REVIEW':'Requiere revisión','NOT_CERTIFIED':'No certificado','NOT_CONFIGURED':'No configurado','INSUFFICIENT_DATA':'Sin datos suficientes','BLOCKED_BY_ACCESS':'Bloqueado por acceso','HYPOTHESIS':'Hipótesis','STALE':'Datos desactualizados','NOT_GRANTED':'No concedido','GRANTED':'Concedido'} %}
 
 <section class="user-intelligence-v1"
          data-user-intelligence-contract="{{ u.contract or '' }}"
@@ -16,12 +18,12 @@
          data-shark-intelligence-contract="{{ u.source_contracts.shark_intelligence if u.source_contracts else '' }}">
   <header class="user-intelligence-hero" data-user-intelligence-section="header">
     <div class="user-intelligence-title">
-      <span>Inteligencia de usuario Platform</span>
+      <span>Centro de inteligencia de usuario</span>
       <h1>Tu experiencia deportiva bajo tu control</h1>
       <p>{{ summary.body or 'NeMeSiS prepara personalización solo con uso propio observado, sin IA generativa y sin vender datos.' }}</p>
       <div class="user-intelligence-tags" aria-label="Estado de personalización">
-        <span>{{ u.certification_state or 'REQUIRES_REVIEW' }}</span>
-        <span>{{ privacy.consent_state or 'NOT_GRANTED' }}</span>
+        <span>{{ state_labels.get(u.certification_state, u.certification_state or 'Requiere revisión') }}</span>
+        <span>{{ state_labels.get(privacy.consent_state, privacy.consent_state or 'No concedido') }}</span>
         <span>{{ u.observed_at_madrid or 'No disponible' }}</span>
       </div>
     </div>
@@ -41,9 +43,19 @@
     <article><span>Equipos</span><strong>{{ metrics.teams_observed or 0 }}</strong><small>observados</small></article>
     <article><span>Competiciones</span><strong>{{ metrics.competitions_observed or 0 }}</strong><small>observadas</small></article>
     <article><span>Pantallas</span><strong>{{ metrics.modules_observed or 0 }}</strong><small>usadas</small></article>
-    <article><span>Aplicacion auto</span><strong>{{ 'No' if not u.personalization.automatic_home_personalization else 'Si' }}</strong><small>Home intacta</small></article>
+    <article><span>Aplicación auto</span><strong>{{ 'No' if not personalization.automatic_home_personalization else 'Sí' }}</strong><small>Home intacta</small></article>
   </section>
 
+
+  <section class="user-intelligence-panel user-intelligence-wide" data-top100-improvement="14,15,16" data-user-intelligence-section="measurement-contract">
+    <div class="user-intelligence-section-head"><span>Qué se mide y qué no</span><strong>Transparente</strong></div>
+    <div class="user-intelligence-signal-grid">
+      <article><header><span>Activación</span><strong>{{ metrics.activity_events or 0 }}</strong></header><p>Eventos propios: abrir calendario, partido, SHARK, favorito, briefing o plan. Si no existe muestra, no se calcula conversión.</p></article>
+      <article><header><span>Retención</span><strong>{{ metrics.modules_observed or 0 }}</strong></header><p>Pantallas usadas y favoritos ayudan a entender si vuelves por valor real. No se infieren gustos sensibles.</p></article>
+      <article><header><span>Control</span><strong>{{ 'Activo' if privacy.personalization_enabled else 'Pausado' }}</strong></header><p>El usuario puede exportar, resetear, desactivar o borrar el perfil. La Home no cambia automáticamente.</p></article>
+      <article><header><span>No almacenado</span><strong>Datos sensibles</strong></header><p>No se guardan tokens, tarjetas, contraseñas, contenido privado externo ni datos para vender a terceros.</p></article>
+    </div>
+  </section>
   <main class="user-intelligence-layout">
     <section class="user-intelligence-panel user-intelligence-wide" data-user-intelligence-section="profile">
       <div class="user-intelligence-section-head">
@@ -69,9 +81,9 @@
     </section>
 
     <section class="user-intelligence-panel" data-user-intelligence-section="privacy">
-      <div class="user-intelligence-section-head"><span>Privacidad</span><strong>{{ privacy.consent_state or 'NOT_GRANTED' }}</strong></div>
+      <div class="user-intelligence-section-head"><span>Privacidad</span><strong>{{ state_labels.get(privacy.consent_state, privacy.consent_state or 'No concedido') }}</strong></div>
       <dl class="user-intelligence-data-list">
-        <div><dt>Personalizacion</dt><dd>{{ 'Activada' if privacy.personalization_enabled else 'Desactivada' }}</dd></div>
+        <div><dt>Personalización</dt><dd>{{ 'Activada' if privacy.personalization_enabled else 'Desactivada' }}</dd></div>
         <div><dt>Datos salen de NeMeSiS</dt><dd>{{ 'No' if not privacy.data_leaves_nemesis else 'Revisar' }}</dd></div>
         <div><dt>Venta de datos</dt><dd>{{ 'No' if not privacy.third_party_sale else 'Revisar' }}</dd></div>
         <div><dt>IA generativa</dt><dd>{{ 'No' if not privacy.generative_ai_used else 'Revisar' }}</dd></div>

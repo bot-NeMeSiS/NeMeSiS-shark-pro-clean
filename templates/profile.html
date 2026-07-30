@@ -15,6 +15,15 @@
 
   {{ profile_card(user, plan, 'Sesión activa') }}
 
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="14,15,16">
+    {{ section_header('Privacidad y medición de uso', 'NeMeSiS solo aprende de señales propias y visibles para mejorar la experiencia, nunca para vender datos.') }}
+    <div class="v933-excellence-steps is-compact">
+      <article>{{ icon('lock') }}<span>Privacidad</span><strong>Control del usuario</strong><p>Consulta, exporta, reinicia, desactiva o borra la personalización desde Inteligencia de usuario.</p>{{ action_button('Gestionar privacidad', '/user-intelligence', true, 'blue', false, 'lock') }}</article>
+      <article>{{ icon('history') }}<span>Activación</span><strong>Primer uso real</strong><p>Se mide si abres calendario, partido, SHARK, favorito o briefing. Sin actividad suficiente, el estado será honesto.</p>{{ action_button('Ver actividad', '/actividad', false, 'cyan', false, 'history') }}</article>
+      <article>{{ icon('star') }}<span>Retención</span><strong>Hábito sin invasión</strong><p>Favoritos, visitas y preferencias ayudan a ordenar la jornada sin enviar datos fuera de NeMeSiS.</p>{{ action_button('Abrir favoritos', '/favorites', false, 'gold', false, 'star') }}</article>
+    </div>
+  </section>
+
   {% if not telegram.get('linked') %}
     {{ customer_decision('Completa tu experiencia con Telegram', 'Vincula tu cuenta para recibir el contenido permitido por tu plan sin perder el detalle dentro de NeMeSiS.', 'Vincular Telegram', '/telegram#vincular', 'cyan', 'Siguiente mejora de tu cuenta', 'Revisar plan', '/memberships', 'La vinculación es revocable y protege tu identidad') }}
   {% elif not favorites %}

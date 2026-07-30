@@ -25,6 +25,15 @@
     </div>
   </section>
 
+
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="10">
+    {{ section_header('Cambiar o cancelar sin fricción', 'La confianza también depende de poder salir, preguntar o revisar el plan sin presión.') }}
+    <div class="v933-excellence-steps is-compact">
+      <article>{{ icon('plan') }}<span>1. Revisa tu plan</span><strong>Beneficios visibles</strong><p>Compara FREE, PRO y ELITE antes de iniciar cualquier checkout.</p>{{ action_button('Comparar planes', '#v936-plan-comparison', true, 'blue', false, 'plan') }}</article>
+      <article>{{ icon('support') }}<span>2. Pide ayuda</span><strong>Soporte claro</strong><p>Si tienes dudas de cobro, acceso o cancelación, abre soporte con contexto mínimo.</p>{{ action_button('Abrir soporte', '/support', false, 'cyan', false, 'support') }}</article>
+      <article>{{ icon('shield') }}<span>3. Sin presión</span><strong>Control humano</strong><p>No se fuerza conversión, no se ocultan limitaciones y ningún plan promete beneficios.</p></article>
+    </div>
+  </section>
   <section class="v933-plan-grid" id="v936-plan-comparison">
     <article class="v933-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}">
       <header><div><span>Plan</span><h3>FREE</h3></div>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','success') }}{% endif %}</header>

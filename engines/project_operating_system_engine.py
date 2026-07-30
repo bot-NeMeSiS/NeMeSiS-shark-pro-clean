@@ -724,6 +724,18 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "10 mejoras TOP 100 de UX, conversion responsable, estados seguros y accesibilidad sin crear modulos nuevos.",
         },
         {
+            "name": "Product Excellence Sprint 02",
+            "state": "COMPLETED"
+            if complete(
+                "reports/TOP100_SPRINT_02_REPORT.md",
+                "reports/PRODUCT_EXCELLENCE_SPRINT_02.md",
+                "reports/UX_IMPROVEMENTS_SPRINT_02.md",
+                "tests/test_product_excellence_sprint_02.py",
+            )
+            else "IN_PROGRESS",
+            "evidence": "9 mejoras P1 del TOP 100: metodologia, soporte, cancelacion, privacidad, medicion honesta, estado de datos, primer favorito y recap nocturno.",
+        },
+        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",

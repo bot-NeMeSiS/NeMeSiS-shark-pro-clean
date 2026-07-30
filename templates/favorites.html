@@ -15,6 +15,16 @@
   </div>
 </section>
 
+
+<section class="band compact-band" data-top100-improvement="18">
+  <div class="section-head"><h2>Crea tu primer favorito</h2><span class="pill">Menos búsqueda</span></div>
+  <div class="grid dense-grid">
+    <article class="card"><span class="badge">1</span><strong>Elige un equipo, liga o partido</strong><p class="small">Empieza por lo que más revisas. Un favorito basta para ordenar la jornada.</p></article>
+    <article class="card"><span class="badge">2</span><strong>Usa una estrella o el alta manual</strong><p class="small">Cuando exista ID seguro, NeMeSiS lo reutiliza; si no, guarda una etiqueta honesta.</p></article>
+    <article class="card"><span class="badge">3</span><strong>Vuelve al radar</strong><p class="small">Favoritos alimenta calendario, directo, picks relacionados y recap sin inventar datos.</p></article>
+  </div>
+  <div class="actions"><a class="btn primary" href="/calendar">Buscar partido</a><a class="btn" href="#add-favorite-manual">Añadir manualmente</a></div>
+</section>
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>Partidos relacionados</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
@@ -94,8 +104,8 @@
 </section>
 
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
-  <details class="card">
-    <summary><strong>Aadir favorito manualmente</strong></summary>
+  <details class="card" id="add-favorite-manual">
+    <summary><strong>Añadir favorito manualmente</strong></summary>
     <form method="post" action="/favorites" style="margin-top:12px">
       <input type="hidden" name="action" value="add">
       <div class="field"><label>Tipo</label><select name="kind"><option value="team">Equipo</option><option value="league">Liga / competición</option><option value="match">Partido</option></select></div>

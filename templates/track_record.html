@@ -20,6 +20,15 @@
     {{ customer_decision('Todavía no existe una muestra evaluable', 'El histórico no dibuja una curva ni un ROI decorativo. Aparecerá cuando haya decisiones cerradas con resultado, cuota y stake verificables.', 'Ver picks activos', '/picks', 'blue', 'Cómo usar el histórico', 'Entender SHARK', '/shark', 'Ausencia de muestra explicada, no maquillada') }}
   {% endif %}
 
+
+  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="7">
+    {{ section_header('Metodología del histórico', 'El rendimiento solo se interpreta cuando la muestra es real, cerrada y evaluable.') }}
+    <div class="v933-excellence-steps is-compact">
+      <article>{{ icon('check') }}<span>Entra en el cálculo</span><strong>Pick cerrado</strong><p>Partido, selección, cuota, stake y resultado final deben estar registrados.</p></article>
+      <article>{{ icon('pause') }}<span>Queda fuera</span><strong>Pendiente o incompleto</strong><p>Los picks sin grading, void o sin cuota no inflan ROI ni winrate.</p></article>
+      <article>{{ icon('shield') }}<span>Lectura responsable</span><strong>Muestra suficiente</strong><p>Si no hay volumen real, NeMeSiS muestra ausencia de muestra en lugar de una promesa.</p></article>
+    </div>
+  </section>
   <section class="v933-kpi-grid">
     {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'success', 'history') }}
     {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, 'Solo decisiones cerradas', 'cyan', 'target') }}

@@ -92,3 +92,7 @@ La fase Telegram premium incorpora un lenguaje de mensajes único para picks, re
 ## Product Excellence Sprint 01 - 2026-07-30
 
 Estado: PASS LOCAL. Se ejecutan 10 mejoras del TOP 100 orientadas a primer valor, SHARK comprensible, preview premium responsable, juego responsable, estados de error accionables y accesibilidad tactil/teclado. No se crean modulos, motores, rutas, APIs ni cambios de arquitectura.
+
+## Product Excellence Sprint 02 - 2026-07-30
+
+Estado: PASS LOCAL. QA final completada con Browser QA y Sentinel PASS. Se ejecutan 9 mejoras P1 del TOP 100: metodologia del track record, soporte basico, cancelacion clara, privacidad visible, medicion honesta de activacion/retencion, estado de datos deportivos para cliente, primer favorito guiado y recap nocturno. No se crean modulos, motores, rutas, APIs ni cambios de arquitectura.
