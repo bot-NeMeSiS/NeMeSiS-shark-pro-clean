@@ -736,6 +736,20 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             "evidence": "9 mejoras P1 del TOP 100: metodologia, soporte, cancelacion, privacidad, medicion honesta, estado de datos, primer favorito y recap nocturno.",
         },
         {
+            "name": "Product Review System",
+            "state": "COMPLETED"
+            if complete(
+                "engines/product_review_system_engine.py",
+                "templates/admin_product_review_center.html",
+                "tools/check_product_review_system.py",
+                "tests/test_product_review_system.py",
+                "reports/PRODUCT_REVIEW_SYSTEM_REPORT.md",
+                "reports/QUALITY_REVIEW_MATRIX.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Departamento interno de calidad con 12 revisores evidence-first, scoring explicable y candidatos de roadmap sin ejecucion automatica.",
+        },
+        {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",
             "evidence": "Requiere integración Git, Render y QA real autorizada",

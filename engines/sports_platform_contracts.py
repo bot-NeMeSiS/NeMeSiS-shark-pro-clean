@@ -349,6 +349,17 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             "implementation": "engines/experience_platform_engine.py + tools/check_experience_platform.py",
         },
         {
+            "key": "product_review_system",
+            "name": "NeMeSiS Product Review System",
+            "contract": "NEMESIS-PRODUCT-REVIEW-SYSTEM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/product_review_system_engine.py")
+            and exists("templates/admin_product_review_center.html")
+            and exists("tools/check_product_review_system.py")
+            else "CONTRACT_READY",
+            "implementation": "engines/product_review_system_engine.py + templates/admin_product_review_center.html + tools/check_product_review_system.py",
+        },
+        {
             "key": "action_platform",
             "name": "NeMeSiS Action Platform",
             "contract": "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1",

@@ -3872,3 +3872,5 @@ a[href]:focus-visible {
     padding: 14px;
   }
 }
+
+body[data-ns-route="/favorites"] .sports-row .compact-crest { text-overflow: ellipsis; }

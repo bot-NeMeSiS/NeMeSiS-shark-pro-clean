@@ -54,6 +54,7 @@ SCENARIOS = [
     {"key": "developer_center", "route": "/admin/developer-center", "audience": "admin", "category": "admin"},
     {"key": "company_board", "route": "/admin/company-board", "audience": "admin", "category": "admin"},
     {"key": "operations_center", "route": "/admin/operations-center", "audience": "admin", "category": "admin"},
+    {"key": "product_review_center", "route": "/admin/product-review-center", "audience": "admin", "category": "admin"},
     {"key": "sentinel_autopilot", "route": "/admin/sentinel-autopilot", "audience": "admin", "category": "admin"},
     {"key": "settings", "route": "/admin/system", "audience": "admin", "category": "admin"},
 ]

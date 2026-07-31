@@ -390,6 +390,7 @@ from engines.version_regression_engine import build_version_regression_snapshot
 from engines.recovery_simulator_engine import build_recovery_simulator_snapshot
 from engines.autonomous_quality_platform_engine import build_autonomous_quality_snapshot
 from engines.project_operating_system_engine import build_product_roadmap
+from engines.product_review_system_engine import build_product_review_system_snapshot
 
 
 from engines.madrid_time_engine import (
@@ -27232,6 +27233,32 @@ def api_admin_founder_dashboard_summary():
         "production_modified": False,
         "dangerous_actions_executed": False,
     })
+
+@app.route("/admin/product-review-center")
+@app.route("/admin/product-review")
+@app.route("/admin/quality-team")
+def admin_product_review_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/product-review-center")
+    return render_template(
+        "admin_product_review_center.html",
+        data=dashboard_data(),
+        review=build_product_review_system_snapshot(BASE_DIR, APP_VERSION),
+    )
+
+
+@app.route("/api/admin/product-review-center/summary")
+def api_admin_product_review_center_summary():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "product_review": build_product_review_system_snapshot(BASE_DIR, APP_VERSION),
+        "production_modified": False,
+        "dangerous_actions_executed": False,
+    })
+
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
 
 if __name__ == "__main__":

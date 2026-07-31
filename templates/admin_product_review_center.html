@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
+{% block title %}Product Review Center | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+{% set summary = review.findings_summary or {} %}
+<div class="v933-page v933-admin-command-center" data-product-review-center="{{ review.center_contract }}" data-product-review-contract="{{ review.contract }}" data-product-review-mode="read-only">
+  {{ page_header('Product Review Center', 'Departamento interno de calidad: 12 revisores, evidencia obligatoria y cero ejecucion automatica.', 'target', [
+    {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
+    {'label':'Developer','href':'/admin/developer-center','icon':'code'},
+    {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'},
+    {'label':'API JSON','href':'/api/admin/product-review-center/summary','primary':true,'icon':'data'}
+  ]) }}
+
+  <section class="v933-kpi-grid is-six" aria-label="Resumen Product Review">
+    {{ kpi_card('Revisores', review.reviewer_count, 'Equipo digital especializado', 'blue', 'users') }}
+    {{ kpi_card('Score producto', review.score, 'Media de los 12 revisores con penalizaciones P0/P1/P2/P3', 'cyan', 'target') }}
+    {{ kpi_card('Hallazgos', summary.total, 'Observaciones con evidencia', 'warning' if summary.total else 'success', 'list') }}
+    {{ kpi_card('P0 / P1', (summary.P0 or 0) ~ ' / ' ~ (summary.P1 or 0), 'Bloqueos criticos o altos', 'danger' if summary.P0 or summary.P1 else 'success', 'alert') }}
+    {{ kpi_card('P2', summary.P2 or 0, 'Mejoras importantes', 'warning', 'activity') }}
+    {{ kpi_card('P3', summary.P3 or 0, 'Pulido menor', 'neutral', 'check') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header>
+          <div><h2>Estado del equipo de revision</h2><p>Cada revisor trabaja con reglas propias, evidencia y scoring explicable.</p></div>
+          {{ status_chip(review.status, 'success' if review.status in ['PASS','PASS_WITH_REVIEW_ITEMS'] else 'warning') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Revisor','Estado','Ultima revision','P0/P1/P2/P3','Score','Por que']) %}
+          {% for reviewer in review.reviewers %}
+                    <tr>
+            <td><strong>{{ reviewer.name }}</strong><br><small>{{ reviewer.responsibility }}</small></td>
+            <td>{{ status_chip(reviewer.state, 'success' if reviewer.state == 'PASS' else 'warning') }}</td>
+            <td><time datetime="{{ reviewer.last_review_madrid }}">{{ reviewer.last_review_madrid|madrid_datetime_label }}</time></td>
+            <td>{{ reviewer.p0 or 0 }} / {{ reviewer.p1 or 0 }} / {{ reviewer.p2 or 0 }} / {{ reviewer.p3 or 0 }}</td>
+            <td><strong>{{ reviewer.score }}</strong><small>/100</small></td>
+            <td><small>{{ reviewer.score_explanation|join(' / ') }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="product-review-findings">
+        <header><div><h2>Hallazgos evidence-first</h2><p>Ningun hallazgo se convierte en mejora sin aprobacion humana.</p></div>{{ evidence_chip('PARTIALLY_VERIFIED' if summary.total else 'CONFIRMADO') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if review.findings %}
+          {% call data_table(['Modulo','Pantalla','Ruta','Componente','Prioridad','Evidencia','Impacto','Propuesta']) %}
+          {% for finding in review.findings %}
+          <tr>
+            <td><strong>{{ finding.module }}</strong></td>
+            <td>{{ finding.screen }}</td>
+            <td><code>{{ finding.route }}</code></td>
+            <td>{{ finding.component }}</td>
+            <td>{{ status_chip(finding.priority, 'danger' if finding.priority in ['P0','P1'] else 'warning' if finding.priority == 'P2' else 'neutral') }}</td>
+            <td><small>{{ finding.evidence }}</small></td>
+            <td><small>Usuario: {{ finding.user_impact }}<br>Negocio: {{ finding.business_impact }}</small></td>
+            <td><small>{{ finding.proposal }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+          {% else %}
+            {{ empty_state('Sin hallazgos abiertos', 'Los revisores no han detectado observaciones locales con la evidencia disponible.', '', '', 'check') }}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="roadmap-candidates">
+        <header><div><h2>Candidatos de roadmap</h2><p>Preparados para decision; nunca se ejecutan automaticamente.</p></div>{{ status_chip('APROBACION HUMANA','warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if review.roadmap_candidates %}
+          <div class="v933-truth-list is-no-icon">
+            {% for candidate in review.roadmap_candidates[:12] %}
+            <div>
+              <span><strong>{{ candidate.title }}</strong><small>{{ candidate.module }} / {{ candidate.priority }} / {{ candidate.proposal }}</small></span>
+              {{ status_chip('PENDIENTE', 'warning') }}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+            {{ empty_state('Sin candidatos', 'No hay mejoras candidatas con la evidencia local actual.', '', '', 'list') }}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Contrato</h2><p>Modo seguro del sistema de revision.</p></div>{{ status_chip('SOLO LECTURA','success') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span><strong>Contrato</strong><small>{{ review.contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Centro</strong><small>{{ review.center_contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Equipo</strong><small>{{ review.quality_team_contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Generado Madrid</strong><small>{{ review.generated_at_madrid|madrid_datetime_label }}</small></span>{{ status_chip('LOCAL','neutral') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Guardrails</h2><p>Limites obligatorios del departamento de calidad.</p></div>{{ evidence_chip('CONFIRMADO') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for key, value in review.guardrails.items() %}
+            <div><span><strong>{{ key|replace('_',' ') }}</strong><small>{{ value }}</small></span>{{ status_chip('SAFE' if not value or value == 0 else 'REVISAR', 'success' if not value or value == 0 else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Lectura ejecutiva</h2><p>Resumen del estado actual.</p></div>{{ status_chip(review.status, 'success' if review.status in ['PASS','PASS_WITH_REVIEW_ITEMS'] else 'warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <p class="v933-safe-copy">{{ review.executive_summary }}</p>
+          <div class="v933-chip-cloud">
+            {{ status_chip('Sin IA generativa','success') }}
+            {{ status_chip('Sin chatbot','success') }}
+            {{ status_chip('Sin push','success') }}
+            {{ status_chip('Sin deploy','success') }}
+            {{ status_chip('Sin produccion','success') }}
+          </div>
+        </div>
+      </section>
+
+      {{ next_action('Siguiente decision', review.next_action, '/admin/company-board', 'Abrir Company Board') }}
+    </aside>
+  </section>
+</div>
+{% endblock %}
