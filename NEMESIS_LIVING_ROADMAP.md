@@ -280,3 +280,26 @@ Objetivos relacionados: LRM-011, LRM-013, LRM-028, LRM-041, LRM-049, LRM-055 y L
 ## Product Excellence Sprint 02 - 2026-07-30
 
 Objetivos relacionados: LRM-001, LRM-014, LRM-015, LRM-016, LRM-017, LRM-018 y LRM-020. Estado: EN VALIDACION LOCAL con QA local PASS. Documentacion relacionada: `reports/TOP100_SPRINT_02_REPORT.md`, `reports/PRODUCT_EXCELLENCE_SPRINT_02.md`, `reports/UX_IMPROVEMENTS_SPRINT_02.md`. No se modifica ningun objetivo posterior ni se reordena el Living Roadmap.
+
+## Executive Board - 2026-07-31
+
+Estado: PASS LOCAL. El Consejo de Direccion interno consume exclusivamente la evidencia del Product Review System, emite votos independientes por director, genera Product Score explicable y prioriza un maximo de 10 mejoras para decision humana. No ejecuta mejoras, no crea chatbot, no usa IA generativa, no toca produccion, no hace push y no hace deploy.
+
+| ID | Area | Prioridad | Estado | Voto Board | Coste | Riesgo | Dependencias | Documentacion relacionada |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EBD-003 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-001 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-002 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-004 | navigation | P2 | Pendiente | ALTA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-005 | Seguridad | P3 | Pendiente | MEDIA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+
+## Company Platform Business Ecosystem - 2026-07-31
+
+Objetivo relacionado: LRM-026 Go to market. Estado local: EN VALIDACION. Se crea infraestructura publica para explicar NeMeSiS, precios, ayuda, conocimiento, roadmap, estado, partners, afiliados y blog sin pagos, campanas, contenido ficticio ni nuevas fuentes. Documentacion relacionada: `reports/COMPANY_PLATFORM_REPORT.md`, `reports/BUSINESS_READY_REPORT.md`, `reports/COMMERCIAL_WEBSITE_REPORT.md`, `reports/GO_TO_MARKET_PLATFORM.md`.
+
+
+## Go To Market Program - 2026-07-31
+
+Objetivo relacionado: LRM-001 Go to Market & Release 1.0. Estado local: EN VALIDACION. El Go To Market Office consolida beta, lanzamiento, marketing, conversion, soporte, operaciones, checklist y Top 20 con evidencia local. No modifica objetivos posteriores, no ejecuta campanas, no registra usuarios reales, no conecta pagos y no certifica produccion.
+
+Documentacion relacionada: `reports/GO_TO_MARKET_OFFICE_REPORT.md`, `reports/BETA_MANAGEMENT_REPORT.md`, `reports/COMMERCIAL_READINESS_FINAL.md`, `reports/CUSTOMER_SUCCESS_REPORT.md`, `reports/MARKETING_FOUNDATION_REPORT.md`, `reports/LAUNCH_CHECKLIST_FINAL.md`, `reports/TOP20_RELEASE_ACTIONS.md`.

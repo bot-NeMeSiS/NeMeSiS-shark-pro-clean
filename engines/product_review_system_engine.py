@@ -659,3 +659,239 @@ def build_product_review_system_snapshot(project_root: str | Path | None = None,
 
 def product_review_system_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
     return build_product_review_system_snapshot(project_root, app_version)
+
+EXECUTIVE_BOARD_CONTRACT = "NEMESIS-EXECUTIVE-BOARD-V1"
+EXECUTIVE_BOARD_CENTER_CONTRACT = "NEMESIS-EXECUTIVE-BOARD-CENTER-V1"
+STRATEGIC_DECISION_CONTRACT = "NEMESIS-STRATEGIC-DECISION-SYSTEM-V1"
+EXECUTIVE_VOTE_LEVELS = ("CRITICA", "ALTA", "MEDIA", "BAJA", "DESCARTADA")
+EXECUTIVE_REQUIRED_PROPOSAL_FIELDS = (
+    "id",
+    "title",
+    "evidence",
+    "module",
+    "screen",
+    "route",
+    "impact_user",
+    "impact_business",
+    "priority",
+    "estimated_cost",
+    "dependencies",
+    "risk",
+    "status",
+)
+
+EXECUTIVE_DIRECTOR_DEFINITIONS: tuple[dict[str, Any], ...] = (
+    {"key": "ceo", "name": "CEO", "area": "Direccion general", "focus": ("Producto", "Comercial", "Operaciones", "Release", "Beta", "Marketing"), "responsibility": "Convierte evidencia transversal en prioridades empresariales sin aprobar ejecucion automatica.", "should_not_touch": "Arquitectura deportiva, pagos, produccion o envios reales sin autorizacion humana."},
+    {"key": "cto", "name": "CTO", "area": "Tecnologia", "focus": ("Rendimiento", "Arquitectura", "Developer", "Routes", "Contracts", "Sports Core"), "responsibility": "Protege contratos, rendimiento, mantenibilidad, rutas y deuda tecnica.", "should_not_touch": "Sports Core certificado, contratos canonicos y flujos de seguridad sin evidencia de bug real."},
+    {"key": "head_product", "name": "Head of Product", "area": "Producto", "focus": ("Producto", "Beta", "Onboarding", "Action Platform", "Home"), "responsibility": "Prioriza claridad, primer valor, activacion, recorrido y foco del producto.", "should_not_touch": "Funcionalidades que ya comunican valor sin friccion demostrada."},
+    {"key": "head_ux", "name": "Head of UX", "area": "UX", "focus": ("UX", "Visual", "Home", "Navigation", "Onboarding", "Copy"), "responsibility": "Revisa jerarquia, navegacion, densidad, estados, claridad y consistencia visual.", "should_not_touch": "Sistema visual ns-/v933 cuando la evidencia no indique inconsistencia."},
+    {"key": "head_mobile", "name": "Head of Mobile", "area": "Mobile", "focus": ("Mobile", "Responsive", "Touch", "Safe Area", "Movil"), "responsibility": "Asegura experiencia tactil, densidad movil, scroll razonable y targets comodos.", "should_not_touch": "Layouts responsive que ya superan Browser QA y no generan friccion visible."},
+    {"key": "sports_director", "name": "Sports Director", "area": "Deportes", "focus": ("Sports Core", "Match Center", "Team Center", "Competition Center", "Player Center", "Calendario", "Live"), "responsibility": "Garantiza coherencia deportiva, entidades canonicas, frescura, evidencia y navegacion deportiva.", "should_not_touch": "Modelo deportivo unificado y calculos certificados sin bug real."},
+    {"key": "shark_director", "name": "SHARK Director", "area": "SHARK", "focus": ("SHARK", "Decision Engine", "Evidence", "Freshness", "Intelligence"), "responsibility": "Evita afirmaciones sin evidencia y protege confianza, limitaciones y explicabilidad.", "should_not_touch": "Reglas que impiden predicciones, picks inventados o confianza exagerada."},
+    {"key": "security_officer", "name": "Security Officer", "area": "Seguridad", "focus": ("Seguridad", "Privacy", "Secret", "Stripe", "Telegram", "Admin", "Session"), "responsibility": "Protege privacidad, secretos, permisos, endpoints admin y operaciones de riesgo.", "should_not_touch": "Autenticacion, firmas, dedupe, pagos y secretos sin plan de prueba controlado."},
+    {"key": "commercial_director", "name": "Commercial Director", "area": "Comercial", "focus": ("Comercial", "FREE", "PRO", "ELITE", "Membership", "Conversion", "Pricing"), "responsibility": "Prioriza conversion responsable, valor percibido, membresias y retencion.", "should_not_touch": "Promesas comerciales no certificadas o mensajes que puedan inducir gasto irresponsable."},
+    {"key": "qa_director", "name": "QA Director", "area": "Calidad", "focus": ("QA", "Browser QA", "Sentinel", "Tests", "Routes", "Links", "Regression"), "responsibility": "Convierte evidencias de pruebas en gates claros y evita regresiones.", "should_not_touch": "Checks existentes que sostienen release si no hay falso positivo demostrado."},
+    {"key": "operations_director", "name": "Operations Director", "area": "Operaciones", "focus": ("Operaciones", "Render", "Cron", "Master Tick", "Restore", "Backup", "Observability", "Logs"), "responsibility": "Prioriza fiabilidad operativa, restore, cron, logs, release y soporte.", "should_not_touch": "Produccion, cron real, backups reales o restores sin autorizacion y entorno aislado."},
+    {"key": "marketing_director", "name": "Marketing Director", "area": "Marketing", "focus": ("Marketing", "Copy", "Home", "Landing", "Value", "CTA", "Beta"), "responsibility": "Revisa propuesta de valor, claridad comercial, mensajes y diferenciacion honesta.", "should_not_touch": "Mensajes certificados si solo se busca cambiar tono sin evidencia de mejora."},
+)
+
+EXECUTIVE_SCORE_AREAS = {
+    "architecture": ("Arquitectura", ("cto", "qa_director", "operations_director")),
+    "product": ("Producto", ("ceo", "head_product", "sports_director")),
+    "ux": ("UX", ("head_ux", "head_product", "marketing_director")),
+    "mobile": ("Mobile", ("head_mobile", "head_ux", "qa_director")),
+    "sports_core": ("Sports Core", ("sports_director", "cto", "shark_director")),
+    "shark": ("SHARK", ("shark_director", "sports_director", "security_officer")),
+    "security": ("Seguridad", ("security_officer", "operations_director", "qa_director")),
+    "operations": ("Operaciones", ("operations_director", "qa_director", "cto")),
+    "commercial": ("Comercial", ("commercial_director", "marketing_director", "ceo")),
+    "release_readiness": ("Release Readiness", ("operations_director", "qa_director", "security_officer", "ceo")),
+}
+
+
+def _executive_norm(value: Any) -> str:
+    return _text(value, 220).lower()
+
+
+def _executive_priority(value: Any) -> str:
+    candidate = _text(value, 8).upper()
+    return candidate if candidate in PRIORITY_PENALTY else "P3"
+
+
+def _executive_cost(priority: str, module: str, proposal: str) -> str:
+    text = f"{module} {proposal}".lower()
+    if priority in {"P0", "P1"}:
+        return "Alto" if any(word in text for word in ("arquitect", "contrato", "modelo", "produccion")) else "Medio"
+    if priority == "P2":
+        return "Medio" if any(word in text for word in ("naveg", "responsive", "admin", "operacion")) else "Bajo"
+    return "Bajo"
+
+
+def _executive_risk(priority: str, module: str, proposal: str) -> str:
+    text = f"{module} {proposal}".lower()
+    risky = ("sports core", "stripe", "telegram", "cron", "restore", "seguridad", "secret", "produccion")
+    if priority in {"P0", "P1"} or any(token in text for token in risky):
+        return "Alto" if priority in {"P0", "P1"} else "Medio"
+    if any(token in text for token in ("css", "copy", "estado vacio", "texto", "cta")):
+        return "Bajo"
+    return "Medio" if priority == "P2" else "Bajo"
+
+
+def _executive_dependencies(module: str, screen: str, route: str, proposal: str) -> list[str]:
+    text = f"{module} {screen} {route} {proposal}".lower()
+    deps = ["Product Review System", "aprobacion humana"]
+    if any(token in text for token in ("match", "team", "competition", "player", "calendar", "live", "sports")):
+        deps.append("Sports Core certificado")
+    if "shark" in text or "evidence" in text or "freshness" in text:
+        deps.append("SHARK/Decision evidence")
+    if any(token in text for token in ("mobile", "movil", "responsive", "touch")):
+        deps.append("Browser QA movil")
+    if any(token in text for token in ("telegram", "stripe", "cron", "render", "restore", "secret", "privacy")):
+        deps.append("gate operativo controlado")
+    return list(dict.fromkeys(deps))
+
+
+def _executive_selection_score(priority: str, cost: str, risk: str, impact_user: str, impact_business: str) -> tuple[int, list[str]]:
+    base = {"P0": 100, "P1": 80, "P2": 55, "P3": 25}.get(priority, 25)
+    cost_points = {"Bajo": 14, "Medio": 8, "Alto": 2}.get(cost, 4)
+    risk_points = {"Bajo": 12, "Medio": 6, "Alto": 0}.get(risk, 0)
+    score = base + cost_points + risk_points
+    explanation = [f"prioridad {priority}: {base}", f"coste {cost.lower()}: {cost_points}", f"riesgo {risk.lower()}: {risk_points}"]
+    impact_text = f"{impact_user} {impact_business}".lower()
+    if any(token in impact_text for token in ("beta", "conversion", "retencion", "confianza", "primer", "claridad", "release")):
+        score += 12
+        explanation.append("impacto directo en beta, conversion, confianza o release: 12")
+    if any(token in impact_text for token in ("bloque", "seguridad", "produccion", "pago", "secret")):
+        score += 14
+        explanation.append("riesgo operativo o seguridad con evidencia: 14")
+    return min(score, 140), explanation
+
+
+def _executive_candidate_from_finding(finding: dict[str, Any], index: int) -> dict[str, Any]:
+    priority = _executive_priority(finding.get("priority"))
+    module = _text(finding.get("module"), 90) or "Producto"
+    screen = _text(finding.get("screen"), 160) or "No especificada"
+    route = _text(finding.get("route"), 120) or "No inferida"
+    proposal = _text(finding.get("proposal"), 360) or "Revisar con evidencia antes de decidir."
+    impact_user = _text(finding.get("impact_user") or finding.get("user_impact"), 320) or "Impacto de usuario pendiente de concretar con evidencia."
+    impact_business = _text(finding.get("impact_business") or finding.get("business_impact"), 320) or "Impacto de negocio pendiente de concretar con evidencia."
+    cost = _executive_cost(priority, module, proposal)
+    risk = _executive_risk(priority, module, proposal)
+    selection_score, selection_explanation = _executive_selection_score(priority, cost, risk, impact_user, impact_business)
+    return {"id": f"EBD-{index:03d}", "source_id": _text(finding.get("id"), 40) or f"PRS-{index:03d}", "title": _text(finding.get("title"), 120) or f"{module}: {proposal[:86]}", "evidence": _text(finding.get("evidence"), 620) or "Evidencia local no detallada por la fuente.", "module": module, "screen": screen, "route": route, "component": _text(finding.get("component"), 140) or "No especificado", "impact_user": impact_user, "impact_business": impact_business, "priority": priority, "estimated_cost": cost, "dependencies": _executive_dependencies(module, screen, route, proposal), "risk": risk, "proposal": proposal, "status": "Pendiente", "approved": False, "requires_human_approval": True, "automatic_execution_allowed": False, "selection_score": selection_score, "selection_explanation": selection_explanation, "source": "Product Review System"}
+
+
+def _executive_director_matches_candidate(definition: dict[str, Any], candidate: dict[str, Any]) -> bool:
+    haystack = " ".join(_executive_norm(candidate.get(field)) for field in ("module", "screen", "route", "component", "title", "proposal"))
+    return any(_executive_norm(token) and _executive_norm(token) in haystack for token in definition["focus"])
+
+
+def _executive_vote(definition: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    priority = candidate.get("priority", "P3")
+    in_scope = _executive_director_matches_candidate(definition, candidate)
+    if in_scope and priority in {"P0", "P1"}:
+        classification, supports = "CRITICA", True
+    elif in_scope and priority == "P2":
+        classification, supports = "ALTA", True
+    elif in_scope:
+        classification, supports = "MEDIA", True
+    elif definition["key"] == "ceo" and candidate.get("selection_score", 0) >= 80:
+        classification, supports = "ALTA", True
+    elif candidate.get("risk") == "Alto":
+        classification, supports = "DESCARTADA", False
+    else:
+        classification, supports = "BAJA", False
+    if classification == "DESCARTADA":
+        reason = "Fuera del area y con riesgo alto; requiere sponsor especifico antes de sprint."
+    elif supports:
+        reason = "Encaja en el area del director y tiene evidencia suficiente para revision humana."
+    else:
+        reason = "No es prioridad del area; se mantiene como contexto sin apoyo activo."
+    return {"director_key": definition["key"], "director": definition["name"], "area": definition["area"], "classification": classification, "supports": supports, "rejects": classification == "DESCARTADA", "reason": reason}
+
+
+def _executive_apply_votes(candidates: list[dict[str, Any]]) -> None:
+    for candidate in candidates:
+        votes = [_executive_vote(definition, candidate) for definition in EXECUTIVE_DIRECTOR_DEFINITIONS]
+        counts = Counter(vote["classification"] for vote in votes)
+        candidate["votes"] = votes
+        candidate["supporters"] = [vote["director"] for vote in votes if vote["supports"]]
+        candidate["rejecters"] = [vote["director"] for vote in votes if vote["rejects"]]
+        candidate["vote_counts"] = {level: counts.get(level, 0) for level in EXECUTIVE_VOTE_LEVELS}
+        if counts.get("CRITICA"):
+            candidate["board_classification"] = "CRITICA"
+        elif counts.get("ALTA", 0) >= 2:
+            candidate["board_classification"] = "ALTA"
+        elif counts.get("MEDIA", 0) >= 2:
+            candidate["board_classification"] = "MEDIA"
+        elif counts.get("DESCARTADA", 0) >= 4:
+            candidate["board_classification"] = "DESCARTADA"
+        else:
+            candidate["board_classification"] = "BAJA"
+
+
+def _executive_director_snapshot(definition: dict[str, Any], candidates: list[dict[str, Any]], generated_at: str) -> dict[str, Any]:
+    scoped = [candidate for candidate in candidates if _executive_director_matches_candidate(definition, candidate)]
+    supported = [candidate for candidate in candidates if definition["name"] in candidate.get("supporters", [])]
+    rejected = [candidate for candidate in candidates if definition["name"] in candidate.get("rejecters", [])]
+    counts = Counter(candidate.get("priority", "P3") for candidate in scoped)
+    penalty = counts.get("P0", 0) * 18 + counts.get("P1", 0) * 11 + counts.get("P2", 0) * 5 + counts.get("P3", 0) * 2
+    score = max(0, 100 - penalty)
+    state = "REQUIERE_REVISION" if counts.get("P0") or counts.get("P1") else "CON_EVIDENCIA" if scoped else "SIN_HALLAZGOS_DIRECTOS"
+    return {**definition, "contract": f"NEMESIS-EXECUTIVE-DIRECTOR-{definition['key'].upper().replace('_', '-')}-V1", "state": state, "score": score, "score_explanation": ["Base 100 menos penalizaciones por candidatos dentro del area.", f"P0={counts.get('P0', 0)}, P1={counts.get('P1', 0)}, P2={counts.get('P2', 0)}, P3={counts.get('P3', 0)}."], "last_review_madrid": generated_at, "what_works": ["Base del producto certificada por los sistemas previos declarados PASS.", "Las propuestas se reciben con evidencia local y no se ejecutan automaticamente."] if scoped else ["No hay hallazgos directos para esta area en el snapshot local.", "El area permanece bajo observacion sin cambios artificiales."], "what_does_not_work": [candidate["title"] for candidate in scoped[:3]] or ["No se detecta friccion directa con la evidencia local actual."], "should_improve": [candidate["proposal"] for candidate in supported[:3]] or ["Mantener observacion hasta nueva evidencia de Product Review o beta."], "should_not_touch": definition["should_not_touch"], "risks": [f"{candidate['id']}: {candidate['risk']} - {candidate['title']}" for candidate in scoped if candidate.get("risk") in {"Medio", "Alto"}][:3] or ["Riesgo bajo o no observable con la evidencia local actual."], "opportunities": [f"{candidate['id']}: {candidate['impact_business']}" for candidate in supported[:3]] or ["Esperar feedback beta para priorizar sin inventar necesidades."], "supported_candidates": [candidate["id"] for candidate in supported], "rejected_candidates": [candidate["id"] for candidate in rejected], "findings_count": len(scoped), "votes_given": len(candidates)}
+
+
+def _executive_product_scores(directors: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_key = {director["key"]: director for director in directors}
+    rows: list[dict[str, Any]] = []
+    for key, (label, director_keys) in EXECUTIVE_SCORE_AREAS.items():
+        selected = [by_key[item] for item in director_keys if item in by_key]
+        base = round(sum(item["score"] for item in selected) / max(len(selected), 1))
+        related = [candidate for candidate in candidates if any(_executive_director_matches_candidate(by_key[item], candidate) for item in director_keys if item in by_key)]
+        high = sum(1 for item in related if item.get("priority") in {"P0", "P1"})
+        p2 = sum(1 for item in related if item.get("priority") == "P2")
+        score = max(0, base - high * 4 - p2)
+        rows.append({"key": key, "label": label, "score": score, "state": "PASS" if score >= 90 else "PARTIAL" if score >= 75 else "REQUIRES_REVIEW", "justification": f"Media de {', '.join(by_key[item]['name'] for item in director_keys if item in by_key)} ({base}/100) ajustada por evidencia relacionada: P0/P1={high}, P2={p2}.", "evidence": [candidate["id"] for candidate in related[:5]]})
+    return rows
+
+
+def _executive_area_health(directors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    by_key = {director["key"]: director for director in directors}
+    mapping = [("product", "Estado del producto", ("ceo", "head_product")), ("commercial", "Estado comercial", ("commercial_director", "marketing_director")), ("technical", "Estado tecnico", ("cto", "qa_director")), ("ux", "Estado UX", ("head_ux", "head_product")), ("mobile", "Estado movil", ("head_mobile", "head_ux")), ("shark", "Estado SHARK", ("shark_director", "sports_director")), ("security", "Estado seguridad", ("security_officer", "qa_director")), ("operations", "Estado operaciones", ("operations_director", "cto")), ("quality", "Estado calidad", ("qa_director", "operations_director")), ("marketing", "Estado marketing", ("marketing_director", "commercial_director"))]
+    rows = []
+    for key, label, director_keys in mapping:
+        selected = [by_key[item] for item in director_keys if item in by_key]
+        score = round(sum(item["score"] for item in selected) / max(len(selected), 1))
+        rows.append({"key": key, "label": label, "score": score, "state": "PASS" if score >= 90 else "PARTIAL" if score >= 75 else "REQUIRES_REVIEW", "evidence": "; ".join(item["score_explanation"][-1] for item in selected if item.get("score_explanation"))})
+    return rows
+
+
+def build_executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
+    root = _root(project_root)
+    generated_at = _now()
+    review = build_product_review_system_snapshot(root, app_version)
+    findings = list(review.get("findings") or [])
+    if not findings:
+        findings = [{"id": "PRS-NO-FINDINGS", "module": "Producto", "screen": "Producto completo", "route": "No aplica", "component": "revision ejecutiva", "evidence": "Product Review System no ha entregado hallazgos abiertos en el snapshot local.", "priority": "P3", "impact_user": "Mantiene el producto en observacion sin cambios innecesarios.", "impact_business": "Evita roadmap artificial sin evidencia.", "proposal": "Mantener seguimiento y esperar evidencia de usuarios reales."}]
+    candidates = [_executive_candidate_from_finding(finding, index) for index, finding in enumerate(findings, start=1)]
+    seen: set[tuple[str, str, str, str]] = set()
+    unique_candidates: list[dict[str, Any]] = []
+    for candidate in candidates:
+        key = (_executive_norm(candidate.get("module")), _executive_norm(candidate.get("route")), _executive_norm(candidate.get("component")), _executive_norm(candidate.get("proposal"))[:90])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique_candidates.append(candidate)
+    for index, candidate in enumerate(unique_candidates, start=1):
+        candidate["id"] = f"EBD-{index:03d}"
+    _executive_apply_votes(unique_candidates)
+    unique_candidates.sort(key=lambda item: ({"P0": 100, "P1": 80, "P2": 55, "P3": 25}.get(item.get("priority", "P3"), 25), item.get("selection_score", 0), len(item.get("supporters", []))), reverse=True)
+    directors = [_executive_director_snapshot(definition, unique_candidates, generated_at) for definition in EXECUTIVE_DIRECTOR_DEFINITIONS]
+    product_scores = _executive_product_scores(directors, unique_candidates)
+    counts = Counter(candidate.get("priority", "P3") for candidate in unique_candidates)
+    board_score = round(sum(score["score"] for score in product_scores) / max(len(product_scores), 1))
+    return {"contract": EXECUTIVE_BOARD_CONTRACT, "center_contract": EXECUTIVE_BOARD_CENTER_CONTRACT, "decision_contract": STRATEGIC_DECISION_CONTRACT, "version": app_version, "generated_at_madrid": generated_at, "environment": "local_filesystem_read_only", "status": "PASS_WITH_STRATEGIC_REVIEW" if unique_candidates else "PASS", "board_score": board_score, "board_score_explanation": ["Media de puntuaciones derivadas de directores y evidencia del Product Review System.", "No se usan metricas inventadas ni aprobaciones automaticas."], "director_count": len(directors), "directors_expected": len(EXECUTIVE_DIRECTOR_DEFINITIONS), "directors": directors, "area_health": _executive_area_health(directors), "product_scores": product_scores, "proposal_count": len(unique_candidates), "proposal_summary": {"P0": counts.get("P0", 0), "P1": counts.get("P1", 0), "P2": counts.get("P2", 0), "P3": counts.get("P3", 0), "total": len(unique_candidates)}, "decision_matrix": unique_candidates, "top_10_improvements": unique_candidates[:10], "backlog_updates": [{"id": candidate["id"], "source_id": candidate["source_id"], "top100_status": "Pendiente", "master_roadmap_status": "Pendiente", "living_roadmap_status": "Pendiente", "documentation": ["reports/EXECUTIVE_DECISION_MATRIX.md", "reports/STRATEGIC_ROADMAP_REPORT.md", "reports/PRODUCT_HEALTH_REPORT.md"], "human_approval_required": True} for candidate in unique_candidates], "source_contracts": {"product_review_system": review.get("contract"), "quality_team": review.get("quality_team_contract"), "product_review_center": review.get("center_contract")}, "guardrails": {**dict(GUARDRAILS), "automatic_decisions": False, "automatic_execution": False, "commit_created": False}, "no_chatbot": True, "no_generative_ai": True, "no_automatic_decisions": True, "automatic_execution_allowed": False, "production_modified": False, "deploy_executed": False, "push_executed": False, "executive_summary": "El Executive Board convierte hallazgos del Product Review System en una matriz de decision con votos, Top 10 priorizado y puntuaciones explicadas. No aprueba ni ejecuta mejoras automaticamente.", "next_action": "Revision humana del Top 10 priorizado antes de autorizar cualquier sprint de mejora."}
+
+
+def executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
+    return build_executive_board_snapshot(project_root, app_version)

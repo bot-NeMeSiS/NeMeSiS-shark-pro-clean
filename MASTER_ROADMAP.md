@@ -96,3 +96,30 @@ Estado: PASS LOCAL. Se ejecutan 10 mejoras del TOP 100 orientadas a primer valor
 ## Product Excellence Sprint 02 - 2026-07-30
 
 Estado: PASS LOCAL. QA final completada con Browser QA y Sentinel PASS. Se ejecutan 9 mejoras P1 del TOP 100: metodologia del track record, soporte basico, cancelacion clara, privacidad visible, medicion honesta de activacion/retencion, estado de datos deportivos para cliente, primer favorito guiado y recap nocturno. No se crean modulos, motores, rutas, APIs ni cambios de arquitectura.
+
+## Launch Excellence Sprint 01 - 2026-07-31
+
+Estado: PASS LOCAL tras QA completa. El sprint convierte la Home en una puerta de entrada pre-beta mas clara: explica el producto en menos de 30 segundos, ofrece onboarding ligero omitible, continuidad local, accesos a briefing/recap/favoritos/actividad y pulido tactil/accesible. No crea modulos, motores, rutas, APIs ni cambios deportivos.
+
+## Executive Board - 2026-07-31
+
+Estado: PASS LOCAL. El Consejo de Direccion interno consume exclusivamente la evidencia del Product Review System, emite votos independientes por director, genera Product Score explicable y prioriza un maximo de 10 mejoras para decision humana. No ejecuta mejoras, no crea chatbot, no usa IA generativa, no toca produccion, no hace push y no hace deploy.
+
+| ID | Area | Prioridad | Estado | Voto Board | Coste | Riesgo | Dependencias | Documentacion relacionada |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EBD-003 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-001 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-002 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-004 | navigation | P2 | Pendiente | ALTA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-005 | Seguridad | P3 | Pendiente | MEDIA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+
+## Company Platform Business Ecosystem - 2026-07-31
+
+Estado: PASS LOCAL pendiente de QA final del sprint. Se prepara la infraestructura comercial publica: landing oficial, precios, FAQ, centro de ayuda, base de conocimiento, roadmap publico, changelog, estado del servicio, partners, afiliados y blog. No se conectan pagos, no se activan campanas, no se publican partners ni articulos ficticios y no se anaden fuentes deportivas.
+
+
+## Go To Market Program - 2026-07-31
+
+Estado: EN VALIDACION LOCAL. Se crea el Go To Market Office como centro interno de lanzamiento para beta, marketing, conversion, usuarios, feedback, riesgos, checklist de release, customer success, operaciones y Top 20 antes de Release 1.0. No crea modulos deportivos, no toca Sports Core, no cambia SHARK, no lanza campanas, no conecta Stripe, no envia Telegram, no hace push, no hace deploy y no modifica produccion.
+
+Documentacion relacionada: `reports/GO_TO_MARKET_OFFICE_REPORT.md`, `reports/BETA_MANAGEMENT_REPORT.md`, `reports/COMMERCIAL_READINESS_FINAL.md`, `reports/CUSTOMER_SUCCESS_REPORT.md`, `reports/MARKETING_FOUNDATION_REPORT.md`, `reports/LAUNCH_CHECKLIST_FINAL.md`, `reports/TOP20_RELEASE_ACTIONS.md`.

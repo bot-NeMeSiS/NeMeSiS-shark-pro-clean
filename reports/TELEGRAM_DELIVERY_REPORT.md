@@ -1,57 +1,45 @@
-﻿# TELEGRAM DELIVERY REPORT
-
-Fecha Madrid: 2026-07-30
-Modo: read-only / no send
-Produccion modificada: false
-Telegram enviado: false
-Mensajes enviados: 0
-Secretos expuestos: 0
+# Telegram Delivery Report
 
 ## Decision
 
-TELEGRAM DELIVERY: BLOCKED
+PARTIAL.
 
-El producto contiene cola, deduplicacion, retry, limites y memoria de entrega. La evidencia productiva necesaria para cerrar delivery no fue accesible sin sesion admin ni token Telegram.
+## Generated
 
-## Cola y deduplicacion
+2026-07-31T12:29:20+02:00 Europe/Madrid.
 
-| Control | Estado | Evidencia | Limitacion |
-|---|---|---|---|
-| Cola | BLOCKED_BY_ACCESS | `/api/telegram/status` y `/api/admin/telegram/status` devuelven 403 sin sesion | No se pudo leer contenido productivo de cola. |
-| Dedupe productivo | BLOCKED_BY_ACCESS | `/api/admin/telegram/dedupe-status` devuelve 403 sin sesion | No se pudo verificar duplicados reales. |
-| Dedupe local | PASS | Simulacion local: clave estable para mismo tipo/fecha/destino; tests 8/8 PASS | No sustituye evidencia productiva. |
-| Ultima entrega | BLOCKED_BY_ACCESS | Disponible en snapshot admin, no publico | Requiere admin read-only. |
-| Ultimo intento | BLOCKED_BY_ACCESS | Disponible en cron/status admin, no publico | Requiere admin read-only o logs Render. |
-| Ultimo error | BLOCKED_BY_ACCESS | Disponible en snapshot admin, no publico | Requiere admin read-only. |
-| Retry | PASS | Simulacion local clasifica error HTML como `TELEGRAM_PARSE_MODE_ERROR`; codigo reintenta texto plano | No se provoco error real. |
-| Throttle | PASS | Simulacion local clasifica limite diario como `BLOCKED_BY_DAILY_LIMIT`; existen limites hora/dia/quiet hours | No se forzaron envios reales. |
-| Rate limit | PASS | Diagnostico clasifica rate limit y tests validan bloqueos | No se ejercito rate limit real de Telegram. |
-| Entrega a canal | BLOCKED_BY_ACCESS | Runtime indica destino configurado, pero no permisos | Requiere getChat/getChatMember o mensaje unico posterior. |
-| Entrega privada | BLOCKED_BY_ACCESS | Requiere listado admin de subscribers | No visible sin sesion admin. |
+| elemento | estado | evidencia | limitaci?n |
+| --- | --- | --- | --- |
+| Dry-run | PASS_LOCAL | dry_run_ok=True, would_send=False, sent=False | Sin candidatos porque no hay configuraci?n/datos en DB temporal. |
+| Preview | PARTIAL | preview_available=False | Sin pick/candidato real en DB temporal. |
+| Destino | PARTIAL | destinations_count=0 | TELEGRAM_CHAT_ID ausente en entorno actual. |
+| Entrega real | PARTIAL | Mensajes enviados = 0. | No autorizada todav?a en este Gate. |
+| Dedupe noticia | PASS | Clave estable: True | Simulaci?n t?cnica, no noticia real. |
+| Dedupe partido | PASS | Clave estable: True | Simulaci?n t?cnica, no partido real. |
+| Dedupe pick | PASS | Clave estable: True | Simulaci?n t?cnica, no pick real. |
+| Dedupe resumen | PASS | Clave estable: True | Simulaci?n t?cnica, no resumen real. |
+| Dedupe cola | PASS | first_queued=True; second_skipped=True; reason=duplicate. | DB temporal aislada. |
 
-## Dry-run y preview
+## Error Controls
 
-| Endpoint | HTTP | Resultado |
-|---|---:|---|
-| `/api/admin/telegram/dry-run` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/api/admin/telegram/preview-next` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/api/admin/telegram/dedupe-status` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/api/admin/telegram/environment-audit` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/api/telegram/status` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/api/telegram/diagnostics` | 403 | Protegido; contenido bloqueado por acceso. |
-| `/admin/telegram/command-center` | 302 | Redirige a login. |
+| elemento | estado | evidencia | limitaci?n |
+| --- | --- | --- | --- |
+| destino_inexistente | BOT_NOT_IN_GROUP_OR_CHANNEL | Telegram no encuentra el grupo/canal configurado. | Revisar TELEGRAM_CHAT_ID y que el bot esté dentro del grupo/canal. |
+| bot_sin_permisos | BOT_NOT_IN_GROUP_OR_CHANNEL | El bot no puede escribir porque fue expulsado o no tiene permiso. | Añadir de nuevo el bot y permitirle escribir. |
+| canal_sin_admin | BOT_NOT_ADMIN_IN_CHANNEL | El bot no tiene permisos suficientes en el canal. | Hacer admin al bot en el canal o usar un destino donde pueda escribir. |
+| html_invalido | TELEGRAM_PARSE_MODE_ERROR | Telegram rechazó el formato Markdown/HTML del mensaje. | Reintentar en texto plano y revisar caracteres especiales. |
+| mensaje_largo | MESSAGE_TOO_LONG | El mensaje supera el tamaño permitido por Telegram. | Recortar secciones secundarias del mensaje premium. |
 
-## QA local segura
+## Guardrails
 
-- Tests Telegram directos: PASS 8/8.
-- `tools/check_v744_telegram_certification.py`: PASS con tokens vacios, `no_real_send=true`.
-- `tools/check_v887_telegram_queue_skipped_hotfix.py`: PASS.
-- `tools/check_v889_telegram_premium_picks.py`: FAIL por incompatibilidad legacy de version literal V889-V896 frente a V940; no es fallo Telegram.
-- Jinja parse: PASS, 175 templates.
-- Imports/rutas: PASS, 695 rutas, sin templates/static faltantes.
-- Privacy/Secret Guard: PASS, 1052 archivos, 0 secretos confirmados, 0 hallazgos privacy, `values_printed=false`.
-- Dedupe/retry/rate-limit simulation: PASS.
+- Producci?n modificada: no.
+- Mensajes reales enviados: 0.
+- Secretos expuestos: 0.
+- Push/deploy/commit: no.
+- DB real escrita: no.
+- Evidencia de dry-run: `tmp/telegram_gate3_evidence.json`.
 
-## Resultado
 
-Delivery productivo no esta certificado. No hubo envio, ni reintento, ni modificacion de cola.
+## Minimum Action
+
+Completar test real controlado con un ?nico mensaje t?cnico despu?s de validar token, bot, destino y permisos.

@@ -175,3 +175,46 @@ Commit/push/deploy: no ejecutados.
 IN_PROGRESS: 0.
 PENDING: resto del TOP 100, sin cambio de prioridad en este sprint.
 Regla: los puntos 1, 11 y 12 no se marcan como DONE sin evidencia externa autorizada.
+
+## Estado Launch Excellence Sprint 01 - 2026-07-31
+
+Alcance: pulido pre-beta de experiencia sobre pantallas existentes. No se crean modulos, motores, APIs, rutas ni pantallas grandes.
+Decision local: PASS LOCAL tras QA completa.
+Version modificada: no.
+Produccion modificada: false.
+Commit/push/deploy: no ejecutados.
+
+| TOP | Estado | Mejora aplicada | Evidencia local | Archivos principales |
+|---:|---|---|---|---|
+| 2 | REINFORCED | Onboarding de primer valor ahora es omitible y de una sola lectura. | `data-launch-onboarding="first-run"` en Home y preferencia local opcional. | templates/home.html, static/v937-product-client.js |
+| 3 | REINFORCED | Ruta primera tarea desde Home: partido, SHARK, briefing y PRO. | Banda `data-launch-excellence="home-start"`. | templates/home.html |
+| 18 | REINFORCED | Favoritos aparecen dentro del recorrido inicial y continuidad. | Acceso directo a `/favorites` desde onboarding y productividad. | templates/home.html |
+| 19 | REINFORCED | Briefing diario gana entrada persistente desde Home. | Acceso directo a `/daily-briefing` y `/smart-home`. | templates/home.html |
+| 20 | REINFORCED | Recap nocturno queda a un clic desde Home. | Acceso directo a `/evening-recap`. | templates/home.html |
+| 26 | DONE_LOCAL | Continuar donde estaba mediante memoria local del navegador. | `nemesis.launch.recentRoutes.v1`, sin APIs ni escritura DB. | static/v937-product-client.js |
+| 30 | DONE_LOCAL | Estados y bloques nuevos cargan como contenido estable y compacto. | No se crean skeletons globales; se evitan placeholders tecnicos. | templates/home.html, static/v933-product.css |
+| 33 | DONE_LOCAL | Home con foco en accion del dia y continuidad. | Nueva seccion `Continua sin buscar otra vez`. | templates/home.html |
+| 58/61 | REINFORCED | Foco visible y objetivos tactiles se extienden al onboarding. | CSS scoped de Launch Excellence. | static/v933-product.css |
+| 60 | DONE_LOCAL | Respeto a `prefers-reduced-motion`. | Animacion/hover desactivables para nuevos bloques. | static/v933-product.css |
+| 93/96/98 | DONE_LOCAL | Orden estable, empty states honestos y menos scroll inicial. | Home compacta por recorridos y accesos recurrentes. | templates/home.html |
+
+IN_PROGRESS: 0.
+PENDING: resto del TOP 100, sin cambio de prioridad.
+Regla: este sprint no certifica produccion, Telegram ni Stripe; solo mejora UX local pre-beta.
+
+## Executive Board - 2026-07-31
+
+Estado: PASS LOCAL. El Consejo de Direccion interno consume exclusivamente la evidencia del Product Review System, emite votos independientes por director, genera Product Score explicable y prioriza un maximo de 10 mejoras para decision humana. No ejecuta mejoras, no crea chatbot, no usa IA generativa, no toca produccion, no hace push y no hace deploy.
+
+| ID | Area | Prioridad | Estado | Voto Board | Coste | Riesgo | Dependencias | Documentacion relacionada |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EBD-003 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-001 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-002 | copy | P2 | Pendiente | ALTA | Medio | Bajo | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-004 | navigation | P2 | Pendiente | ALTA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+| EBD-005 | Seguridad | P3 | Pendiente | MEDIA | Bajo | Medio | Product Review System, aprobacion humana | reports/EXECUTIVE_DECISION_MATRIX.md, reports/STRATEGIC_ROADMAP_REPORT.md, reports/PRODUCT_HEALTH_REPORT.md |
+
+
+## Go To Market Program - 2026-07-31
+
+Estado: EN VALIDACION LOCAL. Este sprint no marca nuevas mejoras como DONE. Usa el TOP 100 como fuente para priorizar las 20 acciones restantes de mayor impacto antes de Release 1.0 en `reports/TOP20_RELEASE_ACTIONS.md`. No ejecuta esas acciones y no cambia prioridades del TOP 100.

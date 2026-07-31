@@ -40,6 +40,12 @@
         <span>{{ icon('check') }} +18 y juego responsable</span>
         <span>{{ icon('check') }} No somos casa de apuestas</span>
       </div>
+      <nav class="v933-launch-start-strip" aria-label="Empezar en NeMeSiS" data-launch-excellence="home-start">
+        <a href="/calendar"><strong>1</strong><span>Encuentra un partido</span></a>
+        <a href="/shark"><strong>2</strong><span>Entiende SHARK</span></a>
+        <a href="/smart-home"><strong>3</strong><span>Abre tu briefing</span></a>
+        <a href="/memberships"><strong>PRO</strong><span>Compara planes</span></a>
+      </nav>
     </div>
 
     <aside class="v933-today-board" aria-label="Hoy en NeMeSiS">
@@ -69,6 +75,109 @@
   {% endif %}
 
   {{ realtime_state_bar(realtime, 'all') }}
+
+  <section class="v933-panel v933-launch-onboarding" data-launch-excellence="onboarding" data-launch-onboarding="first-run" data-top100-improvement="2,3,18,19,33" aria-labelledby="launch-onboarding-title">
+    <div class="v933-launch-onboarding-head">
+      <div>
+        <span class="v933-eyebrow">Primer recorrido</span>
+        <h2 id="launch-onboarding-title">Entiende NeMeSiS en 30 segundos</h2>
+        <p>Una guia ligera para saber que mirar primero. Puedes omitirla ahora y volver a usar los accesos de la Home cuando quieras.</p>
+      </div>
+      <button class="v933-action is-blue" type="button" data-launch-onboarding-dismiss aria-label="Omitir guia inicial"><span>Omitir guia</span></button>
+    </div>
+    <div class="v933-launch-guide-grid">
+      <a class="v933-launch-step" href="/calendar" data-launch-step="home">
+        {{ icon('calendar') }}
+        <span>Home</span>
+        <strong>Empieza por la jornada</strong>
+        <small>Calendario, directo y agenda validada.</small>
+      </a>
+      <a class="v933-launch-step" href="{{ '/match/' ~ matches[0].get('id') if matches and matches[0].get('id') else '/calendar' }}" data-launch-step="match">
+        {{ icon('live') }}
+        <span>Partido</span>
+        <strong>Sigue el contexto</strong>
+        <small>Marcador, estado, evidencia y limites.</small>
+      </a>
+      <a class="v933-launch-step" href="{{ '/team/' ~ matches[0].get('home_team')|urlencode if matches and matches[0].get('home_team') else '/calendar' }}" data-launch-step="team">
+        {{ icon('shield') }}
+        <span>Equipo</span>
+        <strong>Encuentra tu club</strong>
+        <small>Forma, partidos, frescura y calidad.</small>
+      </a>
+      <a class="v933-launch-step" href="{{ '/competition/' ~ (matches[0].get('competition_id') or matches[0].get('competition_key') or matches[0].get('competition_name'))|urlencode if matches and (matches[0].get('competition_id') or matches[0].get('competition_key') or matches[0].get('competition_name')) else '/calendar' }}" data-launch-step="competition">
+        {{ icon('trophy') }}
+        <span>Competicion</span>
+        <strong>Lee la liga</strong>
+        <small>Equipos, calendario y estado disponible.</small>
+      </a>
+      <a class="v933-launch-step" href="/calendar" data-launch-step="player">
+        {{ icon('user') }}
+        <span>Jugador</span>
+        <strong>Abre el jugador</strong>
+        <small>Se abre desde un evento con jugador confirmado.</small>
+      </a>
+      <a class="v933-launch-step" href="/shark" data-launch-step="shark">
+        {{ icon('shark') }}
+        <span>SHARK</span>
+        <strong>Comprende la evidencia</strong>
+        <small>Que sabemos, que falta y que no se afirma.</small>
+      </a>
+      <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">
+        {{ icon('star') }}
+        <span>Favoritos</span>
+        <strong>Personaliza sin invadir</strong>
+        <small>Un equipo o liga basta para reducir busqueda.</small>
+      </a>
+      <a class="v933-launch-step" href="/smart-home" data-launch-step="action">
+        {{ icon('data') }}
+        <span>Acciones</span>
+        <strong>Vuelve al briefing</strong>
+        <small>Prioridades, recap y actividad reciente.</small>
+      </a>
+    </div>
+  </section>
+
+  <section class="v933-panel v933-launch-continuity" data-launch-excellence="productivity" data-top100-improvement="19,20,26,33,83">
+    {{ section_header('Continua sin buscar otra vez', 'Accesos de productividad basados en rutas existentes y memoria local del navegador; no salen de NeMeSiS.') }}
+    <div class="v933-launch-continuity-grid">
+      <a class="v933-launch-memory-card is-primary" href="/smart-home" data-launch-continue="last-route" data-fallback-label="Abrir Smart Home">
+        {{ icon('arrow') }}
+        <span>Continuar</span>
+        <strong>Smart Home</strong>
+        <small>Tu siguiente accion util.</small>
+      </a>
+      <a class="v933-launch-memory-card" href="/calendar" data-launch-last-match="true">
+        {{ icon('live') }}
+        <span>Ultimo partido</span>
+        <strong>Buscar partido</strong>
+        <small>Match Center en cuanto exista contexto local.</small>
+      </a>
+      <a class="v933-launch-memory-card" href="/favorites">
+        {{ icon('star') }}
+        <span>Favoritos</span>
+        <strong>Radar personal</strong>
+        <small>Equipos, ligas y partidos guardados.</small>
+      </a>
+      <a class="v933-launch-memory-card" href="/daily-briefing">
+        {{ icon('calendar') }}
+        <span>Briefing diario</span>
+        <strong>Que mirar hoy</strong>
+        <small>Prioridades sin recomendaciones inventadas.</small>
+      </a>
+      <a class="v933-launch-memory-card" href="/evening-recap">
+        {{ icon('history') }}
+        <span>Recap nocturno</span>
+        <strong>Que cambio</strong>
+        <small>Resultados y pendientes con evidencia.</small>
+      </a>
+      <a class="v933-launch-memory-card" href="/activity-center">
+        {{ icon('data') }}
+        <span>Actividad</span>
+        <strong>Lo reciente</strong>
+        <small>Tu recorrido dentro de NeMeSiS.</small>
+      </a>
+    </div>
+  </section>
 
   <section class="v933-panel v933-product-excellence-band" data-top100-improvement="17">
     {{ section_header('Estado de datos deportivos', 'La jornada muestra el mismo estado seguro que consumen calendario, directo, picks y SHARK.') }}

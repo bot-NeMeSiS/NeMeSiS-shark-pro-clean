@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action %}
+{% block title %}Executive Board Center | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+{% set summary = board.proposal_summary or {} %}
+<div class="v933-page v933-admin-command-center executive-board-v1" data-executive-board-center="{{ board.center_contract }}" data-executive-board-contract="{{ board.contract }}" data-strategic-decision-contract="{{ board.decision_contract }}" data-executive-board-mode="read-only">
+  {{ page_header('Executive Board Center', 'Consejo de Direccion interno: evidencia, votos independientes, Top 10 priorizado y cero ejecucion automatica.', 'chart', [
+    {'label':'Product Review','href':'/admin/product-review-center','icon':'target'},
+    {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
+    {'label':'Developer','href':'/admin/developer-center','icon':'code'},
+    {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'}
+  ]) }}
+
+  <section class="v933-kpi-grid is-six" aria-label="Resumen Executive Board">
+    {{ kpi_card('Directores', board.director_count, 'Consejo completo por area', 'blue', 'users') }}
+    {{ kpi_card('Score Board', board.board_score, 'Media explicada, basada en evidencia', 'cyan', 'target') }}
+    {{ kpi_card('Propuestas', summary.total, 'Candidatos de Product Review', 'warning' if summary.total else 'success', 'list') }}
+    {{ kpi_card('P0 / P1', (summary.P0 or 0) ~ ' / ' ~ (summary.P1 or 0), 'Riesgo critico o alto', 'danger' if summary.P0 or summary.P1 else 'success', 'alert') }}
+    {{ kpi_card('Top 10', board.top_10_improvements|length, 'Priorizado para decision humana', 'warning', 'activity') }}
+    {{ kpi_card('Modo', 'Read-only', 'Sin ejecucion automatica', 'success', 'check') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header>
+          <div><h2>Estado ejecutivo por area</h2><p>Lectura compacta del producto, negocio, tecnologia, UX, movil, SHARK, seguridad, operaciones, calidad y marketing.</p></div>
+          {{ status_chip(board.status, 'success' if board.status in ['PASS','PASS_WITH_STRATEGIC_REVIEW'] else 'warning') }}
+        </header>
+        <div class="v933-admin-panel-body executive-health-grid">
+          {% for item in board.area_health %}
+          <article class="executive-health-card">
+            <strong>{{ item.label }}</strong>
+            <span>{{ item.score }}/100</span>
+            {{ status_chip(item.state, 'success' if item.state == 'PASS' else 'warning') }}
+            <small>{{ item.evidence }}</small>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Product Score</h2><p>Cada puntuacion se justifica por directores y evidencia relacionada. No hay numeros arbitrarios.</p></div>{{ evidence_chip('PARTIALLY_VERIFIED') }}</header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Area','Score','Estado','Justificacion','Evidencia']) %}
+          {% for score in board.product_scores %}
+          <tr>
+            <td><strong>{{ score.label }}</strong></td>
+            <td><strong>{{ score.score }}</strong><small>/100</small></td>
+            <td>{{ status_chip(score.state, 'success' if score.state == 'PASS' else 'warning') }}</td>
+            <td><small>{{ score.justification }}</small></td>
+            <td><small>{{ score.evidence|join(', ') if score.evidence else 'Sin hallazgos directos' }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="executive-decision-matrix">
+        <header><div><h2>Matriz de decisiones</h2><p>Top 10 ordenado por prioridad, impacto, coste, riesgo y votos independientes.</p></div>{{ status_chip('APROBACION HUMANA','warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if board.top_10_improvements %}
+          {% call data_table(['ID','Mejora','Prioridad','Voto Board','Apoyan','Rechazan','Impacto','Coste/Riesgo']) %}
+          {% for item in board.top_10_improvements %}
+          <tr>
+            <td><strong>{{ item.id }}</strong><br><small>{{ item.source_id }}</small></td>
+            <td><strong>{{ item.title }}</strong><br><small>{{ item.evidence }}</small><br><code>{{ item.route }}</code></td>
+            <td>{{ status_chip(item.priority, 'danger' if item.priority in ['P0','P1'] else 'warning' if item.priority == 'P2' else 'neutral') }}</td>
+            <td>{{ status_chip(item.board_classification, 'danger' if item.board_classification == 'CRITICA' else 'warning' if item.board_classification in ['ALTA','MEDIA'] else 'neutral') }}<br><small>{{ item.selection_explanation|join(' / ') }}</small></td>
+            <td><small>{{ item.supporters|join(', ') if item.supporters else 'Sin apoyo activo' }}</small></td>
+            <td><small>{{ item.rejecters|join(', ') if item.rejecters else 'Sin rechazo formal' }}</small></td>
+            <td><small>Usuario: {{ item.impact_user }}<br>Negocio: {{ item.impact_business }}</small></td>
+            <td><small>Coste: {{ item.estimated_cost }}<br>Riesgo: {{ item.risk }}<br>Dependencias: {{ item.dependencies|join(', ') }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+          {% else %}
+            {{ empty_state('Sin propuestas ejecutivas', 'No hay candidatos con evidencia local para priorizar.', '', '', 'check') }}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Directores</h2><p>Cada director analiza solo su area y deja claro que funciona, que no funciona, riesgos y oportunidades.</p></div>{{ status_chip('12 DIRECTORES','success') }}</header>
+        <div class="v933-admin-panel-body executive-director-grid">
+          {% for director in board.directors %}
+          <article class="executive-director-card">
+            <div>
+              <strong>{{ director.name }}</strong>
+              <span>{{ director.area }} ? {{ director.score }}/100</span>
+            </div>
+            {{ status_chip(director.state, 'success' if director.state in ['SIN_HALLAZGOS_DIRECTOS','CON_EVIDENCIA'] else 'warning') }}
+            <p><b>Funciona:</b> {{ director.what_works[0] }}</p>
+            <p><b>No funciona:</b> {{ director.what_does_not_work[0] }}</p>
+            <p><b>Mejorar:</b> {{ director.should_improve[0] }}</p>
+            <p><b>No tocar:</b> {{ director.should_not_touch }}</p>
+            <small>Votos emitidos: {{ director.votes_given }} ? Riesgo: {{ director.risks[0] }}</small>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Contratos</h2><p>Gobierno estrategico read-only.</p></div>{{ status_chip('SOLO LECTURA','success') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            <div><span><strong>Board</strong><small>{{ board.contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Centro</strong><small>{{ board.center_contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Decision</strong><small>{{ board.decision_contract }}</small></span>{{ status_chip('ACTIVO','success') }}</div>
+            <div><span><strong>Fuente</strong><small>{{ board.source_contracts.product_review_system }}</small></span>{{ status_chip('EVIDENCIA','success') }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Guardrails</h2><p>Limites del Consejo Ejecutivo.</p></div>{{ evidence_chip('CONFIRMADO') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for key, value in board.guardrails.items() %}
+            <div><span><strong>{{ key|replace('_',' ') }}</strong><small>{{ value }}</small></span>{{ status_chip('SAFE' if not value or value == 0 else 'REVISAR', 'success' if not value or value == 0 else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Backlog</h2><p>Estado sincronizado para TOP 100, Master Roadmap y Living Roadmap.</p></div>{{ status_chip('PENDIENTE','warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for update in board.backlog_updates[:10] %}
+            <div><span><strong>{{ update.id }}</strong><small>{{ update.source_id }} ? {{ update.documentation|join(', ') }}</small></span>{{ status_chip(update.top100_status, 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Lectura ejecutiva</h2><p>Resumen del sistema.</p></div>{{ status_chip(board.status, 'success') }}</header>
+        <div class="v933-admin-panel-body">
+          <p class="v933-safe-copy">{{ board.executive_summary }}</p>
+          <div class="v933-chip-cloud">
+            {{ status_chip('Sin chatbot','success') }}
+            {{ status_chip('Sin IA generativa','success') }}
+            {{ status_chip('Sin decisiones automaticas','success') }}
+            {{ status_chip('Sin deploy','success') }}
+            {{ status_chip('Sin produccion','success') }}
+          </div>
+        </div>
+      </section>
+
+      {{ next_action('Siguiente decision', board.next_action, '/admin/product-review-center', 'Abrir Product Review') }}
+    </aside>
+  </section>
+</div>
+{% endblock %}

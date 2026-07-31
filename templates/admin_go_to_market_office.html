@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
+{% block title %}Go To Market Office | NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+<!-- NEMESIS-GO-TO-MARKET-OFFICE-V1 -->
+{% set beta = gtm.beta_management or {} %}
+{% set commercial = gtm.commercial_readiness or {} %}
+<div class="v933-page v933-admin-command-center go-to-market-office-v1" data-go-to-market-office="{{ gtm.contract }}" data-go-to-market-mode="read-only">
+  {{ page_header('Go To Market Office', 'Centro interno de lanzamiento: beta, marketing, soporte, operaciones, checklist y prioridades sin campanas, pagos ni acciones externas.', 'target', [
+    {'label':'Beta Center','href':'/admin/beta-center','icon':'users'},
+    {'label':'Company Platform','href':'/landing','icon':'navigation'},
+    {'label':'Executive Board','href':'/admin/executive-board','icon':'chart'},
+    {'label':'Operaciones','href':'/admin/operations-center','primary':true,'icon':'shield'}
+  ]) }}
+
+  <section class="v933-kpi-grid is-six" aria-label="Resumen Go To Market">
+    {{ kpi_card('Estado', gtm.status, 'Preparacion local, no produccion', 'warning', 'target') }}
+    {{ kpi_card('Checklist', gtm.checklist|length, 'Controles de lanzamiento', 'blue', 'list') }}
+    {{ kpi_card('Beta score', beta.score, beta.status or 'Sin beta real', 'cyan', 'users') }}
+    {{ kpi_card('Top 20', gtm.top20_release_actions|length, 'Acciones priorizadas, no ejecutadas', 'warning', 'chart') }}
+    {{ kpi_card('Reportes', gtm.reports|selectattr('available')|list|length, 'Documentacion generada', 'neutral', 'document') }}
+    {{ kpi_card('Modo', 'Read-only', 'Sin push, deploy, Stripe ni Telegram', 'success', 'shield') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel" id="launch-checklist">
+        <header>
+          <div><h2>Launch Checklist</h2><p>Un PASS solo aparece cuando hay evidencia local suficiente. Produccion no se asume.</p></div>
+          {{ status_chip('EVIDENCE FIRST','success') }}
+        </header>
+        <div class="v933-admin-panel-body">
+          {% call data_table(['Control','Estado','Evidencia','Limite','Responsable']) %}
+          {% for item in gtm.checklist %}
+          <tr>
+            <td><a href="{{ item.href }}"><strong>{{ item.label }}</strong></a></td>
+            <td>{{ status_chip(item.status, 'success' if item.status == 'PASS' else 'danger' if item.status == 'BLOCKED' else 'warning') }}</td>
+            <td><small>{{ item.evidence }}</small></td>
+            <td><small>{{ item.limitation }}</small></td>
+            <td><small>{{ item.owner }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="release-readiness">
+        <header>
+          <div><h2>Release Readiness</h2><p>Puntuaciones derivadas de controles PASS/PARTIAL/BLOCKED, no de opinion.</p></div>
+          {{ status_chip('CALCULO EXPLICADO','blue') }}
+        </header>
+        <div class="v933-admin-panel-body go-to-market-readiness-grid">
+          {% for item in gtm.readiness %}
+          <article class="go-to-market-score-card">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.score }}/100</strong>
+            {{ status_chip(item.status, 'success' if item.status == 'PASS' else 'warning') }}
+            <small>{{ item.explanation }}</small>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="beta-management">
+        <header><div><h2>Beta Management</h2><p>Infraestructura para invitaciones, progreso, feedback, bugs, satisfaccion, abandono y cierre beta sin registrar usuarios reales desde este sprint.</p></div>{{ status_chip(beta.status or 'PARTIAL','warning') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-kpi-grid">
+            {{ kpi_card('Feedback', beta.feedback_total or 0, 'Recibido en Beta Center', 'blue', 'message') }}
+            {{ kpi_card('Bugs', beta.bugs or 0, 'Reportes reproducibles', 'warning', 'alert') }}
+            {{ kpi_card('Solicitudes', beta.requests or 0, 'Feature requests', 'cyan', 'list') }}
+            {{ kpi_card('Satisfaccion', beta.satisfaction, 'No se interpreta con muestra pequena', 'neutral', 'heart') }}
+          </div>
+          <div class="v933-truth-list is-no-icon go-to-market-workflow">
+            {% for step in beta.workflow %}
+            <div><span><strong>{{ step.stage }}</strong><small>{{ step.evidence }}</small></span>{{ status_chip(step.state, 'success' if step.state == 'PREPARADO' else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="commercial-readiness">
+        <header><div><h2>Commercial Readiness</h2><p>Valor comercial preparado sin conectar pagos ni lanzar campanas.</p></div>{{ status_chip('SIN STRIPE','warning') }}</header>
+        <div class="v933-admin-panel-body go-to-market-commercial-grid">
+          <article><span>FREE</span><p>{{ commercial.free_value }}</p></article>
+          <article><span>PRO</span><p>{{ commercial.pro_value }}</p></article>
+          <article><span>ELITE</span><p>{{ commercial.elite_value }}</p></article>
+          <article><span>Diferenciacion</span><p>{{ commercial.differentiation }}</p></article>
+        </div>
+        <div class="v933-admin-panel-body">
+          <div class="v933-chip-cloud">
+            {% for risk in commercial.risks %}{{ status_chip(risk, 'warning') }}{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="top20-release-actions">
+        <header><div><h2>Top 20 acciones antes de Release 1.0</h2><p>Seleccionadas desde TOP 100 por orden y prioridad. No se ejecutan automaticamente.</p></div>{{ status_chip('PRIORIZADO','warning') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if gtm.top20_release_actions %}
+          {% call data_table(['ID','Prioridad','Accion','Impacto','Esfuerzo/Riesgo','Dependencias']) %}
+          {% for item in gtm.top20_release_actions %}
+          <tr>
+            <td><strong>{{ item.id }}</strong><br><small>{{ item.status }}</small></td>
+            <td>{{ status_chip(item.priority, 'danger' if item.priority == 'P1' else 'warning') }}</td>
+            <td><strong>{{ item.title }}</strong><br><small>{{ item.user_value }}</small></td>
+            <td><small>Usuario: {{ item.impact }}<br>Negocio: {{ item.business_value }}</small></td>
+            <td><small>{{ item.effort }} / {{ item.risk }}</small></td>
+            <td><small>{{ item.dependencies }}</small></td>
+          </tr>
+          {% endfor %}
+          {% endcall %}
+          {% else %}
+            {{ empty_state('Sin Top 20', 'No se pudo leer TOP_100_IMPROVEMENTS.md.', '', '', 'data') }}
+          {% endif %}
+        </div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel" id="marketing-foundation">
+        <header><div><h2>Marketing Foundation</h2><p>Estructura preparada. No hay campanas activas ni contenido ficticio.</p></div>{{ status_chip('NO CAMPAIGNS','success') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for item in gtm.marketing_foundation %}
+            <div><span><a href="{{ item.href }}"><strong>{{ item.area }}</strong></a><small>{{ item.evidence }}</small></span>{{ status_chip(item.state, 'success' if item.state == 'PASS' else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="customer-success">
+        <header><div><h2>Customer Success</h2><p>Ayuda y soporte reutilizan Company Platform y Beta Program.</p></div>{{ status_chip('PRE-BETA','blue') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for item in gtm.customer_success %}
+            <div><span><a href="{{ item.href }}"><strong>{{ item.area }}</strong></a><small>Preparacion de soporte para beta cerrada.</small></span>{{ status_chip(item.state, 'success' if item.state == 'PASS' else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="operations-readiness">
+        <header><div><h2>Operations</h2><p>Lectura read-only del estado operativo y comercial.</p></div>{{ status_chip('SOLO LECTURA','success') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for item in gtm.operations %}
+            <div><span><a href="{{ item.href }}"><strong>{{ item.area }}</strong></a><small>Estado observado desde superficies existentes.</small></span>{{ status_chip(item.state or 'PARTIAL', 'success' if item.state in ['PASS','READY','READY_FOR_CLOSED_BETA_LOCAL'] else 'warning') }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="gtm-reports">
+        <header><div><h2>Reportes</h2><p>Documentacion final del sprint Go To Market.</p></div>{{ status_chip('EXPORTABLE','neutral') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-truth-list is-no-icon">
+            {% for report in gtm.reports %}
+            <div><span><strong>{{ report.name }}</strong><small>{{ report.path or 'reports/' ~ report.name }}</small></span>{{ evidence_chip(report.state) }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" id="gtm-guardrails">
+        <header><div><h2>Guardrails</h2><p>Limites del sprint.</p></div>{{ evidence_chip('CONFIRMADO') }}</header>
+        <div class="v933-admin-panel-body">
+          <div class="v933-chip-cloud">
+            {{ status_chip('Sin modulos deportivos','success') }}
+            {{ status_chip('Sin Sports Core','success') }}
+            {{ status_chip('Sin SHARK','success') }}
+            {{ status_chip('Sin produccion','success') }}
+            {{ status_chip('Sin deploy','success') }}
+            {{ status_chip('Sin push','success') }}
+            {{ status_chip('Sin Stripe','success') }}
+            {{ status_chip('Sin Telegram','success') }}
+          </div>
+        </div>
+      </section>
+
+      {{ next_action('Siguiente decision', gtm.next_action, '/admin/operations-center', 'Abrir operaciones') }}
+    </aside>
+  </section>
+</div>
+{% endblock %}

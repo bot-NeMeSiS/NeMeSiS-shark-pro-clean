@@ -749,6 +749,86 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             else "IN_PROGRESS",
             "evidence": "Departamento interno de calidad con 12 revisores evidence-first, scoring explicable y candidatos de roadmap sin ejecucion automatica.",
         },
+
+        {
+            "name": "Executive Board",
+            "state": "COMPLETED"
+            if complete(
+                "templates/admin_executive_board_center.html",
+                "tools/check_executive_board.py",
+                "tests/test_executive_board.py",
+                "reports/EXECUTIVE_BOARD_REPORT.md",
+                "reports/PRODUCT_GOVERNANCE_REPORT.md",
+                "reports/EXECUTIVE_DECISION_MATRIX.md",
+                "reports/STRATEGIC_ROADMAP_REPORT.md",
+                "reports/PRODUCT_HEALTH_REPORT.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Consejo de Direccion interno read-only que consume Product Review System, emite votos por director, prioriza Top 10 y no ejecuta mejoras automaticamente.",
+        },
+        {
+            "name": "Beta Program Feedback Platform",
+            "state": "COMPLETED"
+            if complete(
+                "engines/beta_program_engine.py",
+                "templates/beta.html",
+                "templates/admin_beta_center.html",
+                "tools/check_beta_program.py",
+                "tests/test_beta_program.py",
+                "reports/BETA_PROGRAM_REPORT.md",
+                "reports/FEEDBACK_PLATFORM_REPORT.md",
+                "reports/BETA_METRICS_REPORT.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Beta Center, Feedback Center, Bug Reporter, Feature Requests, Satisfaction y Beta Metrics con privacidad, seudonimizacion, consentimiento por envio y sin llamadas externas.",
+        },
+        {
+            "name": "Launch Excellence Sprint 01",
+            "state": "COMPLETED"
+            if complete(
+                "reports/LAUNCH_EXCELLENCE_SPRINT_01_REPORT.md",
+                "reports/ONBOARDING_REVIEW_REPORT.md",
+                "reports/UX_POLISH_REPORT.md",
+                "reports/MOBILE_EXPERIENCE_REPORT.md",
+                "reports/ACCESSIBILITY_REPORT.md",
+                "tests/test_launch_excellence_sprint_01.py",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Pulido pre-beta de Home, onboarding ligero, continuidad local, microinteracciones, movilidad y accesibilidad sin nuevos modulos, rutas, APIs ni cambios deportivos.",
+        },
+        {
+            "name": "Company Platform Business Ecosystem",
+            "state": "COMPLETED"
+            if complete(
+                "templates/company_platform.html",
+                "tools/check_company_platform.py",
+                "tests/test_company_platform.py",
+                "reports/COMPANY_PLATFORM_REPORT.md",
+                "reports/BUSINESS_READY_REPORT.md",
+                "reports/COMMERCIAL_WEBSITE_REPORT.md",
+                "reports/GO_TO_MARKET_PLATFORM.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Landing oficial, precios, FAQ, ayuda, conocimiento, roadmap publico, changelog, estado, partners, afiliados y blog preparados como infraestructura comercial sin pagos, campanas ni contenido ficticio.",
+        },
+        {
+            "name": "Go To Market Office",
+            "state": "COMPLETED"
+            if complete(
+                "templates/admin_go_to_market_office.html",
+                "tools/check_go_to_market_program.py",
+                "tests/test_go_to_market_program.py",
+                "reports/GO_TO_MARKET_OFFICE_REPORT.md",
+                "reports/BETA_MANAGEMENT_REPORT.md",
+                "reports/COMMERCIAL_READINESS_FINAL.md",
+                "reports/CUSTOMER_SUCCESS_REPORT.md",
+                "reports/MARKETING_FOUNDATION_REPORT.md",
+                "reports/LAUNCH_CHECKLIST_FINAL.md",
+                "reports/TOP20_RELEASE_ACTIONS.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Go To Market Office consolida beta, lanzamiento, marketing, conversion, usuarios, feedback, riesgos, operaciones, checklist y Top 20 sin campanas, pagos, push, deploy ni produccion.",
+        },
         {
             "name": "Beta privada",
             "state": "BLOCKED_BY_CERTIFICATION",

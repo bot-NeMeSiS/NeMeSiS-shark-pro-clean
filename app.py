@@ -390,7 +390,17 @@ from engines.version_regression_engine import build_version_regression_snapshot
 from engines.recovery_simulator_engine import build_recovery_simulator_snapshot
 from engines.autonomous_quality_platform_engine import build_autonomous_quality_snapshot
 from engines.project_operating_system_engine import build_product_roadmap
-from engines.product_review_system_engine import build_product_review_system_snapshot
+from engines.product_review_system_engine import build_executive_board_snapshot, build_product_review_system_snapshot
+from engines.beta_program_engine import (
+    BETA_METRICS_CONTRACT,
+    BETA_PROGRAM_CONTRACT,
+    FEEDBACK_CATEGORIES,
+    FEEDBACK_PLATFORM_CONTRACT,
+    FEEDBACK_TYPES,
+    SEVERITIES,
+    build_beta_program_snapshot,
+    sanitize_beta_feedback_payload,
+)
 
 
 from engines.madrid_time_engine import (
@@ -14180,6 +14190,97 @@ def favicon_ico():
     return redirect(url_for("static", filename="img/shark-logo.svg"))
 
 
+COMPANY_PLATFORM_CONTRACT = "NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1"
+
+COMPANY_PLATFORM_PAGES = {
+    "landing": {"title": "NeMeSiS SHARK PRO", "eyebrow": "Plataforma oficial", "summary": "Experiencia deportiva basada en datos reales, contexto SHARK, transparencia y control responsable.", "status": "Infraestructura local"},
+    "pricing": {"title": "Planes claros, sin compra desde esta pagina", "eyebrow": "Precios", "summary": "FREE, PRO y ELITE quedan explicados sin conectar pagos ni prometer resultados.", "status": "Compra no activada aqui"},
+    "faq": {"title": "Respuestas claras antes de usar NeMeSiS", "eyebrow": "Preguntas frecuentes", "summary": "FAQ centrada en confianza, datos reales, limites y uso responsable.", "status": "FAQ inicial"},
+    "help": {"title": "Ayuda organizada para resolver dudas rapido", "eyebrow": "Centro de ayuda", "summary": "Entrada publica hacia soporte, guias y limites conocidos.", "status": "Preparado"},
+    "knowledge": {"title": "Conocimiento publico sin contenido inventado", "eyebrow": "Base de conocimiento", "summary": "Estructura por temas; los articulos largos se publicaran solo tras aprobacion humana.", "status": "Estructura preparada"},
+    "roadmap": {"title": "Que viene despues, sin fechas inventadas", "eyebrow": "Roadmap publico", "summary": "Roadmap comercial de alto nivel sujeto a certificacion antes de prometer lanzamiento.", "status": "Publico controlado"},
+    "changelog": {"title": "Historial publico pendiente de aprobacion", "eyebrow": "Changelog", "summary": "La infraestructura esta preparada; no hay notas publicas sin revision humana.", "status": "Sin entradas publicas"},
+    "status": {"title": "Estado publico con limites visibles", "eyebrow": "Estado del servicio", "summary": "Vista informativa local; produccion requiere Gate antes de declararse lista.", "status": "No certifica produccion"},
+    "partners": {"title": "Programa de partners no abierto todavia", "eyebrow": "Partners", "summary": "No se publican acuerdos, logos ni claims comerciales no confirmados.", "status": "Sin partners publicados"},
+    "affiliates": {"title": "Afiliados preparado, no activado", "eyebrow": "Afiliados", "summary": "Sin campanas, comisiones ni enlaces afiliados activos desde esta infraestructura.", "status": "Programa cerrado"},
+    "blog": {"title": "Blog preparado para contenido aprobado", "eyebrow": "Blog", "summary": "No se publican articulos de relleno ni contenido editorial sin revision.", "status": "Sin articulos"},
+}
+
+COMPANY_PLATFORM_NAV = [
+    ("Inicio", "/landing", "landing"), ("Precios", "/precios", "pricing"), ("FAQ", "/faq", "faq"),
+    ("Ayuda", "/help-center", "help"), ("Roadmap", "/roadmap", "roadmap"), ("Estado", "/service-status", "status"),
+    ("Contacto", "/contact", "contact"),
+]
+
+def render_company_platform_page(page_key: str):
+    page = COMPANY_PLATFORM_PAGES.get(page_key, COMPANY_PLATFORM_PAGES["landing"])
+    return render_template(
+        "company_platform.html",
+        title=f"{page['title']} | NeMeSiS SHARK PRO",
+        page_key=page_key,
+        page=page,
+        company_nav=COMPANY_PLATFORM_NAV,
+        company_contract=COMPANY_PLATFORM_CONTRACT,
+        company_updated_at=now_madrid_label(),
+    )
+
+@app.route("/landing")
+@app.route("/oficial")
+@app.route("/empresa")
+def company_platform_landing_page():
+    return render_company_platform_page("landing")
+
+@app.route("/precios")
+@app.route("/pricing")
+def company_platform_pricing_page():
+    return render_company_platform_page("pricing")
+
+@app.route("/faq")
+@app.route("/preguntas-frecuentes")
+def company_platform_faq_page():
+    return render_company_platform_page("faq")
+
+@app.route("/help-center")
+@app.route("/centro-ayuda")
+def company_platform_help_page():
+    return render_company_platform_page("help")
+
+@app.route("/knowledge-base")
+@app.route("/base-conocimiento")
+def company_platform_knowledge_page():
+    return render_company_platform_page("knowledge")
+
+@app.route("/roadmap")
+@app.route("/roadmap-publico")
+def company_platform_public_roadmap_page():
+    return render_company_platform_page("roadmap")
+
+@app.route("/changelog")
+@app.route("/cambios")
+def company_platform_changelog_page():
+    return render_company_platform_page("changelog")
+
+@app.route("/service-status")
+@app.route("/estado-servicio")
+@app.route("/status")
+def company_platform_status_page():
+    return render_company_platform_page("status")
+
+@app.route("/partners")
+@app.route("/socios")
+def company_platform_partners_page():
+    return render_company_platform_page("partners")
+
+@app.route("/afiliados")
+@app.route("/affiliates")
+def company_platform_affiliates_page():
+    return render_company_platform_page("affiliates")
+
+@app.route("/blog")
+def company_platform_blog_page():
+    return render_company_platform_page("blog")
+
+
 
 # ===================== V741 CALENDAR SEARCH EXPERIENCE PERFECTION =====================
 
@@ -22997,6 +23098,210 @@ def safe_count(table, where="1=1", params=()):
         return 0
 
 
+BETA_FEEDBACK_COLUMNS = (
+    "created_at_madrid",
+    "user_ref",
+    "feedback_type",
+    "category",
+    "severity",
+    "surface",
+    "route",
+    "device_context",
+    "title",
+    "message",
+    "steps_to_reproduce",
+    "expected_result",
+    "actual_result",
+    "satisfaction_score",
+    "allow_beta_metrics",
+    "status",
+    "source",
+)
+
+
+def ensure_beta_feedback_schema():
+    """Create the closed-beta feedback table without touching sports data."""
+    conn = sqlite_connect(DB_PATH)
+    try:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS beta_feedback(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at_madrid TEXT NOT NULL,
+                user_ref TEXT NOT NULL,
+                feedback_type TEXT NOT NULL,
+                category TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                surface TEXT,
+                route TEXT,
+                device_context TEXT,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                steps_to_reproduce TEXT,
+                expected_result TEXT,
+                actual_result TEXT,
+                satisfaction_score INTEGER,
+                allow_beta_metrics INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'open',
+                source TEXT NOT NULL DEFAULT 'beta_center_form'
+            )"""
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def beta_feedback_counts():
+    counts = {
+        "feedback_total": safe_count("beta_feedback"),
+        "bug_total": safe_count("beta_feedback", "feedback_type='bug'"),
+        "feature_total": safe_count("beta_feedback", "feedback_type='feature_request'"),
+        "satisfaction_count": safe_count("beta_feedback", "feedback_type='satisfaction' AND satisfaction_score IS NOT NULL"),
+        "metrics_enabled": safe_count("beta_feedback", "allow_beta_metrics=1"),
+        "metrics_disabled": safe_count("beta_feedback", "allow_beta_metrics=0"),
+        "open_items": safe_count("beta_feedback", "lower(coalesce(status,''))='open'"),
+        "satisfaction_average": None,
+    }
+    try:
+        item = one("SELECT ROUND(AVG(satisfaction_score), 2) AS avg_score FROM beta_feedback WHERE satisfaction_score IS NOT NULL AND allow_beta_metrics=1")
+        if item and item.get("avg_score") is not None:
+            counts["satisfaction_average"] = float(item.get("avg_score"))
+    except Exception:
+        counts["satisfaction_average"] = None
+    return counts
+
+
+def beta_feedback_recent(limit=12):
+    try:
+        return rows(
+            """SELECT id,created_at_madrid,user_ref,feedback_type,category,severity,surface,route,
+                      device_context,title,message,steps_to_reproduce,expected_result,actual_result,
+                      satisfaction_score,allow_beta_metrics,status,source
+               FROM beta_feedback
+               ORDER BY id DESC LIMIT ?""",
+            (int(limit),),
+        )
+    except Exception:
+        return []
+
+
+def beta_source_contracts(user=None):
+    contracts = {}
+    try:
+        contracts["user_intelligence"] = user_intelligence_platform_snapshot().get("contract")
+    except Exception:
+        contracts["user_intelligence"] = "BLOCKED_BY_LOCAL_CONTEXT"
+    try:
+        contracts["action_platform"] = build_action_platform_snapshot(user or {"id": "", "role": "FREE", "membership": "FREE"}).get("contract")
+    except Exception:
+        contracts["action_platform"] = "BLOCKED_BY_LOCAL_CONTEXT"
+    try:
+        contracts["product_review"] = build_product_review_system_snapshot(BASE_DIR, APP_VERSION).get("contract")
+    except Exception:
+        contracts["product_review"] = "BLOCKED_BY_LOCAL_CONTEXT"
+    try:
+        contracts["executive_board"] = build_executive_board_snapshot(BASE_DIR, APP_VERSION).get("contract")
+    except Exception:
+        contracts["executive_board"] = "BLOCKED_BY_LOCAL_CONTEXT"
+    return contracts
+
+
+def beta_program_context(user=None):
+    return build_beta_program_snapshot(
+        counts=beta_feedback_counts(),
+        recent_feedback=beta_feedback_recent(limit=12),
+        source_contracts=beta_source_contracts(user),
+        generated_at_madrid=now_iso(),
+    )
+
+
+def save_beta_feedback(payload):
+    ensure_beta_feedback_schema()
+    values = [payload.get(column) for column in BETA_FEEDBACK_COLUMNS]
+    values[BETA_FEEDBACK_COLUMNS.index("allow_beta_metrics")] = 1 if payload.get("allow_beta_metrics") else 0
+    conn = sqlite_connect(DB_PATH)
+    try:
+        placeholders = ",".join("?" for _ in BETA_FEEDBACK_COLUMNS)
+        conn.execute(
+            f"INSERT INTO beta_feedback({','.join(BETA_FEEDBACK_COLUMNS)}) VALUES ({placeholders})",
+            values,
+        )
+        feedback_id = conn.execute("SELECT last_insert_rowid() AS id").fetchone()[0]
+        conn.commit()
+        return int(feedback_id)
+    finally:
+        conn.close()
+
+
+@app.route("/beta")
+@app.route("/beta-program")
+@app.route("/feedback")
+@app.route("/bug-report")
+@app.route("/feature-requests")
+@app.route("/satisfaction")
+def beta_program_page():
+    user = current_session_user()
+    data = dashboard_data() if user else home_light_data()
+    beta = beta_program_context(user)
+    data.update(
+        {
+            "session_user": user,
+            "beta": beta,
+            "beta_options": {
+                "feedback_types": FEEDBACK_TYPES,
+                "categories": FEEDBACK_CATEGORIES,
+                "severities": SEVERITIES,
+            },
+            "sent": request.args.get("sent") == "1",
+            "error": "",
+            "form": {},
+        }
+    )
+    return render_template("beta.html", data=data, beta=beta)
+
+
+@app.route("/beta/feedback", methods=["POST"])
+@app.route("/api/beta/join", methods=["POST"])
+def beta_feedback_submit():
+    user = current_session_user()
+    payload, errors = sanitize_beta_feedback_payload(request.form, user)
+    if errors:
+        data = dashboard_data() if user else home_light_data()
+        beta = beta_program_context(user)
+        data.update(
+            {
+                "session_user": user,
+                "beta": beta,
+                "beta_options": {
+                    "feedback_types": FEEDBACK_TYPES,
+                    "categories": FEEDBACK_CATEGORIES,
+                    "severities": SEVERITIES,
+                },
+                "sent": False,
+                "error": " ".join(errors),
+                "form": payload,
+            }
+        )
+        return render_template("beta.html", data=data, beta=beta), 400
+    feedback_id = save_beta_feedback(payload)
+    try:
+        record_security_event(
+            DB_PATH,
+            event_type="beta_feedback",
+            severity="INFO",
+            ip_address=security_client_ip(),
+            user_id=str((user or {}).get("id") or ""),
+            username=str((user or {}).get("username") or ""),
+            path=request.path,
+            method=request.method,
+            success=True,
+            reason=f"{payload.get('feedback_type')}:{payload.get('category')}:{feedback_id}",
+            payload={"feedback_id": feedback_id, "allow_beta_metrics": bool(payload.get("allow_beta_metrics"))},
+        )
+    except Exception:
+        pass
+    return redirect("/beta?sent=1")
+
+
 def quality_center_summary():
     """Resumen defensivo de calidad del ecosistema.
     No expone secretos al cliente y no rompe si una tabla antigua no existe.
@@ -25898,10 +26203,21 @@ def v808_admin_real_count(table, where="1=1", params=()):
 
 
 def v808_support_center_context():
-    feedback_total = v808_admin_real_count("client_feedback") + v808_admin_real_count("feedback")
+    beta_counts = beta_feedback_counts()
+    feedback_total = v808_admin_real_count("client_feedback") + v808_admin_real_count("feedback") + int(beta_counts.get("feedback_total") or 0)
     tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets")
-    open_feedback = v808_admin_real_count("client_feedback", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    open_feedback = v808_admin_real_count("client_feedback", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')") + int(beta_counts.get("open_items") or 0)
     open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    recent_beta = [
+        {
+            "name": "Beta",
+            "email": item.get("user_ref") or "seudonimo",
+            "focus_area": item.get("category") or item.get("feedback_type") or "feedback",
+            "message": item.get("title") or item.get("message") or "Feedback beta estructurado",
+            "created_at": item.get("created_at_madrid"),
+        }
+        for item in beta_feedback_recent(limit=6)
+    ]
     health = 100 if (open_feedback + open_tickets) == 0 else max(40, 100 - (open_feedback + open_tickets) * 8)
     return {
         "health": health,
@@ -25909,11 +26225,11 @@ def v808_support_center_context():
         "open_tickets": open_tickets,
         "total_feedback": feedback_total,
         "total_tickets": tickets_total,
-        "recent": [],
+        "recent": recent_beta,
         "actions": [
+            {"title": "Revisar feedback beta", "body": "Abrir Beta Center para priorizar errores reproducibles, solicitudes y satisfaccion sin datos sensibles."},
             {"title": "Revisar experiencia cliente", "body": "Recorre Inicio, Partidos, Directo, Picks, SHARK, Telegram y Cuenta desde Vista cliente."},
-            {"title": "Comprobar botones perdidos", "body": "Usa el Mapa admin V808 para verificar que todas las pantallas importantes siguen accesibles."},
-            {"title": "Validar datos reales", "body": "Sincroniza calendario/live/cuotas desde Centro de datos antes de revisar pantallas vacías."},
+            {"title": "Validar datos reales", "body": "Sincroniza calendario/live/cuotas desde Centro de datos antes de revisar pantallas vacias."},
         ],
     }
 
@@ -26196,12 +26512,15 @@ def admin_v808_retention_center_page():
     return render_template("admin_retention_center.html", data=data)
 
 @app.route("/admin/beta-center")
+@app.route("/admin/feedback-center")
+@app.route("/admin/beta-dashboard")
 def admin_v808_beta_center_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/beta-center")
     data = dashboard_data()
-    data["beta"] = {"score": 0, "users": v808_admin_real_count("users"), "checks": [], "actions": ["Probar usuario", "Probar admin", "Probar Telegram", "Probar directo"]}
-    return render_template("admin_beta_center.html", data=data)
+    beta = beta_program_context({"id": "admin", "role": "ADMIN", "membership": "ADMIN"})
+    data["beta"] = beta
+    return render_template("admin_beta_center.html", data=data, beta=beta)
 
 
 
@@ -27204,6 +27523,226 @@ def founder_command_center_snapshot():
     }
 
 
+GO_TO_MARKET_OFFICE_CONTRACT = "NEMESIS-GO-TO-MARKET-OFFICE-V1"
+
+
+GO_TO_MARKET_REPORT_CATALOG = [
+    "GO_TO_MARKET_OFFICE_REPORT.md",
+    "BETA_MANAGEMENT_REPORT.md",
+    "COMMERCIAL_READINESS_FINAL.md",
+    "CUSTOMER_SUCCESS_REPORT.md",
+    "MARKETING_FOUNDATION_REPORT.md",
+    "LAUNCH_CHECKLIST_FINAL.md",
+    "TOP20_RELEASE_ACTIONS.md",
+]
+
+
+def _gtm_file_exists(relative):
+    return (BASE_DIR / relative).is_file()
+
+
+def _gtm_check_item(key, label, status, evidence, limitation, owner, href):
+    return {
+        "key": key,
+        "label": label,
+        "status": status if status in {"PASS", "PARTIAL", "BLOCKED"} else "PARTIAL",
+        "evidence": evidence,
+        "limitation": limitation,
+        "owner": owner,
+        "href": href,
+    }
+
+
+def _gtm_parse_top100(limit=20):
+    path = BASE_DIR / "reports" / "TOP_100_IMPROVEMENTS.md"
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    done_ids = set()
+    for line in text.splitlines():
+        if "| DONE |" not in line:
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if cells and cells[0].isdigit():
+            done_ids.add(cells[0])
+    actions = []
+    for line in text.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 8 or not cells[0].isdigit():
+            continue
+        if cells[0] in done_ids:
+            continue
+        priority = cells[1]
+        if priority not in {"P1", "P2"}:
+            continue
+        difficulty = cells[4]
+        risk = "Alto" if difficulty.lower().startswith("alta") else "Medio" if difficulty.lower().startswith("media") else "Bajo"
+        actions.append(
+            {
+                "id": f"TOP-{cells[0]}",
+                "priority": priority,
+                "title": cells[2],
+                "impact": cells[3],
+                "effort": difficulty,
+                "risk": risk,
+                "dependencies": cells[5],
+                "user_value": cells[6],
+                "business_value": cells[7],
+                "status": "Pendiente",
+                "source": "reports/TOP_100_IMPROVEMENTS.md",
+            }
+        )
+        if len(actions) >= limit:
+            break
+    return actions
+
+
+def _gtm_score_from_items(items):
+    if not items:
+        return {"score": 0, "status": "BLOCKED", "explanation": "No hay evidencias para calcular el area."}
+    pass_count = len([item for item in items if item.get("status") == "PASS"])
+    partial_count = len([item for item in items if item.get("status") == "PARTIAL"])
+    score = round(((pass_count + partial_count * 0.5) / len(items)) * 100)
+    status = "PASS" if pass_count == len(items) else "PARTIAL" if pass_count or partial_count else "BLOCKED"
+    return {
+        "score": score,
+        "status": status,
+        "explanation": f"{pass_count} PASS y {partial_count} PARTIAL sobre {len(items)} controles con evidencia local.",
+    }
+
+
+def go_to_market_office_snapshot():
+    """Read-only launch office built from existing NeMeSiS surfaces."""
+
+    founder = founder_command_center_snapshot()
+    beta = beta_program_context({"id": "", "role": "ADMIN", "membership": "ADMIN"})
+    board = build_executive_board_snapshot(BASE_DIR, APP_VERSION)
+    review = build_product_review_system_snapshot(BASE_DIR, APP_VERSION)
+    roadmap = build_product_roadmap(BASE_DIR)
+    reports = [_founder_report_metadata(name) for name in GO_TO_MARKET_REPORT_CATALOG]
+    company_platform_files = [
+        "templates/company_platform.html",
+        "tools/check_company_platform.py",
+        "tests/test_company_platform.py",
+        "reports/COMPANY_PLATFORM_REPORT.md",
+        "reports/BUSINESS_READY_REPORT.md",
+        "reports/COMMERCIAL_WEBSITE_REPORT.md",
+        "reports/GO_TO_MARKET_PLATFORM.md",
+    ]
+    operations_by_key = {item.get("key"): item for item in founder.get("operations_summary") or []}
+    release = founder.get("release_readiness") or {}
+    beta_counts = beta.get("counts") or {}
+    checklist = [
+        _gtm_check_item("git", "Git", "PARTIAL", "Gate 1 requiere arbol limpio y commits locales revisados.", "El panel no ejecuta Git; usar cierre Git controlado.", "Release Engineering", "/admin/developer-center"),
+        _gtm_check_item("qa", "QA", "PASS" if _gtm_file_exists("reports/FINAL_QA_CERTIFICATION.md") else "PARTIAL", "Informe local de QA final disponible si el archivo existe.", "Debe reejecutarse antes de publicar.", "QA", "/admin/final-qa"),
+        _gtm_check_item("browser_qa", "Browser QA", "PASS" if _gtm_file_exists("tools/run_product_finalization_browser_qa.py") else "PARTIAL", "Herramienta Browser QA representativa disponible.", "La evidencia de produccion no se asume.", "QA", "/admin/app-experience-quality"),
+        _gtm_check_item("render", "Render", (operations_by_key.get("render") or {}).get("status") or "PARTIAL", (operations_by_key.get("render") or {}).get("summary") or "Sin evidencia Render en snapshot.", "No se consulta produccion desde este sprint.", "Operaciones", "/admin/operations-center"),
+        _gtm_check_item("telegram", "Telegram", (operations_by_key.get("telegram") or {}).get("status") or "PARTIAL", (operations_by_key.get("telegram") or {}).get("summary") or "Integracion Telegram existente; no se envia nada.", "Requiere certificacion controlada para PASS real.", "Operaciones", "/admin/telegram/command-center"),
+        _gtm_check_item("stripe", "Stripe", (operations_by_key.get("stripe") or {}).get("status") or "PARTIAL", (operations_by_key.get("stripe") or {}).get("summary") or "Stripe no conectado desde Company Platform.", "Modo test seguro pendiente antes de cobro.", "Comercial", "/admin/payments"),
+        _gtm_check_item("backups", "Backups", "PARTIAL", "Runbooks e informes locales existen si estan documentados.", "No se ejecutan backups reales desde este panel.", "Operaciones", "/admin/backups"),
+        _gtm_check_item("restore", "Restore", "PARTIAL", "Restore solo puede certificarse con prueba aislada reversible.", "Produccion no se restaura desde este sprint.", "Operaciones", "/admin/recovery-simulator"),
+        _gtm_check_item("observability", "Observabilidad", "PASS" if _gtm_file_exists("reports/OBSERVABILITY_REPORT.md") else "PARTIAL", "Observability report local disponible cuando existe.", "Logs Render requieren acceso read-only externo.", "Operaciones", "/admin/operations-center"),
+        _gtm_check_item("cron", "Cron", (operations_by_key.get("cron") or {}).get("status") or "PARTIAL", (operations_by_key.get("cron") or {}).get("summary") or "Cron requiere evidencia operativa.", "No se ejecuta cron real.", "Operaciones", "/admin/daily-automation"),
+        _gtm_check_item("master_tick", "Master Tick", "PARTIAL", "Master Tick permanece como gate operacional separado.", "No se dispara ninguna tarea.", "Operaciones", "/admin/daily-automation"),
+        _gtm_check_item("security", "Seguridad", "PASS" if _gtm_file_exists("tools/check_repository_privacy_and_secrets.py") else "PARTIAL", "Secret/Privacy Guard disponibles en herramientas locales.", "Debe ejecutarse en cierre de release.", "Seguridad", "/admin/developer-center"),
+        _gtm_check_item("privacy", "Privacidad", "PASS" if (beta.get("privacy_controls") or {}).get("stores_sensitive_information") is False else "PARTIAL", "Beta y User Intelligence minimizan datos y permiten control.", "Requiere revision legal humana.", "Privacidad", "/privacidad"),
+        _gtm_check_item("support", "Soporte", "PASS" if _gtm_file_exists("templates/support.html") else "PARTIAL", "Soporte y Beta Feedback reutilizados.", "Canales humanos deben confirmarse antes de beta.", "Customer Success", "/support"),
+        _gtm_check_item("documentation", "Documentacion", "PASS" if reports else "PARTIAL", "Reportes de lanzamiento y plataforma disponibles localmente.", "No sustituye aprobacion humana.", "Producto", "/admin/developer-center"),
+        _gtm_check_item("landing", "Landing", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "Landing oficial usa Company Platform.", "Contenido final necesita revision humana.", "Marketing", "/landing"),
+        _gtm_check_item("faq", "FAQ", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "FAQ publica preparada sin promesas falsas.", "Debe mantenerse actualizada con soporte real.", "Customer Success", "/faq"),
+        _gtm_check_item("company_platform", "Company Platform", "PASS" if all(_gtm_file_exists(path) for path in company_platform_files) else "PARTIAL", "Infraestructura comercial publica creada sin pagos ni campanas.", "No certifica produccion.", "Go To Market", "/landing"),
+    ]
+    readiness_groups = {
+        "Arquitectura": [{"status": "PASS" if item.get("state") == "COMPLETED" else "PARTIAL"} for item in roadmap.get("modules") or []],
+        "Producto": [{"status": "PASS" if str(review.get("status") or "").startswith("PASS") else "PARTIAL"}],
+        "UX": [{"status": "PASS" if _gtm_file_exists("reports/UX_POLISH_REPORT.md") else "PARTIAL"}],
+        "Seguridad": [item for item in checklist if item["key"] in {"security", "privacy"}],
+        "Operaciones": [item for item in checklist if item["key"] in {"render", "cron", "master_tick", "backups", "restore", "observability"}],
+        "Comercial": [item for item in checklist if item["key"] in {"landing", "faq", "company_platform", "stripe"}],
+        "Lanzamiento": checklist,
+    }
+    readiness = []
+    for label, items in readiness_groups.items():
+        score = _gtm_score_from_items(items)
+        readiness.append({"label": label, **score})
+    top20 = _gtm_parse_top100(limit=20)
+    return {
+        "contract": GO_TO_MARKET_OFFICE_CONTRACT,
+        "version": APP_VERSION,
+        "generated_at_madrid": now_iso(),
+        "mode": "read_only",
+        "status": "READY_FOR_CLOSED_BETA_LOCAL" if all(item.get("status") != "BLOCKED" for item in checklist) else "PARTIAL",
+        "production_modified": False,
+        "deploy_executed": False,
+        "push_executed": False,
+        "campaigns_launched": False,
+        "stripe_connected": False,
+        "telegram_sent": False,
+        "external_calls": 0,
+        "checklist": checklist,
+        "readiness": readiness,
+        "beta_management": {
+            "status": beta.get("status"),
+            "score": beta.get("platform_score"),
+            "feedback_total": beta_counts.get("feedback_total"),
+            "bugs": beta_counts.get("bug_total"),
+            "requests": beta_counts.get("feature_total"),
+            "satisfaction": beta_counts.get("satisfaction_average") or "No certificada",
+            "workflow": [
+                {"stage": "Invitacion", "state": "PREPARADO", "evidence": "Sin registrar usuarios reales desde este sprint."},
+                {"stage": "Primer acceso", "state": "PREPARADO", "evidence": "Beta Center y onboarding local existentes."},
+                {"stage": "Feedback", "state": "PREPARADO", "evidence": "Bug Reporter, Feature Requests y Satisfaction."},
+                {"stage": "Abandono", "state": "PARTIAL", "evidence": "Se medira solo con datos consentidos durante beta real."},
+                {"stage": "Cierre beta", "state": "PREPARADO", "evidence": "Checklist y reportes de salida preparados."},
+            ],
+            "href": "/admin/beta-center",
+        },
+        "commercial_readiness": {
+            "free_value": "Descubrir partidos, entender contexto y usar superficies basicas sin promesas de ganancia.",
+            "pro_value": "Mas contexto, Telegram premium y seguimiento avanzado cuando exista evidencia real.",
+            "elite_value": "Experiencia mas completa para usuarios intensivos, siempre con juego responsable.",
+            "differentiation": "NeMeSiS combina deporte, evidencia, SHARK explicable, centros deportivos y operaciones auditables.",
+            "weak_points": ["Produccion y pagos requieren certificacion final.", "Metricas comerciales reales aun son insuficientes."],
+            "risks": ["No vender antes de cerrar Stripe test y soporte humano.", "No prometer resultados deportivos."],
+        },
+        "marketing_foundation": [
+            {"area": "Landing", "state": "PASS", "href": "/landing", "evidence": "Infraestructura publica creada."},
+            {"area": "SEO", "state": "PARTIAL", "href": "/landing", "evidence": "Estructura preparada; estrategia editorial pendiente."},
+            {"area": "Contenido", "state": "PARTIAL", "href": "/knowledge-base", "evidence": "No hay contenido ficticio publicado."},
+            {"area": "Blog", "state": "PARTIAL", "href": "/blog", "evidence": "Blog preparado, sin articulos inventados."},
+            {"area": "Newsletter", "state": "PARTIAL", "href": "/contact", "evidence": "No se activa captacion automatica."},
+            {"area": "Afiliados", "state": "PARTIAL", "href": "/afiliados", "evidence": "Programa no abierto."},
+            {"area": "Partners", "state": "PARTIAL", "href": "/partners", "evidence": "Sin partners publicados."},
+            {"area": "Redes", "state": "PARTIAL", "href": "/contact", "evidence": "No se lanzan campanas."},
+        ],
+        "customer_success": [
+            {"area": "Centro de ayuda", "state": "PASS", "href": "/help-center"},
+            {"area": "FAQ", "state": "PASS", "href": "/faq"},
+            {"area": "Primeros pasos", "state": "PASS", "href": "/landing"},
+            {"area": "Recuperacion de cuenta", "state": "PARTIAL", "href": "/support"},
+            {"area": "Contacto", "state": "PASS", "href": "/contact"},
+            {"area": "Incidencias", "state": "PASS", "href": "/beta"},
+            {"area": "Guias", "state": "PARTIAL", "href": "/knowledge-base"},
+        ],
+        "operations": [
+            {"area": "Produccion", "state": (operations_by_key.get("render") or {}).get("status") or "PARTIAL", "href": "/admin/operations-center"},
+            {"area": "Beta", "state": beta.get("status"), "href": "/admin/beta-center"},
+            {"area": "Comercial", "state": "PARTIAL", "href": "/precios"},
+            {"area": "Marketing", "state": "PARTIAL", "href": "/landing"},
+            {"area": "Soporte", "state": "PASS", "href": "/admin/support-center"},
+            {"area": "Infraestructura", "state": release.get("status") or "PARTIAL", "href": "/admin/operations-center"},
+        ],
+        "reports": reports,
+        "top20_release_actions": top20,
+        "executive_board_top10": board.get("top_10_improvements") or [],
+        "product_review_score": review.get("score") or review.get("overall_score") or "No certificado",
+        "next_action": "Cerrar evidencias operativas de LRM-001 antes de invitar usuarios beta reales.",
+    }
+
+
 @app.route("/admin/founder-dashboard")
 @app.route("/admin/founder")
 @app.route("/admin/company-command-center")
@@ -27258,6 +27797,32 @@ def api_admin_product_review_center_summary():
         "production_modified": False,
         "dangerous_actions_executed": False,
     })
+
+
+@app.route("/admin/executive-board")
+@app.route("/admin/strategic-board")
+@app.route("/admin/product-governance")
+def admin_executive_board_center_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/executive-board")
+    return render_template(
+        "admin_executive_board_center.html",
+        data=dashboard_data(),
+        board=build_executive_board_snapshot(BASE_DIR, APP_VERSION),
+    )
+
+
+@app.route("/admin/go-to-market-office")
+@app.route("/admin/launch-office")
+@app.route("/admin/release-office")
+def admin_go_to_market_office_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/go-to-market-office")
+    return render_template(
+        "admin_go_to_market_office.html",
+        data=dashboard_data(),
+        gtm=go_to_market_office_snapshot(),
+    )
 
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
 

@@ -3874,3 +3874,433 @@ a[href]:focus-visible {
 }
 
 body[data-ns-route="/favorites"] .sports-row .compact-crest { text-overflow: ellipsis; }
+
+
+/* Launch Excellence Sprint 01: first-run clarity, local continuity and mobile polish. */
+.v933-launch-start-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.v933-launch-start-strip a,
+.v933-launch-step,
+.v933-launch-memory-card {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(5, 18, 34, 0.66);
+  color: #eef7ff;
+  text-decoration: none;
+}
+.v933-launch-start-strip a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.v933-launch-start-strip strong {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(72, 211, 255, 0.14);
+  color: #7dd3fc;
+  font-size: 0.74rem;
+}
+.v933-launch-start-strip span,
+.v933-launch-memory-card small,
+.v933-launch-step small {
+  overflow-wrap: anywhere;
+}
+.v933-launch-onboarding,
+.v933-launch-continuity {
+  border-color: rgba(72, 211, 255, 0.24);
+}
+.v933-launch-onboarding.is-hidden {
+  display: none !important;
+}
+.v933-launch-onboarding-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.v933-launch-onboarding-head h2,
+.v933-launch-onboarding-head p {
+  margin-bottom: 0;
+}
+.v933-launch-onboarding-head p {
+  max-width: 780px;
+  color: var(--v933-muted, #a9b5c8);
+  line-height: 1.45;
+}
+.v933-launch-guide-grid,
+.v933-launch-continuity-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.v933-launch-step,
+.v933-launch-memory-card {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+  padding: 13px;
+}
+.v933-launch-step > .v933-icon,
+.v933-launch-memory-card > .v933-icon {
+  width: 28px;
+  height: 28px;
+  color: #7dd3fc;
+}
+.v933-launch-step > span,
+.v933-launch-memory-card > span {
+  color: #7dd3fc;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.v933-launch-step > strong,
+.v933-launch-memory-card > strong {
+  color: #ffffff;
+  font-size: 0.96rem;
+  line-height: 1.18;
+}
+.v933-launch-step > small,
+.v933-launch-memory-card > small {
+  color: var(--v933-muted, #a9b5c8);
+  line-height: 1.35;
+}
+.v933-launch-memory-card.is-primary {
+  background: linear-gradient(135deg, rgba(8, 124, 255, 0.22), rgba(72, 211, 255, 0.08));
+  border-color: rgba(72, 211, 255, 0.34);
+}
+.v933-launch-start-strip a:hover,
+.v933-launch-step:hover,
+.v933-launch-memory-card:hover {
+  border-color: rgba(72, 211, 255, 0.5);
+  background: rgba(8, 124, 255, 0.12);
+  transform: translateY(-1px);
+}
+.v933-launch-start-strip a:focus-visible,
+.v933-launch-step:focus-visible,
+.v933-launch-memory-card:focus-visible,
+.v933-launch-onboarding [data-launch-onboarding-dismiss]:focus-visible {
+  outline: 3px solid rgba(72, 211, 255, 0.92);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(72, 211, 255, 0.12);
+}
+body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933-launch-step,.v933-launch-memory-card) {
+  touch-action: manipulation;
+}
+@media (max-width: 980px) {
+  .v933-launch-guide-grid,
+  .v933-launch-continuity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .v933-launch-start-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 620px) {
+  .v933-launch-onboarding-head {
+    display: grid;
+  }
+  .v933-launch-onboarding-head .v933-action {
+    width: 100%;
+    justify-content: center;
+  }
+  .v933-launch-guide-grid,
+  .v933-launch-continuity-grid,
+  .v933-launch-start-strip {
+    grid-template-columns: 1fr;
+  }
+  .v933-launch-step,
+  .v933-launch-memory-card {
+    min-height: 86px;
+    padding: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .v933-launch-start-strip a,
+  .v933-launch-step,
+  .v933-launch-memory-card {
+    transition: none !important;
+  }
+  .v933-launch-start-strip a:hover,
+  .v933-launch-step:hover,
+  .v933-launch-memory-card:hover {
+    transform: none !important;
+  }
+}
+/* Executive Board Center: compact read-only governance dashboard. */
+.executive-board-v1 .executive-health-grid,
+.executive-board-v1 .executive-director-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.executive-board-v1 .executive-health-card,
+.executive-board-v1 .executive-director-card {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.42);
+  padding: 14px;
+  min-width: 0;
+}
+
+.executive-board-v1 .executive-health-card {
+  display: grid;
+  gap: 8px;
+}
+
+.executive-board-v1 .executive-health-card strong,
+.executive-board-v1 .executive-director-card strong {
+  color: #f8fafc;
+}
+
+.executive-board-v1 .executive-health-card span,
+.executive-board-v1 .executive-director-card span,
+.executive-board-v1 .executive-health-card small,
+.executive-board-v1 .executive-director-card small,
+.executive-board-v1 .executive-director-card p {
+  color: rgba(226, 232, 240, 0.78);
+  overflow-wrap: anywhere;
+}
+
+.executive-board-v1 .executive-director-card {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.executive-board-v1 .executive-director-card > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.executive-board-v1 .executive-director-card p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 680px) {
+  .executive-board-v1 .executive-health-grid,
+  .executive-board-v1 .executive-director-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Beta Program: privacy-first closed beta surfaces */
+.beta-public-v1 .hero-actions,
+.beta-program-v1 .hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.beta-public-v1 .beta-alert,
+.beta-program-v1 .beta-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.beta-public-v1 .beta-alert.success { border-color: rgba(64, 210, 139, .42); }
+.beta-public-v1 .beta-alert.danger { border-color: rgba(255, 106, 106, .44); }
+
+.beta-public-v1 .beta-section-grid,
+.beta-program-v1 .beta-section-grid,
+.beta-program-v1 .beta-metrics-grid {
+  align-items: stretch;
+}
+
+.beta-public-v1 .beta-section-card,
+.beta-program-v1 .beta-section-card,
+.beta-public-v1 .beta-metric-card,
+.beta-program-v1 .beta-metric-card {
+  min-height: 154px;
+}
+
+.beta-public-v1 .beta-metric-card strong,
+.beta-program-v1 .beta-metric-card strong {
+  display: block;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  margin: 8px 0;
+}
+
+.beta-public-v1 .beta-feedback-form {
+  display: grid;
+  gap: 14px;
+}
+
+.beta-public-v1 .beta-feedback-form label {
+  display: grid;
+  gap: 7px;
+  color: rgba(255,255,255,.82);
+  font-weight: 700;
+}
+
+.beta-public-v1 .beta-feedback-form input,
+.beta-public-v1 .beta-feedback-form select,
+.beta-public-v1 .beta-feedback-form textarea {
+  min-height: 44px;
+  width: 100%;
+}
+
+.beta-public-v1 .beta-feedback-form textarea {
+  resize: vertical;
+}
+
+.beta-public-v1 .beta-consent-row {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  line-height: 1.35;
+}
+
+.beta-public-v1 .beta-consent-row input {
+  flex: 0 0 auto;
+  height: 34px;
+  min-height: 34px;
+  width: 34px;
+}
+
+.beta-program-v1 .beta-feedback-row {
+  align-items: flex-start;
+}
+
+.beta-program-v1 .beta-feedback-row span {
+  min-width: 0;
+}
+
+.beta-program-v1 .beta-feedback-row small {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .beta-public-v1 .hero-actions,
+  .beta-program-v1 .hero-actions,
+  .beta-public-v1 .beta-alert {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .beta-public-v1 .beta-feedback-form .btn {
+    width: 100%;
+  }
+}
+
+/* Company Platform Business Ecosystem: public commercial infrastructure only. */
+.company-platform-v1 { display: grid; gap: 18px; }
+.company-platform-v1 .company-platform-hero { align-items: stretch; }
+.company-platform-v1 .company-platform-actions,
+.company-platform-v1 .company-platform-nav,
+.company-platform-v1 .company-platform-chip-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.company-platform-v1 .company-platform-nav a,
+.company-platform-v1 .company-platform-chip-row span,
+.company-platform-v1 .company-platform-link-groups a {
+  align-items: center; border: 1px solid rgba(148, 163, 184, 0.18); border-radius: 8px;
+  color: rgba(226, 232, 240, 0.86); display: inline-flex; min-height: 44px; padding: 9px 12px; text-decoration: none;
+}
+.company-platform-v1 .company-platform-nav a.is-active,
+.company-platform-v1 .company-platform-nav a:hover,
+.company-platform-v1 .company-platform-link-groups a:hover {
+  background: rgba(8, 124, 255, 0.14); border-color: rgba(72, 211, 255, 0.42); color: #ffffff;
+}
+.company-platform-v1 .company-platform-trust-list,
+.company-platform-v1 .company-platform-grid,
+.company-platform-v1 .company-platform-link-groups { display: grid; gap: 12px; }
+.company-platform-v1 .company-platform-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.company-platform-v1 .company-platform-card {
+  align-content: start; background: rgba(15, 23, 42, 0.44); border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px; display: grid; gap: 10px; min-height: 184px; min-width: 0; padding: 14px;
+}
+.company-platform-v1 .company-platform-card h3,
+.company-platform-v1 .company-platform-link-groups strong { color: #f8fafc; }
+.company-platform-v1 .company-platform-card p,
+.company-platform-v1 .company-platform-trust-list span,
+.company-platform-v1 .company-platform-trust-list strong { color: rgba(226, 232, 240, 0.78); overflow-wrap: anywhere; }
+.company-platform-v1 .company-platform-trust-list > div { border-bottom: 1px solid rgba(148, 163, 184, 0.14); display: grid; gap: 4px; padding: 8px 0; }
+.company-platform-v1 .company-platform-link-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.company-platform-v1 .company-platform-link-groups > div { display: flex; flex-wrap: wrap; gap: 10px; }
+.company-platform-v1 a:focus-visible { outline: 3px solid rgba(72, 211, 255, 0.92); outline-offset: 3px; }
+@media (max-width: 720px) {
+  .company-platform-v1 .company-platform-actions,
+  .company-platform-v1 .company-platform-nav,
+  .company-platform-v1 .company-platform-link-groups,
+  .company-platform-v1 .company-platform-link-groups > div { display: grid; grid-template-columns: 1fr; }
+  .company-platform-v1 .company-platform-card { min-height: 0; }
+}
+
+
+/* Go To Market Office Launch Readiness: scoped admin-only polish. */
+.go-to-market-office-v1 .go-to-market-readiness-grid,
+.go-to-market-office-v1 .go-to-market-commercial-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.go-to-market-office-v1 .go-to-market-score-card,
+.go-to-market-office-v1 .go-to-market-commercial-grid article {
+  min-width: 0;
+  border: 1px solid rgba(132,171,213,.16);
+  border-radius: var(--v933-radius-sm);
+  background: rgba(255,255,255,.025);
+  padding: 12px;
+}
+.go-to-market-office-v1 .go-to-market-score-card span,
+.go-to-market-office-v1 .go-to-market-commercial-grid span {
+  display: block;
+  color: var(--v933-muted);
+  font-size: .62rem;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+.go-to-market-office-v1 .go-to-market-score-card strong {
+  display: block;
+  margin: 6px 0;
+  color: #fff;
+  font-size: 1.25rem;
+}
+.go-to-market-office-v1 .go-to-market-score-card small,
+.go-to-market-office-v1 .go-to-market-commercial-grid p {
+  color: rgba(226,232,240,.78);
+  font-size: .66rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.go-to-market-office-v1 .go-to-market-workflow > div {
+  align-items: start;
+}
+.go-to-market-office-v1 #launch-checklist a,
+.go-to-market-office-v1 .v933-truth-list a {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 8px;
+}
+.go-to-market-office-v1 a:focus-visible {
+  outline: 3px solid rgba(72,211,255,.92);
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .go-to-market-office-v1 .go-to-market-readiness-grid,
+  .go-to-market-office-v1 .go-to-market-commercial-grid {
+    grid-template-columns: 1fr;
+  }
+}

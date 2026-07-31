@@ -1,55 +1,138 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="app-hero compact-hero">
+<section class="app-hero compact-hero beta-public-v1" data-beta-program-contract="{{ beta.contract }}" data-feedback-platform-contract="{{ beta.feedback_contract }}" data-beta-metrics-contract="{{ beta.metrics_contract }}">
   <div>
-    <div class="kicker">Beta privada</div>
-    <h1>Acceso tester NeMeSiS SHARK PRO</h1>
-    <p class="lead">Únete al grupo de prueba para validar picks, live, Telegram y experiencia premium antes del lanzamiento comercial.</p>
+    <div class="kicker">Beta cerrada</div>
+    <h1>Ayuda a preparar NeMeSiS para usuarios reales</h1>
+    <p class="lead">Comparte errores, ideas y valoraciones sin enviar datos sensibles. Cada se?al queda estructurada para que podamos reproducirla, priorizarla y mejorar el producto con evidencia.</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#beta-feedback-form">Enviar feedback</a>
+      <a class="btn ghost" href="/smart-home">Ver mi experiencia</a>
+    </div>
   </div>
   <aside class="hero-panel">
     <div class="live-strip">
-      <div><span>Estado</span><strong>{{ beta.status_label }}</strong></div>
-      <div><span>Feedback</span><strong>{{ beta.feedback_count }}</strong></div>
-      <div><span>Plan</span><strong>{{ beta.membership }}</strong></div>
+      <div><span>Estado</span><strong>Beta local</strong></div>
+      <div><span>Feedback</span><strong>{{ beta.counts.feedback_total }}</strong></div>
+      <div><span>M?tricas</span><strong>Opcionales</strong></div>
     </div>
+    <p class="small muted">No guardamos correo, tel?fono, tarjetas, contrase?as, tokens ni claves. Las m?tricas agregadas pueden desactivarse en cada env?o.</p>
   </aside>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Tu acceso beta</h2><span class="pill">Cliente</span></div>
-  <div class="grid cards-3">
-    <div class="card"><span class="badge">1</span><h3>Prueba la app real</h3><p class="small">Live, calendario, picks, recomendaciones, favoritos, SHARK y Telegram.</p></div>
-    <div class="card"><span class="badge">2</span><h3>Detecta lo incómodo</h3><p class="small">Botones confusos, pantallas vacías, textos largos o datos que no encajan.</p></div>
-    <div class="card"><span class="badge">3</span><h3>Ayuda a cerrar lanzamiento</h3><p class="small">Tu feedback se guarda para priorizar mejoras reales antes de vender.</p></div>
+{% if data.sent %}
+<section class="band compact-band beta-public-v1">
+  <div class="card beta-alert success"><strong>Feedback recibido.</strong><span>Gracias. Queda pendiente de revisi?n humana antes de convertirse en mejora.</span></div>
+</section>
+{% endif %}
+{% if data.error %}
+<section class="band compact-band beta-public-v1">
+  <div class="card beta-alert danger"><strong>No hemos podido guardar el feedback.</strong><span>{{ data.error }}</span></div>
+</section>
+{% endif %}
+
+<section class="band compact-band beta-public-v1">
+  <div class="section-head"><h2>Qu? puedes enviar</h2><span class="pill">Privacidad primero</span></div>
+  <div class="grid cards-4 beta-section-grid">
+    {% for section in beta.feedback_sections %}
+    <article class="card beta-section-card">
+      <span class="badge">{{ loop.index }}</span>
+      <h3>{% if section.key == 'bug' %}Reporte de error{% elif section.key == 'feature_request' %}Solicitud de mejora{% elif section.key == 'satisfaction' %}Satisfacci?n{% else %}Feedback general{% endif %}</h3>
+      <p class="small">{{ section.purpose }}</p>
+    </article>
+    {% endfor %}
   </div>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Solicitar acceso / enviar feedback</h2><span class="pill">V556</span></div>
-  <form class="card form-card" method="post" action="/api/beta/join">
-    <label>Nombre visible</label>
-    <input name="name" value="{{ beta.name }}" placeholder="Tu nombre">
-    <label>Email</label>
-    <input name="email" value="{{ beta.email }}" placeholder="Tu correo electrónico">
-    <label>Qué quieres probar primero</label>
-    <select name="focus_area">
-      <option value="cliente">Experiencia cliente</option>
-      <option value="picks">Picks y recomendaciones</option>
-      <option value="live">Live y resultados</option>
-      <option value="telegram">Telegram</option>
-      <option value="mobile">Móvil / app feel</option>
-    </select>
-    <label>Mensaje</label>
-    <textarea name="message" rows="4" placeholder="Cuenta qué has visto, qué falla o qué mejorarías"></textarea>
+<section class="band compact-band beta-public-v1" id="beta-feedback-form">
+  <div class="section-head"><h2>Feedback estructurado</h2><span class="pill">Sin datos sensibles</span></div>
+  <form class="card form-card beta-feedback-form" method="post" action="/beta/feedback" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid cards-3 beta-form-grid">
+      <label>Tipo
+        <select name="feedback_type" required>
+          {% for key, label in data.beta_options.feedback_types.items() %}
+          <option value="{{ key }}" {% if data.form.feedback_type == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>?rea
+        <select name="category" required>
+          {% for key, label in data.beta_options.categories.items() %}
+          <option value="{{ key }}" {% if data.form.category == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Impacto
+        <select name="severity" required>
+          {% for key, label in data.beta_options.severities.items() %}
+          <option value="{{ key }}" {% if data.form.severity == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <div class="grid cards-3 beta-form-grid">
+      <label>Dispositivo
+        <select name="device_context">
+          <option value="unknown">No indicado</option>
+          <option value="desktop" {% if data.form.device_context == 'desktop' %}selected{% endif %}>Escritorio</option>
+          <option value="tablet" {% if data.form.device_context == 'tablet' %}selected{% endif %}>Tablet</option>
+          <option value="mobile" {% if data.form.device_context == 'mobile' %}selected{% endif %}>M?vil</option>
+        </select>
+      </label>
+      <label>Ruta o pantalla
+        <input name="route" value="{{ data.form.route or request.path }}" placeholder="/match/123">
+      </label>
+      <label>Satisfacci?n
+        <select name="satisfaction_score">
+          <option value="">No aplica</option>
+          {% for score in [1,2,3,4,5] %}
+          <option value="{{ score }}" {% if data.form.satisfaction_score == score %}selected{% endif %}>{{ score }} de 5</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label>T?tulo claro
+      <input name="title" maxlength="120" value="{{ data.form.title }}" placeholder="Ejemplo: no entiendo qu? hacer despu?s de abrir un partido" required>
+    </label>
+    <label>Descripci?n
+      <textarea name="message" rows="4" maxlength="600" placeholder="Cuenta qu? ocurre, qu? esperabas y c?mo afecta a tu experiencia." required>{{ data.form.message }}</textarea>
+    </label>
+
+    <div class="grid cards-3 beta-form-grid">
+      <label>Pasos para reproducir un error
+        <textarea name="steps_to_reproduce" rows="3" maxlength="700" placeholder="1. Abro... 2. Pulso... 3. Veo...">{{ data.form.steps_to_reproduce }}</textarea>
+      </label>
+      <label>Resultado esperado
+        <textarea name="expected_result" rows="3" maxlength="500" placeholder="Qu? deber?a pasar.">{{ data.form.expected_result }}</textarea>
+      </label>
+      <label>Resultado real
+        <textarea name="actual_result" rows="3" maxlength="500" placeholder="Qu? pasa ahora mismo.">{{ data.form.actual_result }}</textarea>
+      </label>
+    </div>
+
+    <label class="beta-consent-row">
+      <input type="checkbox" name="allow_beta_metrics" value="1" {% if data.form.allow_beta_metrics is not sameas false %}checked{% endif %}>
+      <span>Permitir que este env?o cuente en m?tricas agregadas de beta.</span>
+    </label>
+    <p class="small muted">No incluyas correos, tel?fonos, tarjetas, contrase?as, tokens, claves ni capturas con datos sensibles. Las sugerencias no se aprueban autom?ticamente.</p>
     <button class="btn primary" type="submit">Enviar feedback beta</button>
   </form>
 </section>
 
-<section class="band compact-band">
-  <div class="section-head"><h2>Checklist tester</h2><span class="pill">Guía rápida</span></div>
-  <div class="stack">
-    {% for item in beta.checklist %}
-    <div class="list-row"><span>{{ item }}</span><strong>Revisar</strong></div>
+<section class="band compact-band beta-public-v1">
+  <div class="section-head"><h2>Transparencia de la beta</h2><span class="pill">Control del usuario</span></div>
+  <div class="grid cards-3">
+    {% for metric in beta.metrics[:3] %}
+    <article class="card beta-metric-card">
+      <span class="badge">{{ metric.key }}</span>
+      <h3>{{ metric.label }}</h3>
+      <strong>{{ metric.value }}</strong>
+      <p class="small">{{ metric.definition }}</p>
+      <small>{{ metric.limitation }}</small>
+    </article>
     {% endfor %}
   </div>
 </section>

@@ -359,6 +359,29 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             else "CONTRACT_READY",
             "implementation": "engines/product_review_system_engine.py + templates/admin_product_review_center.html + tools/check_product_review_system.py",
         },
+
+        {
+            "key": "executive_board",
+            "name": "NeMeSiS Executive Board",
+            "contract": "NEMESIS-EXECUTIVE-BOARD-V1",
+            "state": "INTEGRATED"
+            if exists("templates/admin_executive_board_center.html")
+            and exists("tools/check_executive_board.py")
+            else "CONTRACT_READY",
+            "implementation": "Product Review System governance extension + templates/admin_executive_board_center.html + tools/check_executive_board.py",
+        },
+        {
+            "key": "beta_program",
+            "name": "NeMeSiS Beta Program Feedback Platform",
+            "contract": "NEMESIS-BETA-PROGRAM-V1",
+            "state": "INTEGRATED"
+            if exists("engines/beta_program_engine.py")
+            and exists("templates/beta.html")
+            and exists("templates/admin_beta_center.html")
+            and exists("tools/check_beta_program.py")
+            else "CONTRACT_READY",
+            "implementation": "engines/beta_program_engine.py + templates/beta.html + templates/admin_beta_center.html + tools/check_beta_program.py",
+        },
         {
             "key": "action_platform",
             "name": "NeMeSiS Action Platform",
@@ -378,6 +401,28 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             and exists("reports/PRODUCT_FINALIZATION_REPORT.md")
             else "CONTRACT_READY",
             "implementation": "tools/run_product_finalization_browser_qa.py + reports/PRODUCT_FINALIZATION_REPORT.md",
+        },
+        {
+            "key": "company_platform_business_ecosystem",
+            "name": "NeMeSiS Company Platform Business Ecosystem",
+            "contract": "NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1",
+            "state": "INTEGRATED"
+            if exists("templates/company_platform.html")
+            and exists("tools/check_company_platform.py")
+            and exists("reports/COMPANY_PLATFORM_REPORT.md")
+            else "CONTRACT_READY",
+            "implementation": "app.py + templates/company_platform.html + tools/check_company_platform.py",
+        },
+        {
+            "key": "go_to_market_office",
+            "name": "NeMeSiS Go To Market Office",
+            "contract": "NEMESIS-GO-TO-MARKET-OFFICE-V1",
+            "state": "INTEGRATED"
+            if exists("templates/admin_go_to_market_office.html")
+            and exists("tools/check_go_to_market_program.py")
+            and exists("reports/GO_TO_MARKET_OFFICE_REPORT.md")
+            else "CONTRACT_READY",
+            "implementation": "app.py + templates/admin_go_to_market_office.html + tools/check_go_to_market_program.py",
         },
         {
             "key": "telegram_assistant",
