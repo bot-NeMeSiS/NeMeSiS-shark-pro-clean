@@ -43,3 +43,20 @@ PARTIAL: Render operations, Cron, Scheduler, Telegram, Stripe, Backups, Restore,
 NOT_RECORDED: Master Tick.
 
 BLOCKED_BY_ACCESS: Observability y Logs.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+| ID | Area | Estado | Evidencia | Fuente | Hora Madrid | Limitaciones |
+|---|---|---|---|---|---|---|
+| PEM-019 | Git baseline | PASS | HEAD y `origin/main` alineados en `ad666b528fff427e09d5e37f3137bb00d45f90c6`; distancia 0/0 | Git local | 23:32 | No se hizo push ni commit. |
+| PEM-020 | Render health final | PASS | `/`, `/api/health`, `/api/runtime-version`, `/version` devuelven 200 | GET read-only | 23:32-23:33 | Lecturas previas del mismo gate dieron 502 transitorio; faltan logs. |
+| PEM-021 | Runtime SHA | PASS | `git_commit_hint=ad666b528fff427e09d5e37f3137bb00d45f90c6`, version V940, files match | `/api/runtime-version` | 23:33 | No certifica logs ni cron. |
+| PEM-022 | Observability content | BLOCKED_BY_ACCESS | `/api/observability/summary` y `/api/observability/errors` devuelven 403; UI muestra proteccion/login | GET read-only | 23:33 | Requiere sesion admin read-only. |
+| PEM-023 | Render logs | BLOCKED_BY_ACCESS | No hay `RENDER_API_KEY` ni acceso dashboard en el entorno local | Inventario entorno | 23:33 | Sin lectura de logs nativos. |
+| PEM-024 | Cron sports | PARTIAL | Last tick `2026-08-02T23:31:40+02:00`; status sigue `PARTIAL` | `/api/runtime-version` | 23:33 | No se ejecuto cron; falta evidencia de logs. |
+| PEM-025 | Master Tick | NOT_RECORDED | `v937_cron_master_status=NOT_RECORDED` | `/api/runtime-version` | 23:33 | Bloquea cierre operacional. |
+| PEM-026 | Telegram runtime config | PARTIAL | Runtime indica Telegram configurado en Render; entorno local no expone token/chat | Runtime + env local | 23:33 | No valida identidad bot ni permisos. |
+| PEM-027 | Telegram dry-run local | PARTIAL | Diagnostico local `MISSING_BOT_TOKEN`, rutas protegidas 403, mensajes enviados 0 | DB temporal/local | 23:24 | No demuestra entrega real. |
+| PEM-028 | QA local gate | PASS | 206 pytest, Jinja 198, Sentinel 10.0, Browser QA 111/100.0, Privacy/Secret 0 | QA local | 23:31 | No sustituye evidencia externa de Render/Telegram. |
+
+Resumen actualizado: PASS tecnico local y Render public endpoints PASS en la ultima lectura; Gate 2 permanece PARTIAL por observability/logs, Cron/Master Tick, backup/restore y Telegram real no certificado.

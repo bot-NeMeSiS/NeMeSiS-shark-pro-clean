@@ -43,3 +43,15 @@ PARTIAL.
 ## Minimum Action
 
 Completar test real controlado con un ?nico mensaje t?cnico despu?s de validar token, bot, destino y permisos.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+- Mensajes enviados: 0.
+- Produccion modificada: false.
+- Dry-run local: ejecutado con DB temporal `tmp/telegram_external_gate_precheck.sqlite`.
+- Resultado dry-run: `would_send=false`, `preview_available=false`, candidatos 0, descartados 0.
+- Cola local: pendientes 0, entregados hoy 0, fallidos hoy 0, destinos 0.
+- Dedupe local: sin entregas reales; endpoints dedupe admin protegidos con 403 sin sesion.
+- Ultima entrega real: no certificada en este entorno.
+- Ultimo error real: no certificado en este entorno.
+- Decision delivery: PARTIAL hasta validar token, destino, permisos y una unica entrega tecnica autorizada.

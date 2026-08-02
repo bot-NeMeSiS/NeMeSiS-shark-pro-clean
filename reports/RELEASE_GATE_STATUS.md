@@ -60,3 +60,15 @@ El proyecto queda con Operations Center local implementado. La Release 1.0 no de
 - Stripe ejecutado: false.
 - Push/deploy/commit: false.
 
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+| Gate | Estado | Evidencia | Bloqueo restante |
+|---|---|---|---|
+| Gate 1 Git | PASS | `main` y `origin/main` alineados en `ad666b528fff427e09d5e37f3137bb00d45f90c6`; distancia 0/0 | Ninguno en esta lectura. |
+| Gate 2 Produccion | PARTIAL | Render health/runtime/version PASS en lectura final; cron reciente; persistencia y cache observadas | Logs/observability sin acceso, Cron sigue PARTIAL, Master Tick NOT_RECORDED, backup/restore no productivos. |
+| Gate 3 Telegram | PARTIAL | Runtime declara Telegram configurado; checks locales y rutas protegidas PASS; dry-run local seguro con 0 envios | Falta getMe, identidad bot, permisos destino, cola real y una unica entrega tecnica autorizada. |
+| Stripe | NOT_STARTED | Fuera de alcance de este precheck | No iniciar hasta autorizacion de Gate Stripe. |
+
+QA local: PASS. Browser QA: PASS 111 checks score 100.0. Sentinel: PASS 10.0. Privacy/Secret: PASS 0 secretos. Produccion modificada: false. Push/deploy/commit: false.
+
+Decision global: PARTIAL. No se puede declarar WORLD CLASS RELEASE READY todavia.

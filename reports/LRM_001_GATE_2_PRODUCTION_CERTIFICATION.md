@@ -66,3 +66,52 @@ Produccion esta viva, responde correctamente, y el runtime declara version y SHA
 ## Conclusion
 
 Produccion esta operativa y alineada en version/SHA. LRM-001 no puede avanzar a WORLD CLASS RELEASE READY hasta cerrar el bloqueo concreto de Cron/Master Tick y la evidencia read-only de logs/observabilidad. Gate 2C no introduce funcionalidades nuevas y no modifica produccion.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+Modo: observacion segura read-only. Produccion modificada: false. Push: false. Deploy: false. Cron real ejecutado: false. Telegram real enviado: false. Stripe: no iniciado.
+
+### Git y baseline
+
+- Rama local: `main`.
+- HEAD local: `ad666b528fff427e09d5e37f3137bb00d45f90c6`.
+- `origin/main`: `ad666b528fff427e09d5e37f3137bb00d45f90c6`.
+- Distancia: `0 ahead / 0 behind`.
+- El informe `reports/RELEASE_1_BASELINE_PUSH_REPORT.md` ya esta incluido en HEAD mediante el commit `ad666b52`.
+- Estado inicial del arbol antes de informes: limpio.
+
+### Render observado
+
+| Sistema | Estado | Evidencia | Endpoint | Hora Madrid | Limitacion |
+|---|---|---|---|---|---|
+| Home publica | PASS | HTTP 200, HTML servido, 2473 ms | `/` | 23:32:59 | No prueba tareas internas. |
+| Health | PASS | HTTP 200, `ok=true`, `initialized=true`, `db_path_configured=true`, 333 ms | `/api/health` | 23:33:19 | Lecturas previas del mismo gate mostraron 502 transitorio; requiere logs para causa. |
+| Version publica | PASS | HTTP 200, version `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL` | `/version` | 23:33:19 | Identidad basica. |
+| Runtime | PASS | HTTP 200, version V940, `version_files_match=true`, `git_commit_hint=ad666b528fff427e09d5e37f3137bb00d45f90c6` | `/api/runtime-version` | 23:33:19 | No sustituye logs Render. |
+| Persistencia | PASS | Runtime declara `/data/database.db` y `render.db_exists=true` | `/api/runtime-version` | 23:33:19 | Restore productivo no ejecutado. |
+| Cache | PASS | `service_worker_cache_name=NEMESIS_CACHE_V940`, `v934_cache_status=available`; endpoint interno protegido 403 | `/api/runtime-version`, `/api/cache/status` | 23:32-23:33 | No lista contenido interno sin acceso admin. |
+| Observability UI | BLOCKED_BY_ACCESS | HTML 200 con marcadores de login/proteccion; APIs de observabilidad devuelven 403 | `/admin/observability`, `/api/observability/*` | 23:33:38 | Contenido operacional no certificado sin sesion admin read-only. |
+| Render logs | BLOCKED_BY_ACCESS | `RENDER_API_KEY` no disponible en entorno local; no se accedio al dashboard | Render API/Dashboard | 23:33 | No hay evidencia de logs nativos. |
+| Cron sports | PARTIAL | `v937_sports_cron_last_tick=2026-08-02T23:31:40+02:00`, `v937_sports_cron_status=PARTIAL`, `v937_cron_evidence_status=RECENT_OPERATIONAL_EVIDENCE` | `/api/runtime-version` | 23:33:19 | No se ejecuto cron; faltan logs Render. |
+| Master Tick | NOT_RECORDED | `v937_cron_master_status=NOT_RECORDED` | `/api/runtime-version` | 23:33:19 | Sigue sin evidencia suficiente. |
+| Backup | PARTIAL | `data_backup_enabled=false` | `/api/runtime-version` | 23:33:19 | No se activo backup. |
+| Restore | PARTIAL | Sin restore productivo; solo se conserva evidencia previa de drill local aislado | documentacion Gate 2C | 23:33 | No certifica restauracion real. |
+
+### QA local relacionada
+
+- `py_compile app.py`: PASS.
+- `compileall` acotado a codigo real, herramientas y tests: PASS.
+- `pytest --basetemp=tmp\\pytest_lrm001_external_gates`: PASS, 206 passed, 2 warnings de cache local bloqueada por Windows.
+- Jinja parse: PASS, 198 templates, 0 errores.
+- Sentinel: PASS, score 10.0, 0 issues, 790 rutas registradas, 1084 enlaces auditados, 0 rotos.
+- Privacy/Secret Guard: PASS, 1072 archivos, 0 secretos confirmados, 0 findings de privacidad.
+- Imports/rutas: PASS, 736 rutas, 0 templates faltantes, 0 static faltantes.
+- Route/link audit: PASS, 198 templates, 0 smoke inseguro, 0 enlaces rotos; 21 hrefs directos admin/api quedan como deuda UI documentada, no fallo de gate.
+- Smoke Flask: PASS, 29 rutas, 0 fallos.
+- Browser QA representativo: PASS, 111 checks, score medio 100.0, 0 failures, evidencia temporal en `tmp/browser_qa_lrm001_external_gates/browser_qa_result.json`.
+- Checks Telegram locales: PASS en scheduler, formato, tarjetas, filtros de calidad y no filler.
+- `git diff --check`: PASS.
+
+### Decision actual
+
+GATE 2: PARTIAL. Render responde correctamente en la ultima observacion, pero no puede declararse WORLD CLASS RELEASE READY sin cerrar logs/observability read-only, Cron PASS con logs, Master Tick registrado o decision formal, backup/restore operativo y Gate Telegram con entrega controlada.

@@ -61,3 +61,15 @@ Cron tiene configuracion declarativa y evidencia reciente del runner compartido.
 2. Registrar una ejecucion valida de Master Tick o aprobar formalmente su sustitucion por cron compartido.
 3. Confirmar en logs Render que no hubo errores criticos, reintentos repetidos ni ejecuciones duplicadas.
 4. Confirmar que no hubo envios Telegram no autorizados ni escrituras no previstas.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+- Estado Cron sports: PARTIAL.
+- Evidencia runtime: `v937_sports_cron_last_tick=2026-08-02T23:31:40+02:00`.
+- Evidencia runtime: `v937_cron_evidence_status=RECENT_OPERATIONAL_EVIDENCE`.
+- Scheduler: `scheduler_enabled=true`, `daily_automation_enabled=true` segun runtime/render.
+- Master Tick: `v937_cron_master_status=NOT_RECORDED`.
+- Accion ejecutada: ninguna. No se disparo cron, no se ejecuto Master Tick y no hubo Telegram/Stripe.
+- Diagnostico: Cron tiene evidencia operacional reciente, pero el contrato sigue conservador (`PARTIAL`) porque no hay logs Render read-only ni Master Tick registrado.
+- Decision: Cron no sube a PASS. Master Tick sigue NOT_RECORDED.
+- Siguiente accion minima: obtener logs Render read-only y decidir si Master Tick debe registrarse como evento propio o quedar formalmente sustituido por el cron compartido.

@@ -64,3 +64,21 @@ El entorno actual no expone TELEGRAM_BOT_TOKEN ni TELEGRAM_CHAT_ID; Render no fu
 ## Minimum Action To Declare TELEGRAM RELEASE READY
 
 Autorizar una certificaci?n controlada con variables reales disponibles: validar `getMe`, resolver destino enmascarado, confirmar permisos y enviar exactamente un ?nico mensaje t?cnico no comercial; despu?s verificar dedupe mediante simulaci?n/dry-run sin segundo env?o.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+Decision Telegram: PARTIAL.
+
+| Elemento | Estado | Evidencia | Limitacion |
+|---|---|---|---|
+| Token local | MISSING | `TELEGRAM_BOT_TOKEN` no esta disponible en el entorno local | No se pudo ejecutar getMe. |
+| Bot runtime Render | PARTIAL | Runtime indica `telegram_bot_configured=true` | No muestra identidad real del bot. |
+| Chat/destino local | MISSING | `TELEGRAM_CHAT_ID` no esta disponible localmente | No se pudo validar permisos reales. |
+| Canal runtime Render | PARTIAL | Runtime indica `telegram_channel_configured=true` | Destino enmascarado no disponible. |
+| Automation secret local | MISSING | `AUTOMATION_SECRET` no esta disponible localmente | Cron protegido no se ejecuto. |
+| Rutas admin Telegram | PASS seguridad | `/api/admin/telegram/dry-run`, preview y dedupe devuelven 403 sin sesion | Proteccion correcta; contenido admin no certificado. |
+| Automation tick sin secret | PASS seguridad | `/api/automation/telegram/tick?...dry_run=1` devuelve 403 | No se ejecuto tarea. |
+| Dry-run local | PARTIAL | `diagnosis_status=MISSING_BOT_TOKEN`, `would_send=false`, candidatos 0, destinos 0 | No certifica produccion. |
+| Mensajes reales | NOT_EXECUTED | `messages_sent=0` | Requiere autorizacion posterior. |
+
+No se enviaron picks, cuotas, recomendaciones ni mensajes tecnicos. Secretos expuestos: 0.

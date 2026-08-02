@@ -40,3 +40,16 @@ PARTIAL.
 ## Limitation
 
 La observabilidad de c?digo y DB local existe, pero producci?n y Render logs no quedan certificados desde este entorno.
+
+## Actualizacion LRM-001 External Gates Precheck - 2026-08-02 23:33 Madrid
+
+| Observabilidad Telegram | Estado | Evidencia | Limitacion |
+|---|---|---|---|
+| Snapshot local | PASS_LOCAL | `telegram_reliability_snapshot` ejecutado sin imprimir secretos | Entorno sin token ni chat. |
+| Diagnostico local | PARTIAL | `MISSING_BOT_TOKEN`, severidad critical | Esperado sin credenciales locales. |
+| Dedupe status admin | BLOCKED_BY_ACCESS | `/api/admin/telegram/dedupe-status` devuelve 403 sin sesion | Requiere admin read-only. |
+| Preview admin | BLOCKED_BY_ACCESS | `/api/admin/telegram/message-preview` devuelve 403 sin sesion | Requiere admin read-only. |
+| Dry-run admin | BLOCKED_BY_ACCESS | `/api/admin/telegram/dry-run` devuelve 403 sin sesion | Requiere admin read-only. |
+| Logs Render | BLOCKED_BY_ACCESS | No hay Render API key ni dashboard en este entorno | No se revisaron logs nativos. |
+
+Conclusion: observabilidad de seguridad PASS por proteccion de endpoints; observabilidad operacional Telegram sigue BLOCKED_BY_ACCESS/PARTIAL.
