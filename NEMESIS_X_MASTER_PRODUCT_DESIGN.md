@@ -1,5 +1,27 @@
 # NeMeSiS X Master Product Design
 
+## Official Vision Lock
+
+Este documento define la visión estratégica de NeMeSiS para los próximos tres años.
+
+No implica implementación inmediata.
+
+Toda funcionalidad deberá justificarse mediante evidencia, uso real, métricas y priorización del roadmap.
+
+Estado oficial: `VISION_LOCK`.
+
+Objetivo LRM asociado: `LRM-002 - NEMESIS X`.
+
+Prioridad operativa vigente: `LRM-001` continúa siendo la prioridad absoluta hasta completar los gates de Release 1.0 y beta cerrada.
+
+Código autorizado: no.
+
+Producción modificada: no.
+
+Commit, push o deploy autorizados: no.
+
+---
+
 ## Executive Summary
 
 **NeMeSiS X is the three-year product design horizon for turning NeMeSiS into the most intelligent sports platform in its market.** It does not authorize implementation, new modules, new engines, new APIs, production changes, commits, pushes or deploys.
