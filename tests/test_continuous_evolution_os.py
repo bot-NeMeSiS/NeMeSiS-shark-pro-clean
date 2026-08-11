@@ -9,9 +9,13 @@ from engines.product_review_system_engine import (
     PRODUCT_MEMORY_CONTRACT,
     build_continuous_evolution_status_snapshot,
     load_product_memory,
+    preview_continuous_evolution_scheduler_task,
     record_continuous_evolution_decision,
     run_continuous_evolution_cycle,
     run_continuous_evolution_scheduler_task,
+    run_continuous_evolution_three_day_certification,
+    run_safe_continuous_evolution_runner,
+    set_continuous_evolution_pause,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -117,3 +121,115 @@ def test_continuous_evolution_guardrails_for_codex_briefs(tmp_path):
     assert first["automatic_execution_allowed"] is False
     assert first["evidence"] not in {"none", "todo", ""}
     assert "Sports Core" in " ".join(first["modules_not_to_touch"])
+
+
+
+def test_continuous_evolution_three_day_scheduled_certification(tmp_path):
+    storage = tmp_path / "ceos"
+    day1 = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:00:00+02:00", storage_root=storage)
+    repeat = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:05:00+02:00", storage_root=storage)
+    day2 = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-12T04:00:00+02:00", storage_root=storage)
+    day3 = run_continuous_evolution_scheduler_task(
+        ROOT,
+        "TEST",
+        task_name="daily_product_review",
+        now="2026-08-13T04:00:00+02:00",
+        storage_root=storage,
+        control_fixture={"simulated_persona": "MOBILE", "simulated_metrics": {"friction_indicators": 2}},
+    )
+    status = build_continuous_evolution_status_snapshot(ROOT, "TEST", storage_root=storage, now="2026-08-13T04:10:00+02:00")
+    memory = load_product_memory(ROOT, storage_root=storage)
+
+    assert day1["result"] == "PASS"
+    assert repeat["result"] == "SKIPPED_NOT_DUE"
+    assert day2["result"] == "PASS"
+    assert day3["result"] == "PASS"
+    assert status["snapshot_count"] == 3
+    assert status["cycles_completed"] == 3
+    assert status["scheduler"]["tasks"]["daily_product_review"]["run_count"] == 3
+    assert status["scheduler"]["tasks"]["daily_founder_brief"]["run_count"] == 3
+    assert status["founder_brief"]["text"].startswith("FOUNDER BRIEF")
+    assert len(memory["snapshots"]) == 3
+    assert memory["learning_summary"]["actual_learning"] is True
+    assert day3["cycle"]["snapshot"]["simulated_user_nightly_check"]["summary"]["worsened"] >= 1
+
+
+def test_continuous_evolution_concurrent_lock_skips_existing_run(tmp_path):
+    storage = tmp_path / "ceos"
+    storage.mkdir(parents=True)
+    (storage / "scheduler.lock").write_text('{"job_id":"JOB-ACTIVE","locked_at_madrid":"2026-08-11T04:00:00+02:00"}', encoding="utf-8")
+
+    result = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:05:00+02:00", storage_root=storage)
+
+    assert result["result"] == "SKIPPED_ALREADY_RUNNING"
+    assert result["job"]["status"] == "SKIPPED_ALREADY_RUNNING"
+    assert result["dangerous_actions_executed"] is False
+
+
+def test_continuous_evolution_pause_resume_controls_scheduled_only(tmp_path):
+    storage = tmp_path / "ceos"
+    pause = set_continuous_evolution_pause(ROOT, paused=True, actor="test-admin", reason="qa pause", storage_root=storage, now="2026-08-11T03:00:00+02:00")
+    scheduled = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:00:00+02:00", storage_root=storage)
+    manual = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:05:00+02:00", storage_root=storage, force=True, trigger="MANUAL")
+    resume = set_continuous_evolution_pause(ROOT, paused=False, actor="test-admin", reason="qa resume", storage_root=storage, now="2026-08-11T05:00:00+02:00")
+    next_day = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-12T04:00:00+02:00", storage_root=storage)
+
+    assert pause["control"]["paused"] is True
+    assert scheduled["result"] == "SKIPPED_PAUSED"
+    assert manual["result"] == "PASS"
+    assert resume["control"]["paused"] is False
+    assert next_day["result"] == "PASS"
+
+
+def test_continuous_evolution_failure_recovery_preserves_last_good_state(tmp_path):
+    storage = tmp_path / "ceos"
+    good = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:00:00+02:00", storage_root=storage)
+    failed = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-12T04:00:00+02:00", storage_root=storage, control_fixture={"scheduler_exception": True})
+    status = build_continuous_evolution_status_snapshot(ROOT, "TEST", storage_root=storage)
+
+    assert good["result"] == "PASS"
+    assert failed["result"] == "PARTIAL"
+    assert status["latest_snapshot_id"] == good["cycle"]["snapshot"]["snapshot_id"]
+    assert status["cycles_failed"] == 1
+
+
+def test_continuous_evolution_component_unavailable_is_partial_with_memory(tmp_path):
+    storage = tmp_path / "ceos"
+    result = run_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:00:00+02:00", storage_root=storage, control_fixture={"component_unavailable": "Product Review"})
+    memory = load_product_memory(ROOT, storage_root=storage)
+
+    assert result["result"] == "PARTIAL"
+    assert result["cycle"]["snapshot"]["result"] == "PARTIAL_WITH_UNAVAILABLE_COMPONENTS"
+    assert result["cycle"]["snapshot"]["components_unavailable"][0]["component"] == "Product Review"
+    assert memory["contract"] == PRODUCT_MEMORY_CONTRACT
+    assert memory["snapshots"]
+
+
+def test_continuous_evolution_scheduler_timezone_week_month_and_runner(tmp_path):
+    storage = tmp_path / "ceos"
+    daily_before = preview_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T02:00:00+02:00", storage_root=storage)
+    daily_after = preview_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="daily_product_review", now="2026-08-11T04:00:00+02:00", storage_root=storage)
+    weekly = preview_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="weekly_executive_review", now="2026-08-17T04:30:00+02:00", storage_root=storage)
+    monthly = preview_continuous_evolution_scheduler_task(ROOT, "TEST", task_name="monthly_strategy_review", now="2026-09-01T05:00:00+02:00", storage_root=storage)
+    dry = run_safe_continuous_evolution_runner(ROOT, "TEST", task_name="daily_product_review", dry_run=True, now="2026-08-11T04:00:00+02:00", storage_root=storage)
+
+    assert daily_before["due"] is False
+    assert daily_after["due"] is True
+    assert weekly["due"] is True
+    assert monthly["due"] is True
+    assert dry["dry_run"] is True
+    assert dry["guardrails"]["NO_TELEGRAM"] is True
+    assert dry["guardrails"]["NO_STRIPE"] is True
+
+
+
+def test_continuous_evolution_three_day_certification_helper(tmp_path):
+    result = run_continuous_evolution_three_day_certification(ROOT, "TEST", storage_root=tmp_path / "ceos", start_date="2026-08-11")
+
+    assert result["contract"].endswith("3-DAY-CERTIFICATION-V1")
+    assert result["status"] == "PASS"
+    assert result["snapshot_count"] == 3
+    assert all(item["result"] == "PASS" for item in result["runs"])
+    assert all(item["result"] == "SKIPPED_NOT_DUE" for item in result["repeat_checks"])
+    assert result["founder_brief_ready"] is True
+    assert result["dangerous_actions_executed"] is False

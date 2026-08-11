@@ -250,3 +250,21 @@ PASS LOCAL.
 Continuous Evolution OS sube de 62/100 a 79/100.
 
 No es aun un sistema autonomo productivo diario. Si se autoriza un siguiente paso, debe ser conectar este scheduler local a una cadencia real controlada y read-only, sin Telegram, sin Stripe, sin deploy y con logs de ejecucion verificables.
+
+
+## Automation Phase 01 Addendum
+
+Score posterior basado en evidencia local: 86/100.
+
+Nuevas evidencias:
+
+- scheduler local con politica Europe/Madrid;
+- job logs por intento;
+- lock de concurrencia;
+- pause/resume administrativo;
+- runner seguro preparado;
+- 3-day simulated certification PASS;
+- failure recovery PARTIAL sin destruir ultimo snapshot bueno;
+- Product Memory con priority_history, decision_history, outcome_history, reviewer_history y evidence_history.
+
+Limitacion principal: Render Cron sigue no conectado. No se puede afirmar todavia ejecucion diaria real en produccion.

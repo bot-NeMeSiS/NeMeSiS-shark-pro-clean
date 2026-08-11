@@ -394,7 +394,8 @@ from engines.product_review_system_engine import (
     build_continuous_evolution_status_snapshot,
     build_executive_board_snapshot,
     build_product_review_system_snapshot,
-    run_continuous_evolution_cycle,
+    run_continuous_evolution_scheduler_task,
+    set_continuous_evolution_pause,
 )
 from engines.beta_program_engine import (
     BETA_METRICS_CONTRACT,
@@ -27771,15 +27772,32 @@ def admin_founder_dashboard_page():
 def admin_founder_dashboard_review_now():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-dashboard")
-    result = run_continuous_evolution_cycle(
+    result = run_continuous_evolution_scheduler_task(
         BASE_DIR,
         APP_VERSION,
-        execution_mode="manual_run",
+        task_name="daily_product_review",
+        force=True,
         now=now_iso(),
-        write=True,
+        trigger="MANUAL",
     )
-    snapshot_id = ((result.get("snapshot") or {}).get("snapshot_id") or "completed")
+    snapshot_id = (((result.get("cycle") or {}).get("snapshot") or {}).get("snapshot_id") or (result.get("job") or {}).get("snapshot_id") or "completed")
     return redirect(f"/admin/founder-dashboard?review=completed&snapshot={urllib.parse.quote(str(snapshot_id))}")
+
+
+@app.route("/admin/founder-dashboard/continuous-evolution/pause", methods=["POST"])
+def admin_founder_dashboard_pause_continuous_evolution():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    set_continuous_evolution_pause(BASE_DIR, paused=True, actor=session.get("user_name") or "admin", reason="Pausa manual desde Founder Center", now=now_iso())
+    return redirect("/admin/founder-dashboard?automation=paused#continuous-evolution")
+
+
+@app.route("/admin/founder-dashboard/continuous-evolution/resume", methods=["POST"])
+def admin_founder_dashboard_resume_continuous_evolution():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    set_continuous_evolution_pause(BASE_DIR, paused=False, actor=session.get("user_name") or "admin", reason="Reanudacion manual desde Founder Center", now=now_iso())
+    return redirect("/admin/founder-dashboard?automation=resumed#continuous-evolution")
 
 
 @app.route("/api/admin/founder-dashboard")

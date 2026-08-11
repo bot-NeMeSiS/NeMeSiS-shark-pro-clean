@@ -17,6 +17,10 @@
 {% set ce_items = ce_codex.get('items', []) %}
 {% set ce_learning = ce_memory.get('learning_summary', {}) %}
 {% set ce_today = ce_comparison.get('today_vs_previous', {}) %}
+{% set ce_scheduler = continuous.scheduler or {} %}
+{% set ce_control = continuous.control or {} %}
+{% set ce_tasks = ce_scheduler.get('tasks', {}) %}
+{% set ce_last_job = continuous.last_job or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
@@ -25,28 +29,38 @@
     {'label':'Revisión continua','href':'#continuous-evolution','primary':true,'icon':'history'}
   ]) }}
 
-  <section class="v933-admin-panel" id="continuous-evolution" aria-label="Evolución continua">
+  <section class="v933-admin-panel" id="continuous-evolution" aria-label="Evolucion continua">
     <header>
       <div>
-        <h2>Evolución continua</h2>
-        <p>Revisión segura del producto: observa, compara, prioriza y prepara trabajo para Codex. No implementa, no envía, no cobra y no despliega.</p>
+        <h2>Evolucion continua</h2>
+        <p>Trabajo recurrente seguro: observa, compara, prioriza y prepara briefs. No implementa, no envia, no cobra y no despliega.</p>
       </div>
-      {{ status_chip(continuous.status or 'PREPARED_ONLY', 'success' if continuous.status == 'OBSERVED' else 'warning') }}
+      {{ status_chip(continuous.automation_status or 'MANUAL', 'success' if continuous.automation_status == 'ACTIVE' else 'danger' if continuous.automation_status == 'ERROR' else 'warning' if continuous.automation_status == 'PAUSED' else 'neutral') }}
     </header>
     <div class="v933-admin-panel-body">
       {% if request.args.get('review') == 'completed' %}
-        <p class="v933-safe-copy"><strong>Revisión completada.</strong> Snapshot {{ request.args.get('snapshot') }} registrado en memoria local.</p>
+        <p class="v933-safe-copy"><strong>Revision completada.</strong> Snapshot {{ request.args.get('snapshot') }} registrado en memoria local.</p>
+      {% elif request.args.get('automation') == 'paused' %}
+        <p class="v933-safe-copy"><strong>Evolucion continua pausada.</strong> Solo se bloquean ejecuciones programadas; la aplicacion normal no cambia.</p>
+      {% elif request.args.get('automation') == 'resumed' %}
+        <p class="v933-safe-copy"><strong>Evolucion continua reanudada.</strong> La siguiente ejecucion dependera de la politica Madrid.</p>
       {% endif %}
       <div class="v933-kpi-grid">
-        {{ kpi_card('Snapshots', continuous.snapshot_count or 0, 'Histórico local del loop', 'blue', 'history') }}
+        {{ kpi_card('Estado', continuous.automation_status or 'MANUAL', 'Automatizacion segura local', 'blue', 'shield') }}
+        {{ kpi_card('Ultima ejecucion', continuous.last_execution or 'Pendiente', 'Hora Madrid', 'cyan', 'history') }}
+        {{ kpi_card('Proxima ejecucion', continuous.next_execution or 'Pendiente', 'Politica Europe/Madrid', 'warning', 'clock') }}
+        {{ kpi_card('Ciclos', (continuous.cycles_completed or 0) ~ ' / ' ~ (continuous.cycles_failed or 0), 'Completados / fallidos', 'neutral', 'target') }}
+      </div>
+      <div class="v933-kpi-grid">
+        {{ kpi_card('Snapshots', continuous.snapshot_count or 0, 'Historico local del loop', 'blue', 'history') }}
         {{ kpi_card('Memoria', ce_memory.recommendations or 0, 'Recomendaciones trazables', 'cyan', 'data') }}
-        {{ kpi_card('Codex READY', ce_codex.ready_count or 0, 'Sin ejecución automática', 'warning', 'code') }}
-        {{ kpi_card('Aprendizaje', 'S?' if ce_learning.get('actual_learning') else 'No', ce_learning.get('why') or 'Pendiente de historial comparable', 'neutral', 'target') }}
+        {{ kpi_card('Codex READY', ce_codex.ready_count or 0, 'Sin ejecucion automatica', 'warning', 'code') }}
+        {{ kpi_card('Aprendizaje', 'Si' if ce_learning.get('actual_learning') else 'No', ce_learning.get('why') or 'Pendiente de historial comparable', 'neutral', 'target') }}
       </div>
       <div class="v933-truth-list">
-        <div>{{ icon('history') }}<span><strong>Desde la última revisión</strong><small>{{ ce_comparison.summary or 'Sin historial suficiente todavía.' }}</small></span>{{ status_chip(ce_today.get('state') or 'INSUFFICIENT_HISTORY', 'warning') }}</div>
-        <div>{{ icon('shield') }}<span><strong>Scheduler local</strong><small>Disponible para ejecución programada segura; Render Cron no se modifica desde aquí.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
-        <div>{{ icon('code') }}<span><strong>Preparado para Codex</strong><small>{% if ce_items %}{{ ce_items[0].title }}{% else %}Aún no hay brief generado.{% endif %}</small></span>{{ status_chip('APROBACIÓN HUMANA','warning') }}</div>
+        <div>{{ icon('history') }}<span><strong>Desde la ultima revision</strong><small>{{ ce_comparison.summary or 'Sin historial suficiente todavia.' }}</small></span>{{ status_chip(ce_today.get('state') or 'INSUFFICIENT_HISTORY', 'warning') }}</div>
+        <div>{{ icon('shield') }}<span><strong>Scheduler</strong><small>{% if ce_control.get('paused') %}Pausado por administracion.{% else %}Preparado para ejecucion local segura; Render Cron no se modifica aqui.{% endif %}</small></span>{{ status_chip('PAUSADO' if ce_control.get('paused') else 'LOCAL','warning' if ce_control.get('paused') else 'neutral') }}</div>
+        <div>{{ icon('code') }}<span><strong>Preparado para Codex</strong><small>{% if ce_items %}{{ ce_items[0].title }}{% else %}Aun no hay brief generado.{% endif %}</small></span>{{ status_chip('APROBACION HUMANA','warning') }}</div>
       </div>
       {% if ce_brief.text %}
         <div class="v933-truth-list is-no-icon">
@@ -55,10 +69,24 @@
           {% endfor %}
         </div>
       {% else %}
-        {{ empty_state('Sin brief todavía', 'Ejecuta una revisión controlada para generar snapshot, comparación, Founder Brief y bandeja Codex.', '', '', 'history') }}
+        {{ empty_state('Sin brief todavia', 'Ejecuta una revision controlada para generar snapshot, comparacion, Founder Brief y bandeja Codex.', '', '', 'history') }}
       {% endif %}
+      <details class="v933-safe-copy">
+        <summary>Ver detalles tecnicos</summary>
+        <div class="v933-truth-list is-no-icon">
+          {% for key, task in ce_tasks.items() %}
+            <div><span><strong>{{ task.label }}</strong><small>Ultimo: {{ task.last_result }} | siguiente: {{ task.next_expected_run or 'Pendiente' }}</small></span>{{ status_chip(task.cadence|upper, 'neutral') }}</div>
+          {% endfor %}
+          {% if ce_last_job %}<div><span><strong>Ultimo job</strong><small>{{ ce_last_job.status }} | {{ ce_last_job.job_id }}</small></span>{{ status_chip(ce_last_job.trigger or 'LOCAL','neutral') }}</div>{% endif %}
+        </div>
+      </details>
       <form method="post" action="/admin/founder-dashboard/review-now" class="v933-page-actions">
         <button class="v933-action is-blue" type="submit">{{ icon('history') }}<span>Revisar todo ahora</span></button>
+        {% if ce_control.get('paused') %}
+          <button class="v933-action is-blue" type="submit" formaction="/admin/founder-dashboard/continuous-evolution/resume">{{ icon('play') }}<span>Reanudar evolucion</span></button>
+        {% else %}
+          <button class="v933-action is-blue" type="submit" formaction="/admin/founder-dashboard/continuous-evolution/pause">{{ icon('pause') }}<span>Pausar evolucion</span></button>
+        {% endif %}
         <a class="v933-action is-blue" href="/admin/product-review-center">{{ icon('arrow') }}<span>Product Review</span></a>
         <a class="v933-action is-blue" href="/admin/executive-board">{{ icon('arrow') }}<span>Executive Board</span></a>
       </form>

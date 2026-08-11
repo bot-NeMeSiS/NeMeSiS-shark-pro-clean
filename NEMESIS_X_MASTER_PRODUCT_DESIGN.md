@@ -663,3 +663,14 @@ Current mandatory next step remains:
 
 > Finish `LRM-001` before starting any implementation from NeMeSiS X.
 
+
+
+## Automation Phase 01 Status
+
+Continuous Evolution OS queda scheduler-ready de forma local y segura.
+
+Esto no autoriza nuevas funciones de producto ni activacion automatica en produccion. Cualquier ejecucion productiva recurrente debe mantenerse dentro de LRM-001 hasta cerrar Release 1.0 y requiere evidencia real de tres dias consecutivos sin intervencion humana.
+
+Estado permitido: observe, analyze, simulate QA, compare, detect, remember, calibrate, prioritize, propose, prepare Codex brief y generate Founder Brief.
+
+Estado prohibido: code change, commit, push, deploy, Telegram send, Stripe action, user mutation, membership change, price change, delete, secret change, production mutation y new source activation.

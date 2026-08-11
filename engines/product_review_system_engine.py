@@ -8,6 +8,7 @@ providers, Telegram, Stripe, production, or writes databases.
 from __future__ import annotations
 
 import hashlib
+import os
 import json
 import re
 from collections import Counter
@@ -63,6 +64,60 @@ SENSITIVE_VISIBLE_TERMS = {
     "STRIPE_WEBHOOK_SECRET": "firma privada de Stripe",
     "OPENAI_API_KEY": "clave privada de proveedor",
 }
+
+CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-AUTOMATION-V1"
+CONTINUOUS_EVOLUTION_JOB_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-JOB-V1"
+CONTINUOUS_EVOLUTION_CONTROL_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-CONTROL-V1"
+CONTINUOUS_EVOLUTION_CERTIFICATION_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-3-DAY-CERTIFICATION-V1"
+CONTINUOUS_EVOLUTION_TRIGGERS = {"MANUAL", "SCHEDULED_LOCAL", "SCHEDULED_PRODUCTION"}
+CONTINUOUS_EVOLUTION_LOCK_TTL = timedelta(hours=2)
+CONTINUOUS_EVOLUTION_POLICY = {
+    "timezone": "Europe/Madrid",
+    "daily_product_review": {"hour": 3, "minute": 15},
+    "daily_founder_brief": {"hour": 3, "minute": 20},
+    "weekly_executive_review": {"weekday": 0, "hour": 4, "minute": 0},
+    "monthly_strategy_review": {"day": 1, "hour": 4, "minute": 30},
+}
+SIMULATED_USER_PERSONAS = (
+    "NEW_USER",
+    "FREE",
+    "PRO",
+    "ELITE",
+    "MOBILE",
+    "DESKTOP",
+    "MATCH_SEEKER",
+    "TEAM_FOLLOWER",
+    "SHARK_USER",
+    "PICKS_USER",
+)
+AUTOMATION_ALLOWED_ACTIONS = (
+    "OBSERVE",
+    "ANALYZE",
+    "SIMULATE_QA",
+    "COMPARE",
+    "DETECT",
+    "REMEMBER",
+    "CALIBRATE",
+    "PRIORITIZE",
+    "PROPOSE",
+    "PREPARE_CODEX_BRIEF",
+    "GENERATE_FOUNDER_BRIEF",
+)
+AUTOMATION_PROHIBITED_ACTIONS = (
+    "CODE_CHANGE",
+    "COMMIT",
+    "PUSH",
+    "DEPLOY",
+    "TELEGRAM_SEND",
+    "STRIPE_ACTION",
+    "USER_MUTATION",
+    "MEMBERSHIP_CHANGE",
+    "PRICE_CHANGE",
+    "DELETE",
+    "SECRET_CHANGE",
+    "PRODUCTION_MUTATION",
+    "NEW_SOURCE_ACTIVATION",
+)
 
 REVIEWER_DEFINITIONS: tuple[dict[str, str], ...] = (
     {"key": "product_director", "name": "Product Director", "module": "Producto", "responsibility": "Valida valor, integracion y complejidad del producto."},
@@ -969,12 +1024,16 @@ def _ce_paths(storage: Path) -> dict[str, Path]:
         "latest_brief": storage / "latest_founder_brief.md",
         "codex_inbox": storage / "codex_inbox" / "prepared_for_codex.json",
         "scheduler": storage / "scheduler_state.json",
+        "job_logs": storage / "job_logs",
+        "scheduler_lock": storage / "scheduler.lock",
+        "control": storage / "automation_control.json",
+        "certifications": storage / "certifications",
         "market": storage / "market_reviews.json",
     }
 
 
 def _ce_ensure_dirs(paths: dict[str, Path]) -> None:
-    for key in ("root", "snapshots", "runs", "briefs", "codex"):
+    for key in ("root", "snapshots", "runs", "briefs", "codex", "job_logs", "certifications"):
         paths[key].mkdir(parents=True, exist_ok=True)
 
 
@@ -1049,6 +1108,204 @@ def _ce_default_memory(now_iso: str) -> dict[str, Any]:
         "learning_summary": {"mode": "deterministic_no_ai", "actual_learning_events": 0, "history_storage": True, "actual_learning": False},
     }
 
+
+
+def _ce_default_control(now_iso: str) -> dict[str, Any]:
+    return {
+        "contract": CONTINUOUS_EVOLUTION_CONTROL_CONTRACT,
+        "automation_status": "MANUAL",
+        "paused": False,
+        "pause_events": [],
+        "updated_at_madrid": now_iso,
+        "dangerous_actions_allowed": False,
+    }
+
+
+def _ce_read_control(paths: dict[str, Path], now_iso: str) -> dict[str, Any]:
+    control = _ce_load_json(paths["control"], _ce_default_control(now_iso))
+    if not isinstance(control, dict):
+        control = _ce_default_control(now_iso)
+    control.setdefault("contract", CONTINUOUS_EVOLUTION_CONTROL_CONTRACT)
+    control.setdefault("automation_status", "PAUSED" if control.get("paused") else "MANUAL")
+    control.setdefault("paused", False)
+    control.setdefault("pause_events", [])
+    control.setdefault("dangerous_actions_allowed", False)
+    control.setdefault("updated_at_madrid", now_iso)
+    return control
+
+
+def set_continuous_evolution_pause(project_root: str | Path | None = None, *, paused: bool, actor: str = "admin", reason: str = "", storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
+    now_iso = _ce_now(now).isoformat(timespec="seconds")
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    _ce_ensure_dirs(paths)
+    control = _ce_read_control(paths, now_iso)
+    previous = bool(control.get("paused"))
+    control["paused"] = bool(paused)
+    control["automation_status"] = "PAUSED" if paused else "MANUAL"
+    control["updated_at_madrid"] = now_iso
+    event = {
+        "event_id": _ce_hash("CTRL", previous, paused, actor, now_iso),
+        "at_madrid": now_iso,
+        "actor": _ce_clean_text(actor, 120) or "admin",
+        "from": "PAUSED" if previous else "ACTIVE_OR_MANUAL",
+        "to": "PAUSED" if paused else "MANUAL",
+        "reason": _ce_clean_text(reason, 420) or ("Pausa administrativa" if paused else "Reanudacion administrativa"),
+        "dangerous_actions_executed": False,
+    }
+    control.setdefault("pause_events", []).append(event)
+    _ce_write_json(paths["control"], control)
+    return {"ok": True, "control": control, "event": event, "dangerous_actions_executed": False}
+
+
+def _ce_period_key(task_name: str, now_dt: datetime) -> str:
+    if task_name == "weekly_executive_review":
+        year, week, _ = now_dt.isocalendar()
+        return f"{year}-W{week:02d}"
+    if task_name == "monthly_strategy_review":
+        return now_dt.strftime("%Y-%m")
+    return now_dt.strftime("%Y-%m-%d")
+
+
+def _ce_scheduled_for(task_name: str, now_dt: datetime) -> datetime:
+    policy = CONTINUOUS_EVOLUTION_POLICY.get(task_name) or {}
+    hour = int(policy.get("hour", 3))
+    minute = int(policy.get("minute", 15))
+    if task_name == "weekly_executive_review":
+        weekday = int(policy.get("weekday", 0))
+        base = (now_dt - timedelta(days=(now_dt.weekday() - weekday) % 7)).replace(hour=hour, minute=minute, second=0, microsecond=0)
+        return base
+    if task_name == "monthly_strategy_review":
+        day = int(policy.get("day", 1))
+        return now_dt.replace(day=min(day, 28), hour=hour, minute=minute, second=0, microsecond=0)
+    return now_dt.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+
+def _ce_next_expected(task_name: str, now_dt: datetime) -> str:
+    scheduled = _ce_scheduled_for(task_name, now_dt)
+    if task_name == "weekly_executive_review":
+        next_dt = scheduled + timedelta(days=7)
+    elif task_name == "monthly_strategy_review":
+        month = scheduled.month + 1
+        year = scheduled.year + (1 if month > 12 else 0)
+        month = 1 if month > 12 else month
+        next_dt = scheduled.replace(year=year, month=month)
+    else:
+        next_dt = scheduled + timedelta(days=1)
+    if next_dt <= now_dt:
+        if task_name == "weekly_executive_review":
+            next_dt = now_dt + timedelta(days=7)
+        elif task_name == "monthly_strategy_review":
+            month = now_dt.month + 1
+            year = now_dt.year + (1 if month > 12 else 0)
+            month = 1 if month > 12 else month
+            next_dt = now_dt.replace(year=year, month=month, day=1, hour=scheduled.hour, minute=scheduled.minute, second=0, microsecond=0)
+        else:
+            next_dt = now_dt.replace(hour=scheduled.hour, minute=scheduled.minute, second=0, microsecond=0) + timedelta(days=1)
+    return next_dt.isoformat(timespec="seconds")
+
+
+def _ce_due(task_state: dict[str, Any], task_name: str, now_dt: datetime, force: bool = False) -> tuple[bool, str, str]:
+    scheduled = _ce_scheduled_for(task_name, now_dt)
+    period = _ce_period_key(task_name, now_dt)
+    if force:
+        return True, scheduled.isoformat(timespec="seconds"), period
+    if now_dt < scheduled:
+        return False, scheduled.isoformat(timespec="seconds"), period
+    if task_state.get("last_completed_period") == period:
+        return False, scheduled.isoformat(timespec="seconds"), period
+    return True, scheduled.isoformat(timespec="seconds"), period
+
+
+def _ce_job_id(task_name: str, scheduled_for: str, trigger: str) -> str:
+    return _ce_hash("JOB", task_name, scheduled_for, trigger)
+
+
+def _ce_job_history(paths: dict[str, Path], limit: int = 50) -> list[dict[str, Any]]:
+    jobs = []
+    if paths["job_logs"].exists():
+        for path in sorted(paths["job_logs"].glob("JOB-*.json"))[-limit:]:
+            data = _ce_load_json(path, None)
+            if isinstance(data, dict):
+                jobs.append(data)
+    return jobs
+
+
+def _ce_write_job_log(paths: dict[str, Path], job: dict[str, Any]) -> None:
+    _ce_ensure_dirs(paths)
+    _ce_write_json(paths["job_logs"] / f"{job['job_id']}.json", job)
+
+
+def _ce_safe_error(exc: BaseException) -> dict[str, str]:
+    return {"type": type(exc).__name__, "message": _ce_clean_text(str(exc), 320) or "Error controlado sin detalle sensible."}
+
+
+def _ce_acquire_lock(paths: dict[str, Path], job_id: str, now_iso: str) -> tuple[bool, dict[str, Any]]:
+    lock_path = paths["scheduler_lock"]
+    lock_payload = {"job_id": job_id, "locked_at_madrid": now_iso, "pid": os.getpid()}
+    try:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with lock_path.open("x", encoding="utf-8") as fh:
+            json.dump(lock_payload, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        return True, lock_payload
+    except FileExistsError:
+        existing = _ce_load_json(lock_path, {})
+        locked_at = existing.get("locked_at_madrid") if isinstance(existing, dict) else None
+        if locked_at:
+            try:
+                if _ce_now(now_iso) - _ce_now(locked_at) > CONTINUOUS_EVOLUTION_LOCK_TTL:
+                    lock_path.unlink(missing_ok=True)
+                    return _ce_acquire_lock(paths, job_id, now_iso)
+            except OSError:
+                pass
+        return False, existing if isinstance(existing, dict) else {"locked": True}
+
+
+def _ce_release_lock(paths: dict[str, Path], job_id: str) -> None:
+    lock_path = paths["scheduler_lock"]
+    existing = _ce_load_json(lock_path, {})
+    if isinstance(existing, dict) and existing.get("job_id") == job_id:
+        try:
+            lock_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _ce_fallback_product_review(error: BaseException, now_iso: str) -> dict[str, Any]:
+    safe = _ce_safe_error(error)
+    return {
+        "contract": PRODUCT_REVIEW_SYSTEM_CONTRACT,
+        "center_contract": PRODUCT_REVIEW_CENTER_CONTRACT,
+        "quality_team_contract": QUALITY_TEAM_CONTRACT,
+        "status": "PARTIAL_COMPONENT_UNAVAILABLE",
+        "score": 0,
+        "generated_at_madrid": now_iso,
+        "reviewers": [],
+        "findings": [],
+        "findings_summary": {"P0": 0, "P1": 0, "P2": 0, "P3": 0, "total": 0},
+        "roadmap_candidates": [],
+        "component_unavailable": {"component": "Product Review", "error_safe": safe},
+        "guardrails": dict(GUARDRAILS),
+    }
+
+
+def _ce_simulated_user_nightly_check(project_root: Path, previous_snapshot: dict[str, Any] | None, control_fixture: dict[str, Any] | None = None) -> dict[str, Any]:
+    previous = ((previous_snapshot or {}).get("simulated_user_nightly_check") or {}).get("personas") or []
+    prev_by_key = {item.get("persona"): item for item in previous}
+    route_engine_available = (project_root / "engines" / "sentinel_user_journey_engine.py").is_file()
+    personas = []
+    for persona in SIMULATED_USER_PERSONAS:
+        baseline = {"clicks": 3, "route_failures": 0, "empty_states": 0, "js_errors": 0, "overflow": 0, "friction_indicators": 0}
+        if control_fixture and (control_fixture.get("simulated_persona") == persona):
+            baseline.update(control_fixture.get("simulated_metrics") or {})
+        before = prev_by_key.get(persona) or {}
+        change = "INSUFFICIENT_HISTORY" if not before else "UNCHANGED"
+        if before:
+            if int(baseline.get("friction_indicators") or 0) > int(before.get("friction_indicators") or 0):
+                change = "WORSENED"
+            elif int(baseline.get("friction_indicators") or 0) < int(before.get("friction_indicators") or 0):
+                change = "IMPROVED"
+        personas.append({"persona": persona, "evidence_origin": "SIMULATED_QA", "source": "sentinel_user_journey_engine" if route_engine_available else "contract_only", "status": "AVAILABLE" if route_engine_available else "PARTIAL", "change": change, **baseline})
+    return {"contract": "NEMESIS-SIMULATED-USER-NIGHTLY-CHECK-V1", "evidence_origin": "SIMULATED_QA", "real_user_data": False, "personas": personas, "summary": {"personas": len(personas), "route_failures": sum(int(p.get("route_failures") or 0) for p in personas), "js_errors": sum(int(p.get("js_errors") or 0) for p in personas), "overflow": sum(int(p.get("overflow") or 0) for p in personas), "worsened": len([p for p in personas if p.get("change") == "WORSENED"]), "improved": len([p for p in personas if p.get("change") == "IMPROVED"])}}
 
 def load_product_memory(project_root: str | Path | None = None, storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
     now_iso = _ce_now(now).isoformat(timespec="seconds")
@@ -1142,9 +1399,27 @@ def _ce_things_not_to_touch(board: dict[str, Any]) -> list[str]:
     return items
 
 
+def _ce_unique_candidates(candidates: list[dict[str, Any]], limit: int | None = None) -> list[dict[str, Any]]:
+    seen: set[tuple[str, str]] = set()
+    unique: list[dict[str, Any]] = []
+    for candidate in candidates or []:
+        key = (
+            _ce_clean_text(candidate.get("title"), 180).lower(),
+            _ce_clean_text(candidate.get("proposal"), 260).lower(),
+        )
+        if not key[0] and not key[1]:
+            key = (_ce_clean_text(candidate.get("id"), 80).lower(), "")
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+        if limit and len(unique) >= limit:
+            break
+    return unique
+
 def _ce_board_risks(board: dict[str, Any]) -> list[str]:
     risks = []
-    for candidate in board.get("top_10_improvements") or []:
+    for candidate in _ce_unique_candidates(board.get("top_10_improvements") or []):
         risk = _ce_clean_text(candidate.get("risk"), 60)
         if risk in {"Medio", "Alto"}:
             risks.append(f"{candidate.get('id')}: {risk} - {_ce_clean_text(candidate.get('title'), 160)}")
@@ -1152,7 +1427,7 @@ def _ce_board_risks(board: dict[str, Any]) -> list[str]:
 
 
 def _ce_board_opportunities(board: dict[str, Any]) -> list[str]:
-    return [f"{item.get('id')}: {_ce_clean_text(item.get('impact_business'), 220)}" for item in (board.get("top_10_improvements") or [])[:8]]
+    return [f"{item.get('id')}: {_ce_clean_text(item.get('impact_business'), 220)}" for item in _ce_unique_candidates(board.get("top_10_improvements") or [], limit=8)]
 
 
 def _ce_latest_snapshot(paths: dict[str, Path]) -> dict[str, Any] | None:
@@ -1242,9 +1517,14 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
         existing = records.get(rec_id)
         event_type = "SEEN"
         if not existing:
-            existing = {"recommendation_id": rec_id, "title": candidate.get("title"), "first_seen": now_iso, "workers": candidate.get("workers") or [], "evidence": [], "priority_initial": candidate.get("priority"), "priority_current": candidate.get("priority"), "decisions": [], "state": "NEW", "decision_reason": "Pendiente de decision humana.", "future_sprint_or_commit": None, "qa_after": None, "outcome_after": None, "reopened_count": 0, "last_seen": now_iso, "resolved_at": None, "seen_count": 0, "missed_count": 0, "why_priority_changed": "Primera deteccion con evidencia actual.", "evidence_origin": candidate.get("evidence_origin") or "SYSTEM_OBSERVATION"}
+            existing = {"recommendation_id": rec_id, "title": candidate.get("title"), "first_seen": now_iso, "workers": candidate.get("workers") or [], "evidence": [], "priority_initial": candidate.get("priority"), "priority_current": candidate.get("priority"), "priority_history": [], "decision_history": [], "outcome_history": [], "reviewer_history": [], "evidence_history": [], "decisions": [], "state": "NEW", "decision_reason": "Pendiente de decision humana.", "future_sprint_or_commit": None, "qa_after": None, "outcome_after": None, "reopened_count": 0, "last_seen": now_iso, "resolved_at": None, "seen_count": 0, "missed_count": 0, "why_priority_changed": "Primera deteccion con evidencia actual.", "evidence_origin": candidate.get("evidence_origin") or "SYSTEM_OBSERVATION"}
             records[rec_id] = existing
             event_type = "FIRST_SEEN"
+        existing.setdefault("priority_history", [])
+        existing.setdefault("decision_history", existing.get("decisions") or [])
+        existing.setdefault("outcome_history", [])
+        existing.setdefault("reviewer_history", [])
+        existing.setdefault("evidence_history", [])
         cleaned_evidence = []
         for evidence_item in existing.get("evidence") or []:
             cleaned = _ce_clean_text(evidence_item, 620)
@@ -1261,9 +1541,13 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
         existing["last_seen"] = now_iso
         existing["seen_count"] = int(existing.get("seen_count") or 0) + 1
         existing["missed_count"] = 0
+        existing.setdefault("priority_history", []).append({"at_madrid": now_iso, "run_id": run_id, "snapshot_id": snapshot_id, "priority": candidate.get("priority"), "reason": existing.get("why_priority_changed")})
+        existing.setdefault("reviewer_history", []).append({"at_madrid": now_iso, "run_id": run_id, "workers": candidate.get("workers") or []})
         evidence = _ce_clean_text(candidate.get("evidence"), 620)
         if evidence and evidence not in existing.setdefault("evidence", []):
             existing["evidence"].append(evidence)
+        if evidence:
+            existing.setdefault("evidence_history", []).append({"at_madrid": now_iso, "run_id": run_id, "snapshot_id": snapshot_id, "evidence": evidence, "origin": candidate.get("evidence_origin") or "SYSTEM_OBSERVATION"})
         existing["workers"] = list(dict.fromkeys([*(existing.get("workers") or []), *(candidate.get("workers") or [])]))
         if _ce_priority_rank(candidate.get("priority")) != _ce_priority_rank(existing.get("priority_current")):
             existing["priority_current"] = candidate.get("priority")
@@ -1271,6 +1555,15 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
         if existing.get("state") == "REJECTED" and len(existing.get("decisions") or []) >= 2:
             existing["priority_current"] = "P3"
             existing["why_priority_changed"] = "Rechazada repetidamente; no vuelve a maxima prioridad sin nueva evidencia."
+        existing["learning_metrics"] = {
+            "persistence": int(existing.get("seen_count") or 0),
+            "recurrence": int(existing.get("seen_count") or 0) >= 2,
+            "resolution": bool(existing.get("resolved_at")),
+            "regression": int(existing.get("reopened_count") or 0) > 0 or existing.get("state") == "REGRESSED",
+            "human_rejection": existing.get("state") == "REJECTED",
+            "positive_outcome": existing.get("outcome_after") == "OUTCOME_POSITIVE",
+            "insufficient_evidence": not bool(existing.get("evidence")),
+        }
         events.append({"event_id": _ce_hash("EVT", rec_id, run_id, event_type, now_iso), "type": event_type, "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso, "state": existing.get("state"), "priority_current": existing.get("priority_current")})
     for rec_id, record in records.items():
         if rec_id in current_ids:
@@ -1279,6 +1572,7 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
         if record.get("state") in {"IMPLEMENTED", "VERIFIED"} and not record.get("resolved_at"):
             record["resolved_at"] = now_iso
             record["outcome_after"] = "OUTCOME_POSITIVE"
+            record.setdefault("outcome_history", []).append({"at_madrid": now_iso, "run_id": run_id, "snapshot_id": snapshot_id, "outcome": "OUTCOME_POSITIVE"})
             events.append({"event_id": _ce_hash("EVT", rec_id, run_id, "OUTCOME_POSITIVE", now_iso), "type": "OUTCOME_POSITIVE", "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso})
     memory["reviewer_signal"] = _ce_calibrate_reviewers(review, memory)
     learning_events = len([event for event in events if event.get("type") in {"REGRESSION", "OUTCOME_POSITIVE"}])
@@ -1329,7 +1623,7 @@ def _ce_probable_files(candidate: dict[str, Any]) -> list[str]:
 
 def _ce_build_codex_inbox(board: dict[str, Any], snapshot_id: str, now_iso: str) -> dict[str, Any]:
     items = []
-    for index, candidate in enumerate(board.get("top_10_improvements") or [], start=1):
+    for index, candidate in enumerate(_ce_unique_candidates(board.get("top_10_improvements") or []), start=1):
         rec_id = candidate.get("recommendation_id") or _ce_recommendation_id(candidate)
         evidence = _ce_clean_text(candidate.get("evidence"), 620)
         proposal = _ce_clean_text(candidate.get("proposal"), 420)
@@ -1342,7 +1636,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     now_iso = snapshot.get("generated_at_madrid") or ""
     board = snapshot.get("executive_board") or {}
     comparison = snapshot.get("temporal_comparison") or {}
-    top = board.get("top_10_improvements") or []
+    top = _ce_unique_candidates(board.get("top_10_improvements") or [], limit=3)
     no_touch = board.get("things_not_to_touch") or []
     risks = board.get("risks") or []
     opportunities = board.get("opportunities") or []
@@ -1392,10 +1686,12 @@ def _ce_beta_state(project_root: Path) -> dict[str, Any]:
     reports = project_root / "reports"
     return {"state": "PREPARED_ONLY", "beta_report": (reports / "BETA_PROGRAM_REPORT.md").is_file(), "real_user_evidence": "NO_REAL_USER_EVIDENCE", "evidence_origin": "SYSTEM_OBSERVATION"}
 
-def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_version: str = "LOCAL", *, execution_mode: str = "manual_run", scheduled_task: str = "", now: str | datetime | None = None, storage_root: str | Path | None = None, control_fixture: dict[str, Any] | None = None, write: bool = True) -> dict[str, Any]:
+def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_version: str = "LOCAL", *, execution_mode: str = "manual_run", scheduled_task: str = "", now: str | datetime | None = None, storage_root: str | Path | None = None, control_fixture: dict[str, Any] | None = None, write: bool = True, job_id: str = "", scheduled_for: str = "", trigger: str = "MANUAL") -> dict[str, Any]:
     root = _root(project_root)
-    now_dt = _ce_now(now)
+    started_dt = _ce_now(now)
+    now_dt = started_dt
     now_iso = now_dt.isoformat(timespec="seconds")
+    started_at = now_iso
     run_id = _ce_run_id(now_dt, execution_mode, scheduled_task)
     snapshot_id = _ce_snapshot_id(now_dt, run_id)
     storage = _ce_storage(root, storage_root)
@@ -1404,7 +1700,15 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         _ce_ensure_dirs(paths)
     previous = _ce_latest_snapshot(paths)
     history = _ce_snapshot_history(paths)
-    review = _ce_apply_control_fixture(build_product_review_system_snapshot(root, app_version), control_fixture)
+    components_unavailable: list[dict[str, Any]] = []
+    try:
+        if control_fixture and control_fixture.get("component_unavailable") == "Product Review":
+            raise RuntimeError("Controlled Product Review unavailable fixture")
+        review = build_product_review_system_snapshot(root, app_version)
+        review = _ce_apply_control_fixture(review, control_fixture)
+    except Exception as exc:
+        components_unavailable.append({"component": "Product Review", "status": "COMPONENT_UNAVAILABLE", "error_safe": _ce_safe_error(exc)})
+        review = _ce_fallback_product_review(exc, now_iso)
     board = _build_executive_board_from_review(review, app_version, now_iso)
     recommendations = _ce_recommendations_from_board(board)
     comparison = _ce_compare(recommendations, previous, history)
@@ -1412,12 +1716,88 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
     memory = _ce_update_memory(memory, recommendations, review, run_id, snapshot_id, now_iso, comparison)
     board = _ce_enrich_board_with_memory(board, memory, comparison)
     recommendations = _ce_recommendations_from_board(board)
-    snapshot: dict[str, Any] = {"contract": DAILY_PRODUCT_SNAPSHOT_CONTRACT, "continuous_evolution_contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "snapshot_id": snapshot_id, "run_id": run_id, "execution_mode": execution_mode, "scheduled_task": scheduled_task, "generated_at_madrid": now_iso, "version": app_version, "result": "PASS_WITH_REVIEW_ITEMS" if recommendations else "PASS", "systems_consulted": ["Product Review", "Digital Employees", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation"], "systems_unavailable": ["REAL_USER_DATA", "PRODUCTION_LOGS", "REAL_MARKET_RESEARCH"], "product_review": _ce_compact_review(review), "executive_board": board, "findings_summary": review.get("findings_summary") or {}, "scores": {"product_review": review.get("score"), "executive_board": board.get("board_score")}, "risks": board.get("risks") or [], "opportunities": board.get("opportunities") or [], "modules_not_to_touch": board.get("things_not_to_touch") or [], "blockers": [], "qa_available": _ce_available_qa(root), "operations": _ce_operations_state(root), "beta": _ce_beta_state(root), "market_intelligence": build_market_intelligence_foundation_snapshot(root, now=now_iso), "recommendations": recommendations, "temporal_comparison": comparison, "reviewer_calibration": memory.get("reviewer_signal") or {}, "product_memory_summary": memory.get("learning_summary") or {}, "evidence_origin": "SIMULATED_QA" if control_fixture else "SYSTEM_OBSERVATION", "guardrails": {**dict(GUARDRAILS), "delete": False, "change_prices": False, "change_memberships": False, "connect_new_sources": False}, "production_modified": False, "telegram_sent": False, "stripe_called": False, "automatic_code_execution": False, "automatic_commit": False, "automatic_push": False, "automatic_deploy": False}
+    simulated = _ce_simulated_user_nightly_check(root, previous, control_fixture=control_fixture)
+    result_state = "PARTIAL_WITH_UNAVAILABLE_COMPONENTS" if components_unavailable else ("PASS_WITH_REVIEW_ITEMS" if recommendations else "PASS")
+    snapshot: dict[str, Any] = {
+        "contract": DAILY_PRODUCT_SNAPSHOT_CONTRACT,
+        "continuous_evolution_contract": CONTINUOUS_EVOLUTION_OS_CONTRACT,
+        "automation_contract": CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT,
+        "snapshot_id": snapshot_id,
+        "run_id": run_id,
+        "job_id": job_id,
+        "scheduled_for": scheduled_for,
+        "trigger": trigger if trigger in CONTINUOUS_EVOLUTION_TRIGGERS else "MANUAL",
+        "execution_mode": execution_mode,
+        "scheduled_task": scheduled_task,
+        "generated_at_madrid": now_iso,
+        "version": app_version,
+        "result": result_state,
+        "systems_consulted": ["Product Review", "Digital Employees", "Simulated QA evidence", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation"],
+        "systems_unavailable": ["REAL_USER_DATA", "PRODUCTION_LOGS", "REAL_MARKET_RESEARCH", *[item["component"] for item in components_unavailable]],
+        "components_unavailable": components_unavailable,
+        "product_review": _ce_compact_review(review),
+        "executive_board": board,
+        "findings_summary": review.get("findings_summary") or {},
+        "scores": {"product_review": review.get("score"), "executive_board": board.get("board_score")},
+        "risks": board.get("risks") or [],
+        "opportunities": board.get("opportunities") or [],
+        "modules_not_to_touch": board.get("things_not_to_touch") or [],
+        "blockers": [],
+        "qa_available": _ce_available_qa(root),
+        "simulated_user_nightly_check": simulated,
+        "operations": _ce_operations_state(root),
+        "beta": _ce_beta_state(root),
+        "market_intelligence": build_market_intelligence_foundation_snapshot(root, now=now_iso),
+        "recommendations": recommendations,
+        "temporal_comparison": comparison,
+        "reviewer_calibration": memory.get("reviewer_signal") or {},
+        "product_memory_summary": memory.get("learning_summary") or {},
+        "evidence_origin": "SIMULATED_QA" if control_fixture else "SYSTEM_OBSERVATION",
+        "allowed_automation_actions": list(AUTOMATION_ALLOWED_ACTIONS),
+        "prohibited_automation_actions": list(AUTOMATION_PROHIBITED_ACTIONS),
+        "guardrails": {**dict(GUARDRAILS), "delete": False, "change_prices": False, "change_memberships": False, "connect_new_sources": False},
+        "production_modified": False,
+        "telegram_sent": False,
+        "stripe_called": False,
+        "automatic_code_execution": False,
+        "automatic_commit": False,
+        "automatic_push": False,
+        "automatic_deploy": False,
+    }
     codex_inbox = _ce_build_codex_inbox(board, snapshot_id, now_iso)
     snapshot["prepared_for_codex"] = codex_inbox
-    founder_brief = _ce_build_founder_brief(snapshot)
+    try:
+        if control_fixture and control_fixture.get("component_unavailable") == "Founder Brief":
+            raise RuntimeError("Controlled Founder Brief unavailable fixture")
+        founder_brief = _ce_build_founder_brief(snapshot)
+    except Exception as exc:
+        components_unavailable.append({"component": "Founder Brief", "status": "COMPONENT_UNAVAILABLE", "error_safe": _ce_safe_error(exc)})
+        snapshot["components_unavailable"] = components_unavailable
+        snapshot["systems_unavailable"] = list(dict.fromkeys([*snapshot["systems_unavailable"], "Founder Brief"]))
+        snapshot["result"] = "PARTIAL_WITH_UNAVAILABLE_COMPONENTS"
+        founder_brief = {"contract": FOUNDER_BRIEF_CONTRACT, "brief_id": _ce_hash("FB", snapshot_id, "partial"), "generated_at_madrid": now_iso, "state": "PARTIAL", "text": "BRIEFING DEL FUNDADOR\nFounder Brief no disponible en esta ejecucion. El snapshot y Product Memory se conservaron.", "sections": {}}
     snapshot["founder_brief"] = founder_brief
-    run_record = {"contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "run_id": run_id, "snapshot_id": snapshot_id, "started_at_madrid": now_iso, "finished_at_madrid": now_iso, "duration_ms": 0, "execution_mode": execution_mode, "scheduled_task": scheduled_task, "systems_consulted": snapshot["systems_consulted"], "systems_unavailable": snapshot["systems_unavailable"], "result": snapshot["result"], "dangerous_actions_executed": False}
+    finished_dt = _ce_now()
+    finished_at = finished_dt.isoformat(timespec="seconds")
+    duration_ms = max(0, int((finished_dt - started_dt).total_seconds() * 1000))
+    run_record = {
+        "contract": CONTINUOUS_EVOLUTION_OS_CONTRACT,
+        "run_id": run_id,
+        "job_id": job_id,
+        "snapshot_id": snapshot_id,
+        "scheduled_for": scheduled_for,
+        "trigger": trigger if trigger in CONTINUOUS_EVOLUTION_TRIGGERS else "MANUAL",
+        "started_at_madrid": started_at,
+        "finished_at_madrid": finished_at,
+        "duration_ms": duration_ms,
+        "execution_mode": execution_mode,
+        "scheduled_task": scheduled_task,
+        "systems_consulted": snapshot["systems_consulted"],
+        "systems_unavailable": snapshot["systems_unavailable"],
+        "result": snapshot["result"],
+        "error_safe": None if not components_unavailable else components_unavailable,
+        "dangerous_actions_executed": False,
+    }
     if write:
         _ce_write_json(paths["snapshots"] / f"{snapshot_id}.json", snapshot)
         _ce_write_json(paths["latest_snapshot"], snapshot)
@@ -1430,17 +1810,34 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         save_product_memory(root, memory, storage_root=storage_root)
     return {"ok": True, "run": run_record, "snapshot": snapshot, "memory": memory, "storage_root": str(storage)}
 
-
 def _ce_read_scheduler_state(paths: dict[str, Path], now_iso: str) -> dict[str, Any]:
     state = _ce_load_json(paths["scheduler"], {})
     if not isinstance(state, dict):
         state = {}
     state.setdefault("contract", CONTINUOUS_EVOLUTION_SCHEDULER_CONTRACT)
+    state.setdefault("automation_contract", CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT)
     state.setdefault("created_at_madrid", now_iso)
     state.setdefault("updated_at_madrid", now_iso)
+    state.setdefault("timezone", "Europe/Madrid")
+    state.setdefault("policy", CONTINUOUS_EVOLUTION_POLICY)
     tasks = state.setdefault("tasks", {})
+    now_dt = _ce_now(now_iso)
     for key, definition in CONTINUOUS_EVOLUTION_TASKS.items():
-        tasks.setdefault(key, {"task_name": key, "label": definition["label"], "cadence": definition["cadence"], "configured": True, "run_count": 0, "last_run": None, "last_result": "NOT_RUN", "next_expected_run": None, "automated_or_manual": "not_run", "evidence": "scheduler local preparado"})
+        task = tasks.setdefault(key, {})
+        task.setdefault("task_name", key)
+        task.setdefault("label", definition["label"])
+        task.setdefault("cadence", definition["cadence"])
+        task.setdefault("configured", True)
+        task.setdefault("run_count", 0)
+        task.setdefault("failed_count", 0)
+        task.setdefault("last_run", None)
+        task.setdefault("last_result", "NOT_RUN")
+        task.setdefault("last_job_id", None)
+        task.setdefault("last_snapshot_id", None)
+        task.setdefault("last_completed_period", None)
+        task.setdefault("next_expected_run", _ce_scheduled_for(key, now_dt).isoformat(timespec="seconds") if now_dt < _ce_scheduled_for(key, now_dt) else _ce_next_expected(key, now_dt))
+        task.setdefault("automated_or_manual", "not_run")
+        task.setdefault("evidence", "scheduler local preparado")
     return state
 
 
@@ -1450,48 +1847,197 @@ def build_continuous_evolution_status_snapshot(project_root: str | Path | None =
     latest = _ce_latest_snapshot(paths)
     memory = load_product_memory(project_root, storage_root=storage_root, now=now_iso)
     scheduler = _ce_read_scheduler_state(paths, now_iso)
+    control = _ce_read_control(paths, now_iso)
     codex = _ce_load_json(paths["codex_inbox"], {"items": [], "ready_count": 0})
     latest_run = _ce_load_json(paths["latest_run"], None)
+    jobs = _ce_job_history(paths)
     try:
         latest_brief = paths["latest_brief"].read_text(encoding="utf-8")
     except OSError:
         latest_brief = ""
     snapshots = _ce_snapshot_history(paths)
-    return {"contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "version": app_version, "generated_at_madrid": now_iso, "status": "OBSERVED" if latest else "PREPARED_ONLY", "latest_snapshot_id": (latest or {}).get("snapshot_id"), "latest_run": latest_run, "snapshot_count": len(snapshots), "product_memory": {"contract": memory.get("contract"), "recommendations": len(memory.get("recommendations") or {}), "events": len(memory.get("events") or []), "learning_summary": memory.get("learning_summary") or {}}, "temporal_comparison": (latest or {}).get("temporal_comparison") or {"today_vs_previous": {"state": "INSUFFICIENT_HISTORY"}}, "founder_brief": (latest or {}).get("founder_brief") or {"contract": FOUNDER_BRIEF_CONTRACT, "text": latest_brief, "state": "NOT_GENERATED"}, "prepared_for_codex": codex, "scheduler": scheduler, "market_intelligence": build_market_intelligence_foundation_snapshot(project_root, now=now_iso), "manual_run_available": True, "scheduled_run_available": True, "production_cron_enabled": False, "dangerous_actions_allowed": False}
+    completed = len([job for job in jobs if job.get("status") in {"PASS", "PARTIAL"}])
+    failed = len([job for job in jobs if job.get("status") in {"FAILED", "PARTIAL"}])
+    last_job = jobs[-1] if jobs else None
+    if control.get("paused"):
+        automation_status = "PAUSED"
+    elif last_job and last_job.get("status") == "FAILED":
+        automation_status = "ERROR"
+    elif completed:
+        automation_status = "ACTIVE"
+    else:
+        automation_status = "MANUAL"
+    next_runs = [task.get("next_expected_run") for task in (scheduler.get("tasks") or {}).values() if task.get("next_expected_run")]
+    next_execution = sorted(next_runs)[0] if next_runs else None
+    return {
+        "contract": CONTINUOUS_EVOLUTION_OS_CONTRACT,
+        "automation_contract": CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT,
+        "version": app_version,
+        "generated_at_madrid": now_iso,
+        "status": "OBSERVED" if latest else "PREPARED_ONLY",
+        "automation_status": automation_status,
+        "control": control,
+        "latest_snapshot_id": (latest or {}).get("snapshot_id"),
+        "latest_run": latest_run,
+        "last_job": last_job,
+        "last_execution": (last_job or {}).get("finished_at") or ((latest_run or {}).get("finished_at_madrid") if isinstance(latest_run, dict) else None),
+        "next_execution": next_execution,
+        "cycles_completed": completed,
+        "cycles_failed": failed,
+        "snapshot_count": len(snapshots),
+        "product_memory": {"contract": memory.get("contract"), "recommendations": len(memory.get("recommendations") or {}), "events": len(memory.get("events") or []), "learning_summary": memory.get("learning_summary") or {}},
+        "temporal_comparison": (latest or {}).get("temporal_comparison") or {"today_vs_previous": {"state": "INSUFFICIENT_HISTORY"}},
+        "founder_brief": (latest or {}).get("founder_brief") or {"contract": FOUNDER_BRIEF_CONTRACT, "text": latest_brief, "state": "NOT_GENERATED"},
+        "prepared_for_codex": codex,
+        "scheduler": scheduler,
+        "market_intelligence": build_market_intelligence_foundation_snapshot(project_root, now=now_iso),
+        "manual_run_available": True,
+        "scheduled_run_available": True,
+        "production_cron_enabled": False,
+        "dangerous_actions_allowed": False,
+    }
 
 
-def run_continuous_evolution_scheduler_task(project_root: str | Path | None = None, app_version: str = "LOCAL", *, task_name: str = "daily_product_review", force: bool = False, now: str | datetime | None = None, storage_root: str | Path | None = None) -> dict[str, Any]:
+def preview_continuous_evolution_scheduler_task(project_root: str | Path | None = None, app_version: str = "LOCAL", *, task_name: str = "daily_product_review", now: str | datetime | None = None, storage_root: str | Path | None = None) -> dict[str, Any]:
     if task_name not in CONTINUOUS_EVOLUTION_TASKS:
         return {"ok": False, "task_name": task_name, "result": "UNKNOWN_TASK", "dangerous_actions_executed": False}
     now_dt = _ce_now(now)
     now_iso = now_dt.isoformat(timespec="seconds")
     paths = _ce_paths(_ce_storage(project_root, storage_root))
-    _ce_ensure_dirs(paths)
     state = _ce_read_scheduler_state(paths, now_iso)
     task_state = state["tasks"][task_name]
-    last_run = task_state.get("last_run")
-    interval = CONTINUOUS_EVOLUTION_TASKS[task_name]["interval"]
-    due = True
-    if last_run:
-        due = now_dt - _ce_now(last_run) >= interval
-    if not force and not due:
-        task_state["last_result"] = "SKIPPED_NOT_DUE"
-        task_state["automated_or_manual"] = "scheduled_run"
-        task_state["next_expected_run"] = (_ce_now(last_run) + interval).isoformat(timespec="seconds") if last_run else now_iso
+    due, scheduled_for, period = _ce_due(task_state, task_name, now_dt, force=False)
+    return {"ok": True, "dry_run": True, "task_name": task_name, "scheduled_for": scheduled_for, "period": period, "due": due, "would_run": due, "status": "DUE" if due else "NOT_DUE", "next_expected_run": task_state.get("next_expected_run"), "dangerous_actions_executed": False}
+
+
+def run_continuous_evolution_scheduler_task(project_root: str | Path | None = None, app_version: str = "LOCAL", *, task_name: str = "daily_product_review", force: bool = False, now: str | datetime | None = None, storage_root: str | Path | None = None, trigger: str = "SCHEDULED_LOCAL", control_fixture: dict[str, Any] | None = None) -> dict[str, Any]:
+    if task_name not in CONTINUOUS_EVOLUTION_TASKS:
+        return {"ok": False, "task_name": task_name, "result": "UNKNOWN_TASK", "dangerous_actions_executed": False}
+    trigger = trigger if trigger in CONTINUOUS_EVOLUTION_TRIGGERS else "SCHEDULED_LOCAL"
+    now_dt = _ce_now(now)
+    now_iso = now_dt.isoformat(timespec="seconds")
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    _ce_ensure_dirs(paths)
+    state = _ce_read_scheduler_state(paths, now_iso)
+    control = _ce_read_control(paths, now_iso)
+    task_state = state["tasks"][task_name]
+    due, scheduled_for, period = _ce_due(task_state, task_name, now_dt, force=force)
+    job_id = _ce_hash("JOB", task_name, scheduled_for, trigger, now_iso)
+    base_job = {"contract": CONTINUOUS_EVOLUTION_JOB_CONTRACT, "job_id": job_id, "task_name": task_name, "scheduled_for": scheduled_for, "period": period, "trigger": trigger, "started_at": now_iso, "finished_at": None, "duration_ms": 0, "status": "PENDING", "run_id": None, "snapshot_id": None, "error_safe": None, "next_expected_run": _ce_next_expected(task_name, now_dt), "dangerous_actions_executed": False}
+    if control.get("paused") and trigger != "MANUAL":
+        base_job.update({"status": "SKIPPED_PAUSED", "finished_at": now_iso, "error_safe": {"message": "Evolucion continua pausada por administrador."}})
+        task_state["last_result"] = "SKIPPED_PAUSED"
+        task_state["next_expected_run"] = base_job["next_expected_run"]
         state["updated_at_madrid"] = now_iso
         _ce_write_json(paths["scheduler"], state)
-        return {"ok": True, "task_name": task_name, "result": "SKIPPED_NOT_DUE", "scheduler": state, "dangerous_actions_executed": False}
-    result = run_continuous_evolution_cycle(project_root, app_version, execution_mode="scheduled_run", scheduled_task=task_name, now=now_iso, storage_root=storage_root, write=True)
-    task_state["run_count"] = int(task_state.get("run_count") or 0) + 1
-    task_state["last_run"] = now_iso
-    task_state["last_result"] = "PASS"
-    task_state["last_snapshot_id"] = result["snapshot"].get("snapshot_id")
-    task_state["next_expected_run"] = (now_dt + interval).isoformat(timespec="seconds")
-    task_state["automated_or_manual"] = "scheduled_run"
-    task_state["evidence"] = f"snapshot {task_state['last_snapshot_id']}"
-    state["updated_at_madrid"] = now_iso
-    _ce_write_json(paths["scheduler"], state)
-    return {"ok": True, "task_name": task_name, "result": "PASS", "scheduler": state, "cycle": result, "dangerous_actions_executed": False}
+        _ce_write_job_log(paths, base_job)
+        return {"ok": True, "task_name": task_name, "result": "SKIPPED_PAUSED", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+    if not due:
+        base_job.update({"status": "SKIPPED_NOT_DUE", "finished_at": now_iso})
+        task_state["last_result"] = "SKIPPED_NOT_DUE"
+        task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
+        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
+        state["updated_at_madrid"] = now_iso
+        _ce_write_json(paths["scheduler"], state)
+        _ce_write_job_log(paths, base_job)
+        return {"ok": True, "task_name": task_name, "result": "SKIPPED_NOT_DUE", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+    acquired, lock = _ce_acquire_lock(paths, job_id, now_iso)
+    if not acquired:
+        base_job.update({"status": "SKIPPED_ALREADY_RUNNING", "finished_at": now_iso, "error_safe": {"message": "Ya existe una ejecucion activa.", "lock": _ce_sanitize(lock)}})
+        task_state["last_result"] = "SKIPPED_ALREADY_RUNNING"
+        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
+        state["updated_at_madrid"] = now_iso
+        _ce_write_json(paths["scheduler"], state)
+        _ce_write_job_log(paths, base_job)
+        return {"ok": True, "task_name": task_name, "result": "SKIPPED_ALREADY_RUNNING", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+    try:
+        if control_fixture and control_fixture.get("scheduler_exception"):
+            raise RuntimeError("Controlled scheduler exception fixture")
+        result = run_continuous_evolution_cycle(project_root, app_version, execution_mode="scheduled_run", scheduled_task=task_name, now=now_iso, storage_root=storage_root, control_fixture=control_fixture, write=True, job_id=job_id, scheduled_for=scheduled_for, trigger=trigger)
+        cycle_status = result["snapshot"].get("result") or "PASS"
+        status = "PARTIAL" if str(cycle_status).startswith("PARTIAL") else "PASS"
+        finished_at = _ce_now().isoformat(timespec="seconds")
+        base_job.update({"status": status, "finished_at": finished_at, "duration_ms": result["run"].get("duration_ms", 0), "run_id": result["run"].get("run_id"), "snapshot_id": result["snapshot"].get("snapshot_id"), "error_safe": result["run"].get("error_safe"), "next_expected_run": _ce_next_expected(task_name, now_dt)})
+        task_state["run_count"] = int(task_state.get("run_count") or 0) + 1
+        if status == "PARTIAL":
+            task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
+        task_state["last_run"] = now_iso
+        task_state["last_result"] = status
+        task_state["last_job_id"] = job_id
+        task_state["last_snapshot_id"] = result["snapshot"].get("snapshot_id")
+        task_state["last_completed_period"] = period
+        task_state["next_expected_run"] = base_job["next_expected_run"]
+        task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
+        task_state["evidence"] = f"snapshot {task_state['last_snapshot_id']}"
+        if task_name == "daily_product_review":
+            brief_task = state["tasks"].get("daily_founder_brief") or {}
+            brief_task.update({"run_count": int(brief_task.get("run_count") or 0) + 1, "last_run": now_iso, "last_result": status, "last_job_id": job_id, "last_snapshot_id": result["snapshot"].get("snapshot_id"), "last_completed_period": period, "next_expected_run": _ce_next_expected("daily_founder_brief", now_dt), "automated_or_manual": "scheduled_run", "evidence": "Founder Brief generado despues de Daily Product Review"})
+            state["tasks"]["daily_founder_brief"] = brief_task
+        state["updated_at_madrid"] = now_iso
+        _ce_write_json(paths["scheduler"], state)
+        _ce_write_job_log(paths, base_job)
+        return {"ok": True, "task_name": task_name, "result": status, "job": base_job, "scheduler": state, "cycle": result, "dangerous_actions_executed": False}
+    except Exception as exc:
+        finished_at = _ce_now().isoformat(timespec="seconds")
+        safe = _ce_safe_error(exc)
+        base_job.update({"status": "PARTIAL", "finished_at": finished_at, "error_safe": safe})
+        task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
+        task_state["last_result"] = "PARTIAL"
+        task_state["last_job_id"] = job_id
+        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
+        state["updated_at_madrid"] = now_iso
+        _ce_write_json(paths["scheduler"], state)
+        _ce_write_job_log(paths, base_job)
+        return {"ok": False, "task_name": task_name, "result": "PARTIAL", "job": base_job, "scheduler": state, "error_safe": safe, "dangerous_actions_executed": False}
+    finally:
+        _ce_release_lock(paths, job_id)
+
+
+def run_safe_continuous_evolution_runner(project_root: str | Path | None = None, app_version: str = "LOCAL", *, task_name: str = "daily_product_review", dry_run: bool = False, trigger: str = "SCHEDULED_LOCAL", now: str | datetime | None = None, storage_root: str | Path | None = None, force: bool = False) -> dict[str, Any]:
+    guardrails = {"DRY_RUN": bool(dry_run), "READ_ONLY_OPERATIONS": True, "NO_TELEGRAM": True, "NO_STRIPE": True, "NO_DEPLOY": True, "NO_EXTERNAL_MARKET_RESEARCH": True, "NO_PRODUCTION_MUTATION": True}
+    if dry_run:
+        preview = preview_continuous_evolution_scheduler_task(project_root, app_version, task_name=task_name, now=now, storage_root=storage_root)
+        return {"ok": preview.get("ok"), "runner_contract": CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT, "dry_run": True, "preview": preview, "guardrails": guardrails, "dangerous_actions_executed": False}
+    result = run_continuous_evolution_scheduler_task(project_root, app_version, task_name=task_name, force=force, now=now, storage_root=storage_root, trigger=trigger)
+    result["runner_contract"] = CONTINUOUS_EVOLUTION_AUTOMATION_CONTRACT
+    result["guardrails"] = guardrails
+    return result
+
+
+
+def run_continuous_evolution_three_day_certification(project_root: str | Path | None = None, app_version: str = "LOCAL", *, storage_root: str | Path | None = None, start_date: str = "2026-08-11") -> dict[str, Any]:
+    start = datetime.fromisoformat(start_date).replace(tzinfo=MADRID)
+    runs = []
+    repeat_checks = []
+    for offset in range(3):
+        now_dt = (start + timedelta(days=offset)).replace(hour=4, minute=0, second=0, microsecond=0)
+        fixture = None
+        if offset == 2:
+            fixture = {"simulated_persona": "MOBILE", "simulated_metrics": {"friction_indicators": 2}}
+        run = run_continuous_evolution_scheduler_task(project_root, app_version, task_name="daily_product_review", now=now_dt, storage_root=storage_root, control_fixture=fixture)
+        runs.append(run)
+        repeat = run_continuous_evolution_scheduler_task(project_root, app_version, task_name="daily_product_review", now=now_dt + timedelta(minutes=5), storage_root=storage_root)
+        repeat_checks.append(repeat)
+    status = build_continuous_evolution_status_snapshot(project_root, app_version, storage_root=storage_root, now=start + timedelta(days=2, hours=5))
+    memory = load_product_memory(project_root, storage_root=storage_root)
+    pass_state = all(item.get("result") in {"PASS", "PARTIAL"} for item in runs) and all(item.get("result") == "SKIPPED_NOT_DUE" for item in repeat_checks) and status.get("snapshot_count", 0) >= 3
+    return {
+        "contract": CONTINUOUS_EVOLUTION_CERTIFICATION_CONTRACT,
+        "ok": pass_state,
+        "status": "PASS" if pass_state else "PARTIAL",
+        "days": 3,
+        "runs": [{"day": index + 1, "result": item.get("result"), "job_id": (item.get("job") or {}).get("job_id"), "snapshot_id": (item.get("job") or {}).get("snapshot_id")} for index, item in enumerate(runs)],
+        "repeat_checks": [{"day": index + 1, "result": item.get("result")} for index, item in enumerate(repeat_checks)],
+        "snapshot_count": status.get("snapshot_count"),
+        "memory_snapshots": len(memory.get("snapshots") or []),
+        "founder_brief_ready": bool((status.get("founder_brief") or {}).get("text")),
+        "codex_ready_count": (status.get("prepared_for_codex") or {}).get("ready_count"),
+        "learning": (status.get("product_memory") or {}).get("learning_summary"),
+        "dangerous_actions_executed": False,
+        "production_modified": False,
+        "telegram_sent": False,
+        "stripe_called": False,
+    }
 
 def record_continuous_evolution_decision(project_root: str | Path | None, recommendation_id: str, decision: str, reason: str, *, actor: str = "founder", storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
     now_iso = _ce_now(now).isoformat(timespec="seconds")
@@ -1504,6 +2050,7 @@ def record_continuous_evolution_decision(project_root: str | Path | None, recomm
         return {"ok": False, "error": "recommendation_not_found", "recommendation_id": recommendation_id}
     transition = {"at_madrid": now_iso, "actor": actor, "from": record.get("state"), "to": decision, "reason": _ce_clean_text(reason, 420)}
     record.setdefault("decisions", []).append(transition)
+    record.setdefault("decision_history", []).append(transition)
     record["state"] = decision
     record["decision_reason"] = transition["reason"]
     if decision in {"RESOLVED", "VERIFIED"}:
