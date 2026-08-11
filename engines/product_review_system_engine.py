@@ -12,7 +12,7 @@ import os
 import json
 import re
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -73,10 +73,10 @@ CONTINUOUS_EVOLUTION_TRIGGERS = {"MANUAL", "SCHEDULED_LOCAL", "SCHEDULED_PRODUCT
 CONTINUOUS_EVOLUTION_LOCK_TTL = timedelta(hours=2)
 CONTINUOUS_EVOLUTION_POLICY = {
     "timezone": "Europe/Madrid",
-    "daily_product_review": {"hour": 3, "minute": 15},
-    "daily_founder_brief": {"hour": 3, "minute": 20},
-    "weekly_executive_review": {"weekday": 0, "hour": 4, "minute": 0},
-    "monthly_strategy_review": {"day": 1, "hour": 4, "minute": 30},
+    "daily_product_review": {"hour": 4, "minute": 0},
+    "daily_founder_brief": {"hour": 4, "minute": 5},
+    "weekly_executive_review": {"weekday": 0, "hour": 4, "minute": 30},
+    "monthly_strategy_review": {"day": 1, "hour": 5, "minute": 0},
 }
 SIMULATED_USER_PERSONAS = (
     "NEW_USER",
@@ -1005,6 +1005,12 @@ def _ce_now(now: str | datetime | None = None) -> datetime:
     return datetime.now(MADRID)
 
 
+def _ce_utc_iso(value: str | datetime | None) -> str | None:
+    if not value:
+        return None
+    return _ce_now(value).astimezone(timezone.utc).isoformat(timespec="seconds")
+
+
 def _ce_storage(project_root: str | Path | None = None, storage_root: str | Path | None = None) -> Path:
     if storage_root:
         return Path(storage_root).resolve()
@@ -1788,7 +1794,9 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "scheduled_for": scheduled_for,
         "trigger": trigger if trigger in CONTINUOUS_EVOLUTION_TRIGGERS else "MANUAL",
         "started_at_madrid": started_at,
+        "started_at_utc": _ce_utc_iso(started_at),
         "finished_at_madrid": finished_at,
+        "finished_at_utc": _ce_utc_iso(finished_at),
         "duration_ms": duration_ms,
         "execution_mode": execution_mode,
         "scheduled_task": scheduled_task,
@@ -1923,9 +1931,9 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
     task_state = state["tasks"][task_name]
     due, scheduled_for, period = _ce_due(task_state, task_name, now_dt, force=force)
     job_id = _ce_hash("JOB", task_name, scheduled_for, trigger, now_iso)
-    base_job = {"contract": CONTINUOUS_EVOLUTION_JOB_CONTRACT, "job_id": job_id, "task_name": task_name, "scheduled_for": scheduled_for, "period": period, "trigger": trigger, "started_at": now_iso, "finished_at": None, "duration_ms": 0, "status": "PENDING", "run_id": None, "snapshot_id": None, "error_safe": None, "next_expected_run": _ce_next_expected(task_name, now_dt), "dangerous_actions_executed": False}
+    base_job = {"contract": CONTINUOUS_EVOLUTION_JOB_CONTRACT, "job_id": job_id, "task_name": task_name, "scheduled_for": scheduled_for, "scheduled_for_utc": _ce_utc_iso(scheduled_for), "period": period, "trigger": trigger, "started_at": now_iso, "started_at_utc": _ce_utc_iso(now_iso), "finished_at": None, "finished_at_utc": None, "duration_ms": 0, "status": "PENDING", "run_id": None, "snapshot_id": None, "founder_brief_id": None, "codex_ready_count": 0, "error_safe": None, "next_expected_run": _ce_next_expected(task_name, now_dt), "next_expected_run_utc": _ce_utc_iso(_ce_next_expected(task_name, now_dt)), "dangerous_actions_executed": False}
     if control.get("paused") and trigger != "MANUAL":
-        base_job.update({"status": "SKIPPED_PAUSED", "finished_at": now_iso, "error_safe": {"message": "Evolucion continua pausada por administrador."}})
+        base_job.update({"status": "SKIPPED_PAUSED", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso), "error_safe": {"message": "Evolucion continua pausada por administrador."}})
         task_state["last_result"] = "SKIPPED_PAUSED"
         task_state["next_expected_run"] = base_job["next_expected_run"]
         state["updated_at_madrid"] = now_iso
@@ -1933,7 +1941,7 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
         _ce_write_job_log(paths, base_job)
         return {"ok": True, "task_name": task_name, "result": "SKIPPED_PAUSED", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
     if not due:
-        base_job.update({"status": "SKIPPED_NOT_DUE", "finished_at": now_iso})
+        base_job.update({"status": "SKIPPED_NOT_DUE", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso)})
         task_state["last_result"] = "SKIPPED_NOT_DUE"
         task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
         task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
@@ -1943,7 +1951,7 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
         return {"ok": True, "task_name": task_name, "result": "SKIPPED_NOT_DUE", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
     acquired, lock = _ce_acquire_lock(paths, job_id, now_iso)
     if not acquired:
-        base_job.update({"status": "SKIPPED_ALREADY_RUNNING", "finished_at": now_iso, "error_safe": {"message": "Ya existe una ejecucion activa.", "lock": _ce_sanitize(lock)}})
+        base_job.update({"status": "SKIPPED_ALREADY_RUNNING", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso), "error_safe": {"message": "Ya existe una ejecucion activa.", "lock": _ce_sanitize(lock)}})
         task_state["last_result"] = "SKIPPED_ALREADY_RUNNING"
         task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
         state["updated_at_madrid"] = now_iso
@@ -1957,7 +1965,7 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
         cycle_status = result["snapshot"].get("result") or "PASS"
         status = "PARTIAL" if str(cycle_status).startswith("PARTIAL") else "PASS"
         finished_at = _ce_now().isoformat(timespec="seconds")
-        base_job.update({"status": status, "finished_at": finished_at, "duration_ms": result["run"].get("duration_ms", 0), "run_id": result["run"].get("run_id"), "snapshot_id": result["snapshot"].get("snapshot_id"), "error_safe": result["run"].get("error_safe"), "next_expected_run": _ce_next_expected(task_name, now_dt)})
+        base_job.update({"status": status, "finished_at": finished_at, "finished_at_utc": _ce_utc_iso(finished_at), "duration_ms": result["run"].get("duration_ms", 0), "run_id": result["run"].get("run_id"), "snapshot_id": result["snapshot"].get("snapshot_id"), "founder_brief_id": ((result.get("snapshot") or {}).get("founder_brief") or {}).get("brief_id"), "codex_ready_count": ((result.get("snapshot") or {}).get("prepared_for_codex") or {}).get("ready_count", 0), "error_safe": result["run"].get("error_safe"), "next_expected_run": _ce_next_expected(task_name, now_dt), "next_expected_run_utc": _ce_utc_iso(_ce_next_expected(task_name, now_dt))})
         task_state["run_count"] = int(task_state.get("run_count") or 0) + 1
         if status == "PARTIAL":
             task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
@@ -1980,7 +1988,7 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
     except Exception as exc:
         finished_at = _ce_now().isoformat(timespec="seconds")
         safe = _ce_safe_error(exc)
-        base_job.update({"status": "PARTIAL", "finished_at": finished_at, "error_safe": safe})
+        base_job.update({"status": "PARTIAL", "finished_at": finished_at, "finished_at_utc": _ce_utc_iso(finished_at), "error_safe": safe})
         task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
         task_state["last_result"] = "PARTIAL"
         task_state["last_job_id"] = job_id

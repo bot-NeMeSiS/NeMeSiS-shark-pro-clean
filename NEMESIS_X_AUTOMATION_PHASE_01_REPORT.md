@@ -129,3 +129,19 @@ La QA completa final queda reflejada en la entrega y en el estado final Git.
 ## Decision
 
 PASS LOCAL.
+## Addendum Phase 02 - Production Safe Readiness
+
+Estado: READY_LOCAL_NOT_ACTIVATED.
+Fecha Madrid: 2026-08-11.
+
+Cambios de preparacion para certificacion real:
+
+- Politica diaria alineada a 04:00 Europe/Madrid.
+- `SCHEDULED_PRODUCTION` exige `CONTINUOUS_EVOLUTION_SAFE_MODE=1`.
+- El runner bloquea storage efimero `data/runtime` en produccion.
+- Storage productivo recomendado: `/data/continuous_evolution_os`.
+- Output del runner compacto y sanitizado por defecto.
+- Job logs incluyen Madrid time y UTC time.
+- Job logs incluyen `founder_brief_id` y `codex_ready_count`.
+
+No se activo Render Cron. No se hizo push. No se hizo deploy. No se envio Telegram. No se ejecuto Stripe.

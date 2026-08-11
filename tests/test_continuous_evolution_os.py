@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from engines.product_review_system_engine import (
@@ -233,3 +236,63 @@ def test_continuous_evolution_three_day_certification_helper(tmp_path):
     assert all(item["result"] == "SKIPPED_NOT_DUE" for item in result["repeat_checks"])
     assert result["founder_brief_ready"] is True
     assert result["dangerous_actions_executed"] is False
+
+def test_continuous_evolution_job_observability_includes_utc_and_brief(tmp_path):
+    storage = tmp_path / "ceos"
+    result = run_continuous_evolution_scheduler_task(
+        ROOT,
+        "TEST",
+        task_name="daily_product_review",
+        now="2026-08-11T04:00:00+02:00",
+        storage_root=storage,
+        trigger="SCHEDULED_PRODUCTION",
+    )
+
+    job = result["job"]
+    assert result["result"] == "PASS"
+    assert job["trigger"] == "SCHEDULED_PRODUCTION"
+    assert job["scheduled_for"].endswith("+02:00")
+    assert job["scheduled_for_utc"].endswith("+00:00")
+    assert job["started_at_utc"].endswith("+00:00")
+    assert job["finished_at_utc"].endswith("+00:00")
+    assert job["founder_brief_id"]
+    assert job["codex_ready_count"] > 0
+    assert job["dangerous_actions_executed"] is False
+
+
+def test_safe_production_runner_requires_safe_mode_and_persistent_storage(tmp_path):
+    command = [
+        sys.executable,
+        "tools/run_continuous_evolution_scheduler.py",
+        "--dry-run",
+        "--trigger",
+        "SCHEDULED_PRODUCTION",
+        "--now",
+        "2026-08-11T04:00:00+02:00",
+    ]
+    env = os.environ.copy()
+    env.pop("CONTINUOUS_EVOLUTION_SAFE_MODE", None)
+    env.pop("CONTINUOUS_EVOLUTION_STORAGE_ROOT", None)
+    env.pop("DB_PATH", None)
+
+    blocked = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=False)
+    blocked_payload = json.loads(blocked.stdout)
+    assert blocked.returncode == 1
+    assert blocked_payload["result"] == "SAFE_MODE_REQUIRED"
+    assert blocked_payload["dangerous_actions_executed"] is False
+
+    env["CONTINUOUS_EVOLUTION_SAFE_MODE"] = "1"
+    no_storage = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=False)
+    no_storage_payload = json.loads(no_storage.stdout)
+    assert no_storage.returncode == 1
+    assert no_storage_payload["result"] == "PERSISTENT_STORAGE_REQUIRED"
+
+    env["DB_PATH"] = str(tmp_path / "database.db")
+    allowed = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=False)
+    allowed_payload = json.loads(allowed.stdout)
+    assert allowed.returncode == 0
+    assert allowed_payload["safe_mode"] is True
+    assert allowed_payload["dry_run"] is True
+    assert allowed_payload["storage_root"].endswith("continuous_evolution_os")
+    assert allowed_payload["guardrails"]["NO_TELEGRAM"] is True
+    assert allowed_payload["guardrails"]["NO_STRIPE"] is True
