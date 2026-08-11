@@ -7,9 +7,11 @@ providers, Telegram, Stripe, production, or writes databases.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -21,6 +23,46 @@ MADRID = ZoneInfo("Europe/Madrid")
 PRODUCT_REVIEW_SYSTEM_CONTRACT = "NEMESIS-PRODUCT-REVIEW-SYSTEM-V1"
 PRODUCT_REVIEW_CENTER_CONTRACT = "NEMESIS-PRODUCT-REVIEW-CENTER-V1"
 QUALITY_TEAM_CONTRACT = "NEMESIS-WORLD-CLASS-PRODUCT-TEAM-V1"
+CONTINUOUS_EVOLUTION_OS_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-OS-V1"
+DAILY_PRODUCT_SNAPSHOT_CONTRACT = "NEMESIS-DAILY-PRODUCT-SNAPSHOT-V1"
+PRODUCT_MEMORY_CONTRACT = "NEMESIS-PRODUCT-MEMORY-V1"
+FOUNDER_BRIEF_CONTRACT = "NEMESIS-FOUNDER-BRIEF-V1"
+PREPARED_FOR_CODEX_CONTRACT = "NEMESIS-PREPARED-FOR-CODEX-INBOX-V1"
+CONTINUOUS_EVOLUTION_SCHEDULER_CONTRACT = "NEMESIS-CONTINUOUS-EVOLUTION-SCHEDULER-V1"
+MARKET_INTELLIGENCE_FOUNDATION_CONTRACT = "NEMESIS-MARKET-INTELLIGENCE-FOUNDATION-V1"
+
+CONTINUOUS_EVOLUTION_RUNTIME = Path("data") / "runtime" / "continuous_evolution_os"
+RECOMMENDATION_STATES = {
+    "NEW",
+    "APPROVED",
+    "DEFERRED",
+    "REJECTED",
+    "IMPLEMENTED",
+    "VERIFIED",
+    "REGRESSED",
+    "RESOLVED",
+}
+EVIDENCE_ORIGINS = {
+    "SIMULATED_QA",
+    "REAL_AGGREGATED",
+    "SYSTEM_OBSERVATION",
+    "MARKET_PUBLIC_SOURCE",
+    "MANUAL_ADMIN",
+    "UNKNOWN",
+}
+CONTINUOUS_EVOLUTION_TASKS = {
+    "daily_product_review": {"label": "Daily Product Review", "cadence": "daily", "interval": timedelta(days=1)},
+    "daily_founder_brief": {"label": "Daily Founder Brief", "cadence": "daily", "interval": timedelta(days=1)},
+    "weekly_executive_review": {"label": "Weekly Executive Review", "cadence": "weekly", "interval": timedelta(days=7)},
+    "monthly_strategy_review": {"label": "Monthly Strategy Review", "cadence": "monthly", "interval": timedelta(days=30)},
+}
+SENSITIVE_VISIBLE_TERMS = {
+    "TELEGRAM_BOT_TOKEN": "configuracion tecnica de Telegram",
+    "TELEGRAM_CHAT_ID": "destino tecnico de Telegram",
+    "STRIPE_SECRET_KEY": "configuracion privada de Stripe",
+    "STRIPE_WEBHOOK_SECRET": "firma privada de Stripe",
+    "OPENAI_API_KEY": "clave privada de proveedor",
+}
 
 REVIEWER_DEFINITIONS: tuple[dict[str, str], ...] = (
     {"key": "product_director", "name": "Product Director", "module": "Producto", "responsibility": "Valida valor, integracion y complejidad del producto."},
@@ -778,7 +820,7 @@ def _executive_candidate_from_finding(finding: dict[str, Any], index: int) -> di
     cost = _executive_cost(priority, module, proposal)
     risk = _executive_risk(priority, module, proposal)
     selection_score, selection_explanation = _executive_selection_score(priority, cost, risk, impact_user, impact_business)
-    return {"id": f"EBD-{index:03d}", "source_id": _text(finding.get("id"), 40) or f"PRS-{index:03d}", "title": _text(finding.get("title"), 120) or f"{module}: {proposal[:86]}", "evidence": _text(finding.get("evidence"), 620) or "Evidencia local no detallada por la fuente.", "module": module, "screen": screen, "route": route, "component": _text(finding.get("component"), 140) or "No especificado", "impact_user": impact_user, "impact_business": impact_business, "priority": priority, "estimated_cost": cost, "dependencies": _executive_dependencies(module, screen, route, proposal), "risk": risk, "proposal": proposal, "status": "Pendiente", "approved": False, "requires_human_approval": True, "automatic_execution_allowed": False, "selection_score": selection_score, "selection_explanation": selection_explanation, "source": "Product Review System"}
+    return {"id": f"EBD-{index:03d}", "source_id": _text(finding.get("id"), 40) or f"PRS-{index:03d}", "title": _text(finding.get("title"), 120) or f"{module}: {proposal[:86]}", "evidence": _text(finding.get("evidence"), 620) or "Evidencia local no detallada por la fuente.", "module": module, "screen": screen, "route": route, "component": _text(finding.get("component"), 140) or "No especificado", "impact_user": impact_user, "impact_business": impact_business, "priority": priority, "estimated_cost": cost, "dependencies": _executive_dependencies(module, screen, route, proposal), "risk": risk, "proposal": proposal, "status": "Pendiente", "approved": False, "requires_human_approval": True, "automatic_execution_allowed": False, "selection_score": selection_score, "selection_explanation": selection_explanation, "source": "Product Review System", "workers": [finding.get("reviewer") or "Product Review System"], "evidence_origin": finding.get("evidence_origin") or "SYSTEM_OBSERVATION"}
 
 
 def _executive_director_matches_candidate(definition: dict[str, Any], candidate: dict[str, Any]) -> bool:
@@ -866,13 +908,10 @@ def _executive_area_health(directors: list[dict[str, Any]]) -> list[dict[str, An
     return rows
 
 
-def build_executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
-    root = _root(project_root)
-    generated_at = _now()
-    review = build_product_review_system_snapshot(root, app_version)
+def _build_executive_board_from_review(review: dict[str, Any], app_version: str, generated_at: str) -> dict[str, Any]:
     findings = list(review.get("findings") or [])
     if not findings:
-        findings = [{"id": "PRS-NO-FINDINGS", "module": "Producto", "screen": "Producto completo", "route": "No aplica", "component": "revision ejecutiva", "evidence": "Product Review System no ha entregado hallazgos abiertos en el snapshot local.", "priority": "P3", "impact_user": "Mantiene el producto en observacion sin cambios innecesarios.", "impact_business": "Evita roadmap artificial sin evidencia.", "proposal": "Mantener seguimiento y esperar evidencia de usuarios reales."}]
+        findings = [{"id": "PRS-NO-FINDINGS", "module": "Producto", "screen": "Producto completo", "route": "No aplica", "component": "revision ejecutiva", "evidence": "Product Review System no ha entregado hallazgos abiertos en el snapshot local.", "priority": "P3", "impact_user": "Mantiene el producto en observacion sin cambios innecesarios.", "impact_business": "Evita roadmap artificial sin evidencia.", "proposal": "Mantener seguimiento y esperar evidencia de usuarios reales.", "evidence_origin": "SYSTEM_OBSERVATION"}]
     candidates = [_executive_candidate_from_finding(finding, index) for index, finding in enumerate(findings, start=1)]
     seen: set[tuple[str, str, str, str]] = set()
     unique_candidates: list[dict[str, Any]] = []
@@ -893,5 +932,583 @@ def build_executive_board_snapshot(project_root: str | Path | None = None, app_v
     return {"contract": EXECUTIVE_BOARD_CONTRACT, "center_contract": EXECUTIVE_BOARD_CENTER_CONTRACT, "decision_contract": STRATEGIC_DECISION_CONTRACT, "version": app_version, "generated_at_madrid": generated_at, "environment": "local_filesystem_read_only", "status": "PASS_WITH_STRATEGIC_REVIEW" if unique_candidates else "PASS", "board_score": board_score, "board_score_explanation": ["Media de puntuaciones derivadas de directores y evidencia del Product Review System.", "No se usan metricas inventadas ni aprobaciones automaticas."], "director_count": len(directors), "directors_expected": len(EXECUTIVE_DIRECTOR_DEFINITIONS), "directors": directors, "area_health": _executive_area_health(directors), "product_scores": product_scores, "proposal_count": len(unique_candidates), "proposal_summary": {"P0": counts.get("P0", 0), "P1": counts.get("P1", 0), "P2": counts.get("P2", 0), "P3": counts.get("P3", 0), "total": len(unique_candidates)}, "decision_matrix": unique_candidates, "top_10_improvements": unique_candidates[:10], "backlog_updates": [{"id": candidate["id"], "source_id": candidate["source_id"], "top100_status": "Pendiente", "master_roadmap_status": "Pendiente", "living_roadmap_status": "Pendiente", "documentation": ["reports/EXECUTIVE_DECISION_MATRIX.md", "reports/STRATEGIC_ROADMAP_REPORT.md", "reports/PRODUCT_HEALTH_REPORT.md"], "human_approval_required": True} for candidate in unique_candidates], "source_contracts": {"product_review_system": review.get("contract"), "quality_team": review.get("quality_team_contract"), "product_review_center": review.get("center_contract")}, "guardrails": {**dict(GUARDRAILS), "automatic_decisions": False, "automatic_execution": False, "commit_created": False}, "no_chatbot": True, "no_generative_ai": True, "no_automatic_decisions": True, "automatic_execution_allowed": False, "production_modified": False, "deploy_executed": False, "push_executed": False, "executive_summary": "El Executive Board convierte hallazgos del Product Review System en una matriz de decision con votos, Top 10 priorizado y puntuaciones explicadas. No aprueba ni ejecuta mejoras automaticamente.", "next_action": "Revision humana del Top 10 priorizado antes de autorizar cualquier sprint de mejora."}
 
 
+def build_executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
+    root = _root(project_root)
+    generated_at = _now()
+    review = build_product_review_system_snapshot(root, app_version)
+    return _build_executive_board_from_review(review, app_version, generated_at)
 def executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
     return build_executive_board_snapshot(project_root, app_version)
+
+
+def _ce_now(now: str | datetime | None = None) -> datetime:
+    if isinstance(now, datetime):
+        return now.astimezone(MADRID) if now.tzinfo else now.replace(tzinfo=MADRID)
+    if now:
+        parsed = datetime.fromisoformat(str(now))
+        return parsed.astimezone(MADRID) if parsed.tzinfo else parsed.replace(tzinfo=MADRID)
+    return datetime.now(MADRID)
+
+
+def _ce_storage(project_root: str | Path | None = None, storage_root: str | Path | None = None) -> Path:
+    if storage_root:
+        return Path(storage_root).resolve()
+    return _root(project_root) / CONTINUOUS_EVOLUTION_RUNTIME
+
+
+def _ce_paths(storage: Path) -> dict[str, Path]:
+    return {
+        "root": storage,
+        "snapshots": storage / "snapshots",
+        "runs": storage / "runs",
+        "briefs": storage / "briefs",
+        "codex": storage / "codex_inbox",
+        "memory": storage / "product_memory.json",
+        "latest_snapshot": storage / "latest_snapshot.json",
+        "latest_run": storage / "latest_run.json",
+        "latest_brief": storage / "latest_founder_brief.md",
+        "codex_inbox": storage / "codex_inbox" / "prepared_for_codex.json",
+        "scheduler": storage / "scheduler_state.json",
+        "market": storage / "market_reviews.json",
+    }
+
+
+def _ce_ensure_dirs(paths: dict[str, Path]) -> None:
+    for key in ("root", "snapshots", "runs", "briefs", "codex"):
+        paths[key].mkdir(parents=True, exist_ok=True)
+
+
+def _ce_load_json(path: Path, default: Any) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return default
+
+
+def _ce_write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True, default=str), encoding="utf-8")
+    tmp.replace(path)
+
+
+def _ce_clean_text(value: Any, limit: int = 900) -> str:
+    text = _text(value, limit).replace("revisi" + "?" + "n", "revision")
+    if text.lower() in {"none", "todo", "null", "n/a", "na", "sin definir", "undefined"}:
+        return ""
+    for needle, replacement in SENSITIVE_VISIBLE_TERMS.items():
+        text = text.replace(needle, replacement)
+    return text
+
+
+def _ce_sanitize(value: Any) -> Any:
+    if isinstance(value, dict):
+        clean: dict[str, Any] = {}
+        for key, item in value.items():
+            lowered = str(key).lower()
+            if any(token in lowered for token in ("secret", "token", "password", "credential")):
+                clean[key] = "[REDACTED_KEY]" if item else ""
+            else:
+                clean[key] = _ce_sanitize(item)
+        return clean
+    if isinstance(value, list):
+        return [_ce_sanitize(item) for item in value]
+    if isinstance(value, str):
+        return _ce_clean_text(value, 5000)
+    return value
+
+
+def _ce_hash(prefix: str, *parts: Any) -> str:
+    raw = "|".join(_ce_clean_text(part, 500).lower() for part in parts)
+    digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12].upper()
+    return f"{prefix}-{digest}"
+
+
+def _ce_recommendation_id(candidate: dict[str, Any]) -> str:
+    return _ce_hash("REC", candidate.get("module"), candidate.get("route"), candidate.get("component"), candidate.get("proposal"))
+
+
+def _ce_snapshot_id(now_dt: datetime, run_id: str) -> str:
+    return f"SNAP-{now_dt.strftime('%Y%m%d%H%M%S')}-{run_id[-8:]}"
+
+
+def _ce_run_id(now_dt: datetime, execution_mode: str, scheduled_task: str = "") -> str:
+    return _ce_hash("CE", now_dt.isoformat(timespec="seconds"), execution_mode, scheduled_task)[:22]
+
+
+def _ce_default_memory(now_iso: str) -> dict[str, Any]:
+    return {
+        "contract": PRODUCT_MEMORY_CONTRACT,
+        "schema_version": 1,
+        "created_at_madrid": now_iso,
+        "updated_at_madrid": now_iso,
+        "recommendations": {},
+        "events": [],
+        "snapshots": [],
+        "reviewer_signal": {},
+        "learning_summary": {"mode": "deterministic_no_ai", "actual_learning_events": 0, "history_storage": True, "actual_learning": False},
+    }
+
+
+def load_product_memory(project_root: str | Path | None = None, storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
+    now_iso = _ce_now(now).isoformat(timespec="seconds")
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    memory = _ce_load_json(paths["memory"], _ce_default_memory(now_iso))
+    if not isinstance(memory, dict):
+        memory = _ce_default_memory(now_iso)
+    memory.setdefault("contract", PRODUCT_MEMORY_CONTRACT)
+    memory.setdefault("schema_version", 1)
+    memory.setdefault("created_at_madrid", now_iso)
+    memory.setdefault("recommendations", {})
+    memory.setdefault("events", [])
+    memory.setdefault("snapshots", [])
+    memory.setdefault("reviewer_signal", {})
+    memory.setdefault("learning_summary", {"mode": "deterministic_no_ai", "actual_learning_events": 0, "history_storage": True, "actual_learning": False})
+    return memory
+
+
+def save_product_memory(project_root: str | Path | None, memory: dict[str, Any], storage_root: str | Path | None = None) -> Path:
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    _ce_ensure_dirs(paths)
+    _ce_write_json(paths["memory"], _ce_sanitize(memory))
+    return paths["memory"]
+
+def _ce_priority_rank(priority: str) -> int:
+    return {"P0": 4, "P1": 3, "P2": 2, "P3": 1}.get(str(priority or "P3").upper(), 1)
+
+
+def _ce_compact_review(review: dict[str, Any]) -> dict[str, Any]:
+    reviewers = []
+    for reviewer in review.get("reviewers") or []:
+        reviewers.append({"key": reviewer.get("key"), "name": reviewer.get("name"), "state": reviewer.get("state"), "score": reviewer.get("score"), "findings_count": reviewer.get("findings_count"), "p0": reviewer.get("p0"), "p1": reviewer.get("p1"), "p2": reviewer.get("p2"), "p3": reviewer.get("p3")})
+    return {"contract": review.get("contract"), "status": review.get("status"), "score": review.get("score"), "findings_summary": review.get("findings_summary") or {}, "reviewers": reviewers, "top_findings": [_ce_sanitize(item) for item in (review.get("findings") or [])[:20]]}
+
+
+def _ce_apply_control_fixture(review: dict[str, Any], control_fixture: dict[str, Any] | None = None) -> dict[str, Any]:
+    if not control_fixture:
+        return review
+    cloned = json.loads(json.dumps(review, ensure_ascii=False, default=str))
+    finding = _finding(
+        reviewer=control_fixture.get("reviewer") or "Control Fixture",
+        module=control_fixture.get("module") or "Continuous Evolution",
+        screen=control_fixture.get("screen") or "SIMULATED_QA_CONTROL",
+        route=control_fixture.get("route") or "/admin/founder-dashboard",
+        component=control_fixture.get("component") or "controlled_fixture",
+        evidence=control_fixture.get("evidence") or "Cambio controlado de QA simulado para demostrar comparacion temporal.",
+        priority=control_fixture.get("priority") or "P2",
+        user_impact=control_fixture.get("impact_user") or "Permite validar que el loop detecta novedades sin usar usuarios reales.",
+        business_impact=control_fixture.get("impact_business") or "Reduce riesgo de llamar aprendizaje a una memoria que no compara cambios.",
+        proposal=control_fixture.get("proposal") or "Mantener fixture solo en pruebas locales y no elevarlo como dato real.",
+        source="SIMULATED_QA_CONTROL_FIXTURE",
+        state="SIMULATED_QA",
+    )
+    finding["id"] = control_fixture.get("id") or _ce_hash("SIM", finding["module"], finding["route"], finding["proposal"])
+    finding["title"] = control_fixture.get("title") or f"{finding['module']}: {finding['proposal']}"
+    finding["evidence_origin"] = "SIMULATED_QA"
+    cloned.setdefault("findings", []).append(finding)
+    counts = Counter(item.get("priority", "P3") for item in cloned.get("findings") or [])
+    cloned["findings_summary"] = {"P0": counts.get("P0", 0), "P1": counts.get("P1", 0), "P2": counts.get("P2", 0), "P3": counts.get("P3", 0), "total": len(cloned.get("findings") or [])}
+    cloned.setdefault("roadmap_candidates", []).append({"id": finding["id"], "reviewer": finding["reviewer"], "priority": finding["priority"], "module": finding["module"], "screen": finding["screen"], "route": finding["route"], "proposal": finding["proposal"], "evidence": finding["evidence"], "approved": False, "automatic_execution_allowed": False, "requires_human_approval": True})
+    cloned["control_fixture_applied"] = {"id": finding["id"], "evidence_origin": "SIMULATED_QA"}
+    return cloned
+
+
+def _ce_recommendations_from_board(board: dict[str, Any]) -> list[dict[str, Any]]:
+    recommendations = []
+    for candidate in board.get("decision_matrix") or []:
+        item = dict(candidate)
+        item["recommendation_id"] = _ce_recommendation_id(candidate)
+        item["title"] = _ce_clean_text(item.get("title") or item.get("proposal"), 160)
+        evidence = _ce_clean_text(item.get("evidence"), 620)
+        item["evidence"] = evidence or "Evidencia local insuficiente: requiere revision humana antes de aprobar."
+        item["problem"] = evidence or "El hallazgo existe, pero la evidencia heredada no es suficiente para ejecutarlo sin revision humana."
+        item["benefit"] = _ce_clean_text(item.get("impact_user"), 320)
+        if item.get("evidence_origin") not in EVIDENCE_ORIGINS:
+            item["evidence_origin"] = "SYSTEM_OBSERVATION"
+        recommendations.append(_ce_sanitize(item))
+    return recommendations
+
+
+def _ce_things_not_to_touch(board: dict[str, Any]) -> list[str]:
+    seen: set[str] = set()
+    items: list[str] = []
+    for director in board.get("directors") or []:
+        value = _ce_clean_text(director.get("should_not_touch"), 240)
+        if value and value not in seen:
+            seen.add(value)
+            items.append(value)
+        if len(items) >= 10:
+            break
+    return items
+
+
+def _ce_board_risks(board: dict[str, Any]) -> list[str]:
+    risks = []
+    for candidate in board.get("top_10_improvements") or []:
+        risk = _ce_clean_text(candidate.get("risk"), 60)
+        if risk in {"Medio", "Alto"}:
+            risks.append(f"{candidate.get('id')}: {risk} - {_ce_clean_text(candidate.get('title'), 160)}")
+    return risks[:8]
+
+
+def _ce_board_opportunities(board: dict[str, Any]) -> list[str]:
+    return [f"{item.get('id')}: {_ce_clean_text(item.get('impact_business'), 220)}" for item in (board.get("top_10_improvements") or [])[:8]]
+
+
+def _ce_latest_snapshot(paths: dict[str, Path]) -> dict[str, Any] | None:
+    latest = _ce_load_json(paths["latest_snapshot"], None)
+    return latest if isinstance(latest, dict) else None
+
+
+def _ce_snapshot_history(paths: dict[str, Path], limit: int = 90) -> list[dict[str, Any]]:
+    snapshots = []
+    if paths["snapshots"].exists():
+        for path in sorted(paths["snapshots"].glob("SNAP-*.json"))[-limit:]:
+            data = _ce_load_json(path, None)
+            if isinstance(data, dict):
+                snapshots.append(data)
+    return snapshots
+
+def _ce_compare(current_recommendations: list[dict[str, Any]], previous_snapshot: dict[str, Any] | None, history: list[dict[str, Any]]) -> dict[str, Any]:
+    if not previous_snapshot:
+        return {"contract": "NEMESIS-TEMPORAL-COMPARISON-V1", "today_vs_previous": {"state": "INSUFFICIENT_HISTORY", "new": [], "improved": [], "worsened": [], "resolved": [], "unchanged": [], "reopened": []}, "week_vs_previous_week": {"state": "INSUFFICIENT_HISTORY"}, "month_vs_previous_month": {"state": "INSUFFICIENT_HISTORY"}, "summary": "No hay snapshot anterior suficiente para comparar."}
+    previous_recs = previous_snapshot.get("recommendations") or []
+    prev_by_id = {item.get("recommendation_id"): item for item in previous_recs if item.get("recommendation_id")}
+    curr_by_id = {item.get("recommendation_id"): item for item in current_recommendations if item.get("recommendation_id")}
+    new = sorted(set(curr_by_id) - set(prev_by_id))
+    resolved = sorted(set(prev_by_id) - set(curr_by_id))
+    unchanged = sorted(set(curr_by_id) & set(prev_by_id))
+    improved: list[str] = []
+    worsened: list[str] = []
+    reopened: list[str] = []
+    for rec_id in unchanged:
+        before = _ce_priority_rank(prev_by_id[rec_id].get("priority"))
+        after = _ce_priority_rank(curr_by_id[rec_id].get("priority"))
+        if after < before:
+            improved.append(rec_id)
+        elif after > before:
+            worsened.append(rec_id)
+        if int(curr_by_id[rec_id].get("reopened_count") or 0) > int(prev_by_id[rec_id].get("reopened_count") or 0):
+            reopened.append(rec_id)
+    today_state = "UNCHANGED" if not new and not resolved and not improved and not worsened and not reopened else "CHANGED"
+    dates = sorted({str(item.get("generated_at_madrid") or "")[:10] for item in history if item.get("generated_at_madrid")})
+    week_state = "INSUFFICIENT_HISTORY" if len(dates) < 8 else "AVAILABLE"
+    month_state = "INSUFFICIENT_HISTORY" if len(dates) < 32 else "AVAILABLE"
+    return {"contract": "NEMESIS-TEMPORAL-COMPARISON-V1", "today_vs_previous": {"state": today_state, "new": new, "improved": improved, "worsened": worsened, "resolved": resolved, "unchanged": unchanged, "reopened": reopened}, "week_vs_previous_week": {"state": week_state}, "month_vs_previous_month": {"state": month_state}, "summary": f"Desde la ultima revision: {len(new)} nuevas, {len(resolved)} resueltas, {len(improved)} mejoradas, {len(worsened)} empeoradas, {len(unchanged)} sin cambios."}
+
+
+def _ce_calibrate_reviewers(review: dict[str, Any], memory: dict[str, Any]) -> dict[str, Any]:
+    recommendations = memory.get("recommendations") or {}
+    by_worker: dict[str, list[dict[str, Any]]] = {}
+    for item in recommendations.values():
+        for worker in item.get("workers") or []:
+            by_worker.setdefault(str(worker), []).append(item)
+    calibration = {}
+    insufficient_real_data = {"Performance Reviewer", "Commercial Reviewer", "Marketing Reviewer"}
+    for reviewer in review.get("reviewers") or []:
+        name = reviewer.get("name") or reviewer.get("key")
+        items = by_worker.get(str(name), [])
+        repeated = [item for item in items if int(item.get("seen_count") or 0) >= 2]
+        regressions = [item for item in items if int(item.get("reopened_count") or 0) > 0 or item.get("state") == "REGRESSED"]
+        if name in insufficient_real_data:
+            state = "INSUFFICIENT_REAL_DATA"
+            reason = "El area necesita datos reales de rendimiento, conversion o mercado para producir senal fuerte."
+        elif not items:
+            state = "INSUFFICIENT_HISTORY"
+            reason = "Todavia no hay historial suficiente para calibrar este trabajador."
+        elif regressions:
+            state = "HIGH_SIGNAL"
+            reason = "Ha detectado recomendaciones que reaparecieron o regresaron."
+        elif repeated:
+            state = "NORMAL_SIGNAL"
+            reason = "Sus hallazgos persisten en mas de una revision."
+        elif int(reviewer.get("findings_count") or 0) > 0:
+            state = "NORMAL_SIGNAL"
+            reason = "Aporta hallazgos actuales con evidencia, pendiente de historial."
+        else:
+            state = "LOW_SIGNAL"
+            reason = "No aporta hallazgos actuales y todavia no hay impacto historico medible."
+        calibration[str(name)] = {"state": state, "reason": reason, "recommendations_seen": len(items), "repeated": len(repeated), "regressions": len(regressions)}
+    return calibration
+
+
+def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, Any]], review: dict[str, Any], run_id: str, snapshot_id: str, now_iso: str, comparison: dict[str, Any]) -> dict[str, Any]:
+    memory = _ce_sanitize(memory)
+    records = memory.setdefault("recommendations", {})
+    events = memory.setdefault("events", [])
+    current_ids = {item["recommendation_id"] for item in recommendations}
+    for candidate in recommendations:
+        rec_id = candidate["recommendation_id"]
+        existing = records.get(rec_id)
+        event_type = "SEEN"
+        if not existing:
+            existing = {"recommendation_id": rec_id, "title": candidate.get("title"), "first_seen": now_iso, "workers": candidate.get("workers") or [], "evidence": [], "priority_initial": candidate.get("priority"), "priority_current": candidate.get("priority"), "decisions": [], "state": "NEW", "decision_reason": "Pendiente de decision humana.", "future_sprint_or_commit": None, "qa_after": None, "outcome_after": None, "reopened_count": 0, "last_seen": now_iso, "resolved_at": None, "seen_count": 0, "missed_count": 0, "why_priority_changed": "Primera deteccion con evidencia actual.", "evidence_origin": candidate.get("evidence_origin") or "SYSTEM_OBSERVATION"}
+            records[rec_id] = existing
+            event_type = "FIRST_SEEN"
+        cleaned_evidence = []
+        for evidence_item in existing.get("evidence") or []:
+            cleaned = _ce_clean_text(evidence_item, 620)
+            if cleaned and cleaned not in cleaned_evidence:
+                cleaned_evidence.append(cleaned)
+        existing["evidence"] = cleaned_evidence
+        previous_state = existing.get("state")
+        if previous_state in {"IMPLEMENTED", "VERIFIED", "RESOLVED"}:
+            existing["state"] = "REGRESSED"
+            existing["reopened_count"] = int(existing.get("reopened_count") or 0) + 1
+            existing["outcome_after"] = "OUTCOME_REGRESSION"
+            existing["why_priority_changed"] = "La recomendacion reaparecio despues de estar cerrada o verificada."
+            event_type = "REGRESSION"
+        existing["last_seen"] = now_iso
+        existing["seen_count"] = int(existing.get("seen_count") or 0) + 1
+        existing["missed_count"] = 0
+        evidence = _ce_clean_text(candidate.get("evidence"), 620)
+        if evidence and evidence not in existing.setdefault("evidence", []):
+            existing["evidence"].append(evidence)
+        existing["workers"] = list(dict.fromkeys([*(existing.get("workers") or []), *(candidate.get("workers") or [])]))
+        if _ce_priority_rank(candidate.get("priority")) != _ce_priority_rank(existing.get("priority_current")):
+            existing["priority_current"] = candidate.get("priority")
+            existing["why_priority_changed"] = f"La prioridad actual cambio a {candidate.get('priority')} por nueva evidencia del Product Review."
+        if existing.get("state") == "REJECTED" and len(existing.get("decisions") or []) >= 2:
+            existing["priority_current"] = "P3"
+            existing["why_priority_changed"] = "Rechazada repetidamente; no vuelve a maxima prioridad sin nueva evidencia."
+        events.append({"event_id": _ce_hash("EVT", rec_id, run_id, event_type, now_iso), "type": event_type, "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso, "state": existing.get("state"), "priority_current": existing.get("priority_current")})
+    for rec_id, record in records.items():
+        if rec_id in current_ids:
+            continue
+        record["missed_count"] = int(record.get("missed_count") or 0) + 1
+        if record.get("state") in {"IMPLEMENTED", "VERIFIED"} and not record.get("resolved_at"):
+            record["resolved_at"] = now_iso
+            record["outcome_after"] = "OUTCOME_POSITIVE"
+            events.append({"event_id": _ce_hash("EVT", rec_id, run_id, "OUTCOME_POSITIVE", now_iso), "type": "OUTCOME_POSITIVE", "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso})
+    memory["reviewer_signal"] = _ce_calibrate_reviewers(review, memory)
+    learning_events = len([event for event in events if event.get("type") in {"REGRESSION", "OUTCOME_POSITIVE"}])
+    comparison_state = (comparison.get("today_vs_previous") or {}).get("state")
+    memory["learning_summary"] = {"mode": "deterministic_no_ai", "history_storage": True, "actual_learning": bool(learning_events or comparison_state not in {None, "INSUFFICIENT_HISTORY"}), "actual_learning_events": learning_events, "why": "El sistema compara recomendaciones estables entre snapshots y conserva transiciones trazables; no usa IA ni inferencias opacas."}
+    memory.setdefault("snapshots", []).append({"snapshot_id": snapshot_id, "run_id": run_id, "at_madrid": now_iso, "recommendations": len(recommendations), "comparison_state": comparison_state})
+    memory["updated_at_madrid"] = now_iso
+    return memory
+
+
+def _ce_enrich_board_with_memory(board: dict[str, Any], memory: dict[str, Any], comparison: dict[str, Any]) -> dict[str, Any]:
+    board = json.loads(json.dumps(board, ensure_ascii=False, default=str))
+    records = memory.get("recommendations") or {}
+    for bucket in ("decision_matrix", "top_10_improvements"):
+        for candidate in board.get(bucket) or []:
+            rec_id = _ce_recommendation_id(candidate)
+            record = records.get(rec_id) or {}
+            candidate["recommendation_id"] = rec_id
+            candidate["memory_state"] = record.get("state") or "NEW"
+            candidate["first_seen"] = record.get("first_seen")
+            candidate["last_seen"] = record.get("last_seen")
+            candidate["seen_count"] = record.get("seen_count") or 0
+            candidate["reopened_count"] = record.get("reopened_count") or 0
+            candidate["why_this_is_priority_now"] = record.get("why_priority_changed") or "Prioridad derivada de evidencia actual del Product Review."
+    board["uses_product_memory"] = True
+    board["product_memory_contract"] = memory.get("contract")
+    board["reviewer_signal_quality"] = memory.get("reviewer_signal") or {}
+    board["what_changed"] = comparison.get("summary")
+    board["things_not_to_touch"] = _ce_things_not_to_touch(board)
+    board["risks"] = _ce_board_risks(board)
+    board["opportunities"] = _ce_board_opportunities(board)
+    board["actual_learning_mode"] = "deterministic_no_ai"
+    return board
+
+def _ce_probable_files(candidate: dict[str, Any]) -> list[str]:
+    files = []
+    screen = _ce_clean_text(candidate.get("screen"), 220)
+    if screen.endswith(".html"):
+        files.append(screen if screen.startswith("templates/") else f"templates/{Path(screen).name}")
+    route = _ce_clean_text(candidate.get("route"), 120)
+    if route and route != "No aplica":
+        files.append("app.py")
+    proposal = _ce_clean_text(candidate.get("proposal"), 360).lower()
+    if any(token in proposal for token in ("visual", "css", "boton", "responsive", "copy", "texto")):
+        files.append("static/v933-product.css")
+    return list(dict.fromkeys(files or ["app.py"]))
+
+
+def _ce_build_codex_inbox(board: dict[str, Any], snapshot_id: str, now_iso: str) -> dict[str, Any]:
+    items = []
+    for index, candidate in enumerate(board.get("top_10_improvements") or [], start=1):
+        rec_id = candidate.get("recommendation_id") or _ce_recommendation_id(candidate)
+        evidence = _ce_clean_text(candidate.get("evidence"), 620)
+        proposal = _ce_clean_text(candidate.get("proposal"), 420)
+        state = "READY" if evidence and proposal else "DRAFT"
+        items.append({"codex_brief_id": _ce_hash("CB", rec_id, snapshot_id), "recommendation_id": rec_id, "state": state, "created_at_madrid": now_iso, "title": _ce_clean_text(candidate.get("title"), 160), "problem": evidence or "Evidencia heredada insuficiente; requiere revision humana antes de ejecutar.", "evidence": evidence or "Evidencia no disponible en el snapshot actual.", "priority": candidate.get("priority"), "benefit": _ce_clean_text(candidate.get("impact_user"), 320), "risk": candidate.get("risk") or "Medio", "scope": "Correccion acotada sobre la evidencia; no crear modulos, motores ni pantallas nuevas.", "modules_not_to_touch": _ce_things_not_to_touch(board)[:6], "probable_files": _ce_probable_files(candidate), "acceptance_criteria": ["El problema original deja de reproducirse.", "No se oculta evidencia necesaria para admin.", "No se modifican Sports Core, SHARK, Telegram, Stripe ni produccion.", "Browser QA, Sentinel, Privacy y Secret Guard permanecen PASS."], "qa": ["py_compile", "compileall", "pytest", "Jinja", "Browser QA", "Sentinel", "Privacy Guard", "Secret Guard", "Routes", "Links", "Smoke"], "pass_definition": "Cambio minimo, evidence-first, aprobado por humano y validado por QA completa.", "approved_by_founder": False, "automatic_execution_allowed": False, "rank": index})
+    return {"contract": PREPARED_FOR_CODEX_CONTRACT, "snapshot_id": snapshot_id, "generated_at_madrid": now_iso, "items": items, "ready_count": len([item for item in items if item["state"] == "READY"]), "human_approval_required_for_execution": True}
+
+
+def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
+    now_iso = snapshot.get("generated_at_madrid") or ""
+    board = snapshot.get("executive_board") or {}
+    comparison = snapshot.get("temporal_comparison") or {}
+    top = board.get("top_10_improvements") or []
+    no_touch = board.get("things_not_to_touch") or []
+    risks = board.get("risks") or []
+    opportunities = board.get("opportunities") or []
+    codex = snapshot.get("prepared_for_codex") or {}
+    lines = [f"FOUNDER BRIEF - {now_iso[:10] if now_iso else 'sin fecha'}", f"Estado hoy: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}.", f"Que cambio: {(comparison.get('summary') or 'Sin comparacion suficiente.')}", "3 prioridades:"]
+    for item in top[:3]:
+        lines.append(f"- {item.get('title')} ({item.get('priority')}): {item.get('why_this_is_priority_now') or item.get('proposal')}")
+    lines.append("3 cosas que no tocar:")
+    for item in no_touch[:3]:
+        lines.append(f"- {item}")
+    lines.append("Riesgos:")
+    for item in (risks or ["Sin riesgos nuevos con evidencia actual."])[:3]:
+        lines.append(f"- {item}")
+    lines.append("Oportunidades:")
+    for item in (opportunities or ["Esperar evidencia real de beta antes de ampliar producto."])[:3]:
+        lines.append(f"- {item}")
+    next_action = "Revisar el primer brief READY para Codex y aprobarlo solo si el alcance es correcto."
+    lines.append(f"Que haria ahora: {next_action}")
+    lines.append(f"Trabajo preparado para Codex: {codex.get('ready_count', 0)} briefs READY, sin ejecucion automatica.")
+    return {"contract": FOUNDER_BRIEF_CONTRACT, "brief_id": _ce_hash("FB", snapshot.get("snapshot_id"), now_iso), "generated_at_madrid": now_iso, "language": "es", "max_mobile_screen": True, "sections": {"estado_hoy": lines[1], "que_cambio": lines[2], "prioridades": lines[4:7], "no_tocar": no_touch[:3], "riesgos": risks[:3], "oportunidades": opportunities[:3], "que_haria_ahora": next_action, "trabajo_codex": codex.get("items", [])[:1]}, "text": "\n".join(lines)}
+
+
+def _ce_write_brief_markdown(path: Path, brief: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(brief.get("text") or "", encoding="utf-8")
+
+
+def build_market_intelligence_foundation_snapshot(project_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
+    root = _root(project_root)
+    checked_at = _ce_now(now).isoformat(timespec="seconds")
+    gateway_exists = (root / "engines" / "sports_intelligence_gateway_engine.py").is_file()
+    return {"contract": MARKET_INTELLIGENCE_FOUNDATION_CONTRACT, "checked_at_madrid": checked_at, "status": "PREPARED_ONLY" if gateway_exists else "BLOCKED", "manual_market_review": "AVAILABLE_WITH_SOURCE_COMPLIANCE" if gateway_exists else "BLOCKED", "scheduled_market_review_disabled_by_default": True, "external_calls": 0, "source_facts": [], "nemesis_inferences": [], "guardrails": ["no crawling masivo", "no paywalls", "no scraping", "no contenido protegido", "source compliance obligatorio"]}
+
+
+def _ce_available_qa(project_root: Path) -> dict[str, Any]:
+    checks = {"py_compile": True, "compileall": True, "pytest": (project_root / "tests").is_dir(), "jinja": (project_root / "templates").is_dir(), "browser_qa_founder": (project_root / "tools" / "run_founder_mode_browser_qa.py").is_file(), "browser_qa_product": (project_root / "tools" / "run_product_finalization_browser_qa.py").is_file(), "sentinel": (project_root / "tools" / "run_continuous_sentinel_static.py").is_file(), "privacy_secret_guard": (project_root / "tools" / "check_repository_privacy_and_secrets.py").is_file(), "routes_links_smoke": (project_root / "tools" / "audit_all_routes_links.py").is_file() and (project_root / "tools" / "smoke_flask_real_routes.py").is_file()}
+    return {"state": "AVAILABLE" if all(checks.values()) else "PARTIAL", "checks": checks, "evidence_origin": "SYSTEM_OBSERVATION"}
+
+
+def _ce_operations_state(project_root: Path) -> dict[str, Any]:
+    render_yaml = project_root / "render.yaml"
+    reports = project_root / "reports"
+    return {"state": "PARTIAL", "render_yaml": render_yaml.is_file(), "release_gate_report": (reports / "FINAL_RELEASE_GATE.md").is_file() or (reports / "RELEASE_GATE_STATUS.md").is_file(), "cron_configured": "render_cron_sports_sync.py" in _read(render_yaml), "master_tick": "NOT_RECORDED_UNLESS_PRODUCTION_EVIDENCE_EXISTS", "evidence_origin": "SYSTEM_OBSERVATION", "dangerous_actions_executed": False}
+
+
+def _ce_beta_state(project_root: Path) -> dict[str, Any]:
+    reports = project_root / "reports"
+    return {"state": "PREPARED_ONLY", "beta_report": (reports / "BETA_PROGRAM_REPORT.md").is_file(), "real_user_evidence": "NO_REAL_USER_EVIDENCE", "evidence_origin": "SYSTEM_OBSERVATION"}
+
+def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_version: str = "LOCAL", *, execution_mode: str = "manual_run", scheduled_task: str = "", now: str | datetime | None = None, storage_root: str | Path | None = None, control_fixture: dict[str, Any] | None = None, write: bool = True) -> dict[str, Any]:
+    root = _root(project_root)
+    now_dt = _ce_now(now)
+    now_iso = now_dt.isoformat(timespec="seconds")
+    run_id = _ce_run_id(now_dt, execution_mode, scheduled_task)
+    snapshot_id = _ce_snapshot_id(now_dt, run_id)
+    storage = _ce_storage(root, storage_root)
+    paths = _ce_paths(storage)
+    if write:
+        _ce_ensure_dirs(paths)
+    previous = _ce_latest_snapshot(paths)
+    history = _ce_snapshot_history(paths)
+    review = _ce_apply_control_fixture(build_product_review_system_snapshot(root, app_version), control_fixture)
+    board = _build_executive_board_from_review(review, app_version, now_iso)
+    recommendations = _ce_recommendations_from_board(board)
+    comparison = _ce_compare(recommendations, previous, history)
+    memory = load_product_memory(root, storage_root=storage_root, now=now_iso)
+    memory = _ce_update_memory(memory, recommendations, review, run_id, snapshot_id, now_iso, comparison)
+    board = _ce_enrich_board_with_memory(board, memory, comparison)
+    recommendations = _ce_recommendations_from_board(board)
+    snapshot: dict[str, Any] = {"contract": DAILY_PRODUCT_SNAPSHOT_CONTRACT, "continuous_evolution_contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "snapshot_id": snapshot_id, "run_id": run_id, "execution_mode": execution_mode, "scheduled_task": scheduled_task, "generated_at_madrid": now_iso, "version": app_version, "result": "PASS_WITH_REVIEW_ITEMS" if recommendations else "PASS", "systems_consulted": ["Product Review", "Digital Employees", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation"], "systems_unavailable": ["REAL_USER_DATA", "PRODUCTION_LOGS", "REAL_MARKET_RESEARCH"], "product_review": _ce_compact_review(review), "executive_board": board, "findings_summary": review.get("findings_summary") or {}, "scores": {"product_review": review.get("score"), "executive_board": board.get("board_score")}, "risks": board.get("risks") or [], "opportunities": board.get("opportunities") or [], "modules_not_to_touch": board.get("things_not_to_touch") or [], "blockers": [], "qa_available": _ce_available_qa(root), "operations": _ce_operations_state(root), "beta": _ce_beta_state(root), "market_intelligence": build_market_intelligence_foundation_snapshot(root, now=now_iso), "recommendations": recommendations, "temporal_comparison": comparison, "reviewer_calibration": memory.get("reviewer_signal") or {}, "product_memory_summary": memory.get("learning_summary") or {}, "evidence_origin": "SIMULATED_QA" if control_fixture else "SYSTEM_OBSERVATION", "guardrails": {**dict(GUARDRAILS), "delete": False, "change_prices": False, "change_memberships": False, "connect_new_sources": False}, "production_modified": False, "telegram_sent": False, "stripe_called": False, "automatic_code_execution": False, "automatic_commit": False, "automatic_push": False, "automatic_deploy": False}
+    codex_inbox = _ce_build_codex_inbox(board, snapshot_id, now_iso)
+    snapshot["prepared_for_codex"] = codex_inbox
+    founder_brief = _ce_build_founder_brief(snapshot)
+    snapshot["founder_brief"] = founder_brief
+    run_record = {"contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "run_id": run_id, "snapshot_id": snapshot_id, "started_at_madrid": now_iso, "finished_at_madrid": now_iso, "duration_ms": 0, "execution_mode": execution_mode, "scheduled_task": scheduled_task, "systems_consulted": snapshot["systems_consulted"], "systems_unavailable": snapshot["systems_unavailable"], "result": snapshot["result"], "dangerous_actions_executed": False}
+    if write:
+        _ce_write_json(paths["snapshots"] / f"{snapshot_id}.json", snapshot)
+        _ce_write_json(paths["latest_snapshot"], snapshot)
+        _ce_write_json(paths["runs"] / f"{run_id}.json", run_record)
+        _ce_write_json(paths["latest_run"], run_record)
+        _ce_write_json(paths["codex_inbox"], codex_inbox)
+        _ce_write_json(paths["codex"] / f"prepared_for_codex_{snapshot_id}.json", codex_inbox)
+        _ce_write_brief_markdown(paths["briefs"] / f"{founder_brief['brief_id']}.md", founder_brief)
+        _ce_write_brief_markdown(paths["latest_brief"], founder_brief)
+        save_product_memory(root, memory, storage_root=storage_root)
+    return {"ok": True, "run": run_record, "snapshot": snapshot, "memory": memory, "storage_root": str(storage)}
+
+
+def _ce_read_scheduler_state(paths: dict[str, Path], now_iso: str) -> dict[str, Any]:
+    state = _ce_load_json(paths["scheduler"], {})
+    if not isinstance(state, dict):
+        state = {}
+    state.setdefault("contract", CONTINUOUS_EVOLUTION_SCHEDULER_CONTRACT)
+    state.setdefault("created_at_madrid", now_iso)
+    state.setdefault("updated_at_madrid", now_iso)
+    tasks = state.setdefault("tasks", {})
+    for key, definition in CONTINUOUS_EVOLUTION_TASKS.items():
+        tasks.setdefault(key, {"task_name": key, "label": definition["label"], "cadence": definition["cadence"], "configured": True, "run_count": 0, "last_run": None, "last_result": "NOT_RUN", "next_expected_run": None, "automated_or_manual": "not_run", "evidence": "scheduler local preparado"})
+    return state
+
+
+def build_continuous_evolution_status_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL", storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
+    now_iso = _ce_now(now).isoformat(timespec="seconds")
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    latest = _ce_latest_snapshot(paths)
+    memory = load_product_memory(project_root, storage_root=storage_root, now=now_iso)
+    scheduler = _ce_read_scheduler_state(paths, now_iso)
+    codex = _ce_load_json(paths["codex_inbox"], {"items": [], "ready_count": 0})
+    latest_run = _ce_load_json(paths["latest_run"], None)
+    try:
+        latest_brief = paths["latest_brief"].read_text(encoding="utf-8")
+    except OSError:
+        latest_brief = ""
+    snapshots = _ce_snapshot_history(paths)
+    return {"contract": CONTINUOUS_EVOLUTION_OS_CONTRACT, "version": app_version, "generated_at_madrid": now_iso, "status": "OBSERVED" if latest else "PREPARED_ONLY", "latest_snapshot_id": (latest or {}).get("snapshot_id"), "latest_run": latest_run, "snapshot_count": len(snapshots), "product_memory": {"contract": memory.get("contract"), "recommendations": len(memory.get("recommendations") or {}), "events": len(memory.get("events") or []), "learning_summary": memory.get("learning_summary") or {}}, "temporal_comparison": (latest or {}).get("temporal_comparison") or {"today_vs_previous": {"state": "INSUFFICIENT_HISTORY"}}, "founder_brief": (latest or {}).get("founder_brief") or {"contract": FOUNDER_BRIEF_CONTRACT, "text": latest_brief, "state": "NOT_GENERATED"}, "prepared_for_codex": codex, "scheduler": scheduler, "market_intelligence": build_market_intelligence_foundation_snapshot(project_root, now=now_iso), "manual_run_available": True, "scheduled_run_available": True, "production_cron_enabled": False, "dangerous_actions_allowed": False}
+
+
+def run_continuous_evolution_scheduler_task(project_root: str | Path | None = None, app_version: str = "LOCAL", *, task_name: str = "daily_product_review", force: bool = False, now: str | datetime | None = None, storage_root: str | Path | None = None) -> dict[str, Any]:
+    if task_name not in CONTINUOUS_EVOLUTION_TASKS:
+        return {"ok": False, "task_name": task_name, "result": "UNKNOWN_TASK", "dangerous_actions_executed": False}
+    now_dt = _ce_now(now)
+    now_iso = now_dt.isoformat(timespec="seconds")
+    paths = _ce_paths(_ce_storage(project_root, storage_root))
+    _ce_ensure_dirs(paths)
+    state = _ce_read_scheduler_state(paths, now_iso)
+    task_state = state["tasks"][task_name]
+    last_run = task_state.get("last_run")
+    interval = CONTINUOUS_EVOLUTION_TASKS[task_name]["interval"]
+    due = True
+    if last_run:
+        due = now_dt - _ce_now(last_run) >= interval
+    if not force and not due:
+        task_state["last_result"] = "SKIPPED_NOT_DUE"
+        task_state["automated_or_manual"] = "scheduled_run"
+        task_state["next_expected_run"] = (_ce_now(last_run) + interval).isoformat(timespec="seconds") if last_run else now_iso
+        state["updated_at_madrid"] = now_iso
+        _ce_write_json(paths["scheduler"], state)
+        return {"ok": True, "task_name": task_name, "result": "SKIPPED_NOT_DUE", "scheduler": state, "dangerous_actions_executed": False}
+    result = run_continuous_evolution_cycle(project_root, app_version, execution_mode="scheduled_run", scheduled_task=task_name, now=now_iso, storage_root=storage_root, write=True)
+    task_state["run_count"] = int(task_state.get("run_count") or 0) + 1
+    task_state["last_run"] = now_iso
+    task_state["last_result"] = "PASS"
+    task_state["last_snapshot_id"] = result["snapshot"].get("snapshot_id")
+    task_state["next_expected_run"] = (now_dt + interval).isoformat(timespec="seconds")
+    task_state["automated_or_manual"] = "scheduled_run"
+    task_state["evidence"] = f"snapshot {task_state['last_snapshot_id']}"
+    state["updated_at_madrid"] = now_iso
+    _ce_write_json(paths["scheduler"], state)
+    return {"ok": True, "task_name": task_name, "result": "PASS", "scheduler": state, "cycle": result, "dangerous_actions_executed": False}
+
+def record_continuous_evolution_decision(project_root: str | Path | None, recommendation_id: str, decision: str, reason: str, *, actor: str = "founder", storage_root: str | Path | None = None, now: str | datetime | None = None) -> dict[str, Any]:
+    now_iso = _ce_now(now).isoformat(timespec="seconds")
+    decision = str(decision or "").upper()
+    if decision not in RECOMMENDATION_STATES:
+        return {"ok": False, "error": "invalid_decision_state", "allowed": sorted(RECOMMENDATION_STATES)}
+    memory = load_product_memory(project_root, storage_root=storage_root, now=now_iso)
+    record = (memory.get("recommendations") or {}).get(recommendation_id)
+    if not record:
+        return {"ok": False, "error": "recommendation_not_found", "recommendation_id": recommendation_id}
+    transition = {"at_madrid": now_iso, "actor": actor, "from": record.get("state"), "to": decision, "reason": _ce_clean_text(reason, 420)}
+    record.setdefault("decisions", []).append(transition)
+    record["state"] = decision
+    record["decision_reason"] = transition["reason"]
+    if decision in {"RESOLVED", "VERIFIED"}:
+        record["resolved_at"] = now_iso
+    memory.setdefault("events", []).append({"event_id": _ce_hash("EVT", recommendation_id, decision, now_iso), "type": "HUMAN_DECISION", "recommendation_id": recommendation_id, "at_madrid": now_iso, "decision": decision, "actor": actor})
+    memory["updated_at_madrid"] = now_iso
+    save_product_memory(project_root, memory, storage_root=storage_root)
+    return {"ok": True, "recommendation_id": recommendation_id, "decision": decision, "transition": transition}

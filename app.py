@@ -390,7 +390,12 @@ from engines.version_regression_engine import build_version_regression_snapshot
 from engines.recovery_simulator_engine import build_recovery_simulator_snapshot
 from engines.autonomous_quality_platform_engine import build_autonomous_quality_snapshot
 from engines.project_operating_system_engine import build_product_roadmap
-from engines.product_review_system_engine import build_executive_board_snapshot, build_product_review_system_snapshot
+from engines.product_review_system_engine import (
+    build_continuous_evolution_status_snapshot,
+    build_executive_board_snapshot,
+    build_product_review_system_snapshot,
+    run_continuous_evolution_cycle,
+)
 from engines.beta_program_engine import (
     BETA_METRICS_CONTRACT,
     BETA_PROGRAM_CONTRACT,
@@ -27417,6 +27422,7 @@ def founder_command_center_snapshot():
     roadmap = build_product_roadmap(BASE_DIR)
     reports = [_founder_report_metadata(name) for name in FOUNDER_REPORT_CATALOG]
     top100 = _founder_top100_progress()
+    continuous = build_continuous_evolution_status_snapshot(BASE_DIR, APP_VERSION)
     systems_by_id = {item.get("id"): item for item in operations.get("systems") or []}
     sections = operations.get("operations_sections") or {}
     funnel = product.get("funnel") or {}
@@ -27510,6 +27516,7 @@ def founder_command_center_snapshot():
             "priorities": company.get("priorities") or [],
             "href": "/admin/company-intelligence",
         },
+        "continuous_evolution": continuous,
         "guardrails": [
             "solo lectura",
             "sin deploy",
@@ -27758,6 +27765,21 @@ def admin_founder_dashboard_page():
         data=dashboard_data(),
         founder=founder_command_center_snapshot(),
     )
+
+
+@app.route("/admin/founder-dashboard/review-now", methods=["POST"])
+def admin_founder_dashboard_review_now():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    result = run_continuous_evolution_cycle(
+        BASE_DIR,
+        APP_VERSION,
+        execution_mode="manual_run",
+        now=now_iso(),
+        write=True,
+    )
+    snapshot_id = ((result.get("snapshot") or {}).get("snapshot_id") or "completed")
+    return redirect(f"/admin/founder-dashboard?review=completed&snapshot={urllib.parse.quote(str(snapshot_id))}")
 
 
 @app.route("/api/admin/founder-dashboard")

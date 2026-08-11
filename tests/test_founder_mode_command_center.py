@@ -95,8 +95,9 @@ def test_founder_dashboard_renders_read_only_center(client, app_module, monkeypa
     assert b"data-founder-mode=\"read-only\"" in response.data
 
     template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
-    assert "<form" not in template.lower()
-    assert "method=\"post\"" not in template.lower()
+    assert 'action="/admin/founder-dashboard/review-now"' in template
+    assert 'method="post"' in template.lower()
+    assert "Revisar todo ahora" in template
     assert "data-v939-action" not in template
     assert "data-v938-action" not in template
 

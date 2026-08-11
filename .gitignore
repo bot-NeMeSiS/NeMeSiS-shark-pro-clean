@@ -106,3 +106,5 @@ browser_qa/**/*.tmp
 *.tmp.md
 data/runtime/*.local.json
 data/runtime/*.tmp.json
+# Continuous Evolution OS runtime memory/snapshots
+data/runtime/continuous_evolution_os/

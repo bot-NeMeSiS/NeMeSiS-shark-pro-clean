@@ -9,20 +9,68 @@
 {% set top100 = founder.top100 or {} %}
 {% set roadmap = founder.roadmap or {} %}
 {% set company = founder.company_intelligence or {} %}
+{% set continuous = founder.continuous_evolution or {} %}
+{% set ce_brief = continuous.founder_brief or {} %}
+{% set ce_memory = continuous.product_memory or {} %}
+{% set ce_comparison = continuous.temporal_comparison or {} %}
+{% set ce_codex = continuous.prepared_for_codex or {} %}
+{% set ce_items = ce_codex.get('items', []) %}
+{% set ce_learning = ce_memory.get('learning_summary', {}) %}
+{% set ce_today = ce_comparison.get('today_vs_previous', {}) %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
-    {'label':'Developer','href':'/admin/developer-center','icon':'code'},
-    {'label':'API JSON','href':'/api/admin/founder-dashboard','primary':true,'icon':'data'}
+    {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},
+    {'label':'Revisión continua','href':'#continuous-evolution','primary':true,'icon':'history'}
   ]) }}
+
+  <section class="v933-admin-panel" id="continuous-evolution" aria-label="Evolución continua">
+    <header>
+      <div>
+        <h2>Evolución continua</h2>
+        <p>Revisión segura del producto: observa, compara, prioriza y prepara trabajo para Codex. No implementa, no envía, no cobra y no despliega.</p>
+      </div>
+      {{ status_chip(continuous.status or 'PREPARED_ONLY', 'success' if continuous.status == 'OBSERVED' else 'warning') }}
+    </header>
+    <div class="v933-admin-panel-body">
+      {% if request.args.get('review') == 'completed' %}
+        <p class="v933-safe-copy"><strong>Revisión completada.</strong> Snapshot {{ request.args.get('snapshot') }} registrado en memoria local.</p>
+      {% endif %}
+      <div class="v933-kpi-grid">
+        {{ kpi_card('Snapshots', continuous.snapshot_count or 0, 'Histórico local del loop', 'blue', 'history') }}
+        {{ kpi_card('Memoria', ce_memory.recommendations or 0, 'Recomendaciones trazables', 'cyan', 'data') }}
+        {{ kpi_card('Codex READY', ce_codex.ready_count or 0, 'Sin ejecución automática', 'warning', 'code') }}
+        {{ kpi_card('Aprendizaje', 'S?' if ce_learning.get('actual_learning') else 'No', ce_learning.get('why') or 'Pendiente de historial comparable', 'neutral', 'target') }}
+      </div>
+      <div class="v933-truth-list">
+        <div>{{ icon('history') }}<span><strong>Desde la última revisión</strong><small>{{ ce_comparison.summary or 'Sin historial suficiente todavía.' }}</small></span>{{ status_chip(ce_today.get('state') or 'INSUFFICIENT_HISTORY', 'warning') }}</div>
+        <div>{{ icon('shield') }}<span><strong>Scheduler local</strong><small>Disponible para ejecución programada segura; Render Cron no se modifica desde aquí.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
+        <div>{{ icon('code') }}<span><strong>Preparado para Codex</strong><small>{% if ce_items %}{{ ce_items[0].title }}{% else %}Aún no hay brief generado.{% endif %}</small></span>{{ status_chip('APROBACIÓN HUMANA','warning') }}</div>
+      </div>
+      {% if ce_brief.text %}
+        <div class="v933-truth-list is-no-icon">
+          {% for line in ce_brief.text.splitlines()[:10] %}
+            <div><span><small>{{ line }}</small></span></div>
+          {% endfor %}
+        </div>
+      {% else %}
+        {{ empty_state('Sin brief todavía', 'Ejecuta una revisión controlada para generar snapshot, comparación, Founder Brief y bandeja Codex.', '', '', 'history') }}
+      {% endif %}
+      <form method="post" action="/admin/founder-dashboard/review-now" class="v933-page-actions">
+        <button class="v933-action is-blue" type="submit">{{ icon('history') }}<span>Revisar todo ahora</span></button>
+        <a class="v933-action is-blue" href="/admin/product-review-center">{{ icon('arrow') }}<span>Product Review</span></a>
+        <a class="v933-action is-blue" href="/admin/executive-board">{{ icon('arrow') }}<span>Executive Board</span></a>
+      </form>
+    </div>
+  </section>
 
   <section class="v933-kpi-grid is-six" aria-label="Business KPIs">
     {{ kpi_card('Usuarios', kpis.users_total, 'Cuentas persistidas; sin PII', 'blue', 'users') }}
     {{ kpi_card('FREE', kpis.free, 'Plan gratuito observado', 'cyan', 'users') }}
     {{ kpi_card('PRO', kpis.pro, 'Plan PRO observado', 'blue', 'star') }}
     {{ kpi_card('ELITE', kpis.elite, 'ELITE y ELITE+ agregados', 'gold', 'award') }}
-    {{ kpi_card('Conversion', kpis.conversion_registered_to_paid, kpis.conversion_state, 'warning', 'target') }}
+    {{ kpi_card('Conversión', kpis.conversion_registered_to_paid, kpis.conversion_state, 'warning', 'target') }}
     {{ kpi_card('MRR', kpis.mrr, kpis.mrr_state, 'neutral', 'chart') }}
   </section>
 
@@ -59,7 +107,7 @@
       <section class="v933-admin-panel" id="operations-summary">
         <header><div><h2>Resumen operativo</h2><p>Estado operativo reutilizado desde Centro de operaciones. Un no certificado no se convierte en PASS.</p></div>{{ status_chip('SOLO LECTURA','success') }}</header>
         <div class="v933-admin-panel-body">
-          {% call data_table(['Sistema','Estado','Evidencia','Resumen','Accion']) %}
+          {% call data_table(['Sistema','Estado','Evidencia','Resumen','Acción']) %}
           {% for item in founder.operations_summary %}
           <tr>
             <td><strong>{{ item.label }}</strong><br><small>{{ item.source }}</small></td>
@@ -91,12 +139,12 @@
       </section>
 
       <section class="v933-admin-panel" id="customer-overview">
-        <header><div><h2>Customer Overview</h2><p>Vision agregada y respetuosa con privacidad. No se muestran emails, tokens ni datos personales.</p></div>{{ evidence_chip(customer.privacy_state) }}</header>
+        <header><div><h2>Customer Overview</h2><p>Visión agregada y respetuosa con privacidad. No se muestran emails, tokens ni datos personales.</p></div>{{ evidence_chip(customer.privacy_state) }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
             {{ kpi_card('Registrados', customer.registered, 'Usuarios agregados', 'blue', 'users') }}
             {{ kpi_card('Actividad', customer.active_events, 'Eventos propios si existen', 'cyan', 'activity') }}
-            {{ kpi_card('Interes PRO', customer.pro_interest, 'Solo senales observadas', 'warning', 'target') }}
+            {{ kpi_card('Interes PRO', customer.pro_interest, 'Solo señales observadas', 'warning', 'target') }}
             {{ kpi_card('Soporte', customer.support_items, 'Feedback + tickets abiertos', 'neutral', 'message') }}
           </div>
           <div class="v933-chip-cloud">
@@ -124,11 +172,11 @@
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>TOP 100 progreso</h2><p>Plan maestro de mejoras, no ejecucion inventada.</p></div>{{ evidence_chip(top100.state) }}</header>
+        <header><div><h2>TOP 100 progreso</h2><p>Plan maestro de mejoras, no ejecución inventada.</p></div>{{ evidence_chip(top100.state) }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             <div><span><strong>Total definido</strong><small>{{ top100.total }} mejoras en el documento.</small></span>{{ status_chip('PLAN','blue') }}</div>
-            <div><span><strong>Completadas verificables</strong><small>{% if top100.completed is not none %}{{ top100.completed }}{% else %}Sin tracking de ejecucion en el informe{% endif %}</small></span>{{ status_chip(top100.state,'warning') }}</div>
+            <div><span><strong>Completadas verificables</strong><small>{% if top100.completed is not none %}{{ top100.completed }}{% else %}Sin tracking de ejecución en el informe{% endif %}</small></span>{{ status_chip(top100.state,'warning') }}</div>
             <div><span><strong>P1 / P2</strong><small>{{ top100.priorities.P1 or 0 }} / {{ top100.priorities.P2 or 0 }}</small></span>{{ status_chip('PRIORIZADO','neutral') }}</div>
           </div>
         </div>
@@ -166,12 +214,12 @@
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             {% for item in (company.next_actions or [])[:4] %}
-              <div><span><strong>{{ item.title or 'Accion' }}</strong><small>{{ item.action or item.description or 'Revisar evidencia.' }}</small></span>{{ evidence_chip(item.state or item.certification_state) }}</div>
+              <div><span><strong>{{ item.title or 'Acción' }}</strong><small>{{ item.action or item.description or 'Revisar evidencia.' }}</small></span>{{ evidence_chip(item.state or item.certification_state) }}</div>
             {% else %}
               <div><span><strong>Sin acciones locales</strong><small>Esto no certifica producción; solo indica que el snapshot no trae acciones nuevas.</small></span>{{ status_chip('LOCAL','neutral') }}</div>
             {% endfor %}
           </div>
-          <a class="v933-action is-blue" href="/admin/company-intelligence">{{ icon('arrow') }}<span>Abrir Direccion</span></a>
+          <a class="v933-action is-blue" href="/admin/company-intelligence">{{ icon('arrow') }}<span>Abrir Dirección</span></a>
         </div>
       </section>
 
