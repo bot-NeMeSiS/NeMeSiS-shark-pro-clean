@@ -273,6 +273,7 @@ from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.client_app_premium_engine import build_client_app_premium_context
 from engines.client_growth_engine import build_v757_app_center, build_v757_trust_snapshot, build_v757_next_actions
+from engines.growth_revenue_os_engine import build_growth_revenue_os_snapshot
 from engines.adaptive_experience_engine import build_v758_adaptive_experience, build_v758_device_api_payload
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
@@ -27285,6 +27286,11 @@ FOUNDER_REPORT_CATALOG = [
     "KNOWN_LIMITATIONS.md",
     "BETA_FEEDBACK_PLAN.md",
     "TOP_100_IMPROVEMENTS.md",
+    "NEMESIS_GROWTH_REVENUE_OS_REPORT.md",
+    "GROWTH_FUNNEL_SPEC.md",
+    "RESPONSIBLE_MARKETING_POLICY.md",
+    "FOUNDER_REVENUE_BRIEF_SPEC.md",
+    "CUSTOMER_ACQUISITION_ROADMAP.md",
 ]
 
 
@@ -27476,6 +27482,16 @@ def founder_command_center_snapshot():
             "export": True,
         },
     }
+    growth_revenue = build_growth_revenue_os_snapshot(
+        product_snapshot=product,
+        revenue_snapshot=business,
+        beta_snapshot=beta_control,
+        support_snapshot=support,
+        top100_snapshot=top100,
+        roadmap_snapshot=roadmap,
+        app_version=APP_VERSION,
+        now_madrid=now_iso(),
+    )
     release_gate = operations.get("release_1_gate") or {}
     return {
         "contract": FOUNDER_COMMAND_CENTER_CONTRACT,
@@ -27490,6 +27506,7 @@ def founder_command_center_snapshot():
         "stripe_called": False,
         "business_kpis": business_kpis,
         "customer_overview": customer_overview,
+        "growth_revenue": growth_revenue,
         "beta_control": beta_control,
         "operations_summary": operations_summary,
         "release_readiness": {
@@ -27524,10 +27541,12 @@ def founder_command_center_snapshot():
             "sin push",
             "sin Telegram real",
             "sin Stripe",
+            "sin gasto publicitario",
+            "sin campanas masivas",
             "sin escritura DB real",
             "sin secretos",
         ],
-        "next_action": beta_control.get("next_action") or operations.get("next_action") or "Revisar evidencia antes de lanzar beta.",
+        "next_action": growth_revenue.get("next_action") or beta_control.get("next_action") or operations.get("next_action") or "Revisar evidencia antes de lanzar beta.",
     }
 
 
@@ -27626,6 +27645,7 @@ def go_to_market_office_snapshot():
     """Read-only launch office built from existing NeMeSiS surfaces."""
 
     founder = founder_command_center_snapshot()
+    growth_revenue = founder.get("growth_revenue") or {}
     beta = beta_program_context({"id": "", "role": "ADMIN", "membership": "ADMIN"})
     board = build_executive_board_snapshot(BASE_DIR, APP_VERSION)
     review = build_product_review_system_snapshot(BASE_DIR, APP_VERSION)
@@ -27708,6 +27728,7 @@ def go_to_market_office_snapshot():
             ],
             "href": "/admin/beta-center",
         },
+        "growth_revenue_os": growth_revenue,
         "commercial_readiness": {
             "free_value": "Descubrir partidos, entender contexto y usar superficies basicas sin promesas de ganancia.",
             "pro_value": "Mas contexto, Telegram premium y seguimiento avanzado cuando exista evidencia real.",

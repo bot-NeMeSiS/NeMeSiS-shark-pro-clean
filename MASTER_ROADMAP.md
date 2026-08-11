@@ -123,3 +123,12 @@ Estado: PASS LOCAL pendiente de QA final del sprint. Se prepara la infraestructu
 Estado: EN VALIDACION LOCAL. Se crea el Go To Market Office como centro interno de lanzamiento para beta, marketing, conversion, usuarios, feedback, riesgos, checklist de release, customer success, operaciones y Top 20 antes de Release 1.0. No crea modulos deportivos, no toca Sports Core, no cambia SHARK, no lanza campanas, no conecta Stripe, no envia Telegram, no hace push, no hace deploy y no modifica produccion.
 
 Documentacion relacionada: `reports/GO_TO_MARKET_OFFICE_REPORT.md`, `reports/BETA_MANAGEMENT_REPORT.md`, `reports/COMMERCIAL_READINESS_FINAL.md`, `reports/CUSTOMER_SUCCESS_REPORT.md`, `reports/MARKETING_FOUNDATION_REPORT.md`, `reports/LAUNCH_CHECKLIST_FINAL.md`, `reports/TOP20_RELEASE_ACTIONS.md`.
+## Growth & Revenue OS - 2026-08-12
+
+Estado: PASS LOCAL pendiente de datos reales de beta, Stripe test y gates operativos antes de venta abierta. Se consolida el departamento digital de crecimiento dentro de Founder Center reutilizando Continuous Evolution OS, Executive Board, Product Review System, Company Platform, Beta Program, User Intelligence, Go To Market Office, Product Memory y TOP100.
+
+Alcance: funnel oficial DISCOVERY -> REFERRAL, Founder Revenue Brief, roles comerciales, Content Factory approval-first, Social Media OS desconectado, SEO foundation, CRM lifecycle, Customer Success, referrals, affiliates/partners governance, Campaign Lab sin gasto y backlog de experimentos.
+
+Guardrails: no Sports Core, no SHARK, no campanas reales, no gasto, no Stripe real, no Telegram real, no publicaciones masivas, no metricas falsas, no testimonios ficticios, no partners inventados, no push, no deploy y no produccion.
+
+Documentacion relacionada: `reports/NEMESIS_GROWTH_REVENUE_OS_REPORT.md`, `reports/GROWTH_FUNNEL_SPEC.md`, `reports/RESPONSIBLE_MARKETING_POLICY.md`, `reports/FOUNDER_REVENUE_BRIEF_SPEC.md`, `reports/CUSTOMER_ACQUISITION_ROADMAP.md`.

@@ -587,7 +587,8 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             )
             else "PENDING",
             "evidence": "Centro de inteligencia deportiva trazable; consume Sports Core, Sports Knowledge, Sports Graph y Match Intelligence sin IA generativa.",
-        },        {
+        },
+        {
             "name": "User Intelligence Platform",
             "state": "COMPLETED"
             if complete(
@@ -619,7 +620,8 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             )
             else "PENDING",
             "evidence": "Motor evidence-first que organiza lo que sabemos, lo que falta, cambios, coincidencias, discrepancias, calidad y confianza sin IA, picks ni predicciones.",
-        },        {
+        },
+        {
             "name": "Experience Platform",
             "state": "COMPLETED"
             if complete(
@@ -683,7 +685,8 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             )
             else "PENDING",
             "evidence": "Player Center Premium Sports Identity consume Sports Core, Sports Knowledge, Sports Graph, SHARK Intelligence y User Intelligence sin modelo paralelo.",
-        },        {
+        },
+        {
             "name": "Product Finalization Release Candidate",
             "state": "COMPLETED"
             if complete(
@@ -828,6 +831,22 @@ def build_product_roadmap(project_root: str | Path) -> dict[str, Any]:
             )
             else "IN_PROGRESS",
             "evidence": "Go To Market Office consolida beta, lanzamiento, marketing, conversion, usuarios, feedback, riesgos, operaciones, checklist y Top 20 sin campanas, pagos, push, deploy ni produccion.",
+        },
+        {
+            "name": "Growth & Revenue OS",
+            "state": "COMPLETED"
+            if complete(
+                "engines/growth_revenue_os_engine.py",
+                "tests/test_growth_revenue_os.py",
+                "tools/check_growth_revenue_os.py",
+                "reports/NEMESIS_GROWTH_REVENUE_OS_REPORT.md",
+                "reports/GROWTH_FUNNEL_SPEC.md",
+                "reports/RESPONSIBLE_MARKETING_POLICY.md",
+                "reports/FOUNDER_REVENUE_BRIEF_SPEC.md",
+                "reports/CUSTOMER_ACQUISITION_ROADMAP.md",
+            )
+            else "IN_PROGRESS",
+            "evidence": "Growth & Revenue OS reutiliza Founder Center, Continuous Evolution, Executive Board, Product Review, Company Platform, Beta Program, User Intelligence, Go To Market Office, Product Memory y TOP100; no publica campanas, no gasta dinero, no llama Stripe, no envia Telegram y no inventa metricas.",
         },
         {
             "name": "Beta privada",

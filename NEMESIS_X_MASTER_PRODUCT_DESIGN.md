@@ -120,6 +120,14 @@ Revenue matters, but not at the cost of trust. NeMeSiS must never force conversi
 
 Automation can observe, measure, detect, prioritize and propose. It must not silently decide, deploy, send risky messages, change money flows or invent evidence.
 
+### 2.7 Responsible Growth Before Scale
+
+Growth must be earned through clarity, trust, retention and responsible premium value. NeMeSiS may automate observation, analysis, prioritization and preparation, but customer acquisition, content publication, social activity, ad spend, affiliate activation, pricing and payment changes require founder approval and evidence.
+
+The official Growth & Revenue OS belongs to the company operating layer, not to Sports Core. It reuses Founder Center, Continuous Evolution OS, Executive Board, Product Review System, Company Platform, Beta Program, User Intelligence, Go To Market Office, Product Memory, MASTER_ROADMAP and TOP100.
+
+It must never invent traffic, conversion, MRR, churn, testimonials, partners or market traction. When evidence is missing, the correct state is `INSUFFICIENT_REAL_DATA`.
+
 ---
 
 ## 3. Future Architecture

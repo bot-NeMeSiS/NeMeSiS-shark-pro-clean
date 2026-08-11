@@ -338,7 +338,8 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             if exists("engines/decision_engine.py")
             else "CONTRACT_READY",
             "implementation": "engines/decision_engine.py",
-        },        {
+        },
+        {
             "key": "experience_platform",
             "name": "NeMeSiS Experience Platform",
             "contract": "NEMESIS-EXPERIENCE-PLATFORM-V1",
@@ -423,6 +424,17 @@ def build_sports_platform_contract_registry(project_root: str | Path) -> dict[st
             and exists("reports/GO_TO_MARKET_OFFICE_REPORT.md")
             else "CONTRACT_READY",
             "implementation": "app.py + templates/admin_go_to_market_office.html + tools/check_go_to_market_program.py",
+        },
+        {
+            "key": "growth_revenue_os",
+            "name": "NeMeSiS Growth & Revenue OS",
+            "contract": "NEMESIS-GROWTH-REVENUE-OS-V1",
+            "state": "INTEGRATED"
+            if exists("engines/growth_revenue_os_engine.py")
+            and exists("tests/test_growth_revenue_os.py")
+            and exists("reports/NEMESIS_GROWTH_REVENUE_OS_REPORT.md")
+            else "CONTRACT_READY",
+            "implementation": "engines/growth_revenue_os_engine.py + Founder Center + reports/GROWTH_FUNNEL_SPEC.md",
         },
         {
             "key": "telegram_assistant",

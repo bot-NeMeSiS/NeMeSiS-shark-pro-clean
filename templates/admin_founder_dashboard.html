@@ -21,6 +21,12 @@
 {% set ce_control = continuous.control or {} %}
 {% set ce_tasks = ce_scheduler.get('tasks', {}) %}
 {% set ce_last_job = continuous.last_job or {} %}
+{% set growth = founder.growth_revenue or {} %}
+{% set gr_metrics = growth.get('metrics', {}) %}
+{% set gr_questions = growth.get('founder_questions', {}) %}
+{% set gr_brief = growth.get('founder_revenue_brief', {}) %}
+{% set gr_funnel = growth.get('funnel', []) %}
+{% set gr_roles = growth.get('roles', []) %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
@@ -102,6 +108,60 @@
     {{ kpi_card('MRR', kpis.mrr, kpis.mrr_state, 'neutral', 'chart') }}
   </section>
 
+  <section class="v933-admin-panel" id="growth-revenue" aria-label="Growth Revenue OS">
+    <header>
+      <div>
+        <h2>Growth & Revenue OS</h2>
+        <p>Departamento digital de crecimiento: clientes, conversion, retencion, marketing y revenue sin campanas, gasto, Stripe ni publicaciones automaticas.</p>
+      </div>
+      {{ status_chip(growth.status or 'FOUNDATION_READY', 'success' if growth.status == 'READY_FOR_BETA_MEASUREMENT' else 'warning') }}
+    </header>
+    <div class="v933-admin-panel-body">
+      <div class="v933-kpi-grid is-six">
+        {{ kpi_card('Preparacion', growth.get('readiness_score', 'Sin score'), growth.score_explanation or 'Score basado en evidencia real disponible.', 'blue', 'target') }}
+        {{ kpi_card('Registrados', gr_metrics.get('registered_label'), 'Solo agregado, sin PII', 'cyan', 'users') }}
+        {{ kpi_card('FREE', gr_metrics.get('free_label'), 'Plan observado', 'blue', 'users') }}
+        {{ kpi_card('Intencion premium', gr_metrics.get('premium_intent_label'), 'Eventos reales si existen', 'warning', 'star') }}
+        {{ kpi_card('PRO / ELITE', gr_metrics.get('pro_elite_label'), 'Conversion certificada si existe', 'gold', 'award') }}
+        {{ kpi_card('MRR', gr_metrics.get('mrr_label'), 'No se estima sin pagos certificados', 'neutral', 'chart') }}
+      </div>
+      <div class="v933-truth-list">
+        <div>{{ icon('check') }}<span><strong>Que esta funcionando</strong><small>{{ gr_questions.get('what_is_working') or 'Sin evidencia suficiente todavia.' }}</small></span>{{ evidence_chip(growth.real_user_data_state or 'INSUFFICIENT_REAL_DATA') }}</div>
+        <div>{{ icon('alert') }}<span><strong>Que no funciona aun</strong><small>{{ gr_questions.get('what_is_not_working') or 'No hay diagnostico comercial suficiente.' }}</small></span>{{ status_chip('SIN HUMO','warning') }}</div>
+        <div>{{ icon('target') }}<span><strong>Donde perdemos usuarios</strong><small>{{ gr_questions.get('where_we_lose_users') or 'INSUFFICIENT_REAL_DATA' }}</small></span>{{ status_chip('MEDIR','warning') }}</div>
+        <div>{{ icon('chart') }}<span><strong>Canal ganador</strong><small>{{ gr_questions.get('best_channel') or 'INSUFFICIENT_REAL_DATA' }}</small></span>{{ status_chip('NO INVENTAR','neutral') }}</div>
+        <div>{{ icon('star') }}<span><strong>Por que pasaria a PRO</strong><small>{{ gr_questions.get('why_pro') or 'Pendiente de evidencia real.' }}</small></span>{{ status_chip('RESPONSABLE','blue') }}</div>
+        <div>{{ icon('arrow') }}<span><strong>Que hacer hoy</strong><small>{{ gr_questions.get('what_should_we_do_today') or growth.next_action or 'Revisar evidencia antes de actuar.' }}</small></span>{{ status_chip('ACCION','success') }}</div>
+      </div>
+      {% if gr_brief %}
+      <div class="v933-kpi-grid">
+        {{ kpi_card('Brief revenue', gr_brief.state, gr_brief.title, 'blue', 'document') }}
+        {{ kpi_card('Conversion', gr_brief.conversions, 'Registrado a pago si hay muestra', 'cyan', 'target') }}
+        {{ kpi_card('Friccion principal', gr_brief.main_friction, 'No se oculta falta de datos', 'warning', 'alert') }}
+        {{ kpi_card('Oportunidad', gr_brief.main_opportunity, 'Siguiente palanca comercial', 'gold', 'star') }}
+      </div>
+      {% endif %}
+      {% call data_table(['Etapa','Estado','Evidencia','Siguiente medicion']) %}
+      {% for stage in gr_funnel %}
+      <tr>
+        <td><strong>{{ stage.label }}</strong><br><small>{{ stage.definition }}</small></td>
+        <td>{{ evidence_chip(stage.evidence_state) }}<br><small>{{ stage.value_label }}</small></td>
+        <td><small>{{ stage.evidence }}</small></td>
+        <td><small>{{ stage.next_measurement }}</small></td>
+      </tr>
+      {% endfor %}
+      {% endcall %}
+      <details class="v933-safe-copy">
+        <summary>Ver roles, canales y automatizacion permitida</summary>
+        <div class="v933-truth-list is-no-icon">
+          {% for role in gr_roles[:10] %}
+          <div><span><strong>{{ role.title }}</strong><small>{{ role.scope }}</small></span>{{ status_chip('ROLE_READY','neutral') }}</div>
+          {% endfor %}
+          <div><span><strong>No automatizar</strong><small>Gasto, precios, publicaciones masivas, claims comerciales, afiliados, Stripe y Telegram requieren aprobacion humana.</small></span>{{ status_chip('HUMANO','warning') }}</div>
+        </div>
+      </details>
+    </div>
+  </section>
   <section class="v933-admin-layout">
     <div class="v933-main-stack">
       <section class="v933-admin-panel">
