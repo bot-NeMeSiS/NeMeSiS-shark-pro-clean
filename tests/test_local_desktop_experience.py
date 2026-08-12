@@ -116,8 +116,16 @@ def test_runner_handles_busy_port_duplicate_shutdown_and_restart():
     env = dict(os.environ)
     env["NEMESIS_LOCAL_NO_BROWSER"] = "1"
     env.pop("NEMESIS_LOCAL_EXTERNAL_AUTHORIZED", None)
+    occupied_port = None
     occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    occupied.bind(("127.0.0.1", 5000))
+    for candidate in range(5000, 5101):
+        try:
+            occupied.bind(("127.0.0.1", candidate))
+            occupied_port = candidate
+            break
+        except OSError:
+            continue
+    assert occupied_port is not None
     occupied.listen(1)
     first = subprocess.Popen(
         [sys.executable, "-u", str(RUNNER), "--mode", "offline_safe"],
@@ -130,7 +138,7 @@ def test_runner_handles_busy_port_duplicate_shutdown_and_restart():
     )
     try:
         first_metadata = _wait_for_pid_file(pid_file)
-        assert first_metadata["port"] != 5000
+        assert first_metadata["port"] != occupied_port
         duplicate = subprocess.run(
             [sys.executable, "-u", str(RUNNER), "--mode", "offline_safe"],
             cwd=ROOT,

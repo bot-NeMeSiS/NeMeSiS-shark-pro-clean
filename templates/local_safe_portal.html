@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <section class="local-safe-portal" data-local-safe-portal="true" data-local-safe-mode="{{ local_safe.mode }}">
   <header class="local-safe-hero">
@@ -29,20 +29,20 @@
       <a class="v933-action is-primary" href="{{ url_for('local_safe_quick_login', profile='client', token=local_access_token) }}">Abrir como cliente</a>
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='admin', token=local_access_token) }}">Abrir como admin</a>
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='founder', token=local_access_token) }}">Abrir Founder Center</a>
-      <a class="v933-action is-mobile" href="#mobile">Abrir en m?vil</a>
+      <a class="v933-action is-mobile" href="#mobile">Abrir en movil</a>
     </div>
   </section>
 
   <section class="local-safe-mobile-card" id="mobile" aria-labelledby="local-mobile-title">
     <div class="local-safe-mobile-copy">
-      <span class="eyebrow">NeMeSiS LOCAL - m?vil</span>
+      <span class="eyebrow">NeMeSiS LOCAL - movil</span>
       <h2 id="local-mobile-title">Revisar desde iPhone o Android</h2>
       {% if lan_mobile.enabled and lan_mobile.url %}
       <ol>
-        <li>Aseg?rate de que PC y m?vil est?n en la misma Wi-Fi.</li>
+        <li>Asegurate de que PC y movil estan en la misma Wi-Fi.</li>
         <li>Escanea este QR.</li>
         <li>Abre NeMeSiS.</li>
-        <li>Opcional: A?adir a pantalla de inicio.</li>
+        <li>Opcional: Anadir a pantalla de inicio.</li>
       </ol>
       <p class="local-safe-mobile-url">{{ lan_mobile.url }}</p>
       {% else %}
@@ -51,14 +51,43 @@
     </div>
     {% if lan_mobile.enabled and lan_mobile.url %}
     <div class="local-safe-qr-box">
-      <img src="{{ lan_mobile.qr_url }}" alt="QR local para abrir NeMeSiS en m?vil">
-      <span>QR temporal de esta sesi?n</span>
+      <img src="{{ lan_mobile.qr_url }}" alt="QR local para abrir NeMeSiS en movil">
+      <span>QR temporal de esta sesion</span>
     </div>
     {% endif %}
   </section>
   {% else %}
   <div class="local-safe-notice">Vuelve a abrir el icono <strong>NeMeSiS LOCAL</strong> del Escritorio para recuperar los accesos rapidos.</div>
   {% endif %}
+
+  <section class="local-safe-review" id="revisar-nemesis" aria-labelledby="local-review-title">
+    <div class="local-safe-review-head">
+      <div>
+        <span class="eyebrow">Aprobacion humana</span>
+        <h2 id="local-review-title">Revisar NeMeSiS</h2>
+        <p>Abre cada pantalla y marca tu sensacion. Esta revision queda solo en este navegador local.</p>
+      </div>
+      <a class="v933-action is-primary" href="/app">Empezar revision</a>
+    </div>
+    <div class="local-safe-review-grid" data-local-review-grid>
+      {% set review_screens = [
+        ('Landing','/'), ('Home','/app'), ('Partidos','/calendar'), ('Directo','/live'),
+        ('Match','/match/local-match-1'), ('Team','/team/club-local-qa'), ('Competition','/competition/liga-local-qa'), ('Player','/player/local-player-101'),
+        ('Picks','/picks'), ('SHARK','/shark'), ('Track Record','/track-record'), ('Memberships','/membresias'),
+        ('Profile','/profile'), ('Telegram','/telegram'), ('Founder','/admin/founder-dashboard'), ('Growth','/admin/growth-center')
+      ] %}
+      {% for label, href in review_screens %}
+      <article class="local-safe-review-card" data-review-screen="{{ label }}">
+        <a href="{{ href }}"><strong>{{ label }}</strong><span>{{ href }}</span></a>
+        <div class="local-safe-review-vote" role="group" aria-label="Revision {{ label }}">
+          <button type="button" data-review-vote="me_gusta">Me gusta</button>
+          <button type="button" data-review-vote="revisar">Revisar</button>
+          <button type="button" data-review-vote="no_me_gusta">No me gusta</button>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
 
   <section class="local-safe-experience" aria-labelledby="local-experience-title">
     <div>
@@ -83,4 +112,29 @@
     <span>Las pantallas siguen funcionando con cache, contratos y fixtures locales. Ninguna integracion externa se presenta como activa.</span>
   </div>
 </section>
+
+<script>
+(function(){
+  var grid=document.querySelector('[data-local-review-grid]');
+  if(!grid){return;}
+  var key='nemesis_local_visual_approval';
+  var state={};
+  try{state=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(e){state={};}
+  grid.querySelectorAll('[data-review-screen]').forEach(function(card){
+    var screen=card.getAttribute('data-review-screen');
+    var current=state[screen];
+    if(current){card.setAttribute('data-review-state', current);}
+    card.querySelectorAll('[data-review-vote]').forEach(function(btn){
+      if(btn.getAttribute('data-review-vote')===current){btn.setAttribute('aria-pressed','true');}
+      btn.addEventListener('click', function(){
+        state[screen]=btn.getAttribute('data-review-vote');
+        localStorage.setItem(key, JSON.stringify(state));
+        card.setAttribute('data-review-state', state[screen]);
+        card.querySelectorAll('[data-review-vote]').forEach(function(other){other.removeAttribute('aria-pressed');});
+        btn.setAttribute('aria-pressed','true');
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

@@ -106,7 +106,7 @@ def main() -> int:
             failures.append({"route": item.get("route"), "profile": item.get("profile"), "reason": "overflow"})
         if item.get("brokenImages"):
             failures.append({"route": item.get("route"), "profile": item.get("profile"), "reason": "broken_images"})
-        if item.get("route") == "/local-safe" and (not item.get("portal") or not item.get("banner") or len(item.get("buttons") or []) != 3):
+        if item.get("route") == "/local-safe" and (not item.get("portal") or not item.get("banner") or len(item.get("buttons") or []) != 4):
             failures.append({"route": item.get("route"), "profile": item.get("profile"), "reason": "portal_contract"})
         if item.get("route") == "/admin/founder-dashboard" and not item.get("founder"):
             failures.append({"route": item.get("route"), "profile": item.get("profile"), "reason": "founder_contract"})
