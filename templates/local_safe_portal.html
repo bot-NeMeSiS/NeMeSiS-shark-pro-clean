@@ -29,7 +29,32 @@
       <a class="v933-action is-primary" href="{{ url_for('local_safe_quick_login', profile='client', token=local_access_token) }}">Abrir como cliente</a>
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='admin', token=local_access_token) }}">Abrir como admin</a>
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='founder', token=local_access_token) }}">Abrir Founder Center</a>
+      <a class="v933-action is-mobile" href="#mobile">Abrir en m?vil</a>
     </div>
+  </section>
+
+  <section class="local-safe-mobile-card" id="mobile" aria-labelledby="local-mobile-title">
+    <div class="local-safe-mobile-copy">
+      <span class="eyebrow">NeMeSiS LOCAL - m?vil</span>
+      <h2 id="local-mobile-title">Revisar desde iPhone o Android</h2>
+      {% if lan_mobile.enabled and lan_mobile.url %}
+      <ol>
+        <li>Aseg?rate de que PC y m?vil est?n en la misma Wi-Fi.</li>
+        <li>Escanea este QR.</li>
+        <li>Abre NeMeSiS.</li>
+        <li>Opcional: A?adir a pantalla de inicio.</li>
+      </ol>
+      <p class="local-safe-mobile-url">{{ lan_mobile.url }}</p>
+      {% else %}
+      <p>No se ha detectado una red local privada disponible. NeMeSiS LOCAL sigue funcionando en este PC.</p>
+      {% endif %}
+    </div>
+    {% if lan_mobile.enabled and lan_mobile.url %}
+    <div class="local-safe-qr-box">
+      <img src="{{ lan_mobile.qr_url }}" alt="QR local para abrir NeMeSiS en m?vil">
+      <span>QR temporal de esta sesi?n</span>
+    </div>
+    {% endif %}
   </section>
   {% else %}
   <div class="local-safe-notice">Vuelve a abrir el icono <strong>NeMeSiS LOCAL</strong> del Escritorio para recuperar los accesos rapidos.</div>

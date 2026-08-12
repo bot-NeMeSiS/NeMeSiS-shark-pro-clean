@@ -164,3 +164,54 @@ def test_runner_handles_busy_port_duplicate_shutdown_and_restart():
     finally:
         _stop_runner(restarted)
     assert not pid_file.exists()
+
+
+def test_lan_mobile_access_uses_temporary_token_and_blocks_unsafe_paths():
+    script = r'''
+import json, os, sys, urllib.parse
+from pathlib import Path
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+ROOT=Path.cwd()
+sys.path.insert(0, str(ROOT/'tools'/'local_desktop'))
+sys.path.insert(0, str(ROOT))
+import run_local_desktop as runner
+port=runner.select_port()
+runner.configure_local_environment('offline_safe', port, db_name='nemesis_lan_mobile_test.db', lan_ip='192.168.56.1')
+runner.write_lan_qr(os.environ['NEMESIS_LOCAL_LAN_URL'])
+import app as app_module
+runner.seed_local_database(app_module)
+app_module.app.config.update(TESTING=True)
+token=os.environ['NEMESIS_LOCAL_LAN_TOKEN']
+private={'REMOTE_ADDR':'192.168.56.44'}
+public={'REMOTE_ADDR':'8.8.8.8'}
+client=app_module.app.test_client()
+valid=client.get(f'/m/{urllib.parse.quote(token)}', environ_base=private, follow_redirects=False)
+portal=client.get('/local-safe', environ_base=private)
+admin=client.get(f'/local-safe/login/founder?token={urllib.parse.quote(token)}', environ_base=private, follow_redirects=False)
+invalid=app_module.app.test_client().get('/m/wrong-token', environ_base=private)
+blocked_public=app_module.app.test_client().get(f'/m/{urllib.parse.quote(token)}', environ_base=public)
+os.environ['NEMESIS_LOCAL_LAN_EXPIRES_AT']=(datetime.now(ZoneInfo('Europe/Madrid'))-timedelta(minutes=1)).isoformat()
+expired=app_module.app.test_client().get(f'/m/{urllib.parse.quote(token)}', environ_base=private)
+telegram=client.post('/api/telegram/send', environ_base=private)
+stripe=client.post('/pagos/checkout/PRO', environ_base=private)
+qr=Path(os.environ['DB_PATH']).parent/'nemesis_local_mobile_qr.svg'
+payload={
+  'ok': valid.status_code==302 and portal.status_code==200 and admin.status_code==302 and invalid.status_code==403 and blocked_public.status_code==403 and expired.status_code==403 and telegram.status_code==403 and stripe.status_code==403 and qr.exists(),
+  'valid': valid.status_code, 'portal': portal.status_code, 'admin': admin.status_code,
+  'invalid': invalid.status_code, 'public': blocked_public.status_code, 'expired': expired.status_code,
+  'telegram': telegram.status_code, 'stripe': stripe.status_code, 'qr': qr.exists(),
+}
+print(json.dumps(payload))
+for suffix in ('','-wal','-shm'):
+ Path(str(app_module.DB_PATH)+suffix).unlink(missing_ok=True)
+raise SystemExit(0 if payload['ok'] else 1)
+'''
+    result = subprocess.run(
+        [sys.executable, '-c', script], cwd=ROOT, text=True, capture_output=True, timeout=180, check=False
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    start = result.stdout.rfind('{')
+    assert start >= 0, result.stdout
+    payload = json.loads(result.stdout[start:])
+    assert payload['ok'] is True

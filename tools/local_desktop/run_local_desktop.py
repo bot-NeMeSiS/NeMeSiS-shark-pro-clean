@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """One-click localhost runner for NeMeSiS LOCAL SAFE.
 
 This utility imports the official project directly. It never copies the source,
@@ -12,6 +12,7 @@ import json
 import os
 import secrets
 import socket
+import ipaddress
 import sqlite3
 import sys
 import threading
@@ -34,7 +35,30 @@ LOG_FILE = LOCAL_DIR / "nemesis_local.log"
 MADRID = ZoneInfo("Europe/Madrid")
 
 
-def configure_local_environment(mode: str, port: int, db_name: str = "nemesis_local.db") -> None:
+def detect_lan_ip() -> str:
+    candidates: list[str] = []
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("8.8.8.8", 80))
+            candidates.append(probe.getsockname()[0])
+    except OSError:
+        pass
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            candidates.append(str(info[4][0]))
+    except OSError:
+        pass
+    for value in candidates:
+        try:
+            address = ipaddress.ip_address(value)
+        except ValueError:
+            continue
+        if address.version == 4 and address.is_private and not address.is_loopback and not address.is_link_local:
+            return value
+    return ""
+
+
+def configure_local_environment(mode: str, port: int, db_name: str = "nemesis_local.db", lan_ip: str = "") -> None:
     mode = "INTEGRATION_TEST" if str(mode).lower() == "integration_test" else "OFFLINE_SAFE"
     LOCAL_DIR.mkdir(parents=True, exist_ok=True)
     os.environ["NEMESIS_LOCAL_SAFE_MODE"] = "1"
@@ -42,10 +66,17 @@ def configure_local_environment(mode: str, port: int, db_name: str = "nemesis_lo
     os.environ["NEMESIS_OFFLINE_MODE"] = "0" if mode == "INTEGRATION_TEST" else "1"
     os.environ["NEMESIS_LOCAL_DB_NAME"] = Path(db_name).name
     os.environ["DB_PATH"] = str(LOCAL_DIR / Path(db_name).name)
-    os.environ["PUBLIC_BASE_URL"] = f"http://127.0.0.1:{port}"
-    os.environ["APP_PUBLIC_URL"] = f"http://127.0.0.1:{port}"
+    public_host = lan_ip or "127.0.0.1"
+    os.environ["PUBLIC_BASE_URL"] = f"http://{public_host}:{port}"
+    os.environ["APP_PUBLIC_URL"] = f"http://{public_host}:{port}"
     os.environ["SECRET_KEY"] = secrets.token_urlsafe(32)
     os.environ["NEMESIS_LOCAL_ACCESS_TOKEN"] = secrets.token_urlsafe(32)
+    lan_token = secrets.token_urlsafe(10)
+    os.environ["NEMESIS_LOCAL_LAN_ENABLED"] = "1" if lan_ip else "0"
+    os.environ["NEMESIS_LOCAL_LAN_IP"] = lan_ip
+    os.environ["NEMESIS_LOCAL_LAN_TOKEN"] = lan_token
+    os.environ["NEMESIS_LOCAL_LAN_EXPIRES_AT"] = (datetime.now(MADRID) + timedelta(hours=8)).replace(microsecond=0).isoformat()
+    os.environ["NEMESIS_LOCAL_LAN_URL"] = f"http://{lan_ip}:{port}/m/{lan_token}" if lan_ip else ""
     os.environ["SESSION_COOKIE_SECURE"] = "0"
     os.environ["FLASK_ENV"] = "development"
     os.environ["RUN_STARTUP_SCHEDULER_NOW"] = "0"
@@ -95,13 +126,18 @@ def configure_local_environment(mode: str, port: int, db_name: str = "nemesis_lo
 
 
 def port_available(port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            probe.bind(("127.0.0.1", port))
-            return True
-        except OSError:
-            return False
+    for host in ("127.0.0.1", "0.0.0.0"):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.settimeout(0.2)
+            if host == "127.0.0.1" and probe.connect_ex((host, port)) == 0:
+                return False
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                probe.bind((host, port))
+            except OSError:
+                return False
+    return True
 
 
 def select_port() -> int:
@@ -109,6 +145,151 @@ def select_port() -> int:
         if port_available(port):
             return port
     raise RuntimeError("No hay un puerto local libre entre 5000 y 5100.")
+
+
+def _gf_mul(x: int, y: int) -> int:
+    result = 0
+    while y:
+        if y & 1:
+            result ^= x
+        y >>= 1
+        x <<= 1
+        if x & 0x100:
+            x ^= 0x11D
+    return result
+
+
+def _rs_generator(degree: int) -> list[int]:
+    poly = [1]
+    root = 1
+    for _ in range(degree):
+        nxt = [0] * (len(poly) + 1)
+        for i, coef in enumerate(poly):
+            nxt[i] ^= _gf_mul(coef, root)
+            nxt[i + 1] ^= coef
+        poly = nxt
+        root = _gf_mul(root, 2)
+    return poly
+
+
+def _rs_remainder(data: list[int], degree: int) -> list[int]:
+    gen = _rs_generator(degree)
+    rem = [0] * degree
+    for byte in data:
+        factor = byte ^ rem[0]
+        rem = rem[1:] + [0]
+        for i in range(degree):
+            rem[i] ^= _gf_mul(gen[i], factor)
+    return rem
+
+
+def _bits_to_codewords(bits: list[int], capacity: int) -> list[int]:
+    bits = bits[:]
+    bits += [0] * min(4, capacity * 8 - len(bits))
+    while len(bits) % 8:
+        bits.append(0)
+    pads = [0xEC, 0x11]
+    pad_index = 0
+    while len(bits) < capacity * 8:
+        value = pads[pad_index % 2]
+        bits.extend([(value >> shift) & 1 for shift in range(7, -1, -1)])
+        pad_index += 1
+    return [sum(bits[i + bit] << (7 - bit) for bit in range(8)) for i in range(0, capacity * 8, 8)]
+
+
+def _reserve(matrix: list[list[int | None]], reserved: list[list[bool]], x: int, y: int, value: int) -> None:
+    if 0 <= x < len(matrix) and 0 <= y < len(matrix):
+        matrix[y][x] = value
+        reserved[y][x] = True
+
+
+def _finder(matrix, reserved, x: int, y: int) -> None:
+    for dy in range(-1, 8):
+        for dx in range(-1, 8):
+            xx, yy = x + dx, y + dy
+            if 0 <= xx < len(matrix) and 0 <= yy < len(matrix):
+                value = 1 if (0 <= dx <= 6 and 0 <= dy <= 6 and (dx in {0, 6} or dy in {0, 6} or (2 <= dx <= 4 and 2 <= dy <= 4))) else 0
+                _reserve(matrix, reserved, xx, yy, value)
+
+
+def _alignment(matrix, reserved, cx: int, cy: int) -> None:
+    for dy in range(-2, 3):
+        for dx in range(-2, 3):
+            value = 1 if max(abs(dx), abs(dy)) in {0, 2} else 0
+            _reserve(matrix, reserved, cx + dx, cy + dy, value)
+
+
+def _format_bits(mask: int) -> int:
+    data = (1 << 3) | mask  # ECC L + mask
+    value = data << 10
+    poly = 0x537
+    for i in range(14, 9, -1):
+        if (value >> i) & 1:
+            value ^= poly << (i - 10)
+    return ((data << 10) | value) ^ 0x5412
+
+
+def build_qr_svg(text: str, scale: int = 8, border: int = 4) -> str:
+    raw = text.encode('utf-8')
+    if len(raw) > 48:
+        raise ValueError('La URL LAN es demasiado larga para el QR local compacto.')
+    size = 29  # QR version 3
+    matrix: list[list[int | None]] = [[None] * size for _ in range(size)]
+    reserved = [[False] * size for _ in range(size)]
+    _finder(matrix, reserved, 0, 0)
+    _finder(matrix, reserved, size - 7, 0)
+    _finder(matrix, reserved, 0, size - 7)
+    _alignment(matrix, reserved, 22, 22)
+    for i in range(8, size - 8):
+        _reserve(matrix, reserved, i, 6, 1 if i % 2 == 0 else 0)
+        _reserve(matrix, reserved, 6, i, 1 if i % 2 == 0 else 0)
+    _reserve(matrix, reserved, 8, size - 8, 1)
+    bits = [0, 1, 0, 0]
+    bits += [(len(raw) >> shift) & 1 for shift in range(7, -1, -1)]
+    for byte in raw:
+        bits += [(byte >> shift) & 1 for shift in range(7, -1, -1)]
+    data_cw = _bits_to_codewords(bits, 55)
+    codewords = data_cw + _rs_remainder(data_cw, 15)
+    stream = [(byte >> shift) & 1 for byte in codewords for shift in range(7, -1, -1)]
+    idx = 0
+    upward = True
+    x = size - 1
+    while x > 0:
+        if x == 6:
+            x -= 1
+        rows = range(size - 1, -1, -1) if upward else range(size)
+        for y in rows:
+            for xx in (x, x - 1):
+                if not reserved[y][xx]:
+                    bit = stream[idx] if idx < len(stream) else 0
+                    idx += 1
+                    mask = (xx + y) % 2 == 0
+                    matrix[y][xx] = bit ^ (1 if mask else 0)
+        upward = not upward
+        x -= 2
+    fmt = _format_bits(0)
+    fmt_positions_1 = [(8,0),(8,1),(8,2),(8,3),(8,4),(8,5),(8,7),(8,8),(7,8),(5,8),(4,8),(3,8),(2,8),(1,8),(0,8)]
+    fmt_positions_2 = [(size-1,8),(size-2,8),(size-3,8),(size-4,8),(size-5,8),(size-6,8),(size-7,8),(8,size-8),(8,size-7),(8,size-6),(8,size-5),(8,size-4),(8,size-3),(8,size-2),(8,size-1)]
+    for i in range(15):
+        bit = (fmt >> i) & 1
+        for x0, y0 in (fmt_positions_1[i], fmt_positions_2[i]):
+            matrix[y0][x0] = bit
+    pixel = (size + border * 2) * scale
+    rects = [f'<rect width="{pixel}" height="{pixel}" fill="#f8fbff"/>']
+    for y, row in enumerate(matrix):
+        for x, value in enumerate(row):
+            if value:
+                rects.append(f'<rect x="{(x+border)*scale}" y="{(y+border)*scale}" width="{scale}" height="{scale}" fill="#020812"/>')
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {0} {0}" role="img" aria-label="QR NeMeSiS LOCAL m?vil">{1}</svg>'.format(pixel, ''.join(rects))
+
+
+def write_lan_qr(lan_url: str) -> str:
+    qr_path = LOCAL_DIR / 'nemesis_local_mobile_qr.svg'
+    if lan_url:
+        qr_path.write_text(build_qr_svg(lan_url), encoding='utf-8')
+    else:
+        qr_path.unlink(missing_ok=True)
+    return str(qr_path)
 
 
 def insert_row(conn: sqlite3.Connection, table: str, payload: dict[str, Any]) -> None:
@@ -351,10 +532,11 @@ def existing_instance() -> dict[str, Any] | None:
     return None
 
 
-def write_pid_file(port: int, mode: str, access_url: str) -> None:
+def write_pid_file(port: int, mode: str, access_url: str, lan_url: str = "", lan_ip: str = "") -> None:
     metadata = {
         "pid": os.getpid(), "port": port, "mode": mode, "project_root": str(ROOT),
         "runner": str(Path(__file__).resolve()), "access_url": access_url,
+        "lan_url": lan_url, "lan_ip": lan_ip,
         "started_at_madrid": datetime.now(MADRID).replace(microsecond=0).isoformat(),
     }
     temporary = PID_FILE.with_suffix(".tmp")
@@ -371,7 +553,7 @@ def open_url(url: str) -> None:
         pass
 
 
-def print_banner(mode: str, port: int, fixtures: dict[str, Any]) -> None:
+def print_banner(mode: str, port: int, fixtures: dict[str, Any], lan_url: str = "") -> None:
     label = "OFFLINE SAFE" if mode == "OFFLINE_SAFE" else "INTEGRATION TEST"
     print("\n=============================================")
     print("          NEMESIS SHARK PRO - LOCAL")
@@ -383,7 +565,8 @@ def print_banner(mode: str, port: int, fixtures: dict[str, Any]) -> None:
     print("STRIPE:      OFF")
     print("RENDER:      OFF")
     print("INTERNET:    NO NECESARIO PARA LA EXPERIENCIA LOCAL")
-    print(f"URL:         http://127.0.0.1:{port}")
+    print(f"URL PC:      http://127.0.0.1:{port}")
+    print(f"URL MOVIL:   {lan_url or 'No disponible: no se detecto IP privada'}")
     print(f"FIXTURES QA: {fixtures.get('matches', 0)} partidos")
     print("=============================================")
     print("No cierres esta ventana mientras NeMeSiS este funcionando.\n")
@@ -432,9 +615,11 @@ def run_self_test(mode: str) -> int:
         "external_actions_executed": 0,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
-    Path(app_module.DB_PATH).unlink(missing_ok=True)
-    Path(str(app_module.DB_PATH) + "-wal").unlink(missing_ok=True)
-    Path(str(app_module.DB_PATH) + "-shm").unlink(missing_ok=True)
+    for suffix in ("", "-wal", "-shm"):
+        try:
+            Path(str(app_module.DB_PATH) + suffix).unlink(missing_ok=True)
+        except PermissionError:
+            pass
     return 0 if payload["ok"] and all((payload["telegram_blocked"], payload["stripe_route_blocked"], payload["stripe_engine_blocked"], payload["sync_blocked"])) else 1
 
 
@@ -452,16 +637,20 @@ def main() -> int:
         open_url(str(running.get("access_url") or f"http://127.0.0.1:{running['port']}/local-safe"))
         return 0
     port = select_port()
-    configure_local_environment(args.mode, port)
+    lan_ip = detect_lan_ip()
+    configure_local_environment(args.mode, port, lan_ip=lan_ip)
     sys.path.insert(0, str(ROOT))
     import app as app_module
 
     fixtures = seed_local_database(app_module)
-    server = make_server("127.0.0.1", port, app_module.app, threaded=True)
+    bind_host = "0.0.0.0" if os.environ.get("NEMESIS_LOCAL_LAN_ENABLED") == "1" else "127.0.0.1"
+    server = make_server(bind_host, port, app_module.app, threaded=True)
     thread = threading.Thread(target=server.serve_forever, name="nemesis-local-server", daemon=True)
     thread.start()
     token = os.environ["NEMESIS_LOCAL_ACCESS_TOKEN"]
     access_url = f"http://127.0.0.1:{port}/local-safe?token={urllib.parse.quote(token)}"
+    lan_url = os.environ.get("NEMESIS_LOCAL_LAN_URL", "")
+    write_lan_qr(lan_url)
     for _ in range(50):
         try:
             status, payload, _headers = local_status(port)
@@ -472,10 +661,10 @@ def main() -> int:
     else:
         server.shutdown()
         raise RuntimeError("NeMeSiS LOCAL no supero el health check local.")
-    write_pid_file(port, mode, access_url)
+    write_pid_file(port, mode, access_url, lan_url=lan_url, lan_ip=os.environ.get("NEMESIS_LOCAL_LAN_IP", ""))
     with LOG_FILE.open("a", encoding="utf-8") as log:
         log.write(f"{datetime.now(MADRID).isoformat()} START pid={os.getpid()} port={port} mode={mode}\n")
-    print_banner(mode, port, fixtures)
+    print_banner(mode, port, fixtures, lan_url=lan_url)
     open_url(access_url)
     try:
         while thread.is_alive():
@@ -483,6 +672,7 @@ def main() -> int:
             print("[2] ABRIR COMO ADMIN")
             print("[3] ABRIR FOUNDER CENTER")
             print("[4] ABRIR PANEL LOCAL")
+            print("[5] ABRIR EN MOVIL")
             print("[0] DETENER NEMESIS LOCAL")
             choice = input("Selecciona una opcion: ").strip()
             if choice == "1":
@@ -493,6 +683,8 @@ def main() -> int:
                 open_url(f"http://127.0.0.1:{port}/local-safe/login/founder?token={urllib.parse.quote(token)}")
             elif choice == "4":
                 open_url(access_url)
+            elif choice == "5":
+                open_url(access_url + "#mobile")
             elif choice == "0":
                 break
             else:

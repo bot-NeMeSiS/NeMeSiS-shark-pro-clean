@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import ipaddress
 import html
 import io
 import json
@@ -2624,6 +2625,48 @@ def local_safe_loopback_request() -> bool:
     return str(request.remote_addr or "").strip().lower() in {"127.0.0.1", "::1", "localhost"}
 
 
+def local_safe_lan_request() -> bool:
+    if not has_request_context():
+        return False
+    try:
+        address = ipaddress.ip_address(str(request.remote_addr or "").strip())
+    except ValueError:
+        return False
+    return bool(address.version == 4 and address.is_private and not address.is_loopback and not address.is_link_local)
+
+
+def local_safe_lan_token_valid(token: str) -> bool:
+    if not local_safe_mode_enabled() or not _raw_env_flag("NEMESIS_LOCAL_LAN_ENABLED", False):
+        return False
+    expected = str(os.getenv("NEMESIS_LOCAL_LAN_TOKEN") or "")
+    expires_raw = str(os.getenv("NEMESIS_LOCAL_LAN_EXPIRES_AT") or "")
+    if not expected or not token or not secrets.compare_digest(str(token), expected):
+        return False
+    try:
+        expires_at = datetime.fromisoformat(expires_raw)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=TZ)
+    except ValueError:
+        return False
+    return datetime.now(TZ) <= expires_at.astimezone(TZ)
+
+
+def local_safe_request_authorized() -> bool:
+    if local_safe_loopback_request():
+        return True
+    if not local_safe_lan_request():
+        return False
+    path = str(request.path or "")
+    token = str(request.args.get("token") or "")
+    if path.startswith("/m/"):
+        token = path.rsplit("/", 1)[-1]
+    if local_safe_lan_token_valid(token):
+        session["nemesis_local_access"] = True
+        session["nemesis_local_lan"] = True
+        return True
+    return bool(session.get("nemesis_local_access") and session.get("nemesis_local_lan"))
+
+
 def local_safe_db_isolated() -> bool:
     if not local_safe_mode_enabled():
         return True
@@ -2650,8 +2693,8 @@ def local_safe_blocked_response(reason: str = "Accion desactivada en NEMESIS LOC
 def enforce_local_safe_request_boundary():
     if not local_safe_mode_enabled():
         return None
-    if not local_safe_loopback_request():
-        return local_safe_blocked_response("NEMESIS LOCAL SAFE solo admite conexiones desde este equipo.")
+    if not local_safe_request_authorized():
+        return local_safe_blocked_response("NEMESIS LOCAL SAFE solo admite este PC o un movil autorizado por QR temporal.")
     if not local_safe_db_isolated():
         return local_safe_blocked_response("DB local no aislada. Arranque cancelado de forma segura.")
     path = str(request.path or "").lower()
@@ -16211,7 +16254,7 @@ def admin_login_page():
 
 @app.route("/local-safe")
 def local_safe_portal():
-    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+    if not local_safe_mode_enabled() or not local_safe_request_authorized():
         abort(404)
     expected = str(os.getenv("NEMESIS_LOCAL_ACCESS_TOKEN") or "")
     provided = str(request.args.get("token") or "")
@@ -16227,6 +16270,13 @@ def local_safe_portal():
         title="NeMeSiS LOCAL",
         local_access_token=expected if granted else "",
         local_access_granted=granted,
+        lan_mobile={
+            "enabled": _raw_env_flag("NEMESIS_LOCAL_LAN_ENABLED", False),
+            "url": os.getenv("NEMESIS_LOCAL_LAN_URL", ""),
+            "ip": os.getenv("NEMESIS_LOCAL_LAN_IP", ""),
+            "expires_at": os.getenv("NEMESIS_LOCAL_LAN_EXPIRES_AT", ""),
+            "qr_url": "/local-safe/lan-qr.svg",
+        },
         local_routes={
             "match": "/match/local-match-2",
             "team": "/team/club-local-qa",
@@ -16241,7 +16291,7 @@ def local_safe_portal():
 
 @app.route("/local-safe/status")
 def local_safe_status():
-    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+    if not local_safe_mode_enabled() or not local_safe_request_authorized():
         abort(404)
     return jsonify({
         "ok": True,
@@ -16257,9 +16307,28 @@ def local_safe_status():
     })
 
 
+@app.route("/m/<token>")
+def local_safe_mobile_entry(token):
+    if not local_safe_mode_enabled() or not local_safe_lan_request() or not local_safe_lan_token_valid(token):
+        return local_safe_blocked_response("QR movil caducado o no valido.")
+    session["nemesis_local_access"] = True
+    session["nemesis_local_lan"] = True
+    return redirect("/local-safe#mobile")
+
+
+@app.route("/local-safe/lan-qr.svg")
+def local_safe_lan_qr_svg():
+    if not local_safe_mode_enabled() or not (local_safe_loopback_request() or session.get("nemesis_local_access")):
+        abort(404)
+    qr_path = LOCAL_SAFE_DATA_DIR / "nemesis_local_mobile_qr.svg"
+    if not qr_path.exists():
+        abort(404)
+    return send_file(qr_path, mimetype="image/svg+xml", max_age=0)
+
+
 @app.route("/local-safe/login/<profile>")
 def local_safe_quick_login(profile):
-    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+    if not local_safe_mode_enabled() or not local_safe_request_authorized():
         abort(404)
     expected = str(os.getenv("NEMESIS_LOCAL_ACCESS_TOKEN") or "")
     provided = str(request.args.get("token") or "")

@@ -64,20 +64,20 @@
 ] %}
 <aside class="v933-admin-sidebar" data-nav-zone="admin-sidebar">
   <div class="v933-admin-brand">{{ nemesis_brand('/admin/dashboard', 'admin') }}</div>
-  <nav aria-label="Navegación de administración">
+  <nav aria-label="Navegación de administraciÃ³n">
     {% for label, href, icon_name in links %}
     {% set active = request.path == href or (href == '/admin/matches' and request.path in ['/admin/matches-sync']) or (href != '/admin/dashboard' and request.path.startswith(href ~ '/')) %}
     <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %} title="{{ label }}">{{ nav_icon(icon_name) }}<span>{{ label }}</span></a>
     {% endfor %}
   </nav>
   <div class="v933-admin-system-state"><i aria-hidden="true"></i><span><strong>Supervisión activa</strong><small>Estado real en Sentinel</small></span></div>
-  <a class="v933-admin-logout" href="/admin/logout">{{ nav_icon('lock') }}<span>Cerrar sesión</span></a>
+  <a class="v933-admin-logout" href="/admin/logout">{{ nav_icon('lock') }}<span>Cerrar sesiÃ³n</span></a>
 </aside>
 {%- endmacro %}
 
 {% macro v933_admin_topbar() -%}
 <header class="v933-admin-topbar" data-nav-zone="admin-topbar">
-  <form action="/admin/map" method="get" role="search"><label class="sr-only" for="v933-admin-search">Buscar en el panel</label>{{ nav_icon('search') }}<input id="v933-admin-search" type="search" name="q" placeholder="Buscar en el panel…" autocomplete="off"><kbd>Ctrl K</kbd></form>
+  <form action="/admin/map" method="get" role="search"><label class="sr-only" for="v933-admin-search">Buscar en el panel</label>{{ nav_icon('search') }}<input id="v933-admin-search" type="search" name="q" placeholder="Buscar en el panel..." autocomplete="off"><kbd>Ctrl K</kbd></form>
   <div class="v933-admin-tools">
     <a class="v933-admin-alerts" href="/admin/sentinel-issues">{{ nav_icon('shield') }}<span>Incidencias</span></a>
     <a class="v933-admin-identity" href="/admin/automation-workforce">{{ nav_icon('user') }}<span><strong>Administrador</strong><small>Acceso protegido</small></span></a>
