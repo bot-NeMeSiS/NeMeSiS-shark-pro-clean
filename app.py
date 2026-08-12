@@ -432,9 +432,133 @@ APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
+def _raw_env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return bool(default)
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "y", "si"}
+
+
+NEMESIS_LOCAL_SAFE_MODE = _raw_env_flag("NEMESIS_LOCAL_SAFE_MODE", False)
+NEMESIS_LOCAL_MODE = str(os.getenv("NEMESIS_LOCAL_MODE") or "OFFLINE_SAFE").strip().upper()
+if NEMESIS_LOCAL_MODE not in {"OFFLINE_SAFE", "INTEGRATION_TEST"}:
+    NEMESIS_LOCAL_MODE = "OFFLINE_SAFE"
+NEMESIS_LOCAL_OFFLINE = NEMESIS_LOCAL_SAFE_MODE and (
+    NEMESIS_LOCAL_MODE == "OFFLINE_SAFE" or _raw_env_flag("NEMESIS_OFFLINE_MODE", True)
+)
+LOCAL_SAFE_DATA_DIR = (BASE_DIR / "data" / "local_dev").resolve()
+LOCAL_SAFE_DB_NAME = Path(os.getenv("NEMESIS_LOCAL_DB_NAME") or "nemesis_local.db").name
+
+
+class LocalSafeExternalAccessBlocked(RuntimeError):
+    """Raised when LOCAL SAFE blocks an outbound network request."""
+
+
+def local_safe_mode_enabled() -> bool:
+    return bool(NEMESIS_LOCAL_SAFE_MODE)
+
+
+def _local_safe_external_hosts() -> set[str]:
+    if not local_safe_mode_enabled() or NEMESIS_LOCAL_MODE != "INTEGRATION_TEST":
+        return set()
+    if not _raw_env_flag("NEMESIS_LOCAL_EXTERNAL_AUTHORIZED", False):
+        return set()
+    return {
+        host.strip().lower()
+        for host in str(os.getenv("NEMESIS_LOCAL_EXTERNAL_ALLOWLIST") or "").split(",")
+        if host.strip()
+    }
+
+
+def _configure_local_safe_environment() -> None:
+    if not local_safe_mode_enabled():
+        return
+    LOCAL_SAFE_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    os.environ["DB_PATH"] = str(LOCAL_SAFE_DATA_DIR / LOCAL_SAFE_DB_NAME)
+    os.environ["NEMESIS_OFFLINE_MODE"] = "1" if NEMESIS_LOCAL_OFFLINE else "0"
+    os.environ["SESSION_COOKIE_SECURE"] = "0"
+    os.environ["RUN_STARTUP_SCHEDULER_NOW"] = "0"
+    os.environ["SCHEDULER_ENABLED"] = "0"
+    os.environ["ENABLE_AUTO_SYNC"] = "0"
+    os.environ["DAILY_AUTOMATION_DRY_RUN"] = "1"
+    os.environ["CONTINUOUS_EVOLUTION_SAFE_MODE"] = "1"
+    os.environ["CONTINUOUS_EVOLUTION_STORAGE_ROOT"] = str(LOCAL_SAFE_DATA_DIR / "continuous_evolution_os")
+    for name in (
+        "ENABLE_TELEGRAM_AUTO",
+        "ENABLE_TELEGRAM_AUTOMATION",
+        "TELEGRAM_AUTO_SEND_ENABLED",
+        "AUTO_SEND_TELEGRAM_PICKS",
+        "ENABLE_AUTO_TELEGRAM_PRO",
+        "ENABLE_AUTOMATED_RENDER_DEPLOY",
+        "STRIPE_CUSTOMER_PORTAL_ENABLED",
+        "ENABLE_LIVE_API",
+        "ENABLE_ODDS_API",
+        "ENABLE_API_FOOTBALL_PROVIDER",
+        "ENABLE_API_FOOTBALL_LIVE_TRACKER",
+    ):
+        os.environ[name] = "0"
+    for name in (
+        "TELEGRAM_BOT_TOKEN",
+        "TELEGRAM_CHAT_ID",
+        "TELEGRAM_WEBHOOK_SECRET",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_PUBLISHABLE_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "STRIPE_PRO_PRICE_ID",
+        "STRIPE_ELITE_PRICE_ID",
+        "RENDER_API_KEY",
+        "RENDER_DEPLOY_HOOK_URL",
+        "RENDER_SERVICE_ID",
+        "AUTOMATION_SECRET",
+        "SMTP_HOST",
+        "SMTP_USERNAME",
+        "SMTP_PASSWORD",
+        "SMTP_FROM",
+        "OPENAI_API_KEY",
+    ):
+        os.environ[name] = ""
+    for name in ("RENDER", "RENDER_SERVICE_NAME", "RENDER_EXTERNAL_HOSTNAME", "RENDER_EXTERNAL_URL"):
+        os.environ[name] = ""
+    if not _raw_env_flag("NEMESIS_LOCAL_EXTERNAL_AUTHORIZED", False):
+        for name in (
+            "API_FOOTBALL_KEY",
+            "API_SPORTS_KEY",
+            "THE_ODDS_API_KEY",
+            "THESPORTSDB_API_KEY",
+            "THESPORTSDB_KEY",
+        ):
+            os.environ[name] = ""
+
+
+_ORIGINAL_URL_OPEN = urllib.request.urlopen
+_ORIGINAL_SMTP = smtplib.SMTP
+
+
+def _local_safe_urlopen(request_or_url, *args, **kwargs):
+    target = getattr(request_or_url, "full_url", request_or_url)
+    host = (urllib.parse.urlparse(str(target or "")).hostname or "").lower()
+    if host in {"127.0.0.1", "localhost", "::1"}:
+        return _ORIGINAL_URL_OPEN(request_or_url, *args, **kwargs)
+    if host and host in _local_safe_external_hosts():
+        return _ORIGINAL_URL_OPEN(request_or_url, *args, **kwargs)
+    raise LocalSafeExternalAccessBlocked("DATOS EXTERNOS NO DISPONIBLES EN MODO OFFLINE")
+
+
+class _LocalSafeSMTPBlocked:
+    def __init__(self, *args, **kwargs):
+        raise LocalSafeExternalAccessBlocked("Correo externo desactivado en NEMESIS LOCAL SAFE")
+
+
+_configure_local_safe_environment()
+if local_safe_mode_enabled():
+    urllib.request.urlopen = _local_safe_urlopen
+    smtplib.SMTP = _LocalSafeSMTPBlocked
+
 
 def resolve_default_db_path() -> str:
-    """Preserve Render DB_PATH while keeping local Windows smoke tests usable."""
+    """Preserve Render DB_PATH while forcing LOCAL SAFE into isolated storage."""
+    if local_safe_mode_enabled():
+        return str(LOCAL_SAFE_DATA_DIR / LOCAL_SAFE_DB_NAME)
     explicit = os.getenv("DB_PATH")
     if explicit:
         return explicit
@@ -2494,6 +2618,67 @@ def initialize_once():
     return True
 
 
+def local_safe_loopback_request() -> bool:
+    if not has_request_context():
+        return False
+    return str(request.remote_addr or "").strip().lower() in {"127.0.0.1", "::1", "localhost"}
+
+
+def local_safe_db_isolated() -> bool:
+    if not local_safe_mode_enabled():
+        return True
+    try:
+        return Path(DB_PATH).resolve().is_relative_to(LOCAL_SAFE_DATA_DIR)
+    except (OSError, ValueError):
+        return False
+
+
+def local_safe_blocked_response(reason: str = "Accion desactivada en NEMESIS LOCAL SAFE"):
+    payload = {
+        "ok": False,
+        "status": "LOCAL_SAFE_BLOCKED",
+        "message": reason,
+        "production_connected": False,
+        "external_actions_executed": 0,
+    }
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify(payload), 403
+    return Response(reason, status=403, mimetype="text/plain; charset=utf-8")
+
+
+@app.before_request
+def enforce_local_safe_request_boundary():
+    if not local_safe_mode_enabled():
+        return None
+    if not local_safe_loopback_request():
+        return local_safe_blocked_response("NEMESIS LOCAL SAFE solo admite conexiones desde este equipo.")
+    if not local_safe_db_isolated():
+        return local_safe_blocked_response("DB local no aislada. Arranque cancelado de forma segura.")
+    path = str(request.path or "").lower()
+    always_blocked = (
+        "/api/automation/",
+        "/webhook",
+        "/sync-",
+        "/sync/",
+        "/sync-now",
+        "/api/import-",
+        "/cron",
+    )
+    mutation_blocked = (
+        "telegram",
+        "stripe",
+        "/pagos",
+        "payment",
+        "deploy",
+        "render-hook",
+        "membership-sync",
+    )
+    if any(marker in path for marker in always_blocked):
+        return local_safe_blocked_response("Accion externa o programada desactivada en NEMESIS LOCAL SAFE.")
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"} and any(marker in path for marker in mutation_blocked):
+        return local_safe_blocked_response("Accion comercial o externa desactivada en NEMESIS LOCAL SAFE.")
+    return None
+
 LIGHT_STARTUP_ENDPOINTS = {
     "health",
     "api_runtime_version",
@@ -2568,6 +2753,9 @@ def apply_security_headers_and_csrf(response):
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    if local_safe_mode_enabled():
+        response.headers["X-Nemesis-Local-Safe"] = "1"
+        response.headers["X-Nemesis-Production"] = "disconnected"
     try:
         if response.mimetype == "text/html" and not response.direct_passthrough:
             body = response.get_data(as_text=True)
@@ -7878,6 +8066,16 @@ def inject_session_user():
         "nemesis_data_confidence": get_v937_nemesis_data_confidence,
         "nemesis_attention_priority": get_v937_attention_priority,
         "nemesis_pick_learning": get_v937_pick_learning,
+        "local_safe_mode": local_safe_mode_enabled(),
+        "local_safe": {
+            "mode": NEMESIS_LOCAL_MODE,
+            "offline": bool(NEMESIS_LOCAL_OFFLINE),
+            "production": "DESCONECTADA",
+            "database": "LOCAL",
+            "telegram": "OFF",
+            "stripe": "OFF",
+            "render": "OFF",
+        } if local_safe_mode_enabled() else {},
     }
 
 
@@ -16010,6 +16208,84 @@ def admin_login_page():
         error = "Acceso admin temporalmente no disponible. Int?ntalo de nuevo en unos minutos."
     return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
 
+
+@app.route("/local-safe")
+def local_safe_portal():
+    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+        abort(404)
+    expected = str(os.getenv("NEMESIS_LOCAL_ACCESS_TOKEN") or "")
+    provided = str(request.args.get("token") or "")
+    token_matches = bool(expected and provided and secrets.compare_digest(provided, expected))
+    if provided and not token_matches:
+        return local_safe_blocked_response("Acceso local no valido.")
+    if token_matches:
+        session["nemesis_local_access"] = True
+    granted = bool(session.get("nemesis_local_access") or token_matches)
+    initialize_once()
+    return render_template(
+        "local_safe_portal.html",
+        title="NeMeSiS LOCAL",
+        local_access_token=expected if granted else "",
+        local_access_granted=granted,
+        local_routes={
+            "match": "/match/local-match-2",
+            "team": "/team/club-local-qa",
+            "competition": "/competition/liga-local-qa",
+            "player": "/player/local-player-101",
+            "shark": "/shark",
+            "picks": "/picks",
+            "company": "/company",
+        },
+    )
+
+
+@app.route("/local-safe/status")
+def local_safe_status():
+    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+        abort(404)
+    return jsonify({
+        "ok": True,
+        "status": "LOCAL_SAFE_READY",
+        "mode": NEMESIS_LOCAL_MODE,
+        "offline": bool(NEMESIS_LOCAL_OFFLINE),
+        "database": "LOCAL_ISOLATED" if local_safe_db_isolated() else "BLOCKED",
+        "production": "DISCONNECTED",
+        "telegram": "OFF",
+        "stripe": "OFF",
+        "render": "OFF",
+        "external_network": "OFF" if not _local_safe_external_hosts() else "ALLOWLIST_ONLY",
+    })
+
+
+@app.route("/local-safe/login/<profile>")
+def local_safe_quick_login(profile):
+    if not local_safe_mode_enabled() or not local_safe_loopback_request():
+        abort(404)
+    expected = str(os.getenv("NEMESIS_LOCAL_ACCESS_TOKEN") or "")
+    provided = str(request.args.get("token") or "")
+    authorized = bool(session.get("nemesis_local_access")) or bool(
+        expected and provided and secrets.compare_digest(provided, expected)
+    )
+    if not authorized:
+        return local_safe_blocked_response("Acceso rapido local no autorizado.")
+    profile = str(profile or "").strip().lower()
+    username = "cliente_local" if profile == "client" else "admin_local" if profile in {"admin", "founder"} else ""
+    if not username:
+        abort(404)
+    initialize_once()
+    user = get_user_by_username(username)
+    if not user:
+        return Response("Usuario local no preparado.", status=503, mimetype="text/plain; charset=utf-8")
+    if profile in {"admin", "founder"} and normalize_role(user.get("role")) != "ADMIN":
+        return local_safe_blocked_response("Perfil administrativo local no valido.")
+    set_login_session(user)
+    session["nemesis_local_access"] = True
+    session["nemesis_local_profile"] = profile
+    if profile == "founder":
+        return redirect("/admin/founder-dashboard")
+    if profile == "admin":
+        return redirect("/admin/control-center")
+    return redirect("/app")
 
 @app.route("/admin-forgot-password", methods=["GET", "POST"])
 def admin_forgot_password_page():

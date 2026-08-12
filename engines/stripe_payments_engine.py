@@ -21,6 +21,19 @@ KEEP_ACCESS_STATUSES = {"active", "trialing", "past_due"}
 CANCEL_STATUSES = {"canceled", "unpaid", "incomplete_expired", "paused"}
 VALID_PAID_PLANS = {"PRO", "ELITE"}
 
+def local_safe_payments_blocked() -> bool:
+    return str(os.getenv("NEMESIS_LOCAL_SAFE_MODE") or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def local_safe_payment_result() -> Dict[str, Any]:
+    return {
+        "ok": False,
+        "status": "LOCAL_SAFE_BLOCKED",
+        "reason": "local_safe_mode",
+        "error": "Stripe esta desactivado en NeMeSiS LOCAL SAFE.",
+        "external_calls": 0,
+        "membership_changes": 0,
+    }
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -467,6 +480,8 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     with the server secret key, verify it belongs to the logged user, and apply
     the subscription state when Stripe confirms it.
     """
+    if local_safe_payments_blocked():
+        return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     session_id = str(session_id or "").strip()
     user_id = str((user or {}).get("id") or "").strip()
@@ -569,6 +584,8 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
 
 
 def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Dict[str, Any]:
+    if local_safe_payments_blocked():
+        return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     plan = normalize_plan(plan)
     if plan not in VALID_PAID_PLANS:
@@ -631,6 +648,8 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
 
 
 def create_customer_portal_session(db_path: str, user: Dict[str, Any]) -> Dict[str, Any]:
+    if local_safe_payments_blocked():
+        return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     stripe = stripe_sdk()
     if stripe is None:
@@ -684,6 +703,8 @@ def record_event(conn: sqlite3.Connection, event: Dict[str, Any], verified: bool
 
 
 def parse_webhook_event(payload_bytes: bytes, signature: str) -> Dict[str, Any]:
+    if local_safe_payments_blocked():
+        raise RuntimeError("Stripe desactivado en NeMeSiS LOCAL SAFE.")
     stripe = stripe_sdk()
     if stripe is None:
         raise RuntimeError("La librería stripe no está instalada.")
@@ -694,6 +715,8 @@ def parse_webhook_event(payload_bytes: bytes, signature: str) -> Dict[str, Any]:
 
 
 def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -> Dict[str, Any]:
+    if local_safe_payments_blocked():
+        return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     verified = False
     try:

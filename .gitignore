@@ -108,3 +108,8 @@ data/runtime/*.local.json
 data/runtime/*.tmp.json
 # Continuous Evolution OS runtime memory/snapshots
 data/runtime/continuous_evolution_os/
+# NeMeSiS LOCAL desktop runtime
+data/local_dev/
+tools/local_desktop/*.local.json
+tools/local_desktop/*.pid
+tools/local_desktop/*.log

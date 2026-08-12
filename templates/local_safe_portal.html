@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="local-safe-portal" data-local-safe-portal="true" data-local-safe-mode="{{ local_safe.mode }}">
+  <header class="local-safe-hero">
+    <div>
+      <span class="eyebrow">Aplicacion local de desarrollo</span>
+      <h1>NeMeSiS LOCAL</h1>
+      <p>Prueba la carpeta oficial directamente, sin GitHub, Render ni produccion.</p>
+    </div>
+    <span class="local-safe-state">{{ 'OFFLINE SAFE' if local_safe.offline else 'INTEGRATION TEST' }}</span>
+  </header>
+
+  <div class="local-safe-status-grid" aria-label="Estado del entorno local">
+    <article><span>Produccion</span><strong>Desconectada</strong></article>
+    <article><span>Base de datos</span><strong>Local</strong></article>
+    <article><span>Telegram</span><strong>OFF</strong></article>
+    <article><span>Stripe</span><strong>OFF</strong></article>
+    <article><span>Render</span><strong>OFF</strong></article>
+    <article><span>Internet</span><strong>{{ 'No necesario' if local_safe.offline else 'Solo autorizado' }}</strong></article>
+  </div>
+
+  {% if local_access_granted %}
+  <section class="local-safe-actions" aria-labelledby="local-access-title">
+    <div>
+      <span class="eyebrow">Accesos rapidos</span>
+      <h2 id="local-access-title">Elige como quieres entrar</h2>
+    </div>
+    <div class="local-safe-action-grid">
+      <a class="v933-action is-primary" href="{{ url_for('local_safe_quick_login', profile='client', token=local_access_token) }}">Abrir como cliente</a>
+      <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='admin', token=local_access_token) }}">Abrir como admin</a>
+      <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='founder', token=local_access_token) }}">Abrir Founder Center</a>
+    </div>
+  </section>
+  {% else %}
+  <div class="local-safe-notice">Vuelve a abrir el icono <strong>NeMeSiS LOCAL</strong> del Escritorio para recuperar los accesos rapidos.</div>
+  {% endif %}
+
+  <section class="local-safe-experience" aria-labelledby="local-experience-title">
+    <div>
+      <span class="eyebrow">Experiencia disponible</span>
+      <h2 id="local-experience-title">Datos seguros de QA local</h2>
+      <p>Los partidos, equipos, jugadores y picks de esta seccion estan identificados como <strong>SIMULATED_QA</strong>. Nunca cuentan como usuarios o negocio real.</p>
+    </div>
+    <nav class="local-safe-link-grid" aria-label="Modulos locales">
+      <a href="{{ local_routes.match }}">Match Center local</a>
+      <a href="{{ local_routes.team }}">Team Center local</a>
+      <a href="{{ local_routes.competition }}">Competition Center local</a>
+      <a href="{{ local_routes.player }}">Player Center local</a>
+      <a href="{{ local_routes.shark }}">SHARK local</a>
+      <a href="{{ local_routes.picks }}">Picks locales</a>
+      <a href="/membresias">Membresias</a>
+      <a href="{{ local_routes.company }}">Company Platform</a>
+    </nav>
+  </section>
+
+  <div class="local-safe-notice is-warning">
+    <strong>Datos externos no disponibles en modo offline.</strong>
+    <span>Las pantallas siguen funcionando con cache, contratos y fixtures locales. Ninguna integracion externa se presenta como activa.</span>
+  </div>
+</section>
+{% endblock %}
