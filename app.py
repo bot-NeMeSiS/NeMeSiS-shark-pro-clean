@@ -17838,6 +17838,7 @@ def api_admin_sentinel_issue_codex_prompt(issue_id):
 
 
 @app.route("/admin/sentinel-autopilot")
+@app.route("/admin/mejoras-automaticas")
 @app.route("/admin/autopilot")
 @app.route("/admin/self-improvement")
 @app.route("/admin/mejoras-automáticas")
