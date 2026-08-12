@@ -44,15 +44,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
-    mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -69,14 +69,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
-    mask: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -90,7 +90,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -114,7 +114,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -154,7 +154,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=v937-polish-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -4401,40 +4401,57 @@ body.ns-app {
     linear-gradient(135deg, #020812 0%, #06111f 44%, #03101f 100%) !important;
   letter-spacing: 0;
 }
+body.ns-app::before {
+  content: "";
+  position: fixed;
+  right: clamp(-120px, -6vw, -42px);
+  top: clamp(70px, 12vh, 150px);
+  width: min(760px, 58vw);
+  aspect-ratio: 1.38;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
+  opacity: .16;
+  filter: drop-shadow(0 0 62px rgba(57,216,255,.38));
+  transform: rotate(-4deg);
+}
 body.ns-app::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: .38;
+  opacity: .5;
   background:
-    linear-gradient(110deg, transparent 0 42%, rgba(57, 216, 255, .045) 42.2% 42.6%, transparent 42.8% 100%),
-    radial-gradient(circle, rgba(120, 220, 255, .42) 0 1px, transparent 1.35px) 0 0 / 34px 34px,
-    radial-gradient(circle, rgba(255,255,255,.12) 0 1px, transparent 1.25px) 13px 17px / 58px 58px;
+    linear-gradient(112deg, transparent 0 39%, rgba(57, 216, 255, .06) 39.2% 39.55%, transparent 39.8% 100%),
+    linear-gradient(22deg, transparent 0 58%, rgba(17, 119, 255, .045) 58.2% 58.55%, transparent 58.8% 100%),
+    radial-gradient(circle, rgba(120, 220, 255, .45) 0 1px, transparent 1.35px) 0 0 / 34px 34px,
+    radial-gradient(circle, rgba(255,255,255,.13) 0 1px, transparent 1.25px) 13px 17px / 58px 58px;
   mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 88%, transparent 100%);
 }
-body.ns-app.ns-admin::after { opacity: .24; }
+body.ns-app.ns-admin::before { opacity: .1; width: min(640px, 44vw); }
+body.ns-app.ns-admin::after { opacity: .28; }
 body.ns-app :is(.v933-shell-chrome,.ns-main-shell,.v787-legal-footer,.v933-mobile-bottom-nav,.v933-admin-mobile-nav,.nemesis-local-safe-banner) { position: relative; z-index: 2; }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) {
   overflow: hidden;
   border: 1px solid var(--nsx-line) !important;
   border-radius: var(--nsx-radius) !important;
   background:
-    linear-gradient(135deg, rgba(9, 31, 56, .9), rgba(3, 12, 25, .9) 62%, rgba(0, 50, 86, .38)),
-    radial-gradient(circle at 82% 18%, rgba(57, 216, 255, .2), transparent 34%) !important;
-  box-shadow: var(--nsx-shadow), inset 0 1px 0 rgba(255,255,255,.05) !important;
+    radial-gradient(circle at 84% 18%, rgba(57, 216, 255, .28), transparent 30%),
+    radial-gradient(circle at 18% 95%, rgba(17, 119, 255, .18), transparent 34%),
+    linear-gradient(135deg, rgba(9, 31, 56, .92), rgba(3, 12, 25, .92) 62%, rgba(0, 50, 86, .46)) !important;
+  box-shadow: var(--nsx-shadow), inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(57,216,255,.04) !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before {
   content: "";
   position: absolute;
-  inset: auto -36px -72px auto;
-  width: min(420px, 50vw);
+  inset: auto -30px -58px auto;
+  width: min(500px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/shark-logo.svg?brand=official-reference') center / contain no-repeat;
-  opacity: .075;
-  filter: drop-shadow(0 0 34px rgba(57,216,255,.34));
+  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-1') center / contain no-repeat;
+  opacity: .14;
+  filter: drop-shadow(0 0 42px rgba(57,216,255,.42));
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) > * { position: relative; z-index: 1; }
 body.ns-app :is(h1,h2,h3,.v933-page-header h1) { letter-spacing: 0 !important; }
@@ -4584,7 +4601,8 @@ body.ns-app[data-ns-route*="growth"] :is(.v933-admin-panel,.operations-card) { p
   body.ns-app main.v933-public-shell,
   body.ns-app main.v933-client-shell,
   body.ns-app main.v933-admin-shell { padding-inline: 9px !important; }
-  body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before { width: 220px; opacity: .05; }
+  body.ns-app::before { right: -118px; top: 86px; width: 360px; opacity: .1; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before { width: 260px; opacity: .1; }
   body.ns-app :is(.v933-action,.v933-button,.btn,.button,button:not(.unstyled),.nav-cta) { width: auto; min-width: 44px; }
   body.ns-app :is(.hero-actions,.v933-actions,.actions) { display: flex; flex-wrap: wrap; gap: 8px; }
   body.ns-app :is(.hero-actions > *,.v933-actions > *,.actions > *) { flex: 1 1 calc(50% - 8px); justify-content: center; }

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block content %}
 <section class="local-safe-portal" data-local-safe-portal="true" data-local-safe-mode="{{ local_safe.mode }}">
   <header class="local-safe-hero">
@@ -30,6 +30,7 @@
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='admin', token=local_access_token) }}">Abrir como admin</a>
       <a class="v933-action" href="{{ url_for('local_safe_quick_login', profile='founder', token=local_access_token) }}">Abrir Founder Center</a>
       <a class="v933-action is-mobile" href="#mobile">Abrir en movil</a>
+      <button class="v933-action" type="button" data-local-design-refresh>Recargar diseno local</button>
     </div>
   </section>
 
