@@ -14,7 +14,7 @@
 {% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 
-<div class="v933-page v933-home v937-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" {{ sports_contract_attributes(sports_metrics) }}>
+<div class="v933-page v933-home v937-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" data-growth-stage="LANDING" data-growth-target="public-home" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-public-hero">
     <div>
       <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
@@ -29,7 +29,7 @@
       <h1>Decide mejor. <span>Descarta el ruido.</span></h1>
       <p>NeMeSiS organiza partidos, directo, picks, histórico, SHARK y Telegram para mostrar solo datos confirmados o estados seguros claramente identificados.</p>
       <div class="v933-hero-actions">
-        {{ action_button('Crear cuenta', '/registro', true, 'blue', false, 'user') }}
+        {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
         {{ action_button('Entrar', '/cliente-login', false, 'blue', false, 'login') }}
         {{ action_button('Explorar el radar', '/calendar', false, 'cyan', false, 'calendar') }}
       </div>

@@ -27,6 +27,23 @@
 {% set gr_brief = growth.get('founder_revenue_brief', {}) %}
 {% set gr_funnel = growth.get('funnel', []) %}
 {% set gr_roles = growth.get('roles', []) %}
+{% set gr_rates = growth.get('funnel_metrics', {}) %}
+{% set gr_progress = growth.get('first_100_progress', {}) %}
+{% set gr_channels = growth.get('attribution', {}).get('measured_channels', []) %}
+{% set gr_campaign = growth.get('first_10_campaign', {}) %}
+{% set gr_content = growth.get('content_package', {}) %}
+{% set gr_experiments = growth.get('experiments', {}).get('items', []) %}
+{% set gr_seo = growth.get('seo', {}) %}
+{% set gr_customer = growth.get('first_customer_readiness', {}) %}
+{% set gr_live = growth.get('live_acquisition_readiness', {}) %}
+{% set gr_links = growth.get('attribution', {}).get('links', []) %}
+{% set gr_week = growth.get('first_7_days_organic', []) %}
+{% set gr_observability = growth.get('first_user_observability', {}) %}
+{% set gr_real = gr_observability.get('real_user', {}) %}
+{% set gr_simulated = gr_observability.get('simulated_qa', {}) %}
+{% set gr_daily = growth.get('daily_founder_growth_brief', {}) %}
+{% set gr_launch_kit = growth.get('first_10_launch_kit', []) %}
+{% set gr_paid_path = growth.get('first_paid_customer_path', {}) %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
@@ -114,7 +131,7 @@
         <h2>Growth & Revenue OS</h2>
         <p>Departamento digital de crecimiento: clientes, conversion, retencion, marketing y revenue sin campanas, gasto, Stripe ni publicaciones automaticas.</p>
       </div>
-      {{ status_chip(growth.status or 'FOUNDATION_READY', 'success' if growth.status == 'READY_FOR_BETA_MEASUREMENT' else 'warning') }}
+      {{ status_chip(growth.status or 'FOUNDATION_READY', 'success' if growth.status in ['ACQUISITION_READY','LIVE_ACQUISITION_READY_LOCAL'] else 'warning') }}
     </header>
     <div class="v933-admin-panel-body">
       <div class="v933-kpi-grid is-six">
@@ -122,9 +139,45 @@
         {{ kpi_card('Registrados', gr_metrics.get('registered_label'), 'Solo agregado, sin PII', 'cyan', 'users') }}
         {{ kpi_card('FREE', gr_metrics.get('free_label'), 'Plan observado', 'blue', 'users') }}
         {{ kpi_card('Intencion premium', gr_metrics.get('premium_intent_label'), 'Eventos reales si existen', 'warning', 'star') }}
-        {{ kpi_card('PRO / ELITE', gr_metrics.get('pro_elite_label'), 'Conversion certificada si existe', 'gold', 'award') }}
+        {{ kpi_card('PRO / ELITE', gr_metrics.get('paid_label'), 'Planes agregados; MRR aparte', 'gold', 'award') }}
         {{ kpi_card('MRR', gr_metrics.get('mrr_label'), 'No se estima sin pagos certificados', 'neutral', 'chart') }}
       </div>
+      <div class="v933-kpi-grid">
+        {% for milestone in gr_progress.get('milestones', []) %}
+        {{ kpi_card('Primeros ' ~ milestone.target, milestone.registered, 'Registrados | ' ~ milestone.activated ~ ' activados | ' ~ milestone.returning ~ ' returning | ' ~ milestone.paid ~ ' paid', 'cyan' if milestone.target == 10 else 'neutral', 'users') }}
+        {% endfor %}
+      </div>
+      <p class="v933-safe-copy">{{ gr_progress.get('success_rule') or 'Registros, activados, returning y paid se muestran por separado.' }}</p>
+      <div class="v933-kpi-grid">
+        {{ kpi_card('Lanzamiento organico', gr_live.state or 'PARTIAL', 'Preparacion local; produccion requiere push y deploy autorizados.', 'success' if gr_live.state == 'PASS_LOCAL_NOT_DEPLOYED' else 'warning', 'target') }}
+        {{ kpi_card('Usuarios reales', gr_real.get('events_total', 0), 'Eventos REAL_USER; no incluye QA', 'cyan', 'users') }}
+        {{ kpi_card('QA simulada', gr_simulated.get('events_total', 0), 'SIMULATED_QA, nunca negocio real', 'neutral', 'shield') }}
+        {{ kpi_card('Stripe', gr_paid_path.state or 'BLOCKED', 'No se cobra hasta certificar', 'warning', 'lock') }}
+      </div>
+      {% if request.args.get('content_review') == 'saved' %}
+      <p class="v933-safe-copy"><strong>Revision guardada.</strong> La pieza {{ request.args.get('content_id') }} sigue sin publicarse.</p>
+      {% elif request.args.get('content_review') == 'error' %}
+      <p class="v933-safe-copy"><strong>No se guardo la revision.</strong> Comprueba la decision y vuelve a intentarlo.</p>
+      {% endif %}
+      <div class="v933-truth-list" aria-label="Hitos de usuarios reales">
+        {% for item in gr_real.get('milestones', []) %}
+        <div>{{ icon('check' if item.state == 'OBSERVED' else 'history') }}<span><strong>{{ item.label }}</strong><small>{{ item.evidence }}</small></span>{{ status_chip(item.state, 'success' if item.state == 'OBSERVED' else 'neutral') }}</div>
+        {% endfor %}
+      </div>
+      <p class="v933-safe-copy"><strong>Separacion de evidencia:</strong> {{ gr_observability.get('anonymous_visitor_limitation') }} Las simulaciones aparecen en su propio bloque y no elevan ningun hito real.</p>
+      {% if gr_daily %}
+      <details class="v933-safe-copy">
+        <summary>Brief diario de crecimiento</summary>
+        <div class="v933-kpi-grid">
+          {{ kpi_card('Visitantes hoy', gr_daily.get('clients_today', {}).get('visitors', 0), 'REAL_USER atribuible', 'blue', 'users') }}
+          {{ kpi_card('Registros hoy', gr_daily.get('clients_today', {}).get('registrations', 0), 'REAL_USER', 'cyan', 'users') }}
+          {{ kpi_card('Primer valor hoy', gr_daily.get('clients_today', {}).get('first_value', 0), 'Match Center canonico', 'success', 'target') }}
+          {{ kpi_card('Activados hoy', gr_daily.get('clients_today', {}).get('activated', 0), 'Segundo uso verificable', 'gold', 'star') }}
+        </div>
+        <p><strong>Mayor fuga:</strong> {{ gr_daily.get('funnel', {}).get('largest_leak') }}</p>
+        <p><strong>Que hago hoy:</strong> {{ gr_daily.get('recommendation') }}</p>
+      </details>
+      {% endif %}
       <div class="v933-truth-list">
         <div>{{ icon('check') }}<span><strong>Que esta funcionando</strong><small>{{ gr_questions.get('what_is_working') or 'Sin evidencia suficiente todavia.' }}</small></span>{{ evidence_chip(growth.real_user_data_state or 'INSUFFICIENT_REAL_DATA') }}</div>
         <div>{{ icon('alert') }}<span><strong>Que no funciona aun</strong><small>{{ gr_questions.get('what_is_not_working') or 'No hay diagnostico comercial suficiente.' }}</small></span>{{ status_chip('SIN HUMO','warning') }}</div>
@@ -141,6 +194,11 @@
         {{ kpi_card('Oportunidad', gr_brief.main_opportunity, 'Siguiente palanca comercial', 'gold', 'star') }}
       </div>
       {% endif %}
+      {% call data_table(['Metrica','Resultado','Muestra','Estado']) %}
+      {% for key, metric in gr_rates.items() %}
+      <tr><td><strong>{{ key|replace('_',' ')|title }}</strong></td><td>{{ metric.label }}</td><td>{{ metric.numerator }} / {{ metric.denominator }}</td><td>{{ evidence_chip(metric.state) }}</td></tr>
+      {% endfor %}
+      {% endcall %}
       {% call data_table(['Etapa','Estado','Evidencia','Siguiente medicion']) %}
       {% for stage in gr_funnel %}
       <tr>
@@ -151,6 +209,68 @@
       </tr>
       {% endfor %}
       {% endcall %}
+      <div class="v933-kpi-grid">
+        {{ kpi_card('FIRST_10_USERS', gr_campaign.status or 'PENDING', gr_campaign.objective or 'Campana manual pendiente', 'blue', 'target') }}
+        {{ kpi_card('Contenido', gr_content.ready_count or 0, (gr_content.blocked_by_source_count or 0) ~ ' piezas bloqueadas por fuente', 'cyan', 'document') }}
+        {{ kpi_card('Experimentos', gr_experiments|length, 'READY, nunca autoejecutados', 'warning', 'chart') }}
+        {{ kpi_card('SEO', gr_seo.status or 'PARTIAL', 'Sin paginas masivas ni llamadas externas', 'neutral', 'arrow') }}
+      </div>
+      {% if gr_channels %}
+      {% call data_table(['Canal','Registros atribuidos','Evidencia']) %}
+      {% for item in gr_channels %}<tr><td>{{ item.channel }}</td><td>{{ item.registered }}</td><td>{{ evidence_chip(item.evidence_state) }}</td></tr>{% endfor %}
+      {% endcall %}
+      {% else %}
+      {{ empty_state('Sin canal ganador', 'Todavia no existen registros atribuidos suficientes. FIRST_10_USERS esta preparado, no enviado.', '', '', 'chart') }}
+      {% endif %}
+      <details class="v933-safe-copy">
+        <summary>Enlaces FIRST100 medibles</summary>
+        {% call data_table(['Canal','Uso','Enlace','Accion']) %}
+        {% for item in gr_links %}
+        <tr><td><strong>{{ item.label }}</strong><br><small>{{ item.channel }}</small></td><td><small>{{ item.use }}</small></td><td><small>{{ item.url }}</small></td><td><button class="v933-action is-blue" type="button" data-copy="{{ item.url|e }}">{{ icon('copy') }}<span>Copiar</span></button></td></tr>
+        {% endfor %}
+        {% endcall %}
+      </details>
+      <details class="v933-safe-copy">
+        <summary>Kit primeros 10 usuarios</summary>
+        <div class="v933-truth-list is-no-icon">
+          {% for item in gr_launch_kit %}
+          <div><span><strong>{{ item.label }}</strong><small>{{ item.message }} {{ item.onboarding }} Seguimiento: {{ item.follow_up }}</small></span>{{ status_chip(item.status, 'warning') }}</div>
+          {% endfor %}
+        </div>
+      </details>
+      <section id="growth-content-approval" aria-label="Contenido para publicar">
+        <header><div><h3>Contenido para publicar</h3><p>Siete piezas seleccionadas del paquete existente. Aprobar solo cambia su estado editorial: nunca publica.</p></div>{{ status_chip('APROBACION HUMANA','warning') }}</header>
+        <div class="v933-truth-list is-no-icon">
+          {% for item in gr_week %}
+          <div>
+            <div class="v933-growth-content-main">
+              <strong>Dia {{ item.day }} | {{ item.channel }} | {{ item.content_id }}</strong>
+              <small><strong>{{ item.hook }}</strong> {{ item.content }}</small>
+              <small>Objetivo: {{ item.objective }} | CTA: {{ item.cta }} | {{ item.why }}</small>
+              <small>Compliance: {{ item.compliance|join(' / ') }} | Publicacion: {{ item.publication_state }}</small>
+              <form method="post" action="/admin/founder-dashboard/growth-content-review" class="v933-growth-review-form">
+                <input type="hidden" name="content_id" value="{{ item.content_id }}">
+                <button class="v933-action is-blue" type="submit" name="action" value="APPROVE">{{ icon('check') }}<span>Aprobar</span></button>
+                <button class="v933-action is-blue" type="submit" name="action" value="POSTPONE">{{ icon('history') }}<span>Posponer</span></button>
+                <button class="v933-action is-blue" type="submit" name="action" value="DISCARD">{{ icon('close') }}<span>Descartar</span></button>
+                <button class="v933-action is-blue" type="button" data-copy="{{ item.link|e }}">{{ icon('copy') }}<span>Copiar enlace</span></button>
+                <details>
+                  <summary>Editar</summary>
+                  <label>Hook<input type="text" name="edited_hook" maxlength="280" value="{{ item.hook }}"></label>
+                  <label>Contenido<textarea name="edited_content" maxlength="1200" rows="3">{{ item.content }}</textarea></label>
+                  <button class="v933-action is-blue" type="submit" name="action" value="EDIT">{{ icon('edit') }}<span>Guardar edicion</span></button>
+                </details>
+              </form>
+            </div>
+            {{ status_chip(item.status, 'success' if item.status == 'APPROVED' else 'neutral' if item.status in ['DISCARDED','POSTPONED'] else 'warning') }}
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      <div class="v933-truth-list">
+        <div>{{ icon('arrow') }}<span><strong>Que haria hoy para conseguir mas clientes</strong><small>{{ growth.next_action }}</small></span>{{ status_chip('APROBACION FUNDADOR','warning') }}</div>
+        <div>{{ icon('shield') }}<span><strong>Primer cliente</strong><small>{% if gr_customer.anonymous_dropoff_known %}El abandono anonimo puede medirse.{% else %}Registro, valor y ayuda estan preparados; el abandono anonimo sigue sin medirse sin consentimiento.{% endif %}</small></span>{{ status_chip(gr_customer.state or 'PARTIAL','warning') }}</div>
+      </div>
       <details class="v933-safe-copy">
         <summary>Ver roles, canales y automatizacion permitida</summary>
         <div class="v933-truth-list is-no-icon">

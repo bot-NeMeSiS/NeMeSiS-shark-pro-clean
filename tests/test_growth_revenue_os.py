@@ -19,6 +19,17 @@ def _sample_snapshot():
             "funnel": {"registered": 12, "active": 4, "pro_interest": 2, "checkout_started": 1},
             "users": {"memberships": {"FREE": 10, "PRO": 1, "ELITE": 1}},
             "conversion_registered_to_paid": {"value": 16.67, "state": "PARTIALLY_VERIFIED"},
+            "growth_funnel": {
+                "stages": {"FIRST_VALUE": 4, "ACTIVATED": 2, "RETURNING": 1, "PREMIUM_INTENT": 2},
+                "channels": [{"channel": "REFERRAL", "registered": 3, "evidence_state": "PARTIALLY_VERIFIED"}],
+            },
+            "growth_instrumentation": {
+                "event_contract": "NEMESIS-GROWTH-FUNNEL-EVENT-V1",
+                "safe_attribution": True,
+                "anonymous_persistence_consent_gated": True,
+                "landing_cro": True,
+            },
+            "growth_seo": {"status": "PASS"},
         },
         revenue_snapshot={
             "memberships": {"FREE": 10, "PRO": 1, "ELITE": 1},
@@ -40,7 +51,7 @@ def test_growth_revenue_os_is_evidence_first_and_founder_controlled():
     assert snapshot["contract"] == GROWTH_REVENUE_OS_CONTRACT
     assert snapshot["mode"] == "founder_controlled_read_only"
     assert len(snapshot["roles"]) == 10
-    assert len(snapshot["funnel"]) == 11
+    assert len(snapshot["funnel"]) == 12
     assert snapshot["guardrails"]["external_calls"] == 0
     assert snapshot["guardrails"]["campaigns_published"] is False
     assert snapshot["guardrails"]["mass_messages_sent"] is False
@@ -52,9 +63,30 @@ def test_growth_revenue_os_is_evidence_first_and_founder_controlled():
     stages = {item["label"]: item for item in snapshot["funnel"]}
     assert stages["DISCOVERY"]["evidence_state"] == "INSUFFICIENT_REAL_DATA"
     assert stages["REGISTRATION"]["evidence_state"] == "PARTIALLY_VERIFIED"
-    assert stages["PRO / ELITE"]["value"] == 2
+    assert stages["PRO"]["value"] == 1
+    assert stages["ELITE"]["value"] == 1
     assert snapshot["founder_revenue_brief"]["mrr"] == "No certificado"
-    assert snapshot["founder_revenue_brief"]["main_channels"] == "Sin atribucion real"
+    assert snapshot["founder_revenue_brief"]["main_channels"] == "REFERRAL: 3"
+    assert snapshot["status"] == "ACQUISITION_READY"
+    assert snapshot["first_value_definition"]["event"] == "FIRST_VALUE"
+    assert snapshot["activated_user_definition"]["event"] == "ACTIVATED"
+    assert snapshot["funnel_metrics"]["visitor_to_registration"]["state"] == "INSUFFICIENT_REAL_DATA"
+    assert snapshot["funnel_metrics"]["registration_to_first_value"]["value"] == 33.3
+    assert snapshot["content_package"]["ready_count"] == 29
+    assert snapshot["content_package"]["blocked_by_source_count"] == 3
+    assert len(snapshot["experiments"]["items"]) == 10
+    assert snapshot["first_10_campaign"]["automatic_send"] is False
+    assert len(snapshot["attribution"]["links"]) == 9
+    assert len(snapshot["first_10_launch_kit"]) == 3
+    assert len(snapshot["first_7_days_organic"]) == 7
+    assert snapshot["first_paid_customer_path"]["state"] == "BLOCKED_UNTIL_CERTIFIED"
+    assert snapshot["first_paid_customer_path"]["charging_allowed"] is False
+    assert all(item["publication_state"] == "NOT_PUBLISHED" for item in snapshot["first_7_days_organic"])
+
+    milestones = {item["key"]: item for item in snapshot["first_user_observability"]["real_user"]["milestones"]}
+    assert milestones["FIRST_REAL_PRO"]["state"] == "WAITING_REAL_USER"
+    assert milestones["FIRST_REAL_ELITE"]["state"] == "WAITING_REAL_USER"
+    assert snapshot["first_100_progress"]["current"]["PAID"] == 0
 
 
 def test_growth_automation_levels_never_allow_publish_or_spend():
@@ -79,11 +111,16 @@ def test_growth_registry_and_roadmap_are_integrated():
     assert modules["Growth & Revenue OS"]["state"] in {"COMPLETED", "IN_PROGRESS"}
 
 
-def test_founder_dashboard_template_contains_growth_center_without_write_controls():
+def test_founder_dashboard_template_contains_controlled_non_publishing_growth_review():
     template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
     assert 'id="growth-revenue"' in template
     growth_slice = template.split('id="growth-revenue"', 1)[1].split('id="beta-control"', 1)[0]
     assert "Growth & Revenue OS" in growth_slice
     assert "INSUFFICIENT_REAL_DATA" in growth_slice
-    assert "<form" not in growth_slice.lower()
-    assert "method=\"post\"" not in growth_slice.lower()
+    assert "/admin/founder-dashboard/growth-content-review" in growth_slice
+    assert 'value="APPROVE"' in growth_slice
+    assert 'value="EDIT"' in growth_slice
+    assert 'value="DISCARD"' in growth_slice
+    assert 'value="POSTPONE"' in growth_slice
+    assert "nunca publica" in growth_slice
+    assert "PUBLISH" not in growth_slice

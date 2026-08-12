@@ -1,8 +1,11 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, empty_state %}
 {% block content %}
 <!-- NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1 -->
-<div class="v933-page company-platform-v1" data-company-platform-contract="{{ company_contract }}" data-company-platform-page="{{ page_key }}">
+{% if page_key == 'landing' %}
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"NeMeSiS SHARK PRO","applicationCategory":"SportsApplication","operatingSystem":"Web","description":"Deporte con contexto, evidencia y limites visibles.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR","description":"Acceso FREE para empezar."}}</script>
+{% endif %}
+<div class="v933-page company-platform-v1" data-company-platform-contract="{{ company_contract }}" data-company-platform-page="{{ page_key }}"{% if page_key == 'landing' %} data-growth-stage="LANDING" data-growth-target="company-landing"{% endif %}>
   <section class="v933-public-hero company-platform-hero" aria-labelledby="company-platform-title">
     <div>
       <span class="v933-eyebrow">{{ page.eyebrow }}</span>
@@ -10,10 +13,10 @@
       <p>{{ page.summary }}</p>
       <div class="v933-hero-actions company-platform-actions">
         {% if page_key == 'landing' %}
-          {{ action_button('Explorar la app', '/app', true, 'blue', false, 'arrow') }}
+          {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
           {{ action_button('Ver precios', '/precios', false, 'cyan', false, 'arrow') }}
         {% elif page_key == 'pricing' %}
-          {{ action_button('Crear cuenta', '/registro', true, 'blue', false, 'user') }}
+          {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
           {{ action_button('Preguntas frecuentes', '/faq', false, 'cyan', false, 'arrow') }}
         {% elif page_key in ['faq','help','knowledge'] %}
           {{ action_button('Contactar soporte', '/support', true, 'blue', false, 'arrow') }}
@@ -35,22 +38,24 @@
     <aside class="v933-today-board company-platform-trust" aria-label="Transparencia comercial">
       <header><h2>Confianza</h2>{{ status_chip(page.status, 'blue') }}</header>
       <div class="company-platform-trust-list">
-        <div><span>Contrato</span><strong>{{ company_contract }}</strong></div>
-        <div><span>Fuente</span><strong>Archivos locales del producto y rutas existentes</strong></div>
+        <div><span>Metodo</span><strong>Datos reales, evidencia y limites visibles</strong></div>
+        <div><span>Producto</span><strong>Partidos, equipos, competiciones y SHARK</strong></div>
         <div><span>Actualizacion</span><strong>{{ company_updated_at }}</strong></div>
-        <div><span>Limitacion</span><strong>Contenido final pendiente de aprobacion humana y certificacion de produccion.</strong></div>
+        <div><span>Limitacion</span><strong>Algunas funciones y los cobros PRO/ELITE siguen pendientes de certificacion.</strong></div>
       </div>
     </aside>
   </section>
 
   <section class="v933-panel company-platform-guardrails" aria-labelledby="company-platform-guardrails-title">
-    {{ section_header('Guardrails comerciales', 'Preparado para vender sin activar pagos, campañas ni promesas no certificadas.') }}
+    {{ section_header('Nuestro compromiso', 'Valor antes de venta, datos honestos y control para el usuario.') }}
     <div class="company-platform-chip-row" id="company-platform-guardrails-title">
-      <span>{{ icon('shield') }} Sin pagos desde estas paginas</span>
-      <span>{{ icon('shield') }} Sin campañas activas</span>
+      <span>{{ icon('shield') }} Sin cargos inesperados</span>
+      <span>{{ icon('shield') }} Sin promesas de beneficio</span>
       <span>{{ icon('shield') }} Sin contenido ficticio</span>
-      <span>{{ icon('shield') }} Sin nuevas fuentes deportivas</span>
+      <span>{{ icon('shield') }} Datos ausentes siempre visibles</span>
+      <span>{{ icon('shield') }} Sin rastreo invasivo</span>
       <span>{{ icon('shield') }} Sin llamadas externas</span>
+      <span>{{ icon('shield') }} Soporte accesible</span>
     </div>
   </section>
 
@@ -58,7 +63,7 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Que ofrece NeMeSiS', 'Una forma mas clara de seguir partidos, equipos, competiciones y decisiones deportivas sin ruido.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Disponible localmente','neutral') }}</header><h3>Deporte con contexto</h3><p>Match Center, Team Center, Competition Center y Player Center organizan informacion disponible sin rellenar huecos.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Acceso FREE','neutral') }}</header><h3>Deporte con contexto</h3><p>Match Center, Team Center, Competition Center y Player Center organizan informacion disponible sin rellenar huecos.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Evidence-first','neutral') }}</header><h3>SHARK explicable</h3><p>SHARK muestra que se sabe, que falta y que evidencia respalda cada lectura. No es un chat ni una prediccion automatica.</p><a class="v933-action is-blue" href="/shark">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Sin spam','neutral') }}</header><h3>Comunicacion controlada</h3><p>Telegram y Action Platform priorizan mensajes utiles, deduplicados y con limites visibles.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
@@ -71,13 +76,21 @@
       <article class="company-platform-card"><header>{{ status_chip('3','neutral') }}</header><h3>Compara planes</h3><p>Los planes se presentan sin activar cobros desde esta infraestructura comercial.</p><a class="v933-action is-blue" href="/precios">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
   </section>
+  <section class="v933-panel company-platform-section">
+    {{ section_header('Acceso y planes', 'Empieza sin coste. Los precios de referencia se muestran con su estado real de certificacion.') }}
+    <div class="company-platform-grid">
+      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Calendario, directo, resultados y SHARK base para comprobar el valor del producto.</p></article>
+      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('PRO', {}) or {}).get('price_label') or 'No disponible','neutral') }}</header><h3>PRO</h3><p>Seguimiento y contexto ampliado. El cobro permanece pendiente de certificacion.</p></article>
+      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'No disponible','neutral') }}</header><h3>ELITE</h3><p>Experiencia intensiva y alertas avanzadas. El cobro permanece pendiente de certificacion.</p></article>
+    </div>
+  </section>
   {% elif page_key == 'pricing' %}
   <section class="v933-panel company-platform-section">
     {{ section_header('Comparativa responsable', 'Ningun plan garantiza beneficios. NeMeSiS ofrece organizacion, contexto y controles de calidad.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Exploracion','neutral') }}</header><h3>FREE</h3><p>Acceso inicial para entender jornada, calendario y bases de confianza.</p><a class="v933-action is-blue" href="/registro">{{ icon('arrow') }}<span>Crear cuenta</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('Pendiente de venta','neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('Pendiente de venta','neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Acceso inicial para entender jornada, calendario y bases de confianza.</p><a class="v933-action is-blue" href="/registro">{{ icon('arrow') }}<span>Empezar gratis</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
     </div>
   </section>
   <section class="v933-panel company-platform-section">

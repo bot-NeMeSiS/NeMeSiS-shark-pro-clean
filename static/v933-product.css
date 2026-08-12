@@ -4304,3 +4304,25 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
     grid-template-columns: 1fr;
   }
 }
+/* Growth FIRST100 controlled launch */
+#growth-content-approval { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--v933-border); }
+#growth-content-approval > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+#growth-content-approval > header h3 { margin: 0; color: #fff; font-size: .88rem; }
+#growth-content-approval > header p { margin: 3px 0 0; color: var(--v933-muted); font-size: .63rem; }
+#growth-content-approval .v933-truth-list > div { grid-template-columns: minmax(0,1fr) auto; align-items: start; padding-block: 10px; }
+.v933-growth-content-main { min-width: 0; }
+.v933-growth-content-main > small { overflow-wrap: anywhere; }
+.v933-growth-review-form { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 8px; }
+.v933-growth-review-form > details { flex: 1 0 100%; min-width: 0; }
+.v933-growth-review-form summary { width: fit-content; min-height: 36px; display: inline-flex; align-items: center; color: #b9d8f3; cursor: pointer; font-size: .65rem; font-weight: 800; }
+.v933-growth-review-form label { display: grid; gap: 4px; margin-top: 7px; color: var(--v933-muted); font-size: .62rem; }
+.v933-growth-review-form :is(input,textarea) { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--v933-border); border-radius: var(--v933-radius-sm); color: #fff; background: #061321; font: inherit; }
+.v933-growth-review-form textarea { min-height: 84px; resize: vertical; }
+.v933-growth-review-form details .v933-action { margin-top: 7px; }
+@media (max-width: 800px) {
+  #growth-content-approval > header { display: grid; }
+  #growth-content-approval .v933-truth-list > div { grid-template-columns: minmax(0,1fr); }
+  #growth-content-approval .v933-status-chip { justify-self: start; }
+  .v933-growth-review-form { display: flex; }
+  .v933-growth-review-form > .v933-action { flex: 1 1 calc(50% - 7px); min-height: 44px; }
+}

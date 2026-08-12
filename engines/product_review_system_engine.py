@@ -18,6 +18,7 @@ from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
 from engines.experience_platform_engine import build_experience_platform_snapshot
+from engines.growth_revenue_os_engine import GROWTH_FUNNEL_EVENT_CONTRACT, build_growth_revenue_os_snapshot
 from engines.sports_platform_contracts import build_sports_platform_contract_registry
 
 MADRID = ZoneInfo("Europe/Madrid")
@@ -1642,12 +1643,30 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     now_iso = snapshot.get("generated_at_madrid") or ""
     board = snapshot.get("executive_board") or {}
     comparison = snapshot.get("temporal_comparison") or {}
+    growth = snapshot.get("growth_revenue") or {}
+    growth_brief = growth.get("founder_revenue_brief") or {}
+    growth_workforce = growth.get("growth_daily_workforce") or {}
+    growth_opportunity = next(iter(growth_workforce.get("opportunities") or []), {})
     top = _ce_unique_candidates(board.get("top_10_improvements") or [], limit=3)
     no_touch = board.get("things_not_to_touch") or []
     risks = board.get("risks") or []
     opportunities = board.get("opportunities") or []
     codex = snapshot.get("prepared_for_codex") or {}
-    lines = [f"FOUNDER BRIEF - {now_iso[:10] if now_iso else 'sin fecha'}", f"Estado hoy: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}.", f"Que cambio: {(comparison.get('summary') or 'Sin comparacion suficiente.')}", "3 prioridades:"]
+    product_line = f"Producto: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}."
+    growth_line = f"Growth: {growth.get('status') or 'FOUNDATION_READY'} | evidencia real: {growth.get('real_user_data_state') or 'INSUFFICIENT_REAL_DATA'}."
+    revenue_line = f"Revenue: MRR {growth_brief.get('mrr') or 'No certificado'} | premium intent {growth_brief.get('premium_intent') or 'Sin datos reales'}."
+    lines = [
+        f"FOUNDER BRIEF - {now_iso[:10] if now_iso else 'sin fecha'}",
+        product_line,
+        growth_line,
+        revenue_line,
+        f"Principal fuga del funnel: {growth_brief.get('main_friction') or 'INSUFFICIENT_REAL_DATA'}",
+        f"Mejor canal: {growth_brief.get('main_channels') or 'INSUFFICIENT_REAL_DATA'}",
+        f"Contenido ganador: {growth_brief.get('winning_content') or 'INSUFFICIENT_REAL_DATA'}",
+        f"Oportunidad Growth preparada: {growth_opportunity.get('recommendation') or 'INSUFFICIENT_REAL_DATA'}",
+        f"Que cambio: {(comparison.get('summary') or 'Sin comparacion suficiente.')}",
+        "3 prioridades:",
+    ]
     for item in top[:3]:
         lines.append(f"- {item.get('title')} ({item.get('priority')}): {item.get('why_this_is_priority_now') or item.get('proposal')}")
     lines.append("3 cosas que no tocar:")
@@ -1659,10 +1678,32 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     lines.append("Oportunidades:")
     for item in (opportunities or ["Esperar evidencia real de beta antes de ampliar producto."])[:3]:
         lines.append(f"- {item}")
-    next_action = "Revisar el primer brief READY para Codex y aprobarlo solo si el alcance es correcto."
-    lines.append(f"Que haria ahora: {next_action}")
+    next_action = growth.get("next_action") or "Revisar el primer brief READY para Codex y aprobarlo solo si el alcance es correcto."
+    lines.append(f"Recomendacion: {next_action}")
     lines.append(f"Trabajo preparado para Codex: {codex.get('ready_count', 0)} briefs READY, sin ejecucion automatica.")
-    return {"contract": FOUNDER_BRIEF_CONTRACT, "brief_id": _ce_hash("FB", snapshot.get("snapshot_id"), now_iso), "generated_at_madrid": now_iso, "language": "es", "max_mobile_screen": True, "sections": {"estado_hoy": lines[1], "que_cambio": lines[2], "prioridades": lines[4:7], "no_tocar": no_touch[:3], "riesgos": risks[:3], "oportunidades": opportunities[:3], "que_haria_ahora": next_action, "trabajo_codex": codex.get("items", [])[:1]}, "text": "\n".join(lines)}
+    return {
+        "contract": FOUNDER_BRIEF_CONTRACT,
+        "brief_id": _ce_hash("FB", snapshot.get("snapshot_id"), now_iso),
+        "generated_at_madrid": now_iso,
+        "language": "es",
+        "max_mobile_screen": True,
+        "sections": {
+            "producto": product_line,
+            "growth": growth_line,
+            "revenue": revenue_line,
+            "principal_fuga": growth_brief.get("main_friction") or "INSUFFICIENT_REAL_DATA",
+            "mejor_canal": growth_brief.get("main_channels") or "INSUFFICIENT_REAL_DATA",
+            "contenido_ganador": growth_brief.get("winning_content") or "INSUFFICIENT_REAL_DATA",
+            "que_cambio": next((line for line in lines if line.startswith("Que cambio:")), "Que cambio: Sin comparacion suficiente."),
+            "prioridades": [f"{item.get('title')} ({item.get('priority')}): {item.get('why_this_is_priority_now') or item.get('proposal')}" for item in top[:3]],
+            "no_tocar": no_touch[:3],
+            "riesgos": risks[:3],
+            "oportunidades": opportunities[:3],
+            "que_haria_ahora": next_action,
+            "trabajo_codex": codex.get("items", [])[:1],
+        },
+        "text": "\n".join(lines),
+    }
 
 
 def _ce_write_brief_markdown(path: Path, brief: dict[str, Any]) -> None:
@@ -1724,6 +1765,21 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
     recommendations = _ce_recommendations_from_board(board)
     simulated = _ce_simulated_user_nightly_check(root, previous, control_fixture=control_fixture)
     result_state = "PARTIAL_WITH_UNAVAILABLE_COMPONENTS" if components_unavailable else ("PASS_WITH_REVIEW_ITEMS" if recommendations else "PASS")
+    growth_instrumentation_ready = all((root / item).is_file() for item in ("engines/growth_revenue_os_engine.py", "templates/company_platform.html", "templates/admin_founder_dashboard.html"))
+    growth_snapshot = build_growth_revenue_os_snapshot(
+        product_snapshot={
+            "growth_funnel": {"stages": {}, "simulated_stages": {}, "today_stages": {}, "channels": [], "real_events_total": 0, "simulated_events_total": 0},
+            "growth_instrumentation": {
+                "event_contract": GROWTH_FUNNEL_EVENT_CONTRACT,
+                "safe_attribution": growth_instrumentation_ready,
+                "anonymous_persistence_consent_gated": growth_instrumentation_ready,
+                "landing_cro": growth_instrumentation_ready,
+            },
+            "growth_seo": {"status": "PASS" if growth_instrumentation_ready else "PARTIAL"},
+        },
+        app_version=app_version,
+        now_madrid=now_iso,
+    )
     snapshot: dict[str, Any] = {
         "contract": DAILY_PRODUCT_SNAPSHOT_CONTRACT,
         "continuous_evolution_contract": CONTINUOUS_EVOLUTION_OS_CONTRACT,
@@ -1738,7 +1794,7 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "generated_at_madrid": now_iso,
         "version": app_version,
         "result": result_state,
-        "systems_consulted": ["Product Review", "Digital Employees", "Simulated QA evidence", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation"],
+        "systems_consulted": ["Product Review", "Digital Employees", "Simulated QA evidence", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation", "Growth & Revenue OS"],
         "systems_unavailable": ["REAL_USER_DATA", "PRODUCTION_LOGS", "REAL_MARKET_RESEARCH", *[item["component"] for item in components_unavailable]],
         "components_unavailable": components_unavailable,
         "product_review": _ce_compact_review(review),
@@ -1754,6 +1810,7 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "operations": _ce_operations_state(root),
         "beta": _ce_beta_state(root),
         "market_intelligence": build_market_intelligence_foundation_snapshot(root, now=now_iso),
+        "growth_revenue": growth_snapshot,
         "recommendations": recommendations,
         "temporal_comparison": comparison,
         "reviewer_calibration": memory.get("reviewer_signal") or {},

@@ -8,7 +8,7 @@
 {% set legal_checks = data.get('checkout_legal') or [] %}
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
 
-<div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="canonical-memberships">
+<div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="canonical-memberships" data-growth-stage="PREMIUM_INTENT" data-growth-target="memberships">
   {{ page_header('Elige tu plan', 'Funciones premium con precios procedentes de la configuración real.', 'plan', [{'label':'Mi cuenta','href':'/profile','icon':'user'}]) }}
   {% if payment_error or data.get('payment_error') %}<div class="v933-safe-copy">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
 

@@ -59,3 +59,25 @@ Prohibido:
 - Estimar visitas sin fuente.
 - Inventar conversiones.
 - Usar datos sensibles innecesarios.
+## Phase 01 - Instrumentacion certificada
+
+Contrato de evento: NEMESIS-GROWTH-FUNNEL-EVENT-V1.
+
+- FIRST_VALUE: cuenta autenticada abre un Match Center canonico con partido resoluble.
+- ACTIVATED: FIRST_VALUE mas favorito o segundo Match Center distinto.
+- Atribucion: canal allowlisted y campaign_id sanitizado.
+- Privacidad: sin URL completa, IP, user agent, PII ni fingerprint.
+- Anonimos: la landing permanece en sesion y no se persiste sin consentimiento.
+- Idempotencia: eventos deduplicados por etapa, usuario y objetivo.
+- Fuente: actividad first-party; no trackers externos.
+
+| Metrica | Numerador | Denominador |
+| --- | --- | --- |
+| visitor_to_registration | registros | visitantes consentidos; no disponible |
+| registration_to_first_value | FIRST_VALUE | registros |
+| first_value_to_activation | ACTIVATED | FIRST_VALUE |
+| activation_to_returning | RETURNING | ACTIVATED |
+| free_to_premium_intent | PREMIUM_INTENT | FREE |
+| premium_intent_to_paid | PRO + ELITE | PREMIUM_INTENT |
+
+Sin denominador real se muestra 0 / INSUFFICIENT_REAL_DATA.

@@ -65,3 +65,23 @@ Objetivo: conseguir los primeros 10, 100 y 1.000 clientes sin comprometer confia
 | GR-018 | Crear dashboard de canales solo con datos reales | Analytics | UTM consentido |
 | GR-019 | Vincular Product Memory con resultados de experimentos | Learning | Continuous Evolution |
 | GR-020 | Preparar runbook de primeros 100 usuarios | Go To Market | Beta Program |
+## FIRST_10_USERS - Phase 01
+
+Estado: LIVE_ACQUISITION_READY_LOCAL. Produccion: BLOCKED_UNTIL_PUSH_AND_DEPLOY.
+
+1. Aprobar mensaje, landing y piezas.
+2. Invitar una primera tanda pequeña.
+3. Verificar REGISTRATION -> LOGIN -> MATCH CENTER -> FIRST_VALUE -> ACTIVATED, separando REAL_USER de SIMULATED_QA.
+4. Resolver soporte antes de ampliar.
+5. Alcanzar 10 registros sin confundirlos con 10 activados.
+6. Revisar aprendizaje y decidir 10 -> 25.
+7. Mantener paid ads y publicaciones automaticas desactivadas; referral solo manual, medible y sin PII.
+
+Gates para avanzar a 25:
+
+- primera cohorte con evidencia real;
+- cero rutas rotas y cero datos ficticios;
+- soporte capaz de responder;
+- definicion de activacion validada cualitativamente;
+- al menos un canal con usuarios ACTIVATED, no solo registros;
+- aprobacion humana del siguiente bloque.

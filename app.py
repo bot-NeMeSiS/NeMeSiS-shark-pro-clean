@@ -273,7 +273,13 @@ from engines.visual_experience_engine import visual_experience_snapshot
 from engines.native_app_experience_engine import native_app_experience_snapshot
 from engines.client_app_premium_engine import build_client_app_premium_context
 from engines.client_growth_engine import build_v757_app_center, build_v757_trust_snapshot, build_v757_next_actions
-from engines.growth_revenue_os_engine import build_growth_revenue_os_snapshot
+from engines.growth_revenue_os_engine import (
+    GROWTH_FUNNEL_EVENT_CONTRACT,
+    build_growth_funnel_event,
+    build_growth_revenue_os_snapshot,
+    growth_launch_content_ids,
+    normalize_growth_attribution,
+)
 from engines.adaptive_experience_engine import build_v758_adaptive_experience, build_v758_device_api_payload
 from engines.final_release_engine import final_release_snapshot, final_release_validation_plan
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
@@ -291,6 +297,7 @@ from engines.stripe_payments_engine import (
     create_checkout_session,
     create_customer_portal_session,
     ensure_stripe_schema,
+    plan_catalog,
     process_stripe_webhook,
     stripe_runtime_status,
 )
@@ -732,6 +739,7 @@ def security_rate_limit_for_request():
         (("/forgot-password", "/admin-forgot-password"), "password_reset_request", 5, 30, "recuperacion"),
         (("/reset-password", "/admin-reset-password"), "password_reset_change", 6, 30, "cambio_password"),
         (("/api/admin/telegram/test-send",), "telegram_test_send", 4, 60, "telegram_test_send"),
+        (("/api/growth/funnel-event",), "growth_funnel_event", 120, 10, "growth_funnel_event"),
     ]
     for prefixes, event_type, limit, minutes, scope in rules:
         if any(path == prefix or path.startswith(prefix + "/") for prefix in prefixes):
@@ -5409,6 +5417,274 @@ def record_user_activity(activity_type, target_type="", target_id="", payload=No
     conn.close()
     return activity_id
 
+
+GROWTH_STAGE_ACTIVITY = {
+    "DISCOVERY": "growth_discovery",
+    "LANDING": "growth_landing",
+    "REGISTRATION": "growth_registration",
+    "FIRST_VALUE": "growth_first_value",
+    "ACTIVATED": "growth_activated",
+    "RETURNING": "growth_returning",
+    "PREMIUM_INTENT": "growth_premium_intent",
+    "RETAINED": "growth_retained",
+    "REFERRAL": "growth_referral",
+}
+GROWTH_CLIENT_EVENT_STAGES = {"LANDING", "FIRST_VALUE", "PREMIUM_INTENT"}
+
+
+def growth_attribution_from_session():
+    value = session.get("growth_attribution") if has_request_context() else None
+    return value if isinstance(value, dict) else normalize_growth_attribution({})
+
+
+def capture_growth_attribution_from_request():
+    if not has_request_context():
+        return normalize_growth_attribution({})
+    keys = ("utm_source", "utm_medium", "utm_campaign", "ref")
+    incoming = {key: request.args.get(key) for key in keys if request.args.get(key)}
+    if incoming:
+        session["growth_attribution"] = normalize_growth_attribution(incoming)
+    return growth_attribution_from_session()
+
+
+def _growth_buffer_session_stage(stage, target_id=""):
+    if not has_request_context():
+        return
+    stage = str(stage or "").strip().upper()
+    target = re.sub(r"[^a-zA-Z0-9._/-]+", "-", str(target_id or ""))[:120]
+    buffered = session.get("growth_session_journey")
+    buffered = list(buffered) if isinstance(buffered, list) else []
+    key = f"{stage}:{target}"
+    if any(item.get("key") == key for item in buffered if isinstance(item, dict)):
+        return
+    buffered.append({"key": key, "stage": stage, "target_id": target, "observed_at_madrid": now_iso()})
+    session["growth_session_journey"] = buffered[-8:]
+
+
+def _growth_evidence_origin(user_id=None):
+    """Separate controlled QA from real product activity without storing PII."""
+    uid = str(user_id or current_user_id() or "")
+    email = str(session.get("user_email") or "") if has_request_context() else ""
+    if app.config.get("TESTING") or uid.lower().startswith(("qa-", "qa_", "test-", "test_")) or email.lower().endswith(".invalid"):
+        return "SIMULATED_QA"
+    return "REAL_USER" if uid else "UNKNOWN"
+
+
+def _growth_record_authenticated_stage(stage, target_id="", *, user_id=None, attribution=None, reason="", observed_at_madrid="", evidence_origin=""):
+    stage = str(stage or "").strip().upper()
+    activity_type = GROWTH_STAGE_ACTIVITY.get(stage)
+    uid = user_id or current_user_id()
+    if not activity_type or not uid:
+        return {"ok": False, "state": "NOT_RECORDED"}
+    target = re.sub(r"[^a-zA-Z0-9._/-]+", "-", str(target_id or stage.lower()))[:120]
+    duplicate = one(
+        "SELECT id FROM user_activity WHERE user_id=? AND activity_type=? AND target_type='growth_funnel' AND target_id=? LIMIT 1",
+        (uid, activity_type, target),
+    )
+    if duplicate:
+        return {"ok": True, "state": "DUPLICATE_IGNORED", "id": duplicate.get("id")}
+    safe_attribution = attribution if isinstance(attribution, dict) else growth_attribution_from_session()
+    event = build_growth_funnel_event(stage, target_id=target, attribution=safe_attribution, authenticated=True, analytics_consent=False, evidence_origin=evidence_origin or _growth_evidence_origin(uid), occurred_at_madrid=observed_at_madrid or now_iso())
+    event["reason"] = str(reason or "")[:120]
+    activity_id = record_user_activity(activity_type, "growth_funnel", target, event, user_id=uid)
+    return {"ok": bool(activity_id), "state": "RECORDED" if activity_id else "NOT_RECORDED", "id": activity_id}
+
+
+def _growth_maybe_activate_user(user_id=None, reason=""):
+    uid = user_id or current_user_id()
+    if not uid:
+        return {"ok": False, "state": "NOT_RECORDED"}
+    existing = one("SELECT id FROM user_activity WHERE user_id=? AND activity_type='growth_activated' AND target_type='growth_funnel' LIMIT 1", (uid,))
+    if existing:
+        return {"ok": True, "state": "ALREADY_ACTIVATED"}
+    first_values = rows("SELECT target_id FROM user_activity WHERE user_id=? AND activity_type='growth_first_value' AND target_type='growth_funnel' ORDER BY created_at ASC", (uid,))
+    distinct_matches = {str(item.get("target_id") or "") for item in first_values if item.get("target_id")}
+    favorite_row = one("SELECT COUNT(*) AS total FROM favorites WHERE user_id=?", (uid,)) or {}
+    favorite_count = int(favorite_row.get("total") or 0)
+    if not first_values or (len(distinct_matches) < 2 and favorite_count < 1):
+        return {"ok": True, "state": "NOT_YET_ACTIVATED"}
+    activation_reason = "favorite_after_first_value" if favorite_count else "second_distinct_match"
+    return _growth_record_authenticated_stage("ACTIVATED", "activated", user_id=uid, reason=reason or activation_reason)
+
+
+def _growth_record_registration_journey(user_id, journey, attribution):
+    journey = [item for item in (journey or []) if isinstance(item, dict)]
+    if any(item.get("stage") == "LANDING" for item in journey):
+        landing = next(item for item in journey if item.get("stage") == "LANDING")
+        _growth_record_authenticated_stage("LANDING", landing.get("target_id") or "landing", user_id=user_id, attribution=attribution, observed_at_madrid=landing.get("observed_at_madrid") or "")
+    if (attribution or {}).get("channel") not in {None, "", "DIRECT"} or (attribution or {}).get("campaign_id"):
+        _growth_record_authenticated_stage("DISCOVERY", (attribution or {}).get("channel") or "attributed", user_id=user_id, attribution=attribution)
+    _growth_record_authenticated_stage("REGISTRATION", "account-created", user_id=user_id, attribution=attribution)
+
+
+def _growth_returning_check(user_id=None):
+    uid = user_id or current_user_id()
+    if not uid:
+        return {"ok": False, "state": "NOT_RECORDED"}
+    last = one("SELECT MAX(created_at) AS last_at FROM user_activity WHERE user_id=? AND target_type='growth_funnel' AND activity_type!='growth_returning'", (uid,)) or {}
+    last_at = str(last.get("last_at") or "")
+    today = today_iso()
+    if not last_at or last_at[:10] >= today:
+        return {"ok": True, "state": "NOT_RETURNING_YET"}
+    return _growth_record_authenticated_stage("RETURNING", today, user_id=uid, reason="authenticated_on_later_day")
+
+
+def growth_funnel_analytics_snapshot():
+    try:
+        activity = rows("SELECT user_id,activity_type,target_id,payload_json,created_at FROM user_activity WHERE target_type='growth_funnel' ORDER BY created_at ASC")
+    except Exception:
+        activity = []
+    reverse = {value: key for key, value in GROWTH_STAGE_ACTIVITY.items()}
+    real_users = {stage: set() for stage in GROWTH_STAGE_ACTIVITY}
+    simulated_users = {stage: set() for stage in GROWTH_STAGE_ACTIVITY}
+    unknown_users = {stage: set() for stage in GROWTH_STAGE_ACTIVITY}
+    today_real_users = {stage: set() for stage in GROWTH_STAGE_ACTIVITY}
+    channels = {}
+    campaign_ids = set()
+    real_events = 0
+    simulated_events = 0
+    unknown_events = 0
+    today = today_iso()
+    for item in activity:
+        stage = reverse.get(str(item.get("activity_type") or ""))
+        uid = str(item.get("user_id") or "")
+        try:
+            payload = json.loads(item.get("payload_json") or "{}")
+        except (TypeError, ValueError):
+            payload = {}
+        evidence_origin = str(payload.get("evidence_origin") or "UNKNOWN").upper()
+        if evidence_origin == "REAL_USER":
+            real_events += 1
+            target = real_users
+        elif evidence_origin == "SIMULATED_QA":
+            simulated_events += 1
+            target = simulated_users
+        else:
+            unknown_events += 1
+            target = unknown_users
+        if stage and uid:
+            target[stage].add(uid)
+            if evidence_origin == "REAL_USER" and str(item.get("created_at") or "")[:10] == today:
+                today_real_users[stage].add(uid)
+        if stage == "REGISTRATION" and evidence_origin == "REAL_USER":
+            channel = str(payload.get("channel") or "DIRECT")
+            channels[channel] = channels.get(channel, 0) + 1
+            if payload.get("campaign_id"):
+                campaign_ids.add(str(payload.get("campaign_id"))[:64])
+    return {
+        "contract": GROWTH_FUNNEL_EVENT_CONTRACT,
+        "stages": {stage: len(users) for stage, users in real_users.items()},
+        "simulated_stages": {stage: len(users) for stage, users in simulated_users.items()},
+        "unknown_stages": {stage: len(users) for stage, users in unknown_users.items()},
+        "today_stages": {stage: len(users) for stage, users in today_real_users.items()},
+        "channels": [{"channel": key, "registered": value, "evidence_state": "PARTIALLY_VERIFIED"} for key, value in sorted(channels.items())],
+        "campaign_ids": sorted(campaign_ids),
+        "events_total": len(activity),
+        "real_events_total": real_events,
+        "simulated_events_total": simulated_events,
+        "unknown_events_total": unknown_events,
+        "evidence_origin": "FIRST_PARTY_PRODUCT",
+        "anonymous_visitors_persisted": 0,
+        "pii_stored_in_event_payload": False,
+        "limitations": [
+            "No mide visitantes anonimos sin consentimiento.",
+            "SIMULATED_QA nunca se agrega a REAL_USER.",
+            "Los eventos legacy sin evidence_origin permanecen UNKNOWN y no elevan hitos reales.",
+        ],
+    }
+
+def growth_instrumentation_snapshot():
+    return {"event_contract": GROWTH_FUNNEL_EVENT_CONTRACT, "safe_attribution": True, "anonymous_persistence_consent_gated": True, "landing_cro": True, "first_value": "canonical_match_center", "activated": "first_value_plus_favorite_or_second_match", "external_calls": 0, "fingerprinting": False, "pii_in_event_payload": False}
+
+
+def growth_seo_certification_snapshot():
+    base_text = (BASE_DIR / "templates" / "base.html").read_text(encoding="utf-8", errors="replace")
+    company_text = (BASE_DIR / "templates" / "company_platform.html").read_text(encoding="utf-8", errors="replace")
+    rules = {rule.rule for rule in app.url_map.iter_rules()}
+    checks = {"robots": "/robots.txt" in rules, "sitemap": "/sitemap.xml" in rules, "canonical": 'rel="canonical"' in base_text, "description": 'name="description"' in base_text, "open_graph": 'property="og:title"' in base_text, "structured_data": "application/ld+json" in company_text, "internal_linking": all(route in company_text for route in ("/calendar", "/shark", "/precios", "/registro")), "no_programmatic_page_factory": True}
+    return {"status": "PASS" if all(checks.values()) else "PARTIAL", "checks": checks, "external_calls": 0, "limitations": ["Core Web Vitals reales requieren observacion en produccion.", "No se generan paginas masivas."]}
+
+GROWTH_CONTENT_REVIEW_CONTRACT = "NEMESIS-GROWTH-CONTENT-REVIEW-V1"
+GROWTH_CONTENT_REVIEW_STATES = {"APPROVE": "APPROVED", "EDIT": "EDITED", "DISCARD": "DISCARDED", "POSTPONE": "POSTPONED"}
+
+
+def ensure_growth_content_review_schema():
+    conn = db()
+    try:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS growth_content_reviews(
+                content_id TEXT PRIMARY KEY,
+                state TEXT NOT NULL,
+                edited_hook TEXT NOT NULL DEFAULT '',
+                edited_content TEXT NOT NULL DEFAULT '',
+                reviewed_at_madrid TEXT NOT NULL,
+                reviewer_ref TEXT NOT NULL DEFAULT 'FOUNDER_ADMIN',
+                publication_state TEXT NOT NULL DEFAULT 'NOT_PUBLISHED'
+            )"""
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def growth_content_review_snapshot():
+    items = {}
+    if db_table_exists("growth_content_reviews"):
+        try:
+            review_rows = rows(
+                "SELECT content_id,state,edited_hook,edited_content,reviewed_at_madrid,publication_state FROM growth_content_reviews ORDER BY content_id"
+            )
+        except Exception:
+            review_rows = []
+        for item in review_rows:
+            items[str(item.get("content_id") or "")] = {
+                "state": item.get("state") or "READY_FOR_REVIEW",
+                "edited_hook": item.get("edited_hook") or "",
+                "edited_content": item.get("edited_content") or "",
+                "reviewed_at_madrid": item.get("reviewed_at_madrid") or "",
+                "publication_state": "NOT_PUBLISHED",
+            }
+    return {
+        "contract": GROWTH_CONTENT_REVIEW_CONTRACT,
+        "items": items,
+        "decisions": len(items),
+        "automatic_publication": False,
+        "publication_side_effect": False,
+        "database_scope": "growth_content_reviews_only",
+    }
+
+
+def save_growth_content_review(content_id, action, edited_hook="", edited_content=""):
+    content_id = str(content_id or "").strip().upper()
+    action = str(action or "").strip().upper()
+    if content_id not in growth_launch_content_ids():
+        return {"ok": False, "error": "contenido_no_valido"}
+    state = GROWTH_CONTENT_REVIEW_STATES.get(action)
+    if not state:
+        return {"ok": False, "error": "decision_no_valida"}
+    hook = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(edited_hook or "").strip())[:280]
+    content = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(edited_content or "").strip())[:1200]
+    if action == "EDIT" and not (hook or content):
+        return {"ok": False, "error": "edicion_vacia"}
+    ensure_growth_content_review_schema()
+    conn = db()
+    try:
+        conn.execute(
+            """INSERT INTO growth_content_reviews(content_id,state,edited_hook,edited_content,reviewed_at_madrid,reviewer_ref,publication_state)
+               VALUES (?,?,?,?,?,'FOUNDER_ADMIN','NOT_PUBLISHED')
+               ON CONFLICT(content_id) DO UPDATE SET
+                 state=excluded.state,
+                 edited_hook=excluded.edited_hook,
+                 edited_content=excluded.edited_content,
+                 reviewed_at_madrid=excluded.reviewed_at_madrid,
+                 reviewer_ref='FOUNDER_ADMIN',
+                 publication_state='NOT_PUBLISHED'""",
+            (content_id, state, hook, content, now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"ok": True, "content_id": content_id, "state": state, "publication_state": "NOT_PUBLISHED"}
 
 def historical_snapshot(limit=120):
     """Persist compact historical data for future SHARK learning."""
@@ -14181,15 +14457,55 @@ def api_admin_highlights_status():
     data = dashboard_data("results", today_iso())
     return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center(data, current_session_user(), limit=30)})
 
+@app.route("/api/growth/funnel-event", methods=["POST"])
+def api_growth_funnel_event():
+    payload = request.get_json(silent=True) or {}
+    stage = str(payload.get("stage") or "").strip().upper()
+    target_id = str(payload.get("target_id") or request.path or stage.lower())[:120]
+    attribution = capture_growth_attribution_from_request()
+    user = current_session_user() or {}
+    if not user or normalize_role(user.get("role")) == "ADMIN":
+        if stage == "LANDING":
+            _growth_buffer_session_stage(stage, target_id)
+            event = build_growth_funnel_event(stage, target_id=target_id, attribution=attribution, authenticated=False, analytics_consent=False)
+            return jsonify({"ok": True, "version": APP_VERSION, "state": "SESSION_ONLY", "persisted": False, "event": {"contract": event["contract"], "stage": event["stage"], "anonymous_session_only": True}}), 202
+        return jsonify({"ok": True, "version": APP_VERSION, "state": "NOT_RECORDED", "persisted": False}), 202
+    if stage == "RETURNING_CHECK":
+        result = _growth_returning_check(user.get("id"))
+        return jsonify({"ok": True, "version": APP_VERSION, "result": result})
+    if stage not in GROWTH_CLIENT_EVENT_STAGES:
+        return jsonify({"ok": False, "error": "growth_stage_not_allowed"}), 400
+    result = _growth_record_authenticated_stage(stage, target_id, user_id=user.get("id"), attribution=attribution, reason="client_confirmed_view")
+    activation = _growth_maybe_activate_user(user.get("id"), reason="funnel_event") if stage == "FIRST_VALUE" else {"state": "NOT_APPLICABLE"}
+    return jsonify({"ok": True, "version": APP_VERSION, "result": result, "activation": activation})
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    base = request.url_root.rstrip("/")
+    body = "\n".join(["User-agent: *", "Allow: /", "Disallow: /admin", "Disallow: /api/admin", f"Sitemap: {base}/sitemap.xml", ""])
+    return Response(body, mimetype="text/plain; charset=utf-8")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    public_paths = ["/", "/landing", "/precios", "/faq", "/help-center", "/knowledge-base", "/roadmap", "/service-status", "/blog", "/calendar", "/live", "/shark", "/track-record", "/registro", "/cliente-login", "/terminos", "/privacidad", "/cookies", "/juego-responsable"]
+    base = request.url_root.rstrip("/")
+    urls = "".join(f"<url><loc>{html.escape(base + path)}</loc></url>" for path in public_paths)
+    xml = '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + urls + "</urlset>"
+    return Response(xml, mimetype="application/xml")
+
+
 @app.route("/")
 def home():
+    capture_growth_attribution_from_request()
     if request.method == "HEAD":
         return Response("", status=200)
     summary = get_public_home_sports_summary()
     data = home_light_data(summary, include_payments=False)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v934_realtime"] = get_v934_realtime_context(summary)
-    return render_template("home.html", data=data)
+    return render_template("home.html", data=data, title="NeMeSiS SHARK PRO | Deporte con contexto", meta_description="Partidos, equipos, competiciones y SHARK con datos reales, evidencia y limites visibles.", canonical_url=url_for("home", _external=True))
 
 
 @app.route("/favicon.ico")
@@ -14200,8 +14516,8 @@ def favicon_ico():
 COMPANY_PLATFORM_CONTRACT = "NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1"
 
 COMPANY_PLATFORM_PAGES = {
-    "landing": {"title": "NeMeSiS SHARK PRO", "eyebrow": "Plataforma oficial", "summary": "Experiencia deportiva basada en datos reales, contexto SHARK, transparencia y control responsable.", "status": "Infraestructura local"},
-    "pricing": {"title": "Planes claros, sin compra desde esta pagina", "eyebrow": "Precios", "summary": "FREE, PRO y ELITE quedan explicados sin conectar pagos ni prometer resultados.", "status": "Compra no activada aqui"},
+    "landing": {"title": "Entiende el partido. Decide con contexto.", "eyebrow": "NeMeSiS SHARK PRO", "summary": "Encuentra partidos, sigue equipos y usa SHARK para separar hechos, evidencia y limites. Empieza gratis; NeMeSiS no acepta apuestas ni promete beneficios.", "status": "Beta cerrada"},
+    "pricing": {"title": "FREE, PRO y ELITE sin letra pequena", "eyebrow": "Precios", "summary": "Compara valor, limites y precio configurado. Si un importe no esta certificado, la pagina lo dice y no abre el pago.", "status": "Compra no activada aqui"},
     "faq": {"title": "Respuestas claras antes de usar NeMeSiS", "eyebrow": "Preguntas frecuentes", "summary": "FAQ centrada en confianza, datos reales, limites y uso responsable.", "status": "FAQ inicial"},
     "help": {"title": "Ayuda organizada para resolver dudas rapido", "eyebrow": "Centro de ayuda", "summary": "Entrada publica hacia soporte, guias y limites conocidos.", "status": "Preparado"},
     "knowledge": {"title": "Conocimiento publico sin contenido inventado", "eyebrow": "Base de conocimiento", "summary": "Estructura por temas; los articulos largos se publicaran solo tras aprobacion humana.", "status": "Estructura preparada"},
@@ -14220,7 +14536,9 @@ COMPANY_PLATFORM_NAV = [
 ]
 
 def render_company_platform_page(page_key: str):
+    capture_growth_attribution_from_request()
     page = COMPANY_PLATFORM_PAGES.get(page_key, COMPANY_PLATFORM_PAGES["landing"])
+    canonical_paths = {"landing": "/landing", "pricing": "/precios", "faq": "/faq", "help": "/help-center", "knowledge": "/knowledge-base", "roadmap": "/roadmap", "changelog": "/changelog", "status": "/service-status", "partners": "/partners", "affiliates": "/afiliados", "blog": "/blog"}
     return render_template(
         "company_platform.html",
         title=f"{page['title']} | NeMeSiS SHARK PRO",
@@ -14229,6 +14547,9 @@ def render_company_platform_page(page_key: str):
         company_nav=COMPANY_PLATFORM_NAV,
         company_contract=COMPANY_PLATFORM_CONTRACT,
         company_updated_at=now_madrid_label(),
+        company_pricing=plan_catalog(),
+        meta_description=page["summary"],
+        canonical_url=request.url_root.rstrip("/") + canonical_paths.get(page_key, "/landing"),
     )
 
 @app.route("/landing")
@@ -15408,6 +15729,7 @@ def favorites_page():
             remove_favorite(request.form.get("kind"), request.form.get("value"))
         else:
             add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
+            _growth_maybe_activate_user(reason="favorite_saved")
         return redirect("/favorites")
     data, _summary = v932_safe_dashboard_data(request.path, scope="client")
     return render_template("favorites.html", data=data)
@@ -15563,11 +15885,14 @@ def enforce_checkout_legal_gate(user: dict, plan: str):
 
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
+    capture_growth_attribution_from_request()
     selected_plan = _store_pending_checkout_plan(request.args.get("plan") or request.form.get("plan"))
     if current_session_user():
         return _post_auth_redirect("/app")
     error = ""
     if request.method == "POST":
+        growth_attribution = growth_attribution_from_session()
+        growth_journey = list(session.get("growth_session_journey") or [])
         try:
             user = create_user(
                 request.form.get("name"),
@@ -15577,6 +15902,8 @@ def register_page():
             )
             security_event_for_auth("registration_attempt", True, request.form.get("username") or request.form.get("email"), "registro_correcto")
             set_login_session(user)
+            session["growth_attribution"] = growth_attribution
+            _growth_record_registration_journey(user.get("id"), growth_journey, growth_attribution)
             return _post_auth_redirect("/app")
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
@@ -22050,6 +22377,7 @@ def api_favorites():
     if request.method == "DELETE":
         return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"))})
     favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"))
+    _growth_maybe_activate_user(reason="favorite_saved")
     if not favorite:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
     return jsonify({"ok": True, "version": APP_VERSION, "favorite": favorite})
@@ -27291,6 +27619,9 @@ FOUNDER_REPORT_CATALOG = [
     "RESPONSIBLE_MARKETING_POLICY.md",
     "FOUNDER_REVENUE_BRIEF_SPEC.md",
     "CUSTOMER_ACQUISITION_ROADMAP.md",
+    "GROWTH_REVENUE_FIRST_100_USERS_PHASE_01_REPORT.md",
+    "GROWTH_FIRST_REAL_USERS_LAUNCH_REPORT.md",
+    "FIRST_10_USERS_CAMPAIGN_PACK.md",
 ]
 
 
@@ -27482,13 +27813,19 @@ def founder_command_center_snapshot():
             "export": True,
         },
     }
+    growth_product = dict(product)
+    growth_product["growth_funnel"] = growth_funnel_analytics_snapshot()
+    growth_product["growth_instrumentation"] = growth_instrumentation_snapshot()
+    growth_product["growth_seo"] = growth_seo_certification_snapshot()
     growth_revenue = build_growth_revenue_os_snapshot(
-        product_snapshot=product,
+        product_snapshot=growth_product,
         revenue_snapshot=business,
         beta_snapshot=beta_control,
         support_snapshot=support,
         top100_snapshot=top100,
         roadmap_snapshot=roadmap,
+        content_review_snapshot=growth_content_review_snapshot(),
+        public_base_url=telegram_public_base_url(),
         app_version=APP_VERSION,
         now_madrid=now_iso(),
     )
@@ -27788,6 +28125,23 @@ def admin_founder_dashboard_page():
         founder=founder_command_center_snapshot(),
     )
 
+
+@app.route("/admin/founder-dashboard/growth-content-review", methods=["POST"])
+def admin_founder_dashboard_growth_content_review():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    result = save_growth_content_review(
+        request.form.get("content_id"),
+        request.form.get("action"),
+        request.form.get("edited_hook"),
+        request.form.get("edited_content"),
+    )
+    query = {"content_review": "saved" if result.get("ok") else "error"}
+    if result.get("content_id"):
+        query["content_id"] = result["content_id"]
+    if result.get("error"):
+        query["reason"] = str(result["error"])
+    return redirect("/admin/founder-dashboard?" + urllib.parse.urlencode(query) + "#growth-content-approval")
 
 @app.route("/admin/founder-dashboard/review-now", methods=["POST"])
 def admin_founder_dashboard_review_now():
