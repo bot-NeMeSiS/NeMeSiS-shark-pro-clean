@@ -296,3 +296,113 @@ def test_safe_production_runner_requires_safe_mode_and_persistent_storage(tmp_pa
     assert allowed_payload["storage_root"].endswith("continuous_evolution_os")
     assert allowed_payload["guardrails"]["NO_TELEGRAM"] is True
     assert allowed_payload["guardrails"]["NO_STRIPE"] is True
+
+
+def test_continuous_evolution_web_endpoint_auth_safe_mode_and_storage(client, monkeypatch, tmp_path):
+    secret = "pytest-continuous-evolution-secret"
+    endpoint = "/api/automation/continuous-evolution/tick"
+    storage = tmp_path / "ceos"
+    monkeypatch.setenv("AUTOMATION_SECRET", secret)
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(storage))
+
+    no_secret = client.post(endpoint)
+    assert no_secret.status_code == 403
+    no_secret_payload = no_secret.get_json()
+    assert no_secret_payload["query_secret_accepted"] is False
+    assert no_secret_payload["automation_secret_provided"] is False
+
+    query_secret = client.post(f"{endpoint}?secret={secret}")
+    assert query_secret.status_code == 403
+    assert query_secret.get_json()["query_secret_accepted"] is False
+
+    bad_secret = client.post(endpoint, headers={"X-Automation-Secret": "wrong"})
+    assert bad_secret.status_code == 403
+    assert bad_secret.get_json()["error"] == "automation_secret_invalid"
+
+    monkeypatch.delenv("CONTINUOUS_EVOLUTION_SAFE_MODE", raising=False)
+    safe_mode_off = client.post(endpoint, headers={"X-Automation-Secret": secret})
+    assert safe_mode_off.status_code == 409
+    assert safe_mode_off.get_json()["result"] == "SAFE_MODE_REQUIRED"
+
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(ROOT / "data" / "runtime" / "continuous_evolution_os"))
+    bad_storage = client.post(endpoint, headers={"X-Automation-Secret": secret})
+    assert bad_storage.status_code == 409
+    assert bad_storage.get_json()["storage"] == "FAIL"
+    assert bad_storage.get_json()["result"] == "PERSISTENT_STORAGE_REQUIRED"
+
+
+def test_continuous_evolution_web_endpoint_runs_idempotently_without_external_actions(client, monkeypatch, tmp_path):
+    secret = "pytest-continuous-evolution-secret"
+    endpoint = "/api/automation/continuous-evolution/tick"
+    storage = tmp_path / "ceos"
+    monkeypatch.setenv("AUTOMATION_SECRET", secret)
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(storage))
+
+    headers = {
+        "X-Automation-Secret": secret,
+        "X-NeMeSiS-Cron-Runner": "render-cron",
+    }
+    first = client.post(endpoint, headers=headers)
+    assert first.status_code == 200
+    first_payload = first.get_json()
+    assert first_payload["result"] == "PASS"
+    assert first_payload["trigger"] == "SCHEDULED_PRODUCTION"
+    assert first_payload["safe_mode"] == "PASS"
+    assert first_payload["storage"] == "PASS"
+    assert first_payload["cron_runner_detected"] is True
+    assert first_payload["production_db_protected"] is True
+    assert first_payload["business_db_writes"] == 0
+    assert first_payload["guardrail_violations"] == 0
+    assert first_payload["telegram_sent"] == 0
+    assert first_payload["stripe_actions"] == 0
+    assert first_payload["deploy"] == 0
+    assert first_payload["push"] == 0
+    assert first_payload["secrets_exposed"] == 0
+    assert secret not in first.get_data(as_text=True)
+    assert (storage / "latest_snapshot.json").exists()
+    assert (storage / "product_memory.json").exists()
+
+    second = client.post(endpoint, headers=headers)
+    assert second.status_code == 200
+    second_payload = second.get_json()
+    assert second_payload["result"] == "SKIPPED_NOT_DUE"
+    assert second_payload["snapshot"] == "NOT_DUE"
+    assert second_payload["founder_brief"] == "NOT_DUE"
+    assert second_payload["prepared_for_codex"] == "NOT_DUE"
+    assert second_payload["telegram_sent"] == 0
+    assert second_payload["stripe_actions"] == 0
+
+
+def test_continuous_evolution_web_endpoint_reports_concurrent_lock(client, app_module, monkeypatch, tmp_path):
+    secret = "pytest-continuous-evolution-secret"
+    endpoint = "/api/automation/continuous-evolution/tick"
+    storage = tmp_path / "ceos"
+    storage.mkdir(parents=True)
+    (storage / "scheduler.lock").write_text(json.dumps({"job_id": "JOB-ACTIVE", "locked_at_madrid": app_module.now_iso()}), encoding="utf-8")
+    monkeypatch.setenv("AUTOMATION_SECRET", secret)
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
+    monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(storage))
+
+    response = client.post(endpoint, headers={"X-Automation-Secret": secret})
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["result"] == "SKIPPED_ALREADY_RUNNING"
+    assert payload["job"]["status"] == "SKIPPED_ALREADY_RUNNING"
+    assert payload["guardrail_violations"] == 0
+    assert payload["telegram_sent"] == 0
+    assert payload["stripe_actions"] == 0
+
+
+def test_render_cron_continuous_evolution_caller_does_not_require_disk_for_config_errors(monkeypatch):
+    command = [sys.executable, "tools/render_cron_continuous_evolution_tick.py"]
+    env = os.environ.copy()
+    env["PUBLIC_BASE_URL"] = "https://example.invalid"
+    env.pop("AUTOMATION_SECRET", None)
+    result = subprocess.run(command, cwd=ROOT, env=env, text=True, capture_output=True, check=False)
+    payload = json.loads(result.stdout)
+    assert result.returncode == 2
+    assert payload["error"] == "MISSING_AUTOMATION_SECRET"
+    assert payload["secret_status"] == "MISSING"

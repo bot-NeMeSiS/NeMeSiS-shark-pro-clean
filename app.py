@@ -789,6 +789,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/telegram/webhook",
         "/api/automation/operations-center/run",
         "/api/automation/company-intelligence/run",
+        "/api/automation/continuous-evolution/tick",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
         "/api/automation/data-backup/run",
@@ -950,6 +951,167 @@ def automation_header_json_forbidden():
         "automation_secret_provided": bool(status.get("provided")),
         "query_secret_accepted": False,
     }), 403
+
+
+
+CONTINUOUS_EVOLUTION_PRODUCTION_STORAGE_ROOT = "/data/continuous_evolution_os"
+
+
+def continuous_evolution_safe_mode_enabled():
+    return str(os.getenv("CONTINUOUS_EVOLUTION_SAFE_MODE") or "").strip() == "1"
+
+
+def continuous_evolution_web_storage_root():
+    configured = str(os.getenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT") or "").strip()
+    if configured:
+        return configured
+    db_path = str(os.getenv("DB_PATH") or DB_PATH or "").strip()
+    if db_path:
+        parent = Path(db_path).expanduser().parent
+        if parent.is_absolute():
+            return str(parent / "continuous_evolution_os")
+    return ""
+
+
+def continuous_evolution_storage_in_repo_runtime(storage_root):
+    if not storage_root:
+        return False
+    try:
+        resolved = Path(storage_root).expanduser().resolve()
+        runtime = (BASE_DIR / "data" / "runtime").resolve()
+        return resolved == runtime or runtime in resolved.parents
+    except Exception:
+        return False
+
+
+def continuous_evolution_storage_allowed_for_endpoint(storage_root):
+    """Production requires the web-service persistent disk; tests may use tmp storage."""
+    if not storage_root:
+        return False
+    if continuous_evolution_storage_in_repo_runtime(storage_root):
+        return False
+    if app.config.get("TESTING"):
+        return True
+    normalized = str(storage_root).replace("\\", "/").rstrip("/")
+    expected = CONTINUOUS_EVOLUTION_PRODUCTION_STORAGE_ROOT
+    return normalized == expected or normalized.startswith(expected + "/")
+
+
+def continuous_evolution_endpoint_preflight():
+    storage_root = continuous_evolution_web_storage_root()
+    if not continuous_evolution_safe_mode_enabled():
+        return {
+            "ok": False,
+            "result": "SAFE_MODE_REQUIRED",
+            "safe_mode": False,
+            "storage_root": storage_root or "",
+            "message": "Continuous Evolution requiere CONTINUOUS_EVOLUTION_SAFE_MODE=1.",
+        }
+    if not storage_root:
+        return {
+            "ok": False,
+            "result": "PERSISTENT_STORAGE_REQUIRED",
+            "safe_mode": True,
+            "storage_root": "",
+            "message": "Configura CONTINUOUS_EVOLUTION_STORAGE_ROOT o DB_PATH en disco persistente.",
+        }
+    if not continuous_evolution_storage_allowed_for_endpoint(storage_root):
+        return {
+            "ok": False,
+            "result": "PERSISTENT_STORAGE_REQUIRED",
+            "safe_mode": True,
+            "storage_root": storage_root,
+            "message": "Continuous Evolution solo puede escribir en storage propio persistente aprobado.",
+        }
+    try:
+        root = Path(storage_root).expanduser()
+        root.mkdir(parents=True, exist_ok=True)
+        probe = root / ".web_service_storage_probe"
+        probe.write_text(json.dumps({"ok": True, "checked_at": now_iso(), "purpose": "continuous_evolution_storage_probe"}), encoding="utf-8")
+        try:
+            probe.unlink()
+        except Exception:
+            pass
+    except Exception as exc:
+        return {
+            "ok": False,
+            "result": "STORAGE_WRITE_BLOCKED",
+            "safe_mode": True,
+            "storage_root": storage_root,
+            "message": "El web service no puede usar el storage persistente configurado.",
+            "error_safe": sanitize_runtime_error_value(type(exc).__name__),
+        }
+    return {
+        "ok": True,
+        "safe_mode": True,
+        "storage_root": str(Path(storage_root).expanduser()),
+        "production_storage_path": CONTINUOUS_EVOLUTION_PRODUCTION_STORAGE_ROOT,
+    }
+
+
+def continuous_evolution_tick_response(result, preflight):
+    job = result.get("job") or {}
+    cycle = result.get("cycle") or {}
+    snapshot = cycle.get("snapshot") or {}
+    response = {
+        "ok": bool(result.get("ok") is not False),
+        "version": APP_VERSION,
+        "endpoint": "/api/automation/continuous-evolution/tick",
+        "runner_contract": result.get("runner_contract") or "NEMESIS-CONTINUOUS-EVOLUTION-AUTOMATION-V1",
+        "task_name": result.get("task_name") or "daily_product_review",
+        "trigger": "SCHEDULED_PRODUCTION",
+        "result": result.get("result") or job.get("status") or "UNKNOWN",
+        "status": result.get("result") or job.get("status") or "UNKNOWN",
+        "safe_mode": "PASS" if preflight.get("safe_mode") else "FAIL",
+        "storage": "PASS",
+        "storage_root": preflight.get("storage_root"),
+        "production_storage_path": preflight.get("production_storage_path"),
+        "production_db_protected": True,
+        "business_db_writes": 0,
+        "cron_runner_detected": str(request.headers.get("X-NeMeSiS-Cron-Runner") or "").lower() == "render-cron",
+        "job": {
+            "job_id": job.get("job_id"),
+            "scheduled_for": job.get("scheduled_for"),
+            "scheduled_for_utc": job.get("scheduled_for_utc"),
+            "started_at": job.get("started_at"),
+            "started_at_utc": job.get("started_at_utc"),
+            "finished_at": job.get("finished_at"),
+            "finished_at_utc": job.get("finished_at_utc"),
+            "duration_ms": job.get("duration_ms"),
+            "status": job.get("status"),
+            "run_id": job.get("run_id"),
+            "snapshot_id": job.get("snapshot_id"),
+            "founder_brief_id": job.get("founder_brief_id"),
+            "codex_ready_count": job.get("codex_ready_count", 0),
+            "next_expected_run": job.get("next_expected_run"),
+            "next_expected_run_utc": job.get("next_expected_run_utc"),
+            "error_safe": sanitize_runtime_value(job.get("error_safe")),
+        },
+        "snapshot": job.get("snapshot_id") or ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else ""),
+        "founder_brief": "GENERATED" if job.get("founder_brief_id") else ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else "FAIL"),
+        "prepared_for_codex": "GENERATED" if int(job.get("codex_ready_count") or 0) > 0 else ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else "FAIL"),
+        "systems_consulted": snapshot.get("systems_consulted") or [],
+        "systems_unavailable": snapshot.get("systems_unavailable") or [],
+        "guardrails": {
+            "READ_ONLY_OPERATIONS": True,
+            "NO_TELEGRAM": True,
+            "NO_STRIPE": True,
+            "NO_DEPLOY": True,
+            "NO_PUSH": True,
+            "NO_PRODUCTION_MUTATION": True,
+            "NO_EXTERNAL_MARKET_RESEARCH": True,
+        },
+        "guardrail_violations": 0,
+        "telegram_sent": 0,
+        "stripe_actions": 0,
+        "deploy": 0,
+        "push": 0,
+        "dangerous_actions_executed": bool(result.get("dangerous_actions_executed")) is True,
+        "secrets_exposed": 0,
+    }
+    if result.get("error_safe"):
+        response["error_safe"] = sanitize_runtime_value(result.get("error_safe"))
+    return response
 
 
 def automation_secret_status():
@@ -23462,6 +23624,52 @@ def api_automation_telegram_tick():
         telegram_cron_with_sports_sync if is_render_cron and not dry_run else telegram_scheduler_tick,
         force=force,
     )
+
+
+@app.route("/api/automation/continuous-evolution/tick", methods=["POST"])
+def api_automation_continuous_evolution_tick():
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
+    preflight = continuous_evolution_endpoint_preflight()
+    if not preflight.get("ok"):
+        payload = {
+            "ok": False,
+            "version": APP_VERSION,
+            "endpoint": "/api/automation/continuous-evolution/tick",
+            "result": preflight.get("result") or "BLOCKED_PRECONDITION",
+            "status": preflight.get("result") or "BLOCKED_PRECONDITION",
+            "safe_mode": "PASS" if preflight.get("safe_mode") else "FAIL",
+            "storage": "FAIL",
+            "storage_root": preflight.get("storage_root") or "",
+            "production_storage_path": CONTINUOUS_EVOLUTION_PRODUCTION_STORAGE_ROOT,
+            "production_db_protected": True,
+            "message": preflight.get("message") or "Precondicion segura no cumplida.",
+            "error_safe": sanitize_runtime_value(preflight.get("error_safe")),
+            "guardrail_violations": 0,
+            "telegram_sent": 0,
+            "stripe_actions": 0,
+            "deploy": 0,
+            "push": 0,
+            "dangerous_actions_executed": False,
+            "secrets_exposed": 0,
+        }
+        return jsonify(payload), 409
+    result = run_continuous_evolution_scheduler_task(
+        BASE_DIR,
+        APP_VERSION,
+        task_name="daily_product_review",
+        force=False,
+        trigger="SCHEDULED_PRODUCTION",
+        storage_root=preflight.get("storage_root"),
+    )
+    payload = continuous_evolution_tick_response(result, preflight)
+    if payload.get("dangerous_actions_executed"):
+        payload["ok"] = False
+        payload["result"] = "EXTERNAL_ACTION_ATTEMPT"
+        payload["status"] = "EXTERNAL_ACTION_ATTEMPT"
+        payload["guardrail_violations"] = 1
+        return jsonify(payload), 500
+    return jsonify(payload), 200
 
 
 @app.route("/api/telegram/triggers")

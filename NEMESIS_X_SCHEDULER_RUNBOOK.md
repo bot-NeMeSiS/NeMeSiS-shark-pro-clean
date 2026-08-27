@@ -1,129 +1,164 @@
 # NEMESIS X SCHEDULER RUNBOOK
 
-## Politica temporal
+Estado: READY_FOR_PRODUCTION_SCHEDULER_APPROVAL_LOCAL.
+Fecha Madrid: 2026-08-27.
 
-Timezone oficial: Europe/Madrid.
+## Root cause
 
-- Daily Product Review: 04:00.
-- Daily Founder Brief: 04:05, generado por el Daily Product Review.
-- Weekly Executive Review: lunes 04:30.
-- Monthly Strategy Review: dia 1, 05:00.
+Render Cron Jobs no deben ejecutar directamente `python tools/run_continuous_evolution_scheduler.py` para Continuous Evolution porque el job no comparte el persistent disk del web service. Eso impediria conservar snapshots, Product Memory, Founder Briefs y Prepared for Codex como memoria real.
 
-## Runner seguro
+## Arquitectura canonica
 
-Archivo: `tools/run_continuous_evolution_scheduler.py`.
-
-Dry run local:
-
-```powershell
-.\.venv\Scripts\python.exe tools\run_continuous_evolution_scheduler.py --dry-run --task daily_product_review
+```text
+RENDER CRON
+-> HTTPS POST
+-> WEB SERVICE NEMESIS
+-> /api/automation/continuous-evolution/tick
+-> Continuous Evolution safe runner
+-> /data/continuous_evolution_os
 ```
 
-Run local controlado:
+El Cron es stateless. El Web Service mantiene el estado en su persistent disk.
 
-```powershell
-.\.venv\Scripts\python.exe tools\run_continuous_evolution_scheduler.py --task daily_product_review
+## Endpoint protegido
+
+Ruta:
+
+```text
+POST /api/automation/continuous-evolution/tick
 ```
 
-Dry run productivo seguro con storage persistente:
+Autenticacion:
 
-```bash
-CONTINUOUS_EVOLUTION_SAFE_MODE=1 \
-CONTINUOUS_EVOLUTION_STORAGE_ROOT=/data/continuous_evolution_os \
-python tools/run_continuous_evolution_scheduler.py --dry-run --trigger SCHEDULED_PRODUCTION
+```text
+X-Automation-Secret: <AUTOMATION_SECRET>
 ```
 
-Run productivo seguro:
+No se acepta `secret` por URL. Sin header o con header incorrecto devuelve 403.
 
-```bash
-CONTINUOUS_EVOLUTION_SAFE_MODE=1 \
-CONTINUOUS_EVOLUTION_STORAGE_ROOT=/data/continuous_evolution_os \
-python tools/run_continuous_evolution_scheduler.py --trigger SCHEDULED_PRODUCTION
-```
+## Variables del Web Service
 
-## Safe Mode
-
-`SCHEDULED_PRODUCTION` requiere obligatoriamente:
+Obligatorias antes de activar el cron externo:
 
 ```text
 CONTINUOUS_EVOLUTION_SAFE_MODE=1
+CONTINUOUS_EVOLUTION_STORAGE_ROOT=/data/continuous_evolution_os
+DB_PATH=/data/database.db
 ```
 
-Bloqueos esperados:
+El endpoint falla cerrado si:
 
-- `SAFE_MODE_REQUIRED` si falta Safe Mode.
-- `FORCE_NOT_ALLOWED_IN_PRODUCTION` si se usa `--force` con produccion.
-- `PERSISTENT_STORAGE_REQUIRED` si no hay storage persistente.
-- `EPHEMERAL_STORAGE_BLOCKED` si se intenta usar `data/runtime` del repo.
+- Safe Mode no esta activo.
+- Storage no existe o no puede escribirse.
+- Storage apunta a `data/runtime` del repo.
+- Storage productivo no esta bajo `/data/continuous_evolution_os`.
 
-## Storage
+## Runner stateless para Render Cron
 
-Local por defecto:
+Archivo:
 
 ```text
-data/runtime/continuous_evolution_os
+tools/render_cron_continuous_evolution_tick.py
 ```
 
-Produccion recomendada:
+Comando recomendado para el Cron Job:
 
 ```text
-/data/continuous_evolution_os
+python tools/render_cron_continuous_evolution_tick.py
 ```
 
-No usar `data/runtime` en Render. El runner puede derivar `/data/continuous_evolution_os` desde `DB_PATH=/data/database.db`, pero se recomienda configurar `CONTINUOUS_EVOLUTION_STORAGE_ROOT` de forma explicita.
+Variables del Cron Job:
 
-## Guardrails
+```text
+PUBLIC_BASE_URL=https://bot-apuestas-crgf.onrender.com
+AUTOMATION_SECRET=<mismo secreto que el Web Service>
+```
 
-Siempre activos:
+El runner no necesita persistent disk. No ejecuta Continuous Evolution localmente. Solo hace POST HTTPS al web service con cabecera segura.
 
-- READ_ONLY_OPERATIONS;
-- NO_TELEGRAM;
-- NO_STRIPE;
-- NO_DEPLOY;
-- NO_EXTERNAL_MARKET_RESEARCH;
-- NO_PRODUCTION_MUTATION.
+## Cadencia
+
+No usar UTC fijo diario por DST. Configurar el Cron externo frecuente y dejar que el endpoint decida due/not-due en Europe/Madrid.
+
+Recomendado:
+
+```text
+*/15 * * * *
+```
+
+La politica interna ejecuta:
+
+- Daily Product Review: 04:00 Europe/Madrid.
+- Daily Founder Brief: generado por Daily Product Review.
+- Weekly Executive Review: lunes 04:30 Europe/Madrid.
+- Monthly Strategy Review: dia 1, 05:00 Europe/Madrid.
 
 ## Estados esperados
 
-- PASS: ejecucion completa.
-- PARTIAL: fallo controlado con memoria preservada.
-- SKIPPED_NOT_DUE: ya existe ejecucion para el periodo.
-- SKIPPED_ALREADY_RUNNING: lock activo.
-- SKIPPED_PAUSED: automatizacion pausada por admin.
-- UNKNOWN_TASK: tarea no reconocida.
+- `PASS`: ejecucion debida completada.
+- `PARTIAL`: fallo controlado con memoria preservada.
+- `SKIPPED_NOT_DUE`: invocacion valida, no toca ejecutar.
+- `SKIPPED_ALREADY_RUNNING`: lock activo.
+- `SKIPPED_PAUSED`: pausa administrativa activa.
+- `SAFE_MODE_REQUIRED`: Safe Mode ausente.
+- `PERSISTENT_STORAGE_REQUIRED`: storage no aprobado.
+- `STORAGE_WRITE_BLOCKED`: el web service no pudo usar storage.
 
-## Pause / Resume
+## Guardrails
 
-Desde Founder Center:
+El endpoint permite solo:
 
-- Pausar evolucion: bloquea ejecuciones programadas.
-- Reanudar evolucion: permite futuras ejecuciones programadas.
+- OBSERVE
+- ANALYZE
+- COMPARE
+- WRITE PRODUCT MEMORY
+- WRITE SNAPSHOT
+- GENERATE PRODUCT REVIEW
+- GENERATE EXECUTIVE REVIEW
+- GENERATE FOUNDER BRIEF
+- PREPARE FOR CODEX
 
-La pausa no afecta Sports Core, clientes, Telegram, Stripe ni app normal.
+El endpoint no puede:
 
-## Failure recovery
+- modificar codigo
+- hacer commit
+- hacer push
+- hacer deploy
+- enviar Telegram
+- llamar Stripe
+- publicar contenido
+- activar campanas
+- gastar dinero
+- modificar usuarios
+- modificar membresias
+- ejecutar comandos arbitrarios
+- aceptar shell input
+- aceptar paths arbitrarios
 
-Si una ejecucion falla antes de crear snapshot, el ultimo snapshot bueno permanece como latest_snapshot.
-Si un componente falla dentro del ciclo, la ejecucion queda PARTIAL_WITH_UNAVAILABLE_COMPONENTS y Product Memory se conserva.
+## QA local certificado
 
-## Render Cron recomendado
+- Sin secret: 403.
+- Secret por URL: 403.
+- Secret incorrecto: 403.
+- Safe Mode off: blocked.
+- Storage repo runtime: blocked.
+- Configuracion buena local: `PASS`.
+- Segunda invocacion: `SKIPPED_NOT_DUE`.
+- Lock activo: `SKIPPED_ALREADY_RUNNING`.
+- Telegram: 0.
+- Stripe: 0.
+- Deploy: 0.
+- Push: 0.
 
-No usar UTC fijo diario por DST. Configurar cron frecuente y dejar que el runner decida si toca ejecutar por Europe/Madrid.
+## Activacion pendiente
 
-```yaml
-- type: cron
-  name: nemesis-continuous-evolution
-  runtime: python
-  schedule: "*/15 * * * *"
-  buildCommand: pip install -r requirements.txt
-  startCommand: python tools/run_continuous_evolution_scheduler.py --trigger SCHEDULED_PRODUCTION
-  envVars:
-    - key: CONTINUOUS_EVOLUTION_SAFE_MODE
-      value: "1"
-    - key: CONTINUOUS_EVOLUTION_STORAGE_ROOT
-      value: /data/continuous_evolution_os
-    - key: DB_PATH
-      value: /data/database.db
-```
+No activado todavia.
 
-No activado todavia. Requiere push controlado, confirmacion de storage persistente y autorizacion de infraestructura.
+Para produccion:
+
+1. Revisar y aprobar esta arquitectura.
+2. Hacer push/deploy del endpoint si aun no esta en origin/main/Render.
+3. Configurar variables del Web Service.
+4. Crear solo el Cron `nemesis-continuous-evolution` con el runner stateless.
+5. Observar primera invocacion real.
+6. Iniciar evidencia DAY 1 / DAY 2 / DAY 3 sin simular fechas.
