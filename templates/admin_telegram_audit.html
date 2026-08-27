@@ -30,23 +30,24 @@
 </section>
 
 <section class="band form-grid">
-  <form class="card" method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <h2>Acciones de auditora</h2>
-    <input type="hidden" name="action" value="send_now">
-    <label><input type="checkbox" name="force_empty" value="1"> Enviar aviso aunque no haya picks publicados</label>
-    <button class="primary" type="submit">Enviar picks ahora</button>
-  </form>
   <div class="card">
-    <h2>Herramientas</h2>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="fix"><button type="submit">Preparar ajustes picks</button></form>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="enqueue"><button type="submit">Encolar picks</button></form>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="process"><button type="submit">Procesar cola</button></form>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="action" value="audit"><button type="submit">Actualizar auditora</button></form>
+    <h2>Acciones seguras</h2>
+    <p class="small">Esta vista es read-only. No envía Telegram ni procesa cola desde aquí.</p>
+    <div class="actions">
+      <a class="btn primary" href="/admin/telegram/command-center">Abrir Centro de mando</a>
+      <a class="btn" href="/admin/picks">Revisar picks</a>
+      <a class="btn" href="/admin/autopilot-audit">Ver piloto automático</a>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Control de envío</h2>
+    {% if local_safe_mode %}
+      <p class="small">Telegram está desactivado en LOCAL SAFE.</p>
+      <button type="button" disabled>Envío real bloqueado</button>
+    {% else %}
+      <p class="small">El envío real requiere autorización explícita y debe hacerse desde el Command Center.</p>
+      <a class="btn" href="/admin/telegram/command-center">Gestionar entrega</a>
+    {% endif %}
   </div>
 </section>
 
@@ -66,7 +67,7 @@
     <p class="small">Enviables por plan: FREE {{ audit.membership_delivery.sendable['FREE'] }} · PRO {{ audit.membership_delivery.sendable['PRO'] }} · ELITE {{ audit.membership_delivery.sendable['ELITE'] }}</p>
     <p class="small">Último envío: {{ (audit.last_sent.sent_at or 'sin envío registrado')|madrid_datetime_label }}</p>
     <p class="small">Último error app: {{ audit.last_error.message or 'sin error registrado' }}</p>
-    <p class="small">Último error Telegram: {{ audit.last_telegram_error.response_json or audit.last_telegram_error.payload_preview or 'sin error Telegram registrado' }}</p>
+    <p class="small">Último error Telegram: {{ audit.last_telegram_error.message or audit.last_telegram_error.error_message or 'sin error Telegram registrado' }}</p>
   </div>
 </section>
 

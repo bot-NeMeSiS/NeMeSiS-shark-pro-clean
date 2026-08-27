@@ -4,7 +4,7 @@
   <div>
     <div class="kicker">Beta cerrada</div>
     <h1>Ayuda a preparar NeMeSiS para usuarios reales</h1>
-    <p class="lead">Comparte errores, ideas y valoraciones sin enviar datos sensibles. Cada se?al queda estructurada para que podamos reproducirla, priorizarla y mejorar el producto con evidencia.</p>
+    <p class="lead">Comparte errores, ideas y valoraciones sin enviar datos sensibles. Cada señal queda estructurada para que podamos reproducirla, priorizarla y mejorar el producto con evidencia.</p>
     <div class="hero-actions">
       <a class="btn primary" href="#beta-feedback-form">Enviar feedback</a>
       <a class="btn ghost" href="/smart-home">Ver mi experiencia</a>
@@ -14,15 +14,15 @@
     <div class="live-strip">
       <div><span>Estado</span><strong>Beta local</strong></div>
       <div><span>Feedback</span><strong>{{ beta.counts.feedback_total }}</strong></div>
-      <div><span>M?tricas</span><strong>Opcionales</strong></div>
+      <div><span>Métricas</span><strong>Opcionales</strong></div>
     </div>
-    <p class="small muted">No guardamos correo, tel?fono, tarjetas, contrase?as, tokens ni claves. Las m?tricas agregadas pueden desactivarse en cada env?o.</p>
+    <p class="small muted">No guardamos correo, teléfono, tarjetas, contraseñas, tokens ni claves. Las métricas agregadas pueden desactivarse en cada envío.</p>
   </aside>
 </section>
 
 {% if data.sent %}
 <section class="band compact-band beta-public-v1">
-  <div class="card beta-alert success"><strong>Feedback recibido.</strong><span>Gracias. Queda pendiente de revisi?n humana antes de convertirse en mejora.</span></div>
+  <div class="card beta-alert success"><strong>Feedback recibido.</strong><span>Gracias. Queda pendiente de revisión humana antes de convertirse en mejora.</span></div>
 </section>
 {% endif %}
 {% if data.error %}
@@ -32,12 +32,12 @@
 {% endif %}
 
 <section class="band compact-band beta-public-v1">
-  <div class="section-head"><h2>Qu? puedes enviar</h2><span class="pill">Privacidad primero</span></div>
+  <div class="section-head"><h2>Qué puedes enviar</h2><span class="pill">Privacidad primero</span></div>
   <div class="grid cards-4 beta-section-grid">
     {% for section in beta.feedback_sections %}
     <article class="card beta-section-card">
       <span class="badge">{{ loop.index }}</span>
-      <h3>{% if section.key == 'bug' %}Reporte de error{% elif section.key == 'feature_request' %}Solicitud de mejora{% elif section.key == 'satisfaction' %}Satisfacci?n{% else %}Feedback general{% endif %}</h3>
+      <h3>{% if section.key == 'bug' %}Reporte de error{% elif section.key == 'feature_request' %}Solicitud de mejora{% elif section.key == 'satisfaction' %}Satisfacción{% else %}Feedback general{% endif %}</h3>
       <p class="small">{{ section.purpose }}</p>
     </article>
     {% endfor %}
@@ -56,7 +56,7 @@
           {% endfor %}
         </select>
       </label>
-      <label>?rea
+      <label>Área
         <select name="category" required>
           {% for key, label in data.beta_options.categories.items() %}
           <option value="{{ key }}" {% if data.form.category == key %}selected{% endif %}>{{ label }}</option>
@@ -78,13 +78,13 @@
           <option value="unknown">No indicado</option>
           <option value="desktop" {% if data.form.device_context == 'desktop' %}selected{% endif %}>Escritorio</option>
           <option value="tablet" {% if data.form.device_context == 'tablet' %}selected{% endif %}>Tablet</option>
-          <option value="mobile" {% if data.form.device_context == 'mobile' %}selected{% endif %}>M?vil</option>
+          <option value="mobile" {% if data.form.device_context == 'mobile' %}selected{% endif %}>Móvil</option>
         </select>
       </label>
       <label>Ruta o pantalla
         <input name="route" value="{{ data.form.route or request.path }}" placeholder="/match/123">
       </label>
-      <label>Satisfacci?n
+      <label>Satisfacción
         <select name="satisfaction_score">
           <option value="">No aplica</option>
           {% for score in [1,2,3,4,5] %}
@@ -94,11 +94,11 @@
       </label>
     </div>
 
-    <label>T?tulo claro
-      <input name="title" maxlength="120" value="{{ data.form.title }}" placeholder="Ejemplo: no entiendo qu? hacer despu?s de abrir un partido" required>
+    <label>Título claro
+      <input name="title" maxlength="120" value="{{ data.form.title }}" placeholder="Ejemplo: no entiendo qué hacer después de abrir un partido" required>
     </label>
-    <label>Descripci?n
-      <textarea name="message" rows="4" maxlength="600" placeholder="Cuenta qu? ocurre, qu? esperabas y c?mo afecta a tu experiencia." required>{{ data.form.message }}</textarea>
+    <label>Descripción
+      <textarea name="message" rows="4" maxlength="600" placeholder="Cuenta qué ocurre, qué esperabas y cómo afecta a tu experiencia." required>{{ data.form.message }}</textarea>
     </label>
 
     <div class="grid cards-3 beta-form-grid">
@@ -106,18 +106,18 @@
         <textarea name="steps_to_reproduce" rows="3" maxlength="700" placeholder="1. Abro... 2. Pulso... 3. Veo...">{{ data.form.steps_to_reproduce }}</textarea>
       </label>
       <label>Resultado esperado
-        <textarea name="expected_result" rows="3" maxlength="500" placeholder="Qu? deber?a pasar.">{{ data.form.expected_result }}</textarea>
+        <textarea name="expected_result" rows="3" maxlength="500" placeholder="Qué debería pasar.">{{ data.form.expected_result }}</textarea>
       </label>
       <label>Resultado real
-        <textarea name="actual_result" rows="3" maxlength="500" placeholder="Qu? pasa ahora mismo.">{{ data.form.actual_result }}</textarea>
+        <textarea name="actual_result" rows="3" maxlength="500" placeholder="Qué pasa ahora mismo.">{{ data.form.actual_result }}</textarea>
       </label>
     </div>
 
     <label class="beta-consent-row">
       <input type="checkbox" name="allow_beta_metrics" value="1" {% if data.form.allow_beta_metrics is not sameas false %}checked{% endif %}>
-      <span>Permitir que este env?o cuente en m?tricas agregadas de beta.</span>
+      <span>Permitir que este envío cuente en métricas agregadas de beta.</span>
     </label>
-    <p class="small muted">No incluyas correos, tel?fonos, tarjetas, contrase?as, tokens, claves ni capturas con datos sensibles. Las sugerencias no se aprueban autom?ticamente.</p>
+    <p class="small muted">No incluyas correos, teléfonos, tarjetas, contraseñas, tokens, claves ni capturas con datos sensibles. Las sugerencias no se aprueban automáticamente.</p>
     <button class="btn primary" type="submit">Enviar feedback beta</button>
   </form>
 </section>

@@ -10,8 +10,18 @@
   <div class="grid">
     {% for c in data.competitions %}
     <article class="card">
-      <div class="comp-top"><div><div class="name">{{ c.name }}</div><div class="small">{{ c.scope }} - {{ c.country }} - {{ c.region }}</div></div><div class="tier">{{ c.tier }}</div></div>
-      <p class="small">{{ c.source_strategy }}</p>
+      <div class="comp-top">
+        <div>
+          <div class="name">{{ c.name or 'Competición no disponible' }}</div>
+          <div class="small">
+            {{ c.scope|competition_es if c.scope else 'Competición' }}
+            {% if c.country %} · {{ c.country }}{% endif %}
+            {% if c.region %} · {{ c.region }}{% endif %}
+          </div>
+        </div>
+        <div class="tier">{{ c.tier or 0 }}</div>
+      </div>
+      <p class="small">{{ c.source_strategy or 'Estrategia de datos pendiente de confirmar.' }}</p>
     </article>
     {% endfor %}
   </div>

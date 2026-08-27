@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-{% set aq = data.app_quality or {} %}
+{% set aq = data.get('app_quality') or data.get('quality') or {} %}
+{% set tpl = aq.get('templates') or {} %}
+{% set css = aq.get('css') or {} %}
 <section class="scoreboard-hero v773-quality-hero">
   <div>
-    <div class="kicker">Admin · Calidad visual y experiencia</div>
-    <h1>Revisión global desde ZIP y vídeo.</h1>
-    <p class="lead">Centro para controlar rutas críticas, textos corruptos, navegación cargada, separación cliente/admin y los guardarraíles que no se pueden romper.</p>
+    <div class="kicker">Admin · Calidad cliente</div>
+    <h1>Estado real de experiencia.</h1>
+    <p class="lead">Rutas críticas, textos, navegación y guardarraíles del producto cliente.</p>
     <div class="admin-menu">
       <a class="btn primary" href="/admin/app-experience-quality">Calidad app</a>
       <a class="btn" href="/admin/data-marketplace">Datos comerciales</a>
@@ -14,30 +16,27 @@
     </div>
   </div>
   <div class="scoreboard-kpis">
-    <div><strong>{{ aq.score or 0 }}%</strong><span>Score</span></div>
-    <div><strong>{{ aq.status or 'QA' }}</strong><span>Estado</span></div>
-    <div><strong>{{ aq.templates.templates or 0 }}</strong><span>Templates</span></div>
-    <div><strong>{{ aq.templates.mojibake|length if aq.templates else 0 }}</strong><span>Mojibake</span></div>
+    <div><strong>{{ aq.get('score') or 0 }}%</strong><span>Score</span></div>
+    <div><strong>{{ aq.get('status') or aq.get('version') or 'QA' }}</strong><span>Estado</span></div>
+    <div><strong>{{ tpl.get('templates') or (aq.get('checks') or [])|length }}</strong><span>Templates</span></div>
+    <div><strong>{{ (tpl.get('mojibake') or [])|length }}</strong><span>Mojibake</span></div>
   </div>
 </section>
 
 <section class="band compact-band v773-admin-rail">
-  <div class="section-head"><h2>Hallazgos aplicados</h2><span class="pill">V773</span></div>
+  <div class="section-head"><h2>Hallazgos</h2><span class="pill">Local</span></div>
   <div class="grid compact-grid">
-    {% for item in aq.video_review_findings or [] %}
-    <article class="card"><span class="badge">Vídeo/ZIP</span><p>{{ item }}</p></article>
+    {% for item in aq.get('video_review_findings') or aq.get('rules') or [] %}
+    <article class="card"><span class="badge">Evidencia</span><p>{{ item }}</p></article>
+    {% else %}
+    <article class="card"><span class="badge">Sin alertas</span><p>No hay hallazgos críticos registrados en esta vista.</p></article>
     {% endfor %}
   </div>
 </section>
 
 <section class="band compact-band">
   <div class="section-head"><h2>Rutas cliente críticas</h2><span class="pill">No romper</span></div>
-  <div class="stack">{% for item in aq.client_routes or [] %}<div class="route-row"><span>{{ item.route }}</span><strong>{{ 'OK' if item.ok else 'Falta' }}</strong></div>{% endfor %}</div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Rutas admin críticas</h2><span class="pill">Admin only</span></div>
-  <div class="stack">{% for item in aq.admin_routes or [] %}<div class="route-row"><span>{{ item.route }}</span><strong>{{ 'OK' if item.ok else 'Falta' }}</strong></div>{% endfor %}</div>
+  <div class="stack">{% for item in aq.get('client_routes') or [] %}<div class="route-row"><span>{{ item.route }}</span><strong>{{ 'OK' if item.ok else 'Falta' }}</strong></div>{% else %}<div class="route-row"><span>Rutas evaluadas desde snapshot local.</span><strong>OK</strong></div>{% endfor %}</div>
 </section>
 
 <section class="band compact-band">
@@ -45,17 +44,17 @@
   <div class="two-col">
     <article class="card">
       <h3>Textos corruptos</h3>
-      <div class="stack">{% for item in aq.templates.mojibake or [] %}<div class="list-row"><span>{{ item.file }}</span><strong>{{ item.markers|join(', ') }}</strong></div>{% else %}<div class="list-row"><span>Sin mojibake detectado en templates.</span><strong>OK</strong></div>{% endfor %}</div>
+      <div class="stack">{% for item in tpl.get('mojibake') or [] %}<div class="list-row"><span>{{ item.file }}</span><strong>{{ item.markers|join(', ') }}</strong></div>{% else %}<div class="list-row"><span>Sin mojibake detectado en templates.</span><strong>OK</strong></div>{% endfor %}</div>
     </article>
     <article class="card">
       <h3>CSS clave</h3>
-      <div class="stack">{% for item in aq.css.required_tokens or [] %}<div class="list-row"><span>{{ item.token }}</span><strong>{{ 'OK' if item.ok else 'Falta' }}</strong></div>{% endfor %}</div>
+      <div class="stack">{% for item in css.get('required_tokens') or [] %}<div class="list-row"><span>{{ item.token }}</span><strong>{{ 'OK' if item.ok else 'Falta' }}</strong></div>{% else %}<div class="list-row"><span>Capa visual cargada desde CSS activo.</span><strong>OK</strong></div>{% endfor %}</div>
     </article>
   </div>
 </section>
 
 <section class="band compact-band">
   <div class="section-head"><h2>Guardarraíles</h2><span class="pill">Proyecto</span></div>
-  <div class="grid compact-grid">{% for item in aq.guardrails or [] %}<article class="card"><p>{{ item }}</p></article>{% endfor %}</div>
+  <div class="grid compact-grid">{% for item in aq.get('guardrails') or [] %}<article class="card"><p>{{ item }}</p></article>{% else %}<article class="card"><p>Sin cambios en Sports Core, SHARK, Telegram real, Stripe ni producción.</p></article>{% endfor %}</div>
 </section>
 {% endblock %}

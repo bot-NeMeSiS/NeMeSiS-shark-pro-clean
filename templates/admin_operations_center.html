@@ -50,7 +50,7 @@
         {% for item in section['items'] or [] %}
         <div>
           <dt>{{ item.label }}</dt>
-          <dd>{{ item.value or 'No disponible' }}<small>{{ item.source or 'local' }} ? {{ item.state or 'NO_CERTIFICADO' }}</small></dd>
+          <dd>{{ item.value or 'No disponible' }}<small>{{ item.source or 'local' }} · {{ item.state or 'NO_CERTIFICADO' }}</small></dd>
         </div>
         {% endfor %}
       </dl>
@@ -67,9 +67,9 @@
   <section class="v933-admin-layout" id="release-gate">
     <div class="v933-main-stack">
       <section class="v933-admin-panel">
-        <header><div><h2>Commercial Readiness</h2><p>Estados reales para Render, Telegram, Stripe, persistencia, UX, conversion, soporte y observabilidad.</p></div>{{ status_chip(release_gate.status or 'PARTIAL', 'danger' if release_gate.status == 'BLOCKED' else 'success' if release_gate.status == 'PASS' else 'warning') }}</header>
+        <header><div><h2>Preparación comercial</h2><p>Estados reales para Render, Telegram, Stripe, persistencia, UX, conversión, soporte y observabilidad.</p></div>{{ status_chip(release_gate.status or 'PARTIAL', 'danger' if release_gate.status == 'BLOCKED' else 'success' if release_gate.status == 'PASS' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
-          {% call data_table(['Area','Estado','Evidencia','Falta para Release 1.0']) %}
+          {% call data_table(['Área','Estado','Evidencia','Falta para Release 1.0']) %}
           {% for item in commercial %}
           <tr>
             <td><strong>{{ item.area }}</strong></td>
@@ -83,7 +83,7 @@
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Global Score</h2><p>Calculado con formula explicita: PASS suma completo, PARTIAL suma medio, BLOCKED suma cero.</p></div>{{ status_chip(release_score.overall_status or 'PARTIAL', 'success' if release_score.overall_status == 'PASS' else 'warning') }}</header>
+        <header><div><h2>Puntuación global</h2><p>Calculado con formula explicita: PASS suma completo, PARTIAL suma medio, BLOCKED suma cero.</p></div>{{ status_chip(release_score.overall_status or 'PARTIAL', 'success' if release_score.overall_status == 'PASS' else 'warning') }}</header>
         <div class="v933-admin-panel-body operations-score-list">
           {% for category in release_score.categories or [] %}
           <div class="operations-score-row">
@@ -97,10 +97,10 @@
       </section>
 
       <section class="v933-admin-panel" id="operations-incidents">
-        <header><div><h2>Incidencias y certificaciónes</h2><p>Un NO_CERTIFICADO no se muestra como caida; solo como evidencia pendiente.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Centro Sentinel {{ icon('arrow') }}</a></header>
+        <header><div><h2>Incidencias y certificaciones</h2><p>Un NO_CERTIFICADO no se muestra como caída; solo como evidencia pendiente.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Centro Sentinel {{ icon('arrow') }}</a></header>
         <div class="v933-admin-panel-body">
           {% if snapshot.incidents %}
-          {% call data_table(['Prioridad','Area','Clasificacion','Evidencia','Accion']) %}
+          {% call data_table(['Prioridad','Área','Clasificación','Evidencia','Acción']) %}
           {% for issue in snapshot.incidents[:20] %}
           <tr>
             <td>{{ status_chip(issue.severity|upper, 'danger' if issue.severity in ['critical','high'] else 'warning') }}</td>
@@ -112,7 +112,7 @@
           {% endfor %}
           {% endcall %}
           {% else %}
-            {{ empty_state('Sin hallazgos abiertos', 'El último scan no contiene incidencias ni certificaciónes pendientes.', '', '', 'shield') }}
+            {{ empty_state('Sin hallazgos abiertos', 'El último scan no contiene incidencias ni certificaciones pendientes.', '', '', 'shield') }}
           {% endif %}
         </div>
       </section>
@@ -120,7 +120,7 @@
 
     <aside class="v933-side-stack">
       <section class="v933-admin-panel" id="v938-safe-actions">
-        <header><div><h2>Acciones seguras</h2><p>Solo lectura, diagnóstico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
+        <header><div><h2>Acciónes seguras</h2><p>Solo lectura, diagnóstico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
         <div class="v933-admin-panel-body">
           <div class="operations-action-grid">
             {% for action in snapshot.safe_actions or [] %}
@@ -132,7 +132,7 @@
             {% endfor %}
             <button class="v933-action is-blue" type="button" data-v938-action="prompt"{% if not snapshot.next_issue_id %} disabled{% endif %}>Generar prompt</button>
           </div>
-          <output class="v904-safe-api-output v933-workforce-output" data-v938-output>Preparado. Las acciones externas estan deshabilitadas en este centro.</output>
+          <output class="v904-safe-api-output v933-workforce-output" data-v938-output>Preparado. Las acciones externas están deshabilitadas en este centro.</output>
         </div>
       </section>
 
@@ -149,7 +149,7 @@
         <div class="v933-admin-panel-body"><div class="v933-chip-cloud">{% for guard in snapshot.safe_guards %}{{ status_chip(guard|replace('_',' '),'neutral') }}{% endfor %}</div></div>
       </section>
 
-      {{ next_action('Siguiente accion real', snapshot.next_action, '/admin/sentinel-autopilot', 'Revisar con AutoPilot') }}
+      {{ next_action('Siguiente acción real', snapshot.next_action, '/admin/sentinel-autopilot', 'Revisar con AutoPilot') }}
     </aside>
   </section>
 </div>
@@ -173,8 +173,8 @@
         const payload=kind==='prompt'
           ? await post('/api/admin/operations-center/generate-prompt',{issue_id:nextIssue})
           : await post('/api/admin/operations-center/run-safe-scan',{});
-        if(output) output.textContent=kind==='prompt' ? (payload.prompt||'No hay prompt pendiente.') : ('Scan completado: '+((payload.snapshot||{}).incident_counts||{}).total+' elementos requieren atencion o certificación.');
-      }catch(error){ if(output) output.textContent='No se completo la accion: '+error.message; }
+        if(output) output.textContent=kind==='prompt' ? (payload.prompt||'No hay prompt pendiente.') : ('Scan completado: '+((payload.snapshot||{}).incident_counts||{}).total+' elementos requieren atención o certificación.');
+      }catch(error){ if(output) output.textContent='No se completó la acción: '+error.message; }
       finally{ button.disabled=false; button.removeAttribute('aria-busy'); }
     });
   });

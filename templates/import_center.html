@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero">
-  <div class="kicker">Admin - importacion legal</div>
+  <div class="kicker">Admin - importación legal</div>
   <h1>Cargar datos sin arrastrar ruido</h1>
-  <p class="lead">Pega CSV o JSON autorizado. Cada importacion guarda fuente, nota legal y trazabilidad. Este es el puente para convertir la app limpia en producto vivo.</p>
+  <p class="lead">Pega CSV o JSON autorizado. Cada importación guarda fuente, nota legal y trazabilidad.</p>
   <div class="admin-menu">
     <a class="btn" href="/admin/users">Usuarios</a>
     <a class="btn" href="/admin/data-center">Centro de datos</a>
@@ -16,8 +16,8 @@
   <form class="card" method="post" action="/api/import-competitions">
     <h2>Competiciones</h2>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual competiciones autorizado"></div>
-    <div class="field"><label>Nota legal</label><input name="legal_note" value="Competicion cargada desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">name,country,region,tier,external_id,sync_status
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Competición cargada desde fuente autorizada"></div>
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">name,country,region,tier,external_id,sync_status
 Primera RFEF,Spain,Spain,78,,no_data</textarea></div>
     <button type="submit">Importar competiciones</button>
   </form>
@@ -25,7 +25,7 @@ Primera RFEF,Spain,Spain,78,,no_data</textarea></div>
     <h2>Resultados</h2>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual results autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Resultado cargado desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status,home_score,away_score
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status,home_score,away_score
 LaLiga,Sevilla FC,Real Betis,2026-05-20,21:00,Spain,FINALIZADO,1,1</textarea></div>
     <button type="submit">Importar resultados</button>
   </form>
@@ -36,10 +36,10 @@ LaLiga,Sevilla FC,Real Betis,2026-05-20,21:00,Spain,FINALIZADO,1,1</textarea></d
     <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
     <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">league_name,home_team,away_team,match_date,match_time,country,status
 LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</textarea></div>
     <button type="submit">Importar partidos</button>
-    <p class="small">Tambien puedes usar POST JSON en /api/import-matches con rows o payload.</p>
+    <p class="small">También puedes usar carga JSON autorizada desde el endpoint interno.</p>
   </form>
   <aside class="card">
     <h2>Importaciones recientes</h2>
@@ -62,7 +62,7 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
     <p class="small">Solo cuotas de fuente autorizada o propia.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual odds autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Cuota cargada por administrador desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">league_name,home_team,away_team,bookmaker,market,home_price,draw_price,away_price,commence_time</textarea></div>
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">league_name,home_team,away_team,bookmaker,market,home_price,draw_price,away_price,commence_time</textarea></div>
     <button type="submit">Importar cuotas</button>
   </form>
   <aside class="card">
@@ -77,17 +77,17 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
     <p class="small">Solo picks propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual picks autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Pick cargado por administrador desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning</textarea></div>
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning</textarea></div>
     <button type="submit">Importar picks</button>
   </form>
   <aside class="card">
     <h2>Telegram</h2>
     <p class="small">Estado: {% if data.telegram.configured %}configurado{% else %}faltan variables{% endif %}</p>
-    <p class="small">Variables necesarias: TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID. Auto: ENABLE_TELEGRAM_AUTO=true.</p>
-    <form method="post" action="/api/telegram/send"><button type="submit">Enviar briefing</button></form>
-    <p class="small">Endpoint auto compatible V495: /api/v495/telegram-auto-run</p>
-    <p class="small">Scheduler V507: /api/telegram/scheduler-tick, /api/telegram/triggers y /api/telegram/logs.</p>
-    <p class="small">V509: /api/telegram/scheduler-manager, /api/telegram/queue y /api/telegram/auto-posts.</p>
+    <p class="small">Telegram requiere configuración adicional antes de envíos reales. Los secretos no se muestran.</p>
+    {% if local_safe_mode %}<button type="button" disabled>Telegram desactivado en LOCAL SAFE</button>{% else %}<form method="post" action="/api/telegram/send"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Enviar briefing</button></form>{% endif %}
+    <p class="small">Automatización Telegram: disponible solo con configuración autorizada.</p>
+    <p class="small">Scheduler Telegram: visible desde el Command Center.</p>
+    <p class="small">Cola Telegram: gestionada desde el Command Center.</p>
   </aside>
 </section>
 <section class="band form-grid">
@@ -96,15 +96,15 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
     <p class="small">Usa URLs de logos solo si vienen de API/fuente permitida o tienes derecho a usarlas.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual escudos autorizado"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Escudos cargados desde fuente autorizada"></div>
-    <div class="field"><label>Payload CSV o JSON autorizado</label><textarea name="payload">name,country,region,logo_url</textarea></div>
+    <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">name,country,region,logo_url</textarea></div>
     <button type="submit">Importar escudos</button>
-    <p class="small">Tambien puedes usar /api/team/resolveteam=Sevilla%20FC&refresh=1 para intentar resolver por TheSportsDB.</p>
+    <p class="small">También puedes resolver equipos desde el Centro de datos cuando el proveedor esté autorizado.</p>
   </form>
   <aside class="card">
     <h2>Diagnóstico de escudos</h2>
-    <p class="small">Endpoint: /api/crest-diagnostics</p>
-    <p class="small">Resolver equipo: /api/team/resolveteam=Real%20Madrid</p>
-    <p class="small">Fallback visual: /team-crest.svgname=Equipo</p>
+    <p class="small">Diagnóstico disponible desde el Centro de datos.</p>
+    <p class="small">Resolución de equipo disponible con proveedor autorizado.</p>
+    <p class="small">Fallback visual: iniciales seguras del equipo.</p>
   </aside>
 </section>
 {% endblock %}

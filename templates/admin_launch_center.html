@@ -1,53 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
+{% set launch = data.get('launch') or {} %}
 <section class="app-hero compact-hero launch-hero">
   <div>
     <div class="kicker">Centro de lanzamiento comercial</div>
-    <h1>Orden final antes de comercializar NeMeSiS SHARK PRO.</h1>
-    <p class="lead">Revisión ejecutiva de cliente, datos, picks, Telegram, admin y readiness real. Este panel es solo para ADMIN.</p>
-    <div class="actions">
-      <a class="btn primary" href="/admin/data-center">Centro de datos</a>
-      <a class="btn" href="/admin/picks">Picks</a>
-      <a class="btn" href="/admin/betting-center">Recomendaciones</a>
-      <a class="btn" href="/admin/telegram">Telegram</a>
-    </div>
+    <h1>Orden final antes de comercializar NeMeSiS.</h1>
+    <p class="lead">Cliente, datos, picks, Telegram, admin y readiness real. Solo ADMIN.</p>
+    <div class="actions"><a class="btn primary" href="/admin/data-center">Datos</a><a class="btn" href="/admin/picks">Picks</a><a class="btn" href="/admin/betting-center">Recomendaciones</a><a class="btn" href="/admin/telegram">Telegram</a></div>
   </div>
   <aside class="hero-panel">
-    <div class="panel-top"><span>Preparación comercial</span><strong>{{ data.launch.score }}%</strong></div>
-    <div class="signal"><span>Launch readiness</span><i style="width:{{ data.launch.score }}%"></i></div>
-    <p class="small">Basado en usuarios, calendario, resultados, equipos, escudos, picks, recomendaciones, Telegram y admin.</p>
+    <div class="panel-top"><span>Preparación comercial</span><strong>{{ launch.get('score', 0) }}%</strong></div>
+    <div class="signal"><span>Launch readiness</span><i style="width:{{ launch.get('score', 0) }}%"></i></div>
+    <p class="small">Basado en datos locales disponibles. No certifica producción.</p>
   </aside>
 </section>
-
 <section class="band compact-band">
   <div class="section-head"><h2>Estado por áreas</h2><span class="pill">QA comercial</span></div>
   <div class="grid compact-grid">
-    {% for item in data.launch.items %}
-    <article class="card launch-card {% if item.ok %}is-ok{% else %}is-warning{% endif %}">
-      <span class="badge">{{ 'OK' if item.ok else 'Revisar' }}</span>
-      <h3>{{ item.area }}</h3>
-      <p class="small">{{ item.detail }}</p>
-    </article>
-    {% endfor %}
+    {% for item in launch.get('items') or [] %}
+    <article class="card launch-card {% if item.get('status') == 'OK' or item.get('ok') %}is-ok{% else %}is-warning{% endif %}"><span class="badge">{{ item.get('status') or ('OK' if item.get('ok') else 'Revisar') }}</span><h3>{{ item.get('area') or item.get('title') }}</h3><p class="small">{{ item.get('detail') or item.get('body') }}</p></article>
+    {% else %}<article class="card launch-card is-warning"><span class="badge">Pendiente</span><h3>Sin checklist</h3><p class="small">No hay áreas registradas.</p></article>{% endfor %}
   </div>
 </section>
-
 <section class="band two-col compact-band">
   <div>
     <div class="section-head"><h2>Acciones prioritarias</h2><span class="pill">Siguiente paso</span></div>
-    <div class="stack">
-      {% for action in data.launch.actions %}
-      <div class="list-row"><span><strong>{{ action.title }}</strong><small>{{ action.body }}</small></span><em>{{ action.priority }}</em></div>
-      {% endfor %}
-    </div>
+    <div class="stack">{% for action in launch.get('actions') or [] %}<div class="list-row"><span><strong>{{ action.get('title') if action is mapping else action }}</strong><small>{{ action.get('body') if action is mapping else '' }}</small></span><em>{{ action.get('priority') if action is mapping else 'Revisar' }}</em></div>{% else %}<div class="list-row"><span>Sin acciones pendientes.</span><em>OK</em></div>{% endfor %}</div>
   </div>
   <div>
     <div class="section-head"><h2>Métricas internas</h2><span class="pill">No cliente</span></div>
-    <div class="grid dense-grid">
-      {% for key, value in data.launch.metrics.items() %}
-      <div class="mini-stat"><span>{{ key }}</span><strong>{{ value }}</strong></div>
-      {% endfor %}
-    </div>
+    <div class="grid dense-grid">{% for key, value in (launch.get('metrics') or {}).items() %}<div class="mini-stat"><span>{{ key }}</span><strong>{{ value }}</strong></div>{% else %}<div class="mini-stat"><span>Sin métricas</span><strong>0</strong></div>{% endfor %}</div>
   </div>
 </section>
 {% endblock %}

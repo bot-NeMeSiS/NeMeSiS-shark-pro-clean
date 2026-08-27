@@ -4,7 +4,7 @@
   <div>
     <div class="kicker">Beta Program</div>
     <h1>Beta Center</h1>
-    <p class="lead">Centro interno para revisar feedback estructurado, errores reproducibles, solicitudes y satisfacci?n antes de abrir la beta cerrada.</p>
+    <p class="lead">Centro interno para revisar feedback estructurado, errores reproducibles, solicitudes y satisfacción antes de abrir la beta cerrada.</p>
   </div>
   <aside class="hero-panel">
     <div class="live-strip">
@@ -13,7 +13,7 @@
       <div><span>Abiertos</span><strong>{{ beta.counts.open_items }}</strong></div>
       <div><span>Estado</span><strong>{{ beta.status }}</strong></div>
     </div>
-    <p class="small muted">Read-only para administraci?n. No env?a Telegram, no llama Stripe y no modifica producci?n.</p>
+    <p class="small muted">Read-only para administración. No envía Telegram, no llama Stripe y no modifica producción.</p>
   </aside>
 </section>
 
@@ -46,19 +46,19 @@
 </section>
 
 <section class="band compact-band beta-program-v1">
-  <div class="section-head"><h2>Feedback reciente</h2><span class="pill">?ltimos 12</span></div>
+  <div class="section-head"><h2>Feedback reciente</h2><span class="pill">Últimos 12</span></div>
   <div class="stack beta-feedback-list">
     {% for item in beta.recent_feedback %}
     <article class="list-row beta-feedback-row">
       <span>
         <strong>{{ item.title }}</strong><br>
-        <small>{{ item.feedback_type }} ? {{ item.category }} ? {{ item.severity }} ? {{ item.route }}</small><br>
+        <small>{{ item.feedback_type }} · {{ item.category }} · {{ item.severity }} · {{ item.route }}</small><br>
         <small>{{ item.message }}</small>
       </span>
       <strong>{{ item.status }}</strong>
     </article>
     {% else %}
-    <div class="empty-state"><h3>A?n no hay feedback beta</h3><p>Comparte /beta con testers reales cuando la beta cerrada est? autorizada.</p></div>
+    <div class="empty-state"><h3>Aún no hay feedback beta</h3><p>Comparte /beta con testers reales cuando la beta cerrada está autorizada.</p></div>
     {% endfor %}
   </div>
 </section>
@@ -66,8 +66,8 @@
 <section class="band compact-band beta-program-v1">
   <div class="section-head"><h2>Privacidad y reproducibilidad</h2><span class="pill">PASS local</span></div>
   <div class="grid cards-3">
-    <article class="card"><span class="badge">Privacidad</span><h3>Datos minimizados</h3><p class="small">No se guardan correos, tel?fonos, tokens, tarjetas ni contrase?as. El usuario queda seudonimizado.</p></article>
-    <article class="card"><span class="badge">Control</span><h3>M?tricas opcionales</h3><p class="small">Cada env?o permite desactivar su uso en m?tricas agregadas.</p></article>
+    <article class="card"><span class="badge">Privacidad</span><h3>Datos minimizados</h3><p class="small">No se guardan correos, teléfonos, tokens, tarjetas ni contraseñas. El usuario queda seudonimizado.</p></article>
+    <article class="card"><span class="badge">Control</span><h3>Métricas opcionales</h3><p class="small">Cada envío permite desactivar su uso en métricas agregadas.</p></article>
     <article class="card"><span class="badge">Errores</span><h3>Reproducibles</h3><p class="small">Los bugs requieren pasos, resultado esperado y resultado real.</p></article>
   </div>
 </section>
@@ -82,7 +82,7 @@
 </section>
 
 <section class="band compact-band beta-program-v1">
-  <div class="section-head"><h2>Siguiente acci?n</h2><span class="pill">Beta cerrada</span></div>
+  <div class="section-head"><h2>Siguiente acción</h2><span class="pill">Beta cerrada</span></div>
   <div class="card"><p>{{ beta.next_action }}</p></div>
 </section>
 {% endblock %}

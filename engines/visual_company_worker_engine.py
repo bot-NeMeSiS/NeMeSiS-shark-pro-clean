@@ -215,7 +215,7 @@ APPROVAL_REQUIRED_ACTIONS = [
 ]
 
 BLOCKED_ACTIONS = [
-    "auto-code en produccion",
+    "auto-code en producción",
     "auto-deploy",
     "tocar secretos",
     "borrar DB o usuarios",
@@ -278,10 +278,10 @@ def _issue(route: str, profile: str, category: str, severity: str, title: str, e
 def build_codex_prompt(route: str, category: str, severity: str, evidence: str) -> str:
     return (
         "Actua como equipo completo de NeMeSiS SHARK PRO. "
-        f"Prioridad {severity}. Ruta afectada: {route}. Categoria: {category}. "
+        f"Prioridad {severity}. Ruta afectada: {route}. Categoría: {category}. "
         f"Evidencia: {evidence[:220]}. "
         "Corrige solo el defecto real, preserva V818-V883, DB_PATH, usuarios, pagos, Telegram, SHARK, "
-        "API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automatico. "
+        "API-SPORTS y seguridad. No inventes datos, no toques secretos, no hagas deploy automático. "
         "Valida py_compile, compileall, Sentinel, smoke local y ZIP limpio."
     )
 
@@ -300,7 +300,7 @@ def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
     if status >= 500:
         issues.append(_issue(route, profile, "route", "critical", "Ruta con error 5xx", f"HTTP {status}", "Corregir error de servidor antes de avanzar."))
     if route.startswith("/admin/") and status not in {200, 302, 303, 401, 403}:
-        issues.append(_issue(route, profile, "admin", "high", "Ruta admin con estado inesperado", f"HTTP {status}", "Revisar proteccion y handler admin."))
+        issues.append(_issue(route, profile, "admin", "high", "Ruta admin con estado inesperado", f"HTTP {status}", "Revisar protección y handler admin."))
     if not route.startswith("/admin/") and status not in {200, 302, 303, 401, 403}:
         issues.append(_issue(route, profile, "client", "medium", "Ruta cliente con estado inesperado", f"HTTP {status}", "Revisar ruta o alias cliente."))
 

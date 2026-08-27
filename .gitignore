@@ -113,3 +113,5 @@ data/local_dev/
 tools/local_desktop/*.local.json
 tools/local_desktop/*.pid
 tools/local_desktop/*.log
+# Master finalization reproducible audit artifact
+reports/master_finalization/master_finalization_audit.json

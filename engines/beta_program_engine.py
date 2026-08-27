@@ -21,7 +21,7 @@ BETA_METRICS_CONTRACT = "NEMESIS-BETA-METRICS-V1"
 FEEDBACK_TYPES = {
     "bug": "Bug reproducible",
     "feature_request": "Solicitud de mejora",
-    "satisfaction": "Satisfacci?n",
+    "satisfaction": "Satisfacción",
     "general": "Feedback general",
 }
 
@@ -30,14 +30,14 @@ FEEDBACK_CATEGORIES = {
     "calendar": "Calendario",
     "match_center": "Centro de partido",
     "team_center": "Centro de equipo",
-    "competition_center": "Centro de competici?n",
+    "competition_center": "Centro de competición",
     "player_center": "Centro de jugador",
     "shark": "SHARK",
     "telegram": "Telegram",
-    "memberships": "Membres?as",
+    "memberships": "Membresías",
     "action_platform": "Action Platform",
     "user_intelligence": "Inteligencia de usuario",
-    "mobile": "M?vil",
+    "mobile": "Móvil",
     "account": "Cuenta",
     "support": "Soporte",
     "other": "Otro",
@@ -53,7 +53,7 @@ SEVERITIES = {
 DEVICES = {
     "desktop": "Desktop",
     "tablet": "Tablet",
-    "mobile": "M?vil",
+    "mobile": "Móvil",
     "unknown": "No indicado",
 }
 
@@ -86,7 +86,7 @@ def choice(value: Any, allowed: Mapping[str, str], default: str) -> str:
 
 
 def bool_choice(value: Any) -> bool:
-    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s?", "on", "checked"}
+    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "sí", "on", "checked"}
 
 
 def safe_internal_route(value: Any) -> str:
@@ -151,18 +151,18 @@ def sanitize_beta_feedback_payload(form: Mapping[str, Any], user: Mapping[str, A
     errors: list[str] = []
     text_values = [payload["title"], payload["message"], payload["steps_to_reproduce"], payload["expected_result"], payload["actual_result"]]
     if contains_sensitive_text(*text_values):
-        errors.append("Retira correos, tel?fonos, tarjetas, contrase?as, tokens o claves antes de enviar el feedback.")
+        errors.append("Retira correos, teléfonos, tarjetas, contraseñas, tokens o claves antes de enviar el feedback.")
     if not payload["title"]:
-        errors.append("Anade un titulo breve para clasificar el feedback.")
+        errors.append("Añade un título breve para clasificar el feedback.")
     if not payload["message"]:
-        errors.append("Describe que has visto y que esperabas que ocurriera.")
+        errors.append("Describe qué has visto y qué esperabas que ocurriera.")
     if feedback_type == "bug":
         if not payload["steps_to_reproduce"]:
             errors.append("Para reportar un bug necesitamos pasos para reproducirlo.")
         if not payload["expected_result"] or not payload["actual_result"]:
             errors.append("Para reportar un bug indica resultado esperado y resultado real.")
     if feedback_type == "satisfaction" and satisfaction_score is None:
-        errors.append("La satisfacci?n debe tener una puntuacion de 1 a 5.")
+        errors.append("La satisfacción debe tener una puntuación de 1 a 5.")
     return payload, errors
 
 
@@ -222,22 +222,22 @@ def build_beta_program_snapshot(
         "platform_score": platform_score,
         "score_explanation": [
             "Base 70 por infraestructura local de beta y privacidad.",
-            "Suma solo se?ales explicitas de feedback, bugs, solicitudes, satisfacci?n y consentimiento de m?tricas.",
-            "No mide ?xito comercial ni satisfacci?n real si no existen respuestas suficientes.",
+            "Suma solo señales explícitas de feedback, bugs, solicitudes, satisfacción y consentimiento de métricas.",
+            "No mide éxito comercial ni satisfacción real si no existen respuestas suficientes.",
         ],
         "metrics": [
-            metric_definition("feedback_total", "Feedback recibido", feedback_total, "beta_feedback", "Total de envios explicitos realizados desde el Beta Center.", "No incluye conversaciones externas ni mensajes no registrados."),
-            metric_definition("bug_total", "Bugs reportados", bug_total, "beta_feedback", "Envios clasificados como bug con estructura reproducible.", "Un bug reportado no equivale a bug confirmado hasta revision humana."),
-            metric_definition("feature_total", "Solicitudes", feature_total, "beta_feedback", "Envios clasificados como solicitud de mejora.", "No implica aprobaci?n de roadmap."),
-            metric_definition("satisfaction_average", "Satisfacci?n media", satisfaction_average if satisfaction_average is not None else "No certificada", "beta_feedback", "Media de puntuaciones 1-5 enviadas voluntariamente.", "No se interpreta con muestras peque?as."),
-            metric_definition("metrics_enabled", "Metricas aceptadas", metrics_enabled, "beta_feedback", "Envios donde el usuario permite usar el feedback para m?tricas agregadas.", "El usuario puede desactivar esta medici?n en cada envio."),
-            metric_definition("metrics_disabled", "Metricas desactivadas", metrics_disabled, "beta_feedback", "Envios donde el usuario no permite uso agregado para m?tricas.", "El feedback se conserva para soporte si se envio, pero no se usa en m?tricas agregadas."),
+            metric_definition("feedback_total", "Feedback recibido", feedback_total, "beta_feedback", "Total de envíos explicitos realizados desde el Beta Center.", "No incluye conversaciones externas ni mensajes no registrados."),
+            metric_definition("bug_total", "Bugs reportados", bug_total, "beta_feedback", "Envios clasificados como bug con estructura reproducible.", "Un bug reportado no equivale a bug confirmado hasta revisión humana."),
+            metric_definition("feature_total", "Solicitudes", feature_total, "beta_feedback", "Envios clasificados como solicitud de mejora.", "No implica aprobación de roadmap."),
+            metric_definition("satisfaction_average", "Satisfacción media", satisfaction_average if satisfaction_average is not None else "No certificada", "beta_feedback", "Media de puntuaciónes 1-5 enviadas voluntariamente.", "No se interpreta con muestras pequeñas."),
+            metric_definition("metrics_enabled", "Métricas aceptadas", metrics_enabled, "beta_feedback", "Envios donde el usuario permite usar el feedback para métricas agregadas.", "El usuario puede desactivar esta medici?n en cada envio."),
+            metric_definition("metrics_disabled", "Métricas desactivadas", metrics_disabled, "beta_feedback", "Envios donde el usuario no permite uso agregado para métricas.", "El feedback se conserva para soporte si se envio, pero no se usa en métricas agregadas."),
         ],
         "feedback_sections": [
             {"key": "bug", "title": "Bug Reporter", "purpose": "Registrar errores reproducibles con pasos, resultado esperado y resultado real."},
-            {"key": "feature_request", "title": "Feature Requests", "purpose": "Estructurar sugerencias sin convertirlas autom?ticamente en roadmap."},
-            {"key": "satisfaction", "title": "Satisfaction", "purpose": "Medir percepcion voluntaria y agregada con posibilidad de desactivar metrica."},
-            {"key": "general", "title": "Feedback Center", "purpose": "Recoger claridad, friccion, valor percibido y problemas no tecnicos."},
+            {"key": "feature_request", "title": "Feature Requests", "purpose": "Estructurar sugerencias sin convertirlas automáticamente en roadmap."},
+            {"key": "satisfaction", "title": "Satisfaction", "purpose": "Medir percepción voluntaria y agregada con posibilidad de desactivar métrica."},
+            {"key": "general", "title": "Feedback Center", "purpose": "Recoger claridad, fricción, valor percibido y problemas no técnicos."},
         ],
         "privacy_controls": {
             "stores_sensitive_information": False,

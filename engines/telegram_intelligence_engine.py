@@ -371,7 +371,7 @@ def build_telegram_intelligence_snapshot(
         "telegram_api_called": False,
         "database_written": False,
         "limitations": [
-            "No se valida el token ni el destino de producci?n desde esta lectura local.",
+            "No se valida el token ni el destino de producción desde esta lectura local.",
             "No se ejecuta env?o real, ni siquiera cuando existe un preview listo.",
         ],
     }

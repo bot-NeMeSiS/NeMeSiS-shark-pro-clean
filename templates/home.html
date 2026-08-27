@@ -83,7 +83,7 @@
         <h2 id="launch-onboarding-title">Entiende NeMeSiS en 30 segundos</h2>
         <p>Una guia ligera para saber que mirar primero. Puedes omitirla ahora y volver a usar los accesos de la Home cuando quieras.</p>
       </div>
-      <button class="v933-action is-blue" type="button" data-launch-onboarding-dismiss aria-label="Omitir guia inicial"><span>Omitir guia</span></button>
+      <button class="v933-action is-blue" type="button" data-launch-onboarding-dismiss aria-label="Omitir guía inicial"><span>Omitir guía</span></button>
     </div>
     <div class="v933-launch-guide-grid">
       <a class="v933-launch-step" href="/calendar" data-launch-step="home">
@@ -144,7 +144,7 @@
         {{ icon('arrow') }}
         <span>Continuar</span>
         <strong>Smart Home</strong>
-        <small>Tu siguiente accion util.</small>
+        <small>Tu siguiente acción útil.</small>
       </a>
       <a class="v933-launch-memory-card" href="/calendar" data-launch-last-match="true">
         {{ icon('live') }}
@@ -241,7 +241,7 @@
           {% for match in matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}
         </div>
         {% else %}
-          {{ empty_state('Sin agenda real cargada', safe_message, 'Ver está semana', '/calendar?lane=week', 'calendar') }}
+          {{ empty_state('Sin agenda real cargada', safe_message, 'Ver esta semana', '/calendar?lane=week', 'calendar') }}
         {% endif %}
       </section>
 

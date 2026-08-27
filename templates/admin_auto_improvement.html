@@ -5,7 +5,7 @@
   <header class="v861-auto-hero">
     <span>NeMeSiS Auto-Improvement OS</span>
     <h1>Mejora Continua SHARK</h1>
-    <p>Sistema interno de diagnóstico, priorización y prompts para Codex. No modifica código, no despliega, no toca secretos, no borra datos y no envía Telegram real.</p>
+    <p>Sistema interno de diagnóstico, priorización y briefs para Codex. No modifica código, no despliega, no toca secretos, no borra datos y no envía Telegram real.</p>
     <div class="v861-auto-actions">
       {{ action_button('Empresa OS', '/admin/company-os', 'neutral') }}
       {{ action_button('Product Board', '/admin/company-audit', 'neutral') }}
@@ -18,7 +18,7 @@
   <section class="v861-auto-summary v860-kpi-row">
     {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Diagnóstico seguro', 'brand') }}
     {{ stat_card('Health score', summary.health_score ~ '/10', 'Score interno, no comercial', 'info') }}
-    {{ stat_card('Modo', summary.mode, 'dry_run=' ~ summary.dry_run, 'warning') }}
+    {{ stat_card('Modo', summary.mode, 'Simulación segura', 'warning') }}
     {{ stat_card('Seguridad', 'Sin secretos', 'Sin deploy ni cambios de código', 'success') }}
   </section>
 
@@ -47,7 +47,7 @@
       <p><strong>Siguiente foco:</strong> {{ area.next_focus }}</p>
     </article>
     {% else %}
-    {{ empty_state('Sin diagnóstico', 'No hay areas cargadas en Auto-Improvement OS.', '', '', 'muted') }}
+    {{ empty_state('Sin diagnóstico', 'No hay áreas cargadas en Auto-Improvement OS.', '', '', 'muted') }}
     {% endfor %}
   </section>
 
@@ -61,7 +61,7 @@
       </ul>
     </article>
     <article>
-      <h2>Prohibido automatico</h2>
+      <h2>Prohibido automático</h2>
       <ul>
         {% for action in summary.forbidden_automatic_actions %}
         <li>{{ action }}</li>
@@ -71,8 +71,8 @@
   </section>
 
   <section class="v861-prompt-panel">
-    <h2>Prompts sugeridos para Codex</h2>
-    <p>Texto copiable. El sistema no ejecuta estos prompts por si solo.</p>
+    <h2>Briefs sugeridos para Codex</h2>
+    <p>Texto copiable. El sistema no ejecuta estos briefs por sí solo.</p>
     <div class="v861-prompt-list">
       {% for prompt in summary.codex_prompt_suggestions %}
       <code>{{ prompt }}</code>
@@ -91,9 +91,9 @@
       </div>
     </article>
     <article>
-      <h2>Endpoints seguros</h2>
-      <p><code>/api/admin/auto-improvement/summary</code> requiere sesión admin.</p>
-      <p><code>/api/automation/auto-improvement/run?dry_run=1</code> requiere AUTOMATION_SECRET.</p>
+      <h2>Accesos técnicos</h2>
+      <p>El resumen requiere sesión admin.</p>
+      <p>La ejecución programada requiere clave de automatización configurada. Los secretos no se muestran.</p>
     </article>
   </section>
 </section>

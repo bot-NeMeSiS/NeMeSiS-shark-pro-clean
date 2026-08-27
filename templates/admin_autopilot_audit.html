@@ -1,126 +1,83 @@
 {% extends "base.html" %}
 {% block content %}
+{% set audit = data.get('autopilot_audit') or {} %}
+{% set counts = audit.get('counts') or {} %}
+{% set config = audit.get('config') or {} %}
 <section class="hero compact">
-  <div class="kicker">Admin - Piloto automático de picks</div>
-  <h1>Piloto automático SHARK</h1>
-  <p class="lead">Auditoría del ciclo que genera picks, evita duplicados, encola Telegram y procesa el envío sin intervención manual.</p>
+  <div class="kicker">Admin · Autopilot read-only</div>
+  <h1>Piloto SHARK en modo seguro.</h1>
+  <p class="lead">Estado de candidatos, deduplicación, cola y límites. Esta pantalla no envía Telegram ni fuerza cron.</p>
   <div class="actions">
     <a class="btn" href="/admin/telegram-audit">Auditoría Telegram</a>
     <a class="btn" href="/admin/picks">Picks</a>
-    <a class="btn" href="/api/scheduler/status">Estado del programador</a>
+    <a class="btn" href="/api/scheduler/status">Programador</a>
   </div>
 </section>
-
-{% if message %}<section class="band"><div class="notice">{{ message }}</div></section>{% endif %}
 
 <section class="band">
   <div class="grid compact-grid">
-    <div class="card"><div class="metric">{{ audit.counts.cycles }}</div><div class="muted">ciclos</div></div>
-    <div class="card"><div class="metric">{{ audit.counts.matches_analyzed }}</div><div class="muted">partidos analizados</div></div>
-    <div class="card"><div class="metric">{{ audit.counts.candidates }}</div><div class="muted">candidatos</div></div>
-    <div class="card"><div class="metric">{{ audit.counts.discarded }}</div><div class="muted">descartados</div></div>
-    <div class="card"><div class="metric">{{ audit.counts.saved }}</div><div class="muted">picks guardados</div></div>
-    <div class="card"><div class="metric">{{ audit.counts.sent }}</div><div class="muted">enviados</div></div>
+    <div class="card"><div class="metric">{{ counts.get('cycles', 0) }}</div><div class="muted">ciclos observados</div></div>
+    <div class="card"><div class="metric">{{ counts.get('matches_analyzed', 0) }}</div><div class="muted">partidos revisados</div></div>
+    <div class="card"><div class="metric">{{ counts.get('candidates', 0) }}</div><div class="muted">candidatos</div></div>
+    <div class="card"><div class="metric">{{ counts.get('discarded', 0) }}</div><div class="muted">descartados</div></div>
+    <div class="card"><div class="metric">{{ counts.get('saved', 0) }}</div><div class="muted">picks guardados</div></div>
+    <div class="card"><div class="metric">{{ counts.get('sent', 0) }}</div><div class="muted">enviados</div></div>
   </div>
 </section>
 
 <section class="band two-col">
   <div class="card">
-    <h2>Configuración</h2>
-    <p class="small">Generar picks: {% if audit.config.auto_generate_picks %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Enviar Telegram: {% if audit.config.auto_send_telegram_picks %}activo{% else %}desactivado{% endif %}</p>
-    <p class="small">Score mínimo: {{ audit.config.min_shark_score_for_auto_send }}</p>
-    <p class="small">Máximo diario: {{ audit.config.max_auto_picks_per_day }}</p>
-    <p class="small">Ventana Telegram: {{ audit.config.telegram_auto_send_window_hours }} h</p>
-    <p class="small">Próximo ciclo estimado: {{ audit.next_cycle_estimated or 'pendiente' }}</p>
+    <h2>Configuración segura</h2>
+    <p class="small">Generar picks: {% if config.get('auto_generate_picks') %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Enviar Telegram: {% if config.get('auto_send_telegram_picks') %}activo{% else %}desactivado{% endif %}</p>
+    <p class="small">Score mínimo: {{ config.get('min_shark_score_for_auto_send', 0) }}</p>
+    <p class="small">Máximo diario: {{ config.get('max_auto_picks_per_day', 0) }}</p>
+    <p class="small">Ventana: {{ config.get('telegram_auto_send_window_hours', 'pendiente') }}</p>
+    <p class="small">Próximo ciclo estimado: {{ audit.get('next_cycle_estimated') or 'pendiente' }}</p>
   </div>
   <div class="card">
-    <h2>Acciones de verificación</h2>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input type="hidden" name="action" value="run">
-      <label>Límite de candidatos</label>
-      <input name="limit" value="40">
-      <label><input type="checkbox" name="force" value="1"> Forzar ciclo ignorando ventana diaria</label>
-      <button class="primary" type="submit">Ejecutar ciclo ahora</button>
-    </form>
-    <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input type="hidden" name="action" value="process_queue">
-      <button type="submit">Procesar cola Telegram</button>
-    </form>
+    <h2>Acciones protegidas</h2>
+    <p class="small">Los envíos reales, el procesado de cola y el cron siguen bloqueados hasta autorización expresa.</p>
+    <a class="btn" href="/admin/telegram/command-center">Ver estado Telegram</a>
   </div>
 </section>
 
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Últimos ciclos</h2><span class="pill">{{ audit.cycles|length }}</span></div>
+    <div class="section-head"><h2>Últimos ciclos</h2><span class="pill">{{ (audit.get('cycles') or [])|length }}</span></div>
     <div class="stack">
-      {% for cycle in audit.cycles %}
-      <div class="list-row">
-        <span>{{ (cycle.created_at)|madrid_datetime_label }}<br><small>analizados {{ cycle.matches_analyzed }} - candidatos {{ cycle.candidates }} - guardados {{ cycle.saved }} - cola {{ cycle.queued }} - enviados {{ cycle.sent }}</small></span>
-        <strong>{{ cycle.status }}</strong>
-      </div>
-      {% else %}
-      <div class="empty">Aún no hay ciclos automáticos registrados.</div>
-      {% endfor %}
+      {% for cycle in audit.get('cycles') or [] %}
+      <div class="list-row"><span>{{ cycle.get('created_at')|madrid_datetime_label if cycle.get('created_at') else 'Sin fecha' }}<br><small>{{ cycle.get('message') or cycle.get('event_type') or 'Registro observado' }}</small></span><strong>{{ cycle.get('status') or 'INFO' }}</strong></div>
+      {% else %}<div class="empty">Aún no hay ciclos automáticos registrados.</div>{% endfor %}
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Motivos de descarte</h2><span class="pill">{{ audit.discard_reasons|length }}</span></div>
+    <div class="section-head"><h2>Motivos de descarte</h2><span class="pill">{{ (audit.get('discard_reasons') or [])|length }}</span></div>
     <div class="stack">
-      {% for item in audit.discard_reasons %}
-      <div class="list-row"><span>{{ item.reason or 'sin motivo' }}</span><strong>{{ item.total }}</strong></div>
-      {% else %}
-      <div class="empty">Sin descartes registrados.</div>
-      {% endfor %}
+      {% for item in audit.get('discard_reasons') or [] %}
+      <div class="list-row"><span>{{ item.get('reason') or item.get('code') or 'sin motivo' }}</span><strong>{{ item.get('total', 0) }}</strong></div>
+      {% else %}<div class="empty">Sin descartes registrados.</div>{% endfor %}
     </div>
   </div>
 </section>
 
 <section class="band">
-  <div class="section-head"><h2>Decisiones recientes</h2><span class="pill">{{ audit.decisions|length }}</span></div>
+  <div class="section-head"><h2>Decisiones recientes</h2><span class="pill">{{ (audit.get('decisions') or [])|length }}</span></div>
   <div class="stack">
-    {% for item in audit.decisions[:40] %}
-    <div class="list-row">
-      <span>{{ item.selection }}<br><small>{{ item.match_id }} - score {{ item.score }} - {{ item.reason }} - pick {{ item.pick_id or '-' }}</small></span>
-      <strong>{{ item.status }}</strong>
-    </div>
-    {% else %}
-    <div class="empty">Aún no hay candidatos evaluados.</div>
-    {% endfor %}
+    {% for item in (audit.get('decisions') or [])[:40] %}
+    <div class="list-row"><span>{{ item.get('partido') or item.get('selection') or item.get('id') or 'Candidato' }}<br><small>{{ (item.get('reasons') or item.get('reason') or item.get('status') or 'evidencia insuficiente') }}</small></span><strong>{{ item.get('confidence') or item.get('score') or '-' }}</strong></div>
+    {% else %}<div class="empty">Aún no hay candidatos evaluados.</div>{% endfor %}
   </div>
 </section>
 
 <section class="band two-col">
   <div>
-    <div class="section-head"><h2>Cola pick publicado</h2><span class="pill">{{ audit.queue|length }}</span></div>
-    <div class="stack">
-      {% for q in audit.queue[:20] %}
-      <div class="list-row"><span>{{ q.title }}<br><small>{{ (q.created_at)|madrid_datetime_label }} - {{ q.error_message }}</small></span><strong>{{ q.status }}</strong></div>
-      {% else %}
-      <div class="empty">Sin mensajes de pick publicado recientes.</div>
-      {% endfor %}
-    </div>
+    <div class="section-head"><h2>Cola</h2><span class="pill">{{ (audit.get('queue') or [])|length }}</span></div>
+    <div class="stack">{% for q in (audit.get('queue') or [])[:20] %}<div class="list-row"><span>{{ q.get('title') or q.get('message_type') or 'Mensaje' }}<br><small>{{ q.get('created_at')|madrid_datetime_label if q.get('created_at') else '' }} · {{ q.get('error_message') or 'sin error' }}</small></span><strong>{{ q.get('status') or 'Pendiente' }}</strong></div>{% else %}<div class="empty">Sin mensajes recientes en cola.</div>{% endfor %}</div>
   </div>
   <div>
-    <div class="section-head"><h2>Logs</h2><span class="pill">{{ audit.recent_logs|length }}</span></div>
-    <div class="stack">
-      {% for log in audit.recent_logs[:20] %}
-      <div class="list-row"><span>{{ log.message }}<br><small>{{ (log.created_at)|madrid_datetime_label }}</small></span><strong>{{ log.status }}</strong></div>
-      {% else %}
-      <div class="empty">Sin registros del piloto automático todavía.</div>
-      {% endfor %}
-    </div>
+    <div class="section-head"><h2>Logs</h2><span class="pill">{{ (audit.get('recent_logs') or [])|length }}</span></div>
+    <div class="stack">{% for log in (audit.get('recent_logs') or [])[:20] %}<div class="list-row"><span>{{ log.get('message') or log.get('event_type') or 'Registro observado' }}<br><small>{{ log.get('created_at')|madrid_datetime_label if log.get('created_at') else '' }}</small></span><strong>{{ log.get('status') or 'INFO' }}</strong></div>{% else %}<div class="empty">Sin registros recientes.</div>{% endfor %}</div>
   </div>
 </section>
-
-{% if result %}
-<section class="band">
-  <div class="card">
-    <h2>Resultado</h2>
-    <pre class="small">{{ result }}</pre>
-  </div>
-</section>
-{% endif %}
 {% endblock %}

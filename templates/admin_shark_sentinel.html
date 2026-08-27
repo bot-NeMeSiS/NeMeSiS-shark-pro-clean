@@ -5,7 +5,7 @@
   <header class="v862-sentinel-hero">
     <span>SHARK Sentinel Bot</span>
     <h1>Bot Auditor de Experiencia Real</h1>
-    <p>Inspector seguro que simula perfiles de usuario, revisa rutas y pantallas, clasifica incidencias y genera prompts para Codex. No modifica código, no despliega, no toca secretos y no inventa datos.</p>
+    <p>Inspector seguro que simula perfiles de usuario, revisa rutas y pantallas, clasifica incidencias y genera briefs para Codex. No modifica código, no despliega, no toca secretos y no inventa datos.</p>
     <div class="v862-sentinel-actions">
       <button class="ns-button ns-button-primary" type="button" data-shark-sentinel-run="quick">Ejecutar diagnóstico admin</button>
       {{ action_button('Mejora continua', '/admin/auto-improvement', 'neutral') }}
@@ -87,8 +87,8 @@
   </section>
 
   <section class="v862-prompt-panel">
-    <h2>Prompts sugeridos para Codex</h2>
-    <p>El Sentinel los prepara como texto copiable. No ejecuta Codex ni cambia producción.</p>
+    <h2>Briefs sugeridos para Codex</h2>
+    <p>El Sentinel prepara briefs copiables. No ejecuta Codex ni cambia producción.</p>
     <div class="v862-prompt-list">
       {% for prompt in summary.codex_prompt_suggestions %}
       <code>{{ prompt }}</code>
@@ -98,10 +98,10 @@
 
   <section class="v862-sentinel-panels">
     <article>
-      <h2>APIs seguras</h2>
-      <p><code>/api/admin/shark-sentinel/summary</code> requiere sesión admin.</p>
-      <p><code>/api/admin/shark-sentinel/run</code> requiere sesión admin.</p>
-      <p><code>/api/automation/shark-sentinel/run?dry_run=1</code> requiere AUTOMATION_SECRET.</p>
+      <h2>Accesos técnicos</h2>
+      <p>El resumen requiere sesión admin.</p>
+      <p>El diagnóstico manual se ejecuta en modo seguro desde esta pantalla.</p>
+      <p>La ejecución programada requiere clave de automatización configurada. Los secretos no se muestran.</p>
     </article>
     <article>
       <h2>Modo navegador</h2>
@@ -118,7 +118,7 @@
   const routesEl = document.getElementById("v901-shark-sentinel-routes");
   const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
   function setText(el, value) {
-    if (el) el.textContent = String(value ? "Sin datos");
+    if (el) el.textContent = String(value || "Sin datos");
   }
   if (!button) return;
   button.addEventListener("click", async () => {

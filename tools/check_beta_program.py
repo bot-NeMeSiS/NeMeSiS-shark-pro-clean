@@ -81,7 +81,7 @@ def _program_report(snapshot: dict, result: dict) -> str:
 
 {'PASS LOCAL' if result['ok'] else 'BLOCKED'}.
 
-Beta Program queda preparado para beta cerrada con usuarios reales. No crea m?dulos deportivos, no usa IA, no llama APIs externas, no env?a Telegram, no ejecuta Stripe, no modifica producci?n, no hace push y no hace deploy.
+Beta Program queda preparado para beta cerrada con usuarios reales. No crea módulos deportivos, no usa IA, no llama APIs externas, no envía Telegram, no ejecuta Stripe, no modifica producción, no hace push y no hace deploy.
 
 ## Contracts
 
@@ -91,12 +91,12 @@ Beta Program queda preparado para beta cerrada con usuarios reales. No crea m?du
 
 ## Scope
 
-- Beta Center p?blico: `/beta`.
+- Beta Center público: `/beta`.
 - Feedback Center: `/feedback` y formulario estructurado.
 - Bug Reporter: errores reproducibles con pasos, esperado y real.
-- Feature Requests: sugerencias estructuradas sin aprobaci?n autom?tica.
-- Satisfaction: valoraci?n voluntaria 1-5.
-- Beta Dashboard: `/admin/beta-center`, read-only para administraci?n.
+- Feature Requests: sugerencias estructuradas sin aprobación automática.
+- Satisfaction: valoración voluntaria 1-5.
+- Beta Dashboard: `/admin/beta-center`, read-only para administración.
 
 ## Sections
 
@@ -131,15 +131,15 @@ def _feedback_report(snapshot: dict) -> str:
 
 ## Purpose
 
-Recoger errores, sugerencias, satisfacci?n y fricci?n de usuarios beta sin solicitar informaci?n sensible.
+Recoger errores, sugerencias, satisfacción y fricción de usuarios beta sin solicitar información sensible.
 
 ## Structured Feedback
 
 - `feedback_type`: bug, feature_request, satisfaction o general.
-- `category`: ?rea del producto afectada.
+- `category`: área del producto afectada.
 - `severity`: baja, media, alta o bloqueante.
 - `route`: ruta interna saneada.
-- `device_context`: desktop, tablet, m?vil o no indicado.
+- `device_context`: desktop, tablet, móvil o no indicado.
 - `title` y `message`: texto limitado y filtrado contra datos sensibles.
 - Bugs: pasos, resultado esperado y resultado real obligatorios.
 
@@ -164,18 +164,18 @@ Recoger errores, sugerencias, satisfacci?n y fricci?n de usuarios beta sin solic
 
 ## Limitation
 
-La certificaci?n es local. La beta real debe arrancar con usuarios voluntarios y revisi?n humana de cada se?al.
+La certificación es local. La beta real debe arrancar con usuarios voluntarios y revisión humana de cada señal.
 """
 
 
 def _metrics_report(snapshot: dict) -> str:
     rows = [
         {
-            "m?trica": item.get("label"),
+            "métrica": item.get("label"),
             "valor": item.get("value"),
             "fuente": item.get("source"),
-            "definici?n": item.get("definition"),
-            "limitaci?n": item.get("limitation"),
+            "definición": item.get("definition"),
+            "limitación": item.get("limitation"),
             "desactivable": item.get("user_disable_supported"),
         }
         for item in snapshot.get("metrics") or []
@@ -184,29 +184,29 @@ def _metrics_report(snapshot: dict) -> str:
 
 ## Principle
 
-Las m?tricas beta son transparentes, agregadas y desactivables por env?o. No sustituyen satisfacci?n real, conversi?n ni ?xito comercial si no existe muestra suficiente.
+Las métricas beta son transparentes, agregadas y desactivables por envío. No sustituyen satisfacción real, conversión ni éxito comercial si no existe muestra suficiente.
 
 ## Metrics
 
-{_table(rows, ['m?trica', 'valor', 'fuente', 'definici?n', 'limitaci?n', 'desactivable'])}
+{_table(rows, ['métrica', 'valor', 'fuente', 'definición', 'limitación', 'desactivable'])}
 
 ## Source
 
-Todas las m?tricas proceden de `beta_feedback`, creada localmente por env?os expl?citos del usuario.
+Todas las métricas proceden de `beta_feedback`, creada localmente por envíos explícitos del usuario.
 
 ## Not Stored
 
 - Correos.
-- Tel?fonos.
+- Teléfonos.
 - Tarjetas.
-- Contrase?as.
+- Contraseñas.
 - Tokens.
 - Claves API.
 - Datos deportivos inventados.
 
 ## External Calls
 
-0 llamadas externas, 0 Telegram, 0 Stripe, 0 producci?n.
+0 llamadas externas, 0 Telegram, 0 Stripe, 0 producción.
 """
 
 

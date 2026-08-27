@@ -17,9 +17,9 @@
   <meta property="og:title" content="{{ _meta_title }}">
   <meta property="og:description" content="{{ _meta_description }}">
   <meta property="og:url" content="{{ _canonical_url }}">
-  <meta property="og:image" content="{{ url_for('static', filename='img/nemesis-shark-official.svg', _external=true) }}?v=official-shark-1">
+  <meta property="og:image" content="{{ url_for('static', filename='img/nemesis-shark-official.svg', _external=true) }}?v=official-shark-2">
   <meta name="twitter:card" content="summary">
-  <link rel="icon" href="{{ url_for('static', filename='img/nemesis-shark-official.svg') }}?v=official-shark-1" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='img/nemesis-shark-official.svg') }}?v=official-shark-2" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
@@ -213,20 +213,20 @@
 
   {% if show_admin_nav %}
   {% set v808_admin_groups = [
-    ('Centro', [('Founder','/admin/founder-dashboard'),('Panel','/admin/control-center'),('Direccion','/admin/ceo-dashboard'),('Operaciones','/admin/operations-center'),('Recovery','/admin/recovery-simulator'),('Experimentos','/admin/experiments'),('Empresa OS','/admin/company-os'),('Company Board','/admin/company-board'),('Developer','/admin/developer-center'),('Review','/admin/product-review-center'),('Executive','/admin/executive-board'),('Go Market','/admin/go-to-market-office'),('Beta','/admin/beta-center'),('AutoPilot','/admin/sentinel-autopilot'),('Visual Worker','/admin/visual-worker'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
+    ('Centro', [('Founder','/admin/founder-dashboard'),('Panel','/admin/control-center'),('Dirección','/admin/ceo-dashboard'),('Operaciones','/admin/operations-center'),('Recovery','/admin/recovery-simulator'),('Experimentos','/admin/experiments'),('Empresa OS','/admin/company-os'),('Company Board','/admin/company-board'),('Developer','/admin/developer-center'),('Review','/admin/product-review-center'),('Executive','/admin/executive-board'),('Go Market','/admin/go-to-market-office'),('Beta','/admin/beta-center'),('AutoPilot','/admin/sentinel-autopilot'),('Visual Worker','/admin/visual-worker'),('Mejora continua','/admin/auto-improvement'),('Sentinel','/admin/shark-sentinel'),('Loop','/admin/continuous-sentinel'),('Workflow','/admin/sentinel-workflow'),('Mapa','/admin/map'),('Sistema','/admin/system'),('Rutas','/admin/route-health')]),
     ('Clientes', [('Usuarios','/admin/users'),('Membresías','/admin/memberships'),('Importar','/admin/user-import'),('Soporte','/admin/support-center')]),
     ('Datos', [('Centro de datos','/admin/data-center'),('API-SPORTS','/admin/api-sports'),('Partidos','/admin/matches-sync'),('SportsDB','/admin/sportsdb-sync'),('Memoria de datos','/admin/data-memory')]),
     ('Live / SHARK', [('Live','/admin/live-depth'),('Match IQ','/admin/match-intelligence'),('SHARK','/admin/shark-center'),('Visual','/admin/visual-experience')]),
     ('Picks', [('Picks','/admin/picks'),('Recomendaciones','/admin/recommendations'),('Rendimiento','/admin/pick-performance'),('Track Record','/admin/track-record')]),
-    ('Telegram / Auto', [('Telegram','/admin/telegram/command-center'),('Mensajes PRO','/admin/telegram/pro-preview'),('Config','/admin/telegram'),('Automatizaci?n','/admin/automation-center'),('Backups','/admin/backups')]),
+    ('Telegram / Auto', [('Telegram','/admin/telegram/command-center'),('Mensajes PRO','/admin/telegram/pro-preview'),('Config','/admin/telegram'),('Automatización','/admin/automation-center'),('Backups','/admin/backups')]),
     ('Venta / Calidad', [('Calidad','/admin/app-experience-quality'),('QA final','/admin/final-qa'),('Pagos','/admin/payments'),('Salida a producción','/admin/go-live')])
   ] %}
-  <aside class="v808-admin-rail" aria-label="Navegacion admin premium">
+  <aside class="v808-admin-rail" aria-label="Navegación admin premium">
     {{ nemesis_brand('/admin/control-center', 'admin') }}
     <nav>
       <a href="/admin/founder-dashboard">Founder <span>Empresa</span></a>
       <a href="/admin/control-center">Panel <span>Control</span></a>
-      <a href="/admin/ceo-dashboard">Direccion <span>Intelligence</span></a>
+      <a href="/admin/ceo-dashboard">Dirección <span>Intelligence</span></a>
       <a href="/admin/operations-center">Operaciones <span>Recovery</span></a>
       <a href="/admin/recovery-simulator">Recovery <span>Simulador</span></a>
       <a href="/admin/experiments">Experimentos <span>Gobernados</span></a>
@@ -294,7 +294,7 @@
 
   {% if show_floating_shark %}
   <div class="shark-widget" id="sharkWidget">
-    <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/nemesis-shark-official.svg?v=official-shark-1" alt=""><span>SHARK</span></button>
+    <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/nemesis-shark-official.svg?v=official-shark-2" alt=""><span>SHARK</span></button>
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
         <strong>SHARK IA</strong>
@@ -320,7 +320,7 @@
   {% endif %}
   {% if not current_user and not is_admin_surface and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
   <a class="v825-public-floating-shark" href="/shark" title="Abrir SHARK" aria-label="Abrir SHARK">
-    <img src="/static/img/nemesis-shark-official.svg?v=official-shark-1" alt="">
+    <img src="/static/img/nemesis-shark-official.svg?v=official-shark-2" alt="">
     <span>Abrir SHARK</span>
   </a>
   {% endif %}

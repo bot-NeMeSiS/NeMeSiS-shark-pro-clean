@@ -64,14 +64,14 @@
 ] %}
 <aside class="v933-admin-sidebar" data-nav-zone="admin-sidebar">
   <div class="v933-admin-brand">{{ nemesis_brand('/admin/dashboard', 'admin') }}</div>
-  <nav aria-label="Navegación de administraciÃ³n">
+  <nav aria-label="Navegación de administración">
     {% for label, href, icon_name in links %}
     {% set active = request.path == href or (href == '/admin/matches' and request.path in ['/admin/matches-sync']) or (href != '/admin/dashboard' and request.path.startswith(href ~ '/')) %}
     <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %} title="{{ label }}">{{ nav_icon(icon_name) }}<span>{{ label }}</span></a>
     {% endfor %}
   </nav>
   <div class="v933-admin-system-state"><i aria-hidden="true"></i><span><strong>Supervisión activa</strong><small>Estado real en Sentinel</small></span></div>
-  <a class="v933-admin-logout" href="/admin/logout">{{ nav_icon('lock') }}<span>Cerrar sesiÃ³n</span></a>
+  <a class="v933-admin-logout" href="/admin/logout">{{ nav_icon('lock') }}<span>Cerrar sesión</span></a>
 </aside>
 {%- endmacro %}
 
