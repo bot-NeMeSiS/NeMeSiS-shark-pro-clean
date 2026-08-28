@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import threading
+import time
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
@@ -539,3 +541,47 @@ def test_pqv939_007_affected_templates_remain_valid_jinja():
         "templates/admin_realtime_center.html",
     ):
         environment.parse(_read(path))
+
+
+def test_realtime_cache_single_flight_prevents_duplicate_builds():
+    cache_key = "qa:performance-p0-single-flight"
+    invalidate_realtime_cache(cache_key)
+    workers = 6
+    barrier = threading.Barrier(workers)
+    counter_lock = threading.Lock()
+    result_lock = threading.Lock()
+    builds = {"count": 0}
+    statuses = []
+    payloads = []
+
+    def builder():
+        with counter_lock:
+            builds["count"] += 1
+        time.sleep(0.05)
+        return {"ok": True, "source": "LOCAL_QA"}
+
+    def worker():
+        barrier.wait()
+        payload, status = cached_realtime_snapshot(
+            cache_key,
+            builder,
+            ttl_seconds=60,
+        )
+        with result_lock:
+            statuses.append(status)
+            payloads.append(payload)
+
+    threads = [threading.Thread(target=worker) for _ in range(workers)]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=2)
+
+        assert all(not thread.is_alive() for thread in threads)
+        assert builds["count"] == 1
+        assert statuses.count("refreshed") == 1
+        assert statuses.count("hit") == workers - 1
+        assert all(payload == {"ok": True, "source": "LOCAL_QA"} for payload in payloads)
+    finally:
+        invalidate_realtime_cache(cache_key)

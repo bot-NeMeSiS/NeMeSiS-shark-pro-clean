@@ -862,3 +862,86 @@ def test_p0_operations_quality_contract_is_compact_and_cache_only(app_module):
     assert quality["tier_sa_available"] == 1
     assert quality["tier_sa_surfaced"] == 1
     assert quality["external_calls"] == 0
+
+
+def test_p0_relevance_registry_work_stays_linear_with_large_catalog(app_module, monkeypatch):
+    calls = {"count": 0}
+    original = app_module.normalized_label
+
+    def counted(value):
+        calls["count"] += 1
+        return original(value)
+
+    monkeypatch.setattr(app_module, "normalized_label", counted)
+    competitions = [
+        ("Bundesliga", "Germany"),
+        ("Ligue 1", "France"),
+        ("Serie A", "Italy"),
+        ("K League 2", "South Korea"),
+        ("Chinese Super League", "China"),
+        ("Premier League", "England"),
+        ("Torneo sin mapear", "Unknown"),
+        ("UEFA Champions League", "Europe"),
+    ]
+    matches = [
+        _sports_relevance_match(
+            app_module,
+            f"performance-{index}",
+            competitions[index % len(competitions)][0],
+            country=competitions[index % len(competitions)][1],
+            home=f"Local {index}",
+            away=f"Visitante {index}",
+        )
+        for index in range(200)
+    ]
+
+    ranked = app_module.sort_matches_by_sports_relevance(matches)
+
+    assert len(ranked) == 200
+    assert calls["count"] < 6000
+
+
+def test_p0_home_sections_reuse_preclassified_catalog(app_module, monkeypatch):
+    matches = [
+        _sports_relevance_match(
+            app_module,
+            f"prepared-{index}",
+            "Bundesliga",
+            country="Germany",
+            home=f"Local {index}",
+            away=f"Visitante {index}",
+        )
+        for index in range(20)
+    ]
+    ranked = app_module.sort_matches_by_sports_relevance(matches)
+    summary = _sports_relevance_summary(ranked)
+
+    def fail_reclassification(*_args, **_kwargs):
+        raise AssertionError("Preclassified catalog must not be classified again")
+
+    monkeypatch.setattr(app_module, "apply_sports_relevance", fail_reclassification)
+    sections = app_module.build_sports_home_sections(summary, reuse_ranked=True)
+
+    assert sections["ranked"]
+    assert sections["quality"]["external_calls"] == 0
+
+
+def test_p0_public_sports_cache_invalidates_only_when_storage_changes(app_module, monkeypatch, tmp_path):
+    db_path = tmp_path / "performance-cache.db"
+    db_path.write_bytes(b"baseline")
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path))
+    app_module._PUBLIC_SPORTS_CACHE_GENERATIONS.clear()
+    invalidations = []
+    monkeypatch.setattr(
+        app_module,
+        "invalidate_v934_realtime_cache",
+        lambda prefix="": invalidations.append(prefix) or 1,
+    )
+
+    first_key = app_module._public_sports_cache_key()
+    second_key = app_module._public_sports_cache_key()
+    db_path.write_bytes(b"changed-storage-generation")
+    third_key = app_module._public_sports_cache_key()
+
+    assert first_key == second_key == third_key
+    assert invalidations == [first_key]

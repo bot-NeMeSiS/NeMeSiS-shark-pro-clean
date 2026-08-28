@@ -13502,51 +13502,49 @@ SPORTS_RELEVANCE_TOP_TEAM_ALIASES = {
 }
 
 
+SPORTS_RELEVANCE_NORMALIZED_TOP_TEAM_ALIASES = frozenset(
+    normalized_label(value) for value in SPORTS_RELEVANCE_TOP_TEAM_ALIASES
+)
+
+
+def _sports_normalized_values(item, fields):
+    item = item if isinstance(item, dict) else {}
+    values = set()
+    for field in fields:
+        value = normalized_label(item.get(field))
+        if value:
+            values.add(value)
+    return values
+
+
 def _sports_competition_identifiers(match):
-    item = match if isinstance(match, dict) else {}
-    return {
-        normalized_label(item.get(key))
-        for key in ("competition_id", "league_id")
-        if normalized_label(item.get(key))
-    }
+    return _sports_normalized_values(match, ("competition_id", "league_id"))
 
-
-def _sports_competition_keys(match):
+def _sports_competition_keys(match, identifiers=None):
     item = match if isinstance(match, dict) else {}
-    values = {
-        normalized_label(item.get(key))
-        for key in ("competition_key", "league_key")
-        if normalized_label(item.get(key))
-    }
+    values = _sports_normalized_values(item, ("competition_key", "league_key"))
     # Some persisted feeds store a local slug in an *_id field. It is a key,
     # not an authoritative provider ID, and therefore remains country-scoped.
     values.update(
-        value for value in _sports_competition_identifiers(item)
+        value for value in (identifiers if identifiers is not None else _sports_competition_identifiers(item))
         if not value.isdigit() and not value.startswith("soccer ")
     )
     return values
 
-
 def _sports_competition_names(match):
-    item = match if isinstance(match, dict) else {}
-    return {
-        normalized_label(item.get(key))
-        for key in (
+    return _sports_normalized_values(
+        match,
+        (
             "competition_name", "league_name", "calendar_competition",
             "client_competition", "safe_competition",
-        )
-        if normalized_label(item.get(key))
-    }
-
+        ),
+    )
 
 def _sports_competition_countries(match):
-    item = match if isinstance(match, dict) else {}
-    return {
-        normalized_label(item.get(key))
-        for key in ("country", "safe_country", "league_country", "competition_country")
-        if normalized_label(item.get(key))
-    }
-
+    return _sports_normalized_values(
+        match,
+        ("country", "safe_country", "league_country", "competition_country"),
+    )
 
 def _sports_registry_identifiers(config):
     keys = {normalized_label(value) for value in config.get("keys") or [] if normalized_label(value)}
@@ -13571,15 +13569,81 @@ def _sports_registry_key_countries(config, key):
     return expected
 
 
+def _compile_sports_competition_priority_registry():
+    important = []
+    for competition in IMPORTANT_COMPETITIONS:
+        competition_key = normalized_label(competition.get("key"))
+        if not competition_key:
+            continue
+        important.append({
+            "key": competition_key,
+            "country": normalized_label(competition.get("country")),
+            "identifiers": frozenset(
+                value
+                for value in (
+                    normalized_label(competition.get("sportsdb_id")),
+                    normalized_label(competition.get("odds_key")),
+                )
+                if value
+            ),
+        })
+
+    compiled = []
+    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
+        keys = frozenset(
+            value for value in (normalized_label(item) for item in config.get("keys") or []) if value
+        )
+        identifiers = set()
+        key_countries = {}
+        for competition in important:
+            if competition["key"] not in keys:
+                continue
+            identifiers.update(competition["identifiers"])
+            if competition["country"]:
+                key_countries.setdefault(competition["key"], set()).add(competition["country"])
+        compiled.append({
+            "tier": config["tier"],
+            "rank": config["rank"],
+            "weight": config["weight"],
+            "label": config["label"],
+            "keys": keys,
+            "identifiers": frozenset(identifiers),
+            "key_countries": {
+                key: frozenset(countries) for key, countries in key_countries.items()
+            },
+            "aliases": frozenset(
+                value
+                for value in (normalized_label(item) for item in config.get("aliases") or [])
+                if value
+            ),
+            "scoped_aliases": tuple(
+                (
+                    normalized_label(alias),
+                    frozenset(
+                        value
+                        for value in (normalized_label(country) for country in allowed_countries)
+                        if value
+                    ),
+                )
+                for alias, allowed_countries in (config.get("scoped_aliases") or {}).items()
+                if normalized_label(alias)
+            ),
+        })
+    return tuple(compiled)
+
+
+SPORTS_COMPILED_PRIORITY_REGISTRY = _compile_sports_competition_priority_registry()
+
+
 def sports_competition_priority(match):
     """Deterministic sports relevance tier. Picks and odds are intentionally ignored."""
     item = match if isinstance(match, dict) else {}
     identifiers = _sports_competition_identifiers(item)
-    keys = _sports_competition_keys(item)
+    keys = _sports_competition_keys(item, identifiers)
     names = _sports_competition_names(item)
     countries = _sports_competition_countries(item)
-    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
-        if identifiers.intersection(_sports_registry_identifiers(config)):
+    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+        if identifiers.intersection(config["identifiers"]):
             return {
                 "tier": config["tier"],
                 "rank": config["rank"],
@@ -13587,10 +13651,9 @@ def sports_competition_priority(match):
                 "label": config["label"],
                 "reason": "CANONICAL_COMPETITION_ID",
             }
-    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
-        config_keys = {normalized_label(value) for value in config.get("keys") or [] if normalized_label(value)}
-        for key in keys.intersection(config_keys):
-            expected_countries = _sports_registry_key_countries(config, key)
+    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+        for key in keys.intersection(config["keys"]):
+            expected_countries = config["key_countries"].get(key, frozenset())
             if expected_countries and not countries.intersection(expected_countries):
                 continue
             return {
@@ -13600,9 +13663,8 @@ def sports_competition_priority(match):
                 "label": config["label"],
                 "reason": "COUNTRY_SCOPED_COMPETITION_KEY" if expected_countries else "EXACT_COMPETITION_KEY",
             }
-    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
-        aliases = {normalized_label(alias) for alias in config.get("aliases") or [] if normalized_label(alias)}
-        if names.intersection(aliases):
+    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+        if names.intersection(config["aliases"]):
             return {
                 "tier": config["tier"],
                 "rank": config["rank"],
@@ -13610,9 +13672,7 @@ def sports_competition_priority(match):
                 "label": config["label"],
                 "reason": "EXACT_COMPETITION_ALIAS",
             }
-        for alias, allowed_countries in (config.get("scoped_aliases") or {}).items():
-            alias_key = normalized_label(alias)
-            allowed = {normalized_label(country) for country in allowed_countries}
+        for alias_key, allowed in config["scoped_aliases"]:
             if alias_key in names and countries.intersection(allowed):
                 return {
                     "tier": config["tier"],
@@ -13623,26 +13683,42 @@ def sports_competition_priority(match):
                 }
     return {"tier": "UNKNOWN", "rank": 95, "weight": 25, "label": "Sin mapear", "reason": "UNKNOWN_COMPETITION"}
 
+_EMPTY_NORMALIZED_SPORTS_FAVORITES = {
+    "team": frozenset(),
+    "league": frozenset(),
+    "match": frozenset(),
+    "_sports_normalized": True,
+}
+
+
+def _normalized_sports_favorites(favorites=None):
+    if not isinstance(favorites, dict):
+        return _EMPTY_NORMALIZED_SPORTS_FAVORITES
+    if favorites.get("_sports_normalized"):
+        return favorites
+    return {
+        "team": frozenset(normalized_label(value) for value in favorites.get("team") or set()),
+        "league": frozenset(normalized_label(value) for value in favorites.get("league") or set()),
+        "match": frozenset(normalized_label(value) for value in favorites.get("match") or set()),
+        "_sports_normalized": True,
+    }
+
 
 def _sports_match_favorite(match, favorites=None):
     item = match if isinstance(match, dict) else {}
     if item.get("is_favorite"):
         return True
-    favorites = favorites if isinstance(favorites, dict) else {"team": set(), "league": set(), "match": set()}
+    favorites = _normalized_sports_favorites(favorites)
     match_id = normalized_label(item.get("id") or item.get("match_id") or "")
     competition = normalized_label(item.get("competition_key") or item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or "")
     home = normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
     away = normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
-    favorite_matches = {normalized_label(value) for value in favorites.get("match") or set()}
-    favorite_leagues = {normalized_label(value) for value in favorites.get("league") or set()}
-    favorite_teams = {normalized_label(value) for value in favorites.get("team") or set()}
     return bool(
-        (match_id and match_id in favorite_matches)
-        or (competition and competition in favorite_leagues)
-        or (home and home in favorite_teams)
-        or (away and away in favorite_teams)
+        (match_id and match_id in favorites["match"])
+        or (competition and competition in favorites["league"])
+        or (home and home in favorites["team"])
+        or (away and away in favorites["team"])
     )
-
 
 def _sports_top_team_hits(match):
     item = match if isinstance(match, dict) else {}
@@ -13650,7 +13726,7 @@ def _sports_top_team_hits(match):
         normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or ""),
         normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or ""),
     ]
-    return sum(1 for team in teams if team in SPORTS_RELEVANCE_TOP_TEAM_ALIASES)
+    return sum(1 for team in teams if team in SPORTS_RELEVANCE_NORMALIZED_TOP_TEAM_ALIASES)
 
 
 def _sports_kickoff_delta_minutes(match, now_value=None):
@@ -13670,7 +13746,7 @@ def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=Non
     # Persisted status_info can predate a conflicting terminal provider signal.
     status_info = canonical_match_status(item)
     competition = sports_competition_priority(item)
-    pick_ids = {str(value) for value in (pick_ids or set())}
+    pick_ids = pick_ids if isinstance(pick_ids, frozenset) else frozenset(str(value) for value in (pick_ids or set()))
     has_pick = bool(item.get("has_pick") or (match_id and match_id in pick_ids))
     is_favorite = _sports_match_favorite(item, favorites)
     top_hits = _sports_top_team_hits(item)
@@ -13841,15 +13917,21 @@ def sports_relevance_sort_tuple(match, surface="home"):
 
 
 def sort_matches_by_sports_relevance(matches, surface="home", pick_ids=None, favorites=None, limit=None, now_value=None):
+    normalized_pick_ids = pick_ids if isinstance(pick_ids, frozenset) else frozenset(str(value) for value in (pick_ids or set()))
+    normalized_favorites = _normalized_sports_favorites(favorites)
     prepared = [
-        apply_sports_relevance(item, pick_ids=pick_ids, favorites=favorites, now_value=now_value)
+        apply_sports_relevance(
+            item,
+            pick_ids=normalized_pick_ids,
+            favorites=normalized_favorites,
+            now_value=now_value,
+        )
         for item in _dedupe_sports_matches(matches or [])
     ]
     prepared.sort(key=lambda item: sports_relevance_sort_tuple(item, surface))
     if limit:
         return prepared[:int(limit)]
     return prepared
-
 
 def build_unknown_competition_quality(matches, visible_matches=None):
     """Classify unmapped competitions without provider calls or blind mappings."""
@@ -13898,7 +13980,7 @@ def build_unknown_competition_quality(matches, visible_matches=None):
     }
 
 
-def build_sports_home_sections(summary, limit=6):
+def build_sports_home_sections(summary, limit=6, reuse_ranked=False):
     summary = summary if isinstance(summary, dict) else {}
     pick_ids = {
         str(item.get("match_id") or "").strip()
@@ -13916,7 +13998,13 @@ def build_sports_home_sections(summary, limit=6):
         + (summary.get("valid_upcoming_matches") or [])
         + (summary.get("finished_matches") or [])
     )
-    ranked = sort_matches_by_sports_relevance(source, "home", pick_ids=pick_ids, favorites=favorites)
+    can_reuse_ranked = bool(reuse_ranked and all(
+        isinstance(item.get("sports_relevance"), dict) for item in source
+    ))
+    if can_reuse_ranked:
+        ranked = sorted(source, key=lambda item: sports_relevance_sort_tuple(item, "home"))
+    else:
+        ranked = sort_matches_by_sports_relevance(source, "home", pick_ids=pick_ids, favorites=favorites)
     today = today_iso()
     live_now = [item for item in ranked if (item.get("sports_relevance") or {}).get("is_live")]
     important_today = [
@@ -13934,13 +14022,20 @@ def build_sports_home_sections(summary, limit=6):
         and item not in live_now
         and item not in important_today
     ]
-    recent_results = sort_matches_by_sports_relevance(
-        summary.get("finished_matches") or [],
-        "results",
-        pick_ids=pick_ids,
-        favorites=favorites,
-        limit=limit,
-    )
+    finished_source = _dedupe_sports_matches(summary.get("finished_matches") or [])
+    if can_reuse_ranked and all(isinstance(item.get("sports_relevance"), dict) for item in finished_source):
+        recent_results = sorted(
+            finished_source,
+            key=lambda item: sports_relevance_sort_tuple(item, "results"),
+        )[:limit]
+    else:
+        recent_results = sort_matches_by_sports_relevance(
+            finished_source,
+            "results",
+            pick_ids=pick_ids,
+            favorites=favorites,
+            limit=limit,
+        )
     visible_home = _dedupe_sports_matches(
         live_now[:limit]
         + important_today[:limit]
@@ -14042,25 +14137,16 @@ def _build_public_home_sports_summary():
         if str(item.get("match_id") or "").strip()
     }
     valid_all = sort_matches_by_sports_relevance(valid_all, "catalog", pick_ids=active_pick_ids)
-    valid_today = sort_matches_by_sports_relevance(
-        [item for item in valid_all if (item.get("v935_surface") or {}).get("home")],
-        "home",
-        pick_ids=active_pick_ids,
-    )
-    valid_upcoming = sort_matches_by_sports_relevance(
-        [item for item in valid_all if (item.get("v935_surface") or {}).get("calendar")],
-        "upcoming",
-        pick_ids=active_pick_ids,
-    )
-    valid_live = sort_matches_by_sports_relevance(
-        [item for item in valid_all if (item.get("v935_surface") or {}).get("live") and canonical_match_status(item).get("is_live")],
-        "live",
-        pick_ids=active_pick_ids,
-    )
-    finished_matches = sort_matches_by_sports_relevance(
+    valid_today = [item for item in valid_all if (item.get("v935_surface") or {}).get("home")]
+    valid_upcoming = [item for item in valid_all if (item.get("v935_surface") or {}).get("calendar")]
+    valid_live = [
+        item for item in valid_all
+        if (item.get("v935_surface") or {}).get("live")
+        and canonical_match_status(item).get("is_live")
+    ]
+    finished_matches = sorted(
         [item for item in valid_all if item.get("v935_lifecycle") == "FINISHED"],
-        "results",
-        pick_ids=active_pick_ids,
+        key=lambda item: sports_relevance_sort_tuple(item, "results"),
     )
     result_pending_matches = [item for item in valid_all if item.get("v935_lifecycle") == "RESULT_PENDING"]
     archived_matches = [item for item in valid_all if item.get("v935_lifecycle") == "ARCHIVED"]
@@ -14112,26 +14198,52 @@ def _build_public_home_sports_summary():
         "metrics_generated_at_madrid": now_iso(),
         "no_render_api_call": True,
     }
-    result["sports_home"] = build_sports_home_sections(result)
+    result["sports_home"] = build_sports_home_sections(result, reuse_ranked=True)
     result["sports_metrics"] = build_sports_metrics_contract(result)
     return result
 
 
+_PUBLIC_SPORTS_CACHE_GENERATIONS = {}
+_PUBLIC_SPORTS_CACHE_GENERATION_LOCK = threading.RLock()
+
+
+def _sports_storage_generation():
+    db_path = Path(DB_PATH).resolve()
+    signals = []
+    for candidate in (db_path, Path(str(db_path) + "-wal")):
+        try:
+            stat = candidate.stat()
+            signals.append(f"{candidate.name}:{stat.st_mtime_ns}:{stat.st_size}")
+        except OSError:
+            signals.append(f"{candidate.name}:missing")
+    return hashlib.sha256("|".join(signals).encode("utf-8")).hexdigest()[:16]
+
+
+def _public_sports_cache_key():
+    db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
+    cache_key = f"v934:sports:public-summary:{db_cache_key}"
+    generation = _sports_storage_generation()
+    with _PUBLIC_SPORTS_CACHE_GENERATION_LOCK:
+        previous = _PUBLIC_SPORTS_CACHE_GENERATIONS.get(cache_key)
+        if previous is not None and previous != generation:
+            invalidate_v934_realtime_cache(cache_key)
+        _PUBLIC_SPORTS_CACHE_GENERATIONS[cache_key] = generation
+    return cache_key
+
+
 def get_public_home_sports_summary():
-    """One 15-second cached truth source for the home KPI and visible match list."""
+    """Cached DB/WAL sports truth; synchronization invalidates it without provider calls."""
     if has_request_context() and getattr(g, "v935_public_sports_summary", None) is not None:
         return g.v935_public_sports_summary
-    db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
     result, cache_status = cached_v934_realtime_snapshot(
-        f"v934:sports:public-summary:{db_cache_key}",
+        _public_sports_cache_key(),
         _build_public_home_sports_summary,
-        ttl_seconds=15,
+        ttl_seconds=300,
     )
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
     return result
-
 
 def _v932_locked_sports_summary():
     """Return one coherent empty snapshot after the request preflight found a lock."""
@@ -14227,7 +14339,13 @@ def get_v932_real_sports_value_context(summary=None):
 
 
 def _v931_legacy_home_summary(summary):
-    sports_home = build_sports_home_sections(summary)
+    existing_sports_home = summary.get("sports_home") if isinstance(summary, dict) else None
+    personalized = bool(has_request_context() and current_user_id())
+    sports_home = (
+        build_sports_home_sections(summary)
+        if personalized or not isinstance(existing_sports_home, dict)
+        else existing_sports_home
+    )
     pick_ids = {
         str(item.get("match_id") or "").strip()
         for item in summary.get("valid_active_picks") or []
@@ -16829,7 +16947,7 @@ def team_page(team_id):
             resource_title="Este equipo no está disponible",
             resource_message="No disponible: no existe información real suficiente para abrir esta ficha. Puedes volver al calendario sin perder el contexto.",
         ), 404
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     data["team_detail"] = detail
     return render_template("team_detail.html", data=data, detail=detail)
 
@@ -16855,14 +16973,14 @@ def competition_center_contract_page(competition_id):
             detail,
             observed_at_madrid=today_iso(),
         )
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     data["competition_detail"] = detail
     return render_template("competition_detail.html", data=data, detail=detail)
 
 @app.route("/player/<player_id>")
 def player_center_contract_page(player_id):
     detail = player_page_data(player_id)
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     data["player_detail"] = detail
     return render_template("player_detail.html", data=data, detail=detail)
 

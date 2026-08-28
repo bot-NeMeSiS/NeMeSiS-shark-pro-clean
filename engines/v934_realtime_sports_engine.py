@@ -21,6 +21,7 @@ ODDS_STALE_SECONDS = 3600
 
 _CACHE_LOCK = threading.RLock()
 _CACHE: dict[str, dict[str, Any]] = {}
+_CACHE_BUILD_LOCKS: dict[str, threading.Lock] = {}
 
 
 def _now(now: datetime | None = None) -> datetime:
@@ -291,25 +292,35 @@ def cached_realtime_snapshot(
         cached = _CACHE.get(cache_key)
         if cached and not force and now_mono < float(cached.get("expires_at") or 0):
             return copy.deepcopy(cached["payload"]), "hit"
-    try:
-        payload = builder()
-    except Exception:
-        with _CACHE_LOCK:
-            stale = _CACHE.get(cache_key)
-            if stale:
-                fallback = copy.deepcopy(stale["payload"])
-                fallback["cache_status"] = "stale_fallback"
-                fallback["safe_message"] = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
-                return fallback, "stale_fallback"
-        return build_realtime_snapshot({}), "safe_empty"
-    with _CACHE_LOCK:
-        _CACHE[cache_key] = {
-            "payload": copy.deepcopy(payload),
-            "created_at": now_mono,
-            "expires_at": now_mono + max(5, min(int(ttl_seconds), 300)),
-        }
-    return copy.deepcopy(payload), "refreshed"
+        build_lock = _CACHE_BUILD_LOCKS.setdefault(cache_key, threading.Lock())
 
+    # Only one request rebuilds a missing key. Waiting requests re-check the
+    # cache and reuse that result instead of repeating the CPU-heavy builder.
+    with build_lock:
+        now_mono = time.monotonic()
+        with _CACHE_LOCK:
+            cached = _CACHE.get(cache_key)
+            if cached and not force and now_mono < float(cached.get("expires_at") or 0):
+                return copy.deepcopy(cached["payload"]), "hit"
+        try:
+            payload = builder()
+        except Exception:
+            with _CACHE_LOCK:
+                stale = _CACHE.get(cache_key)
+                if stale:
+                    fallback = copy.deepcopy(stale["payload"])
+                    fallback["cache_status"] = "stale_fallback"
+                    fallback["safe_message"] = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
+                    return fallback, "stale_fallback"
+            return build_realtime_snapshot({}), "safe_empty"
+        stored_at = time.monotonic()
+        with _CACHE_LOCK:
+            _CACHE[cache_key] = {
+                "payload": copy.deepcopy(payload),
+                "created_at": stored_at,
+                "expires_at": stored_at + max(5, min(int(ttl_seconds), 300)),
+            }
+        return copy.deepcopy(payload), "refreshed"
 
 def invalidate_realtime_cache(prefix: str = "") -> int:
     safe_prefix = _text(prefix, 160)
