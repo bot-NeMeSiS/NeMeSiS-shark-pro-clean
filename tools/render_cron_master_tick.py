@@ -171,6 +171,8 @@ def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
 def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
     return {
         "runner": RUNNER_NAME,
+        "telegram_status": "NOT_EXECUTED",
+        "continuous_evolution_status": "NOT_EXECUTED",
         "telegram": {
             "telegram_http": None,
             "telegram_status": "NOT_EXECUTED",
@@ -186,24 +188,32 @@ def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
         "overall": "FAIL",
         "timestamp_madrid": madrid_now,
         "timestamp_utc": utc_now,
+        "duration_ms": 0,
     }
 
 
 def main() -> int:
+    started = time.perf_counter()
     utc_now, madrid_now = now_labels()
     public_base_url = (os.environ.get("PUBLIC_BASE_URL") or "").strip()
     automation_secret = (os.environ.get("AUTOMATION_SECRET") or "").strip()
 
     if not public_base_url:
-        print_event(config_failure("MISSING_PUBLIC_BASE_URL", utc_now, madrid_now))
+        payload = config_failure("MISSING_PUBLIC_BASE_URL", utc_now, madrid_now)
+        payload["duration_ms"] = max(0, round((time.perf_counter() - started) * 1000))
+        print_event(payload)
         return 2
     if not automation_secret:
-        print_event(config_failure("MISSING_AUTOMATION_SECRET", utc_now, madrid_now))
+        payload = config_failure("MISSING_AUTOMATION_SECRET", utc_now, madrid_now)
+        payload["duration_ms"] = max(0, round((time.perf_counter() - started) * 1000))
+        print_event(payload)
         return 2
     try:
         base_url = validated_base_url(public_base_url)
     except ValueError:
-        print_event(config_failure("INVALID_PUBLIC_BASE_URL", utc_now, madrid_now))
+        payload = config_failure("INVALID_PUBLIC_BASE_URL", utc_now, madrid_now)
+        payload["duration_ms"] = max(0, round((time.perf_counter() - started) * 1000))
+        print_event(payload)
         return 2
 
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
@@ -211,11 +221,14 @@ def main() -> int:
     overall = overall_status(telegram, continuous)
     print_event({
         "runner": RUNNER_NAME,
+        "telegram_status": telegram.get("telegram_status"),
+        "continuous_evolution_status": continuous.get("continuous_status"),
         "telegram": telegram,
         "continuous_evolution": continuous,
         "overall": overall,
         "timestamp_madrid": madrid_now,
         "timestamp_utc": utc_now,
+        "duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
     })
     return {"PASS": 0, "PARTIAL": 1, "FAIL": 2}[overall]
 

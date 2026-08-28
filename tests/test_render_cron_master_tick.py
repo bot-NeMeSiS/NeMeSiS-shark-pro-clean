@@ -68,6 +68,9 @@ def test_master_passes_for_telegram_and_valid_evolution_results(monkeypatch, cap
     )
     assert return_code == 0
     assert payload["overall"] == "PASS"
+    assert payload["telegram_status"] == "PASS"
+    assert payload["continuous_evolution_status"] == "PASS"
+    assert payload["duration_ms"] >= 0
     assert payload["telegram"]["telegram_status"] == "PASS"
     assert payload["continuous_evolution"]["continuous_status"] == "PASS"
     assert payload["continuous_evolution"]["continuous_result"] == ("RUN" if evolution_result == "PASS" else evolution_result)
@@ -125,6 +128,9 @@ def test_master_missing_configuration_fails_without_http(monkeypatch, capsys, mi
     payload = json.loads(capsys.readouterr().out)
     assert return_code == 2
     assert payload["overall"] == "FAIL"
+    assert payload["telegram_status"] == "NOT_EXECUTED"
+    assert payload["continuous_evolution_status"] == "NOT_EXECUTED"
+    assert payload["duration_ms"] >= 0
     assert payload["telegram"]["telegram_result"] == expected
     assert payload["continuous_evolution"]["continuous_result"] == expected
 
