@@ -5,6 +5,9 @@ It is deliberately pure so page rendering, workers, and checks share one policy.
 """
 from __future__ import annotations
 
+import json
+import re
+import unicodedata
 from datetime import datetime, timedelta
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -140,51 +143,183 @@ def _score_confirmed(item: dict[str, Any]) -> bool:
     return False
 
 
-def _live_evidence_confirmed(item: dict[str, Any], raw_status: str) -> bool:
-    """A generic LIVE label alone is insufficient for public live surfaces."""
-    if _score_confirmed(item):
-        return True
-    minute_text = _text(item.get("minute") or item.get("elapsed") or item.get("live_minute"), 12).strip("'\u2019")
-    try:
-        minute = int(minute_text)
-    except (TypeError, ValueError):
-        minute = None
-    if minute is not None and 0 <= minute <= 130:
-        return True
-    return raw_status in {
-        "1h", "2h", "ht", "halftime", "half time", "break", "descanso",
-        "first half", "second half", "1st half", "2nd half",
+_FINISHED_STATUS_KEYS = {
+    "ft", "final", "finalizado", "finished", "match finished", "full time",
+    "aet", "pen", "after penalties", "terminado",
+}
+_POSTPONED_STATUS_KEYS = {
+    "postponed", "post", "pst", "ppd", "aplazado", "aplazada", "suspended", "suspendido",
+}
+_CANCELLED_STATUS_KEYS = {"cancelled", "canceled", "canc", "cancelado", "cancelada"}
+_ABANDONED_STATUS_KEYS = {"abandoned", "abd", "abandono", "abandonado", "interrupted"}
+_HALFTIME_STATUS_KEYS = {"ht", "bt", "halftime", "half time", "break", "descanso"}
+_LIVE_STATUS_KEYS = {
+    "live", "1h", "2h", "in play", "inplay", "in progress", "playing",
+    "en directo", "first half", "second half", "1st half", "2nd half",
+    "et", "p", "extra time", "penalties", "penalty shootout",
+}
+_UPCOMING_STATUS_KEYS = {
+    "ns", "not started", "scheduled", "programado", "fixture", "upcoming", "proximo", "próximo",
+}
+
+
+def _status_key(value: Any) -> str:
+    text = _text(value, 180).casefold().replace("_", " ").replace("-", " ")
+    text = "".join(
+        character
+        for character in unicodedata.normalize("NFD", text)
+        if unicodedata.category(character) != "Mn"
+    )
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
+    """Collect only status-shaped fields; minute, score and kickoff are not status."""
+    values: list[tuple[str, str]] = []
+
+    def add(source: str, value: Any) -> None:
+        if isinstance(value, dict):
+            for key in ("key", "short", "long", "status", "state", "label", "lifecycle"):
+                if value.get(key) not in (None, ""):
+                    add(f"{source}.{key}", value.get(key))
+            return
+        key = _status_key(value)
+        if key and not key.isdigit():
+            values.append((source, key))
+
+    for field in (
+        "lifecycle", "v935_lifecycle", "match_status", "fixture_status", "sports_status",
+        "provider_status", "status_short", "short_status", "status_code", "status",
+        "safe_status", "client_status_label", "live_status_label", "calendar_status",
+    ):
+        add(field, item.get(field))
+
+    status_info = item.get("status_info")
+    if isinstance(status_info, dict):
+        add("status_info", status_info)
+        if status_info.get("is_finished") is True:
+            add("status_info.is_finished", "ft")
+        if status_info.get("is_live") is True:
+            add("status_info.is_live", "live")
+    if item.get("is_finished") is True:
+        add("is_finished", "ft")
+    if item.get("is_live") is True:
+        add("is_live", "live")
+
+    fixture = item.get("fixture")
+    if isinstance(fixture, dict):
+        add("fixture.status", fixture.get("status"))
+
+    for payload_field in ("raw_json", "payload_json"):
+        raw = item.get(payload_field)
+        payload = raw if isinstance(raw, dict) else None
+        if payload is None and isinstance(raw, str) and 1 < len(raw) <= 200_000:
+            try:
+                payload = json.loads(raw)
+            except (TypeError, ValueError):
+                payload = None
+        if not isinstance(payload, dict):
+            continue
+        for key in ("status", "strStatus", "match_status", "fixture_status"):
+            add(f"{payload_field}.{key}", payload.get(key))
+        nested_fixture = payload.get("fixture")
+        if isinstance(nested_fixture, dict):
+            add(f"{payload_field}.fixture.status", nested_fixture.get("status"))
+
+    deduped: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for source, key in values:
+        marker = (source, key)
+        if marker not in seen:
+            seen.add(marker)
+            deduped.append(marker)
+    return deduped
+
+
+def _status_kind(key: str) -> str:
+    if key in _FINISHED_STATUS_KEYS or key.startswith("finalizado") or key.startswith("finished"):
+        return "FINISHED"
+    if key in _POSTPONED_STATUS_KEYS or key.startswith("postpon") or key.startswith("aplaz"):
+        return "POSTPONED"
+    if key in _CANCELLED_STATUS_KEYS or key.startswith("cancel"):
+        return "CANCELLED"
+    if key in _ABANDONED_STATUS_KEYS or key.startswith("abandon"):
+        return "ABANDONED"
+    if key in _HALFTIME_STATUS_KEYS:
+        return "HALFTIME"
+    if key in _LIVE_STATUS_KEYS or key.startswith("en directo"):
+        return "LIVE"
+    if key in _UPCOMING_STATUS_KEYS or key.startswith("proximo"):
+        return "UPCOMING"
+    if key in {"archived", "archive", "historical", "historico"}:
+        return "ARCHIVED"
+    return "UNKNOWN"
+
+
+def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
+    """Fail-closed match status shared by every sports surface.
+
+    A terminal provider/internal signal always wins over a simultaneous LIVE
+    signal. Score, minute and kickoff never create LIVE by themselves.
+    """
+    source = dict(item or {})
+    signals = _status_values(source)
+    kinds = [_status_kind(key) for _source, key in signals]
+    terminal_kinds = {
+        kind for kind in kinds
+        if kind in {"FINISHED", "POSTPONED", "CANCELLED", "ABANDONED", "ARCHIVED"}
     }
+    live_kinds = {kind for kind in kinds if kind in {"LIVE", "HALFTIME"}}
+    conflict = bool(terminal_kinds and live_kinds)
+
+    lifecycle = ""
+    for terminal in ("ABANDONED", "CANCELLED", "POSTPONED", "ARCHIVED", "FINISHED"):
+        if terminal in terminal_kinds:
+            lifecycle = terminal
+            break
+    if lifecycle == "FINISHED" and not _score_confirmed(source):
+        lifecycle = "RESULT_PENDING"
+    if not lifecycle and "HALFTIME" in live_kinds:
+        lifecycle = "HALFTIME"
+    if not lifecycle and "LIVE" in live_kinds:
+        lifecycle = "LIVE"
+
+    if not lifecycle:
+        kickoff = match_kickoff_madrid(source)
+        if kickoff is None:
+            lifecycle = "INCOMPLETE"
+        elif kickoff < madrid_now(now):
+            lifecycle = "FINISHED" if _score_confirmed(source) else "RESULT_PENDING"
+        else:
+            lifecycle = "UPCOMING"
+
+    return {
+        "contract": "MATCH-STATUS-TRUTH-V1",
+        "lifecycle": lifecycle,
+        "is_live": lifecycle in {"LIVE", "HALFTIME"} and not conflict,
+        "is_finished": lifecycle in {"FINISHED", "ARCHIVED"},
+        "status_conflict": conflict,
+        "conflict_type": "LIVE_TERMINAL" if conflict else "",
+        "signal_kinds": sorted({kind for kind in kinds if kind != "UNKNOWN"}),
+        "signal_count": len(signals),
+        "live_inferred_from_time": False,
+        "live_inferred_from_score": False,
+        "live_inferred_from_minute": False,
+    }
+
+
+def _live_evidence_confirmed(item: dict[str, Any], raw_status: str) -> bool:
+    truth = match_status_truth({**dict(item or {}), "status": raw_status or item.get("status")})
+    return bool(truth.get("is_live") and not truth.get("status_conflict"))
 
 
 def normalize_match_lifecycle(item: dict[str, Any], now: datetime | None = None) -> str:
     if not is_match_complete(item):
         return "INCOMPLETE"
-    current = madrid_now(now)
-    raw = _key(
-        item.get("lifecycle") or item.get("match_status") or item.get("fixture_status")
-        or item.get("sports_status") or item.get("calendar_status") or item.get("status")
-    )
-    if raw in {"archived", "archive", "historical", "historico", "histórico"} or item.get("archived_at"):
+    truth = match_status_truth(item, now)
+    if item.get("archived_at"):
         return "ARCHIVED"
-    if raw in {"postponed", "ppd", "aplazado", "aplazada", "suspended", "suspendido"}:
-        return "POSTPONED"
-    if raw in {"cancelled", "canceled", "cancelado", "cancelada"}:
-        return "CANCELLED"
-    if raw in {"abandoned", "abandono", "abandonado", "interrupted"}:
-        return "ABANDONED"
-    if raw in {"ht", "halftime", "half time", "break", "descanso"}:
-        return "HALFTIME" if _live_evidence_confirmed(item, raw) else "INCOMPLETE"
-    if raw in {"live", "1h", "2h", "in play", "playing", "en directo"}:
-        return "LIVE" if _live_evidence_confirmed(item, raw) else "INCOMPLETE"
-    if raw in {"ft", "aet", "pen", "finished", "final", "finalizado", "terminado"}:
-        return "FINISHED" if _score_confirmed(item) else "RESULT_PENDING"
-    kickoff = match_kickoff_madrid(item)
-    if kickoff is None:
-        return "INCOMPLETE"
-    if kickoff < current:
-        return "FINISHED" if _score_confirmed(item) else "RESULT_PENDING"
-    return "UPCOMING"
+    return str(truth.get("lifecycle") or "INCOMPLETE")
 
 
 def get_match_freshness(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:

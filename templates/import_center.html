@@ -84,7 +84,7 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
     <h2>Telegram</h2>
     <p class="small">Estado: {% if data.telegram.configured %}configurado{% else %}faltan variables{% endif %}</p>
     <p class="small">Telegram requiere configuración adicional antes de envíos reales. Los secretos no se muestran.</p>
-    {% if local_safe_mode %}<button type="button" disabled>Telegram desactivado en LOCAL SAFE</button>{% else %}<form method="post" action="/api/telegram/send"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Enviar briefing</button></form>{% endif %}
+    {% if local_safe_mode %}<span class="btn" role="status" aria-disabled="true">Telegram desactivado en LOCAL SAFE</span>{% else %}<form method="post" action="/api/telegram/send"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Enviar briefing</button></form>{% endif %}
     <p class="small">Automatización Telegram: disponible solo con configuración autorizada.</p>
     <p class="small">Scheduler Telegram: visible desde el Command Center.</p>
     <p class="small">Cola Telegram: gestionada desde el Command Center.</p>

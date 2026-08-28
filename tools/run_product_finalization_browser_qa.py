@@ -61,6 +61,7 @@ SCENARIOS = [
     {"key": "action_platform", "route": "/smart-home", "audience": "client", "category": "personalization"},
     {"key": "user_intelligence", "route": "/user-intelligence", "audience": "client", "category": "personalization"},
     {"key": "admin_dashboard", "route": "/admin/dashboard", "audience": "admin", "category": "admin"},
+    {"key": "founder_dashboard", "route": "/admin/founder-dashboard", "audience": "admin", "category": "admin"},
     {"key": "developer_center", "route": "/admin/developer-center", "audience": "admin", "category": "admin"},
     {"key": "company_board", "route": "/admin/company-board", "audience": "admin", "category": "admin"},
     {"key": "operations_center", "route": "/admin/operations-center", "audience": "admin", "category": "admin"},
@@ -294,6 +295,7 @@ def main() -> int:
     from werkzeug.serving import make_server
 
     app_module.DB_PATH = str(db_path)
+    app_module.app.config["TESTING"] = True
     app_module._SEEDED_DB_PATH = None
     app_module._SEEDING_DB_PATH = None
 
@@ -432,5 +434,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

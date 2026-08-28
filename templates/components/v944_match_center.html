@@ -28,17 +28,20 @@
 
 {% macro transparency_meta(context, key) -%}
 {% set item = (context.get('transparency') or {}).get(key) or {} %}
-<div class="v944-transparency" data-match-transparency="{{ key }}">
-  <span><b>Procedencia</b>{{ item.get('source') or 'Fuente no identificada' }}</span>
-  <span><b>Evidencia</b>{{ item.get('evidence') or 'No certificado' }}</span>
-  <span><b>Frescura</b>{{ item.get('freshness') or 'No disponible' }}</span>
-  <span><b>Confianza</b>{{ item.get('confidence') or 'No probabilística' }}</span>
-</div>
-{% if item.get('limitations') %}
-<ul class="v944-limitations is-compact" aria-label="Limitaciones de {{ key }}">
-  {% for limitation in item.get('limitations')[:2] %}<li>{{ limitation }}</li>{% endfor %}
-</ul>
-{% endif %}
+<details class="v944-transparency-disclosure">
+  <summary>Calidad del dato</summary>
+  <div class="v944-transparency" data-match-transparency="{{ key }}">
+    <span><b>Procedencia</b>{{ nemesis_source_label(item.get('source')) }}</span>
+    <span><b>Evidencia</b>{{ item.get('evidence') or 'No certificado' }}</span>
+    <span><b>Frescura</b>{{ item.get('freshness') or 'No disponible' }}</span>
+    <span><b>Confianza</b>{{ item.get('confidence') or 'No probabilística' }}</span>
+  </div>
+  {% if item.get('limitations') %}
+  <ul class="v944-limitations is-compact" aria-label="Limitaciones de {{ key }}">
+    {% for limitation in item.get('limitations')[:2] %}<li>{{ limitation }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</details>
 {%- endmacro %}
 
 {% macro panel_start(name, component, title, subtitle='', region='') -%}
@@ -137,7 +140,7 @@
 {% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
 {% set risk = conclusions.get('riesgo') or {} %}
 {% set risk_value = risk.get('value') or {} %}
-{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, inteligencia y riesgo desde el Modelo deportivo.', 'story') }}
+{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, contexto y riesgos disponibles.', 'story') }}
   <div class="v944-experience-grid" data-sports-domain-model="unified-v1">
     <article>
       <span>Estado actual</span>
@@ -168,14 +171,15 @@
 {% macro timeline(context) -%}
 {% set component = context.get('components', {}).get('Timeline') or {} %}
 {% set event_summary = context.get('event_summary') or {} %}
-{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados desde Timeline Event Entity.', 'timeline') }}
+{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados del partido.', 'timeline') }}
   {% if event_summary.get('available') %}
   <ol class="v944-timeline" data-event-source="{{ event_summary.get('source') or '' }}" data-timeline-event-contract="{{ event_summary.get('contract') or '' }}">
     {% for event in event_summary.get('items') or [] %}
+    {% set event_label = event.get('label') or '' %}
     <li class="is-{{ event.get('type') or 'unknown' }}" data-event-id="{{ event.get('id') or '' }}" data-canonical-timeline-event="{{ event.get('timeline_event_contract') or '' }}">
       <time>{{ event.get('minute_label') or 'No disponible' }}</time>
       <span>
-        <strong>{{ event.get('label') or 'Evento confirmado' }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
+        <strong>{{ 'Evento confirmado' if event_label|lower in ['unknown', 'desconocido'] else event_label or 'Evento confirmado' }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
         <small>
           {% if event.get('player') %}{% if event.get('player_href') %}<a href="{{ event.get('player_href') }}" data-entity-contract="player">{{ event.get('player') }}</a>{% else %}{{ event.get('player') }}{% endif %}{% endif %}
           {% if event.get('related_player') %}<span> · {{ event.get('related_player') }}</span>{% endif %}

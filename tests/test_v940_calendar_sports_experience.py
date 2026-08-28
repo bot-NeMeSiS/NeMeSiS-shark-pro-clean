@@ -4,15 +4,21 @@ import shutil
 import urllib.parse
 from pathlib import Path
 
+import pytest
 from jinja2 import Environment, FileSystemLoader
 
 from engines.company_intelligence_engine import build_company_intelligence_snapshot
+from engines.live_engine import normalize_live_state
+from engines.live_experience_engine import enrich_live_match
+from engines.live_match_experience_engine import build_live_card_payload
+from engines.match_context_engine import build_match_context
 from engines.sentinel_autopilot_engine import (
     build_v940_calendar_experience_contract_snapshot,
     create_autopilot_task,
     detect_product_quality_contract_issues,
     run_autopilot_scan,
 )
+from engines.v935_launch_trust_engine import enrich_match_lifecycle, match_status_truth
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -276,3 +282,583 @@ def test_v940_company_intelligence_preserves_calendar_learning(app_module, tmp_p
     assert snapshot["database_written"] is False
     assert snapshot["external_calls"] == 0
 
+
+
+def _sports_relevance_match(app_module, match_id, competition, *, date_offset=1, kickoff="20:00", status="NS", home="Equipo Local", away="Equipo Visitante", **extra):
+    item = {
+        "id": match_id,
+        "match_id": match_id,
+        "match_date": app_module.today_iso(date_offset),
+        "kickoff_time": kickoff,
+        "home_team": home,
+        "away_team": away,
+        "competition_name": competition,
+        "country": extra.pop("country", "Global"),
+        "source": extra.pop("source", "provider-test"),
+        "status": status,
+        "v935_lifecycle": extra.pop("v935_lifecycle", "UPCOMING"),
+        "v935_surface": extra.pop("v935_surface", {"home": True, "calendar": True, "live": False}),
+    }
+    item.update(extra)
+    return item
+
+
+def _sports_relevance_summary(matches, picks=None, live=None, finished=None):
+    return {
+        "all_valid_matches": matches,
+        "valid_upcoming_matches": matches,
+        "valid_matches_available": matches,
+        "valid_matches_today": [item for item in matches if item.get("v935_surface", {}).get("home")],
+        "valid_live_events": live or [],
+        "valid_active_picks": picks or [],
+        "finished_matches": finished or [],
+        "incident_matches": [],
+        "incomplete_matches": [],
+        "raw_matches_count": len(matches),
+        "stale_live_excluded": 0,
+        "safe_message": "Agenda de prueba local.",
+    }
+
+
+def test_sports_relevance_tier_s_beats_tier_c_even_when_minor_has_pick(app_module):
+    elite = _sports_relevance_match(
+        app_module,
+        "elite-match",
+        "UEFA Champions League",
+        home="Real Madrid",
+        away="Manchester City",
+    )
+    minor = _sports_relevance_match(
+        app_module,
+        "minor-pick-match",
+        "Liga Local QA",
+        home="Local Barrio",
+        away="Visitante Barrio",
+    )
+    summary = _sports_relevance_summary(
+        [minor, elite],
+        picks=[{"id": "pick-minor", "match_id": "minor-pick-match", "market": "1X2", "selection": "Local", "odds": 2.1}],
+    )
+    with app_module.app.test_request_context("/calendar?lane=week"):
+        calendar = app_module.v940_calendar_context(summary, "week", app_module.today_iso())
+    assert calendar["matches"][0]["id"] == "elite-match"
+    minor_ranked = next(item for item in calendar["matches"] if item["id"] == "minor-pick-match")
+    assert minor_ranked["has_pick"] is True
+    assert "PICK_SECONDARY" in minor_ranked["sports_relevance"]["reasons"]
+
+
+def test_sports_relevance_live_tier_a_beats_upcoming_tier_s(app_module):
+    live = _sports_relevance_match(
+        app_module,
+        "live-a",
+        "Primeira Liga",
+        date_offset=0,
+        kickoff="19:00",
+        status="1H",
+        home="Benfica",
+        away="Porto",
+        minute="37",
+        kickoff_iso=app_module.now_iso(),
+        home_score=1,
+        away_score=0,
+        v935_lifecycle="LIVE",
+        v935_surface={"home": True, "calendar": True, "live": True},
+    )
+    upcoming = _sports_relevance_match(
+        app_module,
+        "upcoming-s",
+        "UEFA Champions League",
+        date_offset=1,
+        home="Bayern Munich",
+        away="PSG",
+    )
+    summary = _sports_relevance_summary([upcoming, live], live=[live])
+    with app_module.app.test_request_context("/calendar?lane=week"):
+        calendar = app_module.v940_calendar_context(summary, "week", app_module.today_iso())
+    assert calendar["matches"][0]["id"] == "live-a"
+    assert calendar["matches"][0]["sports_relevance"]["is_live"] is True
+
+
+def test_sports_relevance_favorite_boost_is_explainable(app_module):
+    plain = _sports_relevance_match(app_module, "plain-local", "Liga Local QA", home="Club Normal")
+    favorite = _sports_relevance_match(app_module, "favorite-local", "Liga Local QA", home="Mi Club")
+    plain_ranked = app_module.apply_sports_relevance(plain, favorites={"team": set(), "league": set(), "match": set()})
+    favorite_ranked = app_module.apply_sports_relevance(favorite, favorites={"team": {"mi club"}, "league": set(), "match": set()})
+    assert favorite_ranked["sports_relevance_score"] > plain_ranked["sports_relevance_score"]
+    assert "USER_FAVORITE" in favorite_ranked["sports_relevance"]["reasons"]
+
+
+def test_sports_relevance_unknown_competitions_are_degraded_not_deleted(app_module):
+    unknown = _sports_relevance_match(app_module, "unknown-match", "Torneo Sin Mapeo")
+    ranked = app_module.apply_sports_relevance(unknown)
+    assert ranked["sports_relevance_bucket"] == "UNKNOWN"
+    assert ranked["sports_relevance"]["data_quality"] == "UNKNOWN_COMPETITION"
+
+
+def test_sports_relevance_finished_match_is_removed_from_live_lane(app_module):
+    finished = _sports_relevance_match(
+        app_module,
+        "finished-live-source",
+        "LaLiga",
+        date_offset=0,
+        status="FT",
+        home_score=2,
+        away_score=1,
+        v935_lifecycle="FINISHED",
+        v935_surface={"home": True, "calendar": True, "live": True},
+    )
+    summary = _sports_relevance_summary([finished], live=[finished], finished=[finished])
+    with app_module.app.test_request_context("/live?f=live"):
+        live_context = app_module.v931_live_context(summary, "live", "")
+    assert live_context["matches"] == []
+
+
+def test_sports_relevance_upcoming_uses_madrid_kickoff_proximity(app_module):
+    now_value = app_module.datetime.now(app_module.TZ).replace(second=0, microsecond=0)
+    soon_dt = now_value + app_module.timedelta(hours=2)
+    later_dt = now_value + app_module.timedelta(days=2)
+    soon = {
+        "id": "soon",
+        "match_date": soon_dt.date().isoformat(),
+        "kickoff_time": soon_dt.strftime("%H:%M"),
+        "home_team": "Real Madrid",
+        "away_team": "Barcelona",
+        "competition_name": "LaLiga",
+        "source": "provider-test",
+        "status": "NS",
+    }
+    later = {
+        "id": "later",
+        "match_date": later_dt.date().isoformat(),
+        "kickoff_time": later_dt.strftime("%H:%M"),
+        "home_team": "Real Madrid",
+        "away_team": "Barcelona",
+        "competition_name": "LaLiga",
+        "source": "provider-test",
+        "status": "NS",
+    }
+    ranked = app_module.sort_matches_by_sports_relevance([later, soon], now_value=now_value)
+    assert ranked[0]["id"] == "soon"
+    assert "KICKOFF_PROXIMITY_3H" in ranked[0]["sports_relevance"]["reasons"]
+
+
+def test_sports_relevance_deduplicates_before_ranking(app_module):
+    first = _sports_relevance_match(app_module, "dup-match", "Premier League", kickoff="18:00")
+    duplicate = {**first, "kickoff_time": "19:00"}
+    ranked = app_module.sort_matches_by_sports_relevance([first, duplicate])
+    assert len(ranked) == 1
+    assert ranked[0]["id"] == "dup-match"
+
+
+def test_sports_relevance_home_links_to_match_center(client, app_module, monkeypatch):
+    elite = _sports_relevance_match(
+        app_module,
+        "home-elite-match",
+        "UEFA Champions League",
+        date_offset=1,
+        home="Real Madrid",
+        away="Manchester City",
+    )
+    summary = _sports_relevance_summary([elite])
+
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    response = client.get("/")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert '/match/home-elite-match' in html
+    assert 'data-sports-relevance="PRIORITY"' in html
+
+
+def test_sports_relevance_empty_live_state_is_honest(client, app_module, monkeypatch):
+    summary = _sports_relevance_summary([])
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    response = client.get("/live")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "No hay partidos para este estado" in html or "Sin directo destacado" in html
+
+
+@pytest.mark.parametrize(
+    ("terminal_status", "expected_lifecycle"),
+    [
+        ("FT", "FINISHED"),
+        ("FINISHED", "FINISHED"),
+        ("CANCELLED", "CANCELLED"),
+        ("POSTPONED", "POSTPONED"),
+        ("ABANDONED", "ABANDONED"),
+    ],
+)
+def test_p0_terminal_status_never_renders_live(app_module, terminal_status, expected_lifecycle):
+    match = _sports_relevance_match(
+        app_module,
+        f"terminal-{terminal_status.lower()}",
+        "CONCACAF Central American Cup",
+        date_offset=0,
+        kickoff="02:30",
+        status="LIVE",
+        match_status=terminal_status,
+        minute="88",
+        home_score=2,
+        away_score=0,
+        score="2-0",
+    )
+    truth = match_status_truth(match)
+    canonical = app_module.canonical_match_status(match)
+    client_view = app_module.client_match_display_context(match)
+    live_card = build_live_card_payload(match)
+    live_state = normalize_live_state(match)
+
+    assert truth["lifecycle"] == expected_lifecycle
+    assert truth["status_conflict"] is True
+    assert truth["is_live"] is False
+    assert canonical["is_live"] is False
+    assert canonical["status_conflict"] is True
+    assert "directo" not in client_view["client_status_label"].lower()
+    assert live_card["is_live"] is False
+    assert live_state["key"] not in {"LIVE", "HT"}
+
+
+@pytest.mark.parametrize(
+    ("match_id", "home", "away", "score", "home_score", "away_score"),
+    [
+        ("day1-mixco-alianza", "Mixco", "Alianza", "2-0", 2, 0),
+        ("day1-olimpia-saprissa", "CD Olimpia", "Deportivo Saprissa", "2-1", 2, 1),
+    ],
+)
+def test_p0_day1_live_ft_contradictions_degrade_to_finished(
+    app_module, match_id, home, away, score, home_score, away_score
+):
+    match = _sports_relevance_match(
+        app_module,
+        match_id,
+        "CONCACAF Central American Cup",
+        date_offset=0,
+        kickoff="02:30",
+        status="LIVE",
+        home=home,
+        away=away,
+        score=score,
+        home_score=home_score,
+        away_score=away_score,
+        status_info={"key": "FT", "label": "Finalizado", "is_finished": True, "is_live": False},
+        v935_lifecycle="FINISHED",
+        v935_surface={"home": True, "calendar": False, "live": True},
+    )
+    canonical = app_module.canonical_match_status(match)
+    enriched = enrich_match_lifecycle(match)
+    live_context = app_module.v931_live_context(_sports_relevance_summary([match], live=[match], finished=[match]))
+
+    assert canonical["key"] == "FT"
+    assert canonical["is_live"] is False
+    assert canonical["status_conflict"] is True
+    assert enriched["v935_lifecycle"] == "FINISHED"
+    assert enriched["v935_surface"]["live"] is False
+    assert live_context["matches"] == []
+
+
+def test_p0_live_without_real_minute_uses_honest_label_and_no_fake_score(app_module):
+    live = _sports_relevance_match(
+        app_module,
+        "live-no-minute",
+        "Primeira Liga",
+        date_offset=0,
+        kickoff="20:00",
+        status="LIVE",
+        home="Benfica",
+        away="Porto",
+        minute="",
+        score="",
+        home_score=None,
+        away_score=None,
+    )
+    scheduled_with_minute = {**live, "id": "scheduled-minute-only", "status": "NS", "minute": "37"}
+
+    assert app_module.canonical_match_status(live)["is_live"] is True
+    assert app_module.canonical_live_minute(live) == ""
+    assert app_module.client_match_display_context(live)["client_status_label"] == "En directo"
+    assert build_live_card_payload(live)["minute_label"] == "En directo"
+    assert build_live_card_payload(live)["score_label"] == "Resultado pendiente"
+    assert enrich_live_match(live)["live_score_label"] == "Marcador no disponible"
+    assert app_module.canonical_match_status(scheduled_with_minute)["is_live"] is False
+
+
+@pytest.mark.parametrize("active_status", ["1H", "2H", "HT", "BT", "ET", "P"])
+def test_p0_explicit_active_phase_is_live_without_inventing_minute(app_module, active_status):
+    match = _sports_relevance_match(
+        app_module,
+        f"active-{active_status.lower()}",
+        "UEFA Champions League",
+        status=active_status,
+        minute="",
+        score="",
+        home_score=None,
+        away_score=None,
+    )
+    canonical = app_module.canonical_match_status(match)
+    assert canonical["is_live"] is True
+    assert app_module.canonical_live_minute(match) == ""
+
+
+def test_p0_cached_live_reader_rejects_minute_only_and_terminal_conflicts(app_module, monkeypatch):
+    rows = [
+        _sports_relevance_match(
+            app_module,
+            "cached-explicit-live",
+            "Primeira Liga",
+            status="LIVE",
+            minute="",
+            home="Benfica",
+            away="Porto",
+        ),
+        _sports_relevance_match(
+            app_module,
+            "cached-minute-only",
+            "Primeira Liga",
+            status="NS",
+            minute="37",
+            home="Braga",
+            away="Estoril",
+        ),
+        _sports_relevance_match(
+            app_module,
+            "cached-live-ft",
+            "Primeira Liga",
+            status="LIVE",
+            match_status="FT",
+            minute="88",
+            score="2-0",
+            home_score=2,
+            away_score=0,
+            home="Sporting CP",
+            away="Casa Pia",
+        ),
+    ]
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: [dict(item) for item in rows])
+
+    result = app_module.get_matches(app_module.today_iso(), "live")
+
+    assert [item["id"] for item in result] == ["cached-explicit-live"]
+    assert result[0]["client_live_minute"] == ""
+
+
+def test_p0_live_table_membership_and_minute_do_not_infer_live(app_module, monkeypatch):
+    cached_rows = [
+        {
+            "lm_match_id": "live-table-no-status",
+            "lm_status": "",
+            "lm_minute": "41",
+            "lm_home_score": 0,
+            "lm_away_score": 0,
+            "lm_payload_json": "",
+            "lm_source": "persisted-provider-cache",
+            "lm_updated_at": app_module.now_iso(),
+            "id": "live-table-no-status",
+            "competition_name": "Primeira Liga",
+            "country": "Portugal",
+            "home_team": "Braga",
+            "away_team": "Estoril",
+            "status": "",
+            "minute": "41",
+        },
+        {
+            "lm_match_id": "live-table-explicit",
+            "lm_status": "1H",
+            "lm_minute": "",
+            "lm_home_score": 1,
+            "lm_away_score": 0,
+            "lm_payload_json": "",
+            "lm_source": "persisted-provider-cache",
+            "lm_updated_at": app_module.now_iso(),
+            "id": "live-table-explicit",
+            "competition_name": "Primeira Liga",
+            "country": "Portugal",
+            "home_team": "Benfica",
+            "away_team": "Porto",
+            "status": "1H",
+            "minute": "",
+        },
+    ]
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: [dict(item) for item in cached_rows])
+    monkeypatch.setattr(app_module, "seed_core", lambda: None)
+
+    result = app_module.live_matches_from_live_table()
+
+    assert [item["id"] for item in result] == ["live-table-explicit"]
+    assert result[0]["status_info"]["is_live"] is True
+    assert result[0]["client_live_minute"] == ""
+
+
+@pytest.mark.parametrize(
+    ("competition", "country", "expected_tier"),
+    [
+        ("Premier League", "Ukraine", "UNKNOWN"),
+        ("Premier League", "Russia", "UNKNOWN"),
+        ("Premier League", "Malta", "UNKNOWN"),
+        ("Premier League", "Faroe Islands", "UNKNOWN"),
+        ("Premier League", "Wales", "UNKNOWN"),
+        ("Premier League", "Canada", "UNKNOWN"),
+        ("Ukrainian Premier League", "Ukraine", "UNKNOWN"),
+        ("Russian Premier League", "Russia", "UNKNOWN"),
+        ("Maltese Premier League", "Malta", "UNKNOWN"),
+        ("Faroe Islands Premier League", "Faroe Islands", "UNKNOWN"),
+        ("Welsh Premier League", "Wales", "UNKNOWN"),
+        ("Canadian Premier League", "Canada", "UNKNOWN"),
+        ("Austrian Bundesliga", "Austria", "B"),
+        ("Bundesliga austríaca", "Austria", "B"),
+        ("Serie A", "Ecuador", "UNKNOWN"),
+        ("LigaPro Serie A", "Ecuador", "UNKNOWN"),
+    ],
+)
+def test_p0_day1_sixteen_generic_name_false_positives_are_not_tier_s(
+    app_module, competition, country, expected_tier
+):
+    result = app_module.sports_competition_priority({
+        "competition_name": competition,
+        "country": country,
+        "source": "persisted-provider-cache",
+    })
+    assert result["tier"] == expected_tier
+    assert result["tier"] != "S"
+
+
+def test_p0_canonical_id_then_scoped_exact_alias_classification(app_module):
+    assert app_module.sports_competition_priority({"competition_id": "4328", "competition_name": "Premier League", "country": "Ukraine"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_id": "premier-league", "competition_name": "Premier League", "country": "Ukraine"})["tier"] == "UNKNOWN"
+    assert app_module.sports_competition_priority({"competition_key": "premier-league", "competition_name": "Premier League", "country": "Ukraine"})["tier"] == "UNKNOWN"
+    assert app_module.sports_competition_priority({"competition_key": "premier-league", "competition_name": "Premier League", "country": "England"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_name": "Premier League", "country": "England"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_name": "Bundesliga", "country": "Germany"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_name": "Ligue 1", "country": "France"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_name": "Serie A", "country": "Italy"})["tier"] == "S"
+    assert app_module.sports_competition_priority({"competition_name": "Serie A", "country": "Ecuador"})["tier"] == "UNKNOWN"
+
+
+def test_p0_home_sports_first_orders_day1_elite_matches_above_low_priority_leagues(app_module):
+    now_value = app_module.datetime.now(app_module.TZ).replace(hour=12, minute=0, second=0, microsecond=0)
+    matches = [
+        _sports_relevance_match(app_module, "k-league-2", "South Korean K League 2", date_offset=0, kickoff="17:00", country="South Korea"),
+        _sports_relevance_match(app_module, "chinese-super-league", "Chinese Super League", date_offset=0, kickoff="17:15", country="China"),
+        _sports_relevance_match(app_module, "bayern-stuttgart", "Bundesliga", date_offset=0, kickoff="18:30", country="Germany", home="Bayern Munich", away="Stuttgart"),
+        _sports_relevance_match(app_module, "lille-psg", "Ligue 1", date_offset=0, kickoff="18:45", country="France", home="Lille", away="Paris Saint-Germain"),
+        _sports_relevance_match(app_module, "milan-venezia", "Serie A", date_offset=0, kickoff="18:45", country="Italy", home="AC Milan", away="Venezia"),
+    ]
+    ranked = app_module.sort_matches_by_sports_relevance(
+        matches,
+        "home",
+        pick_ids={"k-league-2", "chinese-super-league"},
+        now_value=now_value,
+    )
+    order = [item["id"] for item in ranked]
+
+    for important in ("bayern-stuttgart", "lille-psg", "milan-venezia"):
+        assert order.index(important) < order.index("k-league-2")
+        assert order.index(important) < order.index("chinese-super-league")
+    assert ranked[0]["sports_relevance"]["home_priority_reason"] == "TIER_SA_TODAY"
+    assert next(item for item in ranked if item["id"] == "k-league-2")["sports_relevance_bucket"] == "UNKNOWN"
+    assert next(item for item in ranked if item["id"] == "chinese-super-league")["sports_relevance_bucket"] == "UNKNOWN"
+
+
+def test_p0_unknown_baseline_is_classified_without_blind_mapping_or_api_calls(app_module, monkeypatch):
+    external_calls = {"count": 0}
+
+    def fail_external(*_args, **_kwargs):
+        external_calls["count"] += 1
+        raise AssertionError("No external provider call is allowed in relevance classification")
+
+    monkeypatch.setattr(app_module, "fetch_json_url", fail_external)
+    matches = [
+        _sports_relevance_match(
+            app_module,
+            f"unknown-{index}",
+            f"Competición sin mapear {index % 5}",
+            country="País A" if index % 2 == 0 else "País B",
+            source="persisted-provider-a" if index % 3 else "persisted-provider-b",
+        )
+        for index in range(130)
+    ]
+    quality = app_module.build_unknown_competition_quality(matches, matches[:3])
+
+    assert quality["total"] == 130
+    assert quality["mapped_automatically"] == 0
+    assert quality["UNKNOWN_VISIBLE_ON_HOME"]["count"] == 3
+    assert sum(item["count"] for item in quality["UNKNOWN_BY_FREQUENCY"]) == 130
+    assert sum(item["count"] for item in quality["UNKNOWN_BY_COUNTRY"]) == 130
+    assert sum(item["count"] for item in quality["UNKNOWN_BY_PROVIDER"]) == 130
+    assert quality["external_calls"] == 0
+    assert external_calls["count"] == 0
+
+
+def test_p0_match_surface_contract_keeps_status_score_teams_kickoff_and_competition_consistent(app_module):
+    match = _sports_relevance_match(
+        app_module,
+        "consistent-ft",
+        "Bundesliga",
+        date_offset=0,
+        kickoff="18:30",
+        country="Germany",
+        status="LIVE",
+        match_status="FT",
+        home="Bayern Munich",
+        away="Stuttgart",
+        score="2-0",
+        home_score=2,
+        away_score=0,
+        minute="",
+    )
+    base_contract = app_module.canonical_match_surface_contract(match)
+    client_view = app_module.client_match_display_context(match)
+    client_contract = client_view["surface_contract"]
+    enriched = enrich_match_lifecycle(match)
+    live_card = build_live_card_payload(client_view)
+    domain_match = app_module.canonical_match_for_domain_context(match)
+    match_context = build_match_context(
+        {"match": domain_match, "timeline": [], "related_picks": []},
+        madrid_context=client_view,
+        live_context={"available": True, "status": "LIVE", "minute": "88"},
+    )
+
+    for contract in (base_contract, client_contract):
+        assert contract["id"] == "consistent-ft"
+        assert contract["home"] == "Bayern de Múnich"
+        assert contract["away"] == "Stuttgart"
+        assert contract["competition"] == "Bundesliga"
+        assert contract["status_key"] == "FT"
+        assert contract["score"] == "2-0"
+        assert contract["kickoff_time"] == "18:30"
+    assert enriched["v935_lifecycle"] == "FINISHED"
+    assert live_card["status_label"] == "Finalizado"
+    assert live_card["score_label"] == "2-0"
+    assert live_card["home"] == base_contract["home"]
+    assert live_card["away"] == "Stuttgart"
+    assert live_card["competition"] == "Bundesliga"
+    assert live_card["is_live"] is False
+    assert domain_match["status"] == "FT"
+    assert domain_match["minute"] is None
+    assert match_context["lifecycle"]["is_finished"] is True
+    assert match_context["lifecycle"]["is_live"] is False
+
+
+def test_p0_operations_quality_contract_is_compact_and_cache_only(app_module):
+    elite = _sports_relevance_match(
+        app_module,
+        "quality-elite",
+        "Bundesliga",
+        date_offset=0,
+        country="Germany",
+        home="Bayern Munich",
+        away="Stuttgart",
+    )
+    unknown = _sports_relevance_match(app_module, "quality-unknown", "Torneo sin mapear", date_offset=0)
+    summary = _sports_relevance_summary([elite, unknown])
+    summary["last_sync"] = app_module.now_iso()
+    summary["sports_home"] = app_module.build_sports_home_sections(summary)
+    metrics = app_module.build_sports_metrics_contract(summary)
+    quality = metrics["sports_quality"]
+
+    assert quality["live_real"] == 0
+    assert quality["live_conflicts"] == 0
+    assert quality["unknown"] == 1
+    assert quality["tier_sa_available"] == 1
+    assert quality["tier_sa_surfaced"] == 1
+    assert quality["external_calls"] == 0

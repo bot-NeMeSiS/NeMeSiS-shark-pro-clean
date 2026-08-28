@@ -58,6 +58,18 @@ def _sample_founder_snapshot() -> dict:
             {"key": "render", "label": "Render", "status": "NOT_CERTIFIED", "evidence_state": "BLOQUEADO_POR_ACCESO", "summary": "Produccion no consultada.", "source": "Operations Center", "href": "/admin/operations-center", "next_action": "Certificar read-only."},
             {"key": "sentinel", "label": "Sentinel", "status": "READY", "evidence_state": "CONFIRMADO", "summary": "Sentinel disponible.", "source": "Operations Center", "href": "/admin/sentinel-autopilot", "next_action": "Mantener vigilancia."},
         ],
+        "sports_quality": {
+            "state": "PASS",
+            "important_live": "Sin muestra",
+            "live_real": 0,
+            "live_conflicts": 0,
+            "tier_sa_available": 3,
+            "tier_sa_surfaced": 3,
+            "unknown": 4,
+            "stale": 0,
+            "last_sync": "2026-07-29T11:55:00+02:00",
+            "provider_errors": "Sin muestra certificada",
+        },
         "release_readiness": {"status": "PARTIAL", "score": 8.4, "missing": ["Render productivo"], "report": {}},
         "top100": {"total": 100, "completed": None, "state": "NO_CERTIFICADO", "summary": "Plan definido.", "priorities": {"P1": 20, "P2": 60}, "report": {}},
         "roadmap": {"current_sprint": "Beta privada", "next_sprint": "Certificacion", "completed": ["Sports Core"]},
@@ -91,6 +103,8 @@ def test_founder_dashboard_renders_read_only_center(client, app_module, monkeypa
     assert "Centro de mando de empresa".encode("utf-8") in response.data
     assert b"Beta Control" in response.data
     assert "Resumen operativo".encode("utf-8") in response.data
+    assert "Calidad deportiva".encode("utf-8") in response.data
+    assert b"Conflictos LIVE" in response.data
     assert "Exportación de informes".encode("utf-8") in response.data
     assert b"data-founder-mode=\"read-only\"" in response.data
 
@@ -120,6 +134,14 @@ def test_founder_api_returns_read_only_contract(client, app_module, monkeypatch)
     assert founder["stripe_called"] is False
 
 
+def test_client_data_source_labels_do_not_expose_qa_storage_names(app_module):
+    assert app_module.client_data_source_label("browser_qa_temp_db") == "Fixture local QA"
+    assert app_module.client_data_source_label("fixture-local") == "Fixture local QA"
+    assert app_module.client_data_source_label("sportsdb_cache") == "TheSportsDB"
+    assert app_module.client_data_source_label("database.db") == "DB y caché deportiva"
+    assert "browser_qa" not in app_module.client_data_source_label("browser_qa_temp_db").lower()
+
+
 def test_founder_snapshot_composes_existing_surfaces_without_dangerous_actions(app_module, monkeypatch):
     monkeypatch.setattr(app_module, "v938_operations_snapshot", lambda: {
         "systems": [
@@ -127,6 +149,18 @@ def test_founder_snapshot_composes_existing_surfaces_without_dangerous_actions(a
             {"id": "sentinel", "status": "READY", "evidence_state": "CONFIRMADO", "summary": "Ready.", "source": "engines", "next_action": "Vigilar."},
         ],
         "operations_sections": {},
+        "sports_metrics": {
+            "last_sync": "2026-07-29T11:55:00+02:00",
+            "sports_quality": {
+                "live_real": 0,
+                "live_conflicts": 0,
+                "unknown": 4,
+                "stale": 0,
+                "tier_sa_available": 3,
+                "tier_sa_surfaced": 3,
+                "external_calls": 0,
+            },
+        },
         "release_1_gate": {"status": "PARTIAL", "score": 8.4, "missing_for_ready": ["Render"]},
         "global_score": {"overall_score": 8.4},
     })
@@ -148,6 +182,9 @@ def test_founder_snapshot_composes_existing_surfaces_without_dangerous_actions(a
     assert snapshot["business_kpis"]["pro"] == 2
     assert snapshot["business_kpis"]["elite"] == 1
     assert snapshot["release_readiness"]["status"] == "PARTIAL"
+    assert snapshot["sports_quality"]["live_conflicts"] == 0
+    assert snapshot["sports_quality"]["tier_sa_surfaced"] == 3
+    assert snapshot["sports_quality"]["external_calls"] == 0
     assert snapshot["action_platform"]["contract"] == "NEMESIS-ACTION-PLATFORM-PERSONAL-SPORTS-EXPERIENCE-V1"
     assert snapshot["production_modified"] is False
     assert snapshot["dangerous_actions_executed"] is False

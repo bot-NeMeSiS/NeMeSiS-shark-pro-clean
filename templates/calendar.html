@@ -21,7 +21,7 @@
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Partidos', 'Descubre la agenda completa sin perder fecha, filtros ni posición.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+  {{ page_header('Partidos', 'Catálogo completo ordenado por prioridad deportiva. Los picks son una capa aparte.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'matches') }}
   {% if lifecycle_total %}{{ lifecycle_story(counts, lane) }}{% endif %}
@@ -44,7 +44,7 @@
            data-v940-calendar-command>
     <header class="v940-calendar-command-head">
       <div>
-        <span class="v933-eyebrow">Historia del día</span>
+        <span class="v933-eyebrow">Prioridad deportiva</span>
         <h2>{{ selected.get('title') or 'Calendario' }}</h2>
         <p>{{ calendar.get('source_summary') or 'Agenda deportiva confirmada.' }}</p>
       </div>
@@ -70,7 +70,7 @@
       <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
       {% if filters.get('team') %}<input type="hidden" name="team" value="{{ filters.get('team') }}">{% endif %}
       {% if filters.get('status') %}<input type="hidden" name="status" value="{{ filters.get('status') }}">{% endif %}
-      {% if filters.get('sort') and filters.get('sort') != 'time' %}<input type="hidden" name="sort" value="{{ filters.get('sort') }}">{% endif %}
+      {% if filters.get('sort') and filters.get('sort') != 'importance' %}<input type="hidden" name="sort" value="{{ filters.get('sort') }}">{% endif %}
       {% if filters.get('with_pick') %}<input type="hidden" name="with_pick" value="{{ filters.get('with_pick') }}">{% endif %}
       <label class="v933-search" for="v940-calendar-search">
         {{ icon('search') }}

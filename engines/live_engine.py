@@ -6,6 +6,8 @@ Pure helpers: no Flask, no network and no SQLite writes here.
 import json
 import re
 
+from engines.v935_launch_trust_engine import match_status_truth
+
 
 LIVE_STATES = {
     "LIVE": {"label": "LIVE", "badge": "live", "priority": 100},
@@ -46,20 +48,30 @@ def _payload(match):
 
 
 def normalize_live_state(match):
-    status = str(match.get("status") or "").strip().lower()
-    minute = str(match.get("minute") or "").strip().lower()
-    if any(x in status for x in ["suspend", "aplaz", "postponed", "abandoned"]):
-        key = "SUSPENDED"
-    elif status in {"ht", "descanso"} or "half" in status or minute == "ht":
+    truth = match_status_truth(dict(match or {}))
+    lifecycle = truth.get("lifecycle")
+    if lifecycle == "HALFTIME":
         key = "HT"
-    elif status in {"ft", "finalizado", "finished", "final"}:
-        key = "FT"
-    elif minute or any(x in status for x in ["live", "directo", "1h", "2h"]):
+    elif lifecycle == "LIVE" and not truth.get("status_conflict"):
         key = "LIVE"
+    elif lifecycle in {"FINISHED", "ARCHIVED"}:
+        key = "FT"
+    elif lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
+        key = "SUSPENDED"
     else:
         key = "UPCOMING"
     state = dict(LIVE_STATES[key])
     state["key"] = key
+    state["status_contract"] = truth.get("contract")
+    state["status_conflict"] = bool(truth.get("status_conflict"))
+    if lifecycle == "RESULT_PENDING":
+        state.update({"label": "RESULTADO PENDIENTE", "badge": "result_pending"})
+    elif lifecycle == "CANCELLED":
+        state.update({"label": "CANCELADO", "badge": "cancelled"})
+    elif lifecycle == "ABANDONED":
+        state.update({"label": "ABANDONADO", "badge": "abandoned"})
+    elif lifecycle == "POSTPONED":
+        state.update({"label": "APLAZADO", "badge": "postponed"})
     return state
 
 
@@ -145,7 +157,16 @@ def shark_live_alerts(match, momentum=None):
 
 def build_live_depth(match):
     state = normalize_live_state(match)
-    minute_value = match.get("minute") or match.get("kickoff_time") or "-"
+    raw_minute = str(match.get("minute") or match.get("elapsed") or match.get("live_minute") or "").strip().strip("'\u2019")
+    minute_value = ""
+    if state["key"] in {"LIVE", "HT"}:
+        minute_value = f"{raw_minute}'" if re.fullmatch(r"(?:[1-9]\d?|1[0-2]\d)(?:\+\d{1,2})?", raw_minute) else state["label"].title()
+    elif state["key"] == "FT":
+        minute_value = "FT"
+    elif state["key"] == "UPCOMING":
+        minute_value = match.get("kickoff_time") or "Hora pendiente"
+    else:
+        minute_value = state["label"].title()
     minute_score = _minute_number(match.get("minute"))
     if state["key"] == "LIVE":
         base_momentum = min(100, 52 + minute_score // 2)

@@ -8,6 +8,8 @@
 {% set participation = center.participation or {} %}
 {% set data_quality = center.data_quality or {} %}
 {% set links = center.links or {} %}
+{% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
 
 <section class="player-center-v1" data-player-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-player-knowledge-contract="{{ center.player_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}" data-shark-intelligence-contract="{{ center.shark_intelligence_contract or '' }}" data-user-intelligence-contract="{{ center.user_intelligence_contract or '' }}">
   <header class="player-center-hero" data-player-center-section="header">
@@ -22,29 +24,29 @@
       <div class="player-center-title-block">
         <div class="player-center-kicker">Centro del jugador · {{ player.team or 'No disponible' }}</div>
         <h1>{{ player.display_name or player.official_name or 'Jugador no disponible' }}</h1>
-        <p>Centro de identidad deportiva construido sobre Modelo deportivo, Conocimiento deportivo, Grafo deportivo, Inteligencia SHARK y Inteligencia de usuario. No crea datos sin evidencia.</p>
+        <p>Equipo, competición, estadísticas y partidos relacionados disponibles.</p>
         <div class="player-center-tags" aria-label="Estado del jugador">
           <span>{{ player.state or 'Información parcial' }}</span>
           <span>{{ player.position or 'No disponible' }}</span>
-          <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
+          <span>{{ quality_labels.get(quality_state, quality_state|replace('_', ' ')|title) }}</span>
         </div>
       </div>
     </div>
     <aside class="player-center-status-card" aria-label="Resumen del jugador">
       <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
-      <div><span>Procedencia</span><strong>{{ data_quality.source or 'No disponible' }}</strong></div>
+      <div><span>Procedencia</span><strong>{{ nemesis_source_label(data_quality.source) }}</strong></div>
       <nav class="player-center-actions" aria-label="Acciones rapidas">
         {% if links.match_center %}<a href="{{ links.match_center }}">Centro del partido</a>{% endif %}
         {% if links.team_center %}<a href="{{ links.team_center }}">Centro del equipo</a>{% endif %}
-        {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competicion</a>{% endif %}
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competición</a>{% endif %}
       </nav>
     </aside>
   </header>
 
   <section class="player-center-meta-grid" data-player-center-section="identity-facts" aria-label="Datos del jugador">
     <article><span>Equipo</span><strong>{{ player.team or 'No disponible' }}</strong></article>
-    <article><span>Competicion</span><strong>{{ player.competition or 'No disponible' }}</strong></article>
-    <article><span>Pais</span><strong>{{ player.country or 'No disponible' }}</strong></article>
+    <article><span>Competición</span><strong>{{ player.competition or 'No disponible' }}</strong></article>
+    <article><span>País</span><strong>{{ player.country or 'No disponible' }}</strong></article>
     <article><span>Dorsal</span><strong>{{ player.shirt_number or 'No disponible' }}</strong></article>
   </section>
 
@@ -53,16 +55,16 @@
     <article><span>Eventos</span><strong>{{ metrics.events or 0 }}</strong><small>registrados</small></article>
     <article><span>Alineaciones</span><strong>{{ metrics.lineups or 0 }}</strong><small>confirmadas</small></article>
     <article><span>Picks</span><strong>{{ metrics.picks or 0 }}</strong><small>relacionados</small></article>
-    <article><span>Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>relaciones</small></article>
+    <article><span>Relaciones</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>deportivas</small></article>
   </section>
 
   <main class="player-center-layout">
     <section class="player-center-panel" data-player-center-section="basic-information">
-      <div class="player-center-section-head"><span>Información basica</span><strong>{{ player.official_name or 'No disponible' }}</strong></div>
+      <div class="player-center-section-head"><span>Información básica</span><strong>{{ player.official_name or 'No disponible' }}</strong></div>
       <dl class="player-center-data-list">
         <div><dt>Nombre oficial</dt><dd>{{ player.official_name or 'No disponible' }}</dd></div>
         <div><dt>Nombre visible</dt><dd>{{ player.display_name or 'No disponible' }}</dd></div>
-        <div><dt>Posicion</dt><dd>{{ player.position or 'No disponible' }}</dd></div>
+        <div><dt>Posición</dt><dd>{{ player.position or 'No disponible' }}</dd></div>
         <div><dt>Estado</dt><dd>{{ player.state or 'No disponible' }}</dd></div>
       </dl>
     </section>
@@ -166,4 +168,3 @@
   </main>
 </section>
 {% endblock %}
-

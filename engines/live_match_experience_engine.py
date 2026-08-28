@@ -6,9 +6,12 @@ module never performs provider calls during render and never writes SQLite.
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from datetime import datetime, timezone
 from typing import Any
+
+from engines.v935_launch_trust_engine import match_status_truth
 
 
 LIVE_STATUS_MAP = {
@@ -60,41 +63,37 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
 
 def get_match_status_label(match: dict[str, Any] | None) -> str:
     match = dict(match or {})
-    raw = _text(_first(match, "status_short", "short_status", "status_code", "status")).upper()
-    label = LIVE_STATUS_MAP.get(raw)
-    if label:
-        return label
-    low = raw.lower()
-    if any(token in low for token in ("live", "directo", "1h", "2h")):
-        return "En directo"
-    if any(token in low for token in ("half", "descanso", "ht")):
-        return "Descanso"
-    if any(token in low for token in ("final", "finished", "ft")):
-        return "Finalizado"
-    if any(token in low for token in ("postpon", "aplaz")):
-        return "Aplazado"
-    if any(token in low for token in ("suspend", "cancel")):
-        return "Suspendido"
-    if _text(_first(match, "minute", "elapsed")):
-        return "En directo"
-    return _text(_first(match, "safe_status", "client_status_label")) or "Próximo"
+    lifecycle = match_status_truth(match).get("lifecycle")
+    return {
+        "LIVE": "En directo",
+        "HALFTIME": "Descanso",
+        "FINISHED": "Finalizado",
+        "ARCHIVED": "Finalizado",
+        "RESULT_PENDING": "Resultado pendiente",
+        "POSTPONED": "Aplazado",
+        "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado",
+        "INCOMPLETE": "Estado pendiente",
+        "UPCOMING": "Próximo",
+    }.get(str(lifecycle), "Estado pendiente")
 
 
 def get_match_minute_label(match: dict[str, Any] | None) -> str:
     match = dict(match or {})
+    status = get_match_status_label(match)
+    if status not in {"En directo", "Descanso"}:
+        return ""
     minute = _text(_first(match, "minute", "elapsed", "live_minute"))
     extra = _text(_first(match, "extra", "stoppage_time"))
+    minute = minute.strip("'\u2019")
     if minute:
-        if minute.isdigit():
+        if minute.isdigit() and 0 < int(minute) <= 130:
             return f"{minute}+{extra}'" if extra and extra.isdigit() else f"{minute}'"
-        if minute.endswith("'"):
-            return minute
-        return minute
-    if get_match_status_label(match) == "Descanso":
+        if re.fullmatch(r"(?:[1-9]\d?|1[0-2]\d)\+\d{1,2}", minute):
+            return f"{minute}'"
+    if status == "Descanso":
         return "Descanso"
-    if get_match_status_label(match) == "En directo":
-        return "Minuto no disponible"
-    return ""
+    return "En directo"
 
 
 def get_score_label(match: dict[str, Any] | None) -> str:
@@ -149,6 +148,7 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
 
 def build_live_card_payload(match: dict[str, Any] | None) -> dict[str, Any]:
     item = normalize_live_match(match)
+    truth = match_status_truth(item)
     status = item["v850_status_label"]
     score = item["v850_score_label"]
     minute = item["v850_minute_label"]
@@ -158,9 +158,9 @@ def build_live_card_payload(match: dict[str, Any] | None) -> dict[str, Any]:
         "away": _text(_first(item, "safe_away", "away_team")) or "Visitante",
         "competition": _text(_first(item, "live_competition_display", "competition_name", "league_name")) or "Competición",
         "status_label": status,
-        "minute_label": minute or ("Minuto no disponible" if status == "En directo" else ""),
+        "minute_label": minute,
         "score_label": score,
-        "is_live": status in {"En directo", "Descanso", "Prórroga", "Penaltis"},
+        "is_live": bool(truth.get("is_live") and not truth.get("status_conflict")),
         "is_finished": status == "Finalizado",
         "is_pending": score in {"VS", "Resultado pendiente"},
         "home_logo": _text(item.get("home_logo")),
@@ -168,6 +168,8 @@ def build_live_card_payload(match: dict[str, Any] | None) -> dict[str, Any]:
         "league_logo": _text(item.get("league_logo")),
         "provider": _text(_first(item, "provider", "source")) or "cache",
         "data_state": "Datos live reales" if status in {"En directo", "Descanso", "Finalizado"} else "Esperando proveedor",
+        "status_contract": truth.get("contract"),
+        "status_conflict": bool(truth.get("status_conflict")),
         "detail_url": f"/match/{item.get('id')}" if item.get("id") else "/partidos",
         "shark_url": f"/shark?match={item.get('id')}" if item.get("id") else "/shark",
     }

@@ -10,6 +10,9 @@
 {% set form_items = form.get('items') or [] %}
 {% set data_quality = center.data_quality or {} %}
 {% set links = center.links or {} %}
+{% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
+{% set shark_state = center.shark_context.state or 'INSUFFICIENT_DATA' %}
 
 <section class="team-center-v1" data-team-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}">
   <header class="team-center-hero" data-team-center-section="header">
@@ -18,11 +21,11 @@
       <div class="team-center-title-block">
         <div class="team-center-kicker">Centro del equipo · {{ team.competition or 'No disponible' }}</div>
         <h1>{{ team.official_name or team.name or t.name }}</h1>
-        <p>Centro de conocimiento del club construido sobre Modelo deportivo, Capa de conocimiento deportivo y Grafo deportivo.</p>
+        <p>Partidos, resultados, plantilla y contexto disponible del club.</p>
         <div class="team-center-tags" aria-label="Contexto del equipo">
           <span>{{ team.state or 'Información parcial' }}</span>
           <span>{{ team.country or 'No disponible' }}</span>
-          <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
+          <span>{{ quality_labels.get(quality_state, quality_state|replace('_', ' ')|title) }}</span>
         </div>
       </div>
     </div>
@@ -55,7 +58,7 @@
     <article><span>Resultados</span><strong>{{ metrics.recent or 0 }}</strong><small>historial disponible</small></article>
     <article><span>Directo</span><strong>{{ metrics.live or 0 }}</strong><small>eventos ahora</small></article>
     <article><span>Picks</span><strong>{{ metrics.picks or 0 }}</strong><small>relacionados</small></article>
-    <article><span>Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>relaciones</small></article>
+    <article><span>Relaciones</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>deportivas</small></article>
   </section>
 
   <main class="team-center-layout">
@@ -80,7 +83,7 @@
     </section>
 
     <section class="team-center-panel" data-team-center-section="shark-context">
-      <div class="team-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
+      <div class="team-center-section-head"><span>Contexto SHARK</span><strong>{{ quality_labels.get(shark_state, shark_state|replace('_', ' ')|title) }}</strong></div>
       <p>{{ center.shark_context.summary or 'Contexto SHARK no disponible.' }}</p>
       {% if center.shark_context.limitations %}
       <ul class="team-center-evidence-list">
@@ -143,12 +146,12 @@
     </section>
 
     <section class="team-center-panel" data-team-center-section="data-quality">
-      <div class="team-center-section-head"><span>Calidad de datos</span><strong>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</strong></div>
+      <div class="team-center-section-head"><span>Calidad de datos</span><strong>{{ quality_labels.get(quality_state, quality_state|replace('_', ' ')|title) }}</strong></div>
       <dl class="team-center-data-list">
-        <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
+        <div><dt>Procedencia</dt><dd>{{ nemesis_source_label(data_quality.source) }}</dd></div>
         <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
-        <div><dt>Modelo deportivo</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
-        <div><dt>Knowledge</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Datos deportivos</dt><dd>{{ 'Disponible' if center.source_domain_contract else 'No disponible' }}</dd></div>
+        <div><dt>Contexto deportivo</dt><dd>{{ 'Disponible' if center.sports_knowledge_contract else 'No disponible' }}</dd></div>
       </dl>
       {% if data_quality.limitations %}<ul class="team-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
@@ -162,12 +165,12 @@
 
     <section class="team-center-panel" data-team-center-section="sports-graph">
       <div class="team-center-section-head"><span>Grafo deportivo</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
-      <p>Relaciones preparadas sin persistir grafo ni crear datos ficticios.</p>
+      <p>Relaciones confirmadas entre equipo, partidos y competición.</p>
       {% if center.sports_graph.relationships %}<ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">Información pendiente.</p>{% endif %}
     </section>
 
     <section class="team-center-panel" data-team-center-section="future-links">
-      <div class="team-center-section-head"><span>Conexiones preparadas</span><strong>Modelo deportivo</strong></div>
+      <div class="team-center-section-head"><span>Conexiones</span><strong>Disponibles</strong></div>
       <nav class="team-center-link-grid" aria-label="Centros deportivos preparados">
         {% if links.competition_center %}<a href="{{ links.competition_center }}">Centro de la competicion</a>{% else %}<span>Centro de la competicion · No disponible</span>{% endif %}
         {% if links.player_center %}<a href="{{ links.player_center }}">Centro del jugador</a>{% else %}<span>Centro del jugador · Información pendiente</span>{% endif %}

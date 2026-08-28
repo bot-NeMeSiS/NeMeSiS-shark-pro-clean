@@ -13,9 +13,11 @@ from typing import Any
 
 try:
     from engines.madrid_time_engine import madrid_now, normalize_kickoff_for_display
+    from engines.v935_launch_trust_engine import match_status_truth
 except Exception:  # pragma: no cover - defensive for standalone imports
     madrid_now = None
     normalize_kickoff_for_display = None
+    match_status_truth = None
 
 IMPORTANT_TERMS = (
     "champions",
@@ -80,14 +82,13 @@ def lower_blob(match: dict) -> str:
 
 
 def state_bucket(match: dict) -> str:
-    depth = match.get("live_depth") or {}
-    badge = text(depth.get("badge") or "").lower()
-    label = text(depth.get("label") or match.get("safe_status") or match.get("status") or "").lower()
-    if badge in {"live", "halftime"} or any(word in label for word in ("directo", "live", "descanso", "1h", "2h")):
+    truth = match_status_truth(dict(match or {})) if match_status_truth else {}
+    lifecycle = truth.get("lifecycle")
+    if lifecycle in {"LIVE", "HALFTIME"} and not truth.get("status_conflict"):
         return "live"
-    if badge in {"finished", "finalizado", "result_pending"} or any(word in label for word in ("final", "finished", "terminado", "resultado pendiente")):
+    if lifecycle in {"FINISHED", "ARCHIVED", "RESULT_PENDING"}:
         return "finished"
-    if any(word in label for word in ("aplaz", "suspend", "postpon", "cancel")):
+    if lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
         return "postponed"
     return "upcoming"
 
@@ -217,10 +218,11 @@ def enrich_live_match(match: dict) -> dict:
     minute = text(depth.get("minute") or item.get("minute") or "")
     status_label = text(depth.get("label") or item.get("safe_status") or item.get("status") or "Próximo")
     if bucket == "live":
-        clock = minute if minute else "En directo"
-        if minute.isdigit():
-            clock = f"{minute}'"
-        score_label = score or "0-0"
+        clean_minute = minute.strip("'\u2019")
+        clock = "En directo"
+        if clean_minute.isdigit() and 0 < int(clean_minute) <= 130:
+            clock = f"{clean_minute}'"
+        score_label = score or "Marcador no disponible"
         score_caption = "Marcador live" if score else "En directo"
     elif bucket == "finished":
         clock = "FT"

@@ -75,15 +75,15 @@
         ('Landing','/'), ('Home','/app'), ('Partidos','/calendar'), ('Directo','/live'),
         ('Match','/match/local-match-1'), ('Team','/team/club-local-qa'), ('Competition','/competition/liga-local-qa'), ('Player','/player/local-player-101'),
         ('Picks','/picks'), ('SHARK','/shark'), ('Track Record','/track-record'), ('Memberships','/membresias'),
-        ('Profile','/profile'), ('Telegram','/telegram'), ('Founder','/admin/founder-dashboard'), ('Growth','/admin/growth-center')
+        ('Profile','/profile'), ('Telegram','/telegram'), ('Founder','/admin/founder-dashboard'), ('Growth','/admin/founder-dashboard#growth-revenue')
       ] %}
       {% for label, href in review_screens %}
       <article class="local-safe-review-card" data-review-screen="{{ label }}">
         <a href="{{ href }}"><strong>{{ label }}</strong><span>{{ href }}</span></a>
         <div class="local-safe-review-vote" role="group" aria-label="Revision {{ label }}">
-          <button type="button" data-review-vote="me_gusta">Me gusta</button>
-          <button type="button" data-review-vote="revisar">Revisar</button>
-          <button type="button" data-review-vote="no_me_gusta">No me gusta</button>
+          <button type="button" data-action="local-review-vote" data-review-vote="me_gusta">Me gusta</button>
+          <button type="button" data-action="local-review-vote" data-review-vote="revisar">Revisar</button>
+          <button type="button" data-action="local-review-vote" data-review-vote="no_me_gusta">No me gusta</button>
         </div>
       </article>
       {% endfor %}

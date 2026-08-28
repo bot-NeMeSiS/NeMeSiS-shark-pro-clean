@@ -76,20 +76,21 @@
 </section>
 {%- endmacro %}
 
-{% macro data_trust_meter(has_real_data=false, last_sync='', pending_count=0, source_label='DB y caché segura') -%}
+{% macro data_trust_meter(has_real_data=false, last_sync='', pending_count=0, source_label='DB y caché segura', evidence_origin='SYSTEM_OBSERVATION') -%}
+{% set simulated = evidence_origin == 'SIMULATED_QA' %}
 {% set trust_high = has_real_data and last_sync and pending_count == 0 %}
 {% set trust_ready = has_real_data and last_sync %}
-<article class="v937-data-trust{% if trust_high %} is-high{% elif trust_ready %} is-ready{% else %} is-pending{% endif %}" aria-label="Calidad y trazabilidad del dato">
+<article class="v937-data-trust{% if trust_high %} is-high{% elif trust_ready %} is-ready{% else %} is-pending{% endif %}" aria-label="Calidad y trazabilidad del dato" data-evidence-origin="{{ evidence_origin }}">
   <div class="v937-trust-head">
     <div>
       <span class="v936-kicker">Índice de confianza del dato</span>
       <strong>{% if trust_high %}Alta{% elif trust_ready %}Validada con límites{% else %}En espera de evidencia{% endif %}</strong>
     </div>
-    {{ status_chip('Calidad del dato' if trust_ready else 'Estado seguro', 'success' if trust_high else ('info' if trust_ready else 'warning')) }}
+    {{ status_chip('QA local' if simulated else ('Calidad del dato' if trust_ready else 'Estado seguro'), 'info' if simulated else ('success' if trust_high else ('info' if trust_ready else 'warning'))) }}
   </div>
   <p>No mide la probabilidad de ganar. Resume si la información visible tiene completitud, origen y actualización suficientes.</p>
   <ul>
-    <li class="{% if has_real_data %}is-ok{% endif %}">{{ icon('check' if has_real_data else 'warning') }} Datos reales disponibles</li>
+    <li class="{% if has_real_data %}is-ok{% endif %}">{{ icon('check' if has_real_data else 'warning') }} {% if simulated %}Fixture local QA disponible{% else %}Datos deportivos disponibles{% endif %}</li>
     <li class="{% if last_sync %}is-ok{% endif %}">{{ icon('check' if last_sync else 'warning') }} {% if last_sync %}Actualización registrada{% else %}Sin sincronización confirmada{% endif %}</li>
     <li class="{% if pending_count == 0 %}is-ok{% endif %}">{{ icon('check' if pending_count == 0 else 'warning') }} {{ pending_count }} registros pendientes fuera de KPIs</li>
     <li class="is-ok">{{ icon('shield') }} {{ source_label }}</li>

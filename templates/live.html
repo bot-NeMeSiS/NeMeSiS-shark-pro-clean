@@ -16,15 +16,15 @@
 {% set lifecycle_total = ((live.get('matches') or [])|length) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) %}
 
 <div class="v933-page v933-sports-board v933-live-board" data-v933-template="live" data-v933-reference="canonical-live" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Directo', 'Marcadores, minutos y eventos únicamente cuando están confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+  {{ page_header('Directo', 'Marcador, minuto y estado real. Sin simulación.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {{ realtime_state_bar(realtime, 'live') }}
   {% if lifecycle_total %}{{ lifecycle_story({'today': sports_metrics.get('matches_today', 0), 'live': sports_metrics.get('live_confirmed', 0), 'picks': sports_metrics.get('matches_with_picks', 0), 'finished': sports_metrics.get('finished_verified', 0), 'incidents': 0}, lane) }}{% endif %}
 
   {% if ns.matches %}
-    {{ customer_decision('Sigue el partido, no el ruido', 'Prioriza marcador, minuto y eventos confirmados. Abre SHARK para interpretar el contexto, nunca para completar datos ausentes.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
+    {{ customer_decision('Live primero', 'Marcador, minuto y eventos confirmados. SHARK entra solo como contexto.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
   {% else %}
-    {{ customer_decision('No hay directo: prepara el próximo encuentro', 'Consulta la agenda y los picks completos disponibles. El board permanecerá vacío antes que simular actividad.', 'Abrir calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Ver picks', '/picks', 'Sin marcador ni minuto ficticios') }}
+    {{ customer_decision('Sin directo destacado', 'Pasa a próximos partidos importantes. No se simula actividad.', 'Abrir calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Ver picks', '/picks', 'Sin marcador ni minuto ficticios') }}
   {% endif %}
 
   <section class="v933-kpi-grid">
@@ -41,7 +41,7 @@
   <section class="v933-two-col">
     <div class="v933-main-stack">
       <section class="v933-panel" id="v936-live-board">
-        {{ section_header('Board ' ~ ('en vivo' if lane in ['live','directo'] else 'del día'), 'Contexto confirmado, sin simular actividad cuando el proveedor no responde.') }}
+        {{ section_header('Board ' ~ ('en vivo' if lane in ['live','directo'] else 'del día'), 'Ordenado por relevancia deportiva y frescura.') }}
         {% if ns.matches %}
         <div class="v933-live-grid">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
         {% else %}
@@ -51,7 +51,7 @@
 
       {% if not ns.matches %}
       <section class="v933-panel">
-        {{ section_header('Próximos encuentros', 'Una alternativa útil cuando no hay directo.', 'Abrir calendario', '/calendar') }}
+        {{ section_header('Próximos encuentros', 'Siguiente foco deportivo.', 'Abrir calendario', '/calendar') }}
         {% if upcoming %}<div class="v933-match-grid">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>{% else %}<div class="v933-safe-copy">La próxima agenda completa aparecerá aquí cuando esté sincronizada.</div>{% endif %}
       </section>
       {% endif %}
@@ -60,7 +60,7 @@
     <aside class="v933-side-stack">
       {{ provider_state(safe.get('has_real_data', false), safe.get('last_sync') or '', safe.get('safe_message') or '') }}
       <section class="v933-panel">
-        {{ section_header('Qué ves en directo', 'Un contrato claro con los datos.') }}
+        {{ section_header('Contrato live', 'Solo datos confirmados.') }}
         <div class="v933-truth-list">
           <div>{{ icon('score') }}<span><strong>Marcador</strong><small>Solo si es real</small></span>{{ status_chip('Protegido','success') }}</div>
           <div>{{ icon('clock') }}<span><strong>Minuto</strong><small>Solo si llega del proveedor</small></span>{{ status_chip('Protegido','success') }}</div>

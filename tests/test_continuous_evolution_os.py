@@ -4,8 +4,10 @@ import json
 import os
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
+import engines.product_review_system_engine as ce_engine
 from engines.product_review_system_engine import (
     CONTINUOUS_EVOLUTION_OS_CONTRACT,
     DAILY_PRODUCT_SNAPSHOT_CONTRACT,
@@ -22,6 +24,18 @@ from engines.product_review_system_engine import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def freeze_continuous_evolution_clock(monkeypatch, iso_value: str) -> None:
+    frozen = datetime.fromisoformat(iso_value)
+    original_now = ce_engine._ce_now
+
+    def fake_now(value=None):
+        if value is None:
+            return frozen
+        return original_now(value)
+
+    monkeypatch.setattr(ce_engine, "_ce_now", fake_now)
 
 
 def test_continuous_evolution_three_runs_detect_stable_and_new_change(tmp_path):
@@ -340,6 +354,7 @@ def test_continuous_evolution_web_endpoint_runs_idempotently_without_external_ac
     monkeypatch.setenv("AUTOMATION_SECRET", secret)
     monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
     monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(storage))
+    freeze_continuous_evolution_clock(monkeypatch, "2026-08-28T05:00:00+02:00")
 
     headers = {
         "X-Automation-Secret": secret,
@@ -381,10 +396,11 @@ def test_continuous_evolution_web_endpoint_reports_concurrent_lock(client, app_m
     endpoint = "/api/automation/continuous-evolution/tick"
     storage = tmp_path / "ceos"
     storage.mkdir(parents=True)
-    (storage / "scheduler.lock").write_text(json.dumps({"job_id": "JOB-ACTIVE", "locked_at_madrid": app_module.now_iso()}), encoding="utf-8")
+    (storage / "scheduler.lock").write_text(json.dumps({"job_id": "JOB-ACTIVE", "locked_at_madrid": "2026-08-28T05:00:00+02:00"}), encoding="utf-8")
     monkeypatch.setenv("AUTOMATION_SECRET", secret)
     monkeypatch.setenv("CONTINUOUS_EVOLUTION_SAFE_MODE", "1")
     monkeypatch.setenv("CONTINUOUS_EVOLUTION_STORAGE_ROOT", str(storage))
+    freeze_continuous_evolution_clock(monkeypatch, "2026-08-28T05:00:00+02:00")
 
     response = client.post(endpoint, headers={"X-Automation-Secret": secret})
     assert response.status_code == 200

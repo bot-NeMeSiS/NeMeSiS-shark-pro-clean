@@ -88,6 +88,7 @@ from engines.v935_launch_trust_engine import (
     is_match_complete as v935_is_match_complete,
     is_pick_evaluable as v935_is_pick_evaluable,
     is_pick_publishable as v935_is_pick_publishable,
+    match_status_truth as v935_match_status_truth,
     normalize_match_lifecycle as v935_normalize_match_lifecycle,
     normalize_pick_lifecycle as v935_normalize_pick_lifecycle,
 )
@@ -3496,30 +3497,19 @@ def sportsdb_score(home_score, away_score):
 def sportsdb_match_status(event):
     status = str(event.get("strStatus") or event.get("status") or "").strip()
     progress = str(event.get("strProgress") or event.get("progress") or "").strip()
-    status_lower = (status or progress).lower()
-    if status_lower == "ns" or "not started" in status_lower:
-        return "PROGRAMADO"
-    if status_lower in {"ft", "final", "finished", "match finished", "aet", "pen"} or any(
-        token in status_lower for token in ("final", "finished", "full time", "terminado")
-    ):
-        return "FINALIZADO"
-    if status_lower in {"ht", "halftime", "half time"} or "half" in status_lower:
-        return "DESCANSO"
-    if status_lower in {"canc", "pst", "post", "postponed", "cancelled", "suspended", "abd"} or any(
-        token in status_lower for token in ("postpon", "cancel", "suspend", "abandon")
-    ):
-        return "SUSPENDIDO"
-    live_tokens = ("live", "in play", "inplay", "playing", "1h", "2h", "first half", "second half")
-    if any(token in status_lower for token in live_tokens) or re.fullmatch(r"\d{1,3}['\u2019]?", progress):
-        return "LIVE"
-    return "PROGRAMADO"
+    truth = v935_match_status_truth({"status": status, "strProgress": progress})
+    return {
+        "LIVE": "LIVE",
+        "HALFTIME": "DESCANSO",
+        "FINISHED": "FINALIZADO",
+        "ARCHIVED": "FINALIZADO",
+        "RESULT_PENDING": "FINALIZADO",
+        "POSTPONED": "SUSPENDIDO",
+        "CANCELLED": "SUSPENDIDO",
+        "ABANDONED": "SUSPENDIDO",
+    }.get(str(truth.get("lifecycle") or ""), "PROGRAMADO")
 
 
-
-
-FINISHED_STATUS_WORDS = {"ft", "final", "finalizado", "finished", "match finished", "aet", "pen", "after penalties"}
-LIVE_STATUS_WORDS = {"live", "directo", "1h", "2h", "ht", "descanso", "halftime", "half time", "in play", "inplay", "in progress", "inprogress", "playing", "started", "first half", "second half", "1st half", "2nd half", "break"}
-SCHEDULED_STATUS_WORDS = {"programado", "scheduled", "not started", "ns", "fixture", "upcoming"}
 
 
 def status_text_for(match):
@@ -3527,21 +3517,13 @@ def status_text_for(match):
 
 
 def is_finished_status_value(status):
-    text = str(status or "").strip().lower()
-    return text in FINISHED_STATUS_WORDS or any(x in text for x in ["final", "finished", "terminado", "full time"])
+    truth = v935_match_status_truth({"status": status})
+    return "FINISHED" in set(truth.get("signal_kinds") or [])
 
 
 def is_live_status_value(status):
-    text = str(status or "").strip().lower()
-    if not text:
-        return False
-    # V780: TheSportsDB/v2 and other feeds may use different live labels.
-    # Keep this deliberately broad for active football states, but never override finished checks.
-    if is_finished_status_value(text):
-        return False
-    return text in LIVE_STATUS_WORDS or any(x in text for x in [
-        "live", "directo", "1h", "2h", "half", "progress", "playing", "started", "descanso", "running"
-    ])
+    truth = v935_match_status_truth({"status": status})
+    return bool(truth.get("is_live") and not truth.get("status_conflict"))
 
 
 def match_kickoff_madrid_dt(match):
@@ -3590,23 +3572,15 @@ def has_real_match_score(match):
 
 
 def has_confirmed_live_evidence(match):
-    """Return true only when live state has provider-backed evidence."""
-    item = match or {}
-    if has_real_match_score(item):
-        return True
-    minute = str(item.get("minute") or item.get("elapsed") or item.get("live_minute") or "").strip()
-    if re.fullmatch(r"\d{1,3}['\u2019]?", minute):
-        return True
-    status = normalized_label(item.get("status") or item.get("match_status") or item.get("fixture_status") or "")
-    return status in {
-        "1h", "2h", "ht", "halftime", "half time", "descanso",
-        "first half", "second half", "1st half", "2nd half", "break",
-    }
+    """LIVE requires an explicit active status and no terminal contradiction."""
+    truth = v935_match_status_truth(dict(match or {}))
+    return bool(truth.get("is_live") and not truth.get("status_conflict"))
 
 
 def match_is_stale_without_result(match, grace_minutes=135):
     """True when kickoff has clearly passed but no provider score/status arrived yet."""
-    if is_live_status_value((match or {}).get("status")) or is_finished_status_value((match or {}).get("status")):
+    truth = v935_match_status_truth(dict(match or {}))
+    if truth.get("is_live") or truth.get("lifecycle") in {"FINISHED", "ARCHIVED"}:
         return False
     if has_real_match_score(match):
         return False
@@ -3620,40 +3594,43 @@ def match_is_already_kicked_off(match):
 
 
 def canonical_match_status(match):
-    status = str((match or {}).get("status") or "").strip()
-    minute = str((match or {}).get("minute") or "").strip()
-    score = str((match or {}).get("score") or "").strip()
-    date_value = str((match or {}).get("match_date") or "").strip()
-    elapsed = match_elapsed_minutes(match)
-    has_score = has_real_match_score(match)
-    status_lower = status.lower()
-    if is_finished_status_value(status):
-        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
-    if has_score and (date_value < today_iso() or (elapsed is not None and elapsed >= 105)):
-        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
-    if is_live_status_value(status):
-        if not has_confirmed_live_evidence(match):
-            return {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-        if "half" in status_lower or "descanso" in status_lower or status_lower == "ht":
-            return {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-    if minute and not is_finished_status_value(status):
-        return {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-    # A past kickoff without provider evidence belongs to the incident lane,
-    # never to the public live board.
-    if elapsed is not None and elapsed >= 0 and not has_score:
-        if elapsed >= 150:
-            return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
-        return {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False}
-    if match_is_stale_without_result(match):
-        return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
-    if date_value and date_value < today_iso() and not has_score:
-        return {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False}
-    if date_value and date_value > today_iso() and not is_live_status_value(status):
-        return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
-    if score and date_value and date_value < today_iso():
-        return {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False}
-    return {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True}
+    truth = v935_match_status_truth(dict(match or {}))
+    lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
+    states = {
+        "LIVE": {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "HALFTIME": {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "FINISHED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
+        "ARCHIVED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
+        "RESULT_PENDING": {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False},
+        "POSTPONED": {"key": "POSTPONED", "label": "Aplazado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "CANCELLED": {"key": "CANCELLED", "label": "Cancelado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "ABANDONED": {"key": "ABANDONED", "label": "Abandonado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "UPCOMING": {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True},
+        "INCOMPLETE": {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+    }
+    result = dict(states.get(lifecycle) or states["INCOMPLETE"])
+    result.update({
+        "contract": truth.get("contract") or "MATCH-STATUS-TRUTH-V1",
+        "status_conflict": bool(truth.get("status_conflict")),
+        "conflict_type": truth.get("conflict_type") or "",
+        "signal_kinds": list(truth.get("signal_kinds") or []),
+    })
+    if result["status_conflict"]:
+        result["is_live"] = False
+    return result
+
+
+def canonical_live_minute(match):
+    """Return only a provider-persisted minute for a canonically LIVE match."""
+    status_info = canonical_match_status(match)
+    if not status_info.get("is_live"):
+        return ""
+    item = match or {}
+    for field in ("minute", "elapsed", "live_minute"):
+        value = str(item.get(field) or "").strip().strip("'\u2019")
+        if re.fullmatch(r"(?:[1-9]\d?|1[0-2]\d)(?:\+\d{1,2})?", value):
+            return value
+    return ""
 
 def sportsdb_event_time(event):
     timestamp = str(event.get("strTimestamp") or "").strip()
@@ -3985,7 +3962,8 @@ def live_matches_from_live_table(limit=120):
             item.update(payload_match)
         if not item.get("id"):
             item["id"] = item.get("lm_match_id") or "live-unknown"
-        item["status"] = item.get("lm_status") or item.get("status") or "LIVE"
+        # Being present in the provider live cache is not, by itself, proof of LIVE.
+        item["status"] = item.get("lm_status") or item.get("status") or ""
         item["minute"] = item.get("lm_minute") or item.get("minute") or ""
         item["home_score"] = item.get("lm_home_score") if item.get("lm_home_score") not in {None, ""} else item.get("home_score")
         item["away_score"] = item.get("lm_away_score") if item.get("lm_away_score") not in {None, ""} else item.get("away_score")
@@ -4529,6 +4507,25 @@ def client_source_label(diagnostics):
     if "import" in source.lower():
         return "Calendario importado"
     return "Calendario activo"
+
+
+def client_data_source_label(source):
+    """Translate internal source identifiers into honest, non-technical copy."""
+    raw = str(source or "").strip()
+    normalized = raw.lower().replace("-", "_").replace(" ", "_")
+    if not raw:
+        return "Fuente pendiente"
+    if any(token in normalized for token in ("browser_qa", "fixture", "test_db", "test_source", "qa_")):
+        return "Fixture local QA"
+    if "sportsdb" in normalized:
+        return "TheSportsDB"
+    if "odds" in normalized:
+        return "Proveedor de cuotas"
+    if "import" in normalized:
+        return "Importación autorizada"
+    if any(token in normalized for token in ("sqlite", "database", "db_cache", "cache_db")):
+        return "DB y caché deportiva"
+    return "Proveedor deportivo"
 
 
 def population_warmup(force=False, limit=120):
@@ -6517,6 +6514,7 @@ def annotate_match(match, favs=None):
         match["away_identity"] = resolve_team(match.get("away_team"))
     match.update(apply_team_identities_to_match(match))
     match["status_info"] = canonical_match_status(match)
+    match["client_live_minute"] = canonical_live_minute(match)
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match)
     match["live_depth"] = live_depth(match)
@@ -6541,8 +6539,9 @@ def annotate_match(match, favs=None):
         match["live_depth"]["state"] = "HT" if match["status_info"].get("key") == "HT" else "LIVE"
         match["live_depth"]["label"] = match["status_info"].get("label") or "En directo"
         match["live_depth"]["badge"] = match["status_info"].get("badge") or "live"
-        real_minute = str(match.get("minute") or "").strip()
-        match["live_depth"]["minute"] = f"{real_minute}'" if real_minute.isdigit() else "En directo"
+        real_minute = canonical_live_minute(match)
+        match["live_depth"]["minute"] = f"{real_minute}'" if real_minute else match["status_info"].get("label") or "En directo"
+    match["surface_contract"] = canonical_match_surface_contract(match)
     return match
 
 
@@ -7287,9 +7286,9 @@ def match_lane_filter(match, lane):
     if lane in {"today", "week", "tomorrow"}:
         return True
     if lane in {"results", "finished"}:
-        return (match.get("status_info") or canonical_match_status(match)).get("is_finished") or str(match.get("match_date") or "") < today_iso()
+        return canonical_match_status(match).get("is_finished") or str(match.get("match_date") or "") < today_iso()
     if lane == "live":
-        info = match.get("status_info") or canonical_match_status(match)
+        info = canonical_match_status(match)
         return bool(info.get("is_live")) and not info.get("is_finished") and not info.get("is_upcoming")
     if lane == "spain":
         return country == "spain" or "laliga" in comp or "rfef" in comp or "copa-del-rey" in comp
@@ -7829,8 +7828,15 @@ def jinja_match_time_short(value, fallback_date="", fallback_time=""):
 @app.template_filter("match_time_label")
 def jinja_match_time_label(value, status=None, minute=None):
     item, source = _jinja_match_time_source(value)
+    if item:
+        status_info = canonical_match_status(item)
+        if status_info.get("is_live"):
+            real_minute = canonical_live_minute(item)
+            return f"{real_minute}'" if real_minute else status_info.get("label") or "En directo"
+        if status_info.get("is_finished") or status_info.get("key") in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
+            return status_info.get("label") or "Estado pendiente"
     status_value = status if status is not None else item.get("status")
-    minute_value = minute if minute is not None else (item.get("minute") or (item.get("live_depth") or {}).get("minute"))
+    minute_value = minute if minute is not None else ""
     label = format_madrid_match_time(source, status_value, minute_value)
     return label or item.get("madrid_display") or item.get("display_datetime") or "Hora Madrid pendiente"
 
@@ -7893,6 +7899,59 @@ def _client_score_from_match(match):
     return "vs"
 
 
+def canonical_match_surface_contract(match):
+    """Stable entity/status payload shared by sports UI surfaces."""
+    item = normalize_kickoff_for_display(dict(match or {}))
+    status_info = canonical_match_status(item)
+    home = spanish_team_name(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
+    away = spanish_team_name(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
+    competition = spanish_competition_name(
+        item.get("safe_competition")
+        or item.get("client_competition")
+        or item.get("competition_name")
+        or item.get("league_name")
+        or ""
+    )
+    return {
+        "contract": "MATCH-SURFACE-CONSISTENCY-V1",
+        "id": str(item.get("id") or item.get("match_id") or ""),
+        "home": str(home or "").strip(),
+        "away": str(away or "").strip(),
+        "competition": str(competition or "").strip(),
+        "kickoff_iso": str(item.get("madrid_dt_iso") or item.get("kickoff_iso_madrid") or item.get("kickoff_iso") or "").strip(),
+        "match_date": str(item.get("madrid_date") or item.get("match_date") or "").strip(),
+        "kickoff_time": str(item.get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "").strip(),
+        "status_key": status_info.get("key"),
+        "status_label": status_info.get("label"),
+        "status_conflict": bool(status_info.get("status_conflict")),
+        "score": _client_score_from_match(item),
+        "minute": canonical_live_minute(item),
+    }
+
+
+def canonical_match_for_domain_context(match):
+    """Adapt cached match state for read-only domain presentation."""
+    item = dict(match or {})
+    status_info = canonical_match_status(item)
+    surface_contract = canonical_match_surface_contract(item)
+    domain_status = {
+        "FT": "FT",
+        "RESULT_PENDING": "FT",
+        "POSTPONED": "PST",
+        "CANCELLED": "CANC",
+        "ABANDONED": "ABD",
+        "HT": "HT",
+        "LIVE": "LIVE",
+        "UPCOMING": "NS",
+        "INCOMPLETE": "TBD",
+    }.get(str(status_info.get("key") or ""), "TBD")
+    item["status"] = domain_status
+    item["status_info"] = status_info
+    item["minute"] = canonical_live_minute(item) or None
+    item["surface_contract"] = surface_contract
+    return item
+
+
 def client_match_display_context(match):
     """Return client-safe labels: no admin jargon, all visible dates in Madrid time."""
     item = normalize_kickoff_for_display(dict(match or {}))
@@ -7903,16 +7962,16 @@ def client_match_display_context(match):
     safe_date = item.get("safe_date") or item.get("madrid_date") or ""
     time_label = item.get("madrid_time") or item.get("safe_time") or "Hora pendiente"
     score = _client_score_from_match(item)
-    raw_status = _client_str(item.get("status") or item.get("safe_status") or item.get("calendar_status") or item.get("live_status_label"))
-    status_key = raw_status.lower()
-    minute = _client_str(item.get("minute") or (item.get("live_depth") or {}).get("minute") or item.get("live_clock_label"))
     status_info = canonical_match_status(item)
+    minute = canonical_live_minute(item)
     if status_info.get("is_result_pending"):
         status_label = "Resultado pendiente"
-    elif status_info.get("is_finished") or any(x in status_key for x in ("final", "finished", "ft", "acabado")) or (score != "vs" and any(x in status_key for x in ("final", "finished", "ft"))):
+    elif status_info.get("is_finished"):
         status_label = "Finalizado"
-    elif status_info.get("is_live") or any(x in status_key for x in ("live", "directo", "inplay", "1h", "2h")) or minute:
-        status_label = f"En directo - {minute}" if minute else "En directo"
+    elif status_info.get("is_live"):
+        status_label = f"En directo · {minute}'" if minute else status_info.get("label") or "En directo"
+    elif status_info.get("key") in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
+        status_label = status_info.get("label") or "Estado pendiente"
     else:
         status_label = "Próximo"
     if time_label and time_label != "Hora pendiente":
@@ -7940,8 +7999,11 @@ def client_match_display_context(match):
         "safe_competition": comp,
         "safe_score": score,
         "safe_status": status_label,
+        "status_info": status_info,
+        "client_live_minute": minute,
     })
     item.update(apply_team_identities_to_match(item))
+    item["surface_contract"] = canonical_match_surface_contract(item)
     return item
 
 
@@ -8258,6 +8320,7 @@ app.jinja_env.globals.update(
     nemesis_data_confidence=get_v937_nemesis_data_confidence,
     nemesis_attention_priority=get_v937_attention_priority,
     nemesis_pick_learning=get_v937_pick_learning,
+    nemesis_source_label=client_data_source_label,
 )
 
 
@@ -8271,6 +8334,7 @@ def inject_session_user():
         "nemesis_data_confidence": get_v937_nemesis_data_confidence,
         "nemesis_attention_priority": get_v937_attention_priority,
         "nemesis_pick_learning": get_v937_pick_learning,
+        "evidence_origin": "SIMULATED_QA" if app.config.get("TESTING") or local_safe_mode_enabled() else "SYSTEM_OBSERVATION",
         "local_safe_mode": local_safe_mode_enabled(),
         "local_safe": {
             "mode": NEMESIS_LOCAL_MODE,
@@ -11937,7 +12001,7 @@ def get_matches(date=None, lane="today"):
     clauses = ["match_date=?"]
     params = [date]
     if lane == "live":
-        clauses.append("(lower(status) LIKE '%live%' OR lower(status) LIKE '%directo%' OR minute!='')")
+        clauses.append("(lower(status) LIKE '%live%' OR lower(status) LIKE '%directo%' OR lower(status) LIKE '%progress%' OR lower(status) IN ('1h','2h','ht','descanso','halftime','inplay','in play'))")
     elif lane == "top":
         clauses.append("priority>=90")
     elif lane == "spain":
@@ -11946,6 +12010,7 @@ def get_matches(date=None, lane="today"):
         clauses.append("lower(competition_key)='andalucia-regional'")
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 300"
     data = dedupe_matches_list([item for item in rows(query, params) if not is_fake_match(item)])
+    prepared = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
         if not item.get("score") and (item.get("home_score") or item.get("away_score")):
@@ -11954,7 +12019,12 @@ def get_matches(date=None, lane="today"):
         item["home_identity"] = resolve_team(item.get("home_team"))
         item["away_identity"] = resolve_team(item.get("away_team"))
         item.update(apply_team_identities_to_match(item))
-    return data
+        item["status_info"] = canonical_match_status(item)
+        item["client_live_minute"] = canonical_live_minute(item)
+        if lane == "live" and not item["status_info"].get("is_live"):
+            continue
+        prepared.append(item)
+    return prepared
 
 
 def get_upcoming_matches(start_date=None, days=7, limit=300):
@@ -12326,7 +12396,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V940';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V940_VISUAL_3';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -12350,7 +12420,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-official.svg?v=official-shark-2",
+                "src": "/static/img/nemesis-shark-official.svg?v=official-brand-6",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",
@@ -13252,7 +13322,10 @@ def build_sports_metrics_contract(summary):
     today_matches = _dedupe_sports_matches(summary.get("valid_matches_today") or [])
     upcoming_matches = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
     available_matches = _dedupe_sports_matches(today_matches + upcoming_matches)
-    live_matches = _dedupe_sports_matches(summary.get("valid_live_events") or [])
+    live_matches = [
+        item for item in _dedupe_sports_matches(summary.get("valid_live_events") or [])
+        if canonical_match_status(item).get("is_live")
+    ]
     picks = [item for item in summary.get("valid_active_picks") or [] if isinstance(item, dict)]
     pick_match_ids = sorted({
         str(item.get("match_id") or "").strip()
@@ -13265,6 +13338,26 @@ def build_sports_metrics_contract(summary):
     ]
     generated_at = str(summary.get("metrics_generated_at_madrid") or now_iso())
     last_sync = str(summary.get("last_sync") or "")
+    sports_home = summary.get("sports_home") if isinstance(summary.get("sports_home"), dict) else {}
+    quality = dict(sports_home.get("quality") or {})
+    if not quality:
+        all_matches = _dedupe_sports_matches(
+            (summary.get("all_valid_matches") or [])
+            + today_matches
+            + upcoming_matches
+            + list(summary.get("finished_matches") or [])
+        )
+        ranked = [apply_sports_relevance(item) for item in all_matches]
+        quality = {
+            "live_real": sum(1 for item in ranked if canonical_match_status(item).get("is_live")),
+            "live_conflicts": sum(1 for item in ranked if canonical_match_status(item).get("status_conflict")),
+            "unknown": sum(1 for item in ranked if (item.get("sports_relevance") or {}).get("tier") == "UNKNOWN"),
+            "stale": int(summary.get("stale_live_excluded") or 0),
+            "tier_sa_available": sum(1 for item in ranked if (item.get("sports_relevance") or {}).get("tier") in {"S", "A"}),
+            "tier_sa_surfaced": 0,
+            "last_sync": last_sync,
+            "external_calls": 0,
+        }
     identity = {
         "contract": SPORTS_METRICS_CONTRACT,
         "date": today_iso(),
@@ -13296,6 +13389,7 @@ def build_sports_metrics_contract(summary):
         "finished_verified": len(finished_today),
         "incomplete_excluded": len(summary.get("incomplete_matches") or []),
         "stale_live_excluded": int(summary.get("stale_live_excluded") or 0),
+        "sports_quality": quality,
         "definitions": SPORTS_METRIC_DEFINITIONS,
         "no_render_api_call": True,
     }
@@ -13310,6 +13404,588 @@ def get_sports_metrics_contract(summary):
         return existing
     return build_sports_metrics_contract(summary)
 
+
+SPORTS_RELEVANCE_CONTRACT = "sports-relevance-v2"
+
+SPORTS_COMPETITION_PRIORITY_REGISTRY = [
+    {
+        "tier": "S",
+        "rank": 10,
+        "weight": 420,
+        "label": "Elite global",
+        "keys": [
+            "uefa-champions-league", "laliga", "premier-league", "serie-a", "bundesliga",
+            "ligue-1", "uefa-europa-league", "uefa-conference-league", "fifa-world-cup",
+            "uefa-euro", "copa-america", "uefa-nations-league",
+        ],
+        "aliases": [
+            "uefa champions league", "ucl", "laliga", "laliga ea sports", "la liga", "spanish la liga",
+            "uefa europa league", "europa league",
+            "uefa conference league", "conference league",
+            "fifa world cup", "eurocopa", "uefa euro", "copa america", "copa américa",
+            "uefa nations league",
+        ],
+        "scoped_aliases": {
+            "champions league": ["europe", "europa", "uefa"],
+            "premier league": ["england", "inglaterra"],
+            "serie a": ["italy", "italia"],
+            "bundesliga": ["germany", "alemania"],
+            "ligue 1": ["france", "francia"],
+            "world cup": ["world", "global", "international", "internacional"],
+            "mundial": ["world", "global", "international", "internacional"],
+        },
+    },
+    {
+        "tier": "A",
+        "rank": 25,
+        "weight": 300,
+        "label": "Alta relevancia",
+        "keys": [
+            "segunda-division", "primeira-liga", "championship", "fa-cup", "copa-del-rey",
+            "supercopa-espana", "copa-libertadores", "copa-sudamericana",
+        ],
+        "aliases": [
+            "primeira liga", "eredivisie", "mls",
+            "liga argentina", "primera division argentina", "brasileirao", "brasileirão",
+            "serie a brazil", "liga mx", "copa del rey", "fa cup", "efl cup",
+            "dfb pokal", "coppa italia", "coupe de france", "supercopa de espana",
+            "supercopa de españa", "laliga 2", "liga hypermotion", "copa libertadores",
+            "copa sudamericana",
+        ],
+        "scoped_aliases": {
+            "championship": ["england", "inglaterra"],
+            "segunda division": ["spain", "espana", "españa"],
+            "segunda división": ["spain", "espana", "españa"],
+        },
+    },
+    {
+        "tier": "B",
+        "rank": 45,
+        "weight": 190,
+        "label": "Profesional relevante",
+        "keys": ["bundesliga-2", "ligue-2", "serie-b"],
+        "aliases": [
+            "belgian pro league", "jupiler pro league", "super lig", "süper lig",
+            "scottish premiership", "austrian bundesliga", "swiss super league",
+            "bundesliga austriaca", "bundesliga austríaca", "allsvenskan", "eliteserien",
+            "j league", "j league 1", "k league", "k league 1", "bundesliga 2",
+            "2 bundesliga", "ligue 2", "serie b",
+        ],
+        "scoped_aliases": {},
+    },
+    {
+        "tier": "C",
+        "rank": 70,
+        "weight": 90,
+        "label": "Local o inferior",
+        "keys": ["primera-rfef", "segunda-rfef", "tercera-rfef"],
+        "aliases": [
+            "primera rfef", "primera federacion", "primera federación",
+            "segunda rfef", "segunda federacion", "segunda federación",
+            "tercera rfef", "tercera federacion", "tercera federación",
+            "division de honor", "división de honor", "regional", "andalucia", "andalucía",
+            "liga local", "liga local qa",
+        ],
+        "scoped_aliases": {},
+    },
+]
+
+SPORTS_RELEVANCE_TOP_TEAM_ALIASES = {
+    "real madrid", "fc barcelona", "barcelona", "atletico madrid", "atlético madrid",
+    "manchester city", "manchester united", "liverpool", "arsenal", "chelsea",
+    "tottenham", "bayern munich", "borussia dortmund", "psg", "paris saint germain",
+    "inter", "internazionale", "ac milan", "juventus", "napoli", "roma",
+    "benfica", "porto", "sporting cp", "ajax", "psv", "feyenoord",
+    "argentina", "brazil", "brasil", "spain", "espana", "españa", "france",
+    "francia", "germany", "alemania", "england", "inglaterra", "portugal",
+    "italy", "italia", "netherlands", "paises bajos", "países bajos",
+}
+
+
+def _sports_competition_identifiers(match):
+    item = match if isinstance(match, dict) else {}
+    return {
+        normalized_label(item.get(key))
+        for key in ("competition_id", "league_id")
+        if normalized_label(item.get(key))
+    }
+
+
+def _sports_competition_keys(match):
+    item = match if isinstance(match, dict) else {}
+    values = {
+        normalized_label(item.get(key))
+        for key in ("competition_key", "league_key")
+        if normalized_label(item.get(key))
+    }
+    # Some persisted feeds store a local slug in an *_id field. It is a key,
+    # not an authoritative provider ID, and therefore remains country-scoped.
+    values.update(
+        value for value in _sports_competition_identifiers(item)
+        if not value.isdigit() and not value.startswith("soccer ")
+    )
+    return values
+
+
+def _sports_competition_names(match):
+    item = match if isinstance(match, dict) else {}
+    return {
+        normalized_label(item.get(key))
+        for key in (
+            "competition_name", "league_name", "calendar_competition",
+            "client_competition", "safe_competition",
+        )
+        if normalized_label(item.get(key))
+    }
+
+
+def _sports_competition_countries(match):
+    item = match if isinstance(match, dict) else {}
+    return {
+        normalized_label(item.get(key))
+        for key in ("country", "safe_country", "league_country", "competition_country")
+        if normalized_label(item.get(key))
+    }
+
+
+def _sports_registry_identifiers(config):
+    keys = {normalized_label(value) for value in config.get("keys") or [] if normalized_label(value)}
+    identifiers = set()
+    for competition in IMPORTANT_COMPETITIONS:
+        if normalized_label(competition.get("key")) not in keys:
+            continue
+        for field in ("sportsdb_id", "odds_key"):
+            value = normalized_label(competition.get(field))
+            if value:
+                identifiers.add(value)
+    return identifiers
+
+
+def _sports_registry_key_countries(config, key):
+    expected = {
+        normalized_label(competition.get("country"))
+        for competition in IMPORTANT_COMPETITIONS
+        if normalized_label(competition.get("key")) == key
+        and normalized_label(competition.get("country"))
+    }
+    return expected
+
+
+def sports_competition_priority(match):
+    """Deterministic sports relevance tier. Picks and odds are intentionally ignored."""
+    item = match if isinstance(match, dict) else {}
+    identifiers = _sports_competition_identifiers(item)
+    keys = _sports_competition_keys(item)
+    names = _sports_competition_names(item)
+    countries = _sports_competition_countries(item)
+    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
+        if identifiers.intersection(_sports_registry_identifiers(config)):
+            return {
+                "tier": config["tier"],
+                "rank": config["rank"],
+                "weight": config["weight"],
+                "label": config["label"],
+                "reason": "CANONICAL_COMPETITION_ID",
+            }
+    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
+        config_keys = {normalized_label(value) for value in config.get("keys") or [] if normalized_label(value)}
+        for key in keys.intersection(config_keys):
+            expected_countries = _sports_registry_key_countries(config, key)
+            if expected_countries and not countries.intersection(expected_countries):
+                continue
+            return {
+                "tier": config["tier"],
+                "rank": config["rank"],
+                "weight": config["weight"],
+                "label": config["label"],
+                "reason": "COUNTRY_SCOPED_COMPETITION_KEY" if expected_countries else "EXACT_COMPETITION_KEY",
+            }
+    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
+        aliases = {normalized_label(alias) for alias in config.get("aliases") or [] if normalized_label(alias)}
+        if names.intersection(aliases):
+            return {
+                "tier": config["tier"],
+                "rank": config["rank"],
+                "weight": config["weight"],
+                "label": config["label"],
+                "reason": "EXACT_COMPETITION_ALIAS",
+            }
+        for alias, allowed_countries in (config.get("scoped_aliases") or {}).items():
+            alias_key = normalized_label(alias)
+            allowed = {normalized_label(country) for country in allowed_countries}
+            if alias_key in names and countries.intersection(allowed):
+                return {
+                    "tier": config["tier"],
+                    "rank": config["rank"],
+                    "weight": config["weight"],
+                    "label": config["label"],
+                    "reason": "EXACT_SCOPED_ALIAS",
+                }
+    return {"tier": "UNKNOWN", "rank": 95, "weight": 25, "label": "Sin mapear", "reason": "UNKNOWN_COMPETITION"}
+
+
+def _sports_match_favorite(match, favorites=None):
+    item = match if isinstance(match, dict) else {}
+    if item.get("is_favorite"):
+        return True
+    favorites = favorites if isinstance(favorites, dict) else {"team": set(), "league": set(), "match": set()}
+    match_id = normalized_label(item.get("id") or item.get("match_id") or "")
+    competition = normalized_label(item.get("competition_key") or item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or "")
+    home = normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
+    away = normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
+    favorite_matches = {normalized_label(value) for value in favorites.get("match") or set()}
+    favorite_leagues = {normalized_label(value) for value in favorites.get("league") or set()}
+    favorite_teams = {normalized_label(value) for value in favorites.get("team") or set()}
+    return bool(
+        (match_id and match_id in favorite_matches)
+        or (competition and competition in favorite_leagues)
+        or (home and home in favorite_teams)
+        or (away and away in favorite_teams)
+    )
+
+
+def _sports_top_team_hits(match):
+    item = match if isinstance(match, dict) else {}
+    teams = [
+        normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or ""),
+        normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or ""),
+    ]
+    return sum(1 for team in teams if team in SPORTS_RELEVANCE_TOP_TEAM_ALIASES)
+
+
+def _sports_kickoff_delta_minutes(match, now_value=None):
+    kickoff = match_kickoff_madrid_dt(match)
+    if not kickoff:
+        return None
+    now_value = now_value or datetime.now(TZ)
+    if now_value.tzinfo is None:
+        now_value = now_value.replace(tzinfo=TZ)
+    return int((kickoff - now_value.astimezone(TZ)).total_seconds() // 60)
+
+
+def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=None):
+    """Explainable sports-first priority for Home, Directo and Partidos."""
+    item = match if isinstance(match, dict) else {}
+    match_id = str(item.get("id") or item.get("match_id") or "").strip()
+    # Persisted status_info can predate a conflicting terminal provider signal.
+    status_info = canonical_match_status(item)
+    competition = sports_competition_priority(item)
+    pick_ids = {str(value) for value in (pick_ids or set())}
+    has_pick = bool(item.get("has_pick") or (match_id and match_id in pick_ids))
+    is_favorite = _sports_match_favorite(item, favorites)
+    top_hits = _sports_top_team_hits(item)
+    delta_minutes = _sports_kickoff_delta_minutes(item, now_value)
+    now_madrid = now_value or datetime.now(TZ)
+    if now_madrid.tzinfo is None:
+        now_madrid = now_madrid.replace(tzinfo=TZ)
+    now_madrid = now_madrid.astimezone(TZ)
+    kickoff = match_kickoff_madrid_dt(item)
+    match_day = kickoff.date() if kickoff else None
+    if match_day is None:
+        try:
+            match_day = datetime.fromisoformat(str(item.get("match_date") or "")[:10]).date()
+        except (TypeError, ValueError):
+            match_day = None
+    is_today = match_day == now_madrid.date()
+    reasons = [competition["reason"]]
+    score = int(competition["weight"])
+    if status_info.get("is_live"):
+        score += 520
+        reasons.append("LIVE_STATUS")
+    elif status_info.get("is_finished"):
+        score += 90
+        reasons.append("RECENT_RESULT")
+    elif status_info.get("is_upcoming"):
+        if delta_minutes is not None and 0 <= delta_minutes <= 180:
+            score += 120
+            reasons.append("KICKOFF_PROXIMITY_3H")
+        elif delta_minutes is not None and 0 <= delta_minutes <= 1440:
+            score += 70
+            reasons.append("KICKOFF_TODAY")
+        else:
+            score += 25
+            reasons.append("UPCOMING")
+    if is_favorite:
+        score += 160
+        reasons.append("USER_FAVORITE")
+    if top_hits >= 2:
+        score += 95
+        reasons.append("TOP_TEAMS_BOTH")
+    elif top_hits == 1:
+        score += 45
+        reasons.append("TOP_TEAM")
+    data_quality = "COMPLETE"
+    if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}:
+        score -= 90
+        data_quality = "INCIDENT"
+        reasons.append("INCIDENT_DEGRADED")
+    if competition["tier"] == "UNKNOWN":
+        score -= 35
+        data_quality = "UNKNOWN_COMPETITION"
+    if status_info.get("status_conflict"):
+        score -= 120
+        data_quality = "STATUS_CONFLICT"
+        reasons.append("LIVE_TERMINAL_CONFLICT")
+    if has_pick:
+        reasons.append("PICK_SECONDARY")
+    tier = competition["tier"]
+    important_tier = tier in {"S", "A"}
+    recent_important_result = bool(
+        status_info.get("is_finished")
+        and important_tier
+        and delta_minutes is not None
+        and -4320 <= delta_minutes <= 0
+    )
+    if tier == "UNKNOWN":
+        home_priority_lane = 7
+        home_priority_reason = "UNKNOWN"
+    elif status_info.get("is_live") and (important_tier or is_favorite or top_hits >= 1):
+        home_priority_lane = 0
+        home_priority_reason = "VALID_LIVE_IMPORTANT"
+    elif is_favorite and not status_info.get("is_finished"):
+        home_priority_lane = 1
+        home_priority_reason = "FAVORITE_IMPORTANT"
+    elif important_tier and is_today and not status_info.get("is_finished"):
+        home_priority_lane = 2
+        home_priority_reason = "TIER_SA_TODAY"
+    elif important_tier and status_info.get("is_upcoming"):
+        home_priority_lane = 3
+        home_priority_reason = "IMPORTANT_UPCOMING"
+    elif recent_important_result:
+        home_priority_lane = 4
+        home_priority_reason = "RECENT_IMPORTANT_RESULT"
+    elif tier == "B" or status_info.get("is_live") or important_tier:
+        home_priority_lane = 5
+        home_priority_reason = "STANDARD"
+    elif tier == "C":
+        home_priority_lane = 6
+        home_priority_reason = "LOW_PRIORITY"
+    else:
+        home_priority_lane = 7
+        home_priority_reason = "UNKNOWN"
+    reasons.append(home_priority_reason)
+    if home_priority_lane <= 4:
+        bucket = "PRIORITY"
+    elif home_priority_lane == 5:
+        bucket = "STANDARD"
+    elif home_priority_lane == 6:
+        bucket = "LOW_PRIORITY"
+    else:
+        bucket = "UNKNOWN"
+    return {
+        "contract": SPORTS_RELEVANCE_CONTRACT,
+        "score": max(0, int(score)),
+        "tier": tier,
+        "tier_label": competition["label"],
+        "bucket": bucket,
+        "competition_rank": int(competition["rank"]),
+        "competition_reason": competition["reason"],
+        "reasons": reasons,
+        "is_live": bool(status_info.get("is_live")),
+        "is_finished": bool(status_info.get("is_finished")),
+        "is_upcoming": bool(status_info.get("is_upcoming")),
+        "is_favorite": bool(is_favorite),
+        "has_pick": bool(has_pick),
+        "top_team_hits": int(top_hits),
+        "kickoff_delta_minutes": delta_minutes,
+        "data_quality": data_quality,
+        "betting_signal_secondary": bool(has_pick),
+        "home_priority_lane": int(home_priority_lane),
+        "home_priority_reason": home_priority_reason,
+        "is_today_madrid": bool(is_today),
+        "important_tier": bool(important_tier),
+        "status_conflict": bool(status_info.get("status_conflict")),
+    }
+
+
+def apply_sports_relevance(match, pick_ids=None, favorites=None, now_value=None):
+    item = dict(match or {})
+    relevance = sports_relevance_profile(item, pick_ids=pick_ids, favorites=favorites, now_value=now_value)
+    item["sports_relevance"] = relevance
+    item["sports_relevance_score"] = relevance["score"]
+    item["sports_relevance_tier"] = relevance["tier"]
+    item["sports_relevance_bucket"] = relevance["bucket"]
+    item["sports_relevance_reasons"] = relevance["reasons"]
+    item["is_favorite"] = bool(relevance["is_favorite"])
+    if relevance["has_pick"]:
+        item["has_pick"] = True
+    existing_rank = int(item.get("calendar_rank") or 80)
+    item["calendar_rank"] = min(existing_rank, int(relevance["competition_rank"]))
+    return item
+
+
+def sports_relevance_sort_tuple(match, surface="home"):
+    item = match if isinstance(match, dict) else {}
+    relevance = item.get("sports_relevance") if isinstance(item.get("sports_relevance"), dict) else sports_relevance_profile(item)
+    kickoff = match_kickoff_madrid_dt(item)
+    kickoff_key = kickoff.isoformat(timespec="minutes") if kickoff else "9999-99-99T99:99"
+    home_lane = int(relevance.get("home_priority_lane") if relevance.get("home_priority_lane") is not None else 7)
+    if surface == "live":
+        lifecycle_rank = 0 if relevance.get("is_live") else 1
+        surface_lane = home_lane
+    elif surface == "results":
+        lifecycle_rank = 0 if relevance.get("is_finished") else 1
+        surface_lane = 0 if relevance.get("important_tier") else 1 if relevance.get("tier") == "B" else 2 if relevance.get("tier") == "C" else 3
+    else:
+        lifecycle_rank = 0
+        surface_lane = home_lane
+    return (
+        lifecycle_rank,
+        surface_lane,
+        -int(relevance.get("score") or 0),
+        int(relevance.get("competition_rank") or 95),
+        kickoff_key,
+        normalized_label(item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or ""),
+        normalized_label(item.get("safe_home") or item.get("home_team") or ""),
+    )
+
+
+def sort_matches_by_sports_relevance(matches, surface="home", pick_ids=None, favorites=None, limit=None, now_value=None):
+    prepared = [
+        apply_sports_relevance(item, pick_ids=pick_ids, favorites=favorites, now_value=now_value)
+        for item in _dedupe_sports_matches(matches or [])
+    ]
+    prepared.sort(key=lambda item: sports_relevance_sort_tuple(item, surface))
+    if limit:
+        return prepared[:int(limit)]
+    return prepared
+
+
+def build_unknown_competition_quality(matches, visible_matches=None):
+    """Classify unmapped competitions without provider calls or blind mappings."""
+    unknown = []
+    for raw in _dedupe_sports_matches(matches or []):
+        item = raw if raw.get("sports_relevance") else apply_sports_relevance(raw)
+        if (item.get("sports_relevance") or {}).get("tier") == "UNKNOWN":
+            unknown.append(item)
+
+    visible_ids = {
+        str(item.get("id") or item.get("match_id") or "")
+        for item in (visible_matches or [])
+        if str(item.get("id") or item.get("match_id") or "")
+    }
+
+    def grouped(field_names, fallback):
+        counts = {}
+        labels = {}
+        for item in unknown:
+            value = next((str(item.get(field) or "").strip() for field in field_names if str(item.get(field) or "").strip()), fallback)
+            key = normalized_label(value) or normalized_label(fallback)
+            counts[key] = counts.get(key, 0) + 1
+            labels[key] = value or fallback
+        return [
+            {"label": labels[key], "count": counts[key]}
+            for key in sorted(counts, key=lambda value: (-counts[value], labels[value]))
+        ]
+
+    visible_unknown = [
+        item for item in unknown
+        if str(item.get("id") or item.get("match_id") or "") in visible_ids
+    ]
+    return {
+        "contract": "SPORTS-UNKNOWN-QUALITY-V1",
+        "total": len(unknown),
+        "UNKNOWN_BY_FREQUENCY": grouped(("competition_name", "league_name", "calendar_competition"), "Competición sin mapear"),
+        "UNKNOWN_BY_COUNTRY": grouped(("country", "safe_country"), "País sin identificar"),
+        "UNKNOWN_BY_PROVIDER": grouped(("source", "provider"), "Proveedor sin identificar"),
+        "UNKNOWN_VISIBLE_ON_HOME": {
+            "count": len(visible_unknown),
+            "match_ids": [str(item.get("id") or item.get("match_id") or "") for item in visible_unknown],
+        },
+        "mapped_automatically": 0,
+        "external_calls": 0,
+        "business_data_written": False,
+    }
+
+
+def build_sports_home_sections(summary, limit=6):
+    summary = summary if isinstance(summary, dict) else {}
+    pick_ids = {
+        str(item.get("match_id") or "").strip()
+        for item in summary.get("valid_active_picks") or []
+        if str(item.get("match_id") or "").strip()
+    }
+    favorites = (
+        favorite_sets()
+        if has_request_context() and current_session_user()
+        else {"team": set(), "league": set(), "match": set(), "all": []}
+    )
+    source = _dedupe_sports_matches(
+        (summary.get("all_valid_matches") or [])
+        + (summary.get("valid_matches_today") or [])
+        + (summary.get("valid_upcoming_matches") or [])
+        + (summary.get("finished_matches") or [])
+    )
+    ranked = sort_matches_by_sports_relevance(source, "home", pick_ids=pick_ids, favorites=favorites)
+    today = today_iso()
+    live_now = [item for item in ranked if (item.get("sports_relevance") or {}).get("is_live")]
+    important_today = [
+        item for item in ranked
+        if str(item.get("match_date") or "") == today
+        and not (item.get("sports_relevance") or {}).get("is_finished")
+        and item not in live_now
+        and (item.get("sports_relevance_bucket") in {"PRIORITY", "STANDARD"})
+    ]
+    favorite_matches = [item for item in ranked if item.get("is_favorite")]
+    upcoming = [
+        item for item in ranked
+        if (item.get("sports_relevance") or {}).get("is_upcoming")
+        and str(item.get("match_date") or "") >= today
+        and item not in live_now
+        and item not in important_today
+    ]
+    recent_results = sort_matches_by_sports_relevance(
+        summary.get("finished_matches") or [],
+        "results",
+        pick_ids=pick_ids,
+        favorites=favorites,
+        limit=limit,
+    )
+    visible_home = _dedupe_sports_matches(
+        live_now[:limit]
+        + important_today[:limit]
+        + favorite_matches[:limit]
+        + upcoming[:limit]
+        + recent_results[:limit]
+    )
+    unknown_quality = build_unknown_competition_quality(ranked, visible_home)
+    unknown_count = sum(1 for item in ranked if item.get("sports_relevance_bucket") == "UNKNOWN")
+    low_priority_count = sum(1 for item in ranked if item.get("sports_relevance_bucket") == "LOW_PRIORITY")
+    return {
+        "contract": SPORTS_RELEVANCE_CONTRACT,
+        "generated_at_madrid": now_iso(),
+        "live_now": live_now[:limit],
+        "important_today": important_today[:limit],
+        "favorites": favorite_matches[:limit],
+        "upcoming": upcoming[:limit],
+        "recent_results": recent_results[:limit],
+        "ranked": ranked[: max(limit * 4, 16)],
+        "unknown_quality": unknown_quality,
+        "quality": {
+            "live_real": len(live_now),
+            "live_conflicts": sum(1 for item in ranked if (item.get("sports_relevance") or {}).get("status_conflict")),
+            "tier_sa_available": sum(1 for item in ranked if (item.get("sports_relevance") or {}).get("tier") in {"S", "A"}),
+            "tier_sa_surfaced": sum(1 for item in visible_home if (item.get("sports_relevance") or {}).get("tier") in {"S", "A"}),
+            "unknown": unknown_quality.get("total", 0),
+            "stale": int(summary.get("stale_live_excluded") or 0),
+            "last_sync": summary.get("last_sync") or "",
+            "external_calls": 0,
+        },
+        "counts": {
+            "priority": sum(1 for item in ranked if item.get("sports_relevance_bucket") == "PRIORITY"),
+            "standard": sum(1 for item in ranked if item.get("sports_relevance_bucket") == "STANDARD"),
+            "low_priority": low_priority_count,
+            "unknown": unknown_count,
+            "duplicates_removed": max(0, len(source) - len(ranked)),
+            "stale_live_excluded": int(summary.get("stale_live_excluded") or 0),
+        },
+        "rules": [
+            "SPORTS_RELEVANCE_FIRST",
+            "PICKS_SECONDARY_SIGNAL",
+            "NO_FAKE_MATCHES",
+            "MADRID_TIME",
+        ],
+    }
 
 def _build_public_home_sports_summary():
     """Build the canonical sports truth from local DB/cache only."""
@@ -13337,11 +14013,6 @@ def _build_public_home_sports_summary():
             continue
         matches_by_id[str(item.get("id") or "")] = item
         valid_all.append(item)
-    valid_all.sort(key=lambda item: (
-        item.get("match_date") or "9999-99-99",
-        item.get("kickoff_time") or "99:99",
-        item.get("competition_name") or "",
-    ))
     stale_live = [
         item for item in valid_all
         if item.get("v935_lifecycle") in {"LIVE", "HALFTIME"}
@@ -13364,6 +14035,38 @@ def _build_public_home_sports_summary():
     active_picks = [
         item for item in safe_picks.get("picks") or []
         if str(item.get("match_id") or "") not in stale_live_ids
+    ]
+    active_pick_ids = {
+        str(item.get("match_id") or "").strip()
+        for item in active_picks
+        if str(item.get("match_id") or "").strip()
+    }
+    valid_all = sort_matches_by_sports_relevance(valid_all, "catalog", pick_ids=active_pick_ids)
+    valid_today = sort_matches_by_sports_relevance(
+        [item for item in valid_all if (item.get("v935_surface") or {}).get("home")],
+        "home",
+        pick_ids=active_pick_ids,
+    )
+    valid_upcoming = sort_matches_by_sports_relevance(
+        [item for item in valid_all if (item.get("v935_surface") or {}).get("calendar")],
+        "upcoming",
+        pick_ids=active_pick_ids,
+    )
+    valid_live = sort_matches_by_sports_relevance(
+        [item for item in valid_all if (item.get("v935_surface") or {}).get("live") and canonical_match_status(item).get("is_live")],
+        "live",
+        pick_ids=active_pick_ids,
+    )
+    finished_matches = sort_matches_by_sports_relevance(
+        [item for item in valid_all if item.get("v935_lifecycle") == "FINISHED"],
+        "results",
+        pick_ids=active_pick_ids,
+    )
+    result_pending_matches = [item for item in valid_all if item.get("v935_lifecycle") == "RESULT_PENDING"]
+    archived_matches = [item for item in valid_all if item.get("v935_lifecycle") == "ARCHIVED"]
+    incident_matches = [
+        item for item in valid_all
+        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}
     ]
     last_sync = max(
         [str(item.get("updated_at") or "") for item in raw_matches + raw_picks if item.get("updated_at")],
@@ -13409,6 +14112,7 @@ def _build_public_home_sports_summary():
         "metrics_generated_at_madrid": now_iso(),
         "no_render_api_call": True,
     }
+    result["sports_home"] = build_sports_home_sections(result)
     result["sports_metrics"] = build_sports_metrics_contract(result)
     return result
 
@@ -13523,11 +14227,25 @@ def get_v932_real_sports_value_context(summary=None):
 
 
 def _v931_legacy_home_summary(summary):
-    valid_today = summary.get("valid_matches_today") or []
-    upcoming = summary.get("valid_upcoming_matches") or []
-    live = summary.get("valid_live_events") or []
+    sports_home = build_sports_home_sections(summary)
+    pick_ids = {
+        str(item.get("match_id") or "").strip()
+        for item in summary.get("valid_active_picks") or []
+        if str(item.get("match_id") or "").strip()
+    }
+    valid_today = sports_home.get("important_today") or sort_matches_by_sports_relevance(
+        summary.get("valid_matches_today") or [], "home", pick_ids=pick_ids
+    )
+    upcoming = sports_home.get("upcoming") or sort_matches_by_sports_relevance(
+        summary.get("valid_upcoming_matches") or [], "upcoming", pick_ids=pick_ids
+    )
+    live = sports_home.get("live_now") or sort_matches_by_sports_relevance(
+        summary.get("valid_live_events") or [], "live", pick_ids=pick_ids
+    )
+    recent_results = sports_home.get("recent_results") or []
+    favorites = sports_home.get("favorites") or []
     picks = summary.get("valid_active_picks") or []
-    has_real_data = bool(valid_today or live or picks)
+    has_real_data = bool(valid_today or upcoming or live or recent_results or picks)
     sports_metrics = get_sports_metrics_contract(summary)
     return {
         "date": today_iso(),
@@ -13540,14 +14258,20 @@ def _v931_legacy_home_summary(summary):
             "live": sports_metrics["live_confirmed"],
             "picks": sports_metrics["picks_ready"],
             "finished": sports_metrics["finished_verified"],
-            "favorites": 0,
+            "favorites": len(favorites),
             "incomplete": sports_metrics["incomplete_excluded"],
+            "priority": (sports_home.get("counts") or {}).get("priority", 0),
+            "unknown": (sports_home.get("counts") or {}).get("unknown", 0),
+            "stale_live": (sports_home.get("counts") or {}).get("stale_live_excluded", 0),
         },
         "valid_matches_today": valid_today,
-        "upcoming_matches": valid_today,
-        "valid_matches_available": summary.get("valid_matches_available") or _dedupe_sports_matches(valid_today + upcoming),
+        "upcoming_matches": upcoming,
+        "live_matches": live,
+        "finished_matches": recent_results,
+        "valid_matches_available": _dedupe_sports_matches(live + valid_today + favorites + upcoming + recent_results),
         "picks": picks,
-        "favorites": [],
+        "favorites": favorites,
+        "sports_home": sports_home,
         "incomplete_matches": summary.get("incomplete_matches") or [],
         "provider_status": summary.get("provider_status"),
         "last_sync": summary.get("last_sync"),
@@ -13566,6 +14290,7 @@ def home_light_data(sports_summary=None, include_payments=True):
     """Datos seguros para / con resumen real de producción cuando exista DB."""
     live = home_live_summary_data(sports_summary)
     counts = live.get("counts") or {}
+    sports_home = live.get("sports_home") or {}
     try:
         client_alerts = build_client_alerts(limit=3) if current_user_id() else []
     except Exception as exc:
@@ -13600,10 +14325,13 @@ def home_light_data(sports_summary=None, include_payments=True):
                 "favorites": counts.get("favorites", 0),
                 "with_picks": counts.get("picks", 0),
             },
-            "today": [],
-            "live": [],
-            "upcoming": live.get("upcoming_matches", []),
+            "today": sports_home.get("important_today") or live.get("valid_matches_today", []),
+            "live": sports_home.get("live_now") or live.get("live_matches", []),
+            "favorites": sports_home.get("favorites") or live.get("favorites", []),
+            "upcoming": sports_home.get("upcoming") or live.get("upcoming_matches", []),
+            "finished": sports_home.get("recent_results") or live.get("finished_matches", []),
             "available": live.get("valid_matches_available", []),
+            "sports_home": sports_home,
             "data_status": live.get("status"),
             "data_message": live.get("message"),
             "has_real_data": live.get("has_real_data"),
@@ -13757,15 +14485,19 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     if has_request_context():
         request.environ["nemesis.v931.degraded"] = False
     data["home_summary"] = _v931_legacy_home_summary(summary)
-    data["matches"] = list(summary.get("valid_matches_today") or [])
-    data["upcoming_matches"] = list(summary.get("valid_upcoming_matches") or [])
-    data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
+    sports_home = data["home_summary"].get("sports_home") or {}
+    data["matches"] = list(data["home_summary"].get("valid_matches_today") or [])
+    data["upcoming_matches"] = list(data["home_summary"].get("upcoming_matches") or [])
+    data["available_matches"] = list(data["home_summary"].get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
     data["picks"] = list(summary.get("valid_active_picks") or [])
     hub = dict(data.get("match_hub") or {})
     hub.update({
-        "today": data["matches"],
-        "live": list(summary.get("valid_live_events") or []),
-        "upcoming": data["upcoming_matches"],
+        "today": sports_home.get("important_today") or data["matches"],
+        "live": sports_home.get("live_now") or [],
+        "favorites": sports_home.get("favorites") or [],
+        "upcoming": sports_home.get("upcoming") or data["upcoming_matches"],
+        "finished": sports_home.get("recent_results") or [],
+        "sports_home": sports_home,
     })
     counts = dict(hub.get("counts") or {})
     sports_metrics = get_sports_metrics_contract(summary)
@@ -14030,16 +14762,21 @@ def v931_live_context(summary, lane="live", query=""):
     elif lane in {"finished", "finalizados"}:
         selected = [item for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")]
     elif lane in {"break", "halftime", "descanso"}:
-        selected = [item for item in today_matches if "half" in normalized_label(item.get("status")) or normalized_label(item.get("status")) == "ht"]
+        selected = [item for item in today_matches if canonical_match_status(item).get("key") == "HT"]
     elif lane in {"with_pick", "picks"}:
         selected = [item for item in today_matches if str(item.get("id") or "") in pick_ids]
     else:
-        selected = live_matches
+        selected = [item for item in live_matches if canonical_match_status(item).get("is_live")]
     query_key = normalized_label(query)
     if query_key:
         selected = [item for item in selected if query_key in normalized_label(
             f"{item.get('home_team')} {item.get('away_team')} {item.get('competition_name')}"
         )]
+    selected = sort_matches_by_sports_relevance(
+        selected,
+        "live" if lane in {"live", "break", "halftime", "descanso"} else "home",
+        pick_ids=pick_ids,
+    )
     return {
         "lane": lane,
         "matches": selected,
@@ -14047,7 +14784,7 @@ def v931_live_context(summary, lane="live", query=""):
         "counts": {
             "today": sports_metrics["matches_today"],
             "live": sports_metrics["live_confirmed"],
-            "halftime": sum(1 for item in today_matches if normalized_label(item.get("status")) in {"ht", "half time", "descanso"}),
+            "halftime": sum(1 for item in today_matches if canonical_match_status(item).get("key") == "HT"),
             "finished": sports_metrics["finished_verified"],
             "picks": sports_metrics["matches_with_picks"],
         },
@@ -15165,16 +15902,22 @@ def _calendar_apply_filters(matches, filters):
 
 def _calendar_sort(matches, sort_key):
     sort_key = (sort_key or "importance").lower()
+    ranked = [
+        item if isinstance(item.get("sports_relevance"), dict) else apply_sports_relevance(item)
+        for item in matches or []
+    ]
+
     def time_key(item):
         return (
             item.get("match_date") or "9999-99-99",
             normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "99:99",
-            int(item.get("calendar_rank") or 80),
+            int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80),
             item.get("calendar_competition") or "",
             item.get("safe_home") or "",
         )
+
     def lifecycle_order(item):
-        info = item.get("status_info") or canonical_match_status(item)
+        info = canonical_match_status(item)
         if info.get("is_live"):
             return 0
         if info.get("is_upcoming"):
@@ -15184,13 +15927,14 @@ def _calendar_sort(matches, sort_key):
         if info.get("is_finished"):
             return 4
         return 2
+
     if sort_key == "time":
-        return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
+        return sorted(ranked, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
     if sort_key == "league":
-        return sorted(matches, key=lambda item: (int(item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
+        return sorted(ranked, key=lambda item: (int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
-        return sorted(matches, key=lambda item: (0 if item.get("has_pick") else 1, lifecycle_order(item), int(item.get("calendar_rank") or 80), time_key(item)))
-    return sorted(matches, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), 0 if item.get("has_pick") else 1, int(item.get("calendar_rank") or 80), normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or "99:99"))
+        return sorted(ranked, key=lambda item: (0 if item.get("has_pick") else 1, sports_relevance_sort_tuple(item, "calendar")))
+    return sorted(ranked, key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
 
 
 def _calendar_facets(matches):
@@ -15238,6 +15982,10 @@ def _calendar_group(matches):
             "category": league_category(item),
             "matches": [],
         })
+        league["rank"] = min(
+            int(league.get("rank") or 80),
+            int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80),
+        )
         league["matches"].append(item)
     for key in sorted(by_date.keys()):
         bucket = by_date[key]
@@ -15245,7 +15993,7 @@ def _calendar_group(matches):
         leagues.sort(key=lambda g: (g["rank"], g["name"]))
         for league in leagues:
             league["count"] = len(league.get("matches") or [])
-            league["matches"].sort(key=match_sort_tuple)
+            league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
         bucket["leagues"] = leagues
         date_buckets.append(bucket)
     return date_buckets
@@ -15472,9 +16220,9 @@ def _v940_calendar_filters(lane="today", date_value=None):
     args = request.args if has_request_context() else {}
     fallback_date = today_iso(1) if selected_lane == "tomorrow" else today_iso()
     selected_date = _safe_date_value(date_value or args.get("date"), fallback_date)
-    sort_key = _safe_query_value(args.get("sort") or "time", 40).lower()
+    sort_key = _safe_query_value(args.get("sort") or "importance", 40).lower()
     if sort_key not in {"time", "league", "picks", "importance"}:
-        sort_key = "time"
+        sort_key = "importance"
     return {
         "lane": selected_lane,
         "date": selected_date,
@@ -15499,7 +16247,7 @@ def _v940_calendar_href(filters=None, **overrides):
         value = state.get(key)
         if value in (None, ""):
             continue
-        if key == "sort" and value == "time":
+        if key == "sort" and value == "importance":
             continue
         clean[key] = value
     return "/calendar" + ("?" + urllib.parse.urlencode(clean) if clean else "")
@@ -15543,7 +16291,8 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
         or item.get("status")
         or "Próximo"
     )
-    item["calendar_rank"] = int(item.get("calendar_rank") or 80)
+    item = apply_sports_relevance(item, pick_ids=pick_ids, favorites=favorites)
+    item["calendar_rank"] = int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80)
     item["calendar_text"] = _calendar_match_text(item)
     return item
 
@@ -15624,7 +16373,7 @@ def _v940_calendar_active_filters(filters):
     active = []
     for key in ("q", "league", "team", "country", "status", "with_pick", "sort"):
         value = filters.get(key)
-        if not value or (key == "sort" and value == "time"):
+        if not value or (key == "sort" and value == "importance"):
             continue
         display_value = "S?" if key == "with_pick" else sort_labels.get(str(value), value)
         active.append({
@@ -15793,7 +16542,7 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "active_filters": active_filters,
         "has_filters": bool(active_filters),
         "reset_href": _v940_calendar_href(
-            {"lane": filters["lane"], "date": filters["date"], "sort": "time"}
+            {"lane": filters["lane"], "date": filters["date"], "sort": "importance"}
         ),
         "selected_summary": selected_summary,
         "default_context": default_context,
@@ -16006,7 +16755,7 @@ def match_hub_page():
 
 def cached_match_intelligence_for_consumer(match, picks=None):
     """Build the shared intelligence from cached local facts only."""
-    match_data = dict(match or {})
+    match_data = canonical_match_for_domain_context(match)
     related_picks = [dict(item) for item in (picks or []) if isinstance(item, dict)]
     if not match_data:
         return build_match_intelligence({}, related_picks)
@@ -16046,8 +16795,9 @@ def match_detail_page(match_id):
         detail["match"] = v935_enrich_match_lifecycle(detail["match"])
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
+    context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}
     match_context = build_match_context(
-        detail,
+        context_detail,
         madrid_context=client_match_display_context(detail.get("match") or {}),
         live_context=live_context,
     )
@@ -16172,7 +16922,7 @@ def _selected_paid_plan(value: str | None) -> str:
 
 def _membership_next_for_plan(plan: str) -> str:
     plan = _selected_paid_plan(plan)
-    return f"/membresiasíplan={plan}&continuar_pago=1" if plan else "/membresias"
+    return f"/membresias?plan={plan}&continuar_pago=1" if plan else "/membresias"
 
 
 def _store_pending_checkout_plan(plan: str) -> str:
@@ -16284,7 +17034,7 @@ def enforce_checkout_legal_gate(user: dict, plan: str):
             "legal_required": checkout_legal_checklist(),
         }), 400)
     qs = {"plan": selected or "PRO", "legal_pendiente": "1"}
-    return False, redirect("/membresiasí" + urllib.parse.urlencode(qs))
+    return False, redirect("/membresias?" + urllib.parse.urlencode(qs))
 
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
@@ -18739,8 +19489,9 @@ def build_shark_intelligence_page_context():
             lambda: live_tracker_for_match(DB_PATH, match_id) or {},
             {},
         )
+        context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or anchor)}
         match_context = build_match_context(
-            detail,
+            context_detail,
             madrid_context=client_match_display_context(detail.get("match") or anchor),
             live_context=live_context,
         )
@@ -22817,7 +23568,7 @@ def api_live():
     matches.extend(live_matches_any_date(limit=180))
     matches.extend(live_matches_from_live_table(limit=180))
     matches.extend(get_matches(date, "today"))
-    enriched = [annotate_match(m) for m in dedupe_matches_list(matches)]
+    enriched = sort_matches_by_sports_relevance([annotate_match(m) for m in dedupe_matches_list(matches)], "live")
     return jsonify({"ok": True, "version": APP_VERSION, "date": date, "refresh": refresh, "api_football_live_tracker": api_live_tracker, "api_football_live_quality": api_live_quality, "matches": split_live(enriched), "state_engine": ["LIVE", "HT", "FT", "UPCOMING", "SUSPENDED"]})
 
 
@@ -24798,7 +25549,7 @@ def payments_success_page():
     user = current_session_user()
     session_id = str(request.args.get("session_id") or "").strip()
     if not user:
-        next_url = "/membresiasípago=exito" + (("&session_id=" + urllib.parse.quote(session_id, safe="")) if session_id else "")
+        next_url = "/membresias?pago=exito" + (("&session_id=" + urllib.parse.quote(session_id, safe="")) if session_id else "")
         return redirect("/cliente-login?next=" + urllib.parse.quote(next_url, safe=""))
     # V786: el webhook sigue siendo la fuente principal, pero al volver de Stripe
     # sincronizamos la sesión como red de seguridad para no dejar al cliente esperando.
@@ -24809,12 +25560,12 @@ def payments_success_page():
         qs["plan"] = plan
     if session_id:
         qs["session_id"] = session_id
-    return redirect("/membresiasí" + urllib.parse.urlencode(qs))
+    return redirect("/membresias?" + urllib.parse.urlencode(qs))
 
 
 @app.route("/pagos/cancelado")
 def payments_cancel_page():
-    return redirect("/membresiasípago=cancelado")
+    return redirect("/membresias?pago=cancelado")
 
 
 @app.route("/api/payments/stripe-webhook", methods=["POST"])
@@ -24830,27 +25581,28 @@ def api_payments_stripe_webhook():
 # ===================== V565 SPORTS DATA & PICKS PERFECTION =====================
 
 PRIORITY_LEAGUE_ORDER = [
+    "FIFA World Cup", "UEFA Euro", "Copa America", "UEFA Nations League",
     "UEFA Champions League", "Champions League", "LaLiga", "Spanish La Liga", "Premier League",
     "Serie A", "Bundesliga", "Ligue 1", "UEFA Europa League", "Europa League",
-    "UEFA Conference League", "Primeira Liga", "Segunda Division", "Primera RFEF",
-    "Segunda RFEF", "Tercera RFEF", "FIFA World Cup", "UEFA Euro", "Copa America",
-    "UEFA Nations League",
+    "UEFA Conference League", "Conference League", "Primeira Liga", "Eredivisie",
+    "Championship", "MLS", "Liga Argentina", "Brasileirao", "Liga MX", "Segunda Division",
+    "Primera RFEF", "Segunda RFEF", "Tercera RFEF",
 ]
 
 
 def v565_league_rank(match):
+    priority = sports_competition_priority(match if isinstance(match, dict) else {})
+    if priority.get("tier") != "UNKNOWN":
+        return int(priority.get("rank") or 80)
     text = normalized_label(" ".join([
-        str(match.get("league_name") or ""),
-        str(match.get("competition_name") or ""),
-        str(match.get("competition_key") or ""),
-        str(match.get("country") or ""),
+        str((match or {}).get("league_name") or ""),
+        str((match or {}).get("competition_name") or ""),
+        str((match or {}).get("competition_key") or ""),
+        str((match or {}).get("country") or ""),
     ]))
-    for idx, name in enumerate(PRIORITY_LEAGUE_ORDER):
-        if normalized_label(name) in text:
-            return idx
-    if "spain" in text or "espana" in text or "andalucia" in text:
-        return 30
-    return 80
+    if "spain" in text or "espana" in text or "andalucia" in text or "andalucía" in text:
+        return 75
+    return 95
 
 
 def v565_match_status(match):
@@ -25115,19 +25867,19 @@ def v566_membership_ui(user=None):
     ctx = membership_context(user or current_session_user() or {"membership": "FREE", "role": "FREE"})
     membership = ctx["membership"]
     if membership == "FREE":
-        ctx.update({"headline": "Estás en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresiasíplan=PRO"})
+        ctx.update({"headline": "Estás en FREE", "next_cta": "Mejorar a PRO", "next_href": "/membresias?plan=PRO"})
     elif membership == "PRO":
-        ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresiasíplan=ELITE"})
+        ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
         ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
-            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresiasíplan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresiasíplan=ELITE"},
+            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
-            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresiasíplan=ELITE"},
+            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
         ]
     else:
         ctx["upgrade_cards"] = []
@@ -28365,6 +29117,9 @@ def founder_command_center_snapshot():
     continuous = build_continuous_evolution_status_snapshot(BASE_DIR, APP_VERSION)
     systems_by_id = {item.get("id"): item for item in operations.get("systems") or []}
     sections = operations.get("operations_sections") or {}
+    sports_metrics = operations.get("sports_metrics") or {}
+    sports_quality = sports_metrics.get("sports_quality") or {}
+    sports_data_system = systems_by_id.get("sports_data") or {}
     funnel = product.get("funnel") or {}
     memberships = business.get("memberships") or (product.get("users") or {}).get("memberships") or {}
     free_count = _founder_safe_int(memberships.get("FREE"))
@@ -28448,6 +29203,20 @@ def founder_command_center_snapshot():
         "growth_revenue": growth_revenue,
         "beta_control": beta_control,
         "operations_summary": operations_summary,
+        "sports_quality": {
+            "state": (sections.get("sports_core") or {}).get("status") or sports_data_system.get("status") or "NOT_CERTIFIED",
+            "important_live": sports_quality.get("important_live", "Sin muestra"),
+            "live_real": sports_quality.get("live_real", 0),
+            "live_conflicts": sports_quality.get("live_conflicts", 0),
+            "tier_sa_available": sports_quality.get("tier_sa_available", 0),
+            "tier_sa_surfaced": sports_quality.get("tier_sa_surfaced", 0),
+            "unknown": sports_quality.get("unknown", 0),
+            "stale": sports_quality.get("stale", 0),
+            "last_sync": sports_quality.get("last_sync") or sports_metrics.get("last_sync") or "Sin sincronización certificada",
+            "provider_errors": sports_quality.get("provider_errors", "Sin muestra certificada"),
+            "external_calls": sports_quality.get("external_calls", 0),
+            "certification": "REAL_SPORTS_CERTIFICATION_IN_PROGRESS",
+        },
         "release_readiness": {
             "status": release_gate.get("status") or "PARTIAL",
             "score": release_gate.get("score") or ((operations.get("global_score") or {}).get("overall_score")),

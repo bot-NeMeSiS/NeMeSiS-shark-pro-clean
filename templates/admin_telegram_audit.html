@@ -43,7 +43,7 @@
     <h2>Control de envío</h2>
     {% if local_safe_mode %}
       <p class="small">Telegram está desactivado en LOCAL SAFE.</p>
-      <button type="button" disabled>Envío real bloqueado</button>
+      <span class="btn" role="status" aria-disabled="true">Envío real bloqueado</span>
     {% else %}
       <p class="small">El envío real requiere autorización explícita y debe hacerse desde el Command Center.</p>
       <a class="btn" href="/admin/telegram/command-center">Gestionar entrega</a>

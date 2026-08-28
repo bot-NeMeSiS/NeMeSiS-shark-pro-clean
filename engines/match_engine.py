@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 
+from engines.v935_launch_trust_engine import match_status_truth
+
 
 REAL_TIME_STATES = {
     "upcoming": {"label": "Proximo", "badge": "upcoming", "refresh_seconds": 90, "weight": 45},
@@ -11,20 +13,30 @@ REAL_TIME_STATES = {
 
 
 def real_time_state(match):
-    status = str(match.get("status") or "").strip().lower()
-    minute = str(match.get("minute") or "").strip().lower()
-    if any(x in status for x in ["suspend", "aplaz", "postponed", "abandoned"]):
-        key = "suspended"
-    elif status in {"ht", "descanso"} or "half" in status or minute == "ht":
+    truth = match_status_truth(dict(match or {}))
+    lifecycle = truth.get("lifecycle")
+    if lifecycle == "HALFTIME":
         key = "halftime"
-    elif status in {"ft", "finalizado", "finished", "final"}:
-        key = "finished"
-    elif minute or any(x in status for x in ["live", "directo", "1h", "2h"]):
+    elif lifecycle == "LIVE" and not truth.get("status_conflict"):
         key = "live"
+    elif lifecycle in {"FINISHED", "ARCHIVED"}:
+        key = "finished"
+    elif lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
+        key = "suspended"
     else:
         key = "upcoming"
     state = dict(REAL_TIME_STATES[key])
     state["key"] = key
+    state["status_contract"] = truth.get("contract")
+    state["status_conflict"] = bool(truth.get("status_conflict"))
+    if lifecycle == "RESULT_PENDING":
+        state.update({"label": "Resultado pendiente", "badge": "result_pending"})
+    elif lifecycle == "CANCELLED":
+        state.update({"label": "Cancelado", "badge": "cancelled"})
+    elif lifecycle == "ABANDONED":
+        state.update({"label": "Abandonado", "badge": "abandoned"})
+    elif lifecycle == "POSTPONED":
+        state.update({"label": "Aplazado", "badge": "postponed"})
     return state
 
 

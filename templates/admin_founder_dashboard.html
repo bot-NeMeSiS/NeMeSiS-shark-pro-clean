@@ -44,19 +44,42 @@
 {% set gr_daily = growth.get('daily_founder_growth_brief', {}) %}
 {% set gr_launch_kit = growth.get('first_10_launch_kit', []) %}
 {% set gr_paid_path = growth.get('first_paid_customer_path', {}) %}
+{% set sports_quality = founder.sports_quality or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
-  {{ page_header('Panel fundador', 'Centro ejecutivo de empresa para beta cerrada: solo lectura, evidencia visible y cero acciones peligrosas.', 'dashboard', [
+  {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
     {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},
     {'label':'Revisión continua','href':'#continuous-evolution','primary':true,'icon':'history'}
   ]) }}
 
+  <section class="v933-admin-panel v933-founder-sports-quality" id="founder-sports-quality" aria-label="Calidad deportiva">
+    <header>
+      <div><h2>Calidad deportiva</h2><p>Lectura de DB y caché, sin llamadas adicionales al proveedor.</p></div>
+      {{ status_chip(sports_quality.state or 'NOT_CERTIFIED', 'success' if sports_quality.state == 'PASS' else 'warning') }}
+    </header>
+    <div class="v933-admin-panel-body">
+      <div class="v933-kpi-grid is-six">
+        {{ kpi_card('LIVE importante', sports_quality.important_live, 'Muestra real requerida', 'warning', 'live') }}
+        {{ kpi_card('LIVE real', sports_quality.live_real, 'Estado canónico', 'cyan', 'live') }}
+        {{ kpi_card('Conflictos LIVE', sports_quality.live_conflicts, 'Terminal gana a LIVE', 'success' if sports_quality.live_conflicts == 0 else 'danger', 'shield') }}
+        {{ kpi_card('Tier S/A', sports_quality.tier_sa_surfaced ~ ' / ' ~ sports_quality.tier_sa_available, 'Mostrados / disponibles', 'blue', 'target') }}
+        {{ kpi_card('Sin mapear', sports_quality.unknown, 'Degradadas en Home', 'warning', 'data') }}
+        {{ kpi_card('Stale', sports_quality.stale, 'No se muestra como LIVE', 'success' if sports_quality.stale == 0 else 'warning', 'history') }}
+      </div>
+      <div class="v933-founder-sports-foot">
+        <span><strong>Última sincronización</strong>{{ sports_quality.last_sync }}</span>
+        <span><strong>Errores de proveedor</strong>{{ sports_quality.provider_errors }}</span>
+        {{ status_chip('CERTIFICACIÓN REAL EN CURSO', 'warning') }}
+      </div>
+    </div>
+  </section>
+
   <section class="v933-admin-panel" id="continuous-evolution" aria-label="Evolucion continua">
     <header>
       <div>
-        <h2>Evolucion continua</h2>
-        <p>Trabajo recurrente seguro: observa, compara, prioriza y prepara briefs. No implementa, no envia, no cobra y no despliega.</p>
+        <h2>Evolución continua</h2>
+        <p>Observa, compara y prepara las próximas decisiones.</p>
       </div>
       {{ status_chip(continuous.automation_status or 'MANUAL', 'success' if continuous.automation_status == 'ACTIVE' else 'danger' if continuous.automation_status == 'ERROR' else 'warning' if continuous.automation_status == 'PAUSED' else 'neutral') }}
     </header>
@@ -129,7 +152,7 @@
     <header>
       <div>
         <h2>Growth & Revenue OS</h2>
-        <p>Departamento digital de crecimiento: clientes, conversion, retencion, marketing y revenue sin campanas, gasto, Stripe ni publicaciones automaticas.</p>
+        <p>Clientes, conversión, retención y próximos experimentos.</p>
       </div>
       {{ status_chip(growth.status or 'FOUNDATION_READY', 'success' if growth.status in ['ACQUISITION_READY','LIVE_ACQUISITION_READY_LOCAL'] else 'warning') }}
     </header>

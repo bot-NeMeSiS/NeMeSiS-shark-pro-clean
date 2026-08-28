@@ -10,6 +10,8 @@
 {% set calendar = center.calendar or {} %}
 {% set teams = center.teams or [] %}
 {% set links = center.links or {} %}
+{% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
 
 <section class="competition-center-v1" data-competition-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}">
   <header class="competition-center-hero" data-competition-center-section="header">
@@ -22,19 +24,19 @@
         {% endif %}
       </div>
       <div class="competition-center-title-block">
-        <div class="competition-center-kicker">Centro de la competicion · {{ competition.country or 'No disponible' }}</div>
+        <div class="competition-center-kicker">Centro de la competición · {{ competition.country or 'No disponible' }}</div>
         <h1>{{ competition.official_name or competition.name or 'Competicion no disponible' }}</h1>
-        <p>Centro de inteligencia de competicion construido sobre Modelo deportivo, Capa de conocimiento deportivo y Grafo deportivo. No crea clasificaciones, fases ni contexto sin evidencia real.</p>
+        <p>Clasificación, equipos, partidos y resultados disponibles.</p>
         <div class="competition-center-tags" aria-label="Estado de la competicion">
           <span>{{ competition.state or 'No disponible' }}</span>
           <span>{{ competition.season or 'No disponible' }}</span>
-          <span>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</span>
+          <span>{{ quality_labels.get(quality_state, quality_state|replace('_', ' ')|title) }}</span>
         </div>
       </div>
     </div>
     <aside class="competition-center-status-card" aria-label="Resumen operativo">
       <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
-      <div><span>Procedencia</span><strong>{{ data_quality.source or 'No disponible' }}</strong></div>
+      <div><span>Procedencia</span><strong>{{ nemesis_source_label(data_quality.source) }}</strong></div>
       <nav class="competition-center-actions" aria-label="Acciones rapidas">
         <a href="{{ links.calendar or '/calendar' }}">Calendario</a>
         {% if links.match_center %}<a href="{{ links.match_center }}">Partido relacionado</a>{% endif %}
@@ -44,7 +46,7 @@
   </header>
 
   <section class="competition-center-meta-grid" data-competition-center-section="identity-facts" aria-label="Datos de competicion">
-    <article><span>Pais</span><strong>{{ competition.country or 'No disponible' }}</strong></article>
+    <article><span>País</span><strong>{{ competition.country or 'No disponible' }}</strong></article>
     <article><span>Temporada</span><strong>{{ competition.season or 'No disponible' }}</strong></article>
     <article><span>Tipo</span><strong>{{ competition.type or 'No disponible' }}</strong></article>
     <article><span>Jornada / fase</span><strong>{{ competition.stage or calendar.current_round or 'No disponible' }}</strong></article>
@@ -52,15 +54,15 @@
 
   <section class="competition-center-scoreboard" data-competition-center-section="metrics" aria-label="Resumen deportivo">
     <article><span>Equipos</span><strong>{{ metrics.teams or 0 }}</strong><small>relacionados</small></article>
-    <article><span>Partidos</span><strong>{{ metrics.matches or 0 }}</strong><small>en Modelo deportivo</small></article>
-    <article><span>Proximos</span><strong>{{ metrics.upcoming or 0 }}</strong><small>calendario confirmado</small></article>
+    <article><span>Partidos</span><strong>{{ metrics.matches or 0 }}</strong><small>registrados</small></article>
+    <article><span>Próximos</span><strong>{{ metrics.upcoming or 0 }}</strong><small>calendario confirmado</small></article>
     <article><span>Resultados</span><strong>{{ metrics.recent or 0 }}</strong><small>cerrados o recientes</small></article>
-    <article><span>Graph</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>relaciones</small></article>
+    <article><span>Relaciones</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>deportivas</small></article>
   </section>
 
   <main class="competition-center-layout">
     <section class="competition-center-panel competition-center-wide" data-competition-center-section="standings">
-      <div class="competition-center-section-head"><span>Clasificacion</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
+      <div class="competition-center-section-head"><span>Clasificación</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
       {% if standings.rows %}
       <div class="competition-center-table-wrap">
         <table class="competition-center-table">
@@ -159,9 +161,10 @@
     </section>
 
     <section class="competition-center-panel" data-competition-center-section="data-quality">
-      <div class="competition-center-section-head"><span>Transparencia</span><strong>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</strong></div>
+      <div class="competition-center-section-head"><span>Transparencia</span><strong>{{ quality_labels.get(quality_state, quality_state|replace('_', ' ')|title) }}</strong></div>
+      <p>No crea clasificaciones ni contexto sin evidencia confirmada.</p>
       <dl class="competition-center-data-list">
-        <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
+        <div><dt>Procedencia</dt><dd>{{ nemesis_source_label(data_quality.source) }}</dd></div>
         <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
         <div><dt>Evidencia</dt><dd>{{ standings.source or 'No disponible' }}</dd></div>
         <div><dt>Limitaciones</dt><dd>{{ data_quality.limitations|length if data_quality.limitations else 0 }}</dd></div>

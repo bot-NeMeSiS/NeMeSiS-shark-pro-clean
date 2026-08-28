@@ -44,15 +44,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -69,14 +69,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -90,7 +90,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -114,7 +114,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -154,7 +154,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -1037,7 +1037,25 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 .v933-shark-hero,.v933-telegram-hero { min-height: 190px; display: grid; grid-template-columns: minmax(0,1fr) minmax(180px,.45fr); align-items: center; gap: 24px; padding: 24px 28px; overflow: hidden; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: radial-gradient(circle at 82% 45%,rgba(25,213,255,.2),transparent 27%),linear-gradient(145deg,#071a31,#030c18 76%); }
 .v933-shark-hero h2,.v933-telegram-hero h2 { font-size: clamp(1.55rem,2.5vw,2.35rem); }
 .v933-shark-hero p,.v933-telegram-hero p { max-width: 760px; margin-top: 8px; color: #b7c8d8; font-size: .78rem; line-height: 1.52; }
-.v933-shark-hero img { justify-self: center; width: min(220px,100%); max-height: 140px; object-fit: contain; filter: drop-shadow(0 0 24px rgba(25,213,255,.25)); }
+.v933-shark-hero { position: relative; isolation: isolate; min-height: 214px; }
+.v933-shark-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(3,13,27,.84), rgba(3,13,27,.38) 58%, transparent 86%);
+}
+.v933-shark-hero > * { position: relative; z-index: 1; }
+.v933-shark-hero > div { z-index: 2; }
+.v933-shark-hero img {
+  justify-self: end;
+  width: min(430px,100%);
+  max-height: 180px;
+  object-fit: contain;
+  opacity: .82;
+  filter: drop-shadow(0 0 34px rgba(25,128,255,.34));
+}
 .v933-shark-answer { min-height: 120px; display: grid; grid-template-columns: 42px minmax(0,1fr); align-items: start; gap: 13px; padding: 15px; border: 1px solid rgba(25,213,255,.24); border-radius: var(--v933-radius-sm); color: #d7e8f8; background: rgba(25,213,255,.055); }
 .v933-shark-answer .v933-icon { width: 40px; height: 40px; padding: 8px; border: 1px solid rgba(25,213,255,.25); border-radius: 50%; color: var(--v933-cyan); }
 .v933-shark-answer p { font-size: .73rem; line-height: 1.6; white-space: pre-line; }
@@ -1069,7 +1087,16 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 
 @media (max-width: 800px) {
   .v933-shark-hero,.v933-telegram-hero { min-height: 0; grid-template-columns: 1fr; padding: 18px 14px; }
-  .v933-shark-hero img { display: none; }
+  .v933-shark-hero img {
+    display: block;
+    position: absolute;
+    z-index: 1;
+    top: 12px;
+    right: -82px;
+    width: 300px;
+    max-height: 140px;
+    opacity: .34;
+  }
   .v933-telegram-mark { position: absolute; right: 20px; width: 58px; height: 58px; opacity: .65; }
   .v933-telegram-mark .v933-icon { width: 32px; height: 32px; }
   .v933-feature-grid { grid-template-columns: 1fr 1fr; }
@@ -1721,7 +1748,7 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
 }
 .v944-timeline li {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   gap: 11px;
   min-width: 0;
   padding: 10px 0;
@@ -1732,6 +1759,7 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   color: var(--v933-cyan);
   font-size: .67rem;
   font-weight: 850;
+  line-height: 1.25;
 }
 .v944-timeline span { min-width: 0; }
 .v944-timeline strong,
@@ -4369,6 +4397,24 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
 }
 /* Official Visual Reference Reconstruction: 16 PNG reference alignment, local-only visual sprint. */
 :root {
+  --ns-bg: #03101d;
+  --ns-bg-deep: #01050c;
+  --ns-bg-elevated: #081b30;
+  --ns-panel: rgba(7, 21, 39, .8);
+  --ns-panel-glass: rgba(9, 29, 51, .72);
+  --ns-border: rgba(111, 203, 255, .2);
+  --ns-cyan: #42dcff;
+  --ns-blue: #1282ff;
+  --ns-text: #f4f9ff;
+  --ns-muted: rgba(202, 219, 237, .72);
+  --ns-positive: #30d48a;
+  --ns-warning: #f0c04a;
+  --ns-danger: #ff6262;
+  --ns-elite: #f3c35a;
+  --ns-radius: 8px;
+  --ns-gap: 12px;
+  --ns-shadow: 0 16px 44px rgba(0, 0, 0, .32);
+  --ns-glow: 0 0 36px rgba(50, 203, 255, .16);
   --nsx-bg-0: #020812;
   --nsx-bg-1: #06111f;
   --nsx-bg-2: #081b2e;
@@ -4391,75 +4437,255 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
   --nsx-shadow: 0 16px 44px rgba(0, 0, 0, .32);
 }
 
-html { background: var(--nsx-bg-0); }
+html { background: var(--ns-bg-deep); }
 body.ns-app {
   min-height: 100vh;
-  color: var(--nsx-text);
+  color: var(--ns-text);
   background:
-    radial-gradient(circle at 78% 8%, rgba(45, 212, 255, .16), transparent 28vw),
-    radial-gradient(circle at 5% 28%, rgba(17, 119, 255, .12), transparent 26vw),
-    linear-gradient(135deg, #020812 0%, #06111f 44%, #03101f 100%) !important;
+    radial-gradient(ellipse at 52% -9%, rgba(151, 236, 255, .2), transparent 27vw),
+    radial-gradient(ellipse at 88% 18%, rgba(18, 108, 236, .22), transparent 34vw),
+    radial-gradient(ellipse at 4% 57%, rgba(8, 99, 168, .17), transparent 39vw),
+    radial-gradient(ellipse at 50% 118%, rgba(0, 2, 8, .98), transparent 58vw),
+    linear-gradient(180deg, #031225 0%, #020d1c 34%, #010812 71%, #000207 100%) !important;
+  background-attachment: fixed !important;
   letter-spacing: 0;
 }
-body.ns-app::before {
+
+/* Canonical ocean depth. These selectors intentionally match the old V812/V848
+   specificity so the active shell has one background composition. */
+body.ns-app.ns-public::before,
+body.ns-app.ns-authenticated:not(.ns-admin)::before,
+body.ns-app.ns-admin::before {
   content: "";
   position: fixed;
-  right: clamp(18px, 4vw, 74px);
-  top: clamp(82px, 13vh, 156px);
-  width: min(720px, 46vw);
-  aspect-ratio: 1.38;
+  display: block;
+  inset: 0;
+  width: auto;
+  height: auto;
+  aspect-ratio: auto;
   z-index: 0;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
-  opacity: .22;
-  filter: drop-shadow(0 0 72px rgba(57,216,255,.46));
-  transform: rotate(-2deg);
+  background:
+    linear-gradient(112deg, transparent 0 15%, rgba(169, 237, 255, .075) 28%, transparent 43%),
+    linear-gradient(102deg, transparent 0 49%, rgba(54, 164, 255, .07) 64%, transparent 81%),
+    linear-gradient(76deg, transparent 0 70%, rgba(122, 221, 255, .055) 78%, transparent 88%),
+    radial-gradient(ellipse at 51% 1%, rgba(159, 237, 255, .19), transparent 28%),
+    radial-gradient(ellipse at 50% 24%, rgba(22, 121, 202, .12), transparent 47%),
+    radial-gradient(ellipse at 52% 103%, rgba(0, 2, 8, .9), transparent 52%);
+  background-size: 100% 100%;
+  opacity: .94;
+  filter: none;
+  transform: none;
+  animation: none;
+  -webkit-mask: none;
+  mask: none;
 }
-body.ns-app::after {
+body.ns-app.ns-public::after,
+body.ns-app.ns-authenticated:not(.ns-admin)::after,
+body.ns-app.ns-admin::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: .5;
+  width: auto;
+  height: auto;
+  opacity: .42;
   background:
-    linear-gradient(112deg, transparent 0 39%, rgba(57, 216, 255, .06) 39.2% 39.55%, transparent 39.8% 100%),
-    linear-gradient(22deg, transparent 0 58%, rgba(17, 119, 255, .045) 58.2% 58.55%, transparent 58.8% 100%),
-    radial-gradient(circle, rgba(120, 220, 255, .45) 0 1px, transparent 1.35px) 0 0 / 34px 34px,
-    radial-gradient(circle, rgba(255,255,255,.13) 0 1px, transparent 1.25px) 13px 17px / 58px 58px;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 9%, #000 88%, transparent 100%);
+    radial-gradient(circle, rgba(151, 235, 255, .54) 0 1px, transparent 1.35px) 7% 9% / 43px 43px,
+    radial-gradient(circle, rgba(255,255,255,.2) 0 1px, transparent 1.25px) 13px 17px / 71px 71px,
+    radial-gradient(ellipse at 9% 100%, rgba(6, 28, 48, .82), transparent 29%),
+    radial-gradient(ellipse at 92% 105%, rgba(4, 21, 38, .9), transparent 31%);
+  background-size: 43px 43px, 71px 71px, 100% 100%, 100% 100%;
+  filter: none;
+  transform: none;
+  animation: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.72) 44%, transparent 92%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.72) 44%, transparent 92%);
 }
-body.ns-app.ns-admin::before { opacity: .13; width: min(620px, 40vw); right: clamp(18px, 3vw, 54px); }
-body.ns-app.ns-admin::after { opacity: .28; }
+body.ns-app.ns-admin::before { opacity: .58; }
+body.ns-app.ns-admin::after { opacity: .18; }
 body.ns-app :is(.v933-shell-chrome,.ns-main-shell,.v787-legal-footer,.v933-mobile-bottom-nav,.v933-admin-mobile-nav,.nemesis-local-safe-banner) { position: relative; z-index: 2; }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--nsx-line) !important;
   border-radius: var(--nsx-radius) !important;
   background:
-    radial-gradient(circle at 84% 18%, rgba(57, 216, 255, .28), transparent 30%),
-    radial-gradient(circle at 18% 95%, rgba(17, 119, 255, .18), transparent 34%),
-    linear-gradient(135deg, rgba(9, 31, 56, .92), rgba(3, 12, 25, .92) 62%, rgba(0, 50, 86, .46)) !important;
+    radial-gradient(ellipse at 76% 12%, rgba(21, 132, 255, .22), transparent 32%),
+    radial-gradient(ellipse at 12% 110%, rgba(22, 103, 207, .16), transparent 38%),
+    linear-gradient(108deg, rgba(4, 17, 34, .97), rgba(3, 15, 31, .9) 51%, rgba(1, 10, 24, .76)) !important;
   box-shadow: var(--nsx-shadow), inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(57,216,255,.04) !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before {
   content: "";
   position: absolute;
-  inset: auto clamp(14px, 2.8vw, 46px) clamp(10px, 2vw, 32px) auto;
-  width: min(440px, 36vw);
-  aspect-ratio: 1.38;
+  z-index: 0;
+  top: 50%;
+  right: clamp(-34px, 1vw, 18px);
+  width: clamp(420px, 46vw, 680px);
+  aspect-ratio: 1200 / 480;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-official.svg?v=official-shark-2') center / contain no-repeat;
-  opacity: .24;
-  filter: drop-shadow(0 0 54px rgba(57,216,255,.48));
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+  opacity: .84;
+  filter: drop-shadow(0 0 46px rgba(39, 162, 255, .42)) saturate(1.12) brightness(1.08);
+  transform: translateY(-50%);
+}
+body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(2, 11, 24, .82) 0%, rgba(2, 11, 24, .54) 47%, rgba(2, 11, 24, .08) 76%, rgba(2, 11, 24, .2) 100%);
+  opacity: 1;
+  filter: none;
+  -webkit-mask: none;
+  mask: none;
+}
+body.ns-app .v937-home .v933-public-hero::after {
+  inset: 0;
+  width: auto;
+  height: auto;
+  background: linear-gradient(90deg, rgba(2, 11, 24, .86), rgba(2, 11, 24, .5) 51%, rgba(2, 11, 24, .06) 79%);
+  opacity: 1;
+  filter: none;
+  -webkit-mask: none;
+  mask: none;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) > * { position: relative; z-index: 1; }
+body.ns-app .v933-page-header::before { width: clamp(320px, 35vw, 500px); opacity: .42; }
+body.ns-app.ns-admin .v933-page-header::before { opacity: .24; }
+body.ns-app:is([data-ns-route="/shark"],[data-ns-route="/shark-ai"],[data-ns-route="/shark-core"]) .v933-page-header::before { content: none; }
+body.ns-app .v944-match-header::before,
+body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .38; }
+body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .76; }
 body.ns-app :is(h1,h2,h3,.v933-page-header h1) { letter-spacing: 0 !important; }
 body.ns-app :is(.v933-page-header h1,.v933-public-hero h1,.v933-client-hero h1) {
   font-size: clamp(1.45rem, 2.4vw, 2.35rem) !important;
   line-height: 1.04;
 }
 body.ns-app :is(.v933-page-header p,.v933-public-hero p,.v933-client-hero p) { max-width: 76ch; color: var(--nsx-muted) !important; }
+
+/* Reference client composition: ocean canvas first, product immediately below. */
+body.ns-app :is(.v933-public-hero,.v933-client-hero) {
+  min-height: 190px !important;
+  padding: 22px 24px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.ns-app :is(.v933-public-hero,.v933-client-hero)::before {
+  right: clamp(-24px, 2vw, 32px);
+  width: clamp(500px, 50vw, 720px);
+  top: 34%;
+  opacity: .9;
+}
+body.ns-app :is(.v933-public-hero,.v933-client-hero)::after {
+  background: linear-gradient(90deg, rgba(2, 11, 24, .88) 0%, rgba(2, 11, 24, .44) 48%, rgba(2, 11, 24, 0) 80%);
+}
+body.ns-app .v933-page-header {
+  min-height: 96px !important;
+  padding: 14px 18px !important;
+  border-color: rgba(90, 198, 255, .14) !important;
+  background: linear-gradient(102deg, rgba(5, 20, 38, .78), rgba(3, 14, 29, .42) 68%, rgba(3, 14, 29, .18)) !important;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16) !important;
+}
+body.ns-app .v933-page-header::before {
+  right: 10px;
+  width: clamp(300px, 31vw, 470px);
+  opacity: .36;
+}
+body.ns-app .v944-match-header::before {
+  right: 2%;
+  width: clamp(420px, 42vw, 620px);
+  opacity: .3;
+}
+
+/* The brand shark is a mark, not a circular avatar. Match the older shell rule's
+   specificity so this canonical treatment wins without a blanket !important layer. */
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark {
+  display: block !important;
+  width: 60px !important;
+  height: 34px !important;
+  min-width: 60px !important;
+  flex: 0 0 60px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark::before,
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark::after { content: none !important; display: none !important; }
+body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  filter: drop-shadow(0 0 7px rgba(62, 218, 255, .34)) !important;
+}
+
+/* Evidence stays available without crushing the score rail. */
+.v944-transparency-disclosure {
+  width: 100%;
+  margin-top: 4px;
+  border-top: 1px solid var(--v944-line);
+  padding-top: 7px;
+}
+.v944-transparency-disclosure summary {
+  cursor: pointer;
+  color: var(--v944-muted);
+  font-size: .59rem;
+  font-weight: 800;
+  list-style-position: inside;
+}
+.v944-transparency-disclosure[open] .v944-transparency {
+  grid-template-columns: 1fr;
+  margin-top: 8px;
+  text-align: left;
+}
+
+/* Founder first view: business, sports truth and action before deep automation. */
+[data-founder-command-center] { display: flex; flex-direction: column; gap: 12px; }
+[data-founder-command-center] > .v933-page-header { order: 0; }
+[data-founder-command-center] > .v933-kpi-grid[aria-label="Business KPIs"] { order: 10; }
+[data-founder-command-center] > .v933-kpi-grid[aria-label="Business KPIs"] .v933-kpi strong {
+  font-size: 1.18rem !important;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+[data-founder-command-center] > .v933-founder-sports-quality .v933-kpi strong {
+  font-size: 1rem !important;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+[data-founder-command-center] > .v933-founder-sports-quality { order: 20; }
+[data-founder-command-center] > .v933-admin-layout { order: 30; }
+[data-founder-command-center] > #growth-revenue { order: 40; }
+[data-founder-command-center] > #continuous-evolution { order: 50; }
+.v933-founder-sports-foot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.v933-founder-sports-foot > span:not(.v933-status-chip) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid rgba(57,216,255,.14);
+  border-radius: var(--nsx-radius-sm);
+  background: rgba(2,12,27,.46);
+  color: var(--nsx-muted);
+  font-size: .7rem;
+  overflow-wrap: anywhere;
+}
+.v933-founder-sports-foot strong { color: #fff; font-size: .66rem; text-transform: uppercase; }
 
 body.ns-app :is(.v933-topbar,.v933-admin-topbar) {
   min-height: 58px !important;
@@ -4487,10 +4713,25 @@ body.ns-app .v933-admin-mobile-nav a:is(:hover,.is-active) {
 body.ns-app .v933-topbar nav a:hover,
 body.ns-app .v933-admin-sidebar nav a:hover { transform: translateY(-1px); }
 body.ns-app .v933-admin-sidebar {
-  width: 232px !important;
+  width: 210px !important;
   border-right: 1px solid var(--nsx-line) !important;
   background: linear-gradient(180deg, rgba(4, 16, 31, .96), rgba(2, 9, 19, .96)) !important;
   box-shadow: 18px 0 42px rgba(0,0,0,.24) !important;
+}
+body.ns-app .v933-admin-sidebar::after {
+  content: "";
+  display: block;
+  right: -22px;
+  bottom: 28px;
+  width: 230px;
+  height: 150px;
+  aspect-ratio: auto;
+  opacity: .46;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(16, 113, 185, .24), transparent 60%),
+    repeating-radial-gradient(ellipse at 20% 120%, transparent 0 17px, rgba(68, 207, 255, .08) 18px 19px, transparent 20px 34px);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 44%);
+  mask: linear-gradient(180deg, transparent, #000 44%);
 }
 body.ns-app .v933-admin-sidebar nav { gap: 4px !important; }
 body.ns-app .v933-admin-sidebar nav a { min-height: 38px !important; padding: 8px 10px !important; }
@@ -4523,6 +4764,7 @@ body.ns-app :is(a,button,input,select,textarea,summary):focus-visible {
   outline: 3px solid rgba(57,216,255,.92) !important;
   outline-offset: 3px !important;
 }
+body.ns-app details:not([open]) > :not(summary) { display: none !important; }
 body.ns-app :is(.v933-status-chip,.tier-badge,.badge,.chip) {
   border-radius: 999px !important;
   border: 1px solid rgba(57,216,255,.24) !important;
@@ -4563,10 +4805,65 @@ body.ns-app.ns-admin :is(.v933-page-header h1,.v928-page-header h1) { font-size:
 body.ns-app[data-ns-route*="founder"] :is(.v933-admin-panel,.operations-card),
 body.ns-app[data-ns-route*="growth"] :is(.v933-admin-panel,.operations-card) { padding: 12px !important; }
 
+/* Compact secondary explanation while keeping every contract and action available. */
+body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 11px 13px;
+  box-shadow: 0 9px 24px rgba(0,0,0,.18);
+}
+body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-icon { display: none; }
+body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-copy h2 {
+  margin: 1px 0 0;
+  font-size: .95rem;
+}
+body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-copy p,
+body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-copy small { display: none; }
+body.ns-app .v933-product-excellence-band {
+  padding: 11px !important;
+}
+body.ns-app .v933-product-excellence-band .v933-section-header p,
+body.ns-app .v933-product-excellence-band .v933-excellence-steps p { display: none; }
+body.ns-app .v933-product-excellence-band .v933-excellence-steps article { min-height: 72px; padding: 10px; }
+body.ns-app .sports-priority-client-hero { grid-template-columns: minmax(0, 1fr) auto; }
+body.ns-app .sports-priority-kpis { margin-top: -2px; }
+body.ns-app .is-live-focus { border-color: rgba(48,212,138,.35) !important; }
+body.ns-app .v933-plan-context .v936-value-ladder p { display: none; }
+body.ns-app .v933-memberships-page > .v933-page-header { order: -10; }
+body.ns-app .v933-memberships-page #v936-plan-comparison { order: -9; }
+body.ns-app .v933-memberships-page > .v936-customer-decision { order: -8; }
+body.ns-app .v933-memberships-page > .v936-value-ladder { order: -7; }
+
+/* SHOW -> THEN EXPLAIN on the main client decision screens. */
+body.ns-app .v933-picks-board > .v933-page-header,
+body.ns-app .v933-track-record > .v933-page-header,
+body.ns-app .v933-profile-page > .v933-page-header,
+body.ns-app .v933-shark-page > .v933-page-header { order: -20; }
+body.ns-app .v933-picks-board > .v934-realtime-state,
+body.ns-app .v933-picks-board > .v933-kpi-grid,
+body.ns-app .v933-track-record > .v933-kpi-grid,
+body.ns-app .v933-profile-page > .v933-profile-card,
+body.ns-app .v933-shark-page > .v933-shark-hero { order: -19; }
+body.ns-app .v933-picks-board > .v933-filter-panel,
+body.ns-app .v933-track-record > .v933-filter-panel,
+body.ns-app .v933-profile-page > .v933-kpi-grid,
+body.ns-app .v933-shark-page > .v933-kpi-grid { order: -18; }
+body.ns-app .v933-picks-board > .v933-two-col,
+body.ns-app .v933-track-record > .v933-two-col,
+body.ns-app .v933-profile-page > .v933-two-col,
+body.ns-app .v933-shark-page > .v933-two-col { order: -17; }
+body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-shark-page) > .v933-product-excellence-band { order: 10; }
+
 @media (min-width: 981px) {
-  body.ns-app.ns-authenticated:not(.ns-admin) main.v933-client-shell { margin-left: 232px !important; padding: 76px 18px 28px !important; max-width: none !important; }
+  body.ns-app .v937-home .v933-public-hero::before {
+    right: clamp(96px, 10vw, 150px);
+    width: clamp(590px, 50vw, 720px);
+    top: 31%;
+    opacity: .96;
+  }
+  body.ns-app.ns-authenticated:not(.ns-admin) main.v933-client-shell { margin-left: 0 !important; padding: 76px 18px 28px !important; max-width: 1480px !important; }
   body.ns-app.ns-public main.v933-public-shell { padding: 76px 18px 28px !important; max-width: 1440px !important; }
-  body.ns-app.ns-admin main.v933-admin-shell { margin-left: 232px !important; padding-inline: 18px !important; max-width: none !important; }
+  body.ns-app.ns-admin main.v933-admin-shell { margin-left: 210px !important; padding-inline: 18px !important; max-width: none !important; }
 }
 @media (max-width: 980px) {
   body.ns-app main.v933-public-shell,
@@ -4601,8 +4898,24 @@ body.ns-app[data-ns-route*="growth"] :is(.v933-admin-panel,.operations-card) { p
   body.ns-app main.v933-public-shell,
   body.ns-app main.v933-client-shell,
   body.ns-app main.v933-admin-shell { padding-inline: 9px !important; }
-  body.ns-app::before { right: -118px; top: 86px; width: 360px; opacity: .1; }
-  body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before { width: 260px; opacity: .1; }
+  body.ns-app::before { opacity: .9; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero) { min-height: 168px !important; padding: 12px 10px !important; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -94px; top: 48%; width: 330px; opacity: .54; }
+  body.ns-app .v933-page-header { min-height: 78px !important; padding: 11px 12px !important; }
+  body.ns-app .v933-page-header::before { right: -84px; width: 300px; opacity: .22; }
+  body.ns-app[data-v928-shell="true"] .brand.v808-brand .ns-brand-mark { width: 48px !important; min-width: 48px !important; height: 28px !important; flex-basis: 48px !important; }
+  body.ns-app .sports-priority-client-hero { grid-template-columns: 1fr; }
+  body.ns-app .sports-priority-client-hero .v933-hero-actions { max-width: 240px; }
+  body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision {
+    grid-template-columns: 1fr;
+  }
+  body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-actions {
+    justify-content: stretch;
+  }
+  body.ns-app :is(.v933-client-dashboard,.v933-calendar-board,.v933-live-board,.v933-picks-board,.v933-track-record,.v933-memberships-page,.v933-profile-page,.v933-shark-page) > .v936-customer-decision .v936-decision-actions .v933-action {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
   body.ns-app :is(.v933-action,.v933-button,.btn,.button,button:not(.unstyled),.nav-cta) { width: auto; min-width: 44px; }
   body.ns-app :is(.hero-actions,.v933-actions,.actions) { display: flex; flex-wrap: wrap; gap: 8px; }
   body.ns-app :is(.hero-actions > *,.v933-actions > *,.actions > *) { flex: 1 1 calc(50% - 8px); justify-content: center; }
@@ -4733,4 +5046,91 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
     width: 245px;
     opacity: .18;
   }
+}
+
+/* SPORTS-FIRST HOME PRIORITY */
+.sports-priority-home { gap: 16px; }
+.sports-priority-hero {
+  grid-template-columns: minmax(0, 1.18fr) minmax(320px, .82fr);
+  align-items: stretch;
+  min-height: 0;
+}
+
+@media (max-width: 620px) {
+  [data-founder-command-center] .v933-kpi { min-width: 0; }
+  [data-founder-command-center] .v933-kpi :is(strong,span,small) {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  .v933-founder-sports-foot { grid-template-columns: 1fr; }
+  .v933-founder-sports-foot > .v933-status-chip { justify-self: start; }
+}
+.sports-priority-hero > div:first-child { align-self: center; }
+.sports-priority-hero h1 { max-width: 820px; }
+.sports-priority-hero p { max-width: 680px; }
+.sports-priority-proof {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.sports-priority-proof span {
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 9px;
+  border-color: rgba(57,216,255,.18);
+  background: rgba(2,12,28,.42);
+  white-space: nowrap;
+}
+.sports-priority-start { margin-top: 12px; }
+.sports-priority-main-card .v933-match-card { margin-top: 8px; }
+.sports-priority-section .v933-section-header { margin-bottom: 10px; }
+.sports-priority-section .v933-section-header p { display: none; }
+.sports-priority-layout { align-items: start; }
+.sports-priority-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.sports-priority-grid.is-live { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sports-priority-grid.is-compact .v933-match-card { min-height: 0; }
+.sports-priority-side .v933-empty-state p,
+.sports-priority-section .v933-empty-state p { max-width: 54ch; }
+.v933-quick-actions.is-tight { gap: 8px; }
+.v933-launch-guide-grid.is-compact,
+.v933-launch-continuity-grid.is-compact { gap: 8px; }
+.v933-launch-guide-grid.is-compact .v933-launch-step,
+.v933-launch-continuity-grid.is-compact .v933-launch-memory-card { padding: 11px; }
+.v933-match-card[data-sports-relevance] { border-color: rgba(57,216,255,.24); }
+@media (max-width: 1180px) {
+  .sports-priority-grid,
+  .sports-priority-grid.is-live { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 820px) {
+  .sports-priority-hero { grid-template-columns: 1fr; }
+  .sports-priority-proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sports-priority-grid,
+  .sports-priority-grid.is-live { grid-template-columns: 1fr; }
+  .sports-priority-start { grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; }
+  .sports-priority-start a {
+    min-width: 0;
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 3px;
+    padding: 6px 3px;
+    text-align: center;
+  }
+  .sports-priority-start strong { width: 26px; min-width: 26px; height: 26px; font-size: .65rem; }
+  .sports-priority-start span { max-width: 100%; overflow-wrap: normal; white-space: nowrap; font-size: .62rem; }
+}
+@media (max-width: 420px) {
+  .sports-priority-proof { grid-template-columns: 1fr 1fr; }
+  .sports-priority-proof span { font-size: .68rem; padding-inline: 6px; }
+  .sports-priority-hero .v933-hero-actions { grid-template-columns: 1fr; }
+  .sports-priority-hero p { display: none; }
+  .sports-priority-proof { margin-top: 10px; gap: 5px; }
+  .sports-priority-proof span { min-height: 32px; }
+  .sports-priority-start { margin-top: 8px; gap: 5px; }
 }

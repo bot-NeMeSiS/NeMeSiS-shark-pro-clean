@@ -30,7 +30,7 @@
 {%- endmacro %}
 
 {% macro data_provenance_badge(source='', updated='', state='') -%}
-<span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ source or 'Fuente pendiente' }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
+<span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
 {%- endmacro %}
 
 {% macro customer_trust_panel(trust) -%}
@@ -80,8 +80,8 @@
 
 {% macro match_card(match, compact=false, show_actions=true) -%}
 {% set match = match or {} %}
-{% set home = match.get('home_team') or match.get('client_home') or match.get('home_name') or '' %}
-{% set away = match.get('away_team') or match.get('client_away') or match.get('away_name') or '' %}
+{% set home = match.get('safe_home') or match.get('client_home') or match.get('home_team') or match.get('home_name') or '' %}
+{% set away = match.get('safe_away') or match.get('client_away') or match.get('away_team') or match.get('away_name') or '' %}
 {% set competition = match.get('client_competition') or match.get('calendar_competition') or match.get('competition_name') or match.get('league_name') or match.get('competition') or match.get('league') or '' %}
 {% set time_label = match.get('client_time_label') or match.get('calendar_time') or match.get('time_madrid') or match.get('kickoff_time') or match.get('match_time') or '' %}
 {% set status = match.get('client_status_label') or match.get('calendar_status') or match.get('status_label') or match.get('display_status') or match.get('status') or 'Programado' %}
@@ -89,12 +89,14 @@
 {% set home_logo = match.get('home_logo') or match.get('home_crest') or match.get('home_logo_url') or '' %}
 {% set away_logo = match.get('away_logo') or match.get('away_crest') or match.get('away_logo_url') or '' %}
 {% set complete = home and away and competition and time_label and match.get('source') %}
-{% set minute = match.get('minute') or match.get('elapsed') or match.get('live_minute') %}
-<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1">
+{% set minute = match.get('client_live_minute') %}
+{% set relevance = match.get('sports_relevance') or {} %}
+{% set relevance_bucket = match.get('sports_relevance_bucket') or relevance.get('bucket') or '' %}
+<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1"{% if relevance_bucket %} data-sports-relevance="{{ relevance_bucket }}"{% endif %}{% if match.get('sports_relevance_score') %} data-sports-score="{{ match.get('sports_relevance_score') }}"{% endif %}>
   <header class="v933-match-card-header"><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time>{{ time_label or 'Sin hora confirmada' }}</time></div></header>
   <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or 'Equipo pendiente' }}</strong></div><b data-v934-score>{% if match.get('home_score') is not none and match.get('away_score') is not none %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b><div>{{ team_logo(away, away_logo) }}<strong>{{ away or 'Equipo pendiente' }}</strong></div></div>
   <footer class="v933-match-card-footer">
-    <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
+  <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if relevance_bucket %}{{ status_chip('Prioridad' if relevance_bucket == 'PRIORITY' else ('Estándar' if relevance_bucket == 'STANDARD' else ('Local' if relevance_bucket == 'LOW_PRIORITY' else 'Competición pendiente')), 'success' if relevance_bucket == 'PRIORITY' else ('blue' if relevance_bucket == 'STANDARD' else 'warning')) }}{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
     <div class="v933-match-card-actions">{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div>
   </footer>
 </article>

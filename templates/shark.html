@@ -11,6 +11,7 @@
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set customer_trust = data.get('v935_customer_trust') or {} %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set focus_labels = {'summary':'Resumen', 'pick':'Pick', 'risk':'Riesgo', 'telegram':'Telegram', 'match':'Partido', 'membership':'Plan'} %}
 
 <div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="canonical-shark" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('SHARK', 'Inteligencia deportiva responsable sobre los datos que ya existen.', 'shark', [{'label':'Partidos','href':'/calendar','icon':'calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
@@ -22,7 +23,7 @@
       <p>{{ 'SHARK puede ampliar el contexto disponible sin revelar información privada ni completar huecos con datos inventados.' if openai_ready else 'SHARK mantiene navegación, contexto deportivo y límites claros sin simular una conversación avanzada.' }}</p>
       <div class="v933-hero-actions">{{ action_button('Explorar partidos','/calendar',true,'cyan',false,'calendar') }}{{ action_button('Ver directo','/live',false,'blue',false,'live') }}{{ action_button('Revisar picks','/picks',false,'blue',false,'target') }}</div>
     </div>
-    <img src="/static/img/nemesis-shark-official.svg?v=official-shark-2" alt="" aria-hidden="true">
+    <img src="/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5" alt="" aria-hidden="true">
   </section>
   {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
@@ -57,7 +58,7 @@
   <section class="v933-two-col">
     <div class="v933-main-stack">
       <section class="v933-panel v933-shark-conversation">
-        {{ section_header('Respuestá actual', (answer.get('focus') or 'resumen')|capitalize) }}
+        {{ section_header('Respuesta actual', focus_labels.get(answer.get('focus'), 'Resumen')) }}
         {% if answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Sin respuesta ampliada', 'Usa uno de los accesos rápidos. SHARK no rellenará huecos con datos inventados.', '', '', 'shark') }}{% endif %}
         {% if answer.get('actions') %}<div class="v933-page-actions v933-inline-actions">{% for action in answer.get('actions') %}{{ action_button(action.get('label'), action.get('url'), loop.first, 'blue') }}{% endfor %}</div>{% endif %}
       </section>
