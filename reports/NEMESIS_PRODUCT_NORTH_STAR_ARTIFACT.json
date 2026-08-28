@@ -1,0 +1,127 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "NeMeSiS Product North Star y orquestación del ecosistema",
+    "description": "Auditoría ejecutiva de convergencia entre producto deportivo, SHARK y Company OS.",
+    "generatedAt": "2026-08-28T12:00:00Z",
+    "cards": [],
+    "charts": [
+      {
+        "id": "readiness_chart",
+        "title": "Base local y evidencia pendiente",
+        "subtitle": "13 áreas; base local no equivale a PASS de producción.",
+        "type": "bar",
+        "dataset": "readiness_summary",
+        "sourceId": "north_star_scorecard",
+        "valueFormat": "number",
+        "encodings": {
+          "x": { "field": "group", "type": "nominal", "label": "Estado" },
+          "y": { "field": "areas", "type": "quantitative", "label": "Áreas" },
+          "tooltip": [{ "field": "definition", "type": "nominal", "label": "Definición" }]
+        }
+      }
+    ],
+    "tables": [],
+    "sources": [
+      { "id": "north_star_scorecard", "label": "Síntesis North Star", "path": "reports/NEMESIS_PRODUCT_NORTH_STAR_ARTIFACT.json" },
+      { "id": "repo_audit", "label": "Auditoría del repositorio", "path": "engines/api_sports_provider_engine.py" },
+      { "id": "db_snapshot", "label": "Snapshot SQLite read-only", "path": "data/database.db" },
+      { "id": "api_football", "label": "API-Football pricing", "href": "https://www.api-football.com/pricing" },
+      { "id": "sportsdb", "label": "TheSportsDB pricing", "href": "https://www.thesportsdb.com/docs_pricing.php?billing=annual" },
+      { "id": "odds_api", "label": "The Odds API pricing", "href": "https://the-odds-api.com/" },
+      { "id": "render_disks", "label": "Render persistent disks", "href": "https://render.com/docs/disks" }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# NeMeSiS Product North Star y orquestación del ecosistema\n\nCorte: 28 de agosto de 2026 · Repositorio oficial, SQLite read-only y fuentes oficiales."
+      },
+      {
+        "id": "executive_summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n**Decisión:** la North Star es correcta. NeMeSiS debe dejar de ampliar superficie y demostrar utilidad deportiva diaria. La base oficial observada tiene **0 partidos, 0 directos, 0 picks y 0 favoritos**; API-Football está integrado, pero no configurado en el snapshot local y sin caché. LIVE competitivo aún no está observado.\n\n**Orden oficial:** SPORTS FIRST, SHARK SECOND, BETTING THIRD. Company OS trabaja detrás y no aparece como producto cliente.\n\n**DO WE NEED TO SPEND MORE? NO.** Primero hay que certificar el stack actual durante 3–7 días y medir cobertura, frescura, errores y cuota."
+      },
+      { "id": "readiness", "type": "chart", "chartId": "readiness_chart" },
+      {
+        "id": "immediate_decision",
+        "type": "markdown",
+        "body": "## Decisión inmediata\n\nEl siguiente gate es **Sports Data Quality + Live relevante**, reutilizando proveedor, relevancia deportiva y Operations. No crear otro motor, worker ni dashboard."
+      },
+      {
+        "id": "product_evidence",
+        "type": "html",
+        "body": "<details><summary><strong>Producto, datos y LIVE</strong></summary><h3>Arquitectura</h3><p>La capa cliente entra por Live, resultados, favoritos y Match Center. SHARK añade inteligencia después. Product Review, Executive Board, Evolution, Memory, Growth, Revenue y Operations comparten evidencia y backlog detrás del producto.</p><h3>Realidad observada</h3><ul><li><strong>Base oficial: OBSERVED_EMPTY.</strong> 62 tablas; matches 0, live_matches 0, picks 0, favorites 0.</li><li><strong>API-Football: IMPLEMENTED_NOT_CONFIGURED_LOCAL.</strong> Facade, tracker, caché y budgets existen; configured=false y caché 0.</li><li><strong>Live: FUNCTIONAL_FOUNDATION_NOT_OBSERVED.</strong> Polling, stale detection, events y stats existen; 0 snapshots.</li><li><strong>Local Safe: SIMULATED_QA.</strong> Útil para UX, nunca como evidencia real.</li></ul><h3>Proveedores</h3><ul><li><strong>API-Football.</strong> Fixtures, live, minute, events, lineups, stats, standings, teams, players, odds e histórico. Principal candidato para Live; falta certificar producción y Tier S/A.</li><li><strong>TheSportsDB.</strong> Calendario, resultados, teams, crests, leagues, highlights y live V2. Encaja como metadata y fallback; uso/plan no certificado.</li><li><strong>The Odds API.</strong> Odds y mercados. Encaja en Betting/SHARK, no en Sports Core.</li><li><strong>Sportmonks y Sportradar.</strong> PREPARED_ONLY; no operativos.</li></ul><h3>PASS LIVE</h3><p>Durante 3–7 días, cada partido Tier S/A esperado debe registrar proveedor, última actualización, edad del dato, estado, errores, cuota y reconciliación. Un partido ausente o stale debe generar un hallazgo.</p></details>"
+      },
+      {
+        "id": "orchestration",
+        "type": "html",
+        "body": "<details><summary><strong>Workers, Founder Center y roadmap</strong></summary><h3>Ownership</h3><ul><li><strong>Product:</strong> Product, UX, Mobile, QA y Visual comparten recommendation_id.</li><li><strong>Sports:</strong> Sports Reviewer/Director y Operations son owners de Sports Data Quality.</li><li><strong>Growth:</strong> Growth owns adquisición; Product Review eleva impacto.</li><li><strong>Customer:</strong> CRM y Customer Success responden INSUFFICIENT_REAL_DATA sin usuarios reales.</li><li><strong>Business:</strong> Revenue owns monetización; Commercial informa al Board.</li><li><strong>Operations:</strong> fuente única de salud, proveedor, observabilidad y costes.</li></ul><p>No crear otro worker. Exigir INPUT, RESPONSIBILITY, EVIDENCE, OUTPUT, CONFIDENCE, LAST RUN y NEXT ACTION.</p><h3>Founder Center</h3><p>Primera vista: PRODUCT, SPORTS, USERS, GROWTH, REVENUE, OPERATIONS y AUTOMATION con GREEN, WARNING, ACTION o BLOCKED. Debajo: qué ocurrió, qué cambió, qué requiere aprobación y cuánto cuesta. Detalle técnico bajo drill-down.</p><h3>Roadmap</h3><ol><li><strong>P0:</strong> certificar Sports Data Quality y Live relevante.</li><li><strong>P0:</strong> Home como selección deportiva; Tier menor no desplaza S/A.</li><li><strong>P0:</strong> Match, Team, Competition y Player en tres acciones o menos.</li><li><strong>P1:</strong> Match Center móvil con score/status en primer viewport.</li><li><strong>P1:</strong> SHARK sobre evidencia del partido.</li><li><strong>P1:</strong> Founder Center de 30 segundos y dedupe de workers.</li><li><strong>P2:</strong> retención y SEO con usuarios y contenido reales.</li><li><strong>P3:</strong> escala solo tras límites medidos.</li></ol><h3>Stop</h3><ul><li>No más engines o dashboards con owner existente.</li><li>No llamar PASS a integración sin datos ni ejecuciones.</li><li>No scores globales sin live, usuarios o revenue reales.</li><li>No comprar proveedor premium antes de medir el stack actual.</li></ul></details>"
+      },
+      {
+        "id": "investment_next",
+        "type": "html",
+        "body": "<details><summary><strong>Inversión, scorecard y próximos pasos</strong></summary><h3>Do we need to spend more?</h3><p><strong>NO, no inmediatamente.</strong></p><ul><li><strong>P0 condicional — API-Football Pro, US$19/mes.</strong> Solo sin credenciales válidas o si 100 requests/día no sostienen el gate. REVIEW.</li><li><strong>P1 condicional — TheSportsDB, US$90/año.</strong> Solo si hace falta fallback V2/live. HOLD.</li><li><strong>P2 — Render Postgres.</strong> Solo si SQLite bloquea concurrencia. LATER.</li><li><strong>P2 — Observabilidad ampliada.</strong> Solo si logs/latencia bloquean operaciones. MEASURE FIRST.</li><li><strong>P3 — The Odds API 20K, US$30/mes.</strong> Solo con demanda SHARK real. DO NOT BUY NOW.</li></ul><h3>Scorecard</h3><ul><li>PRODUCT: STRONG FOUNDATION</li><li>SPORTS: FUNCTIONAL_LOCAL</li><li>LIVE: NOT_OBSERVED</li><li>DATA: ACTION_REQUIRED</li><li>SHARK: FUNCTIONAL_DEPENDENT</li><li>UX: IMPROVED_LOCAL</li><li>MOBILE y SECURITY: PASS_LOCAL</li><li>GROWTH y REVENUE: INSUFFICIENT_REAL_DATA</li><li>OPERATIONS: FUNCTIONAL_LOCAL</li><li>AUTOMATION: SCHEDULER_READY</li><li>COST: NOT_CERTIFIED</li></ul><h3>What should Codex do next?</h3><ol><li>Crear el gate de Sports Data Quality sin otro motor.</li><li>Certificar API-Football/TheSportsDB 3–7 días.</li><li>Simplificar Founder Center con contratos existentes.</li><li>Aplicar contrato único y dedupe de workers.</li><li>Reevaluar inversión con cuota, cobertura, latencia, fallos y coste real.</li></ol><h3>Caveats</h3><p>No se accedió a credenciales ni facturación. El estado local no prueba producción. Los precios públicos pueden cambiar. No hubo compras, Render, campañas, Telegram, Stripe, push ni deploy.</p><h3>Further questions</h3><ul><li>¿Qué plan y cuota están activos en producción?</li><li>¿Qué competiciones Tier S/A son obligatorias?</li><li>¿Qué edad máxima aceptamos para score y minuto?</li><li>¿Cuál es el coste mensual real del stack?</li></ul></details>"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-28T12:00:00Z",
+    "status": "partial",
+    "datasets": {
+      "readiness_summary": [
+        { "group": "Base local", "areas": 8, "definition": "Fundación o función local disponible." },
+        { "group": "Evidencia pendiente", "areas": 5, "definition": "LIVE, DATA, GROWTH, REVENUE y COST." }
+      ]
+    },
+    "accessIssues": [
+      { "id": "provider_config", "dataset": "providers", "message": "Plan, consumo y cobertura reales de producción no observados." },
+      { "id": "actual_costs", "dataset": "costs", "message": "Facturación real no disponible; solo precios públicos." },
+      { "id": "real_users", "dataset": "growth", "message": "Sin evidencia real suficiente para Growth o Revenue." }
+    ]
+  },
+  "sources": [
+    {
+      "id": "north_star_scorecard",
+      "query": {
+        "engine": "sqlite",
+        "sql": "WITH s(a,st) AS (VALUES ('PRODUCT','READY'),('SPORTS','READY'),('LIVE','PENDING'),('DATA','PENDING'),('SHARK','READY'),('UX','READY'),('MOBILE','READY'),('SECURITY','READY'),('GROWTH','PENDING'),('REVENUE','PENDING'),('OPERATIONS','READY'),('AUTOMATION','READY'),('COST','PENDING')) SELECT CASE WHEN st='READY' THEN 'Base local' ELSE 'Evidencia pendiente' END AS \"group\", COUNT(*) AS areas, CASE WHEN st='READY' THEN 'Fundación o función local disponible.' ELSE 'LIVE, DATA, GROWTH, REVENUE y COST.' END AS definition FROM s GROUP BY 1,3 ORDER BY 1",
+        "description": "Agrupa las 13 áreas North Star por evidencia local disponible.",
+        "executed_at": "2026-08-28T12:00:00Z",
+        "language": "sql",
+        "tables_used": ["snapshot.datasets.scorecard"],
+        "metric_definitions": ["Base local: ocho áreas con fundación funcional.", "Evidencia pendiente: cinco áreas sin operación suficiente."]
+      }
+    },
+    {
+      "id": "repo_audit",
+      "query": {
+        "engine": "repository_audit",
+        "description": "Lectura estática de providers, realtime, reviewers, Board, Growth, Evolution, Operations y Founder Center.",
+        "executed_at": "2026-08-28T11:30:00Z",
+        "language": "python",
+        "tables_used": ["engines/api_sports_provider_engine.py", "engines/api_football_live_tracker_engine.py", "engines/v934_realtime_sports_engine.py", "engines/data_provider_engine.py", "engines/product_review_system_engine.py", "engines/growth_revenue_os_engine.py", "engines/company_operations_center_engine.py", "templates/admin_founder_dashboard.html"],
+        "filters": ["Repositorio oficial", "Sin proveedores externos", "Sin secretos"]
+      }
+    },
+    {
+      "id": "db_snapshot",
+      "query": {
+        "engine": "sqlite",
+        "sql": "SELECT 'matches' AS dataset, COUNT(*) AS rows FROM matches UNION ALL SELECT 'live_matches', COUNT(*) FROM live_matches UNION ALL SELECT 'picks', COUNT(*) FROM picks UNION ALL SELECT 'favorites', COUNT(*) FROM favorites UNION ALL SELECT 'api_football_live_snapshots', COUNT(*) FROM api_football_live_snapshots UNION ALL SELECT 'users', COUNT(*) FROM users",
+        "description": "Cuenta evidencia deportiva y usuarios sin modificar la base.",
+        "executed_at": "2026-08-28T11:10:00Z",
+        "language": "sql",
+        "tables_used": ["matches", "live_matches", "picks", "favorites", "api_football_live_snapshots", "users"],
+        "filters": ["Read-only", "Sin PII"]
+      }
+    },
+    { "id": "api_football", "query": { "engine": "web", "url": "https://www.api-football.com/pricing", "description": "Precios y cuotas API-Football.", "executed_at": "2026-08-28T11:45:00Z", "language": "html" } },
+    { "id": "sportsdb", "query": { "engine": "web", "url": "https://www.thesportsdb.com/docs_pricing.php?billing=annual", "description": "Precios y límites TheSportsDB.", "executed_at": "2026-08-28T11:46:00Z", "language": "html" } },
+    { "id": "odds_api", "query": { "engine": "web", "url": "https://the-odds-api.com/", "description": "Precios y créditos The Odds API.", "executed_at": "2026-08-28T11:47:00Z", "language": "html" } },
+    { "id": "render_disks", "query": { "engine": "web", "url": "https://render.com/docs/disks", "description": "Persistencia y límites de discos Render.", "executed_at": "2026-08-28T11:48:00Z", "language": "html" } }
+  ]
+}
