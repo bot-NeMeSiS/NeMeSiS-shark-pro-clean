@@ -19333,7 +19333,7 @@ def membership_page():
     if selected_plan and not current_session_user():
         _store_pending_checkout_plan(selected_plan)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data, summary = v932_safe_dashboard_data(request.path)
+    data, summary = v932_safe_dashboard_data(request.path, compact=True)
     data["membership"] = v566_membership_ui(user)
     data["selected_plan"] = selected_plan
     data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}

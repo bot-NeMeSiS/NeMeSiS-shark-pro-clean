@@ -125,3 +125,11 @@ def test_product_excellence_sprint_02_uses_existing_routes_only():
     ]
     for route_marker in forbidden_new_route_markers:
         assert route_marker not in app
+
+
+def test_memberships_uses_compact_cache_first_sports_context():
+    app = read_text("app.py")
+    membership_handler = app.split("def membership_page():", 1)[1].split(
+        '@app.route("/shark-ai")', 1
+    )[0]
+    assert "v932_safe_dashboard_data(request.path, compact=True)" in membership_handler
