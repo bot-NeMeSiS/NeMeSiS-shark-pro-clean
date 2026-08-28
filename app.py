@@ -6493,7 +6493,7 @@ def favorite_sets(user_id=None):
     }
 
 
-def annotate_match(match, favs=None):
+def annotate_match(match, favs=None, include_timeline=True):
     favs = favs or (favorite_sets() if has_request_context() else {"team": set(), "league": set(), "match": set(), "all": []})
     match_key = str(match.get("id") or "").lower()
     comp_key = str(match.get("competition_key") or "").lower()
@@ -6516,7 +6516,7 @@ def annotate_match(match, favs=None):
     match["status_info"] = canonical_match_status(match)
     match["client_live_minute"] = canonical_live_minute(match)
     match["real_time_state"] = real_time_state(match)
-    match["timeline"] = match_timeline(match)
+    match["timeline"] = match_timeline(match) if include_timeline else []
     match["live_depth"] = live_depth(match)
     if match["status_info"].get("is_result_pending"):
         match["live_depth"]["state"] = "RESULT_PENDING"
@@ -6665,14 +6665,15 @@ def team_page_data(team_id, limit=80):
     if team.get("logo_url"):
         identity["crest_url"] = team.get("logo_url")
         identity["crest_mode"] = "logo"
-    upcoming = [annotate_match(m) for m in rows(
+    favorites = favorite_sets()
+    upcoming = [annotate_match(m, favorites, include_timeline=False) for m in rows(
         """SELECT * FROM matches
            WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
              AND match_date>=?
            ORDER BY match_date, kickoff_time LIMIT ?""",
         (name, name, today_iso(), int(limit)),
     ) if not is_fake_match(m)]
-    recent = [annotate_match(m) for m in rows(
+    recent = [annotate_match(m, favorites, include_timeline=False) for m in rows(
         """SELECT * FROM matches
            WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
              AND match_date<?
@@ -6684,7 +6685,6 @@ def team_page_data(team_id, limit=80):
     for pick in get_picks(limit=120):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
-    favorites = favorite_sets()
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
     detail = {
         "team": team,
@@ -8843,6 +8843,32 @@ def default_profile():
     return profile
 
 
+def _shark_cached_live_state(sports_summary, sports_metrics):
+    """Compact live state derived from the request snapshot without DB writes."""
+    summary = sports_summary if isinstance(sports_summary, dict) else {}
+    metrics = sports_metrics if isinstance(sports_metrics, dict) else {}
+    return {
+        "date": today_iso(),
+        "version": APP_VERSION,
+        "state": {
+            "sync_status": "cache_only",
+            "last_sync": summary.get("last_sync") or summary.get("last_safe_sync") or "",
+            "provider_status": summary.get("provider_status") or "waiting_for_sync",
+        },
+        "counts": {
+            "today": metrics.get("matches_today", 0),
+            "live": metrics.get("live_confirmed", 0),
+            "upcoming": metrics.get("matches_available", 0),
+            "with_picks": metrics.get("matches_with_picks", 0),
+            "finished": metrics.get("finished_verified", 0),
+        },
+        "live": list(summary.get("valid_live_events") or [])[:12],
+        "fallback": "cache_only",
+        "source_policy": "DB/cache deportivo sincronizado; sin llamada de proveedor durante el render.",
+        "no_render_api_call": True,
+    }
+
+
 def shark_briefing(sports_summary=None):
     sports_summary = dict(sports_summary or get_public_home_sports_summary())
     sports_metrics = build_sports_metrics_contract(sports_summary)
@@ -8872,7 +8898,7 @@ def shark_briefing(sports_summary=None):
             }
         )
     context = build_shark_context(favorites=get_favorites(), picks=picks, profile=profile)
-    context["live_state"] = real_time_global_state()
+    context["live_state"] = _shark_cached_live_state(sports_summary, sports_metrics)
     context["favorite_leagues"] = [f for f in get_favorites("league")]
     context["quality_groups"] = {k: len(v or []) for k, v in quality_groups.items()}
     ready_count = sports_metrics["picks_ready"]
@@ -14203,33 +14229,9 @@ def _build_public_home_sports_summary():
     return result
 
 
-_PUBLIC_SPORTS_CACHE_GENERATIONS = {}
-_PUBLIC_SPORTS_CACHE_GENERATION_LOCK = threading.RLock()
-
-
-def _sports_storage_generation():
-    db_path = Path(DB_PATH).resolve()
-    signals = []
-    for candidate in (db_path, Path(str(db_path) + "-wal")):
-        try:
-            stat = candidate.stat()
-            signals.append(f"{candidate.name}:{stat.st_mtime_ns}:{stat.st_size}")
-        except OSError:
-            signals.append(f"{candidate.name}:missing")
-    return hashlib.sha256("|".join(signals).encode("utf-8")).hexdigest()[:16]
-
-
 def _public_sports_cache_key():
     db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
-    cache_key = f"v934:sports:public-summary:{db_cache_key}"
-    generation = _sports_storage_generation()
-    with _PUBLIC_SPORTS_CACHE_GENERATION_LOCK:
-        previous = _PUBLIC_SPORTS_CACHE_GENERATIONS.get(cache_key)
-        if previous is not None and previous != generation:
-            invalidate_v934_realtime_cache(cache_key)
-        _PUBLIC_SPORTS_CACHE_GENERATIONS[cache_key] = generation
-    return cache_key
-
+    return f"v934:sports:public-summary:{db_cache_key}"
 
 def get_public_home_sports_summary():
     """Cached DB/WAL sports truth; synchronization invalidates it without provider calls."""

@@ -926,22 +926,104 @@ def test_p0_home_sections_reuse_preclassified_catalog(app_module, monkeypatch):
     assert sections["quality"]["external_calls"] == 0
 
 
-def test_p0_public_sports_cache_invalidates_only_when_storage_changes(app_module, monkeypatch, tmp_path):
+def test_p0_public_sports_cache_ignores_unrelated_database_writes(app_module, monkeypatch, tmp_path):
     db_path = tmp_path / "performance-cache.db"
     db_path.write_bytes(b"baseline")
     monkeypatch.setattr(app_module, "DB_PATH", str(db_path))
-    app_module._PUBLIC_SPORTS_CACHE_GENERATIONS.clear()
-    invalidations = []
+    cache_key = app_module._public_sports_cache_key()
+    app_module.invalidate_v934_realtime_cache(cache_key)
+    builds = {"count": 0}
+
+    def builder():
+        builds["count"] += 1
+        return {"ok": True, "source": "LOCAL_QA"}
+
+    try:
+        first, first_status = app_module.cached_v934_realtime_snapshot(
+            cache_key,
+            builder,
+            ttl_seconds=60,
+        )
+        db_path.write_bytes(b"unrelated-business-write")
+        second, second_status = app_module.cached_v934_realtime_snapshot(
+            app_module._public_sports_cache_key(),
+            builder,
+            ttl_seconds=60,
+        )
+
+        assert first == second == {"ok": True, "source": "LOCAL_QA"}
+        assert first_status == "refreshed"
+        assert second_status == "hit"
+        assert builds["count"] == 1
+    finally:
+        app_module.invalidate_v934_realtime_cache(cache_key)
+
+
+def test_p0_team_page_reuses_favorites_and_skips_match_timeline_n_plus_one(app_module, monkeypatch):
+    match = _sports_relevance_match(
+        app_module,
+        "team-performance",
+        "Bundesliga",
+        country="Germany",
+        home="Bochum",
+        away="Stuttgart",
+    )
+    favorite_calls = {"count": 0}
+
+    def favorites():
+        favorite_calls["count"] += 1
+        return {"team": set(), "league": set(), "match": set(), "all": []}
+
+    monkeypatch.setattr(app_module, "team_lookup", lambda _team_id: {"name": "Bochum", "key": "bochum"})
     monkeypatch.setattr(
         app_module,
-        "invalidate_v934_realtime_cache",
-        lambda prefix="": invalidations.append(prefix) or 1,
+        "resolve_team",
+        lambda name: {"key": app_module.canonical_team_key(name), "name": name, "logo_url": "", "source": "LOCAL_QA"},
+    )
+    monkeypatch.setattr(
+        app_module,
+        "rows",
+        lambda query, _params=(): [dict(match)] if "match_date>=?" in query else [],
+    )
+    monkeypatch.setattr(app_module, "get_picks", lambda limit=120: [])
+    monkeypatch.setattr(app_module, "favorite_sets", favorites)
+    monkeypatch.setattr(
+        app_module,
+        "match_timeline",
+        lambda _match: (_ for _ in ()).throw(AssertionError("Team cards must not query per-match timelines")),
     )
 
-    first_key = app_module._public_sports_cache_key()
-    second_key = app_module._public_sports_cache_key()
-    db_path.write_bytes(b"changed-storage-generation")
-    third_key = app_module._public_sports_cache_key()
+    detail = app_module.team_page_data("Bochum")
 
-    assert first_key == second_key == third_key
-    assert invalidations == [first_key]
+    assert detail["upcoming"]
+    assert detail["upcoming"][0]["timeline"] == []
+    assert favorite_calls["count"] == 1
+
+
+def test_p0_shark_briefing_reuses_cached_live_snapshot_without_rebuild(app_module, monkeypatch):
+    live = _sports_relevance_match(
+        app_module,
+        "shark-live-cache",
+        "Bundesliga",
+        date_offset=0,
+        status="1H",
+        country="Germany",
+        minute="32",
+        v935_lifecycle="LIVE",
+        v935_surface={"home": True, "calendar": True, "live": True},
+    )
+    summary = _sports_relevance_summary([live], live=[live])
+    summary["last_sync"] = app_module.now_iso()
+    monkeypatch.setattr(app_module, "default_profile", lambda: {"membership_plan": "FREE"})
+    monkeypatch.setattr(app_module, "get_favorites", lambda *args, **kwargs: [])
+    monkeypatch.setattr(
+        app_module,
+        "real_time_global_state",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("SHARK render must not rebuild live state")),
+    )
+
+    briefing = app_module.shark_briefing(summary)
+
+    assert briefing["context"]["live_state"]["live"][0]["id"] == "shark-live-cache"
+    assert briefing["context"]["live_state"]["no_render_api_call"] is True
+    assert briefing["context"]["live_state"]["state"]["sync_status"] == "cache_only"
