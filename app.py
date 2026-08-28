@@ -14174,7 +14174,7 @@ def get_v932_real_sports_value_context(summary=None):
             return dict(cached)
     summary = dict(summary or get_public_home_sports_summary())
     provider = {}
-    if summary.get("storage_status") != "database_locked":
+    if summary.get("storage_status") not in {"database_locked", "route_not_required"}:
         try:
             provider = get_api_sports_status(DB_PATH) or {}
         except Exception as exc:
@@ -19333,7 +19333,17 @@ def membership_page():
     if selected_plan and not current_session_user():
         _store_pending_checkout_plan(selected_plan)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data, summary = v932_safe_dashboard_data(request.path, compact=True)
+    membership_sports_summary = {
+        "provider_status": "not_required_for_membership",
+        "storage_status": "route_not_required",
+        "safe_message": "Membresías disponible sin recalcular la agenda deportiva.",
+        "no_render_api_call": True,
+    }
+    data, summary = v932_safe_dashboard_data(
+        request.path,
+        compact=True,
+        sports_summary=membership_sports_summary,
+    )
     data["membership"] = v566_membership_ui(user)
     data["selected_plan"] = selected_plan
     data["continue_payment"] = str(request.args.get("continuar_pago") or "").lower() in {"1", "true", "yes", "si", "sí"}

@@ -132,4 +132,15 @@ def test_memberships_uses_compact_cache_first_sports_context():
     membership_handler = app.split("def membership_page():", 1)[1].split(
         '@app.route("/shark-ai")', 1
     )[0]
-    assert "v932_safe_dashboard_data(request.path, compact=True)" in membership_handler
+    assert "compact=True" in membership_handler
+    assert "sports_summary=membership_sports_summary" in membership_handler
+
+
+def test_memberships_does_not_build_the_public_sports_dashboard(client, app_module, monkeypatch):
+    def fail_if_called():
+        raise AssertionError("memberships must not build the public sports dashboard")
+
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", fail_if_called)
+    response = client.get("/memberships")
+    assert response.status_code == 200
+    assert "FREE" in response.get_data(as_text=True)
