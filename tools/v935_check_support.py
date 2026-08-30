@@ -5,6 +5,7 @@ import gzip
 import importlib
 import json
 import os
+import re
 import sqlite3
 import sys
 import tempfile
@@ -17,7 +18,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parents[1]
 BASE_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 CURRENT_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
-VERSION = CURRENT_VERSION if CURRENT_VERSION.startswith(("V936_", "V937_")) else BASE_VERSION
+VERSION = CURRENT_VERSION if re.fullmatch(r"V\d+_[A-Z0-9_]+", CURRENT_VERSION) else BASE_VERSION
 MADRID = ZoneInfo("Europe/Madrid")
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))

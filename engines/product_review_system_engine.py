@@ -1671,6 +1671,9 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     opportunities = board.get("opportunities") or []
     codex = snapshot.get("prepared_for_codex") or {}
     product_qa = snapshot.get("autonomous_product_qa") or {}
+    quality_director = product_qa.get("quality_director") or {}
+    regression_manager = product_qa.get("regression_manager") or {}
+    production_sentinel = product_qa.get("production_sentinel") or {}
     issue_health = (snapshot.get("issue_ledger") or {}).get("issue_health") or {}
     product_line = f"Producto: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}."
     growth_line = f"Growth: {growth.get('status') or 'FOUNDATION_READY'} | evidencia real: {growth.get('real_user_data_state') or 'INSUFFICIENT_REAL_DATA'}."
@@ -1681,6 +1684,8 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
         growth_line,
         revenue_line,
         f"QA autonoma: {product_qa.get('status') or 'NOT_RUN'} | incidencias abiertas: {product_qa.get('open_issue_count', 0)}.",
+        f"Calidad: {quality_director.get('decision') or 'NOT_RUN'} | P0 {quality_director.get('open_p0', 0)} | P1 {quality_director.get('open_p1', 0)} | regresiones {regression_manager.get('recurrences', 0)}.",
+        f"Produccion: {production_sentinel.get('result') or 'NOT_RUN'}.",
         f"Incidencias: {issue_health.get('open_real', 0)} abiertas reales | {issue_health.get('pending_verification', 0)} por verificar | {issue_health.get('external_blocker', 0)} bloqueos externos.",
         f"Principal fuga del funnel: {growth_brief.get('main_friction') or 'INSUFFICIENT_REAL_DATA'}",
         f"Mejor canal: {growth_brief.get('main_channels') or 'INSUFFICIENT_REAL_DATA'}",
@@ -1714,6 +1719,13 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
             "growth": growth_line,
             "revenue": revenue_line,
             "qa_autonoma": f"{product_qa.get('status') or 'NOT_RUN'} | {product_qa.get('open_issue_count', 0)} incidencias abiertas",
+            "quality_reliability": {
+                "decision": quality_director.get("decision") or "NOT_RUN",
+                "open_p0": quality_director.get("open_p0", 0),
+                "open_p1": quality_director.get("open_p1", 0),
+                "regressions": regression_manager.get("recurrences", 0),
+                "production_sentinel": production_sentinel.get("result") or "NOT_RUN",
+            },
             "salud_incidencias": issue_health,
             "principal_fuga": growth_brief.get("main_friction") or "INSUFFICIENT_REAL_DATA",
             "mejor_canal": growth_brief.get("main_channels") or "INSUFFICIENT_REAL_DATA",
@@ -1808,6 +1820,9 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
     memory = _ce_update_memory(memory, recommendations, review, run_id, snapshot_id, now_iso, comparison)
     board = _ce_enrich_board_with_memory(board, memory, comparison)
     board["issue_health"] = issue_ledger.get("issue_health") or {}
+    board["quality_director"] = product_qa.get("quality_director") or {}
+    board["regression_manager"] = product_qa.get("regression_manager") or {}
+    board["production_sentinel"] = product_qa.get("production_sentinel") or {}
     board["top_verified_open_issues"] = [
         {
             "id": item.get("id"),

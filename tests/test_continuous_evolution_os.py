@@ -89,6 +89,10 @@ def test_continuous_evolution_restart_reads_existing_memory_and_latest_snapshot(
     assert status["product_memory"]["recommendations"] > 0
     assert status["founder_brief"]["contract"]
     assert status["prepared_for_codex"]["ready_count"] == 0
+    assert "quality_director" in first["snapshot"]["executive_board"]
+    assert "regression_manager" in first["snapshot"]["executive_board"]
+    assert "production_sentinel" in first["snapshot"]["executive_board"]
+    assert "Calidad:" in first["snapshot"]["founder_brief"]["text"]
 
     stored = json.loads(latest_path.read_text(encoding="utf-8"))
     assert stored["production_modified"] is False

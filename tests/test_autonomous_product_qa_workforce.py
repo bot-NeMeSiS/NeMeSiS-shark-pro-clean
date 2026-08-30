@@ -3,9 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from engines.autonomous_product_qa_engine import (
+    PINNED_REGRESSION_CONTRACTS,
     QA_EXECUTION_POLICY,
+    build_quality_director_decision,
     build_autonomous_product_qa_status,
     detect_product_qa_issues,
+    evaluate_production_sentinel,
     product_qa_review_findings,
     record_product_qa_run,
     set_product_qa_pause,
@@ -19,11 +22,22 @@ from engines.sentinel_issues_engine import (
 )
 from engines.sentinel_codex_outbox_engine import write_codex_outbox
 from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
+from tools.run_autonomous_product_qa import _sports_priority_regression
 
 
 def test_daily_policy_includes_sports_knowledge_summary_and_media_rights():
     checks = set(QA_EXECUTION_POLICY["daily"]["checks"])
     assert {"sports_knowledge", "summary_truth", "media_rights"} <= checks
+
+
+def test_sports_priority_regression_uses_canonical_ranking_without_external_calls(app_module):
+    result = _sports_priority_regression(app_module)
+    order = result["order"]
+    assert result["status"] == "PASS"
+    assert result["external_calls"] == 0
+    for important in ("bayern-stuttgart", "lille-psg", "milan-venezia"):
+        assert order.index(important) < order.index("k-league-2")
+        assert order.index(important) < order.index("chinese-super-league")
 
 
 def failing_observation() -> dict:
@@ -159,6 +173,26 @@ def test_critical_scope_does_not_resolve_full_findings_or_replace_full_baseline(
     assert full_result["previous_good_run_id"] == "PQA-FULL-PASS"
 
 
+def test_two_full_clean_retests_resolve_non_visual_but_keep_founder_visual_review(tmp_path: Path):
+    failing = {**failing_observation(), "scope": "full", "run_id": "PQA-FAIL"}
+    clean_one = {**clean_observation(), "scope": "full", "run_id": "PQA-CLEAN-1"}
+    clean_two = {**clean_observation(), "scope": "full", "run_id": "PQA-CLEAN-2"}
+
+    record_product_qa_run(failing, project_root=tmp_path, storage_root=tmp_path / "ce")
+    record_product_qa_run(clean_one, project_root=tmp_path, storage_root=tmp_path / "ce")
+    record_product_qa_run(clean_two, project_root=tmp_path, storage_root=tmp_path / "ce")
+    status = build_autonomous_product_qa_status(tmp_path, storage_root=tmp_path / "ce")
+    by_category = {}
+    for issue in status["issues"]:
+        by_category.setdefault(issue["category"], []).append(issue)
+
+    assert all(item["status"] == "RESOLVED" for item in by_category["NAVIGATION"])
+    assert all(item["status"] == "RESOLVED" for item in by_category["SPORTS_TRUTH"])
+    assert all(item["status"] == "RESOLVED" for item in by_category["CLIENT_COPY"])
+    assert all(item["status"] == "FIXED_PENDING_VERIFICATION" for item in by_category["VISUAL_SHARK"])
+    assert all(item["status"] == "FIXED_PENDING_VERIFICATION" for item in by_category["VISUAL_BACKGROUND"])
+
+
 def test_founder_override_and_calibration_are_honest(tmp_path: Path):
     record_product_qa_run(clean_observation(), project_root=tmp_path, storage_root=tmp_path / "ce")
     status = build_autonomous_product_qa_status(tmp_path, storage_root=tmp_path / "ce")
@@ -272,3 +306,110 @@ def test_codex_outbox_accepts_only_verified_open_real(tmp_path: Path):
     assert result["prompt_count"] == 1
     assert ready["id"] in Path(result["combined_path"]).read_text(encoding="utf-8")
     assert blocked["id"] not in Path(result["combined_path"]).read_text(encoding="utf-8")
+
+
+def test_quality_director_never_lets_lower_evidence_override_founder_failure():
+    founder_issue = {
+        "issue_id": "FOUNDER-TOPBAR",
+        "category": "NAVIGATION",
+        "severity": "P0",
+        "status": "OPEN_REAL",
+        "evidence_origin": "FOUNDER_QA_OVERRIDE",
+    }
+    decision = build_quality_director_decision(
+        [founder_issue],
+        evidence_complete=True,
+        regression_manager={"items": []},
+        supplemental_evidence={"NAVIGATION": {"status": "PASS", "origin": "UNIT_STATIC_TEST"}},
+    )
+
+    assert decision["decision"] == "FAIL"
+    assert decision["release_quality_pass"] is False
+    assert decision["open_p0"] == 1
+    assert next(item for item in decision["gates"] if item["area"] == "NAVIGATION")["authority"] == "FOUNDER_CONFIRMED_FAILURE"
+
+
+def test_regression_manager_pins_all_known_founder_regressions(tmp_path: Path):
+    result = record_product_qa_run(
+        clean_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-30T11:00:00+02:00",
+    )
+
+    manager = result["regression_manager"]
+    assert manager["protected_regressions"] == 15
+    assert {item["regression_id"] for item in manager["items"]} == set(PINNED_REGRESSION_CONTRACTS)
+    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
+    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
+
+
+def test_regression_manager_increments_recurrence_after_clean_retest(tmp_path: Path):
+    record_product_qa_run(
+        clean_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-30T11:00:00+02:00",
+    )
+    result = record_product_qa_run(
+        failing_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-31T11:00:00+02:00",
+    )
+
+    topbar = next(item for item in result["regression_manager"]["items"] if item["regression_id"] == "TOPBAR_REAL_NAVIGATION")
+    assert topbar["status"] == "FAIL"
+    assert topbar["recurrence_count"] == 1
+    assert result["quality_director"]["decision"] == "FAIL"
+
+
+def test_production_sentinel_requires_all_post_deploy_checks():
+    checks = {
+        "health": "PASS",
+        "sha_alignment": "PASS",
+        "logs_recent": "PASS",
+        "critical_routes": "PASS",
+        "topbar_click_journey": "PASS",
+        "mobile_nav": "PASS",
+        "sports_truth": "PASS",
+        "performance_sample": "PASS",
+        "critical_visual_surfaces": "PASS",
+        "client_admin_protection": "PASS",
+    }
+    certified = evaluate_production_sentinel(
+        {"production_sha": "sha-good", "deployment": checks},
+        {"open_p0": 0},
+    )
+    incomplete = evaluate_production_sentinel(
+        {"production_sha": "sha-unknown", "deployment": {**checks, "logs_recent": "NOT_AVAILABLE"}},
+        {"open_p0": 0},
+    )
+
+    assert certified["result"] == "PRODUCTION_CERTIFIED"
+    assert certified["rollback_recommended"] is False
+    assert incomplete["result"] == "BLOCKED"
+
+
+def test_production_sentinel_recommends_rollback_for_post_deploy_p0():
+    decision = evaluate_production_sentinel(
+        {
+            "production_sha": "sha-bad",
+            "deployment": {
+                "health": "PASS",
+                "sha_alignment": "PASS",
+                "logs_recent": "PASS",
+                "critical_routes": "PASS",
+                "topbar_click_journey": "FAIL",
+                "mobile_nav": "PASS",
+                "sports_truth": "PASS",
+                "performance_sample": "PASS",
+                "critical_visual_surfaces": "PASS",
+                "client_admin_protection": "PASS",
+            },
+        },
+        {"open_p0": 1},
+    )
+
+    assert decision["result"] == "REGRESSION_DETECTED"
+    assert decision["rollback_recommended"] is True

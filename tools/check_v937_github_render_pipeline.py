@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "render-deploy.yml"
 CERTIFIER = ROOT / "tools" / "v937_post_deploy_certification.py"
+QUALITY_SENTINEL = ROOT / "tools" / "run_production_quality_browser_gate.py"
 VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 
 
@@ -23,6 +24,7 @@ def main() -> int:
     errors: list[str] = []
     workflow = WORKFLOW.read_text(encoding="utf-8")
     certifier = CERTIFIER.read_text(encoding="utf-8")
+    quality_sentinel = QUALITY_SENTINEL.read_text(encoding="utf-8")
     app_text = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
     version_text = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 
@@ -51,6 +53,14 @@ def main() -> int:
             "live evidence certification is missing", errors)
     require("POST" not in certifier and "DELETE" not in certifier,
             "post-deploy certifier must remain read-only", errors)
+    require("Run production Quality Sentinel" in workflow and QUALITY_SENTINEL.name in workflow,
+            "production Quality Sentinel is not wired after SHA certification", errors)
+    require("playwright_requirements.txt" in workflow and "playwright install --with-deps chromium" in workflow,
+            "focused post-deploy browser runtime is missing", errors)
+    require("production_mutations" in quality_sentinel and "telegram_sends" in quality_sentinel,
+            "production Quality Sentinel guardrail evidence is missing", errors)
+    require('method="GET"' in quality_sentinel and 'method="POST"' not in quality_sentinel,
+            "production Quality Sentinel must remain read-only", errors)
 
     required_steps = [
         "Checkout",
@@ -99,6 +109,25 @@ def main() -> int:
     require(dry_run.returncode == 0, "post-deploy dry-run failed", errors)
     require('"network_requests": 0' in dry_run.stdout, "dry-run may perform network requests", errors)
     require('"deploy_requested": false' in dry_run.stdout.lower(), "dry-run may request deploy", errors)
+
+    quality_dry_run = subprocess.run(
+        [
+            sys.executable,
+            str(QUALITY_SENTINEL),
+            "--mode", "dry-run",
+            "--base-url", "https://bot-apuestas-crgf.onrender.com",
+            "--expected-sha", "261213048fe3f92a58488b1119092922cdfc5db5",
+            "--report-path", str(ROOT / "data" / "local_dev" / "production_quality_sentinel_dry_run.json"),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    require(quality_dry_run.returncode == 0, "production Quality Sentinel dry-run failed", errors)
+    require('"result": "DRY_RUN_PASS"' in quality_dry_run.stdout,
+            "production Quality Sentinel dry-run result is missing", errors)
 
     if re.search(r"(?:AUTOMATION_SECRET|TELEGRAM_BOT_TOKEN|STRIPE_SECRET_KEY)\s*[:=]\s*[^$\n][^\n]+", workflow):
         errors.append("workflow appears to contain a literal production secret")

@@ -82,6 +82,7 @@ TECHNICAL_COPY_RE = re.compile(
     r"traceback|sqlite3\.|operationalerror|\bnone\b|\bnull\b|\bundefined\b)",
     re.I,
 )
+MOJIBAKE_RE = re.compile(r"(?:\ufffd|Ã.|Â.|actualizaci\?n|informaci\?n|revisi\?n|navegaci\?n)", re.I)
 
 
 def _session_cookie(app_module, role: str) -> str:
@@ -248,6 +249,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const hero = document.querySelector('.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero');
           const shark = hero ? getComputedStyle(hero, '::before') : null;
           const bodyStyle = body ? getComputedStyle(body) : null;
+          const navigationEntry = performance.getEntriesByType('navigation')[0];
           const brokenImages = Array.from(document.images).filter(img => img.complete && img.naturalWidth === 0).map(img => img.currentSrc || img.src);
           const panels = Array.from(document.querySelectorAll('.v933-panel,.v933-admin-panel,.card'));
           const nestedPanelDepth = panels.reduce((max, node) => {
@@ -288,6 +290,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             title: document.title,
             visible_text: text,
             text_length: text.length,
+            page_ready_ms: navigationEntry ? Math.round(navigationEntry.domContentLoadedEventEnd - navigationEntry.startTime) : null,
             horizontal_overflow: document.documentElement.scrollWidth > innerWidth + 1,
             overflow_actual: `${document.documentElement.scrollWidth}/${innerWidth}`,
             broken_images: brokenImages,
@@ -664,6 +667,78 @@ def _admin_golden_journey(page, base_url: str, qa_password: str) -> dict:
     return _golden_journey("golden_admin", steps)
 
 
+def _client_admin_separation_journey(page, base_url: str, app_module) -> dict:
+    page.goto("about:blank", wait_until="domcontentloaded", timeout=5000)
+    page.context.clear_cookies()
+    _set_role_cookie(page.context, app_module, "client")
+    try:
+        response = page.goto(base_url + "/admin/founder-dashboard", wait_until="domcontentloaded", timeout=10000)
+        actual = urlparse(page.url).path
+        passed = actual == "/admin-login"
+        return {
+            "journey": "client_admin_separation",
+            "route": "/admin/founder-dashboard",
+            "expected": "/admin-login",
+            "actual": actual,
+            "http_status": response.status if response else 0,
+            "pass": passed,
+            "evidence": "Sesion cliente real de QA rechazada por la proteccion backend." if passed else "La sesion cliente alcanzo una ruta administrativa.",
+        }
+    except Exception as exc:
+        return {
+            "journey": "client_admin_separation",
+            "route": "/admin/founder-dashboard",
+            "expected": "/admin-login",
+            "actual": urlparse(page.url).path,
+            "pass": False,
+            "error": f"{type(exc).__name__}: {str(exc)[:220]}",
+        }
+
+
+def _sports_priority_regression(app_module) -> dict:
+    now_value = app_module.datetime.now(app_module.TZ).replace(hour=12, minute=0, second=0, microsecond=0)
+
+    def match(match_id: str, competition: str, country: str, home: str, away: str, kickoff: str) -> dict:
+        return {
+            "id": match_id,
+            "match_id": match_id,
+            "match_date": app_module.today_iso(),
+            "kickoff_time": kickoff,
+            "home_team": home,
+            "away_team": away,
+            "competition_name": competition,
+            "country": country,
+            "source": "qa-regression-fixture",
+            "status": "NS",
+            "v935_lifecycle": "UPCOMING",
+            "v935_surface": {"home": True, "calendar": True, "live": False},
+        }
+
+    matches = [
+        match("k-league-2", "South Korean K League 2", "South Korea", "Busan", "Seoul E-Land", "17:00"),
+        match("chinese-super-league", "Chinese Super League", "China", "Shanghai", "Beijing", "17:15"),
+        match("bayern-stuttgart", "Bundesliga", "Germany", "Bayern Munich", "Stuttgart", "18:30"),
+        match("lille-psg", "Ligue 1", "France", "Lille", "Paris Saint-Germain", "18:45"),
+        match("milan-venezia", "Serie A", "Italy", "AC Milan", "Venezia", "18:45"),
+    ]
+    ranked = app_module.sort_matches_by_sports_relevance(
+        matches,
+        "home",
+        pick_ids={"k-league-2", "chinese-super-league"},
+        now_value=now_value,
+    )
+    order = [item["id"] for item in ranked]
+    important = ("bayern-stuttgart", "lille-psg", "milan-venezia")
+    low_priority = ("k-league-2", "chinese-super-league")
+    passed = all(order.index(elite) < order.index(low) for elite in important for low in low_priority)
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "order": order,
+        "external_calls": 0,
+        "evidence": " > ".join(order),
+    }
+
+
 def _reference_map() -> dict[str, str]:
     path = ROOT / "reference_images" / "reference_manifest.json"
     try:
@@ -845,6 +920,7 @@ def main() -> int:
                         _set_role_cookie(context, app_module, "client")
                         journeys.append(_picks_golden_journey(page, base_url))
                         journeys.append(_account_golden_journey(page, base_url, qa_password))
+                        journeys.append(_client_admin_separation_journey(page, base_url, app_module))
                         journeys.append(_admin_golden_journey(page, base_url, qa_password))
                 context.close()
 
@@ -870,11 +946,15 @@ def main() -> int:
     public_home = next((item for item in captures if item["key"] == "public_home" and item["viewport"] == "desktop_1366x768"), home_capture)
     mobile_capture = next((item for item in captures if item["key"] == "home" and item["viewport"] == "mobile_390x844"), {})
     technical_matches: list[str] = []
+    mojibake_matches: list[str] = []
     for capture in captures:
         if str(capture.get("path") or "").startswith("/admin"):
             continue
-        technical_matches.extend(match.group(0) for match in TECHNICAL_COPY_RE.finditer(str(capture.get("visible_text") or "")))
+        visible_text = str(capture.get("visible_text") or "")
+        technical_matches.extend(match.group(0) for match in TECHNICAL_COPY_RE.finditer(visible_text))
+        mojibake_matches.extend(match.group(0) for match in MOJIBAKE_RE.finditer(visible_text))
     technical_matches = list(dict.fromkeys(technical_matches))[:20]
+    mojibake_matches = list(dict.fromkeys(mojibake_matches))[:20]
     sports_capture = public_home if public_home else home_capture
     match_capture = next((item for item in captures if item["key"] == "match" and item["viewport"] == "desktop_1366x768"), {})
     live_contract = sports_capture.get("live_contract") or {}
@@ -888,6 +968,13 @@ def main() -> int:
         background_state["classification"] = reference_classification
     shark_state["evidence"] = "; ".join(filter(None, [str(shark_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
     background_state["evidence"] = "; ".join(filter(None, [str(background_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
+    client_admin_separation = next((item for item in journeys if item.get("journey") == "client_admin_separation"), {})
+    admin_journey = next((item for item in journeys if item.get("journey") == "golden_admin"), {})
+    sports_journey = next((item for item in journeys if item.get("journey") == "golden_sports_knowledge"), {})
+    page_ready_samples = [int(item.get("page_ready_ms")) for item in captures if isinstance(item.get("page_ready_ms"), (int, float)) and int(item.get("page_ready_ms")) >= 0]
+    performance_max = max(page_ready_samples) if page_ready_samples else None
+    performance_status = "PASS" if performance_max is not None and performance_max <= 5000 else "FAIL" if performance_max is not None else "NOT_RUN"
+    sports_priority = _sports_priority_regression(app_module)
     observation = {
         "run_id": run_id,
         "started_at_madrid": started,
@@ -912,6 +999,8 @@ def main() -> int:
             "confirmed_live_count": live_contract.get("confirmed", 0),
             "displayed_live_count": live_contract.get("displayed", 0),
             "ft_rendered_live": live_contract.get("ft_rendered_live", 0),
+            "important_match_priority": sports_priority["status"],
+            "priority_evidence": sports_priority["evidence"],
             "screenshot": sports_capture.get("screenshot") or "",
             "evidence": "Contrato LIVE leído de la UI renderizada y comparado con el KPI visible.",
         },
@@ -927,6 +1016,12 @@ def main() -> int:
             "viewport": "all",
             "technical_matches": technical_matches,
             "evidence": "Copy visible inspeccionado en todas las superficies cliente capturadas.",
+        },
+        "text_quality": {
+            "screen": "client surfaces",
+            "viewport": "all",
+            "mojibake_matches": mojibake_matches,
+            "evidence": "Texto visible inspeccionado en el navegador real.",
         },
         "visual": {
             "shark": {**shark_state, "screen": "/app", "viewport": "desktop_1366x768", "screenshot": home_capture.get("screenshot") or ""},
@@ -945,6 +1040,36 @@ def main() -> int:
             "overflow": mobile_capture.get("horizontal_overflow", False),
             "actual": mobile_capture.get("overflow_actual", ""),
             "screenshot": mobile_capture.get("screenshot") or "",
+        },
+        "security": {
+            "client_admin_separation": "PASS" if client_admin_separation.get("pass") is True else "FAIL",
+            "actual": client_admin_separation.get("actual"),
+            "evidence": client_admin_separation.get("evidence") or client_admin_separation.get("error"),
+            "viewport": "desktop_1366x768",
+        },
+        "performance": {
+            "status": performance_status,
+            "max_dom_ready_ms": performance_max,
+            "sample_count": len(page_ready_samples),
+            "evidence": f"Browser sample ligero: max_dom_ready_ms={performance_max}; samples={len(page_ready_samples)}.",
+        },
+        "quality_evidence": {
+            "NAVIGATION": {"status": "PASS" if navigation_clicks and all(item.get("clicked") and item.get("hit_target") and item.get("page_ready") for item in navigation_clicks) else "FAIL"},
+            "VISUAL": {
+                "status": "WARNING"
+                if str(shark_state.get("classification") or "").upper() in {"MATCH", "CLOSE"}
+                and str(background_state.get("classification") or "").upper() in {"MATCH", "CLOSE"}
+                else "FAIL"
+            },
+            "SPORTS_TRUTH": {"status": "PASS" if int(live_contract.get("confirmed") or 0) == int(live_contract.get("displayed") or 0) and int(live_contract.get("ft_rendered_live") or 0) == 0 else "FAIL"},
+            "MOBILE": {"status": "PASS" if not mobile_capture.get("horizontal_overflow", False) else "FAIL"},
+            "ADMIN": {"status": "PASS" if admin_journey.get("pass") is True and not technical_matches and not mojibake_matches else "FAIL"},
+            "SECURITY": {"status": "PASS" if client_admin_separation.get("pass") is True else "FAIL"},
+            "PERFORMANCE": {"status": performance_status},
+            "SPORTS_KNOWLEDGE": {"status": "PASS" if sports_journey.get("pass") is True else "FAIL"},
+            "MEDIA_RIGHTS": {"status": "PASS" if int((match_capture.get("sports_knowledge") or {}).get("unsafe_media_visible") or 0) == 0 else "FAIL"},
+            "SUMMARY_TRUTH": {"status": "PASS" if int((match_capture.get("sports_knowledge") or {}).get("summary_unsupported_claims") or 0) == 0 else "FAIL"},
+            "DATA_QUALITY": {"status": "PASS" if not broken_images and not console_errors and not page_errors else "FAIL"},
         },
         "screenshots": [item.get("screenshot") for item in captures],
         "provider_calls": len(provider_calls),

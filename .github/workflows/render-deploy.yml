@@ -211,6 +211,11 @@ jobs:
         with:
           python-version: "3.11.9"
 
+      - name: Install focused browser gate
+        run: |
+          python -m pip install -r browser_qa/playwright_requirements.txt
+          python -m playwright install --with-deps chromium
+
       - name: Wait for Render Auto-Deploy and certify exact SHA
         run: |
           python tools/v937_post_deploy_certification.py \
@@ -222,11 +227,23 @@ jobs:
             --check-offsets "${{ inputs.monitor_offsets || '0,120,300,900,3600' }}" \
             --report-path reports/V937_POST_DEPLOY_AUTOMATED_EVIDENCE.json
 
+      - name: Run production Quality Sentinel
+        run: |
+          python tools/run_production_quality_browser_gate.py \
+            --mode verify \
+            --base-url "$PUBLIC_BASE_URL" \
+            --expected-sha "${{ needs.preflight.outputs.expected_sha }}" \
+            --report-path reports/PRODUCTION_QUALITY_SENTINEL.json \
+            --output-dir reports/production_quality_sentinel
+
       - name: Upload post-deploy evidence
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: render-post-deploy-${{ github.run_id }}
-          path: reports/V937_POST_DEPLOY_AUTOMATED_EVIDENCE.json
+          path: |
+            reports/V937_POST_DEPLOY_AUTOMATED_EVIDENCE.json
+            reports/PRODUCTION_QUALITY_SENTINEL.json
+            reports/production_quality_sentinel/
           if-no-files-found: warn
           retention-days: 30

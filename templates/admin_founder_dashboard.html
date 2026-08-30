@@ -47,6 +47,9 @@
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
+{% set qa_director = product_qa.quality_director or {} %}
+{% set regression_manager = product_qa.regression_manager or {} %}
+{% set production_sentinel = product_qa.production_sentinel or {} %}
 {% set issue_ledger = founder.issue_ledger or {} %}
 {% set issue_health = issue_ledger.health or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
@@ -87,10 +90,10 @@
     </div>
   </section>
 
-  <section class="v933-admin-panel v933-founder-product-qa" id="autonomous-product-qa" aria-label="Autonomous QA Workforce">
+  <section class="v933-admin-panel v933-founder-product-qa" id="autonomous-product-qa" aria-label="Calidad y fiabilidad">
     <header>
-      <div><h2>Autonomous QA Workforce</h2><p>Comprueba experiencia, clics, verdad deportiva y móvil con evidencia real.</p></div>
-      {{ status_chip(product_qa.status or 'NOT_RUN', 'success' if product_qa.status == 'PASS' else 'danger' if product_qa.status == 'ACTION_REQUIRED' else 'warning') }}
+      <div><h2>Calidad y fiabilidad</h2><p>Decisión única basada en navegación real, producto, deporte y seguridad.</p></div>
+      {{ status_chip(qa_director.decision or product_qa.status or 'NOT_RUN', 'success' if qa_director.decision == 'PASS' else 'danger' if qa_director.decision in ['FAIL','BLOCKED'] else 'warning') }}
     </header>
     <div class="v933-admin-panel-body">
       {% if request.args.get('product_qa') == 'queued' %}
@@ -100,6 +103,13 @@
       {% elif request.args.get('product_qa') == 'resumed' %}
         <p class="v933-safe-copy"><strong>QA autónoma reanudada.</strong> La próxima cadencia podrá ejecutar la revisión.</p>
       {% endif %}
+      <div class="v933-kpi-grid is-five" aria-label="Dirección de calidad">
+        {{ kpi_card('QA Director', qa_director.decision or 'NOT_RUN', 'Decisión de release', 'success' if qa_director.decision == 'PASS' else 'danger' if qa_director.decision in ['FAIL','BLOCKED'] else 'warning', 'shield') }}
+        {{ kpi_card('P0 abiertos', qa_director.open_p0 or 0, 'Bloquean release', 'danger' if qa_director.open_p0 else 'success', 'alert') }}
+        {{ kpi_card('P1 abiertos', qa_director.open_p1 or 0, 'No se ocultan', 'danger' if qa_director.open_p1 else 'success', 'alert') }}
+        {{ kpi_card('Regresiones', regression_manager.recurrences or 0, (regression_manager.protected_regressions or 0) ~ ' contratos protegidos', 'danger' if regression_manager.recurrences else 'success', 'history') }}
+        {{ kpi_card('Producción', production_sentinel.result or 'NOT_RUN', 'Solo evidencia post-deploy', 'success' if production_sentinel.result == 'PRODUCTION_CERTIFIED' else 'danger' if production_sentinel.result == 'REGRESSION_DETECTED' else 'warning', 'activity') }}
+      </div>
       <div class="v933-kpi-grid is-five">
         {% for worker in product_qa.workers or [] %}
           {{ kpi_card(worker.label, worker.issues, worker.status ~ ' · incidencias abiertas', 'success' if worker.status == 'PASS' else 'danger' if worker.status == 'ACTION_REQUIRED' else 'warning', 'shield') }}
@@ -135,8 +145,11 @@
         <a class="v933-action is-blue" href="/admin/sentinel-codex-outbox">{{ icon('code') }}<span>Preparar para Codex</span></a>
       </form>
       <details class="v933-safe-copy">
-        <summary>Ver calibración</summary>
+        <summary>Ver gates y calibración</summary>
         <div class="v933-truth-list is-no-icon">
+          {% for gate in qa_director.gates or [] %}
+          <div><span><strong>{{ gate.area|replace('_',' ')|title }}</strong><small>P0 {{ gate.open_p0 }} · P1 {{ gate.open_p1 }} · autoridad {{ gate.authority|replace('_',' ')|lower }}</small></span>{{ status_chip(gate.status, 'success' if gate.status == 'PASS' else 'danger' if gate.status in ['FAIL','BLOCKED'] else 'warning') }}</div>
+          {% endfor %}
           {% for worker in product_qa.workers or [] %}
           <div><span><strong>{{ worker.label }}</strong><small>{{ worker.calibration.why }}</small></span>{{ status_chip(worker.calibration.state or 'INSUFFICIENT_HISTORY', 'neutral') }}</div>
           {% endfor %}

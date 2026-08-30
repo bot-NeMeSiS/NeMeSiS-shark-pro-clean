@@ -31,6 +31,62 @@ WORKERS = {
     "media_rights_qa": "Media Rights QA",
 }
 
+EVIDENCE_AUTHORITY = {
+    "UNIT_STATIC_TEST": 10,
+    "AUTOMATED_BROWSER_QA": 20,
+    "REAL_PRODUCTION_EVIDENCE": 30,
+    "REAL_BROWSER_FAILURE": 40,
+    "FOUNDER_CONFIRMED_FAILURE": 50,
+}
+
+QUALITY_GATES = (
+    "NAVIGATION",
+    "VISUAL",
+    "SPORTS_TRUTH",
+    "MOBILE",
+    "ADMIN",
+    "SECURITY",
+    "PERFORMANCE",
+    "SPORTS_KNOWLEDGE",
+    "MEDIA_RIGHTS",
+    "SUMMARY_TRUTH",
+    "DATA_QUALITY",
+)
+
+PINNED_REGRESSION_CONTRACTS = {
+    "TOPBAR_REAL_NAVIGATION": {"category": "NAVIGATION", "severity": "P0", "test": "real_click_and_element_from_point"},
+    "FALSE_LIVE_KPI": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "confirmed_live_equals_visible_live"},
+    "FT_NEVER_LIVE": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "terminal_state_never_renders_live"},
+    "OFFICIAL_SHARK_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
+    "OFFICIAL_BACKGROUND_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
+    "CLIENT_TECHNICAL_COPY_LEAK": {"category": "ADMIN", "severity": "P1", "test": "rendered_client_copy_scan"},
+    "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"category": "VISUAL", "severity": "P2", "test": "first_viewport_and_panel_depth"},
+    "IMPORTANT_MATCH_PRIORITY": {"category": "SPORTS_TRUTH", "severity": "P1", "test": "sports_priority_fixture_matrix"},
+    "PERFORMANCE_P0": {"category": "PERFORMANCE", "severity": "P0", "test": "critical_route_performance_sample"},
+    "TEAM_TO_PLAYER": {"category": "SPORTS_KNOWLEDGE", "severity": "P1", "test": "sports_knowledge_golden_journey"},
+    "MEDIA_RIGHTS_FAIL_CLOSED": {"category": "MEDIA_RIGHTS", "severity": "P0", "test": "rights_decision_render_contract"},
+    "MOJIBAKE": {"category": "ADMIN", "severity": "P2", "test": "rendered_text_encoding_scan"},
+    "BROKEN_LINKS": {"category": "NAVIGATION", "severity": "P0", "test": "real_click_golden_journeys"},
+    "MOBILE_BOTTOM_NAV": {"category": "MOBILE", "severity": "P1", "test": "mobile_real_tap_and_hit_target"},
+    "CLIENT_ADMIN_SEPARATION": {"category": "SECURITY", "severity": "P0", "test": "client_session_admin_denied"},
+}
+
+ISSUE_TO_REGRESSION = {
+    "NAVIGATION": "TOPBAR_REAL_NAVIGATION",
+    "SPORTS_TRUTH": "FALSE_LIVE_KPI",
+    "VISUAL_SHARK": "OFFICIAL_SHARK_REFERENCE",
+    "VISUAL_BACKGROUND": "OFFICIAL_BACKGROUND_REFERENCE",
+    "CLIENT_COPY": "CLIENT_TECHNICAL_COPY_LEAK",
+    "UI_DENSITY": "RECTANGLE_FATIGUE_CONTENT_DENSITY",
+    "SPORTS_KNOWLEDGE": "TEAM_TO_PLAYER",
+    "MEDIA_RIGHTS": "MEDIA_RIGHTS_FAIL_CLOSED",
+    "MOJIBAKE": "MOJIBAKE",
+    "USER_JOURNEY": "BROKEN_LINKS",
+    "MOBILE_LAYOUT": "MOBILE_BOTTOM_NAV",
+    "SECURITY": "CLIENT_ADMIN_SEPARATION",
+    "PERFORMANCE": "PERFORMANCE_P0",
+}
+
 QA_EXECUTION_POLICY = {
     "master_tick": "UNCHANGED",
     "daily": {
@@ -374,6 +430,40 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             detected_at=at,
         ))
 
+    text_quality = observation.get("text_quality") or {}
+    mojibake_matches = [str(item) for item in text_quality.get("mojibake_matches") or [] if str(item).strip()]
+    if mojibake_matches:
+        issues.append(_issue(
+            worker="digital_user_journey_tester",
+            category="MOJIBAKE",
+            severity="P2",
+            screen=str(text_quality.get("screen") or "client surfaces"),
+            viewport=str(text_quality.get("viewport") or "all"),
+            element="rendered-client-copy",
+            expected="Texto UTF-8 legible, sin secuencias de codificacion rotas.",
+            actual="; ".join(mojibake_matches[:12]),
+            evidence=str(text_quality.get("evidence") or "Texto roto observado en el navegador real."),
+            screenshot=str(text_quality.get("screenshot") or ""),
+            production_sha=sha,
+            detected_at=at,
+        ))
+
+    security = observation.get("security") or {}
+    if str(security.get("client_admin_separation") or "NOT_RUN").upper() == "FAIL":
+        issues.append(_issue(
+            worker="admin_qa",
+            category="SECURITY",
+            severity="P0",
+            screen="/admin/founder-dashboard",
+            viewport=str(security.get("viewport") or "desktop_1366x768"),
+            element="client-admin-separation",
+            expected="Una sesion cliente es rechazada por backend y termina en admin-login.",
+            actual=str(security.get("actual") or "Cliente alcanzo una superficie admin."),
+            evidence=str(security.get("evidence") or "Prueba autenticada de separacion cliente/admin fallida."),
+            production_sha=sha,
+            detected_at=at,
+        ))
+
     runtime = observation.get("runtime") or {}
     for category, severity, element, values, expected in (
         ("JAVASCRIPT", "P0", "browser-runtime", runtime.get("js_errors") or [], "0 errores JavaScript durante la inspeccion."),
@@ -427,6 +517,8 @@ def _default_memory(now: str) -> dict[str, Any]:
         "runs": [],
         "founder_overrides": [],
         "worker_calibration": {},
+        "regressions": {},
+        "production_sentinel_runs": [],
         "previous_good_run_id": None,
     }
 
@@ -461,7 +553,252 @@ def ensure_founder_qa_override(memory: dict[str, Any], now: str) -> None:
             "client_copy_contract",
             "mobile_overflow_contract",
         ],
+        "verification": {},
     })
+
+
+def _quality_gate_for_issue(issue: dict[str, Any]) -> str:
+    category = str(issue.get("category") or "").upper()
+    if category in {"NAVIGATION", "USER_JOURNEY", "BROKEN_LINK"}:
+        return "NAVIGATION"
+    if category.startswith("VISUAL") or category in {"UI_DENSITY", "BROKEN_IMAGE"}:
+        return "VISUAL"
+    if category in {"SPORTS_TRUTH", "LIVE_TRUTH", "DATA_CONSISTENCY"}:
+        return "SPORTS_TRUTH"
+    if category.startswith("MOBILE"):
+        return "MOBILE"
+    if category in {"ADMIN", "CLIENT_COPY", "MOJIBAKE"}:
+        return "ADMIN"
+    if category in {"SECURITY", "PRIVACY", "AUTH"}:
+        return "SECURITY"
+    if category == "PERFORMANCE":
+        return "PERFORMANCE"
+    if category == "SPORTS_KNOWLEDGE":
+        return "SPORTS_KNOWLEDGE"
+    if category == "MEDIA_RIGHTS":
+        return "MEDIA_RIGHTS"
+    if category == "SUMMARY_TRUTH":
+        return "SUMMARY_TRUTH"
+    return "DATA_QUALITY"
+
+
+def _evidence_authority(origin: str) -> tuple[str, int]:
+    value = str(origin or "").upper()
+    if "FOUNDER" in value:
+        key = "FOUNDER_CONFIRMED_FAILURE"
+    elif "REAL_BROWSER_FAILURE" in value:
+        key = "REAL_BROWSER_FAILURE"
+    elif "REAL_PRODUCTION" in value or "CURRENT_PRODUCTION" in value:
+        key = "REAL_PRODUCTION_EVIDENCE"
+    elif "BROWSER" in value or "LOCAL_QA" in value:
+        key = "AUTOMATED_BROWSER_QA"
+    else:
+        key = "UNIT_STATIC_TEST"
+    return key, EVIDENCE_AUTHORITY[key]
+
+
+def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    clicks = [item for item in observation.get("navigation_clicks") or [] if isinstance(item, dict)]
+    click_pass = bool(clicks) and all(
+        item.get("clicked") and item.get("hit_target") and item.get("page_ready")
+        and int(item.get("http_status") or 0) < 500
+        and str(item.get("actual_path") or "").startswith(str(item.get("expected_path") or ""))
+        for item in clicks
+    )
+    sports = observation.get("sports_truth") or {}
+    sports_pass = int(sports.get("confirmed_live_count") or 0) == int(sports.get("displayed_live_count") or 0)
+    ft_pass = int(sports.get("ft_rendered_live") or 0) == 0
+    visual = observation.get("visual") or {}
+    shark = str((visual.get("shark") or {}).get("classification") or "NOT_RUN").upper()
+    background = str((visual.get("background") or {}).get("classification") or "NOT_RUN").upper()
+    copy_state = observation.get("client_copy") or {}
+    copy_pass = not (copy_state.get("technical_matches") or [])
+    density = observation.get("density") or {}
+    density_pass = density.get("first_viewport_product") is True and int(density.get("nested_panel_depth") or 0) <= 2
+    mobile_clicks = [item for item in clicks if str(item.get("viewport") or "").startswith("mobile_")]
+    mobile_pass = bool(mobile_clicks) and all(item.get("clicked") and item.get("hit_target") for item in mobile_clicks)
+    journeys = {str(item.get("journey")): item for item in observation.get("journeys") or [] if isinstance(item, dict)}
+    knowledge = observation.get("sports_knowledge") or {}
+    rights_pass = int(knowledge.get("unsafe_media_visible") or 0) == 0
+    runtime = observation.get("runtime") or {}
+    text_quality = observation.get("text_quality") or {}
+    return {
+        "TOPBAR_REAL_NAVIGATION": {"status": "PASS" if click_pass else "FAIL", "evidence": f"real_clicks={len(clicks)}"},
+        "FALSE_LIVE_KPI": {"status": "PASS" if sports_pass else "FAIL", "evidence": f"confirmed={sports.get('confirmed_live_count', 0)}; visible={sports.get('displayed_live_count', 0)}"},
+        "FT_NEVER_LIVE": {"status": "PASS" if ft_pass else "FAIL", "evidence": f"terminal_rendered_live={sports.get('ft_rendered_live', 0)}"},
+        "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_READY" if shark in {"MATCH", "CLOSE"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
+        "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_READY" if background in {"MATCH", "CLOSE"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
+        "CLIENT_TECHNICAL_COPY_LEAK": {"status": "PASS" if copy_pass else "FAIL", "evidence": f"technical_matches={len(copy_state.get('technical_matches') or [])}"},
+        "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={density.get('nested_panel_depth')}"},
+        "TEAM_TO_PLAYER": {"status": "PASS" if (journeys.get("golden_sports_knowledge") or {}).get("pass") is True else "NOT_RUN", "evidence": "golden_sports_knowledge"},
+        "MEDIA_RIGHTS_FAIL_CLOSED": {"status": "PASS" if rights_pass else "FAIL", "evidence": f"unsafe_media_visible={knowledge.get('unsafe_media_visible', 0)}"},
+        "MOJIBAKE": {"status": "PASS" if not (text_quality.get("mojibake_matches") or []) else "FAIL", "evidence": f"mojibake={len(text_quality.get('mojibake_matches') or [])}"},
+        "BROKEN_LINKS": {"status": "PASS" if click_pass and all(item.get("pass") is True for item in journeys.values()) else "FAIL", "evidence": f"journeys={len(journeys)}; js_errors={len(runtime.get('js_errors') or [])}"},
+        "MOBILE_BOTTOM_NAV": {"status": "PASS" if mobile_pass else "FAIL", "evidence": f"mobile_taps={len(mobile_clicks)}"},
+        "CLIENT_ADMIN_SEPARATION": {"status": str((observation.get("security") or {}).get("client_admin_separation") or "NOT_RUN").upper(), "evidence": (observation.get("security") or {}).get("evidence")},
+        "IMPORTANT_MATCH_PRIORITY": {"status": str(sports.get("important_match_priority") or "NOT_RUN").upper(), "evidence": sports.get("priority_evidence")},
+        "PERFORMANCE_P0": {"status": str((observation.get("performance") or {}).get("status") or "NOT_RUN").upper(), "evidence": (observation.get("performance") or {}).get("evidence")},
+    }
+
+
+def _update_regression_manager(memory: dict[str, Any], observation: dict[str, Any], detected: list[dict[str, Any]], at: str, run_id: str) -> dict[str, Any]:
+    records = memory.setdefault("regressions", {})
+    supplied = _regression_result_defaults(observation)
+    supplied.update({
+        str(key): dict(value)
+        for key, value in (observation.get("regression_results") or {}).items()
+        if isinstance(value, dict)
+    })
+    issues_by_regression: dict[str, list[dict[str, Any]]] = {}
+    for issue in detected:
+        regression_id = ISSUE_TO_REGRESSION.get(str(issue.get("category") or "").upper())
+        if regression_id:
+            issues_by_regression.setdefault(regression_id, []).append(issue)
+    for regression_id, contract in PINNED_REGRESSION_CONTRACTS.items():
+        record = records.setdefault(regression_id, {
+            "regression_id": regression_id,
+            "category": contract["category"],
+            "severity": contract["severity"],
+            "regression_test": contract["test"],
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [],
+        })
+        result = supplied.get(regression_id) or {"status": "NOT_RUN", "evidence": "Sin cobertura en esta ejecucion."}
+        status = str(result.get("status") or "NOT_RUN").upper()
+        related = issues_by_regression.get(regression_id) or []
+        previous_status = str(record.get("status") or "NOT_RUN")
+        if related:
+            status = "FAIL"
+            if previous_status in {"PASS", "RESOLVED", "FOUNDER_REVIEW_READY"}:
+                record["recurrence_count"] = int(record.get("recurrence_count") or 0) + 1
+            record["root_cause"] = _safe_text(related[0].get("actual") or related[0].get("evidence"), 700)
+            if record.get("first_seen_sha") == "FOUNDER_OVERRIDE_BASELINE" and related[0].get("production_sha"):
+                record["first_seen_sha"] = related[0].get("production_sha")
+        elif status == "PASS":
+            record["last_good_sha"] = _safe_text(observation.get("production_sha"), 80)
+        record["status"] = status
+        record["last_run_id"] = run_id
+        record["last_checked_at_madrid"] = at
+        record["verification"] = _safe_text(result.get("evidence"), 1200)
+        record.setdefault("verification_history", []).append({
+            "at_madrid": at,
+            "run_id": run_id,
+            "sha": _safe_text(observation.get("production_sha"), 80),
+            "status": status,
+            "evidence": record["verification"],
+        })
+        record["verification_history"] = record["verification_history"][-40:]
+    return build_regression_manager_status(memory)
+
+
+def build_regression_manager_status(memory: dict[str, Any]) -> dict[str, Any]:
+    values = list((memory.get("regressions") or {}).values())
+    return {
+        "status": "FAIL" if any(item.get("status") == "FAIL" and item.get("severity") == "P0" for item in values) else "WARNING" if any(item.get("status") in {"FAIL", "NOT_RUN", "FOUNDER_REVIEW_READY"} for item in values) else "PASS",
+        "protected_regressions": len(values),
+        "pass": sum(1 for item in values if item.get("status") == "PASS"),
+        "fail": sum(1 for item in values if item.get("status") == "FAIL"),
+        "founder_review_ready": sum(1 for item in values if item.get("status") == "FOUNDER_REVIEW_READY"),
+        "not_run": sum(1 for item in values if item.get("status") == "NOT_RUN"),
+        "recurrences": sum(int(item.get("recurrence_count") or 0) for item in values),
+        "items": values,
+    }
+
+
+def build_quality_director_decision(
+    issues: list[dict[str, Any]],
+    *,
+    evidence_complete: bool,
+    regression_manager: dict[str, Any],
+    supplemental_evidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    supplemental_evidence = supplemental_evidence or {}
+    gates = []
+    open_real = [item for item in issues if str(item.get("status") or "OPEN_REAL") == "OPEN_REAL"]
+    pending = [item for item in issues if str(item.get("status") or "") == "FIXED_PENDING_VERIFICATION"]
+    regression_items = regression_manager.get("items") or []
+    for gate in QUALITY_GATES:
+        related = [item for item in open_real if _quality_gate_for_issue(item) == gate]
+        related_pending = [item for item in pending if _quality_gate_for_issue(item) == gate]
+        regressions = [item for item in regression_items if item.get("category") == gate]
+        explicit = str((supplemental_evidence.get(gate) or {}).get("status") or "").upper()
+        p0 = sum(1 for item in related if str(item.get("severity") or "").upper() == "P0")
+        p1 = sum(1 for item in related if str(item.get("severity") or "").upper() == "P1")
+        founder_review = any(item.get("status") == "FOUNDER_REVIEW_READY" for item in regressions)
+        regression_fail = any(item.get("status") == "FAIL" for item in regressions)
+        if p0 or explicit == "FAIL":
+            status = "FAIL"
+        elif p1 or regression_fail:
+            status = "BLOCKED"
+        elif founder_review or related_pending or explicit in {"WARNING", "BLOCKED"}:
+            status = "WARNING"
+        elif explicit == "PASS" or (evidence_complete and regressions and all(item.get("status") == "PASS" for item in regressions)):
+            status = "PASS"
+        else:
+            status = "WARNING"
+        authorities = [_evidence_authority(item.get("evidence_origin") or item.get("source") or "") for item in related]
+        authority = max(authorities, key=lambda item: item[1])[0] if authorities else "AUTOMATED_BROWSER_QA" if evidence_complete else "UNIT_STATIC_TEST"
+        gates.append({
+            "area": gate,
+            "status": status,
+            "open_p0": p0,
+            "open_p1": p1,
+            "pending_verification": len(related_pending),
+            "authority": authority,
+        })
+    open_p0 = sum(1 for item in open_real if str(item.get("severity") or "").upper() == "P0")
+    open_p1 = sum(1 for item in open_real if str(item.get("severity") or "").upper() == "P1")
+    if open_p0 or any(item["status"] == "FAIL" for item in gates):
+        decision = "FAIL"
+    elif open_p1 or any(item["status"] == "BLOCKED" for item in gates):
+        decision = "BLOCKED"
+    elif any(item["status"] == "WARNING" for item in gates):
+        decision = "WARNING"
+    else:
+        decision = "PASS"
+    return {
+        "decision": decision,
+        "release_quality_pass": decision == "PASS" and open_p0 == 0,
+        "open_p0": open_p0,
+        "open_p1": open_p1,
+        "authority_order": sorted(EVIDENCE_AUTHORITY, key=EVIDENCE_AUTHORITY.get, reverse=True),
+        "gates": gates,
+        "reason": "Un FAIL de mayor autoridad nunca es anulado por una evidencia inferior.",
+    }
+
+
+def evaluate_production_sentinel(observation: dict[str, Any], quality_director: dict[str, Any]) -> dict[str, Any]:
+    deployment = observation.get("deployment") or {}
+    if not deployment:
+        return {"result": "NOT_RUN", "rollback_recommended": False, "reason": "No es una observacion post-deploy real."}
+    checks = (
+        "health", "sha_alignment", "logs_recent", "critical_routes", "topbar_click_journey",
+        "mobile_nav", "sports_truth", "performance_sample", "critical_visual_surfaces", "client_admin_protection",
+    )
+    results = {name: str(deployment.get(name) or "NOT_RUN").upper() for name in checks}
+    failed = [name for name, status in results.items() if status == "FAIL"]
+    missing = [name for name, status in results.items() if status not in {"PASS", "FAIL"}]
+    p0 = int(quality_director.get("open_p0") or 0)
+    if failed or p0:
+        result = "REGRESSION_DETECTED"
+    elif missing:
+        result = "BLOCKED"
+    else:
+        result = "PRODUCTION_CERTIFIED"
+    return {
+        "result": result,
+        "production_sha": _safe_text(observation.get("production_sha"), 80),
+        "checks": results,
+        "failed_checks": failed,
+        "missing_checks": missing,
+        "rollback_recommended": result == "REGRESSION_DETECTED" and p0 > 0,
+        "dangerous_actions_executed": False,
+    }
 
 
 def _calibrate_workers(memory: dict[str, Any]) -> dict[str, Any]:
@@ -526,14 +863,32 @@ def record_product_qa_run(
             continue
         if scope != "full":
             continue
-        issue["status"] = "FIXED_PENDING_VERIFICATION"
+        history = issue.get("history") or []
+        prior_clean_retest = bool(history and history[-1].get("event") == "NOT_REPRODUCED")
+        founder_visual_review = str(issue.get("category") or "").upper() in {"VISUAL_SHARK", "VISUAL_BACKGROUND"}
+        if prior_clean_retest and not founder_visual_review:
+            issue["status"] = "RESOLVED"
+            issue["resolved_at"] = at
+            issue["verification"] = "Dos ejecuciones Browser QA completas consecutivas no reprodujeron el problema."
+            event = "DETERMINISTIC_RETEST_PASS"
+        else:
+            issue["status"] = "FIXED_PENDING_VERIFICATION"
+            event = "NOT_REPRODUCED"
         issue["last_checked"] = at
-        issue["history"] = [*(issue.get("history") or []), {"at_madrid": at, "event": "NOT_REPRODUCED"}][-40:]
+        issue["history"] = [*history, {"at_madrid": at, "event": event}][-40:]
 
     evidence_complete = bool(observation.get("evidence_complete"))
     blocking = [item for item in detected if item.get("severity") in {"P0", "P1"}]
     result = "PASS" if evidence_complete and not detected else "FAIL" if blocking else "WARNING"
     run_id = str(observation.get("run_id") or "PQA-" + datetime.fromisoformat(at).strftime("%Y%m%d%H%M%S"))
+    regression_manager = _update_regression_manager(memory, observation, detected, at, run_id)
+    quality_director = build_quality_director_decision(
+        list(previous.values()),
+        evidence_complete=evidence_complete,
+        regression_manager=regression_manager,
+        supplemental_evidence=observation.get("quality_evidence") or {},
+    )
+    production_sentinel = evaluate_production_sentinel(observation, quality_director)
     workers_executed = list(observation.get("workers_executed") or WORKERS.keys())
     run = {
         "contract": AUTONOMOUS_PRODUCT_QA_CONTRACT,
@@ -558,6 +913,9 @@ def record_product_qa_run(
         "telegram_sent": 0,
         "stripe_actions": 0,
         "provider_calls": int(observation.get("provider_calls") or 0),
+        "quality_director": quality_director,
+        "regression_manager": regression_manager,
+        "production_sentinel": production_sentinel,
     }
     memory.setdefault("runs", []).append(run)
     memory["runs"] = memory["runs"][-120:]
@@ -567,6 +925,13 @@ def record_product_qa_run(
         memory["previous_good_critical_run_id"] = run_id
     memory["updated_at_madrid"] = at
     memory["worker_calibration"] = _calibrate_workers(memory)
+    if production_sentinel.get("result") != "NOT_RUN":
+        memory.setdefault("production_sentinel_runs", []).append({
+            "run_id": run_id,
+            "at_madrid": at,
+            **production_sentinel,
+        })
+        memory["production_sentinel_runs"] = memory["production_sentinel_runs"][-40:]
     latest = {
         **run,
         "issues": detected,
@@ -576,6 +941,9 @@ def record_product_qa_run(
         "previous_good_run_id": memory.get("previous_good_run_id"),
         "previous_good_critical_run_id": memory.get("previous_good_critical_run_id"),
         "next_expected_run": observation.get("next_expected_run") or "Segun cadencia QA: daily, post-deploy o weekly visual.",
+        "quality_director": quality_director,
+        "regression_manager": regression_manager,
+        "production_sentinel": production_sentinel,
     }
     if write:
         paths["history"].mkdir(parents=True, exist_ok=True)
@@ -646,6 +1014,17 @@ def build_autonomous_product_qa_status(
     ensure_founder_qa_override(memory, _now())
     issues = list(memory.get("issues", {}).values())
     open_issues = [item for item in issues if item.get("status") in ACTIVE_ISSUE_STATUSES]
+    regression_manager = latest.get("regression_manager") or build_regression_manager_status(memory)
+    quality_director = latest.get("quality_director") or build_quality_director_decision(
+        issues,
+        evidence_complete=bool(latest.get("evidence_complete")),
+        regression_manager=regression_manager,
+    )
+    production_sentinel = latest.get("production_sentinel") or (
+        (memory.get("production_sentinel_runs") or [{}])[-1]
+        if memory.get("production_sentinel_runs")
+        else {"result": "NOT_RUN", "rollback_recommended": False}
+    )
     workers = []
     calibration = memory.get("worker_calibration") or _calibrate_workers(memory)
     for key, label in WORKERS.items():
@@ -678,6 +1057,9 @@ def build_autonomous_product_qa_status(
         "previous_good_run_id": memory.get("previous_good_run_id"),
         "storage": "CONTINUOUS_EVOLUTION_NAMESPACE",
         "execution_policy": QA_EXECUTION_POLICY,
+        "quality_director": quality_director,
+        "regression_manager": regression_manager,
+        "production_sentinel": production_sentinel,
         "dangerous_actions_executed": False,
     }
 
