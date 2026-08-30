@@ -1,21 +1,38 @@
 services:
   - type: web
-    name: nemesis-shark-pro
-    env: python
+    name: nemesissharkpro
+    runtime: python
+    region: oregon
+    plan: starter
+    branch: main
+    autoDeployTrigger: commit
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 3 --worker-class gthread --timeout 90
+    startCommand: gunicorn app:app
     healthCheckPath: /api/health
+    disk:
+      name: disk
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: DB_PATH
         value: /data/database.db
-      - key: PYTHON_VERSION
-        value: 3.11.9
+      - key: CONTINUOUS_EVOLUTION_SAFE_MODE
+        value: "1"
+      - key: CONTINUOUS_EVOLUTION_STORAGE_ROOT
+        value: /data/continuous_evolution_os
+      - key: AUTOMATION_SECRET
+        sync: false
+
   - type: cron
-    name: nemesis-sports-sync
+    name: telegram-auto-tick
     runtime: python
-    schedule: "*/15 * * * *"
+    region: oregon
+    plan: starter
+    branch: main
+    autoDeployTrigger: commit
+    schedule: "*/5 * * * *"
     buildCommand: pip install -r requirements.txt
-    startCommand: python tools/render_cron_sports_sync.py
+    startCommand: python tools/render_cron_master_tick.py
     envVars:
       - key: PUBLIC_BASE_URL
         value: https://bot-apuestas-crgf.onrender.com

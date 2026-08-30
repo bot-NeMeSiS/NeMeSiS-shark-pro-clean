@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 REPORTS = ROOT / "reports"
@@ -16,7 +17,8 @@ def main() -> int:
     base_text = BASE.read_text(encoding="utf-8", errors="replace") if BASE.exists() else ""
     root_html = sorted(p.name for p in ROOT.glob("*.html"))
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip() if (ROOT / "VERSION.txt").exists() else ""
-    version_ok = version.startswith(("V729_", "V730_", "V731_", "V732_", "V733_", "V734_", "V735_", "V736_", "V737_", "V738_", "V739_", "V740_", "V741_", "V742_", "V743_", "V744_", "V745_", "V746_", "V747_", "V748_", "V749_", "V749B_", "V750_", "V751_", "V752_", "V753_", "V754_", "V755_", "V756_", "V757_", "V758_", "V759_"))
+    version_match = re.match(r"^V(\d+)[A-Z]*_", version)
+    version_ok = bool(version_match and int(version_match.group(1)) >= 729)
     checks = {
         "version_v729_or_later": version_ok,
         "secure_secret_key_used": "app.secret_key = secure_secret_key()" in app_text,

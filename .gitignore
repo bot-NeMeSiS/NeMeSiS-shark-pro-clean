@@ -42,6 +42,7 @@ Thumbs.db
 .idea/
 
 # Old working folders / generated artifacts
+.tmp_reference_review/
 v636work/
 release/
 release_output/
@@ -54,6 +55,10 @@ video_review_frames/
 cron_video_frames/
 reports/browser_qa_v937_final/
 reports/browser_qa_v937_diamond_*/
+reports/browser_qa/
+reports/*browser_qa*/
+reports/*screenshots*/
+reports/*video_evidence*/
 *.mp4
 *.mov
 *.avi
@@ -97,10 +102,17 @@ video_review_frames/
 cron_video_frames/
 
 # LRM-001 Gate 1 release hygiene
-browser_qa/**/tmp/
-browser_qa/**/temp/
-browser_qa/**/debug/
-browser_qa/**/*_tmp.*
+/browser_qa/**
+!/browser_qa/
+!/browser_qa/README.md
+!/browser_qa/playwright_requirements.txt
+!/browser_qa/run_local_browser_qa.bat
+!/browser_qa/run_local_browser_qa.ps1
+!/browser_qa/run_local_browser_qa.sh
+/browser_qa/**/tmp/
+/browser_qa/**/temp/
+/browser_qa/**/debug/
+/browser_qa/**/*_tmp.*
 browser_qa/**/*.tmp
 browser_qa/AUTONOMOUS_PRODUCT_QA/
 *.tmp.json

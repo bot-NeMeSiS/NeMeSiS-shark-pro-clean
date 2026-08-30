@@ -1,7 +1,0 @@
-{
-  "ok": true,
-  "browser_available": false,
-  "reason": "Playwright no disponible: ModuleNotFoundError",
-  "screenshots": [],
-  "note": "No se declara pixel-perfect sin capturas reales."
-}
