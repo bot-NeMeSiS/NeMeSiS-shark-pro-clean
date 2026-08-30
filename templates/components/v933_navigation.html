@@ -3,16 +3,15 @@
 {% macro nav_icon(name) -%}<span class="v933-nav-icon v928-icon" data-v928-icon="{{ name }}" aria-hidden="true"></span>{%- endmacro %}
 
 {% macro v933_public_navigation() -%}
+{% set links = [('Inicio','/','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark')] %}
 <header class="v933-topbar v933-public-topbar" data-nav-zone="public-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/', 'topbar') }}
     <nav aria-label="Navegación pública">
-      <a href="/"{% if request.path == '/' %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon('home') }}<span>Inicio</span></a>
-      <a href="/calendar">{{ nav_icon('calendar') }}<span>Partidos</span></a>
-      <a href="/live">{{ nav_icon('live') }}<span>Directo</span></a>
-      <a href="/picks">{{ nav_icon('target') }}<span>Picks</span></a>
-      <a href="/track-record">{{ nav_icon('history') }}<span>Histórico</span></a>
-      <a href="/shark">{{ nav_icon('shark') }}<span>SHARK</span></a>
+      {% for label, href, icon_name in links %}
+      {% set active = request.path == href or (href == '/calendar' and request.path in ['/calendario','/partidos','/partidos-hoy']) or (href != '/' and request.path.startswith(href ~ '/')) %}
+      <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ label }}</span></a>
+      {% endfor %}
     </nav>
     <div class="v933-topbar-actions"><a class="v933-button is-secondary" href="/cliente-login">Entrar</a><a class="v933-button is-primary" href="/registro">Crear cuenta</a></div>
   </div>

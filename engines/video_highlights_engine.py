@@ -11,6 +11,21 @@ def classify_match_video(item: dict | None = None) -> dict:
     media = classify_media_asset(item, channel="APP")
     can_embed = bool(media["can_display"] and legacy.get("can_embed"))
     can_link = bool(media["can_display"] and legacy.get("can_link"))
+    rights_status = str(media.get("rights_status") or "UNKNOWN_RIGHTS")
+    if media.get("decision") == "BLOCKED":
+        video_classification = "BLOCKED"
+    elif not media.get("can_display"):
+        video_classification = "REVIEW_REQUIRED"
+    elif rights_status == "OWNED":
+        video_classification = "OWN_GENERATED"
+    elif can_embed and bool(item.get("official_source_verified")):
+        video_classification = "OFFICIAL_EMBED"
+    elif can_link and not can_embed:
+        video_classification = "AUTHORIZED_LINK"
+    elif rights_status in {"LICENSED", "PROVIDER_ALLOWED", "OPEN_LICENSE_ALLOWED", "ATTRIBUTION_REQUIRED"}:
+        video_classification = "LICENSED_PROVIDER"
+    else:
+        video_classification = "REVIEW_REQUIRED"
     return {
         **legacy,
         **media,
@@ -20,6 +35,7 @@ def classify_match_video(item: dict | None = None) -> dict:
         "downloads_video": False,
         "rehosts_video": False,
         "show_block": bool(can_embed or can_link),
+        "video_classification": video_classification,
     }
 
 

@@ -365,3 +365,40 @@ Para cerrar el gate se exige evidencia real de:
 **Pregunta Day 1:** si hay un partido importante en directo ahora mismo, ¿NeMeSiS lo muestra automáticamente?
 
 **Respuesta:** `NOT_ENOUGH_EVIDENCE`. No había un Tier S/A claramente live durante la ventana observada, y los dos registros live disponibles eran inconsistentes y no prioritarios.
+
+## Sports Media + Knowledge Convergence - 2026-08-30
+
+### Production observation
+
+- Evidence origin: `REAL_PRODUCTION_OBSERVATION`, read-only/cache-only.
+- Runtime observed: provider stack active, API-Sports configured, The Odds API
+  configured and provider cache enabled.
+- TheSportsDB highlights surface: active configuration, but 0 persisted
+  highlights and 0 videos available in the inspected cache.
+- Current TheSportsDB paid plan/capability: `INACCESSIBLE` from the available
+  runtime and repository evidence.
+- Real Tier S/A highlight sample: 0 events checked with an authenticated provider
+  request; no call was added because credential and quota evidence were not
+  safely available to this process.
+- Current result: `NO_AUTHORIZED_SAMPLE`, not a provider or rights PASS.
+
+### Local convergence certification
+
+| Capability | LOCAL_QA | REAL_PRODUCTION_OBSERVATION |
+|---|---|---|
+| Lineups -> persisted Player ID | PASS | INSUFFICIENT_REAL_DATA |
+| Player -> Team -> Competition -> Match | PASS | INSUFFICIENT_REAL_DATA |
+| Events and statistics | PASS with isolated fixture | INSUFFICIENT_REAL_DATA |
+| Deterministic summary | PASS, 0 AI calls / 0 unsupported claims | INSUFFICIENT_REAL_DATA |
+| Official/authorized video surface | PASS with rights-labelled `SIMULATED_QA` fallback | NO_AUTHORIZED_SAMPLE |
+| Unknown-rights video/photo | BLOCKED | Rights gate deployed locally; real sample pending |
+| Required attribution missing | FAIL CLOSED | Real sample pending |
+| Geo-restricted embed | Authorized-link fallback PASS | Real sample pending |
+
+Browser evidence: 14/14 sports Golden Journey steps, 57 captures, 18 navigation
+clicks, 8/8 journeys, 0 console errors, 0 page errors, 0 provider calls and 0
+unsafe media visible across desktop/tablet/mobile.
+
+The Sports DAY 2-7 gate remains `REAL_SPORTS_CERTIFICATION_IN_PROGRESS`. No
+future day is simulated and no LIVE, lineup, player, event, statistics or
+highlight production PASS is inferred from local fixtures.

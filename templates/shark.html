@@ -23,7 +23,7 @@
       <p>{{ 'SHARK puede ampliar el contexto disponible sin revelar información privada ni completar huecos con datos inventados.' if openai_ready else 'SHARK mantiene navegación, contexto deportivo y límites claros sin simular una conversación avanzada.' }}</p>
       <div class="v933-hero-actions">{{ action_button('Explorar partidos','/calendar',true,'cyan',false,'calendar') }}{{ action_button('Ver directo','/live',false,'blue',false,'live') }}{{ action_button('Revisar picks','/picks',false,'blue',false,'target') }}</div>
     </div>
-    <img src="/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5" alt="" aria-hidden="true">
+    <img src="/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7" alt="" aria-hidden="true">
   </section>
   {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 

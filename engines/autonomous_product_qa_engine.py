@@ -35,7 +35,16 @@ QA_EXECUTION_POLICY = {
     "master_tick": "UNCHANGED",
     "daily": {
         "scope": "critical",
-        "checks": ["navigation", "sports_truth", "basic_client_journey", "mobile_smoke", "health"],
+        "checks": [
+            "navigation",
+            "sports_truth",
+            "sports_knowledge",
+            "summary_truth",
+            "media_rights",
+            "basic_client_journey",
+            "mobile_smoke",
+            "health",
+        ],
         "browser_sessions_max": 3,
     },
     "after_change": {

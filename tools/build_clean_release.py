@@ -16,7 +16,6 @@ VERSION = VERSION_FILE.read_text(encoding="utf-8-sig").strip() if VERSION_FILE.e
 ZIP_NAME = f"NeMeSiS_SHARK_PRO_{VERSION}_RENDER_READY.zip"
 VERSION_PREFIX = VERSION.split("_", 1)[0] if VERSION else "DEV"
 MANIFEST_NAME = f"RELEASE_MANIFEST_{VERSION_PREFIX}.json"
-MANIFEST_PATH = ROOT / MANIFEST_NAME
 
 
 def release_output_dir() -> Path:
@@ -40,7 +39,6 @@ INCLUDE_TOP_LEVEL_DIRS = {
     ".github",
     "automation_workforce",
     "blueprints",
-    "browser_qa",
     "docs",
     "engines",
     "services",
@@ -204,6 +202,7 @@ EXCLUDE_DIRS = {
     "tmp",
     "temp",
     "backups",
+    "browser_qa",
     "logs",
     "v636work",
     "archive_legacy",
@@ -661,8 +660,6 @@ def include(path: Path) -> bool:
         return False
     if parts[0] in INCLUDE_TOP_LEVEL_DIRS:
         return True
-    if len(parts) == 1 and path.name == MANIFEST_NAME:
-        return True
     return len(parts) == 1 and path.name in INCLUDE_TOP_LEVEL_FILES
 
 
@@ -707,13 +704,13 @@ def build_manifest(files: list[Path]) -> dict:
 def main() -> int:
     files = collect_files()
     manifest = build_manifest(files)
-    MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    files = collect_files()
+    manifest["files"] = len(files) + 1
     if OUT.exists():
         OUT.unlink()
     with zipfile.ZipFile(OUT, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for path in files:
             zf.write(path, path.relative_to(ROOT).as_posix())
+        zf.writestr(MANIFEST_NAME, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     deploy_parent = (ROOT / "release_output").resolve()
     deploy_parent.mkdir(parents=True, exist_ok=True)
     deploy_root = (deploy_parent / f"{VERSION_PREFIX}_DEPLOY_ROOT_CONTENTS").resolve()
@@ -724,11 +721,9 @@ def main() -> int:
     deploy_root.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(OUT) as zf:
         zf.extractall(deploy_root)
-    manifest = build_manifest(files)
     manifest["zip_size_bytes"] = OUT.stat().st_size
-    manifest["zip_file_count"] = len(files)
+    manifest["zip_file_count"] = len(files) + 1
     manifest["deploy_root"] = str(deploy_root)
-    MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
     return 0
 

@@ -25,6 +25,20 @@
     {{ score_widget(match_context) }}
   </div>
 
+  {% set lineups = match_context.get('lineups') or {} %}
+  {% set events = match_context.get('event_summary') or {} %}
+  {% set statistics = match_context.get('statistics') or {} %}
+  {% set media = match_context.get('media') or {} %}
+  {% set shark = match_context.get('shark_context') or {} %}
+  <nav class="v944-match-sections" aria-label="Secciones disponibles del partido">
+    <a href="#match-section-story" data-match-section-link="story">Resumen</a>
+    {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">Alineaciones</a>{% endif %}
+    {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">Eventos</a>{% endif %}
+    {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">Estadísticas</a>{% endif %}
+    {% if media.get('visible_count') %}<a href="#match-section-video" data-match-section-link="video">Vídeo</a>{% endif %}
+    {% if shark.get('available') %}<a href="#match-section-shark" data-match-section-link="shark">SHARK</a>{% endif %}
+  </nav>
+
   <div class="v944-match-layout">
     <section class="v944-match-main" id="match-story" aria-label="Historia y datos del partido">
       {{ match_story(match_context) }}

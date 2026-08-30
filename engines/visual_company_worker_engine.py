@@ -84,6 +84,9 @@ SAFE_STATES = [
     "Análisis limitado sin proveedor IA",
     "Escudo pendiente",
     "Fallback visual activo",
+    "No hay partidos en esta vista",
+    "No hay partidos para este estado",
+    "Sin partidos reales para estas capas",
 ]
 
 FORBIDDEN_PROMISES = [

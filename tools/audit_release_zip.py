@@ -11,7 +11,7 @@ from pathlib import Path, PurePosixPath
 
 
 ROOT = Path(__file__).resolve().parents[1]
-REPORT_DIR = ROOT / "reports"
+REPORT_DIR = ROOT / "release_output"
 VERSION_FILE = ROOT / "VERSION.txt"
 VERSION = VERSION_FILE.read_text(encoding="utf-8-sig").strip() if VERSION_FILE.exists() else "DEV"
 VERSION_PREFIX = VERSION.split("_", 1)[0] if VERSION else "DEV"
@@ -25,6 +25,7 @@ FORBIDDEN_PARTS = {
     ".mypy_cache",
     ".ruff_cache",
     "node_modules",
+    "browser_qa",
     "logs",
     "backups",
     "release",

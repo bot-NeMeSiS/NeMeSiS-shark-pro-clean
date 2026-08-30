@@ -325,6 +325,7 @@ from engines.betting_markets_engine import (
 )
 from engines.final_launch_certification_engine import commercial_launch_snapshot
 from engines.sportsdb_highlights_engine import (
+    classify_stored_highlight,
     ensure_sportsdb_highlights_schema,
     rebuild_match_enrichment,
     sportsdb_highlights_for_match,
@@ -6743,26 +6744,7 @@ def _cached_match_media(match, limit=6):
         f"SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') IN ({placeholders}) ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
         tuple(identifiers + [int(limit)]),
     )
-    classified = []
-    for item in items:
-        rights_note = str(item.get("rights_note") or "").strip().upper()
-        explicit_rights = rights_note if rights_note in {
-            "OWNED", "LICENSED", "PROVIDER_ALLOWED", "OPEN_LICENSE_ALLOWED",
-            "ATTRIBUTION_REQUIRED", "REVIEW_REQUIRED", "BLOCKED", "UNKNOWN_RIGHTS",
-        } else "UNKNOWN_RIGHTS"
-        classified.append(classify_match_video({
-            "content_type": "video",
-            "source": item.get("source") or item.get("provider"),
-            "original_url": item.get("video_url"),
-            "embed_url": item.get("embed_url"),
-            "thumbnail_url": item.get("thumbnail_url"),
-            "attribution": item.get("source") or item.get("provider"),
-            "rights_status": explicit_rights,
-            "commercial_use_status": "UNKNOWN" if explicit_rights == "UNKNOWN_RIGHTS" else "ALLOWED",
-            "last_verified": item.get("updated_at"),
-            "match_id": item.get("match_id"),
-            "title": item.get("title"),
-        }))
+    classified = [classify_stored_highlight(item) for item in items]
     return video_highlights_snapshot(classified, preclassified=True)
 
 
@@ -12583,7 +12565,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-official.svg?v=official-brand-6",
+                "src": "/static/img/nemesis-shark-official.svg?v=official-brand-8",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",
@@ -12707,6 +12689,10 @@ def v896_not_found_severity(path, count=1):
 
 def v896_record_not_found(path, method="GET", referrer="", user_agent="", resolved_alias="", source="flask_404"):
     safe_path = v896_safe_request_text(path, 260) or "/"
+    qa_probe = bool(
+        has_request_context()
+        and request.headers.get("X-NEMESIS-QA-PROBE", "").strip() == "1"
+    )
     payload = v896_load_not_found_events()
     events = [item for item in payload.get("events", []) if isinstance(item, dict)]
     existing = None
@@ -12733,7 +12719,10 @@ def v896_record_not_found(path, method="GET", referrer="", user_agent="", resolv
     existing["resolved_alias"] = v896_safe_request_text(resolved_alias, 260)
     payload["events"] = sorted(events, key=lambda item: str(item.get("last_seen_madrid") or ""), reverse=True)[:250]
     v896_save_not_found_events(payload)
-    v896_upsert_not_found_issue(existing)
+    if not qa_probe:
+        v896_upsert_not_found_issue(existing)
+    else:
+        existing["qa_probe"] = True
     return existing
 
 
@@ -15517,7 +15506,10 @@ def v766_highlight_map(match_ids, limit_per_match=2):
     except Exception:
         return {}
     out = {}
-    for item in records:
+    for raw in records:
+        item = classify_stored_highlight(raw)
+        if not item.get("show_block"):
+            continue
         mid = str(item.get("match_id") or "").strip()
         if not mid:
             continue
@@ -15564,6 +15556,8 @@ def v766_highlights_context(limit=12):
             "match_label": " vs ".join([x for x in [h.get("home_team"), h.get("away_team")] if x]) or h.get("title") or "Partido",
             "safe_url": h.get("video_url") or "",
             "source_label": f"{h.get('source') or 'TheSportsDB'} - {h.get('provider') or 'YouTube'}",
+            "rights_decision": h.get("decision") or "REVIEW_REQUIRED",
+            "video_classification": h.get("video_classification") or "REVIEW_REQUIRED",
         })
     return {
         "version": APP_VERSION,
@@ -15572,11 +15566,15 @@ def v766_highlights_context(limit=12):
         "highlights_total": summary.get("highlights_total", 0),
         "with_video": summary.get("with_video", 0),
         "linked_matches": summary.get("linked_matches", 0),
+        "stored_media_total": summary.get("stored_media_total", 0),
+        "authorized_highlights": summary.get("authorized_highlights", 0),
+        "blocked_highlights": summary.get("blocked_highlights", 0),
+        "rights_warnings": summary.get("rights_warnings", 0),
         "enriched_matches": summary.get("enriched_matches", 0),
         "latest": latest,
         "recent_runs": summary.get("recent_runs") or [],
-        "note": summary.get("note") or "Highlights desde API permitida. No se descargan ni se rehostean vídeos.",
-        "client_note": "Los resúmenes se muestran como enlaces externos cuando la API los aporta. NeMeSiS no descarga ni rehostea vídeos.",
+        "note": summary.get("note") or "Los metadatos externos requieren certificación de derechos antes de mostrarse.",
+        "client_note": "Solo se muestran resúmenes con derechos y uso comercial certificados. NeMeSiS no descarga ni rehostea vídeos.",
     }
 
 
@@ -15668,9 +15666,11 @@ def v769_get_highlight_by_id(highlight_id):
 
 
 def v769_highlight_card_from_row(row):
-    h = dict(row or {})
+    h = classify_stored_highlight(dict(row or {}))
+    if not h.get("show_block"):
+        return {}
     video_url = h.get("safe_url") or h.get("video_url") or ""
-    embed_url = h.get("embed_url") or v769_youtube_embed_url(video_url)
+    embed_url = h.get("embed_url") if h.get("can_embed") else ""
     title = h.get("label") or h.get("title") or "Resumen del partido"
     home = h.get("home_team") or ""
     away = h.get("away_team") or ""
@@ -15688,13 +15688,14 @@ def v769_highlight_card_from_row(row):
         "safe_url": video_url,
         "watch_url": video_url,
         "embed_url": embed_url,
-        "can_embed": bool(embed_url),
+        "can_embed": bool(h.get("can_embed") and embed_url),
+        "can_link": bool(h.get("can_link")),
         "thumbnail_url": h.get("thumbnail_url") or "",
         "source_label": f"{source} - {provider}",
         "match_url": f"/match/{match_id}" if match_id else "/calendar?lane=results",
         "detail_url": f"/resumen/{h.get('id') or h.get('highlight_id')}" if (h.get("id") or h.get("highlight_id")) else video_url,
-        "client_status": "Ver en la app" if embed_url else "Ver fuente externa",
-        "rights_note": h.get("rights_note") or "Vídeo externo enlazado/embebido desde proveedor permitido. NeMeSiS no descarga ni rehostea contenido.",
+        "client_status": "Resumen oficial" if h.get("video_classification") == "OFFICIAL_EMBED" else "Vídeo autorizado",
+        "rights_note": h.get("reason") or "Contenido externo autorizado; NeMeSiS no descarga ni rehostea el vídeo.",
     }
 
 
@@ -15725,18 +15726,22 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
     """Client/admin-ready highlights center: available videos, pending results, Cron state and actions."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     base = v766_highlights_context(limit=limit)
-    available = [v769_highlight_card_from_row(h) for h in (base.get("latest") or []) if (h.get("safe_url") or h.get("video_url"))]
+    available = []
+    for item in (base.get("latest") or []):
+        card = v769_highlight_card_from_row(item)
+        if card:
+            available.append(card)
     embedded = [h for h in available if h.get("can_embed")]
     pending = v769_pending_highlight_matches(days_back=10, limit=36)
     recent_runs = base.get("recent_runs") or []
     last_run = recent_runs[0] if recent_runs else {}
-    status = "ACTIVO" if base.get("key_present") and (available or pending or recent_runs) else ("CONFIGURADO" if base.get("key_present") else "FALTA KEY")
+    status = "ACTIVO" if available else ("REQUIERE REVISIÓN" if base.get("stored_media_total") else ("CONFIGURADO" if base.get("key_present") else "FALTA KEY"))
     if available:
         headline = "Centro de resúmenes activo"
         description = "Resultados pasados con vídeo externo, partido enlazado y contexto de la app."
     elif base.get("key_present"):
-        headline = "Resúmenes listos para sincronizar"
-        description = "La key está configurada. El Cron añadirá vídeos cuando TheSportsDB/YouTube los publique."
+        headline = "Sin vídeos autorizados todavía"
+        description = "Los metadatos detectados solo serán visibles cuando sus derechos y atribución estén certificados."
     else:
         headline = "Activa la key de highlights"
         description = "Configura THESPORTSDB_API_KEY o THESPORTSDB_KEY en Render para detectar resúmenes automáticamente."
@@ -15756,6 +15761,8 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
             "videos": len(available),
             "embeddable": len(embedded),
             "pending": len(pending),
+            "stored": int(base.get("stored_media_total") or 0),
+            "rights_warnings": int(base.get("rights_warnings") or 0),
             "linked_matches": base.get("linked_matches") or 0,
             "enriched_matches": base.get("enriched_matches") or 0,
         },
@@ -15773,7 +15780,7 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
             "command": "python tools/render_cron_highlights_sync.py",
             "recommended": "Cada día por la mañana y otra pasada por la noche en días con muchos partidos.",
         },
-        "rights_note": "Los vídeos se enlazan o embeben desde el proveedor externo permitido. NeMeSiS no descarga, copia ni rehostea contenido.",
+        "rights_note": "Solo se enlazan o embeben vídeos con derechos, canal, uso comercial y atribución certificados. NeMeSiS no descarga, copia ni rehostea contenido.",
     }
 
 @app.route("/highlights")
@@ -29391,23 +29398,8 @@ def _sports_knowledge_coverage_snapshot():
     rights_warnings = 0
     approved_media = 0
     if highlights and db_table_exists("sportsdb_match_highlights"):
-        for item in rows("SELECT source,provider,video_url,embed_url,rights_note,updated_at FROM sportsdb_match_highlights ORDER BY COALESCE(updated_at,'') DESC LIMIT 250"):
-            rights_note = str(item.get("rights_note") or "").strip().upper()
-            if rights_note not in {
-                "OWNED", "LICENSED", "PROVIDER_ALLOWED", "OPEN_LICENSE_ALLOWED",
-                "ATTRIBUTION_REQUIRED", "REVIEW_REQUIRED", "BLOCKED", "UNKNOWN_RIGHTS",
-            }:
-                rights_note = "UNKNOWN_RIGHTS"
-            decision = classify_media_asset({
-                "content_type": "video",
-                "source": item.get("source") or item.get("provider"),
-                "original_url": item.get("video_url"),
-                "embed_url": item.get("embed_url"),
-                "rights_status": rights_note,
-                "commercial_use_status": "UNKNOWN" if rights_note == "UNKNOWN_RIGHTS" else "ALLOWED",
-                "attribution": item.get("source") or item.get("provider"),
-                "last_verified": item.get("updated_at"),
-            })
+        for item in rows("SELECT * FROM sportsdb_match_highlights ORDER BY COALESCE(updated_at,'') DESC LIMIT 250"):
+            decision = classify_stored_highlight(item)
             approved_media += 1 if decision.get("can_display") else 0
             rights_warnings += 1 if decision.get("decision") in {"REVIEW_REQUIRED", "BLOCKED"} else 0
     return {

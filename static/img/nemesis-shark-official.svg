@@ -1,32 +1,32 @@
-<svg width="260" height="92" viewBox="0 0 260 92" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
+<svg width="188" height="96" viewBox="0 0 188 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
-    <linearGradient id="brandBody" x1="12" y1="22" x2="244" y2="70" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#DDFCFF" stop-opacity=".16"/>
-      <stop offset=".23" stop-color="#38D9FF" stop-opacity=".12"/>
-      <stop offset=".7" stop-color="#116CD1" stop-opacity=".08"/>
-      <stop offset="1" stop-color="#061B45" stop-opacity=".03"/>
+    <linearGradient id="body" x1="8" y1="28" x2="181" y2="69" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8FCFF" stop-opacity=".74"/>
+      <stop offset=".22" stop-color="#4DE1FF" stop-opacity=".66"/>
+      <stop offset=".72" stop-color="#147FE8" stop-opacity=".46"/>
+      <stop offset="1" stop-color="#143D91" stop-opacity=".22"/>
     </linearGradient>
-    <linearGradient id="brandEdge" x1="7" y1="16" x2="250" y2="76" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F2FEFF"/>
-      <stop offset=".22" stop-color="#5CE7FF"/>
-      <stop offset=".68" stop-color="#168BFF"/>
-      <stop offset="1" stop-color="#3159D7" stop-opacity=".72"/>
+    <linearGradient id="edge" x1="7" y1="20" x2="181" y2="76" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4FEFF"/>
+      <stop offset=".3" stop-color="#66EAFF"/>
+      <stop offset=".72" stop-color="#168BFF"/>
+      <stop offset="1" stop-color="#426BDE"/>
     </linearGradient>
-    <filter id="brandGlow" x="-14%" y="-34%" width="128%" height="168%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.7" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .03 0 0 0 0 .58 0 0 0 0 1 0 0 0 .55 0" result="blueGlow"/>
-      <feMerge><feMergeNode in="blueGlow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="glow" x="-18%" y="-35%" width="136%" height="170%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.45" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .03 0 0 0 0 .6 0 0 0 0 1 0 0 0 .72 0" result="blue"/>
+      <feMerge><feMergeNode in="blue"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <g filter="url(#brandGlow)" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M7 47C23 27 55 18 94 20C126 21 151 31 177 36L204 31L247 7L235 36C244 39 252 45 258 52C247 53 238 56 230 62L249 86L202 65L176 61C144 72 107 75 76 68C52 63 37 52 26 48C19 47 13 49 7 51L18 57C27 62 37 63 47 60C31 60 17 56 7 47Z" fill="url(#brandBody)" stroke="url(#brandEdge)" stroke-width="2.35"/>
-    <path d="M94 20C108 8 125 3 145 2C135 11 132 20 136 26" fill="#0C63B6" fill-opacity=".1" stroke="url(#brandEdge)" stroke-width="2"/>
-    <path d="M111 67C128 72 144 80 157 90C138 87 121 79 106 69" fill="#0752A4" fill-opacity=".08" stroke="url(#brandEdge)" stroke-width="1.8"/>
-    <path d="M9 50C28 47 48 51 64 58C47 63 29 62 18 57" fill="#010817" fill-opacity=".9" stroke="#5CE7FF" stroke-opacity=".78" stroke-width="1.35"/>
-    <path d="M16 52L23 56L29 52L35 58L41 54L47 59" stroke="#DFFBFF" stroke-opacity=".8" stroke-width=".9"/>
-    <path d="M27 38C57 28 94 27 132 34C163 40 185 48 205 57" stroke="#DFFBFF" stroke-opacity=".62" stroke-width="1.1"/>
-    <path d="M52 32C59 42 60 51 54 60M64 29C73 40 74 51 67 62M78 26C87 38 89 50 81 64" stroke="#63E5FF" stroke-opacity=".62" stroke-width="1.25"/>
-    <circle cx="29" cy="34" r="2.15" fill="#F4FEFF"/>
-    <circle cx="29" cy="34" r=".9" fill="#010713"/>
+  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 53C22 35 48 26 79 27C104 28 122 36 139 40L157 36L181 16L174 41C180 44 184 48 187 53C181 55 176 58 171 62L181 82L154 67L138 63C113 72 83 75 59 70C39 66 27 57 19 54C15 53 11 54 8 56L15 61C22 65 30 65 38 62C25 62 15 59 8 53Z" fill="url(#body)" stroke="url(#edge)" stroke-width="2.2"/>
+    <path d="M77 27C88 14 102 8 119 7C109 18 107 28 111 34" fill="#0A5DB2" fill-opacity=".42" stroke="url(#edge)" stroke-width="1.8"/>
+    <path d="M87 69C99 74 111 82 120 91C105 88 93 80 82 71" fill="#084D9C" fill-opacity=".34" stroke="url(#edge)" stroke-width="1.7"/>
+    <path d="M9 55C23 52 38 55 49 62C37 67 23 65 15 61" fill="#010714" fill-opacity=".94" stroke="#6CEAFF" stroke-opacity=".86" stroke-width="1.25"/>
+    <path d="M15 57L21 61L26 57L31 63L36 59L41 63" stroke="#F0FDFF" stroke-opacity=".9" stroke-width=".95"/>
+    <path d="M25 43C48 34 76 34 104 39C126 43 141 50 155 60" stroke="#DFFCFF" stroke-opacity=".72" stroke-width="1.15"/>
+    <path d="M44 37C50 45 50 55 46 64M54 34C61 44 61 55 56 66M65 31C73 43 73 55 68 67" stroke="#6BE9FF" stroke-opacity=".76" stroke-width="1.15"/>
+    <circle cx="25" cy="39" r="2.25" fill="#F7FFFF"/>
+    <circle cx="25" cy="39" r=".95" fill="#010713"/>
   </g>
 </svg>

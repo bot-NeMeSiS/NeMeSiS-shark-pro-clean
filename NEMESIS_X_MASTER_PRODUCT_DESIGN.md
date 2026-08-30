@@ -141,6 +141,7 @@ Licensed / approved sources
 -> Sports Intelligence Gateway
 -> Unified Sports Domain Model
 -> Sports Knowledge Layer
+-> Sports Media & Editorial Rights Gate
 -> Sports Graph
 -> Match / Team / Competition / Player Intelligence
 -> Decision Engine
@@ -160,6 +161,7 @@ The architecture must remain evidence-first and contract-driven. No visible prod
 | Sports Intelligence Gateway | Registry and compliance gate for every source | Safer coverage expansion | No source used before approval |
 | Unified Sports Domain Model | Canonical representation of sports entities | One language across the app | No parallel entity models |
 | Sports Knowledge Layer | Reusable context for teams, matches, competitions and seasons | Better explanations without duplication | Read-only, provenance required |
+| Sports Media & Editorial Rights Gate | Separates provider discovery from client publication | Authorized media without unsafe reuse | Unknown rights always fail closed |
 | Sports Graph | Relationship map between entities and evidence | Fluid navigation and discovery | No artificial relationships |
 | Match Intelligence | Structured understanding of match state | Match Center becomes a real intelligence surface | No unsupported conclusions |
 | SHARK Intelligence | Opinion-free sports criterion based on evidence | Differentiation and premium trust | SHARK must stay silent when evidence is weak |

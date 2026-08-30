@@ -66,20 +66,22 @@ Each contract includes:
 - `build_future_consumer_contracts()`
 - `sports_knowledge_layer_snapshot()`
 
-## Reuse Prepared
+## Reuse Status
 
-The layer is prepared, but not enabled as new UI, for:
+The layer is now consumed by the connected local product experience:
 
-- Match Center
-- Team Center
-- Competition Center
-- Player Center
-- SHARK
-- Telegram
-- Picks
-- Live Center
+- Match Center uses the canonical snapshot, factual summaries, lineups, events,
+  statistics and rights-gated media.
+- Team Center and Competition Center reuse the canonical entity graph.
+- Player Center opens only from a persisted player ID and keeps media rights
+  fail-closed.
+- SHARK consumes the same match intelligence snapshot and remains silent when
+  evidence is insufficient.
+- Founder Center and the Autonomous Product QA Workforce expose compact coverage
+  and rights warnings.
 
-All future consumer contracts are read-only and marked `prepared_not_enabled`.
+Telegram, Picks and Live Center remain read-only consumers of their existing
+contracts; this convergence does not add sends, picks or provider calls.
 
 ## Match Center Integration
 
@@ -143,7 +145,27 @@ Compatible with:
 - current Browser QA
 - existing route model
 
-No public route, API, template, CSS, database schema or provider integration was added.
+No provider integration, client-side provider request or new commercial action
+was added. Match Center gained data-conditional section navigation only.
+
+## Product Convergence Evidence
+
+The isolated Browser QA Golden Journey now performs real clicks through:
+
+`Home -> Match -> Lineups -> Player -> Team -> Competition -> Match -> Events -> Statistics -> Summary -> Video -> SHARK`.
+
+Evidence 2026-08-30:
+
+- 14/14 sports-knowledge journey steps PASS;
+- desktop, tablet and mobile Match Center PASS;
+- confirmed lineup and persisted player link visible;
+- deterministic summary with 0 generative AI calls and 0 unsupported claims;
+- one explicitly authorized `SIMULATED_QA` video fallback visible;
+- 0 unsafe media visible;
+- 0 provider calls, JS errors, broken images or overflow.
+
+This certifies the local contracts and interaction. It does not certify real
+production coverage for lineups, players, events, statistics or highlights.
 
 ## Risks
 
@@ -152,6 +174,8 @@ No public route, API, template, CSS, database schema or provider integration was
 - Future centers must consume this contract instead of creating local calculations.
 - No production certification was performed in this sprint.
 
-## Next Module Recommended
+## Next Evidence Gate
 
-The next safe module is Team Center foundation, using `SPORTS-KNOWLEDGE-TEAM-V1` as input and not recalculating identity, chronology, rivalry or match evidence.
+No new module is recommended. The next gate is real production observation of a
+small Tier S/A sample using the already configured providers and existing cache.
+Until that sample exists, coverage remains `INSUFFICIENT_REAL_DATA`.

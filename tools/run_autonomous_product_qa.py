@@ -111,8 +111,11 @@ def _session_cookie(app_module, role: str) -> str:
 
 def _seed_extra(db_path: Path, qa_password: str) -> None:
     from werkzeug.security import generate_password_hash
+    from engines.api_football_live_tracker_engine import ensure_live_tracker_schema
+    from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
 
     seed_action_data(db_path)
+    ensure_live_tracker_schema(str(db_path))
     connection = sqlite3.connect(db_path)
     try:
         now = madrid_now()
@@ -162,9 +165,58 @@ def _seed_extra(db_path: Path, qa_password: str) -> None:
             ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
             ("pqa-lineup-101", "m-1", "club-norte", "Club Norte", "101", "Jugador QA", "MED", "8", 1, now),
         )
+        connection.execute(
+            """INSERT OR REPLACE INTO api_football_live_snapshots(
+                fixture_id,match_id,league_id,league_name,country,season,round_name,
+                kickoff_iso,match_date,status_short,status_long,elapsed,
+                home_team_id,away_team_id,home_team,away_team,home_score,away_score,
+                venue,payload_json,first_seen_at,last_synced_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                "m-1", "m-1", "140", "Liga Real", "Spain", "2026", "Jornada 12",
+                today + "T20:30:00+02:00", today, "FT", "Match Finished", 90,
+                "club-norte", "club-sur", "Club Norte", "Club Sur", 2, 0,
+                "Estadio Temporal QA", '{"evidence_origin":"SIMULATED_QA"}', now, now,
+            ),
+        )
+        connection.execute(
+            """INSERT OR REPLACE INTO api_football_live_events(
+                id,fixture_id,elapsed,extra,team_id,team_name,player_id,player_name,
+                event_type,detail,payload_json,captured_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+            ("pqa-event-1", "m-1", 24, 0, "club-norte", "Club Norte", "101", "Jugador QA", "Goal", "Normal Goal", '{"evidence_origin":"SIMULATED_QA"}', now),
+        )
+        for stat_id, team_id, team_name, value in (
+            ("pqa-stat-1", "club-norte", "Club Norte", "55%"),
+            ("pqa-stat-2", "club-sur", "Club Sur", "45%"),
+        ):
+            connection.execute(
+                """INSERT OR REPLACE INTO api_football_live_stats(
+                    id,fixture_id,team_id,team_name,stat_name,stat_value,numeric_value,payload_json,captured_at
+                ) VALUES(?,?,?,?,?,?,?,?,?)""",
+                (stat_id, "m-1", team_id, team_name, "Ball Possession", value, float(value.rstrip("%")), '{"evidence_origin":"SIMULATED_QA"}', now),
+            )
         connection.commit()
     finally:
         connection.close()
+    ensure_sportsdb_highlights_schema(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """INSERT OR REPLACE INTO sportsdb_match_highlights(
+                id,match_id,title,video_url,embed_url,source,provider,status,client_status,
+                rights_status,commercial_use_status,attribution,attribution_required,
+                rights_verified_at,official_source_verified,geo_restriction_status,
+                rights_note,created_at,updated_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                "pqa-video-1", "m-1", "Resumen autorizado QA",
+                "https://www.youtube.com/watch?v=rights-qa", "https://www.youtube-nocookie.com/embed/rights-qa",
+                "SIMULATED_QA", "LOCAL_QA", "AUTHORIZED", "AUTHORIZED", "LICENSED", "ALLOWED",
+                "Canal oficial QA", 0, now, 1, "RESTRICTED",
+                "Fixture aislado SIMULATED_QA; no es evidencia de producción.", now, now,
+            ),
+        )
+        connection.commit()
 
 
 def _route_guard(route, request) -> None:
@@ -349,6 +401,37 @@ def _journey_step(page, route: str, selector: str, expected_prefix: str) -> dict
         return {"route": route, "selector": selector, "expected": expected_prefix, "actual": urlparse(page.url).path, "pass": False, "error": f"{type(exc).__name__}: {str(exc)[:220]}"}
 
 
+def _section_anchor_journey(page, route: str, section: str) -> dict:
+    selector = f"[data-match-section-link='{section}']"
+    expected_fragment = f"match-section-{section}"
+    try:
+        response = page.goto(route, wait_until="domcontentloaded", timeout=10000)
+        target = page.locator(selector).first
+        target.wait_for(state="visible", timeout=5000)
+        target.click(timeout=5000)
+        fragment = urlparse(page.url).fragment
+        section_visible = page.locator(f"#{expected_fragment}").is_visible()
+        return {
+            "step": f"match_section_{section}",
+            "route": route,
+            "selector": selector,
+            "expected": f"#{expected_fragment}",
+            "actual": f"#{fragment}",
+            "http_status": response.status if response else 0,
+            "pass": bool(response and response.status < 500 and fragment == expected_fragment and section_visible),
+        }
+    except Exception as exc:
+        return {
+            "step": f"match_section_{section}",
+            "route": route,
+            "selector": selector,
+            "expected": f"#{expected_fragment}",
+            "actual": f"#{urlparse(page.url).fragment}",
+            "pass": False,
+            "error": f"{type(exc).__name__}: {str(exc)[:220]}",
+        }
+
+
 def _page_ready_journey(page, route: str, label: str) -> dict:
     try:
         response = page.goto(route, wait_until="domcontentloaded", timeout=10000)
@@ -420,10 +503,15 @@ def _sports_golden_journey(page, base_url: str) -> dict:
         _journey_step(page, base_url + "/app", "[data-nav-zone='client-desktop'] a[href='/live']", "/live"),
         _live_center_journey(page, base_url + "/live"),
         _journey_step(page, base_url + "/app", "a[href^='/match/']", "/match/"),
+        _section_anchor_journey(page, base_url + "/match/m-1", "lineups"),
         _journey_step(page, base_url + "/match/m-1", "[data-match-region='lineups'] a[href^='/player/']", "/player/"),
         _journey_step(page, base_url + "/player/101", "a[href^='/team/']", "/team/"),
         _journey_step(page, base_url + "/team/Club%20Norte", "a[href^='/competition/']", "/competition/"),
         _journey_step(page, base_url + "/competition/140", "a[href^='/match/']", "/match/"),
+        _section_anchor_journey(page, base_url + "/match/m-1", "timeline"),
+        _section_anchor_journey(page, base_url + "/match/m-1", "stats"),
+        _section_anchor_journey(page, base_url + "/match/m-1", "story"),
+        _section_anchor_journey(page, base_url + "/match/m-1", "video"),
         _sports_knowledge_evidence_journey(page, base_url + "/match/m-1"),
         _journey_step(page, base_url + "/match/m-1", "a[href^='/shark?match=']", "/shark"),
     ]

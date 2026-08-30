@@ -44,15 +44,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-6') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -69,14 +69,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -90,7 +90,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -114,7 +114,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -154,7 +154,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -1441,6 +1441,31 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   align-items: stretch;
   min-width: 0;
 }
+.v944-match-sections {
+  display: flex;
+  gap: 7px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+  scrollbar-width: thin;
+}
+.v944-match-sections a {
+  flex: 0 0 auto;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 11px;
+  border: 1px solid var(--v944-line);
+  border-radius: 6px;
+  background: rgba(8, 25, 43, .82);
+  color: #dceafb;
+  font-size: .63rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.v944-match-sections a:hover { border-color: rgba(66, 211, 255, .58); color: #fff; }
+.v944-match-sections a:focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 2px; }
+.v944-match-panel[id] { scroll-margin-top: 78px; }
 .v944-match-header,
 .v944-score-widget,
 .v944-match-panel {
@@ -1959,6 +1984,7 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .v944-match-center { gap: 10px; }
   .v944-match-anchor,
   .v944-match-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .v944-match-sections { margin-inline: -2px; padding-inline: 2px; }
   .v944-match-header { padding: 14px 12px; }
   .v944-match-header__meta { margin-bottom: 12px; }
   .v944-match-header__identity { grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); gap: 7px; }
@@ -4449,6 +4475,10 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
   --ns-gap: 12px;
   --ns-shadow: 0 16px 44px rgba(0, 0, 0, .32);
   --ns-glow: 0 0 36px rgba(50, 203, 255, .16);
+  --ns-z-content: 10;
+  --ns-z-chrome: 200;
+  --ns-z-mobile: 220;
+  --ns-z-overlay: 300;
   --nsx-bg-0: #020812;
   --nsx-bg-1: #06111f;
   --nsx-bg-2: #081b2e;
@@ -4539,7 +4569,16 @@ body.ns-app.ns-admin::after {
 }
 body.ns-app.ns-admin::before { opacity: .58; }
 body.ns-app.ns-admin::after { opacity: .18; }
-body.ns-app :is(.v933-shell-chrome,.ns-main-shell,.v787-legal-footer,.nemesis-local-safe-banner) { position: relative; z-index: 2; }
+body.ns-app :is(.ns-main-shell,.v787-legal-footer,.nemesis-local-safe-banner) {
+  position: relative;
+  z-index: var(--ns-z-content);
+}
+body.ns-app .v933-shell-chrome {
+  position: static;
+  z-index: auto;
+  pointer-events: none;
+}
+body.ns-app .v933-shell-chrome :is(a,button,input,select,textarea,summary) { pointer-events: auto; }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) {
   position: relative;
   isolation: isolate;
@@ -4558,12 +4597,12 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   z-index: 0;
   top: 50%;
   right: clamp(-34px, 1vw, 18px);
-  width: clamp(420px, 46vw, 680px);
+  width: clamp(360px, 40vw, 520px);
   aspect-ratio: 1200 / 480;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-6') center / contain no-repeat;
-  opacity: .84;
-  filter: drop-shadow(0 0 46px rgba(39, 162, 255, .42)) saturate(1.12) brightness(1.08);
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  opacity: .5;
+  filter: drop-shadow(0 0 32px rgba(39, 162, 255, .3)) saturate(1.06) brightness(1.02);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -4589,12 +4628,12 @@ body.ns-app .v937-home .v933-public-hero::after {
   mask: none;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) > * { position: relative; z-index: 1; }
-body.ns-app .v933-page-header::before { width: clamp(320px, 35vw, 500px); opacity: .42; }
-body.ns-app.ns-admin .v933-page-header::before { opacity: .24; }
+body.ns-app .v933-page-header::before { width: clamp(260px, 29vw, 380px); opacity: .22; }
+body.ns-app.ns-admin .v933-page-header::before { opacity: .14; }
 body.ns-app:is([data-ns-route="/shark"],[data-ns-route="/shark-ai"],[data-ns-route="/shark-core"]) .v933-page-header::before { content: none; }
 body.ns-app .v944-match-header::before,
-body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .38; }
-body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .76; }
+body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .28; }
+body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .48; }
 body.ns-app :is(h1,h2,h3,.v933-page-header h1) { letter-spacing: 0 !important; }
 body.ns-app :is(.v933-page-header h1,.v933-public-hero h1,.v933-client-hero h1) {
   font-size: clamp(1.45rem, 2.4vw, 2.35rem) !important;
@@ -4612,10 +4651,10 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero) {
   box-shadow: none !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::before {
-  right: clamp(-18px, 3vw, 46px);
-  width: clamp(380px, 39vw, 560px);
-  top: 46%;
-  opacity: .62;
+  right: clamp(0px, 3vw, 48px);
+  width: clamp(340px, 36vw, 500px);
+  top: 50%;
+  opacity: .46;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::after {
   background: linear-gradient(90deg, rgba(2, 11, 24, .88) 0%, rgba(2, 11, 24, .44) 48%, rgba(2, 11, 24, 0) 80%);
@@ -4628,24 +4667,24 @@ body.ns-app .v933-page-header {
   box-shadow: 0 12px 32px rgba(0,0,0,.16) !important;
 }
 body.ns-app .v933-page-header::before {
-  right: 10px;
-  width: clamp(300px, 31vw, 470px);
-  opacity: .36;
+  right: 4%;
+  width: clamp(260px, 28vw, 380px);
+  opacity: .22;
 }
 body.ns-app .v944-match-header::before {
   right: 2%;
-  width: clamp(420px, 42vw, 620px);
-  opacity: .3;
+  width: clamp(360px, 38vw, 520px);
+  opacity: .26;
 }
 
 /* The brand shark is a mark, not a circular avatar. Match the older shell rule's
    specificity so this canonical treatment wins without a blanket !important layer. */
 body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark {
   display: block !important;
-  width: 60px !important;
-  height: 34px !important;
-  min-width: 60px !important;
-  flex: 0 0 60px !important;
+  width: 58px !important;
+  height: 36px !important;
+  min-width: 58px !important;
+  flex: 0 0 58px !important;
   border: 0 !important;
   border-radius: 0 !important;
   overflow: visible !important;
@@ -4659,7 +4698,7 @@ body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-ma
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
-  filter: drop-shadow(0 0 7px rgba(62, 218, 255, .34)) !important;
+  filter: drop-shadow(0 0 8px rgba(62, 218, 255, .46)) !important;
 }
 
 /* Evidence stays available without crushing the score rail. */
@@ -4891,10 +4930,10 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
 
 @media (min-width: 981px) {
   body.ns-app .v937-home .v933-public-hero::before {
-    right: clamp(44px, 7vw, 96px);
-    width: clamp(390px, 36vw, 520px);
-    top: 44%;
-    opacity: .68;
+    right: clamp(24px, 5vw, 72px);
+    width: clamp(360px, 33vw, 460px);
+    top: 51%;
+    opacity: .46;
   }
   body.ns-app.ns-authenticated:not(.ns-admin) main.v933-client-shell { margin-left: 0 !important; padding: 76px 18px 28px !important; max-width: 1480px !important; }
   body.ns-app.ns-public main.v933-public-shell { padding: 76px 18px 28px !important; max-width: 1440px !important; }
@@ -4982,7 +5021,7 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -48px; top: 45%; width: 220px; opacity: .24; }
   body.ns-app .v933-page-header { min-height: 78px !important; padding: 11px 12px !important; }
   body.ns-app .v933-page-header::before { right: -84px; width: 300px; opacity: .22; }
-  body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark { width: 48px !important; min-width: 48px !important; height: 28px !important; flex-basis: 48px !important; }
+  body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark { width: 50px !important; min-width: 50px !important; height: 30px !important; flex-basis: 50px !important; }
   body.ns-app .sports-priority-client-hero { grid-template-columns: 1fr; }
   body.ns-app .sports-priority-client-hero p { display: none; }
   body.ns-app .sports-priority-client-hero .v933-client-hero-meta { margin-top: 7px; gap: 5px; }
@@ -5131,14 +5170,15 @@ body.ns-app .v774-kpis > .v774-kpi-item {
 body.ns-app .v774-kpis > .v774-kpi-item strong { font-size: clamp(1.08rem, 1.7vw, 1.55rem); line-height: 1.05; }
 body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-size: .78rem; }
 @media (max-width: 767px) {
-  body.ns-app::before { right: -46px; top: 96px; width: 240px; opacity: .08; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before {
-    right: -22px;
-    top: 48%;
+    right: -12px;
+    top: 52%;
     bottom: auto;
-    width: 184px;
-    opacity: .26;
+    width: 170px;
+    opacity: .3;
   }
+  body.ns-app .v933-page-header::before { right: -28px; width: 180px; opacity: .16; }
+  body.ns-app .v944-match-header::before { right: -18px; width: 220px; opacity: .22; }
 }
 
 /* SPORTS-FIRST HOME PRIORITY */

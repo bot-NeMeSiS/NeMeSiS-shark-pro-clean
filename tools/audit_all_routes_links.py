@@ -90,7 +90,8 @@ def smoke_routes() -> dict:
     ]
     results = []
     for path in paths:
-        response = client.get(path, follow_redirects=False)
+        headers = {"X-NEMESIS-QA-PROBE": "1"} if "ruta-inventada-v910" in path else {}
+        response = client.get(path, follow_redirects=False, headers=headers)
         ctype = response.headers.get("Content-Type", "")
         safe = response.status_code in {200, 302, 303, 307, 308, 403, 404}
         if path.startswith("/api/ruta-inventada"):

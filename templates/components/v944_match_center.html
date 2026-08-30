@@ -57,6 +57,7 @@
   'QuickActions': 'Acciones'
 }.get(name, 'Partido') %}
 <section class="v944-match-panel v944-match-panel--{{ name|lower }}"
+         {% if region %}id="match-section-{{ region }}"{% endif %}
          data-match-component="{{ name }}"
          data-component-state="{{ state }}"
          {% if region %}data-match-region="{{ region }}"{% endif %}>
@@ -218,7 +219,7 @@
 {% macro video_panel(context) -%}
 {% set media = context.get('media') or {} %}
 {% if media.get('visible_count') %}
-<section class="v944-match-panel v944-video-panel" data-match-region="authorized-video" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
+<section class="v944-match-panel v944-video-panel" id="match-section-video" data-match-region="authorized-video" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
   <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">Vídeo</span><h2>Resumen oficial autorizado</h2></div></header>
   {% for video in media.get('visible_videos') or [] %}
   <article data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video">

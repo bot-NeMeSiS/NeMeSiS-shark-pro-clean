@@ -7,7 +7,23 @@ import urllib.request
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from engines.content_rights_engine import classify_media_asset
+from engines.video_highlights_engine import classify_match_video
+
 TZ = ZoneInfo('Europe/Madrid')
+
+RIGHTS_STATES = {
+    'OWNED', 'LICENSED', 'PROVIDER_ALLOWED', 'OPEN_LICENSE_ALLOWED',
+    'ATTRIBUTION_REQUIRED', 'REVIEW_REQUIRED', 'BLOCKED', 'UNKNOWN_RIGHTS',
+}
+APPROVED_RIGHTS_STATES = {
+    'OWNED', 'LICENSED', 'PROVIDER_ALLOWED', 'OPEN_LICENSE_ALLOWED',
+    'ATTRIBUTION_REQUIRED',
+}
+COMMERCIAL_ALLOWED_STATES = {
+    'ALLOWED', 'COMMERCIAL_ALLOWED', 'LICENSED_COMMERCIAL',
+    'PROVIDER_TERMS_ALLOWED',
+}
 
 
 def _now():
@@ -60,7 +76,19 @@ def ensure_sportsdb_highlights_schema(db_path):
             thumbnail_url TEXT,
             source TEXT DEFAULT 'TheSportsDB',
             provider TEXT DEFAULT 'YouTube',
-            status TEXT DEFAULT 'READY',
+            status TEXT DEFAULT 'REVIEW_REQUIRED',
+            client_status TEXT DEFAULT 'REVIEW_REQUIRED',
+            rights_status TEXT DEFAULT 'UNKNOWN_RIGHTS',
+            commercial_use_status TEXT DEFAULT 'UNKNOWN',
+            attribution TEXT DEFAULT '',
+            attribution_required INTEGER DEFAULT 0,
+            rights_verified_at TEXT DEFAULT '',
+            official_source_verified INTEGER DEFAULT 0,
+            geo_restriction_status TEXT DEFAULT 'UNKNOWN',
+            thumbnail_rights_status TEXT DEFAULT 'UNKNOWN_RIGHTS',
+            thumbnail_commercial_use_status TEXT DEFAULT 'UNKNOWN',
+            thumbnail_attribution TEXT DEFAULT '',
+            rights_note TEXT DEFAULT 'UNKNOWN_RIGHTS',
             raw_json TEXT,
             created_at TEXT,
             updated_at TEXT
@@ -95,7 +123,27 @@ def ensure_sportsdb_highlights_schema(db_path):
         if 'rights_note' not in cols:
             conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN rights_note TEXT DEFAULT ''")
         if 'client_status' not in cols:
-            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN client_status TEXT DEFAULT 'READY'")
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN client_status TEXT DEFAULT 'REVIEW_REQUIRED'")
+        if 'rights_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN rights_status TEXT DEFAULT 'UNKNOWN_RIGHTS'")
+        if 'commercial_use_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN commercial_use_status TEXT DEFAULT 'UNKNOWN'")
+        if 'attribution' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN attribution TEXT DEFAULT ''")
+        if 'attribution_required' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN attribution_required INTEGER DEFAULT 0")
+        if 'rights_verified_at' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN rights_verified_at TEXT DEFAULT ''")
+        if 'official_source_verified' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN official_source_verified INTEGER DEFAULT 0")
+        if 'geo_restriction_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN geo_restriction_status TEXT DEFAULT 'UNKNOWN'")
+        if 'thumbnail_rights_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN thumbnail_rights_status TEXT DEFAULT 'UNKNOWN_RIGHTS'")
+        if 'thumbnail_commercial_use_status' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN thumbnail_commercial_use_status TEXT DEFAULT 'UNKNOWN'")
+        if 'thumbnail_attribution' not in cols:
+            conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN thumbnail_attribution TEXT DEFAULT ''")
         conn.commit()
     return {'ok': True, 'schema': 'sportsdb_highlights'}
 
@@ -190,6 +238,62 @@ def _home_away(item):
     return home, away
 
 
+def _rights_status(item):
+    raw = str(item.get('rights_status') or item.get('rights_note') or 'UNKNOWN_RIGHTS').strip().upper()
+    return raw if raw in RIGHTS_STATES else 'UNKNOWN_RIGHTS'
+
+
+def classify_stored_highlight(item, *, channel='APP'):
+    """Apply the canonical fail-closed rights decision to persisted metadata."""
+    row = dict(item or {})
+    rights_status = _rights_status(row)
+    commercial = str(row.get('commercial_use_status') or 'UNKNOWN').strip().upper()
+    geo_status = str(row.get('geo_restriction_status') or 'UNKNOWN').strip().upper()
+    original_url = str(row.get('video_url') or row.get('original_url') or '').strip()
+    embed_url = str(row.get('embed_url') or '').strip()
+    if geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'}:
+        embed_url = ''
+    decision = classify_match_video({
+        **row,
+        'content_type': 'video',
+        'source': row.get('source') or row.get('provider'),
+        'original_url': original_url,
+        'embed_url': embed_url,
+        'thumbnail_url': row.get('thumbnail_url'),
+        'rights_status': rights_status,
+        'commercial_use_status': commercial,
+        'attribution': row.get('attribution'),
+        'attribution_required': bool(row.get('attribution_required')),
+        'rights_verified_at': row.get('rights_verified_at'),
+        'official_source_verified': bool(row.get('official_source_verified')),
+        'geo_restriction_status': geo_status,
+        'channel': channel,
+    })
+    thumbnail = classify_media_asset({
+        'content_type': 'thumbnail',
+        'source': row.get('source') or row.get('provider'),
+        'image_url': row.get('thumbnail_url'),
+        'rights_status': row.get('thumbnail_rights_status') or 'UNKNOWN_RIGHTS',
+        'commercial_use_status': row.get('thumbnail_commercial_use_status') or 'UNKNOWN',
+        'attribution': row.get('thumbnail_attribution') or '',
+        'rights_verified_at': row.get('rights_verified_at'),
+    }, channel=channel)
+    return {
+        **row,
+        **decision,
+        'video_url': original_url,
+        'thumbnail_url': thumbnail.get('asset_url') if thumbnail.get('can_display') else '',
+        'thumbnail_rights': thumbnail,
+        'geo_restriction_status': geo_status,
+        'geo_restricted': geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'},
+    }
+
+
+def _visible_highlights(items):
+    classified = [classify_stored_highlight(item) for item in (items or [])]
+    return classified, [item for item in classified if item.get('show_block')]
+
+
 def _find_match(conn, item):
     cols = _cols(conn, 'matches')
     if not cols:
@@ -228,19 +332,58 @@ def _upsert_highlight(conn, item):
     hid = hashlib.md5(('sportsdb-highlight:' + (sid or video)).encode()).hexdigest()[:22]
     match_id = _find_match(conn, item) or ''
     provider = 'YouTube' if 'youtu' in video.lower() else 'Video'
-    client_status = 'EMBED_READY' if embed else ('LINK_READY' if video else 'NO_VIDEO')
-    conn.execute('''INSERT OR REPLACE INTO sportsdb_match_highlights
-        (id,sportsdb_event_id,match_id,event_date,league_id,league_name,home_team,away_team,title,video_url,embed_url,thumbnail_url,source,provider,status,client_status,rights_note,raw_json,created_at,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', (
+    existing = _one(conn, 'SELECT * FROM sportsdb_match_highlights WHERE id=?', (hid,)) or {}
+    rights_status = _rights_status(existing)
+    commercial = str(existing.get('commercial_use_status') or 'UNKNOWN').strip().upper()
+    attribution = str(existing.get('attribution') or '').strip()
+    attribution_required = int(bool(existing.get('attribution_required')))
+    rights_verified_at = str(existing.get('rights_verified_at') or '')
+    official_source_verified = int(bool(existing.get('official_source_verified')))
+    geo_restriction_status = str(existing.get('geo_restriction_status') or 'UNKNOWN').strip().upper()
+    approved = rights_status in APPROVED_RIGHTS_STATES and commercial in COMMERCIAL_ALLOWED_STATES
+    if rights_status == 'ATTRIBUTION_REQUIRED' and not attribution:
+        approved = False
+    status = 'READY' if video and approved else ('REVIEW_REQUIRED' if video else 'NO_VIDEO')
+    client_status = 'AUTHORIZED' if approved else status
+    created_at = existing.get('created_at') or now
+    conn.execute('''INSERT INTO sportsdb_match_highlights
+        (id,sportsdb_event_id,match_id,event_date,league_id,league_name,home_team,away_team,title,video_url,embed_url,thumbnail_url,source,provider,status,client_status,rights_status,commercial_use_status,attribution,attribution_required,rights_verified_at,official_source_verified,geo_restriction_status,rights_note,raw_json,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET
+          sportsdb_event_id=excluded.sportsdb_event_id,
+          match_id=excluded.match_id,
+          event_date=excluded.event_date,
+          league_id=excluded.league_id,
+          league_name=excluded.league_name,
+          home_team=excluded.home_team,
+          away_team=excluded.away_team,
+          title=excluded.title,
+          video_url=excluded.video_url,
+          embed_url=excluded.embed_url,
+          thumbnail_url=excluded.thumbnail_url,
+          source=excluded.source,
+          provider=excluded.provider,
+          status=excluded.status,
+          client_status=excluded.client_status,
+          raw_json=excluded.raw_json,
+          updated_at=excluded.updated_at''', (
         hid, sid, match_id, date_value, str(item.get('idLeague') or ''), item.get('strLeague') or '', home, away,
         _title(item), video, embed, _thumb(item), 'TheSportsDB', provider,
-        'READY' if video else 'NO_VIDEO', client_status, 'Enlace/iframe externo permitido por la plataforma; no se descarga ni se rehostea vídeo.',
-        json.dumps(item, ensure_ascii=False), now, now))
-    return {'id': hid, 'match_id': match_id, 'sportsdb_event_id': sid}
+        status, client_status, rights_status, commercial, attribution, attribution_required,
+        rights_verified_at, official_source_verified, geo_restriction_status, rights_status,
+        json.dumps(item, ensure_ascii=False), created_at, now))
+    return {
+        'id': hid,
+        'match_id': match_id,
+        'sportsdb_event_id': sid,
+        'rights_status': rights_status,
+        'client_status': client_status,
+    }
 
 
 def _summary_for_match(conn, match):
-    highlights = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 5', (match.get('id'),))
+    stored = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 5', (match.get('id'),))
+    _classified, highlights = _visible_highlights(stored)
     score = match.get('score') or ''
     status = match.get('status') or ''
     comp = match.get('competition_name') or match.get('league_name') or 'Competición'
@@ -318,9 +461,16 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
 def sportsdb_highlights_for_match(db_path, match_id):
     ensure_sportsdb_highlights_schema(db_path)
     with _connect(db_path) as conn:
-        highlights = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 8', (match_id,))
+        stored = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 8', (match_id,))
         enrich = _one(conn, 'SELECT * FROM sportsdb_match_enrichment WHERE match_id=?', (match_id,)) or {}
-    return {'highlights': highlights, 'enrichment': enrich, 'summary_text': enrich.get('summary_text') or ''}
+    classified, highlights = _visible_highlights(stored)
+    return {
+        'highlights': highlights,
+        'all_highlights': classified,
+        'rights_warnings': len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}]),
+        'enrichment': enrich,
+        'summary_text': enrich.get('summary_text') or '',
+    }
 
 
 def sportsdb_highlights_summary(db_path):
@@ -330,8 +480,11 @@ def sportsdb_highlights_summary(db_path):
         linked = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(match_id,'')<>''") or {}).get('total', 0)
         enriched = (_one(conn, 'SELECT COUNT(*) AS total FROM sportsdb_match_enrichment') or {}).get('total', 0)
         with_video = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''") or {}).get('total', 0)
-        latest = _rows(conn, 'SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC LIMIT 8')
+        stored_latest = _rows(conn, 'SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC LIMIT 250')
         runs = _rows(conn, 'SELECT * FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 6')
+    classified, visible = _visible_highlights(stored_latest)
+    linked_visible = len({str(item.get('match_id')) for item in visible if str(item.get('match_id') or '').strip()})
+    rights_warnings = len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}])
     readiness = 25
     if _api_key(): readiness += 25
     if total: readiness += 20
@@ -341,11 +494,17 @@ def sportsdb_highlights_summary(db_path):
         'status': 'ACTIVO' if _api_key() else 'FALTA KEY',
         'key_present': bool(_api_key()),
         'readiness_score': min(readiness, 100),
-        'highlights_total': total,
-        'with_video': with_video,
-        'linked_matches': linked,
+        'highlights_total': len(visible),
+        'stored_media_total': total,
+        'with_video': len(visible),
+        'stored_with_video': with_video,
+        'linked_matches': linked_visible,
+        'stored_linked_matches': linked,
+        'authorized_highlights': len(visible),
+        'blocked_highlights': rights_warnings,
+        'rights_warnings': rights_warnings,
         'enriched_matches': enriched,
-        'latest_highlights': latest,
+        'latest_highlights': visible[:8],
         'recent_runs': runs,
-        'note': 'TheSportsDB aporta highlights de YouTube por fecha/evento; pueden estar geobloqueados porque dependen de YouTube y la fuente externa.'
+        'note': 'TheSportsDB aporta metadatos y enlaces de YouTube. Solo se muestran tras certificar derechos, uso comercial y atribución; los vídeos pueden estar geobloqueados.'
     }

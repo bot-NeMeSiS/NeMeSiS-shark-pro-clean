@@ -38,7 +38,11 @@ COMMERCIAL_ALLOWED_STATES = {
     "PROVIDER_TERMS_ALLOWED",
 }
 
-VIDEO_PROVIDERS = {"youtube.com", "www.youtube.com", "youtu.be", "player.vimeo.com", "vimeo.com"}
+VIDEO_PROVIDERS = {
+    "youtube.com", "www.youtube.com", "youtu.be",
+    "youtube-nocookie.com", "www.youtube-nocookie.com",
+    "player.vimeo.com", "vimeo.com",
+}
 IMAGE_API_HINTS = {"thesportsdb", "api-football", "sportsdb"}
 
 
@@ -80,7 +84,18 @@ def classify_media_asset(item: dict | None, *, channel: str = "APP") -> dict:
     attribution_required = bool(item.get("attribution_required")) or rights_status == ATTRIBUTION_REQUIRED
     last_verified = str(item.get("last_verified") or item.get("rights_verified_at") or "").strip()
 
-    if not asset_url:
+    requested_channel = str(channel or "APP").strip().upper()
+    allowed_channels = {
+        str(value).strip().upper()
+        for value in (item.get("allowed_channels") or item.get("channels_allowed") or [])
+        if str(value).strip()
+    }
+    explicit_channel_allowed = item.get("channel_allowed")
+
+    if explicit_channel_allowed is False or (allowed_channels and requested_channel not in allowed_channels):
+        decision = BLOCKED
+        reason = "La licencia no autoriza esta superficie o canal."
+    elif not asset_url:
         decision = BLOCKED
         reason = "No existe un recurso externo que evaluar; usar fallback propio."
     elif rights_status == BLOCKED:
@@ -113,7 +128,9 @@ def classify_media_asset(item: dict | None, *, channel: str = "APP") -> dict:
         "attribution": attribution,
         "commercial_use_status": commercial,
         "last_verified": last_verified,
-        "channel": str(channel or "APP").strip().upper(),
+        "channel": requested_channel,
+        "channel_allowed": bool(can_display),
+        "allowed_channels": sorted(allowed_channels),
         "decision": decision,
         "can_display": can_display,
         "requires_review": decision == REVIEW_REQUIRED,

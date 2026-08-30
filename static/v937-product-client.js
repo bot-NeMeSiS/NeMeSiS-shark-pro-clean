@@ -2,7 +2,7 @@
   "use strict";
 
   const body = document.body;
-  if (!body || body.classList.contains("admin-shell") || body.dataset.admin === "true") return;
+  if (!body || body.classList.contains("ns-admin") || body.dataset.admin === "true") return;
 
   const route = body.dataset.nsRoute || body.dataset.route || location.pathname || "/";
   body.classList.add("v937-client-route");

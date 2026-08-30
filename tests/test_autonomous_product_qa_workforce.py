@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from engines.autonomous_product_qa_engine import (
+    QA_EXECUTION_POLICY,
     build_autonomous_product_qa_status,
     detect_product_qa_issues,
     product_qa_review_findings,
@@ -10,6 +11,11 @@ from engines.autonomous_product_qa_engine import (
     set_product_qa_pause,
 )
 from engines.sentinel_issues_engine import normalize_sentinel_issue, upsert_sentinel_issues
+
+
+def test_daily_policy_includes_sports_knowledge_summary_and_media_rights():
+    checks = set(QA_EXECUTION_POLICY["daily"]["checks"])
+    assert {"sports_knowledge", "summary_truth", "media_rights"} <= checks
 
 
 def failing_observation() -> dict:
