@@ -40,7 +40,7 @@ def test_canonical_shell_keeps_navigation_clickable_and_admin_isolated():
     assert "position: static;" in css
     assert "body.ns-app .v933-shell-chrome :is(a,button,input,select,textarea,summary) { pointer-events: auto; }" in css
     assert 'body.classList.contains("ns-admin")' in client_js
-    assert 'viewBox="0 0 188 96"' in shark
+    assert 'viewBox="0 0 180 120"' in shark
     assert not (ROOT / "static" / "img" / "shark-logo.svg").exists()
 
     visual_sources = [
@@ -52,8 +52,10 @@ def test_canonical_shell_keeps_navigation_clickable_and_admin_isolated():
         path.read_text(encoding="utf-8", errors="replace") for path in visual_sources
     )
     assert "official-brand-6" not in visual_text
+    assert "official-brand-8" not in visual_text
     assert "official-atmosphere-5" not in visual_text
     assert "official-atmosphere-6" not in visual_text
+    assert "official-atmosphere-7" not in visual_text
 
 
 def test_public_pages_do_not_crash(client):

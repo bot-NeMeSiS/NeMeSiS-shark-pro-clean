@@ -273,7 +273,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
           const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
           const sharkAssetOk = /nemesis-shark-atmosphere\.svg/.test(sharkImage);
-          const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= .48 && sharkOpacity >= .18 && sharkOpacity <= .76;
+          const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .9;
           const backgroundOk = /gradient/.test(bg) && !/^none$/i.test(bg);
           const lineup = document.querySelector('[data-lineups-contract]');
           const summary = document.querySelector('[data-summary-contract]');

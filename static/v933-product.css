@@ -44,15 +44,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -69,14 +69,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -90,7 +90,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -114,7 +114,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -154,7 +154,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -1050,11 +1050,11 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 .v933-shark-hero > div { z-index: 2; }
 .v933-shark-hero img {
   justify-self: end;
-  width: min(430px,100%);
-  max-height: 180px;
+  width: min(540px,100%);
+  max-height: 230px;
   object-fit: contain;
-  opacity: .82;
-  filter: drop-shadow(0 0 34px rgba(25,128,255,.34));
+  opacity: .96;
+  filter: drop-shadow(0 0 44px rgba(30,170,255,.48)) saturate(1.12) brightness(1.08);
 }
 .v933-shark-answer { min-height: 120px; display: grid; grid-template-columns: 42px minmax(0,1fr); align-items: start; gap: 13px; padding: 15px; border: 1px solid rgba(25,213,255,.24); border-radius: var(--v933-radius-sm); color: #d7e8f8; background: rgba(25,213,255,.055); }
 .v933-shark-answer .v933-icon { width: 40px; height: 40px; padding: 8px; border: 1px solid rgba(25,213,255,.25); border-radius: 50%; color: var(--v933-cyan); }
@@ -1091,11 +1091,11 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
     display: block;
     position: absolute;
     z-index: 1;
-    top: 12px;
-    right: -82px;
-    width: 300px;
-    max-height: 140px;
-    opacity: .34;
+    top: -8px;
+    right: -96px;
+    width: 360px;
+    max-height: 190px;
+    opacity: .62;
   }
   .v933-telegram-mark { position: absolute; right: 20px; width: 58px; height: 58px; opacity: .65; }
   .v933-telegram-mark .v933-icon { width: 32px; height: 32px; }
@@ -4479,11 +4479,11 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
   --ns-z-chrome: 200;
   --ns-z-mobile: 220;
   --ns-z-overlay: 300;
-  --nsx-bg-0: #020812;
-  --nsx-bg-1: #06111f;
-  --nsx-bg-2: #081b2e;
-  --nsx-panel: rgba(7, 18, 34, .78);
-  --nsx-panel-strong: rgba(10, 27, 49, .88);
+  --nsx-bg-0: #01050d;
+  --nsx-bg-1: #03101d;
+  --nsx-bg-2: #061a2c;
+  --nsx-panel: rgba(5, 17, 32, .8);
+  --nsx-panel-strong: rgba(7, 24, 44, .9);
   --nsx-line: rgba(118, 196, 255, .18);
   --nsx-line-strong: rgba(70, 211, 255, .42);
   --nsx-cyan: #39d8ff;
@@ -4506,11 +4506,11 @@ body.ns-app {
   min-height: 100vh;
   color: var(--ns-text);
   background:
-    radial-gradient(ellipse at 52% -9%, rgba(151, 236, 255, .2), transparent 27vw),
-    radial-gradient(ellipse at 88% 18%, rgba(18, 108, 236, .22), transparent 34vw),
-    radial-gradient(ellipse at 4% 57%, rgba(8, 99, 168, .17), transparent 39vw),
-    radial-gradient(ellipse at 50% 118%, rgba(0, 2, 8, .98), transparent 58vw),
-    linear-gradient(180deg, #031225 0%, #020d1c 34%, #010812 71%, #000207 100%) !important;
+    radial-gradient(ellipse at 48% -14%, rgba(178, 242, 255, .16), transparent 25vw),
+    radial-gradient(ellipse at 88% 13%, rgba(13, 93, 216, .2), transparent 32vw),
+    radial-gradient(ellipse at 6% 62%, rgba(6, 73, 130, .13), transparent 36vw),
+    radial-gradient(ellipse at 52% 112%, rgba(0, 1, 6, .98), transparent 50vw),
+    linear-gradient(180deg, #020b18 0%, #020913 35%, #01050d 70%, #000104 100%) !important;
   background-attachment: fixed !important;
   letter-spacing: 0;
 }
@@ -4530,14 +4530,14 @@ body.ns-app.ns-admin::before {
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(112deg, transparent 0 15%, rgba(169, 237, 255, .075) 28%, transparent 43%),
-    linear-gradient(102deg, transparent 0 49%, rgba(54, 164, 255, .07) 64%, transparent 81%),
-    linear-gradient(76deg, transparent 0 70%, rgba(122, 221, 255, .055) 78%, transparent 88%),
-    radial-gradient(ellipse at 51% 1%, rgba(159, 237, 255, .19), transparent 28%),
-    radial-gradient(ellipse at 50% 24%, rgba(22, 121, 202, .12), transparent 47%),
-    radial-gradient(ellipse at 52% 103%, rgba(0, 2, 8, .9), transparent 52%);
+    linear-gradient(116deg, transparent 0 17%, rgba(195, 246, 255, .105) 29%, rgba(48, 155, 232, .025) 43%, transparent 51%),
+    linear-gradient(104deg, transparent 0 48%, rgba(63, 174, 255, .075) 61%, transparent 77%),
+    linear-gradient(79deg, transparent 0 72%, rgba(116, 218, 255, .05) 79%, transparent 88%),
+    radial-gradient(ellipse at 49% -2%, rgba(178, 243, 255, .2), transparent 25%),
+    radial-gradient(ellipse at 62% 25%, rgba(14, 101, 190, .105), transparent 44%),
+    radial-gradient(ellipse at 50% 104%, rgba(0, 1, 6, .94), transparent 49%);
   background-size: 100% 100%;
-  opacity: .94;
+  opacity: .97;
   filter: none;
   transform: none;
   animation: none;
@@ -4554,12 +4554,13 @@ body.ns-app.ns-admin::after {
   pointer-events: none;
   width: auto;
   height: auto;
-  opacity: .42;
+  opacity: .46;
   background:
-    radial-gradient(circle, rgba(151, 235, 255, .54) 0 1px, transparent 1.35px) 7% 9% / 43px 43px,
-    radial-gradient(circle, rgba(255,255,255,.2) 0 1px, transparent 1.25px) 13px 17px / 71px 71px,
-    radial-gradient(ellipse at 9% 100%, rgba(6, 28, 48, .82), transparent 29%),
-    radial-gradient(ellipse at 92% 105%, rgba(4, 21, 38, .9), transparent 31%);
+    radial-gradient(circle, rgba(146, 232, 255, .48) 0 1px, transparent 1.3px) 7% 9% / 47px 47px,
+    radial-gradient(circle, rgba(255,255,255,.18) 0 .8px, transparent 1.15px) 13px 17px / 79px 79px,
+    radial-gradient(ellipse at 12% 108%, rgba(4, 25, 45, .76), transparent 27%),
+    radial-gradient(ellipse at 89% 110%, rgba(3, 18, 34, .84), transparent 30%),
+    linear-gradient(180deg, rgba(0,0,0,0) 52%, rgba(0,3,9,.44) 100%);
   background-size: 43px 43px, 71px 71px, 100% 100%, 100% 100%;
   filter: none;
   transform: none;
@@ -4588,21 +4589,21 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   background:
     radial-gradient(ellipse at 76% 12%, rgba(21, 132, 255, .22), transparent 32%),
     radial-gradient(ellipse at 12% 110%, rgba(22, 103, 207, .16), transparent 38%),
-    linear-gradient(108deg, rgba(4, 17, 34, .97), rgba(3, 15, 31, .9) 51%, rgba(1, 10, 24, .76)) !important;
+    linear-gradient(108deg, rgba(3, 14, 29, .97), rgba(2, 12, 26, .88) 48%, rgba(1, 8, 20, .7)) !important;
   box-shadow: var(--nsx-shadow), inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(57,216,255,.04) !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before {
   content: "";
   position: absolute;
   z-index: 0;
-  top: 50%;
-  right: clamp(-34px, 1vw, 18px);
-  width: clamp(360px, 40vw, 520px);
-  aspect-ratio: 1200 / 480;
+  top: 48%;
+  right: clamp(-46px, 1vw, 22px);
+  width: clamp(460px, 44vw, 650px);
+  aspect-ratio: 1200 / 500;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-7') center / contain no-repeat;
-  opacity: .5;
-  filter: drop-shadow(0 0 32px rgba(39, 162, 255, .3)) saturate(1.06) brightness(1.02);
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official-atmosphere-8') center / contain no-repeat;
+  opacity: .66;
+  filter: drop-shadow(0 0 38px rgba(35, 150, 255, .38)) saturate(1.08) brightness(1.02);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -4611,7 +4612,7 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(2, 11, 24, .82) 0%, rgba(2, 11, 24, .54) 47%, rgba(2, 11, 24, .08) 76%, rgba(2, 11, 24, .2) 100%);
+  background: linear-gradient(90deg, rgba(1, 8, 19, .9) 0%, rgba(1, 8, 19, .62) 42%, rgba(1, 8, 19, .12) 68%, rgba(1, 8, 19, .24) 100%);
   opacity: 1;
   filter: none;
   -webkit-mask: none;
@@ -4621,19 +4622,19 @@ body.ns-app .v937-home .v933-public-hero::after {
   inset: 0;
   width: auto;
   height: auto;
-  background: linear-gradient(90deg, rgba(2, 11, 24, .86), rgba(2, 11, 24, .5) 51%, rgba(2, 11, 24, .06) 79%);
+  background: linear-gradient(90deg, rgba(1, 8, 19, .9), rgba(1, 8, 19, .53) 43%, rgba(1, 8, 19, .05) 69%);
   opacity: 1;
   filter: none;
   -webkit-mask: none;
   mask: none;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) > * { position: relative; z-index: 1; }
-body.ns-app .v933-page-header::before { width: clamp(260px, 29vw, 380px); opacity: .22; }
-body.ns-app.ns-admin .v933-page-header::before { opacity: .14; }
+body.ns-app .v933-page-header::before { width: clamp(320px, 34vw, 470px); opacity: .3; }
+body.ns-app.ns-admin .v933-page-header::before { opacity: .2; }
 body.ns-app:is([data-ns-route="/shark"],[data-ns-route="/shark-ai"],[data-ns-route="/shark-core"]) .v933-page-header::before { content: none; }
 body.ns-app .v944-match-header::before,
-body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .28; }
-body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .48; }
+body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .46; }
+body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .86; }
 body.ns-app :is(h1,h2,h3,.v933-page-header h1) { letter-spacing: 0 !important; }
 body.ns-app :is(.v933-page-header h1,.v933-public-hero h1,.v933-client-hero h1) {
   font-size: clamp(1.45rem, 2.4vw, 2.35rem) !important;
@@ -4643,7 +4644,7 @@ body.ns-app :is(.v933-page-header p,.v933-public-hero p,.v933-client-hero p) { m
 
 /* Reference client composition: ocean canvas first, product immediately below. */
 body.ns-app :is(.v933-public-hero,.v933-client-hero) {
-  min-height: 190px !important;
+  min-height: 196px !important;
   padding: 22px 24px !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -4651,13 +4652,13 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero) {
   box-shadow: none !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::before {
-  right: clamp(0px, 3vw, 48px);
-  width: clamp(340px, 36vw, 500px);
-  top: 50%;
-  opacity: .46;
+  right: clamp(-18px, 2vw, 34px);
+  width: clamp(430px, 47vw, 620px);
+  top: 48%;
+  opacity: .72;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::after {
-  background: linear-gradient(90deg, rgba(2, 11, 24, .88) 0%, rgba(2, 11, 24, .44) 48%, rgba(2, 11, 24, 0) 80%);
+  background: linear-gradient(90deg, rgba(1, 8, 19, .94) 0%, rgba(1, 8, 19, .63) 43%, rgba(1, 8, 19, .08) 68%, rgba(1,8,19,.08) 100%);
 }
 body.ns-app .v933-page-header {
   min-height: 96px !important;
@@ -4667,24 +4668,24 @@ body.ns-app .v933-page-header {
   box-shadow: 0 12px 32px rgba(0,0,0,.16) !important;
 }
 body.ns-app .v933-page-header::before {
-  right: 4%;
-  width: clamp(260px, 28vw, 380px);
-  opacity: .22;
+  right: 3%;
+  width: clamp(320px, 34vw, 470px);
+  opacity: .3;
 }
 body.ns-app .v944-match-header::before {
-  right: 2%;
-  width: clamp(360px, 38vw, 520px);
-  opacity: .26;
+  right: 1%;
+  width: clamp(460px, 44vw, 650px);
+  opacity: .48;
 }
 
 /* The brand shark is a mark, not a circular avatar. Match the older shell rule's
    specificity so this canonical treatment wins without a blanket !important layer. */
 body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark {
   display: block !important;
-  width: 58px !important;
-  height: 36px !important;
-  min-width: 58px !important;
-  flex: 0 0 58px !important;
+  width: 48px !important;
+  height: 42px !important;
+  min-width: 48px !important;
+  flex: 0 0 48px !important;
   border: 0 !important;
   border-radius: 0 !important;
   overflow: visible !important;
@@ -4698,7 +4699,7 @@ body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-ma
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
-  filter: drop-shadow(0 0 8px rgba(62, 218, 255, .46)) !important;
+  filter: drop-shadow(0 0 10px rgba(62, 218, 255, .62)) !important;
 }
 
 /* Evidence stays available without crushing the score rail. */
@@ -4930,10 +4931,10 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
 
 @media (min-width: 981px) {
   body.ns-app .v937-home .v933-public-hero::before {
-    right: clamp(24px, 5vw, 72px);
-    width: clamp(360px, 33vw, 460px);
-    top: 51%;
-    opacity: .46;
+    right: clamp(16px, 3vw, 48px);
+    width: clamp(430px, 40vw, 560px);
+    top: 50%;
+    opacity: .7;
   }
   body.ns-app.ns-authenticated:not(.ns-admin) main.v933-client-shell { margin-left: 0 !important; padding: 76px 18px 28px !important; max-width: 1480px !important; }
   body.ns-app.ns-public main.v933-public-shell { padding: 76px 18px 28px !important; max-width: 1440px !important; }
@@ -5018,10 +5019,11 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app main.v933-admin-shell { padding-inline: 9px !important; }
   body.ns-app::before { opacity: .9; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero) { min-height: 142px !important; padding: 11px 10px !important; }
-  body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -48px; top: 45%; width: 220px; opacity: .24; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -76px; top: 37%; width: 340px; opacity: .68; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero)::after { background: linear-gradient(90deg, rgba(1,8,19,.94), rgba(1,8,19,.62) 54%, rgba(1,8,19,.12) 82%); }
   body.ns-app .v933-page-header { min-height: 78px !important; padding: 11px 12px !important; }
-  body.ns-app .v933-page-header::before { right: -84px; width: 300px; opacity: .22; }
-  body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark { width: 50px !important; min-width: 50px !important; height: 30px !important; flex-basis: 50px !important; }
+  body.ns-app .v933-page-header::before { right: -96px; width: 330px; opacity: .34; }
+  body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark { width: 43px !important; min-width: 43px !important; height: 36px !important; flex-basis: 43px !important; }
   body.ns-app .sports-priority-client-hero { grid-template-columns: 1fr; }
   body.ns-app .sports-priority-client-hero p { display: none; }
   body.ns-app .sports-priority-client-hero .v933-client-hero-meta { margin-top: 7px; gap: 5px; }
@@ -5171,14 +5173,14 @@ body.ns-app .v774-kpis > .v774-kpi-item strong { font-size: clamp(1.08rem, 1.7vw
 body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-size: .78rem; }
 @media (max-width: 767px) {
   body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::before {
-    right: -12px;
-    top: 52%;
+    right: -56px;
+    top: 43%;
     bottom: auto;
-    width: 170px;
-    opacity: .3;
+    width: 270px;
+    opacity: .48;
   }
-  body.ns-app .v933-page-header::before { right: -28px; width: 180px; opacity: .16; }
-  body.ns-app .v944-match-header::before { right: -18px; width: 220px; opacity: .22; }
+  body.ns-app .v933-page-header::before { right: -62px; width: 230px; opacity: .24; }
+  body.ns-app .v944-match-header::before { right: -52px; width: 300px; opacity: .34; }
 }
 
 /* SPORTS-FIRST HOME PRIORITY */

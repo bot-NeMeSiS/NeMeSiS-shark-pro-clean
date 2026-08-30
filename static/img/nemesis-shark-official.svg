@@ -1,32 +1,21 @@
-<svg width="188" height="96" viewBox="0 0 188 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
+<svg width="180" height="120" viewBox="0 0 180 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
-    <linearGradient id="body" x1="8" y1="28" x2="181" y2="69" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#E8FCFF" stop-opacity=".74"/>
-      <stop offset=".22" stop-color="#4DE1FF" stop-opacity=".66"/>
-      <stop offset=".72" stop-color="#147FE8" stop-opacity=".46"/>
-      <stop offset="1" stop-color="#143D91" stop-opacity=".22"/>
+    <linearGradient id="edge" x1="17" y1="23" x2="154" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DFFBFF"/>
+      <stop offset=".3" stop-color="#55E2FF"/>
+      <stop offset=".72" stop-color="#1487FF"/>
+      <stop offset="1" stop-color="#3158CD"/>
     </linearGradient>
-    <linearGradient id="edge" x1="7" y1="20" x2="181" y2="76" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F4FEFF"/>
-      <stop offset=".3" stop-color="#66EAFF"/>
-      <stop offset=".72" stop-color="#168BFF"/>
-      <stop offset="1" stop-color="#426BDE"/>
-    </linearGradient>
-    <filter id="glow" x="-18%" y="-35%" width="136%" height="170%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.45" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .03 0 0 0 0 .6 0 0 0 0 1 0 0 0 .72 0" result="blue"/>
-      <feMerge><feMergeNode in="blue"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
   </defs>
-  <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M8 53C22 35 48 26 79 27C104 28 122 36 139 40L157 36L181 16L174 41C180 44 184 48 187 53C181 55 176 58 171 62L181 82L154 67L138 63C113 72 83 75 59 70C39 66 27 57 19 54C15 53 11 54 8 56L15 61C22 65 30 65 38 62C25 62 15 59 8 53Z" fill="url(#body)" stroke="url(#edge)" stroke-width="2.2"/>
-    <path d="M77 27C88 14 102 8 119 7C109 18 107 28 111 34" fill="#0A5DB2" fill-opacity=".42" stroke="url(#edge)" stroke-width="1.8"/>
-    <path d="M87 69C99 74 111 82 120 91C105 88 93 80 82 71" fill="#084D9C" fill-opacity=".34" stroke="url(#edge)" stroke-width="1.7"/>
-    <path d="M9 55C23 52 38 55 49 62C37 67 23 65 15 61" fill="#010714" fill-opacity=".94" stroke="#6CEAFF" stroke-opacity=".86" stroke-width="1.25"/>
-    <path d="M15 57L21 61L26 57L31 63L36 59L41 63" stroke="#F0FDFF" stroke-opacity=".9" stroke-width=".95"/>
-    <path d="M25 43C48 34 76 34 104 39C126 43 141 50 155 60" stroke="#DFFCFF" stroke-opacity=".72" stroke-width="1.15"/>
-    <path d="M44 37C50 45 50 55 46 64M54 34C61 44 61 55 56 66M65 31C73 43 73 55 68 67" stroke="#6BE9FF" stroke-opacity=".76" stroke-width="1.15"/>
-    <circle cx="25" cy="39" r="2.25" fill="#F7FFFF"/>
-    <circle cx="25" cy="39" r=".95" fill="#010713"/>
+  <g stroke="url(#edge)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 61C31 39 57 28 87 30C105 31 121 37 136 42L151 35L169 21L163 45C171 49 176 55 179 62C169 64 160 69 152 76L165 95L139 83L124 80C103 91 77 96 55 91C37 87 23 77 14 65L25 69C36 74 47 73 57 68C42 69 27 66 14 61Z" stroke-width="3"/>
+    <path d="M76 30C85 18 98 11 114 9C104 21 103 31 108 38" stroke-width="2.5"/>
+    <path d="M82 87C96 92 108 100 117 112C101 108 88 100 76 90" stroke-width="2.35"/>
+    <path d="M17 64C31 61 45 64 56 71C45 78 31 76 24 71" stroke-width="2.1"/>
+    <path d="M24 65L30 70L36 65L41 72L47 67L52 71" stroke="#E9FDFF" stroke-opacity=".88" stroke-width="1.25"/>
+    <path d="M34 47C53 39 77 37 101 41C119 44 133 50 145 58" stroke="#A6F1FF" stroke-opacity=".72" stroke-width="1.65"/>
+    <path d="M47 41C52 49 53 57 50 66M57 38C63 47 64 57 60 68M68 34C75 45 76 56 72 69" stroke="#50D7FF" stroke-opacity=".68" stroke-width="1.45"/>
+    <circle cx="32" cy="46" r="2.6" fill="#EFFFFF" stroke="none"/><circle cx="32" cy="46" r="1.05" fill="#020713" stroke="none"/>
+    <path d="M137 84C122 103 96 112 69 108C46 105 29 94 19 79" stroke="#1B87F5" stroke-opacity=".58" stroke-width="2.1"/>
   </g>
 </svg>

@@ -848,12 +848,12 @@ def test_p0_operations_quality_contract_is_compact_and_cache_only(app_module):
         app_module,
         "quality-elite",
         "Bundesliga",
-        date_offset=0,
+        date_offset=1,
         country="Germany",
         home="Bayern Munich",
         away="Stuttgart",
     )
-    unknown = _sports_relevance_match(app_module, "quality-unknown", "Torneo sin mapear", date_offset=0)
+    unknown = _sports_relevance_match(app_module, "quality-unknown", "Torneo sin mapear", date_offset=1)
     summary = _sports_relevance_summary([elite, unknown])
     summary["last_sync"] = app_module.now_iso()
     summary["sports_home"] = app_module.build_sports_home_sections(summary)
