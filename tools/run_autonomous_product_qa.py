@@ -804,7 +804,16 @@ def main() -> int:
         "evidence_complete": bool(captures) and len(captures) == len(selected_screens) * len(PROFILES) and bool(journeys),
         "scope": args.scope,
         "next_expected_run": "Siguiente cambio, revision diaria critica o auditoria visual semanal, lo que ocurra primero.",
-        "workers_executed": ["visual_experience_inspector", "digital_user_journey_tester", "sports_truth_qa", "mobile_qa", "admin_qa"],
+        "workers_executed": [
+            "visual_experience_inspector",
+            "digital_user_journey_tester",
+            "sports_truth_qa",
+            "mobile_qa",
+            "admin_qa",
+            "sports_knowledge_qa",
+            "summary_truth_qa",
+            "media_rights_qa",
+        ],
         "navigation_clicks": navigation_clicks,
         "sports_truth": {
             "screen": sports_capture.get("path") or "/",

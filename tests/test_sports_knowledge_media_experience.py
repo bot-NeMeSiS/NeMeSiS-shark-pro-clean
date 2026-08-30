@@ -96,6 +96,26 @@ def test_team_context_exposes_real_lineup_player_to_player_center():
     assert "team_has_player" in context["sports_graph"]["relationships"]
 
 
+def test_team_context_never_links_player_without_real_persisted_id():
+    player_without_id = dict(_match_detail()["lineups"][0])
+    player_without_id.pop("player_id")
+    detail = {
+        "team": {"id": "club-norte", "name": "Club Norte", "competition_id": "140", "league": "Liga Real", "source": "qa_cache"},
+        "name": "Club Norte",
+        "players": [player_without_id],
+        "upcoming": [],
+        "recent": [],
+        "live": [],
+        "picks": [],
+    }
+
+    context = build_team_center_context(detail, observed_at_madrid="2026-08-30T20:00:00+02:00")
+
+    assert context["players"] == []
+    assert context["links"].get("player_center") in (None, "")
+    assert "team_has_player" not in context["sports_graph"]["relationships"]
+
+
 def test_unknown_or_incomplete_media_rights_fail_closed():
     unknown = classify_media_asset({"content_type": "player_photo", "photo_url": "https://example.invalid/player.jpg"})
     missing_attribution = classify_media_asset({

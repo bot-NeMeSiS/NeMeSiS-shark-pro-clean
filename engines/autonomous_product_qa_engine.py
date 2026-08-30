@@ -26,6 +26,9 @@ WORKERS = {
     "sports_truth_qa": "Sports Truth QA",
     "mobile_qa": "Mobile QA",
     "admin_qa": "Admin QA",
+    "sports_knowledge_qa": "Sports Knowledge QA",
+    "summary_truth_qa": "Summary Truth QA",
+    "media_rights_qa": "Media Rights QA",
 }
 
 QA_EXECUTION_POLICY = {
@@ -37,12 +40,12 @@ QA_EXECUTION_POLICY = {
     },
     "after_change": {
         "scope": "full",
-        "checks": ["navigation", "golden_journeys", "visual_critical", "sports_truth", "mobile_smoke"],
+        "checks": ["navigation", "golden_journeys", "visual_critical", "sports_truth", "sports_knowledge", "summary_truth", "media_rights", "mobile_smoke"],
         "browser_sessions_max": 3,
     },
     "weekly": {
         "scope": "full",
-        "checks": ["official_references", "golden_journeys", "admin", "mobile_extended"],
+        "checks": ["official_references", "golden_journeys", "admin", "sports_knowledge", "summary_truth", "media_rights", "mobile_extended"],
         "browser_sessions_max": 3,
     },
     "external_provider_calls": 0,
@@ -218,7 +221,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
     ft_rendered_live = int(sports.get("ft_rendered_live") or 0)
     if displayed != confirmed or ft_rendered_live:
         issues.append(_issue(
-            worker="sports_truth_qa",
+            worker="sports_knowledge_qa",
             category="SPORTS_TRUTH",
             severity="P0",
             screen=str(sports.get("screen") or "/"),
@@ -235,7 +238,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
     knowledge = observation.get("sports_knowledge") or {}
     if bool(knowledge.get("lineup_confirmed")) and int(knowledge.get("lineup_player_links") or 0) <= 0:
         issues.append(_issue(
-            worker="sports_truth_qa",
+            worker="sports_knowledge_qa",
             category="SPORTS_KNOWLEDGE",
             severity="P0",
             screen=str(knowledge.get("screen") or "/match"),
@@ -250,7 +253,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
         ))
     if int(knowledge.get("summary_unsupported_claims") or 0) > 0 or int(knowledge.get("summary_ai_calls") or 0) > 0:
         issues.append(_issue(
-            worker="sports_truth_qa",
+            worker="summary_truth_qa",
             category="SUMMARY_TRUTH",
             severity="P0",
             screen=str(knowledge.get("screen") or "/match"),
@@ -265,7 +268,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
         ))
     if int(knowledge.get("unsafe_media_visible") or 0) > 0:
         issues.append(_issue(
-            worker="visual_experience_inspector",
+            worker="media_rights_qa",
             category="MEDIA_RIGHTS",
             severity="P0",
             screen=str(knowledge.get("screen") or "/match"),

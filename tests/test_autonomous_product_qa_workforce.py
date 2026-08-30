@@ -95,6 +95,9 @@ def test_acceptance_fixture_detects_all_demonstrated_failures():
     assert {"NAVIGATION", "SPORTS_TRUTH", "SPORTS_KNOWLEDGE", "SUMMARY_TRUTH", "MEDIA_RIGHTS", "CLIENT_COPY", "VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY", "MOBILE_LAYOUT", "JAVASCRIPT", "BROKEN_IMAGE", "USER_JOURNEY"} <= categories
     assert next(item for item in issues if item["category"] == "NAVIGATION")["severity"] == "P0"
     assert next(item for item in issues if item["category"] == "SPORTS_TRUTH")["severity"] == "P0"
+    assert next(item for item in issues if item["category"] == "SPORTS_KNOWLEDGE")["worker"] == "sports_knowledge_qa"
+    assert next(item for item in issues if item["category"] == "SUMMARY_TRUTH")["worker"] == "summary_truth_qa"
+    assert next(item for item in issues if item["category"] == "MEDIA_RIGHTS")["worker"] == "media_rights_qa"
 
 
 def test_clean_fixture_is_a_real_pass_candidate():

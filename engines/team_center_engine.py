@@ -254,7 +254,10 @@ def build_team_center_context(
     seen_players = set()
     for raw_player in raw_players:
         canonical_player = normalize_player_entity(raw_player, provider=raw_player.get("source") or source)
-        player_id = _text(raw_player.get("player_id") or canonical_player.get("canonical_player_id"), 180)
+        # Navigation requires a persisted player_id from the source row. The
+        # canonical normalizer may create a fallback identity for internal
+        # comparison, but that fallback must never become a client route.
+        player_id = _text(raw_player.get("player_id"), 180)
         route_id = _player_route_id(player_id)
         player_name = _text(canonical_player.get("display_name") or raw_player.get("player_name"), 160)
         if not route_id or not player_name or route_id in seen_players:
