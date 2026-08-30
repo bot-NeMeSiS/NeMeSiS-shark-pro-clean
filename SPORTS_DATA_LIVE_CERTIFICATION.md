@@ -6,14 +6,14 @@
 
 - Gate: observación real de 3-7 días naturales.
 - Inicio: 2026-08-28.
-- Evidencia mínima completada: DAY 1 baseline.
+- Evidencia completada: DAY 1 baseline + DAY 2 observación real.
 - Producción observada: `https://bot-apuestas-crgf.onrender.com`.
-- SHA local/origin/Render observado: `50bac5b04c4409d464fee57f902438ec00d965e0`.
+- SHA local/origin/Render observado: `4098d1c73921458b863b0ea50eb7812780202745` (commit de informe únicamente; código deportivo heredado de la base desplegada anterior).
 - Gasto nuevo: **0**.
 - Cambios de producción: **0**.
 - Ranking modificado durante el gate: **NO**.
 - Resultado provisional: catálogo y sincronización operativos; LIVE y relevancia Home aún no certificados.
-- Corrección P0 posterior a Day 1: **PASS LOCAL_QA**, todavía no desplegada.
+- Corrección P0 posterior a Day 1: desplegada, pero **NO RECERTIFICADA**. DAY 2 demuestra una inconsistencia real entre la verdad cache-only de Directo y la presentación de Home/Match Center.
 
 No se declarará PASS por el mero transcurso de tres días. Debe existir una muestra real de partidos Tier S/A, idealmente en directo, y coherencia verificable entre proveedor, Home, Directo y Match Center.
 
@@ -232,13 +232,14 @@ Además, los dos estados falsos LIVE mantienen `live_refresh_required=true` en e
 | Día | Observaciones reales | Tier S/A live evaluable | Resultado |
 |---|---:|---:|---|
 | 2026-08-28 | 1 baseline + comprobaciones de superficie | 0 | IN_PROGRESS; LIVE y Home con fallos candidatos |
+| 2026-08-30 | 1 observación cache-only + Home/Partidos/Directo/Match Center | 0 | IN_PROGRESS; Directo excluye lecturas retrasadas, pero Home y Match Center aún muestran al menos una como LIVE |
 
 Próximas observaciones:
 
-1. DAY 1, 2026-08-28 a las 20:30 Europe/Madrid: comprobar Bayern-Stuttgart, Lille-PSG y Milan-Venezia si siguen siendo fixtures reales y alcanzan estado live.
-2. DAY 2: repetir cache-only y comparar nuevos/resueltos/reabiertos.
-3. DAY 3: candidato mínimo solo si existe muestra Tier S/A suficiente.
-4. DAY 4-7: continuar si no hubo live importante o la muestra de transiciones es insuficiente.
+1. DAY 3, 2026-08-31 a las 20:30 Europe/Madrid: repetir cache-only y buscar una muestra Tier S/A realmente en directo.
+2. Verificar si Home y Match Center dejan de presentar como LIVE los registros que `/api/realtime/sports` excluye por retraso.
+3. DAY 3 será candidato mínimo solo si existe muestra Tier S/A suficiente y coherencia entre superficies.
+4. DAY 4-7: continuar si no hubo live importante o la muestra de transiciones sigue siendo insuficiente.
 
 La observación recurrente `Certificación Sports Data LIVE` está activa en este hilo, con una ejecución diaria a las 20:30 Europe/Madrid y un máximo de siete observaciones. No modifica Render ni producción y prohíbe expresamente consultar `/api/live`.
 
@@ -319,6 +320,101 @@ La disponibilidad de pick/cuota queda como señal secundaria y no adelanta una c
 | `git diff --check` | PASS |
 
 La observación Day 2-7 permanece activa. No se declarará LIVE PASS hasta observar un partido Tier S/A realmente en directo y comprobar la coherencia en producción.
+
+## DAY 2 - Observacion real 2026-08-30
+
+- **Ventana observada:** 22:33-22:40 Europe/Madrid.
+- **Origen:** `REAL_PRODUCTION_OBSERVATION`.
+- **Produccion modificada:** NO.
+- **Endpoint con coste potencial `/api/live`:** NO CONSULTADO.
+- **Llamadas adicionales a proveedor:** 0; `/api/realtime/sports` confirmó `no_external_calls=true`.
+- **SHA servido:** `4098d1c73921458b863b0ea50eb7812780202745`; el commit solo añade el informe de cierre del día y no cambia la lógica deportiva.
+- **Health:** PASS.
+- **Errores activos/logs de error:** 0.
+- **Resultado:** `REAL_SPORTS_CERTIFICATION_IN_PROGRESS`.
+
+### Estado cache-only
+
+| Señal | DAY 2 | Evidencia |
+|---|---:|---|
+| synchronized | 800 | `/api/realtime/sports` |
+| matches | 62 | contrato realtime cache hit |
+| today | 27 | contrato realtime |
+| finished | 133 | contrato realtime |
+| raw live count | 19 | contratos calendar/live-state |
+| confirmed live returned | 0 | array `live=[]` en realtime |
+| stale live aggregate | 56 | contador realtime |
+| delayed live readings excluded | 19 | mensaje seguro del contrato realtime |
+| upcoming | 56 | live-state/calendar |
+| with odds | 0 | live-state |
+| with picks | 0 | live-state |
+| last safe sync | 2026-08-30 22:35 Madrid | runtime/realtime |
+| provider errors | 0 | runtime y logs Render |
+| highlights stored/videos/embeddable | 0/0/0 | `/api/client/highlights` |
+| highlights pending | 18 | contrato de highlights |
+| new spend | 0 | ninguna alta ni cambio de plan |
+
+### LIVE truth y consistencia
+
+El contrato cache-only correcto declaró: “No hay directo confirmado; 19 lecturas retrasadas quedan excluidas”. `/live` mostró board vacío, `En directo = 0` y no inventó minuto.
+
+Sin embargo, Home siguió mostrando `19 en directo` y elevó como partido principal a Portland Timbers II - Austin FC II, kickoff 20:00, marcador 0-0 y estado `En directo` a las 22:33-22:35. Match Center para `sportsdb-9c185a90a281810876` mantuvo el mismo estado, “Partido en curso” y un hecho `LIVE - marcador 0-0`, aunque también declaró que la última lectura estaba desactualizada y no tenía minuto.
+
+Resultado DAY 2:
+
+- Directo / contrato cache-only: **PASS seguro**; excluye lecturas retrasadas.
+- Home: **FAIL de coherencia**; presenta como LIVE una lectura que el contrato canónico excluye.
+- Match Center: **FAIL de coherencia**; conserva LIVE y un evento de estado sobre evidencia desactualizada.
+- Match navigation: **PASS**; Home llevó a la misma entidad y marcador.
+- Fake minute: **0**; se mostró “En directo” sin minuto.
+- FT-as-LIVE reproducido: **0 en esta muestra**; el defecto observado es stale-as-LIVE entre superficies.
+- Cross-surface status consistency: **FAIL**.
+
+### Relevancia, cobertura y conocimiento
+
+No hubo un partido Tier S/A confirmado en directo. Los registros raw LIVE visibles correspondían principalmente a MLS Next Pro y competiciones menores; ninguno certifica cobertura live de élite. Home dejó que esas lecturas retrasadas dominaran el primer bloque deportivo.
+
+`/partidos-hoy` conservó catálogo amplio y navegable: 195 partidos y 47 ligas en el HTML observado. El contrato calendar, consultado en otro instante, devolvió 187 visibles, 45 ligas y `database_written=false`; la diferencia temporal no se clasifica como duplicado sin evidencia adicional.
+
+- Tier S/A fixtures: presentes en catálogo (Bundesliga, LaLiga, Ligue 1, Premier League y Serie A), pero no live confirmado.
+- Important live observed: 0.
+- Home relevance: **FAIL condicionado por live stale**, no por disponibilidad de picks.
+- Unknown total: `NOT_EXPOSED` por los contratos consultados; Home mostró al menos tres cards live con “Competición pendiente”.
+- Duplicates: `INSUFFICIENT_SAMPLE` en DAY 2.
+- Lineups confirmed: 0 en el Match Center muestreado.
+- Player IDs from lineup: `INSUFFICIENT_REAL_DATA`.
+- Sports events: 0 eventos deportivos profundos; el único hecho fue la etiqueta de estado LIVE.
+- Stats: 0 confirmadas.
+- Highlights authorized/found: 0; 18 pendientes y 0 almacenados.
+- Media rights: sin muestra autorizada nueva; no se infiere derecho de uso.
+
+### Frescura, cuota y coste
+
+- Catálogo/sync: reciente, aproximadamente 0-5 minutos durante la ventana.
+- Las 19 lecturas raw LIVE eran semánticamente retrasadas; frescura de sync no equivale a frescura de partido.
+- Match start, goal, minute, halftime y fulltime P50/P95: `INSUFFICIENT_SAMPLE`.
+- Requests/quota/remaining reales: `UNKNOWN`; no están expuestos de forma fiable.
+- Odds disponibles: 0.
+- Coste actual real: `UNKNOWN`.
+- Gasto nuevo: **0**.
+
+### Comparacion DAY 1 -> DAY 2
+
+| Señal | DAY 1 | DAY 2 |
+|---|---|---|
+| canonical confirmed live | 0 | 0 |
+| important Tier S/A live | 0 | 0 |
+| LIVE contradiction | 2 LIVE/FT | 1 stale-as-LIVE reproducido entre Directo y Home/Match |
+| fake minute | 0 confirmado | 0 |
+| Home relevance | ligas menores sobre élite disponible | live stale domina el primer bloque |
+| provider errors | 0 | 0 |
+| odds | 0 | 0 |
+| highlights/videos | no observados | 0/0 |
+| certification | IN_PROGRESS | IN_PROGRESS |
+
+**Pregunta DAY 2:** si hay un partido importante en directo ahora mismo, ¿NeMeSiS lo muestra automáticamente?
+
+**Respuesta:** `NOT_ENOUGH_EVIDENCE`. No hubo Tier S/A confirmado live. Además, Home y Match Center aún presentan como LIVE al menos una lectura que el contrato canónico de Directo excluye por retraso.
 
 ## Provider gap matrix provisional
 
