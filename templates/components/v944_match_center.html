@@ -101,7 +101,7 @@
     </a>
     <div class="v944-match-header__status">
       <span>{{ lifecycle.get('label') or 'No disponible' }}</span>
-      <time datetime="{{ context.get('madrid_time', {}).get('iso') or '' }}">
+      <time datetime="{{ context.get('madrid_time', {}).get('iso') or '' }}" data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">
         {{ context.get('madrid_time', {}).get('label') or 'No disponible' }}
       </time>
     </div>

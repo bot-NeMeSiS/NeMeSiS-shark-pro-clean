@@ -735,13 +735,16 @@ def test_p0_canonical_id_then_scoped_exact_alias_classification(app_module):
 
 
 def test_p0_home_sports_first_orders_day1_elite_matches_above_low_priority_leagues(app_module):
-    now_value = app_module.datetime.now(app_module.TZ).replace(hour=12, minute=0, second=0, microsecond=0)
+    now_value = app_module.datetime.now(app_module.TZ).replace(second=0, microsecond=0)
+    kickoff_value = now_value + app_module.timedelta(hours=1)
+    date_offset = (kickoff_value.date() - now_value.date()).days
+    kickoff = kickoff_value.strftime("%H:%M")
     matches = [
-        _sports_relevance_match(app_module, "k-league-2", "South Korean K League 2", date_offset=0, kickoff="17:00", country="South Korea"),
-        _sports_relevance_match(app_module, "chinese-super-league", "Chinese Super League", date_offset=0, kickoff="17:15", country="China"),
-        _sports_relevance_match(app_module, "bayern-stuttgart", "Bundesliga", date_offset=0, kickoff="18:30", country="Germany", home="Bayern Munich", away="Stuttgart"),
-        _sports_relevance_match(app_module, "lille-psg", "Ligue 1", date_offset=0, kickoff="18:45", country="France", home="Lille", away="Paris Saint-Germain"),
-        _sports_relevance_match(app_module, "milan-venezia", "Serie A", date_offset=0, kickoff="18:45", country="Italy", home="AC Milan", away="Venezia"),
+        _sports_relevance_match(app_module, "k-league-2", "South Korean K League 2", date_offset=date_offset, kickoff=kickoff, country="South Korea"),
+        _sports_relevance_match(app_module, "chinese-super-league", "Chinese Super League", date_offset=date_offset, kickoff=kickoff, country="China"),
+        _sports_relevance_match(app_module, "bayern-stuttgart", "Bundesliga", date_offset=date_offset, kickoff=kickoff, country="Germany", home="Bayern Munich", away="Stuttgart"),
+        _sports_relevance_match(app_module, "lille-psg", "Ligue 1", date_offset=date_offset, kickoff=kickoff, country="France", home="Lille", away="Paris Saint-Germain"),
+        _sports_relevance_match(app_module, "milan-venezia", "Serie A", date_offset=date_offset, kickoff=kickoff, country="Italy", home="AC Milan", away="Venezia"),
     ]
     ranked = app_module.sort_matches_by_sports_relevance(
         matches,
@@ -754,7 +757,8 @@ def test_p0_home_sports_first_orders_day1_elite_matches_above_low_priority_leagu
     for important in ("bayern-stuttgart", "lille-psg", "milan-venezia"):
         assert order.index(important) < order.index("k-league-2")
         assert order.index(important) < order.index("chinese-super-league")
-    assert ranked[0]["sports_relevance"]["home_priority_reason"] == "TIER_SA_TODAY"
+    expected_reason = "TIER_SA_TODAY" if date_offset == 0 else "IMPORTANT_UPCOMING"
+    assert ranked[0]["sports_relevance"]["home_priority_reason"] == expected_reason
     assert next(item for item in ranked if item["id"] == "k-league-2")["sports_relevance_bucket"] == "UNKNOWN"
     assert next(item for item in ranked if item["id"] == "chinese-super-league")["sports_relevance_bucket"] == "UNKNOWN"
 

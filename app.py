@@ -427,6 +427,8 @@ from engines.beta_program_engine import (
 
 from engines.madrid_time_engine import (
     format_telegram_match_time_madrid,
+    format_madrid_client_date_label,
+    format_madrid_client_datetime_label,
     format_madrid_match_time,
     format_madrid_short_time,
     format_madrid_sync_label,
@@ -6548,7 +6550,7 @@ def annotate_match(match, favs=None, include_timeline=True):
         real_minute = canonical_live_minute(match)
         match["live_depth"]["minute"] = f"{real_minute}'" if real_minute else match["status_info"].get("label") or "En directo"
     match["surface_contract"] = canonical_match_surface_contract(match)
-    return match
+    return client_match_display_context(match)
 
 
 def match_timeline(match):
@@ -8071,48 +8073,73 @@ def canonical_match_for_domain_context(match):
     return item
 
 
-def client_match_display_context(match):
-    """Return client-safe labels: no admin jargon, all visible dates in Madrid time."""
+def client_match_display_context(match, now_madrid=None):
+    """Return the canonical, client-safe Madrid temporal contract for one match."""
     item = normalize_kickoff_for_display(dict(match or {}))
     home = spanish_team_name(item.get("safe_home") or item.get("home_team") or item.get("home") or "") or "Equipo local"
     away = spanish_team_name(item.get("safe_away") or item.get("away_team") or item.get("away") or "") or "Equipo visitante"
     comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
-    date_label = item.get("madrid_date_label") or item.get("display_date_label") or item.get("safe_date") or "Fecha pendiente"
+    instant = item.get("madrid_dt_iso") or ""
+    compact_date = format_madrid_client_date_label(instant, now=now_madrid) if instant else ""
+    detail_date = format_madrid_client_date_label(instant, now=now_madrid, detail=True) if instant else ""
+    schedule_label = format_madrid_client_datetime_label(instant, now=now_madrid) if instant else ""
+    detail_label = format_madrid_client_datetime_label(instant, now=now_madrid, detail=True) if instant else ""
     safe_date = item.get("safe_date") or item.get("madrid_date") or ""
-    time_label = item.get("madrid_time") or item.get("safe_time") or "Hora pendiente"
+    time_label = item.get("madrid_time") or item.get("safe_time") or ""
+    if not compact_date:
+        compact_date = item.get("madrid_date_label") or item.get("display_date_label") or safe_date or "Fecha pendiente"
+    if not schedule_label:
+        schedule_label = f"{compact_date} · {time_label}" if time_label and time_label != "Hora pendiente" else compact_date
+    if not detail_label:
+        detail_label = schedule_label
     score = _client_score_from_match(item)
     status_info = canonical_match_status(item)
     minute = canonical_live_minute(item)
+    status_key = str(status_info.get("key") or "")
     if status_info.get("is_result_pending"):
         status_label = "Resultado pendiente"
     elif status_info.get("is_finished"):
-        status_label = "Finalizado"
+        status_label = "Final"
     elif status_info.get("is_live"):
-        status_label = f"En directo · {minute}'" if minute else status_info.get("label") or "En directo"
-    elif status_info.get("key") in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
-        status_label = status_info.get("label") or "Estado pendiente"
+        status_label = f"En directo · {minute}'" if minute else "En directo"
+    elif status_key == "POSTPONED":
+        status_label = "Aplazado"
+    elif status_key == "CANCELLED":
+        status_label = "Cancelado"
+    elif status_key == "ABANDONED":
+        status_label = "Abandonado"
+    elif status_key == "INCOMPLETE":
+        status_label = "Estado pendiente"
     else:
         status_label = "Próximo"
-    if time_label and time_label != "Hora pendiente":
-        datetime_label = f"{date_label} - {time_label}"
-        full_label = (f"{date_label} - {safe_date} - {time_label} - Madrid" if safe_date and safe_date not in date_label else f"{datetime_label} - Madrid")
-    else:
-        datetime_label = f"{date_label} - Hora pendiente"
-        full_label = f"{datetime_label} - Madrid" if "Madrid" not in datetime_label else datetime_label
+    temporal_label = status_label if (
+        status_info.get("is_live")
+        or status_info.get("is_finished")
+        or status_info.get("is_result_pending")
+        or status_key in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
+    ) else schedule_label
     item.update({
-        "client_timezone_label": "Hora oficial de España (Madrid)",
+        "client_timezone_label": "Hora oficial de España",
         "client_home": home,
         "client_away": away,
         "client_teams": f"{home} vs {away}",
         "client_competition": comp,
-        "client_date_label": date_label,
+        "client_date_label": compact_date,
+        "client_date_compact_label": compact_date,
+        "client_date_detail_label": detail_date or compact_date,
         "client_safe_date": safe_date,
-        "client_time_label": time_label,
-        "client_datetime_label": datetime_label,
-        "client_full_datetime_label": full_label,
+        "client_time_label": time_label or "Hora pendiente",
+        "client_schedule_label": schedule_label or "Fecha pendiente",
+        "client_datetime_label": schedule_label or "Fecha pendiente",
+        "client_full_datetime_label": detail_label or "Fecha pendiente",
+        "client_detail_datetime_label": detail_label or "Fecha pendiente",
         "client_status_label": status_label,
+        "client_short_status_label": status_label,
+        "client_temporal_label": temporal_label,
+        "client_has_confirmed_kickoff": bool(instant and time_label),
+        "client_temporal_contract": "MATCH-TEMPORAL-CONTEXT-V1",
         "client_score_label": score,
-        "client_result_label": f"{status_label} - {score}" if score != "vs" else status_label,
+        "client_result_label": f"{status_label} · {score}" if score != "vs" else status_label,
         "safe_home": home,
         "safe_away": away,
         "safe_competition": comp,
@@ -8126,18 +8153,20 @@ def client_match_display_context(match):
     return item
 
 
-def enrich_pick_client_context(pick):
+def enrich_pick_client_context(pick, match=None):
     pick = dict(pick or {})
-    match = None
     match_id = _client_str(pick.get("match_id"))
-    if match_id:
+    if not match and match_id:
         try:
             match = one("SELECT * FROM matches WHERE id=?", (match_id,))
         except Exception:
             match = None
     if match:
         ctx = client_match_display_context(match)
-        for key in ("home_team", "away_team", "competition_name", "league_name", "match_date", "kickoff_time", "match_time", "kickoff_iso", "score", "home_score", "away_score"):
+        for key in (
+            "home_team", "away_team", "competition_name", "league_name", "match_date",
+            "kickoff_time", "match_time", "kickoff_iso", "score", "home_score", "away_score",
+        ):
             value = ctx.get(key) or match.get(key)
             if not pick.get(key) and value:
                 pick[key] = value
@@ -8146,10 +8175,6 @@ def enrich_pick_client_context(pick):
         pick["client_match_url"] = f"/match/{match_id}"
         pick["client_match_label"] = ctx.get("client_teams")
         pick["client_competition"] = ctx.get("client_competition")
-        pick["client_datetime_label"] = ctx.get("client_datetime_label")
-        pick["client_full_datetime_label"] = ctx.get("client_full_datetime_label")
-        pick["client_result_label"] = ctx.get("client_result_label")
-        pick["client_status_label"] = ctx.get("client_status_label")
     else:
         home = spanish_team_name(pick.get("home_team") or "") or "Partido"
         away = spanish_team_name(pick.get("away_team") or "") or "por confirmar"
@@ -8158,13 +8183,24 @@ def enrich_pick_client_context(pick):
         pick["client_competition"] = spanish_competition_name(pick.get("competition_name") or pick.get("league_name") or pick.get("competition_key") or "") or "Competición"
         try:
             ctx = client_match_display_context(pick)
-            pick["client_datetime_label"] = ctx.get("client_datetime_label")
-            pick["client_full_datetime_label"] = ctx.get("client_full_datetime_label")
-            pick["client_status_label"] = ctx.get("client_status_label")
         except Exception:
-            pick["client_datetime_label"] = "Hora Madrid pendiente"
-            pick["client_full_datetime_label"] = "Hora Madrid pendiente"
-            pick["client_status_label"] = "Pendiente"
+            ctx = {}
+    for key in (
+        "madrid_dt_iso", "client_date_label", "client_date_compact_label", "client_date_detail_label",
+        "client_time_label", "client_schedule_label", "client_datetime_label",
+        "client_full_datetime_label", "client_detail_datetime_label", "client_temporal_label",
+        "client_status_label", "client_short_status_label", "client_result_label",
+        "client_temporal_contract", "client_has_confirmed_kickoff",
+    ):
+        if ctx.get(key) not in (None, ""):
+            pick[key] = ctx.get(key)
+    pick.setdefault("client_schedule_label", "Fecha pendiente")
+    pick.setdefault("client_datetime_label", pick["client_schedule_label"])
+    pick.setdefault("client_full_datetime_label", pick["client_schedule_label"])
+    pick.setdefault("client_status_label", "Pendiente")
+    pick.setdefault("client_short_status_label", pick["client_status_label"])
+    pick.setdefault("client_temporal_label", pick["client_schedule_label"])
+    pick.setdefault("client_temporal_contract", "MATCH-TEMPORAL-CONTEXT-V1")
     market = spanish_market_name(pick.get("market") or pick.get("pick_type") or "") or "Mercado pendiente"
     selection = spanish_pick_selection_name(pick.get("selection_display") or pick.get("selection") or pick.get("pick_label") or "") or "Selección pendiente"
     odds = pick.get("odds")
@@ -8187,9 +8223,8 @@ def enrich_pick_client_context(pick):
     pick["app_pick_state"] = pick_state
     pick["client_no_pick_label"] = "Sin pick real publicado"
     pick["client_provider_empty_label"] = "Proveedor sin datos ahora mismo"
-    pick["client_summary_line"] = f"{pick.get('client_match_label')} - {pick.get('client_datetime_label')} - {pick.get('client_competition')}"
+    pick["client_summary_line"] = f"{pick.get('client_match_label')} · {pick.get('client_temporal_label')} · {pick.get('client_competition')}"
     return pick
-
 
 @app.template_filter("match_full_datetime")
 def jinja_match_full_datetime(value):
@@ -13334,7 +13369,7 @@ def _v931_prepare_pick(pick, matches_by_id):
         value for value in (str(item.get("home_team") or "").strip(), str(item.get("away_team") or "").strip()) if value
     )
     item["client_match_url"] = f"/match/{item.get('match_id')}" if item.get("match_id") else "/calendar"
-    return item
+    return enrich_pick_client_context(item, match=linked or None)
 
 
 SPORTS_METRICS_CONTRACT = "sports-metrics-v1"
@@ -21943,6 +21978,8 @@ def get_safe_picks_context(picks=None) -> dict:
     enriched = []
     for raw in source_picks:
         item = v935_enrich_pick_lifecycle(raw)
+        if not item.get("client_temporal_contract"):
+            item = enrich_pick_client_context(item)
         enriched.append(item)
         reason = _v927_pick_truth_block_reason(item)
         if not reason and not v935_is_pick_publishable(item):

@@ -9,6 +9,7 @@ CHECKS = {
     "topbar_click_journey": "PASS",
     "mobile_nav": "PASS",
     "sports_truth": "PASS",
+    "temporal_context": "PASS",
     "performance_sample": "PASS",
     "critical_visual_surfaces": "PASS",
     "client_admin_protection": "PASS",

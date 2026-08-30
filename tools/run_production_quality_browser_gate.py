@@ -16,7 +16,8 @@ from typing import Any
 
 PUBLIC_NAV = ("/", "/calendar", "/live", "/picks", "/track-record", "/shark")
 MOBILE_NAV = ("/", "/calendar", "/live", "/picks", "/cliente-login")
-CRITICAL_PAGES = ("/", "/calendar", "/live", "/picks", "/shark")
+CRITICAL_PAGES = ("/", "/calendar", "/live", "/picks", "/shark", "/track-record")
+ENTITY_PATH_PREFIXES = ("/match/", "/team/", "/competition/", "/player/")
 MOJIBAKE = re.compile(r"(?:Actualizaci\?n|Ã.|Â.|â€|�)")
 TECHNICAL_COPY = re.compile(
     r"\b(?:traceback|stack trace|raw log|debug mode|internal confidence|engine contract|payload)\b",
@@ -141,6 +142,20 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           shell: Boolean(document.querySelector('[data-v933-surface]')),
           cssVersioned: [...document.querySelectorAll('link[rel="stylesheet"]')].some((link) => /app\\.css\\?v=/.test(link.href)),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
+          temporalCards: document.querySelectorAll('[data-match-temporal-context]').length,
+          relevantMatchCards: document.querySelectorAll('[data-v934-match-card], [data-v934-pick-card]').length,
+          missingTemporalCards: [...document.querySelectorAll('[data-v934-match-card], [data-v934-pick-card]')]
+            .filter((card) => !card.querySelector('[data-match-temporal-context]')).length,
+          temporalLabels: [...document.querySelectorAll('[data-match-temporal-context]')]
+            .map((node) => (node.textContent || '').trim()).filter(Boolean).slice(0, 30),
+          temporalValues: [...document.querySelectorAll('[data-match-temporal-context]')].map((node) => {
+            const owner = node.closest('[data-match-id], [data-v934-match-id]');
+            return {
+              matchId: owner ? (owner.getAttribute('data-match-id') || owner.getAttribute('data-v934-match-id') || '') : '',
+              datetime: node.getAttribute('datetime') || '',
+              label: (node.textContent || '').trim(),
+            };
+          }).filter((item) => item.matchId),
         })"""
     )
     text = str(metrics.pop("text", ""))
@@ -153,7 +168,32 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     })
     return metrics
 
-
+def _discover_entity_paths(page: Any, base_url: str) -> tuple[str, ...]:
+    """Follow at most one real link per sports entity without provider calls."""
+    discovered: list[str] = []
+    pending = ["/", "/calendar", "/picks", "/shark"]
+    visited: set[str] = set()
+    while pending and len(discovered) < len(ENTITY_PATH_PREFIXES):
+        source_path = pending.pop(0)
+        if source_path in visited:
+            continue
+        visited.add(source_path)
+        page.goto(
+            urllib.parse.urljoin(base_url.rstrip("/") + "/", source_path.lstrip("/")),
+            wait_until="domcontentloaded",
+            timeout=30_000,
+        )
+        hrefs = page.locator("a[href]").evaluate_all(
+            "nodes => nodes.map((node) => node.getAttribute('href') || '')"
+        )
+        for prefix in ENTITY_PATH_PREFIXES:
+            if any(value.startswith(prefix) for value in discovered):
+                continue
+            match = next((value for value in hrefs if value.startswith(prefix)), "")
+            if match:
+                discovered.append(match)
+                pending.append(match)
+    return tuple(discovered)
 def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, Any]:
     runtime, runtime_http = _request_json(base_url, "/api/runtime-version")
     health, health_http = _request_json(base_url, "/api/health")
@@ -171,7 +211,9 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         desktop_page.on("console", lambda msg: console_errors.append(msg.text[:500]) if msg.type == "error" else None)
         desktop_page.on("pageerror", lambda exc: page_errors.append(str(exc)[:500]))
         topbar = _click_journey(desktop_page, base_url, "public-desktop", PUBLIC_NAV)
-        pages = [_page_evidence(desktop_page, base_url, path) for path in CRITICAL_PAGES]
+        entity_paths = _discover_entity_paths(desktop_page, base_url)
+        audited_paths = tuple(dict.fromkeys((*CRITICAL_PAGES, *entity_paths)))
+        pages = [_page_evidence(desktop_page, base_url, path) for path in audited_paths]
         desktop_page.goto(base_url, wait_until="networkidle", timeout=45_000)
         desktop_page.screenshot(path=str(output_dir / "home_desktop.png"), full_page=False)
         desktop.close()
@@ -231,6 +273,21 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         and all(item.get("height", 0) >= 44 for item in mobile_layout.get("targets") or [])
     )
     visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in pages) and official_shark
+    temporal_missing = sum(int(item.get("missingTemporalCards") or 0) for item in pages)
+    temporal_observed = sum(int(item.get("temporalCards") or 0) for item in pages)
+    temporal_by_match: dict[str, set[str]] = {}
+    for page_item in pages:
+        for temporal in page_item.get("temporalValues") or []:
+            match_id = str(temporal.get("matchId") or "").strip()
+            instant = str(temporal.get("datetime") or "").strip()
+            if match_id and instant:
+                temporal_by_match.setdefault(match_id, set()).add(instant)
+    temporal_conflicts = {
+        match_id: sorted(instants)
+        for match_id, instants in temporal_by_match.items()
+        if len(instants) > 1
+    }
+    temporal_pass = temporal_missing == 0 and not temporal_conflicts and routes_pass
     browser_clean = not console_errors and not page_errors and not broken_images and not overflow and not mojibake and not technical_copy
     actual_sha = str(runtime.get("git_commit_hint") or "")
     checks = {
@@ -241,6 +298,7 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         "topbar_click_journey": "PASS" if topbar_pass else "FAIL",
         "mobile_nav": "PASS" if mobile_pass else "FAIL",
         "sports_truth": "PASS" if sports_http == 200 and sports_pass else "FAIL",
+        "temporal_context": "PASS" if temporal_pass else "FAIL",
         "performance_sample": "PASS" if performance_pass else "FAIL",
         "critical_visual_surfaces": "PASS" if visual_pass else "FAIL",
         "client_admin_protection": "PASS" if admin_final_path == "/admin-login" else "FAIL",
@@ -254,6 +312,16 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         "mobile_layout": mobile_layout,
         "pages": pages,
         "sports": sports_evidence,
+        "temporal_context": {
+            "contract": "MATCH-TEMPORAL-CONTEXT-V1",
+            "observed": temporal_observed,
+            "missing": temporal_missing,
+            "madrid_time": True,
+            "cross_surface_consistent": not temporal_conflicts,
+            "conflicts": temporal_conflicts,
+            "external_provider_calls": 0,
+            "entity_paths": list(entity_paths),
+        },
         "admin_final_path": admin_final_path,
         "console_errors": console_errors,
         "page_errors": page_errors,

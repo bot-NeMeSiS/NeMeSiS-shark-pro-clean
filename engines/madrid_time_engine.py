@@ -16,7 +16,12 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 UTC_TZ = ZoneInfo("UTC")
 
 WEEKDAYS_ES = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+WEEKDAYS_ES_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
 MONTHS_ES_SHORT = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+MONTHS_ES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+]
 LIVE_STATUSES = {"live", "inplay", "in_play", "1h", "2h", "et", "pen", "en directo"}
 HALFTIME_STATUSES = {"ht", "halftime", "descanso"}
 FINISHED_STATUSES = {"ft", "finished", "final", "finalizado", "aet"}
@@ -162,6 +167,45 @@ def format_madrid_date_label(value: object) -> str:
     if dt.date() == today + timedelta(days=1):
         return "Mañana"
     return f"{WEEKDAYS_ES[dt.weekday()]} {dt:%d/%m}"
+
+
+def _madrid_now_value(value: object = None) -> datetime:
+    if value in (None, ""):
+        return madrid_now()
+    if isinstance(value, datetime):
+        current = value
+        if current.tzinfo is None:
+            current = current.replace(tzinfo=MADRID_TZ)
+        return current.astimezone(MADRID_TZ)
+    return to_madrid_time(value) or madrid_now()
+
+
+def format_madrid_client_date_label(value: object, *, now: object = None, detail: bool = False) -> str:
+    """Format one canonical Madrid instant for compact or match-detail client UX."""
+    dt = to_madrid_time(value)
+    if not dt:
+        return ""
+    current = _madrid_now_value(now)
+    if detail:
+        year = f" de {dt.year}" if dt.year != current.year else ""
+        return f"{WEEKDAYS_ES[dt.weekday()]}, {dt.day} de {MONTHS_ES[dt.month - 1]}{year}"
+    delta = (dt.date() - current.date()).days
+    if delta == 0:
+        return "Hoy"
+    if delta == 1:
+        return "Mañana"
+    if -7 <= delta <= 7:
+        return f"{WEEKDAYS_ES_SHORT[dt.weekday()]} {dt.day} {MONTHS_ES_SHORT[dt.month - 1]}"
+    year = f" {dt.year}" if dt.year != current.year else ""
+    return f"{dt.day} {MONTHS_ES_SHORT[dt.month - 1]}{year}"
+
+
+def format_madrid_client_datetime_label(value: object, *, now: object = None, detail: bool = False) -> str:
+    dt = to_madrid_time(value)
+    if not dt:
+        return ""
+    date_label = format_madrid_client_date_label(dt, now=now, detail=detail)
+    return f"{date_label} · {dt:%H:%M}"
 
 
 def _status_key(status: object) -> str:

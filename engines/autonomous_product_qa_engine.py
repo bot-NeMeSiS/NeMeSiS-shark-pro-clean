@@ -43,6 +43,7 @@ QUALITY_GATES = (
     "NAVIGATION",
     "VISUAL",
     "SPORTS_TRUTH",
+    "TEMPORAL_CONTEXT",
     "MOBILE",
     "ADMIN",
     "SECURITY",
@@ -69,6 +70,7 @@ PINNED_REGRESSION_CONTRACTS = {
     "BROKEN_LINKS": {"category": "NAVIGATION", "severity": "P0", "test": "real_click_golden_journeys"},
     "MOBILE_BOTTOM_NAV": {"category": "MOBILE", "severity": "P1", "test": "mobile_real_tap_and_hit_target"},
     "CLIENT_ADMIN_SEPARATION": {"category": "SECURITY", "severity": "P0", "test": "client_session_admin_denied"},
+    "TEMPORAL_CONTEXT_CONSISTENCY": {"category": "TEMPORAL_CONTEXT", "severity": "P1", "test": "madrid_datetime_cross_surface_contract"},
 }
 
 ISSUE_TO_REGRESSION = {
@@ -85,6 +87,7 @@ ISSUE_TO_REGRESSION = {
     "MOBILE_LAYOUT": "MOBILE_BOTTOM_NAV",
     "SECURITY": "CLIENT_ADMIN_SEPARATION",
     "PERFORMANCE": "PERFORMANCE_P0",
+    "TEMPORAL_CONTEXT": "TEMPORAL_CONTEXT_CONSISTENCY",
 }
 
 QA_EXECUTION_POLICY = {
@@ -94,6 +97,7 @@ QA_EXECUTION_POLICY = {
         "checks": [
             "navigation",
             "sports_truth",
+            "temporal_context",
             "sports_knowledge",
             "summary_truth",
             "media_rights",
@@ -105,12 +109,12 @@ QA_EXECUTION_POLICY = {
     },
     "after_change": {
         "scope": "full",
-        "checks": ["navigation", "golden_journeys", "visual_critical", "sports_truth", "sports_knowledge", "summary_truth", "media_rights", "mobile_smoke"],
+        "checks": ["navigation", "golden_journeys", "visual_critical", "sports_truth", "temporal_context", "sports_knowledge", "summary_truth", "media_rights", "mobile_smoke"],
         "browser_sessions_max": 3,
     },
     "weekly": {
         "scope": "full",
-        "checks": ["official_references", "golden_journeys", "admin", "sports_knowledge", "summary_truth", "media_rights", "mobile_extended"],
+        "checks": ["official_references", "golden_journeys", "admin", "temporal_context", "sports_knowledge", "summary_truth", "media_rights", "mobile_extended"],
         "browser_sessions_max": 3,
     },
     "external_provider_calls": 0,
@@ -371,6 +375,31 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             detected_at=at,
         ))
 
+    temporal = observation.get("temporal_context") or {}
+    if temporal:
+        missing = int(temporal.get("missing_cards") or 0)
+        ambiguous = int(temporal.get("ambiguous_cards") or 0)
+        cross_surface = temporal.get("cross_surface_consistent") is True
+        madrid_time = temporal.get("madrid_time") is True
+        if missing or ambiguous or not cross_surface or not madrid_time:
+            issues.append(_issue(
+                worker="digital_user_journey_tester",
+                category="TEMPORAL_CONTEXT",
+                severity="P1",
+                screen=str(temporal.get("screen") or "match surfaces"),
+                viewport=str(temporal.get("viewport") or "all"),
+                element="MATCH_TEMPORAL_CONTEXT_REQUIRED",
+                expected="Cada card relevante muestra fecha/hora Madrid y el mismo instante en todas las superficies.",
+                actual=(
+                    f"checked={int(temporal.get('checked_cards') or 0)}; missing={missing}; "
+                    f"ambiguous={ambiguous}; cross_surface={cross_surface}; madrid_time={madrid_time}"
+                ),
+                evidence=str(temporal.get("evidence") or "Contrato temporal cliente incumplido."),
+                screenshot=str(temporal.get("screenshot") or ""),
+                production_sha=sha,
+                detected_at=at,
+            ))
+
     visual = observation.get("visual") or {}
     for key, category, element in (
         ("shark", "VISUAL_SHARK", "official-shark-composition"),
@@ -565,6 +594,8 @@ def _quality_gate_for_issue(issue: dict[str, Any]) -> str:
         return "VISUAL"
     if category in {"SPORTS_TRUTH", "LIVE_TRUTH", "DATA_CONSISTENCY"}:
         return "SPORTS_TRUTH"
+    if category == "TEMPORAL_CONTEXT":
+        return "TEMPORAL_CONTEXT"
     if category.startswith("MOBILE"):
         return "MOBILE"
     if category in {"ADMIN", "CLIENT_COPY", "MOJIBAKE"}:
@@ -608,6 +639,7 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     sports = observation.get("sports_truth") or {}
     sports_pass = int(sports.get("confirmed_live_count") or 0) == int(sports.get("displayed_live_count") or 0)
     ft_pass = int(sports.get("ft_rendered_live") or 0) == 0
+
     visual = observation.get("visual") or {}
     shark = str((visual.get("shark") or {}).get("classification") or "NOT_RUN").upper()
     background = str((visual.get("background") or {}).get("classification") or "NOT_RUN").upper()
@@ -622,6 +654,15 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     rights_pass = int(knowledge.get("unsafe_media_visible") or 0) == 0
     runtime = observation.get("runtime") or {}
     text_quality = observation.get("text_quality") or {}
+    temporal = observation.get("temporal_context") or {}
+    temporal_observed = bool(temporal)
+    temporal_pass = (
+        temporal_observed
+        and int(temporal.get("missing_cards") or 0) == 0
+        and int(temporal.get("ambiguous_cards") or 0) == 0
+        and temporal.get("cross_surface_consistent") is True
+        and temporal.get("madrid_time") is True
+    )
     return {
         "TOPBAR_REAL_NAVIGATION": {"status": "PASS" if click_pass else "FAIL", "evidence": f"real_clicks={len(clicks)}"},
         "FALSE_LIVE_KPI": {"status": "PASS" if sports_pass else "FAIL", "evidence": f"confirmed={sports.get('confirmed_live_count', 0)}; visible={sports.get('displayed_live_count', 0)}"},
@@ -638,6 +679,15 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "CLIENT_ADMIN_SEPARATION": {"status": str((observation.get("security") or {}).get("client_admin_separation") or "NOT_RUN").upper(), "evidence": (observation.get("security") or {}).get("evidence")},
         "IMPORTANT_MATCH_PRIORITY": {"status": str(sports.get("important_match_priority") or "NOT_RUN").upper(), "evidence": sports.get("priority_evidence")},
         "PERFORMANCE_P0": {"status": str((observation.get("performance") or {}).get("status") or "NOT_RUN").upper(), "evidence": (observation.get("performance") or {}).get("evidence")},
+        "TEMPORAL_CONTEXT_CONSISTENCY": {
+            "status": "PASS" if temporal_pass else "FAIL" if temporal_observed else "NOT_RUN",
+            "evidence": (
+                f"checked={int(temporal.get('checked_cards') or 0)}; "
+                f"missing={int(temporal.get('missing_cards') or 0)}; "
+                f"ambiguous={int(temporal.get('ambiguous_cards') or 0)}; "
+                f"cross_surface={temporal.get('cross_surface_consistent')}; madrid_time={temporal.get('madrid_time')}"
+            ),
+        },
     }
 
 
@@ -778,7 +828,7 @@ def evaluate_production_sentinel(observation: dict[str, Any], quality_director: 
         return {"result": "NOT_RUN", "rollback_recommended": False, "reason": "No es una observacion post-deploy real."}
     checks = (
         "health", "sha_alignment", "logs_recent", "critical_routes", "topbar_click_journey",
-        "mobile_nav", "sports_truth", "performance_sample", "critical_visual_surfaces", "client_admin_protection",
+        "mobile_nav", "sports_truth", "temporal_context", "performance_sample", "critical_visual_surfaces", "client_admin_protection",
     )
     results = {name: str(deployment.get(name) or "NOT_RUN").upper() for name in checks}
     failed = [name for name, status in results.items() if status == "FAIL"]

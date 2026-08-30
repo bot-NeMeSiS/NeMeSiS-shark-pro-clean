@@ -18,6 +18,7 @@ from engines.sentinel_issues_engine import (
     build_sentinel_issues_summary,
     canonicalize_sentinel_memory,
     normalize_sentinel_issue,
+    reconcile_autonomous_workforce_evidence,
     upsert_sentinel_issues,
 )
 from engines.sentinel_codex_outbox_engine import write_codex_outbox
@@ -25,9 +26,9 @@ from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
 from tools.run_autonomous_product_qa import _sports_priority_regression
 
 
-def test_daily_policy_includes_sports_knowledge_summary_and_media_rights():
+def test_daily_policy_includes_sports_knowledge_summary_media_rights_and_time():
     checks = set(QA_EXECUTION_POLICY["daily"]["checks"])
-    assert {"sports_knowledge", "summary_truth", "media_rights"} <= checks
+    assert {"sports_knowledge", "summary_truth", "media_rights", "temporal_context"} <= checks
 
 
 def test_sports_priority_regression_uses_canonical_ranking_without_external_calls(app_module):
@@ -62,6 +63,14 @@ def failing_observation() -> dict:
             "confirmed_live_count": 0,
             "displayed_live_count": 2,
             "ft_rendered_live": 1,
+        },
+        "temporal_context": {
+            "screen": "match surfaces",
+            "checked_cards": 9,
+            "missing_cards": 2,
+            "ambiguous_cards": 1,
+            "cross_surface_consistent": False,
+            "madrid_time": False,
         },
         "sports_knowledge": {
             "screen": "/match/m-1",
@@ -104,6 +113,7 @@ def clean_observation() -> dict:
             }
         ],
         "sports_truth": {"screen": "/", "confirmed_live_count": 0, "displayed_live_count": 0, "ft_rendered_live": 0},
+        "temporal_context": {"screen": "match surfaces", "checked_cards": 9, "missing_cards": 0, "ambiguous_cards": 0, "cross_surface_consistent": True, "madrid_time": True},
         "sports_knowledge": {"screen": "/match/m-1", "lineup_confirmed": True, "lineup_player_links": 1, "summary_ai_calls": 0, "summary_unsupported_claims": 0, "unsafe_media_visible": 0},
         "client_copy": {"screen": "/live", "visible_text": "No hay partidos en directo."},
         "visual": {
@@ -120,7 +130,7 @@ def clean_observation() -> dict:
 def test_acceptance_fixture_detects_all_demonstrated_failures():
     issues = detect_product_qa_issues(failing_observation(), detected_at="2026-08-30T10:00:00+02:00")
     categories = {item["category"] for item in issues}
-    assert {"NAVIGATION", "SPORTS_TRUTH", "SPORTS_KNOWLEDGE", "SUMMARY_TRUTH", "MEDIA_RIGHTS", "CLIENT_COPY", "VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY", "MOBILE_LAYOUT", "JAVASCRIPT", "BROKEN_IMAGE", "USER_JOURNEY"} <= categories
+    assert {"NAVIGATION", "SPORTS_TRUTH", "TEMPORAL_CONTEXT", "SPORTS_KNOWLEDGE", "SUMMARY_TRUTH", "MEDIA_RIGHTS", "CLIENT_COPY", "VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY", "MOBILE_LAYOUT", "JAVASCRIPT", "BROKEN_IMAGE", "USER_JOURNEY"} <= categories
     assert next(item for item in issues if item["category"] == "NAVIGATION")["severity"] == "P0"
     assert next(item for item in issues if item["category"] == "SPORTS_TRUTH")["severity"] == "P0"
     assert next(item for item in issues if item["category"] == "SPORTS_TRUTH")["worker"] == "sports_truth_qa"
@@ -273,6 +283,22 @@ def test_canonical_ledger_rejects_synthetic_404_and_codex_noise():
     assert summary["codex_ready_issues"] == []
 
 
+def test_founder_issue_gate_has_no_indefinite_pending_statuses(tmp_path: Path):
+    summary = reconcile_autonomous_workforce_evidence(
+        tmp_path,
+        latest_product_qa={"result": "PASS", "evidence_complete": True, "issues_detected": 0},
+        production_sha="sha-under-review",
+        save=False,
+    )
+    by_key = {item.get("stable_key"): item for item in summary["issues"]}
+
+    assert by_key["founder-shark-identity"]["status"] == "OPEN_REAL"
+    assert by_key["founder-ocean-background"]["status"] == "OPEN_REAL"
+    assert by_key["founder-reference-mismatch"]["status"] == "OPEN_REAL"
+    assert by_key["founder-false-live-kpi"]["status"] == "RESOLVED"
+    assert by_key["founder-rectangle-fatigue"]["status"] == "RESOLVED"
+    assert not any(item["status"] == "FIXED_PENDING_VERIFICATION" for item in by_key.values())
+
 def test_honest_empty_sports_state_is_not_an_issue_or_codex_work():
     context = " Consulta calendario, favoritos y próximos encuentros cuando haya datos reales."
     html = (
@@ -338,7 +364,7 @@ def test_regression_manager_pins_all_known_founder_regressions(tmp_path: Path):
     )
 
     manager = result["regression_manager"]
-    assert manager["protected_regressions"] == 15
+    assert manager["protected_regressions"] == 16
     assert {item["regression_id"] for item in manager["items"]} == set(PINNED_REGRESSION_CONTRACTS)
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
@@ -373,6 +399,7 @@ def test_production_sentinel_requires_all_post_deploy_checks():
         "topbar_click_journey": "PASS",
         "mobile_nav": "PASS",
         "sports_truth": "PASS",
+        "temporal_context": "PASS",
         "performance_sample": "PASS",
         "critical_visual_surfaces": "PASS",
         "client_admin_protection": "PASS",
@@ -403,6 +430,7 @@ def test_production_sentinel_recommends_rollback_for_post_deploy_p0():
                 "topbar_click_journey": "FAIL",
                 "mobile_nav": "PASS",
                 "sports_truth": "PASS",
+                "temporal_context": "PASS",
                 "performance_sample": "PASS",
                 "critical_visual_surfaces": "PASS",
                 "client_admin_protection": "PASS",

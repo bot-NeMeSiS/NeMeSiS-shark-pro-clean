@@ -27,6 +27,10 @@
   </section>
   {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
 
+  {% if picks %}{% set focus_pick = picks[0] %}
+    <a class="v933-quick-action is-cyan" href="{{ focus_pick.get('client_match_url') or ('/match/' ~ focus_pick.get('match_id') if focus_pick.get('match_id') else '/picks') }}"{% if focus_pick.get('match_id') %} data-match-id="{{ focus_pick.get('match_id') }}"{% endif %}>{{ icon('calendar') }}<span><strong>{{ focus_pick.get('client_match_label') or 'Partido analizado' }}</strong><small>{{ focus_pick.get('client_competition') or 'Competición' }} · <time{% if focus_pick.get('madrid_dt_iso') %} datetime="{{ focus_pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ focus_pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ focus_pick.get('client_temporal_label') or focus_pick.get('client_schedule_label') or 'Fecha pendiente' }}</time></small></span>{{ icon('arrow') }}</a>
+  {% endif %}
+
   {% if picks %}
     {{ intelligence_brief('Existe al menos una selección completa para contextualizar', customer_trust.get('no_publish_reason') or 'Toda selección mantiene riesgo y no garantiza resultado', 'Abrir el pick, revisar la evidencia y decidir con calma', 'Analizar picks', '/picks', false) }}
   {% elif calendar.get('matches') %}

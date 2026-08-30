@@ -15,6 +15,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
+from engines.madrid_time_engine import (
+    format_madrid_client_date_label,
+    format_madrid_client_datetime_label,
+    madrid_local_from_parts,
+    to_madrid_time,
+)
+
 try:
     from engines.team_identity_engine import identity_payload
 except Exception:  # pragma: no cover - keeps grading standalone in minimal environments
@@ -392,7 +399,11 @@ def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
     pick = payload.get("pick") if isinstance(payload, dict) else {}
     if not isinstance(pick, dict):
         pick = {}
-    for key in ("home_team", "away_team", "competition_name", "league_name", "selection", "pick_type", "odds", "match_id"):
+    for key in (
+        "home_team", "away_team", "competition_name", "league_name", "selection",
+        "pick_type", "odds", "match_id", "match_date", "kickoff_time", "kickoff_iso",
+        "created_at",
+    ):
         if pick.get(key) not in (None, "") and item.get(key) in (None, ""):
             item[key] = pick.get(key)
     if item.get("home_team") and identity_payload:
@@ -401,6 +412,26 @@ def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
         item["away_identity"] = identity_payload(item.get("away_team"), source="track_record")
     item["safe_competition"] = item.get("competition_name") or item.get("league_name") or "Competición"
     item["pick_label"] = item.get("selection") or item.get("pick_type") or f"Pick {item.get('pick_id') or ''}".strip()
+    event_iso = item.get("event_kickoff_iso") or item.get("kickoff_iso")
+    event_date = item.get("event_match_date") or item.get("match_date")
+    event_time = item.get("event_kickoff_time") or item.get("kickoff_time")
+    event_dt = None
+    if event_iso:
+        event_dt = to_madrid_time(event_iso)
+        item["event_datetime_label"] = format_madrid_client_datetime_label(event_dt or event_iso)
+    elif event_date and event_time:
+        event_dt = madrid_local_from_parts(event_date, event_time)
+        item["event_datetime_label"] = format_madrid_client_datetime_label(event_dt) if event_dt else ""
+    elif event_date:
+        item["event_datetime_label"] = format_madrid_client_date_label(event_date)
+    else:
+        item["event_datetime_label"] = ""
+    item["event_datetime_iso"] = event_dt.isoformat(timespec="seconds") if event_dt else ""
+    pick_created_at = item.get("pick_created_at") or item.get("created_at")
+    item["pick_created_at_label"] = (
+        format_madrid_client_datetime_label(pick_created_at) if pick_created_at else ""
+    )
+    item["temporal_contract"] = "MATCH-TEMPORAL-CONTEXT-V1"
     return item
 
 def pick_grading_summary(db_path: str) -> Dict[str, Any]:
@@ -440,7 +471,28 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     stake_total = scalar(conn, f"SELECT ROUND(SUM(stake),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
     profit = scalar(conn, f"SELECT ROUND(SUM(profit),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
     avg_score = scalar(conn, f"SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
-    recent = [_enrich_recent_result(r) for r in rows(conn, f"SELECT * FROM pick_grading_results WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")]
+    recent_rows = rows(
+        conn,
+        """SELECT r.*,
+                  COALESCE(m.match_date, p.match_date) AS event_match_date,
+                  m.kickoff_time AS event_kickoff_time,
+                  m.kickoff_iso AS event_kickoff_iso,
+                  p.created_at AS pick_created_at,
+                  COALESCE(m.home_team, p.home_team) AS home_team,
+                  COALESCE(m.away_team, p.away_team) AS away_team,
+                  COALESCE(m.competition_name, p.competition_name) AS competition_name
+             FROM pick_grading_results r
+             LEFT JOIN picks p ON p.id = r.pick_id
+             LEFT JOIN matches m ON m.id = COALESCE(r.match_id, p.match_id)
+            WHERE r.result_status IN ('won','lost','void')
+              AND COALESCE(r.odds,0)>1
+              AND COALESCE(r.stake,0)>0
+            ORDER BY r.graded_at DESC
+            LIMIT 10""",
+    )
+    if not recent_rows:
+        recent_rows = rows(conn, f"SELECT * FROM pick_grading_results WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")
+    recent = [_enrich_recent_result(r) for r in recent_rows]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]
     readiness = round(100 * sum(1 for x in checks if x) / len(checks))
