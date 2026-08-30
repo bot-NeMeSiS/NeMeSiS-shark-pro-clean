@@ -10,7 +10,15 @@ from engines.autonomous_product_qa_engine import (
     record_product_qa_run,
     set_product_qa_pause,
 )
-from engines.sentinel_issues_engine import normalize_sentinel_issue, upsert_sentinel_issues
+from engines.sentinel_issues_engine import (
+    ISSUE_STATUSES,
+    build_sentinel_issues_summary,
+    canonicalize_sentinel_memory,
+    normalize_sentinel_issue,
+    upsert_sentinel_issues,
+)
+from engines.sentinel_codex_outbox_engine import write_codex_outbox
+from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
 
 
 def test_daily_policy_includes_sports_knowledge_summary_and_media_rights():
@@ -101,6 +109,7 @@ def test_acceptance_fixture_detects_all_demonstrated_failures():
     assert {"NAVIGATION", "SPORTS_TRUTH", "SPORTS_KNOWLEDGE", "SUMMARY_TRUTH", "MEDIA_RIGHTS", "CLIENT_COPY", "VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY", "MOBILE_LAYOUT", "JAVASCRIPT", "BROKEN_IMAGE", "USER_JOURNEY"} <= categories
     assert next(item for item in issues if item["category"] == "NAVIGATION")["severity"] == "P0"
     assert next(item for item in issues if item["category"] == "SPORTS_TRUTH")["severity"] == "P0"
+    assert next(item for item in issues if item["category"] == "SPORTS_TRUTH")["worker"] == "sports_truth_qa"
     assert next(item for item in issues if item["category"] == "SPORTS_KNOWLEDGE")["worker"] == "sports_knowledge_qa"
     assert next(item for item in issues if item["category"] == "SUMMARY_TRUTH")["worker"] == "summary_truth_qa"
     assert next(item for item in issues if item["category"] == "MEDIA_RIGHTS")["worker"] == "media_rights_qa"
@@ -201,3 +210,65 @@ def test_sentinel_preserves_exact_product_qa_evidence_fields():
     assert merged[0]["issue_id"] == "PQA-STABLE"
     assert merged[0]["seen_count"] == 2
     assert merged[0]["actual"] == "overlay intercepts click"
+
+
+def test_canonical_ledger_rejects_synthetic_404_and_codex_noise():
+    synthetic = normalize_sentinel_issue({
+        "title": "Ruta devuelve Not Found",
+        "route": "/ruta-inventada-v999",
+        "evidence": "Probe de QA sin navegación interna real.",
+        "actual": "404",
+        "status": "OPEN",
+    })
+    context_only = normalize_sentinel_issue({
+        "title": "Contexto sin muestra real",
+        "area": "growth",
+        "status": "INSUFFICIENT_EVIDENCE",
+        "evidence": "No existe todavía muestra REAL_USER suficiente.",
+    })
+    memory = canonicalize_sentinel_memory({"issues": [synthetic, context_only], "events": []})
+    summary = build_sentinel_issues_summary("TEST", memory)
+
+    assert ISSUE_STATUSES == [
+        "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE",
+        "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE",
+    ]
+    assert summary["counts"]["open"] == 0
+    assert summary["issue_health"]["false_positive"] == 1
+    assert summary["issue_health"]["insufficient_evidence"] == 1
+    assert summary["codex_ready_issues"] == []
+
+
+def test_honest_empty_sports_state_is_not_an_issue_or_codex_work():
+    context = " Consulta calendario, favoritos y próximos encuentros cuando haya datos reales."
+    html = (
+        "<html><body><main class='sports-screen'><section class='v933-empty-state'>"
+        "<h1>Partidos</h1><p>No hay partidos en este momento.</p>"
+        f"<p>{context * 5}</p></section></main></body></html>"
+    )
+
+    assert _inspect_html("FREE", "/partidos", 200, html) == []
+    assert build_codex_prompts([]) == []
+
+
+def test_codex_outbox_accepts_only_verified_open_real(tmp_path: Path):
+    blocked = normalize_sentinel_issue({
+        "title": "Contexto sin evidencia",
+        "status": "INSUFFICIENT_EVIDENCE",
+        "evidence": "Muestra real pendiente.",
+    })
+    ready = normalize_sentinel_issue({
+        "title": "Enlace interno roto",
+        "status": "OPEN_REAL",
+        "route": "/app",
+        "evidence": "Clic real desde Home termina en una ruta 404.",
+        "actual": "404 después del clic",
+        "expected": "Match Center",
+        "evidence_origin": "LOCAL_QA",
+        "evidence_sufficient": True,
+    })
+    result = write_codex_outbox(tmp_path, [blocked, ready])
+
+    assert result["prompt_count"] == 1
+    assert ready["id"] in Path(result["combined_path"]).read_text(encoding="utf-8")
+    assert blocked["id"] not in Path(result["combined_path"]).read_text(encoding="utf-8")

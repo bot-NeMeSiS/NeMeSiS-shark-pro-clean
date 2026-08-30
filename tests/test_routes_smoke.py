@@ -75,8 +75,19 @@ def test_qa_404_probe_does_not_create_a_real_sentinel_issue(client, app_module, 
     assert qa_response.status_code == 404
     assert recorded == []
 
-    real_response = client.get("/ruta-inventada-v910")
-    assert real_response.status_code == 404
+    synthetic_response = client.get("/ruta-inventada-v910")
+    assert synthetic_response.status_code == 404
+    assert recorded == []
+
+    direct_response = client.get("/enlace-roto-real")
+    assert direct_response.status_code == 404
+    assert recorded == []
+
+    internal_navigation = client.get(
+        "/enlace-roto-real",
+        headers={"Referer": "http://localhost/app"},
+    )
+    assert internal_navigation.status_code == 404
     assert len(recorded) == 1
 
 

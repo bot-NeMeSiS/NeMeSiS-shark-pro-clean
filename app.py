@@ -1096,7 +1096,7 @@ def continuous_evolution_tick_response(result, preflight):
         },
         "snapshot": job.get("snapshot_id") or ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else ""),
         "founder_brief": "GENERATED" if job.get("founder_brief_id") else ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else "FAIL"),
-        "prepared_for_codex": "GENERATED" if int(job.get("codex_ready_count") or 0) > 0 else ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else "FAIL"),
+        "prepared_for_codex": "GENERATED" if int(job.get("codex_ready_count") or 0) > 0 else ("NOT_DUE" if result.get("result") == "SKIPPED_NOT_DUE" else "EMPTY_NO_VERIFIED_ISSUES"),
         "systems_consulted": snapshot.get("systems_consulted") or [],
         "systems_unavailable": snapshot.get("systems_unavailable") or [],
         "guardrails": {
@@ -12687,6 +12687,18 @@ def v896_not_found_severity(path, count=1):
     return "medium"
 
 
+def v896_should_promote_not_found(path, referrer="", resolved_alias="", source="flask_404"):
+    """Only a real broken internal navigation may become a product issue."""
+    clean_path = str(path or "").strip().lower()
+    if resolved_alias or source in {"legacy_alias", "qa_probe"}:
+        return False
+    if any(token in clean_path for token in ("ruta-inventada", "nonexistent", "not-found-test", "missing-route-test")):
+        return False
+    if not referrer or not has_request_context():
+        return False
+    return str(referrer).startswith(request.host_url)
+
+
 def v896_record_not_found(path, method="GET", referrer="", user_agent="", resolved_alias="", source="flask_404"):
     safe_path = v896_safe_request_text(path, 260) or "/"
     qa_probe = bool(
@@ -12719,10 +12731,17 @@ def v896_record_not_found(path, method="GET", referrer="", user_agent="", resolv
     existing["resolved_alias"] = v896_safe_request_text(resolved_alias, 260)
     payload["events"] = sorted(events, key=lambda item: str(item.get("last_seen_madrid") or ""), reverse=True)[:250]
     v896_save_not_found_events(payload)
-    if not qa_probe:
+    should_promote = not qa_probe and v896_should_promote_not_found(
+        safe_path,
+        referrer=existing.get("referrer") or "",
+        resolved_alias=existing.get("resolved_alias") or "",
+        source=source,
+    )
+    if should_promote:
         v896_upsert_not_found_issue(existing)
     else:
-        existing["qa_probe"] = True
+        existing["not_promoted"] = True
+        existing["not_promoted_reason"] = "qa_or_non_internal_navigation"
     return existing
 
 
@@ -18914,10 +18933,26 @@ def admin_sentinel_issues_page():
     # Page render stays read-only and fast. Explicit scan endpoints own the expensive workers.
     memory = load_sentinel_issues_memory(Path(__file__).resolve().parent)
     summary = build_sentinel_issues_summary(APP_VERSION, memory)
-    inactive_statuses = {"RESOLVED", "RESOLVED_BY_RESCAN", "FALSE_POSITIVE", "IGNORED_SAFE"}
+    inactive_statuses = {"RESOLVED", "FALSE_POSITIVE", "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE"}
     all_issues = list(summary.get("issues") or [])
-    actionable = [issue for issue in all_issues if str(issue.get("status") or "OPEN") not in inactive_statuses]
-    recent_history = [issue for issue in all_issues if issue not in actionable][:37]
+    actionable = [issue for issue in all_issues if str(issue.get("status") or "INSUFFICIENT_EVIDENCE") == "OPEN_REAL"]
+    review_rank = {
+        "FIXED_PENDING_VERIFICATION": 0,
+        "EXTERNAL_BLOCKER": 1,
+        "INSUFFICIENT_EVIDENCE": 2,
+        "RESOLVED": 3,
+        "STALE": 4,
+        "FALSE_POSITIVE": 5,
+        "DUPLICATE": 6,
+    }
+    recent_history = sorted(
+        [issue for issue in all_issues if issue not in actionable],
+        key=lambda issue: (
+            review_rank.get(str(issue.get("status") or ""), 9),
+            {"P0": 0, "P1": 1, "P2": 2, "P3": 3}.get(str(issue.get("priority") or "P3"), 3),
+            str(issue.get("updated_at_madrid") or ""),
+        ),
+    )[:37]
     summary["display_issues"] = (actionable + recent_history)[:40]
     summary["display_priority"] = [
         issue for issue in actionable if str(issue.get("severity") or "").lower() in {"critical", "high"}
@@ -18984,7 +19019,7 @@ def api_admin_sentinel_issue_status(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
     payload = request.get_json(silent=True) or request.form or {}
-    status = str(payload.get("status") or request.args.get("status") or "IN_REVIEW")
+    status = str(payload.get("status") or request.args.get("status") or "FIXED_PENDING_VERIFICATION")
     result = update_issue_status(issue_id, status, Path(__file__).resolve().parent, note=str(payload.get("note") or ""))
     return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 400)
 
@@ -19001,7 +19036,7 @@ def api_admin_sentinel_issue_resolve(issue_id):
 def api_admin_sentinel_issue_reopen(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
-    result = update_issue_status(issue_id, "REOPENED", Path(__file__).resolve().parent, note="Reabierta desde Centro de Incidencias")
+    result = update_issue_status(issue_id, "OPEN_REAL", Path(__file__).resolve().parent, note="Reabierta desde Centro de Incidencias")
     return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
 
 
@@ -29433,6 +29468,8 @@ def founder_command_center_snapshot():
     top100 = _founder_top100_progress()
     continuous = build_continuous_evolution_status_snapshot(BASE_DIR, APP_VERSION)
     autonomous_product_qa = build_autonomous_product_qa_status(BASE_DIR)
+    issue_memory = load_sentinel_issues_memory(BASE_DIR)
+    issue_summary = build_sentinel_issues_summary(APP_VERSION, issue_memory)
     systems_by_id = {item.get("id"): item for item in operations.get("systems") or []}
     sections = operations.get("operations_sections") or {}
     sports_metrics = operations.get("sports_metrics") or {}
@@ -29564,6 +29601,14 @@ def founder_command_center_snapshot():
         },
         "continuous_evolution": continuous,
         "autonomous_product_qa": autonomous_product_qa,
+        "issue_ledger": {
+            "contract": issue_summary.get("status_contract"),
+            "health": issue_summary.get("issue_health") or {},
+            "top_open": (issue_summary.get("open_issues") or [])[:5],
+            "worker_calibration": issue_memory.get("worker_calibration") or {},
+            "last_review": issue_memory.get("last_evidence_reconciliation_madrid") or issue_summary.get("last_scan_madrid"),
+            "href": "/admin/sentinel-issues",
+        },
         "guardrails": [
             "solo lectura",
             "sin deploy",

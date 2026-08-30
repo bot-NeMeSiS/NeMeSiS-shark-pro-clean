@@ -47,6 +47,8 @@
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
+{% set issue_ledger = founder.issue_ledger or {} %}
+{% set issue_health = issue_ledger.health or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
@@ -108,6 +110,13 @@
         <div>{{ icon('alert') }}<span><strong>Requieren atención</strong><small>{{ product_qa.open_issue_count or 0 }} incidencias con evidencia conservada.</small></span>{{ status_chip('REVISAR' if product_qa.open_issue_count else 'SIN BLOQUEOS', 'danger' if product_qa.open_issue_count else 'success') }}</div>
         <div>{{ icon('clock') }}<span><strong>Próxima revisión</strong><small>{{ product_qa.next_expected_run or 'Pendiente de cadencia.' }}</small></span>{{ status_chip(product_qa.request_status or ('PAUSADA' if product_qa.paused else 'CADENCIA ACTIVA'), 'warning') }}</div>
       </div>
+      <div class="v933-kpi-grid is-five" aria-label="Salud de incidencias">
+        {{ kpi_card('Abiertas reales', issue_health.open_real or 0, 'Con evidencia actual', 'danger' if issue_health.open_real else 'success', 'alert') }}
+        {{ kpi_card('Por verificar', issue_health.pending_verification or 0, 'No se cierran solas', 'warning', 'history') }}
+        {{ kpi_card('Resueltas', issue_health.resolved or 0, 'Verificación conservada', 'success', 'shield') }}
+        {{ kpi_card('Bloqueos externos', issue_health.external_blocker or 0, 'Requieren acción externa', 'warning', 'shield') }}
+        {{ kpi_card('Preparadas para Codex', issue_health.prepared_for_codex or 0, 'Solo evidencia suficiente', 'cyan', 'code') }}
+      </div>
       {% if product_qa.open_issues %}
       <div class="v933-truth-list is-no-icon" aria-label="Incidencias QA que requieren atención">
         {% for issue in product_qa.open_issues[:5] %}
@@ -130,6 +139,9 @@
         <div class="v933-truth-list is-no-icon">
           {% for worker in product_qa.workers or [] %}
           <div><span><strong>{{ worker.label }}</strong><small>{{ worker.calibration.why }}</small></span>{{ status_chip(worker.calibration.state or 'INSUFFICIENT_HISTORY', 'neutral') }}</div>
+          {% endfor %}
+          {% for worker, calibration in (issue_ledger.worker_calibration or {}).items() %}
+          <div><span><strong>{{ worker }}</strong><small>{{ calibration.why }}</small></span>{{ status_chip(calibration.state or 'INSUFFICIENT_HISTORY', 'neutral') }}</div>
           {% endfor %}
         </div>
       </details>

@@ -632,6 +632,9 @@ def _account_golden_journey(page, base_url: str, qa_password: str) -> dict:
 
 def _admin_golden_journey(page, base_url: str, qa_password: str) -> dict:
     steps: list[dict] = []
+    # Cancel client-page requests before clearing its session. A late response can
+    # otherwise restore the old cookie and invalidate the admin form CSRF token.
+    page.goto("about:blank", wait_until="domcontentloaded", timeout=5000)
     page.context.clear_cookies()
     try:
         page.goto(base_url + "/admin-login", wait_until="domcontentloaded", timeout=10000)

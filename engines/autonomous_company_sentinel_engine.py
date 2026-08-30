@@ -341,7 +341,7 @@ def run_autonomous_company_sentinel(
     open_issues = issues_summary.get("open_issues") or []
     archived_issues = [
         issue for issue in all_issues
-        if issue.get("status") in {"STALE_NEEDS_REVALIDATION", "RESOLVED_BY_RESCAN", "RESOLVED", "FALSE_POSITIVE", "IGNORED_SAFE"}
+        if issue.get("status") in {"FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE", "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE"}
     ]
     outbox = write_codex_outbox(root, open_issues, archived_issues=archived_issues)
     autofix = build_safe_autofix_plan(open_issues)
@@ -382,10 +382,7 @@ def run_autonomous_company_sentinel(
         "secret_masking_status": "masked_configured_missing_only",
         "next_recommended_step": profile.get("next_step"),
         "action_policy": action_policy,
-        "cron_examples": {
-            "daily_reference_review": "curl -fsS \"https://bot-apuestas-crgf.onrender.com/api/automation/autonomous-company-sentinel/run?secret=$AUTOMATION_SECRET&mode=daily_reference_review&dry_run=1&runner=render_cron\"",
-            "post_deploy_check": "curl -fsS \"https://bot-apuestas-crgf.onrender.com/api/automation/autonomous-company-sentinel/run?secret=$AUTOMATION_SECRET&mode=post_deploy_check&dry_run=1&runner=render_cron\"",
-        },
+        "automation_auth": "HEADER_ONLY_EXISTING_CONTRACT",
     }
     _append_v904_outbox_status(root, v904_automation_summary, action_policy)
     reference["v904_automation_modes"] = {
@@ -468,8 +465,8 @@ def run_autonomous_company_sentinel(
         "last_runner": runner,
         "issues_open": (issues_summary.get("counts") or {}).get("open", 0),
         "active_issues_open": len(open_issues),
-        "stale_issues": len([issue for issue in all_issues if issue.get("status") == "STALE_NEEDS_REVALIDATION"]),
-        "resolved_by_rescan": len([issue for issue in all_issues if issue.get("status") == "RESOLVED_BY_RESCAN"]),
+        "stale_issues": len([issue for issue in all_issues if issue.get("status") == "STALE"]),
+        "pending_verification": len([issue for issue in all_issues if issue.get("status") == "FIXED_PENDING_VERIFICATION"]),
         "archived_prompts": outbox.get("archived_prompt_count", 0),
         "critical": len([issue for issue in open_issues if issue.get("severity") == "critical"]),
         "high": len([issue for issue in open_issues if issue.get("severity") == "high"]),

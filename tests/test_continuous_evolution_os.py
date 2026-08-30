@@ -88,7 +88,7 @@ def test_continuous_evolution_restart_reads_existing_memory_and_latest_snapshot(
     assert status["latest_snapshot_id"] == first["snapshot"]["snapshot_id"]
     assert status["product_memory"]["recommendations"] > 0
     assert status["founder_brief"]["contract"]
-    assert status["prepared_for_codex"]["ready_count"] > 0
+    assert status["prepared_for_codex"]["ready_count"] == 0
 
     stored = json.loads(latest_path.read_text(encoding="utf-8"))
     assert stored["production_modified"] is False
@@ -127,17 +127,29 @@ def test_continuous_evolution_decision_transitions_are_traceable(tmp_path):
 
 
 def test_continuous_evolution_guardrails_for_codex_briefs(tmp_path):
-    storage = tmp_path / "ceos"
-    result = run_continuous_evolution_cycle(ROOT, "TEST", now="2026-08-11T13:00:00+02:00", storage_root=storage)
-    inbox = result["snapshot"]["prepared_for_codex"]
+    board = {
+        "top_10_improvements": [{
+            "id": "ISSUE-OPEN-REAL",
+            "recommendation_id": "REC-OPEN-REAL",
+            "title": "Enlace interno roto",
+            "evidence": "Clic real observado en navegador termina en 404.",
+            "proposal": "Corregir el destino del enlace y repetir el clic.",
+            "issue_status": "OPEN_REAL",
+            "evidence_sufficient": True,
+            "priority": "P1",
+            "route": "/app",
+            "screen": "/app",
+        }],
+        "directors": [],
+    }
+    inbox = ce_engine._ce_build_codex_inbox(board, "SNAP-TEST", "2026-08-11T13:00:00+02:00")
 
-    assert result["snapshot"]["continuous_evolution_contract"] == CONTINUOUS_EVOLUTION_OS_CONTRACT
-    assert inbox["ready_count"] > 0
+    assert inbox["ready_count"] == 1
     first = next(item for item in inbox["items"] if item["state"] == "READY")
     assert first["approved_by_founder"] is False
     assert first["automatic_execution_allowed"] is False
     assert first["evidence"] not in {"none", "todo", ""}
-    assert "Sports Core" in " ".join(first["modules_not_to_touch"])
+    assert first["recommendation_id"] == "REC-OPEN-REAL"
 
 
 
@@ -270,7 +282,7 @@ def test_continuous_evolution_job_observability_includes_utc_and_brief(tmp_path)
     assert job["started_at_utc"].endswith("+00:00")
     assert job["finished_at_utc"].endswith("+00:00")
     assert job["founder_brief_id"]
-    assert job["codex_ready_count"] > 0
+    assert job["codex_ready_count"] == 0
     assert job["dangerous_actions_executed"] is False
 
 

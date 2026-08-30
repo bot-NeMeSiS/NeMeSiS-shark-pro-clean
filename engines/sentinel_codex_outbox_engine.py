@@ -9,20 +9,18 @@ SENTINEL_CODEX_OUTBOX_VERSION = "V902_SENTINEL_FULL_ACTIVE_ISSUES_FIX_AND_TRUTH_
 
 FALSE_POSITIVE_STATUSES = {
     "FALSE_POSITIVE",
-    "FALSE_POSITIVE_BY_RESCAN",
-    "IGNORED_FALSE_POSITIVE",
+    "DUPLICATE",
 }
 
 ARCHIVED_STATUSES = {
     "RESOLVED",
-    "RESOLVED_BY_RESCAN",
-    "ARCHIVED",
-    "STALE_ARCHIVED",
+    "FIXED_PENDING_VERIFICATION",
+    "EXTERNAL_BLOCKER",
+    "INSUFFICIENT_EVIDENCE",
 }
 
 STALE_STATUSES = {
-    "STALE_NEEDS_REVALIDATION",
-    "NEEDS_REVALIDATION",
+    "STALE",
 }
 
 
@@ -68,7 +66,15 @@ def _issue_id(issue: dict[str, Any]) -> str:
 
 
 def _status(issue: dict[str, Any]) -> str:
-    return str(issue.get("status") or "OPEN").upper()
+    return str(issue.get("status") or "INSUFFICIENT_EVIDENCE").upper()
+
+
+def _codex_eligible(issue: dict[str, Any]) -> bool:
+    return (
+        _status(issue) == "OPEN_REAL"
+        and issue.get("evidence_sufficient") is True
+        and bool(str(issue.get("evidence") or "").strip())
+    )
 
 
 def _tags(issue: dict[str, Any]) -> set[str]:
@@ -129,6 +135,8 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     false_positive_lines = []
     files = []
     for issue in issues:
+        if not _codex_eligible(issue):
+            continue
         issue_id = _issue_id(issue)
         prompt = build_codex_prompt(issue)
         path = outbox / f"{issue_id}_codex_prompt.md"
@@ -157,16 +165,6 @@ def write_codex_outbox(root: str | Path, issues: list[dict[str, Any]], archived_
     for issue in archived_issues:
         issue_id = _issue_id(issue)
         status = _status(issue)
-        should_reactivate = _is_reference_gap(issue) and status in STALE_STATUSES
-        if should_reactivate:
-            prompt = build_codex_prompt(issue)
-            path = outbox / f"{issue_id}_codex_prompt.md"
-            path.write_text(prompt, encoding="utf-8")
-            files.append(str(path))
-            block = f"# {issue_id}\n\n{prompt}"
-            prompts.append(block)
-            visual_prompts.append(block)
-            continue
         if status in FALSE_POSITIVE_STATUSES:
             false_positive_lines.append(_archive_line(issue))
         else:

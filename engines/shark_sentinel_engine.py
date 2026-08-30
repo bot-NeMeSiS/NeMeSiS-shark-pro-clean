@@ -265,20 +265,6 @@ def _inspect_html(profile: str, route: str, status_code: int, html: str) -> list
                 "Añadir estado Sin partidos reales / Esperando proveedor / Requiere sincronización real y CTAs útiles.",
                 f"Corrige el estado vacío deportivo de {route} sin inventar datos.",
             ))
-        elif not has_sports_rows and has_safe_explanation:
-            issues.append(_issue(
-                profile,
-                route,
-                "data_reality",
-                "low",
-                "Pantalla deportiva sin filas reales visibles",
-                "La ruta muestra un estado seguro, pero no hay partidos/picks/directos reales visibles.",
-                route,
-                "Si no hay datos reales, debe existir estado seguro y tarea admin de sync/filtros/cache.",
-                "Estado seguro presente, sin filas deportivas reales.",
-                "Mantener estado seguro y revisar proveedor, cache, filtros o temporada desde admin.",
-                f"Revisa por qué {route} no muestra datos deportivos reales aunque tenga estado seguro.",
-            ))
     if re.search(r"\b(none|null|undefined)\b", visible_lower):
         if route not in {"/api/runtime-version"}:
             issues.append(_issue(profile, route, "copy", "low", "Texto técnico posible", "Aparecen tokens técnicos que podrían ser visibles.", "None/null/undefined", "Cliente debe ver estados premium.", "Token técnico detectado.", "Revisar si el token es visible al usuario.", f"Revisa tokens técnicos visibles en {route}."))
@@ -355,16 +341,7 @@ def build_static_sentinel_summary(version: str = "") -> dict[str, Any]:
             "Revisar incidencias por severidad antes de abrir cambios.",
             "Usar prompts Codex generados como tareas controladas.",
         ],
-        "codex_prompt_suggestions": [
-            "Corrige rutas rotas detectadas en /picks y /live.",
-            "Compacta cards moviles en /app y /partidos.",
-            "Elimina navegacion cliente en admin si aparece.",
-            "Corrige mojibake detectado en templates.",
-            "Revisa empty states sin datos reales.",
-            "Corrige visual de membresía PRO/ELITE.",
-            "Arregla boton que no lleva a ruta esperada.",
-            "Revisa fallback de escudos en directo.",
-        ],
+        "codex_prompt_suggestions": [],
         "safe_actions": ["diagnostico", "reporte", "prompt sugerido"],
         "approval_required_actions": ["sync", "Telegram test", "membresías", "picks", "release"],
         "forbidden_automatic_actions": FORBIDDEN_AUTOMATIC_ACTIONS,
@@ -398,10 +375,7 @@ def build_recommended_actions(issues: list[dict[str, Any]]) -> list[str]:
 
 def build_codex_prompts(issues: list[dict[str, Any]]) -> list[str]:
     if not issues:
-        return [
-            "Ejecuta SHARK Sentinel despues del siguiente cambio visual y compara incidencias.",
-            "Audita rutas cliente/admin con modo static Flask client y corrige solo hallazgos high/critical.",
-        ]
+        return []
     prompts = []
     for issue in issues[:8]:
         prompt = str(issue.get("codex_prompt_suggestion") or "").strip()

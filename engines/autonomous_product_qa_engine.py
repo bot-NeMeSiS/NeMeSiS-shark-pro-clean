@@ -73,7 +73,8 @@ FOUNDING_OVERRIDE_CATEGORIES = [
     "UI_DENSITY",
 ]
 
-TERMINAL_ISSUE_STATUSES = {"RESOLVED", "FALSE_POSITIVE", "FOUNDER_REJECTED"}
+ACTIVE_ISSUE_STATUSES = {"OPEN_REAL"}
+TERMINAL_ISSUE_STATUSES = {"RESOLVED", "FALSE_POSITIVE", "DUPLICATE"}
 TECHNICAL_COPY_MARKERS = (
     "provider",
     "cache hit",
@@ -186,8 +187,10 @@ def _issue(
         "last_seen": at,
         "seen_count": 1,
         "production_sha": _safe_text(production_sha, 80),
-        "status": "OPEN",
+        "status": "OPEN_REAL",
         "confidence": confidence,
+        "evidence_origin": "LOCAL_QA",
+        "evidence_sufficient": bool(evidence and actual),
     }
 
 
@@ -230,7 +233,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
     ft_rendered_live = int(sports.get("ft_rendered_live") or 0)
     if displayed != confirmed or ft_rendered_live:
         issues.append(_issue(
-            worker="sports_knowledge_qa",
+            worker="sports_truth_qa",
             category="SPORTS_TRUTH",
             severity="P0",
             screen=str(sports.get("screen") or "/"),
@@ -504,6 +507,7 @@ def record_product_qa_run(
     previous = memory.setdefault("issues", {})
     active_ids: set[str] = set()
     for issue in detected:
+        issue["evidence_origin"] = evidence_origin
         issue_id = issue["issue_id"]
         active_ids.add(issue_id)
         old = previous.get(issue_id)
@@ -511,7 +515,8 @@ def record_product_qa_run(
             issue["first_seen"] = old.get("first_seen") or issue["first_seen"]
             issue["seen_count"] = int(old.get("seen_count") or 1) + 1
             if old.get("status") in TERMINAL_ISSUE_STATUSES:
-                issue["status"] = "REOPENED"
+                issue["status"] = "OPEN_REAL"
+                issue["reopened_count"] = int(old.get("reopened_count") or 0) + 1
             issue["history"] = [*(old.get("history") or []), {"at_madrid": at, "event": "SEEN_AGAIN"}][-40:]
         else:
             issue["history"] = [{"at_madrid": at, "event": "FIRST_DETECTED"}]
@@ -521,7 +526,7 @@ def record_product_qa_run(
             continue
         if scope != "full":
             continue
-        issue["status"] = "RESOLVED_PENDING_HUMAN_REVIEW"
+        issue["status"] = "FIXED_PENDING_VERIFICATION"
         issue["last_checked"] = at
         issue["history"] = [*(issue.get("history") or []), {"at_madrid": at, "event": "NOT_REPRODUCED"}][-40:]
 
@@ -565,7 +570,7 @@ def record_product_qa_run(
     latest = {
         **run,
         "issues": detected,
-        "open_issues": [item for item in previous.values() if item.get("status") not in TERMINAL_ISSUE_STATUSES and item.get("status") != "RESOLVED_PENDING_HUMAN_REVIEW"],
+        "open_issues": [item for item in previous.values() if item.get("status") in ACTIVE_ISSUE_STATUSES],
         "worker_calibration": memory["worker_calibration"],
         "founder_override_active": True,
         "previous_good_run_id": memory.get("previous_good_run_id"),
@@ -640,7 +645,7 @@ def build_autonomous_product_qa_status(
     control = _read_json(paths["control"], {"paused": False, "history": []})
     ensure_founder_qa_override(memory, _now())
     issues = list(memory.get("issues", {}).values())
-    open_issues = [item for item in issues if item.get("status") not in TERMINAL_ISSUE_STATUSES and item.get("status") != "RESOLVED_PENDING_HUMAN_REVIEW"]
+    open_issues = [item for item in issues if item.get("status") in ACTIVE_ISSUE_STATUSES]
     workers = []
     calibration = memory.get("worker_calibration") or _calibrate_workers(memory)
     for key, label in WORKERS.items():
@@ -696,6 +701,8 @@ def product_qa_review_findings(status: dict[str, Any]) -> list[dict[str, Any]]:
             "evidence_origin": "FOUNDER_QA_OVERRIDE" if issue.get("category") in FOUNDING_OVERRIDE_CATEGORIES else "SYSTEM_OBSERVATION",
             "certification_state": "OBSERVED",
             "candidate_improvement_ready": True,
+            "issue_status": "OPEN_REAL",
+            "evidence_sufficient": bool(issue.get("evidence_sufficient", True)),
             "approved_for_execution": False,
             "automatic_execution_allowed": False,
         })
@@ -728,6 +735,9 @@ def product_qa_sentinel_issues(status: dict[str, Any]) -> list[dict[str, Any]]:
             "seen_count": item.get("seen_count"),
             "production_sha": item.get("production_sha"),
             "confidence": item.get("confidence"),
+            "status": "OPEN_REAL",
+            "evidence_origin": item.get("evidence_origin") or "LOCAL_QA",
+            "evidence_sufficient": bool(item.get("evidence_sufficient", True)),
             "recommendation": f"Corregir y volver a ejecutar evidencia real. Esperado: {item.get('expected')}",
         }
         for item in status.get("open_issues") or []

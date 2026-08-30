@@ -24,6 +24,7 @@ from engines.autonomous_product_qa_engine import (
     build_autonomous_product_qa_status,
     product_qa_review_findings,
 )
+from engines.sentinel_issues_engine import build_sentinel_issues_summary, load_sentinel_issues_memory
 
 MADRID = ZoneInfo("Europe/Madrid")
 PRODUCT_REVIEW_SYSTEM_CONTRACT = "NEMESIS-PRODUCT-REVIEW-SYSTEM-V1"
@@ -880,7 +881,7 @@ def _executive_candidate_from_finding(finding: dict[str, Any], index: int) -> di
     cost = _executive_cost(priority, module, proposal)
     risk = _executive_risk(priority, module, proposal)
     selection_score, selection_explanation = _executive_selection_score(priority, cost, risk, impact_user, impact_business)
-    return {"id": f"EBD-{index:03d}", "source_id": _text(finding.get("id"), 40) or f"PRS-{index:03d}", "title": _text(finding.get("title"), 120) or f"{module}: {proposal[:86]}", "evidence": _text(finding.get("evidence"), 620) or "Evidencia local no detallada por la fuente.", "module": module, "screen": screen, "route": route, "component": _text(finding.get("component"), 140) or "No especificado", "impact_user": impact_user, "impact_business": impact_business, "priority": priority, "estimated_cost": cost, "dependencies": _executive_dependencies(module, screen, route, proposal), "risk": risk, "proposal": proposal, "status": "Pendiente", "approved": False, "requires_human_approval": True, "automatic_execution_allowed": False, "selection_score": selection_score, "selection_explanation": selection_explanation, "source": "Product Review System", "workers": [finding.get("reviewer") or "Product Review System"], "evidence_origin": finding.get("evidence_origin") or "SYSTEM_OBSERVATION"}
+    return {"id": f"EBD-{index:03d}", "source_id": _text(finding.get("id"), 40) or f"PRS-{index:03d}", "title": _text(finding.get("title"), 120) or f"{module}: {proposal[:86]}", "evidence": _text(finding.get("evidence"), 620), "module": module, "screen": screen, "route": route, "component": _text(finding.get("component"), 140) or "No especificado", "impact_user": impact_user, "impact_business": impact_business, "priority": priority, "estimated_cost": cost, "dependencies": _executive_dependencies(module, screen, route, proposal), "risk": risk, "proposal": proposal, "status": "Pendiente", "issue_status": finding.get("issue_status") or "INSUFFICIENT_EVIDENCE", "evidence_sufficient": bool(finding.get("evidence_sufficient")), "approved": False, "requires_human_approval": True, "automatic_execution_allowed": False, "selection_score": selection_score, "selection_explanation": selection_explanation, "source": "Product Review System", "workers": [finding.get("reviewer") or "Product Review System"], "evidence_origin": finding.get("evidence_origin") or "SYSTEM_OBSERVATION"}
 
 
 def _executive_director_matches_candidate(definition: dict[str, Any], candidate: dict[str, Any]) -> bool:
@@ -971,7 +972,7 @@ def _executive_area_health(directors: list[dict[str, Any]]) -> list[dict[str, An
 def _build_executive_board_from_review(review: dict[str, Any], app_version: str, generated_at: str) -> dict[str, Any]:
     findings = list(review.get("findings") or [])
     if not findings:
-        findings = [{"id": "PRS-NO-FINDINGS", "module": "Producto", "screen": "Producto completo", "route": "No aplica", "component": "revision ejecutiva", "evidence": "Product Review System no ha entregado hallazgos abiertos en el snapshot local.", "priority": "P3", "impact_user": "Mantiene el producto en observacion sin cambios innecesarios.", "impact_business": "Evita roadmap artificial sin evidencia.", "proposal": "Mantener seguimiento y esperar evidencia de usuarios reales.", "evidence_origin": "SYSTEM_OBSERVATION"}]
+        findings = [{"id": "PRS-NO-FINDINGS", "module": "Producto", "screen": "Producto completo", "route": "No aplica", "component": "revision ejecutiva", "evidence": "", "priority": "P3", "impact_user": "Mantiene el producto en observacion sin cambios innecesarios.", "impact_business": "Evita roadmap artificial sin evidencia.", "proposal": "Mantener seguimiento y esperar evidencia de usuarios reales.", "evidence_origin": "SYSTEM_OBSERVATION", "issue_status": "INSUFFICIENT_EVIDENCE", "evidence_sufficient": False}]
     candidates = [_executive_candidate_from_finding(finding, index) for index, finding in enumerate(findings, start=1)]
     seen: set[tuple[str, str, str, str]] = set()
     unique_candidates: list[dict[str, Any]] = []
@@ -996,7 +997,14 @@ def build_executive_board_snapshot(project_root: str | Path | None = None, app_v
     root = _root(project_root)
     generated_at = _now()
     review = build_product_review_system_snapshot(root, app_version)
-    return _build_executive_board_from_review(review, app_version, generated_at)
+    board = _build_executive_board_from_review(review, app_version, generated_at)
+    ledger = build_sentinel_issues_summary(app_version, load_sentinel_issues_memory(root))
+    board["issue_health"] = ledger.get("issue_health") or {}
+    board["top_verified_open_issues"] = [
+        {"id": item.get("id"), "priority": item.get("priority"), "title": item.get("title"), "evidence": item.get("evidence")}
+        for item in (ledger.get("open_issues") or [])[:5]
+    ]
+    return board
 def executive_board_snapshot(project_root: str | Path | None = None, app_version: str = "LOCAL") -> dict[str, Any]:
     return build_executive_board_snapshot(project_root, app_version)
 
@@ -1388,8 +1396,13 @@ def _ce_recommendations_from_board(board: dict[str, Any]) -> list[dict[str, Any]
         item["recommendation_id"] = _ce_recommendation_id(candidate)
         item["title"] = _ce_clean_text(item.get("title") or item.get("proposal"), 160)
         evidence = _ce_clean_text(item.get("evidence"), 620)
-        item["evidence"] = evidence or "Evidencia local insuficiente: requiere revision humana antes de aprobar."
-        item["problem"] = evidence or "El hallazgo existe, pero la evidencia heredada no es suficiente para ejecutarlo sin revision humana."
+        item["evidence"] = evidence
+        item["problem"] = evidence or "Evidencia insuficiente para elevar este contexto a trabajo ejecutable."
+        item["issue_status"] = item.get("issue_status") if item.get("issue_status") in {
+            "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE",
+            "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE",
+        } else "INSUFFICIENT_EVIDENCE"
+        item["evidence_sufficient"] = bool(item.get("evidence_sufficient") and evidence)
         item["benefit"] = _ce_clean_text(item.get("impact_user"), 320)
         if item.get("evidence_origin") not in EVIDENCE_ORIGINS:
             item["evidence_origin"] = "SYSTEM_OBSERVATION"
@@ -1494,27 +1507,24 @@ def _ce_calibrate_reviewers(review: dict[str, Any], memory: dict[str, Any]) -> d
     for reviewer in review.get("reviewers") or []:
         name = reviewer.get("name") or reviewer.get("key")
         items = by_worker.get(str(name), [])
-        repeated = [item for item in items if int(item.get("seen_count") or 0) >= 2]
-        regressions = [item for item in items if int(item.get("reopened_count") or 0) > 0 or item.get("state") == "REGRESSED"]
+        reviewed = [item for item in items if item.get("issue_status") in {"RESOLVED", "FALSE_POSITIVE", "OPEN_REAL"} and item.get("evidence_sufficient")]
+        confirmed = [item for item in reviewed if item.get("issue_status") in {"RESOLVED", "OPEN_REAL"}]
+        false_positives = [item for item in reviewed if item.get("issue_status") == "FALSE_POSITIVE"]
+        regressions = [item for item in reviewed if int(item.get("reopened_count") or 0) > 0 or item.get("state") == "REGRESSED"]
         if name in insufficient_real_data:
             state = "INSUFFICIENT_REAL_DATA"
             reason = "El area necesita datos reales de rendimiento, conversion o mercado para producir senal fuerte."
-        elif not items:
+        elif len(reviewed) < 5:
             state = "INSUFFICIENT_HISTORY"
-            reason = "Todavia no hay historial suficiente para calibrar este trabajador."
+            reason = "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal."
         elif regressions:
             state = "HIGH_SIGNAL"
             reason = "Ha detectado recomendaciones que reaparecieron o regresaron."
-        elif repeated:
-            state = "NORMAL_SIGNAL"
-            reason = "Sus hallazgos persisten en mas de una revision."
-        elif int(reviewer.get("findings_count") or 0) > 0:
-            state = "NORMAL_SIGNAL"
-            reason = "Aporta hallazgos actuales con evidencia, pendiente de historial."
         else:
-            state = "LOW_SIGNAL"
-            reason = "No aporta hallazgos actuales y todavia no hay impacto historico medible."
-        calibration[str(name)] = {"state": state, "reason": reason, "recommendations_seen": len(items), "repeated": len(repeated), "regressions": len(regressions)}
+            useful_rate = len(confirmed) / max(len(reviewed), 1)
+            state = "HIGH_SIGNAL" if useful_rate >= .8 else "LOW_SIGNAL" if useful_rate < .5 else "NORMAL_SIGNAL"
+            reason = "Clasificacion determinista basada solo en resultados confirmados y falsos positivos revisados."
+        calibration[str(name)] = {"state": state, "reason": reason, "recommendations_seen": len(items), "reviewed_samples": len(reviewed), "confirmed": len(confirmed), "false_positive": len(false_positives), "regressions": len(regressions)}
     return calibration
 
 
@@ -1550,6 +1560,8 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
             existing["why_priority_changed"] = "La recomendacion reaparecio despues de estar cerrada o verificada."
             event_type = "REGRESSION"
         existing["last_seen"] = now_iso
+        existing["issue_status"] = candidate.get("issue_status") or "INSUFFICIENT_EVIDENCE"
+        existing["evidence_sufficient"] = bool(candidate.get("evidence_sufficient"))
         existing["seen_count"] = int(existing.get("seen_count") or 0) + 1
         existing["missed_count"] = 0
         existing.setdefault("priority_history", []).append({"at_madrid": now_iso, "run_id": run_id, "snapshot_id": snapshot_id, "priority": candidate.get("priority"), "reason": existing.get("why_priority_changed")})
@@ -1573,7 +1585,7 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
             "regression": int(existing.get("reopened_count") or 0) > 0 or existing.get("state") == "REGRESSED",
             "human_rejection": existing.get("state") == "REJECTED",
             "positive_outcome": existing.get("outcome_after") == "OUTCOME_POSITIVE",
-            "insufficient_evidence": not bool(existing.get("evidence")),
+            "insufficient_evidence": not bool(existing.get("evidence_sufficient")),
         }
         events.append({"event_id": _ce_hash("EVT", rec_id, run_id, event_type, now_iso), "type": event_type, "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso, "state": existing.get("state"), "priority_current": existing.get("priority_current")})
     for rec_id, record in records.items():
@@ -1635,6 +1647,8 @@ def _ce_probable_files(candidate: dict[str, Any]) -> list[str]:
 def _ce_build_codex_inbox(board: dict[str, Any], snapshot_id: str, now_iso: str) -> dict[str, Any]:
     items = []
     for index, candidate in enumerate(_ce_unique_candidates(board.get("top_10_improvements") or []), start=1):
+        if candidate.get("issue_status") != "OPEN_REAL" or not candidate.get("evidence_sufficient"):
+            continue
         rec_id = candidate.get("recommendation_id") or _ce_recommendation_id(candidate)
         evidence = _ce_clean_text(candidate.get("evidence"), 620)
         proposal = _ce_clean_text(candidate.get("proposal"), 420)
@@ -1657,6 +1671,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     opportunities = board.get("opportunities") or []
     codex = snapshot.get("prepared_for_codex") or {}
     product_qa = snapshot.get("autonomous_product_qa") or {}
+    issue_health = (snapshot.get("issue_ledger") or {}).get("issue_health") or {}
     product_line = f"Producto: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}."
     growth_line = f"Growth: {growth.get('status') or 'FOUNDATION_READY'} | evidencia real: {growth.get('real_user_data_state') or 'INSUFFICIENT_REAL_DATA'}."
     revenue_line = f"Revenue: MRR {growth_brief.get('mrr') or 'No certificado'} | premium intent {growth_brief.get('premium_intent') or 'Sin datos reales'}."
@@ -1666,6 +1681,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
         growth_line,
         revenue_line,
         f"QA autonoma: {product_qa.get('status') or 'NOT_RUN'} | incidencias abiertas: {product_qa.get('open_issue_count', 0)}.",
+        f"Incidencias: {issue_health.get('open_real', 0)} abiertas reales | {issue_health.get('pending_verification', 0)} por verificar | {issue_health.get('external_blocker', 0)} bloqueos externos.",
         f"Principal fuga del funnel: {growth_brief.get('main_friction') or 'INSUFFICIENT_REAL_DATA'}",
         f"Mejor canal: {growth_brief.get('main_channels') or 'INSUFFICIENT_REAL_DATA'}",
         f"Contenido ganador: {growth_brief.get('winning_content') or 'INSUFFICIENT_REAL_DATA'}",
@@ -1698,6 +1714,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
             "growth": growth_line,
             "revenue": revenue_line,
             "qa_autonoma": f"{product_qa.get('status') or 'NOT_RUN'} | {product_qa.get('open_issue_count', 0)} incidencias abiertas",
+            "salud_incidencias": issue_health,
             "principal_fuga": growth_brief.get("main_friction") or "INSUFFICIENT_REAL_DATA",
             "mejor_canal": growth_brief.get("main_channels") or "INSUFFICIENT_REAL_DATA",
             "contenido_ganador": growth_brief.get("winning_content") or "INSUFFICIENT_REAL_DATA",
@@ -1764,6 +1781,10 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         components_unavailable.append({"component": "Product Review", "status": "COMPONENT_UNAVAILABLE", "error_safe": _ce_safe_error(exc)})
         review = _ce_fallback_product_review(exc, now_iso)
     product_qa = build_autonomous_product_qa_status(root, storage_root=storage_root)
+    issue_ledger = build_sentinel_issues_summary(
+        app_version,
+        load_sentinel_issues_memory(root),
+    )
     qa_findings = product_qa_review_findings(product_qa)
     if qa_findings:
         review.setdefault("findings", []).extend(qa_findings)
@@ -1786,6 +1807,16 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
     memory = load_product_memory(root, storage_root=storage_root, now=now_iso)
     memory = _ce_update_memory(memory, recommendations, review, run_id, snapshot_id, now_iso, comparison)
     board = _ce_enrich_board_with_memory(board, memory, comparison)
+    board["issue_health"] = issue_ledger.get("issue_health") or {}
+    board["top_verified_open_issues"] = [
+        {
+            "id": item.get("id"),
+            "priority": item.get("priority"),
+            "title": item.get("title"),
+            "evidence": item.get("evidence"),
+        }
+        for item in (issue_ledger.get("open_issues") or [])[:5]
+    ]
     recommendations = _ce_recommendations_from_board(board)
     simulated = _ce_simulated_user_nightly_check(root, previous, control_fixture=control_fixture)
     result_state = "PARTIAL_WITH_UNAVAILABLE_COMPONENTS" if components_unavailable else ("PASS_WITH_REVIEW_ITEMS" if recommendations else "PASS")
@@ -1831,6 +1862,11 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "blockers": [],
         "qa_available": _ce_available_qa(root),
         "autonomous_product_qa": product_qa,
+        "issue_ledger": {
+            "status_contract": issue_ledger.get("status_contract"),
+            "issue_health": issue_ledger.get("issue_health") or {},
+            "top_open": board.get("top_verified_open_issues") or [],
+        },
         "simulated_user_nightly_check": simulated,
         "operations": _ce_operations_state(root),
         "beta": _ce_beta_state(root),
@@ -1941,6 +1977,10 @@ def build_continuous_evolution_status_snapshot(project_root: str | Path | None =
     codex = _ce_load_json(paths["codex_inbox"], {"items": [], "ready_count": 0})
     latest_run = _ce_load_json(paths["latest_run"], None)
     jobs = _ce_job_history(paths)
+    issue_ledger = build_sentinel_issues_summary(
+        app_version,
+        load_sentinel_issues_memory(project_root),
+    )
     try:
         latest_brief = paths["latest_brief"].read_text(encoding="utf-8")
     except OSError:
@@ -1979,6 +2019,11 @@ def build_continuous_evolution_status_snapshot(project_root: str | Path | None =
         "temporal_comparison": (latest or {}).get("temporal_comparison") or {"today_vs_previous": {"state": "INSUFFICIENT_HISTORY"}},
         "founder_brief": (latest or {}).get("founder_brief") or {"contract": FOUNDER_BRIEF_CONTRACT, "text": latest_brief, "state": "NOT_GENERATED"},
         "prepared_for_codex": codex,
+        "issue_ledger": {
+            "status_contract": issue_ledger.get("status_contract"),
+            "issue_health": issue_ledger.get("issue_health") or {},
+            "top_open": (issue_ledger.get("open_issues") or [])[:5],
+        },
         "scheduler": scheduler,
         "market_intelligence": build_market_intelligence_foundation_snapshot(project_root, now=now_iso),
         "manual_run_available": True,
