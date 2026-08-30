@@ -5212,7 +5212,7 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
   padding-top: 10px;
 }
 .sports-priority-hero {
-  grid-template-columns: minmax(0, 1.18fr) minmax(320px, .82fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, .55fr);
   align-items: stretch;
   min-height: 0;
 }

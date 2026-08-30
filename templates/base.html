@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v936-commercial.css') }}?v={{ app_version }}&amp;r=diamond-1" data-v936-commercial-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-product-client.css') }}?v={{ app_version }}-polish-4">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-sports-lifecycle.css') }}?v={{ app_version }}-polish-1" data-v937-sports-lifecycle-version="{{ app_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-founder-visual-1" data-v933-product-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-founder-visual-2" data-v933-product-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}" data-v934-realtime-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -544,7 +544,7 @@
   (function v928PwaCacheDelivery(){
     if(!('serviceWorker' in navigator)) return;
     window.addEventListener('load', function(){
-      navigator.serviceWorker.register('/service-worker.js?v={{ app_version }}-founder-visual-1', {updateViaCache:'none'})
+      navigator.serviceWorker.register('/service-worker.js?v={{ app_version }}-founder-visual-2', {updateViaCache:'none'})
         .then(function(registration){ return registration.update(); })
         .catch(function(){ /* PWA is optional; the web app remains network-first. */ });
     });
