@@ -137,15 +137,20 @@
 {% macro match_story(context) -%}
 {% set component = context.get('components', {}).get('MatchStory') or {} %}
 {% set story = context.get('story') or {} %}
+{% set factual = ((context.get('summaries') or {}).get('items') or [{}])[0] %}
 {% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
 {% set risk = conclusions.get('riesgo') or {} %}
 {% set risk_value = risk.get('value') or {} %}
 {{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, contexto y riesgos disponibles.', 'story') }}
-  <div class="v944-experience-grid" data-sports-domain-model="unified-v1">
+  <div class="v944-experience-grid"
+       data-sports-domain-model="unified-v1"
+       data-summary-contract="{{ (context.get('summaries') or {}).get('contract') or '' }}"
+       data-summary-ai-calls="{{ (context.get('summaries') or {}).get('generative_ai_calls') or 0 }}"
+       data-summary-unsupported-claims="{{ (context.get('summaries') or {}).get('unsupported_claims') or 0 }}">
     <article>
       <span>Estado actual</span>
       <strong>{{ story.get('phase') or 'Cobertura parcial' }}</strong>
-      <p>{{ story.get('summary') or 'No disponible todavía.' }}</p>
+      <p>{{ factual.get('text') or story.get('summary') or 'No disponible todavía.' }}</p>
     </article>
     <article>
       <span>Inteligencia</span>
@@ -166,6 +171,67 @@
   {% endif %}
   {{ state_notice(component) }}
 </section>
+{%- endmacro %}
+
+{% macro lineups_panel(context) -%}
+{% set component = context.get('components', {}).get('LineupsPanel') or {} %}
+{% set lineups = context.get('lineups') or {} %}
+{{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados en el caché deportivo.', 'lineups') }}
+  {% if lineups.get('confirmed') %}
+  <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
+    {% for team in lineups.get('teams') or [] %}
+    <section class="v944-lineup-team">
+      <header><strong>{{ team.get('team_name') or 'Equipo' }}</strong><span>{{ team.get('formation') or 'Formación no disponible' }}</span></header>
+      {% if lineups.get('pitch_available') %}
+      <div class="v944-lineup-pitch" aria-label="Once inicial por líneas">
+        {% for band in ['GK','DEF','MID','FWD'] %}
+        <div class="is-{{ band|lower }}">
+          {% for player in team.get('starters') or [] if player.get('position_band') == band %}
+          <a href="{{ player.get('href') }}" data-entity-contract="player"><b>{{ player.get('number') or '' }}</b><span>{{ player.get('name') }}</span></a>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="v944-lineup-list">
+        {% for player in team.get('starters') or [] %}
+        <a href="{{ player.get('href') }}" data-entity-contract="player"><b>{{ player.get('number') or '—' }}</b><span>{{ player.get('name') }}</span><small>{{ player.get('position') or 'Posición no disponible' }}</small></a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if team.get('substitutes') %}
+      <details class="v944-lineup-substitutes"><summary>Suplentes · {{ team.get('substitutes')|length }}</summary><div>
+        {% for player in team.get('substitutes') %}<a href="{{ player.get('href') }}" data-entity-contract="player">{{ player.get('number') or '—' }} · {{ player.get('name') }}</a>{% endfor %}
+      </div></details>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="not_confirmed"></div>
+  {{ state_notice(component, 'Alineación todavía no confirmada.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'lineups') }}
+</section>
+{%- endmacro %}
+
+{% macro video_panel(context) -%}
+{% set media = context.get('media') or {} %}
+{% if media.get('visible_count') %}
+<section class="v944-match-panel v944-video-panel" data-match-region="authorized-video" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
+  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">Vídeo</span><h2>Resumen oficial autorizado</h2></div></header>
+  {% for video in media.get('visible_videos') or [] %}
+  <article data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video">
+    {% if video.get('can_embed') %}
+    <div class="v944-video-frame"><iframe src="{{ video.get('embed_url') }}" title="{{ video.get('title') or 'Resumen del partido' }}" loading="lazy" allowfullscreen></iframe></div>
+    {% elif video.get('can_link') %}
+    <a class="v944-video-link" href="{{ video.get('original_url') }}" rel="noopener noreferrer" target="_blank">Ver resumen en vídeo</a>
+    {% endif %}
+    {% if video.get('attribution') %}<small>Fuente: {{ video.get('attribution') }}</small>{% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
 {%- endmacro %}
 
 {% macro timeline(context) -%}

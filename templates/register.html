@@ -15,7 +15,7 @@
     <input type="hidden" name="next" value="{{ next_url }}">
     <input type="hidden" name="plan" value="{{ selected }}">
     <div class="field"><label for="register-name">Nombre visible</label><input id="register-name" name="name" autocomplete="name" required></div>
-    <div class="field"><label for="register-username">Nombre de usuario</label><input id="register-username" name="username" autocomplete="username" pattern="[A-Za-z0-9_-]{3,32}" required></div>
+    <div class="field"><label for="register-username">Nombre de usuario</label><input id="register-username" name="username" autocomplete="username" pattern="[A-Za-z0-9_\-]{3,32}" required></div>
     <div class="field"><label for="register-email">Email</label><input id="register-email" type="email" name="email" autocomplete="email" required></div>
     <div class="field"><label for="register-password">Contraseña</label><input id="register-password" type="password" name="password" autocomplete="new-password" required></div>
     <button type="submit">{{ 'Crear cuenta y seguir con ' ~ selected if selected in ['PRO','ELITE'] else 'Crear cuenta' }}</button>

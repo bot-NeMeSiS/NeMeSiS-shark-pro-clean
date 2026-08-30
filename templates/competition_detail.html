@@ -11,7 +11,7 @@
 {% set teams = center.teams or [] %}
 {% set links = center.links or {} %}
 {% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
-{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'PARTIALLY_VERIFIED':'Verificación parcial', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes', 'NOT_CERTIFIED':'No certificado'} %}
 
 <section class="competition-center-v1" data-competition-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}">
   <header class="competition-center-hero" data-competition-center-section="header">
@@ -131,7 +131,7 @@
         <a class="competition-center-team-card" href="/team/{{ team.route_id|urlencode }}" data-competition-team-card>
           <span>{{ team.name or 'No disponible' }}</span>
           <strong>{{ team.form.trend if team.form else 'No disponible' }}</strong>
-          <small>{{ team.matches or 0 }} partidos · {{ team.data_quality or 'PARTIALLY_VERIFIED' }}</small>
+          <small>{{ team.matches or 0 }} partidos · {{ quality_labels.get(team.data_quality or 'PARTIALLY_VERIFIED', 'Verificación parcial') }}</small>
         </a>
         {% endfor %}
       </div>
@@ -141,11 +141,11 @@
     </section>
 
     <section class="competition-center-panel" data-competition-center-section="sports-knowledge">
-      <div class="competition-center-section-head"><span>Conocimiento deportivo</span><strong>{{ center.competition_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
+      <div class="competition-center-section-head"><span>Conocimiento deportivo</span><strong>{{ quality_labels.get(center.competition_knowledge.certification_state or 'PARTIALLY_VERIFIED', 'Verificación parcial') }}</strong></div>
       <dl class="competition-center-data-list">
-        <div><dt>Conocimiento de la competicion</dt><dd>{{ center.competition_knowledge_contract or 'No disponible' }}</dd></div>
-        <div><dt>Season Knowledge</dt><dd>{{ center.season_knowledge_contract or 'No disponible' }}</dd></div>
-        <div><dt>Modelo deportivo</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
+        <div><dt>Conocimiento de la competición</dt><dd>{{ 'Disponible' if center.competition_knowledge_contract else 'No disponible' }}</dd></div>
+        <div><dt>Temporada</dt><dd>{{ 'Disponible' if center.season_knowledge_contract else 'No disponible' }}</dd></div>
+        <div><dt>Modelo deportivo</dt><dd>{{ 'Disponible' if center.source_domain_contract else 'No disponible' }}</dd></div>
       </dl>
       {% if center.competition_knowledge.limitations %}
       <ul class="competition-center-evidence-list">{% for item in center.competition_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>
@@ -153,7 +153,7 @@
     </section>
 
     <section class="competition-center-panel" data-competition-center-section="shark-context">
-      <div class="competition-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
+      <div class="competition-center-section-head"><span>Contexto SHARK</span><strong>{{ quality_labels.get(center.shark_context.state or 'INSUFFICIENT_DATA', 'Datos insuficientes') }}</strong></div>
       <p>{{ center.shark_context.summary or 'No hay suficiente información para construir contexto SHARK de competicion.' }}</p>
       {% if center.shark_context.evidence %}
       <ul class="competition-center-evidence-list">{% for item in center.shark_context.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>

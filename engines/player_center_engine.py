@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from engines.content_rights_engine import classify_media_asset
 from engines.match_intelligence_engine import build_match_intelligence
 from engines.shark_intelligence_platform_engine import SHARK_INTELLIGENCE_PLATFORM_CONTRACT
 from engines.sports_domain_model_engine import (
@@ -256,6 +257,16 @@ def build_player_center_context(
     raw_competition = _mapping(data.get("competition"))
     source = raw_player.get("source") or raw_team.get("source") or raw_competition.get("source") or "local_cache"
     player = normalize_player_entity(raw_player, provider=source)
+    photo_rights = classify_media_asset({
+        "content_type": "player_photo",
+        "source": raw_player.get("photo_source") or player.get("photo_source") or source,
+        "photo_url": raw_player.get("photo") or raw_player.get("photo_url") or player.get("photo"),
+        "rights_status": raw_player.get("photo_rights_status") or raw_player.get("rights_status") or "UNKNOWN_RIGHTS",
+        "commercial_use_status": raw_player.get("photo_commercial_use_status") or raw_player.get("commercial_use_status") or "UNKNOWN",
+        "attribution": raw_player.get("photo_attribution") or raw_player.get("attribution") or "",
+        "last_verified": raw_player.get("photo_rights_verified_at") or raw_player.get("last_verified") or "",
+    }, channel="APP")
+    safe_photo = player.get("photo") if photo_rights.get("can_display") else None
     player_name = player.get("display_name") or raw_player.get("player_name") or "Jugador no disponible"
     team = normalize_team_entity(raw_team, provider=raw_team.get("source") or source) if raw_team else {}
     competition = normalize_competition_entity(raw_competition, provider=raw_competition.get("source") or source) if raw_competition else {}
@@ -336,7 +347,7 @@ def build_player_center_context(
         player_name=player_name,
     )
     missing = list(player.get("limitations") or [])
-    if not player.get("photo"):
+    if not safe_photo:
         missing.append("Fotografia no disponible: ninguna fuente legal lo confirma.")
     if not player.get("position"):
         missing.append("Posicion no disponible.")
@@ -387,8 +398,13 @@ def build_player_center_context(
             "position": player.get("position") or "No disponible",
             "shirt_number": player.get("shirt_number") or "No disponible",
             "state": state,
-            "photo": player.get("photo"),
+            "birth_date": player.get("birth_date") or "No disponible",
+            "age": player.get("age") if player.get("age") is not None else "No disponible",
+            "height": player.get("height") or "No disponible",
+            "preferred_foot": player.get("preferred_foot") or "No disponible",
+            "photo": safe_photo,
             "photo_source": player.get("photo_source") or "No disponible",
+            "photo_rights": photo_rights,
             "canonical": player,
         },
         "team": team,

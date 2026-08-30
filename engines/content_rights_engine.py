@@ -15,6 +15,29 @@ FALLBACK_ONLY = "FALLBACK_ONLY"
 BLOCKED_NO_RIGHTS = "BLOCKED_NO_RIGHTS"
 UNKNOWN_REVIEW_REQUIRED = "UNKNOWN_REVIEW_REQUIRED"
 
+OWNED = "OWNED"
+LICENSED = "LICENSED"
+PROVIDER_ALLOWED = "PROVIDER_ALLOWED"
+OPEN_LICENSE_ALLOWED = "OPEN_LICENSE_ALLOWED"
+ATTRIBUTION_REQUIRED = "ATTRIBUTION_REQUIRED"
+REVIEW_REQUIRED = "REVIEW_REQUIRED"
+BLOCKED = "BLOCKED"
+UNKNOWN_RIGHTS = "UNKNOWN_RIGHTS"
+
+MEDIA_APPROVAL_STATES = {
+    OWNED,
+    LICENSED,
+    PROVIDER_ALLOWED,
+    OPEN_LICENSE_ALLOWED,
+    ATTRIBUTION_REQUIRED,
+}
+COMMERCIAL_ALLOWED_STATES = {
+    "ALLOWED",
+    "COMMERCIAL_ALLOWED",
+    "LICENSED_COMMERCIAL",
+    "PROVIDER_TERMS_ALLOWED",
+}
+
 VIDEO_PROVIDERS = {"youtube.com", "www.youtube.com", "youtu.be", "player.vimeo.com", "vimeo.com"}
 IMAGE_API_HINTS = {"thesportsdb", "api-football", "sportsdb"}
 
@@ -28,6 +51,76 @@ def _host(url: str) -> str:
 
 def _has_url(item: dict, *keys: str) -> bool:
     return any(bool(item.get(key)) for key in keys)
+
+
+def classify_media_asset(item: dict | None, *, channel: str = "APP") -> dict:
+    """Fail-closed media decision for client-facing commercial surfaces.
+
+    A provider URL is not treated as redistribution permission. Callers must
+    supply an explicit rights and commercial-use state before an asset can be
+    shown. Unknown assets remain metadata-only and use an owned fallback.
+    """
+    item = dict(item or {})
+    content_type = str(item.get("content_type") or item.get("type") or "unknown").strip().lower()
+    source = str(item.get("source") or item.get("provider") or "").strip()
+    asset_url = str(
+        item.get("embed_url")
+        or item.get("original_url")
+        or item.get("url")
+        or item.get("image_url")
+        or item.get("photo_url")
+        or item.get("thumbnail_url")
+        or ""
+    ).strip()
+    rights_status = str(item.get("rights_status") or item.get("media_rights_status") or UNKNOWN_RIGHTS).strip().upper()
+    if rights_status not in MEDIA_APPROVAL_STATES | {REVIEW_REQUIRED, BLOCKED, UNKNOWN_RIGHTS}:
+        rights_status = UNKNOWN_RIGHTS
+    commercial = str(item.get("commercial_use_status") or "UNKNOWN").strip().upper()
+    attribution = str(item.get("attribution") or "").strip()
+    attribution_required = bool(item.get("attribution_required")) or rights_status == ATTRIBUTION_REQUIRED
+    last_verified = str(item.get("last_verified") or item.get("rights_verified_at") or "").strip()
+
+    if not asset_url:
+        decision = BLOCKED
+        reason = "No existe un recurso externo que evaluar; usar fallback propio."
+    elif rights_status == BLOCKED:
+        decision = BLOCKED
+        reason = "La fuente o la licencia bloquea este uso."
+    elif rights_status in {UNKNOWN_RIGHTS, REVIEW_REQUIRED}:
+        decision = REVIEW_REQUIRED
+        reason = "Los derechos no están certificados para esta superficie."
+    elif commercial not in COMMERCIAL_ALLOWED_STATES:
+        decision = REVIEW_REQUIRED
+        reason = "El uso comercial no está certificado."
+    elif attribution_required and not attribution:
+        decision = REVIEW_REQUIRED
+        reason = "Falta la atribución obligatoria."
+    elif attribution_required:
+        decision = ATTRIBUTION_REQUIRED
+        reason = "Uso permitido mostrando la atribución indicada."
+    else:
+        decision = "APPROVED"
+        reason = "Derechos y uso comercial certificados para el canal solicitado."
+
+    can_display = decision in {"APPROVED", ATTRIBUTION_REQUIRED}
+    return {
+        **item,
+        "source": source,
+        "content_type": content_type,
+        "asset_url": asset_url,
+        "rights_status": rights_status,
+        "attribution_requirement": "REQUIRED" if attribution_required else "NOT_REQUIRED",
+        "attribution": attribution,
+        "commercial_use_status": commercial,
+        "last_verified": last_verified,
+        "channel": str(channel or "APP").strip().upper(),
+        "decision": decision,
+        "can_display": can_display,
+        "requires_review": decision == REVIEW_REQUIRED,
+        "reason": reason,
+        "downloads_binary": False,
+        "rehosts_binary": False,
+    }
 
 
 def classify_external_content(item: dict | None) -> dict:
@@ -136,4 +229,11 @@ def content_rights_policy_summary(items: list[dict] | None = None) -> dict:
             "Sin scraping ilegal ni copia de artículos completos.",
             "Todo contenido externo debe conservar fuente/atribución cuando corresponda.",
         ],
+        "strict_media_policy": {
+            "contract": "NEMESIS-MEDIA-RIGHTS-GUARD-V1",
+            "default": REVIEW_REQUIRED,
+            "unknown_rights_visible": False,
+            "commercial_use_must_be_explicit": True,
+            "channels": ["APP", "TELEGRAM", "SEO", "SOCIAL", "MARKETING"],
+        },
     }

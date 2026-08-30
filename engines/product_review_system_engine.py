@@ -20,6 +20,10 @@ from zoneinfo import ZoneInfo
 from engines.experience_platform_engine import build_experience_platform_snapshot
 from engines.growth_revenue_os_engine import GROWTH_FUNNEL_EVENT_CONTRACT, build_growth_revenue_os_snapshot
 from engines.sports_platform_contracts import build_sports_platform_contract_registry
+from engines.autonomous_product_qa_engine import (
+    build_autonomous_product_qa_status,
+    product_qa_review_findings,
+)
 
 MADRID = ZoneInfo("Europe/Madrid")
 PRODUCT_REVIEW_SYSTEM_CONTRACT = "NEMESIS-PRODUCT-REVIEW-SYSTEM-V1"
@@ -1652,6 +1656,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
     risks = board.get("risks") or []
     opportunities = board.get("opportunities") or []
     codex = snapshot.get("prepared_for_codex") or {}
+    product_qa = snapshot.get("autonomous_product_qa") or {}
     product_line = f"Producto: {snapshot.get('result')} | Score producto: {(snapshot.get('product_review') or {}).get('score')} | Board: {board.get('board_score')}."
     growth_line = f"Growth: {growth.get('status') or 'FOUNDATION_READY'} | evidencia real: {growth.get('real_user_data_state') or 'INSUFFICIENT_REAL_DATA'}."
     revenue_line = f"Revenue: MRR {growth_brief.get('mrr') or 'No certificado'} | premium intent {growth_brief.get('premium_intent') or 'Sin datos reales'}."
@@ -1660,6 +1665,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
         product_line,
         growth_line,
         revenue_line,
+        f"QA autonoma: {product_qa.get('status') or 'NOT_RUN'} | incidencias abiertas: {product_qa.get('open_issue_count', 0)}.",
         f"Principal fuga del funnel: {growth_brief.get('main_friction') or 'INSUFFICIENT_REAL_DATA'}",
         f"Mejor canal: {growth_brief.get('main_channels') or 'INSUFFICIENT_REAL_DATA'}",
         f"Contenido ganador: {growth_brief.get('winning_content') or 'INSUFFICIENT_REAL_DATA'}",
@@ -1691,6 +1697,7 @@ def _ce_build_founder_brief(snapshot: dict[str, Any]) -> dict[str, Any]:
             "producto": product_line,
             "growth": growth_line,
             "revenue": revenue_line,
+            "qa_autonoma": f"{product_qa.get('status') or 'NOT_RUN'} | {product_qa.get('open_issue_count', 0)} incidencias abiertas",
             "principal_fuga": growth_brief.get("main_friction") or "INSUFFICIENT_REAL_DATA",
             "mejor_canal": growth_brief.get("main_channels") or "INSUFFICIENT_REAL_DATA",
             "contenido_ganador": growth_brief.get("winning_content") or "INSUFFICIENT_REAL_DATA",
@@ -1756,6 +1763,23 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
     except Exception as exc:
         components_unavailable.append({"component": "Product Review", "status": "COMPONENT_UNAVAILABLE", "error_safe": _ce_safe_error(exc)})
         review = _ce_fallback_product_review(exc, now_iso)
+    product_qa = build_autonomous_product_qa_status(root, storage_root=storage_root)
+    qa_findings = product_qa_review_findings(product_qa)
+    if qa_findings:
+        review.setdefault("findings", []).extend(qa_findings)
+        finding_counts = Counter(item.get("priority", "P3") for item in review.get("findings") or [])
+        review["findings_summary"] = {
+            "P0": finding_counts.get("P0", 0),
+            "P1": finding_counts.get("P1", 0),
+            "P2": finding_counts.get("P2", 0),
+            "P3": finding_counts.get("P3", 0),
+            "total": len(review.get("findings") or []),
+        }
+        review["score"], review["score_explanation"] = _score(
+            review.get("findings") or [],
+            review.get("evidence_checks") or [],
+        )
+        review["status"] = "REQUIRES_REVIEW" if finding_counts.get("P0") or finding_counts.get("P1") else review.get("status")
     board = _build_executive_board_from_review(review, app_version, now_iso)
     recommendations = _ce_recommendations_from_board(board)
     comparison = _ce_compare(recommendations, previous, history)
@@ -1794,7 +1818,7 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "generated_at_madrid": now_iso,
         "version": app_version,
         "result": result_state,
-        "systems_consulted": ["Product Review", "Digital Employees", "Simulated QA evidence", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation", "Growth & Revenue OS"],
+        "systems_consulted": ["Product Review", "Autonomous Product QA", "Digital Employees", "Simulated QA evidence", "Experience evidence", "Executive Board", "Product Memory", "Temporal Comparison", "QA availability", "Beta evidence", "Operations read-only", "Roadmap signals", "Market foundation", "Growth & Revenue OS"],
         "systems_unavailable": ["REAL_USER_DATA", "PRODUCTION_LOGS", "REAL_MARKET_RESEARCH", *[item["component"] for item in components_unavailable]],
         "components_unavailable": components_unavailable,
         "product_review": _ce_compact_review(review),
@@ -1806,6 +1830,7 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "modules_not_to_touch": board.get("things_not_to_touch") or [],
         "blockers": [],
         "qa_available": _ce_available_qa(root),
+        "autonomous_product_qa": product_qa,
         "simulated_user_nightly_check": simulated,
         "operations": _ce_operations_state(root),
         "beta": _ce_beta_state(root),

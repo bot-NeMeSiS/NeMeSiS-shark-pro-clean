@@ -10,8 +10,9 @@
 {% set form_items = form.get('items') or [] %}
 {% set data_quality = center.data_quality or {} %}
 {% set links = center.links or {} %}
+{% set squad = center.squad or {} %}
 {% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
-{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'PARTIALLY_VERIFIED':'Verificación parcial', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes', 'NOT_CERTIFIED':'No certificado'} %}
 {% set shark_state = center.shark_context.state or 'INSUFFICIENT_DATA' %}
 
 <section class="team-center-v1" data-team-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}">
@@ -87,7 +88,7 @@
       <p>{{ center.shark_context.summary or 'Contexto SHARK no disponible.' }}</p>
       {% if center.shark_context.limitations %}
       <ul class="team-center-evidence-list">
-        {% for item in center.shark_context.limitations[:3] %}<li>{{ item }}</li>{% endfor %}
+        <li>El análisis utiliza únicamente la evidencia deportiva disponible.</li>
       </ul>
       {% endif %}
     </section>
@@ -97,6 +98,23 @@
       {% if center.strengths %}<ul class="team-center-evidence-list">{% for item in center.strengths %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">Información pendiente. Ninguna fuente lo confirma.</p>{% endif %}
       <div class="team-center-section-head is-sub"><span>Debilidades detectadas</span><strong>{{ center.weaknesses|length }}</strong></div>
       {% if center.weaknesses %}<ul class="team-center-evidence-list">{% for item in center.weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">Información pendiente. Ninguna fuente lo confirma.</p>{% endif %}
+    </section>
+
+    <section class="team-center-panel team-center-wide" data-team-center-section="squad" data-lineup-state="{{ (squad.state or 'NOT_CONFIRMED')|lower }}">
+      <div class="team-center-section-head"><span>Plantilla</span><strong>{{ center.players|length }}</strong></div>
+      {% if center.players %}
+      <div class="team-center-player-grid">
+        {% for player in center.players %}
+        <a href="{{ player.href }}" data-entity-contract="player">
+          <b>{{ player.shirt_number if player.shirt_number != 'No disponible' else '—' }}</b>
+          <span><strong>{{ player.name }}</strong><small>{{ player.position }}</small></span>
+          {% if player.is_starting %}<em>Titular</em>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="team-center-empty">Plantilla todavía no confirmada.</p>
+      {% endif %}
     </section>
 
     <section class="team-center-match-section team-center-wide" data-team-center-section="upcoming-matches">

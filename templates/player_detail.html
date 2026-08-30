@@ -9,14 +9,15 @@
 {% set data_quality = center.data_quality or {} %}
 {% set links = center.links or {} %}
 {% set quality_state = data_quality.certification_state or 'REQUIRES_REVIEW' %}
-{% set quality_labels = {'VERIFIED':'Verificado', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes'} %}
+{% set quality_labels = {'VERIFIED':'Verificado', 'PARTIALLY_VERIFIED':'Verificación parcial', 'REQUIRES_REVIEW':'Revisión pendiente', 'PARTIAL':'Parcial', 'STALE':'Desactualizado', 'INSUFFICIENT_DATA':'Datos insuficientes', 'NOT_CERTIFIED':'No certificado', 'PREPARED_NOT_APPLIED':'Preparado'} %}
+{% set media_labels = {'APPROVED':'Autorizada', 'ATTRIBUTION_REQUIRED':'Autorizada con atribución', 'REVIEW_REQUIRED':'Revisión pendiente', 'BLOCKED':'No disponible'} %}
 
 <section class="player-center-v1" data-player-center-contract="{{ center.contract or '' }}" data-sports-domain-model="{{ center.source_domain_contract or '' }}" data-sports-knowledge-contract="{{ center.sports_knowledge_contract or '' }}" data-player-knowledge-contract="{{ center.player_knowledge_contract or '' }}" data-sports-graph-contract="{{ center.sports_graph_contract or '' }}" data-shark-intelligence-contract="{{ center.shark_intelligence_contract or '' }}" data-user-intelligence-contract="{{ center.user_intelligence_contract or '' }}">
   <header class="player-center-hero" data-player-center-section="header">
     <div class="player-center-identity">
       <div class="player-center-photo" aria-label="Foto del jugador">
         {% if player.photo %}
-          <img src="{{ player.photo }}" alt="{{ player.display_name or 'Jugador' }}" loading="lazy">
+          <img src="{{ player.photo }}" alt="{{ player.display_name or 'Jugador' }}" loading="lazy" data-rights-decision="{{ player.photo_rights.decision if player.photo_rights else '' }}" data-media-content-type="player-photo">
         {% else %}
           <span>{{ (player.display_name or player.name or 'ND')[:2] }}</span>
         {% endif %}
@@ -48,6 +49,10 @@
     <article><span>Competición</span><strong>{{ player.competition or 'No disponible' }}</strong></article>
     <article><span>País</span><strong>{{ player.country or 'No disponible' }}</strong></article>
     <article><span>Dorsal</span><strong>{{ player.shirt_number or 'No disponible' }}</strong></article>
+    {% if player.birth_date != 'No disponible' %}<article><span>Nacimiento</span><strong>{{ player.birth_date }}</strong></article>{% endif %}
+    {% if player.age != 'No disponible' %}<article><span>Edad</span><strong>{{ player.age }}</strong></article>{% endif %}
+    {% if player.height != 'No disponible' %}<article><span>Altura</span><strong>{{ player.height }}</strong></article>{% endif %}
+    {% if player.preferred_foot != 'No disponible' %}<article><span>Pie</span><strong>{{ player.preferred_foot }}</strong></article>{% endif %}
   </section>
 
   <section class="player-center-scoreboard" data-player-center-section="metrics" aria-label="Resumen deportivo">
@@ -81,7 +86,7 @@
     </section>
 
     <section class="player-center-panel" data-player-center-section="shark-context">
-      <div class="player-center-section-head"><span>Contexto SHARK</span><strong>{{ center.shark_context.state or 'INSUFFICIENT_DATA' }}</strong></div>
+      <div class="player-center-section-head"><span>Contexto SHARK</span><strong>{{ quality_labels.get(center.shark_context.state or 'INSUFFICIENT_DATA', 'Datos insuficientes') }}</strong></div>
       <p>{{ center.shark_context.summary or 'No hay suficiente información para construir contexto SHARK del jugador.' }}</p>
       {% if center.shark_context.evidence %}<ul class="player-center-evidence-list">{% for item in center.shark_context.evidence[:4] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
       {% if center.shark_context.limitations %}<ul class="player-center-evidence-list">{% for item in center.shark_context.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
@@ -116,11 +121,11 @@
     </section>
 
     <section class="player-center-panel" data-player-center-section="sports-knowledge">
-      <div class="player-center-section-head"><span>Conocimiento deportivo</span><strong>{{ center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED' }}</strong></div>
+      <div class="player-center-section-head"><span>Conocimiento deportivo</span><strong>{{ quality_labels.get(center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED', 'Verificación parcial') }}</strong></div>
       <dl class="player-center-data-list">
-        <div><dt>Conocimiento del jugador</dt><dd>{{ center.player_knowledge_contract or 'No disponible' }}</dd></div>
-        <div><dt>Modelo deportivo</dt><dd>{{ center.source_domain_contract or 'No disponible' }}</dd></div>
-        <div><dt>Capa de conocimiento</dt><dd>{{ center.sports_knowledge_contract or 'No disponible' }}</dd></div>
+        <div><dt>Conocimiento del jugador</dt><dd>{{ 'Disponible' if center.player_knowledge_contract else 'No disponible' }}</dd></div>
+        <div><dt>Modelo deportivo</dt><dd>{{ 'Disponible' if center.source_domain_contract else 'No disponible' }}</dd></div>
+        <div><dt>Capa de conocimiento</dt><dd>{{ 'Disponible' if center.sports_knowledge_contract else 'No disponible' }}</dd></div>
       </dl>
       {% if center.player_knowledge.limitations %}<ul class="player-center-evidence-list">{% for item in center.player_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
@@ -132,17 +137,17 @@
     </section>
 
     <section class="player-center-panel" data-player-center-section="user-intelligence">
-      <div class="player-center-section-head"><span>Inteligencia de usuario</span><strong>{{ center.user_intelligence.state or 'PREPARED_NOT_APPLIED' }}</strong></div>
+      <div class="player-center-section-head"><span>Inteligencia de usuario</span><strong>{{ quality_labels.get(center.user_intelligence.state or 'PREPARED_NOT_APPLIED', 'Preparado') }}</strong></div>
       <p>{{ center.user_intelligence.summary or 'Preparado, no aplicado automaticamente.' }}</p>
       {% if center.user_intelligence.limitations %}<ul class="player-center-evidence-list">{% for item in center.user_intelligence.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="data-quality">
-      <div class="player-center-section-head"><span>Transparencia</span><strong>{{ data_quality.certification_state or 'REQUIRES_REVIEW' }}</strong></div>
+      <div class="player-center-section-head"><span>Transparencia</span><strong>{{ quality_labels.get(data_quality.certification_state or 'REQUIRES_REVIEW', 'Revisión pendiente') }}</strong></div>
       <dl class="player-center-data-list">
         <div><dt>Procedencia</dt><dd>{{ data_quality.source or 'No disponible' }}</dd></div>
         <div><dt>Frescura</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</dd></div>
-        <div><dt>Foto</dt><dd>{{ player.photo_source or 'No disponible' }}</dd></div>
+        <div><dt>Foto</dt><dd>{{ media_labels.get(player.photo_rights.decision, 'No disponible') if player.photo_rights else 'No disponible' }}</dd></div>
         <div><dt>Limitaciones</dt><dd>{{ data_quality.limitations|length if data_quality.limitations else 0 }}</dd></div>
       </dl>
       {% if data_quality.limitations %}<ul class="player-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">Sin limitaciones relevantes en la muestra disponible.</p>{% endif %}

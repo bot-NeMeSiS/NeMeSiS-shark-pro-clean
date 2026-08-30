@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
-{% from "components/v944_match_center.html" import match_header, score_widget, match_story, timeline, stats_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 {% if not detail or not match_context %}
@@ -28,8 +28,10 @@
   <div class="v944-match-layout">
     <section class="v944-match-main" id="match-story" aria-label="Historia y datos del partido">
       {{ match_story(match_context) }}
+      {{ lineups_panel(match_context) }}
       {{ timeline(match_context) }}
       {{ stats_panel(match_context) }}
+      {{ video_panel(match_context) }}
       {{ competition_panel(match_context) }}
       {{ data_quality_panel(match_context) }}
     </section>

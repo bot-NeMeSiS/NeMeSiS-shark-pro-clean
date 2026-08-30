@@ -1,16 +1,16 @@
 <svg width="260" height="92" viewBox="0 0 260 92" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
     <linearGradient id="brandBody" x1="12" y1="22" x2="244" y2="70" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#DDFCFF" stop-opacity=".34"/>
-      <stop offset=".23" stop-color="#38D9FF" stop-opacity=".25"/>
-      <stop offset=".7" stop-color="#116CD1" stop-opacity=".17"/>
-      <stop offset="1" stop-color="#061B45" stop-opacity=".06"/>
+      <stop stop-color="#DDFCFF" stop-opacity=".16"/>
+      <stop offset=".23" stop-color="#38D9FF" stop-opacity=".12"/>
+      <stop offset=".7" stop-color="#116CD1" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#061B45" stop-opacity=".03"/>
     </linearGradient>
     <linearGradient id="brandEdge" x1="7" y1="16" x2="250" y2="76" gradientUnits="userSpaceOnUse">
       <stop stop-color="#F2FEFF"/>
       <stop offset=".22" stop-color="#5CE7FF"/>
       <stop offset=".68" stop-color="#168BFF"/>
-      <stop offset="1" stop-color="#3159D7" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#3159D7" stop-opacity=".72"/>
     </linearGradient>
     <filter id="brandGlow" x="-14%" y="-34%" width="128%" height="168%" color-interpolation-filters="sRGB">
       <feGaussianBlur in="SourceGraphic" stdDeviation="1.7" result="blur"/>
@@ -20,8 +20,8 @@
   </defs>
   <g filter="url(#brandGlow)" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 47C23 27 55 18 94 20C126 21 151 31 177 36L204 31L247 7L235 36C244 39 252 45 258 52C247 53 238 56 230 62L249 86L202 65L176 61C144 72 107 75 76 68C52 63 37 52 26 48C19 47 13 49 7 51L18 57C27 62 37 63 47 60C31 60 17 56 7 47Z" fill="url(#brandBody)" stroke="url(#brandEdge)" stroke-width="2.35"/>
-    <path d="M94 20C108 8 125 3 145 2C135 11 132 20 136 26" fill="#0C63B6" fill-opacity=".25" stroke="url(#brandEdge)" stroke-width="2"/>
-    <path d="M111 67C128 72 144 80 157 90C138 87 121 79 106 69" fill="#0752A4" fill-opacity=".2" stroke="url(#brandEdge)" stroke-width="1.8"/>
+    <path d="M94 20C108 8 125 3 145 2C135 11 132 20 136 26" fill="#0C63B6" fill-opacity=".1" stroke="url(#brandEdge)" stroke-width="2"/>
+    <path d="M111 67C128 72 144 80 157 90C138 87 121 79 106 69" fill="#0752A4" fill-opacity=".08" stroke="url(#brandEdge)" stroke-width="1.8"/>
     <path d="M9 50C28 47 48 51 64 58C47 63 29 62 18 57" fill="#010817" fill-opacity=".9" stroke="#5CE7FF" stroke-opacity=".78" stroke-width="1.35"/>
     <path d="M16 52L23 56L29 52L35 58L41 54L47 59" stroke="#DFFBFF" stroke-opacity=".8" stroke-width=".9"/>
     <path d="M27 38C57 28 94 27 132 34C163 40 185 48 205 57" stroke="#DFFBFF" stroke-opacity=".62" stroke-width="1.1"/>

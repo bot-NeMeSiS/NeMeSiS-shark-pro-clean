@@ -20,6 +20,10 @@ from engines.sentinel_render_alignment_engine import build_render_alignment
 from engines.sentinel_safe_autofix_engine import build_safe_autofix_plan
 from engines.sentinel_telegram_quality_watch_engine import build_telegram_quality_watch
 from engines.sentinel_user_admin_journey_engine import run_user_admin_journey_scan
+from engines.autonomous_product_qa_engine import (
+    build_autonomous_product_qa_status,
+    product_qa_sentinel_issues,
+)
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -321,6 +325,8 @@ def run_autonomous_company_sentinel(
         issue_sources.extend(autopilot_result.get("issues") or [])
     if visual_result:
         issue_sources.extend(visual_result.get("issues") or [])
+    product_qa = build_autonomous_product_qa_status(root)
+    issue_sources.extend(product_qa_sentinel_issues(product_qa))
     issues_summary = run_sentinel_issues_scan(
         app_version,
         root,
@@ -414,6 +420,7 @@ def run_autonomous_company_sentinel(
         "render_runtime_status": render_runtime_status,
         "telegram_quality_watch": telegram_watch,
         "navigation_integrity": navigation_integrity,
+        "autonomous_product_qa": product_qa,
         "issues_summary": issues_summary,
         "outbox": outbox,
         "autofix_plan": autofix,

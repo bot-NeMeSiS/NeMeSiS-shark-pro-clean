@@ -1,11 +1,11 @@
 # V938 Repository Privacy and Secret Classification
 
-- Fecha Madrid: `2026-07-31T11:53:46+02:00`
-- Archivos revisados: **1072**
+- Fecha Madrid: `2026-08-30T02:43:26+02:00`
+- Archivos revisados: **1093**
 - Secretos confirmados: **0**
 - Literales sensibles por revisar: **0**
 - Identificadores de privacidad por revisar: **0**
-- Ejemplos ignorados: **49**
+- Ejemplos ignorados: **60**
 - Valores impresos: **no**
 - Produccion modificada: **no**
 

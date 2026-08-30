@@ -38,8 +38,6 @@
     </div>
   </section>
 
-  {{ realtime_state_bar(realtime, 'all') }}
-
   <section class="v933-kpi-grid sports-priority-kpis" aria-label="Resumen de la jornada">
     {{ kpi_card('Partidos', sports_metrics.get('matches_available', 0), 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Estado confirmado', 'success', 'live', '/live') }}
@@ -96,8 +94,6 @@
         </div>
       </section>
 
-      {% if customer_trust.get('status') == 'verified_data' %}{{ customer_trust_panel(customer_trust) }}{% endif %}
-      {{ provider_state(sports_value.get('real_matches_available', false), sports_value.get('last_safe_sync') or '', sports_value.get('safe_message') or '') }}
     </aside>
   </section>
 
@@ -117,7 +113,10 @@
     </div>
   </section>
 
-  {{ customer_decision('Elige tu siguiente partido', 'Abre un encuentro para reunir estado, marcador y contexto.', 'Ver partidos', '/calendar', 'blue', 'Siguiente acción', 'Consultar SHARK', '/shark', 'Sports first · SHARK con evidencia') }}
+  <details class="v933-home-more">
+    <summary>Más opciones</summary>
+    <div class="v933-home-more-content">
+      {{ customer_decision('Elige tu siguiente partido', 'Abre un encuentro para reunir estado, marcador y contexto.', 'Ver partidos', '/calendar', 'blue', 'Siguiente acción', 'Consultar SHARK', '/shark', 'Sports first · SHARK con evidencia') }}
 
   <section class="v933-panel" data-v939-layout-contract="context-strip">
     {{ section_header('Tus accesos rápidos', '') }}
@@ -134,5 +133,7 @@
     {{ section_header('Tu plan', '') }}
     {{ value_ladder(plan_name) }}
   </section>
+    </div>
+  </details>
 </div>
 {% endblock %}

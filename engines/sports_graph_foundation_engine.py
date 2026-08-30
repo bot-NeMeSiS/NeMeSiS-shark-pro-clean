@@ -320,6 +320,35 @@ def build_sports_graph_relationships(
             if team_ref is not None:
                 add(event_player_ref, "player_linked_to_team", team_ref, ev)
 
+    for item in player_items:
+        player_key = _text(item.get("canonical_player_id") or item.get("id") or item.get("player_id"), 180)
+        direct_player_ref = player_refs.get(player_key) or player_refs.get(player_key.casefold())
+        team_key = _text(item.get("team_id") or item.get("canonical_team_id") or item.get("team_name"), 160)
+        direct_team_ref = team_refs.get(team_key) or team_refs.get(team_key.casefold())
+        if direct_team_ref is None and len({ref.entity_id for ref in team_refs.values()}) == 1:
+            direct_team_ref = team_ref
+        if direct_player_ref is None or direct_team_ref is None:
+            continue
+        direct_pair = (direct_player_ref.entity_id, direct_team_ref.entity_id)
+        linked_pairs = {
+            (
+                _mapping(edge.get("source_entity")).get("entity_id"),
+                _mapping(edge.get("target_entity")).get("entity_id"),
+            )
+            for edge in edges
+            if edge.get("relationship") == "player_linked_to_team"
+        }
+        ev = _evidence(
+            source=item.get("source") or source,
+            source_type="player_entity",
+            observed_at_madrid=observed_at_madrid,
+            state=item.get("data_quality") or "PARTIALLY_VERIFIED",
+            reference=player_key,
+        )
+        if direct_pair not in linked_pairs:
+            add(direct_player_ref, "player_linked_to_team", direct_team_ref, ev)
+            add(direct_team_ref, "team_has_player", direct_player_ref, ev)
+
     for item in evidence:
         evidence_id = item.get("evidence_id") or item.get("id")
         if not evidence_id:

@@ -1,6 +1,6 @@
 {
   "version": "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL",
-  "generated_at_madrid": "2026-07-10T00:00:00+02:00",
+  "generated_at_madrid": "2026-08-30T00:21:08+02:00",
   "reference_root": "reference_images",
   "reference_count": 16,
   "canonical_reference": true,
@@ -19,8 +19,28 @@
   },
   "items": [
     {
+      "reference_id": "REF-01",
       "filename": "reference_images/admin/reference_import_v900_01.png",
+      "reference_file": "reference_images/admin/reference_import_v900_01.png",
       "category": "admin",
+      "screen": "Admin Dashboard",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/dashboard",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -29,11 +49,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-02",
       "filename": "reference_images/admin/reference_import_v900_02.png",
+      "reference_file": "reference_images/admin/reference_import_v900_02.png",
       "category": "admin",
+      "screen": "Telegram Command Center",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/telegram/command-center",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -42,11 +82,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-03",
       "filename": "reference_images/admin/reference_import_v900_03.png",
+      "reference_file": "reference_images/admin/reference_import_v900_03.png",
       "category": "admin",
+      "screen": "Payments Admin",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/payments",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -55,11 +115,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-04",
       "filename": "reference_images/admin/reference_import_v900_04.png",
+      "reference_file": "reference_images/admin/reference_import_v900_04.png",
       "category": "admin",
+      "screen": "Automation Center",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/automation-center",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -68,11 +148,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-05",
       "filename": "reference_images/admin/reference_import_v900_05.png",
+      "reference_file": "reference_images/admin/reference_import_v900_05.png",
       "category": "admin",
+      "screen": "Data Marketplace",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/data-marketplace",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -81,11 +181,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-06",
       "filename": "reference_images/admin/reference_import_v900_06.png",
+      "reference_file": "reference_images/admin/reference_import_v900_06.png",
       "category": "admin",
+      "screen": "Real Launch",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/real-launch",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -94,11 +214,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-07",
       "filename": "reference_images/admin/reference_import_v900_07.png",
+      "reference_file": "reference_images/admin/reference_import_v900_07.png",
       "category": "admin",
+      "screen": "Picks Admin",
+      "viewport": [
+        "desktop"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "sidebar",
+        "topbar",
+        "kpis",
+        "tables",
+        "actions"
+      ],
       "secondary_categories": [],
       "screen_target": "/admin/picks",
       "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
@@ -107,11 +247,32 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-10",
       "filename": "reference_images/calendar/reference_import_v900_10.png",
+      "reference_file": "reference_images/calendar/reference_import_v900_10.png",
       "category": "calendar",
+      "screen": "Partidos",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "filters",
+        "competition",
+        "match_rows",
+        "status",
+        "match_navigation"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -123,11 +284,32 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-08",
       "filename": "reference_images/client/reference_import_v900_08.png",
+      "reference_file": "reference_images/client/reference_import_v900_08.png",
       "category": "client",
+      "screen": "Client Home",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "brand_shark",
+        "atmospheric_shark",
+        "sports_priority",
+        "cards",
+        "mobile_bottom_nav"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -139,11 +321,33 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-09",
       "filename": "reference_images/live/reference_import_v900_09.png",
+      "reference_file": "reference_images/live/reference_import_v900_09.png",
       "category": "live",
+      "screen": "Directo",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "competition",
+        "teams",
+        "crests",
+        "score",
+        "minute",
+        "status"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -155,11 +359,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-14",
       "filename": "reference_images/memberships/reference_import_v900_14.png",
+      "reference_file": "reference_images/memberships/reference_import_v900_14.png",
       "category": "memberships",
+      "screen": "Memberships",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "free",
+        "pro",
+        "elite",
+        "cta"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -171,11 +395,32 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-11",
       "filename": "reference_images/picks/reference_import_v900_11.png",
+      "reference_file": "reference_images/picks/reference_import_v900_11.png",
       "category": "picks",
+      "screen": "Picks",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "match",
+        "selection",
+        "odds",
+        "shark_score",
+        "status"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -187,11 +432,32 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-15",
       "filename": "reference_images/profile/reference_import_v900_15.png",
+      "reference_file": "reference_images/profile/reference_import_v900_15.png",
       "category": "profile",
+      "screen": "Profile",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "identity",
+        "plan",
+        "security",
+        "preferences",
+        "logout"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -203,11 +469,32 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-12",
       "filename": "reference_images/shark/reference_import_v900_12.png",
+      "reference_file": "reference_images/shark/reference_import_v900_12.png",
       "category": "shark",
+      "screen": "SHARK",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "official_shark",
+        "score",
+        "confidence",
+        "evidence",
+        "risk"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -219,11 +506,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-16",
       "filename": "reference_images/telegram/reference_import_v900_16.png",
+      "reference_file": "reference_images/telegram/reference_import_v900_16.png",
       "category": "telegram",
+      "screen": "Telegram Client",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "connection_state",
+        "benefits",
+        "plan",
+        "actions"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -235,11 +542,31 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     },
     {
+      "reference_id": "REF-13",
       "filename": "reference_images/track-record/reference_import_v900_13.png",
+      "reference_file": "reference_images/track-record/reference_import_v900_13.png",
       "category": "track-record",
+      "screen": "Track Record",
+      "viewport": [
+        "desktop",
+        "mobile"
+      ],
+      "visual_regions": [
+        "background",
+        "shell",
+        "first_viewport",
+        "content",
+        "actions"
+      ],
+      "critical_elements": [
+        "real_kpis",
+        "filters",
+        "results",
+        "honest_empty_state"
+      ],
       "secondary_categories": [
         "desktop",
         "mobile"
@@ -251,12 +578,11 @@
       "width": 1672,
       "height": 941,
       "source": "reference_images",
-      "imported_at_madrid": "2026-07-08T17:16:03+02:00"
+      "imported_at_madrid": "2026-08-30T00:21:08+02:00"
     }
   ],
   "safe_notes": [
     "No se mueven ni borran imagenes.",
-    "Las 16 imagenes son la referencia canonica V928 para estructura, densidad y jerarquia.",
     "No se declara similitud visual sin capturas reales.",
     "Si no hay imagenes, se genera manifest vacio y gap seguro."
   ]

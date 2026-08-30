@@ -45,6 +45,8 @@
 {% set gr_launch_kit = growth.get('first_10_launch_kit', []) %}
 {% set gr_paid_path = growth.get('first_paid_customer_path', {}) %}
 {% set sports_quality = founder.sports_quality or {} %}
+{% set sports_knowledge = founder.sports_knowledge or {} %}
+{% set product_qa = founder.autonomous_product_qa or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
@@ -72,6 +74,65 @@
         <span><strong>Errores de proveedor</strong>{{ sports_quality.provider_errors }}</span>
         {{ status_chip('CERTIFICACIÓN REAL EN CURSO', 'warning') }}
       </div>
+      <div class="v933-kpi-grid is-six" aria-label="Cobertura de conocimiento deportivo">
+        {{ kpi_card('Alineaciones', sports_knowledge.lineup_fixtures or 0, (sports_knowledge.lineup_rows or 0) ~ ' registros', 'cyan', 'team') }}
+        {{ kpi_card('Jugadores', sports_knowledge.players or 0, 'Con ID confirmado', 'blue', 'profile') }}
+        {{ kpi_card('Eventos', sports_knowledge.events or 0, 'Caché confirmado', 'blue', 'history') }}
+        {{ kpi_card('Estadísticas', sports_knowledge.stats or 0, 'Sin datos inventados', 'cyan', 'chart') }}
+        {{ kpi_card('Vídeos', sports_knowledge.approved_media or 0, 'Autorizados para app', 'success', 'play') }}
+        {{ kpi_card('Derechos', sports_knowledge.rights_warnings or 0, 'Requieren revisión', 'warning' if sports_knowledge.rights_warnings else 'success', 'shield') }}
+      </div>
+    </div>
+  </section>
+
+  <section class="v933-admin-panel v933-founder-product-qa" id="autonomous-product-qa" aria-label="Autonomous QA Workforce">
+    <header>
+      <div><h2>Autonomous QA Workforce</h2><p>Comprueba experiencia, clics, verdad deportiva y móvil con evidencia real.</p></div>
+      {{ status_chip(product_qa.status or 'NOT_RUN', 'success' if product_qa.status == 'PASS' else 'danger' if product_qa.status == 'ACTION_REQUIRED' else 'warning') }}
+    </header>
+    <div class="v933-admin-panel-body">
+      {% if request.args.get('product_qa') == 'queued' %}
+        <p class="v933-safe-copy"><strong>Revisión solicitada.</strong> Se ejecutará fuera de la petición web para no ralentizar la aplicación.</p>
+      {% elif request.args.get('product_qa') == 'paused' %}
+        <p class="v933-safe-copy"><strong>QA autónoma pausada.</strong> Producto, clientes y demás automatizaciones no cambian.</p>
+      {% elif request.args.get('product_qa') == 'resumed' %}
+        <p class="v933-safe-copy"><strong>QA autónoma reanudada.</strong> La próxima cadencia podrá ejecutar la revisión.</p>
+      {% endif %}
+      <div class="v933-kpi-grid is-five">
+        {% for worker in product_qa.workers or [] %}
+          {{ kpi_card(worker.label, worker.issues, worker.status ~ ' · incidencias abiertas', 'success' if worker.status == 'PASS' else 'danger' if worker.status == 'ACTION_REQUIRED' else 'warning', 'shield') }}
+        {% endfor %}
+      </div>
+      <div class="v933-truth-list">
+        <div>{{ icon('history') }}<span><strong>Última revisión</strong><small>{{ product_qa.last_run or 'Todavía no hay una ejecución Browser QA completa.' }}</small></span>{{ status_chip((product_qa.latest_run or {}).get('result') or 'NOT_RUN', 'success' if (product_qa.latest_run or {}).get('result') == 'PASS' else 'warning') }}</div>
+        <div>{{ icon('alert') }}<span><strong>Requieren atención</strong><small>{{ product_qa.open_issue_count or 0 }} incidencias con evidencia conservada.</small></span>{{ status_chip('REVISAR' if product_qa.open_issue_count else 'SIN BLOQUEOS', 'danger' if product_qa.open_issue_count else 'success') }}</div>
+        <div>{{ icon('clock') }}<span><strong>Próxima revisión</strong><small>{{ product_qa.next_expected_run or 'Pendiente de cadencia.' }}</small></span>{{ status_chip(product_qa.request_status or ('PAUSADA' if product_qa.paused else 'CADENCIA ACTIVA'), 'warning') }}</div>
+      </div>
+      {% if product_qa.open_issues %}
+      <div class="v933-truth-list is-no-icon" aria-label="Incidencias QA que requieren atención">
+        {% for issue in product_qa.open_issues[:5] %}
+        <div><span><strong>{{ issue.category }} · {{ issue.screen }}</strong><small>{{ issue.actual }}</small></span>{{ status_chip(issue.severity, 'danger' if issue.severity in ['P0','P1'] else 'warning') }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <form method="post" action="/admin/founder-dashboard/product-qa/run" class="v933-page-actions">
+        <button class="v933-action is-blue" type="submit">{{ icon('play') }}<span>Ejecutar ahora</span></button>
+        {% if product_qa.paused %}
+          <button class="v933-action is-blue" type="submit" formaction="/admin/founder-dashboard/product-qa/resume">{{ icon('play') }}<span>Reanudar</span></button>
+        {% else %}
+          <button class="v933-action is-blue" type="submit" formaction="/admin/founder-dashboard/product-qa/pause">{{ icon('pause') }}<span>Pausar</span></button>
+        {% endif %}
+        <a class="v933-action is-blue" href="/admin/sentinel-issues">{{ icon('shield') }}<span>Ver evidencia</span></a>
+        <a class="v933-action is-blue" href="/admin/sentinel-codex-outbox">{{ icon('code') }}<span>Preparar para Codex</span></a>
+      </form>
+      <details class="v933-safe-copy">
+        <summary>Ver calibración</summary>
+        <div class="v933-truth-list is-no-icon">
+          {% for worker in product_qa.workers or [] %}
+          <div><span><strong>{{ worker.label }}</strong><small>{{ worker.calibration.why }}</small></span>{{ status_chip(worker.calibration.state or 'INSUFFICIENT_HISTORY', 'neutral') }}</div>
+          {% endfor %}
+        </div>
+      </details>
     </div>
   </section>
 

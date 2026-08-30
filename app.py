@@ -129,10 +129,10 @@ from engines.api_sports_provider_engine import (
     sync_api_sports_fixtures,
     sync_api_sports_live,
 )
-from engines.content_rights_engine import content_rights_policy_summary
+from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
-from engines.video_highlights_engine import video_highlights_snapshot
+from engines.video_highlights_engine import classify_match_video, video_highlights_snapshot
 from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
 from engines.competition_center_engine import build_competition_center_context
@@ -406,6 +406,11 @@ from engines.product_review_system_engine import (
     build_product_review_system_snapshot,
     run_continuous_evolution_scheduler_task,
     set_continuous_evolution_pause,
+)
+from engines.autonomous_product_qa_engine import (
+    build_autonomous_product_qa_status,
+    request_product_qa_run,
+    set_product_qa_pause,
 )
 from engines.beta_program_engine import (
     BETA_METRICS_CONTRACT,
@@ -6655,6 +6660,112 @@ def team_lookup(team_id):
     return None
 
 
+def _cached_lineups_for_match(match, limit=120):
+    """Read confirmed lineup rows already persisted by an approved sync."""
+    if not match or not db_table_exists("api_football_lineups_deep"):
+        return []
+    columns = _sqlite_table_columns("api_football_lineups_deep")
+    identifiers = []
+    for value in (match.get("id"), match.get("external_id")):
+        value = str(value or "").strip()
+        if value and value not in identifiers:
+            identifiers.append(value)
+    identity_columns = [name for name in ("fixture_id", "match_id") if name in columns]
+    if not identifiers or not identity_columns:
+        return []
+    placeholders = ",".join(["?"] * len(identifiers))
+    filters = [f"COALESCE({name},'') IN ({placeholders})" for name in identity_columns]
+    order = " ORDER BY COALESCE(captured_at,'' ) DESC" if "captured_at" in columns else ""
+    params = tuple(value for _name in identity_columns for value in identifiers) + (int(limit),)
+    return rows(
+        f"SELECT * FROM api_football_lineups_deep WHERE {' OR '.join(filters)}{order} LIMIT ?",
+        params,
+    )
+
+
+def _cached_players_for_team(team, matches, limit=160):
+    """Return deduplicated provider-identified players for one Team Center."""
+    if not team or not db_table_exists("api_football_lineups_deep"):
+        return []
+    columns = _sqlite_table_columns("api_football_lineups_deep")
+    team_ids = []
+    for value in (team.get("id"), team.get("key"), team.get("external_id")):
+        value = str(value or "").strip()
+        if value and value not in team_ids:
+            team_ids.append(value)
+    team_names = []
+    for value in (team.get("name"), team.get("official_name")):
+        value = str(value or "").strip()
+        if value and value.lower() not in [item.lower() for item in team_names]:
+            team_names.append(value)
+    filters = []
+    params = []
+    if "team_id" in columns and team_ids:
+        placeholders = ",".join(["?"] * len(team_ids))
+        filters.append(f"COALESCE(team_id,'') IN ({placeholders})")
+        params.extend(team_ids)
+    if "team_name" in columns and team_names:
+        placeholders = ",".join(["?"] * len(team_names))
+        filters.append(f"lower(COALESCE(team_name,'')) IN ({placeholders})")
+        params.extend([value.lower() for value in team_names])
+    if not filters:
+        return []
+    order = " ORDER BY COALESCE(captured_at,'' ) DESC" if "captured_at" in columns else ""
+    lineup_rows = rows(
+        f"SELECT * FROM api_football_lineups_deep WHERE {' OR '.join(filters)}{order} LIMIT ?",
+        tuple(params + [int(limit)]),
+    )
+    seen = set()
+    players = []
+    for item in lineup_rows:
+        player_id = str(item.get("player_id") or "").strip()
+        player_name = str(item.get("player_name") or "").strip()
+        if not player_id or not player_name or player_id in seen:
+            continue
+        seen.add(player_id)
+        players.append(item)
+    return players
+
+
+def _cached_match_media(match, limit=6):
+    """Classify cached highlight metadata without provider calls or GET writes."""
+    if not match or not db_table_exists("sportsdb_match_highlights"):
+        return video_highlights_snapshot([])
+    identifiers = [
+        str(value).strip()
+        for value in (match.get("id"), match.get("external_id"))
+        if str(value or "").strip()
+    ]
+    if not identifiers:
+        return video_highlights_snapshot([])
+    placeholders = ",".join(["?"] * len(identifiers))
+    items = rows(
+        f"SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') IN ({placeholders}) ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
+        tuple(identifiers + [int(limit)]),
+    )
+    classified = []
+    for item in items:
+        rights_note = str(item.get("rights_note") or "").strip().upper()
+        explicit_rights = rights_note if rights_note in {
+            "OWNED", "LICENSED", "PROVIDER_ALLOWED", "OPEN_LICENSE_ALLOWED",
+            "ATTRIBUTION_REQUIRED", "REVIEW_REQUIRED", "BLOCKED", "UNKNOWN_RIGHTS",
+        } else "UNKNOWN_RIGHTS"
+        classified.append(classify_match_video({
+            "content_type": "video",
+            "source": item.get("source") or item.get("provider"),
+            "original_url": item.get("video_url"),
+            "embed_url": item.get("embed_url"),
+            "thumbnail_url": item.get("thumbnail_url"),
+            "attribution": item.get("source") or item.get("provider"),
+            "rights_status": explicit_rights,
+            "commercial_use_status": "UNKNOWN" if explicit_rights == "UNKNOWN_RIGHTS" else "ALLOWED",
+            "last_verified": item.get("updated_at"),
+            "match_id": item.get("match_id"),
+            "title": item.get("title"),
+        }))
+    return video_highlights_snapshot(classified, preclassified=True)
+
+
 def team_page_data(team_id, limit=80):
     team = team_lookup(team_id)
     if not team:
@@ -6686,6 +6797,7 @@ def team_page_data(team_id, limit=80):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    players = _cached_players_for_team(team, upcoming + recent)
     detail = {
         "team": team,
         "key": key,
@@ -6695,12 +6807,14 @@ def team_page_data(team_id, limit=80):
         "recent": recent,
         "live": live,
         "picks": related[:8],
+        "players": players,
         "is_favorite": is_favorite,
         "stats": {
             "upcoming": len(upcoming),
             "recent": len(recent),
             "live": len(live),
             "picks": len(related),
+            "players": len(players),
         },
         "shark_context": shark_context_summary({"team": name, "upcoming": upcoming[:5], "picks": related[:5]}),
     }
@@ -6915,8 +7029,9 @@ def _player_local_rows(player_id):
     candidates = _player_route_candidates(player_id)
     lowered = [item.lower() for item in candidates]
     if not lowered:
-        return {"events": [], "lineups": [], "injuries": []}
+        return {"profiles": [], "events": [], "lineups": [], "injuries": []}
     placeholders = ",".join(["?"] * len(lowered))
+    profiles = []
     events = []
     lineups = []
     injuries = []
@@ -6942,6 +7057,12 @@ def _player_local_rows(player_id):
             params,
         )
 
+    profiles = select_player_rows(
+        "player_profiles",
+        ["id", "player_id", "player_name"],
+        ["last_seen_at DESC", "updated_at DESC"],
+        5,
+    )
     events = select_player_rows(
         "api_football_live_events",
         ["player_id", "player_name", "assist_id", "assist_name", "related_player_id", "related_player_name"],
@@ -6966,13 +7087,18 @@ def _player_local_rows(player_id):
         item.setdefault("source", "api_football_lineups_deep")
     for item in injuries:
         item.setdefault("source", "api_football_injuries_history")
-    return {"events": events, "lineups": lineups, "injuries": injuries}
+    return {"profiles": profiles, "events": events, "lineups": lineups, "injuries": injuries}
 
 def _player_primary_fact(player_id, player_rows):
+    profiles = player_rows.get("profiles") or []
     lineups = player_rows.get("lineups") or []
     injuries = player_rows.get("injuries") or []
     events = player_rows.get("events") or []
-    source_row = (lineups[:1] or injuries[:1] or events[:1] or [{}])[0]
+    source_row = (profiles[:1] or lineups[:1] or injuries[:1] or events[:1] or [{}])[0]
+    try:
+        source_payload = json.loads(source_row.get("payload_json") or "{}")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        source_payload = {}
     route_label = urllib.parse.unquote(str(player_id or "")).strip()
     has_route_name = any(character.isalpha() for character in route_label)
     return {
@@ -6983,6 +7109,17 @@ def _player_primary_fact(player_id, player_rows):
         "team_name": source_row.get("team_name"),
         "position": source_row.get("position"),
         "shirt_number": source_row.get("number") or source_row.get("shirt_number"),
+        "nationality": source_row.get("nationality") or source_payload.get("nationality"),
+        "birth_date": source_row.get("birth_date") or source_payload.get("birth_date"),
+        "age": source_row.get("age") if source_row.get("age") not in (None, "") else source_payload.get("age"),
+        "height": source_row.get("height") or source_payload.get("height"),
+        "preferred_foot": source_row.get("preferred_foot") or source_payload.get("preferred_foot"),
+        "photo": source_row.get("photo") or source_row.get("photo_url") or source_payload.get("photo") or source_payload.get("photo_url"),
+        "photo_source": source_row.get("photo_source") or source_payload.get("photo_source") or source_row.get("source"),
+        "photo_rights_status": source_row.get("photo_rights_status") or source_payload.get("photo_rights_status") or source_payload.get("rights_status"),
+        "photo_commercial_use_status": source_row.get("photo_commercial_use_status") or source_payload.get("photo_commercial_use_status") or source_payload.get("commercial_use_status"),
+        "photo_attribution": source_row.get("photo_attribution") or source_payload.get("photo_attribution") or source_payload.get("attribution"),
+        "photo_rights_verified_at": source_row.get("photo_rights_verified_at") or source_payload.get("photo_rights_verified_at") or source_payload.get("last_verified"),
         "status": source_row.get("status") or ("Con registros" if any((lineups, injuries, events)) else "Información parcial"),
         "injury_status": source_row.get("reason") if injuries else None,
         "source": source_row.get("source") or "route_fallback",
@@ -16913,6 +17050,8 @@ def match_detail_page(match_id):
 
     if isinstance(detail.get("match"), dict):
         detail["match"] = v935_enrich_match_lifecycle(detail["match"])
+        detail["lineups"] = _cached_lineups_for_match(detail["match"])
+        detail["media"] = _cached_match_media(detail["match"])
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}
@@ -29232,6 +29371,62 @@ def _founder_system_card(systems_by_id, sections, key, label, href):
     }
 
 
+def _sports_knowledge_coverage_snapshot():
+    """Compact read-only coverage for the existing Founder sports panel."""
+    def count(table, expression="COUNT(*)"):
+        if not db_table_exists(table):
+            return 0
+        try:
+            return _founder_safe_int((one(f"SELECT {expression} AS total FROM {table}") or {}).get("total"))
+        except Exception:
+            return 0
+
+    lineups = count("api_football_lineups_deep")
+    lineup_fixtures = count("api_football_lineups_deep", "COUNT(DISTINCT fixture_id)")
+    lineup_players = count("api_football_lineups_deep", "COUNT(DISTINCT player_id)")
+    player_profiles = count("player_profiles")
+    events = count("api_football_live_events")
+    stats = count("api_football_live_stats") + count("api_football_match_stats_history")
+    highlights = count("sportsdb_match_highlights")
+    rights_warnings = 0
+    approved_media = 0
+    if highlights and db_table_exists("sportsdb_match_highlights"):
+        for item in rows("SELECT source,provider,video_url,embed_url,rights_note,updated_at FROM sportsdb_match_highlights ORDER BY COALESCE(updated_at,'') DESC LIMIT 250"):
+            rights_note = str(item.get("rights_note") or "").strip().upper()
+            if rights_note not in {
+                "OWNED", "LICENSED", "PROVIDER_ALLOWED", "OPEN_LICENSE_ALLOWED",
+                "ATTRIBUTION_REQUIRED", "REVIEW_REQUIRED", "BLOCKED", "UNKNOWN_RIGHTS",
+            }:
+                rights_note = "UNKNOWN_RIGHTS"
+            decision = classify_media_asset({
+                "content_type": "video",
+                "source": item.get("source") or item.get("provider"),
+                "original_url": item.get("video_url"),
+                "embed_url": item.get("embed_url"),
+                "rights_status": rights_note,
+                "commercial_use_status": "UNKNOWN" if rights_note == "UNKNOWN_RIGHTS" else "ALLOWED",
+                "attribution": item.get("source") or item.get("provider"),
+                "last_verified": item.get("updated_at"),
+            })
+            approved_media += 1 if decision.get("can_display") else 0
+            rights_warnings += 1 if decision.get("decision") in {"REVIEW_REQUIRED", "BLOCKED"} else 0
+    return {
+        "contract": "NEMESIS-SPORTS-KNOWLEDGE-COVERAGE-V1",
+        "lineup_rows": lineups,
+        "lineup_fixtures": lineup_fixtures,
+        "players": max(lineup_players, player_profiles),
+        "player_profiles": player_profiles,
+        "events": events,
+        "stats": stats,
+        "media": highlights,
+        "approved_media": approved_media,
+        "rights_warnings": rights_warnings,
+        "summaries": "DETERMINISTIC_ON_DEMAND",
+        "evidence_origin": "LOCAL_DB_CACHE",
+        "external_calls": 0,
+    }
+
+
 def founder_command_center_snapshot():
     """Compose a founder-level read-only command center from existing surfaces."""
     operations = v938_operations_snapshot()
@@ -29245,10 +29440,12 @@ def founder_command_center_snapshot():
     reports = [_founder_report_metadata(name) for name in FOUNDER_REPORT_CATALOG]
     top100 = _founder_top100_progress()
     continuous = build_continuous_evolution_status_snapshot(BASE_DIR, APP_VERSION)
+    autonomous_product_qa = build_autonomous_product_qa_status(BASE_DIR)
     systems_by_id = {item.get("id"): item for item in operations.get("systems") or []}
     sections = operations.get("operations_sections") or {}
     sports_metrics = operations.get("sports_metrics") or {}
     sports_quality = sports_metrics.get("sports_quality") or {}
+    sports_knowledge = _sports_knowledge_coverage_snapshot()
     sports_data_system = systems_by_id.get("sports_data") or {}
     funnel = product.get("funnel") or {}
     memberships = business.get("memberships") or (product.get("users") or {}).get("memberships") or {}
@@ -29347,6 +29544,7 @@ def founder_command_center_snapshot():
             "external_calls": sports_quality.get("external_calls", 0),
             "certification": "REAL_SPORTS_CERTIFICATION_IN_PROGRESS",
         },
+        "sports_knowledge": sports_knowledge,
         "release_readiness": {
             "status": release_gate.get("status") or "PARTIAL",
             "score": release_gate.get("score") or ((operations.get("global_score") or {}).get("overall_score")),
@@ -29373,6 +29571,7 @@ def founder_command_center_snapshot():
             "href": "/admin/company-intelligence",
         },
         "continuous_evolution": continuous,
+        "autonomous_product_qa": autonomous_product_qa,
         "guardrails": [
             "solo lectura",
             "sin deploy",
@@ -29674,6 +29873,30 @@ def admin_founder_dashboard_resume_continuous_evolution():
         return redirect("/admin-login?next=/admin/founder-dashboard")
     set_continuous_evolution_pause(BASE_DIR, paused=False, actor=session.get("user_name") or "admin", reason="Reanudacion manual desde Founder Center", now=now_iso())
     return redirect("/admin/founder-dashboard?automation=resumed#continuous-evolution")
+
+
+@app.route("/admin/founder-dashboard/product-qa/run", methods=["POST"])
+def admin_founder_dashboard_product_qa_run():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    request_product_qa_run(BASE_DIR, actor=session.get("user_name") or "admin", now=now_iso())
+    return redirect("/admin/founder-dashboard?product_qa=queued#autonomous-product-qa")
+
+
+@app.route("/admin/founder-dashboard/product-qa/pause", methods=["POST"])
+def admin_founder_dashboard_product_qa_pause():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    set_product_qa_pause(BASE_DIR, paused=True, actor=session.get("user_name") or "admin", now=now_iso())
+    return redirect("/admin/founder-dashboard?product_qa=paused#autonomous-product-qa")
+
+
+@app.route("/admin/founder-dashboard/product-qa/resume", methods=["POST"])
+def admin_founder_dashboard_product_qa_resume():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-dashboard")
+    set_product_qa_pause(BASE_DIR, paused=False, actor=session.get("user_name") or "admin", now=now_iso())
+    return redirect("/admin/founder-dashboard?product_qa=resumed#autonomous-product-qa")
 
 
 @app.route("/api/admin/founder-dashboard")

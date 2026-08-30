@@ -43,6 +43,7 @@ MATCH_CENTER_COMPONENTS = (
     "MatchHeader",
     "ScoreWidget",
     "MatchStory",
+    "LineupsPanel",
     "Timeline",
     "StatsPanel",
     "SharkPanel",
@@ -182,6 +183,163 @@ def _real_statistics(
         "status": "available" if available else "stale" if stale and rows else "not_available",
         "source": provider or None,
         "updated_at": live.get("updated_at"),
+    }
+
+
+def _lineup_position_band(value: Any) -> str:
+    key = _text(value).upper().replace(" ", "_")
+    if key in {"G", "GK", "GOALKEEPER", "PORTERO"}:
+        return "GK"
+    if key in {"D", "DEF", "CB", "LB", "RB", "LWB", "RWB", "DEFENDER", "DEFENSA"}:
+        return "DEF"
+    if key in {"M", "MID", "CM", "DM", "AM", "LM", "RM", "MIDFIELDER", "MEDIO"}:
+        return "MID"
+    if key in {"F", "FW", "FWD", "ST", "CF", "LW", "RW", "ATTACKER", "DELANTERO"}:
+        return "FWD"
+    return "UNKNOWN"
+
+
+def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    groups: dict[str, dict[str, Any]] = {}
+    seen: set[tuple[str, str, bool]] = set()
+    sources: list[str] = []
+    captured: list[str] = []
+    for raw in _items(raw_lineups):
+        player_id = _text(raw.get("player_id"))
+        player_name = _text(raw.get("player_name") or raw.get("name"))
+        team_id = _text(raw.get("team_id"))
+        team_name = _text(raw.get("team_name")) or "Equipo no identificado"
+        if not player_id or not player_name:
+            continue
+        is_starting = str(raw.get("is_starting") or "").strip().lower() in {"1", "true", "yes", "si", "sí"}
+        identity = (team_id or team_name.casefold(), player_id, is_starting)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        source = _text(raw.get("source")) or "lineup_cache"
+        observed_at = _text(raw.get("captured_at") or raw.get("updated_at"))
+        if source not in sources:
+            sources.append(source)
+        if observed_at:
+            captured.append(observed_at)
+        team_key = team_id or team_name.casefold()
+        group = groups.setdefault(team_key, {
+            "team_id": team_id,
+            "team_name": team_name,
+            "formation": _text(raw.get("formation")) or None,
+            "coach": None,
+            "starters": [],
+            "substitutes": [],
+        })
+        if not group.get("formation") and _text(raw.get("formation")):
+            group["formation"] = _text(raw.get("formation"))
+        player = {
+            "player_id": player_id,
+            "name": player_name,
+            "number": _text(raw.get("number") or raw.get("shirt_number")) or None,
+            "position": _text(raw.get("position")) or None,
+            "position_band": _lineup_position_band(raw.get("position")),
+            "href": _entity_href("player", player_id, player_name),
+            "source": source,
+        }
+        group["starters" if is_starting else "substitutes"].append(player)
+    teams = list(groups.values())
+    starters = [player for team in teams for player in team["starters"]]
+    substitutes = [player for team in teams for player in team["substitutes"]]
+    pitch_available = bool(
+        len(starters) >= 8
+        and all(player.get("position_band") != "UNKNOWN" for player in starters)
+        and len({player.get("position_band") for player in starters}) >= 3
+    )
+    confirmed = bool(teams and starters + substitutes)
+    return {
+        "contract": "SPORTS-KNOWLEDGE-LINEUPS-V1",
+        "confirmed": confirmed,
+        "state": "CONFIRMED" if confirmed else "NOT_CONFIRMED",
+        "message": "Alineación confirmada." if confirmed else "Alineación todavía no confirmada.",
+        "teams": teams,
+        "team_count": len(teams),
+        "player_count": len(starters) + len(substitutes),
+        "starters_count": len(starters),
+        "substitutes_count": len(substitutes),
+        "pitch_available": pitch_available,
+        "source": ", ".join(sources) if sources else None,
+        "updated_at": max(captured) if captured else None,
+        "external_calls": 0,
+        "fake_players_created": 0,
+    }
+
+
+def _factual_summaries(
+    match: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+    score: Mapping[str, Any],
+    event_summary: Mapping[str, Any],
+    statistics: Mapping[str, Any],
+    lineups: Mapping[str, Any],
+    shark_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    home = _text(match.get("home_team")) or "Equipo local"
+    away = _text(match.get("away_team")) or "Equipo visitante"
+    key = _text(lifecycle.get("key")).upper()
+    items: list[dict[str, Any]] = []
+    evidence = ["match_status"]
+    if lifecycle.get("is_finished"):
+        summary_type = "FULLTIME_SUMMARY"
+        text = f"{home} y {away} finalizaron"
+        if score.get("confirmed"):
+            text += f" {score.get('label')}"
+            evidence.append("score")
+        text += "."
+    elif key in {"HT", "HALFTIME", "DESCANSO"}:
+        summary_type = "HALFTIME_SUMMARY"
+        text = f"{home} y {away} están al descanso"
+        if score.get("confirmed"):
+            text += f" con marcador {score.get('label')}"
+            evidence.append("score")
+        text += "."
+    elif lifecycle.get("is_live"):
+        summary_type = "LIVE_SUMMARY"
+        text = f"{home} y {away} están disputando el partido"
+        if score.get("confirmed"):
+            text += f" con marcador {score.get('label')}"
+            evidence.append("score")
+        text += "."
+    else:
+        summary_type = "PREMATCH_SUMMARY"
+        text = f"{home} y {away} tienen un partido programado."
+    items.append({"type": summary_type, "text": text, "evidence": evidence})
+    if lineups.get("confirmed"):
+        items.append({
+            "type": "LINEUP_SUMMARY",
+            "text": f"Hay {lineups.get('player_count')} jugadores confirmados en las alineaciones disponibles.",
+            "evidence": ["confirmed_lineup_cache"],
+        })
+    if event_summary.get("available"):
+        items.append({
+            "type": "EVENTS_SUMMARY",
+            "text": f"La cronología contiene {event_summary.get('count')} eventos confirmados.",
+            "evidence": ["canonical_timeline"],
+        })
+    if statistics.get("available"):
+        items.append({
+            "type": "STATS_SUMMARY",
+            "text": f"Hay {statistics.get('item_count')} métricas comparables confirmadas.",
+            "evidence": ["provider_stats_cache"],
+        })
+    if lifecycle.get("is_finished") and shark_context.get("available"):
+        items.append({
+            "type": "POSTMATCH_SHARK_REVIEW",
+            "text": _text(shark_context.get("headline")) or "SHARK dispone de evidencia postpartido.",
+            "evidence": list(shark_context.get("evidence") or []),
+        })
+    return {
+        "contract": "NEMESIS-FACTUAL-MATCH-SUMMARIES-V1",
+        "available": bool(items),
+        "current_type": summary_type,
+        "items": items,
+        "generative_ai_calls": 0,
+        "unsupported_claims": 0,
     }
 
 
@@ -422,6 +580,7 @@ def _navigation(
     teams: Mapping[str, Any],
     competition: Mapping[str, Any],
     timeline: list[dict[str, Any]],
+    lineups: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     players: list[dict[str, Any]] = []
     seen_players: set[str] = set()
@@ -441,6 +600,17 @@ def _navigation(
                     "name": player_name or "Jugador confirmado",
                     "href": href,
                 })
+    for team in _items(_mapping(lineups).get("teams")):
+        for player in _items(team.get("starters")) + _items(team.get("substitutes")):
+            player_id = _text(player.get("player_id"))
+            if not player_id or player_id in seen_players:
+                continue
+            seen_players.add(player_id)
+            players.append({
+                "id": player_id,
+                "name": _text(player.get("name")) or "Jugador confirmado",
+                "href": _entity_href("player", player_id, player.get("name")),
+            })
     return {
         "contract": "SPORTS-ENTITY-CENTER-CONTEXT-V1",
         "teams": [
@@ -547,6 +717,9 @@ class MatchContext:
     picks: dict[str, Any]
     event_summary: dict[str, Any]
     statistics: dict[str, Any]
+    lineups: dict[str, Any]
+    summaries: dict[str, Any]
+    media: dict[str, Any]
     facts: dict[str, Any]
     intelligence: dict[str, Any]
     shark_context: dict[str, Any]
@@ -583,6 +756,8 @@ def build_match_context(
     match = _mapping(detail_data.get("match"))
     display = _mapping(madrid_context)
     live = _mapping(live_context or detail_data.get("api_football_live_tracker"))
+    lineups = _lineups_context(detail_data.get("lineups") or [])
+    media = _mapping(detail_data.get("media"))
     live_events = _items(live.get("events"))
     raw_timeline_total = len(live_events)
     if live_events:
@@ -660,7 +835,7 @@ def build_match_context(
         "iso": match.get("kickoff_iso") or match.get("commence_time"),
     }
 
-    navigation = _navigation(teams, competition, timeline)
+    navigation = _navigation(teams, competition, timeline, lineups)
     event_summary["items"] = timeline
     intelligence = build_match_intelligence(
         match,
@@ -680,6 +855,15 @@ def build_match_context(
         ),
     )
     shark_context = build_shark_match_intelligence_state(intelligence)
+    summaries = _factual_summaries(
+        match,
+        lifecycle,
+        score,
+        event_summary,
+        statistics,
+        lineups,
+        shark_context,
+    )
     telegram_readonly_contract = build_telegram_readonly_contract(
         match_entity=canonical_match,
         match_intelligence=intelligence,
@@ -708,6 +892,8 @@ def build_match_context(
         limitations.append("Sin eventos confirmados.")
     if not statistics["available"]:
         limitations.append("Sin estadísticas confirmadas.")
+    if not lineups["confirmed"]:
+        limitations.append("Alineación todavía no confirmada.")
     if lifecycle.get("is_stale"):
         limitations.append("La última lectura deportiva está desactualizada.")
 
@@ -742,6 +928,11 @@ def build_match_context(
             shell_state,
             "Historia construida solo con el estado disponible.",
             available=True,
+        ),
+        "LineupsPanel": _component(
+            "ready" if lineups["confirmed"] else "partial",
+            lineups["message"],
+            available=lineups["confirmed"],
         ),
         "Timeline": _component(
             timeline_state,
@@ -849,6 +1040,12 @@ def build_match_context(
             freshness=freshness,
             limitations=[] if statistics.get("available") else ["Sin estadísticas confirmadas."],
         ),
+        "lineups": _transparency_block(
+            source=lineups.get("source"),
+            evidence_state="VERIFIED" if lineups.get("confirmed") else "INSUFFICIENT_DATA",
+            freshness={"state": "fresh" if lineups.get("updated_at") else "unknown"},
+            limitations=[] if lineups.get("confirmed") else ["Alineación todavía no confirmada."],
+        ),
         "data_quality": _transparency_block(
             source=canonical_match.get("source"),
             evidence_state=canonical_match.get("data_quality"),
@@ -867,6 +1064,8 @@ def build_match_context(
         {"id": "teams", "label": "Equipos", "available": bool(teams.get("home") and teams.get("away"))},
         {"id": "competition", "label": "Competición", "available": competition.get("available")},
         {"id": "statistics", "label": "Estadísticas disponibles", "available": statistics.get("available")},
+        {"id": "lineups", "label": "Alineaciones", "available": lineups.get("confirmed")},
+        {"id": "video", "label": "Vídeo autorizado", "available": bool(media.get("visible_count"))},
         {"id": "risks", "label": "Riesgos", "available": bool(risk_flags)},
         {"id": "data_quality", "label": "Calidad de datos", "available": True},
         {"id": "freshness", "label": "Frescura", "available": bool(freshness)},
@@ -875,11 +1074,12 @@ def build_match_context(
     prepared_integrations = [
         {"name": "Team Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
         {"name": "Competition Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
-        {"name": "Player Center", "state": "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
+        {"name": "Player Center", "state": "Conectado" if navigation.get("players") else "Preparado", "contract": navigation.get("contract"), "write_authorized": False},
         {"name": "Sports Graph", "state": "Preparado", "contract": _mapping(domain_model.get("sports_graph")).get("contract"), "write_authorized": False},
         {"name": "Sports Knowledge", "state": "Preparado", "contract": sports_knowledge.get("contract"), "write_authorized": False},
         {"name": "SHARK", "state": "Conectado", "contract": intelligence.get("contract"), "write_authorized": False},
         {"name": "Telegram", "state": "Solo lectura", "contract": telegram_readonly_contract.get("contract"), "write_authorized": False},
+        {"name": "Video", "state": "Disponible" if media.get("visible_count") else "Bloqueado o no disponible", "contract": "NEMESIS-MEDIA-RIGHTS-GUARD-V1", "write_authorized": False},
     ]
     context = MatchContext(
         contract=MATCH_CENTER_CONTRACT,
@@ -895,6 +1095,9 @@ def build_match_context(
         picks=picks,
         event_summary=event_summary,
         statistics=statistics,
+        lineups=lineups,
+        summaries=summaries,
+        media=media,
         facts=facts,
         intelligence=intelligence,
         shark_context=shark_context,
@@ -934,6 +1137,10 @@ def build_match_context(
             "component_contracts": list(MATCH_CENTER_COMPONENTS),
             "canonical_states": list(CANONICAL_COMPONENT_STATES),
             "timeline_event_contract": event_summary.get("contract"),
+            "lineups_contract": lineups.get("contract"),
+            "lineup_players": lineups.get("player_count"),
+            "factual_summary_contract": summaries.get("contract"),
+            "media_visible": media.get("visible_count", 0),
             "match_center_2_transparency": True,
             "experience_blocks": [item["id"] for item in experience_blocks],
         },

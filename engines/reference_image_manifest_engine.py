@@ -7,13 +7,14 @@ without real captures.
 from __future__ import annotations
 
 from datetime import datetime
+from hashlib import sha1
 import json
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 
-REFERENCE_IMAGE_MANIFEST_VERSION = "V900_REFERENCE_IMAGES_IMPORT_FIRST_REAL_VISUAL_GAP_AUDIT_FINAL"
+REFERENCE_IMAGE_MANIFEST_VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
@@ -31,6 +32,39 @@ CATEGORY_TARGETS = {
     "dashboard": "/app",
     "calendar": "/calendar",
     "unknown": "producto general",
+}
+
+REFERENCE_TARGET_OVERRIDES = {
+    "reference_import_v900_01.png": ("REF-01", "Admin Dashboard", "/admin/dashboard"),
+    "reference_import_v900_02.png": ("REF-02", "Telegram Command Center", "/admin/telegram/command-center"),
+    "reference_import_v900_03.png": ("REF-03", "Payments Admin", "/admin/payments"),
+    "reference_import_v900_04.png": ("REF-04", "Automation Center", "/admin/automation-center"),
+    "reference_import_v900_05.png": ("REF-05", "Data Marketplace", "/admin/data-marketplace"),
+    "reference_import_v900_06.png": ("REF-06", "Real Launch", "/admin/real-launch"),
+    "reference_import_v900_07.png": ("REF-07", "Picks Admin", "/admin/picks"),
+    "reference_import_v900_08.png": ("REF-08", "Client Home", "/app"),
+    "reference_import_v900_09.png": ("REF-09", "Directo", "/live"),
+    "reference_import_v900_10.png": ("REF-10", "Partidos", "/calendar"),
+    "reference_import_v900_11.png": ("REF-11", "Picks", "/picks"),
+    "reference_import_v900_12.png": ("REF-12", "SHARK", "/shark"),
+    "reference_import_v900_13.png": ("REF-13", "Track Record", "/track-record"),
+    "reference_import_v900_14.png": ("REF-14", "Memberships", "/membresias"),
+    "reference_import_v900_15.png": ("REF-15", "Profile", "/profile"),
+    "reference_import_v900_16.png": ("REF-16", "Telegram Client", "/telegram"),
+}
+
+VISUAL_REGIONS = ["background", "shell", "first_viewport", "content", "actions"]
+CATEGORY_CRITICAL_ELEMENTS = {
+    "admin": ["sidebar", "topbar", "kpis", "tables", "actions"],
+    "client": ["brand_shark", "atmospheric_shark", "sports_priority", "cards", "mobile_bottom_nav"],
+    "live": ["competition", "teams", "crests", "score", "minute", "status"],
+    "calendar": ["filters", "competition", "match_rows", "status", "match_navigation"],
+    "picks": ["match", "selection", "odds", "shark_score", "status"],
+    "shark": ["official_shark", "score", "confidence", "evidence", "risk"],
+    "track-record": ["real_kpis", "filters", "results", "honest_empty_state"],
+    "memberships": ["free", "pro", "elite", "cta"],
+    "profile": ["identity", "plan", "security", "preferences", "logout"],
+    "telegram": ["connection_state", "benefits", "plan", "actions"],
 }
 
 
@@ -84,14 +118,26 @@ def classify_reference_image(path: Path, root: str | Path) -> dict[str, Any]:
             break
     priority = "high" if category in {"admin", "client", "mobile", "picks", "live"} else "medium" if category != "unknown" else "low"
     dims = image_dimensions(path)
+    override = REFERENCE_TARGET_OVERRIDES.get(path.name)
+    reference_id, screen, screen_target = override or (
+        "REF-" + sha1(rel.encode("utf-8", errors="ignore")).hexdigest()[:8].upper(),
+        category.replace("-", " ").title(),
+        CATEGORY_TARGETS.get(category, "producto general"),
+    )
     secondary: list[str] = []
     if category not in {"admin", "unknown"} and dims.get("width") and dims.get("height") and int(dims["width"] or 0) > int(dims["height"] or 0):
         secondary.extend(["desktop", "mobile"])
     return {
+        "reference_id": reference_id,
         "filename": rel,
+        "reference_file": rel,
         "category": category,
+        "screen": screen,
+        "viewport": ["desktop"] if category == "admin" else ["desktop", "mobile"],
+        "visual_regions": list(VISUAL_REGIONS),
+        "critical_elements": CATEGORY_CRITICAL_ELEMENTS.get(category, ["background", "navigation", "cards", "typography"]),
         "secondary_categories": secondary,
-        "screen_target": CATEGORY_TARGETS.get(category, "producto general"),
+        "screen_target": screen_target,
         "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
         "priority": priority,
         "size_bytes": path.stat().st_size,
@@ -122,6 +168,8 @@ def build_reference_manifest(root: str | Path, *, write: bool = True) -> dict[st
         "generated_at_madrid": _now(),
         "reference_root": "reference_images",
         "reference_count": len(references),
+        "canonical_reference": len(references) == 16,
+        "canonical_version": REFERENCE_IMAGE_MANIFEST_VERSION,
         "categories": categories,
         "items": references,
         "safe_notes": [

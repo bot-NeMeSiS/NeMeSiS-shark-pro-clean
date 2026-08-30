@@ -15,7 +15,7 @@
 {% set picks = (data.get('v925_picks') or {}).get('picks') or summary.get('picks') or [] %}
 {% set sports_metrics = data.get('sports_metrics') or summary.get('sports_metrics') or {} %}
 {% set today_count = sports_metrics.get('matches_today', counts.get('today', 0)) %}
-{% set live_count = sports_metrics.get('live_confirmed', counts.get('live', 0)) %}
+{% set live_count = sports_metrics.get('live_confirmed', 0) %}
 {% set pick_count = sports_metrics.get('picks_ready', counts.get('picks', 0)) %}
 {% set incomplete_count = counts.get('incomplete', 0) or 0 %}
 {% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
@@ -99,8 +99,6 @@
     </aside>
   </section>
 
-  {{ realtime_state_bar(realtime, 'all') }}
-
   <section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/live', 'Live Sports') }}
     {% if live_matches %}
@@ -181,16 +179,12 @@
         </div>
       </section>
 
-      {{ data_trust_meter(summary.get('has_real_data', false), summary.get('last_sync') or '', incomplete_count, 'Fixture QA sin proveedores externos' if simulated_evidence else 'Datos deportivos, ranking y picks como capa secundaria', evidence_origin) }}
-      {% if relevance_counts.get('unknown') %}
-      <aside class="v933-provider-state">
-        <header><div>{{ icon('warning') }}<strong>Competiciones sin mapear</strong></div>{{ status_chip(relevance_counts.get('unknown'), 'warning') }}</header>
-        <p>Siguen en Partidos, pero no dominan la Home hasta clasificarse.</p>
-      </aside>
-      {% endif %}
     </aside>
   </section>
 
+  <details class="v933-home-more">
+    <summary>Más opciones</summary>
+    <div class="v933-home-more-content">
   <section class="v933-panel v933-launch-onboarding sports-priority-onboarding" data-launch-excellence="onboarding" data-launch-onboarding="first-run" data-top100-improvement="2,3,18,19,33" aria-labelledby="launch-onboarding-title">
     <div class="v933-launch-onboarding-head">
       <div>
@@ -235,5 +229,7 @@
     </div>
   </section>
   {{ evidence_receipt('Sports Relevance activo', 'Home ordena por directo, tier, favoritos, proximidad, frescura y datos completos. Picks son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Home, Directo y Partidos') }}
+    </div>
+  </details>
 </div>
 {% endblock %}

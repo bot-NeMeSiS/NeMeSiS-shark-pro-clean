@@ -1,23 +1,23 @@
 <svg width="1200" height="480" viewBox="0 0 1200 480" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tiburón atmosférico NeMeSiS">
   <defs>
     <linearGradient id="body" x1="42" y1="155" x2="1108" y2="338" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#64D9FF" stop-opacity=".9"/>
-      <stop offset=".18" stop-color="#1674C8" stop-opacity=".94"/>
-      <stop offset=".5" stop-color="#0A4089" stop-opacity=".9"/>
-      <stop offset=".78" stop-color="#08275F" stop-opacity=".78"/>
-      <stop offset="1" stop-color="#020D29" stop-opacity=".38"/>
+      <stop stop-color="#64D9FF" stop-opacity=".42"/>
+      <stop offset=".18" stop-color="#1674C8" stop-opacity=".4"/>
+      <stop offset=".5" stop-color="#0A4089" stop-opacity=".32"/>
+      <stop offset=".78" stop-color="#08275F" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#020D29" stop-opacity=".08"/>
     </linearGradient>
     <linearGradient id="belly" x1="68" y1="235" x2="952" y2="350" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#C8F8FF" stop-opacity=".48"/>
-      <stop offset=".3" stop-color="#3AA6DA" stop-opacity=".34"/>
-      <stop offset=".72" stop-color="#082A62" stop-opacity=".68"/>
-      <stop offset="1" stop-color="#01091E" stop-opacity=".3"/>
+      <stop stop-color="#C8F8FF" stop-opacity=".16"/>
+      <stop offset=".3" stop-color="#3AA6DA" stop-opacity=".11"/>
+      <stop offset=".72" stop-color="#082A62" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#01091E" stop-opacity=".06"/>
     </linearGradient>
     <linearGradient id="edge" x1="35" y1="118" x2="1114" y2="354" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#DFFCFF" stop-opacity=".86"/>
-      <stop offset=".16" stop-color="#50D7FF" stop-opacity=".76"/>
-      <stop offset=".56" stop-color="#188BFF" stop-opacity=".45"/>
-      <stop offset="1" stop-color="#315CFF" stop-opacity=".08"/>
+      <stop stop-color="#DFFCFF" stop-opacity=".92"/>
+      <stop offset=".16" stop-color="#50D7FF" stop-opacity=".88"/>
+      <stop offset=".56" stop-color="#188BFF" stop-opacity=".58"/>
+      <stop offset="1" stop-color="#315CFF" stop-opacity=".12"/>
     </linearGradient>
     <radialGradient id="headLight" cx="0" cy="0" r="1" gradientTransform="translate(163 205) rotate(8) scale(257 151)" gradientUnits="userSpaceOnUse">
       <stop stop-color="#E5FCFF" stop-opacity=".4"/>
@@ -25,10 +25,10 @@
       <stop offset="1" stop-color="#0A2D72" stop-opacity="0"/>
     </radialGradient>
     <pattern id="mesh" width="74" height="52" patternUnits="userSpaceOnUse">
-      <path d="M-15 30C4 8 25 8 44 30S82 52 101 30" stroke="#7DE4FF" stroke-opacity=".2" stroke-width="1"/>
-      <path d="M8-12C27 8 28 31 10 52M50-10C67 10 68 32 51 57" stroke="#3C91ED" stroke-opacity=".15" stroke-width=".9"/>
-      <circle cx="18" cy="14" r="1.2" fill="#C4F8FF" fill-opacity=".28"/>
-      <circle cx="58" cy="42" r=".9" fill="#3EAFFF" fill-opacity=".25"/>
+      <path d="M-15 30C4 8 25 8 44 30S82 52 101 30" stroke="#7DE4FF" stroke-opacity=".36" stroke-width="1"/>
+      <path d="M8-12C27 8 28 31 10 52M50-10C67 10 68 32 51 57" stroke="#3C91ED" stroke-opacity=".28" stroke-width=".9"/>
+      <circle cx="18" cy="14" r="1.2" fill="#C4F8FF" fill-opacity=".42"/>
+      <circle cx="58" cy="42" r=".9" fill="#3EAFFF" fill-opacity=".38"/>
     </pattern>
     <clipPath id="bodyClip">
       <path d="M49 239C104 181 201 150 326 149C450 148 566 171 674 196C754 215 826 209 901 183L958 163L1091 58L1057 185C1103 194 1145 216 1181 245C1136 253 1094 270 1052 296L1110 422L949 319L879 301C817 285 757 283 704 293C582 316 492 349 374 357C257 365 157 339 91 296C64 279 43 254 49 239Z"/>
@@ -42,8 +42,8 @@
   <g filter="url(#glow)" stroke-linecap="round" stroke-linejoin="round">
     <path d="M49 239C104 181 201 150 326 149C450 148 566 171 674 196C754 215 826 209 901 183L958 163L1091 58L1057 185C1103 194 1145 216 1181 245C1136 253 1094 270 1052 296L1110 422L949 319L879 301C817 285 757 283 704 293C582 316 492 349 374 357C257 365 157 339 91 296C64 279 43 254 49 239Z" fill="url(#body)" stroke="url(#edge)" stroke-width="2.4"/>
     <path d="M50 241C121 267 210 280 306 272C407 264 493 239 590 244C686 249 780 286 949 319L879 301C817 285 757 283 704 293C582 316 492 349 374 357C257 365 157 339 91 296C67 281 49 258 50 241Z" fill="url(#belly)"/>
-    <path d="M377 153C420 76 480 31 554 12C521 76 520 125 548 174C493 161 435 153 377 153Z" fill="#082C69" fill-opacity=".82" stroke="url(#edge)" stroke-width="2.1"/>
-    <path d="M449 329C520 349 599 397 669 465C577 443 502 399 431 341Z" fill="#061F52" fill-opacity=".84" stroke="url(#edge)" stroke-width="2"/>
+    <path d="M377 153C420 76 480 31 554 12C521 76 520 125 548 174C493 161 435 153 377 153Z" fill="#082C69" fill-opacity=".28" stroke="url(#edge)" stroke-width="2.1"/>
+    <path d="M449 329C520 349 599 397 669 465C577 443 502 399 431 341Z" fill="#061F52" fill-opacity=".3" stroke="url(#edge)" stroke-width="2"/>
     <path d="M613 185C673 143 733 124 800 128C735 160 692 194 657 225Z" fill="#0A3B7F" fill-opacity=".34" stroke="#3DBFFF" stroke-opacity=".28" stroke-width="1.4"/>
     <path d="M49 239C116 194 210 166 327 161C451 156 567 179 674 205C762 226 839 216 958 170" stroke="#BDF6FF" stroke-opacity=".43" stroke-width="1.65"/>
     <path d="M62 264C140 307 245 321 355 302C467 283 544 240 646 251C754 263 832 296 949 319" stroke="#28A9FF" stroke-opacity=".38" stroke-width="1.5"/>

@@ -2,26 +2,26 @@
   "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
   "events": [
     {
-      "path": "/ruta-inventada-v910",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "",
-      "source": "flask_404",
-      "count": 74,
-      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-31T11:36:02+02:00"
-    },
-    {
       "path": "/api/ruta-inventada-v910",
       "method": "GET",
       "referrer": "",
       "user_agent": "Werkzeug/3.0.3",
       "resolved_alias": "",
       "source": "api_404",
-      "count": 74,
+      "count": 76,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
-      "last_seen_madrid": "2026-07-31T11:36:02+02:00"
+      "last_seen_madrid": "2026-08-30T02:43:09+02:00"
+    },
+    {
+      "path": "/ruta-inventada-v910",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Werkzeug/3.0.3",
+      "resolved_alias": "",
+      "source": "flask_404",
+      "count": 76,
+      "first_seen_madrid": "2026-07-07T23:33:53+02:00",
+      "last_seen_madrid": "2026-08-30T02:43:08+02:00"
     },
     {
       "path": "/historico",
@@ -398,5 +398,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-07-31T11:36:02+02:00"
+  "updated_at_madrid": "2026-08-30T02:43:09+02:00"
 }

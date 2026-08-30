@@ -8,11 +8,13 @@ Layer and Sports Graph relationships. It performs no IO or external action.
 from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
+from urllib.parse import quote
 
 from engines.match_intelligence_engine import build_match_intelligence
 from engines.sports_domain_model_engine import (
     SPORTS_DOMAIN_MODEL_CONTRACT,
     build_unified_domain_snapshot,
+    normalize_player_entity,
     normalize_team_entity,
 )
 from engines.sports_graph_foundation_engine import (
@@ -37,6 +39,14 @@ def _items(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, (list, tuple)):
         return []
     return [dict(item) for item in value if isinstance(item, Mapping)]
+
+
+def _player_route_id(value: Any) -> str:
+    identifier = _text(value, 180)
+    marker = ":player:"
+    if marker in identifier:
+        identifier = identifier.rsplit(marker, 1)[-1]
+    return identifier
 
 
 def _text(value: Any, limit: int = 240) -> str:
@@ -224,6 +234,7 @@ def build_team_center_context(
     recent = _items(data.get("recent"))
     live = _items(data.get("live"))
     picks = _items(data.get("picks"))
+    raw_players = _items(data.get("players"))
     matches = upcoming + recent
     source = team.get("source") or identity.get("crest_source") or "local_cache"
     canonical_team = normalize_team_entity(
@@ -239,6 +250,27 @@ def build_team_center_context(
         },
         provider=source,
     )
+    players = []
+    seen_players = set()
+    for raw_player in raw_players:
+        canonical_player = normalize_player_entity(raw_player, provider=raw_player.get("source") or source)
+        player_id = _text(raw_player.get("player_id") or canonical_player.get("canonical_player_id"), 180)
+        route_id = _player_route_id(player_id)
+        player_name = _text(canonical_player.get("display_name") or raw_player.get("player_name"), 160)
+        if not route_id or not player_name or route_id in seen_players:
+            continue
+        seen_players.add(route_id)
+        players.append({
+            "player_id": route_id,
+            "canonical_player_id": canonical_player.get("canonical_player_id"),
+            "name": player_name,
+            "position": canonical_player.get("position") or "No disponible",
+            "shirt_number": canonical_player.get("shirt_number") or "No disponible",
+            "is_starting": str(raw_player.get("is_starting") or "").lower() in {"1", "true", "yes", "si", "sí"},
+            "href": "/player/" + quote(route_id, safe=""),
+            "source": raw_player.get("source") or source,
+            "canonical": canonical_player,
+        })
     domain_snapshots = [_domain_for_match(match, now_madrid=observed_at_madrid) for match in matches[:24]]
     canonical_matches = [_mapping(snapshot.get("match")) for snapshot in domain_snapshots]
     canonical_events = [
@@ -283,6 +315,7 @@ def build_team_center_context(
     traits = _strengths_and_weaknesses(form)
     graph = build_sports_graph_relationships(
         team_entity=canonical_team,
+        player_entities=[item["canonical"] for item in players],
         match_entities=canonical_matches,
         competition_entities=competitions,
         timeline_events=canonical_events,
@@ -302,6 +335,8 @@ def build_team_center_context(
         missing.append("Forma reciente pendiente de resultados confirmados.")
     if not traits.get("available"):
         missing.extend(traits.get("limitations") or [])
+    if not players:
+        missing.append("Plantilla no disponible: no hay jugadores con identificador confirmado.")
     state = "En directo" if live else "Con calendario" if upcoming else "Información parcial"
     return {
         "ok": True,
@@ -327,6 +362,7 @@ def build_team_center_context(
             "picks": len(picks),
             "competitions": len(competitions),
             "graph_edges": graph.get("edge_count", 0),
+            "players": len(players),
         },
         "form": form,
         "streak": {
@@ -344,6 +380,7 @@ def build_team_center_context(
                 ("Competiciones relacionadas", bool(competitions)),
                 ("Picks relacionados", bool(picks)),
                 ("Sports Graph", bool(graph.get("edge_count"))),
+                ("Jugadores confirmados", bool(players)),
             )
             if available
         ],
@@ -352,6 +389,14 @@ def build_team_center_context(
         "recent": recent,
         "live": live,
         "picks": picks,
+        "players": players,
+        "squad": {
+            "state": "CONFIRMED" if players else "NOT_CONFIRMED",
+            "message": "Plantilla disponible desde alineaciones confirmadas." if players else "Plantilla todavía no confirmada.",
+            "starters": [item for item in players if item.get("is_starting")],
+            "substitutes": [item for item in players if not item.get("is_starting")],
+            "source": players[0].get("source") if players else None,
+        },
         "timeline": _timeline(matches, name),
         "competitions": competitions,
         "knowledge": knowledge,
@@ -372,7 +417,7 @@ def build_team_center_context(
         },
         "links": {
             "competition_center": "/competition/" + _competition_route_id(competitions[0]) if competitions and _competition_route_id(competitions[0]) else "",
-            "player_center": "",
+            "player_center": players[0].get("href") if players else "",
             "match_center": "/match/" + _text(matches[0].get("id"), 160) if matches else "",
             "sports_graph": "",
         },
@@ -385,6 +430,7 @@ def build_team_center_context(
             "new_dependencies": 0,
             "domain_snapshots": len(domain_snapshots),
             "single_domain_model_per_match": True,
+            "players_from_confirmed_cache": len(players),
         },
         "no_fake_data": True,
     }

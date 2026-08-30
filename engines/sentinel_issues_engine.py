@@ -115,6 +115,9 @@ def save_sentinel_issues_memory(memory: dict[str, Any], root: str | Path | None 
 
 
 def issue_fingerprint(issue: dict[str, Any]) -> str:
+    stable_key = _safe_text(issue.get("stable_key"), 500)
+    if stable_key:
+        return sha1(stable_key.lower().encode("utf-8", errors="ignore")).hexdigest()[:16]
     raw = "|".join(
         [
             _safe_text(issue.get("area"), 80),
@@ -226,12 +229,26 @@ def normalize_sentinel_issue(raw: dict[str, Any], source: str = "sentinel") -> d
         "history": _safe_list(raw.get("history")),
         "occurrences": int(raw.get("occurrences") or 1),
         "last_seen_madrid": _safe_text(raw.get("last_seen_madrid") or _now(), 80),
+        "worker": _safe_text(raw.get("worker"), 120),
+        "category": _safe_text(raw.get("category") or area, 120),
+        "viewport": _safe_text(raw.get("viewport"), 80),
+        "element": _safe_text(raw.get("element"), 180),
+        "expected": _safe_text(raw.get("expected"), 900),
+        "actual": _safe_text(raw.get("actual"), 900),
+        "screenshot": _safe_text(raw.get("screenshot"), 500),
+        "first_seen": _safe_text(raw.get("first_seen") or raw.get("detected_at_madrid") or _now(), 80),
+        "last_seen": _safe_text(raw.get("last_seen") or raw.get("last_seen_madrid") or _now(), 80),
+        "seen_count": int(raw.get("seen_count") or raw.get("occurrences") or 1),
+        "production_sha": _safe_text(raw.get("production_sha"), 80),
+        "confidence": _safe_text(raw.get("confidence") or "UNKNOWN", 40),
+        "stable_key": _safe_text(raw.get("stable_key"), 500),
     }
     issue["severity"] = classify_sentinel_issue(issue)
     if issue["status"] not in ISSUE_STATUSES:
         issue["status"] = "OPEN"
     issue["fingerprint"] = issue_fingerprint(issue)
     issue["id"] = _safe_text(raw.get("id") or raw.get("issue_id") or _issue_id(issue["fingerprint"]), 80)
+    issue["issue_id"] = issue["id"]
     issue["codex_prompt"] = _safe_text(raw.get("codex_prompt"), 4000) or generate_issue_prompt(issue)
     issue["copy_text"] = copy_issue_text(issue)
     return issue
@@ -261,6 +278,13 @@ def upsert_sentinel_issues(existing: list[dict[str, Any]], candidates: list[dict
                 "codex_prompt": candidate.get("codex_prompt"),
                 "copy_text": candidate.get("copy_text"),
                 "occurrences": int(previous.get("occurrences") or 1) + 1,
+                "seen_count": int(previous.get("seen_count") or previous.get("occurrences") or 1) + 1,
+                "last_seen": candidate.get("last_seen") or _now(),
+                "actual": candidate.get("actual") or previous.get("actual"),
+                "expected": candidate.get("expected") or previous.get("expected"),
+                "screenshot": candidate.get("screenshot") or previous.get("screenshot"),
+                "production_sha": candidate.get("production_sha") or previous.get("production_sha"),
+                "confidence": candidate.get("confidence") or previous.get("confidence"),
                 "history": history[-20:],
             })
             if previous.get("status") in {"RESOLVED", "FALSE_POSITIVE"}:
