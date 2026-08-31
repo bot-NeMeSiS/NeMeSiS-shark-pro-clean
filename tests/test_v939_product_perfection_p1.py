@@ -46,6 +46,7 @@ def _match(app_module, match_id: str, *, lifecycle: str = "UPCOMING", score: boo
         "competition_name": "Competicion real",
         "kickoff_time": "20:00",
         "source": "fixture-test",
+        "updated_at": app_module.now_iso(),
         "v935_lifecycle": lifecycle,
     }
     if score:

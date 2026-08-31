@@ -19,7 +19,9 @@
      data-match-intelligence-contract="{{ match_context.get('intelligence', {}).get('contract') }}"
      data-sports-domain-model="{{ match_context.get('domain_model', {}).get('contract') }}"
      data-match-state="{{ match_context.get('state') }}"
-     data-match-id="{{ match_context.get('match', {}).get('id') or '' }}">
+     data-match-id="{{ match_context.get('match', {}).get('id') or '' }}"
+     data-canonical-status="{{ match_context.get('match', {}).get('status_info', {}).get('key') or match_context.get('lifecycle', {}).get('key') or '' }}"
+     data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
   <div class="v944-match-anchor">
     {{ match_header(match_context) }}
     {{ score_widget(match_context) }}

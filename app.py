@@ -3613,12 +3613,17 @@ def canonical_match_status(match):
         "POSTPONED": {"key": "POSTPONED", "label": "Aplazado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "CANCELLED": {"key": "CANCELLED", "label": "Cancelado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "ABANDONED": {"key": "ABANDONED", "label": "Abandonado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        "STALE": {"key": "STALE", "label": "Actualización pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "UPCOMING": {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True},
         "INCOMPLETE": {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
     }
     result = dict(states.get(lifecycle) or states["INCOMPLETE"])
     result.update({
-        "contract": truth.get("contract") or "MATCH-STATUS-TRUTH-V1",
+        "contract": truth.get("contract") or "MATCH-STATUS-TRUTH-V2",
+        "raw_lifecycle": truth.get("raw_lifecycle") or lifecycle,
+        "is_stale": bool(truth.get("is_stale")),
+        "stale_reason": truth.get("stale_reason") or "",
+        "live_age_seconds": truth.get("live_age_seconds"),
         "status_conflict": bool(truth.get("status_conflict")),
         "conflict_type": truth.get("conflict_type") or "",
         "signal_kinds": list(truth.get("signal_kinds") or []),
@@ -3972,6 +3977,8 @@ def live_matches_from_live_table(limit=120):
             item["id"] = item.get("lm_match_id") or "live-unknown"
         # Being present in the provider live cache is not, by itself, proof of LIVE.
         item["status"] = item.get("lm_status") or item.get("status") or ""
+        item["live_updated_at"] = item.get("lm_updated_at") or item.get("live_updated_at") or item.get("updated_at") or ""
+        item["source"] = item.get("lm_source") or item.get("source") or ""
         item["minute"] = item.get("lm_minute") or item.get("minute") or ""
         item["home_score"] = item.get("lm_home_score") if item.get("lm_home_score") not in {None, ""} else item.get("home_score")
         item["away_score"] = item.get("lm_away_score") if item.get("lm_away_score") not in {None, ""} else item.get("away_score")
@@ -8045,6 +8052,9 @@ def canonical_match_surface_contract(match):
         "status_key": status_info.get("key"),
         "status_label": status_info.get("label"),
         "status_conflict": bool(status_info.get("status_conflict")),
+        "is_live": bool(status_info.get("is_live")),
+        "is_stale": bool(status_info.get("is_stale")),
+        "stale_reason": status_info.get("stale_reason") or "",
         "score": _client_score_from_match(item),
         "minute": canonical_live_minute(item),
     }
@@ -8061,6 +8071,7 @@ def canonical_match_for_domain_context(match):
         "POSTPONED": "PST",
         "CANCELLED": "CANC",
         "ABANDONED": "ABD",
+        "STALE": "TBD",
         "HT": "HT",
         "LIVE": "LIVE",
         "UPCOMING": "NS",
@@ -14077,6 +14088,9 @@ def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=Non
         "is_today_madrid": bool(is_today),
         "important_tier": bool(important_tier),
         "status_conflict": bool(status_info.get("status_conflict")),
+        "is_live": bool(status_info.get("is_live")),
+        "is_stale": bool(status_info.get("is_stale")),
+        "stale_reason": status_info.get("stale_reason") or "",
     }
 
 
@@ -14316,7 +14330,7 @@ def _build_public_home_sports_summary():
         valid_all.append(item)
     stale_live = [
         item for item in valid_all
-        if item.get("v935_lifecycle") in {"LIVE", "HALFTIME"}
+        if item.get("v935_raw_lifecycle") in {"LIVE", "HALFTIME"}
         and bool((item.get("v935_freshness") or {}).get("is_stale"))
     ]
     stale_live_ids = {_sports_match_key(item) for item in stale_live if _sports_match_key(item)}

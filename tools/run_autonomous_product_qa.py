@@ -349,6 +349,11 @@ def _inspect(page, screen: str, viewport: str) -> dict:
                 return /(?:FT|FINALIZADO|FINISHED)/.test(value) && /(?:LIVE|EN DIRECTO)/.test(value);
               }).length,
             },
+            match_truth: Array.from(document.querySelectorAll('[data-v934-match-id][data-canonical-status],[data-match-id][data-canonical-status]')).map(node => ({
+              match_id: node.getAttribute('data-v934-match-id') || node.getAttribute('data-match-id') || '',
+              canonical_status: (node.getAttribute('data-canonical-status') || '').toUpperCase(),
+              is_live: node.getAttribute('data-canonical-live') === 'true',
+            })),
             sports_knowledge: {
               lineup_state: lineup?.getAttribute('data-lineup-state') || 'not_observed',
               lineup_confirmed: lineup?.getAttribute('data-lineup-state') === 'confirmed',
@@ -762,6 +767,38 @@ def _sports_priority_regression(app_module) -> dict:
     }
 
 
+def _cross_surface_live_truth_evidence(captures: list[dict]) -> dict:
+    """Compare the same canonical match across rendered sports surfaces."""
+    sports_surfaces = {"home", "public_home", "partidos", "directo", "match", "team", "competition", "player", "picks", "shark"}
+    by_match: dict[str, dict[str, dict]] = {}
+    for capture in captures:
+        surface = str(capture.get("key") or "")
+        if surface not in sports_surfaces:
+            continue
+        for item in capture.get("match_truth") or []:
+            match_id = str(item.get("match_id") or "").strip()
+            status = str(item.get("canonical_status") or "").strip().upper()
+            if not match_id or not status:
+                continue
+            by_match.setdefault(match_id, {})[surface] = {
+                "canonical_status": status,
+                "is_live": bool(item.get("is_live")),
+            }
+
+    compared = {match_id: surfaces for match_id, surfaces in by_match.items() if len(surfaces) >= 2}
+    mismatches = []
+    for match_id, surfaces in sorted(compared.items()):
+        truths = {(item["canonical_status"], item["is_live"]) for item in surfaces.values()}
+        if len(truths) > 1:
+            mismatches.append({"match_id": match_id, "surfaces": surfaces})
+    return {
+        "observed": bool(compared),
+        "pass": bool(compared) and not mismatches,
+        "matches_compared": len(compared),
+        "mismatches": mismatches,
+    }
+
+
 def _reference_map() -> dict[str, str]:
     path = ROOT / "reference_images" / "reference_manifest.json"
     try:
@@ -998,6 +1035,7 @@ def main() -> int:
     performance_max = max(page_ready_samples) if page_ready_samples else None
     performance_status = "PASS" if performance_max is not None and performance_max <= 5000 else "FAIL" if performance_max is not None else "NOT_RUN"
     sports_priority = _sports_priority_regression(app_module)
+    cross_surface_truth = _cross_surface_live_truth_evidence(captures)
     observation = {
         "run_id": run_id,
         "started_at_madrid": started,
@@ -1022,6 +1060,9 @@ def main() -> int:
             "confirmed_live_count": live_contract.get("confirmed", 0),
             "displayed_live_count": live_contract.get("displayed", 0),
             "ft_rendered_live": live_contract.get("ft_rendered_live", 0),
+            "cross_surface_live_truth": cross_surface_truth["pass"] if cross_surface_truth["observed"] else None,
+            "cross_surface_live_mismatches": cross_surface_truth["mismatches"],
+            "cross_surface_matches_compared": cross_surface_truth["matches_compared"],
             "important_match_priority": sports_priority["status"],
             "priority_evidence": sports_priority["evidence"],
             "screenshot": sports_capture.get("screenshot") or "",

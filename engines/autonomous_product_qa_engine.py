@@ -58,6 +58,7 @@ PINNED_REGRESSION_CONTRACTS = {
     "TOPBAR_REAL_NAVIGATION": {"category": "NAVIGATION", "severity": "P0", "test": "real_click_and_element_from_point"},
     "FALSE_LIVE_KPI": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "confirmed_live_equals_visible_live"},
     "FT_NEVER_LIVE": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "terminal_state_never_renders_live"},
+    "CROSS_SURFACE_LIVE_TRUTH": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "same_match_same_canonical_live_truth", "memory_key": "LIVE_TRUTH_CROSS_SURFACE_RECURRENCE"},
     "OFFICIAL_SHARK_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
     "OFFICIAL_BACKGROUND_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
     "VISUAL_FALSE_PASS_RECURRENCE": {"category": "VISUAL", "severity": "P1", "test": "founder_rejection_overrides_automated_visual_pass"},
@@ -640,6 +641,9 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     sports = observation.get("sports_truth") or {}
     sports_pass = int(sports.get("confirmed_live_count") or 0) == int(sports.get("displayed_live_count") or 0)
     ft_pass = int(sports.get("ft_rendered_live") or 0) == 0
+    cross_surface_mismatches = list(sports.get("cross_surface_live_mismatches") or [])
+    cross_surface_observed = "cross_surface_live_truth" in sports or bool(cross_surface_mismatches)
+    cross_surface_pass = sports.get("cross_surface_live_truth") is True and not cross_surface_mismatches
 
     visual = observation.get("visual") or {}
     shark = str((visual.get("shark") or {}).get("classification") or "NOT_RUN").upper()
@@ -668,6 +672,10 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "TOPBAR_REAL_NAVIGATION": {"status": "PASS" if click_pass else "FAIL", "evidence": f"real_clicks={len(clicks)}"},
         "FALSE_LIVE_KPI": {"status": "PASS" if sports_pass else "FAIL", "evidence": f"confirmed={sports.get('confirmed_live_count', 0)}; visible={sports.get('displayed_live_count', 0)}"},
         "FT_NEVER_LIVE": {"status": "PASS" if ft_pass else "FAIL", "evidence": f"terminal_rendered_live={sports.get('ft_rendered_live', 0)}"},
+        "CROSS_SURFACE_LIVE_TRUTH": {
+            "status": "PASS" if cross_surface_pass else "FAIL" if cross_surface_observed else "NOT_RUN",
+            "evidence": f"observed={cross_surface_observed}; mismatches={len(cross_surface_mismatches)}",
+        },
         "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if shark in {"MATCH", "MINOR_GAP"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
         "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
         "VISUAL_FALSE_PASS_RECURRENCE": {"status": "FOUNDER_REVIEW_REQUIRED", "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."},
@@ -712,6 +720,7 @@ def _update_regression_manager(memory: dict[str, Any], observation: dict[str, An
             "category": contract["category"],
             "severity": contract["severity"],
             "regression_test": contract["test"],
+            "memory_key": contract.get("memory_key") or regression_id,
             "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
             "last_good_sha": "",
             "fix_sha": "",
@@ -720,17 +729,18 @@ def _update_regression_manager(memory: dict[str, Any], observation: dict[str, An
             "status": "NOT_RUN",
             "verification_history": [],
         })
+        record["memory_key"] = contract.get("memory_key") or regression_id
         result = supplied.get(regression_id) or {"status": "NOT_RUN", "evidence": "Sin cobertura en esta ejecucion."}
         status = str(result.get("status") or "NOT_RUN").upper()
         related = issues_by_regression.get(regression_id) or []
         previous_status = str(record.get("status") or "NOT_RUN")
         if related:
             status = "FAIL"
-            if previous_status in {"PASS", "RESOLVED", "FOUNDER_REVIEW_REQUIRED"}:
-                record["recurrence_count"] = int(record.get("recurrence_count") or 0) + 1
             record["root_cause"] = _safe_text(related[0].get("actual") or related[0].get("evidence"), 700)
             if record.get("first_seen_sha") == "FOUNDER_OVERRIDE_BASELINE" and related[0].get("production_sha"):
                 record["first_seen_sha"] = related[0].get("production_sha")
+        if status == "FAIL" and previous_status in {"PASS", "RESOLVED", "FOUNDER_REVIEW_REQUIRED"}:
+            record["recurrence_count"] = int(record.get("recurrence_count") or 0) + 1
         elif status == "PASS":
             record["last_good_sha"] = _safe_text(observation.get("production_sha"), 80)
         elif status == "FOUNDER_REVIEW_REQUIRED":

@@ -23,7 +23,7 @@ from engines.sentinel_issues_engine import (
 )
 from engines.sentinel_codex_outbox_engine import write_codex_outbox
 from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
-from tools.run_autonomous_product_qa import _sports_priority_regression
+from tools.run_autonomous_product_qa import _cross_surface_live_truth_evidence, _sports_priority_regression
 
 
 def test_daily_policy_includes_sports_knowledge_summary_media_rights_and_time():
@@ -39,6 +39,23 @@ def test_sports_priority_regression_uses_canonical_ranking_without_external_call
     for important in ("bayern-stuttgart", "lille-psg", "milan-venezia"):
         assert order.index(important) < order.index("k-league-2")
         assert order.index(important) < order.index("chinese-super-league")
+
+
+def test_cross_surface_live_truth_worker_compares_same_canonical_match():
+    clean = _cross_surface_live_truth_evidence([
+        {"key": "home", "match_truth": [{"match_id": "m-1", "canonical_status": "STALE", "is_live": False}]},
+        {"key": "directo", "match_truth": [{"match_id": "m-1", "canonical_status": "STALE", "is_live": False}]},
+        {"key": "match", "match_truth": [{"match_id": "m-1", "canonical_status": "STALE", "is_live": False}]},
+    ])
+    mismatch = _cross_surface_live_truth_evidence([
+        {"key": "home", "match_truth": [{"match_id": "m-1", "canonical_status": "LIVE", "is_live": True}]},
+        {"key": "directo", "match_truth": [{"match_id": "m-1", "canonical_status": "STALE", "is_live": False}]},
+    ])
+
+    assert clean == {"observed": True, "pass": True, "matches_compared": 1, "mismatches": []}
+    assert mismatch["observed"] is True
+    assert mismatch["pass"] is False
+    assert mismatch["mismatches"][0]["match_id"] == "m-1"
 
 
 def failing_observation() -> dict:
@@ -63,6 +80,8 @@ def failing_observation() -> dict:
             "confirmed_live_count": 0,
             "displayed_live_count": 2,
             "ft_rendered_live": 1,
+            "cross_surface_live_truth": False,
+            "cross_surface_live_mismatches": [{"match_id": "sportsdb-9c185a90a281810876", "home": "LIVE", "directo": "STALE", "match": "LIVE"}],
         },
         "temporal_context": {
             "screen": "match surfaces",
@@ -112,7 +131,7 @@ def clean_observation() -> dict:
                 "page_ready": True,
             }
         ],
-        "sports_truth": {"screen": "/", "confirmed_live_count": 0, "displayed_live_count": 0, "ft_rendered_live": 0},
+        "sports_truth": {"screen": "/", "confirmed_live_count": 0, "displayed_live_count": 0, "ft_rendered_live": 0, "cross_surface_live_truth": True, "cross_surface_live_mismatches": []},
         "temporal_context": {"screen": "match surfaces", "checked_cards": 9, "missing_cards": 0, "ambiguous_cards": 0, "cross_surface_consistent": True, "madrid_time": True},
         "sports_knowledge": {"screen": "/match/m-1", "lineup_confirmed": True, "lineup_player_links": 1, "summary_ai_calls": 0, "summary_unsupported_claims": 0, "unsafe_media_visible": 0},
         "client_copy": {"screen": "/live", "visible_text": "No hay partidos en directo."},
@@ -364,12 +383,43 @@ def test_regression_manager_pins_all_known_founder_regressions(tmp_path: Path):
     )
 
     manager = result["regression_manager"]
-    assert manager["protected_regressions"] == 17
+    assert manager["protected_regressions"] == 18
     assert {item["regression_id"] for item in manager["items"]} == set(PINNED_REGRESSION_CONTRACTS)
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
     assert next(item for item in manager["items"] if item["regression_id"] == "VISUAL_FALSE_PASS_RECURRENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
 
+
+def test_cross_surface_live_truth_is_a_p0_and_persists_recurrence(tmp_path: Path):
+    record_product_qa_run(
+        clean_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-30T22:35:00+02:00",
+    )
+    first = record_product_qa_run(
+        failing_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-30T22:40:00+02:00",
+    )
+    second = record_product_qa_run(
+        failing_observation(),
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-30T22:45:00+02:00",
+    )
+
+    item = next(
+        entry for entry in second["regression_manager"]["items"]
+        if entry["regression_id"] == "CROSS_SURFACE_LIVE_TRUTH"
+    )
+    assert first["quality_director"]["decision"] == "FAIL"
+    assert first["quality_director"]["open_p0"] >= 1
+    assert item["status"] == "FAIL"
+    assert item["memory_key"] == "LIVE_TRUTH_CROSS_SURFACE_RECURRENCE"
+    assert item["recurrence_count"] >= 1
+    assert len(item["verification_history"]) >= 3
 
 def test_regression_manager_increments_recurrence_after_clean_retest(tmp_path: Path):
     record_product_qa_run(

@@ -1,7 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import ast
 import inspect
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import engines.sports_domain_model_engine as domain_module
 from engines.match_context_engine import build_match_context
@@ -202,10 +204,13 @@ def test_domain_snapshot_graph_and_telegram_contract_are_read_only():
 
 
 def test_match_context_and_match_intelligence_reuse_domain_entities():
+    live_updated_at = datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds")
+    match = _match_row()
+    match["updated_at"] = live_updated_at
     context = build_match_context(
-        {"match": _match_row(), "related_picks": []},
+        {"match": match, "related_picks": []},
         madrid_context={"client_full_datetime_label": "domingo, 26 de julio - 20:30"},
-        live_context={"provider": "api_football", "updated_at": "2026-07-26T21:58:00+02:00", "events": _events()},
+        live_context={"provider": "api_football", "updated_at": live_updated_at, "events": _events()},
     )
     intelligence = context["intelligence"]
 

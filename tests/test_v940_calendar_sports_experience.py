@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import shutil
 import urllib.parse
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pytest
@@ -18,6 +20,7 @@ from engines.sentinel_autopilot_engine import (
     detect_product_quality_contract_issues,
     run_autopilot_scan,
 )
+from engines.v934_realtime_sports_engine import build_realtime_snapshot
 from engines.v935_launch_trust_engine import enrich_match_lifecycle, match_status_truth
 
 
@@ -296,6 +299,7 @@ def _sports_relevance_match(app_module, match_id, competition, *, date_offset=1,
         "country": extra.pop("country", "Global"),
         "source": extra.pop("source", "provider-test"),
         "status": status,
+        "updated_at": extra.pop("updated_at", app_module.now_iso()),
         "v935_lifecycle": extra.pop("v935_lifecycle", "UPCOMING"),
         "v935_surface": extra.pop("v935_surface", {"home": True, "calendar": True, "live": False}),
     }
@@ -842,6 +846,77 @@ def test_p0_match_surface_contract_keeps_status_score_teams_kickoff_and_competit
     assert match_context["lifecycle"]["is_finished"] is True
     assert match_context["lifecycle"]["is_live"] is False
 
+
+DAY2_RETAINED_STALE_CARDINALITY = 19
+DAY2_CONFIRMED_STALE_MATCH_ID = "sportsdb-9c185a90a281810876"
+
+
+def test_p0_day2_stale_live_cardinality_is_not_live_on_any_surface(app_module):
+    """Replay the retained Day 2 shape: 19 stale LIVE readings, one exact traced entity."""
+    observed_at = datetime(2026, 8, 30, 22, 40, tzinfo=ZoneInfo("Europe/Madrid"))
+    candidates = []
+    for index in range(DAY2_RETAINED_STALE_CARDINALITY):
+        match_id = DAY2_CONFIRMED_STALE_MATCH_ID if index == 0 else f"day2-stale-cardinality-{index + 1:02d}"
+        candidate = _sports_relevance_match(
+            app_module,
+            match_id,
+            "MLS",
+            date_offset=0,
+            kickoff="20:00",
+            status="LIVE",
+            home="Portland Timbers II" if index == 0 else f"Candidato Day 2 local {index + 1}",
+            away="Austin FC II" if index == 0 else f"Candidato Day 2 visitante {index + 1}",
+            score="0-0",
+            home_score=0,
+            away_score=0,
+            minute="",
+            source="TheSportsDB API",
+            updated_at="2026-08-30T22:30:00+02:00",
+            evidence_origin="REAL_PRODUCTION_OBSERVATION" if index == 0 else "DAY2_CARDINALITY_REPLAY",
+        )
+        candidate["match_date"] = "2026-08-30"
+        candidates.append(candidate)
+
+    summary = _sports_relevance_summary(candidates, live=candidates)
+    snapshot = build_realtime_snapshot(summary, now=observed_at)
+    canonical = [match_status_truth(item, now=observed_at) for item in candidates]
+    enriched = [enrich_match_lifecycle(item, now=observed_at) for item in candidates]
+    home_live = [
+        item for item in enriched
+        if (item.get("v935_surface") or {}).get("home")
+        and (item.get("v935_surface") or {}).get("live")
+    ]
+
+    first = candidates[0]
+    first_view = app_module.client_match_display_context(first)
+    first_domain = app_module.canonical_match_for_domain_context(first)
+    first_match_center = build_match_context(
+        {"match": first_domain, "timeline": [], "related_picks": []},
+        madrid_context=first_view,
+        live_context={
+            "available": True,
+            "status": "LIVE",
+            "updated_at": "2026-08-30T22:30:00+02:00",
+            "minute": None,
+            "events": [],
+        },
+    )
+
+    assert len(snapshot["stale_live"]) == DAY2_RETAINED_STALE_CARDINALITY
+    assert snapshot["live"] == []
+    assert snapshot["counts"]["live"] == 0
+    assert all(item["lifecycle"] == "STALE" for item in canonical)
+    assert all(item["is_live"] is False for item in canonical)
+    assert all(item["stale_reason"] == "LIVE_EVIDENCE_TOO_OLD" for item in canonical)
+    assert all((item.get("v935_surface") or {}).get("live") is False for item in enriched)
+    assert home_live == []
+    assert app_module.canonical_match_status(first)["is_live"] is False
+    assert app_module.canonical_live_minute(first) == ""
+    assert first_view["status_info"]["is_live"] is False
+    assert first_view["status_info"]["is_stale"] is True
+    assert first_match_center["lifecycle"]["is_live"] is False
+    assert first_match_center["lifecycle"]["is_stale"] is True
+    assert first_match_center["story"]["phase"] == "Actualizacion pendiente"
 
 def test_p0_operations_quality_contract_is_compact_and_cache_only(app_module):
     elite = _sports_relevance_match(

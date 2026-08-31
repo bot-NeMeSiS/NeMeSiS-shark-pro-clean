@@ -4,7 +4,9 @@ import hashlib
 import json
 import shutil
 import sqlite3
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from engines.api_football_live_tracker_engine import (
     ensure_live_tracker_schema,
@@ -41,7 +43,7 @@ def _detail() -> dict:
         "away_score": 0,
         "score": "1-0",
         "source": "api_football_live",
-        "updated_at": "2026-07-26T21:58:00+02:00",
+        "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "status_info": {
             "key": "2H",
             "label": "En directo",
@@ -81,7 +83,7 @@ def _live_context() -> dict:
         "available": True,
         "read_only": True,
         "provider": "api_football",
-        "updated_at": "2026-07-26T21:58:00+02:00",
+        "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "events": [
             {
                 "id": "goal-1",

@@ -17,7 +17,7 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 MATCH_LIFECYCLES = (
     "UPCOMING", "LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING",
-    "POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE", "ARCHIVED",
+    "POSTPONED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE", "ARCHIVED",
 )
 PICK_LIFECYCLES = (
     "DRAFT", "INCOMPLETE", "REVIEW", "APPROVED", "PUBLISHED", "LIVE",
@@ -161,6 +161,7 @@ _LIVE_STATUS_KEYS = {
 _UPCOMING_STATUS_KEYS = {
     "ns", "not started", "scheduled", "programado", "fixture", "upcoming", "proximo", "próximo",
 }
+LIVE_STALE_SECONDS = 120
 
 
 def _status_key(value: Any) -> str:
@@ -188,7 +189,7 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
             values.append((source, key))
 
     for field in (
-        "lifecycle", "v935_lifecycle", "match_status", "fixture_status", "sports_status",
+        "lifecycle", "v935_lifecycle", "v935_raw_lifecycle", "match_status", "fixture_status", "sports_status",
         "provider_status", "status_short", "short_status", "status_code", "status",
         "safe_status", "client_status_label", "live_status_label", "calendar_status",
     ):
@@ -256,12 +257,66 @@ def _status_kind(key: str) -> str:
     return "UNKNOWN"
 
 
-def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    """Fail-closed match status shared by every sports surface.
+def _live_freshness_truth(
+    item: dict[str, Any],
+    raw_lifecycle: str,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Return the freshness decision used by every client-facing LIVE surface."""
+    source = dict(item or {})
+    nested = [
+        value for value in (
+            source.get("v935_freshness"),
+            source.get("freshness"),
+            source.get("live_depth"),
+            source.get("status_info"),
+        )
+        if isinstance(value, dict)
+    ]
+    explicit_stale = bool(
+        source.get("is_stale")
+        or source.get("stale")
+        or any(value.get("is_stale") or value.get("stale") for value in nested)
+    )
+    timestamp = (
+        source.get("live_updated_at")
+        or source.get("provider_updated_at")
+        or source.get("updated_at")
+    )
+    parsed = _parse_iso(timestamp)
+    age = None if parsed is None else max(0, int((madrid_now(now) - parsed).total_seconds()))
+    raw_is_live = raw_lifecycle in {"LIVE", "HALFTIME"}
+    match_shaped = bool(
+        source.get("id")
+        or source.get("match_id")
+        or source.get("external_id")
+        or match_kickoff_madrid(source)
+    )
+    freshness_required = bool(timestamp or nested or explicit_stale or match_shaped)
+    stale = bool(
+        raw_is_live
+        and freshness_required
+        and (explicit_stale or age is None or age > LIVE_STALE_SECONDS)
+    )
+    if not stale:
+        stale_reason = ""
+    elif explicit_stale:
+        stale_reason = "EXPLICIT_STALE_EVIDENCE"
+    elif age is None:
+        stale_reason = "LIVE_TIMESTAMP_MISSING"
+    else:
+        stale_reason = "LIVE_EVIDENCE_TOO_OLD"
+    return {
+        "status": "STALE" if stale else "FRESH" if age is not None else "UNKNOWN",
+        "age_seconds": age,
+        "is_stale": stale,
+        "stale_reason": stale_reason,
+        "timestamp_present": parsed is not None,
+        "freshness_required": freshness_required,
+    }
 
-    A terminal provider/internal signal always wins over a simultaneous LIVE
-    signal. Score, minute and kickoff never create LIVE by themselves.
-    """
+def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
+    """Fail-closed status and freshness truth shared by every sports surface."""
     source = dict(item or {})
     signals = _status_values(source)
     kinds = [_status_kind(key) for _source, key in signals]
@@ -272,32 +327,39 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
     live_kinds = {kind for kind in kinds if kind in {"LIVE", "HALFTIME"}}
     conflict = bool(terminal_kinds and live_kinds)
 
-    lifecycle = ""
+    raw_lifecycle = ""
     for terminal in ("ABANDONED", "CANCELLED", "POSTPONED", "ARCHIVED", "FINISHED"):
         if terminal in terminal_kinds:
-            lifecycle = terminal
+            raw_lifecycle = terminal
             break
-    if lifecycle == "FINISHED" and not _score_confirmed(source):
-        lifecycle = "RESULT_PENDING"
-    if not lifecycle and "HALFTIME" in live_kinds:
-        lifecycle = "HALFTIME"
-    if not lifecycle and "LIVE" in live_kinds:
-        lifecycle = "LIVE"
+    if raw_lifecycle == "FINISHED" and not _score_confirmed(source):
+        raw_lifecycle = "RESULT_PENDING"
+    if not raw_lifecycle and "HALFTIME" in live_kinds:
+        raw_lifecycle = "HALFTIME"
+    if not raw_lifecycle and "LIVE" in live_kinds:
+        raw_lifecycle = "LIVE"
 
-    if not lifecycle:
+    if not raw_lifecycle:
         kickoff = match_kickoff_madrid(source)
         if kickoff is None:
-            lifecycle = "INCOMPLETE"
+            raw_lifecycle = "INCOMPLETE"
         elif kickoff < madrid_now(now):
-            lifecycle = "FINISHED" if _score_confirmed(source) else "RESULT_PENDING"
+            raw_lifecycle = "FINISHED" if _score_confirmed(source) else "RESULT_PENDING"
         else:
-            lifecycle = "UPCOMING"
+            raw_lifecycle = "UPCOMING"
 
+    freshness = _live_freshness_truth(source, raw_lifecycle, now)
+    lifecycle = "STALE" if freshness["is_stale"] else raw_lifecycle
     return {
-        "contract": "MATCH-STATUS-TRUTH-V1",
+        "contract": "MATCH-STATUS-TRUTH-V2",
         "lifecycle": lifecycle,
-        "is_live": lifecycle in {"LIVE", "HALFTIME"} and not conflict,
+        "raw_lifecycle": raw_lifecycle,
+        "is_live": raw_lifecycle in {"LIVE", "HALFTIME"} and not conflict and not freshness["is_stale"],
         "is_finished": lifecycle in {"FINISHED", "ARCHIVED"},
+        "is_stale": bool(freshness["is_stale"]),
+        "stale_reason": freshness["stale_reason"],
+        "live_age_seconds": freshness["age_seconds"],
+        "live_timestamp_present": freshness["timestamp_present"],
         "status_conflict": conflict,
         "conflict_type": "LIVE_TERMINAL" if conflict else "",
         "signal_kinds": sorted({kind for kind in kinds if kind != "UNKNOWN"}),
@@ -306,7 +368,6 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
         "live_inferred_from_score": False,
         "live_inferred_from_minute": False,
     }
-
 
 def _live_evidence_confirmed(item: dict[str, Any], raw_status: str) -> bool:
     truth = match_status_truth({**dict(item or {}), "status": raw_status or item.get("status")})
@@ -323,21 +384,21 @@ def normalize_match_lifecycle(item: dict[str, Any], now: datetime | None = None)
 
 
 def get_match_freshness(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    lifecycle = normalize_match_lifecycle(item, now)
-    timestamp = item.get("live_updated_at") or item.get("provider_updated_at") or item.get("updated_at")
-    parsed = _parse_iso(timestamp)
-    age = None if parsed is None else max(0, int((madrid_now(now) - parsed).total_seconds()))
-    stale = lifecycle in {"LIVE", "HALFTIME"} and (age is None or age > 120)
+    truth = match_status_truth(item, now)
+    age = truth.get("live_age_seconds")
+    stale = bool(truth.get("is_stale"))
     return {
         "status": "STALE" if stale else "FRESH" if age is not None else "UNKNOWN",
         "age_seconds": age,
         "is_stale": stale,
+        "stale_reason": truth.get("stale_reason") or "",
         "label": "Datos retrasados" if stale else "Actualizado" if age is not None else "Sin marca temporal",
     }
 
 
 def classify_match_for_surface(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    lifecycle = normalize_match_lifecycle(item, now)
+    truth = match_status_truth(item, now)
+    lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
     kickoff = match_kickoff_madrid(item)
     today = madrid_now(now).date()
     is_today = bool(kickoff and kickoff.date() == today)
@@ -345,9 +406,9 @@ def classify_match_for_surface(item: dict[str, Any], now: datetime | None = None
         "lifecycle": lifecycle,
         "home": is_today and lifecycle in {"UPCOMING", "LIVE", "HALFTIME"},
         "calendar": lifecycle == "UPCOMING",
-        "live": lifecycle in {"LIVE", "HALFTIME"},
+        "live": bool(truth.get("is_live")),
         "results": lifecycle in {"FINISHED", "ARCHIVED"},
-        "incidents": lifecycle in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"},
+        "incidents": lifecycle in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE"},
         "admin": True,
     }
 
@@ -358,13 +419,21 @@ def is_match_publicly_visible(item: dict[str, Any], surface: str = "calendar", n
 
 def enrich_match_lifecycle(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     result = dict(item or {})
-    result["v935_lifecycle"] = normalize_match_lifecycle(result, now)
+    truth = match_status_truth(result, now)
+    result["v935_status_truth"] = truth
+    result["v935_lifecycle"] = str(truth.get("lifecycle") or "INCOMPLETE")
+    result["v935_raw_lifecycle"] = str(truth.get("raw_lifecycle") or result["v935_lifecycle"])
     result["v935_surface"] = classify_match_for_surface(result, now)
-    result["v935_freshness"] = get_match_freshness(result, now)
+    result["v935_freshness"] = {
+        "status": "STALE" if truth.get("is_stale") else "FRESH" if truth.get("live_age_seconds") is not None else "UNKNOWN",
+        "age_seconds": truth.get("live_age_seconds"),
+        "is_stale": bool(truth.get("is_stale")),
+        "stale_reason": truth.get("stale_reason") or "",
+        "label": "Datos retrasados" if truth.get("is_stale") else "Actualizado" if truth.get("live_age_seconds") is not None else "Sin marca temporal",
+    }
     result["v935_source"] = get_match_source(result)
     result["v935_complete"] = is_match_complete(result)
     return result
-
 
 def archive_expired_match_safely(item: dict[str, Any], now: datetime | None = None, after_days: int = 30) -> dict[str, Any]:
     result = enrich_match_lifecycle(item, now)

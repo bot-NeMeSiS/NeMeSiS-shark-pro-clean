@@ -47,6 +47,7 @@ def test_live_and_terminal_temporal_truth_never_invents_minute(app_module):
         "home_score": "2",
         "away_score": "1",
         "source": "qa",
+        "updated_at": app_module.now_iso(),
     }
     live = app_module.client_match_display_context({**base, "status": "LIVE", "minute": "67"})
     live_without_minute = app_module.client_match_display_context({**base, "status": "LIVE", "minute": ""})
@@ -78,6 +79,7 @@ def test_same_match_uses_same_temporal_contract_across_shared_surfaces(app_modul
         "competition_name": "Bundesliga",
         "status": "NS",
         "source": "qa",
+        "updated_at": app_module.now_iso(),
     }
     favs = {"team": set(), "league": set(), "match": set(), "all": []}
     direct = app_module.client_match_display_context(copy.deepcopy(match))

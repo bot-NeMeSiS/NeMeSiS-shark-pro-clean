@@ -24,6 +24,7 @@ from engines.sports_domain_model_engine import (
     legacy_match_from_entity,
 )
 from engines.sports_knowledge_layer_engine import build_sports_knowledge_snapshot
+from engines.v935_launch_trust_engine import match_status_truth
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
@@ -345,41 +346,6 @@ def _factual_summaries(
 
 
 
-def _phase_label(status: Any, phase: Any) -> str:
-    key = _text(phase or status).lower()
-    return {
-        "scheduled": "Programado",
-        "pre_match": "Previa",
-        "live": "En directo",
-        "halftime": "Descanso",
-        "second_half": "Segundo tiempo",
-        "extra_time": "Prórroga",
-        "penalties": "Penaltis",
-        "postponed": "Aplazado",
-        "suspended": "Suspendido",
-        "cancelled": "Cancelado",
-        "finished": "Finalizado",
-    }.get(key, "Estado pendiente")
-
-
-def _explicit_stale_flag(
-    raw_match: Mapping[str, Any] | None = None,
-    live: Mapping[str, Any] | None = None,
-) -> bool:
-    match = _mapping(raw_match)
-    tracker = _mapping(live)
-    match_freshness = _mapping(match.get("v935_freshness") or match.get("freshness"))
-    tracker_freshness = _mapping(tracker.get("v935_freshness") or tracker.get("freshness"))
-    return bool(
-        match.get("is_stale")
-        or match.get("stale")
-        or match_freshness.get("is_stale")
-        or tracker.get("is_stale")
-        or tracker.get("stale")
-        or tracker_freshness.get("is_stale")
-    )
-
-
 def _lifecycle_from_domain(
     canonical_match: Mapping[str, Any],
     *,
@@ -387,34 +353,44 @@ def _lifecycle_from_domain(
     live: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     match = _mapping(canonical_match)
-    freshness = _mapping(match.get("freshness"))
-    status = _text(match.get("status")).lower()
-    phase = _text(match.get("phase")).lower()
-    minute = match.get("minute")
-    is_finished = status == "finished" or phase == "finished"
-    is_live = status in {"live", "halftime"} or phase in {
-        "live",
-        "halftime",
-        "second_half",
-        "extra_time",
-        "penalties",
+    raw = _mapping(raw_match)
+    tracker = _mapping(live)
+    truth_source = dict(raw)
+    if tracker.get("available"):
+        tracker_status = tracker.get("status") or tracker.get("status_short") or tracker.get("phase")
+        if tracker_status:
+            truth_source["provider_status"] = tracker_status
+        tracker_updated = tracker.get("updated_at") or tracker.get("last_synced_at")
+        if tracker_updated:
+            truth_source["live_updated_at"] = tracker_updated
+    truth = match_status_truth(truth_source)
+    lifecycle = _text(truth.get("lifecycle") or "INCOMPLETE").upper()
+    labels = {
+        "UPCOMING": "Programado",
+        "LIVE": "En directo",
+        "HALFTIME": "Descanso",
+        "FINISHED": "Finalizado",
+        "RESULT_PENDING": "Resultado pendiente",
+        "POSTPONED": "Aplazado",
+        "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado",
+        "STALE": "Actualización pendiente",
+        "ARCHIVED": "Finalizado",
+        "INCOMPLETE": "Estado pendiente",
     }
-    explicit_stale = _explicit_stale_flag(raw_match, live)
-    derived_stale_without_confirmed_live = (
-        freshness.get("state") == "stale" and not _mapping(live).get("available")
-    )
     return {
-        "key": (phase or status or "unknown").upper(),
-        "label": _phase_label(status, phase),
-        "is_finished": is_finished,
-        "is_live": is_live and not is_finished,
-        "is_stale": explicit_stale or derived_stale_without_confirmed_live,
-        "minute": minute,
-        "phase": phase or status or "unknown",
-        "source": match.get("source"),
+        "key": lifecycle,
+        "label": labels.get(lifecycle, "Estado pendiente"),
+        "is_finished": bool(truth.get("is_finished")),
+        "is_live": bool(truth.get("is_live")),
+        "is_stale": bool(truth.get("is_stale")),
+        "stale_reason": truth.get("stale_reason") or "",
+        "minute": match.get("minute") if truth.get("is_live") else None,
+        "phase": lifecycle.lower(),
+        "source": match.get("source") or raw.get("source"),
         "evidence_state": match.get("data_quality") or "INSUFFICIENT_DATA",
+        "status_contract": truth.get("contract"),
     }
-
 
 def _score_from_domain(canonical_match: Mapping[str, Any], display: Mapping[str, Any]) -> dict[str, Any]:
     score = _mapping(_mapping(canonical_match).get("score"))

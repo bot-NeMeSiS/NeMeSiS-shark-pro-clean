@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from engines.content_rights_engine import ATTRIBUTION_REQUIRED, classify_media_asset
 from engines.match_context_engine import build_match_context
 from engines.team_center_engine import build_team_center_context
@@ -21,7 +24,7 @@ def _match_detail(*, status: str = "upcoming") -> dict:
             "home_score": 1 if is_live else None,
             "away_score": 0 if is_live else None,
             "source": "qa_cache",
-            "updated_at": "2026-08-30T20:45:00+02:00",
+            "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds") if is_live else "2026-08-30T20:45:00+02:00",
         },
         "timeline": [],
         "statistics": {"items": []},
