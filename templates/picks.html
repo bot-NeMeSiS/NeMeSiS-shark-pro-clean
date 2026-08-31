@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, provider_state, status_chip, icon, action_button, sports_contract_attributes %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, status_chip, icon, action_button, sports_contract_attributes %}
 {% from "components/v936_product.html" import intelligence_brief %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
@@ -49,7 +49,6 @@
     </div>
 
     <aside class="v933-side-stack">
-      {{ provider_state(odds_state.get('has_real_data', false), odds_state.get('last_sync') or '', odds_state.get('safe_message') or 'Las cuotas aparecerán únicamente cuando exista una fuente real confirmada.') }}
       <section class="v933-panel">
         {{ section_header('Regla de publicación', 'Una selección visible debe estar completa.') }}
         <div class="v933-truth-list">

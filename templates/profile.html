@@ -33,7 +33,7 @@
       </section>
 
       <section class="v933-panel">
-        {{ section_header('Actividad reciente', 'Primer uso real · Hábito sin invasión', 'Ver toda', '/actividad') }}
+        {{ section_header('Actividad reciente', 'Tus últimas acciones.', 'Ver toda', '/actividad') }}
         {% if activity %}<div class="v933-activity-list">{% for item in activity[:6] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('label') or item.get('kind') or 'Registrada' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
         {% else %}{{ empty_state('Sin actividad reciente', 'Tus acciones aparecerán aquí.', '', '', 'history') }}{% endif %}
       </section>

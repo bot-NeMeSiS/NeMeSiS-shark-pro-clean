@@ -5398,6 +5398,15 @@ body.ns-app .v933-picks-board .v933-filter-panel,
 body.ns-app .v933-track-record .v933-filter-panel { padding: 6px 8px !important; }
 body.ns-app .v933-picks-board .v933-side-stack .v933-panel,
 body.ns-app .v933-track-record .v933-side-stack .v933-panel { padding: 9px !important; }
+body.ns-app .v933-picks-board .v933-pick-card :is(.v937-card-trust,.v935-provenance),
+body.ns-app .v933-shark-analysis .v933-pick-card :is(.v937-card-trust,.v935-provenance) { display: none; }
+body.ns-app .v933-picks-board #v936-featured-pick .v933-pick-card > footer { display: none; }
+body.ns-app .v933-picks-board .v937-pick-brief,
+body.ns-app .v933-shark-analysis .v937-pick-brief { gap: 6px; margin-top: 8px; }
+body.ns-app .v933-picks-board .v937-pick-brief article,
+body.ns-app .v933-shark-analysis .v937-pick-brief article { padding: 8px; }
+body.ns-app .ns16-shark-more { margin: 0; }
+body.ns-app .ns16-shark-more > summary { min-height: 42px; }
 body.ns-app .v933-track-record .v933-table-wrap { max-height: 390px; overflow: auto; }
 
 body.ns-app .v933-shark-hero {
