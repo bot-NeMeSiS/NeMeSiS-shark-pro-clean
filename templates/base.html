@@ -17,9 +17,9 @@
   <meta property="og:title" content="{{ _meta_title }}">
   <meta property="og:description" content="{{ _meta_description }}">
   <meta property="og:url" content="{{ _canonical_url }}">
-  <meta property="og:image" content="{{ url_for('static', filename='img/nemesis-shark-official.svg', _external=true) }}?v=official16-brand-4">
+  <meta property="og:image" content="{{ url_for('static', filename='img/nemesis-shark-brand.svg', _external=true) }}?v=official16-brand-3">
   <meta name="twitter:card" content="summary">
-  <link rel="icon" href="{{ url_for('static', filename='img/nemesis-shark-official.svg') }}?v=official16-brand-4" type="image/svg+xml">
+  <link rel="icon" href="{{ url_for('static', filename='img/nemesis-shark-brand.svg') }}?v=official16-brand-3" type="image/svg+xml">
   <link rel="manifest" href="{{ url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v936-commercial.css') }}?v={{ app_version }}&amp;r=diamond-1" data-v936-commercial-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-product-client.css') }}?v={{ app_version }}-polish-4">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-sports-lifecycle.css') }}?v={{ app_version }}-polish-1" data-v937-sports-lifecycle-version="{{ app_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-official16-rebuild-2" data-v933-product-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-official16-rebuild-3" data-v933-product-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}" data-v934-realtime-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -173,7 +173,7 @@
 
   {% if show_floating_shark %}
   <div class="shark-widget" id="sharkWidget">
-    <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/nemesis-shark-brand.svg?v=official16-brand-2" alt=""><span>SHARK</span></button>
+    <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/nemesis-shark-brand.svg?v=official16-brand-3" alt=""><span>SHARK</span></button>
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
         <strong>SHARK IA</strong>
@@ -199,7 +199,7 @@
   {% endif %}
   {% if not current_user and not is_admin_surface and request.path not in ['/shark', '/shark-ai', '/shark-core'] %}
   <a class="v825-public-floating-shark" href="/shark" title="Abrir SHARK" aria-label="Abrir SHARK">
-    <img src="/static/img/nemesis-shark-brand.svg?v=official16-brand-2" alt="">
+    <img src="/static/img/nemesis-shark-brand.svg?v=official16-brand-3" alt="">
     <span>Abrir SHARK</span>
   </a>
   {% endif %}

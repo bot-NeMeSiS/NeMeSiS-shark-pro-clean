@@ -1,11 +1,29 @@
-<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
+<svg width="160" height="96" viewBox="0 0 160 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
-    <linearGradient id="b" x1="12" y1="18" x2="121" y2="92" gradientUnits="userSpaceOnUse"><stop stop-color="#91F2FF"/><stop offset=".52" stop-color="#25CFFF"/><stop offset="1" stop-color="#0876FF"/></linearGradient>
-    <linearGradient id="f" x1="22" y1="31" x2="106" y2="80" gradientUnits="userSpaceOnUse"><stop stop-color="#0B315A" stop-opacity=".92"/><stop offset="1" stop-color="#03101F" stop-opacity=".96"/></linearGradient>
+    <linearGradient id="brand-edge" x1="11" y1="24" x2="151" y2="73" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9FBFF"/>
+      <stop offset=".32" stop-color="#68E5FF"/>
+      <stop offset=".7" stop-color="#20A8FF"/>
+      <stop offset="1" stop-color="#1764FF"/>
+    </linearGradient>
+    <linearGradient id="brand-fill" x1="22" y1="27" x2="136" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#14538A" stop-opacity=".42"/>
+      <stop offset=".55" stop-color="#082C58" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#031225" stop-opacity=".18"/>
+    </linearGradient>
+    <filter id="brand-glow" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .05 0 0 0 0 .58 0 0 0 0 1 0 0 0 .5 0" result="blue"/>
+      <feMerge><feMergeNode in="blue"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <path d="M22 76C27 99 47 111 70 108C91 106 107 91 110 72" stroke="url(#b)" stroke-width="4" stroke-linecap="round"/>
-  <path d="M11 70C28 45 52 32 80 31L101 18L97 40C108 46 116 56 121 70C106 64 93 61 79 63L69 80L58 66L47 82L43 68C32 71 21 72 11 70Z" fill="url(#f)" stroke="url(#b)" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M47 38L64 20L62 35M59 66L66 86L52 71" stroke="url(#b)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M34 50C42 48 50 48 57 50M39 56C46 54 52 55 58 57" stroke="#7BEAFF" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
-  <circle cx="27" cy="58" r="3" fill="#EFFFFF"/><circle cx="27" cy="58" r="1.2" fill="#020A13"/>
+  <g filter="url(#brand-glow)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 51C21 36 43 28 69 27C91 26 110 31 127 39L145 25L140 43C147 46 152 50 155 54C150 58 146 62 142 68L147 83L128 70C107 78 82 81 58 78C35 76 17 67 9 57C7 55 7 53 9 51Z" fill="url(#brand-fill)" stroke="url(#brand-edge)" stroke-width="2.8"/>
+    <path d="M69 27C77 17 89 10 104 8C97 18 96 27 102 35M72 77C83 79 96 86 106 92C94 92 81 87 70 80" fill="#0A315E" fill-opacity=".86" stroke="url(#brand-edge)" stroke-width="2.4"/>
+    <path d="M10 54C25 43 45 38 68 39C89 40 108 45 127 52" stroke="#BFF7FF" stroke-opacity=".76" stroke-width="1.6"/>
+    <path d="M11 57C31 68 54 70 79 65C98 61 112 61 128 69" stroke="#39CFFF" stroke-opacity=".56" stroke-width="1.4"/>
+    <path d="M13 59C22 58 31 60 40 65C31 69 22 67 16 63" fill="#010812" fill-opacity=".82" stroke="#7CEBFF" stroke-opacity=".72" stroke-width="1.2"/>
+    <path d="M43 33C48 41 49 49 47 58M52 30C57 40 58 50 55 61M61 28C67 39 68 50 64 63" stroke="#6FE6FF" stroke-opacity=".58" stroke-width="1.2"/>
+    <circle cx="27" cy="45" r="2.5" fill="#F3FEFF"/><circle cx="27" cy="45" r="1" fill="#010711"/>
+  </g>
 </svg>
