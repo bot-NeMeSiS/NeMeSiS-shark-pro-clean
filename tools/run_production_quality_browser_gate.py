@@ -68,6 +68,16 @@ def _sports_truth(payload: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
     }
 
 
+def _visual_asset_contract(resources: list[str]) -> tuple[bool, dict[str, Any]]:
+    brand_shark = any("nemesis-shark-brand.svg" in value for value in resources)
+    atmospheric_shark = any("nemesis-shark-atmosphere.svg" in value for value in resources)
+    legacy_shark = any("shark-logo.svg" in value for value in resources)
+    return brand_shark and atmospheric_shark and not legacy_shark, {
+        "brand_shark_loaded": brand_shark,
+        "atmospheric_shark_loaded": atmospheric_shark,
+        "legacy_shark_loaded": legacy_shark,
+    }
+
 def build_post_deploy_result(
     *,
     expected_sha: str,
@@ -259,7 +269,7 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
     mojibake = [value for item in pages for value in item.get("mojibake") or []]
     technical_copy = [value for item in pages for value in item.get("technical_copy") or []]
     resources = [value for item in pages for value in item.get("resources") or []]
-    official_shark = any("nemesis-shark-official.svg" in value for value in resources)
+    visual_assets_pass, visual_asset_evidence = _visual_asset_contract(resources)
     performance_pass = all(
         item.get("elapsed_ms", 99_999) <= (8_000 if item["path"] == "/shark" else 5_000)
         for item in pages
@@ -272,7 +282,7 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         and mobile_layout.get("overflow") is False
         and all(item.get("height", 0) >= 44 for item in mobile_layout.get("targets") or [])
     )
-    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in pages) and official_shark
+    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in pages) and visual_assets_pass
     temporal_missing = sum(int(item.get("missingTemporalCards") or 0) for item in pages)
     temporal_observed = sum(int(item.get("temporalCards") or 0) for item in pages)
     temporal_by_match: dict[str, set[str]] = {}
@@ -329,7 +339,7 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
         "overflow": overflow,
         "mojibake": mojibake,
         "technical_copy": technical_copy,
-        "official_shark_loaded": official_shark,
+        "visual_assets": visual_asset_evidence,
         "health_fields": sorted(health)[:40],
     }
     return build_post_deploy_result(

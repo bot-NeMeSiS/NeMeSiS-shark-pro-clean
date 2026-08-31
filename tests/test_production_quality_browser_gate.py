@@ -1,4 +1,4 @@
-from tools.run_production_quality_browser_gate import build_post_deploy_result
+from tools.run_production_quality_browser_gate import _visual_asset_contract, build_post_deploy_result
 
 
 CHECKS = {
@@ -52,3 +52,24 @@ def test_production_quality_gate_blocks_missing_evidence():
     )
     assert result["result"] == "BLOCKED"
     assert result["missing_checks"] == ["logs_recent"]
+
+
+def test_production_visual_contract_requires_two_current_sharks_and_rejects_legacy():
+    passed, evidence = _visual_asset_contract([
+        "https://example.invalid/static/img/nemesis-shark-brand.svg?v=official16-brand-2",
+        "https://example.invalid/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-3",
+    ])
+    assert passed is True
+    assert evidence == {
+        "brand_shark_loaded": True,
+        "atmospheric_shark_loaded": True,
+        "legacy_shark_loaded": False,
+    }
+
+    legacy_passed, legacy_evidence = _visual_asset_contract([
+        "https://example.invalid/static/img/nemesis-shark-brand.svg",
+        "https://example.invalid/static/img/nemesis-shark-atmosphere.svg",
+        "https://example.invalid/static/img/shark-logo.svg",
+    ])
+    assert legacy_passed is False
+    assert legacy_evidence["legacy_shark_loaded"] is True
