@@ -177,7 +177,7 @@
 {% macro lineups_panel(context) -%}
 {% set component = context.get('components', {}).get('LineupsPanel') or {} %}
 {% set lineups = context.get('lineups') or {} %}
-{{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados en el caché deportivo.', 'lineups') }}
+{{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados para este partido.', 'lineups') }}
   {% if lineups.get('confirmed') %}
   <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
     {% for team in lineups.get('teams') or [] %}
@@ -269,7 +269,7 @@
 {% set component = context.get('components', {}).get('StatsPanel') or {} %}
 {% set statistics = context.get('statistics') or {} %}
 {% set teams = context.get('teams') or {} %}
-{{ panel_start('StatsPanel', component, 'Estadísticas disponibles', 'Comparativa disponible en el caché confirmado del proveedor.', 'stats') }}
+{{ panel_start('StatsPanel', component, 'Estadísticas disponibles', 'Comparativa confirmada del partido.', 'stats') }}
   {% if statistics.get('available') %}
   <div class="v944-stats" role="table" aria-label="Estadísticas del partido" data-stat-source="{{ statistics.get('source') or '' }}">
     <div class="v944-stats__header" role="row">
@@ -295,7 +295,7 @@
 {% macro shark_panel(context) -%}
 {% set component = context.get('components', {}).get('SharkPanel') or {} %}
 {% set shark = context.get('shark_context') or {} %}
-{{ panel_start('SharkPanel', component, 'Inteligencia', 'Inteligencia del partido y SHARK reutilizan el mismo snapshot.', 'shark') }}
+{{ panel_start('SharkPanel', component, 'Inteligencia', 'Análisis disponible según la evidencia del partido.', 'shark') }}
   {% if shark.get('available') %}
   <div class="v944-shark-context"
        data-shark-evidence="confirmed"
@@ -364,7 +364,7 @@
 
 {% macro quick_actions(context) -%}
 {% set component = context.get('components', {}).get('QuickActions') or {} %}
-{{ panel_start('QuickActions', component, 'Continuar', 'Acciones claras, sin destinos duplicados.', 'quick-actions') }}
+{{ panel_start('QuickActions', component, 'Continuar', '', 'quick-actions') }}
   <div class="v944-quick-actions">
     {{ action_button('Volver al calendario', '/calendar', true, 'cyan', false, 'calendar') }}
     {{ action_button('Consultar picks', '/picks', false, 'blue', false, 'target') }}

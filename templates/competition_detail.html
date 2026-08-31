@@ -34,9 +34,9 @@
         </div>
       </div>
     </div>
-    <aside class="competition-center-status-card" aria-label="Resumen operativo">
-      <div><span>Frescura</span><strong>{{ data_quality.freshness.label if data_quality.freshness else 'No disponible' }}</strong></div>
-      <div><span>Procedencia</span><strong>{{ nemesis_source_label(data_quality.source) }}</strong></div>
+    <aside class="competition-center-status-card" aria-label="Contexto de la competición">
+      <div><span>Temporada</span><strong>{{ competition.season or 'No disponible' }}</strong></div>
+      <div><span>Jornada</span><strong>{{ competition.stage or calendar.current_round or 'No disponible' }}</strong></div>
       <nav class="competition-center-actions" aria-label="Acciones rapidas">
         <a href="{{ links.calendar or '/calendar' }}">Calendario</a>
         {% if links.match_center %}<a href="{{ links.match_center }}">Partido relacionado</a>{% endif %}
@@ -48,7 +48,7 @@
   <section class="competition-center-meta-grid" data-competition-center-section="identity-facts" aria-label="Datos de competicion">
     <article><span>País</span><strong>{{ competition.country or 'No disponible' }}</strong></article>
     <article><span>Temporada</span><strong>{{ competition.season or 'No disponible' }}</strong></article>
-    <article><span>Tipo</span><strong>{{ competition.type or 'No disponible' }}</strong></article>
+    <article><span>Tipo</span><strong>{{ {'League':'Liga', 'Cup':'Copa'}.get(competition.type, competition.type or 'No disponible') }}</strong></article>
     <article><span>Jornada / fase</span><strong>{{ competition.stage or calendar.current_round or 'No disponible' }}</strong></article>
   </section>
 

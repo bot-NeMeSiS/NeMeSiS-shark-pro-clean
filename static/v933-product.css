@@ -5444,6 +5444,23 @@ body.ns-app :is(.team-center-panel,.team-center-match-section,.competition-cente
 body.ns-app :is(.team-center-title-block,.competition-center-title-block,.player-center-title-block) h1 { font-size: clamp(1.45rem,2.2vw,2rem) !important; }
 body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 92px; max-height: 92px; }
 body.ns-app :is(.team-center-meta-grid,.competition-center-meta-grid,.player-center-meta-grid,.player-center-scoreboard) { gap: 7px; }
+body.ns-app:not(.ns-admin) :is(
+  .v944-transparency-disclosure,
+  .v944-domain-quality,
+  .v944-match-evidence,
+  .v944-match-rail > .v937-confidence-panel,
+  [data-team-center-section="data-quality"],
+  [data-team-center-section="sports-graph"],
+  [data-team-center-section="information-state"],
+  [data-competition-center-section="data-quality"],
+  [data-competition-center-section="sports-graph"],
+  [data-competition-center-section="information-state"],
+  [data-player-center-section="basic-information"],
+  [data-player-center-section="data-quality"],
+  [data-player-center-section="sports-graph"],
+  [data-player-center-section="user-intelligence"],
+  [data-player-center-section="information-state"]
+) { display: none !important; }
 
 .ns16-admin-priority { min-height: 52px; display: grid; grid-template-columns: 32px minmax(0,1fr) auto; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid rgba(57,216,255,.18); border-radius: 7px; background: rgba(4,18,34,.7); }
 .ns16-admin-priority > .v933-icon { width: 28px; height: 28px; color: var(--nsx-cyan); }
