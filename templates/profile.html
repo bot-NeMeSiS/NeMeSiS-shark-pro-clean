@@ -1,91 +1,64 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, profile_card, action_button, icon %}
-{% from "components/v936_product.html" import customer_decision, value_ladder %}
+{% from "components/v933_ui.html" import page_header, section_header, quick_action, empty_state, status_chip, profile_card, action_button, icon %}
 {% block content %}
 {% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
-{% set calendar = data.get('v925_calendar') or {} %}
-{% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set telegram = data.get('telegram_state') or {} %}
 {% set activity = data.get('client_activity') or [] %}
 {% set favorites = data.get('favorites') or [] %}
 
-<div class="v933-page v933-profile-page" data-v933-template="profile" data-v933-reference="canonical-profile">
-  {{ page_header('Mi cuenta', 'Tu plan, ajustes y actividad real.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
-
+<div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16">
+  {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
 
-  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="14,15,16">
-    {{ section_header('Privacidad y medición de uso', 'NeMeSiS solo aprende de señales propias y visibles para mejorar la experiencia, nunca para vender datos.') }}
-    <div class="v933-excellence-steps is-compact">
-      <article>{{ icon('lock') }}<span>Privacidad</span><strong>Control del usuario</strong><p>Consulta, exporta, reinicia, desactiva o borra la personalización desde Inteligencia de usuario.</p>{{ action_button('Gestionar privacidad', '/user-intelligence', true, 'blue', false, 'lock') }}</article>
-      <article>{{ icon('history') }}<span>Activación</span><strong>Primer uso real</strong><p>Se mide si abres calendario, partido, SHARK, favorito o briefing. Sin actividad suficiente, el estado será honesto.</p>{{ action_button('Ver actividad', '/actividad', false, 'cyan', false, 'history') }}</article>
-      <article>{{ icon('star') }}<span>Retención</span><strong>Hábito sin invasión</strong><p>Favoritos, visitas y preferencias ayudan a ordenar la jornada sin enviar datos fuera de NeMeSiS.</p>{{ action_button('Abrir favoritos', '/favorites', false, 'gold', false, 'star') }}</article>
-    </div>
+  <section class="ns16-account-status" aria-label="Estado de la cuenta">
+    <a href="/memberships">{{ icon('plan') }}<span>Plan<strong>{{ plan }}</strong><small>Activo</small></span></a>
+    <a href="/telegram">{{ icon('telegram') }}<span>Telegram<strong>{{ 'Conectado' if telegram.get('linked') else 'Pendiente' }}</strong><small>Alertas</small></span></a>
+    <a href="/favorites">{{ icon('star') }}<span>Favoritos<strong>{{ favorites|length }}</strong><small>Guardados</small></span></a>
+    <a href="/actividad">{{ icon('history') }}<span>Actividad<strong>{{ activity|length }}</strong><small>Registros</small></span></a>
   </section>
 
-  {% if not telegram.get('linked') %}
-    {{ customer_decision('Completa tu experiencia con Telegram', 'Vincula tu cuenta para recibir el contenido permitido por tu plan sin perder el detalle dentro de NeMeSiS.', 'Vincular Telegram', '/telegram#vincular', 'cyan', 'Siguiente mejora de tu cuenta', 'Revisar plan', '/memberships', 'La vinculación es revocable y protege tu identidad') }}
-  {% elif not favorites %}
-    {{ customer_decision('Personaliza la agenda con tus favoritos', 'Guarda equipos, ligas o partidos para que tu recorrido sea más directo cuando existan datos reales.', 'Gestionar favoritos', '/favorites', 'blue', 'Siguiente mejora de tu cuenta', 'Abrir calendario', '/calendar', 'Tus preferencias permanecen asociadas a tu cuenta') }}
-  {% else %}
-    {{ customer_decision('Tu cuenta está preparada para la jornada', 'Revisa agenda, picks e histórico desde un recorrido personalizado y mantén tus preferencias al día.', 'Abrir mi panel', '/app', 'blue', 'Siguiente acción', 'Ver actividad', '/actividad', 'Plan, Telegram y favoritos visibles en un solo lugar') }}
-  {% endif %}
-
-  <section class="v933-kpi-grid">
-    {{ kpi_card('Partidos', (calendar.get('matches') or [])|length, 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('Picks completos', picks|length, 'Visibles según tu plan', 'cyan', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', favorites|length, 'Guardados en tu cuenta', 'gold', 'star', '/favorites') }}
-    {{ kpi_card('Actividad', activity|length, 'Eventos recientes', 'success', 'history', '/actividad') }}
-  </section>
-
-  <section class="v933-two-col">
+  <section class="v933-two-col ns16-account-layout">
     <div class="v933-main-stack">
       <section class="v933-panel">
-        {{ section_header('Cuenta y servicios', 'Accesos principales de tu perfil.') }}
-        <div class="v933-quick-actions">
-          {{ quick_action('Plan actual', plan ~ ' y beneficios disponibles', '/memberships', 'plan', 'gold') }}
-          {{ quick_action('Telegram', 'Vinculación y preferencias', '/telegram', 'telegram', 'cyan') }}
-          {{ quick_action('Favoritos', 'Equipos, ligas y partidos guardados', '/favorites', 'star') }}
-          {{ quick_action('Notificaciones', 'Alertas y preferencias', '/alertas', 'alert') }}
-          {{ quick_action('Seguridad', 'Contraseña y sesiónes', '/password-reset', 'shield') }}
-          {{ quick_action('Soporte', 'Ayuda y contacto', '/support', 'support') }}
+        {{ section_header('Cuenta y servicios', '') }}
+        <div class="v933-quick-actions ns16-account-actions">
+          {{ quick_action('Plan y facturación', plan, '/memberships', 'plan', 'gold') }}
+          {{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram', 'cyan') }}
+          {{ quick_action('Favoritos', 'Equipos y partidos', '/favorites', 'star') }}
+          {{ quick_action('Notificaciones', 'Preferencias', '/alertas', 'alert') }}
+          {{ quick_action('Privacidad y medición de uso', 'Tus datos', '/user-intelligence', 'lock') }}
+          {{ quick_action('Soporte', 'Ayuda', '/support', 'support') }}
         </div>
       </section>
 
       <section class="v933-panel">
-        {{ section_header('Actividad reciente', 'Acciones reales de tu cuenta.', 'Ver actividad', '/actividad') }}
-        {% if activity %}
-        <div class="v933-activity-list">{% for item in activity[:10] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('body') or item.get('label') or item.get('kind') or 'Detalle disponible' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
-        {% else %}{{ empty_state('Sin actividad reciente', 'Las acciones aparecerán aquí cuando estén registradas de forma segura.', '', '', 'history') }}{% endif %}
+        {{ section_header('Actividad reciente', 'Primer uso real · Hábito sin invasión', 'Ver toda', '/actividad') }}
+        {% if activity %}<div class="v933-activity-list">{% for item in activity[:6] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('label') or item.get('kind') or 'Registrada' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
+        {% else %}{{ empty_state('Sin actividad reciente', 'Tus acciones aparecerán aquí.', '', '', 'history') }}{% endif %}
       </section>
     </div>
 
     <aside class="v933-side-stack">
       <section class="v933-panel">
-        {{ section_header('Estado de tu cuenta', 'Información esencial, sin exponer datos privados.') }}
-        <div class="v933-truth-list">
-          <div>{{ icon('plan') }}<span><strong>Plan</strong><small>{{ plan }}</small></span>{{ status_chip('Activo','success') }}</div>
-          <div>{{ icon('telegram') }}<span><strong>Telegram</strong><small>{{ 'Cuenta vinculada' if telegram.get('linked') else 'Pendiente de vincular' }}</small></span>{{ status_chip('Conectado' if telegram.get('linked') else 'Pendiente','success' if telegram.get('linked') else 'warning') }}</div>
-          <div>{{ icon('star') }}<span><strong>Favoritos</strong><small>{{ favorites|length }} guardados</small></span></div>
-          <div>{{ icon('lock') }}<span><strong>Cuenta</strong><small>Sesión protegida</small></span>{{ status_chip('Segura','success') }}</div>
+        {{ section_header('Seguridad', '') }}
+        <div class="v933-main-stack">
+          {{ quick_action('Cambiar contraseña', 'Credenciales', '/password-reset', 'shield') }}
+          {{ quick_action('Términos', 'Condiciones', '/terminos', 'document') }}
+          {{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'lock') }}
+          {{ quick_action('Reembolsos', 'Política', '/reembolsos', 'payments') }}
         </div>
       </section>
-      <section class="v933-panel">
-        {{ section_header('Seguridad y documentos', 'Controles de tu cuenta.') }}
-        <div class="v933-main-stack">
-          {{ quick_action('Cambiar contraseña', 'Actualiza tus credenciales', '/password-reset', 'shield') }}
-          {{ quick_action('Términos', 'Condiciones de uso', '/terminos', 'document') }}
-          {{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'lock') }}
-          {{ quick_action('Reembolsos', 'Política aplicable', '/reembolsos', 'payments') }}
+      <section class="v933-panel ns16-account-summary">
+        {{ section_header('Estado', '') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('shield') }}<span><strong>Cuenta protegida</strong><small>Sesión activa</small></span>{{ status_chip('Segura','success') }}</div>
+          <div>{{ icon('telegram') }}<span><strong>Telegram</strong><small>{{ 'Vinculado' if telegram.get('linked') else 'Sin vincular' }}</small></span></div>
+          <div>{{ icon('plan') }}<span><strong>Membresía</strong><small>{{ plan }}</small></span></div>
         </div>
       </section>
       {{ action_button('Cerrar sesión', '/logout', false, 'danger', false, 'logout') }}
     </aside>
-  </section>
-  <section class="v933-panel">
-    {{ section_header('Valor de tu plan', 'Comprueba dónde estás y qué cambia en cada nivel.') }}
-    {{ value_ladder(plan) }}
   </section>
 </div>
 {% endblock %}

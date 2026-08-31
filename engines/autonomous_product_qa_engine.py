@@ -60,6 +60,7 @@ PINNED_REGRESSION_CONTRACTS = {
     "FT_NEVER_LIVE": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "terminal_state_never_renders_live"},
     "OFFICIAL_SHARK_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
     "OFFICIAL_BACKGROUND_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
+    "VISUAL_FALSE_PASS_RECURRENCE": {"category": "VISUAL", "severity": "P1", "test": "founder_rejection_overrides_automated_visual_pass"},
     "CLIENT_TECHNICAL_COPY_LEAK": {"category": "ADMIN", "severity": "P1", "test": "rendered_client_copy_scan"},
     "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"category": "VISUAL", "severity": "P2", "test": "first_viewport_and_panel_depth"},
     "IMPORTANT_MATCH_PRIORITY": {"category": "SPORTS_TRUTH", "severity": "P1", "test": "sports_priority_fixture_matrix"},
@@ -407,16 +408,16 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
     ):
         state = visual.get(key) or {}
         classification = str(state.get("classification") or "NOT_OBSERVED").upper()
-        if classification in {"MATCH", "CLOSE"}:
+        if classification in {"MATCH", "MINOR_GAP"}:
             continue
         issues.append(_issue(
             worker="visual_experience_inspector",
             category=category,
-            severity="P1" if classification in {"MAJOR_DRIFT", "MAJOR_GAP"} else "P2",
+            severity="P1" if classification in {"MAJOR_GAP", "REBUILD_REQUIRED"} else "P2",
             screen=str(state.get("screen") or "/"),
             viewport=str(state.get("viewport") or "unknown"),
             element=element,
-            expected="MATCH o CLOSE respecto a la imagen oficial aplicable.",
+            expected="MATCH o MINOR_GAP respecto a la imagen oficial aplicable; aprobación humana obligatoria.",
             actual=classification,
             evidence=str(state.get("evidence") or "No existe evidencia visual suficiente para declarar coincidencia."),
             screenshot=str(state.get("screenshot") or ""),
@@ -667,8 +668,9 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "TOPBAR_REAL_NAVIGATION": {"status": "PASS" if click_pass else "FAIL", "evidence": f"real_clicks={len(clicks)}"},
         "FALSE_LIVE_KPI": {"status": "PASS" if sports_pass else "FAIL", "evidence": f"confirmed={sports.get('confirmed_live_count', 0)}; visible={sports.get('displayed_live_count', 0)}"},
         "FT_NEVER_LIVE": {"status": "PASS" if ft_pass else "FAIL", "evidence": f"terminal_rendered_live={sports.get('ft_rendered_live', 0)}"},
-        "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_READY" if shark in {"MATCH", "CLOSE"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
-        "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_READY" if background in {"MATCH", "CLOSE"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
+        "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if shark in {"MATCH", "MINOR_GAP"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
+        "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
+        "VISUAL_FALSE_PASS_RECURRENCE": {"status": "FOUNDER_REVIEW_REQUIRED", "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."},
         "CLIENT_TECHNICAL_COPY_LEAK": {"status": "PASS" if copy_pass else "FAIL", "evidence": f"technical_matches={len(copy_state.get('technical_matches') or [])}"},
         "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={density.get('nested_panel_depth')}"},
         "TEAM_TO_PLAYER": {"status": "PASS" if (journeys.get("golden_sports_knowledge") or {}).get("pass") is True else "NOT_RUN", "evidence": "golden_sports_knowledge"},
@@ -724,13 +726,15 @@ def _update_regression_manager(memory: dict[str, Any], observation: dict[str, An
         previous_status = str(record.get("status") or "NOT_RUN")
         if related:
             status = "FAIL"
-            if previous_status in {"PASS", "RESOLVED", "FOUNDER_REVIEW_READY"}:
+            if previous_status in {"PASS", "RESOLVED", "FOUNDER_REVIEW_REQUIRED"}:
                 record["recurrence_count"] = int(record.get("recurrence_count") or 0) + 1
             record["root_cause"] = _safe_text(related[0].get("actual") or related[0].get("evidence"), 700)
             if record.get("first_seen_sha") == "FOUNDER_OVERRIDE_BASELINE" and related[0].get("production_sha"):
                 record["first_seen_sha"] = related[0].get("production_sha")
         elif status == "PASS":
             record["last_good_sha"] = _safe_text(observation.get("production_sha"), 80)
+        elif status == "FOUNDER_REVIEW_REQUIRED":
+            record["root_cause"] = "Founder visual approval pending; automated evidence cannot resolve this contract."
         record["status"] = status
         record["last_run_id"] = run_id
         record["last_checked_at_madrid"] = at
@@ -749,11 +753,11 @@ def _update_regression_manager(memory: dict[str, Any], observation: dict[str, An
 def build_regression_manager_status(memory: dict[str, Any]) -> dict[str, Any]:
     values = list((memory.get("regressions") or {}).values())
     return {
-        "status": "FAIL" if any(item.get("status") == "FAIL" and item.get("severity") == "P0" for item in values) else "WARNING" if any(item.get("status") in {"FAIL", "NOT_RUN", "FOUNDER_REVIEW_READY"} for item in values) else "PASS",
+        "status": "FAIL" if any(item.get("status") == "FAIL" and item.get("severity") == "P0" for item in values) else "WARNING" if any(item.get("status") in {"FAIL", "NOT_RUN", "FOUNDER_REVIEW_REQUIRED"} for item in values) else "PASS",
         "protected_regressions": len(values),
         "pass": sum(1 for item in values if item.get("status") == "PASS"),
         "fail": sum(1 for item in values if item.get("status") == "FAIL"),
-        "founder_review_ready": sum(1 for item in values if item.get("status") == "FOUNDER_REVIEW_READY"),
+        "founder_review_required": sum(1 for item in values if item.get("status") == "FOUNDER_REVIEW_REQUIRED"),
         "not_run": sum(1 for item in values if item.get("status") == "NOT_RUN"),
         "recurrences": sum(int(item.get("recurrence_count") or 0) for item in values),
         "items": values,
@@ -779,7 +783,7 @@ def build_quality_director_decision(
         explicit = str((supplemental_evidence.get(gate) or {}).get("status") or "").upper()
         p0 = sum(1 for item in related if str(item.get("severity") or "").upper() == "P0")
         p1 = sum(1 for item in related if str(item.get("severity") or "").upper() == "P1")
-        founder_review = any(item.get("status") == "FOUNDER_REVIEW_READY" for item in regressions)
+        founder_review = any(item.get("status") == "FOUNDER_REVIEW_REQUIRED" for item in regressions)
         regression_fail = any(item.get("status") == "FAIL" for item in regressions)
         if p0 or explicit == "FAIL":
             status = "FAIL"

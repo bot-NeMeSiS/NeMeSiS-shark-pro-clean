@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, status_chip, action_button, icon, sports_contract_attributes %}
-{% from "components/v936_product.html" import customer_decision, evidence_receipt %}
 {% block content %}
 {% set config = data.get('telegram') or {} %}
 {% set state = data.get('telegram_state') or {} %}
@@ -8,21 +7,13 @@
 {% set channel_enabled = config.get('enabled') or config.get('legacy_enabled') %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
-<div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="canonical-telegram" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Telegram', 'Picks completos, alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
+<div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
+  {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
 
   <section class="v933-telegram-hero">
     <div><span class="v933-eyebrow">Canal NeMeSiS</span><h2>Alertas útiles, no ruido</h2><p>La conexión, el contenido y la calidad se muestran con estados reales. Esta pantalla nunca envía un mensaje por sí sola.</p></div>
     <span class="v933-telegram-mark">{{ icon('telegram') }}</span>
   </section>
-
-  {% if state.get('linked') and channel_enabled %}
-    {{ customer_decision('Tu canal está preparado para acompañar la jornada', 'Revisa las preferencias y el contenido disponible. Telegram entrega contexto útil; la app conserva el detalle y el histórico.', 'Revisar picks', '/picks', 'cyan', 'Qué hacer aquí', 'Gestionar cuenta', '/profile', 'Dedupe y calidad antes que frecuencia') }}
-  {% elif state.get('linked') %}
-    {{ customer_decision('Activa las alertas que realmente necesitas', 'La cuenta ya está vinculada. Revisa el estado del canal y tu plan antes de habilitar contenido.', 'Revisar conexión', '#vincular', 'cyan', 'Qué hacer aquí', 'Comparar planes', '/memberships', 'Ningún envío se ejecuta desde esta vista') }}
-  {% else %}
-    {{ customer_decision('Vincula Telegram en un flujo protegido', 'Genera un código, abre el enlace seguro y vuelve para comprobar el estado. Nunca se muestran tokens ni identificadores privados.', 'Empezar vinculación', '#vincular', 'cyan', 'Qué hacer aquí', 'Ver qué recibiré', '#v936-telegram-value', 'La conexión no implica envíos automáticos desde esta pantalla') }}
-  {% endif %}
 
   <section class="v933-kpi-grid">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
@@ -41,21 +32,7 @@
           <article>{{ icon('history') }}<strong>Resultados</strong><p>Cierre confirmado de picks publicados.</p></article>
           <article>{{ icon('data') }}<strong>Resúmenes</strong><p>Calidad antes que frecuencia.</p></article>
         </div>
-      </section>
-
-
-      <section class="v933-panel v933-product-excellence-band" data-top100-improvement="5">
-        {{ section_header('Vista previa premium', 'Así se estructura un mensaje de valor; esta vista no envía Telegram real.') }}
-        <div class="v933-telegram-preview-card" aria-label="Vista previa de mensaje Telegram">
-          <strong>NeMeSiS SHARK PRO</strong>
-          <span>━━━━━━━━━━━━━━━━━━</span>
-          <p><b>Partido</b><br>Competición, equipos y hora Madrid.</p>
-          <p><b>Contexto SHARK</b><br>Motivo, riesgo y limitaciones cuando existe evidencia.</p>
-          <p><b>Transparencia</b><br>Fuente, calidad, frescura y juego responsable.</p>
-        </div>
-      </section>
-
-      <section class="v933-panel" id="vincular">
+      </section><section class="v933-panel" id="vincular">
         {{ section_header('Conexión de Telegram', 'Vincula o gestiona tu cuenta sin exponer identificadores.') }}
         {% if state.get('linked') %}
         <div class="v933-linked-state">
@@ -82,15 +59,13 @@
   </section>
 
   <section class="v933-two-col is-balanced" data-v939-layout-contract="balanced-pair">
-    {{ evidence_receipt('Telegram extiende la app; no la sustituye', 'La alerta lleva a una selección o evento real, mientras el detalle, el riesgo y el histórico permanecen en NeMeSiS.', 'Integrado', 'success', 'Sin filler, sin duplicados y sin envío real desde la vista cliente') }}
+    <section class="v933-panel" data-top100-improvement="5">
+      {{ section_header('Telegram extiende la app; no la sustituye', 'Vista previa premium; esta vista no envía Telegram real.') }}
+      <p class="v933-safe-copy">Las alertas llevan al partido o selección real; el análisis permanece en NeMeSiS.</p>
+    </section>
     <section class="v933-panel">
-      {{ section_header('Calidad del canal', 'Protecciones activas.') }}
-      <div class="v933-truth-list">
-        <div>{{ icon('check') }}<span><strong>Sin relleno</strong><small>Solo contenido útil</small></span>{{ status_chip('Activo','success') }}</div>
-        <div>{{ icon('shield') }}<span><strong>Sin duplicados</strong><small>Dedupe habilitado</small></span>{{ status_chip('Activo','success') }}</div>
-        <div>{{ icon('send') }}<span><strong>Envío desde esta vista</strong><small>No se ejecuta</small></span>{{ status_chip('Protegido','blue') }}</div>
-        <div>{{ icon('lock') }}<span><strong>Privacidad</strong><small>Identidad protegida</small></span>{{ status_chip('Activa','success') }}</div>
-      </div>
+      {{ section_header('Calidad del canal', 'Sin relleno, duplicados ni envío desde esta pantalla.') }}
+      <div class="v933-truth-list"><div>{{ icon('check') }}<span><strong>Protecciones activas</strong><small>Contenido según evidencia y plan</small></span>{{ status_chip('Activo','success') }}</div></div>
     </section>
   </section>
 </div>

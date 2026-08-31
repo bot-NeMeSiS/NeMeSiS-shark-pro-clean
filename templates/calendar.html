@@ -17,26 +17,19 @@
 
 <div class="v933-page v933-sports-board v933-calendar-board v940-calendar-experience"
      data-v933-template="calendar"
-     data-v933-reference="canonical-calendar"
+     data-v933-reference="official-ref-10"
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Partidos', 'Catálogo completo ordenado por prioridad deportiva. Los picks son una capa aparte.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
+  {{ page_header('Partidos', 'Agenda completa · Hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
 
-  {{ realtime_state_bar(realtime, 'matches') }}
-  {% if lifecycle_total %}{{ lifecycle_story(counts, lane) }}{% endif %}
 
-  {% if counts.get('visible', 0) %}
-    {{ customer_decision('Encuentra el partido que buscas', 'Usa una capa de intención, una fecha o la búsqueda directa. La colección completa permanece debajo y cada filtro puede deshacerse.', 'Ir a búsqueda', '#v940-calendar-search', 'blue', 'Qué hacer aquí', 'Explorar la semana', calendar.get('tabs', [])[2].get('href') if (calendar.get('tabs') or [])|length > 2 else '/calendar?lane=week', 'Todos los resultados proceden del mismo snapshot deportivo') }}
-  {% else %}
-    {{ customer_decision('Amplía la búsqueda sin inventar resultados', 'Mantén el contexto actual, retira una capa o abre la semana. NeMeSiS solo muestra partidos confirmados.', 'Revisar filtros', '#v933-calendar-filters', 'blue', 'Qué hacer aquí', 'Ver la semana', '/calendar?lane=week', 'Los registros incompletos o stale permanecen fuera') }}
-  {% endif %}
 
   <section class="v933-kpi-grid" aria-label="Resumen deportivo">
-    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Encuentros completos', 'blue', 'calendar', '/calendar?lane=today') }}
-    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos sincronizados', 'cyan', 'calendar', '/calendar?lane=week') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Marcadores confirmados', 'success', 'live', '/live') }}
-    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'Selecciones publicadas', 'gold', 'target', '/calendar?lane=with_pick') }}
+    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendar?lane=today') }}
+    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendar?lane=week') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
+    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendar?lane=with_pick') }}
   </section>
 
   <section class="v933-panel v933-filter-panel v940-calendar-command"

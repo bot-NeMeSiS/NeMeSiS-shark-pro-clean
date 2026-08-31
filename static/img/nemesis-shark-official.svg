@@ -1,21 +1,13 @@
 <svg width="180" height="120" viewBox="0 0 180 120" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="NeMeSiS SHARK PRO">
   <defs>
-    <linearGradient id="edge" x1="17" y1="23" x2="154" y2="105" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#DFFBFF"/>
-      <stop offset=".3" stop-color="#55E2FF"/>
-      <stop offset=".72" stop-color="#1487FF"/>
-      <stop offset="1" stop-color="#3158CD"/>
-    </linearGradient>
+    <linearGradient id="b" x1="42" y1="10" x2="151" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#91F2FF"/><stop offset=".52" stop-color="#25CFFF"/><stop offset="1" stop-color="#0876FF"/></linearGradient>
+    <linearGradient id="f" x1="52" y1="23" x2="136" y2="72" gradientUnits="userSpaceOnUse"><stop stop-color="#0B315A" stop-opacity=".92"/><stop offset="1" stop-color="#03101F" stop-opacity=".96"/></linearGradient>
   </defs>
-  <g stroke="url(#edge)" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 61C31 39 57 28 87 30C105 31 121 37 136 42L151 35L169 21L163 45C171 49 176 55 179 62C169 64 160 69 152 76L165 95L139 83L124 80C103 91 77 96 55 91C37 87 23 77 14 65L25 69C36 74 47 73 57 68C42 69 27 66 14 61Z" stroke-width="3"/>
-    <path d="M76 30C85 18 98 11 114 9C104 21 103 31 108 38" stroke-width="2.5"/>
-    <path d="M82 87C96 92 108 100 117 112C101 108 88 100 76 90" stroke-width="2.35"/>
-    <path d="M17 64C31 61 45 64 56 71C45 78 31 76 24 71" stroke-width="2.1"/>
-    <path d="M24 65L30 70L36 65L41 72L47 67L52 71" stroke="#E9FDFF" stroke-opacity=".88" stroke-width="1.25"/>
-    <path d="M34 47C53 39 77 37 101 41C119 44 133 50 145 58" stroke="#A6F1FF" stroke-opacity=".72" stroke-width="1.65"/>
-    <path d="M47 41C52 49 53 57 50 66M57 38C63 47 64 57 60 68M68 34C75 45 76 56 72 69" stroke="#50D7FF" stroke-opacity=".68" stroke-width="1.45"/>
-    <circle cx="32" cy="46" r="2.6" fill="#EFFFFF" stroke="none"/><circle cx="32" cy="46" r="1.05" fill="#020713" stroke="none"/>
-    <path d="M137 84C122 103 96 112 69 108C46 105 29 94 19 79" stroke="#1B87F5" stroke-opacity=".58" stroke-width="2.1"/>
+  <g transform="translate(30 -8)">
+    <path d="M22 76C27 99 47 111 70 108C91 106 107 91 110 72" stroke="url(#b)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M11 70C28 45 52 32 80 31L101 18L97 40C108 46 116 56 121 70C106 64 93 61 79 63L69 80L58 66L47 82L43 68C32 71 21 72 11 70Z" fill="url(#f)" stroke="url(#b)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M47 38L64 20L62 35M59 66L66 86L52 71" stroke="url(#b)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 50C42 48 50 48 57 50M39 56C46 54 52 55 58 57" stroke="#7BEAFF" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
+    <circle cx="27" cy="58" r="3" fill="#EFFFFF"/><circle cx="27" cy="58" r="1.2" fill="#020A13"/>
   </g>
 </svg>

@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, section_header, status_chip, icon, action_button %}
-{% from "components/v936_product.html" import customer_decision, value_ladder, evidence_receipt %}
 {% block content %}
 {% set pay = data.get('payments_client') or {} %}
 {% set plans = pay.get('plans') or {} %}
@@ -8,33 +7,11 @@
 {% set legal_checks = data.get('checkout_legal') or [] %}
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
 
-<div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="canonical-memberships" data-growth-stage="PREMIUM_INTENT" data-growth-target="memberships">
-  {{ page_header('Elige tu plan', 'Funciones premium con precios procedentes de la configuración real.', 'plan', [{'label':'Mi cuenta','href':'/profile','icon':'user'}]) }}
+<div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="official-ref-14" data-growth-stage="PREMIUM_INTENT" data-growth-target="memberships">
+  {{ page_header('Elige tu plan', 'Elige por lo que quieres resolver.', 'plan', [{'label':'Comparar ELITE','href':'#v936-plan-comparison','icon':'plan'},{'label':'Mi cuenta','href':'/profile','icon':'user'}]) }}
   {% if payment_error or data.get('payment_error') %}<div class="v933-safe-copy">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
 
-  {{ customer_decision('Elige por la experiencia que necesitas', 'FREE sirve para explorar; PRO añade contexto y alertas cuando existen datos reales; ELITE prioriza acceso y soporte. Ningún plan garantiza resultados.', 'Comparar planes', '#v936-plan-comparison', 'gold', 'Una decisión sin presión', 'Revisar mi cuenta', '/profile', 'Precios reales o estado de configuración visible antes del checkout') }}
-  {{ value_ladder(current_plan) }}
-
-
-  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="5,6">
-    {{ section_header('Elige por lo que quieres resolver', 'Comparativa práctica, sin presión comercial ni promesas de rentabilidad.') }}
-    <div class="v933-excellence-steps">
-      <article>{{ icon('calendar') }}<span>FREE</span><strong>Explorar con seguridad</strong><p>Calendario, directo y estados honestos para entender si NeMeSiS encaja contigo.</p>{{ action_button('Empezar gratis', '/registro' if not current_user else '/app', false, 'blue', false, 'user') }}</article>
-      <article>{{ icon('target') }}<span>PRO</span><strong>Decidir con contexto</strong><p>Picks completos cuando existen datos reales, riesgo visible y Telegram sin relleno.</p>{{ action_button('Ver PRO', '#v936-plan-comparison', true, 'cyan', false, 'plan') }}</article>
-      <article>{{ icon('shield') }}<span>ELITE</span><strong>Operar con prioridad</strong><p>Más control, soporte y acceso avanzado cuando necesitas seguir la jornada con más detalle.</p>{{ action_button('Comparar ELITE', '#v936-plan-comparison', false, 'gold', false, 'plan') }}</article>
-    </div>
-  </section>
-
-
-  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="10">
-    {{ section_header('Cambiar o cancelar sin fricción', 'La confianza también depende de poder salir, preguntar o revisar el plan sin presión.') }}
-    <div class="v933-excellence-steps is-compact">
-      <article>{{ icon('plan') }}<span>1. Revisa tu plan</span><strong>Beneficios visibles</strong><p>Compara FREE, PRO y ELITE antes de iniciar cualquier checkout.</p>{{ action_button('Comparar planes', '#v936-plan-comparison', true, 'blue', false, 'plan') }}</article>
-      <article>{{ icon('support') }}<span>2. Pide ayuda</span><strong>Soporte claro</strong><p>Si tienes dudas de cobro, acceso o cancelación, abre soporte con contexto mínimo.</p>{{ action_button('Abrir soporte', '/support', false, 'cyan', false, 'support') }}</article>
-      <article>{{ icon('shield') }}<span>3. Sin presión</span><strong>Control humano</strong><p>No se fuerza conversión, no se ocultan limitaciones y ningún plan promete beneficios.</p></article>
-    </div>
-  </section>
-  <section class="v933-plan-grid" id="v936-plan-comparison">
+  <section class="v933-plan-grid" id="v936-plan-comparison" data-top100-improvement="5,6">
     <article class="v933-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}">
       <header><div><span>Plan</span><h3>FREE</h3></div>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
       <strong class="v933-plan-price">0 €<small>/mes</small></strong><p>Base segura para empezar.</p>
@@ -56,8 +33,8 @@
     {% endfor %}
   </section>
 
-  <section class="v933-panel">
-    {{ section_header('Confianza y responsabilidad', 'Condiciones visibles antes de cualquier checkout.') }}
+  <section class="v933-panel" data-top100-improvement="10">
+    {{ section_header('Cambiar o cancelar sin fricción', 'Sin presión y con condiciones visibles antes de cualquier checkout.') }}
     <div class="v933-four-col v933-feature-grid">
       <article>{{ icon('shield') }}<strong>+18</strong><p>Solo para mayores de edad.</p></article>
       <article>{{ icon('check') }}<strong>Juego responsable</strong><p>Sin beneficios garantizados.</p></article>
@@ -65,6 +42,5 @@
       <article>{{ icon('payments') }}<strong>Checkout</strong><p>{{ 'Stripe configurado' if pay.get('checkout_ready') else 'Configuración pendiente' }}.</p></article>
     </div>
   </section>
-  {{ evidence_receipt('El checkout solo se habilita cuando el plan está configurado', 'Precio, condiciones y estado del pago permanecen visibles antes de continuar. No se ejecuta ningún cobro desde una tarjeta deshabilitada.', 'Compra protegida', 'success', 'Stripe y condiciones legales se validan en el flujo real') }}
 </div>
 {% endblock %}

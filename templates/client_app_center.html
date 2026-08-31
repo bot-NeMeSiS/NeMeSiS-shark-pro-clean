@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, customer_trust_panel, sports_contract_attributes %}
-{% from "components/v936_product.html" import customer_decision, value_ladder %}
+{% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes %}
 {% block content %}
 {% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
@@ -12,127 +11,82 @@
 {% set favorite_matches = sports_home.get('favorites') or hub.get('favorites') or [] %}
 {% set upcoming_matches = sports_home.get('upcoming') or hub.get('upcoming') or matches %}
 {% set recent_results = sports_home.get('recent_results') or hub.get('finished') or [] %}
-{% set safe_picks = data.get('v925_picks') or {} %}
-{% set picks = safe_picks.get('picks') or [] %}
-{% set alerts = data.get('client_alerts') or [] %}
-{% set sports_value = data.get('v932_sports_value') or {} %}
-{% set realtime = data.get('v934_realtime') or {} %}
-{% set customer_trust = data.get('v935_customer_trust') or {} %}
+{% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set first_match = (live_matches or important_matches or upcoming_matches or matches)|first %}
 
-<div class="v933-page v933-client-dashboard sports-priority-home" data-v933-template="client_app_center" data-v933-reference="canonical-client-home" {{ sports_contract_attributes(sports_metrics) }}>
-  <section class="v933-client-hero sports-priority-client-hero">
+<div class="v933-page v933-client-dashboard ns16-home" data-v933-template="client_app_center" data-v933-reference="official-ref-08" {{ sports_contract_attributes(sports_metrics) }}>
+  <section class="v933-client-hero ns16-home-hero">
     <div>
-      <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
+      <span class="v933-eyebrow">Tu centro deportivo · Hora Madrid</span>
       <h1>Buenos días, {{ user_name }}</h1>
-      <p>Directo, partidos importantes y tu contexto deportivo.</p>
+      <p>Partidos, directo y SHARK en una sola vista.</p>
       <div class="v933-client-hero-meta">
         {{ status_chip('Plan ' ~ plan_name, 'gold' if plan_name in ['ELITE','ELITE_PLUS'] else ('cyan' if plan_name == 'PRO' else 'blue')) }}
-        {{ status_chip((sports_metrics.get('live_confirmed', 0)|string) ~ ' en directo', 'success' if sports_metrics.get('live_confirmed', 0) else 'neutral') }}
-        {{ status_chip(madrid_now or 'Hora Madrid', 'neutral') }}
+        {% if sports_metrics.get('live_confirmed', 0) %}{{ status_chip((sports_metrics.get('live_confirmed', 0)|string) ~ ' en directo', 'success') }}{% endif %}
       </div>
-    </div>
-    <div class="v933-hero-actions">
-      {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}
-      {{ action_button('Ver partidos', '/calendar', false, 'blue', false, 'calendar') }}
     </div>
   </section>
 
-  <section class="v933-kpi-grid sports-priority-kpis" aria-label="Resumen de la jornada">
-    {{ kpi_card('Partidos', sports_metrics.get('matches_available', 0), 'Agenda disponible', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Estado confirmado', 'success', 'live', '/live') }}
-    {{ kpi_card('Picks SHARK', sports_metrics.get('picks_ready', 0), 'Solo completos', 'cyan', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu seguimiento', 'gold', 'star', '/favorites') }}
+  <section class="v933-kpi-grid ns16-kpi-strip" aria-label="Resumen de la jornada">
+    {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
+    {{ kpi_card('Picks activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favorites') }}
   </section>
 
   {% if live_matches %}
-  <section class="v933-panel sports-priority-section is-live-focus" data-sports-priority="live-now">
-    {{ section_header('En directo ahora', '', 'Abrir Directo', '/live', 'LIVE') }}
-    <div class="v933-match-grid sports-priority-grid is-live">
-      {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
-    </div>
+  <section class="ns16-section ns16-live-priority" data-sports-priority="live-now">
+    {{ section_header('En directo', '', 'Abrir Directo', '/live', 'LIVE') }}
+    <div class="ns16-match-row">{% for match in live_matches[:3] %}{{ live_card(match) }}{% endfor %}</div>
   </section>
   {% endif %}
 
-  <section class="v933-two-col sports-priority-layout" data-v939-layout-contract="bounded-rail">
-    <div class="v933-main-stack">
-      <section class="v933-panel sports-priority-section" data-sports-priority="important-today">
-        {{ section_header('Destacados hoy', '', 'Todos los partidos', '/calendar', 'Sports Relevance') }}
-        {% if important_matches %}
-          <div class="v933-match-grid sports-priority-grid">
-            {% for match in important_matches[:6] %}{{ match_card(match, false, true) }}{% endfor %}
-          </div>
-        {% else %}
-          {{ empty_state('Sin destacados ahora', sports_value.get('safe_message') or 'La agenda se mostrará cuando haya encuentros completos.', 'Ver próximos', '/calendar?lane=week', 'calendar') }}
-        {% endif %}
-      </section>
-
-      <section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
-        {{ section_header('Próximos', '', 'Explorar semana', '/calendar?lane=week') }}
-        {% if upcoming_matches %}
-          <div class="v933-match-grid sports-priority-grid is-compact">
-            {% for match in upcoming_matches[:4] %}{{ match_card(match, true, true) }}{% endfor %}
-          </div>
-        {% else %}
-          {{ empty_state('Esperando próximos partidos', 'NeMeSiS no fabrica calendario cuando faltan datos.', 'Abrir agenda', '/calendar', 'calendar') }}
-        {% endif %}
-      </section>
-    </div>
-
-    <aside class="v933-side-stack">
-      <section class="v933-panel">
-        {{ section_header('SHARK', '', 'Abrir', '/shark') }}
-        {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Sin señal publicable', 'El deporte sigue disponible aunque no exista un pick completo.', 'Revisar picks', '/picks', 'shark') }}{% endif %}
-      </section>
-
-      <section class="v933-panel">
-        {{ section_header('Ruta recomendada de hoy', '') }}
-        <div class="v933-quick-actions is-tight">
-          {{ quick_action('Partidos', 'Catálogo completo', '/calendar', 'calendar') }}
-          {{ quick_action('Directo', 'Marcadores confirmados', '/live', 'live', 'success') }}
-          {{ quick_action('Picks', 'Capa SHARK', '/picks', 'target') }}
-        </div>
-      </section>
-
-    </aside>
+  <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">
+    <article class="v933-panel ns16-journey">
+      {{ section_header('Ruta recomendada de hoy', '') }}
+      <div class="ns16-journey-steps">
+        <a href="/calendar"><b>1</b>{{ icon('matches') }}<span>Mira<strong>Partidos</strong></span></a>
+        <a href="/picks"><b>2</b>{{ icon('target') }}<span>Revisa<strong>Picks</strong></span></a>
+        <a href="/shark{% if first_match and first_match.get('id') %}?match={{ first_match.get('id') }}{% endif %}"><b>3</b>{{ icon('shark') }}<span>Consulta<strong>SHARK</strong></span></a>
+        <a href="/track-record"><b>4</b>{{ icon('history') }}<span>Sigue<strong>Resultados</strong></span></a>
+      </div>
+    </article>
+    <article class="v933-panel ns16-featured-pick">
+      {{ section_header('Pick destacado', '', 'Ver todos', '/picks') }}
+      {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
+    </article>
   </section>
 
-  <section class="v933-panel sports-priority-section" data-v939-layout-contract="full-width-continuation" data-sports-priority="favorites-results">
-    {{ section_header('Favoritos y resultados', '') }}
-    <div class="v933-two-col is-balanced">
-      <div>
-        <h3>Favoritos</h3>
-        {% if favorite_matches %}<div class="v933-match-grid">{% for match in favorite_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>
-        {% else %}{{ empty_state('Sin favoritos', 'Guarda equipos o partidos para encontrarlos antes.', 'Elegir favoritos', '/favorites', 'star') }}{% endif %}
-      </div>
-      <div>
-        <h3>Resultados recientes</h3>
-        {% if recent_results %}<div class="v933-match-grid">{% for match in recent_results[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>
-        {% else %}{{ empty_state('Sin resultados verificados', 'Solo aparecen marcadores finales confirmados.', 'Ver finalizados', '/calendar?lane=finished', 'history') }}{% endif %}
-      </div>
-    </div>
+  <section class="ns16-section" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
+    {{ section_header('Partidos destacados', '', 'Ver todos', '/calendar', 'HOY') }}
+    {% if important_matches %}<div class="ns16-match-row">{% for match in important_matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+    {% else %}{{ empty_state('Sin partidos destacados ahora', 'La agenda aparecerá cuando existan encuentros completos.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
   </section>
 
-  <details class="v933-home-more">
-    <summary>Más opciones</summary>
+  <nav class="v933-panel ns16-home-actions" aria-label="Accesos rápidos">
+    <h2 class="v933-visually-hidden">Tus accesos rápidos</h2>
+    {{ quick_action('Calendario', 'Agenda', '/calendar', 'calendar') }}
+    {{ quick_action('Directo', 'Marcadores', '/live', 'live', 'success') }}
+    {{ quick_action('Picks', 'Selecciones', '/picks', 'target') }}
+    {{ quick_action('SHARK', 'Análisis', '/shark', 'shark', 'cyan') }}
+    {{ quick_action('Membresías', 'Planes', '/memberships', 'plan', 'gold') }}
+  </nav>
+
+  <details class="v933-home-more ns16-more">
+    <summary>Más de tu jornada</summary>
     <div class="v933-home-more-content">
-      {{ customer_decision('Elige tu siguiente partido', 'Abre un encuentro para reunir estado, marcador y contexto.', 'Ver partidos', '/calendar', 'blue', 'Siguiente acción', 'Consultar SHARK', '/shark', 'Sports first · SHARK con evidencia') }}
-
-  <section class="v933-panel" data-v939-layout-contract="context-strip">
-    {{ section_header('Tus accesos rápidos', '') }}
-    <div class="v933-quick-actions">
-      {{ quick_action('Smart Home', 'Briefing y seguimiento', '/smart-home', 'home', 'cyan') }}
-      {{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram', 'cyan') }}
-      {{ quick_action('Histórico', 'Resultados reales', '/track-record', 'history') }}
-      {{ quick_action('Mi cuenta', 'Plan y seguridad', '/profile', 'user') }}
-      {{ quick_action('Membresías', 'FREE / PRO / ELITE', '/memberships', 'plan', 'gold') }}
-    </div>
-  </section>
-
-  <section class="v933-panel v933-plan-context">
-    {{ section_header('Tu plan', '') }}
-    {{ value_ladder(plan_name) }}
-  </section>
+      <section class="v933-two-col is-balanced">
+        <article class="v933-panel">
+          {{ section_header('Próximos', '', 'Semana completa', '/calendar?lane=week') }}
+          {% if upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Esperando próximos partidos', 'Sin calendario inventado.', '', '', 'calendar') }}{% endif %}
+        </article>
+        <article class="v933-panel">
+          {{ section_header('Favoritos y resultados', '', 'Abrir favoritos', '/favorites') }}
+          {% set personal_matches = favorite_matches or recent_results %}
+          {% if personal_matches %}<div class="ns16-match-row is-two">{% for match in personal_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Sin actividad reciente', 'Guarda un partido para verlo aquí.', 'Elegir favoritos', '/favorites', 'star') }}{% endif %}
+        </article>
+      </section>
     </div>
   </details>
 </div>

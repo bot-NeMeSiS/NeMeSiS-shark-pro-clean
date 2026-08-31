@@ -85,8 +85,8 @@ def failing_observation() -> dict:
             "visible_text": "Provider cache hit. Próxima revisión en 180 s.",
         },
         "visual": {
-            "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "DRIFT", "evidence": "legacy shark marker"},
-            "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MAJOR_DRIFT", "evidence": "flat background"},
+            "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MAJOR_GAP", "evidence": "legacy shark marker"},
+            "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "REBUILD_REQUIRED", "evidence": "flat background"},
         },
         "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": False, "nested_panel_depth": 4},
         "mobile": {"screen": "/app", "viewport": "mobile_390x844", "overflow": True},
@@ -117,8 +117,8 @@ def clean_observation() -> dict:
         "sports_knowledge": {"screen": "/match/m-1", "lineup_confirmed": True, "lineup_player_links": 1, "summary_ai_calls": 0, "summary_unsupported_claims": 0, "unsafe_media_visible": 0},
         "client_copy": {"screen": "/live", "visible_text": "No hay partidos en directo."},
         "visual": {
-            "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "CLOSE", "evidence": "official shark rendered"},
-            "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "CLOSE", "evidence": "official ocean composition"},
+            "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MINOR_GAP", "evidence": "official shark rendered"},
+            "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MINOR_GAP", "evidence": "official ocean composition"},
         },
         "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": True, "nested_panel_depth": 1},
         "mobile": {"screen": "/app", "viewport": "mobile_390x844", "overflow": False},
@@ -364,10 +364,11 @@ def test_regression_manager_pins_all_known_founder_regressions(tmp_path: Path):
     )
 
     manager = result["regression_manager"]
-    assert manager["protected_regressions"] == 16
+    assert manager["protected_regressions"] == 17
     assert {item["regression_id"] for item in manager["items"]} == set(PINNED_REGRESSION_CONTRACTS)
-    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
-    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_READY"
+    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
+    assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
+    assert next(item for item in manager["items"] if item["regression_id"] == "VISUAL_FALSE_PASS_RECURRENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
 
 
 def test_regression_manager_increments_recurrence_after_clean_retest(tmp_path: Path):

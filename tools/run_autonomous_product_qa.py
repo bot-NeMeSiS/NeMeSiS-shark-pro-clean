@@ -71,6 +71,12 @@ SCREENS = [
     ("telegram", "/telegram", "client"),
     ("profile", "/profile", "client"),
     ("admin", "/admin/dashboard", "admin"),
+    ("admin_telegram", "/admin/telegram/command-center", "admin"),
+    ("admin_payments", "/admin/payments", "admin"),
+    ("admin_automation", "/admin/automation-center", "admin"),
+    ("admin_data_marketplace", "/admin/data-marketplace", "admin"),
+    ("admin_real_launch", "/admin/real-launch", "admin"),
+    ("admin_picks", "/admin/picks", "admin"),
     ("founder", "/admin/founder-dashboard", "admin"),
     ("growth", "/admin/founder-dashboard#growth-revenue", "admin"),
     ("operations", "/admin/operations-center", "admin"),
@@ -249,6 +255,10 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const hero = document.querySelector('.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero');
           const shark = hero ? getComputedStyle(hero, '::before') : null;
           const bodyStyle = body ? getComputedStyle(body) : null;
+          const brandMark = document.querySelector('.ns-brand-mark');
+          const brandImage = brandMark ? brandMark.querySelector('img') : null;
+          const brandStyle = brandMark ? getComputedStyle(brandMark) : null;
+          const brandImageStyle = brandImage ? getComputedStyle(brandImage) : null;
           const navigationEntry = performance.getEntriesByType('navigation')[0];
           const brokenImages = Array.from(document.images).filter(img => img.complete && img.naturalWidth === 0).map(img => img.currentSrc || img.src);
           const panels = Array.from(document.querySelectorAll('.v933-panel,.v933-admin-panel,.card'));
@@ -296,16 +306,29 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             broken_images: brokenImages,
             first_viewport_product: firstViewportProduct,
             nested_panel_depth: nestedPanelDepth,
+            brand: {
+              asset: brandImage ? (brandImage.currentSrc || brandImage.src) : '',
+              mark_width: brandStyle ? brandStyle.width : '',
+              mark_height: brandStyle ? brandStyle.height : '',
+              image_width: brandImageStyle ? brandImageStyle.width : '',
+              image_height: brandImageStyle ? brandImageStyle.height : '',
+              background: brandStyle ? brandStyle.backgroundImage : '',
+              background_color: brandStyle ? brandStyle.backgroundColor : '',
+              border: brandStyle ? brandStyle.border : '',
+              border_radius: brandStyle ? brandStyle.borderRadius : '',
+              box_shadow: brandStyle ? brandStyle.boxShadow : '',
+              overflow: brandStyle ? brandStyle.overflow : '',
+            },
             shark: {
               asset: sharkImage,
               width_px: sharkWidth,
               width_ratio: Math.round(sharkRatio * 1000) / 1000,
               opacity: sharkOpacity,
-              classification: sharkAssetOk && sharkGeometryOk ? 'CLOSE' : 'DRIFT',
+              classification: sharkAssetOk && sharkGeometryOk ? 'MINOR_GAP' : 'MAJOR_GAP',
               evidence: `asset=${sharkImage}; ratio=${sharkRatio.toFixed(3)}; opacity=${sharkOpacity}`,
             },
             background: {
-              classification: backgroundOk ? 'CLOSE' : 'DRIFT',
+              classification: backgroundOk ? 'MINOR_GAP' : 'MAJOR_GAP',
               evidence: `background=${bg.slice(0, 420)}`,
             },
             live_contract: {
@@ -783,7 +806,7 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
             "reference_file": reference_file,
             "evidence": f"{type(exc).__name__}: {str(exc)[:180]}",
         }
-    classification = "MATCH" if score >= 0.82 else "CLOSE" if score >= 0.58 else "DRIFT" if score >= 0.42 else "MAJOR_DRIFT"
+    classification = "MATCH" if score >= 0.82 else "MINOR_GAP" if score >= 0.58 else "MAJOR_GAP" if score >= 0.42 else "REBUILD_REQUIRED"
     return {
         "classification": classification,
         "score": score,
@@ -963,7 +986,7 @@ def main() -> int:
     reference_classification = str(reference_match.get("classification") or "NOT_OBSERVED")
     shark_state = dict(home_capture.get("shark") or {})
     background_state = dict(home_capture.get("background") or {})
-    if reference_classification in {"DRIFT", "MAJOR_DRIFT", "NOT_OBSERVED"}:
+    if reference_classification in {"MAJOR_GAP", "REBUILD_REQUIRED", "NOT_OBSERVED"}:
         shark_state["classification"] = reference_classification
         background_state["classification"] = reference_classification
     shark_state["evidence"] = "; ".join(filter(None, [str(shark_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
@@ -1057,8 +1080,8 @@ def main() -> int:
             "NAVIGATION": {"status": "PASS" if navigation_clicks and all(item.get("clicked") and item.get("hit_target") and item.get("page_ready") for item in navigation_clicks) else "FAIL"},
             "VISUAL": {
                 "status": "WARNING"
-                if str(shark_state.get("classification") or "").upper() in {"MATCH", "CLOSE"}
-                and str(background_state.get("classification") or "").upper() in {"MATCH", "CLOSE"}
+                if str(shark_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
+                and str(background_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
                 else "FAIL"
             },
             "SPORTS_TRUTH": {"status": "PASS" if int(live_contract.get("confirmed") or 0) == int(live_contract.get("displayed") or 0) and int(live_contract.get("ft_rendered_live") or 0) == 0 else "FAIL"},

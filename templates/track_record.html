@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon, customer_trust_panel %}
-{% from "components/v936_product.html" import customer_decision, evidence_receipt %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_badge, learning_receipt %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
@@ -8,27 +7,10 @@
 {% set pending = record.get('pending_results') or [] %}
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
-{% set customer_trust = data.get('v935_customer_trust') or {} %}
 
-<div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="canonical-track-record">
-  {{ page_header('Histórico', 'Resultados y rendimiento calculados únicamente con picks reales evaluables.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
-  {% if recent %}{{ customer_trust_panel(customer_trust) }}{% endif %}
+<div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="official-ref-13" data-top100-improvement="7">
+  {{ page_header('Histórico', 'Rendimiento real de picks cerrados.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
-  {% if recent %}
-    {{ customer_decision('Comprueba la evidencia, no solo el porcentaje', 'Filtra resultados y revisa cuota, estado y rentabilidad de cada pick cerrado antes de interpretar la muestra.', 'Revisar resultados', '#v936-track-results', 'blue', 'Cómo usar el histórico', 'Ver picks activos', '/picks', 'Solo resultados cerrados con grading real') }}
-  {% else %}
-    {{ customer_decision('Todavía no existe una muestra evaluable', 'El histórico no dibuja una curva ni un ROI decorativo. Aparecerá cuando haya decisiones cerradas con resultado, cuota y stake verificables.', 'Ver picks activos', '/picks', 'blue', 'Cómo usar el histórico', 'Entender SHARK', '/shark', 'Ausencia de muestra explicada, no maquillada') }}
-  {% endif %}
-
-
-  <section class="v933-panel v933-product-excellence-band" data-top100-improvement="7">
-    {{ section_header('Metodología del histórico', 'El rendimiento solo se interpreta cuando la muestra es real, cerrada y evaluable.') }}
-    <div class="v933-excellence-steps is-compact">
-      <article>{{ icon('check') }}<span>Entra en el cálculo</span><strong>Pick cerrado</strong><p>Partido, selección, cuota, stake y resultado final deben estar registrados.</p></article>
-      <article>{{ icon('pause') }}<span>Queda fuera</span><strong>Pendiente o incompleto</strong><p>Los picks sin grading, void o sin cuota no inflan ROI ni winrate.</p></article>
-      <article>{{ icon('shield') }}<span>Lectura responsable</span><strong>Muestra suficiente</strong><p>Si no hay volumen real, NeMeSiS muestra ausencia de muestra en lugar de una promesa.</p></article>
-    </div>
-  </section>
   <section class="v933-kpi-grid">
     {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'success', 'history') }}
     {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, 'Solo decisiones cerradas', 'cyan', 'target') }}
@@ -61,9 +43,9 @@
 
     <aside class="v933-side-stack">
       <section class="v933-panel">
-        {{ section_header('Regla de confianza', 'Qué entra en el cálculo.') }}
+        {{ section_header('Metodología del histórico', 'Muestra suficiente y resultados evaluables.') }}
         <div class="v933-truth-list">
-          <div>{{ icon('check') }}<span><strong>Resultado final</strong><small>Obligatorio</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('check') }}<span><strong>Entra en el cálculo</strong><small>Resultado final obligatorio</small></span>{{ status_chip('Validado','success') }}</div>
           <div>{{ icon('odds') }}<span><strong>Stake</strong><small>Real y evaluable</small></span>{{ status_chip('Validado','success') }}</div>
           <div>{{ icon('pause') }}<span><strong>Void</strong><small>Sin beneficio ficticio</small></span>{{ status_chip('Neutral','neutral') }}</div>
           <div>{{ icon('clock') }}<span><strong>Pendientes</strong><small>Fuera del ROI</small></span>{{ status_chip('Excluidos','warning') }}</div>
@@ -71,7 +53,6 @@
         <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p>
       </section>
       <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.</p></section>
-      {{ evidence_receipt('Cada cifra puede rastrearse hasta un pick cerrado', 'Los pendientes quedan fuera del ROI y los void no crean beneficio ficticio.', 'Metodología activa', 'success', 'Grading local de solo lectura') }}
     </aside>
   </section>
 </div>

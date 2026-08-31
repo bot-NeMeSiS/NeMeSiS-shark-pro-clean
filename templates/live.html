@@ -1,74 +1,46 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, provider_state, status_chip, icon, realtime_state_bar, sports_contract_attributes %}
-{% from "components/v936_product.html" import customer_decision %}
-{% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, sports_contract_attributes %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
 {% set lane = live.get('lane') or request.args.get('f') or 'live' %}
-{% set safe = data.get('v925_live') or {} %}
 {% set ns = namespace(matches=[]) %}
 {% for day in live.get('day_groups') or [] %}{% for league in day.get('leagues') or [] %}{% for match in league.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endfor %}{% endfor %}
 {% if not ns.matches %}{% for match in live.get('matches') or [] %}{% set _ = ns.matches.append(match) %}{% endfor %}{% endif %}
 {% set upcoming = data.get('upcoming_matches') or [] %}
-{% set realtime = data.get('v934_realtime') or {} %}
 {% set sports_metrics = live.get('sports_metrics') or data.get('sports_metrics') or {} %}
-{% set lifecycle_total = ((live.get('matches') or [])|length) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) %}
 
-<div class="v933-page v933-sports-board v933-live-board" data-v933-template="live" data-v933-reference="canonical-live" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Directo', 'Marcador, minuto y estado real. Sin simulación.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+<div class="v933-page v933-sports-board v933-live-board ns16-live" data-v933-template="live" data-v933-reference="official-ref-09" {{ sports_contract_attributes(sports_metrics) }}>
+  {{ page_header('Directo', 'Marcadores y estados confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
-  {{ realtime_state_bar(realtime, 'live') }}
-  {% if lifecycle_total %}{{ lifecycle_story({'today': sports_metrics.get('matches_today', 0), 'live': sports_metrics.get('live_confirmed', 0), 'picks': sports_metrics.get('matches_with_picks', 0), 'finished': sports_metrics.get('finished_verified', 0), 'incidents': 0}, lane) }}{% endif %}
+  <section class="v933-kpi-grid ns16-kpi-strip">
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live?f=live') }}
+    {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/live?f=break') }}
+    {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'Hoy', 'blue', 'history', '/live?f=finished') }}
+    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
+  </section>
+
+  <nav class="v933-panel v933-filter-panel ns16-filter-strip">
+    {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
+  </nav>
 
   {% if ns.matches %}
-    {{ customer_decision('Live primero', 'Marcador, minuto y eventos confirmados. SHARK entra solo como contexto.', 'Ver board en vivo', '#v936-live-board', 'cyan', 'Qué hacer aquí', 'Revisar picks', '/picks', 'Actualización condicionada a datos reales') }}
+  <section class="ns16-section" id="v936-live-board">
+    {{ section_header('Ahora mismo', '', '', '', 'LIVE CENTER') }}
+    <div class="ns16-live-feature">{{ live_card(ns.matches[0]) }}</div>
+    {% if ns.matches|length > 1 %}<div class="ns16-match-row is-four">{% for match in ns.matches[1:5] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
+  </section>
   {% else %}
-    {{ customer_decision('Sin directo destacado', 'Pasa a próximos partidos importantes. No se simula actividad.', 'Abrir calendario', '/calendar', 'blue', 'Qué hacer aquí', 'Ver picks', '/picks', 'Sin marcador ni minuto ficticios') }}
+  <section class="v933-panel ns16-live-empty">
+    {{ empty_state('No hay partidos para este estado', 'Los últimos datos confirmados siguen accesibles. Consulta los próximos encuentros.', 'Abrir calendario', '/calendar', 'live') }}
+  </section>
   {% endif %}
 
-  <section class="v933-kpi-grid">
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Marcador confirmado', 'success', 'live', '/live?f=live') }}
-    {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Estado real del partido', 'warning', 'pause', '/live?f=break') }}
-    {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'Resultados guardados', 'blue', 'history', '/live?f=finished') }}
-    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'Relación validada', 'gold', 'target', '/live?f=with_pick') }}
+  {% if not ns.matches and upcoming %}
+  <section class="ns16-section">
+    {{ section_header('Próximos encuentros', '', 'Abrir calendario', '/calendar') }}
+    <div class="ns16-match-row">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
   </section>
-
-  <section class="v933-panel v933-filter-panel">
-    {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
-  </section>
-
-  <section class="v933-two-col">
-    <div class="v933-main-stack">
-      <section class="v933-panel" id="v936-live-board">
-        {{ section_header('Board ' ~ ('en vivo' if lane in ['live','directo'] else 'del día'), 'Ordenado por relevancia deportiva y frescura.') }}
-        {% if ns.matches %}
-        <div class="v933-live-grid">{% for match in ns.matches %}{{ live_card(match) }}{% endfor %}</div>
-        {% else %}
-          {{ empty_state('No hay partidos para este estado', 'No se simulan marcadores ni minutos. Cambia el filtro o consulta la agenda real.', 'Ver próximos partidos', '/calendar', 'live') }}
-        {% endif %}
-      </section>
-
-      {% if not ns.matches %}
-      <section class="v933-panel">
-        {{ section_header('Próximos encuentros', 'Siguiente foco deportivo.', 'Abrir calendario', '/calendar') }}
-        {% if upcoming %}<div class="v933-match-grid">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>{% else %}<div class="v933-safe-copy">La próxima agenda completa aparecerá aquí cuando esté sincronizada.</div>{% endif %}
-      </section>
-      {% endif %}
-    </div>
-
-    <aside class="v933-side-stack">
-      {{ provider_state(safe.get('has_real_data', false), safe.get('last_sync') or '', safe.get('safe_message') or '') }}
-      <section class="v933-panel">
-        {{ section_header('Contrato live', 'Solo datos confirmados.') }}
-        <div class="v933-truth-list">
-          <div>{{ icon('score') }}<span><strong>Marcador</strong><small>Solo si es real</small></span>{{ status_chip('Protegido','success') }}</div>
-          <div>{{ icon('clock') }}<span><strong>Minuto</strong><small>Solo si llega del proveedor</small></span>{{ status_chip('Protegido','success') }}</div>
-          <div>{{ icon('live') }}<span><strong>Eventos</strong><small>Sin simulación</small></span>{{ status_chip('Protegido','success') }}</div>
-          <div>{{ icon('database') }}<span><strong>Disponibilidad</strong><small>Los últimos datos confirmados siguen accesibles</small></span>{{ status_chip('Estable','blue') }}</div>
-        </div>
-      </section>
-    </aside>
-  </section>
+  {% endif %}
 </div>
 {% endblock %}
