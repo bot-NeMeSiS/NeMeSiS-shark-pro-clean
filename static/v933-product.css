@@ -5496,6 +5496,7 @@ body.ns-app .v933-topbar nav a { font-weight: 680; }
 body.ns-app :is(.v933-page-header h1,.ns16-home-hero h1) { font-weight: 800 !important; }
 body.ns-app .v933-section-header h2 { font-weight: 760; }
 body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
+.sports-priority-home .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .ns16-home .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .ns16-live .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .v933-calendar-board .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority) { display: none; }

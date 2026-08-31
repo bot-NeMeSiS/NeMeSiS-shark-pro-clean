@@ -98,6 +98,15 @@ def test_layout_collision_evidence_opens_real_visual_issue():
     assert PINNED_REGRESSION_CONTRACTS["MOBILE_360_LAYOUT"]["test"] == "mobile_360_collision_and_overflow_scan"
 
 
+def test_home_dense_match_cards_use_the_active_home_container():
+    project_root = Path(__file__).resolve().parents[1]
+    template = (project_root / "templates" / "home.html").read_text(encoding="utf-8")
+    css = (project_root / "static" / "v933-product.css").read_text(encoding="utf-8")
+
+    assert "sports-priority-home" in template
+    assert ".sports-priority-home .v933-match-card :is(.v937-card-trust" in css
+
+
 def test_rendered_layout_competition_and_temporal_evidence_reaches_regression_manager(tmp_path: Path):
     observation = clean_observation()
     observation["competition_identity"] = {"pass": True, "matches_compared": 2, "mismatches": []}
