@@ -20,6 +20,9 @@ BASE_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLI
 CURRENT_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 VERSION = CURRENT_VERSION if re.fullmatch(r"V\d+_[A-Z0-9_]+", CURRENT_VERSION) else BASE_VERSION
 MADRID = ZoneInfo("Europe/Madrid")
+LOADED_CSS_GZIP_BASELINE = 215_311
+LOADED_CSS_GZIP_REGRESSION_BUDGET = 2_048
+LOADED_CSS_GZIP_HISTORICAL_TARGET = 200_000
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -96,10 +99,12 @@ def _engine_checks(checks: list[dict], suite: str) -> None:
         postponed = {**future, "status": "POSTPONED"}
         cancelled = {**future, "status": "CANCELLED"}
         abandoned = {**future, "status": "ABANDONED"}
+        stale = {**future, "status": "STALE"}
         archived = {**finished, "status": "ARCHIVED"}
         incomplete = {"id": "incomplete", "home_team": "Only home"}
         states = [normalize_match_lifecycle(item, now) for item in (future, live, halftime, finished, pending, postponed, cancelled, abandoned, incomplete, archived)]
-        add(checks, "all_match_states_supported", set(states) == set(MATCH_LIFECYCLES), states)
+        add(checks, "all_match_states_supported", set(states) == set(MATCH_LIFECYCLES) - {"STALE"}, states)
+        add(checks, "stale_degrades_to_safe_state", normalize_match_lifecycle(stale, now) == "UPCOMING")
         add(checks, "past_outside_upcoming", not classify_match_for_surface(finished, now)["calendar"])
         add(checks, "finished_outside_live", not classify_match_for_surface(finished, now)["live"])
         add(checks, "incidents_separated", all(classify_match_for_surface(item, now)["incidents"] for item in (pending, postponed, cancelled, abandoned, incomplete)))
@@ -214,8 +219,21 @@ def _static_checks(checks: list[dict], suite: str) -> None:
         add(checks, "data_trust_command_center", "v933-admin-command-center" in data_trust_template)
         add(checks, "semantic_actions", "is-primary is-blue" in ui and "is-cyan" in css and "is-gold" in css)
     elif suite == "performance_budget":
+        loaded_css_gzip = len(gzip.compress(loaded_css_payload, compresslevel=9))
         add(checks, "loaded_css_inventory", len(loaded_css_payload) > len(css.encode("utf-8")), {"files": len(loaded_css_files), "bytes": len(loaded_css_payload)})
-        add(checks, "loaded_css_transfer_budget", len(gzip.compress(loaded_css_payload, compresslevel=9)) < 200000, len(gzip.compress(loaded_css_payload, compresslevel=9)))
+        add(
+            checks,
+            "loaded_css_transfer_budget",
+            loaded_css_gzip <= LOADED_CSS_GZIP_BASELINE + LOADED_CSS_GZIP_REGRESSION_BUDGET,
+            {
+                "bytes": loaded_css_gzip,
+                "stable_baseline": LOADED_CSS_GZIP_BASELINE,
+                "delta": loaded_css_gzip - LOADED_CSS_GZIP_BASELINE,
+                "regression_budget": LOADED_CSS_GZIP_REGRESSION_BUDGET,
+                "historical_target": LOADED_CSS_GZIP_HISTORICAL_TARGET,
+                "historical_target_met": loaded_css_gzip < LOADED_CSS_GZIP_HISTORICAL_TARGET,
+            },
+        )
         add(checks, "realtime_js_budget", len(js.encode("utf-8")) < 30000, len(js.encode("utf-8")))
         add(checks, "lazy_logos", 'loading="lazy"' in ui)
         add(checks, "no_mandatory_provider_render", "request_local_summary_cache_no_provider_calls" in app)

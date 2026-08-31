@@ -59,6 +59,7 @@ PINNED_REGRESSION_CONTRACTS = {
     "FALSE_LIVE_KPI": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "confirmed_live_equals_visible_live"},
     "FT_NEVER_LIVE": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "terminal_state_never_renders_live"},
     "CROSS_SURFACE_LIVE_TRUTH": {"category": "SPORTS_TRUTH", "severity": "P0", "test": "same_match_same_canonical_live_truth", "memory_key": "LIVE_TRUTH_CROSS_SURFACE_RECURRENCE"},
+    "CROSS_SURFACE_COMPETITION_IDENTITY": {"category": "COMPETITION_IDENTITY", "severity": "P0", "test": "same_match_same_canonical_competition"},
     "OFFICIAL_SHARK_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
     "OFFICIAL_BACKGROUND_REFERENCE": {"category": "VISUAL", "severity": "P1", "test": "rendered_reference_comparison"},
     "VISUAL_FALSE_PASS_RECURRENCE": {"category": "VISUAL", "severity": "P1", "test": "founder_rejection_overrides_automated_visual_pass"},
@@ -71,6 +72,10 @@ PINNED_REGRESSION_CONTRACTS = {
     "MOJIBAKE": {"category": "ADMIN", "severity": "P2", "test": "rendered_text_encoding_scan"},
     "BROKEN_LINKS": {"category": "NAVIGATION", "severity": "P0", "test": "real_click_golden_journeys"},
     "MOBILE_BOTTOM_NAV": {"category": "MOBILE", "severity": "P1", "test": "mobile_real_tap_and_hit_target"},
+    "NO_TEXT_BORDER_COLLISION": {"category": "LAYOUT_COLLISION", "severity": "P1", "test": "rendered_text_bounds_inside_control"},
+    "NO_CARD_OVERFLOW": {"category": "LAYOUT_COLLISION", "severity": "P1", "test": "rendered_card_intrinsic_overflow"},
+    "SPANISH_COPY_STRESS": {"category": "LAYOUT_COLLISION", "severity": "P1", "test": "long_spanish_labels_render_without_clipping"},
+    "MOBILE_360_LAYOUT": {"category": "MOBILE_LAYOUT", "severity": "P1", "test": "mobile_360_collision_and_overflow_scan"},
     "CLIENT_ADMIN_SEPARATION": {"category": "SECURITY", "severity": "P0", "test": "client_session_admin_denied"},
     "TEMPORAL_CONTEXT_CONSISTENCY": {"category": "TEMPORAL_CONTEXT", "severity": "P1", "test": "madrid_datetime_cross_surface_contract"},
 }
@@ -78,6 +83,7 @@ PINNED_REGRESSION_CONTRACTS = {
 ISSUE_TO_REGRESSION = {
     "NAVIGATION": "TOPBAR_REAL_NAVIGATION",
     "SPORTS_TRUTH": "FALSE_LIVE_KPI",
+    "COMPETITION_IDENTITY": "CROSS_SURFACE_COMPETITION_IDENTITY",
     "VISUAL_SHARK": "OFFICIAL_SHARK_REFERENCE",
     "VISUAL_BACKGROUND": "OFFICIAL_BACKGROUND_REFERENCE",
     "CLIENT_COPY": "CLIENT_TECHNICAL_COPY_LEAK",
@@ -87,6 +93,7 @@ ISSUE_TO_REGRESSION = {
     "MOJIBAKE": "MOJIBAKE",
     "USER_JOURNEY": "BROKEN_LINKS",
     "MOBILE_LAYOUT": "MOBILE_BOTTOM_NAV",
+    "LAYOUT_COLLISION": "NO_TEXT_BORDER_COLLISION",
     "SECURITY": "CLIENT_ADMIN_SEPARATION",
     "PERFORMANCE": "PERFORMANCE_P0",
     "TEMPORAL_CONTEXT": "TEMPORAL_CONTEXT_CONSISTENCY",
@@ -309,6 +316,27 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             detected_at=at,
         ))
 
+    competition_identity = observation.get("competition_identity") or {}
+    competition_mismatches = competition_identity.get("mismatches") or []
+    if competition_identity and (
+        competition_identity.get("pass") is not True
+        or competition_mismatches
+    ):
+        issues.append(_issue(
+            worker="sports_truth_qa",
+            category="COMPETITION_IDENTITY",
+            severity="P0",
+            screen=str(competition_identity.get("screen") or "sports surfaces"),
+            viewport=str(competition_identity.get("viewport") or "all"),
+            element="CROSS_SURFACE_COMPETITION_IDENTITY",
+            expected="El mismo partido conserva un ID canónico de competición en todas las superficies.",
+            actual=f"compared={int(competition_identity.get('matches_compared') or 0)}; mismatches={len(competition_mismatches)}",
+            evidence=str(competition_identity.get("evidence") or competition_mismatches[:6]),
+            screenshot=str(competition_identity.get("screenshot") or ""),
+            production_sha=sha,
+            detected_at=at,
+        ))
+
     knowledge = observation.get("sports_knowledge") or {}
     if bool(knowledge.get("lineup_confirmed")) and int(knowledge.get("lineup_player_links") or 0) <= 0:
         issues.append(_issue(
@@ -461,6 +489,28 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             detected_at=at,
         ))
 
+    for collision in observation.get("layout_collisions") or []:
+        if not isinstance(collision, dict):
+            continue
+        collision_type = str(collision.get("type") or "layout_collision")
+        severity = "P1" if collision_type in {
+            "interactive_overlap", "text_border_collision", "text_clipping", "button_clipping", "card_overflow"
+        } else "P2"
+        issues.append(_issue(
+            worker="visual_experience_inspector",
+            category="LAYOUT_COLLISION",
+            severity=severity,
+            screen=str(collision.get("screen") or "/"),
+            viewport=str(collision.get("viewport") or "unknown"),
+            element=str(collision.get("element") or collision.get("selector") or "layout"),
+            expected="Texto, controles y cards permanecen dentro de sus límites sin solaparse.",
+            actual=f"{collision_type}: {collision.get('actual') or collision.get('text') or ''}",
+            evidence=str(collision.get("evidence") or collision),
+            screenshot=str(collision.get("screenshot") or ""),
+            production_sha=sha,
+            detected_at=at,
+        ))
+
     text_quality = observation.get("text_quality") or {}
     mojibake_matches = [str(item) for item in text_quality.get("mojibake_matches") or [] if str(item).strip()]
     if mojibake_matches:
@@ -592,9 +642,9 @@ def _quality_gate_for_issue(issue: dict[str, Any]) -> str:
     category = str(issue.get("category") or "").upper()
     if category in {"NAVIGATION", "USER_JOURNEY", "BROKEN_LINK"}:
         return "NAVIGATION"
-    if category.startswith("VISUAL") or category in {"UI_DENSITY", "BROKEN_IMAGE"}:
+    if category.startswith("VISUAL") or category in {"UI_DENSITY", "BROKEN_IMAGE", "LAYOUT_COLLISION"}:
         return "VISUAL"
-    if category in {"SPORTS_TRUTH", "LIVE_TRUTH", "DATA_CONSISTENCY"}:
+    if category in {"SPORTS_TRUTH", "LIVE_TRUTH", "DATA_CONSISTENCY", "COMPETITION_IDENTITY"}:
         return "SPORTS_TRUTH"
     if category == "TEMPORAL_CONTEXT":
         return "TEMPORAL_CONTEXT"
@@ -668,6 +718,32 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         and temporal.get("cross_surface_consistent") is True
         and temporal.get("madrid_time") is True
     )
+    competition = observation.get("competition_identity") or {}
+    competition_observed = int(competition.get("matches_compared") or 0) > 0
+    competition_pass = competition_observed and competition.get("pass") is True and not (competition.get("mismatches") or [])
+    layout = observation.get("layout") or {}
+    layout_observed = layout.get("observed") is True
+    collision_types = {str(item).strip().lower() for item in (layout.get("collision_types") or []) if str(item).strip()}
+    text_collision_types = {"button_clipping", "text_clipping", "interactive_overlap", "viewport_escape"}
+    mobile_360_observed = int(layout.get("mobile_360_captures") or 0) > 0
+    mobile_360_pass = (
+        mobile_360_observed
+        and int(layout.get("mobile_360_collisions") or 0) == 0
+        and int(layout.get("mobile_360_overflow") or 0) == 0
+    )
+    competition = observation.get("competition_identity") or {}
+    competition_observed = int(competition.get("matches_compared") or 0) > 0
+    competition_pass = competition_observed and competition.get("pass") is True and not (competition.get("mismatches") or [])
+    layout = observation.get("layout") or {}
+    layout_observed = layout.get("observed") is True
+    collision_types = {str(item).strip().lower() for item in (layout.get("collision_types") or []) if str(item).strip()}
+    text_collision_types = {"button_clipping", "text_clipping", "interactive_overlap", "viewport_escape"}
+    mobile_360_observed = int(layout.get("mobile_360_captures") or 0) > 0
+    mobile_360_pass = (
+        mobile_360_observed
+        and int(layout.get("mobile_360_collisions") or 0) == 0
+        and int(layout.get("mobile_360_overflow") or 0) == 0
+    )
     return {
         "TOPBAR_REAL_NAVIGATION": {"status": "PASS" if click_pass else "FAIL", "evidence": f"real_clicks={len(clicks)}"},
         "FALSE_LIVE_KPI": {"status": "PASS" if sports_pass else "FAIL", "evidence": f"confirmed={sports.get('confirmed_live_count', 0)}; visible={sports.get('displayed_live_count', 0)}"},
@@ -675,6 +751,14 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "CROSS_SURFACE_LIVE_TRUTH": {
             "status": "PASS" if cross_surface_pass else "FAIL" if cross_surface_observed else "NOT_RUN",
             "evidence": f"observed={cross_surface_observed}; mismatches={len(cross_surface_mismatches)}",
+        },
+        "CROSS_SURFACE_COMPETITION_IDENTITY": {
+            "status": "PASS" if competition_pass else "FAIL" if competition_observed else "NOT_RUN",
+            "evidence": f"matches_compared={int(competition.get('matches_compared') or 0)}; mismatches={len(competition.get('mismatches') or [])}",
+        },
+        "CROSS_SURFACE_COMPETITION_IDENTITY": {
+            "status": "PASS" if competition_pass else "FAIL" if competition_observed else "NOT_RUN",
+            "evidence": f"matches_compared={int(competition.get('matches_compared') or 0)}; mismatches={len(competition.get('mismatches') or [])}",
         },
         "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if shark in {"MATCH", "MINOR_GAP"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
         "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
@@ -686,6 +770,38 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "MOJIBAKE": {"status": "PASS" if not (text_quality.get("mojibake_matches") or []) else "FAIL", "evidence": f"mojibake={len(text_quality.get('mojibake_matches') or [])}"},
         "BROKEN_LINKS": {"status": "PASS" if click_pass and all(item.get("pass") is True for item in journeys.values()) else "FAIL", "evidence": f"journeys={len(journeys)}; js_errors={len(runtime.get('js_errors') or [])}"},
         "MOBILE_BOTTOM_NAV": {"status": "PASS" if mobile_pass else "FAIL", "evidence": f"mobile_taps={len(mobile_clicks)}"},
+        "NO_TEXT_BORDER_COLLISION": {
+            "status": "PASS" if layout_observed and not (collision_types & text_collision_types) else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; collisions={int(layout.get('collisions') or 0)}; types={sorted(collision_types)}",
+        },
+        "NO_CARD_OVERFLOW": {
+            "status": "PASS" if layout_observed and "card_overflow" not in collision_types else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; card_overflow={'card_overflow' in collision_types}",
+        },
+        "SPANISH_COPY_STRESS": {
+            "status": "PASS" if layout_observed and not (collision_types & {"button_clipping", "text_clipping", "viewport_escape"}) else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; clipping_types={sorted(collision_types & {'button_clipping', 'text_clipping', 'viewport_escape'})}",
+        },
+        "MOBILE_360_LAYOUT": {
+            "status": "PASS" if mobile_360_pass else "FAIL" if mobile_360_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('mobile_360_captures') or 0)}; collisions={int(layout.get('mobile_360_collisions') or 0)}; overflow={int(layout.get('mobile_360_overflow') or 0)}",
+        },
+        "NO_TEXT_BORDER_COLLISION": {
+            "status": "PASS" if layout_observed and not (collision_types & text_collision_types) else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; collisions={int(layout.get('collisions') or 0)}; types={sorted(collision_types)}",
+        },
+        "NO_CARD_OVERFLOW": {
+            "status": "PASS" if layout_observed and "card_overflow" not in collision_types else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; card_overflow={'card_overflow' in collision_types}",
+        },
+        "SPANISH_COPY_STRESS": {
+            "status": "PASS" if layout_observed and not (collision_types & {"button_clipping", "text_clipping", "viewport_escape"}) else "FAIL" if layout_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('captures') or 0)}; clipping_types={sorted(collision_types & {'button_clipping', 'text_clipping', 'viewport_escape'})}",
+        },
+        "MOBILE_360_LAYOUT": {
+            "status": "PASS" if mobile_360_pass else "FAIL" if mobile_360_observed else "NOT_RUN",
+            "evidence": f"captures={int(layout.get('mobile_360_captures') or 0)}; collisions={int(layout.get('mobile_360_collisions') or 0)}; overflow={int(layout.get('mobile_360_overflow') or 0)}",
+        },
         "CLIENT_ADMIN_SEPARATION": {"status": str((observation.get("security") or {}).get("client_admin_separation") or "NOT_RUN").upper(), "evidence": (observation.get("security") or {}).get("evidence")},
         "IMPORTANT_MATCH_PRIORITY": {"status": str(sports.get("important_match_priority") or "NOT_RUN").upper(), "evidence": sports.get("priority_evidence")},
         "PERFORMANCE_P0": {"status": str((observation.get("performance") or {}).get("status") or "NOT_RUN").upper(), "evidence": (observation.get("performance") or {}).get("evidence")},

@@ -45,15 +45,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -70,14 +70,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -91,7 +91,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -115,7 +115,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -155,7 +155,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -4424,6 +4424,21 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
 .nemesis-local-safe-banner strong { color: #fff; font-size: .78rem; }
 .nemesis-local-safe-banner span { color: rgba(216,255,250,.78); }
 .nemesis-local-safe-banner a { margin-left: auto; min-height: 34px; display: inline-flex; align-items: center; color: #7ff8df; font-weight: 800; }
+@media (min-width: 981px) {
+  body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner {
+    position: fixed;
+    inset: 56px 0 auto;
+    z-index: 139;
+    height: 22px;
+    min-height: 22px;
+    flex-wrap: nowrap;
+    padding: 2px 14px;
+    overflow: hidden;
+    font-size: .6rem;
+  }
+  body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner strong { font-size: .64rem; white-space: nowrap; }
+  body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner a { min-height: 18px; white-space: nowrap; }
+}
 .local-safe-portal { width: min(1120px, 100%); margin-inline: auto; display: grid; gap: 18px; padding: 18px 0 36px; }
 .local-safe-hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding-bottom: 16px; border-bottom: 1px solid rgba(148,163,184,.16); }
 .local-safe-hero h1 { margin: 5px 0 8px; color: #fff; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: 0; }
@@ -4456,51 +4471,7 @@ body.ns-app :is(.v933-action,.v933-quick-action,.v933-launch-start-strip a,.v933
   .local-safe-status-grid, .local-safe-action-grid, .local-safe-link-grid { grid-template-columns: 1fr; }
   .local-safe-status-grid article { min-height: 58px; }
 }
-/* Official Visual Reference Reconstruction: 16 PNG reference alignment, local-only visual sprint. */
-:root {
-  --ns-bg: #020c18;
-  --ns-bg-deep: #00040a;
-  --ns-bg-elevated: #061a30;
-  --ns-panel: rgba(5, 18, 35, .82);
-  --ns-panel-glass: rgba(7, 27, 49, .7);
-  --ns-border: rgba(101, 209, 255, .19);
-  --ns-cyan: #52e4ff;
-  --ns-blue: #1688ff;
-  --ns-text: #f4f9ff;
-  --ns-muted: rgba(202, 219, 237, .72);
-  --ns-positive: #30d48a;
-  --ns-warning: #f0c04a;
-  --ns-danger: #ff6262;
-  --ns-elite: #f3c35a;
-  --ns-radius: 8px;
-  --ns-gap: 12px;
-  --ns-shadow: 0 16px 44px rgba(0, 0, 0, .32);
-  --ns-glow: 0 0 36px rgba(50, 203, 255, .16);
-  --ns-z-content: 10;
-  --ns-z-chrome: 200;
-  --ns-z-mobile: 220;
-  --ns-z-overlay: 300;
-  --nsx-bg-0: #00040b;
-  --nsx-bg-1: #020c18;
-  --nsx-bg-2: #051a30;
-  --nsx-panel: rgba(4, 16, 31, .82);
-  --nsx-panel-strong: rgba(6, 23, 43, .9);
-  --nsx-line: rgba(110, 205, 255, .18);
-  --nsx-line-strong: rgba(77, 222, 255, .44);
-  --nsx-cyan: #49ddff;
-  --nsx-blue: #147fff;
-  --nsx-green: #30d48a;
-  --nsx-yellow: #f0c04a;
-  --nsx-red: #ff6262;
-  --nsx-violet: #8c7cff;
-  --nsx-gold: #f3c35a;
-  --nsx-text: #f3f8ff;
-  --nsx-muted: rgba(203, 220, 238, .72);
-  --nsx-faint: rgba(165, 185, 210, .58);
-  --nsx-radius: 8px;
-  --nsx-radius-sm: 6px;
-  --nsx-shadow: 0 16px 44px rgba(0, 0, 0, .32);
-}
+/* NeMeSiS Design System 1.0 consumes the single token source above. */
 
 html { background: var(--ns-bg-deep); }
 body.ns-app,
@@ -4509,12 +4480,11 @@ body.ns-app[data-v829-shell="true"] {
   min-height: 100vh;
   color: var(--ns-text);
   background:
-    radial-gradient(ellipse at 67% -8%, rgba(194, 249, 255, .24), transparent 23vw),
-    radial-gradient(ellipse at 81% 14%, rgba(17, 126, 244, .3), transparent 36vw),
-    radial-gradient(ellipse at 18% 34%, rgba(6, 94, 169, .18), transparent 38vw),
-    radial-gradient(ellipse at 58% 69%, rgba(4, 51, 96, .15), transparent 48vw),
-    radial-gradient(ellipse at 50% 111%, rgba(0, 1, 5, .99), transparent 58vw),
-    linear-gradient(180deg, #031329 0%, #020a17 35%, #01050d 72%, #000207 100%) !important;
+    radial-gradient(ellipse at 72% -6%, rgba(95, 208, 255, .18), transparent 24vw),
+    radial-gradient(ellipse at 78% 15%, rgba(0, 78, 191, .3), transparent 34vw),
+    radial-gradient(ellipse at 14% 34%, rgba(2, 57, 124, .18), transparent 34vw),
+    radial-gradient(ellipse at 54% 72%, rgba(1, 34, 75, .2), transparent 48vw),
+    linear-gradient(180deg, #010d20 0%, #000817 42%, #00050f 72%, #00030a 100%) !important;
   background-attachment: fixed !important;
   letter-spacing: 0;
 }
@@ -4534,12 +4504,11 @@ body.ns-app.ns-admin::before {
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(113deg, transparent 0 13%, rgba(218, 252, 255, .075) 27%, rgba(69, 179, 255, .025) 43%, transparent 52%),
-    linear-gradient(102deg, transparent 0 46%, rgba(91, 196, 255, .055) 60%, transparent 77%),
-    linear-gradient(78deg, transparent 0 70%, rgba(130, 229, 255, .035) 79%, transparent 89%),
-    radial-gradient(ellipse at 53% -3%, rgba(202, 249, 255, .17), transparent 27%),
-    radial-gradient(ellipse at 69% 21%, rgba(19, 113, 208, .14), transparent 45%),
-    radial-gradient(ellipse at 48% 105%, rgba(0, 1, 5, .96), transparent 52%);
+    linear-gradient(111deg, transparent 0 36%, rgba(175, 238, 255, .07) 49%, rgba(24, 116, 213, .025) 61%, transparent 73%),
+    linear-gradient(101deg, transparent 0 54%, rgba(70, 174, 255, .045) 64%, transparent 79%),
+    radial-gradient(ellipse at 61% -4%, rgba(129, 225, 255, .14), transparent 27%),
+    radial-gradient(ellipse at 76% 20%, rgba(8, 75, 167, .14), transparent 41%),
+    radial-gradient(ellipse at 50% 108%, rgba(0, 1, 5, .98), transparent 54%);
   background-size: 100% 100%;
   opacity: .97;
   filter: none;
@@ -4560,13 +4529,12 @@ body.ns-app.ns-admin::after {
   height: auto;
   opacity: .5;
   background:
-    radial-gradient(circle, rgba(164, 240, 255, .44) 0 .8px, transparent 1.2px) 7% 9% / 53px 53px,
-    radial-gradient(circle, rgba(255,255,255,.17) 0 .7px, transparent 1.1px) 13px 17px / 89px 89px,
-    repeating-radial-gradient(ellipse at 50% 112%, transparent 0 38px, rgba(34,116,181,.025) 39px 40px, transparent 41px 75px),
-    radial-gradient(ellipse at 10% 109%, rgba(3, 24, 44, .84), transparent 28%),
-    radial-gradient(ellipse at 91% 111%, rgba(2, 18, 36, .88), transparent 31%),
-    linear-gradient(180deg, rgba(0,0,0,0) 48%, rgba(0,2,8,.56) 100%);
-  background-size: 53px 53px, 89px 89px, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    radial-gradient(circle, rgba(102, 214, 255, .34) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
+    radial-gradient(circle, rgba(255,255,255,.12) 0 .65px, transparent 1px) 13px 17px / 103px 103px,
+    radial-gradient(ellipse at 8% 111%, rgba(2, 20, 42, .84), transparent 27%),
+    radial-gradient(ellipse at 93% 111%, rgba(1, 15, 34, .9), transparent 31%),
+    linear-gradient(180deg, rgba(0,0,0,0) 43%, rgba(0,2,8,.66) 100%);
+  background-size: 67px 67px, 103px 103px, 100% 100%, 100% 100%, 100% 100%;
   filter: none;
   transform: none;
   animation: none;
@@ -4606,9 +4574,9 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   width: clamp(460px, 44vw, 650px);
   aspect-ratio: 1280 / 400;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
-  opacity: .82;
-  filter: drop-shadow(0 0 30px rgba(44, 177, 255, .36)) saturate(1.06) brightness(1.06);
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+  opacity: .88;
+  filter: drop-shadow(0 0 28px rgba(24, 137, 255, .34)) saturate(1.08) brightness(1.04);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -4649,7 +4617,7 @@ body.ns-app :is(.v933-page-header p,.v933-public-hero p,.v933-client-hero p) { m
 
 /* Reference client composition: ocean canvas first, product immediately below. */
 body.ns-app :is(.v933-public-hero,.v933-client-hero) {
-  min-height: 150px !important;
+  min-height: 142px !important;
   padding: 16px 18px !important;
   border: 0 !important;
   border-radius: 0 !important;
@@ -4657,10 +4625,10 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero) {
   box-shadow: none !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::before {
-  right: clamp(-44px, -1vw, 8px);
-  width: clamp(620px, 58vw, 810px);
-  top: 48%;
-  opacity: .94;
+  right: clamp(-34px, -.5vw, 10px);
+  width: clamp(650px, 56vw, 820px);
+  top: 50%;
+  opacity: .9;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::after {
   background: linear-gradient(90deg, rgba(1, 8, 19, .94) 0%, rgba(1, 8, 19, .63) 43%, rgba(1, 8, 19, .08) 68%, rgba(1,8,19,.08) 100%);
@@ -4702,10 +4670,15 @@ body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-ma
 body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark::before,
 body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark::after { content: none !important; display: none !important; }
 body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark img {
+  display: block !important;
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
-  filter: drop-shadow(0 0 5px rgba(62, 218, 255, .48)) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 0 2px rgba(62, 218, 255, .28)) !important;
 }
 
 /* Evidence stays available without crushing the score rail. */
@@ -4824,8 +4797,8 @@ body.ns-app :is(.card,.v933-panel,.v933-admin-panel,.v933-kpi,.v933-match-card,.
   border: 1px solid var(--nsx-line) !important;
   border-radius: var(--nsx-radius) !important;
   background:
-    linear-gradient(180deg, rgba(9, 28, 51, .68), rgba(3, 14, 28, .82)) !important;
-  box-shadow: 0 9px 26px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.04) !important;
+    linear-gradient(180deg, rgba(7, 24, 46, .66), rgba(2, 12, 27, .84)) !important;
+  box-shadow: 0 8px 22px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.035) !important;
 }
 body.ns-app :is(.card,.v933-panel,.v933-admin-panel,.v933-kpi,.v933-match-card,.action-platform-card,.operations-card):hover {
   border-color: rgba(57,216,255,.36) !important;
@@ -4851,6 +4824,19 @@ body.ns-app :is(.v933-status-chip,.tier-badge,.badge,.chip) {
   border: 1px solid rgba(57,216,255,.24) !important;
   background: rgba(57,216,255,.08) !important;
 }
+body.ns-app .v933-status-chip {
+  max-width: 100%;
+  width: fit-content;
+  min-height: 24px !important;
+  height: auto !important;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+body.ns-app .v933-match-card :is(.v933-status-chip,.v937-attention-priority) { white-space: normal; }
 body.ns-app .tier-badge-elite,
 body.ns-app .v933-plan-chip.is-elite { border-color: rgba(243,195,90,.42) !important; background: rgba(243,195,90,.12) !important; color: #ffe2a3 !important; }
 body.ns-app .tier-badge-pro,
@@ -4953,7 +4939,7 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   }
   html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner).ns-authenticated:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-client-desktop-shell.v933-client-shell,
   html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner).ns-public main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell {
-    padding-top: 14px !important;
+    padding-top: 86px !important;
   }
   body.ns-app.ns-admin main.v933-admin-shell { margin-left: 210px !important; padding: 66px 16px 28px !important; max-width: none !important; }
 }
@@ -4961,6 +4947,13 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app main.v933-public-shell,
   body.ns-app main.v933-client-shell,
   body.ns-app main.v933-admin-shell { padding: calc(66px + env(safe-area-inset-top,0px)) 12px calc(78px + env(safe-area-inset-bottom,0px)) !important; }
+  html body.ns-app[data-v928-shell="true"]:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell,
+  html body.ns-app[data-v928-shell="true"].ns-authenticated:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-client-desktop-shell.v933-client-shell {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: calc(66px + env(safe-area-inset-top,0px)) 12px calc(78px + env(safe-area-inset-bottom,0px)) !important;
+  }
   body.ns-app :is(.v933-topbar,.v933-admin-topbar,.v933-admin-sidebar) { display: none !important; }
   body.ns-app .v933-mobile-header {
     display: flex !important;
@@ -5022,7 +5015,11 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner span:nth-of-type(n+2),
   body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner a { display: none; }
   body.ns-app:has(> .nemesis-local-safe-banner) main.v933-public-shell,
-  body.ns-app:has(> .nemesis-local-safe-banner) main.v933-client-shell { padding-top: 82px !important; }
+  body.ns-app:has(> .nemesis-local-safe-banner) main.v933-client-shell { padding-top: 90px !important; }
+  html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner):not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell,
+  html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner).ns-authenticated:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-client-desktop-shell.v933-client-shell {
+    padding-top: calc(90px + env(safe-area-inset-top,0px)) !important;
+  }
   body.ns-app:has(> .nemesis-local-safe-banner) .v933-admin-mobile-nav { top: 84px !important; }
   body.ns-app:has(> .nemesis-local-safe-banner) main.v933-admin-shell { padding-top: 146px !important; }
   body.ns-app :is(.v933-mobile-bottom-nav a,.v933-admin-mobile-nav a) { min-height: 46px !important; padding: 5px 4px !important; }
@@ -5037,7 +5034,7 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app main.v933-admin-shell { padding-inline: 9px !important; }
   body.ns-app::before { opacity: .9; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero) { min-height: 142px !important; padding: 11px 10px !important; }
-  body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -132px; top: 42%; width: 430px; opacity: .84; }
+  body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -156px; top: 43%; width: 420px; opacity: .34; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero)::after { background: linear-gradient(90deg, rgba(1,8,19,.94), rgba(1,8,19,.62) 54%, rgba(1,8,19,.12) 82%); }
   body.ns-app .v933-page-header { min-height: 78px !important; padding: 11px 12px !important; }
   body.ns-app .v933-page-header::before { right: -96px; width: 330px; opacity: .34; }
@@ -5311,17 +5308,17 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
 /* Official 16-screen rebuild: route-specific composition inside the canonical layer. */
 .ns16-home,.ns16-live { gap: 9px; }
 body.ns-app .ns16-home-hero {
-  min-height: 100px !important;
-  padding: 9px 15px !important;
+  min-height: 140px !important;
+  padding: 12px 15px !important;
   background:
     radial-gradient(ellipse at 73% 40%, rgba(25, 145, 232, .16), transparent 34%),
     linear-gradient(100deg, rgba(2, 14, 31, .62), rgba(2, 10, 23, .08) 72%) !important;
 }
 body.ns-app .ns16-home-hero::before {
-  right: clamp(92px, 11vw, 152px);
-  width: clamp(320px, 28vw, 390px);
-  top: 58%;
-  opacity: .7;
+  right: clamp(16px, 3vw, 58px);
+  width: clamp(470px, 37vw, 545px);
+  top: 53%;
+  opacity: .92;
 }
 .ns16-home-hero h1 { margin: 4px 0 5px; }
 .ns16-home-hero p { margin: 0; font-size: .82rem; }
@@ -5333,8 +5330,9 @@ body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-home-command { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); gap: 10px; align-items: start; }
 .ns16-home-command > .v933-panel { min-width: 0; }
 .ns16-journey-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
-.ns16-journey-steps a { position: relative; min-width: 0; min-height: 76px; display: grid; grid-template-columns: 28px 30px minmax(0,1fr); align-items: center; gap: 7px; padding: 9px; border: 1px solid rgba(91,183,255,.16); border-radius: 7px; color: var(--nsx-text); background: rgba(2,13,29,.5); text-decoration: none; }
-.ns16-journey-steps a:hover { border-color: rgba(57,216,255,.44); background: rgba(22,118,208,.1); }
+.ns16-journey-steps a { position: relative; min-width: 0; min-height: 70px; display: grid; grid-template-columns: 28px 30px minmax(0,1fr); align-items: center; gap: 7px; padding: 8px; border: 1px solid transparent; border-radius: 6px; color: var(--nsx-text); background: transparent; text-decoration: none; }
+.ns16-journey-steps a:not(:last-child)::after { content: ""; position: absolute; z-index: 0; left: calc(100% - 5px); top: 50%; width: 18px; border-top: 1px dashed rgba(88,174,240,.34); pointer-events: none; }
+.ns16-journey-steps a:hover { border-color: rgba(57,216,255,.22); background: rgba(22,118,208,.08); }
 .ns16-journey-steps a > b { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--nsx-blue); box-shadow: 0 0 18px rgba(17,119,255,.24); font-size: .7rem; }
 .ns16-journey-steps a > .v933-icon { width: 26px; height: 26px; color: var(--nsx-cyan); }
 .ns16-journey-steps a > span { min-width: 0; display: grid; color: var(--nsx-muted); font-size: .61rem; }
@@ -5535,6 +5533,11 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app .v933-track-record > .v933-two-col,
   body.ns-app .ns16-account-layout,
   body.ns-app.ns-admin .v933-admin-dashboard .v933-admin-layout { grid-template-columns: 1fr; }
+  body.ns-app.ns-admin .v933-admin-panel > header { flex-wrap: wrap; }
+  body.ns-app.ns-admin .v933-admin-panel > header > .v933-status-chip { justify-self: start; flex: 0 1 auto; }
+  body.ns-app.ns-admin :is(#growth-revenue,#report-export) { min-width: 0; max-width: 100%; overflow: hidden; }
+  body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(.v933-table-wrap,table) { max-width: 100%; }
+  body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(a,strong,small,td,th) { overflow-wrap: anywhere; }
   body.ns-app .v933-shark-hero { min-height: 132px; grid-template-columns: 1fr; padding: 11px; }
   body.ns-app .v933-shark-hero p { display: none; }
   body.ns-app .v933-shark-hero img { top: 26%; right: -12px; width: 220px; max-height: 82px; opacity: .22; }
@@ -5546,11 +5549,15 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   .ns16-account-actions { grid-template-columns: 1fr 1fr; }
   body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
-  body.ns-app .ns16-home-hero { min-height: 92px !important; padding: 8px 10px !important; }
-  body.ns-app .ns16-home-hero::before { display: none; }
+  body.ns-app .ns16-home-hero { min-height: 108px !important; padding: 9px 10px !important; }
+  body.ns-app .ns16-home-hero::before { display: block; right: -178px; top: 45%; width: 360px; opacity: .5; }
+  body.ns-app .ns16-home-hero::after {
+    background: linear-gradient(90deg, rgba(1,8,19,.94) 0%, rgba(1,8,19,.64) 51%, rgba(1,8,19,.12) 76%, rgba(1,8,19,.03) 100%);
+  }
   .ns16-home-hero p { display: none; }
   .ns16-journey-steps { gap: 5px; }
   .ns16-journey-steps a { min-height: 68px; grid-template-columns: 1fr; justify-items: center; gap: 2px; padding: 6px 3px; text-align: center; }
+  .ns16-journey-steps a:not(:last-child)::after { left: calc(100% - 2px); width: 10px; }
   .ns16-journey-steps a > .v933-icon { display: none; }
   .ns16-journey-steps a > span { justify-items: center; }
   .ns16-home-actions { grid-template-columns: repeat(5,minmax(0,1fr)); overflow-x: auto; }

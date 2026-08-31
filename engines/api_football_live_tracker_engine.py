@@ -331,6 +331,7 @@ def _upsert_match_row(conn: sqlite3.Connection, f: Mapping[str, Any]) -> None:
               match_time=COALESCE(NULLIF(excluded.match_time,''), matches.match_time),
               kickoff_iso=COALESCE(NULLIF(excluded.kickoff_iso,''), matches.kickoff_iso),
               competition_id=COALESCE(NULLIF(excluded.competition_id,''), matches.competition_id),
+              competition_key=COALESCE(NULLIF(excluded.competition_key,''), matches.competition_key),
               competition_name=COALESCE(NULLIF(excluded.competition_name,''), matches.competition_name),
               league_name=COALESCE(NULLIF(excluded.league_name,''), matches.league_name),
               country=COALESCE(NULLIF(excluded.country,''), matches.country),

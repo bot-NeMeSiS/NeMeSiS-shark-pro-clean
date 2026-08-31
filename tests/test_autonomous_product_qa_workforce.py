@@ -23,7 +23,11 @@ from engines.sentinel_issues_engine import (
 )
 from engines.sentinel_codex_outbox_engine import write_codex_outbox
 from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
-from tools.run_autonomous_product_qa import _cross_surface_live_truth_evidence, _sports_priority_regression
+from tools.run_autonomous_product_qa import (
+    _cross_surface_competition_identity_evidence,
+    _cross_surface_live_truth_evidence,
+    _sports_priority_regression,
+)
 
 
 def test_daily_policy_includes_sports_knowledge_summary_media_rights_and_time():
@@ -56,6 +60,77 @@ def test_cross_surface_live_truth_worker_compares_same_canonical_match():
     assert mismatch["observed"] is True
     assert mismatch["pass"] is False
     assert mismatch["mismatches"][0]["match_id"] == "m-1"
+
+
+def test_cross_surface_competition_identity_compares_provider_backed_ids():
+    clean = _cross_surface_competition_identity_evidence([
+        {"key": "home", "competition_truth": [{"match_id": "m-1", "competition_id": "thesportsdb-api-competition-4400"}]},
+        {"key": "partidos", "competition_truth": [{"match_id": "m-1", "competition_id": "thesportsdb-api-competition-4400"}]},
+        {"key": "match", "competition_truth": [{"match_id": "m-1", "competition_id": "thesportsdb-api-competition-4400"}]},
+    ])
+    mismatch = _cross_surface_competition_identity_evidence([
+        {"key": "home", "competition_truth": [{"match_id": "m-1", "competition_id": "thesportsdb-api-competition-4335"}]},
+        {"key": "partidos", "competition_truth": [{"match_id": "m-1", "competition_id": "thesportsdb-api-competition-4400"}]},
+    ])
+
+    assert clean == {"observed": True, "pass": True, "matches_compared": 1, "mismatches": []}
+    assert mismatch["pass"] is False
+    assert mismatch["mismatches"][0]["match_id"] == "m-1"
+
+
+def test_layout_collision_evidence_opens_real_visual_issue():
+    observation = clean_observation()
+    observation["layout_collisions"] = [{
+        "type": "text_border_collision",
+        "screen": "/profile",
+        "viewport": "mobile_360x800",
+        "element": "button.v933-action",
+        "actual": "text bounds escape element bounds",
+        "evidence": "Configuración de notificaciones toca el borde derecho.",
+    }]
+
+    issues = detect_product_qa_issues(observation)
+
+    issue = next(item for item in issues if item["category"] == "LAYOUT_COLLISION")
+    assert issue["severity"] == "P1"
+    assert issue["worker"] == "visual_experience_inspector"
+    assert PINNED_REGRESSION_CONTRACTS["NO_TEXT_BORDER_COLLISION"]["severity"] == "P1"
+    assert PINNED_REGRESSION_CONTRACTS["MOBILE_360_LAYOUT"]["test"] == "mobile_360_collision_and_overflow_scan"
+
+
+def test_rendered_layout_competition_and_temporal_evidence_reaches_regression_manager(tmp_path: Path):
+    observation = clean_observation()
+    observation["competition_identity"] = {"pass": True, "matches_compared": 2, "mismatches": []}
+    observation["layout"] = {
+        "observed": True,
+        "captures": 171,
+        "collision_types": [],
+        "collisions": 0,
+        "mobile_360_captures": 16,
+        "mobile_360_collisions": 0,
+        "mobile_360_overflow": 0,
+    }
+    observation["temporal_context"] = {
+        "checked_cards": 18,
+        "missing_cards": 0,
+        "ambiguous_cards": 0,
+        "cross_surface_consistent": True,
+        "madrid_time": True,
+    }
+
+    result = record_product_qa_run(
+        observation,
+        project_root=tmp_path,
+        storage_root=tmp_path / "ce",
+        now="2026-08-31T16:00:00+02:00",
+    )
+    statuses = {item["regression_id"]: item["status"] for item in result["regression_manager"]["items"]}
+    assert statuses["CROSS_SURFACE_COMPETITION_IDENTITY"] == "PASS"
+    assert statuses["NO_TEXT_BORDER_COLLISION"] == "PASS"
+    assert statuses["NO_CARD_OVERFLOW"] == "PASS"
+    assert statuses["SPANISH_COPY_STRESS"] == "PASS"
+    assert statuses["MOBILE_360_LAYOUT"] == "PASS"
+    assert statuses["TEMPORAL_CONTEXT_CONSISTENCY"] == "PASS"
 
 
 def failing_observation() -> dict:
@@ -383,7 +458,7 @@ def test_regression_manager_pins_all_known_founder_regressions(tmp_path: Path):
     )
 
     manager = result["regression_manager"]
-    assert manager["protected_regressions"] == 18
+    assert manager["protected_regressions"] == len(PINNED_REGRESSION_CONTRACTS)
     assert {item["regression_id"] for item in manager["items"]} == set(PINNED_REGRESSION_CONTRACTS)
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_SHARK_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"
     assert next(item for item in manager["items"] if item["regression_id"] == "OFFICIAL_BACKGROUND_REFERENCE")["status"] == "FOUNDER_REVIEW_REQUIRED"

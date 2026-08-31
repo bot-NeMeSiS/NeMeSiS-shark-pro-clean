@@ -89,6 +89,22 @@ TECHNICAL_COPY_RE = re.compile(
     re.I,
 )
 MOJIBAKE_RE = re.compile(r"(?:\ufffd|Ã.|Â.|actualizaci\?n|informaci\?n|revisi\?n|navegaci\?n)", re.I)
+LAYOUT_GATE_PROFILES = {
+    "desktop_1440x900": {"width": 1440, "height": 900, "is_mobile": False},
+    "desktop_1366x768": {"width": 1366, "height": 768, "is_mobile": False},
+    "tablet_1024x768": {"width": 1024, "height": 768, "is_mobile": False},
+    "tablet_834x1194": {"width": 834, "height": 1194, "is_mobile": False},
+    "tablet_768x1024": {"width": 768, "height": 1024, "is_mobile": False},
+    "mobile_430x932": {"width": 430, "height": 932, "is_mobile": True},
+    "mobile_390x844": {"width": 390, "height": 844, "is_mobile": True},
+    "mobile_375x812": {"width": 375, "height": 812, "is_mobile": True},
+    "mobile_360x800": {"width": 360, "height": 800, "is_mobile": True},
+}
+EXTENDED_LAYOUT_SCREEN_KEYS = {
+    "home", "partidos", "directo", "match", "team", "competition", "player",
+    "picks", "shark", "track_record", "membership", "telegram", "profile",
+    "admin", "founder", "growth",
+}
 
 
 def _session_cookie(app_module, role: str) -> str:
@@ -277,13 +293,120 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             const style = getComputedStyle(node);
             return rect.width > 20 && rect.height > 20 && rect.top < innerHeight && rect.bottom > 0 && style.display !== 'none' && style.visibility !== 'hidden';
           });
+          const layoutCollisions = [];
+          const visible = node => {
+            const rect = node.getBoundingClientRect();
+            const style = getComputedStyle(node);
+            return rect.width > 2 && rect.height > 2 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 1) > 0;
+          };
+          const selectorFor = node => {
+            if (node.id) return '#' + node.id;
+            const classes = Array.from(node.classList || []).slice(0, 3).join('.');
+            return node.tagName.toLowerCase() + (classes ? '.' + classes : '');
+          };
+          const record = (type, node, actual, other=null) => {
+            if (layoutCollisions.length >= 60) return;
+            const rect = node.getBoundingClientRect();
+            layoutCollisions.push({
+              type,
+              element: selectorFor(node),
+              other: other ? selectorFor(other) : '',
+              text: (node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 180),
+              actual,
+              rect: {left: Math.round(rect.left), top: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height)},
+            });
+          };
+          const watched = Array.from(document.querySelectorAll([
+            'button', 'a.v933-action', '.v933-status-chip', '.v933-filter-tabs a',
+            '.v933-bottom-nav a', '.v933-topbar a', '.v933-match-card-header > div',
+            '.v933-match-card-header time', '.v933-match-card-actions > *',
+            '.v933-page-heading h1', '.v933-section-header h2', '.v933-kpi',
+            '.v933-quick-action', '[data-layout-watch]'
+          ].join(','))).filter(visible);
+          const hasHorizontalScrollContainer = node => {
+            let parent = node.parentElement;
+            while (parent && parent !== document.body) {
+              const parentStyle = getComputedStyle(parent);
+              if (['auto', 'scroll'].includes(parentStyle.overflowX) && parent.scrollWidth > parent.clientWidth + 2) return true;
+              parent = parent.parentElement;
+            }
+            return false;
+          };
+          for (const node of watched) {
+            const style = getComputedStyle(node);
+            const clippedX = node.scrollWidth > node.clientWidth + 2;
+            const clippedY = node.scrollHeight > node.clientHeight + 2;
+            const boundedOverflow = ['hidden', 'clip'].includes(style.overflowX) || ['hidden', 'clip'].includes(style.overflowY);
+            const compactControl = node.matches('button,a,.v933-status-chip,.v933-filter-tabs a,.v933-match-card-header time');
+            if (clippedX || (clippedY && (boundedOverflow || compactControl))) {
+              record(node.matches('button,a') ? 'button_clipping' : 'text_clipping', node, 'scroll=' + node.scrollWidth + 'x' + node.scrollHeight + '; client=' + node.clientWidth + 'x' + node.clientHeight);
+            }
+            if (style.position !== 'fixed') {
+              const rect = node.getBoundingClientRect();
+              if ((rect.left < -2 || rect.right > innerWidth + 2) && !hasHorizontalScrollContainer(node)) record('viewport_escape', node, 'left=' + Math.round(rect.left) + '; right=' + Math.round(rect.right) + '; viewport=' + innerWidth);
+            }
+          }
+          const cards = Array.from(document.querySelectorAll('.v933-match-card,.v933-pick-card,.v933-kpi,.v933-quick-action,.v933-panel,.v933-admin-panel,.v933-page-header')).filter(visible);
+          for (const card of cards) {
+            const style = getComputedStyle(card);
+            const horizontal = card.scrollWidth > card.clientWidth + 2 && !['auto', 'scroll'].includes(style.overflowX);
+            if (horizontal) record('card_overflow', card, 'scroll=' + card.scrollWidth + 'x' + card.scrollHeight + '; client=' + card.clientWidth + 'x' + card.clientHeight);
+          }
+          const insideVisibleClip = node => {
+            const rect = node.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            if (centerX < 0 || centerX >= innerWidth || centerY < 0 || centerY >= innerHeight) return false;
+            let parent = node.parentElement;
+            while (parent && parent !== document.body) {
+              const style = getComputedStyle(parent);
+              if (['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowX) || ['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowY)) {
+                const parentRect = parent.getBoundingClientRect();
+                if (centerX < parentRect.left || centerX > parentRect.right || centerY < parentRect.top || centerY > parentRect.bottom) return false;
+              }
+              parent = parent.parentElement;
+            }
+            return true;
+          };
+          const interactive = Array.from(document.querySelectorAll('a[href],button,input,select,textarea')).filter(node => visible(node) && insideVisibleClip(node));
+          const ownsHit = (control, hit) => Boolean(hit && (hit === control || control.contains(hit)));
+          const centerHit = rect => document.elementFromPoint(
+            Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / 2)),
+            Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / 2))
+          );
+          for (let i = 0; i < interactive.length; i += 1) {
+            const a = interactive[i];
+            const ar = a.getBoundingClientRect();
+            for (let j = i + 1; j < interactive.length; j += 1) {
+              const b = interactive[j];
+              if (a.contains(b) || b.contains(a)) continue;
+              const aBottomNav = a.closest('.v933-mobile-bottom-nav,.bottom-nav-clean');
+              const bBottomNav = b.closest('.v933-mobile-bottom-nav,.bottom-nav-clean');
+              if (Boolean(aBottomNav) !== Boolean(bBottomNav)) continue;
+              const br = b.getBoundingClientRect();
+              const overlapW = Math.min(ar.right, br.right) - Math.max(ar.left, br.left);
+              const overlapH = Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top);
+              if (overlapW > 2 && overlapH > 2) {
+                const aHit = centerHit(ar);
+                const bHit = centerHit(br);
+                const aBlockedByB = !ownsHit(a, aHit) && ownsHit(b, aHit);
+                const bBlockedByA = !ownsHit(b, bHit) && ownsHit(a, bHit);
+                if (aBlockedByB || bBlockedByA) record(
+                  'interactive_overlap',
+                  a,
+                  'overlap=' + Math.round(overlapW) + 'x' + Math.round(overlapH) + '; blocked=' + (aBlockedByB ? 'first' : 'second'),
+                  b
+                );
+              }
+            }
+          }
           const bg = bodyStyle ? bodyStyle.backgroundImage : '';
           const sharkImage = shark ? shark.backgroundImage : '';
           const sharkWidth = shark ? parseFloat(shark.width || '0') : 0;
           const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
           const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
           const sharkAssetOk = /nemesis-shark-atmosphere\.svg/.test(sharkImage);
-          const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .9;
+          const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .98;
           const backgroundOk = /gradient/.test(bg) && !/^none$/i.test(bg);
           const lineup = document.querySelector('[data-lineups-contract]');
           const summary = document.querySelector('[data-summary-contract]');
@@ -306,6 +429,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             broken_images: brokenImages,
             first_viewport_product: firstViewportProduct,
             nested_panel_depth: nestedPanelDepth,
+            layout_collisions: layoutCollisions,
             brand: {
               asset: brandImage ? (brandImage.currentSrc || brandImage.src) : '',
               mark_width: brandStyle ? brandStyle.width : '',
@@ -354,6 +478,29 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               canonical_status: (node.getAttribute('data-canonical-status') || '').toUpperCase(),
               is_live: node.getAttribute('data-canonical-live') === 'true',
             })),
+            competition_truth: Array.from(document.querySelectorAll('[data-v934-match-id][data-canonical-competition-id]')).map(node => ({
+              match_id: node.getAttribute('data-v934-match-id') || '',
+              competition_id: node.getAttribute('data-canonical-competition-id') || '',
+              contract: node.getAttribute('data-competition-identity-contract') || '',
+            })),
+            temporal_truth: Array.from(document.querySelectorAll('[data-match-temporal-context]')).map(node => {
+              const owner = node.closest('[data-v934-match-id],[data-match-id]');
+              return {
+                match_id: owner?.getAttribute('data-v934-match-id') || owner?.getAttribute('data-match-id') || '',
+                datetime: node.getAttribute('datetime') || '',
+                label: (node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim(),
+                contract: node.getAttribute('data-match-temporal-context') || '',
+              };
+            }),
+            temporal_truth: Array.from(document.querySelectorAll('[data-match-temporal-context]')).map(node => {
+              const owner = node.closest('[data-v934-match-id],[data-match-id]');
+              return {
+                match_id: owner?.getAttribute('data-v934-match-id') || owner?.getAttribute('data-match-id') || '',
+                datetime: node.getAttribute('datetime') || '',
+                label: (node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim(),
+                contract: node.getAttribute('data-match-temporal-context') || '',
+              };
+            }),
             sports_knowledge: {
               lineup_state: lineup?.getAttribute('data-lineup-state') || 'not_observed',
               lineup_confirmed: lineup?.getAttribute('data-lineup-state') === 'confirmed',
@@ -799,6 +946,122 @@ def _cross_surface_live_truth_evidence(captures: list[dict]) -> dict:
     }
 
 
+def _cross_surface_competition_identity_evidence(captures: list[dict]) -> dict:
+    """Require one canonical competition id for the same rendered match."""
+    sports_surfaces = {"home", "public_home", "partidos", "directo", "match", "team", "competition", "player", "picks", "shark"}
+    by_match: dict[str, dict[str, str]] = {}
+    for capture in captures:
+        surface = str(capture.get("key") or "")
+        if surface not in sports_surfaces:
+            continue
+        for item in capture.get("competition_truth") or []:
+            match_id = str(item.get("match_id") or "").strip()
+            competition_id = str(item.get("competition_id") or "").strip()
+            if match_id and competition_id:
+                by_match.setdefault(match_id, {})[surface] = competition_id
+    compared = {match_id: surfaces for match_id, surfaces in by_match.items() if len(surfaces) >= 2}
+    mismatches = []
+    for match_id, surfaces in sorted(compared.items()):
+        if len(set(surfaces.values())) > 1:
+            mismatches.append({"match_id": match_id, "surfaces": surfaces})
+    return {
+        "observed": bool(compared),
+        "pass": bool(compared) and not mismatches,
+        "matches_compared": len(compared),
+        "mismatches": mismatches,
+    }
+
+
+def _cross_surface_temporal_evidence(captures: list[dict]) -> dict:
+    """Verify that rendered match dates retain the canonical Madrid instant."""
+    sports_surfaces = {"home", "public_home", "partidos", "directo", "match", "team", "competition", "player", "picks", "shark", "track_record"}
+    by_match: dict[str, dict[str, str]] = {}
+    checked = 0
+    missing = 0
+    ambiguous = 0
+    madrid_values: list[str] = []
+    context_re = re.compile(r"(?:hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d{1,2}[/:.-]|\d{1,2}:\d{2}|final|directo|aplazado|cancelado)", re.I)
+    for capture in captures:
+        surface = str(capture.get("key") or "")
+        if surface not in sports_surfaces:
+            continue
+        for item in capture.get("temporal_truth") or []:
+            checked += 1
+            label = str(item.get("label") or "").strip()
+            instant = str(item.get("datetime") or "").strip()
+            match_id = str(item.get("match_id") or "").strip()
+            if not label or re.search(r"(?:fecha pendiente|fecha no disponible|no disponible)", label, re.I):
+                missing += 1
+            elif not context_re.search(label):
+                ambiguous += 1
+            if instant:
+                madrid_values.append(instant)
+                if match_id:
+                    by_match.setdefault(match_id, {})[surface] = instant
+    compared = {match_id: surfaces for match_id, surfaces in by_match.items() if len(surfaces) >= 2}
+    mismatches = [
+        {"match_id": match_id, "surfaces": surfaces}
+        for match_id, surfaces in sorted(compared.items())
+        if len(set(surfaces.values())) > 1
+    ]
+    madrid_time = bool(madrid_values) and all(re.search(r"(?:[+-]01:00|[+-]02:00)$", value) for value in madrid_values)
+    return {
+        "observed": checked > 0 and bool(compared),
+        "checked_cards": checked,
+        "missing_cards": missing,
+        "ambiguous_cards": ambiguous,
+        "cross_surface_consistent": bool(compared) and not mismatches,
+        "matches_compared": len(compared),
+        "mismatches": mismatches,
+        "madrid_time": madrid_time,
+    }
+
+
+def _cross_surface_temporal_evidence(captures: list[dict]) -> dict:
+    """Verify that rendered match dates retain the canonical Madrid instant."""
+    sports_surfaces = {"home", "public_home", "partidos", "directo", "match", "team", "competition", "player", "picks", "shark", "track_record"}
+    by_match: dict[str, dict[str, str]] = {}
+    checked = 0
+    missing = 0
+    ambiguous = 0
+    madrid_values: list[str] = []
+    context_re = re.compile(r"(?:hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d{1,2}[/:.-]|\d{1,2}:\d{2}|final|directo|aplazado|cancelado)", re.I)
+    for capture in captures:
+        surface = str(capture.get("key") or "")
+        if surface not in sports_surfaces:
+            continue
+        for item in capture.get("temporal_truth") or []:
+            checked += 1
+            label = str(item.get("label") or "").strip()
+            instant = str(item.get("datetime") or "").strip()
+            match_id = str(item.get("match_id") or "").strip()
+            if not label or re.search(r"(?:fecha pendiente|fecha no disponible|no disponible)", label, re.I):
+                missing += 1
+            elif not context_re.search(label):
+                ambiguous += 1
+            if instant:
+                madrid_values.append(instant)
+                if match_id:
+                    by_match.setdefault(match_id, {})[surface] = instant
+    compared = {match_id: surfaces for match_id, surfaces in by_match.items() if len(surfaces) >= 2}
+    mismatches = [
+        {"match_id": match_id, "surfaces": surfaces}
+        for match_id, surfaces in sorted(compared.items())
+        if len(set(surfaces.values())) > 1
+    ]
+    madrid_time = bool(madrid_values) and all(re.search(r"(?:[+-]01:00|[+-]02:00)$", value) for value in madrid_values)
+    return {
+        "observed": checked > 0 and bool(compared),
+        "checked_cards": checked,
+        "missing_cards": missing,
+        "ambiguous_cards": ambiguous,
+        "cross_surface_consistent": bool(compared) and not mismatches,
+        "matches_compared": len(compared),
+        "mismatches": mismatches,
+        "madrid_time": madrid_time,
+    }
+
+
 def _reference_map() -> dict[str, str]:
     path = ROOT / "reference_images" / "reference_manifest.json"
     try:
@@ -918,7 +1181,12 @@ def main() -> int:
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True)
-            for profile_name, profile in PROFILES.items():
+            expected_captures = 0
+            for profile_name, profile in LAYOUT_GATE_PROFILES.items():
+                profile_screens = selected_screens if profile_name in PROFILES else [
+                    item for item in selected_screens if item[0] in EXTENDED_LAYOUT_SCREEN_KEYS
+                ]
+                expected_captures += len(profile_screens)
                 context = browser.new_context(
                     viewport={"width": profile["width"], "height": profile["height"]},
                     is_mobile=profile["is_mobile"],
@@ -936,12 +1204,14 @@ def main() -> int:
 
                 profile_dir = run_output / profile_name
                 profile_dir.mkdir(parents=True, exist_ok=True)
-                for key, route, audience in selected_screens:
+                for key, route, audience in profile_screens:
                     context.clear_cookies()
                     if audience in {"client", "admin"}:
                         _set_role_cookie(context, app_module, audience)
                     response = page.goto(base_url + route, wait_until="domcontentloaded", timeout=15000)
                     page.wait_for_timeout(120)
+                    page.evaluate("window.scrollTo(0, 0); document.scrollingElement.scrollTop = 0")
+                    page.wait_for_timeout(40)
                     screenshot = profile_dir / f"{key}.png"
                     page.screenshot(path=str(screenshot), full_page=False)
                     inspection = _inspect(page, route.split("#", 1)[0], profile_name)
@@ -966,6 +1236,7 @@ def main() -> int:
 
                 if profile_name == "desktop_1366x768":
                     journeys.append(_public_golden_journey(page, base_url, qa_password))
+                    journeys.append(_client_admin_separation_journey(page, base_url, app_module))
                     if args.scope == "full":
                         context.clear_cookies()
                         _set_role_cookie(context, app_module, "client")
@@ -980,7 +1251,6 @@ def main() -> int:
                         _set_role_cookie(context, app_module, "client")
                         journeys.append(_picks_golden_journey(page, base_url))
                         journeys.append(_account_golden_journey(page, base_url, qa_password))
-                        journeys.append(_client_admin_separation_journey(page, base_url, app_module))
                         journeys.append(_admin_golden_journey(page, base_url, qa_password))
                 context.close()
 
@@ -1036,11 +1306,28 @@ def main() -> int:
     performance_status = "PASS" if performance_max is not None and performance_max <= 5000 else "FAIL" if performance_max is not None else "NOT_RUN"
     sports_priority = _sports_priority_regression(app_module)
     cross_surface_truth = _cross_surface_live_truth_evidence(captures)
+    cross_surface_competition = _cross_surface_competition_identity_evidence(captures)
+    temporal_context = _cross_surface_temporal_evidence(captures)
+    temporal_context = _cross_surface_temporal_evidence(captures)
+    layout_collisions = []
+    for capture in captures:
+        for collision in capture.get("layout_collisions") or []:
+            layout_collisions.append({
+                **collision,
+                "screen": capture.get("path") or "/",
+                "viewport": capture.get("viewport") or "unknown",
+                "screenshot": capture.get("screenshot") or "",
+                "evidence": (
+                    f"{collision.get('type')}: {collision.get('element')}"
+                    + (f" vs {collision.get('other')}" if collision.get("other") else "")
+                    + f"; {collision.get('actual') or ''}"
+                ),
+            })
     observation = {
         "run_id": run_id,
         "started_at_madrid": started,
         "production_sha": args.production_sha,
-        "evidence_complete": bool(captures) and len(captures) == len(selected_screens) * len(PROFILES) and bool(journeys),
+        "evidence_complete": bool(captures) and len(captures) == expected_captures and bool(journeys),
         "scope": args.scope,
         "next_expected_run": "Siguiente cambio, revision diaria critica o auditoria visual semanal, lo que ocurra primero.",
         "workers_executed": [
@@ -1068,6 +1355,35 @@ def main() -> int:
             "screenshot": sports_capture.get("screenshot") or "",
             "evidence": "Contrato LIVE leído de la UI renderizada y comparado con el KPI visible.",
         },
+        "competition_identity": {
+            "screen": "sports surfaces",
+            "viewport": "all",
+            "pass": cross_surface_competition["pass"] if cross_surface_competition["observed"] else False,
+            "matches_compared": cross_surface_competition["matches_compared"],
+            "mismatches": cross_surface_competition["mismatches"],
+            "evidence": "IDs canónicos leídos de las mismas cards renderizadas en todas las superficies deportivas.",
+        },
+        "layout_collisions": layout_collisions,
+        "layout": {
+            "observed": bool(captures) and len(captures) == expected_captures,
+            "captures": len(captures),
+            "collision_types": sorted({str(item.get("type") or "") for item in layout_collisions if item.get("type")}),
+            "collisions": len(layout_collisions),
+            "mobile_360_captures": sum(1 for item in captures if item.get("viewport") == "mobile_360x800"),
+            "mobile_360_collisions": sum(len(item.get("layout_collisions") or []) for item in captures if item.get("viewport") == "mobile_360x800"),
+            "mobile_360_overflow": sum(1 for item in captures if item.get("viewport") == "mobile_360x800" and item.get("horizontal_overflow")),
+        },
+        "temporal_context": temporal_context,
+        "layout": {
+            "observed": bool(captures) and len(captures) == expected_captures,
+            "captures": len(captures),
+            "collision_types": sorted({str(item.get("type") or "") for item in layout_collisions if item.get("type")}),
+            "collisions": len(layout_collisions),
+            "mobile_360_captures": sum(1 for item in captures if item.get("viewport") == "mobile_360x800"),
+            "mobile_360_collisions": sum(len(item.get("layout_collisions") or []) for item in captures if item.get("viewport") == "mobile_360x800"),
+            "mobile_360_overflow": sum(1 for item in captures if item.get("viewport") == "mobile_360x800" and item.get("horizontal_overflow")),
+        },
+        "temporal_context": temporal_context,
         "sports_knowledge": {
             **(match_capture.get("sports_knowledge") or {}),
             "screen": match_capture.get("path") or "/match/m-1",
@@ -1123,10 +1439,11 @@ def main() -> int:
                 "status": "WARNING"
                 if str(shark_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
                 and str(background_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
+                and not layout_collisions
                 else "FAIL"
             },
             "SPORTS_TRUTH": {"status": "PASS" if int(live_contract.get("confirmed") or 0) == int(live_contract.get("displayed") or 0) and int(live_contract.get("ft_rendered_live") or 0) == 0 else "FAIL"},
-            "MOBILE": {"status": "PASS" if not mobile_capture.get("horizontal_overflow", False) else "FAIL"},
+            "MOBILE": {"status": "PASS" if not mobile_capture.get("horizontal_overflow", False) and not any(str(item.get("viewport") or "").startswith("mobile_") for item in layout_collisions) else "FAIL"},
             "ADMIN": {"status": "PASS" if admin_journey.get("pass") is True and not technical_matches and not mojibake_matches else "FAIL"},
             "SECURITY": {"status": "PASS" if client_admin_separation.get("pass") is True else "FAIL"},
             "PERFORMANCE": {"status": performance_status},

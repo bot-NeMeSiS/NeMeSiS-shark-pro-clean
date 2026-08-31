@@ -1,18 +1,18 @@
-/* V933 canonical product design tokens. */
+/* NeMeSiS Design System 1.0: canonical tokens derived from the 16 official PNGs. */
 :root {
-  --v933-bg: #020812;
-  --v933-bg-raised: #050e1b;
-  --v933-surface: #071425;
-  --v933-surface-2: #0a1a2e;
-  --v933-surface-3: #0d2037;
-  --v933-border: rgba(132, 171, 213, 0.2);
-  --v933-border-strong: rgba(38, 177, 255, 0.48);
+  --v933-bg: #000715;
+  --v933-bg-raised: #020c1c;
+  --v933-surface: #051022;
+  --v933-surface-2: #06172d;
+  --v933-surface-3: #08203a;
+  --v933-border: rgba(97, 156, 214, 0.2);
+  --v933-border-strong: rgba(31, 168, 255, 0.5);
   --v933-text: #f5f9ff;
   --v933-text-soft: #c8d5e4;
   --v933-muted: #91a5ba;
-  --v933-blue: #087cff;
-  --v933-blue-hover: #2795ff;
-  --v933-cyan: #19d5ff;
+  --v933-blue: #075fdd;
+  --v933-blue-hover: #087df2;
+  --v933-cyan: #24cfff;
   --v933-green: #36dc81;
   --v933-yellow: #f2bd38;
   --v933-red: #ff5c70;
@@ -31,19 +31,19 @@
   --v933-space-5: 20px;
   --v933-space-6: 24px;
   --v933-space-8: 32px;
-  --v933-topbar: 68px;
+  --v933-topbar: 56px;
   --v933-sidebar: 236px;
   --v933-mobile-nav: 68px;
   --v933-content: 1480px;
   --v933-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --ns-bg: #020712;
-  --ns-bg-deep: #00040b;
-  --ns-bg-elevated: #061426;
-  --ns-panel: rgba(6, 18, 35, 0.78);
-  --ns-panel-glass: rgba(8, 25, 47, 0.68);
-  --ns-border: rgba(111, 190, 255, 0.18);
-  --ns-cyan: #39d8ff;
-  --ns-blue: #1177ff;
+  --ns-bg: #000715;
+  --ns-bg-deep: #00030a;
+  --ns-bg-elevated: #05152f;
+  --ns-panel: rgba(3, 14, 31, 0.82);
+  --ns-panel-glass: rgba(5, 22, 42, 0.72);
+  --ns-border: rgba(85, 167, 230, 0.19);
+  --ns-cyan: #24cfff;
+  --ns-blue: #075fdd;
   --ns-text: #f3f8ff;
   --ns-muted: rgba(203, 220, 238, 0.72);
   --ns-positive: #30d48a;
@@ -53,7 +53,31 @@
   --ns-radius: 8px;
   --ns-gap: 12px;
   --ns-shadow: 0 16px 44px rgba(0, 0, 0, 0.34);
-  --ns-glow: 0 0 44px rgba(57, 216, 255, 0.2);
+  --ns-glow: 0 0 38px rgba(36, 207, 255, 0.18);
+  --ns-z-content: 10;
+  --ns-z-chrome: 200;
+  --ns-z-mobile: 220;
+  --ns-z-overlay: 300;
+  --nsx-bg-0: var(--ns-bg-deep);
+  --nsx-bg-1: var(--ns-bg);
+  --nsx-bg-2: var(--ns-bg-elevated);
+  --nsx-panel: var(--ns-panel);
+  --nsx-panel-strong: rgba(5, 22, 43, .92);
+  --nsx-line: var(--ns-border);
+  --nsx-line-strong: rgba(36, 207, 255, .46);
+  --nsx-cyan: var(--ns-cyan);
+  --nsx-blue: var(--ns-blue);
+  --nsx-green: var(--ns-positive);
+  --nsx-yellow: var(--ns-warning);
+  --nsx-red: var(--ns-danger);
+  --nsx-violet: #8c7cff;
+  --nsx-gold: var(--ns-elite);
+  --nsx-text: var(--ns-text);
+  --nsx-muted: var(--ns-muted);
+  --nsx-faint: rgba(165, 185, 210, .58);
+  --nsx-radius: var(--ns-radius);
+  --nsx-radius-sm: 6px;
+  --nsx-shadow: var(--ns-shadow);
 }
 
 html { color-scheme: dark; }

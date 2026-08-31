@@ -5,7 +5,7 @@ This module has no Flask dependency. The app owns persistence and HTTP calls.
 
 IMPORTANT_COMPETITIONS = [
     {"key": "laliga", "name": "LaLiga EA Sports", "country": "Spain", "group": "spain", "sportsdb_id": "4335", "odds_key": "soccer_spain_la_liga"},
-    {"key": "segunda-division", "name": "Segunda Division", "country": "Spain", "group": "spain", "sportsdb_id": "4401", "odds_key": "soccer_spain_segunda_division"},
+    {"key": "segunda-division", "name": "Segunda Division", "country": "Spain", "group": "spain", "sportsdb_id": "4400", "odds_key": "soccer_spain_segunda_division"},
     {"key": "primera-rfef", "name": "Primera RFEF", "country": "Spain", "group": "spain", "sportsdb_id": "", "odds_key": ""},
     {"key": "segunda-rfef", "name": "Segunda RFEF", "country": "Spain", "group": "spain", "sportsdb_id": "", "odds_key": ""},
     {"key": "tercera-rfef", "name": "Tercera RFEF", "country": "Spain", "group": "spain", "sportsdb_id": "", "odds_key": ""},
@@ -15,7 +15,7 @@ IMPORTANT_COMPETITIONS = [
     {"key": "championship", "name": "Championship", "country": "England", "group": "international", "sportsdb_id": "4329", "odds_key": "soccer_efl_champ"},
     {"key": "fa-cup", "name": "FA Cup", "country": "England", "group": "international", "sportsdb_id": "", "odds_key": "soccer_fa_cup"},
     {"key": "ligue-1", "name": "Ligue 1", "country": "France", "group": "international", "sportsdb_id": "4334", "odds_key": "soccer_france_ligue_one"},
-    {"key": "ligue-2", "name": "Ligue 2", "country": "France", "group": "international", "sportsdb_id": "4402", "odds_key": "soccer_france_ligue_two"},
+    {"key": "ligue-2", "name": "Ligue 2", "country": "France", "group": "international", "sportsdb_id": "4401", "odds_key": "soccer_france_ligue_two"},
     {"key": "serie-a", "name": "Serie A", "country": "Italy", "group": "international", "sportsdb_id": "4332", "odds_key": "soccer_italy_serie_a"},
     {"key": "serie-b", "name": "Serie B", "country": "Italy", "group": "international", "sportsdb_id": "4394", "odds_key": "soccer_italy_serie_b"},
     {"key": "bundesliga", "name": "Bundesliga", "country": "Germany", "group": "international", "sportsdb_id": "4331", "odds_key": "soccer_germany_bundesliga"},

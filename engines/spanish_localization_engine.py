@@ -148,6 +148,7 @@ SPANISH_COUNTRY_OVERRIDES = {
     "south korea": "Corea del Sur",
     "czech republic": "República Checa",
     "czechia": "República Checa",
+    "ukraine": "Ucrania",
 }
 
 
@@ -174,8 +175,13 @@ SPANISH_COMPETITION_OVERRIDES = {
     "fa cup": "Copa FA",
     "efl cup": "Copa de la Liga inglesa",
     "spanish la liga": "LaLiga EA Sports",
+    "spanish la liga 2": "Segunda División",
     "laliga": "LaLiga EA Sports",
+    "laliga 2": "Segunda División",
+    "laliga hypermotion": "Segunda División",
+    "laliga smartbank": "Segunda División",
     "la liga": "LaLiga EA Sports",
+    "la liga 2": "Segunda División",
     "spanish segunda division": "Segunda División",
     "segunda division": "Segunda División",
     "serie a": "Serie A",
@@ -358,12 +364,6 @@ def spanish_competition_name(value: object) -> str:
     compact_key = raw.strip().lower()
     if compact_key in SPANISH_COMPETITION_OVERRIDES:
         return SPANISH_COMPETITION_OVERRIDES[compact_key]
-    for needle, translated in SPANISH_COMPETITION_OVERRIDES.items():
-        # "Copa de la Liga" is not Spain's "La Liga". Keep this alias exact-only.
-        if needle in {"la liga", "laliga"}:
-            continue
-        if needle and needle in key:
-            return translated
     # API keys such as soccer_spain_la_liga should never be displayed raw.
     if "_" in raw or raw.lower().startswith(("soccer", "football")):
         return _humanize_competition_key(raw)

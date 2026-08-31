@@ -137,6 +137,7 @@ from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
 from engines.competition_center_engine import build_competition_center_context
 from engines.player_center_engine import build_player_center_context
+from engines.sports_domain_model_engine import normalize_competition_entity
 from engines.shark_intelligence_platform_engine import build_shark_intelligence_platform_snapshot
 from engines.user_intelligence_platform_engine import (
     build_user_intelligence_platform_snapshot,
@@ -2640,11 +2641,14 @@ def _seed_core_unlocked():
         )
         cur.execute(
             """UPDATE competitions
-               SET external_id=COALESCE(NULLIF(external_id,''), ?),
+               SET external_id=CASE
+                       WHEN key='segunda-division' AND external_id='4401' THEN ?
+                       ELSE COALESCE(NULLIF(external_id,''), ?)
+                   END,
                    source=COALESCE(NULLIF(source,''), ?),
                    sync_status=COALESCE(NULLIF(sync_status,''), ?)
                WHERE key=?""",
-            (comp["external_id"], comp["source"], comp["sync_status"], comp["key"]),
+            (comp["external_id"], comp["external_id"], comp["source"], comp["sync_status"], comp["key"]),
         )
     for key, name, country, region, logo_url, external_id in TEAM_SEEDS:
         cur.execute(
@@ -6851,11 +6855,12 @@ def competition_lookup(competition_id):
                    source,
                    updated_at
                FROM matches
-               WHERE lower(COALESCE(competition_key,''))=lower(?)
+               WHERE lower(COALESCE(competition_id,''))=lower(?)
+                  OR lower(COALESCE(competition_key,''))=lower(?)
                   OR lower(COALESCE(league_name,''))=lower(?)
                   OR lower(COALESCE(competition_name,''))=lower(?)
                LIMIT 1""",
-            (candidate, candidate, candidate),
+            (candidate, candidate, candidate, candidate),
         )
         if sample:
             sample["key"] = sample.get("key") or slug(sample.get("name") or candidate)
@@ -6881,12 +6886,13 @@ def _competition_matches_for(competition, competition_id, limit=260):
     placeholders = ",".join(["?"] * len(candidates))
     params = [str(item).lower() for item in candidates]
     query = f"""SELECT * FROM matches
-                WHERE lower(COALESCE(competition_key,'')) IN ({placeholders})
+                WHERE lower(COALESCE(competition_id,'')) IN ({placeholders})
+                   OR lower(COALESCE(competition_key,'')) IN ({placeholders})
                    OR lower(COALESCE(league_name,'')) IN ({placeholders})
                    OR lower(COALESCE(competition_name,'')) IN ({placeholders})
                 ORDER BY match_date DESC, kickoff_time DESC
                 LIMIT ?"""
-    result = rows(query, tuple(params + params + params + [int(limit)]))
+    result = rows(query, tuple(params + params + params + params + [int(limit)]))
     return [annotate_match(match) for match in result if not is_fake_match(match)]
 
 
@@ -7227,12 +7233,81 @@ def shark_context_summary(context):
     return " ".join(pieces)
 
 
+def canonical_competition_surface_contract(match):
+    """Return one collision-safe competition identity for every product surface."""
+    item = dict(match or {})
+    raw_name = str(
+        item.get("_raw_competition_name")
+        or item.get("competition_official_name")
+        or item.get("competition_name")
+        or item.get("league_name")
+        or item.get("competition")
+        or item.get("league")
+        or item.get("competition_key")
+        or ""
+    ).strip()
+    raw_country = str(
+        item.get("_raw_country")
+        or item.get("competition_country")
+        or item.get("league_country")
+        or item.get("country")
+        or ""
+    ).strip()
+    country = spanish_country_name(raw_country) or raw_country or "Global"
+    display_name = spanish_competition_name(raw_name) or raw_name or "Competición"
+    competition_key = str(item.get("competition_key") or item.get("league_key") or "").strip()
+    provider_id = str(item.get("competition_id") or item.get("league_id") or "").strip()
+    provider = str(item.get("provider") or item.get("source") or "surface_cache").strip()
+    identity_value = provider_id
+    if identity_value and not identity_value.isdigit():
+        identity_value = "|".join(part for part in (identity_value, country) if part)
+    elif not identity_value and competition_key:
+        identity_value = "|".join(part for part in (competition_key, country) if part)
+    entity = normalize_competition_entity(
+        {
+            "competition_id": identity_value,
+            "competition_name": raw_name or display_name,
+            "display_name": display_name,
+            "country": country,
+            "season": item.get("season") or "",
+            "competition_type": item.get("competition_type") or item.get("scope") or "",
+        },
+        provider=provider,
+    )
+    canonical_id = str(entity.get("canonical_competition_id") or "").strip()
+    route_id = competition_key or provider_id or slug(f"{display_name}-{country}")
+    group_key = slug(canonical_id or f"{route_id}-{country}-{item.get('season') or ''}")
+    return {
+        "contract": "CROSS-SURFACE-COMPETITION-IDENTITY-V1",
+        "canonical_id": canonical_id,
+        "provider_id": provider_id,
+        "key": competition_key,
+        "route_id": route_id,
+        "group_key": group_key,
+        "official_name": raw_name or display_name,
+        "display_name": display_name,
+        "country": country,
+        "season": str(item.get("season") or "").strip(),
+        "identity_state": entity.get("data_quality") or "INSUFFICIENT_DATA",
+    }
+
+
 def group_matches_by_league(matches):
     grouped = {}
     for item in matches or []:
-        league = league_display_name(item)
-        key = slug(league)
-        bucket = grouped.setdefault(key, {"key": key, "name": league, "country": item.get("country") or "Global", "category": league_category(item), "matches": []})
+        identity = canonical_competition_surface_contract(item)
+        league = identity["display_name"]
+        key = identity["group_key"]
+        bucket = grouped.setdefault(key, {
+            "key": key,
+            "name": league,
+            "country": identity["country"],
+            "competition_id": identity["canonical_id"],
+            "route_id": identity["route_id"],
+            "identity_contract": identity["contract"],
+            "category": league_category(item),
+            "matches": [],
+        })
         bucket["matches"].append(item)
     result = list(grouped.values())
     for bucket in result:
@@ -7479,15 +7554,19 @@ def grouped_match_calendar(matches):
     for raw in matches or []:
         match = apply_match_localization(dict(raw))
         day_key = match.get("match_date") or (str(match.get("kickoff_iso_madrid") or match.get("kickoff_iso") or "")[:10] if (match.get("kickoff_iso_madrid") or match.get("kickoff_iso")) else "sin-fecha")
-        league_name = league_display_name(match)
-        league_key = slug(league_name)
+        identity = canonical_competition_surface_contract(match)
+        league_name = identity["display_name"]
+        league_key = identity["group_key"]
         day = days_map.setdefault(day_key, {"date": day_key, "label": date_display_label(day_key), "total": 0, "leagues": {}})
         league = day["leagues"].setdefault(
             league_key,
             {
                 "key": league_key,
                 "name": league_name,
-                "country": match.get("country") or "Global",
+                "country": identity["country"],
+                "competition_id": identity["canonical_id"],
+                "route_id": identity["route_id"],
+                "identity_contract": identity["contract"],
                 "category": league_category(match),
                 "matches": [],
             },
@@ -8033,19 +8112,20 @@ def canonical_match_surface_contract(match):
     status_info = canonical_match_status(item)
     home = spanish_team_name(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
     away = spanish_team_name(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
-    competition = spanish_competition_name(
-        item.get("safe_competition")
-        or item.get("client_competition")
-        or item.get("competition_name")
-        or item.get("league_name")
-        or ""
-    )
+    competition_identity = canonical_competition_surface_contract(item)
+    competition = competition_identity["display_name"]
     return {
         "contract": "MATCH-SURFACE-CONSISTENCY-V1",
         "id": str(item.get("id") or item.get("match_id") or ""),
         "home": str(home or "").strip(),
         "away": str(away or "").strip(),
         "competition": str(competition or "").strip(),
+        "competition_identity_contract": competition_identity["contract"],
+        "canonical_competition_id": competition_identity["canonical_id"],
+        "competition_provider_id": competition_identity["provider_id"],
+        "competition_key": competition_identity["key"],
+        "competition_route_id": competition_identity["route_id"],
+        "competition_country": competition_identity["country"],
         "kickoff_iso": str(item.get("madrid_dt_iso") or item.get("kickoff_iso_madrid") or item.get("kickoff_iso") or "").strip(),
         "match_date": str(item.get("madrid_date") or item.get("match_date") or "").strip(),
         "kickoff_time": str(item.get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "").strip(),
@@ -8089,7 +8169,8 @@ def client_match_display_context(match, now_madrid=None):
     item = normalize_kickoff_for_display(dict(match or {}))
     home = spanish_team_name(item.get("safe_home") or item.get("home_team") or item.get("home") or "") or "Equipo local"
     away = spanish_team_name(item.get("safe_away") or item.get("away_team") or item.get("away") or "") or "Equipo visitante"
-    comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+    competition_identity = canonical_competition_surface_contract(item)
+    comp = competition_identity["display_name"]
     instant = item.get("madrid_dt_iso") or ""
     compact_date = format_madrid_client_date_label(instant, now=now_madrid) if instant else ""
     detail_date = format_madrid_client_date_label(instant, now=now_madrid, detail=True) if instant else ""
@@ -8135,6 +8216,12 @@ def client_match_display_context(match, now_madrid=None):
         "client_away": away,
         "client_teams": f"{home} vs {away}",
         "client_competition": comp,
+        "client_competition_identity_contract": competition_identity["contract"],
+        "client_competition_id": competition_identity["canonical_id"],
+        "client_competition_provider_id": competition_identity["provider_id"],
+        "client_competition_key": competition_identity["key"],
+        "client_competition_route_id": competition_identity["route_id"],
+        "client_competition_country": competition_identity["country"],
         "client_date_label": compact_date,
         "client_date_compact_label": compact_date,
         "client_date_detail_label": detail_date or compact_date,
@@ -12587,7 +12674,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V940_VISUAL_5';\n"
+        "const NEMESIS_CACHE='NEMESIS_CACHE_V940';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -12611,7 +12698,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-brand.svg?v=official16-brand-2",
+                "src": "/static/img/nemesis-shark-brand.svg?v=design1-brand-2",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",
@@ -13356,6 +13443,9 @@ def _v931_prepare_complete_match(match, essentials):
     item["source"] = essentials.get("source") or ""
     item = client_match_display_context(item)
     item["calendar_competition"] = item.get("client_competition")
+    item["calendar_competition_id"] = item.get("client_competition_id")
+    item["calendar_competition_key"] = item.get("client_competition_key")
+    item["calendar_competition_route_id"] = item.get("client_competition_route_id")
     item["calendar_time"] = item.get("client_time_label")
     item["calendar_status"] = item.get("client_status_label")
     item["calendar_score"] = item.get("client_score_label")
@@ -15982,7 +16072,7 @@ def home():
 
 @app.route("/favicon.ico")
 def favicon_ico():
-    return redirect(url_for("static", filename="img/nemesis-shark-official.svg"))
+    return redirect(url_for("static", filename="img/nemesis-shark-brand.svg"))
 
 
 COMPANY_PLATFORM_CONTRACT = "NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1"
@@ -16180,10 +16270,15 @@ def _calendar_enrich_matches(matches, picks):
         except Exception:
             pass
         pick = pick_map.get(str(item.get("id") or ""))
-        comp = spanish_competition_name(item.get("safe_competition") or item.get("competition_name") or item.get("league_name") or item.get("competition_key") or "") or "Competición"
+        competition_identity = canonical_competition_surface_contract(item)
+        comp = competition_identity["display_name"]
         country = spanish_country_name(item.get("country") or item.get("safe_country") or "") or item.get("country") or "Global"
         live_depth = item.get("live_depth") or {}
         item["calendar_competition"] = comp
+        item["calendar_competition_id"] = competition_identity["canonical_id"]
+        item["calendar_competition_key"] = competition_identity["key"]
+        item["calendar_competition_route_id"] = competition_identity["route_id"]
+        item["calendar_competition_identity_contract"] = competition_identity["contract"]
         item["calendar_country"] = country
         item["calendar_date_label"] = jinja_match_date_label(item)
         item["calendar_time"] = live_depth.get("minute") if live_depth.get("badge") == "live" else jinja_match_time_short(item)
@@ -16304,12 +16399,16 @@ def _calendar_group(matches):
         bucket = by_date[key]
         bucket["matches_count"] += 1
         bucket["total"] += 1
-        league_name = item.get("calendar_competition") or "Competición"
-        league_key = normalized_label(league_name) or "competicion"
+        identity = canonical_competition_surface_contract(item)
+        league_name = identity["display_name"]
+        league_key = identity["group_key"]
         league = bucket["leagues"].setdefault(league_key, {
             "key": league_key,
             "name": league_name,
-            "country": item.get("calendar_country") or "Global",
+            "country": identity["country"],
+            "competition_id": identity["canonical_id"],
+            "route_id": identity["route_id"],
+            "identity_contract": identity["contract"],
             "rank": int(item.get("calendar_rank") or 80),
             "category": league_category(item),
             "matches": [],

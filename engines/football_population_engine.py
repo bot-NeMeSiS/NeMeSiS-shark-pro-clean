@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 PRIORITY_COMPETITIONS = [
     {"key": "laliga", "name": "LaLiga", "country": "Spain", "region": "Europe", "group": "spain", "tier": 99, "sportsdb_id": "4335", "odds_key": "soccer_spain_la_liga"},
-    {"key": "segunda-division", "name": "Segunda Division", "country": "Spain", "region": "Europe", "group": "spain", "tier": 92, "sportsdb_id": "4401", "odds_key": "soccer_spain_segunda_division"},
+    {"key": "segunda-division", "name": "Segunda Division", "country": "Spain", "region": "Europe", "group": "spain", "tier": 92, "sportsdb_id": "4400", "odds_key": "soccer_spain_segunda_division"},
     {"key": "primera-rfef", "name": "Primera RFEF", "country": "Spain", "region": "Spain", "group": "spain", "tier": 78, "sportsdb_id": "", "odds_key": ""},
     {"key": "segunda-rfef", "name": "Segunda RFEF", "country": "Spain", "region": "Spain", "group": "spain", "tier": 72, "sportsdb_id": "", "odds_key": ""},
     {"key": "tercera-rfef", "name": "Tercera RFEF", "country": "Spain", "region": "Spain", "group": "spain", "tier": 68, "sportsdb_id": "", "odds_key": ""},
