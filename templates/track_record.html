@@ -7,7 +7,7 @@
 {% set pending = record.get('pending_results') or [] %}
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
-{% set has_history = recent or pending or record.get('by_month') or (record.get('closed_count') or 0) > 0 or (record.get('graded_count') or 0) > 0 or roi is not none or winrate is not none %}
+{% set has_history = recent or record.get('by_month') or (record.get('closed_count') or 0) > 0 or (record.get('graded_count') or 0) > 0 or roi is not none or winrate is not none %}
 
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="official-ref-13" data-top100-improvement="7">
   {{ page_header('Histórico', 'Rendimiento real de picks cerrados.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}

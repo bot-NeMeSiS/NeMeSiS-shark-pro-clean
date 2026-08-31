@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from flask import render_template
+
 from engines.autonomous_product_qa_engine import (
     PINNED_REGRESSION_CONTRACTS,
     QA_EXECUTION_POLICY,
@@ -276,10 +278,28 @@ def test_founder_video_review_is_permanent_product_memory(tmp_path: Path):
 
 def test_browser_inspector_measures_composition_and_empty_states_are_resolved():
     inspector = (Path(__file__).parents[1] / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
-    assert all(marker in inspector for marker in ("dead_space_flags", "empty_dashboard_flags", "bordered_containers", "nested_card_depth", "sports_above_fold_ratio"))
+    assert all(marker in inspector for marker in ("dead_space_flags", "empty_dashboard_flags", "bordered_containers", "nested_card_depth", "sports_above_fold_ratio", "purposefulSportsContent"))
     for template in ("live.html", "picks.html", "shark.html", "track_record.html"):
         source = (Path(__file__).parents[1] / "templates" / template).read_text(encoding="utf-8")
         assert 'data-empty-dashboard="resolved"' in source
+
+
+def test_track_record_pending_only_does_not_render_evaluable_history_dashboard(app_module):
+    data = {
+        "track_record": {
+            "pending_results": [{"pick_id": "pending-1"}],
+            "closed_count": 0,
+            "graded_count": 0,
+            "roi": None,
+            "winrate": None,
+        }
+    }
+    with app_module.app.test_request_context("/track-record"):
+        html = render_template("track_record.html", data=data)
+
+    assert 'data-empty-dashboard="resolved"' in html
+    assert "El histórico empieza con resultados reales" in html
+    assert "ROI real" not in html
 
 
 def test_memory_keeps_first_seen_and_recurrence(tmp_path: Path):
