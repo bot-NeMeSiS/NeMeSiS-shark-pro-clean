@@ -45,15 +45,15 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   opacity: .055;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   body.ns-app:not(.ns-admin)::before {
     background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
     opacity: .13;
   }
 }
@@ -70,14 +70,14 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   opacity: .055;
 }
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v933-admin-sidebar::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
     opacity: .11;
   }
 }
@@ -91,7 +91,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -115,7 +115,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -155,7 +155,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -4606,7 +4606,7 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   width: clamp(460px, 44vw, 650px);
   aspect-ratio: 1280 / 400;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   opacity: .82;
   filter: drop-shadow(0 0 30px rgba(44, 177, 255, .36)) saturate(1.06) brightness(1.06);
   transform: translateY(-50%);
@@ -5310,8 +5310,19 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
 
 /* Official 16-screen rebuild: route-specific composition inside the canonical layer. */
 .ns16-home,.ns16-live { gap: 9px; }
-body.ns-app .ns16-home-hero { min-height: 100px !important; padding: 9px 15px !important; }
-body.ns-app .ns16-home-hero::before { right: clamp(22px,5vw,78px); width: clamp(410px,36vw,500px); top: 47%; opacity: .94; }
+body.ns-app .ns16-home-hero {
+  min-height: 100px !important;
+  padding: 9px 15px !important;
+  background:
+    radial-gradient(ellipse at 73% 40%, rgba(25, 145, 232, .16), transparent 34%),
+    linear-gradient(100deg, rgba(2, 14, 31, .62), rgba(2, 10, 23, .08) 72%) !important;
+}
+body.ns-app .ns16-home-hero::before {
+  right: clamp(92px, 11vw, 152px);
+  width: clamp(320px, 28vw, 390px);
+  top: 58%;
+  opacity: .7;
+}
 .ns16-home-hero h1 { margin: 4px 0 5px; }
 .ns16-home-hero p { margin: 0; font-size: .82rem; }
 .ns16-kpi-strip { gap: 8px; }
@@ -5422,7 +5433,7 @@ body.ns-app .v933-shark-hero {
 body.ns-app .v933-shark-hero > div { position: relative; z-index: 2; align-self: center; max-width: 620px; }
 body.ns-app .v933-shark-hero h2 { margin: 4px 0; font-size: 1.35rem; }
 body.ns-app .v933-shark-hero p { max-width: 58ch; margin: 0; color: var(--nsx-muted); font-size: .76rem; }
-body.ns-app .v933-shark-hero img { position: absolute; z-index: 1; top: 50%; right: -10px; width: min(650px,55vw); max-height: 190px; opacity: .94; transform: translateY(-50%); filter: drop-shadow(0 0 34px rgba(42,181,255,.46)) brightness(1.06); pointer-events: none; }
+body.ns-app .v933-shark-hero img { position: absolute; z-index: 1; top: 50%; right: 24px; width: min(500px,44vw); max-height: 158px; opacity: .62; transform: translateY(-50%); filter: drop-shadow(0 0 28px rgba(42,181,255,.34)) brightness(.96); pointer-events: none; }
 body.ns-app .v933-shark-hero .v933-hero-actions { margin-top: 9px; }
 body.ns-app .v933-shark-page > .v933-quick-action { min-height: 48px; }
 
@@ -5526,7 +5537,7 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app.ns-admin .v933-admin-dashboard .v933-admin-layout { grid-template-columns: 1fr; }
   body.ns-app .v933-shark-hero { min-height: 132px; grid-template-columns: 1fr; padding: 11px; }
   body.ns-app .v933-shark-hero p { display: none; }
-  body.ns-app .v933-shark-hero img { right: -105px; width: 390px; opacity: .66; }
+  body.ns-app .v933-shark-hero img { top: 26%; right: -12px; width: 220px; max-height: 82px; opacity: .22; }
   body.ns-app .v933-shark-hero .v933-hero-actions { max-width: 72%; }
   .ns16-account-status { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
   .ns16-account-status > a { min-height: 62px; grid-template-columns: 1fr; justify-items: center; padding: 6px 3px; text-align: center; }

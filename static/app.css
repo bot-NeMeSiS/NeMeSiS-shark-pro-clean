@@ -896,7 +896,7 @@ body[data-v825-shell="true"]:not(.ns-admin) .shark-dot-watermark{
   top:80px;
   width:min(820px,62vw);
   aspect-ratio:1;
-  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center/contain no-repeat;
+  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center/contain no-repeat;
   opacity:.105;
   filter:drop-shadow(0 0 90px rgba(57,232,255,.42));
   animation:v825SharkFloat 13s ease-in-out infinite alternate;
@@ -909,7 +909,7 @@ body[data-v825-shell="true"]:not(.ns-admin) .shark-dot-watermark::after{
   background-size:16px 16px;
   opacity:.32;
   mix-blend-mode:screen;
-  mask-image:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4');
+  mask-image:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5');
   mask-size:contain;
   mask-position:center;
   mask-repeat:no-repeat;
@@ -1227,7 +1227,7 @@ body[data-v817-shell="true"] .v817-shark-screen::before{
   inset:10px 0 auto auto;
   width:min(420px,58vw);
   aspect-ratio:1;
-  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center/contain no-repeat;
+  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center/contain no-repeat;
   opacity:.11;
   filter:drop-shadow(0 0 56px rgba(34,211,238,.35));
   z-index:-1;
@@ -3952,7 +3952,7 @@ body[data-v812-shell="true"].ns-authenticated:not(.ns-admin){
   color:var(--v812-text);overflow-x:hidden;
 }
 body[data-v812-shell="true"].ns-authenticated:not(.ns-admin)::before{content:"";position:fixed;inset:0;z-index:-3;pointer-events:none;background:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(180deg,rgba(0,0,0,.8),transparent 75%)}
-body[data-v812-shell="true"].ns-authenticated:not(.ns-admin)::after{content:"";position:fixed;right:-13vw;top:96px;width:min(760px,54vw);height:min(760px,54vw);z-index:-2;pointer-events:none;background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center/contain no-repeat;opacity:.11;filter:drop-shadow(0 0 80px rgba(40,220,255,.55));animation:v812SharkSwim 10s ease-in-out infinite alternate}
+body[data-v812-shell="true"].ns-authenticated:not(.ns-admin)::after{content:"";position:fixed;right:-13vw;top:96px;width:min(760px,54vw);height:min(760px,54vw);z-index:-2;pointer-events:none;background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center/contain no-repeat;opacity:.11;filter:drop-shadow(0 0 80px rgba(40,220,255,.55));animation:v812SharkSwim 10s ease-in-out infinite alternate}
 @keyframes v812SharkSwim{from{transform:translate3d(0,0,0) rotate(-8deg) scale(1)}to{transform:translate3d(-34px,22px,0) rotate(-4deg) scale(1.04)}}
 body[data-v812-shell="true"].ns-authenticated:not(.ns-admin) .v810-big-shark-decoration{display:none!important}
 body[data-v812-shell="true"].ns-authenticated:not(.ns-admin) .top.ns-topbar{position:sticky;top:0;z-index:100;padding:8px 12px 0;background:linear-gradient(180deg,rgba(2,8,18,.94),rgba(2,8,18,.30))!important;border-bottom:0!important;backdrop-filter:blur(22px)}
@@ -4115,7 +4115,7 @@ body[data-v814-shell="true"].ns-authenticated:not(.ns-admin)::after{
   height:min(820px,56vw)!important;
   z-index:-2!important;
   pointer-events:none!important;
-  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center/contain no-repeat!important;
+  background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center/contain no-repeat!important;
   opacity:.095!important;
   filter:drop-shadow(0 0 90px rgba(43,227,255,.55))!important;
   animation:v814SharkDrift 12s ease-in-out infinite alternate!important;
@@ -4435,7 +4435,7 @@ body[data-v827-shell="true"] .nav-clean a:hover,
 body[data-v827-shell="true"] .nav-clean a.is-active{background:linear-gradient(135deg,rgba(17,103,255,.44),rgba(56,232,255,.18))!important;border-color:var(--v827-line-strong)!important;color:#fff!important;}
 body[data-v827-shell="true"] .ns-main-shell{width:min(100% - 28px,1500px)!important;max-width:1500px!important;margin:12px auto 0!important;padding-bottom:calc(104px + env(safe-area-inset-bottom,0px))!important;}
 body[data-v827-shell="true"] :is(.v799-appbar,.v812-hero-shell,.v783-public-hero,.hero,.hero-panel,.v774-client-hero){position:relative;overflow:hidden;border:1px solid var(--v827-line-strong)!important;border-radius:var(--v827-radius-xl)!important;background:radial-gradient(circle at 88% 10%,rgba(56,232,255,.18),transparent 34%),radial-gradient(circle at 4% 0,rgba(17,103,255,.18),transparent 32%),linear-gradient(135deg,rgba(8,28,54,.96),rgba(2,10,22,.94))!important;box-shadow:var(--v827-shadow)!important;padding:clamp(18px,3vw,32px)!important;min-height:auto!important;}
-body[data-v827-shell="true"] :is(.v799-appbar,.v812-hero-shell,.v783-public-hero,.hero,.hero-panel,.v774-client-hero)::after{content:"";position:absolute;right:-80px;top:-120px;width:360px;height:360px;background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center/contain no-repeat;opacity:.085;filter:drop-shadow(0 0 58px rgba(56,232,255,.42));pointer-events:none;}
+body[data-v827-shell="true"] :is(.v799-appbar,.v812-hero-shell,.v783-public-hero,.hero,.hero-panel,.v774-client-hero)::after{content:"";position:absolute;right:-80px;top:-120px;width:360px;height:360px;background:url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center/contain no-repeat;opacity:.085;filter:drop-shadow(0 0 58px rgba(56,232,255,.42));pointer-events:none;}
 body[data-v827-shell="true"] :is(.v799-appbar h1,.v812-hero-copy h1,.v783-public-hero h1,.hero h1){font-size:clamp(2.05rem,5.2vw,4.7rem)!important;line-height:.93!important;letter-spacing:-.055em!important;margin:.18rem 0 .55rem!important;max-width:980px;text-wrap:balance;}
 body[data-v827-shell="true"] :is(.v799-kicker,.kicker,.v812-eyebrow){display:inline-flex!important;align-items:center!important;gap:8px!important;border:1px solid rgba(56,232,255,.22)!important;border-radius:999px!important;background:rgba(56,232,255,.075)!important;color:#bff5ff!important;font-size:.70rem!important;font-weight:950!important;letter-spacing:.08em!important;text-transform:uppercase!important;padding:6px 9px!important;}
 body[data-v827-shell="true"] :is(.lead,p){color:#c8d8e8;line-height:1.55;}
@@ -7034,7 +7034,7 @@ body[data-v848-shell="true"]::after{
   z-index:-2;
   pointer-events:none;
   opacity:.18;
-  background:url("/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4") center/contain no-repeat;
+  background:url("/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5") center/contain no-repeat;
   filter:drop-shadow(0 0 44px rgba(88,227,255,.75));
 }
 body[data-v848-shell="true"].ns-admin::before{
@@ -7147,7 +7147,7 @@ body[data-v848-shell="true"] .v845-shark-hero::after{
   height:min(280px,48vw);
   pointer-events:none;
   opacity:.16;
-  background:url("/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4") center/contain no-repeat;
+  background:url("/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5") center/contain no-repeat;
 }
 body[data-v848-shell="true"] .v845-shark-hero{
   overflow:hidden;

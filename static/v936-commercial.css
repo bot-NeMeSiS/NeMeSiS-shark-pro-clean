@@ -129,7 +129,7 @@
   right: 27%;
   width: min(560px, 46vw);
   aspect-ratio: 1.38;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
   filter: drop-shadow(0 0 46px rgba(32, 216, 244, .24));
   opacity: .1;
   pointer-events: none;
@@ -139,8 +139,8 @@
 @supports ((mask: url('')) or (-webkit-mask: url(''))) {
   .v937-home .v933-public-hero::after {
     background: radial-gradient(circle, rgba(82, 232, 255, .76) 0 1px, transparent 1.25px) 0 0 / 14px 14px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-4') center / contain no-repeat;
+    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
+    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-5') center / contain no-repeat;
     opacity: .2;
   }
 }
