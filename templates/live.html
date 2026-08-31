@@ -11,18 +11,18 @@
 {% set sports_metrics = live.get('sports_metrics') or data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-sports-board v933-live-board ns16-live" data-v933-template="live" data-v933-reference="official-ref-09" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Directo', 'Marcadores y estados confirmados.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Picks','href':'/picks','primary':true,'icon':'target'}]) }}
-
-  <section class="v933-kpi-grid ns16-kpi-strip">
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live?f=live') }}
-    {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/live?f=break') }}
-    {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'Hoy', 'blue', 'history', '/live?f=finished') }}
-    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
+  <section class="ns16-live-overview" aria-label="Resumen del directo">
+    {{ page_header('Directo', 'Partidos en juego ahora.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Picks','href':'/picks','primary':true,'icon':'target'}]) }}
+    <nav class="v933-panel v933-filter-panel ns16-filter-strip">
+      {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
+    </nav>
+    <section class="v933-kpi-grid ns16-kpi-strip">
+      {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live?f=live') }}
+      {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/live?f=break') }}
+      {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'Hoy', 'blue', 'history', '/live?f=finished') }}
+      {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
+    </section>
   </section>
-
-  <nav class="v933-panel v933-filter-panel ns16-filter-strip">
-    {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
-  </nav>
 
   {% if ns.matches %}
   <section class="ns16-section" id="v936-live-board">

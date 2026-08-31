@@ -4942,8 +4942,19 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
     top: 50%;
     opacity: .94;
   }
-  body.ns-app.ns-authenticated:not(.ns-admin) main.v933-client-shell { margin-left: 0 !important; padding: 66px 16px 28px !important; max-width: 1480px !important; }
-  body.ns-app.ns-public main.v933-public-shell { padding: 66px 16px 28px !important; max-width: 1440px !important; }
+  html body.ns-app[data-v928-shell="true"].ns-authenticated:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-client-desktop-shell.v933-client-shell {
+    margin-left: 0 !important;
+    padding: 64px 16px 28px !important;
+    max-width: 1480px !important;
+  }
+  html body.ns-app[data-v928-shell="true"].ns-public main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell {
+    padding: 64px 16px 28px !important;
+    max-width: 1440px !important;
+  }
+  html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner).ns-authenticated:not(.ns-admin) main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-client-desktop-shell.v933-client-shell,
+  html body.ns-app[data-v928-shell="true"]:has(> .nemesis-local-safe-banner).ns-public main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell {
+    padding-top: 14px !important;
+  }
   body.ns-app.ns-admin main.v933-admin-shell { margin-left: 210px !important; padding: 66px 16px 28px !important; max-width: none !important; }
 }
 @media (max-width: 980px) {
@@ -5298,9 +5309,9 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
 }
 
 /* Official 16-screen rebuild: route-specific composition inside the canonical layer. */
-.ns16-home,.ns16-live { gap: 10px; }
-body.ns-app .ns16-home-hero { min-height: 124px !important; padding: 14px 16px !important; }
-body.ns-app .ns16-home-hero::before { right: clamp(14px,2.4vw,38px); width: clamp(520px,44vw,610px); top: 41%; opacity: .96; }
+.ns16-home,.ns16-live { gap: 9px; }
+body.ns-app .ns16-home-hero { min-height: 100px !important; padding: 9px 15px !important; }
+body.ns-app .ns16-home-hero::before { right: clamp(22px,5vw,78px); width: clamp(410px,36vw,500px); top: 47%; opacity: .94; }
 .ns16-home-hero h1 { margin: 4px 0 5px; }
 .ns16-home-hero p { margin: 0; font-size: .82rem; }
 .ns16-kpi-strip { gap: 8px; }
@@ -5308,7 +5319,7 @@ body.ns-app .ns16-kpi-strip .v933-kpi { min-height: 66px; padding: 9px 10px !imp
 .ns16-kpi-strip .v933-kpi > .v933-icon { width: 29px; height: 29px; }
 body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-kpi-strip .v933-kpi small { font-size: .58rem; }
-.ns16-home-command { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); gap: 10px; align-items: stretch; }
+.ns16-home-command { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); gap: 10px; align-items: start; }
 .ns16-home-command > .v933-panel { min-width: 0; }
 .ns16-journey-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
 .ns16-journey-steps a { position: relative; min-width: 0; min-height: 76px; display: grid; grid-template-columns: 28px 30px minmax(0,1fr); align-items: center; gap: 7px; padding: 9px; border: 1px solid rgba(91,183,255,.16); border-radius: 7px; color: var(--nsx-text); background: rgba(2,13,29,.5); text-decoration: none; }
@@ -5318,7 +5329,7 @@ body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-journey-steps a > span { min-width: 0; display: grid; color: var(--nsx-muted); font-size: .61rem; }
 .ns16-journey-steps a strong { color: #fff; font-size: .72rem; }
 .ns16-featured-pick .v933-pick-card { min-height: 0; box-shadow: none !important; }
-.ns16-featured-pick .v933-pick-card .v937-card-trust,.ns16-featured-pick .v933-pick-card .v933-provenance { display: none; }
+.ns16-featured-pick .v933-pick-card :is(.v937-card-trust,.v935-provenance,.v937-pick-brief) { display: none; }
 .ns16-section { min-width: 0; padding: 10px 0 0; border-top: 1px solid rgba(89,185,255,.12); }
 .ns16-section > .v933-section-header { margin-bottom: 8px; }
 .ns16-match-row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
@@ -5333,21 +5344,26 @@ body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-live-feature .v933-match-card { min-height: 178px; border-color: rgba(48,212,138,.38) !important; }
 .ns16-live-feature .v933-match-teams strong { font-size: .88rem; }
 .ns16-filter-strip { padding: 6px 8px !important; }
-.ns16-live-empty { min-height: 170px; display: grid; align-items: center; }
+.ns16-live-empty { min-height: 128px; display: grid; align-items: center; }
+.ns16-live-overview { display: grid; grid-template-columns: minmax(0,1fr) minmax(500px,.95fr); gap: 9px; align-items: end; }
+.ns16-live-overview > .v933-page-header { grid-column: 1 / -1; }
+.ns16-live-overview > .ns16-filter-strip { margin: 0; align-self: stretch; display: flex; align-items: center; }
+.ns16-live-overview > .ns16-kpi-strip { align-self: stretch; }
 
 /* Partidos follows the reference as a dense catalogue, not a sequence of explainers. */
 body.ns-app .v933-calendar-board { gap: 9px; }
-body.ns-app .v933-calendar-board > .v933-page-header { margin-bottom: 0; }
-body.ns-app .v940-calendar-command { display: grid; gap: 7px; padding: 9px 10px !important; }
-.v940-calendar-command-head { min-height: 0; align-items: center; }
-.v940-calendar-command-head p,.v940-calendar-layer-state > div > span { display: none; }
-.v940-calendar-command-section { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.v940-calendar-command-section > span { flex: 0 0 105px; font-size: .62rem; }
+body.ns-app .v933-calendar-board > .v933-page-header { min-height: 70px !important; margin-bottom: 0; padding-block: 8px !important; }
+body.ns-app .ns16-live-overview > .v933-page-header { min-height: 70px !important; margin-bottom: 0; padding-block: 8px !important; }
+body.ns-app .v940-calendar-command { display: grid; gap: 6px; padding: 7px 9px !important; }
+.v940-calendar-command-head { display: none; }
+.v940-calendar-command-section { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.v940-calendar-command-section > span { display: none; }
 .v940-calendar-filter-form { display: grid !important; grid-template-columns: minmax(240px,1fr) minmax(145px,.3fr) minmax(120px,.24fr) auto !important; gap: 7px !important; align-items: end; }
 .v940-calendar-filter-form :is(input,select,.v933-action) { min-height: 36px !important; }
-.v940-calendar-layer-state { min-height: 0 !important; padding: 5px 0 0 !important; }
+.v940-calendar-layer-state { min-height: 0 !important; padding: 4px 0 0 !important; }
 .v940-calendar-context { display: none !important; }
 .v940-calendar-index { padding: 7px 9px !important; }
+.v940-calendar-closeout { display: none !important; }
 .v933-calendar-day { padding: 10px !important; }
 .v933-calendar-day .v933-league-group { padding: 7px 0 0; border: 0; border-top: 1px solid rgba(93,178,241,.12); background: transparent; }
 .v933-calendar-day .v933-match-grid { grid-template-columns: 1fr !important; gap: 6px; }
@@ -5445,7 +5461,17 @@ body.ns-app .v933-topbar nav a { font-weight: 680; }
 body.ns-app :is(.v933-page-header h1,.ns16-home-hero h1) { font-weight: 800 !important; }
 body.ns-app .v933-section-header h2 { font-weight: 760; }
 body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
-.ns16-home .v933-match-card :is(.v937-card-trust,.v933-provenance) { display: none; }
+.ns16-home .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
+.ns16-live .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
+.v933-calendar-board .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority) { display: none; }
+@media (min-width:1101px) {
+  body.ns-app .ns16-home { display: grid !important; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); align-items: start; }
+  .ns16-home > :is(.ns16-home-hero,.ns16-kpi-strip,.ns16-live-priority,.ns16-home-actions,.ns16-more) { grid-column: 1 / -1; }
+  .ns16-home > .ns16-home-command { display: contents; }
+  .ns16-home .ns16-journey { grid-column: 1; }
+  .ns16-home .ns16-featured-pick { grid-column: 2; grid-row: span 2; }
+  .ns16-home > [data-sports-priority="important-today"] { grid-column: 1; }
+}
 @media (max-width: 1100px) {
   .ns16-home-command { grid-template-columns: 1fr; }
   .ns16-match-row,.ns16-match-row.is-four { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -5453,6 +5479,8 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   .v940-calendar-filter-form .v933-action { grid-column: 1 / -1; justify-self: end; }
   .v933-calendar-day .v933-match-card { grid-template-columns: minmax(130px,.3fr) minmax(260px,1fr); }
   .v933-calendar-day .v933-match-card-footer { grid-column: 1 / -1; }
+  .ns16-live-overview { grid-template-columns: 1fr; }
+  .ns16-live-overview > .v933-page-header { grid-column: auto; }
 }
 @media (max-width: 760px) {
   .ns16-home { display: grid; }
@@ -5481,7 +5509,7 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   .ns16-account-actions { grid-template-columns: 1fr 1fr; }
   body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
-  body.ns-app .ns16-home-hero { min-height: 104px !important; padding: 8px 10px !important; }
+  body.ns-app .ns16-home-hero { min-height: 92px !important; padding: 8px 10px !important; }
   body.ns-app .ns16-home-hero::before { display: none; }
   .ns16-home-hero p { display: none; }
   .ns16-journey-steps { gap: 5px; }

@@ -98,13 +98,11 @@
       <button class="v933-action is-primary is-blue" type="submit">{{ icon('search') }}Encontrar partidos</button>
     </form>
 
-    <div class="v940-calendar-layer-state"
+    {% if active_filters %}<div class="v940-calendar-layer-state"
          data-v940-calendar-filters-active="{{ active_filters|length }}">
       <div>
-        <strong>{% if active_filters %}Capas activas{% else %}Cobertura completa{% endif %}</strong>
-        <span>{% if active_filters %}Puedes retirar cada capa sin reiniciar la búsqueda.{% else %}No hay filtros ocultos en esta colección.{% endif %}</span>
+        <strong>Filtros activos</strong>
       </div>
-      {% if active_filters %}
       <nav class="v940-calendar-active-filters" aria-label="Filtros activos">
         {% for item in active_filters %}
         <a class="v940-calendar-layer"
@@ -117,8 +115,7 @@
         {% endfor %}
         <a class="v940-calendar-reset" href="{{ calendar.get('reset_href') or '/calendar' }}">Limpiar capas</a>
       </nav>
-      {% endif %}
-    </div>
+    </div>{% endif %}
   </section>
 
   <nav class="v940-calendar-context"
