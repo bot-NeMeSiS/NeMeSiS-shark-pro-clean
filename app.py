@@ -12698,7 +12698,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-brand.svg?v=design1-brand-2",
+                "src": "/static/img/nemesis-shark-brand.svg?v=design1-brand-3",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",

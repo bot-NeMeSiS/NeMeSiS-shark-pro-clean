@@ -107,6 +107,23 @@ def test_home_dense_match_cards_use_the_active_home_container():
     assert ".sports-priority-home .v933-match-card :is(.v937-card-trust" in css
 
 
+def test_brand_shark_cache_version_is_consistent_across_active_surfaces():
+    project_root = Path(__file__).resolve().parents[1]
+    paths = [
+        project_root / "app.py",
+        project_root / "static" / "app.css",
+        project_root / "templates" / "base.html",
+        project_root / "templates" / "admin_navigation_map.html",
+        project_root / "templates" / "admin_telegram_pro_preview.html",
+        project_root / "templates" / "client_navigation_map.html",
+        project_root / "templates" / "partials" / "brand_logo.html",
+    ]
+    active_sources = "\n".join(path.read_text(encoding="utf-8") for path in paths)
+
+    assert "design1-brand-2" not in active_sources
+    assert "nemesis-shark-brand.svg?v=design1-brand-3" in active_sources
+
+
 def test_rendered_layout_competition_and_temporal_evidence_reaches_regression_manager(tmp_path: Path):
     observation = clean_observation()
     observation["competition_identity"] = {"pass": True, "matches_compared": 2, "mismatches": []}
