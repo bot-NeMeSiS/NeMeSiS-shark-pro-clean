@@ -16,12 +16,12 @@
     <nav class="v933-panel v933-filter-panel ns16-filter-strip">
       {{ filter_tabs([{'key':'all','label':'Todos','href':'/live?f=all'},{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'finished','label':'Finalizados','href':'/live?f=finished'},{'key':'with_pick','label':'Con pick','href':'/live?f=with_pick'}], lane) }}
     </nav>
-    <section class="v933-kpi-grid ns16-kpi-strip">
+    {% if ns.matches %}<section class="v933-kpi-grid ns16-kpi-strip">
       {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live?f=live') }}
       {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/live?f=break') }}
       {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'Hoy', 'blue', 'history', '/live?f=finished') }}
       {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
-    </section>
+    </section>{% endif %}
   </section>
 
   {% if ns.matches %}
@@ -31,15 +31,12 @@
     {% if ns.matches|length > 1 %}<div class="ns16-match-row is-four">{% for match in ns.matches[1:5] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
   </section>
   {% else %}
-  <section class="v933-panel ns16-live-empty">
+  <section class="ns-video-empty-dashboard ns16-live-empty" data-empty-dashboard="resolved">
     {{ empty_state('No hay partidos para este estado', 'Los últimos datos confirmados siguen accesibles. Consulta los próximos encuentros.', 'Abrir calendario', '/calendar', 'live') }}
-  </section>
-  {% endif %}
-
-  {% if not ns.matches and upcoming %}
-  <section class="ns16-section">
-    {{ section_header('Próximos encuentros', '', 'Abrir calendario', '/calendar') }}
-    <div class="ns16-match-row">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+    {% if upcoming %}<div class="ns-video-empty-followup">
+      {{ section_header('Próximos encuentros', '', 'Abrir calendario', '/calendar') }}
+      <div class="ns16-match-row">{% for match in upcoming[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+    </div>{% endif %}
   </section>
   {% endif %}
 </div>

@@ -15,7 +15,7 @@
     <span class="v933-telegram-mark">{{ icon('telegram') }}</span>
   </section>
 
-  <section class="v933-kpi-grid">
+  <section class="v933-kpi-grid ns-video-status-rail">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
     {{ kpi_card('Canal activo', 'Sí' if channel_enabled else 'En pausa', 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
     {{ kpi_card('Último envío', config.get('last_sent_at')|madrid_datetime_label if config.get('last_sent_at') else none, 'Hora Madrid', 'blue', 'history') }}
@@ -24,7 +24,7 @@
 
   <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
-      <section class="v933-panel" id="v936-telegram-value">
+      <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
         {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
         <div class="v933-four-col v933-feature-grid">
           <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
@@ -58,15 +58,6 @@
     </aside>
   </section>
 
-  <section class="v933-two-col is-balanced" data-v939-layout-contract="balanced-pair">
-    <section class="v933-panel" data-top100-improvement="5">
-      {{ section_header('Telegram extiende la app; no la sustituye', 'Vista previa premium; esta vista no envía Telegram real.') }}
-      <p class="v933-safe-copy">Las alertas llevan al partido o selección real; el análisis permanece en NeMeSiS.</p>
-    </section>
-    <section class="v933-panel">
-      {{ section_header('Calidad del canal', 'Sin relleno, duplicados ni envío desde esta pantalla.') }}
-      <div class="v933-truth-list"><div>{{ icon('check') }}<span><strong>Protecciones activas</strong><small>Contenido según evidencia y plan</small></span>{{ status_chip('Activo','success') }}</div></div>
-    </section>
-  </section>
+  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>Calidad protegida</strong><small>Las alertas llevan al partido real y esta pantalla nunca envía mensajes por sí sola.</small></span>{{ status_chip('Activo','success') }}</aside>
 </div>
 {% endblock %}

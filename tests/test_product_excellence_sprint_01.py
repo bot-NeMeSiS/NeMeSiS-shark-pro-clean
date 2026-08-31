@@ -12,7 +12,7 @@ def test_product_excellence_top100_markers_are_present():
         "templates/home.html": ['data-top100-improvement="2,3,19"', "Primer valor en menos de un minuto", "Abrir calendario", "Abrir briefing"],
         "templates/shark.html": ['data-top100-improvement="4"', "C\u00f3mo leer SHARK", "Riesgo visible"],
         "templates/membership.html": ['data-top100-improvement="5,6"', "Elige por lo que quieres resolver", "Comparar ELITE"],
-        "templates/telegram.html": ['data-top100-improvement="5"', "Vista previa premium", "esta vista no env\u00eda Telegram real"],
+        "templates/telegram.html": ['data-top100-improvement="5"', "Calidad protegida", "esta pantalla nunca env\u00eda mensajes por s\u00ed sola"],
         "templates/picks.html": ['data-top100-improvement="8"', "Antes de decidir", "stake es orientativo"],
         "templates/action_platform.html": ["state_labels", "Verificaci\u00f3n parcial", "tu d\u00eda deportivo"],
         "templates/404.html": ['data-top100-improvement="31"', "Siguiente paso recomendado"],

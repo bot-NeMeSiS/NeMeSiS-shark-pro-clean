@@ -16,7 +16,7 @@
 <div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="official-ref-11" data-top100-improvement="8" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Picks SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
 
-  <section class="v933-kpi-grid">
+  {% if picks %}<section class="v933-kpi-grid">
     {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}
     {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else none, 'Solo muestra real evaluable', 'blue', 'odds', '/picks') }}
@@ -64,5 +64,10 @@
       </section>
     </aside>
   </section>
+  {% else %}
+  <section class="ns-video-empty-dashboard ns-video-picks-empty" data-empty-dashboard="resolved">
+    {{ empty_state('Todavía no hay picks publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', 'Explorar partidos', '/calendar', 'target') }}
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

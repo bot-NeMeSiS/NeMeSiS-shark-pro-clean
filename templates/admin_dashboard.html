@@ -33,10 +33,11 @@
         <div class="v933-admin-panel-body"><div class="v933-three-col v933-fact-grid"><article><span>Telegram</span><strong>{{ telegram.get('automatic_status') or 'Sin dato' }}</strong><small>{{ telegram.get('last_error') or 'Sin error reportado' }}</small></article><article><span>Automatización</span><strong>{{ automation.get('jobs_ready', 0) }}/{{ automation.get('jobs_total', 0) }} jobs listos</strong><small>{{ automation.get('generated_at_madrid') or 'Sin ejecución reciente' }}</small></article><article><span>Datos deportivos</span><strong>{{ overview.get('matches_today', 0) }} hoy</strong><small>Sin llamadas externas durante render</small></article></div></div>
       </section>
 
-      <section class="v933-admin-panel">
+      {% if errors %}<section class="v933-admin-panel">
         <header><div><h2>Actividad y errores recientes</h2><p>Observabilidad real.</p></div><a class="v933-admin-link" href="/admin/observability/errors">Ver todo {{ icon('arrow') }}</a></header>
-        <div class="v933-admin-panel-body">{% if errors %}{% call data_table(['Hora','Ruta','Severidad','Detalle']) %}{% for item in errors %}<tr><td>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Sin fecha' }}</td><td>{{ item.get('path') or item.get('route') or 'Sistema' }}</td><td>{{ status_chip(item.get('severity') or item.get('level') or 'Revisar','danger') }}</td><td>{{ item.get('message') or item.get('error') or 'Error registrado' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin errores recientes', 'La observabilidad no registra incidencias en la ventana consultada.', '', '', 'shield') }}{% endif %}</div>
+        <div class="v933-admin-panel-body">{% call data_table(['Hora','Ruta','Severidad','Detalle']) %}{% for item in errors %}<tr><td>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Sin fecha' }}</td><td>{{ item.get('path') or item.get('route') or 'Sistema' }}</td><td>{{ status_chip(item.get('severity') or item.get('level') or 'Revisar','danger') }}</td><td>{{ item.get('message') or item.get('error') or 'Error registrado' }}</td></tr>{% endfor %}{% endcall %}</div>
       </section>
+      {% else %}<aside class="ns-video-admin-ok">{{ icon('shield') }}<span><strong>Sin incidencias recientes</strong><small>La observabilidad no registra errores en la ventana consultada.</small></span>{{ status_chip('Correcto','success') }}</aside>{% endif %}
 
       <section class="v933-admin-panel">
         <header><div><h2>Acciones rápidas</h2><p>Áreas operativas principales.</p></div></header>

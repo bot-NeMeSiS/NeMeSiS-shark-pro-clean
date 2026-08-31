@@ -11,13 +11,6 @@
   {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
 
-  <section class="ns16-account-status" aria-label="Estado de la cuenta">
-    <a href="/memberships">{{ icon('plan') }}<span>Plan<strong>{{ plan }}</strong><small>Activo</small></span></a>
-    <a href="/telegram">{{ icon('telegram') }}<span>Telegram<strong>{{ 'Conectado' if telegram.get('linked') else 'Pendiente' }}</strong><small>Alertas</small></span></a>
-    <a href="/favorites">{{ icon('star') }}<span>Favoritos<strong>{{ favorites|length }}</strong><small>Guardados</small></span></a>
-    <a href="/actividad">{{ icon('history') }}<span>Actividad<strong>{{ activity|length }}</strong><small>Registros</small></span></a>
-  </section>
-
   <section class="v933-two-col ns16-account-layout">
     <div class="v933-main-stack">
       <section class="v933-panel">
@@ -47,14 +40,6 @@
           {{ quick_action('Términos', 'Condiciones', '/terminos', 'document') }}
           {{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'lock') }}
           {{ quick_action('Reembolsos', 'Política', '/reembolsos', 'payments') }}
-        </div>
-      </section>
-      <section class="v933-panel ns16-account-summary">
-        {{ section_header('Estado', '') }}
-        <div class="v933-truth-list">
-          <div>{{ icon('shield') }}<span><strong>Cuenta protegida</strong><small>Sesión activa</small></span>{{ status_chip('Segura','success') }}</div>
-          <div>{{ icon('telegram') }}<span><strong>Telegram</strong><small>{{ 'Vinculado' if telegram.get('linked') else 'Sin vincular' }}</small></span></div>
-          <div>{{ icon('plan') }}<span><strong>Membresía</strong><small>{{ plan }}</small></span></div>
         </div>
       </section>
       {{ action_button('Cerrar sesión', '/logout', false, 'danger', false, 'logout') }}

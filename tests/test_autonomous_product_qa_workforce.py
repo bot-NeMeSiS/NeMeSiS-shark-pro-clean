@@ -9,6 +9,7 @@ from engines.autonomous_product_qa_engine import (
     build_autonomous_product_qa_status,
     detect_product_qa_issues,
     evaluate_production_sentinel,
+    load_product_qa_memory,
     product_qa_review_findings,
     record_product_qa_run,
     set_product_qa_pause,
@@ -208,7 +209,8 @@ def failing_observation() -> dict:
             "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MAJOR_GAP", "evidence": "legacy shark marker"},
             "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "REBUILD_REQUIRED", "evidence": "flat background"},
         },
-        "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": False, "nested_panel_depth": 4},
+        "composition": {"observed": True, "dead_space_flags": [{"screen": "/app", "flag": "LARGE_UNJUSTIFIED_EMPTY_REGION"}], "empty_dashboard_flags": [{"screen": "/picks", "flag": "EMPTY_ANALYTICS_DASHBOARD"}], "home_sports_above_fold_ratio": 0.0},
+        "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": False, "nested_panel_depth": 4, "nested_card_depth": 4, "dead_space_flags": ["LARGE_UNJUSTIFIED_EMPTY_REGION"], "empty_dashboard_flags": ["EMPTY_ANALYTICS_DASHBOARD"], "sports_above_fold_ratio": 0.0},
         "mobile": {"screen": "/app", "viewport": "mobile_390x844", "overflow": True},
         "runtime": {"js_errors": ["TypeError: blocked topbar"], "broken_images": ["/static/img/missing.png"]},
         "journeys": [{"journey": "sports", "route": "/app", "expected": "/match/", "actual": "/app", "pass": False}],
@@ -240,7 +242,8 @@ def clean_observation() -> dict:
             "shark": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MINOR_GAP", "evidence": "official shark rendered"},
             "background": {"screen": "/app", "viewport": "desktop_1366x768", "classification": "MINOR_GAP", "evidence": "official ocean composition"},
         },
-        "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": True, "nested_panel_depth": 1},
+        "composition": {"observed": True, "dead_space_flags": [], "empty_dashboard_flags": [], "home_sports_above_fold_ratio": 0.18, "home_viewport_content_coverage": 0.71},
+        "density": {"screen": "/app", "viewport": "desktop_1366x768", "first_viewport_product": True, "nested_panel_depth": 1, "nested_card_depth": 1, "bordered_containers": 9, "dead_space_flags": [], "empty_dashboard_flags": [], "sports_above_fold_ratio": 0.18},
         "mobile": {"screen": "/app", "viewport": "mobile_390x844", "overflow": False},
         "runtime": {"js_errors": [], "broken_images": []},
         "journeys": [{"journey": "sports", "route": "/app", "expected": "/match/", "actual": "/match/m-1", "pass": True}],
@@ -261,6 +264,22 @@ def test_acceptance_fixture_detects_all_demonstrated_failures():
 
 def test_clean_fixture_is_a_real_pass_candidate():
     assert detect_product_qa_issues(clean_observation()) == []
+
+
+def test_founder_video_review_is_permanent_product_memory(tmp_path: Path):
+    record_product_qa_run(clean_observation(), project_root=tmp_path, storage_root=tmp_path / "ce")
+    memory = load_product_qa_memory(tmp_path, storage_root=tmp_path / "ce")
+    incident = next(item for item in memory["founder_overrides"] if item["override_id"] == "FOUNDER_VIDEO_REVIEW_2026_08_31")
+    assert set(incident["categories"]) == {"SHARK", "BACKGROUND_DEPTH", "DEAD_SPACE", "RECTANGLE_DENSITY", "EMPTY_STATES", "SPORTS_HIERARCHY"}
+    assert {"LARGE_UNJUSTIFIED_EMPTY_REGION", "EMPTY_DASHBOARD", "SPORTS_ABOVE_FOLD_RATIO"} <= set(PINNED_REGRESSION_CONTRACTS)
+
+
+def test_browser_inspector_measures_composition_and_empty_states_are_resolved():
+    inspector = (Path(__file__).parents[1] / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+    assert all(marker in inspector for marker in ("dead_space_flags", "empty_dashboard_flags", "bordered_containers", "nested_card_depth", "sports_above_fold_ratio"))
+    for template in ("live.html", "picks.html", "shark.html", "track_record.html"):
+        source = (Path(__file__).parents[1] / "templates" / template).read_text(encoding="utf-8")
+        assert 'data-empty-dashboard="resolved"' in source
 
 
 def test_memory_keeps_first_seen_and_recurrence(tmp_path: Path):

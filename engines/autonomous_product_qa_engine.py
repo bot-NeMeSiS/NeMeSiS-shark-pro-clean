@@ -65,6 +65,9 @@ PINNED_REGRESSION_CONTRACTS = {
     "VISUAL_FALSE_PASS_RECURRENCE": {"category": "VISUAL", "severity": "P1", "test": "founder_rejection_overrides_automated_visual_pass"},
     "CLIENT_TECHNICAL_COPY_LEAK": {"category": "ADMIN", "severity": "P1", "test": "rendered_client_copy_scan"},
     "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"category": "VISUAL", "severity": "P2", "test": "first_viewport_and_panel_depth"},
+    "LARGE_UNJUSTIFIED_EMPTY_REGION": {"category": "VISUAL", "severity": "P1", "test": "rendered_viewport_occupancy"},
+    "EMPTY_DASHBOARD": {"category": "VISUAL", "severity": "P1", "test": "rendered_empty_state_composition"},
+    "SPORTS_ABOVE_FOLD_RATIO": {"category": "VISUAL", "severity": "P1", "test": "rendered_sports_first_viewport_ratio"},
     "IMPORTANT_MATCH_PRIORITY": {"category": "SPORTS_TRUTH", "severity": "P1", "test": "sports_priority_fixture_matrix"},
     "PERFORMANCE_P0": {"category": "PERFORMANCE", "severity": "P0", "test": "critical_route_performance_sample"},
     "TEAM_TO_PLAYER": {"category": "SPORTS_KNOWLEDGE", "severity": "P1", "test": "sports_knowledge_golden_journey"},
@@ -456,7 +459,11 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
         ))
 
     density = observation.get("density") or {}
-    if density.get("first_viewport_product") is False or int(density.get("nested_panel_depth") or 0) > 2:
+    dead_space_flags = density.get("dead_space_flags") or []
+    empty_dashboard_flags = density.get("empty_dashboard_flags") or []
+    sports_above_fold_ratio = float(density.get("sports_above_fold_ratio") or 0)
+    nested_depth = max(int(density.get("nested_panel_depth") or 0), int(density.get("nested_card_depth") or 0))
+    if density.get("first_viewport_product") is False or nested_depth > 2 or dead_space_flags or empty_dashboard_flags or sports_above_fold_ratio < .05:
         issues.append(_issue(
             worker="visual_experience_inspector",
             category="UI_DENSITY",
@@ -464,8 +471,12 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             screen=str(density.get("screen") or "/"),
             viewport=str(density.get("viewport") or "unknown"),
             element="first-viewport",
-            expected="Producto deportivo visible en el primer viewport y profundidad de paneles <= 2.",
-            actual=f"first_viewport_product={density.get('first_viewport_product')}; nested_panel_depth={density.get('nested_panel_depth')}",
+            expected="Producto deportivo visible, sin dashboard vacío ni grandes regiones muertas, y profundidad de paneles <= 2.",
+            actual=(
+                f"first_viewport_product={density.get('first_viewport_product')}; nested_depth={nested_depth}; "
+                f"dead_space={len(dead_space_flags)}; empty_dashboard={len(empty_dashboard_flags)}; "
+                f"sports_above_fold_ratio={sports_above_fold_ratio:.3f}"
+            ),
             evidence=str(density.get("evidence") or "La composicion prioriza contenedores o explicaciones frente al producto."),
             screenshot=str(density.get("screenshot") or ""),
             production_sha=sha,
@@ -610,32 +621,33 @@ def load_product_qa_memory(project_root: str | Path | None = None, storage_root:
 
 
 def ensure_founder_qa_override(memory: dict[str, Any], now: str) -> None:
-    if any(item.get("override_id") == "FOUNDER-QA-OVERRIDE-001" for item in memory.get("founder_overrides") or []):
-        return
-    memory.setdefault("founder_overrides", []).append({
-        "override_id": "FOUNDER-QA-OVERRIDE-001",
-        "type": "FOUNDER_QA_OVERRIDE",
-        "recorded_at_madrid": now,
-        "previous_automation_result": "PASS",
-        "founder_result": "FAIL",
-        "categories": list(FOUNDING_OVERRIDE_CATEGORIES),
-        "evidence": "El fundador reprodujo navegacion bloqueada, tiburon/fondo no coincidentes, copy tecnico, verdad LIVE incorrecta y densidad excesiva despues de un PASS automatico.",
-        "missed_checks": [
-            "exact_hit_target_navigation",
-            "rendered_reference_composition",
-            "confirmed_live_vs_visible_live",
-            "client_technical_copy",
-            "first_viewport_density",
-        ],
-        "new_coverage": [
-            "real_click_contract",
-            "shark_background_visual_contract",
-            "sports_truth_contract",
-            "client_copy_contract",
-            "mobile_overflow_contract",
-        ],
-        "verification": {},
-    })
+    overrides = memory.setdefault("founder_overrides", [])
+    if not any(item.get("override_id") == "FOUNDER-QA-OVERRIDE-001" for item in overrides):
+        overrides.append({
+            "override_id": "FOUNDER-QA-OVERRIDE-001",
+            "type": "FOUNDER_QA_OVERRIDE",
+            "recorded_at_madrid": now,
+            "previous_automation_result": "PASS",
+            "founder_result": "FAIL",
+            "categories": list(FOUNDING_OVERRIDE_CATEGORIES),
+            "evidence": "El fundador reprodujo navegacion bloqueada, tiburon/fondo no coincidentes, copy tecnico, verdad LIVE incorrecta y densidad excesiva despues de un PASS automatico.",
+            "missed_checks": ["exact_hit_target_navigation", "rendered_reference_composition", "confirmed_live_vs_visible_live", "client_technical_copy", "first_viewport_density"],
+            "new_coverage": ["real_click_contract", "shark_background_visual_contract", "sports_truth_contract", "client_copy_contract", "mobile_overflow_contract"],
+            "verification": {},
+        })
+    if not any(item.get("override_id") == "FOUNDER_VIDEO_REVIEW_2026_08_31" for item in overrides):
+        overrides.append({
+            "override_id": "FOUNDER_VIDEO_REVIEW_2026_08_31",
+            "type": "FOUNDER_VIDEO_REVIEW",
+            "recorded_at_madrid": now,
+            "previous_automation_result": "PASS",
+            "founder_result": "FAIL",
+            "categories": ["SHARK", "BACKGROUND_DEPTH", "DEAD_SPACE", "RECTANGLE_DENSITY", "EMPTY_STATES", "SPORTS_HIERARCHY"],
+            "evidence": "El vídeo real mostró tiburón plano, fondo sin profundidad sostenida, espacio muerto, dashboards vacíos y contenido deportivo por debajo de paneles secundarios.",
+            "missed_checks": ["dead_space_detector", "empty_dashboard_detector", "bordered_container_count", "nested_card_depth", "sports_above_fold_ratio"],
+            "new_coverage": ["rendered_viewport_occupancy", "rendered_empty_state_composition", "rendered_border_count", "rendered_nested_card_depth", "rendered_sports_above_fold_ratio"],
+            "verification": {},
+        })
 
 
 def _quality_gate_for_issue(issue: dict[str, Any]) -> str:
@@ -701,7 +713,18 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     copy_state = observation.get("client_copy") or {}
     copy_pass = not (copy_state.get("technical_matches") or [])
     density = observation.get("density") or {}
-    density_pass = density.get("first_viewport_product") is True and int(density.get("nested_panel_depth") or 0) <= 2
+    composition = observation.get("composition") or {}
+    dead_space_flags = composition.get("dead_space_flags") or density.get("dead_space_flags") or []
+    empty_dashboard_flags = composition.get("empty_dashboard_flags") or density.get("empty_dashboard_flags") or []
+    sports_above_fold_ratio = float(density.get("sports_above_fold_ratio") or composition.get("home_sports_above_fold_ratio") or 0)
+    nested_depth = max(int(density.get("nested_panel_depth") or 0), int(density.get("nested_card_depth") or 0))
+    density_pass = (
+        density.get("first_viewport_product") is True
+        and nested_depth <= 2
+        and not dead_space_flags
+        and not empty_dashboard_flags
+        and sports_above_fold_ratio >= .05
+    )
     mobile_clicks = [item for item in clicks if str(item.get("viewport") or "").startswith("mobile_")]
     mobile_pass = bool(mobile_clicks) and all(item.get("clicked") and item.get("hit_target") for item in mobile_clicks)
     journeys = {str(item.get("journey")): item for item in observation.get("journeys") or [] if isinstance(item, dict)}
@@ -764,7 +787,10 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
         "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
         "VISUAL_FALSE_PASS_RECURRENCE": {"status": "FOUNDER_REVIEW_REQUIRED", "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."},
         "CLIENT_TECHNICAL_COPY_LEAK": {"status": "PASS" if copy_pass else "FAIL", "evidence": f"technical_matches={len(copy_state.get('technical_matches') or [])}"},
-        "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={density.get('nested_panel_depth')}"},
+        "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={nested_depth}; bordered={density.get('bordered_containers')}; sports_ratio={sports_above_fold_ratio:.3f}"},
+        "LARGE_UNJUSTIFIED_EMPTY_REGION": {"status": "PASS" if composition.get("observed") is True and not dead_space_flags else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"flags={len(dead_space_flags)}; coverage={composition.get('home_viewport_content_coverage')}"},
+        "EMPTY_DASHBOARD": {"status": "PASS" if composition.get("observed") is True and not empty_dashboard_flags else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"flags={len(empty_dashboard_flags)}"},
+        "SPORTS_ABOVE_FOLD_RATIO": {"status": "PASS" if sports_above_fold_ratio >= .05 else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"ratio={sports_above_fold_ratio:.3f}"},
         "TEAM_TO_PLAYER": {"status": "PASS" if (journeys.get("golden_sports_knowledge") or {}).get("pass") is True else "NOT_RUN", "evidence": "golden_sports_knowledge"},
         "MEDIA_RIGHTS_FAIL_CLOSED": {"status": "PASS" if rights_pass else "FAIL", "evidence": f"unsafe_media_visible={knowledge.get('unsafe_media_visible', 0)}"},
         "MOJIBAKE": {"status": "PASS" if not (text_quality.get("mojibake_matches") or []) else "FAIL", "evidence": f"mojibake={len(text_quality.get('mojibake_matches') or [])}"},

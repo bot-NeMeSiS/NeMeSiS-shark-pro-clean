@@ -28,19 +28,25 @@
     </div>
   </section>
 
-  <section class="v933-kpi-grid ns16-kpi-strip" aria-label="Resumen de la jornada">
-    {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
-    {{ kpi_card('Picks activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favorites') }}
-  </section>
-
   {% if live_matches %}
   <section class="ns16-section ns16-live-priority" data-sports-priority="live-now">
     {{ section_header('En directo', '', 'Abrir Directo', '/live', 'LIVE') }}
     <div class="ns16-match-row">{% for match in live_matches[:3] %}{{ live_card(match) }}{% endfor %}</div>
   </section>
   {% endif %}
+
+  <section class="ns16-section ns16-home-sports" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
+    {{ section_header('Partidos destacados', '', 'Ver todos', '/calendar', 'HOY') }}
+    {% if important_matches %}<div class="ns16-match-row">{% for match in important_matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+    {% else %}{{ empty_state('Sin partidos destacados ahora', 'La agenda aparecerá cuando existan encuentros completos.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
+  </section>
+
+  <section class="v933-kpi-grid ns16-kpi-strip" aria-label="Resumen de la jornada">
+    {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendar') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
+    {{ kpi_card('Picks activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favorites') }}
+  </section>
 
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">
     <article class="v933-panel ns16-journey">
@@ -56,12 +62,6 @@
       {{ section_header('Pick destacado', '', 'Ver todos', '/picks') }}
       {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
     </article>
-  </section>
-
-  <section class="ns16-section" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
-    {{ section_header('Partidos destacados', '', 'Ver todos', '/calendar', 'HOY') }}
-    {% if important_matches %}<div class="ns16-match-row">{% for match in important_matches[:3] %}{{ match_card(match, false, true) }}{% endfor %}</div>
-    {% else %}{{ empty_state('Sin partidos destacados ahora', 'La agenda aparecerá cuando existan encuentros completos.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
   </section>
 
   <nav class="v933-panel ns16-home-actions" aria-label="Accesos rápidos">

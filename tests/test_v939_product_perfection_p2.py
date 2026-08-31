@@ -52,27 +52,25 @@ def test_client_quick_actions_continue_outside_the_bounded_rail():
     template = _read("templates/client_app_center.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
     continuation = template.index('data-v939-layout-contract="full-width-continuation"')
-    segment = template[bounded:continuation]
+    segment = template[continuation:bounded]
 
-    assert continuation > bounded
+    assert continuation < bounded
     assert "Tus accesos rápidos" not in segment
     assert template.count("Tus accesos rápidos") == 1
     assert template.index("Tus accesos rápidos") > continuation
 
 
-def test_telegram_supporting_blocks_form_a_balanced_pair_after_the_rail():
+def test_telegram_supporting_content_stays_flat_after_the_rail():
     template = _read("templates/telegram.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
-    balanced = template.index('data-v939-layout-contract="balanced-pair"')
-    rail_segment = template[bounded:balanced]
-    pair_segment = template[balanced:]
+    safety_note = template.index('class="ns-video-safety-note"')
+    rail_segment = template[bounded:safety_note]
 
     assert "Configurar en 3 pasos" in rail_segment
-    assert "Telegram extiende la app; no la sustituye" not in rail_segment
-    assert "Calidad del canal" not in rail_segment
-    assert 'class="v933-two-col is-balanced"' in template
-    assert "Telegram extiende la app; no la sustituye" in pair_segment
-    assert "Calidad del canal" in pair_segment
+    assert "Telegram extiende la app; no la sustituye" not in template
+    assert "Calidad del canal" not in template
+    assert 'class="v933-two-col is-balanced"' not in template
+    assert "Calidad protegida" in template[safety_note:]
 
 
 def test_bounded_rail_css_contract_has_desktop_reclaim_and_mobile_collapse():

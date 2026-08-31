@@ -7,11 +7,12 @@
 {% set pending = record.get('pending_results') or [] %}
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
+{% set has_history = recent or pending or record.get('by_month') or (record.get('closed_count') or 0) > 0 or (record.get('graded_count') or 0) > 0 or roi is not none or winrate is not none %}
 
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="official-ref-13" data-top100-improvement="7">
   {{ page_header('Histórico', 'Rendimiento real de picks cerrados.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
 
-  <section class="v933-kpi-grid">
+  {% if has_history %}<section class="v933-kpi-grid">
     {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre stake evaluable', 'success', 'history') }}
     {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, 'Solo decisiones cerradas', 'cyan', 'target') }}
     {{ kpi_card('Picks cerrados', record.get('closed_count') if record.get('closed_count') is not none else record.get('graded_count'), 'Total evaluable', 'blue', 'history') }}
@@ -55,5 +56,10 @@
       <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.</p></section>
     </aside>
   </section>
+  {% else %}
+  <section class="ns-video-empty-dashboard ns-video-track-empty" data-empty-dashboard="resolved">
+    {{ empty_state('El histórico empieza con resultados reales', 'ROI, winrate y evolución aparecerán cuando existan picks cerrados y evaluables.', 'Ver picks', '/picks', 'history') }}
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

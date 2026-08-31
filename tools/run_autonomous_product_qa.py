@@ -299,6 +299,57 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             const style = getComputedStyle(node);
             return rect.width > 2 && rect.height > 2 && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity || 1) > 0;
           };
+          const coverageRatio = nodes => {
+            const columns = 12;
+            const rows = 8;
+            const occupied = new Set();
+            for (const node of nodes.filter(visible)) {
+              const rect = node.getBoundingClientRect();
+              const left = Math.max(0, rect.left);
+              const right = Math.min(innerWidth, rect.right);
+              const top = Math.max(0, rect.top);
+              const bottom = Math.min(innerHeight, rect.bottom);
+              if (right <= left || bottom <= top) continue;
+              for (let row = 0; row < rows; row += 1) {
+                const y = (row + .5) * innerHeight / rows;
+                if (y < top || y > bottom) continue;
+                for (let column = 0; column < columns; column += 1) {
+                  const x = (column + .5) * innerWidth / columns;
+                  if (x >= left && x <= right) occupied.add(`${column}:${row}`);
+                }
+              }
+            }
+            return Math.round((occupied.size / (columns * rows)) * 1000) / 1000;
+          };
+          const containerSelector = '.v933-panel,.v933-admin-panel,.v933-kpi,.v933-match-card,.v933-pick-card,.v933-page-header,.v933-plan-card,.v933-quick-action,.v933-profile-card';
+          const visibleContainers = Array.from(document.querySelectorAll(containerSelector)).filter(visible);
+          const borderedContainers = visibleContainers.filter(node => {
+            const style = getComputedStyle(node);
+            return style.borderTopStyle !== 'none' && parseFloat(style.borderTopWidth || '0') >= 1;
+          }).length;
+          const nestedCardDepth = visibleContainers.reduce((max, node) => {
+            let depth = 0;
+            let current = node.parentElement;
+            while (current) {
+              if (current.matches && current.matches(containerSelector)) depth += 1;
+              current = current.parentElement;
+            }
+            return Math.max(max, depth);
+          }, 0);
+          const emptyStateCount = Array.from(document.querySelectorAll('[data-empty-state],.v933-empty-state')).filter(visible).length;
+          const visibleKpis = Array.from(document.querySelectorAll('.v933-kpi')).filter(visible).length;
+          const realProductNodes = Array.from(document.querySelectorAll('.v933-match-card,.v933-pick-card,.v933-data-table tbody tr,[data-sports-priority]')).filter(visible);
+          const emptySensitivePath = ['/picks', '/shark', '/track-record'].includes(location.pathname);
+          const emptyDashboardResolved = Boolean(document.querySelector('[data-empty-dashboard="resolved"]'));
+          const emptyDashboardFlags = emptySensitivePath && !emptyDashboardResolved && emptyStateCount > 0 && (emptyStateCount > 1 || visibleKpis >= 3)
+            ? ['EMPTY_ANALYTICS_DASHBOARD'] : [];
+          const compositionNodes = Array.from(document.querySelectorAll('.v933-page-header,.v933-client-hero,.v933-shark-hero,.v933-telegram-hero,.v933-match-card,.v933-pick-card,.v933-kpi,.v933-quick-action,.v933-empty-state,.v933-data-table,.v933-filter-panel,.v933-feature-grid,.v933-linked-state,.v933-link-code,.ns16-journey-steps a,.v933-profile-card,.v933-plan-card,.v933-admin-panel,.ns16-admin-priority,.ns-video-admin-ok,.v944-match-header,.v944-match-sections,.v944-match-panel,.v944-score-widget,.v944-experience-grid,.team-center-hero,.competition-center-hero,.player-center-hero,.team-center-panel,.competition-center-panel,.player-center-panel,.team-center-match-section,.competition-center-match-section,.player-center-match-section')).filter(visible);
+          const viewportContentCoverage = coverageRatio(compositionNodes);
+          const deadSpaceRelevant = ['/app','/calendar','/live','/picks','/shark','/track-record','/telegram','/profile','/memberships','/admin/dashboard','/admin/founder-dashboard','/admin/automation-center','/admin/growth-command-center','/admin/payments'].includes(location.pathname)
+            || /^\/(match|team|competition|player)\//.test(location.pathname);
+          const deadSpaceFlags = deadSpaceRelevant && innerWidth >= 1024 && viewportContentCoverage < .28 && !emptyDashboardResolved
+            ? ['LARGE_UNJUSTIFIED_EMPTY_REGION'] : [];
+          const sportsAboveFoldRatio = coverageRatio(Array.from(document.querySelectorAll('[data-sports-priority],.v933-match-card,.v933-live-card,.v750-live-card,.v944-match-header,.v933-pick-card')));
           const selectorFor = node => {
             if (node.id) return '#' + node.id;
             const classes = Array.from(node.classList || []).slice(0, 3).join('.');
@@ -429,6 +480,16 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             broken_images: brokenImages,
             first_viewport_product: firstViewportProduct,
             nested_panel_depth: nestedPanelDepth,
+            composition: {
+              dead_space_flags: deadSpaceFlags,
+              empty_dashboard_flags: emptyDashboardFlags,
+              bordered_containers: borderedContainers,
+              nested_card_depth: nestedCardDepth,
+              empty_state_count: emptyStateCount,
+              real_product_nodes: realProductNodes.length,
+              viewport_content_coverage: viewportContentCoverage,
+              sports_above_fold_ratio: sportsAboveFoldRatio,
+            },
             layout_collisions: layoutCollisions,
             brand: {
               asset: brandImage ? (brandImage.currentSrc || brandImage.src) : '',
@@ -1323,6 +1384,19 @@ def main() -> int:
                     + f"; {collision.get('actual') or ''}"
                 ),
             })
+    composition_captures = []
+    dead_space_flags = []
+    empty_dashboard_flags = []
+    for capture in captures:
+        composition = capture.get("composition") or {}
+        if not composition:
+            continue
+        composition_captures.append(composition)
+        for flag in composition.get("dead_space_flags") or []:
+            dead_space_flags.append({"screen": capture.get("path"), "viewport": capture.get("viewport"), "flag": flag})
+        for flag in composition.get("empty_dashboard_flags") or []:
+            empty_dashboard_flags.append({"screen": capture.get("path"), "viewport": capture.get("viewport"), "flag": flag})
+    home_composition = home_capture.get("composition") or {}
     observation = {
         "run_id": run_id,
         "started_at_madrid": started,
@@ -1364,6 +1438,18 @@ def main() -> int:
             "evidence": "IDs canónicos leídos de las mismas cards renderizadas en todas las superficies deportivas.",
         },
         "layout_collisions": layout_collisions,
+        "composition": {
+            "observed": bool(composition_captures),
+            "dead_space_flags": dead_space_flags,
+            "empty_dashboard_flags": empty_dashboard_flags,
+            "bordered_containers_max": max((int(item.get("bordered_containers") or 0) for item in composition_captures), default=0),
+            "nested_card_depth_max": max((int(item.get("nested_card_depth") or 0) for item in composition_captures), default=0),
+            "home_bordered_containers": int(home_composition.get("bordered_containers") or 0),
+            "home_nested_card_depth": int(home_composition.get("nested_card_depth") or 0),
+            "home_viewport_content_coverage": home_composition.get("viewport_content_coverage"),
+            "home_sports_above_fold_ratio": home_composition.get("sports_above_fold_ratio"),
+            "evidence": "Composición medida sobre el navegador renderizado: ocupación, paneles visibles, anidamiento y producto deportivo en el primer viewport.",
+        },
         "layout": {
             "observed": bool(captures) and len(captures) == expected_captures,
             "captures": len(captures),
@@ -1412,6 +1498,12 @@ def main() -> int:
             "viewport": "desktop_1366x768",
             "first_viewport_product": home_capture.get("first_viewport_product"),
             "nested_panel_depth": home_capture.get("nested_panel_depth", 0),
+            "nested_card_depth": home_composition.get("nested_card_depth", 0),
+            "bordered_containers": home_composition.get("bordered_containers", 0),
+            "dead_space_flags": home_composition.get("dead_space_flags") or [],
+            "empty_dashboard_flags": empty_dashboard_flags,
+            "sports_above_fold_ratio": home_composition.get("sports_above_fold_ratio", 0),
+            "viewport_content_coverage": home_composition.get("viewport_content_coverage", 0),
             "screenshot": home_capture.get("screenshot") or "",
         },
         "mobile": {
@@ -1440,6 +1532,8 @@ def main() -> int:
                 if str(shark_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
                 and str(background_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
                 and not layout_collisions
+                and not dead_space_flags
+                and not empty_dashboard_flags
                 else "FAIL"
             },
             "SPORTS_TRUTH": {"status": "PASS" if int(live_contract.get("confirmed") or 0) == int(live_contract.get("displayed") or 0) and int(live_contract.get("ft_rendered_live") or 0) == 0 else "FAIL"},

@@ -4483,7 +4483,9 @@ body.ns-app[data-v829-shell="true"] {
     radial-gradient(ellipse at 72% -6%, rgba(95, 208, 255, .18), transparent 24vw),
     radial-gradient(ellipse at 78% 15%, rgba(0, 78, 191, .3), transparent 34vw),
     radial-gradient(ellipse at 14% 34%, rgba(2, 57, 124, .18), transparent 34vw),
-    radial-gradient(ellipse at 54% 72%, rgba(1, 34, 75, .2), transparent 48vw),
+    radial-gradient(ellipse at 54% 66%, rgba(1, 44, 92, .28), transparent 43vw),
+    radial-gradient(ellipse at 86% 84%, rgba(0, 75, 132, .16), transparent 35vw),
+    radial-gradient(ellipse at 22% 96%, rgba(3, 48, 94, .13), transparent 39vw),
     linear-gradient(180deg, #010d20 0%, #000817 42%, #00050f 72%, #00030a 100%) !important;
   background-attachment: fixed !important;
   letter-spacing: 0;
@@ -4508,6 +4510,8 @@ body.ns-app.ns-admin::before {
     linear-gradient(101deg, transparent 0 54%, rgba(70, 174, 255, .045) 64%, transparent 79%),
     radial-gradient(ellipse at 61% -4%, rgba(129, 225, 255, .14), transparent 27%),
     radial-gradient(ellipse at 76% 20%, rgba(8, 75, 167, .14), transparent 41%),
+    radial-gradient(ellipse at 28% 74%, rgba(17, 112, 186, .08), transparent 34%),
+    radial-gradient(ellipse at 78% 88%, rgba(0, 83, 146, .1), transparent 32%),
     radial-gradient(ellipse at 50% 108%, rgba(0, 1, 5, .98), transparent 54%);
   background-size: 100% 100%;
   opacity: .97;
@@ -4527,7 +4531,7 @@ body.ns-app.ns-admin::after {
   pointer-events: none;
   width: auto;
   height: auto;
-  opacity: .5;
+  opacity: .58;
   background:
     radial-gradient(circle, rgba(102, 214, 255, .34) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
     radial-gradient(circle, rgba(255,255,255,.12) 0 .65px, transparent 1px) 13px 17px / 103px 103px,
@@ -4538,8 +4542,8 @@ body.ns-app.ns-admin::after {
   filter: none;
   transform: none;
   animation: none;
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.72) 44%, transparent 92%);
-  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.72) 44%, transparent 92%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 44%, rgba(0,0,0,.3) 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.78) 44%, rgba(0,0,0,.3) 100%);
 }
 body.ns-app.ns-admin::before { opacity: .58; }
 body.ns-app.ns-admin::after { opacity: .18; }
@@ -4574,7 +4578,7 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   width: clamp(460px, 44vw, 650px);
   aspect-ratio: 1280 / 400;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=founder-video-1') center / contain no-repeat;
   opacity: .88;
   filter: drop-shadow(0 0 28px rgba(24, 137, 255, .34)) saturate(1.08) brightness(1.04);
   transform: translateY(-50%);
@@ -5419,19 +5423,19 @@ body.ns-app .ns16-shark-more > summary { min-height: 42px; }
 body.ns-app .v933-track-record .v933-table-wrap { max-height: 390px; overflow: auto; }
 
 body.ns-app .v933-shark-hero {
-  min-height: 146px;
+  min-height: 166px;
   display: grid;
   grid-template-columns: minmax(0,1fr) minmax(360px,.78fr);
   padding: 14px 16px;
   overflow: hidden;
   border-color: rgba(57,216,255,.26);
   border-radius: 8px;
-  background: radial-gradient(ellipse at 79% 16%,rgba(33,154,255,.24),transparent 42%),linear-gradient(108deg,rgba(2,12,26,.96),rgba(4,21,42,.78));
+  background: radial-gradient(ellipse at 78% 18%,rgba(70,196,255,.3),transparent 36%),radial-gradient(ellipse at 92% 88%,rgba(11,92,174,.22),transparent 40%),linear-gradient(108deg,rgba(2,12,26,.96),rgba(4,21,42,.74));
 }
 body.ns-app .v933-shark-hero > div { position: relative; z-index: 2; align-self: center; max-width: 620px; }
 body.ns-app .v933-shark-hero h2 { margin: 4px 0; font-size: 1.35rem; }
 body.ns-app .v933-shark-hero p { max-width: 58ch; margin: 0; color: var(--nsx-muted); font-size: .76rem; }
-body.ns-app .v933-shark-hero img { position: absolute; z-index: 1; top: 50%; right: 24px; width: min(500px,44vw); max-height: 158px; opacity: .62; transform: translateY(-50%); filter: drop-shadow(0 0 28px rgba(42,181,255,.34)) brightness(.96); pointer-events: none; }
+body.ns-app .v933-shark-hero img { position: absolute; z-index: 1; top: 51%; right: -6px; width: min(620px,52vw); max-height: 190px; opacity: .82; transform: translateY(-50%); filter: drop-shadow(0 0 34px rgba(42,181,255,.42)) brightness(1.08) saturate(1.08); pointer-events: none; }
 body.ns-app .v933-shark-hero .v933-hero-actions { margin-top: 9px; }
 body.ns-app .v933-shark-page > .v933-quick-action { min-height: 48px; }
 
@@ -5454,6 +5458,77 @@ body.ns-app .v933-memberships-page .v933-plan-price { font-size: 1.75rem; }
 body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minmax(250px,.48fr); }
 .ns16-account-actions { grid-template-columns: repeat(2,minmax(0,1fr)); }
 .ns16-account-actions .v933-quick-action { min-height: 58px; }
+
+/* Founder video review: content owns the layout; empty analytics never pretend to be a dashboard. */
+.ns-video-empty-dashboard {
+  display: grid;
+  gap: 12px;
+  padding: 10px 0 2px;
+  border-top: 1px solid rgba(89,185,255,.14);
+}
+.ns-video-empty-dashboard > .v933-empty-state {
+  min-height: 104px;
+  border: 0 !important;
+  border-left: 2px solid rgba(57,216,255,.48) !important;
+  border-radius: 0 !important;
+  background: linear-gradient(90deg,rgba(19,107,178,.1),transparent 72%) !important;
+  box-shadow: none !important;
+}
+.ns-video-empty-followup { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(89,185,255,.1); }
+.ns-video-status-rail { gap: 0 !important; border-block: 1px solid rgba(89,185,255,.13); }
+body.ns-app .ns-video-status-rail > .v933-kpi {
+  min-height: 62px;
+  border: 0 !important;
+  border-right: 1px solid rgba(89,185,255,.13) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.ns-video-status-rail > .v933-kpi:last-child { border-right: 0 !important; }
+body.ns-app .ns-video-flat-panel,
+body.ns-app .ns-video-flat-band {
+  border-inline: 0 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(180deg,rgba(8,31,56,.3),transparent) !important;
+  box-shadow: none !important;
+}
+body.ns-app .ns-video-flat-panel .v933-feature-grid > article,
+body.ns-app .ns-video-flat-band .v933-feature-grid > article {
+  min-height: 86px;
+  border: 0;
+  border-left: 1px solid rgba(89,185,255,.13);
+  border-radius: 0;
+  background: transparent;
+}
+.ns-video-safety-note,
+.ns-video-admin-ok {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 30px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 11px;
+  border-block: 1px solid rgba(89,185,255,.13);
+  color: var(--nsx-text);
+  background: rgba(6,27,48,.28);
+}
+.ns-video-safety-note > .v933-icon,
+.ns-video-admin-ok > .v933-icon { width: 27px; height: 27px; color: var(--nsx-cyan); }
+.ns-video-safety-note > span,
+.ns-video-admin-ok > span { display: grid; gap: 2px; }
+.ns-video-safety-note small,
+.ns-video-admin-ok small { color: var(--nsx-muted); font-size: .65rem; }
+.ns16-account-actions .v933-quick-action {
+  border: 0;
+  border-left: 2px solid rgba(57,216,255,.2);
+  border-radius: 0;
+  background: rgba(15,77,126,.06);
+}
+body.ns-app.ns-admin .v933-fact-grid > article {
+  border-inline: 0;
+  border-radius: 0;
+  background: transparent;
+}
 
 /* The four sports entity centers use compact identity headers rather than oversized banners. */
 body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 132px !important; padding: 12px 14px !important; border-radius: 8px !important; }
@@ -5501,12 +5576,9 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
 .ns16-live .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .v933-calendar-board .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority) { display: none; }
 @media (min-width:1101px) {
-  body.ns-app .ns16-home { display: grid !important; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); align-items: start; }
-  .ns16-home > :is(.ns16-home-hero,.ns16-kpi-strip,.ns16-live-priority,.ns16-home-actions,.ns16-more) { grid-column: 1 / -1; }
-  .ns16-home > .ns16-home-command { display: contents; }
-  .ns16-home .ns16-journey { grid-column: 1; }
-  .ns16-home .ns16-featured-pick { grid-column: 2; grid-row: span 2; }
-  .ns16-home > [data-sports-priority="important-today"] { grid-column: 1; }
+  body.ns-app .ns16-home { display: flex !important; flex-direction: column; align-items: stretch; }
+  .ns16-home > .ns16-home-command { display: grid; }
+  .ns16-home > [data-sports-priority="important-today"] { width: 100%; }
 }
 @media (max-width: 1100px) {
   .ns16-home-command { grid-template-columns: 1fr; }
@@ -5521,11 +5593,11 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
 @media (max-width: 760px) {
   .ns16-home { display: grid; }
   .ns16-home > .ns16-home-hero { order: 1; }
-  .ns16-home > .ns16-kpi-strip { order: 2; }
-  .ns16-home > .ns16-live-priority { order: 3; }
+  .ns16-home > .ns16-live-priority { order: 2; }
+  .ns16-home > .ns16-home-sports { order: 3; }
+  .ns16-home > .ns16-kpi-strip { order: 4; }
   .ns16-home > .ns16-home-command { display: contents; }
-  .ns16-home .ns16-journey { order: 4; }
-  .ns16-home > [data-sports-priority="important-today"] { order: 5; }
+  .ns16-home .ns16-journey { order: 5; }
   .ns16-home .ns16-featured-pick { order: 6; }
   .ns16-home > .ns16-home-actions { order: 7; }
   .ns16-home > .ns16-more { order: 8; }
@@ -5541,13 +5613,18 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(a,strong,small,td,th) { overflow-wrap: anywhere; }
   body.ns-app .v933-shark-hero { min-height: 132px; grid-template-columns: 1fr; padding: 11px; }
   body.ns-app .v933-shark-hero p { display: none; }
-  body.ns-app .v933-shark-hero img { top: 26%; right: -12px; width: 220px; max-height: 82px; opacity: .22; }
+  body.ns-app .v933-shark-hero img { top: 39%; right: -94px; width: 340px; max-height: 112px; opacity: .56; filter: drop-shadow(0 0 26px rgba(42,181,255,.4)) brightness(1.08) saturate(1.08); }
   body.ns-app .v933-shark-hero .v933-hero-actions { max-width: 72%; }
   .ns16-account-status { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
   .ns16-account-status > a { min-height: 62px; grid-template-columns: 1fr; justify-items: center; padding: 6px 3px; text-align: center; }
   .ns16-account-status > a > .v933-icon { width: 24px; height: 24px; }
   .ns16-account-status small { display: none; }
   .ns16-account-actions { grid-template-columns: 1fr 1fr; }
+  .ns-video-status-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  body.ns-app .ns-video-status-rail > .v933-kpi:nth-child(2) { border-right: 0 !important; }
+  body.ns-app .ns-video-status-rail > .v933-kpi:nth-child(n+3) { border-top: 1px solid rgba(89,185,255,.13) !important; }
+  .ns-video-safety-note,.ns-video-admin-ok { grid-template-columns: 27px minmax(0,1fr); }
+  .ns-video-safety-note > .v933-status-chip,.ns-video-admin-ok > .v933-status-chip { grid-column: 2; }
   body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
   body.ns-app .ns16-home-hero { min-height: 108px !important; padding: 9px 10px !important; }

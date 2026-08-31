@@ -21,13 +21,11 @@
       <p>Partidos, selecciones y riesgos explicados solo con los datos disponibles.</p>
       <div class="v933-hero-actions">{{ action_button('Explorar partidos','/calendar',true,'cyan',false,'calendar') }}{{ action_button('Ver directo','/live',false,'blue',false,'live') }}{{ action_button('Revisar picks','/picks',false,'blue',false,'target') }}</div>
     </div>
-    <img src="/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3" alt="" aria-hidden="true">
+    <img src="/static/img/nemesis-shark-atmosphere.svg?v=founder-video-1" alt="" aria-hidden="true">
   </section>
 
   {% if picks %}{% set focus_pick = picks[0] %}
     <a class="v933-quick-action is-cyan" href="{{ focus_pick.get('client_match_url') or ('/match/' ~ focus_pick.get('match_id') if focus_pick.get('match_id') else '/picks') }}"{% if focus_pick.get('match_id') %} data-match-id="{{ focus_pick.get('match_id') }}"{% endif %}>{{ icon('calendar') }}<span><strong>{{ focus_pick.get('client_match_label') or 'Partido analizado' }}</strong><small>{{ focus_pick.get('client_competition') or 'Competición' }} · <time{% if focus_pick.get('madrid_dt_iso') %} datetime="{{ focus_pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ focus_pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ focus_pick.get('client_temporal_label') or focus_pick.get('client_schedule_label') or 'Fecha pendiente' }}</time></small></span>{{ icon('arrow') }}</a>
-  {% endif %}
-
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Contexto publicable', 'cyan', 'target', '/picks') }}
@@ -77,5 +75,10 @@
       <p class="v933-safe-copy">Si falta un dato real, SHARK lo marca como pendiente. No promete resultados ni sustituye la decisión del usuario.</p>
     </aside>
   </section>
+  {% else %}
+  <section class="ns-video-empty-dashboard ns-video-shark-empty" data-empty-dashboard="resolved">
+    {{ empty_state('SHARK espera evidencia suficiente', 'Los partidos siguen disponibles aunque todavía no exista una selección publicable.', 'Explorar partidos', '/calendar', 'shark') }}
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

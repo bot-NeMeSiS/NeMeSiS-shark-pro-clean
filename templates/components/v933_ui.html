@@ -66,7 +66,7 @@
 {%- endmacro %}
 
 {% macro empty_state(title, body, action_label='', action_href='', icon_name='data') -%}
-<section class="v933-empty-state">{{ icon(icon_name) }}<div><strong>{{ title }}</strong><p>{{ body }}</p></div>{% if action_href %}{{ action_button(action_label or 'Continuar', action_href, true, 'blue') }}{% endif %}</section>
+<section class="v933-empty-state" data-empty-state="premium">{{ icon(icon_name) }}<div><strong>{{ title }}</strong><p>{{ body }}</p></div>{% if action_href %}{{ action_button(action_label or 'Continuar', action_href, true, 'blue') }}{% endif %}</section>
 {%- endmacro %}
 
 {% macro team_logo(name, logo='', size='md') -%}

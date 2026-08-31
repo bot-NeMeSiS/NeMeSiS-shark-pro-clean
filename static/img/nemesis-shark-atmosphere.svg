@@ -1,11 +1,11 @@
 <svg width="1280" height="420" viewBox="0 0 1280 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tiburon atmosferico NeMeSiS">
   <defs>
     <linearGradient id="body-fill" x1="68" y1="176" x2="1055" y2="316" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#0B5F9A" stop-opacity=".94"/>
-      <stop offset=".2" stop-color="#043B72" stop-opacity=".96"/>
-      <stop offset=".5" stop-color="#021C41" stop-opacity=".94"/>
-      <stop offset=".78" stop-color="#010B22" stop-opacity=".82"/>
-      <stop offset="1" stop-color="#00050F" stop-opacity=".12"/>
+      <stop stop-color="#1689C8" stop-opacity=".98"/>
+      <stop offset=".2" stop-color="#07548F" stop-opacity=".98"/>
+      <stop offset=".5" stop-color="#052B59" stop-opacity=".97"/>
+      <stop offset=".78" stop-color="#021431" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#000817" stop-opacity=".3"/>
     </linearGradient>
     <linearGradient id="belly-fill" x1="105" y1="236" x2="860" y2="342" gradientUnits="userSpaceOnUse">
       <stop stop-color="#0B4F7A" stop-opacity=".72"/>
@@ -24,8 +24,8 @@
       <stop offset="1" stop-color="#010B1B" stop-opacity=".28"/>
     </linearGradient>
     <radialGradient id="head-light" cx="0" cy="0" r="1" gradientTransform="translate(170 205) rotate(8) scale(215 110)" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6DE7FF" stop-opacity=".38"/>
-      <stop offset=".4" stop-color="#1684CC" stop-opacity=".2"/>
+      <stop stop-color="#A4F5FF" stop-opacity=".56"/>
+      <stop offset=".4" stop-color="#27A5E8" stop-opacity=".3"/>
       <stop offset="1" stop-color="#031530" stop-opacity="0"/>
     </radialGradient>
     <pattern id="data-mesh" width="28" height="24" patternUnits="userSpaceOnUse">
@@ -57,8 +57,8 @@
     <circle cx="159" cy="177" r="3.7" fill="#F7FFFF"/>
     <circle cx="159" cy="177" r="1.35" fill="#00030A"/>
     <path d="M118 245L128 257L137 241L147 259L158 239L168 258L179 238L189 257L201 238" stroke="#C5F8FF" stroke-width=".9" opacity=".72"/>
-    <g clip-path="url(#body-clip)" opacity=".9">
-      <rect x="55" y="108" width="985" height="255" fill="url(#data-mesh)" opacity=".88"/>
+    <g clip-path="url(#body-clip)" opacity=".68">
+      <rect x="55" y="108" width="985" height="255" fill="url(#data-mesh)" opacity=".52"/>
       <path d="M84 190C265 153 464 158 676 197C812 222 911 234 1001 225M68 220C251 202 462 214 655 252C781 277 881 286 972 270M105 267C287 252 473 274 641 310C748 333 836 334 908 318" stroke="#50D8FF" stroke-width=".8" opacity=".58"/>
       <path d="M210 143C193 195 202 261 236 306M305 128C286 190 300 278 343 332M410 123C391 191 412 287 462 346M520 128C509 203 539 294 592 349M632 142C636 216 670 300 724 337M744 161C757 224 792 290 842 319" stroke="#2AB7FF" stroke-width=".74" opacity=".58"/>
     </g>
