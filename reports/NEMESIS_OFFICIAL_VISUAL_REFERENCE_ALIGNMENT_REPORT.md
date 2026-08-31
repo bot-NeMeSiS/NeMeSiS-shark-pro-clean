@@ -163,32 +163,32 @@ La Quality Division mantiene `VISUAL = WARNING` hasta la decision humana.
 
 ## Matriz final local
 
-| Familia | Estado tecnico | Decision humana |
+| Familia | Estado visual | Decision humana |
 |---|---|---|
-| Background | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Brand Shark | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Atmospheric Shark | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Client shell | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Home | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Partidos | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Directo | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Match Center | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Team Center | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Competition Center | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Player Center | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Picks | MATCH | FOUNDER_REVIEW_REQUIRED |
-| SHARK | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Track Record | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Telegram | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Memberships | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Account | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Admin/Founder/Growth | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Desktop | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Tablet | MATCH | FOUNDER_REVIEW_REQUIRED |
-| Mobile 360-430 | MATCH | FOUNDER_REVIEW_REQUIRED |
+| Background | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Brand Shark | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Atmospheric Shark | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Client shell | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Home | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Partidos | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Directo | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Match Center | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Team Center | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Competition Center | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Player Center | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Picks | FOUNDER_REVIEW_REQUIRED | PENDING |
+| SHARK | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Track Record | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Telegram | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Memberships | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Account | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Admin/Founder/Growth | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Desktop | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Tablet | FOUNDER_REVIEW_REQUIRED | PENDING |
+| Mobile 360-430 | FOUNDER_REVIEW_REQUIRED | PENDING |
 
-`MATCH` en esta tabla significa que no queda un gap tecnico demostrado por la
-comparacion y la QA local. No sustituye la aprobacion estetica del fundador.
+La QA no detecta fallos funcionales, colisiones ni gaps estructurales P0/P1.
+La equivalencia estetica sigue reservada a la revision del fundador.
 
 ## QA funcional y seguridad
 
@@ -219,7 +219,7 @@ comparacion y la QA local. No sustituye la aprobacion estetica del fundador.
 
 ## Evidencia local
 
-- Full QA: `browser_qa/DESIGN_SYSTEM_1_FINAL/`.
+- Full QA final: `browser_qa/DESIGN_SYSTEM_1_RELEASE/`.
 - Logo final sin caja: `browser_qa/DESIGN_SYSTEM_1_LOGO_FINAL/`.
 - Comparativas de referencia y producto: `data/local_dev/visual_review/`.
 
