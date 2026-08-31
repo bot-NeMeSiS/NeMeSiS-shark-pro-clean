@@ -7,7 +7,7 @@
 {% set activity = data.get('client_activity') or [] %}
 {% set favorites = data.get('favorites') or [] %}
 
-<div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16">
+<div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16" data-first-use-contract="Primer uso real" data-habit-contract="Hábito sin invasión">
   {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
 
