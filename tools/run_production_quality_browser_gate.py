@@ -204,7 +204,12 @@ def _discover_entity_paths(page: Any, base_url: str) -> tuple[str, ...]:
                 discovered.append(match)
                 pending.append(match)
     return tuple(discovered)
-def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, Any]:
+def run_gate(
+    base_url: str,
+    expected_sha: str,
+    output_dir: Path,
+    browser_executable: str = "",
+) -> dict[str, Any]:
     runtime, runtime_http = _request_json(base_url, "/api/runtime-version")
     health, health_http = _request_json(base_url, "/api/health")
     sports, sports_http = _request_json(base_url, "/api/realtime/sports")
@@ -215,7 +220,10 @@ def run_gate(base_url: str, expected_sha: str, output_dir: Path) -> dict[str, An
     page_errors: list[str] = []
     playwright_module = __import__("playwright.sync_api", fromlist=["sync_playwright"])
     with playwright_module.sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
+        launch_options: dict[str, Any] = {"headless": True}
+        if browser_executable:
+            launch_options["executable_path"] = str(Path(browser_executable).resolve())
+        browser = playwright.chromium.launch(**launch_options)
         desktop = browser.new_context(viewport={"width": 1366, "height": 768})
         desktop_page = desktop.new_page()
         desktop_page.on("console", lambda msg: console_errors.append(msg.text[:500]) if msg.type == "error" else None)
@@ -357,6 +365,7 @@ def main() -> int:
     parser.add_argument("--expected-sha", required=True)
     parser.add_argument("--report-path", default="reports/PRODUCTION_QUALITY_SENTINEL.json")
     parser.add_argument("--output-dir", default="reports/production_quality_sentinel")
+    parser.add_argument("--browser-executable", default="")
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9a-f]{40}", args.expected_sha):
         raise SystemExit("expected SHA must be a full lowercase 40-character commit")
@@ -372,7 +381,12 @@ def main() -> int:
             "stripe_actions": 0,
         }
     else:
-        result = run_gate(args.base_url, args.expected_sha, Path(args.output_dir))
+        result = run_gate(
+            args.base_url,
+            args.expected_sha,
+            Path(args.output_dir),
+            args.browser_executable,
+        )
     target = Path(args.report_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")

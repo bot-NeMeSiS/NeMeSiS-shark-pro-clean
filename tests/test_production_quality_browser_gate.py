@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tools.run_production_quality_browser_gate import _visual_asset_contract, build_post_deploy_result
 
 
@@ -73,3 +75,10 @@ def test_production_visual_contract_requires_two_current_sharks_and_rejects_lega
     ])
     assert legacy_passed is False
     assert legacy_evidence["legacy_shark_loaded"] is True
+
+
+def test_production_quality_gate_can_use_an_installed_browser():
+    source = (Path(__file__).parents[1] / "tools" / "run_production_quality_browser_gate.py").read_text(encoding="utf-8")
+
+    assert 'parser.add_argument("--browser-executable", default="")' in source
+    assert 'launch_options["executable_path"]' in source
