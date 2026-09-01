@@ -40,13 +40,13 @@ def _env_int(name: str, default: int) -> int:
 
 
 def _provider_key() -> str:
-    return (
+    return str(
         os.getenv("API_FOOTBALL_KEY")
         or os.getenv("API_FOOTBALL_API_KEY")
         or os.getenv("API_SPORTS_KEY")
         or os.getenv("APISPORTS_KEY")
         or ""
-    )
+    ).strip()
 
 
 def _connect(db_path: str) -> sqlite3.Connection:

@@ -83,7 +83,7 @@ def tracker_enabled() -> bool:
 
 
 def _api_key() -> str:
-    return os.getenv("API_FOOTBALL_KEY") or os.getenv("API_FOOTBALL_API_KEY") or ""
+    return str(os.getenv("API_FOOTBALL_KEY") or os.getenv("API_FOOTBALL_API_KEY") or "").strip()
 
 
 def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int = 18) -> dict[str, Any]:
@@ -409,6 +409,15 @@ def _upsert_events(conn: sqlite3.Connection, fixture_id: str, events: Iterable[M
         )
         inserted += 1 if conn.total_changes > before else 0
     return inserted
+
+
+def persist_api_football_events(
+    conn: sqlite3.Connection,
+    fixture_id: str,
+    events: Iterable[Mapping[str, Any]],
+) -> int:
+    """Persist already-authorized provider events in the canonical live cache."""
+    return _upsert_events(conn, str(fixture_id or ""), events)
 
 
 def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload: Iterable[Mapping[str, Any]]) -> int:

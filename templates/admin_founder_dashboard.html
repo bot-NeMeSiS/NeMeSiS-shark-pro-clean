@@ -89,6 +89,23 @@
         {{ kpi_card('Vídeos', sports_knowledge.approved_media or 0, 'Autorizados para app', 'success', 'play') }}
         {{ kpi_card('Derechos', sports_knowledge.rights_warnings or 0, 'Requieren revisión', 'warning' if sports_knowledge.rights_warnings else 'success', 'shield') }}
       </div>
+      <div class="v933-truth-list" aria-label="Continuidad de datos deportivos">
+        {% for item in sports_knowledge.provider_continuity or [] %}
+          <div>
+            {{ icon('database') }}
+            <span>
+              <strong>{{ item.capability|replace('_', ' ')|title }} · {{ item.provider }}</strong>
+              <small>Solicitado {{ 'sí' if item.requested else 'no' }} · recibido {{ item.received or 0 }} · persistido {{ item.persisted or 0 }} · visible {{ item.rendered or 0 }}{% if item.last_success %} · éxito {{ item.last_success }}{% endif %}{% if item.last_error %} · error {{ item.last_error }}{% endif %}</small>
+            </span>
+            {{ status_chip(item.gap or 'SIN EVIDENCIA', 'success' if item.gap == 'NO_GAP' else 'warning') }}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="v933-founder-sports-foot">
+        <span><strong>Pipeline profundo</strong>{{ sports_knowledge.pipeline_status or 'Sin ejecutar' }}</span>
+        <span><strong>Última muestra</strong>{{ sports_knowledge.pipeline_last_run or 'Pendiente' }}</span>
+        <span><strong>Llamadas</strong>{{ sports_knowledge.pipeline_external_calls or 0 }} en la última muestra</span>
+      </div>
     </div>
   </section>
 

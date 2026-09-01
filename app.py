@@ -129,6 +129,10 @@ from engines.api_sports_provider_engine import (
     sync_api_sports_fixtures,
     sync_api_sports_live,
 )
+from engines.api_exploitation_engine import (
+    api_exploitation_summary,
+    run_api_exploitation_if_due,
+)
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
@@ -1297,6 +1301,47 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
         }
 
 
+def _api_football_deep_enrichment_candidates(limit=1):
+    """Choose relevant, proven API-Football fixtures from cache only."""
+    try:
+        start_date = today_iso(-2)
+        end_date = today_iso(3)
+        candidates = rows(
+            """
+            SELECT * FROM matches
+            WHERE lower(replace(COALESCE(source,''),'-','_')) IN
+                  ('api_football','api_football_live','api_sports','api_sports_api_football')
+              AND COALESCE(external_id,'')<>''
+              AND COALESCE(match_date,substr(kickoff_iso,1,10)) BETWEEN ? AND ?
+            ORDER BY COALESCE(updated_at,kickoff_iso,match_date) DESC
+            LIMIT 160
+            """,
+            (start_date, end_date),
+        )
+    except Exception:
+        return []
+    ranked = []
+    for item in candidates:
+        try:
+            relevance = sports_relevance_profile(item)
+            status = canonical_match_status(item)
+        except Exception:
+            relevance = {"tier": "UNKNOWN", "competition_rank": 95}
+            status = {"is_live": False, "is_finished": False}
+        tier_rank = {"S": 0, "A": 1, "B": 2, "C": 3, "UNKNOWN": 4}.get(relevance.get("tier"), 4)
+        lifecycle_rank = 0 if status.get("is_live") else 1 if status.get("is_finished") else 2
+        ranked.append((tier_rank, lifecycle_rank, int(relevance.get("competition_rank") or 95), item))
+    ranked.sort(key=lambda value: value[:3])
+    fixture_ids = []
+    for _tier, _lifecycle, _rank, item in ranked:
+        fixture_id = str(item.get("external_id") or "").strip()
+        if fixture_id and fixture_id not in fixture_ids:
+            fixture_ids.append(fixture_id)
+        if len(fixture_ids) >= max(1, int(limit)):
+            break
+    return fixture_ids
+
+
 def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     """Refresh sports cache without Telegram, payments or render-time provider calls."""
     started_at = now_iso()
@@ -1339,6 +1384,14 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
             "fixtures_count": 0,
             "safe_message": "Sin live ni kickoff cercano: no se consumen creditos.",
         }
+    deep_candidates = _api_football_deep_enrichment_candidates(limit=1)
+    deep = _safe_sports_sync_call(
+        "api_football_deep_enrichment",
+        run_api_exploitation_if_due,
+        DB_PATH,
+        fixture_ids=deep_candidates or None,
+        deep_limit=1,
+    )
     odds = _safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
     grading = _safe_sports_sync_call(
         "pick_grading",
@@ -1351,15 +1404,18 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
 
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
-    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("grading", grading)):
+    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("deep", deep), ("grading", grading)):
         if result.get("ok") is False:
             errors.append(result.get("error") or f"{label}_{result.get('status') or 'unavailable'}")
     processed = sum(
         as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
-        for result in (fixtures, fallback, live, odds)
+        for result in (fixtures, fallback, live, deep, odds)
     )
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
-    external_calls = sum(as_int(result.get("external_calls"), 0) for result in (fixtures, live))
+    external_calls = sum(
+        as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
+        for result in (fixtures, live, deep)
+    )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
     result = {
@@ -1368,10 +1424,14 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "processed": processed,
         "matches_synced": as_int(fixtures.get("fixtures_count"), 0) + as_int(fallback.get("processed"), 0),
         "live_synced": as_int(live.get("fixtures_count"), 0),
+        "deep_status": deep.get("status") or "UNKNOWN",
+        "deep_fixture_ids": (deep.get("selected_fixture_ids") or deep_candidates)[:1],
+        "deep_external_calls": as_int(deep.get("external_calls") or (deep.get("metrics") or {}).get("external_calls"), 0),
         "external_calls": external_calls,
         "fixtures": fixtures,
         "fallback": fallback,
         "live": live,
+        "deep_enrichment": deep,
         "odds": odds,
         "grading": grading,
         "picks_checked": as_int(grading.get("picks_checked"), 0),
@@ -1393,6 +1453,9 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "processed": processed,
         "matches_synced": result["matches_synced"],
         "live_synced": result["live_synced"],
+        "deep_status": result["deep_status"],
+        "deep_fixture_ids": result["deep_fixture_ids"],
+        "deep_external_calls": result["deep_external_calls"],
         "picks_checked": result["picks_checked"],
         "picks_graded": result["picks_graded"],
         "external_calls": external_calls,
@@ -1408,9 +1471,15 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
 
 def telegram_cron_with_sports_sync(force=False):
     """Reuse the proven Telegram Cron trigger without coupling sports to delivery."""
+    sports_result = {}
     try:
-        run_sports_sync_cycle(force=False, trigger_type="shared_telegram_cron")
+        sports_result = run_sports_sync_cycle(force=False, trigger_type="shared_telegram_cron")
     except Exception as exc:
+        sports_result = {
+            "status": "CONTROLLED_ERROR",
+            "ok": False,
+            "safe_error": type(exc).__name__,
+        }
         automation_safe_set("sports_sync_operational_state", {
             "status": "CONTROLLED_ERROR",
             "ok": False,
@@ -1420,7 +1489,27 @@ def telegram_cron_with_sports_sync(force=False):
             "safe_error": type(exc).__name__,
             "next_action": "review_sports_sync_logs",
         })
-    return telegram_scheduler_tick(force=force)
+    telegram_result = dict(telegram_scheduler_tick(force=force) or {})
+    deep = sports_result.get("deep_enrichment") or {}
+    account = deep.get("account") or {}
+    telegram_result["sports_pipeline"] = {
+        "status": sports_result.get("status") or "UNKNOWN",
+        "deep_status": sports_result.get("deep_status") or "UNKNOWN",
+        "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
+        "provider_authenticated": bool(account.get("ok")),
+        "provider_plan": account.get("plan") or "INACCESSIBLE",
+        "quota": account.get("quota") or {},
+        "capabilities": {
+            key: {
+                "requested": bool(value.get("requested")),
+                "received": as_int(value.get("received"), 0),
+                "persisted": as_int(value.get("persisted"), 0),
+            }
+            for key, value in (deep.get("capabilities") or {}).items()
+            if isinstance(value, dict)
+        },
+    }
+    return telegram_result
 
 
 def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False):
@@ -3200,7 +3289,7 @@ def apply_team_identities_to_match(item):
 
 
 def thesportsdb_key():
-    return os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or ""
+    return str(os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or "").strip()
 
 
 SPORTSDB_SEARCH_ALIASES = {
@@ -3267,10 +3356,28 @@ def get_thesportsdb_last_error():
     item = one("SELECT * FROM automation_state WHERE key='thesportsdb_last_error'")
     if not item:
         return ""
+    payload = {}
     try:
-        return (json.loads(item.get("value_json") or "{}") or {}).get("error", "")
+        payload = json.loads(item.get("value_json") or "{}") or {}
+        error = payload.get("error", "")
     except json.JSONDecodeError:
-        return item.get("value_json") or ""
+        error = item.get("value_json") or ""
+    error_at = str(payload.get("time") or item.get("updated_at") or "")
+    success = one(
+        """
+        SELECT updated_at,value_json FROM automation_state
+        WHERE key IN ('sportsdb_feed_sync','client-live-on-demand','sportsdb_crest_sync')
+        ORDER BY updated_at DESC LIMIT 1
+        """
+    ) or {}
+    if error and str(success.get("updated_at") or "") > error_at:
+        try:
+            success_payload = json.loads(success.get("value_json") or "{}") or {}
+        except json.JSONDecodeError:
+            success_payload = {}
+        if success_payload.get("ok") is not False:
+            return ""
+    return error
 
 
 def sportsdb_live_enabled():
@@ -3295,6 +3402,22 @@ def fetch_json_url(url, headers=None, timeout=10):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as res:
         return json.loads(res.read().decode("utf-8", errors="replace"))
+
+
+def fetch_json_response(url, headers=None, timeout=10):
+    """Return payload plus non-sensitive transport metadata."""
+    req = urllib.request.Request(url, headers=headers or {"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+        payload = json.loads(res.read().decode("utf-8", errors="replace"))
+        return {
+            "payload": payload,
+            "http_status": int(getattr(res, "status", 200) or 200),
+            "headers": {
+                "requests_remaining": as_int(res.headers.get("x-requests-remaining"), 0),
+                "requests_used": as_int(res.headers.get("x-requests-used"), 0),
+                "requests_last": as_int(res.headers.get("x-requests-last"), 0),
+            },
+        }
 
 
 def sportsdb_v1(endpoint, params=None):
@@ -3323,14 +3446,34 @@ def sportsdb_v2(path):
 
 
 def odds_api_get(path, params=None):
+    return odds_api_request(path, params=params).get("payload")
+
+
+def odds_api_request(path, params=None):
     api_key = os.getenv("THE_ODDS_API_KEY", "").strip()
     if not api_key:
-        return {}
+        return {"ok": False, "payload": {}, "http_status": 0, "quota": {}, "error": "missing_key"}
     payload = dict(params or {})
     payload["apiKey"] = api_key
     url = "https://api.the-odds-api.com/v4/" + path.strip("/")
     url += "?" + urllib.parse.urlencode(payload)
-    return fetch_json_url(url, timeout=12)
+    try:
+        response = fetch_json_response(url, timeout=12)
+        return {
+            "ok": True,
+            "payload": response.get("payload"),
+            "http_status": response.get("http_status"),
+            "quota": response.get("headers") or {},
+            "error": "",
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "payload": {},
+            "http_status": int(getattr(exc, "code", 0) or 0),
+            "quota": {},
+            "error": type(exc).__name__,
+        }
 
 
 def sync_log_start(source, sync_type):
@@ -5037,11 +5180,18 @@ def odds_event_to_match(sport, event):
 def fetch_odds_events(limit=250):
     events = []
     errors = []
+    quota = {
+        "observed_calls": 0,
+        "requests_last_total": 0,
+        "requests_used": 0,
+        "requests_remaining": 0,
+        "http_status": 0,
+    }
     for sport in odds_competitions():
         if len(events) >= int(limit):
             break
         try:
-            payload = odds_api_get(
+            response = odds_api_request(
                 f"sports/{sport['odds_key']}/odds",
                 {
                     "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
@@ -5050,11 +5200,21 @@ def fetch_odds_events(limit=250):
                     "dateFormat": "iso",
                 },
             )
+            quota["observed_calls"] += 1
+            quota["http_status"] = as_int(response.get("http_status"), quota["http_status"])
+            observed = response.get("quota") or {}
+            quota["requests_last_total"] += as_int(observed.get("requests_last"), 0)
+            quota["requests_used"] = as_int(observed.get("requests_used"), quota["requests_used"])
+            quota["requests_remaining"] = as_int(observed.get("requests_remaining"), quota["requests_remaining"])
+            payload = response.get("payload")
+            if not response.get("ok"):
+                errors.append(f"{sport['name']}: {response.get('error') or 'provider_error'}")
+                continue
             if isinstance(payload, list):
                 events.extend([(sport, item) for item in payload if isinstance(item, dict)])
         except Exception as exc:
             errors.append(f"{sport['name']}: {str(exc)[:160]}")
-    return events[: int(limit)], errors
+    return events[: int(limit)], errors, quota
 
 
 def sync_odds_events(limit=250, force=False):
@@ -5068,7 +5228,7 @@ def sync_odds_events(limit=250, force=False):
         return {"ok": True, "skipped": True, "reason": "cache_activa", "cache_minutes": odds_cache_minutes(), **last}
     log_id = sync_log_start("The Odds API", "events")
     try:
-        fetched, errors = fetch_odds_events(limit=limit)
+        fetched, errors, quota = fetch_odds_events(limit=limit)
         match_rows = []
         seen = set()
         for sport, event in fetched:
@@ -5084,6 +5244,8 @@ def sync_odds_events(limit=250, force=False):
         result["sync_type"] = "events"
         result["inserted"] = result.get("inserted", result.get("imported", 0))
         result["odds_snapshots"] = odds_snapshot_result
+        result["quota"] = quota
+        result["external_calls"] = as_int(quota.get("observed_calls"), 0)
         result["skipped"] = False
         result["last_sync"] = now_iso()
         conn = db()
@@ -5104,6 +5266,7 @@ def sync_odds_events(limit=250, force=False):
 def odds_diagnostics():
     cached = (one("SELECT COUNT(*) AS total FROM matches WHERE source='The Odds API'") or {}).get("total", 0)
     snapshots = (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0)
+    last_sync = odds_last_sync()
     return {
         "key_present": bool(os.getenv("THE_ODDS_API_KEY")),
         "key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
@@ -5111,7 +5274,8 @@ def odds_diagnostics():
         "cache_minutes": odds_cache_minutes(),
         "cached_matches": cached,
         "odds_snapshots": snapshots,
-        "last_sync": odds_last_sync(),
+        "last_sync": last_sync,
+        "quota": (last_sync or {}).get("quota") or {},
         "sports_configured": len(odds_competitions()),
         "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
         "markets": os.getenv("ODDS_MARKETS", "h2h"),
@@ -29896,6 +30060,19 @@ def _sports_knowledge_coverage_snapshot():
         "COUNT(DISTINCT league_id || ':' || season)",
     )
     highlights = count("sportsdb_match_highlights")
+    try:
+        deep_pipeline = api_exploitation_summary(DB_PATH)
+    except Exception:
+        deep_pipeline = {"status": "unavailable", "continuity": [], "latest_run": {}}
+    provider_continuity = list(deep_pipeline.get("continuity") or [])
+    try:
+        sportsdb_state = sportsdb_feed_status()
+    except Exception:
+        sportsdb_state = {}
+    try:
+        odds_state = odds_diagnostics()
+    except Exception:
+        odds_state = {}
     rights_warnings = 0
     approved_media = 0
     if highlights and db_table_exists("sportsdb_match_highlights"):
@@ -29903,6 +30080,48 @@ def _sports_knowledge_coverage_snapshot():
             decision = classify_stored_highlight(item)
             approved_media += 1 if decision.get("can_display") else 0
             rights_warnings += 1 if decision.get("decision") in {"REVIEW_REQUIRED", "BLOCKED"} else 0
+    badge_rows = count("teams", "SUM(CASE WHEN COALESCE(logo_url,'')<>'' THEN 1 ELSE 0 END)")
+    provider_continuity.extend([
+        {
+            "capability": "team_badges",
+            "provider": "TheSportsDB",
+            "requested": bool(sportsdb_state.get("last_sync")),
+            "received": badge_rows,
+            "normalized": badge_rows,
+            "persisted": badge_rows,
+            "ui_contract": True,
+            "rendered": bool(badge_rows),
+            "last_success": sportsdb_state.get("last_sync") or "",
+            "last_error": sportsdb_state.get("last_error") or "",
+            "gap": "NO_GAP" if badge_rows else "INSUFFICIENT_REAL_SAMPLE",
+        },
+        {
+            "capability": "highlights",
+            "provider": "TheSportsDB",
+            "requested": bool(highlights),
+            "received": highlights,
+            "normalized": highlights,
+            "persisted": highlights,
+            "ui_contract": True,
+            "rendered": approved_media,
+            "last_success": sportsdb_state.get("last_sync") or "",
+            "last_error": sportsdb_state.get("last_error") or "",
+            "gap": "NO_GAP" if approved_media else "MEDIA_RIGHTS_BLOCK" if highlights else "INSUFFICIENT_REAL_SAMPLE",
+        },
+        {
+            "capability": "odds",
+            "provider": "The Odds API",
+            "requested": bool((odds_state.get("last_sync") or {}).get("last_sync")),
+            "received": odds_state.get("odds_snapshots") or 0,
+            "normalized": odds_state.get("odds_snapshots") or 0,
+            "persisted": odds_state.get("odds_snapshots") or 0,
+            "ui_contract": True,
+            "rendered": bool(odds_state.get("odds_snapshots")),
+            "last_success": (odds_state.get("last_sync") or {}).get("last_sync") or "",
+            "last_error": (odds_state.get("last_sync") or {}).get("last_error") or "",
+            "gap": "NO_GAP" if odds_state.get("odds_snapshots") else "INSUFFICIENT_REAL_SAMPLE",
+        },
+    ])
     return {
         "contract": "NEMESIS-SPORTS-KNOWLEDGE-COVERAGE-V1",
         "lineup_rows": lineups,
@@ -29921,6 +30140,11 @@ def _sports_knowledge_coverage_snapshot():
         "rights_warnings": rights_warnings,
         "summaries": "DETERMINISTIC_ON_DEMAND",
         "sports_certification": "REAL_SPORTS_CERTIFICATION_IN_PROGRESS",
+        "pipeline_status": deep_pipeline.get("status") or "unavailable",
+        "pipeline_last_run": (deep_pipeline.get("latest_run") or {}).get("finished_at") or "",
+        "pipeline_external_calls": (deep_pipeline.get("latest_run") or {}).get("external_calls") or 0,
+        "provider_continuity": provider_continuity,
+        "odds_quota": odds_state.get("quota") or {},
         "evidence_origin": "LOCAL_DB_CACHE",
         "external_calls": 0,
     }

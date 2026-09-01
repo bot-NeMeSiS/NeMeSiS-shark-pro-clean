@@ -81,6 +81,7 @@ PINNED_REGRESSION_CONTRACTS = {
     "MOBILE_360_LAYOUT": {"category": "MOBILE_LAYOUT", "severity": "P1", "test": "mobile_360_collision_and_overflow_scan"},
     "CLIENT_ADMIN_SEPARATION": {"category": "SECURITY", "severity": "P0", "test": "client_session_admin_denied"},
     "TEMPORAL_CONTEXT_CONSISTENCY": {"category": "TEMPORAL_CONTEXT", "severity": "P1", "test": "madrid_datetime_cross_surface_contract"},
+    "PROVIDER_TO_UI_DATA_CONTINUITY": {"category": "DATA_QUALITY", "severity": "P1", "test": "provider_response_to_rendered_surface_contract"},
 }
 
 ISSUE_TO_REGRESSION = {
@@ -100,6 +101,7 @@ ISSUE_TO_REGRESSION = {
     "SECURITY": "CLIENT_ADMIN_SEPARATION",
     "PERFORMANCE": "PERFORMANCE_P0",
     "TEMPORAL_CONTEXT": "TEMPORAL_CONTEXT_CONSISTENCY",
+    "DATA_QUALITY": "PROVIDER_TO_UI_DATA_CONTINUITY",
 }
 
 QA_EXECUTION_POLICY = {
@@ -315,6 +317,36 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             actual=f"LIVE visible={displayed}; FT/terminales renderizados LIVE={ft_rendered_live}.",
             evidence=str(sports.get("evidence") or "La UI no coincide con la verdad LIVE confirmada."),
             screenshot=str(sports.get("screenshot") or ""),
+            production_sha=sha,
+            detected_at=at,
+        ))
+
+    for continuity in observation.get("provider_continuity") or []:
+        if not isinstance(continuity, dict):
+            continue
+        requested = bool(continuity.get("requested"))
+        received = int(continuity.get("received") or 0)
+        persisted = int(continuity.get("persisted") or 0)
+        ui_contract = bool(continuity.get("ui_contract"))
+        rendered = bool(continuity.get("rendered"))
+        if not requested or received <= 0 or (persisted > 0 and (not ui_contract or rendered)):
+            continue
+        capability = str(continuity.get("capability") or "unknown")
+        stage = "persistence" if persisted <= 0 else "rendering"
+        issues.append(_issue(
+            worker="sports_truth_qa",
+            category="DATA_QUALITY",
+            severity="P1",
+            screen=str(continuity.get("screen") or "sports pipeline"),
+            viewport=str(continuity.get("viewport") or "all"),
+            element=f"provider-to-ui:{capability}",
+            expected="Dato recibido por proveedor se normaliza, persiste y llega a su superficie canónica.",
+            actual=(
+                f"provider={continuity.get('provider') or 'unknown'}; capability={capability}; "
+                f"received={received}; persisted={persisted}; rendered={rendered}; break={stage}"
+            ),
+            evidence=str(continuity.get("evidence") or "Interrupción demostrada entre proveedor y producto."),
+            screenshot=str(continuity.get("screenshot") or ""),
             production_sha=sha,
             detected_at=at,
         ))
