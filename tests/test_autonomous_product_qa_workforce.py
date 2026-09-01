@@ -317,6 +317,16 @@ def test_browser_inspector_measures_composition_and_empty_states_are_resolved():
         assert 'data-empty-dashboard="resolved"' in source
 
 
+def test_resolved_empty_state_must_still_fill_an_intentional_visual_stage():
+    project_root = Path(__file__).resolve().parents[1]
+    inspector = (project_root / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+    css = (project_root / "static" / "v933-product.css").read_text(encoding="utf-8")
+
+    assert ".ns-video-empty-dashboard" in inspector
+    assert "&& !emptyDashboardResolved && !purposefulSportsContent" not in inspector
+    assert "min-height: clamp(300px, 46vh, 440px)" in css
+
+
 def test_track_record_pending_only_does_not_render_evaluable_history_dashboard(app_module):
     data = {
         "track_record": {

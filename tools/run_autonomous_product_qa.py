@@ -343,13 +343,13 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const emptyDashboardResolved = Boolean(document.querySelector('[data-empty-dashboard="resolved"]'));
           const emptyDashboardFlags = emptySensitivePath && !emptyDashboardResolved && emptyStateCount > 0 && (emptyStateCount > 1 || visibleKpis >= 3)
             ? ['EMPTY_ANALYTICS_DASHBOARD'] : [];
-          const compositionNodes = Array.from(document.querySelectorAll('.v933-page-header,.v933-client-hero,.v933-shark-hero,.v933-telegram-hero,.v933-match-card,.v933-pick-card,.v933-kpi,.v933-quick-action,.v933-empty-state,.v933-data-table,.v933-filter-panel,.v933-feature-grid,.v933-linked-state,.v933-link-code,.ns16-journey-steps a,.v933-profile-card,.v933-plan-card,.v933-admin-panel,.ns16-admin-priority,.ns-video-admin-ok,.v944-match-header,.v944-match-sections,.v944-match-panel,.v944-score-widget,.v944-experience-grid,.team-center-hero,.competition-center-hero,.player-center-hero,.team-center-panel,.competition-center-panel,.player-center-panel,.team-center-match-section,.competition-center-match-section,.player-center-match-section')).filter(visible);
+          const compositionNodes = Array.from(document.querySelectorAll('.v933-page-header,.v933-client-hero,.v933-shark-hero,.v933-telegram-hero,.v933-match-card,.v933-pick-card,.v933-kpi,.v933-quick-action,.v933-empty-state,.ns-video-empty-dashboard,.v933-data-table,.v933-filter-panel,.v933-feature-grid,.v933-linked-state,.v933-link-code,.ns16-journey-steps a,.v933-profile-card,.v933-plan-card,.v933-admin-panel,.ns16-admin-priority,.ns-video-admin-ok,.v944-match-header,.v944-match-sections,.v944-match-panel,.v944-score-widget,.v944-experience-grid,.team-center-hero,.competition-center-hero,.player-center-hero,.team-center-panel,.competition-center-panel,.player-center-panel,.team-center-match-section,.competition-center-match-section,.player-center-match-section')).filter(visible);
           const viewportContentCoverage = coverageRatio(compositionNodes);
           const sportsAboveFoldRatio = coverageRatio(Array.from(document.querySelectorAll('[data-sports-priority],.v933-match-card,.v933-live-card,.v750-live-card,.v944-match-header,.v933-pick-card')));
           const purposefulSportsContent = firstViewportProduct && realProductNodes.length > 0 && sportsAboveFoldRatio >= .1;
           const deadSpaceRelevant = ['/app','/calendar','/live','/picks','/shark','/track-record','/telegram','/profile','/memberships','/admin/dashboard','/admin/founder-dashboard','/admin/automation-center','/admin/growth-command-center','/admin/payments'].includes(location.pathname)
             || /^\/(match|team|competition|player)\//.test(location.pathname);
-          const deadSpaceFlags = deadSpaceRelevant && innerWidth >= 1024 && viewportContentCoverage < .28 && !emptyDashboardResolved && !purposefulSportsContent
+          const deadSpaceFlags = deadSpaceRelevant && innerWidth >= 1024 && viewportContentCoverage < .28 && !purposefulSportsContent
             ? ['LARGE_UNJUSTIFIED_EMPTY_REGION'] : [];
           const selectorFor = node => {
             if (node.id) return '#' + node.id;

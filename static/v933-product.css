@@ -5450,8 +5450,9 @@ body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minma
   overflow: hidden;
   display: grid;
   gap: 12px;
-  min-height: 146px;
-  padding: 14px 12px;
+  min-height: clamp(300px, 46vh, 440px);
+  align-items: center;
+  padding: clamp(18px, 4vh, 42px) 14px;
   border-block: 1px solid rgba(89,185,255,.14);
   background:
     radial-gradient(ellipse at 84% 38%,rgba(43,173,224,.18),transparent 31%),
@@ -5475,6 +5476,7 @@ body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minma
   position: relative;
   z-index: 1;
   min-height: 104px;
+  width: min(760px, 100%);
   border: 0 !important;
   border-left: 2px solid rgba(57,216,255,.48) !important;
   border-radius: 0 !important;
@@ -5636,7 +5638,7 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
   body.ns-app .ns16-home-hero { min-height: 108px !important; padding: 9px 10px !important; }
   body.ns-app .ns16-home-hero::before { display: block; right: -52px; top: 43%; width: 340px; opacity: .5; }
-  .ns-video-empty-dashboard { min-height: 132px; padding: 10px 8px; }
+  .ns-video-empty-dashboard { min-height: clamp(260px, 42vh, 340px); padding: 14px 8px; }
   .ns-video-empty-dashboard::before { right: -126px; width: 370px; opacity: .24; }
   body.ns-app .ns16-home-hero::after {
     background: linear-gradient(90deg, rgba(1,8,19,.94) 0%, rgba(1,8,19,.64) 51%, rgba(1,8,19,.12) 76%, rgba(1,8,19,.03) 100%);
