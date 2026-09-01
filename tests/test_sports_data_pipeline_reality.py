@@ -319,6 +319,62 @@ def test_shared_cron_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_
     assert pipeline["deep_external_calls"] == 0
 
 
+def test_render_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_module, monkeypatch):
+    secret = "pytest-automation-secret"
+    monkeypatch.setenv("AUTOMATION_SECRET", secret)
+    monkeypatch.setattr(
+        app_module,
+        "run_sports_sync_cycle",
+        lambda **_kwargs: {
+            "status": "OK",
+            "deep_status": "SKIPPED_NOT_DUE",
+            "deep_external_calls": 0,
+            "deep_enrichment": {"status": "SKIPPED_NOT_DUE"},
+        },
+    )
+    monkeypatch.setattr(
+        app_module,
+        "api_exploitation_summary",
+        lambda _db_path: {
+            "latest_account": {
+                "ok": True,
+                "plan": "Free",
+                "quota": {"daily_limit": 100, "daily_used": 7, "daily_remaining": 93},
+            },
+            "latest_run": {
+                "status": "OK",
+                "finished_at": "2026-09-01T15:20:00+00:00",
+                "external_calls": 7,
+                "payload_json": json.dumps({"selected_fixture_ids": ["9001"]}),
+            },
+            "continuity": [
+                {
+                    "capability": "lineups",
+                    "requested": True,
+                    "received": 2,
+                    "persisted": 2,
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
+
+    response = client.get(
+        "/api/automation/telegram/tick?runner=render_cron",
+        headers={"X-Automation-Secret": secret, "X-NeMeSiS-Cron-Runner": "render-cron"},
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    pipeline = payload["sports_pipeline"]
+    assert pipeline["provider_authenticated"] is True
+    assert pipeline["provider_plan"] == "Free"
+    assert pipeline["quota"]["daily_remaining"] == 93
+    assert pipeline["capabilities"]["lineups"]["persisted"] == 2
+    assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
+    assert secret not in json.dumps(payload)
+
+
 def test_quality_worker_detects_provider_to_ui_break():
     issues = detect_product_qa_issues(
         {

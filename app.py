@@ -1595,6 +1595,48 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         "called_at": called_at,
         "finished_at": finished_at,
     }
+    if endpoint == "telegram_tick" and isinstance(result.get("sports_pipeline"), dict):
+        raw_pipeline = result["sports_pipeline"]
+        raw_quota = raw_pipeline.get("quota") if isinstance(raw_pipeline.get("quota"), dict) else {}
+        raw_capabilities = raw_pipeline.get("capabilities") if isinstance(raw_pipeline.get("capabilities"), dict) else {}
+        raw_sample = raw_pipeline.get("last_sample") if isinstance(raw_pipeline.get("last_sample"), dict) else {}
+        compact["sports_pipeline"] = {
+            "status": sanitize_http_header_value(raw_pipeline.get("status"), limit=80) or "UNKNOWN",
+            "deep_status": sanitize_http_header_value(raw_pipeline.get("deep_status"), limit=80) or "UNKNOWN",
+            "deep_external_calls": as_int(raw_pipeline.get("deep_external_calls"), 0),
+            "provider_authenticated": bool(raw_pipeline.get("provider_authenticated")),
+            "provider_plan": sanitize_http_header_value(raw_pipeline.get("provider_plan"), limit=80) or "INACCESSIBLE",
+            "quota": {
+                key: as_int(raw_quota.get(key), 0)
+                for key in (
+                    "daily_limit",
+                    "daily_used",
+                    "daily_remaining",
+                    "minute_limit",
+                    "minute_remaining",
+                )
+                if raw_quota.get(key) is not None
+            },
+            "capabilities": {
+                sanitize_http_header_value(name, limit=80): {
+                    "requested": bool(value.get("requested")),
+                    "received": as_int(value.get("received"), 0),
+                    "persisted": as_int(value.get("persisted"), 0),
+                }
+                for name, value in list(raw_capabilities.items())[:20]
+                if isinstance(value, dict) and sanitize_http_header_value(name, limit=80)
+            },
+            "last_sample": {
+                "status": sanitize_http_header_value(raw_sample.get("status"), limit=80) or "UNKNOWN",
+                "finished_at": sanitize_http_header_value(raw_sample.get("finished_at"), limit=80),
+                "external_calls": as_int(raw_sample.get("external_calls"), 0),
+                "fixture_ids": [
+                    sanitize_http_header_value(value, limit=40)
+                    for value in list(raw_sample.get("fixture_ids") or [])[:1]
+                    if sanitize_http_header_value(value, limit=40)
+                ],
+            },
+        }
     if endpoint == "daily_run":
         compact.update({
             "matches_synced": as_int(result.get("matches_synced"), 0),
