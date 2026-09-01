@@ -1491,7 +1491,24 @@ def telegram_cron_with_sports_sync(force=False):
         })
     telegram_result = dict(telegram_scheduler_tick(force=force) or {})
     deep = sports_result.get("deep_enrichment") or {}
-    account = deep.get("account") or {}
+    deep_history = {}
+    if not deep.get("account") or not deep.get("capabilities"):
+        try:
+            deep_history = api_exploitation_summary(DB_PATH) or {}
+        except Exception:
+            deep_history = {}
+    account = deep.get("account") or deep_history.get("latest_account") or {}
+    capability_source = deep.get("capabilities") or {
+        str(item.get("capability") or "unknown"): item
+        for item in deep_history.get("continuity") or []
+        if isinstance(item, dict)
+    }
+    latest_run = deep_history.get("latest_run") or {}
+    latest_payload = {}
+    try:
+        latest_payload = json.loads(str(latest_run.get("payload_json") or "{}"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        latest_payload = {}
     telegram_result["sports_pipeline"] = {
         "status": sports_result.get("status") or "UNKNOWN",
         "deep_status": sports_result.get("deep_status") or "UNKNOWN",
@@ -1505,8 +1522,17 @@ def telegram_cron_with_sports_sync(force=False):
                 "received": as_int(value.get("received"), 0),
                 "persisted": as_int(value.get("persisted"), 0),
             }
-            for key, value in (deep.get("capabilities") or {}).items()
+            for key, value in capability_source.items()
             if isinstance(value, dict)
+        },
+        "last_sample": {
+            "status": latest_run.get("status") or deep.get("status") or "UNKNOWN",
+            "finished_at": latest_run.get("finished_at") or deep.get("finished_at") or "",
+            "external_calls": as_int(latest_run.get("external_calls") or deep.get("external_calls"), 0),
+            "fixture_ids": [
+                str(value)[:40]
+                for value in (latest_payload.get("selected_fixture_ids") or deep.get("selected_fixture_ids") or [])[:1]
+            ],
         },
     }
     return telegram_result

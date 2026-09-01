@@ -60,6 +60,63 @@ def safe_label(value: object, secret: str, fallback: str = "UNKNOWN") -> str:
     return label or fallback
 
 
+def safe_count(value: object) -> int:
+    try:
+        return max(0, int(value or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
+    raw = payload.get("sports_pipeline")
+    if not isinstance(raw, dict):
+        return {}
+    raw_quota = raw.get("quota") if isinstance(raw.get("quota"), dict) else {}
+    quota = {
+        key: safe_count(raw_quota.get(key))
+        for key in (
+            "daily_limit",
+            "daily_used",
+            "daily_remaining",
+            "minute_limit",
+            "minute_remaining",
+        )
+        if raw_quota.get(key) is not None
+    }
+    capabilities = {}
+    for raw_name, raw_value in list((raw.get("capabilities") or {}).items())[:20]:
+        if not isinstance(raw_value, dict):
+            continue
+        name = safe_label(raw_name, secret, "unknown")
+        if name == "REDACTED":
+            continue
+        capabilities[name] = {
+            "requested": bool(raw_value.get("requested")),
+            "received": safe_count(raw_value.get("received")),
+            "persisted": safe_count(raw_value.get("persisted")),
+        }
+    raw_sample = raw.get("last_sample") if isinstance(raw.get("last_sample"), dict) else {}
+    fixture_ids = [
+        safe_label(value, secret, "")
+        for value in list(raw_sample.get("fixture_ids") or [])[:1]
+    ]
+    return {
+        "status": safe_label(raw.get("status"), secret),
+        "deep_status": safe_label(raw.get("deep_status"), secret),
+        "deep_external_calls": safe_count(raw.get("deep_external_calls")),
+        "provider_authenticated": bool(raw.get("provider_authenticated")),
+        "provider_plan": safe_label(raw.get("provider_plan"), secret, "INACCESSIBLE"),
+        "quota": quota,
+        "capabilities": capabilities,
+        "last_sample": {
+            "status": safe_label(raw_sample.get("status"), secret),
+            "finished_at": safe_label(raw_sample.get("finished_at"), secret, ""),
+            "external_calls": safe_count(raw_sample.get("external_calls")),
+            "fixture_ids": [value for value in fixture_ids if value and value != "REDACTED"],
+        },
+    }
+
+
 def decode_json(body: bytes) -> dict | None:
     try:
         data = json.loads(body.decode("utf-8", errors="replace") or "{}")
@@ -97,12 +154,16 @@ def telegram_tick(base_url: str, secret: str) -> dict:
                 return request_error_result("telegram", started, "INVALID_JSON_RESPONSE", http_status)
             ok = http_status == 200 and payload.get("ok") is not False
             result = safe_label(payload.get("status") or payload.get("result"), secret, "PASS" if ok else "FAIL")
-            return {
+            response = {
                 "telegram_http": http_status,
                 "telegram_status": "PASS" if ok else "FAIL",
                 "telegram_result": result,
                 "telegram_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
+            pipeline = sanitized_sports_pipeline(payload, secret)
+            if pipeline:
+                response["sports_pipeline"] = pipeline
+            return response
     except urllib.error.HTTPError as exc:
         return request_error_result("telegram", started, f"HTTP_{int(exc.code)}", int(exc.code))
     except Exception as exc:

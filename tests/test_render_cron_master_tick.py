@@ -208,6 +208,51 @@ def test_secret_is_header_only_and_never_appears_in_output(monkeypatch, capsys):
     assert calls[1]["timeout"] == master.CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS
 
 
+def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys):
+    secret = "pytest-super-sensitive-master-secret"
+    telegram = MockResponse(
+        {
+            "ok": True,
+            "status": "PASS",
+            "sports_pipeline": {
+                "status": "OK",
+                "deep_status": "SKIPPED_NOT_DUE",
+                "deep_external_calls": 0,
+                "provider_authenticated": True,
+                "provider_plan": "Free",
+                "quota": {"daily_limit": 100, "daily_used": 7, "daily_remaining": 93},
+                "capabilities": {
+                    "lineups": {"requested": True, "received": 2, "persisted": 2},
+                    secret: {"requested": True, "received": 1, "persisted": 1},
+                },
+                "last_sample": {
+                    "status": "OK",
+                    "finished_at": "2026-09-01T15:20:00+00:00",
+                    "external_calls": 7,
+                    "fixture_ids": ["9001", secret],
+                },
+                "unexpected": secret,
+            },
+        }
+    )
+
+    return_code, payload, _calls, output = run_master(
+        monkeypatch,
+        capsys,
+        [telegram, evolution_ok()],
+        secret=secret,
+    )
+    pipeline = payload["telegram"]["sports_pipeline"]
+
+    assert return_code == 0
+    assert pipeline["provider_authenticated"] is True
+    assert pipeline["quota"]["daily_remaining"] == 93
+    assert pipeline["capabilities"]["lineups"]["persisted"] == 2
+    assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
+    assert "unexpected" not in pipeline
+    assert secret not in output
+
+
 def test_invalid_base_url_is_rejected_before_http(monkeypatch, capsys):
     monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid?secret=must-not-travel")
     monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
