@@ -47,7 +47,7 @@ def _fake_api_get(path, params=None, timeout=18):
     if path == "status":
         return _provider_payload(
             {
-                "subscription": {"plan": "Free", "active": True, "end": "2026-12-31"},
+                "subscription": {"plan": "Pro", "active": True, "end": "2026-12-31"},
                 "requests": {"current": 9, "limit_day": 100},
             }
         )
@@ -209,6 +209,46 @@ def test_real_provider_payload_reaches_cache_players_and_continuity(tmp_path, mo
     assert continuity["events"]["gap"] == "NO_GAP"
     assert continuity["players"]["gap"] == "NO_GAP"
     assert "configured-test-key" not in json.dumps(result)
+
+
+def test_free_plan_uses_supported_h2h_shape_and_skips_unavailable_season(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "free-plan.db")
+    live_tracker.ensure_live_tracker_schema(db_path)
+    exploitation.ensure_api_exploitation_schema(db_path)
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    live_tracker._upsert_fixture(conn, _fixture_payload())
+    conn.commit()
+    conn.close()
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        if path == "status":
+            return _provider_payload(
+                {
+                    "subscription": {"plan": "Free", "active": True},
+                    "requests": {"current": 9, "limit_day": 100},
+                }
+            )
+        return _provider_payload([])
+
+    monkeypatch.setenv("API_FOOTBALL_KEY", "configured-test-key")
+    monkeypatch.setenv("ENABLE_API_FOOTBALL_PROVIDER", "true")
+    monkeypatch.setattr(exploitation, "_api_get", fake_get)
+
+    result = exploitation.run_api_exploitation_cycle(
+        db_path,
+        deep_limit=1,
+        fixture_ids=["9001"],
+        max_external_calls=7,
+    )
+
+    h2h_params = next(params for path, params in calls if path == "fixtures/headtohead")
+    assert "last" not in h2h_params
+    assert not any(path == "standings" for path, _params in calls)
+    assert result["capabilities"]["standings"]["reason"] == "account_plan_season_unavailable"
+    assert result["metrics"]["external_calls"] == 6
 
 
 def test_deep_enrichment_is_due_gated_after_success(tmp_path, monkeypatch):
