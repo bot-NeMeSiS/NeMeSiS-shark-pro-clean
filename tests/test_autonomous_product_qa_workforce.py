@@ -317,6 +317,21 @@ def test_browser_inspector_measures_composition_and_empty_states_are_resolved():
         assert 'data-empty-dashboard="resolved"' in source
 
 
+def test_browser_workforce_never_deletes_an_existing_qa_database():
+    inspector = (Path(__file__).parents[1] / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+
+    assert 'parser.add_argument("--db-path", default="")' in inspector
+    assert 'QA database already exists; use a new isolated --db-path' in inspector
+    assert "db_path.unlink()" not in inspector
+
+
+def test_browser_workforce_can_use_an_installed_browser_without_downloading_one():
+    inspector = (Path(__file__).parents[1] / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+
+    assert 'parser.add_argument("--browser-executable", default="")' in inspector
+    assert 'launch_options["executable_path"]' in inspector
+
+
 def test_resolved_empty_state_must_still_fill_an_intentional_visual_stage():
     project_root = Path(__file__).resolve().parents[1]
     inspector = (project_root / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")

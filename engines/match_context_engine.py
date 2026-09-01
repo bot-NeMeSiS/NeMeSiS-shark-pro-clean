@@ -47,6 +47,8 @@ MATCH_CENTER_COMPONENTS = (
     "LineupsPanel",
     "Timeline",
     "StatsPanel",
+    "HeadToHeadPanel",
+    "StandingsPanel",
     "SharkPanel",
     "TelegramPanel",
     "BankrollPanel",
@@ -157,33 +159,188 @@ def _stat_value(value: Any) -> str | None:
     return candidate
 
 
+def _stat_label(value: Any) -> str:
+    raw = _text(value)
+    labels = {
+        "ball possession": "Posesión",
+        "total shots": "Tiros",
+        "shots on goal": "Tiros a puerta",
+        "shots off goal": "Tiros fuera",
+        "blocked shots": "Tiros bloqueados",
+        "corner kicks": "Córners",
+        "fouls": "Faltas",
+        "yellow cards": "Tarjetas amarillas",
+        "red cards": "Tarjetas rojas",
+        "goalkeeper saves": "Paradas",
+        "total passes": "Pases",
+        "passes accurate": "Pases precisos",
+        "expected goals": "Goles esperados",
+    }
+    return labels.get(raw.casefold(), raw)
+
+
 def _real_statistics(
-    live: Mapping[str, Any], lifecycle: Mapping[str, Any]
+    live: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+    cached: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     provider = _text(live.get("provider"))
     stale = bool(lifecycle.get("is_stale") or live.get("is_stale"))
-    rows: list[dict[str, Any]] = []
+    live_rows: list[dict[str, Any]] = []
     for raw in _items(live.get("stat_cards")):
-        label = _text(raw.get("label"))
+        label = _stat_label(raw.get("label"))
         home = _stat_value(raw.get("home"))
         away = _stat_value(raw.get("away"))
         if not label or (home is None and away is None):
             continue
-        rows.append({
+        live_rows.append({
             "key": _text(raw.get("key")) or label.lower().replace(" ", "_"),
             "label": label,
             "home": home or "No disponible",
             "away": away or "No disponible",
             "leader": _text(raw.get("leader")) or "even",
         })
-    available = bool(provider and rows and not stale)
+    if provider and live_rows and not stale:
+        return {
+            "available": True,
+            "item_count": len(live_rows),
+            "items": live_rows,
+            "status": "available",
+            "source": provider,
+            "updated_at": live.get("updated_at"),
+            "snapshot_kind": "live",
+        }
+
+    cached_data = _mapping(cached)
+    cached_rows: list[dict[str, Any]] = []
+    for raw in _items(cached_data.get("items")):
+        label = _stat_label(raw.get("label"))
+        home = _stat_value(raw.get("home"))
+        away = _stat_value(raw.get("away"))
+        if not label or (home is None and away is None):
+            continue
+        cached_rows.append({
+            "key": _text(raw.get("key")) or label.lower().replace(" ", "_"),
+            "label": label,
+            "home": home or "No disponible",
+            "away": away or "No disponible",
+            "leader": _text(raw.get("leader")) or "even",
+        })
+    available = bool(cached_data.get("available") and cached_rows)
     return {
         "available": available,
-        "item_count": len(rows) if available else 0,
-        "items": rows if available else [],
-        "status": "available" if available else "stale" if stale and rows else "not_available",
-        "source": provider or None,
-        "updated_at": live.get("updated_at"),
+        "item_count": len(cached_rows) if available else 0,
+        "items": cached_rows if available else [],
+        "status": (
+            "available"
+            if available
+            else "stale"
+            if stale and live_rows
+            else "not_available"
+        ),
+        "source": cached_data.get("source") if available else None,
+        "updated_at": cached_data.get("updated_at") if available else None,
+        "snapshot_kind": "persisted" if available else None,
+    }
+
+
+def _head_to_head_context(raw_value: Any) -> dict[str, Any]:
+    raw = _mapping(raw_value)
+    items = _items(raw.get("items") if raw else raw_value)
+    normalized = []
+    for item in items:
+        home = _text(item.get("home_team"))
+        away = _text(item.get("away_team"))
+        kickoff_iso = _text(item.get("kickoff_iso"))
+        status = _text(item.get("status")).upper()
+        if (
+            not home
+            or not away
+            or not kickoff_iso
+            or status not in {"FT", "FINISHED", "FINAL", "AET", "PEN"}
+        ):
+            continue
+        home_score = item.get("home_score")
+        away_score = item.get("away_score")
+        score = (
+            _text(item.get("score"))
+            if item.get("score") not in (None, "")
+            else (
+                f"{home_score}-{away_score}"
+                if home_score is not None and away_score is not None
+                else None
+            )
+        )
+        normalized.append({
+            "match_id": _text(item.get("match_id")) or None,
+            "fixture_id": _text(item.get("fixture_id")) or None,
+            "home_team": home,
+            "away_team": away,
+            "score": score,
+            "competition": _text(item.get("competition")) or None,
+            "kickoff_iso": kickoff_iso,
+            "date_label": _text(item.get("date_label")) or None,
+            "status": "FT",
+            "href": _text(item.get("href")) or None,
+            "source": _text(item.get("source")) or _text(raw.get("source")) or None,
+        })
+    return {
+        "contract": "NEMESIS-MATCH-H2H-CACHE-V1",
+        "available": bool(normalized),
+        "count": len(normalized),
+        "items": normalized,
+        "source": _text(raw.get("source")) or (
+            normalized[0].get("source") if normalized else None
+        ),
+        "updated_at": raw.get("updated_at"),
+        "external_calls": 0,
+        "fake_matches_created": 0,
+    }
+
+
+def _optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _standings_context(raw_value: Any) -> dict[str, Any]:
+    raw = _mapping(raw_value)
+    rows = _items(raw.get("rows") if raw else raw_value)
+    normalized = []
+    for item in rows:
+        team_name = _text(item.get("team_name") or item.get("name"))
+        position = _optional_int(item.get("rank") or item.get("position"))
+        if not team_name or position is None:
+            continue
+        normalized.append({
+            "position": position,
+            "team_id": _text(item.get("team_id")) or None,
+            "team_name": team_name,
+            "href": _entity_href("team", item.get("team_id"), team_name),
+            "played": _optional_int(item.get("played")),
+            "wins": _optional_int(item.get("wins")),
+            "draws": _optional_int(item.get("draws")),
+            "losses": _optional_int(item.get("losses")),
+            "goals_for": _optional_int(item.get("goals_for")),
+            "goals_against": _optional_int(item.get("goals_against")),
+            "points": _optional_int(item.get("points")),
+            "form": _text(item.get("form")) or None,
+            "description": _text(item.get("description")) or None,
+        })
+    normalized.sort(key=lambda item: item["position"])
+    return {
+        "contract": "NEMESIS-MATCH-STANDINGS-CACHE-V1",
+        "available": bool(normalized),
+        "count": len(normalized),
+        "rows": normalized[:24],
+        "source": _text(raw.get("source")) or None,
+        "updated_at": raw.get("updated_at"),
+        "external_calls": 0,
+        "fake_rows_created": 0,
     }
 
 
@@ -694,6 +851,8 @@ class MatchContext:
     event_summary: dict[str, Any]
     statistics: dict[str, Any]
     lineups: dict[str, Any]
+    head_to_head: dict[str, Any]
+    standings: dict[str, Any]
     summaries: dict[str, Any]
     media: dict[str, Any]
     facts: dict[str, Any]
@@ -789,7 +948,13 @@ def build_match_context(
         "away_team": _mapping(canonical_match.get("away_team")).get("display_name") or match.get("away_team"),
     }
     shell_state = _shell_state(shell_identity, lifecycle, offline=offline)
-    statistics = _real_statistics(live, lifecycle)
+    statistics = _real_statistics(
+        live,
+        lifecycle,
+        _mapping(detail_data.get("cached_statistics")),
+    )
+    head_to_head = _head_to_head_context(detail_data.get("head_to_head"))
+    standings = _standings_context(detail_data.get("standings"))
     picks = {
         "available": bool(related_picks),
         "count": len(related_picks),
@@ -824,6 +989,7 @@ def build_match_context(
         competition=competition,
         canonical_match=canonical_match,
         canonical_timeline=canonical_timeline,
+        historical=head_to_head.get("items"),
         observed_at_madrid=(
             madrid_time.get("iso")
             or live.get("updated_at")
@@ -870,6 +1036,10 @@ def build_match_context(
         limitations.append("Sin estadísticas confirmadas.")
     if not lineups["confirmed"]:
         limitations.append("Alineación todavía no confirmada.")
+    if not head_to_head["available"]:
+        limitations.append("Sin enfrentamientos directos confirmados.")
+    if not standings["available"]:
+        limitations.append("Sin clasificación confirmada.")
     if lifecycle.get("is_stale"):
         limitations.append("La última lectura deportiva está desactualizada.")
 
@@ -925,6 +1095,20 @@ def build_match_context(
             if statistics["status"] == "stale"
             else "No disponible.",
             available=statistics["available"],
+        ),
+        "HeadToHeadPanel": _component(
+            "ready" if head_to_head["available"] else "partial",
+            "Enfrentamientos directos confirmados."
+            if head_to_head["available"]
+            else "No hay enfrentamientos directos confirmados.",
+            available=head_to_head["available"],
+        ),
+        "StandingsPanel": _component(
+            "ready" if standings["available"] else "partial",
+            "Clasificación confirmada."
+            if standings["available"]
+            else "No hay clasificación confirmada.",
+            available=standings["available"],
         ),
         "SharkPanel": _component(
             "ready" if shark_context["available"] else "partial",
@@ -1022,6 +1206,18 @@ def build_match_context(
             freshness={"state": "fresh" if lineups.get("updated_at") else "unknown"},
             limitations=[] if lineups.get("confirmed") else ["Alineación todavía no confirmada."],
         ),
+        "head_to_head": _transparency_block(
+            source=head_to_head.get("source"),
+            evidence_state="VERIFIED" if head_to_head.get("available") else "INSUFFICIENT_DATA",
+            freshness={"state": "persisted" if head_to_head.get("updated_at") else "unknown"},
+            limitations=[] if head_to_head.get("available") else ["Sin enfrentamientos directos confirmados."],
+        ),
+        "standings": _transparency_block(
+            source=standings.get("source"),
+            evidence_state="VERIFIED" if standings.get("available") else "INSUFFICIENT_DATA",
+            freshness={"state": "persisted" if standings.get("updated_at") else "unknown"},
+            limitations=[] if standings.get("available") else ["Sin clasificación confirmada."],
+        ),
         "data_quality": _transparency_block(
             source=canonical_match.get("source"),
             evidence_state=canonical_match.get("data_quality"),
@@ -1041,6 +1237,8 @@ def build_match_context(
         {"id": "competition", "label": "Competición", "available": competition.get("available")},
         {"id": "statistics", "label": "Estadísticas disponibles", "available": statistics.get("available")},
         {"id": "lineups", "label": "Alineaciones", "available": lineups.get("confirmed")},
+        {"id": "head_to_head", "label": "Enfrentamientos directos", "available": head_to_head.get("available")},
+        {"id": "standings", "label": "Clasificación", "available": standings.get("available")},
         {"id": "video", "label": "Vídeo autorizado", "available": bool(media.get("visible_count"))},
         {"id": "risks", "label": "Riesgos", "available": bool(risk_flags)},
         {"id": "data_quality", "label": "Calidad de datos", "available": True},
@@ -1072,6 +1270,8 @@ def build_match_context(
         event_summary=event_summary,
         statistics=statistics,
         lineups=lineups,
+        head_to_head=head_to_head,
+        standings=standings,
         summaries=summaries,
         media=media,
         facts=facts,
@@ -1109,6 +1309,9 @@ def build_match_context(
             "sports_knowledge_single_domain_snapshot": _mapping(sports_knowledge.get("diagnostics")).get("single_domain_snapshot"),
             "sports_knowledge_database_writes": _mapping(sports_knowledge.get("diagnostics")).get("database_writes"),
             "sports_knowledge_external_calls": _mapping(sports_knowledge.get("diagnostics")).get("external_calls"),
+            "head_to_head_external_calls": head_to_head.get("external_calls"),
+            "standings_external_calls": standings.get("external_calls"),
+            "statistics_snapshot_kind": statistics.get("snapshot_kind"),
             "telegram_readonly_contract": telegram_readonly_contract.get("contract"),
             "component_contracts": list(MATCH_CENTER_COMPONENTS),
             "canonical_states": list(CANONICAL_COMPONENT_STATES),

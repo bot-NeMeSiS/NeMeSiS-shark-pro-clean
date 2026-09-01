@@ -83,7 +83,9 @@
         {{ kpi_card('Alineaciones', sports_knowledge.lineup_fixtures or 0, (sports_knowledge.lineup_rows or 0) ~ ' registros', 'cyan', 'team') }}
         {{ kpi_card('Jugadores', sports_knowledge.players or 0, 'Con ID confirmado', 'blue', 'profile') }}
         {{ kpi_card('Eventos', sports_knowledge.events or 0, 'Caché confirmado', 'blue', 'history') }}
-        {{ kpi_card('Estadísticas', sports_knowledge.stats or 0, 'Sin datos inventados', 'cyan', 'chart') }}
+        {{ kpi_card('Estadísticas', sports_knowledge.stats_fixtures or 0, (sports_knowledge.stats or 0) ~ ' registros reales', 'cyan', 'chart') }}
+        {{ kpi_card('H2H', sports_knowledge.h2h_pairs or 0, (sports_knowledge.h2h or 0) ~ ' partidos', 'blue', 'history') }}
+        {{ kpi_card('Clasificaciones', sports_knowledge.standings_competitions or 0, (sports_knowledge.standings or 0) ~ ' filas', 'cyan', 'data') }}
         {{ kpi_card('Vídeos', sports_knowledge.approved_media or 0, 'Autorizados para app', 'success', 'play') }}
         {{ kpi_card('Derechos', sports_knowledge.rights_warnings or 0, 'Requieren revisión', 'warning' if sports_knowledge.rights_warnings else 'success', 'shield') }}
       </div>

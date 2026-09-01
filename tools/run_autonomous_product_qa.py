@@ -1319,14 +1319,16 @@ def main() -> int:
     parser.add_argument("--evidence-origin", default="LOCAL_QA", choices=["LOCAL_QA", "REAL_PRODUCTION_OBSERVATION", "SIMULATED_TEST"])
     parser.add_argument("--scope", default="full", choices=["critical", "full"])
     parser.add_argument("--trigger", default="AUTONOMOUS_BROWSER_QA")
+    parser.add_argument("--db-path", default="")
+    parser.add_argument("--browser-executable", default="")
     args = parser.parse_args()
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
 
-    db_path = ROOT / "data" / "local_dev" / "nemesis_autonomous_product_qa.sqlite"
+    db_path = Path(args.db_path).resolve() if args.db_path else ROOT / "data" / "local_dev" / "nemesis_autonomous_product_qa.sqlite"
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
-        db_path.unlink()
+        raise SystemExit(f"QA database already exists; use a new isolated --db-path: {db_path}")
     os.environ.update({
         "DB_PATH": str(db_path),
         "NEMESIS_LOCAL_DB_NAME": db_path.name,
@@ -1377,7 +1379,10 @@ def main() -> int:
 
     try:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(headless=True)
+            launch_options = {"headless": True}
+            if args.browser_executable:
+                launch_options["executable_path"] = str(Path(args.browser_executable).resolve())
+            browser = playwright.chromium.launch(**launch_options)
             expected_captures = 0
             for profile_name, profile in LAYOUT_GATE_PROFILES.items():
                 profile_screens = selected_screens if profile_name in PROFILES else [

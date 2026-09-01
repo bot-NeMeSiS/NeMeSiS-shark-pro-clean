@@ -50,6 +50,8 @@
   'MatchStory': 'Resumen',
   'Timeline': 'Hechos',
   'StatsPanel': 'Datos',
+  'HeadToHeadPanel': 'Historial',
+  'StandingsPanel': 'Tabla',
   'SharkPanel': 'Inteligencia',
   'TelegramPanel': 'Continuidad',
   'BankrollPanel': 'Responsabilidad',
@@ -289,6 +291,63 @@
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
   {{ transparency_meta(context, 'statistics') }}
+</section>
+{%- endmacro %}
+
+{% macro head_to_head_panel(context) -%}
+{% set component = context.get('components', {}).get('HeadToHeadPanel') or {} %}
+{% set h2h = context.get('head_to_head') or {} %}
+{{ panel_start('HeadToHeadPanel', component, 'Enfrentamientos directos', 'Resultados confirmados entre ambos equipos.', 'h2h') }}
+  {% if h2h.get('available') %}
+  <div class="v944-h2h-list" data-h2h-contract="{{ h2h.get('contract') }}" data-h2h-source="{{ h2h.get('source') or '' }}">
+    {% for item in h2h.get('items') or [] %}
+    <article data-h2h-fixture="{{ item.get('fixture_id') or item.get('match_id') or '' }}">
+      <time datetime="{{ item.get('kickoff_iso') or '' }}">{{ item.get('date_label') or item.get('kickoff_iso')|sync_madrid_label }}</time>
+      <span>
+        <b>{{ item.get('home_team') }}</b>
+        <strong>{{ item.get('score') or 'Resultado no disponible' }}</strong>
+        <b>{{ item.get('away_team') }}</b>
+      </span>
+      {% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="match">Ver partido</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No hay enfrentamientos directos confirmados.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'head_to_head') }}
+</section>
+{%- endmacro %}
+
+{% macro standings_panel(context) -%}
+{% set component = context.get('components', {}).get('StandingsPanel') or {} %}
+{% set standings = context.get('standings') or {} %}
+{{ panel_start('StandingsPanel', component, 'Clasificación', 'Situación real de la competición.', 'standings') }}
+  {% if standings.get('available') %}
+  <div class="v944-standings-scroll">
+    <table class="v944-standings" data-standings-contract="{{ standings.get('contract') }}" data-standings-source="{{ standings.get('source') or '' }}">
+      <thead><tr><th>Pos.</th><th>Equipo</th><th>PJ</th><th>DG</th><th>Pts.</th></tr></thead>
+      <tbody>
+      {% for item in standings.get('rows') or [] %}
+      <tr>
+        <td>{{ item.get('position') }}</td>
+        <th>{% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="team">{{ item.get('team_name') }}</a>{% else %}{{ item.get('team_name') }}{% endif %}</th>
+        <td>{{ item.get('played') if item.get('played') is not none else '—' }}</td>
+        <td>
+          {% if item.get('goals_for') is not none and item.get('goals_against') is not none %}
+          {{ item.get('goals_for') - item.get('goals_against') }}
+          {% else %}—{% endif %}
+        </td>
+        <td><strong>{{ item.get('points') if item.get('points') is not none else '—' }}</strong></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No hay clasificación confirmada para esta competición.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'standings') }}
 </section>
 {%- endmacro %}
 

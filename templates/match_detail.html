@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
-{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 {% if not detail or not match_context %}
@@ -30,6 +30,8 @@
   {% set lineups = match_context.get('lineups') or {} %}
   {% set events = match_context.get('event_summary') or {} %}
   {% set statistics = match_context.get('statistics') or {} %}
+  {% set head_to_head = match_context.get('head_to_head') or {} %}
+  {% set standings = match_context.get('standings') or {} %}
   {% set media = match_context.get('media') or {} %}
   {% set shark = match_context.get('shark_context') or {} %}
   <nav class="v944-match-sections" aria-label="Secciones disponibles del partido">
@@ -37,6 +39,8 @@
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">Alineaciones</a>{% endif %}
     {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">Eventos</a>{% endif %}
     {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">Estadísticas</a>{% endif %}
+    {% if head_to_head.get('available') %}<a href="#match-section-h2h" data-match-section-link="h2h">H2H</a>{% endif %}
+    {% if standings.get('available') %}<a href="#match-section-standings" data-match-section-link="standings">Clasificación</a>{% endif %}
     {% if media.get('visible_count') %}<a href="#match-section-video" data-match-section-link="video">Vídeo</a>{% endif %}
     {% if shark.get('available') %}<a href="#match-section-shark" data-match-section-link="shark">SHARK</a>{% endif %}
   </nav>
@@ -47,6 +51,8 @@
       {{ lineups_panel(match_context) }}
       {{ timeline(match_context) }}
       {{ stats_panel(match_context) }}
+      {{ head_to_head_panel(match_context) }}
+      {{ standings_panel(match_context) }}
       {{ video_panel(match_context) }}
       {{ competition_panel(match_context) }}
       {{ data_quality_panel(match_context) }}

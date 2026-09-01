@@ -6674,16 +6674,53 @@ def team_lookup(team_id):
     return None
 
 
-def _cached_lineups_for_match(match, limit=120):
-    """Read confirmed lineup rows already persisted by an approved sync."""
-    if not match or not db_table_exists("api_football_lineups_deep"):
-        return []
-    columns = _sqlite_table_columns("api_football_lineups_deep")
+def _cached_api_fixture_identity(match):
+    """Resolve one persisted API-Football fixture without provider traffic."""
+    if not match or not db_table_exists("api_football_fixture_index"):
+        return {}
     identifiers = []
     for value in (match.get("id"), match.get("external_id")):
         value = str(value or "").strip()
         if value and value not in identifiers:
             identifiers.append(value)
+        if value.startswith("af-") and value[3:] not in identifiers:
+            identifiers.append(value[3:])
+    if not identifiers:
+        return {}
+    placeholders = ",".join(["?"] * len(identifiers))
+    return one(
+        f"""SELECT * FROM api_football_fixture_index
+            WHERE COALESCE(fixture_id,'') IN ({placeholders})
+               OR COALESCE(internal_match_id,'') IN ({placeholders})
+            ORDER BY COALESCE(last_seen_at,'') DESC
+            LIMIT 1""",
+        tuple(identifiers + identifiers),
+    ) or {}
+
+
+def _cached_fixture_identifiers(match):
+    identity = _cached_api_fixture_identity(match)
+    identifiers = []
+    for value in (
+        (match or {}).get("id"),
+        (match or {}).get("external_id"),
+        identity.get("fixture_id"),
+        identity.get("internal_match_id"),
+    ):
+        value = str(value or "").strip()
+        if value and value not in identifiers:
+            identifiers.append(value)
+        if value.startswith("af-") and value[3:] not in identifiers:
+            identifiers.append(value[3:])
+    return identity, identifiers
+
+
+def _cached_lineups_for_match(match, limit=120):
+    """Read confirmed lineup rows already persisted by an approved sync."""
+    if not match or not db_table_exists("api_football_lineups_deep"):
+        return []
+    columns = _sqlite_table_columns("api_football_lineups_deep")
+    _identity, identifiers = _cached_fixture_identifiers(match)
     identity_columns = [name for name in ("fixture_id", "match_id") if name in columns]
     if not identifiers or not identity_columns:
         return []
@@ -6695,6 +6732,268 @@ def _cached_lineups_for_match(match, limit=120):
         f"SELECT * FROM api_football_lineups_deep WHERE {' OR '.join(filters)}{order} LIMIT ?",
         params,
     )
+
+
+def _cached_match_statistics(match):
+    """Return the latest complete persisted statistics snapshot for one match."""
+    empty = {"available": False, "items": [], "source": None, "external_calls": 0}
+    if not match or not db_table_exists("api_football_match_stats_history"):
+        return empty
+    identity, identifiers = _cached_fixture_identifiers(match)
+    fixture_ids = [
+        value
+        for value in identifiers
+        if value and value != identity.get("internal_match_id")
+    ]
+    if not fixture_ids:
+        return empty
+    placeholders = ",".join(["?"] * len(fixture_ids))
+    latest = one(
+        f"""SELECT MAX(captured_at) AS captured_at
+            FROM api_football_match_stats_history
+            WHERE COALESCE(fixture_id,'') IN ({placeholders})""",
+        tuple(fixture_ids),
+    ) or {}
+    captured_at = str(latest.get("captured_at") or "").strip()
+    if not captured_at:
+        return empty
+    snapshot_rows = rows(
+        f"""SELECT * FROM api_football_match_stats_history
+            WHERE COALESCE(fixture_id,'') IN ({placeholders})
+              AND captured_at=?
+            ORDER BY stat_name, team_name""",
+        tuple(fixture_ids + [captured_at]),
+    )
+    home_name = str(match.get("home_team") or "").strip()
+    away_name = str(match.get("away_team") or "").strip()
+    home_id = str(
+        identity.get("home_team_id") or match.get("home_team_id") or ""
+    ).strip()
+    away_id = str(
+        identity.get("away_team_id") or match.get("away_team_id") or ""
+    ).strip()
+    grouped = {}
+    for item in snapshot_rows:
+        label = str(item.get("stat_name") or "").strip()
+        value = str(item.get("stat_value") or "").strip()
+        if not label or value in {"", "-", "—", "None", "null"}:
+            continue
+        team_id = str(item.get("team_id") or "").strip()
+        team_name = str(item.get("team_name") or "").strip()
+        side = ""
+        if home_id and team_id == home_id:
+            side = "home"
+        elif away_id and team_id == away_id:
+            side = "away"
+        elif home_name and team_name.casefold() == home_name.casefold():
+            side = "home"
+        elif away_name and team_name.casefold() == away_name.casefold():
+            side = "away"
+        if not side:
+            continue
+        card = grouped.setdefault(
+            label.casefold(),
+            {
+                "key": label.casefold().replace(" ", "_"),
+                "label": label,
+                "home": None,
+                "away": None,
+                "leader": "even",
+            },
+        )
+        card[side] = value
+    items = [
+        item
+        for item in grouped.values()
+        if item.get("home") is not None or item.get("away") is not None
+    ]
+    return {
+        "available": bool(items),
+        "items": items,
+        "source": "api_football_stats_cache" if items else None,
+        "updated_at": captured_at or None,
+        "fixture_id": identity.get("fixture_id")
+        or (fixture_ids[0] if fixture_ids else None),
+        "external_calls": 0,
+    }
+
+
+def _cached_h2h_for_match(match, limit=6):
+    """Read exact direct duels from persisted history and the canonical store."""
+    empty = {"available": False, "items": [], "source": None, "external_calls": 0}
+    if not match:
+        return empty
+    identity, identifiers = _cached_fixture_identifiers(match)
+    current_ids = {str(value) for value in identifiers if value}
+    home_name = str(match.get("home_team") or "").strip()
+    away_name = str(match.get("away_team") or "").strip()
+    home_id = str(
+        identity.get("home_team_id") or match.get("home_team_id") or ""
+    ).strip()
+    away_id = str(
+        identity.get("away_team_id") or match.get("away_team_id") or ""
+    ).strip()
+    items = []
+    seen = set()
+    if db_table_exists("api_football_h2h_history"):
+        filters = []
+        params = []
+        if home_id and away_id:
+            filters.append(
+                "((team_a_id=? AND team_b_id=?) OR "
+                "(team_a_id=? AND team_b_id=?))"
+            )
+            params.extend([home_id, away_id, away_id, home_id])
+        if home_name and away_name:
+            filters.append(
+                "((lower(home_team)=lower(?) AND lower(away_team)=lower(?)) "
+                "OR (lower(home_team)=lower(?) AND lower(away_team)=lower(?)))"
+            )
+            params.extend([home_name, away_name, away_name, home_name])
+        if filters:
+            provider_rows = rows(
+                f"""SELECT * FROM api_football_h2h_history
+                    WHERE {' OR '.join(filters)}
+                    ORDER BY kickoff_iso DESC
+                    LIMIT ?""",
+                tuple(params + [int(limit) * 2]),
+            )
+            for raw in provider_rows:
+                fixture_id = str(raw.get("fixture_id") or "").strip()
+                status = str(raw.get("status") or "").strip().upper()
+                if fixture_id in current_ids or status not in {
+                    "FT",
+                    "FINISHED",
+                    "FINAL",
+                    "AET",
+                    "PEN",
+                }:
+                    continue
+                home_score = raw.get("home_score")
+                away_score = raw.get("away_score")
+                item = {
+                    "match_id": None,
+                    "fixture_id": fixture_id or None,
+                    "home_team": raw.get("home_team"),
+                    "away_team": raw.get("away_team"),
+                    "home_score": home_score,
+                    "away_score": away_score,
+                    "score": (
+                        f"{home_score}-{away_score}"
+                        if home_score is not None and away_score is not None
+                        else None
+                    ),
+                    "competition": raw.get("league_name"),
+                    "kickoff_iso": raw.get("kickoff_iso"),
+                    "status": status,
+                    "source": "api_football_h2h_cache",
+                    "updated_at": raw.get("captured_at"),
+                }
+                identity_key = fixture_id or (
+                    item["kickoff_iso"],
+                    item["home_team"],
+                    item["away_team"],
+                )
+                seen.add(identity_key)
+                items.append(item)
+                if len(items) >= int(limit):
+                    break
+    if len(items) < int(limit) and home_name and away_name:
+        for raw in head_to_head_matches(
+            home_name,
+            away_name,
+            limit=int(limit) * 2,
+        ):
+            match_id = str(raw.get("id") or raw.get("external_id") or "").strip()
+            if not match_id or match_id in current_ids or match_id in seen:
+                continue
+            if not canonical_match_status(raw).get("is_finished"):
+                continue
+            home_score = raw.get("home_score")
+            away_score = raw.get("away_score")
+            temporal = raw.get("client_temporal_context") or {}
+            items.append(
+                {
+                    "match_id": match_id,
+                    "fixture_id": raw.get("external_id"),
+                    "home_team": raw.get("home_team"),
+                    "away_team": raw.get("away_team"),
+                    "home_score": home_score,
+                    "away_score": away_score,
+                    "score": raw.get("score")
+                    or (
+                        f"{home_score}-{away_score}"
+                        if home_score is not None and away_score is not None
+                        else None
+                    ),
+                    "competition": raw.get("competition_name")
+                    or raw.get("league_name"),
+                    "kickoff_iso": raw.get("kickoff_iso"),
+                    "date_label": (
+                        temporal.get("compact_label")
+                        if isinstance(temporal, dict)
+                        else None
+                    ),
+                    "status": "FT",
+                    "href": f"/match/{match_id}",
+                    "source": raw.get("source") or "canonical_match_cache",
+                    "updated_at": raw.get("updated_at"),
+                }
+            )
+            seen.add(match_id)
+            if len(items) >= int(limit):
+                break
+    return {
+        "available": bool(items),
+        "items": items[: int(limit)],
+        "source": items[0].get("source") if items else None,
+        "updated_at": max(
+            (str(item.get("updated_at") or "") for item in items),
+            default="",
+        )
+        or None,
+        "external_calls": 0,
+    }
+
+
+def _cached_match_standings(match, limit=24):
+    """Read the competition table already persisted by an approved sync."""
+    empty = {"available": False, "rows": [], "source": None, "external_calls": 0}
+    if not match:
+        return empty
+    identity, _identifiers = _cached_fixture_identifiers(match)
+    competition_id = (
+        identity.get("league_id")
+        or match.get("competition_id")
+        or match.get("competition_key")
+        or match.get("league_name")
+        or match.get("competition_name")
+    )
+    competition = competition_lookup(competition_id) or {
+        "external_id": identity.get("league_id") or match.get("competition_id"),
+        "name": identity.get("league_name")
+        or match.get("competition_name")
+        or match.get("league_name"),
+        "key": match.get("competition_key"),
+    }
+    standings = _competition_standings_for(
+        competition,
+        competition_id,
+        limit=limit,
+    )
+    for item in standings:
+        item.setdefault("source", "api_football_standings_deep")
+    return {
+        "available": bool(standings),
+        "rows": standings,
+        "source": "api_football_standings_deep" if standings else None,
+        "updated_at": max(
+            (str(item.get("snapshot_at") or "") for item in standings),
+            default="",
+        )
+        or None,
+        "external_calls": 0,
+    }
 
 
 def _cached_players_for_team(team, matches, limit=160):
@@ -17226,6 +17525,9 @@ def match_detail_page(match_id):
         detail["match"] = v935_enrich_match_lifecycle(detail["match"])
         detail["lineups"] = _cached_lineups_for_match(detail["match"])
         detail["media"] = _cached_match_media(detail["match"])
+        detail["cached_statistics"] = _cached_match_statistics(detail["match"])
+        detail["head_to_head"] = _cached_h2h_for_match(detail["match"])
+        detail["standings"] = _cached_match_standings(detail["match"])
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}
@@ -29579,6 +29881,20 @@ def _sports_knowledge_coverage_snapshot():
     player_profiles = count("player_profiles")
     events = count("api_football_live_events")
     stats = count("api_football_live_stats") + count("api_football_match_stats_history")
+    stats_fixtures = count(
+        "api_football_match_stats_history",
+        "COUNT(DISTINCT fixture_id)",
+    )
+    h2h = count("api_football_h2h_history")
+    h2h_pairs = count(
+        "api_football_h2h_history",
+        "COUNT(DISTINCT team_a_id || ':' || team_b_id)",
+    )
+    standings = count("api_football_standings_deep")
+    standings_competitions = count(
+        "api_football_standings_deep",
+        "COUNT(DISTINCT league_id || ':' || season)",
+    )
     highlights = count("sportsdb_match_highlights")
     rights_warnings = 0
     approved_media = 0
@@ -29595,10 +29911,16 @@ def _sports_knowledge_coverage_snapshot():
         "player_profiles": player_profiles,
         "events": events,
         "stats": stats,
+        "stats_fixtures": stats_fixtures,
+        "h2h": h2h,
+        "h2h_pairs": h2h_pairs,
+        "standings": standings,
+        "standings_competitions": standings_competitions,
         "media": highlights,
         "approved_media": approved_media,
         "rights_warnings": rights_warnings,
         "summaries": "DETERMINISTIC_ON_DEMAND",
+        "sports_certification": "REAL_SPORTS_CERTIFICATION_IN_PROGRESS",
         "evidence_origin": "LOCAL_DB_CACHE",
         "external_calls": 0,
     }

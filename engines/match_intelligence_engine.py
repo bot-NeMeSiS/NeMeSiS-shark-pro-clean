@@ -786,6 +786,29 @@ def build_match_intelligence(
         if historical_data
         else None
     )
+    historical_evidence_id = ""
+    if historical_data:
+        historical_evidence_id = "historical-observations"
+        evidence.append(
+            _evidence(
+                historical_evidence_id,
+                kind="caller_supplied_history",
+                source=_text(historical_data[0].get("source"), 100) or source,
+                state="PARTIALLY_VERIFIED",
+                observed_at=observed_at,
+                data={
+                    "sample_size": len(historical_data),
+                    "fixture_ids": [
+                        _text(item.get("fixture_id") or item.get("match_id"), 100)
+                        for item in historical_data
+                        if item.get("fixture_id") or item.get("match_id")
+                    ],
+                },
+                limitations=(
+                    "El historial describe resultados observados y no predice el siguiente partido.",
+                ),
+            )
+        )
 
     conclusions = {
         "estado_partido": _conclusion(
@@ -899,7 +922,7 @@ def build_match_intelligence(
             "tendencias",
             state="PARTIALLY_VERIFIED" if trend_value else "INSUFFICIENT_DATA",
             value=trend_value,
-            evidence_ids=(),
+            evidence_ids=(historical_evidence_id,),
             missing=()
             if trend_value
             else ("comparable_historical_snapshots",),

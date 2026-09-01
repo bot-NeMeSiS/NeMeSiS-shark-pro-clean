@@ -21,8 +21,11 @@ const COMPONENTS = [
   "MatchHeader",
   "ScoreWidget",
   "MatchStory",
+  "LineupsPanel",
   "Timeline",
   "StatsPanel",
+  "HeadToHeadPanel",
+  "StandingsPanel",
   "SharkPanel",
   "TelegramPanel",
   "BankrollPanel",
@@ -188,6 +191,7 @@ async function inspectPage(page) {
 
 async function main() {
   const baseUrl = argValue("--base-url", "http://127.0.0.1:5095");
+  const browserExecutable = argValue("--browser-executable", "");
   const output = path.resolve(
     argValue(
       "--output",
@@ -197,7 +201,10 @@ async function main() {
   fs.mkdirSync(output, { recursive: true });
   const baseHost = new URL(baseUrl).host.toLowerCase();
   const results = [];
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+  });
 
   try {
     for (const [profileName, profile] of Object.entries(PROFILES)) {
