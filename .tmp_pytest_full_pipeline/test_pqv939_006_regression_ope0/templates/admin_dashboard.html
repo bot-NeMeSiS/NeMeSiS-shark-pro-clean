@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, data_table, next_action, icon, realtime_state_bar %}
+{% block content %}
+{% set overview = data.get('v928_admin') or {} %}
+{% set telegram = overview.get('telegram') or {} %}
+{% set automation = overview.get('automation') or {} %}
+{% set errors = overview.get('recent_errors') or [] %}
+{% set realtime = data.get('v934_realtime') or {} %}
+
+<div class="v933-page v933-admin-command-center v933-admin-dashboard" data-v933-template="admin_dashboard" data-v933-reference="official-ref-01">
+  {{ page_header('Panel de control', 'Operación, producto y prioridades.', 'dashboard', [{'label':'Workforce','href':'/admin/automation-workforce','icon':'automation'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true,'icon':'shield'}]) }}
+  <section class="ns16-admin-priority {{ 'is-danger' if errors else ('is-warning' if not overview.get('matches_today') and not overview.get('picks_active') else 'is-success') }}">
+    {{ icon('shield' if errors else ('database' if not overview.get('matches_today') and not overview.get('picks_active') else 'rocket')) }}
+    <div><span>Prioridad</span><strong>{{ 'Resolver incidencias' if errors else ('Certificar datos deportivos' if not overview.get('matches_today') and not overview.get('picks_active') else 'Certificar la jornada') }}</strong></div>
+    <a href="{{ '/admin/observability/errors' if errors else ('/admin/data-trust-center' if not overview.get('matches_today') and not overview.get('picks_active') else '/admin/launch-certification') }}">Abrir {{ icon('arrow') }}</a>
+  </section>
+
+  {{ realtime_state_bar(realtime, 'all', true) }}
+
+  <section class="v933-kpi-grid is-six">
+    {{ kpi_card('Usuarios', overview.get('users_total'), 'Cuentas en DB', 'blue', 'users', '/admin/users') }}
+    {{ kpi_card('Picks activos', overview.get('picks_active'), 'Publicados reales', 'cyan', 'target', '/admin/picks') }}
+    {{ kpi_card('Partidos hoy', overview.get('matches_today'), 'Caché y DB', 'blue', 'matches', '/admin/matches') }}
+    {{ kpi_card('En directo', overview.get('live_now'), 'Feed confirmado', 'success', 'live', '/admin/matches') }}
+    {{ kpi_card('Telegram pendiente', telegram.get('pending'), 'Cola registrada', 'cyan', 'telegram', '/admin/telegram/command-center') }}
+    {{ kpi_card('Errores recientes', errors|length, 'Observabilidad local', 'warning' if errors else 'success', 'shield', '/admin/observability/errors') }}
+  </section>
+
+  <section class="v933-admin-layout">
+    <div class="v933-main-stack">
+      <section class="v933-admin-panel">
+        <header><div><h2>Estado operativo</h2><p>Servicios y datos sin métricas de demostración.</p></div>{{ status_chip('Correcto' if overview.get('global_status') == 'ok' else 'Revisar', 'success' if overview.get('global_status') == 'ok' else 'warning') }}</header>
+        <div class="v933-admin-panel-body"><div class="v933-three-col v933-fact-grid"><article><span>Telegram</span><strong>{{ telegram.get('automatic_status') or 'Sin dato' }}</strong><small>{{ telegram.get('last_error') or 'Sin error reportado' }}</small></article><article><span>Automatización</span><strong>{{ automation.get('jobs_ready', 0) }}/{{ automation.get('jobs_total', 0) }} jobs listos</strong><small>{{ automation.get('generated_at_madrid') or 'Sin ejecución reciente' }}</small></article><article><span>Datos deportivos</span><strong>{{ overview.get('matches_today', 0) }} hoy</strong><small>Sin llamadas externas durante render</small></article></div></div>
+      </section>
+
+      {% if errors %}<section class="v933-admin-panel">
+        <header><div><h2>Actividad y errores recientes</h2><p>Observabilidad real.</p></div><a class="v933-admin-link" href="/admin/observability/errors">Ver todo {{ icon('arrow') }}</a></header>
+        <div class="v933-admin-panel-body">{% call data_table(['Hora','Ruta','Severidad','Detalle']) %}{% for item in errors %}<tr><td>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Sin fecha' }}</td><td>{{ item.get('path') or item.get('route') or 'Sistema' }}</td><td>{{ status_chip(item.get('severity') or item.get('level') or 'Revisar','danger') }}</td><td>{{ item.get('message') or item.get('error') or 'Error registrado' }}</td></tr>{% endfor %}{% endcall %}</div>
+      </section>
+      {% else %}<aside class="ns-video-admin-ok">{{ icon('shield') }}<span><strong>Sin incidencias recientes</strong><small>La observabilidad no registra errores en la ventana consultada.</small></span>{{ status_chip('Correcto','success') }}</aside>{% endif %}
+
+      <section class="v933-admin-panel">
+        <header><div><h2>Acciones rápidas</h2><p>Áreas operativas principales.</p></div></header>
+        <div class="v933-admin-panel-body"><div class="v933-quick-actions">{{ quick_action('Telegram', 'Cola, dedupe y dry-run', '/admin/telegram/command-center', 'telegram', 'cyan') }}{{ quick_action('Picks y partidos', 'Gestión editorial real', '/admin/picks', 'target') }}{{ quick_action('Sincronizar datos', 'Proveedores y caché', '/admin/data-center', 'database') }}{{ quick_action('Automatización', 'Jobs y configuración', '/admin/automation-workforce', 'automation') }}{{ quick_action('Pagos', 'Stripe y suscripciones', '/admin/payments', 'payments', 'gold') }}{{ quick_action('Lanzamiento', 'Bloqueadores y checklist', '/admin/launch-certification', 'rocket', 'success') }}</div></div>
+      </section>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-admin-panel"><header><div><h2>Resumen de cuentas</h2><p>Distribución actual.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('users') }}<span><strong>PRO</strong><small>{{ overview.get('users_pro', 0) }} cuentas</small></span></div><div>{{ icon('users') }}<span><strong>ELITE</strong><small>{{ overview.get('users_elite', 0) }} cuentas</small></span></div><div>{{ icon('database') }}<span><strong>Total</strong><small>{{ overview.get('users_total', 0) }} registros en DB</small></span></div></div></div></section>
+      {{ next_action('Cerrar la evidencia de lanzamiento', 'Sentinel, datos reales, Browser QA y runtime deben coincidir antes de comunicar preparación comercial.', '/admin/launch-certification', 'Abrir certificación') }}
+      <section class="v933-admin-panel"><header><div><h2>Más módulos</h2><p>Acceso directo al ecosistema.</p></div></header><div class="v933-admin-panel-body"><div class="v933-main-stack">{% for item in items[:8] %}{{ quick_action(item.get('title'), item.get('body'), item.get('href'), 'dashboard') }}{% endfor %}</div></div></section>
+    </aside>
+  </section>
+</div>
+{% endblock %}

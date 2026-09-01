@@ -1,0 +1,17 @@
+{
+  "paused": false,
+  "history": [
+    {
+      "at_madrid": "2026-09-01T15:59:24+02:00",
+      "paused": true,
+      "actor": "Founder"
+    },
+    {
+      "at_madrid": "2026-09-01T15:59:24+02:00",
+      "paused": false,
+      "actor": "Founder"
+    }
+  ],
+  "updated_at_madrid": "2026-09-01T15:59:24+02:00",
+  "updated_by": "Founder"
+}

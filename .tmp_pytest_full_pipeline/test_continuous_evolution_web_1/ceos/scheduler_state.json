@@ -1,0 +1,94 @@
+{
+  "automation_contract": "NEMESIS-CONTINUOUS-EVOLUTION-AUTOMATION-V1",
+  "contract": "NEMESIS-CONTINUOUS-EVOLUTION-SCHEDULER-V1",
+  "created_at_madrid": "2026-08-28T05:00:00+02:00",
+  "policy": {
+    "daily_founder_brief": {
+      "hour": 4,
+      "minute": 5
+    },
+    "daily_product_review": {
+      "hour": 4,
+      "minute": 0
+    },
+    "monthly_strategy_review": {
+      "day": 1,
+      "hour": 5,
+      "minute": 0
+    },
+    "timezone": "Europe/Madrid",
+    "weekly_executive_review": {
+      "hour": 4,
+      "minute": 30,
+      "weekday": 0
+    }
+  },
+  "tasks": {
+    "daily_founder_brief": {
+      "automated_or_manual": "scheduled_run",
+      "cadence": "daily",
+      "configured": true,
+      "evidence": "Founder Brief generado despues de Daily Product Review",
+      "failed_count": 0,
+      "label": "Daily Founder Brief",
+      "last_completed_period": "2026-08-28",
+      "last_job_id": "JOB-019F82742AA8",
+      "last_result": "PASS",
+      "last_run": "2026-08-28T05:00:00+02:00",
+      "last_snapshot_id": "SNAP-20260828050000-CFC9E6F4",
+      "next_expected_run": "2026-08-29T04:05:00+02:00",
+      "run_count": 1,
+      "task_name": "daily_founder_brief"
+    },
+    "daily_product_review": {
+      "automated_or_manual": "scheduled_run",
+      "cadence": "daily",
+      "configured": true,
+      "evidence": "snapshot SNAP-20260828050000-CFC9E6F4",
+      "failed_count": 0,
+      "label": "Daily Product Review",
+      "last_completed_period": "2026-08-28",
+      "last_job_id": "JOB-019F82742AA8",
+      "last_result": "SKIPPED_NOT_DUE",
+      "last_run": "2026-08-28T05:00:00+02:00",
+      "last_snapshot_id": "SNAP-20260828050000-CFC9E6F4",
+      "next_expected_run": "2026-08-29T04:00:00+02:00",
+      "run_count": 1,
+      "task_name": "daily_product_review"
+    },
+    "monthly_strategy_review": {
+      "automated_or_manual": "not_run",
+      "cadence": "monthly",
+      "configured": true,
+      "evidence": "scheduler local preparado",
+      "failed_count": 0,
+      "label": "Monthly Strategy Review",
+      "last_completed_period": null,
+      "last_job_id": null,
+      "last_result": "NOT_RUN",
+      "last_run": null,
+      "last_snapshot_id": null,
+      "next_expected_run": "2026-09-01T05:00:00+02:00",
+      "run_count": 0,
+      "task_name": "monthly_strategy_review"
+    },
+    "weekly_executive_review": {
+      "automated_or_manual": "not_run",
+      "cadence": "weekly",
+      "configured": true,
+      "evidence": "scheduler local preparado",
+      "failed_count": 0,
+      "label": "Weekly Executive Review",
+      "last_completed_period": null,
+      "last_job_id": null,
+      "last_result": "NOT_RUN",
+      "last_run": null,
+      "last_snapshot_id": null,
+      "next_expected_run": "2026-08-31T04:30:00+02:00",
+      "run_count": 0,
+      "task_name": "weekly_executive_review"
+    }
+  },
+  "timezone": "Europe/Madrid",
+  "updated_at_madrid": "2026-08-28T05:00:00+02:00"
+}

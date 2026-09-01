@@ -1,0 +1,30 @@
+FOUNDER BRIEF - 2026-08-13
+Producto: PASS_WITH_REVIEW_ITEMS | Score producto: 92.0 | Board: 90.
+Growth: LIVE_ACQUISITION_READY_LOCAL | evidencia real: INSUFFICIENT_REAL_DATA.
+Revenue: MRR No certificado | premium intent Sin datos reales.
+QA autonoma: NOT_RUN | incidencias abiertas: 0.
+Calidad: WARNING | P0 0 | P1 0 | regresiones 0.
+Produccion: NOT_RUN.
+Incidencias: 0 abiertas reales | 5 por verificar | 1 bloqueos externos.
+Principal fuga del funnel: Falta evidencia real en DISCOVERY.
+Mejor canal: Sin atribucion real
+Contenido ganador: Sin contenido medido
+Oportunidad Growth preparada: Revisar la pieza del siguiente dia antes de publicarla.
+Que cambio: Desde la ultima revision: 1 nuevas, 0 resueltas, 0 mejoradas, 0 empeoradas, 5 sin cambios.
+3 prioridades:
+- copy: Mover detalles tecnicos a admin o convertirlos en estado de usuario claro. (P2): Primera deteccion con evidencia actual.
+- navigation: Sustituir por accion real, estado deshabilitado honesto o eliminar la accion redundant (P2): Primera deteccion con evidencia actual.
+- Continuous Evolution: Mantener fixture solo en pruebas locales y no elevarlo como dato real. (P2): Primera deteccion con evidencia actual.
+3 cosas que no tocar:
+- Arquitectura deportiva, pagos, produccion o envios reales sin autorizacion humana.
+- Sports Core certificado, contratos canonicos y flujos de seguridad sin evidencia de bug real.
+- Funcionalidades que ya comunican valor sin friccion demostrada.
+Riesgos:
+- EBD-005: Medio - navigation: Sustituir por accion real, estado deshabilitado honesto o eliminar la accion redundant
+- EBD-006: Medio - Continuous Evolution: Mantener fixture solo en pruebas locales y no elevarlo como dato real.
+Oportunidades:
+- EBD-004: Puede reducir percepcion premium, conversion o confianza operativa.
+- EBD-005: Puede reducir percepcion premium, conversion o confianza operativa.
+- EBD-006: Reduce riesgo de llamar aprendizaje a una memoria que no compara cambios.
+Recomendacion: Aprobar manualmente FIRST_10_USERS y lanzar solo las primeras invitaciones controladas.
+Trabajo preparado para Codex: 0 briefs READY, sin ejecucion automatica.

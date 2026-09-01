@@ -1,0 +1,1747 @@
+{
+  "schema": "v939_company_intelligence_memory_v1",
+  "snapshots": [
+    {
+      "ok": true,
+      "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+      "environment": "test",
+      "generated_at_madrid": "2026-09-01T16:03:03+02:00",
+      "sports_metrics": {},
+      "mode": "read_only",
+      "signals": [
+        {
+          "name": "product_analytics",
+          "source": "product_analytics_engine",
+          "source_type": "aggregated_sqlite_read_only",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CONFIGURED",
+            "confidence": null,
+            "funnel": {
+              "visitor": null,
+              "registered": null,
+              "active": null,
+              "pro_interest": null,
+              "checkout_started": null,
+              "pro_customer": null,
+              "elite_customer": null,
+              "renewed": null,
+              "cancelled": null
+            },
+            "limitations": [
+              "DB local no disponible en modo read-only."
+            ],
+            "pii_returned": false,
+            "database_written": false
+          },
+          "limitations": [
+            "DB local no disponible en modo read-only."
+          ]
+        },
+        {
+          "name": "sports_data",
+          "source": "sports-metrics-v1",
+          "source_type": "contract_required",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "NOT_CERTIFIED",
+          "evidence": {
+            "contract_received": false,
+            "external_calls": 0
+          },
+          "limitations": [
+            "Sports Data Contract ausente; Company Intelligence no recalcula metricas por su cuenta."
+          ]
+        },
+        {
+          "name": "pick_pipeline",
+          "source": "pick_intelligence_pipeline_engine",
+          "source_type": "sqlite_read_only",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CONFIGURED",
+            "candidates": [],
+            "counts": {},
+            "database_written": false,
+            "external_calls": 0,
+            "limitations": [
+              "DB local no disponible en modo read-only."
+            ]
+          },
+          "limitations": [
+            "DB local no disponible en modo read-only."
+          ]
+        },
+        {
+          "name": "telegram_intelligence",
+          "source": "telegram_intelligence_engine",
+          "source_type": "sqlite_read_only",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED",
+            "age_minutes": null,
+            "observed_at": ""
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "INSUFFICIENT_DATA",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "INSUFFICIENT_DATA",
+            "confidence": null,
+            "sports_metrics": {},
+            "assistant_context": {
+              "consumer": "telegram",
+              "match_context": {},
+              "match_intelligence": {},
+              "sports_metrics": {},
+              "evidence_state": "INSUFFICIENT_DATA",
+              "limitations": [
+                "El envelope no autoriza envíos ni escrituras."
+              ],
+              "external_action_authorized": false
+            },
+            "telegram_readonly_contract": {
+              "contract": "SPORTS-CORE-TELEGRAM-READONLY-V1",
+              "match": {},
+              "match_intelligence_contract": null,
+              "timeline_events": [],
+              "evidence": [],
+              "freshness": {},
+              "send_executed": false,
+              "telegram_api_called": false,
+              "database_written": false,
+              "external_action_authorized": false,
+              "limitations": [
+                "Contrato preparado para lectura; no autoriza nuevos mensajes ni cambios de dedupe."
+              ]
+            },
+            "match_intelligence_contract": null,
+            "public_picks_ready": null,
+            "freshness": {
+              "state": "NOT_CERTIFIED",
+              "age_minutes": null,
+              "observed_at": ""
+            },
+            "candidate_count": 0,
+            "preview_ready_count": 0,
+            "blocked_count": 0,
+            "queue": {
+              "queue": [],
+              "blocked": [],
+              "daily_limit": {
+                "allowed": 3,
+                "remaining_before_selection": 3,
+                "daily_limit": 3,
+                "state": "AVAILABLE"
+              },
+              "send_executed": false,
+              "external_calls": 0
+            },
+            "delivery": {
+              "records": 0,
+              "status_counts": {},
+              "dedupe_keys": 0,
+              "last_delivery_at": "",
+              "tables": []
+            },
+            "learning": {
+              "certification_state": "INSUFFICIENT_DATA",
+              "sample_size": 0,
+              "format_performance": null,
+              "send_window_performance": null,
+              "open_rate": null,
+              "click_rate": null,
+              "conversion_rate": null,
+              "limitations": [
+                "No se infieren aperturas, clics ni conversiones a partir de entregas."
+              ]
+            },
+            "send_executed": false,
+            "telegram_api_called": false,
+            "database_written": false,
+            "limitations": [
+              "No se valida el token ni el destino de producción desde esta lectura local.",
+              "No se ejecuta envío real, ni siquiera cuando existe un preview listo."
+            ]
+          },
+          "limitations": [
+            "No se valida el token ni el destino de producción desde esta lectura local.",
+            "No se ejecuta envío real, ni siquiera cuando existe un preview listo."
+          ]
+        },
+        {
+          "name": "revenue",
+          "source": "stripe local event tables",
+          "source_type": "aggregated_sqlite_read_only",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "certification_state": "NOT_CONFIGURED",
+            "mrr": null,
+            "revenue": null,
+            "limitations": [
+              "DB local no disponible."
+            ],
+            "payment_executed": false
+          },
+          "limitations": [
+            "DB local no disponible."
+          ]
+        },
+        {
+          "name": "operations",
+          "source": "company_operations_center_engine",
+          "source_type": "local_engine",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "REQUIRES_REVIEW",
+          "evidence": {
+            "readiness": {
+              "local_gate": "BLOCKED",
+              "production_gate": "NOT_CERTIFIED",
+              "recovery_gate": "NOT_CERTIFIED",
+              "dangerous_actions_executed": false
+            },
+            "sports_metrics": {},
+            "incident_counts": {
+              "total": 8,
+              "confirmed": 1,
+              "certification_required": 7,
+              "critical": 1,
+              "high": 0,
+              "critical_certification_required": 1,
+              "high_certification_required": 5
+            },
+            "next_action": "Revisar DB_PATH, lock y disco sin reemplazar la DB.",
+            "mode": "read_only"
+          },
+          "limitations": [
+            "La salud local no certifica Render, GitHub ni proveedores externos."
+          ]
+        },
+        {
+          "name": "recovery",
+          "source": "recovery_simulator_engine",
+          "source_type": "simulation_only",
+          "collected_at_madrid": "2026-09-01T16:03:01+02:00",
+          "freshness": {
+            "state": "NOT_CERTIFIED"
+          },
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "environment": "test",
+          "confidence": null,
+          "certification_state": "NOT_CERTIFIED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CERTIFIED",
+            "confidence": null,
+            "readiness_evidence": {
+              "ok": false,
+              "backup_count": 0,
+              "database": {
+                "ok": false,
+                "status": "MISSING",
+                "integrity": "not_run",
+                "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+              },
+              "production_database_touched": false
+            },
+            "scenarios": [
+              {
+                "ok": true,
+                "scenario_id": "render_down",
+                "label": "Render caido",
+                "rto_minutes": 60,
+                "rpo_minutes": 15,
+                "detection": [
+                  "external_health",
+                  "5xx_monitor"
+                ],
+                "steps": [
+                  "confirmar alcance",
+                  "activar comunicacion",
+                  "validar ultimo release estable",
+                  "rollback autorizado si procede"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "database_unavailable",
+                "label": "DB no disponible",
+                "rto_minutes": 30,
+                "rpo_minutes": 5,
+                "detection": [
+                  "db_health",
+                  "application_errors"
+                ],
+                "steps": [
+                  "detener escrituras",
+                  "comprobar disco y DB_PATH",
+                  "liberar lock seguro",
+                  "validar integridad"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "database_corrupt",
+                "label": "DB corrupta",
+                "rto_minutes": 120,
+                "rpo_minutes": 60,
+                "detection": [
+                  "integrity_check",
+                  "read_failures"
+                ],
+                "steps": [
+                  "aislar DB",
+                  "preservar evidencia",
+                  "restaurar solo en entorno aislado",
+                  "autorizar restore"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "sports_provider_down",
+                "label": "API deportiva caida",
+                "rto_minutes": 240,
+                "rpo_minutes": 60,
+                "detection": [
+                  "sync_age",
+                  "provider_errors"
+                ],
+                "steps": [
+                  "activar cache seguro",
+                  "marcar stale",
+                  "aplicar backoff",
+                  "reintentar dentro del usage guard"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "telegram_down",
+                "label": "Telegram caido",
+                "rto_minutes": 240,
+                "rpo_minutes": 0,
+                "detection": [
+                  "delivery_failures",
+                  "cron_health"
+                ],
+                "steps": [
+                  "pausar cola",
+                  "preservar dedupe",
+                  "validar destino enmascarado",
+                  "reanudar con autorizacion"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "stripe_webhook_down",
+                "label": "Webhook Stripe caido",
+                "rto_minutes": 60,
+                "rpo_minutes": 0,
+                "detection": [
+                  "webhook_errors",
+                  "membership_mismatch"
+                ],
+                "steps": [
+                  "bloquear cambios manuales no auditados",
+                  "validar firma y endpoint",
+                  "reconciliar eventos idempotentes"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "cron_stopped",
+                "label": "Cron detenido",
+                "rto_minutes": 60,
+                "rpo_minutes": 60,
+                "detection": [
+                  "last_tick_age",
+                  "dead_man_alert"
+                ],
+                "steps": [
+                  "confirmar servicio",
+                  "comprobar header protegido",
+                  "ejecutar dry-run",
+                  "reanudar una sola instancia"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "backup_stale",
+                "label": "Backup stale",
+                "rto_minutes": 240,
+                "rpo_minutes": 1440,
+                "detection": [
+                  "backup_age",
+                  "restore_test"
+                ],
+                "steps": [
+                  "preservar ultimo backup",
+                  "crear backup autorizado",
+                  "probar restore aislado",
+                  "registrar hash"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "defective_release",
+                "label": "Release defectuoso",
+                "rto_minutes": 30,
+                "rpo_minutes": 0,
+                "detection": [
+                  "runtime_sha",
+                  "smoke",
+                  "5xx"
+                ],
+                "steps": [
+                  "detener rollout",
+                  "comparar SHA",
+                  "volver al commit estable",
+                  "revalidar runtime"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "secret_revoked",
+                "label": "Secreto revocado",
+                "rto_minutes": 120,
+                "rpo_minutes": 0,
+                "detection": [
+                  "auth_failures",
+                  "provider_status"
+                ],
+                "steps": [
+                  "identificar integracion",
+                  "revocar/rotar manualmente",
+                  "actualizar entorno autorizado",
+                  "validar sin imprimir"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "primary_operator_loss",
+                "label": "Operador principal no disponible",
+                "rto_minutes": 240,
+                "rpo_minutes": 60,
+                "detection": [
+                  "operator_checkin",
+                  "runbook_access"
+                ],
+                "steps": [
+                  "activar segundo operador",
+                  "usar runbooks",
+                  "verificar acceso minimo",
+                  "registrar decisiones"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              }
+            ],
+            "counts": {
+              "total": 11,
+              "with_local_evidence": 11,
+              "production_certified": 0
+            },
+            "simulation_only": true,
+            "restore_executed": false,
+            "production_modified": false,
+            "limitations": [
+              "RTO y RPO son objetivos de gobierno, no tiempos demostrados.",
+              "Ningun restore ni failover se ejecuta desde este motor."
+            ]
+          },
+          "limitations": [
+            "RTO y RPO son objetivos de gobierno, no tiempos demostrados.",
+            "Ningun restore ni failover se ejecuta desde este motor."
+          ]
+        }
+      ],
+      "evidence_graph": {
+        "nodes": [
+          {
+            "id": "product_analytics",
+            "source": "product_analytics_engine",
+            "state": "NOT_CONFIGURED",
+            "quality": {
+              "state": "NOT_CONFIGURED",
+              "evidence_quality_score": 15,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "sports_data",
+            "source": "sports-metrics-v1",
+            "state": "NOT_CERTIFIED",
+            "quality": {
+              "state": "NOT_CERTIFIED",
+              "evidence_quality_score": 35,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "pick_pipeline",
+            "source": "pick_intelligence_pipeline_engine",
+            "state": "NOT_CONFIGURED",
+            "quality": {
+              "state": "NOT_CONFIGURED",
+              "evidence_quality_score": 15,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "telegram_intelligence",
+            "source": "telegram_intelligence_engine",
+            "state": "INSUFFICIENT_DATA",
+            "quality": {
+              "state": "INSUFFICIENT_DATA",
+              "evidence_quality_score": 20,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "revenue",
+            "source": "stripe local event tables",
+            "state": "NOT_CONFIGURED",
+            "quality": {
+              "state": "NOT_CONFIGURED",
+              "evidence_quality_score": 15,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "operations",
+            "source": "company_operations_center_engine",
+            "state": "REQUIRES_REVIEW",
+            "quality": {
+              "state": "REQUIRES_REVIEW",
+              "evidence_quality_score": 45,
+              "business_metric": false
+            }
+          },
+          {
+            "id": "recovery",
+            "source": "recovery_simulator_engine",
+            "state": "NOT_CERTIFIED",
+            "quality": {
+              "state": "NOT_CERTIFIED",
+              "evidence_quality_score": 35,
+              "business_metric": false
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "product_analytics",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "sports_data",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "pick_pipeline",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "telegram_intelligence",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "revenue",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "operations",
+            "to": "company_decision",
+            "type": "evidence_for"
+          },
+          {
+            "from": "recovery",
+            "to": "company_decision",
+            "type": "evidence_for"
+          }
+        ],
+        "limitations": [
+          "El grafo describe procedencia; no demuestra causalidad."
+        ]
+      },
+      "confidence": {
+        "score": 25.7,
+        "state": "PARTIALLY_VERIFIED",
+        "metric_type": "evidence_coverage",
+        "not_a_probability": true,
+        "sample": 7
+      },
+      "business_health": {
+        "evidence_coverage_score": 25.7,
+        "certification_state": "PARTIALLY_VERIFIED",
+        "blockers_or_reviews": 1,
+        "unknown_areas": 6,
+        "commercial_health_claim_allowed": false,
+        "limitations": [
+          "Es cobertura de evidencia, no salud financiera ni probabilidad de exito."
+        ]
+      },
+      "priorities": [
+        {
+          "priority": "P1",
+          "area": "operations",
+          "state": "REQUIRES_REVIEW",
+          "evidence": {
+            "readiness": {
+              "local_gate": "BLOCKED",
+              "production_gate": "NOT_CERTIFIED",
+              "recovery_gate": "NOT_CERTIFIED",
+              "dangerous_actions_executed": false
+            },
+            "sports_metrics": {},
+            "incident_counts": {
+              "total": 8,
+              "confirmed": 1,
+              "certification_required": 7,
+              "critical": 1,
+              "high": 0,
+              "critical_certification_required": 1,
+              "high_certification_required": 5
+            },
+            "next_action": "Revisar DB_PATH, lock y disco sin reemplazar la DB.",
+            "mode": "read_only"
+          },
+          "action": "Obtener evidencia segura para operations y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P2",
+          "area": "pick_pipeline",
+          "state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CONFIGURED",
+            "candidates": [],
+            "counts": {},
+            "database_written": false,
+            "external_calls": 0,
+            "limitations": [
+              "DB local no disponible en modo read-only."
+            ]
+          },
+          "action": "Obtener evidencia segura para pick_pipeline y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P2",
+          "area": "product_analytics",
+          "state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CONFIGURED",
+            "confidence": null,
+            "funnel": {
+              "visitor": null,
+              "registered": null,
+              "active": null,
+              "pro_interest": null,
+              "checkout_started": null,
+              "pro_customer": null,
+              "elite_customer": null,
+              "renewed": null,
+              "cancelled": null
+            },
+            "limitations": [
+              "DB local no disponible en modo read-only."
+            ],
+            "pii_returned": false,
+            "database_written": false
+          },
+          "action": "Obtener evidencia segura para product_analytics y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P2",
+          "area": "recovery",
+          "state": "NOT_CERTIFIED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "NOT_CERTIFIED",
+            "confidence": null,
+            "readiness_evidence": {
+              "ok": false,
+              "backup_count": 0,
+              "database": {
+                "ok": false,
+                "status": "MISSING",
+                "integrity": "not_run",
+                "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+              },
+              "production_database_touched": false
+            },
+            "scenarios": [
+              {
+                "ok": true,
+                "scenario_id": "render_down",
+                "label": "Render caido",
+                "rto_minutes": 60,
+                "rpo_minutes": 15,
+                "detection": [
+                  "external_health",
+                  "5xx_monitor"
+                ],
+                "steps": [
+                  "confirmar alcance",
+                  "activar comunicacion",
+                  "validar ultimo release estable",
+                  "rollback autorizado si procede"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "database_unavailable",
+                "label": "DB no disponible",
+                "rto_minutes": 30,
+                "rpo_minutes": 5,
+                "detection": [
+                  "db_health",
+                  "application_errors"
+                ],
+                "steps": [
+                  "detener escrituras",
+                  "comprobar disco y DB_PATH",
+                  "liberar lock seguro",
+                  "validar integridad"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "database_corrupt",
+                "label": "DB corrupta",
+                "rto_minutes": 120,
+                "rpo_minutes": 60,
+                "detection": [
+                  "integrity_check",
+                  "read_failures"
+                ],
+                "steps": [
+                  "aislar DB",
+                  "preservar evidencia",
+                  "restaurar solo en entorno aislado",
+                  "autorizar restore"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "sports_provider_down",
+                "label": "API deportiva caida",
+                "rto_minutes": 240,
+                "rpo_minutes": 60,
+                "detection": [
+                  "sync_age",
+                  "provider_errors"
+                ],
+                "steps": [
+                  "activar cache seguro",
+                  "marcar stale",
+                  "aplicar backoff",
+                  "reintentar dentro del usage guard"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "telegram_down",
+                "label": "Telegram caido",
+                "rto_minutes": 240,
+                "rpo_minutes": 0,
+                "detection": [
+                  "delivery_failures",
+                  "cron_health"
+                ],
+                "steps": [
+                  "pausar cola",
+                  "preservar dedupe",
+                  "validar destino enmascarado",
+                  "reanudar con autorizacion"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "stripe_webhook_down",
+                "label": "Webhook Stripe caido",
+                "rto_minutes": 60,
+                "rpo_minutes": 0,
+                "detection": [
+                  "webhook_errors",
+                  "membership_mismatch"
+                ],
+                "steps": [
+                  "bloquear cambios manuales no auditados",
+                  "validar firma y endpoint",
+                  "reconciliar eventos idempotentes"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "cron_stopped",
+                "label": "Cron detenido",
+                "rto_minutes": 60,
+                "rpo_minutes": 60,
+                "detection": [
+                  "last_tick_age",
+                  "dead_man_alert"
+                ],
+                "steps": [
+                  "confirmar servicio",
+                  "comprobar header protegido",
+                  "ejecutar dry-run",
+                  "reanudar una sola instancia"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "backup_stale",
+                "label": "Backup stale",
+                "rto_minutes": 240,
+                "rpo_minutes": 1440,
+                "detection": [
+                  "backup_age",
+                  "restore_test"
+                ],
+                "steps": [
+                  "preservar ultimo backup",
+                  "crear backup autorizado",
+                  "probar restore aislado",
+                  "registrar hash"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "defective_release",
+                "label": "Release defectuoso",
+                "rto_minutes": 30,
+                "rpo_minutes": 0,
+                "detection": [
+                  "runtime_sha",
+                  "smoke",
+                  "5xx"
+                ],
+                "steps": [
+                  "detener rollout",
+                  "comparar SHA",
+                  "volver al commit estable",
+                  "revalidar runtime"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "secret_revoked",
+                "label": "Secreto revocado",
+                "rto_minutes": 120,
+                "rpo_minutes": 0,
+                "detection": [
+                  "auth_failures",
+                  "provider_status"
+                ],
+                "steps": [
+                  "identificar integracion",
+                  "revocar/rotar manualmente",
+                  "actualizar entorno autorizado",
+                  "validar sin imprimir"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              },
+              {
+                "ok": true,
+                "scenario_id": "primary_operator_loss",
+                "label": "Operador principal no disponible",
+                "rto_minutes": 240,
+                "rpo_minutes": 60,
+                "detection": [
+                  "operator_checkin",
+                  "runbook_access"
+                ],
+                "steps": [
+                  "activar segundo operador",
+                  "usar runbooks",
+                  "verificar acceso minimo",
+                  "registrar decisiones"
+                ],
+                "certification_state": "PARTIALLY_VERIFIED",
+                "evidence": {
+                  "operations": {},
+                  "recovery": {
+                    "ok": false,
+                    "backup_count": 0,
+                    "database": {
+                      "ok": false,
+                      "status": "MISSING",
+                      "integrity": "not_run",
+                      "path_masked": "~\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.tmp_pytest_full_pipeline\\test_pqv939_005_company_intell0\\company-intelligence.sqlite"
+                    },
+                    "production_database_touched": false
+                  }
+                },
+                "blockers": [],
+                "next_action": "Ejecutar tabletop review y validar el runbook en un entorno aislado.",
+                "simulation_only": true,
+                "restore_executed": false,
+                "database_written": false,
+                "external_calls": 0,
+                "actions_executed": []
+              }
+            ],
+            "counts": {
+              "total": 11,
+              "with_local_evidence": 11,
+              "production_certified": 0
+            },
+            "simulation_only": true,
+            "restore_executed": false,
+            "production_modified": false,
+            "limitations": [
+              "RTO y RPO son objetivos de gobierno, no tiempos demostrados.",
+              "Ningun restore ni failover se ejecuta desde este motor."
+            ]
+          },
+          "action": "Obtener evidencia segura para recovery y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P2",
+          "area": "revenue",
+          "state": "NOT_CONFIGURED",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "certification_state": "NOT_CONFIGURED",
+            "mrr": null,
+            "revenue": null,
+            "limitations": [
+              "DB local no disponible."
+            ],
+            "payment_executed": false
+          },
+          "action": "Obtener evidencia segura para revenue y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P2",
+          "area": "sports_data",
+          "state": "NOT_CERTIFIED",
+          "evidence": {
+            "contract_received": false,
+            "external_calls": 0
+          },
+          "action": "Obtener evidencia segura para sports_data y volver a clasificar.",
+          "requires_approval": false
+        },
+        {
+          "priority": "P3",
+          "area": "telegram_intelligence",
+          "state": "INSUFFICIENT_DATA",
+          "evidence": {
+            "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+            "environment": "test",
+            "certification_state": "INSUFFICIENT_DATA",
+            "confidence": null,
+            "sports_metrics": {},
+            "assistant_context": {
+              "consumer": "telegram",
+              "match_context": {},
+              "match_intelligence": {},
+              "sports_metrics": {},
+              "evidence_state": "INSUFFICIENT_DATA",
+              "limitations": [
+                "El envelope no autoriza envíos ni escrituras."
+              ],
+              "external_action_authorized": false
+            },
+            "telegram_readonly_contract": {
+              "contract": "SPORTS-CORE-TELEGRAM-READONLY-V1",
+              "match": {},
+              "match_intelligence_contract": null,
+              "timeline_events": [],
+              "evidence": [],
+              "freshness": {},
+              "send_executed": false,
+              "telegram_api_called": false,
+              "database_written": false,
+              "external_action_authorized": false,
+              "limitations": [
+                "Contrato preparado para lectura; no autoriza nuevos mensajes ni cambios de dedupe."
+              ]
+            },
+            "match_intelligence_contract": null,
+            "public_picks_ready": null,
+            "freshness": {
+              "state": "NOT_CERTIFIED",
+              "age_minutes": null,
+              "observed_at": ""
+            },
+            "candidate_count": 0,
+            "preview_ready_count": 0,
+            "blocked_count": 0,
+            "queue": {
+              "queue": [],
+              "blocked": [],
+              "daily_limit": {
+                "allowed": 3,
+                "remaining_before_selection": 3,
+                "daily_limit": 3,
+                "state": "AVAILABLE"
+              },
+              "send_executed": false,
+              "external_calls": 0
+            },
+            "delivery": {
+              "records": 0,
+              "status_counts": {},
+              "dedupe_keys": 0,
+              "last_delivery_at": "",
+              "tables": []
+            },
+            "learning": {
+              "certification_state": "INSUFFICIENT_DATA",
+              "sample_size": 0,
+              "format_performance": null,
+              "send_window_performance": null,
+              "open_rate": null,
+              "click_rate": null,
+              "conversion_rate": null,
+              "limitations": [
+                "No se infieren aperturas, clics ni conversiones a partir de entregas."
+              ]
+            },
+            "send_executed": false,
+            "telegram_api_called": false,
+            "database_written": false,
+            "limitations": [
+              "No se valida el token ni el destino de producción desde esta lectura local.",
+              "No se ejecuta envío real, ni siquiera cuando existe un preview listo."
+            ]
+          },
+          "action": "Obtener evidencia segura para telegram_intelligence y volver a clasificar.",
+          "requires_approval": false
+        }
+      ],
+      "next_actions": [
+        {
+          "order": 1,
+          "area": "operations",
+          "action": "Obtener evidencia segura para operations y volver a clasificar.",
+          "approval": "REQUIRES_REVIEW"
+        },
+        {
+          "order": 2,
+          "area": "pick_pipeline",
+          "action": "Obtener evidencia segura para pick_pipeline y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        },
+        {
+          "order": 3,
+          "area": "product_analytics",
+          "action": "Obtener evidencia segura para product_analytics y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        },
+        {
+          "order": 4,
+          "area": "recovery",
+          "action": "Obtener evidencia segura para recovery y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        },
+        {
+          "order": 5,
+          "area": "revenue",
+          "action": "Obtener evidencia segura para revenue y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        },
+        {
+          "order": 6,
+          "area": "sports_data",
+          "action": "Obtener evidencia segura para sports_data y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        },
+        {
+          "order": 7,
+          "area": "telegram_intelligence",
+          "action": "Obtener evidencia segura para telegram_intelligence y volver a clasificar.",
+          "approval": "NOT_REQUIRED_FOR_EVIDENCE_COLLECTION"
+        }
+      ],
+      "product_quality_learning": [
+        {
+          "issue_id": "PQV939-005",
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "component": "customer_trust_panel",
+          "affected_routes": [
+            "/app",
+            "/picks",
+            "/shark",
+            "/track-record",
+            "/partido/<id>"
+          ],
+          "cause": "A descendant span selector applied chip padding, border and background to the nested icon span.",
+          "solution": "Scope chip styles to direct children and preserve the dedicated icon rule.",
+          "evidence": {
+            "direct_chip_selector": true,
+            "descendant_chip_selector": false,
+            "direct_mobile_last_chip_selector": true,
+            "icon_rule": true,
+            "macro_contract": true,
+            "violations": []
+          },
+          "preventive_rule": "Nested trust icons must never inherit chip padding, border or background.",
+          "validation_result": "PASS",
+          "certification_state": "VERIFIED",
+          "autofix_allowed": false,
+          "approval_required": true,
+          "production_certified": false
+        },
+        {
+          "issue_id": "PQV939-006",
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "component": "realtime_copy_audience_contract",
+          "affected_routes": [
+            "/",
+            "/app",
+            "/calendar",
+            "/live",
+            "/picks"
+          ],
+          "cause": "A shared realtime safe_message and a fixed Live label exposed DB/cache/render details to clients.",
+          "solution": "Use outcome-focused client copy while retaining explicit technical diagnostics in admin mode.",
+          "evidence": {
+            "client_visible_hits": {},
+            "snapshot_message_contract": true,
+            "shared_macro_contract": true,
+            "polling_contract": true,
+            "live_contract": true,
+            "admin_contract": true,
+            "violations": []
+          },
+          "preventive_rule": "Client copy explains availability and freshness; DB/cache/render terminology remains admin-only.",
+          "validation_result": "PASS",
+          "certification_state": "VERIFIED",
+          "autofix_allowed": false,
+          "approval_required": true,
+          "production_certified": false
+        },
+        {
+          "issue_id": "PQV939-007",
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "component": "madrid_sync_timestamp_presentation",
+          "affected_routes": [
+            "/",
+            "/app",
+            "/calendar",
+            "/live",
+            "/picks",
+            "/match/<id>"
+          ],
+          "cause": "Machine ISO timestamps were reused as client-facing copy by shared macros and polling.",
+          "impact": "Raw technical dates reduce readability and weaken the explicit Madrid-time promise.",
+          "solution": "Derive one Madrid label while preserving the original ISO in APIs, datetime attributes and technical admin mode.",
+          "evidence": {
+            "client_literal_hits": {},
+            "formatter_contract": true,
+            "snapshot_contract": true,
+            "filter_and_api_contract": true,
+            "provider_contract": true,
+            "realtime_contract": true,
+            "polling_contract": true,
+            "violations": []
+          },
+          "preventive_rule": "Client sync dates use the canonical Madrid label; raw ISO remains machine/admin evidence only.",
+          "qa_result": "PASS",
+          "validation_result": "PASS",
+          "certification_state": "VERIFIED",
+          "status": "RESOLVED_LOCALLY",
+          "evaluated_at_madrid": "2026-09-01T16:03:01+02:00",
+          "autofix_allowed": false,
+          "approval_required": true,
+          "production_certified": false
+        },
+        {
+          "issue_id": "V940-CALENDAR-EXPERIENCE-CONTRACT",
+          "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
+          "component": "calendar_discovery_experience",
+          "affected_routes": [
+            "/calendar",
+            "/calendario",
+            "/partidos",
+            "/api/calendar"
+          ],
+          "cause": "Calendar context can regress when a consumer recalculates data or drops persistent navigation layers.",
+          "impact": "Users lose date, filter or scroll context and need more effort to locate a match.",
+          "solution": "Keep page and API on one V940 snapshot, one canonical match card and local-only context restoration.",
+          "evidence": {
+            "shared_snapshot_contract": true,
+            "source_safety_contract": true,
+            "state_contract": true,
+            "template_contract": true,
+            "canonical_card_contract": "[REDACTED]",
+            "responsive_contract": true,
+            "local_navigation_contract": true,
+            "no_client_network": true,
+            "violations": []
+          },
+          "preventive_rule": "Calendar consumers use v940_calendar_context over sports-metrics-v1; navigation layers and the canonical match card remain present.",
+          "qa_result": "PASS",
+          "validation_result": "PASS",
+          "certification_state": "VERIFIED",
+          "status": "RESOLVED_LOCALLY",
+          "evaluated_at_madrid": "2026-09-01T16:03:03+02:00",
+          "autofix_allowed": false,
+          "approval_required": true,
+          "production_certified": false
+        }
+      ],
+      "production_modified": false,
+      "external_calls": 0,
+      "database_written": false,
+      "telegram_sent": false,
+      "payment_executed": false,
+      "weights_modified": false,
+      "deployment_executed": false,
+      "executive_summary": {
+        "headline": "Empresa observable con decisiones bajo control humano",
+        "certification_state": "PARTIALLY_VERIFIED",
+        "evidence_coverage_score": 25.7,
+        "priority_count": 7,
+        "top_priority": {
+          "priority": "P1",
+          "area": "operations",
+          "state": "REQUIRES_REVIEW",
+          "evidence": {
+            "readiness": {
+              "local_gate": "BLOCKED",
+              "production_gate": "NOT_CERTIFIED",
+              "recovery_gate": "NOT_CERTIFIED",
+              "dangerous_actions_executed": false
+            },
+            "sports_metrics": {},
+            "incident_counts": {
+              "total": 8,
+              "confirmed": 1,
+              "certification_required": 7,
+              "critical": 1,
+              "high": 0,
+              "critical_certification_required": 1,
+              "high_certification_required": 5
+            },
+            "next_action": "Revisar DB_PATH, lock y disco sin reemplazar la DB.",
+            "mode": "read_only"
+          },
+          "action": "Obtener evidencia segura para operations y volver a clasificar.",
+          "requires_approval": false
+        },
+        "production_claim": "NOT_CERTIFIED",
+        "safe_message": "Se muestran unicamente senales locales trazables; las areas sin muestra permanecen sin certificar."
+      }
+    }
+  ],
+  "decisions": [],
+  "updated_at_madrid": "2026-09-01T16:03:03+02:00"
+}

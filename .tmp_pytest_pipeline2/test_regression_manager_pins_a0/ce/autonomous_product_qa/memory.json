@@ -1,0 +1,1664 @@
+{
+  "contract": "NEMESIS-AUTONOMOUS-PRODUCT-QA-WORKFORCE-V1",
+  "created_at_madrid": "2026-09-01T15:59:24+02:00",
+  "updated_at_madrid": "2026-08-30T11:00:00+02:00",
+  "issues": {},
+  "runs": [
+    {
+      "contract": "NEMESIS-AUTONOMOUS-PRODUCT-QA-WORKFORCE-V1",
+      "run_id": "PQA-20260830110000",
+      "started_at_madrid": "2026-08-30T11:00:00+02:00",
+      "finished_at_madrid": "2026-08-30T11:00:00+02:00",
+      "trigger": "MANUAL",
+      "evidence_origin": "LOCAL_QA",
+      "production_sha": "clean-sha",
+      "scope": "full",
+      "result": "PASS",
+      "evidence_complete": true,
+      "workers_executed": [
+        "visual_experience_inspector",
+        "digital_user_journey_tester",
+        "sports_truth_qa",
+        "mobile_qa",
+        "admin_qa",
+        "sports_knowledge_qa",
+        "summary_truth_qa",
+        "media_rights_qa"
+      ],
+      "worker_outcomes": {},
+      "issues_detected": 0,
+      "p0": 0,
+      "p1": 0,
+      "p2": 0,
+      "issue_ids": [],
+      "screenshots": [],
+      "dangerous_actions_executed": false,
+      "telegram_sent": 0,
+      "stripe_actions": 0,
+      "provider_calls": 0,
+      "quality_director": {
+        "decision": "BLOCKED",
+        "release_quality_pass": false,
+        "open_p0": 0,
+        "open_p1": 0,
+        "authority_order": [
+          "FOUNDER_CONFIRMED_FAILURE",
+          "REAL_BROWSER_FAILURE",
+          "REAL_PRODUCTION_EVIDENCE",
+          "AUTOMATED_BROWSER_QA",
+          "UNIT_STATIC_TEST"
+        ],
+        "gates": [
+          {
+            "area": "NAVIGATION",
+            "status": "PASS",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "VISUAL",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "SPORTS_TRUTH",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "TEMPORAL_CONTEXT",
+            "status": "PASS",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "MOBILE",
+            "status": "BLOCKED",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "ADMIN",
+            "status": "PASS",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "SECURITY",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "PERFORMANCE",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "SPORTS_KNOWLEDGE",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "MEDIA_RIGHTS",
+            "status": "PASS",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "SUMMARY_TRUTH",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          },
+          {
+            "area": "DATA_QUALITY",
+            "status": "WARNING",
+            "open_p0": 0,
+            "open_p1": 0,
+            "pending_verification": 0,
+            "authority": "AUTOMATED_BROWSER_QA"
+          }
+        ],
+        "reason": "Un FAIL de mayor autoridad nunca es anulado por una evidencia inferior."
+      },
+      "regression_manager": {
+        "status": "WARNING",
+        "protected_regressions": 27,
+        "pass": 13,
+        "fail": 1,
+        "founder_review_required": 3,
+        "not_run": 10,
+        "recurrences": 0,
+        "items": [
+          {
+            "regression_id": "TOPBAR_REAL_NAVIGATION",
+            "category": "NAVIGATION",
+            "severity": "P0",
+            "regression_test": "real_click_and_element_from_point",
+            "memory_key": "TOPBAR_REAL_NAVIGATION",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "real_clicks=1"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "real_clicks=1"
+          },
+          {
+            "regression_id": "FALSE_LIVE_KPI",
+            "category": "SPORTS_TRUTH",
+            "severity": "P0",
+            "regression_test": "confirmed_live_equals_visible_live",
+            "memory_key": "FALSE_LIVE_KPI",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "confirmed=0; visible=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "confirmed=0; visible=0"
+          },
+          {
+            "regression_id": "FT_NEVER_LIVE",
+            "category": "SPORTS_TRUTH",
+            "severity": "P0",
+            "regression_test": "terminal_state_never_renders_live",
+            "memory_key": "FT_NEVER_LIVE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "terminal_rendered_live=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "terminal_rendered_live=0"
+          },
+          {
+            "regression_id": "CROSS_SURFACE_LIVE_TRUTH",
+            "category": "SPORTS_TRUTH",
+            "severity": "P0",
+            "regression_test": "same_match_same_canonical_live_truth",
+            "memory_key": "LIVE_TRUTH_CROSS_SURFACE_RECURRENCE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "observed=True; mismatches=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "observed=True; mismatches=0"
+          },
+          {
+            "regression_id": "CROSS_SURFACE_COMPETITION_IDENTITY",
+            "category": "COMPETITION_IDENTITY",
+            "severity": "P0",
+            "regression_test": "same_match_same_canonical_competition",
+            "memory_key": "CROSS_SURFACE_COMPETITION_IDENTITY",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "matches_compared=0; mismatches=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "matches_compared=0; mismatches=0"
+          },
+          {
+            "regression_id": "OFFICIAL_SHARK_REFERENCE",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "rendered_reference_comparison",
+            "memory_key": "OFFICIAL_SHARK_REFERENCE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+            "recurrence_count": 0,
+            "status": "FOUNDER_REVIEW_REQUIRED",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "FOUNDER_REVIEW_REQUIRED",
+                "evidence": "official shark rendered"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "official shark rendered"
+          },
+          {
+            "regression_id": "OFFICIAL_BACKGROUND_REFERENCE",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "rendered_reference_comparison",
+            "memory_key": "OFFICIAL_BACKGROUND_REFERENCE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+            "recurrence_count": 0,
+            "status": "FOUNDER_REVIEW_REQUIRED",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "FOUNDER_REVIEW_REQUIRED",
+                "evidence": "official ocean composition"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "official ocean composition"
+          },
+          {
+            "regression_id": "VISUAL_FALSE_PASS_RECURRENCE",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "founder_rejection_overrides_automated_visual_pass",
+            "memory_key": "VISUAL_FALSE_PASS_RECURRENCE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+            "recurrence_count": 0,
+            "status": "FOUNDER_REVIEW_REQUIRED",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "FOUNDER_REVIEW_REQUIRED",
+                "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."
+          },
+          {
+            "regression_id": "CLIENT_TECHNICAL_COPY_LEAK",
+            "category": "ADMIN",
+            "severity": "P1",
+            "regression_test": "rendered_client_copy_scan",
+            "memory_key": "CLIENT_TECHNICAL_COPY_LEAK",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "technical_matches=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "technical_matches=0"
+          },
+          {
+            "regression_id": "RECTANGLE_FATIGUE_CONTENT_DENSITY",
+            "category": "VISUAL",
+            "severity": "P2",
+            "regression_test": "first_viewport_and_panel_depth",
+            "memory_key": "RECTANGLE_FATIGUE_CONTENT_DENSITY",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "first_viewport=True; depth=1; bordered=9; sports_ratio=0.180"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "first_viewport=True; depth=1; bordered=9; sports_ratio=0.180"
+          },
+          {
+            "regression_id": "LARGE_UNJUSTIFIED_EMPTY_REGION",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "rendered_viewport_occupancy",
+            "memory_key": "LARGE_UNJUSTIFIED_EMPTY_REGION",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "flags=0; coverage=0.71"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "flags=0; coverage=0.71"
+          },
+          {
+            "regression_id": "EMPTY_DASHBOARD",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "rendered_empty_state_composition",
+            "memory_key": "EMPTY_DASHBOARD",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "flags=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "flags=0"
+          },
+          {
+            "regression_id": "SPORTS_ABOVE_FOLD_RATIO",
+            "category": "VISUAL",
+            "severity": "P1",
+            "regression_test": "rendered_sports_first_viewport_ratio",
+            "memory_key": "SPORTS_ABOVE_FOLD_RATIO",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "ratio=0.180"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "ratio=0.180"
+          },
+          {
+            "regression_id": "IMPORTANT_MATCH_PRIORITY",
+            "category": "SPORTS_TRUTH",
+            "severity": "P1",
+            "regression_test": "sports_priority_fixture_matrix",
+            "memory_key": "IMPORTANT_MATCH_PRIORITY",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": ""
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": ""
+          },
+          {
+            "regression_id": "PERFORMANCE_P0",
+            "category": "PERFORMANCE",
+            "severity": "P0",
+            "regression_test": "critical_route_performance_sample",
+            "memory_key": "PERFORMANCE_P0",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": ""
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": ""
+          },
+          {
+            "regression_id": "TEAM_TO_PLAYER",
+            "category": "SPORTS_KNOWLEDGE",
+            "severity": "P1",
+            "regression_test": "sports_knowledge_golden_journey",
+            "memory_key": "TEAM_TO_PLAYER",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "golden_sports_knowledge"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "golden_sports_knowledge"
+          },
+          {
+            "regression_id": "MEDIA_RIGHTS_FAIL_CLOSED",
+            "category": "MEDIA_RIGHTS",
+            "severity": "P0",
+            "regression_test": "rights_decision_render_contract",
+            "memory_key": "MEDIA_RIGHTS_FAIL_CLOSED",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "unsafe_media_visible=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "unsafe_media_visible=0"
+          },
+          {
+            "regression_id": "MOJIBAKE",
+            "category": "ADMIN",
+            "severity": "P2",
+            "regression_test": "rendered_text_encoding_scan",
+            "memory_key": "MOJIBAKE",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "mojibake=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "mojibake=0"
+          },
+          {
+            "regression_id": "BROKEN_LINKS",
+            "category": "NAVIGATION",
+            "severity": "P0",
+            "regression_test": "real_click_golden_journeys",
+            "memory_key": "BROKEN_LINKS",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "journeys=1; js_errors=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "journeys=1; js_errors=0"
+          },
+          {
+            "regression_id": "MOBILE_BOTTOM_NAV",
+            "category": "MOBILE",
+            "severity": "P1",
+            "regression_test": "mobile_real_tap_and_hit_target",
+            "memory_key": "MOBILE_BOTTOM_NAV",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "FAIL",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "FAIL",
+                "evidence": "mobile_taps=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "mobile_taps=0"
+          },
+          {
+            "regression_id": "NO_TEXT_BORDER_COLLISION",
+            "category": "LAYOUT_COLLISION",
+            "severity": "P1",
+            "regression_test": "rendered_text_bounds_inside_control",
+            "memory_key": "NO_TEXT_BORDER_COLLISION",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "captures=0; collisions=0; types=[]"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "captures=0; collisions=0; types=[]"
+          },
+          {
+            "regression_id": "NO_CARD_OVERFLOW",
+            "category": "LAYOUT_COLLISION",
+            "severity": "P1",
+            "regression_test": "rendered_card_intrinsic_overflow",
+            "memory_key": "NO_CARD_OVERFLOW",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "captures=0; card_overflow=False"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "captures=0; card_overflow=False"
+          },
+          {
+            "regression_id": "SPANISH_COPY_STRESS",
+            "category": "LAYOUT_COLLISION",
+            "severity": "P1",
+            "regression_test": "long_spanish_labels_render_without_clipping",
+            "memory_key": "SPANISH_COPY_STRESS",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "captures=0; clipping_types=[]"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "captures=0; clipping_types=[]"
+          },
+          {
+            "regression_id": "MOBILE_360_LAYOUT",
+            "category": "MOBILE_LAYOUT",
+            "severity": "P1",
+            "regression_test": "mobile_360_collision_and_overflow_scan",
+            "memory_key": "MOBILE_360_LAYOUT",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "captures=0; collisions=0; overflow=0"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "captures=0; collisions=0; overflow=0"
+          },
+          {
+            "regression_id": "CLIENT_ADMIN_SEPARATION",
+            "category": "SECURITY",
+            "severity": "P0",
+            "regression_test": "client_session_admin_denied",
+            "memory_key": "CLIENT_ADMIN_SEPARATION",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": ""
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": ""
+          },
+          {
+            "regression_id": "TEMPORAL_CONTEXT_CONSISTENCY",
+            "category": "TEMPORAL_CONTEXT",
+            "severity": "P1",
+            "regression_test": "madrid_datetime_cross_surface_contract",
+            "memory_key": "TEMPORAL_CONTEXT_CONSISTENCY",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "clean-sha",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "PASS",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "PASS",
+                "evidence": "checked=9; missing=0; ambiguous=0; cross_surface=True; madrid_time=True"
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "checked=9; missing=0; ambiguous=0; cross_surface=True; madrid_time=True"
+          },
+          {
+            "regression_id": "PROVIDER_TO_UI_DATA_CONTINUITY",
+            "category": "DATA_QUALITY",
+            "severity": "P1",
+            "regression_test": "provider_response_to_rendered_surface_contract",
+            "memory_key": "PROVIDER_TO_UI_DATA_CONTINUITY",
+            "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+            "last_good_sha": "",
+            "fix_sha": "",
+            "root_cause": "Pendiente de evidencia revisada.",
+            "recurrence_count": 0,
+            "status": "NOT_RUN",
+            "verification_history": [
+              {
+                "at_madrid": "2026-08-30T11:00:00+02:00",
+                "run_id": "PQA-20260830110000",
+                "sha": "clean-sha",
+                "status": "NOT_RUN",
+                "evidence": "Sin cobertura en esta ejecucion."
+              }
+            ],
+            "last_run_id": "PQA-20260830110000",
+            "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+            "verification": "Sin cobertura en esta ejecucion."
+          }
+        ]
+      },
+      "production_sentinel": {
+        "result": "NOT_RUN",
+        "rollback_recommended": false,
+        "reason": "No es una observacion post-deploy real."
+      }
+    }
+  ],
+  "founder_overrides": [
+    {
+      "override_id": "FOUNDER-QA-OVERRIDE-001",
+      "type": "FOUNDER_QA_OVERRIDE",
+      "recorded_at_madrid": "2026-08-30T11:00:00+02:00",
+      "previous_automation_result": "PASS",
+      "founder_result": "FAIL",
+      "categories": [
+        "NAVIGATION",
+        "VISUAL_SHARK",
+        "VISUAL_BACKGROUND",
+        "CLIENT_COPY",
+        "SPORTS_TRUTH",
+        "SPORTS_KNOWLEDGE",
+        "SUMMARY_TRUTH",
+        "MEDIA_RIGHTS",
+        "UI_DENSITY"
+      ],
+      "evidence": "El fundador reprodujo navegacion bloqueada, tiburon/fondo no coincidentes, copy tecnico, verdad LIVE incorrecta y densidad excesiva despues de un PASS automatico.",
+      "missed_checks": [
+        "exact_hit_target_navigation",
+        "rendered_reference_composition",
+        "confirmed_live_vs_visible_live",
+        "client_technical_copy",
+        "first_viewport_density"
+      ],
+      "new_coverage": [
+        "real_click_contract",
+        "shark_background_visual_contract",
+        "sports_truth_contract",
+        "client_copy_contract",
+        "mobile_overflow_contract"
+      ],
+      "verification": {}
+    },
+    {
+      "override_id": "FOUNDER_VIDEO_REVIEW_2026_08_31",
+      "type": "FOUNDER_VIDEO_REVIEW",
+      "recorded_at_madrid": "2026-08-30T11:00:00+02:00",
+      "previous_automation_result": "PASS",
+      "founder_result": "FAIL",
+      "categories": [
+        "SHARK",
+        "BACKGROUND_DEPTH",
+        "DEAD_SPACE",
+        "RECTANGLE_DENSITY",
+        "EMPTY_STATES",
+        "SPORTS_HIERARCHY"
+      ],
+      "evidence": "El vídeo real mostró tiburón plano, fondo sin profundidad sostenida, espacio muerto, dashboards vacíos y contenido deportivo por debajo de paneles secundarios.",
+      "missed_checks": [
+        "dead_space_detector",
+        "empty_dashboard_detector",
+        "bordered_container_count",
+        "nested_card_depth",
+        "sports_above_fold_ratio"
+      ],
+      "new_coverage": [
+        "rendered_viewport_occupancy",
+        "rendered_empty_state_composition",
+        "rendered_border_count",
+        "rendered_nested_card_depth",
+        "rendered_sports_above_fold_ratio"
+      ],
+      "verification": {}
+    }
+  ],
+  "worker_calibration": {
+    "visual_experience_inspector": {
+      "worker": "visual_experience_inspector",
+      "label": "Visual Experience Inspector",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "digital_user_journey_tester": {
+      "worker": "digital_user_journey_tester",
+      "label": "Digital User Journey Tester",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "sports_truth_qa": {
+      "worker": "sports_truth_qa",
+      "label": "Sports Truth QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "mobile_qa": {
+      "worker": "mobile_qa",
+      "label": "Mobile QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "admin_qa": {
+      "worker": "admin_qa",
+      "label": "Admin QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "sports_knowledge_qa": {
+      "worker": "sports_knowledge_qa",
+      "label": "Sports Knowledge QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "summary_truth_qa": {
+      "worker": "summary_truth_qa",
+      "label": "Summary Truth QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    },
+    "media_rights_qa": {
+      "worker": "media_rights_qa",
+      "label": "Media Rights QA",
+      "state": "INSUFFICIENT_HISTORY",
+      "runs": 1,
+      "confirmed": 0,
+      "false_positive": 0,
+      "why": "Se requieren al menos 3 ejecuciones y 5 resultados revisados para calibrar."
+    }
+  },
+  "regressions": {
+    "TOPBAR_REAL_NAVIGATION": {
+      "regression_id": "TOPBAR_REAL_NAVIGATION",
+      "category": "NAVIGATION",
+      "severity": "P0",
+      "regression_test": "real_click_and_element_from_point",
+      "memory_key": "TOPBAR_REAL_NAVIGATION",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "real_clicks=1"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "real_clicks=1"
+    },
+    "FALSE_LIVE_KPI": {
+      "regression_id": "FALSE_LIVE_KPI",
+      "category": "SPORTS_TRUTH",
+      "severity": "P0",
+      "regression_test": "confirmed_live_equals_visible_live",
+      "memory_key": "FALSE_LIVE_KPI",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "confirmed=0; visible=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "confirmed=0; visible=0"
+    },
+    "FT_NEVER_LIVE": {
+      "regression_id": "FT_NEVER_LIVE",
+      "category": "SPORTS_TRUTH",
+      "severity": "P0",
+      "regression_test": "terminal_state_never_renders_live",
+      "memory_key": "FT_NEVER_LIVE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "terminal_rendered_live=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "terminal_rendered_live=0"
+    },
+    "CROSS_SURFACE_LIVE_TRUTH": {
+      "regression_id": "CROSS_SURFACE_LIVE_TRUTH",
+      "category": "SPORTS_TRUTH",
+      "severity": "P0",
+      "regression_test": "same_match_same_canonical_live_truth",
+      "memory_key": "LIVE_TRUTH_CROSS_SURFACE_RECURRENCE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "observed=True; mismatches=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "observed=True; mismatches=0"
+    },
+    "CROSS_SURFACE_COMPETITION_IDENTITY": {
+      "regression_id": "CROSS_SURFACE_COMPETITION_IDENTITY",
+      "category": "COMPETITION_IDENTITY",
+      "severity": "P0",
+      "regression_test": "same_match_same_canonical_competition",
+      "memory_key": "CROSS_SURFACE_COMPETITION_IDENTITY",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "matches_compared=0; mismatches=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "matches_compared=0; mismatches=0"
+    },
+    "OFFICIAL_SHARK_REFERENCE": {
+      "regression_id": "OFFICIAL_SHARK_REFERENCE",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "rendered_reference_comparison",
+      "memory_key": "OFFICIAL_SHARK_REFERENCE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+      "recurrence_count": 0,
+      "status": "FOUNDER_REVIEW_REQUIRED",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "FOUNDER_REVIEW_REQUIRED",
+          "evidence": "official shark rendered"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "official shark rendered"
+    },
+    "OFFICIAL_BACKGROUND_REFERENCE": {
+      "regression_id": "OFFICIAL_BACKGROUND_REFERENCE",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "rendered_reference_comparison",
+      "memory_key": "OFFICIAL_BACKGROUND_REFERENCE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+      "recurrence_count": 0,
+      "status": "FOUNDER_REVIEW_REQUIRED",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "FOUNDER_REVIEW_REQUIRED",
+          "evidence": "official ocean composition"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "official ocean composition"
+    },
+    "VISUAL_FALSE_PASS_RECURRENCE": {
+      "regression_id": "VISUAL_FALSE_PASS_RECURRENCE",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "founder_rejection_overrides_automated_visual_pass",
+      "memory_key": "VISUAL_FALSE_PASS_RECURRENCE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Founder visual approval pending; automated evidence cannot resolve this contract.",
+      "recurrence_count": 0,
+      "status": "FOUNDER_REVIEW_REQUIRED",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "FOUNDER_REVIEW_REQUIRED",
+          "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."
+    },
+    "CLIENT_TECHNICAL_COPY_LEAK": {
+      "regression_id": "CLIENT_TECHNICAL_COPY_LEAK",
+      "category": "ADMIN",
+      "severity": "P1",
+      "regression_test": "rendered_client_copy_scan",
+      "memory_key": "CLIENT_TECHNICAL_COPY_LEAK",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "technical_matches=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "technical_matches=0"
+    },
+    "RECTANGLE_FATIGUE_CONTENT_DENSITY": {
+      "regression_id": "RECTANGLE_FATIGUE_CONTENT_DENSITY",
+      "category": "VISUAL",
+      "severity": "P2",
+      "regression_test": "first_viewport_and_panel_depth",
+      "memory_key": "RECTANGLE_FATIGUE_CONTENT_DENSITY",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "first_viewport=True; depth=1; bordered=9; sports_ratio=0.180"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "first_viewport=True; depth=1; bordered=9; sports_ratio=0.180"
+    },
+    "LARGE_UNJUSTIFIED_EMPTY_REGION": {
+      "regression_id": "LARGE_UNJUSTIFIED_EMPTY_REGION",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "rendered_viewport_occupancy",
+      "memory_key": "LARGE_UNJUSTIFIED_EMPTY_REGION",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "flags=0; coverage=0.71"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "flags=0; coverage=0.71"
+    },
+    "EMPTY_DASHBOARD": {
+      "regression_id": "EMPTY_DASHBOARD",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "rendered_empty_state_composition",
+      "memory_key": "EMPTY_DASHBOARD",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "flags=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "flags=0"
+    },
+    "SPORTS_ABOVE_FOLD_RATIO": {
+      "regression_id": "SPORTS_ABOVE_FOLD_RATIO",
+      "category": "VISUAL",
+      "severity": "P1",
+      "regression_test": "rendered_sports_first_viewport_ratio",
+      "memory_key": "SPORTS_ABOVE_FOLD_RATIO",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "ratio=0.180"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "ratio=0.180"
+    },
+    "IMPORTANT_MATCH_PRIORITY": {
+      "regression_id": "IMPORTANT_MATCH_PRIORITY",
+      "category": "SPORTS_TRUTH",
+      "severity": "P1",
+      "regression_test": "sports_priority_fixture_matrix",
+      "memory_key": "IMPORTANT_MATCH_PRIORITY",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": ""
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": ""
+    },
+    "PERFORMANCE_P0": {
+      "regression_id": "PERFORMANCE_P0",
+      "category": "PERFORMANCE",
+      "severity": "P0",
+      "regression_test": "critical_route_performance_sample",
+      "memory_key": "PERFORMANCE_P0",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": ""
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": ""
+    },
+    "TEAM_TO_PLAYER": {
+      "regression_id": "TEAM_TO_PLAYER",
+      "category": "SPORTS_KNOWLEDGE",
+      "severity": "P1",
+      "regression_test": "sports_knowledge_golden_journey",
+      "memory_key": "TEAM_TO_PLAYER",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "golden_sports_knowledge"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "golden_sports_knowledge"
+    },
+    "MEDIA_RIGHTS_FAIL_CLOSED": {
+      "regression_id": "MEDIA_RIGHTS_FAIL_CLOSED",
+      "category": "MEDIA_RIGHTS",
+      "severity": "P0",
+      "regression_test": "rights_decision_render_contract",
+      "memory_key": "MEDIA_RIGHTS_FAIL_CLOSED",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "unsafe_media_visible=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "unsafe_media_visible=0"
+    },
+    "MOJIBAKE": {
+      "regression_id": "MOJIBAKE",
+      "category": "ADMIN",
+      "severity": "P2",
+      "regression_test": "rendered_text_encoding_scan",
+      "memory_key": "MOJIBAKE",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "mojibake=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "mojibake=0"
+    },
+    "BROKEN_LINKS": {
+      "regression_id": "BROKEN_LINKS",
+      "category": "NAVIGATION",
+      "severity": "P0",
+      "regression_test": "real_click_golden_journeys",
+      "memory_key": "BROKEN_LINKS",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "journeys=1; js_errors=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "journeys=1; js_errors=0"
+    },
+    "MOBILE_BOTTOM_NAV": {
+      "regression_id": "MOBILE_BOTTOM_NAV",
+      "category": "MOBILE",
+      "severity": "P1",
+      "regression_test": "mobile_real_tap_and_hit_target",
+      "memory_key": "MOBILE_BOTTOM_NAV",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "FAIL",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "FAIL",
+          "evidence": "mobile_taps=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "mobile_taps=0"
+    },
+    "NO_TEXT_BORDER_COLLISION": {
+      "regression_id": "NO_TEXT_BORDER_COLLISION",
+      "category": "LAYOUT_COLLISION",
+      "severity": "P1",
+      "regression_test": "rendered_text_bounds_inside_control",
+      "memory_key": "NO_TEXT_BORDER_COLLISION",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "captures=0; collisions=0; types=[]"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "captures=0; collisions=0; types=[]"
+    },
+    "NO_CARD_OVERFLOW": {
+      "regression_id": "NO_CARD_OVERFLOW",
+      "category": "LAYOUT_COLLISION",
+      "severity": "P1",
+      "regression_test": "rendered_card_intrinsic_overflow",
+      "memory_key": "NO_CARD_OVERFLOW",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "captures=0; card_overflow=False"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "captures=0; card_overflow=False"
+    },
+    "SPANISH_COPY_STRESS": {
+      "regression_id": "SPANISH_COPY_STRESS",
+      "category": "LAYOUT_COLLISION",
+      "severity": "P1",
+      "regression_test": "long_spanish_labels_render_without_clipping",
+      "memory_key": "SPANISH_COPY_STRESS",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "captures=0; clipping_types=[]"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "captures=0; clipping_types=[]"
+    },
+    "MOBILE_360_LAYOUT": {
+      "regression_id": "MOBILE_360_LAYOUT",
+      "category": "MOBILE_LAYOUT",
+      "severity": "P1",
+      "regression_test": "mobile_360_collision_and_overflow_scan",
+      "memory_key": "MOBILE_360_LAYOUT",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "captures=0; collisions=0; overflow=0"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "captures=0; collisions=0; overflow=0"
+    },
+    "CLIENT_ADMIN_SEPARATION": {
+      "regression_id": "CLIENT_ADMIN_SEPARATION",
+      "category": "SECURITY",
+      "severity": "P0",
+      "regression_test": "client_session_admin_denied",
+      "memory_key": "CLIENT_ADMIN_SEPARATION",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": ""
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": ""
+    },
+    "TEMPORAL_CONTEXT_CONSISTENCY": {
+      "regression_id": "TEMPORAL_CONTEXT_CONSISTENCY",
+      "category": "TEMPORAL_CONTEXT",
+      "severity": "P1",
+      "regression_test": "madrid_datetime_cross_surface_contract",
+      "memory_key": "TEMPORAL_CONTEXT_CONSISTENCY",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "clean-sha",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "PASS",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "PASS",
+          "evidence": "checked=9; missing=0; ambiguous=0; cross_surface=True; madrid_time=True"
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "checked=9; missing=0; ambiguous=0; cross_surface=True; madrid_time=True"
+    },
+    "PROVIDER_TO_UI_DATA_CONTINUITY": {
+      "regression_id": "PROVIDER_TO_UI_DATA_CONTINUITY",
+      "category": "DATA_QUALITY",
+      "severity": "P1",
+      "regression_test": "provider_response_to_rendered_surface_contract",
+      "memory_key": "PROVIDER_TO_UI_DATA_CONTINUITY",
+      "first_seen_sha": "FOUNDER_OVERRIDE_BASELINE",
+      "last_good_sha": "",
+      "fix_sha": "",
+      "root_cause": "Pendiente de evidencia revisada.",
+      "recurrence_count": 0,
+      "status": "NOT_RUN",
+      "verification_history": [
+        {
+          "at_madrid": "2026-08-30T11:00:00+02:00",
+          "run_id": "PQA-20260830110000",
+          "sha": "clean-sha",
+          "status": "NOT_RUN",
+          "evidence": "Sin cobertura en esta ejecucion."
+        }
+      ],
+      "last_run_id": "PQA-20260830110000",
+      "last_checked_at_madrid": "2026-08-30T11:00:00+02:00",
+      "verification": "Sin cobertura en esta ejecucion."
+    }
+  },
+  "production_sentinel_runs": [],
+  "previous_good_run_id": "PQA-20260830110000"
+}

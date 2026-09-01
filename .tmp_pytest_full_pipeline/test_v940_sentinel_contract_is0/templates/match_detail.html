@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import empty_state, page_header %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
+{% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
+{% block content %}
+{% if not detail or not match_context %}
+<div class="v933-page v933-match-detail" data-v933-template="match_detail">
+  {{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador.', 'matches') }}
+  {{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendar', 'calendar') }}
+</div>
+{% else %}
+<div class="v933-page v944-match-center"
+     data-v933-template="match_detail"
+     data-v944-match-center-foundation="phase-1"
+     data-growth-stage="FIRST_VALUE"
+     data-growth-target="{{ match_context.get('match', {}).get('id') or '' }}"
+     data-sports-core-match-center="intelligence-phase-1"
+     data-match-contract="{{ match_context.get('contract') }}"
+     data-match-intelligence-contract="{{ match_context.get('intelligence', {}).get('contract') }}"
+     data-sports-domain-model="{{ match_context.get('domain_model', {}).get('contract') }}"
+     data-match-state="{{ match_context.get('state') }}"
+     data-match-id="{{ match_context.get('match', {}).get('id') or '' }}"
+     data-canonical-status="{{ match_context.get('match', {}).get('status_info', {}).get('key') or match_context.get('lifecycle', {}).get('key') or '' }}"
+     data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
+  <div class="v944-match-anchor">
+    {{ match_header(match_context) }}
+    {{ score_widget(match_context) }}
+  </div>
+
+  {% set lineups = match_context.get('lineups') or {} %}
+  {% set events = match_context.get('event_summary') or {} %}
+  {% set statistics = match_context.get('statistics') or {} %}
+  {% set head_to_head = match_context.get('head_to_head') or {} %}
+  {% set standings = match_context.get('standings') or {} %}
+  {% set media = match_context.get('media') or {} %}
+  {% set shark = match_context.get('shark_context') or {} %}
+  <nav class="v944-match-sections" aria-label="Secciones disponibles del partido">
+    <a href="#match-section-story" data-match-section-link="story">Resumen</a>
+    {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">Alineaciones</a>{% endif %}
+    {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">Eventos</a>{% endif %}
+    {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">Estadísticas</a>{% endif %}
+    {% if head_to_head.get('available') %}<a href="#match-section-h2h" data-match-section-link="h2h">H2H</a>{% endif %}
+    {% if standings.get('available') %}<a href="#match-section-standings" data-match-section-link="standings">Clasificación</a>{% endif %}
+    {% if media.get('visible_count') %}<a href="#match-section-video" data-match-section-link="video">Vídeo</a>{% endif %}
+    {% if shark.get('available') %}<a href="#match-section-shark" data-match-section-link="shark">SHARK</a>{% endif %}
+  </nav>
+
+  <div class="v944-match-layout">
+    <section class="v944-match-main" id="match-story" aria-label="Historia y datos del partido">
+      {{ match_story(match_context) }}
+      {{ lineups_panel(match_context) }}
+      {{ timeline(match_context) }}
+      {{ stats_panel(match_context) }}
+      {{ head_to_head_panel(match_context) }}
+      {{ standings_panel(match_context) }}
+      {{ video_panel(match_context) }}
+      {{ competition_panel(match_context) }}
+      {{ data_quality_panel(match_context) }}
+    </section>
+
+    <aside class="v944-match-rail" aria-label="Contexto y continuidad del partido">
+      {{ quick_actions(match_context) }}
+      {{ data_confidence_panel(match_context.get('match', {}), 'match') }}
+      {{ shark_panel(match_context) }}
+      {{ telegram_panel(match_context) }}
+      {{ bankroll_panel(match_context) }}
+    </aside>
+  </div>
+
+  <footer class="v944-match-evidence" aria-label="Evidencia del contexto del partido">
+    <span>Fuente: {{ match_context.get('evidence', {}).get('source') or 'No identificada' }}</span>
+    <span>Actualización: {{ match_context.get('evidence', {}).get('updated_at')|sync_madrid_label }}</span>
+    <span>{{ 'Contexto coherente' if match_context.get('diagnostics', {}).get('single_snapshot') else 'Contexto parcial' }}</span>
+  </footer>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,820 @@
+{
+  "contract": "NEMESIS-PRODUCT-MEMORY-V1",
+  "created_at_madrid": "2026-08-11T04:00:00+02:00",
+  "events": [
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "event_id": "EVT-D84C225E4011",
+      "priority_current": "P2",
+      "recommendation_id": "REC-B88CAE6392A4",
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    },
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "event_id": "EVT-DDD146E62357",
+      "priority_current": "P2",
+      "recommendation_id": "REC-EC69921DC59E",
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    },
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "event_id": "EVT-A22411AD4283",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7E5B271E60C2",
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    },
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "event_id": "EVT-EC0A6B01A2ED",
+      "priority_current": "P2",
+      "recommendation_id": "REC-2D3D4BD2A71E",
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    },
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "event_id": "EVT-7615ECA5D5DC",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7BBD3D9B2FCB",
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "event_id": "EVT-DD8EBD03C95D",
+      "priority_current": "P2",
+      "recommendation_id": "REC-B88CAE6392A4",
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "event_id": "EVT-73E39D7B58FB",
+      "priority_current": "P2",
+      "recommendation_id": "REC-EC69921DC59E",
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "event_id": "EVT-520B38ACE1C3",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7E5B271E60C2",
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "event_id": "EVT-287EF8A582B0",
+      "priority_current": "P2",
+      "recommendation_id": "REC-2D3D4BD2A71E",
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "event_id": "EVT-8B91A34F784D",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7BBD3D9B2FCB",
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-C1F525ED6C32",
+      "priority_current": "P2",
+      "recommendation_id": "REC-B88CAE6392A4",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-157714102536",
+      "priority_current": "P2",
+      "recommendation_id": "REC-EC69921DC59E",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-1AD0708885F9",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7E5B271E60C2",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-DC69951CEEF9",
+      "priority_current": "P2",
+      "recommendation_id": "REC-2D3D4BD2A71E",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-462678618E25",
+      "priority_current": "P2",
+      "recommendation_id": "REC-7BBD3D9B2FCB",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "SEEN"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "event_id": "EVT-7131E6B2EAA6",
+      "priority_current": "P2",
+      "recommendation_id": "REC-1D5D242398D2",
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C",
+      "state": "NEW",
+      "type": "FIRST_SEEN"
+    }
+  ],
+  "learning_summary": {
+    "actual_learning": true,
+    "actual_learning_events": 0,
+    "history_storage": true,
+    "mode": "deterministic_no_ai",
+    "why": "El sistema compara recomendaciones estables entre snapshots y conserva transiciones trazables; no usa IA ni inferencias opacas."
+  },
+  "recommendations": {
+    "REC-1D5D242398D2": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [
+        "Cambio controlado de QA simulado para demostrar comparacion temporal."
+      ],
+      "evidence_history": [
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "evidence": "Cambio controlado de QA simulado para demostrar comparacion temporal.",
+          "origin": "SIMULATED_QA",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "evidence_origin": "SIMULATED_QA",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-13T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 1,
+        "positive_outcome": false,
+        "recurrence": false,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-1D5D242398D2",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "Control Fixture"
+          ]
+        }
+      ],
+      "seen_count": 1,
+      "state": "NEW",
+      "title": "Continuous Evolution: Mantener fixture solo en pruebas locales y no elevarlo como dato real.",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "Control Fixture"
+      ]
+    },
+    "REC-2D3D4BD2A71E": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [],
+      "evidence_history": [],
+      "evidence_origin": "SYSTEM_OBSERVATION",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-11T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 3,
+        "positive_outcome": false,
+        "recurrence": true,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-2D3D4BD2A71E",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "run_id": "CE-320B8B6AEC7E",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "run_id": "CE-CFB107AD2AAC",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "UX Reviewer"
+          ]
+        }
+      ],
+      "seen_count": 3,
+      "state": "NEW",
+      "title": "copy: Mover detalles tecnicos a admin o convertirlos en estado de usuario claro.",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "UX Reviewer"
+      ]
+    },
+    "REC-7BBD3D9B2FCB": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [
+        "href=''"
+      ],
+      "evidence_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "evidence": "href=''",
+          "origin": "SYSTEM_OBSERVATION",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "evidence": "href=''",
+          "origin": "SYSTEM_OBSERVATION",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "evidence": "href=''",
+          "origin": "SYSTEM_OBSERVATION",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "evidence_origin": "SYSTEM_OBSERVATION",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-11T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 3,
+        "positive_outcome": false,
+        "recurrence": true,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-7BBD3D9B2FCB",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "run_id": "CE-320B8B6AEC7E",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "run_id": "CE-CFB107AD2AAC",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "UX Reviewer"
+          ]
+        }
+      ],
+      "seen_count": 3,
+      "state": "NEW",
+      "title": "navigation: Sustituir por accion real, estado deshabilitado honesto o eliminar la accion redundant",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "UX Reviewer"
+      ]
+    },
+    "REC-7E5B271E60C2": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [],
+      "evidence_history": [],
+      "evidence_origin": "SYSTEM_OBSERVATION",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-11T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 3,
+        "positive_outcome": false,
+        "recurrence": true,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-7E5B271E60C2",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "run_id": "CE-320B8B6AEC7E",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "run_id": "CE-CFB107AD2AAC",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "UX Reviewer"
+          ]
+        }
+      ],
+      "seen_count": 3,
+      "state": "NEW",
+      "title": "copy: Mover detalles tecnicos a admin o convertirlos en estado de usuario claro.",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "UX Reviewer"
+      ]
+    },
+    "REC-B88CAE6392A4": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [],
+      "evidence_history": [],
+      "evidence_origin": "SYSTEM_OBSERVATION",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-11T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 3,
+        "positive_outcome": false,
+        "recurrence": true,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-B88CAE6392A4",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "run_id": "CE-320B8B6AEC7E",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "run_id": "CE-CFB107AD2AAC",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "UX Reviewer"
+          ]
+        }
+      ],
+      "seen_count": 3,
+      "state": "NEW",
+      "title": "copy: Mover detalles tecnicos a admin o convertirlos en estado de usuario claro.",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "UX Reviewer"
+      ]
+    },
+    "REC-EC69921DC59E": {
+      "decision_history": [],
+      "decision_reason": "Pendiente de decisión humana.",
+      "decisions": [],
+      "evidence": [],
+      "evidence_history": [],
+      "evidence_origin": "SYSTEM_OBSERVATION",
+      "evidence_sufficient": false,
+      "first_seen": "2026-08-11T04:00:00+02:00",
+      "future_sprint_or_commit": null,
+      "issue_status": "INSUFFICIENT_EVIDENCE",
+      "last_seen": "2026-08-13T04:00:00+02:00",
+      "learning_metrics": {
+        "human_rejection": false,
+        "insufficient_evidence": true,
+        "persistence": 3,
+        "positive_outcome": false,
+        "recurrence": true,
+        "regression": false,
+        "resolution": false
+      },
+      "missed_count": 0,
+      "outcome_after": null,
+      "outcome_history": [],
+      "priority_current": "P2",
+      "priority_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-320B8B6AEC7E",
+          "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-CFB107AD2AAC",
+          "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "priority": "P2",
+          "reason": "Primera deteccion con evidencia actual.",
+          "run_id": "CE-22191F9CF15C",
+          "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+        }
+      ],
+      "priority_initial": "P2",
+      "qa_after": null,
+      "recommendation_id": "REC-EC69921DC59E",
+      "reopened_count": 0,
+      "resolved_at": null,
+      "reviewer_history": [
+        {
+          "at_madrid": "2026-08-11T04:00:00+02:00",
+          "run_id": "CE-320B8B6AEC7E",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-12T04:00:00+02:00",
+          "run_id": "CE-CFB107AD2AAC",
+          "workers": [
+            "UX Reviewer"
+          ]
+        },
+        {
+          "at_madrid": "2026-08-13T04:00:00+02:00",
+          "run_id": "CE-22191F9CF15C",
+          "workers": [
+            "UX Reviewer"
+          ]
+        }
+      ],
+      "seen_count": 3,
+      "state": "NEW",
+      "title": "copy: Mover detalles tecnicos a admin o convertirlos en estado de usuario claro.",
+      "why_priority_changed": "Primera deteccion con evidencia actual.",
+      "workers": [
+        "UX Reviewer"
+      ]
+    }
+  },
+  "reviewer_signal": {
+    "Beta Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Commercial Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "El area necesita datos reales de rendimiento, conversion o mercado para producir senal fuerte.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_REAL_DATA"
+    },
+    "Marketing Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "El area necesita datos reales de rendimiento, conversion o mercado para producir senal fuerte.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_REAL_DATA"
+    },
+    "Mobile Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Operations Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Performance Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "El area necesita datos reales de rendimiento, conversion o mercado para producir senal fuerte.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_REAL_DATA"
+    },
+    "Product Director": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "SHARK Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Security Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Sports Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "UX Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 5,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    },
+    "Visual Reviewer": {
+      "confirmed": 0,
+      "false_positive": 0,
+      "reason": "Se requieren al menos 5 resultados revisados; repeticion sin veredicto no calibra senal.",
+      "recommendations_seen": 0,
+      "regressions": 0,
+      "reviewed_samples": 0,
+      "state": "INSUFFICIENT_HISTORY"
+    }
+  },
+  "schema_version": 1,
+  "snapshots": [
+    {
+      "at_madrid": "2026-08-11T04:00:00+02:00",
+      "comparison_state": "INSUFFICIENT_HISTORY",
+      "recommendations": 5,
+      "run_id": "CE-320B8B6AEC7E",
+      "snapshot_id": "SNAP-20260811040000-8B6AEC7E"
+    },
+    {
+      "at_madrid": "2026-08-12T04:00:00+02:00",
+      "comparison_state": "UNCHANGED",
+      "recommendations": 5,
+      "run_id": "CE-CFB107AD2AAC",
+      "snapshot_id": "SNAP-20260812040000-07AD2AAC"
+    },
+    {
+      "at_madrid": "2026-08-13T04:00:00+02:00",
+      "comparison_state": "CHANGED",
+      "recommendations": 6,
+      "run_id": "CE-22191F9CF15C",
+      "snapshot_id": "SNAP-20260813040000-1F9CF15C"
+    }
+  ],
+  "updated_at_madrid": "2026-08-13T04:00:00+02:00"
+}

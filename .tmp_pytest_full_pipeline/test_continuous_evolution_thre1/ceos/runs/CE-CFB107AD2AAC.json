@@ -1,0 +1,39 @@
+{
+  "contract": "NEMESIS-CONTINUOUS-EVOLUTION-OS-V1",
+  "dangerous_actions_executed": false,
+  "duration_ms": 1771223637,
+  "error_safe": null,
+  "execution_mode": "scheduled_run",
+  "finished_at_madrid": "2026-09-01T16:00:23+02:00",
+  "finished_at_utc": "2026-09-01T14:00:23+00:00",
+  "job_id": "JOB-5719FFA97B16",
+  "result": "PASS_WITH_REVIEW_ITEMS",
+  "run_id": "CE-CFB107AD2AAC",
+  "scheduled_for": "2026-08-12T04:00:00+02:00",
+  "scheduled_task": "daily_product_review",
+  "snapshot_id": "SNAP-20260812040000-07AD2AAC",
+  "started_at_madrid": "2026-08-12T04:00:00+02:00",
+  "started_at_utc": "2026-08-12T02:00:00+00:00",
+  "systems_consulted": [
+    "Product Review",
+    "Autonomous Product QA",
+    "Digital Employees",
+    "Simulated QA evidence",
+    "Experience evidence",
+    "Executive Board",
+    "Product Memory",
+    "Temporal Comparison",
+    "QA availability",
+    "Beta evidence",
+    "Operations read-only",
+    "Roadmap signals",
+    "Market foundation",
+    "Growth & Revenue OS"
+  ],
+  "systems_unavailable": [
+    "REAL_USER_DATA",
+    "PRODUCTION_LOGS",
+    "REAL_MARKET_RESEARCH"
+  ],
+  "trigger": "SCHEDULED_LOCAL"
+}

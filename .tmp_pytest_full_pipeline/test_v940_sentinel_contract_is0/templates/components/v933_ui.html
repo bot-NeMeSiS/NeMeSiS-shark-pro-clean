@@ -1,0 +1,156 @@
+{% from "components/v937_sports_lifecycle.html" import data_confidence_badge, attention_priority, professional_pick_brief %}
+{% macro icon(name) -%}<span class="v933-icon v928-icon" data-v928-icon="{{ name or 'check' }}" aria-hidden="true"></span>{%- endmacro %}
+
+{% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ label or 'Pendiente' }}</span>{%- endmacro %}
+
+{% macro evidence_label(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{{- {
+  'VERIFIED': 'Confirmado',
+  'CONFIRMADO': 'Confirmado',
+  'PARTIALLY_VERIFIED': 'Verificación parcial',
+  'NOT_CERTIFIED': 'No certificado',
+  'NO_CERTIFICADO': 'No certificado',
+  'NOT_CONFIGURED': 'No configurado',
+  'STALE': 'Datos desactualizados',
+  'BLOCKED_BY_ACCESS': 'Bloqueado por acceso',
+  'BLOQUEADO_POR_ACCESO': 'Bloqueado por acceso',
+  'HYPOTHESIS': 'Hipótesis',
+  'HIPOTESIS': 'Hipótesis',
+  'INSUFFICIENT_DATA': 'Sin muestra',
+  'REQUIRES_REVIEW': 'Requiere revisión',
+  'BLOCKED': 'Bloqueado'
+}.get(code, code|replace('_', ' ')|title) -}}
+{%- endmacro %}
+
+{% macro evidence_chip(value) -%}
+{% set code = value or 'NOT_CERTIFIED' %}
+{% set tone = 'success' if code in ['VERIFIED', 'CONFIRMADO'] else ('danger' if code in ['BLOCKED_BY_ACCESS', 'BLOQUEADO_POR_ACCESO', 'BLOCKED'] else ('blue' if code in ['PARTIALLY_VERIFIED', 'HYPOTHESIS', 'HIPOTESIS'] else ('neutral' if code == 'INSUFFICIENT_DATA' else 'warning'))) %}
+{{- status_chip(evidence_label(code), tone) -}}
+{%- endmacro %}
+
+{% macro data_provenance_badge(source='', updated='', state='') -%}
+<span class="v935-provenance" title="Trazabilidad del dato">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ updated }}</small>{% elif state %}<small>{{ state }}</small>{% endif %}</span></span>
+{%- endmacro %}
+
+{% macro customer_trust_panel(trust) -%}
+{% set trust = trust or {} %}
+<aside class="v935-customer-trust" aria-label="Confianza de datos">
+  <div class="v935-customer-trust-main">{{ icon('shield') }}<span><strong>{{ trust.get('source_label') or 'Datos deportivos trazables' }}</strong><small>{{ trust.get('freshness_label') or 'Sin sincronización confirmada' }}</small></span></div>
+  <p>{{ trust.get('safe_message') or 'Solo se muestran datos reales o un estado seguro.' }}</p>
+  <div class="v935-customer-trust-rules"><span>{{ icon('target') }} Picks completos</span><span>{{ icon('history') }} Histórico evaluable</span><span>{{ icon('shield') }} Sin beneficio garantizado</span></div>
+</aside>
+{%- endmacro %}
+
+{% macro action_button(label, href='', primary=false, tone='blue', disabled=false, icon_name='') -%}
+{% if href and not disabled %}<a class="v933-action{% if primary %} is-primary{% endif %} is-{{ tone }}" href="{{ href }}">{% if icon_name %}{{ icon(icon_name) }}{% endif %}<span>{{ label }}</span></a>{% else %}<button class="v933-action is-{{ tone }}" type="button" disabled aria-disabled="true">{% if icon_name %}{{ icon(icon_name) }}{% endif %}<span>{{ label }}</span></button>{% endif %}
+{%- endmacro %}
+
+{% macro page_header(title, subtitle='', icon_name='', actions=[]) -%}
+<header class="v933-page-header">
+  <div class="v933-page-heading">{% if icon_name %}{{ icon(icon_name) }}{% endif %}<div><h1>{{ title }}</h1>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div></div>
+  {% if actions %}<div class="v933-page-actions">{% for action in actions %}{{ action_button(action.get('label'), action.get('href'), action.get('primary', false), action.get('tone','blue'), action.get('disabled',false), action.get('icon','')) }}{% endfor %}</div>{% endif %}
+</header>
+{%- endmacro %}
+
+{% macro section_header(title, subtitle='', action_label='', action_href='', eyebrow='') -%}
+<header class="v933-section-header"><div>{% if eyebrow %}<span class="v933-eyebrow">{{ eyebrow }}</span>{% endif %}<h2>{{ title }}</h2>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>{% if action_href %}<a href="{{ action_href }}">{{ action_label or 'Abrir' }}{{ icon('arrow') }}</a>{% endif %}</header>
+{%- endmacro %}
+
+{% macro kpi_card(label, value=None, detail='', tone='blue', icon_name='', href='') -%}
+{% set tag = 'a' if href else 'article' %}<{{ tag }} class="v933-kpi is-{{ tone }}"{% if href %} href="{{ href }}"{% endif %}>{% if icon_name %}{{ icon(icon_name) }}{% endif %}<div><span>{{ label }}</span><strong>{% if value is not none and value != '' %}{{ value }}{% else %}Sin dato{% endif %}</strong>{% if detail %}<small>{{ detail }}</small>{% endif %}</div></{{ tag }}>
+{%- endmacro %}
+
+{% macro quick_action(title, body, href, icon_name='arrow', tone='blue') -%}
+<a class="v933-quick-action is-{{ tone }}" href="{{ href }}">{{ icon(icon_name) }}<span><strong>{{ title }}</strong><small>{{ body }}</small></span>{{ icon('arrow') }}</a>
+{%- endmacro %}
+
+{% macro empty_state(title, body, action_label='', action_href='', icon_name='data') -%}
+<section class="v933-empty-state" data-empty-state="premium">{{ icon(icon_name) }}<div><strong>{{ title }}</strong><p>{{ body }}</p></div>{% if action_href %}{{ action_button(action_label or 'Continuar', action_href, true, 'blue') }}{% endif %}</section>
+{%- endmacro %}
+
+{% macro team_logo(name, logo='', size='md') -%}
+{% set label = name or 'Equipo' %}<span class="crest v933-team-logo is-{{ size }}" data-fallback="{{ label[:2]|upper }}" title="{{ label }}">{% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}<em aria-hidden="true">{{ label[:2]|upper }}</em></span>
+{%- endmacro %}
+{% macro sports_contract_attributes(metrics) -%}
+{% set metrics = metrics or {} %}data-sports-contract="{{ metrics.get('contract') or '' }}" data-sports-snapshot="{{ metrics.get('snapshot_id') or '' }}" data-sports-matches-today="{{ metrics.get('matches_today', 0) }}" data-sports-matches-available="{{ metrics.get('matches_available', 0) }}" data-sports-live-confirmed="{{ metrics.get('live_confirmed', 0) }}" data-sports-picks-ready="{{ metrics.get('picks_ready', 0) }}" data-sports-matches-with-picks="{{ metrics.get('matches_with_picks', 0) }}" data-sports-finished-verified="{{ metrics.get('finished_verified', 0) }}" data-sports-matches-synchronized="{{ metrics.get('matches_synchronized', 0) }}"
+{%- endmacro %}
+
+
+
+{% macro match_card(match, compact=false, show_actions=true) -%}
+{% set match = match or {} %}
+{% set home = match.get('safe_home') or match.get('client_home') or match.get('home_team') or match.get('home_name') or '' %}
+{% set away = match.get('safe_away') or match.get('client_away') or match.get('away_team') or match.get('away_name') or '' %}
+{% set competition = match.get('client_competition') or match.get('calendar_competition') or match.get('competition_name') or match.get('league_name') or match.get('competition') or match.get('league') or '' %}
+{% set time_label = match.get('client_schedule_label') or match.get('client_datetime_label') or match.get('calendar_time') or match.get('time_madrid') or match.get('kickoff_time') or match.get('match_time') or '' %}
+{% set status = match.get('client_status_label') or match.get('calendar_status') or match.get('status_label') or match.get('display_status') or match.get('status') or 'Programado' %}
+{% set match_id = match.get('id') or match.get('match_id') or match.get('external_id') or '' %}
+{% set home_logo = match.get('home_logo') or match.get('home_crest') or match.get('home_logo_url') or '' %}
+{% set away_logo = match.get('away_logo') or match.get('away_crest') or match.get('away_logo_url') or '' %}
+{% set complete = home and away and competition and time_label and match.get('source') %}
+{% set minute = match.get('client_live_minute') %}
+{% set relevance = match.get('sports_relevance') or {} %}
+{% set relevance_bucket = match.get('sports_relevance_bucket') or relevance.get('bucket') or '' %}
+{% set status_info = match.get('status_info') or {} %}
+{% set canonical_status = status_info.get('key') or match.get('v935_lifecycle') or '' %}
+{% set canonical_live = status_info.get('is_live') if status_info.get('is_live') is not none else match.get('is_live') %}
+{% set canonical_competition_id = match.get('client_competition_id') or match.get('calendar_competition_id') or (match.get('surface_contract') or {}).get('canonical_competition_id') or '' %}
+<article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1" data-canonical-status="{{ canonical_status }}" data-canonical-live="{{ 'true' if canonical_live else 'false' }}" data-canonical-competition-id="{{ canonical_competition_id }}" data-competition-identity-contract="{{ match.get('client_competition_identity_contract') or match.get('calendar_competition_identity_contract') or 'CROSS-SURFACE-COMPETITION-IDENTITY-V1' }}"{% if relevance_bucket %} data-sports-relevance="{{ relevance_bucket }}"{% endif %}{% if match.get('sports_relevance_score') %} data-sports-score="{{ match.get('sports_relevance_score') }}"{% endif %}>
+  <header class="v933-match-card-header"><div><span>{{ competition or 'Pendiente de completar' }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time{% if match.get('madrid_dt_iso') %} datetime="{{ match.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ match.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ time_label or 'Fecha pendiente' }}</time></div></header>
+  <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or 'Equipo pendiente' }}</strong></div><b data-v934-score>{% if match.get('home_score') is not none and match.get('away_score') is not none %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b><div>{{ team_logo(away, away_logo) }}<strong>{{ away or 'Equipo pendiente' }}</strong></div></div>
+  <footer class="v933-match-card-footer">
+  <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none and minute|string|trim %}<small data-v934-minute>Min {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if relevance_bucket %}{{ status_chip('Prioridad' if relevance_bucket == 'PRIORITY' else ('Estándar' if relevance_bucket == 'STANDARD' else ('Local' if relevance_bucket == 'LOW_PRIORITY' else 'Competición pendiente')), 'success' if relevance_bucket == 'PRIORITY' else ('blue' if relevance_bucket == 'STANDARD' else 'warning')) }}{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
+    <div class="v933-match-card-actions">{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="Guardar favorito" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div>
+  </footer>
+</article>
+{%- endmacro %}
+
+{% macro live_card(match) -%}<div class="v933-live-card">{{ match_card(match, true, true) }}</div>{%- endmacro %}
+
+{% macro pick_card(pick, featured=false) -%}
+{% set pick = pick or {} %}
+{% set market = pick.get('market') or pick.get('market_name') or pick.get('bet_type') or '' %}
+{% set selection = pick.get('client_selection_label') or pick.get('selection_display') or pick.get('selection') or '' %}
+{% set odds = pick.get('client_odds_label') or pick.get('odds') or pick.get('price') or '' %}
+{% set home = pick.get('home_team') or pick.get('client_home') or '' %}{% set away = pick.get('away_team') or pick.get('client_away') or '' %}
+{% set valid = pick.get('v935_publishable') if pick.get('v935_publishable') is not none else (home and away and market and selection and odds and pick.get('status') == 'published') %}
+{% set match_id = pick.get('match_id') or '' %}
+{% set pick_id = pick.get('id') or '' %}
+{% set freshness = pick.get('v935_odds') or pick.get('odds_freshness') or {} %}
+<article class="v933-pick-card{% if featured %} is-featured{% endif %}{% if not valid %} is-incomplete{% endif %}"{% if pick_id %} data-v934-pick-id="{{ pick_id }}"{% endif %}{% if match_id %} data-match-id="{{ match_id }}"{% endif %} data-v934-pick-card="true">
+  <header><span>{{ pick.get('competition_name') or pick.get('league_name') or pick.get('competition') or 'Pick SHARK' }}</span><div class="v937-card-trust">{{ data_confidence_badge(pick, 'pick') }}{{ status_chip('Publicado' if valid else 'Bloqueado', 'success' if valid else 'warning') }}</div></header>
+  <div class="v933-pick-match"><strong>{{ home or 'Partido pendiente' }}{% if away %} <small>vs</small> {{ away }}{% endif %}</strong><time{% if pick.get('madrid_dt_iso') %} datetime="{{ pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ pick.get('client_temporal_label') or pick.get('client_schedule_label') or 'Fecha pendiente' }}</time></div>
+  {% if valid %}<dl><div><dt>Mercado</dt><dd>{{ market }}</dd></div><div><dt>Selección</dt><dd>{{ selection }}</dd></div><div><dt>Cuota</dt><dd data-v934-odds>{{ odds }}</dd>{% if freshness.get('label') %}<small class="v934-odds-freshness is-{{ freshness.get('status') }}" data-v934-odds-freshness>{{ freshness.get('label') }}</small>{% endif %}</div></dl>{% if pick.get('source') %}{{ data_provenance_badge(pick.get('source'), freshness.get('label'), freshness.get('status')) }}{% endif %}<div class="v933-pick-signals">{% if pick.get('risk') or pick.get('risk_level') %}<span>Riesgo <b>{{ pick.get('risk') or pick.get('risk_level') }}</b></span>{% endif %}{% if pick.get('confidence') is not none or pick.get('score') is not none %}<span>Confianza del análisis <b>{{ pick.get('confidence') or pick.get('score') }}{% if (pick.get('confidence') or pick.get('score')) is number %}%{% endif %}</b></span>{% endif %}{% if pick.get('stake') %}<span>Stake <b>{{ pick.get('stake') }}</b></span>{% endif %}</div>{% if featured %}{{ professional_pick_brief(pick) }}{% endif %}<footer>{% if match_id %}{{ action_button('Ver partido','/match/' ~ match_id,false,'blue') }}{% endif %}<a class="v933-action is-primary is-blue" href="/picks">Ver análisis</a></footer>{% else %}<p class="v933-safe-copy">No se publica hasta tener partido, mercado, selección y cuota reales.</p>{% endif %}
+</article>
+{%- endmacro %}
+
+{% macro filter_tabs(items, active='') -%}<nav class="v933-filter-tabs" aria-label="Filtros">{% for item in items %}<a href="{{ item.get('href') or request.path }}"{% if item.get('key') == active %} class="is-active" aria-current="page"{% endif %}>{{ item.get('label') or item.get('key') }}</a>{% endfor %}</nav>{%- endmacro %}
+
+{% macro data_table(headers) -%}<div class="v933-table-shell"><table class="v933-data-table"><thead><tr>{% for header in headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
+
+{% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}
+<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>Datos deportivos</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.') }}</p>{% if last_sync %}<small>Última actualización segura: <time datetime="{{ last_sync }}" data-v939-sync-timestamp data-v939-sync-raw="{{ last_sync }}">{{ last_sync|sync_madrid_label }}</time></small>{% endif %}</aside>
+{%- endmacro %}
+
+{% macro realtime_state_bar(realtime, scope='all', technical=false) -%}
+{% set realtime = realtime or {} %}{% set counts = realtime.get('counts') or {} %}
+{% set raw_sync = realtime.get('last_safe_sync') or '' %}
+{% set client_sync = realtime.get('last_safe_sync_label') or (raw_sync|sync_madrid_label) %}
+{% set client_message = realtime.get('safe_message') or 'La información confirmada sigue disponible entre actualizaciones.' %}
+{% set technical_message = 'DB/caché: ' ~ (realtime.get('cache_state') or realtime.get('cache_status') or 'estado seguro') ~ '. Render sin llamada directa al proveedor.' %}
+{% set visible_live = counts.get('live', 0) if technical else realtime.get('confirmed_live_count', realtime.get('live_confirmed', counts.get('live_confirmed', 0))) %}
+<aside class="v934-realtime-state{% if realtime.get('realtime_live_status') == 'stale' %} is-stale{% endif %}" data-v934-realtime="{{ scope }}" data-v934-technical="{{ 'true' if technical else 'false' }}" data-v934-endpoint="{{ realtime.get('endpoint') or '/api/realtime/sports' }}" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}">
+  <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ 'En directo' if visible_live else 'Partidos disponibles' if counts.get('matches') else 'Esperando datos deportivos' }}</strong><small data-v934-realtime-message>{{ technical_message if technical else client_message }}</small></span></div>
+  <dl><div><dt>Partidos</dt><dd data-v934-count="matches">{{ counts.get('matches', 0) }}</dd></div><div><dt>En directo</dt><dd data-v934-count="live">{{ visible_live }}</dd></div><div><dt>Picks</dt><dd data-v934-count="picks">{{ counts.get('picks', 0) }}</dd></div></dl>
+  <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else 'Estado confirmado' }}</span>{% if raw_sync %}<time datetime="{{ raw_sync }}" data-v934-last-sync data-v934-last-sync-raw="{{ raw_sync }}">{{ raw_sync if technical else client_sync }}</time>{% endif %}{% if technical %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small>{% endif %}</div>
+</aside>
+{%- endmacro %}
+
+{% macro next_action(title, body, href='', label='Continuar') -%}<aside class="v933-next-action"><span>Próxima acción</span><strong>{{ title }}</strong><p>{{ body }}</p>{% if href %}{{ action_button(label,href,true,'blue',false,'arrow') }}{% endif %}</aside>{%- endmacro %}
+
+{% macro plan_card(name, price='', cadence='/mes', description='', benefits=[], current=false, href='', tone='blue') -%}<article class="v933-plan-card is-{{ tone }}{% if current %} is-current{% endif %}"><header><div><span>Plan</span><h3>{{ name }}</h3></div>{% if current %}{{ status_chip('Plan actual','success') }}{% endif %}</header><strong class="v933-plan-price">{{ price or 'Precio no configurado' }}{% if price %}<small>{{ cadence }}</small>{% endif %}</strong>{% if description %}<p>{{ description }}</p>{% endif %}<ul>{% for benefit in benefits %}<li>{{ icon('check') }}<span>{{ benefit }}</span></li>{% endfor %}</ul>{% if href %}{{ action_button('Plan actual' if current else 'Elegir ' ~ name,href,not current,'gold' if tone == 'gold' else 'blue',current) }}{% endif %}</article>{%- endmacro %}
+
+{% macro profile_card(user, plan='', status='') -%}{% set user=user or {} %}<article class="v933-profile-card"><span class="v933-profile-avatar">{{ icon('user') }}</span><div><strong>{{ user.get('name') or user.get('username') or 'Cuenta' }}</strong><small>{{ user.get('email') or '' }}</small></div>{% if plan %}{{ status_chip(plan,'blue') }}{% endif %}{% if status %}{{ status_chip(status,'success') }}{% endif %}</article>{%- endmacro %}
+
+{% macro admin_panel(title, subtitle='', tone='blue') -%}<section class="v933-admin-panel is-{{ tone }}"><header><div><h2>{{ title }}</h2>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div></header><div class="v933-admin-panel-body">{{ caller() }}</div></section>{%- endmacro %}

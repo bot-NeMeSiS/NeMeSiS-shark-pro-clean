@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes %}
+{% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
+{% block content %}
+{% set summary = data.get('home_summary') or {} %}
+{% set counts = summary.get('counts') or {} %}
+{% set sports_home = summary.get('sports_home') or (data.get('match_hub') or {}).get('sports_home') or {} %}
+{% set matches = summary.get('valid_matches_today') or [] %}
+{% set live_matches = sports_home.get('live_now') or (data.get('match_hub') or {}).get('live') or [] %}
+{% set important_matches = sports_home.get('important_today') or matches %}
+{% set favorite_matches = sports_home.get('favorites') or [] %}
+{% set upcoming_matches = sports_home.get('upcoming') or summary.get('upcoming_matches') or data.get('upcoming_matches') or [] %}
+{% set recent_results = sports_home.get('recent_results') or summary.get('finished_matches') or [] %}
+{% set relevance_counts = sports_home.get('counts') or {} %}
+{% set picks = (data.get('v925_picks') or {}).get('picks') or summary.get('picks') or [] %}
+{% set sports_metrics = data.get('sports_metrics') or summary.get('sports_metrics') or {} %}
+{% set today_count = sports_metrics.get('matches_today', counts.get('today', 0)) %}
+{% set live_count = sports_metrics.get('live_confirmed', 0) %}
+{% set pick_count = sports_metrics.get('picks_ready', counts.get('picks', 0)) %}
+{% set incomplete_count = counts.get('incomplete', 0) or 0 %}
+{% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
+{% set realtime = data.get('v934_realtime') or {} %}
+{% set simulated_evidence = evidence_origin == 'SIMULATED_QA' %}
+{% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
+{% set hero_match = priority_pool[0] if priority_pool else none %}
+{% if live_matches %}
+  {% set hero_title = 'En directo ahora' %}
+  {% set hero_summary = 'Marcador, estado y minuto real cuando el proveedor lo confirma.' %}
+  {% set hero_board_title = 'Partido en directo' %}
+{% elif important_matches %}
+  {% set hero_title = 'Lo importante de hoy' %}
+  {% set hero_summary = 'Partidos relevantes primero. SHARK aparece después, solo con evidencia.' %}
+  {% set hero_board_title = 'Destacado hoy' %}
+{% elif favorite_matches %}
+  {% set hero_title = 'Tus favoritos, primero' %}
+  {% set hero_summary = 'Tu seguimiento deportivo abre la jornada sin ocultar el catálogo completo.' %}
+  {% set hero_board_title = 'Favorito destacado' %}
+{% elif upcoming_matches %}
+  {% set hero_title = 'Próximos partidos' %}
+  {% set hero_summary = 'La agenda priorizada y lista para abrir cada Match Center.' %}
+  {% set hero_board_title = 'Próximo partido' %}
+{% elif recent_results %}
+  {% set hero_title = 'Últimos resultados' %}
+  {% set hero_summary = 'Marcadores finales confirmados, sin convertirlos en directo.' %}
+  {% set hero_board_title = 'Resultado reciente' %}
+{% else %}
+  {% set hero_title = 'Tu jornada deportiva' %}
+  {% set hero_summary = 'Partidos, directo y resultados aparecerán cuando exista información real.' %}
+  {% set hero_board_title = 'Estado de la jornada' %}
+{% endif %}
+
+<div class="v933-page v933-home v937-home sports-priority-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" data-top100-improvement="2,3,19" data-growth-stage="LANDING" data-growth-target="public-home" {{ sports_contract_attributes(sports_metrics) }}>
+  <section class="v933-public-hero sports-priority-hero">
+    <div>
+      <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
+      {% if current_user %}
+      <h1>Buenos días, <span>{{ current_user.name or current_user.username or 'cliente' }}</span></h1>
+      <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
+      <div class="v933-hero-actions">
+        {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}
+        {{ action_button('Ver partidos', '/calendar', false, 'blue', false, 'calendar') }}
+        {{ action_button('Mis favoritos', '/favorites', false, 'gold', false, 'star') }}
+      </div>
+      {% else %}
+      <h1>{{ hero_title }}<span>.</span></h1>
+      <p>{{ hero_summary }}</p>
+      <div class="v933-hero-actions">
+        {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
+        {{ action_button('Directo', '/live', false, 'cyan', false, 'live') }}
+        {{ action_button('Partidos', '/calendar', false, 'blue', false, 'calendar') }}
+      </div>
+      {% endif %}
+      <span class="sr-only" data-top100-improvement="17">Entiende NeMeSiS en 30 segundos. Primer valor en menos de un minuto. Estado de datos deportivos: sports-metrics-v1. Esperando sincronización. Continua sin buscar otra vez. Abrir calendario. Abrir briefing.</span>
+      <div class="v933-hero-proof sports-priority-proof">
+        <span>{{ icon('live') }} {{ live_count }} en directo</span>
+        <span>{{ icon('calendar') }} {{ today_count }} hoy</span>
+        <span>{{ icon('shield') }} {{ relevance_counts.get('priority', 0) }} destacados</span>
+        <span>{{ icon('shark') }} {{ pick_count }} picks SHARK</span>
+      </div>
+      <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
+        <a href="/live"><strong>LIVE</strong><span>1 toque</span></a>
+        <a href="/calendar"><strong>HOY</strong><span>Partidos</span></a>
+        <a href="/favorites"><strong>★</strong><span>Favoritos</span></a>
+        <a href="/picks"><strong>SHARK</strong><span>Picks</span></a>
+      </nav>
+    </div>
+
+    <aside class="v933-today-board sports-priority-main-card" aria-label="Prioridad deportiva de hoy">
+      <header>
+        <h2>{{ hero_board_title }}</h2>
+        {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Estado seguro'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
+      </header>
+      {% if hero_match %}
+        {{ match_card(hero_match, true, true) }}
+      {% else %}
+        <div class="v933-safe-copy">{{ safe_message }}</div>
+        {{ action_button('Ver próximos partidos', '/calendar?lane=week', true, 'blue', false, 'calendar') }}
+      {% endif %}
+    </aside>
+  </section>
+
+  <section class="v933-panel sports-priority-section" data-sports-priority="live-now">
+    {{ section_header('En directo ahora', '', 'Abrir Directo', '/live', 'Live Sports') }}
+    {% if live_matches %}
+      <div class="v933-match-grid sports-priority-grid is-live">
+        {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
+      </div>
+    {% else %}
+      {{ empty_state('No hay partidos destacados en directo', 'Cuando exista live real con evidencia fresca aparecerá arriba automáticamente.', 'Ver agenda', '/calendar?lane=week', 'live') }}
+    {% endif %}
+  </section>
+
+  <section class="v933-two-col sports-priority-layout">
+    <div class="v933-main-stack">
+      <section class="v933-panel sports-priority-section" data-sports-priority="important-today">
+        {{ section_header('Importantes hoy', '', 'Todos los partidos', '/calendar', 'Sports Relevance') }}
+        {% if important_matches %}
+          <div class="v933-match-grid sports-priority-grid">
+            {% for match in important_matches[:6] %}{{ match_card(match, false, true) }}{% endfor %}
+          </div>
+        {% else %}
+          {{ empty_state('Sin destacados hoy', safe_message, 'Ver semana', '/calendar?lane=week', 'calendar') }}
+        {% endif %}
+      </section>
+
+      <section class="v933-panel sports-priority-section" data-sports-priority="favorites">
+        {{ section_header('Favoritos', '', 'Abrir favoritos', '/favorites', 'Personal') }}
+        {% if favorite_matches %}
+          <div class="v933-match-grid sports-priority-grid">
+            {% for match in favorite_matches[:4] %}{{ match_card(match, true, true) }}{% endfor %}
+          </div>
+        {% else %}
+          {{ empty_state('Sin favoritos todavía', 'Guarda equipos, ligas o partidos para subirlos en tu experiencia sin ocultar el catálogo completo.', 'Elegir favoritos', '/favorites', 'star') }}
+        {% endif %}
+      </section>
+
+      <section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
+        {{ section_header('Próximos importantes', '', 'Explorar semana', '/calendar?lane=week', 'Agenda') }}
+        {% if upcoming_matches %}
+          <div class="v933-match-grid sports-priority-grid is-compact">
+            {% for match in upcoming_matches[:6] %}{{ match_card(match, true, true) }}{% endfor %}
+          </div>
+        {% else %}
+          {{ empty_state('Esperando próximos partidos', 'No hay próximos completos en la base local. NeMeSiS no fabrica calendario.', 'Actualizar vista', '/calendar?lane=week', 'calendar') }}
+        {% endif %}
+      </section>
+
+      <section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
+        {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendar?lane=finished', 'Resultados') }}
+        {% if recent_results %}
+          <div class="v933-match-grid sports-priority-grid is-compact">
+            {% for match in recent_results[:4] %}{{ match_card(match, true, true) }}{% endfor %}
+          </div>
+        {% else %}
+          {{ empty_state('Sin resultados recientes verificados', 'Aparecerán solo con marcador final real.', 'Ver calendario', '/calendar?lane=finished', 'history') }}
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="v933-side-stack sports-priority-side">
+      <section class="v933-panel" data-sports-priority="shark-opportunities">
+        {{ section_header('SHARK', '', 'Abrir SHARK', '/shark', 'Intelligence') }}
+        {% if picks %}
+          {{ pick_card(picks[0], true) }}
+        {% else %}
+          {{ empty_state('Sin oportunidad SHARK publicable', 'Sin pick completo no hay señal. El deporte sigue arriba igualmente.', 'Revisar picks', '/picks', 'shark') }}
+        {% endif %}
+      </section>
+
+      <section class="v933-panel" data-sports-priority="quick-actions">
+        {{ section_header('Acciones rápidas', '') }}
+        <div class="v933-quick-actions is-tight">
+          {{ quick_action('Partidos', 'Catálogo completo', '/calendar', 'calendar') }}
+          {{ quick_action('Directo', 'Live real', '/live', 'live', 'success') }}
+          {{ quick_action('Picks', 'Capa SHARK', '/picks', 'target') }}
+          {{ quick_action('Histórico', 'Resultados reales', '/track-record', 'history') }}
+          {{ quick_action('Telegram', 'Alertas controladas', '/telegram', 'telegram', 'cyan') }}
+          {{ quick_action('Planes', 'FREE / PRO / ELITE', '/memberships', 'star', 'gold') }}
+        </div>
+      </section>
+
+    </aside>
+  </section>
+
+  <details class="v933-home-more">
+    <summary>Más opciones</summary>
+    <div class="v933-home-more-content">
+  <section class="v933-panel v933-launch-onboarding sports-priority-onboarding" data-launch-excellence="onboarding" data-launch-onboarding="first-run" data-top100-improvement="2,3,18,19,33" aria-labelledby="launch-onboarding-title">
+    <div class="v933-launch-onboarding-head">
+      <div>
+        <span class="v933-eyebrow">Primer recorrido</span>
+        <h2 id="launch-onboarding-title">Entiende NeMeSiS rápido</h2>
+        <p>Directo, partido, equipo, competición, SHARK y favoritos. Todo puede omitirse.</p>
+      </div>
+      <button class="v933-action is-blue" type="button" data-launch-onboarding-dismiss aria-label="Omitir guía inicial"><span>Omitir</span></button>
+    </div>
+    <div class="v933-launch-guide-grid is-compact">
+      <a class="v933-launch-step" href="/live" data-launch-step="live">{{ icon('live') }}<span>Directo</span><strong>Ver live</strong><small>1 toque.</small></a>
+      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>Partidos</span><strong>Explorar</strong><small>Todo el catálogo.</small></a>
+      <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendar' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Match</span><strong>Detalle</strong><small>Contexto real.</small></a>
+      <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>Evidencia</strong><small>Sin promesas.</small></a>
+      <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>Favoritos</span><strong>Personal</strong><small>Tu radar.</small></a>
+      <a class="v933-launch-step" href="/memberships" data-launch-step="pro">{{ icon('star') }}<span>PRO</span><strong>Planes</strong><small>Sin letra pequeña.</small></a>
+    </div>
+  </section>
+
+  <section class="v933-panel v933-launch-continuity" data-launch-excellence="productivity" data-top100-improvement="19,20,26,33,83">
+    {{ section_header('Continuar', '', 'Smart Home', '/smart-home') }}
+    <div class="v933-launch-continuity-grid is-compact">
+      <a class="v933-launch-memory-card is-primary" href="/smart-home" data-launch-continue="last-route" data-launch-last-match="true" data-fallback-label="Abrir Smart Home">{{ icon('arrow') }}<span>Continuar</span><strong>Smart Home</strong><small>Tu siguiente acción.</small></a>
+      <a class="v933-launch-memory-card" href="/daily-briefing">{{ icon('calendar') }}<span>Briefing</span><strong>Hoy</strong><small>Prioridades.</small></a>
+      <a class="v933-launch-memory-card" href="/evening-recap">{{ icon('history') }}<span>Recap</span><strong>Cierre</strong><small>Cambios.</small></a>
+      <a class="v933-launch-memory-card" href="/activity-center">{{ icon('data') }}<span>Actividad</span><strong>Reciente</strong><small>Tu recorrido.</small></a>
+    </div>
+  </section>
+
+  {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
+
+  <section class="v933-panel">
+    {{ section_header('Planes', '', 'Comparar', '/memberships') }}
+    {{ value_ladder(current_user.membership if current_user else 'FREE') }}
+  </section>
+
+  <section class="v933-panel v933-responsible-band">
+    <div class="v933-three-col">
+      <div><strong>Sports first</strong><p>Live, importancia y favoritos mandan.</p></div>
+      <div><strong>SHARK con evidencia</strong><p>Sin datos suficientes, no hay señal inventada.</p></div>
+      <div><strong>Juego responsable</strong><p>+18. No somos casa de apuestas.</p></div>
+    </div>
+  </section>
+  {{ evidence_receipt('Sports Relevance activo', 'Home ordena por directo, tier, favoritos, proximidad, frescura y datos completos. Picks son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Home, Directo y Partidos') }}
+    </div>
+  </details>
+</div>
+{% endblock %}
