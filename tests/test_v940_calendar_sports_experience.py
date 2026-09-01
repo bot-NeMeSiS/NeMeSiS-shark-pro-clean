@@ -918,6 +918,42 @@ def test_p0_day2_stale_live_cardinality_is_not_live_on_any_surface(app_module):
     assert first_match_center["lifecycle"]["is_stale"] is True
     assert first_match_center["story"]["phase"] == "Actualizacion pendiente"
 
+
+def test_p0_cached_public_summary_reconciles_live_cards_and_counter(app_module, monkeypatch):
+    cached_live = _sports_relevance_match(
+        app_module,
+        "cached-live-now-stale",
+        "Bundesliga",
+        date_offset=0,
+        kickoff="20:00",
+        status="LIVE",
+        updated_at="2026-08-30T22:30:00+02:00",
+    )
+    cached_summary = _sports_relevance_summary([cached_live], live=[cached_live])
+    cached_summary["sports_home"] = {"live_now": [cached_live], "quality": {"live_real": 1}}
+    cached_summary["sports_metrics"] = app_module.build_sports_metrics_contract(cached_summary)
+
+    def fake_cached_snapshot(_key, _builder, **_kwargs):
+        return cached_summary, "HIT"
+
+    monkeypatch.setattr(app_module, "cached_v934_realtime_snapshot", fake_cached_snapshot)
+    monkeypatch.setattr(
+        app_module,
+        "build_v934_realtime_snapshot",
+        lambda _summary: {
+            "live": [],
+            "stale_live": [{"id": cached_live["id"]}],
+        },
+    )
+
+    current = app_module.get_public_home_sports_summary()
+
+    assert current["valid_live_events"] == []
+    assert current["sports_home"]["live_now"] == []
+    assert current["sports_metrics"]["live_confirmed"] == 0
+    assert current["summary_cache_status"] == "HIT"
+
+
 def test_p0_operations_quality_contract_is_compact_and_cache_only(app_module):
     elite = _sports_relevance_match(
         app_module,

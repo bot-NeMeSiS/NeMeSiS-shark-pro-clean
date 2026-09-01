@@ -14989,6 +14989,13 @@ def get_public_home_sports_summary():
         _build_public_home_sports_summary,
         ttl_seconds=300,
     )
+    # The DB snapshot may remain useful for five minutes, but LIVE evidence has a
+    # much shorter freshness window. Reconcile it in memory so cards and counters
+    # cannot retain an event that became stale while the snapshot was cached.
+    realtime = build_v934_realtime_snapshot(result)
+    result = _v937_live_summary_without_stale(result, realtime)
+    result["sports_home"] = build_sports_home_sections(result, reuse_ranked=True)
+    result["sports_metrics"] = build_sports_metrics_contract(result)
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
