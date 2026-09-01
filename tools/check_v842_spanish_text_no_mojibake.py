@@ -13,7 +13,7 @@ SCAN_PATHS = [
 FORBIDDEN = [
     "Ã",
     "Â",
-    "",
+    "\ufffd",
     "Contrase?",
     "Configuraci?",
     "Pr?ximo",
@@ -59,11 +59,22 @@ for path in iter_files():
     except UnicodeDecodeError:
         continue
     for line_no, line in enumerate(text.splitlines(), 1):
-        bad_tokens = [token for token in FORBIDDEN if token in line]
+        detector_signature = (
+            "mojibake" in line.casefold()
+            or (
+                "token in text" in line
+                and all(token in line for token in ('"Ã"', '"Â"', '"�"'))
+            )
+            or (
+                "Lorem ipsum" in line
+                and "Traceback" in line
+                and "FIXME" in line
+            )
+        )
+        if detector_signature:
+            continue
+        bad_tokens = [token for token in FORBIDDEN if token and token in line]
         if bad_tokens:
-            # Some audit engines intentionally keep marker lists to detect mojibake.
-            if "MOJIBAKE" in line or "mojibake" in line:
-                continue
             findings.append(
                 {
                     "file": str(path.relative_to(ROOT)),

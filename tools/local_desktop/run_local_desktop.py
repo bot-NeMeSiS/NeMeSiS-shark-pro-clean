@@ -280,7 +280,7 @@ def build_qr_svg(text: str, scale: int = 8, border: int = 4) -> str:
         for x, value in enumerate(row):
             if value:
                 rects.append(f'<rect x="{(x+border)*scale}" y="{(y+border)*scale}" width="{scale}" height="{scale}" fill="#020812"/>')
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {0} {0}" role="img" aria-label="QR NeMeSiS LOCAL m?vil">{1}</svg>'.format(pixel, ''.join(rects))
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {0} {0}" role="img" aria-label="QR NeMeSiS LOCAL móvil">{1}</svg>'.format(pixel, ''.join(rects))
 
 
 def write_lan_qr(lan_url: str) -> str:

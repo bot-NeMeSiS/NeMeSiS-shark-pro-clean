@@ -29,6 +29,8 @@ from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
 from tools.run_autonomous_product_qa import (
     _cross_surface_competition_identity_evidence,
     _cross_surface_live_truth_evidence,
+    _reference_crop_box,
+    _shark_asset_contract_from_text,
     _sports_priority_regression,
 )
 
@@ -123,8 +125,39 @@ def test_brand_shark_cache_version_is_consistent_across_active_surfaces():
     ]
     active_sources = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
-    assert "design1-brand-2" not in active_sources
-    assert "nemesis-shark-brand.svg?v=design1-brand-3" in active_sources
+    assert "design1-brand-3" not in active_sources
+    assert "nemesis-shark-brand.svg?v=design2-brand-1" in active_sources
+
+
+def test_visual_inspector_rejects_mesh_shark_and_accepts_anatomical_contract():
+    project_root = Path(__file__).resolve().parents[1]
+    atmosphere = (project_root / "static" / "img" / "nemesis-shark-atmosphere.svg").read_text(encoding="utf-8")
+    brand = (project_root / "static" / "img" / "nemesis-shark-brand.svg").read_text(encoding="utf-8")
+    rejected = _shark_asset_contract_from_text(
+        atmosphere.replace("reference-anatomical-body", "data-mesh"),
+        brand,
+    )
+    accepted = _shark_asset_contract_from_text(atmosphere, brand)
+
+    assert rejected["status"] == "FAIL"
+    assert rejected["classification"] == "MAJOR_GAP"
+    assert "data-mesh" in rejected["forbidden_markers"]
+    assert accepted["status"] == "PASS"
+    assert accepted["classification"] == "MINOR_GAP"
+
+
+def test_reference_crop_selects_embedded_desktop_and_mobile_compositions():
+    size = (1672, 941)
+
+    desktop = _reference_crop_box(size, 1366, "reference_images/client/reference_import_v900_08.png")
+    mobile = _reference_crop_box(size, 390, "reference_images/client/reference_import_v900_08.png")
+    admin = _reference_crop_box(size, 1366, "reference_images/admin/reference_import_v900_01.png")
+
+    assert desktop[0] < 50
+    assert desktop[2] < 1400
+    assert mobile[0] > 1200
+    assert mobile[2] == 1667
+    assert admin == (0, 0, 1672, 941)
 
 
 def test_rendered_layout_competition_and_temporal_evidence_reaches_regression_manager(tmp_path: Path):
@@ -278,7 +311,7 @@ def test_founder_video_review_is_permanent_product_memory(tmp_path: Path):
 
 def test_browser_inspector_measures_composition_and_empty_states_are_resolved():
     inspector = (Path(__file__).parents[1] / "tools" / "run_autonomous_product_qa.py").read_text(encoding="utf-8")
-    assert all(marker in inspector for marker in ("dead_space_flags", "empty_dashboard_flags", "bordered_containers", "nested_card_depth", "sports_above_fold_ratio", "purposefulSportsContent"))
+    assert all(marker in inspector for marker in ("dead_space_flags", "empty_dashboard_flags", "bordered_containers", "nested_card_depth", "sports_above_fold_ratio", "purposefulSportsContent", "componentSelectors", "componentInstances"))
     for template in ("live.html", "picks.html", "shark.html", "track_record.html"):
         source = (Path(__file__).parents[1] / "templates" / template).read_text(encoding="utf-8")
         assert 'data-empty-dashboard="resolved"' in source

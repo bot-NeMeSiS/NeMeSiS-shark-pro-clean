@@ -452,14 +452,46 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               }
             }
           }
+          const componentSelectors = {
+            SportsRow: '.ns16-match-row,.v933-match-grid,.v933-calendar-day',
+            MatchCard: '.v933-match-card',
+            CompactKPI: '.v933-kpi',
+            StatusChip: '.v933-status-chip',
+            Button: 'button,.v933-action',
+            PageHeader: '.v933-page-header,.v933-client-hero,.v944-match-header',
+            SectionHeader: '.v933-section-header',
+            EmptyState: '.v933-empty-state',
+            DataTable: '.v933-data-table,table',
+            AdminMetric: '.ns16-admin-priority,.v933-admin-panel .v933-kpi',
+            SharkSurface: '.v933-shark-hero,[data-ns-route="/shark"] .v933-page-header',
+          };
+          const componentInstances = {};
+          for (const [name, selector] of Object.entries(componentSelectors)) {
+            const instances = Array.from(document.querySelectorAll(selector)).filter(visible);
+            const overflow = instances.filter(node => {
+              if (node.matches('.v933-page-header,.v933-client-hero,.v944-match-header,.v933-shark-hero')) {
+                return false;
+              }
+              const style = getComputedStyle(node);
+              return node.scrollWidth > node.clientWidth + 2
+                && !['auto', 'scroll'].includes(style.overflowX);
+            }).length;
+            componentInstances[name] = {
+              instances: instances.length,
+              pass: Math.max(0, instances.length - overflow),
+              fail: overflow,
+              overflow,
+            };
+          }
           const bg = bodyStyle ? bodyStyle.backgroundImage : '';
           const sharkImage = shark ? shark.backgroundImage : '';
           const sharkWidth = shark ? parseFloat(shark.width || '0') : 0;
           const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
           const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
-          const sharkAssetOk = /nemesis-shark-atmosphere\.svg/.test(sharkImage);
+          const sharkAssetOk = /nemesis-shark-atmosphere\.svg\?v=design2-atmosphere-1/.test(sharkImage);
           const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .98;
-          const backgroundOk = /gradient/.test(bg) && !/^none$/i.test(bg);
+          const backgroundLayers = (bg.match(/gradient/g) || []).length;
+          const backgroundOk = backgroundLayers >= 4 && !/^none$/i.test(bg);
           const lineup = document.querySelector('[data-lineups-contract]');
           const summary = document.querySelector('[data-summary-contract]');
           const rightsNodes = Array.from(document.querySelectorAll('[data-rights-decision]')).filter(node => {
@@ -491,6 +523,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               viewport_content_coverage: viewportContentCoverage,
               sports_above_fold_ratio: sportsAboveFoldRatio,
             },
+            components: componentInstances,
             layout_collisions: layoutCollisions,
             brand: {
               asset: brandImage ? (brandImage.currentSrc || brandImage.src) : '',
@@ -515,7 +548,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             },
             background: {
               classification: backgroundOk ? 'MINOR_GAP' : 'MAJOR_GAP',
-              evidence: `background=${bg.slice(0, 420)}`,
+              evidence: `layers=${backgroundLayers}; background=${bg.slice(0, 420)}`,
             },
             live_contract: {
               confirmed: Number(document.querySelector('[data-sports-live-confirmed]')?.getAttribute('data-sports-live-confirmed') || 0),
@@ -1136,6 +1169,74 @@ def _reference_map() -> dict[str, str]:
     return result
 
 
+def _reference_crop_box(reference_size: tuple[int, int], current_width: int, reference_file: str) -> tuple[int, int, int, int]:
+    """Select the desktop or phone composition embedded in the official PNG."""
+    width, height = reference_size
+    if "reference_images/admin/" in reference_file.replace("\\", "/"):
+        return (0, 0, width, height)
+    if current_width <= 520:
+        return (
+            round(width * 0.786),
+            round(height * 0.025),
+            round(width * 0.997),
+            round(height * 0.99),
+        )
+    return (
+        round(width * 0.012),
+        round(height * 0.025),
+        round(width * 0.785),
+        round(height * 0.99),
+    )
+
+
+def _shark_asset_contract_from_text(atmosphere: str, brand: str) -> dict:
+    combined = (atmosphere + "\n" + brand).lower()
+    forbidden = [marker for marker in ("data-mesh", "wireframe", "network-shark", "polygon-mesh") if marker in combined]
+    atmosphere_markers = {
+        "body": "reference-anatomical-body" in atmosphere,
+        "belly": "reference-belly" in atmosphere,
+        "tail": 'id="reference-tail"' in atmosphere,
+        "dorsal_fin": 'id="reference-dorsal-fin"' in atmosphere,
+        "pectoral_fin": 'id="reference-pectoral-fin"' in atmosphere,
+        "eye": 'id="reference-eye"' in atmosphere,
+        "gills": 'id="reference-gills"' in atmosphere,
+        "reference_mesh": 'id="reference-mesh"' in atmosphere,
+    }
+    brand_markers = {
+        "filled_body": "brand-body" in brand,
+        "forked_tail": 'id="brand-reference-tail"' in brand,
+        "dorsal_fin": 'id="brand-reference-dorsal"' in brand,
+        "pectoral_fin": 'id="brand-reference-pectoral"' in brand,
+        "eye": 'id="brand-reference-eye"' in brand,
+    }
+    passed = not forbidden and all(atmosphere_markers.values()) and all(brand_markers.values())
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "classification": "MINOR_GAP" if passed else "MAJOR_GAP",
+        "forbidden_markers": forbidden,
+        "atmosphere_anatomy": atmosphere_markers,
+        "brand_anatomy": brand_markers,
+    }
+
+
+def _shark_asset_contract() -> dict:
+    try:
+        atmosphere = (ROOT / "static" / "img" / "nemesis-shark-atmosphere.svg").read_text(encoding="utf-8")
+        brand = (ROOT / "static" / "img" / "nemesis-shark-brand.svg").read_text(encoding="utf-8")
+    except OSError as exc:
+        return {
+            "status": "FAIL",
+            "classification": "MAJOR_GAP",
+            "evidence": f"{type(exc).__name__}: {str(exc)[:180]}",
+        }
+    result = _shark_asset_contract_from_text(atmosphere, brand)
+    result["evidence"] = (
+        f"status={result['status']}; forbidden={result['forbidden_markers']}; "
+        f"atmosphere={result['atmosphere_anatomy']}; brand={result['brand_anatomy']}"
+    )
+    return result
+
+
 def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
     """Compare rendered composition and palette without requiring identical data."""
     if not reference_file:
@@ -1145,14 +1246,16 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
         from PIL import Image, ImageChops, ImageFilter, ImageOps, ImageStat
 
         with Image.open(screenshot) as current_image, Image.open(reference) as reference_image:
-            size = (64, 36)
+            reference_crop = _reference_crop_box(reference_image.size, current_image.width, reference_file)
+            size = (96, 54)
             current = ImageOps.fit(current_image.convert("RGB"), size, method=Image.Resampling.LANCZOS)
-            expected = ImageOps.fit(reference_image.convert("RGB"), size, method=Image.Resampling.LANCZOS)
+            expected_source = reference_image.convert("RGB").crop(reference_crop)
+            expected = ImageOps.fit(expected_source, size, method=Image.Resampling.LANCZOS)
             diff = ImageStat.Stat(ImageChops.difference(current, expected))
             pixel_score = max(0.0, 1.0 - (sum(diff.mean) / 3.0 / 255.0))
 
-            current_hist = current.resize((16, 9)).histogram()
-            expected_hist = expected.resize((16, 9)).histogram()
+            current_hist = current.resize((24, 14)).histogram()
+            expected_hist = expected.resize((24, 14)).histogram()
             histogram_total = max(1, sum(current_hist))
             histogram_delta = sum(abs(left - right) for left, right in zip(current_hist, expected_hist))
             palette_score = max(0.0, 1.0 - histogram_delta / (2.0 * histogram_total))
@@ -1160,7 +1263,27 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
             current_edges = ImageStat.Stat(current.filter(ImageFilter.FIND_EDGES).convert("L")).mean[0]
             expected_edges = ImageStat.Stat(expected.filter(ImageFilter.FIND_EDGES).convert("L")).mean[0]
             edge_score = max(0.0, 1.0 - abs(current_edges - expected_edges) / 255.0)
-            score = round((pixel_score * 0.45) + (palette_score * 0.4) + (edge_score * 0.15), 4)
+
+            current_blur = current.filter(ImageFilter.GaussianBlur(radius=4))
+            expected_blur = expected.filter(ImageFilter.GaussianBlur(radius=4))
+            blur_diff = ImageStat.Stat(ImageChops.difference(current_blur, expected_blur))
+            structure_score = max(0.0, 1.0 - (sum(blur_diff.mean) / 3.0 / 255.0))
+
+            current_luma = ImageStat.Stat(ImageOps.grayscale(current))
+            expected_luma = ImageStat.Stat(ImageOps.grayscale(expected))
+            mean_score = max(0.0, 1.0 - abs(current_luma.mean[0] - expected_luma.mean[0]) / 255.0)
+            depth_denominator = max(12.0, current_luma.stddev[0], expected_luma.stddev[0])
+            depth_score = max(0.0, 1.0 - abs(current_luma.stddev[0] - expected_luma.stddev[0]) / depth_denominator)
+
+            score = round(
+                (pixel_score * 0.18)
+                + (palette_score * 0.18)
+                + (edge_score * 0.14)
+                + (structure_score * 0.32)
+                + (mean_score * 0.08)
+                + (depth_score * 0.1),
+                4,
+            )
     except (OSError, ValueError, ImportError) as exc:
         return {
             "classification": "NOT_OBSERVED",
@@ -1168,12 +1291,24 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
             "reference_file": reference_file,
             "evidence": f"{type(exc).__name__}: {str(exc)[:180]}",
         }
-    classification = "MATCH" if score >= 0.82 else "MINOR_GAP" if score >= 0.58 else "MAJOR_GAP" if score >= 0.42 else "REBUILD_REQUIRED"
+    classification = "MATCH" if score >= 0.86 else "MINOR_GAP" if score >= 0.68 else "MAJOR_GAP" if score >= 0.5 else "REBUILD_REQUIRED"
     return {
         "classification": classification,
         "score": score,
         "reference_file": reference_file,
-        "evidence": f"coarse_composition_similarity={score}; reference={reference_file}",
+        "metrics": {
+            "pixel": round(pixel_score, 4),
+            "palette": round(palette_score, 4),
+            "edges": round(edge_score, 4),
+            "structure": round(structure_score, 4),
+            "luminance": round(mean_score, 4),
+            "depth": round(depth_score, 4),
+        },
+        "reference_crop": list(reference_crop),
+        "evidence": (
+            f"composition_similarity={score}; crop={reference_crop}; "
+            f"structure={structure_score:.4f}; depth={depth_score:.4f}; reference={reference_file}"
+        ),
     }
 
 
@@ -1355,10 +1490,18 @@ def main() -> int:
     reference_classification = str(reference_match.get("classification") or "NOT_OBSERVED")
     shark_state = dict(home_capture.get("shark") or {})
     background_state = dict(home_capture.get("background") or {})
+    shark_asset_contract = _shark_asset_contract()
+    if shark_asset_contract.get("status") != "PASS":
+        shark_state["classification"] = "MAJOR_GAP"
     if reference_classification in {"MAJOR_GAP", "REBUILD_REQUIRED", "NOT_OBSERVED"}:
         shark_state["classification"] = reference_classification
         background_state["classification"] = reference_classification
-    shark_state["evidence"] = "; ".join(filter(None, [str(shark_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
+    shark_state["evidence"] = "; ".join(filter(None, [
+        str(shark_state.get("evidence") or ""),
+        str(reference_match.get("evidence") or ""),
+        str(shark_asset_contract.get("evidence") or ""),
+    ]))
+    shark_state["asset_contract"] = shark_asset_contract
     background_state["evidence"] = "; ".join(filter(None, [str(background_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
     client_admin_separation = next((item for item in journeys if item.get("journey") == "client_admin_separation"), {})
     admin_journey = next((item for item in journeys if item.get("journey") == "golden_admin"), {})
@@ -1398,6 +1541,21 @@ def main() -> int:
         for flag in composition.get("empty_dashboard_flags") or []:
             empty_dashboard_flags.append({"screen": capture.get("path"), "viewport": capture.get("viewport"), "flag": flag})
     home_composition = home_capture.get("composition") or {}
+    component_summary: dict[str, dict[str, int]] = {}
+    for capture in captures:
+        for component, evidence in (capture.get("components") or {}).items():
+            summary = component_summary.setdefault(component, {
+                "instances": 0,
+                "pass": 0,
+                "fail": 0,
+                "overflow": 0,
+                "captures": 0,
+            })
+            summary["instances"] += int(evidence.get("instances") or 0)
+            summary["pass"] += int(evidence.get("pass") or 0)
+            summary["fail"] += int(evidence.get("fail") or 0)
+            summary["overflow"] += int(evidence.get("overflow") or 0)
+            summary["captures"] += 1
     observation = {
         "run_id": run_id,
         "started_at_madrid": started,
@@ -1439,6 +1597,12 @@ def main() -> int:
             "evidence": "IDs canónicos leídos de las mismas cards renderizadas en todas las superficies deportivas.",
         },
         "layout_collisions": layout_collisions,
+        "components": {
+            "audited": sum(item["instances"] for item in component_summary.values()),
+            "fail": sum(item["fail"] for item in component_summary.values()),
+            "overflow": sum(item["overflow"] for item in component_summary.values()),
+            "families": component_summary,
+        },
         "composition": {
             "observed": bool(composition_captures),
             "dead_space_flags": dead_space_flags,
@@ -1451,16 +1615,6 @@ def main() -> int:
             "home_sports_above_fold_ratio": home_composition.get("sports_above_fold_ratio"),
             "evidence": "Composición medida sobre el navegador renderizado: ocupación, paneles visibles, anidamiento y producto deportivo en el primer viewport.",
         },
-        "layout": {
-            "observed": bool(captures) and len(captures) == expected_captures,
-            "captures": len(captures),
-            "collision_types": sorted({str(item.get("type") or "") for item in layout_collisions if item.get("type")}),
-            "collisions": len(layout_collisions),
-            "mobile_360_captures": sum(1 for item in captures if item.get("viewport") == "mobile_360x800"),
-            "mobile_360_collisions": sum(len(item.get("layout_collisions") or []) for item in captures if item.get("viewport") == "mobile_360x800"),
-            "mobile_360_overflow": sum(1 for item in captures if item.get("viewport") == "mobile_360x800" and item.get("horizontal_overflow")),
-        },
-        "temporal_context": temporal_context,
         "layout": {
             "observed": bool(captures) and len(captures) == expected_captures,
             "captures": len(captures),
@@ -1567,6 +1721,22 @@ def main() -> int:
     payload = {
         "contract": "NEMESIS-AUTONOMOUS-PRODUCT-QA-BROWSER-EVIDENCE-V1",
         "run": result,
+        "component_audit": observation["components"],
+        "composition_audit": observation["composition"],
+        "visual_reference_matrix": [
+            {
+                "key": item.get("key"),
+                "path": item.get("path"),
+                "viewport": item.get("viewport"),
+                "reference_file": item.get("reference_file"),
+                "classification": (item.get("reference_match") or {}).get("classification"),
+                "score": (item.get("reference_match") or {}).get("score"),
+                "metrics": (item.get("reference_match") or {}).get("metrics"),
+                "screenshot": item.get("screenshot"),
+            }
+            for item in captures
+            if item.get("reference_file")
+        ],
         "captures": captures,
         "navigation_clicks": navigation_clicks,
         "journeys": journeys,

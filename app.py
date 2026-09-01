@@ -12698,7 +12698,7 @@ def manifest_json():
         "background_color": "#06111f",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-brand.svg?v=design1-brand-3",
+                "src": "/static/img/nemesis-shark-brand.svg?v=design2-brand-1",
                 "sizes": "any",
                 "type": "image/svg+xml",
                 "purpose": "any maskable",
@@ -15541,7 +15541,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         "picks": picks[:8],
         "primary_action": primary_action,
         "quick_actions": quick_actions,
-        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activar? automáticamente Mundial, Directo, Picks, Resultados o Liga según el momento.",
+        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Picks, Resultados o Liga según el momento.",
     }
 
 

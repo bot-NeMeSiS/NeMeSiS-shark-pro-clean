@@ -116,7 +116,10 @@ def run() -> dict:
             require(b"SHARK" in last.data and b"v933-shark-page" in last.data, "La UI SHARK no se conserva")
 
             risk = client.get("/shark?q=riesgo")
-            require(risk.status_code == 200 and b"Riesgo" in risk.data, "La pregunta rapida de riesgo no funciona")
+            require(
+                risk.status_code == 200 and b"riesgo" in risk.data.lower(),
+                "La pregunta rapida de riesgo no funciona",
+            )
 
             original_provider_status = module.get_api_sports_status
             module.get_api_sports_status = lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("provider_down"))

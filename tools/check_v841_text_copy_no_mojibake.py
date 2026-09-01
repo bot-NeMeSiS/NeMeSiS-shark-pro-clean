@@ -1,5 +1,6 @@
 ﻿from pathlib import Path
 import json
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 paths = list((ROOT / "templates").rglob("*.html")) + [ROOT / "static" / "app.css", ROOT / "app.py"]
@@ -23,7 +24,11 @@ hits = []
 for path in paths:
     text = path.read_text(encoding="utf-8", errors="replace")
     for token in forbidden:
-        if token in text:
+        if "?" in token and token[0].isalnum() and token[-1].isalnum():
+            found = re.search(rf"(?<!\w){re.escape(token)}(?!\w)", text) is not None
+        else:
+            found = token in text
+        if found:
             hits.append({"file": str(path.relative_to(ROOT)), "token": token})
 
 payload = {"ok": not hits, "hits": hits}

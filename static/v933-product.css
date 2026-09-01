@@ -45,17 +45,9 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-  opacity: .055;
-  filter: drop-shadow(0 0 48px rgba(32, 216, 244, .2));
-}
-@supports ((mask: url('')) or (-webkit-mask: url(''))) {
-  body.ns-app:not(.ns-admin)::before {
-    background: radial-gradient(circle, rgba(82, 232, 255, .78) 0 1px, transparent 1.25px) 0 0 / 15px 15px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-    opacity: .13;
-  }
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
+  opacity: .1;
+  filter: drop-shadow(0 0 48px rgba(32, 216, 244, .24));
 }
 body.ns-app[data-ns-route="/"]::before { display: none; }
 body.ns-app main.v933-public-shell,
@@ -70,16 +62,8 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-  opacity: .055;
-}
-@supports ((mask: url('')) or (-webkit-mask: url(''))) {
-  .v933-admin-sidebar::after {
-    background: radial-gradient(circle, rgba(82, 232, 255, .68) 0 1px, transparent 1.25px) 0 0 / 13px 13px;
-    -webkit-mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-    mask: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
-    opacity: .11;
-  }
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
+  opacity: .09;
 }
 .v933-admin-sidebar > * { position: relative; z-index: 1; }
 .v933-admin-brand { padding-inline: 4px; }
@@ -91,7 +75,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -115,7 +99,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -155,7 +139,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design1-atmosphere-3') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -4480,13 +4464,13 @@ body.ns-app[data-v829-shell="true"] {
   min-height: 100vh;
   color: var(--ns-text);
   background:
-    radial-gradient(ellipse at 72% -6%, rgba(95, 208, 255, .18), transparent 24vw),
-    radial-gradient(ellipse at 78% 15%, rgba(0, 78, 191, .3), transparent 34vw),
-    radial-gradient(ellipse at 14% 34%, rgba(2, 57, 124, .18), transparent 34vw),
-    radial-gradient(ellipse at 54% 66%, rgba(1, 44, 92, .28), transparent 43vw),
-    radial-gradient(ellipse at 86% 84%, rgba(0, 75, 132, .16), transparent 35vw),
-    radial-gradient(ellipse at 22% 96%, rgba(3, 48, 94, .13), transparent 39vw),
-    linear-gradient(180deg, #010d20 0%, #000817 42%, #00050f 72%, #00030a 100%) !important;
+    radial-gradient(ellipse at 73% -8%, rgba(185, 241, 255, .25), transparent 25vw),
+    radial-gradient(ellipse at 78% 13%, rgba(19, 124, 222, .38), transparent 35vw),
+    radial-gradient(ellipse at 13% 32%, rgba(4, 76, 153, .24), transparent 34vw),
+    radial-gradient(ellipse at 53% 62%, rgba(3, 59, 116, .33), transparent 44vw),
+    radial-gradient(ellipse at 88% 82%, rgba(0, 91, 151, .2), transparent 36vw),
+    radial-gradient(ellipse at 20% 98%, rgba(5, 57, 108, .18), transparent 40vw),
+    linear-gradient(180deg, #021329 0%, #010b1d 38%, #000714 70%, #00030a 100%) !important;
   background-attachment: fixed !important;
   letter-spacing: 0;
 }
@@ -4506,15 +4490,15 @@ body.ns-app.ns-admin::before {
   z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(111deg, transparent 0 36%, rgba(175, 238, 255, .07) 49%, rgba(24, 116, 213, .025) 61%, transparent 73%),
-    linear-gradient(101deg, transparent 0 54%, rgba(70, 174, 255, .045) 64%, transparent 79%),
-    radial-gradient(ellipse at 61% -4%, rgba(129, 225, 255, .14), transparent 27%),
-    radial-gradient(ellipse at 76% 20%, rgba(8, 75, 167, .14), transparent 41%),
-    radial-gradient(ellipse at 28% 74%, rgba(17, 112, 186, .08), transparent 34%),
-    radial-gradient(ellipse at 78% 88%, rgba(0, 83, 146, .1), transparent 32%),
-    radial-gradient(ellipse at 50% 108%, rgba(0, 1, 5, .98), transparent 54%);
+    linear-gradient(112deg, transparent 0 31%, rgba(193, 244, 255, .1) 46%, rgba(42, 144, 225, .04) 58%, transparent 72%),
+    linear-gradient(101deg, transparent 0 48%, rgba(115, 210, 255, .065) 62%, transparent 79%),
+    radial-gradient(ellipse at 62% -5%, rgba(171, 235, 255, .2), transparent 29%),
+    radial-gradient(ellipse at 77% 18%, rgba(10, 94, 192, .19), transparent 42%),
+    radial-gradient(ellipse at 27% 72%, rgba(22, 126, 198, .11), transparent 35%),
+    radial-gradient(ellipse at 80% 89%, rgba(0, 101, 162, .14), transparent 33%),
+    radial-gradient(ellipse at 50% 108%, rgba(0, 1, 5, .99), transparent 55%);
   background-size: 100% 100%;
-  opacity: .97;
+  opacity: 1;
   filter: none;
   transform: none;
   animation: none;
@@ -4531,10 +4515,10 @@ body.ns-app.ns-admin::after {
   pointer-events: none;
   width: auto;
   height: auto;
-  opacity: .58;
+  opacity: .68;
   background:
-    radial-gradient(circle, rgba(102, 214, 255, .34) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
-    radial-gradient(circle, rgba(255,255,255,.12) 0 .65px, transparent 1px) 13px 17px / 103px 103px,
+    radial-gradient(circle, rgba(121, 224, 255, .42) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
+    radial-gradient(circle, rgba(255,255,255,.16) 0 .65px, transparent 1px) 13px 17px / 103px 103px,
     radial-gradient(ellipse at 8% 111%, rgba(2, 20, 42, .84), transparent 27%),
     radial-gradient(ellipse at 93% 111%, rgba(1, 15, 34, .9), transparent 31%),
     linear-gradient(180deg, rgba(0,0,0,0) 43%, rgba(0,2,8,.66) 100%);
@@ -4574,13 +4558,13 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   position: absolute;
   z-index: 0;
   top: 48%;
-  right: clamp(-46px, 1vw, 22px);
-  width: clamp(460px, 44vw, 650px);
+  right: clamp(-64px, -1vw, 8px);
+  width: clamp(560px, 50vw, 760px);
   aspect-ratio: 1280 / 400;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=founder-video-1') center / contain no-repeat;
-  opacity: .88;
-  filter: drop-shadow(0 0 28px rgba(24, 137, 255, .34)) saturate(1.08) brightness(1.04);
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
+  opacity: .94;
+  filter: drop-shadow(0 0 34px rgba(52, 181, 238, .42)) saturate(1.08) brightness(1.08);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -4629,8 +4613,8 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero) {
   box-shadow: none !important;
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero)::before {
-  right: clamp(-34px, -.5vw, 10px);
-  width: clamp(650px, 56vw, 820px);
+  right: clamp(-70px, -2vw, -18px);
+  width: clamp(720px, 62vw, 900px);
   top: 50%;
   opacity: .9;
 }
@@ -5461,17 +5445,40 @@ body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minma
 
 /* Founder video review: content owns the layout; empty analytics never pretend to be a dashboard. */
 .ns-video-empty-dashboard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   gap: 12px;
-  padding: 10px 0 2px;
-  border-top: 1px solid rgba(89,185,255,.14);
+  min-height: 146px;
+  padding: 14px 12px;
+  border-block: 1px solid rgba(89,185,255,.14);
+  background:
+    radial-gradient(ellipse at 84% 38%,rgba(43,173,224,.18),transparent 31%),
+    linear-gradient(90deg,rgba(4,23,43,.72),rgba(3,18,35,.42) 58%,rgba(4,27,50,.56));
+}
+.ns-video-empty-dashboard::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: -36px;
+  width: min(470px,48vw);
+  aspect-ratio: 1280 / 420;
+  pointer-events: none;
+  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design2-atmosphere-1') center / contain no-repeat;
+  opacity: .28;
+  filter: drop-shadow(0 0 24px rgba(52,181,238,.28));
+  transform: translateY(-50%);
 }
 .ns-video-empty-dashboard > .v933-empty-state {
+  position: relative;
+  z-index: 1;
   min-height: 104px;
   border: 0 !important;
   border-left: 2px solid rgba(57,216,255,.48) !important;
   border-radius: 0 !important;
-  background: linear-gradient(90deg,rgba(19,107,178,.1),transparent 72%) !important;
+  background: linear-gradient(90deg,rgba(19,107,178,.13),transparent 72%) !important;
   box-shadow: none !important;
 }
 .ns-video-empty-followup { display: grid; gap: 8px; padding-top: 8px; border-top: 1px solid rgba(89,185,255,.1); }
@@ -5613,7 +5620,7 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(a,strong,small,td,th) { overflow-wrap: anywhere; }
   body.ns-app .v933-shark-hero { min-height: 132px; grid-template-columns: 1fr; padding: 11px; }
   body.ns-app .v933-shark-hero p { display: none; }
-  body.ns-app .v933-shark-hero img { top: 39%; right: -94px; width: 340px; max-height: 112px; opacity: .56; filter: drop-shadow(0 0 26px rgba(42,181,255,.4)) brightness(1.08) saturate(1.08); }
+  body.ns-app .v933-shark-hero img { top: 39%; right: -72px; width: 350px; max-height: 116px; opacity: .72; filter: drop-shadow(0 0 28px rgba(42,181,255,.44)) brightness(1.1) saturate(1.06); }
   body.ns-app .v933-shark-hero .v933-hero-actions { max-width: 72%; }
   .ns16-account-status { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
   .ns16-account-status > a { min-height: 62px; grid-template-columns: 1fr; justify-items: center; padding: 6px 3px; text-align: center; }
@@ -5628,7 +5635,9 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
   body.ns-app .ns16-home-hero { min-height: 108px !important; padding: 9px 10px !important; }
-  body.ns-app .ns16-home-hero::before { display: block; right: -178px; top: 45%; width: 360px; opacity: .5; }
+  body.ns-app .ns16-home-hero::before { display: block; right: -52px; top: 43%; width: 340px; opacity: .5; }
+  .ns-video-empty-dashboard { min-height: 132px; padding: 10px 8px; }
+  .ns-video-empty-dashboard::before { right: -126px; width: 370px; opacity: .24; }
   body.ns-app .ns16-home-hero::after {
     background: linear-gradient(90deg, rgba(1,8,19,.94) 0%, rgba(1,8,19,.64) 51%, rgba(1,8,19,.12) 76%, rgba(1,8,19,.03) 100%);
   }
