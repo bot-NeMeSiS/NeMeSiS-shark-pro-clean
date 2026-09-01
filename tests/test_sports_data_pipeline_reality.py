@@ -198,6 +198,10 @@ def test_real_provider_payload_reaches_cache_players_and_continuity(tmp_path, mo
     assert conn.execute("SELECT COUNT(*) FROM api_football_h2h_history").fetchone()[0] == 1
     assert conn.execute("SELECT COUNT(*) FROM api_football_standings_deep").fetchone()[0] == 1
     assert conn.execute("SELECT COUNT(*) FROM player_profiles WHERE player_id='101'").fetchone()[0] == 1
+    persisted_payload = json.loads(
+        conn.execute("SELECT payload_json FROM api_exploitation_runs ORDER BY id DESC LIMIT 1").fetchone()[0]
+    )
+    assert persisted_payload["selected_fixture_ids"] == ["9001"]
     conn.close()
     summary = exploitation.api_exploitation_summary(db_path)
     continuity = {item["capability"]: item for item in summary["continuity"]}
