@@ -2,6 +2,17 @@
   "version": "V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL",
   "events": [
     {
+      "path": "/historico",
+      "method": "GET",
+      "referrer": "",
+      "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.7827.55 Safari/537.36",
+      "resolved_alias": "/track-record",
+      "source": "legacy_alias",
+      "count": 34,
+      "first_seen_madrid": "2026-07-10T21:56:57+02:00",
+      "last_seen_madrid": "2026-09-02T00:01:47+02:00"
+    },
+    {
       "path": "/ruta-inventada-v910",
       "method": "GET",
       "referrer": "",
@@ -22,17 +33,6 @@
       "count": 77,
       "first_seen_madrid": "2026-07-07T23:33:53+02:00",
       "last_seen_madrid": "2026-08-30T15:50:55+02:00"
-    },
-    {
-      "path": "/historico",
-      "method": "GET",
-      "referrer": "",
-      "user_agent": "Werkzeug/3.0.3",
-      "resolved_alias": "/track-record",
-      "source": "legacy_alias",
-      "count": 30,
-      "first_seen_madrid": "2026-07-10T21:56:57+02:00",
-      "last_seen_madrid": "2026-07-28T12:12:43+02:00"
     },
     {
       "path": "/refunds",
@@ -398,5 +398,5 @@
       "last_seen_madrid": "2026-07-05T00:58:55+02:00"
     }
   ],
-  "updated_at_madrid": "2026-08-30T15:50:55+02:00"
+  "updated_at_madrid": "2026-09-02T00:01:47+02:00"
 }
