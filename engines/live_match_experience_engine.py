@@ -61,9 +61,36 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
         return False
 
 
+def _public_live_truth(match: dict[str, Any] | None) -> dict[str, Any]:
+    """Canonical fail-closed truth for public LIVE publication.
+
+    API-Football live snapshots persist between syncs.  Their freshness clock is
+    ``last_synced_at``; expose it through the canonical V935 timestamp names so
+    a fixture that disappears from the provider's LIVE response cannot remain
+    publicly LIVE forever.
+    """
+    item = dict(match or {})
+    sync_timestamp = _first(
+        item,
+        "live_updated_at",
+        "provider_updated_at",
+        "last_synced_at",
+        "updated_at",
+    )
+    if sync_timestamp:
+        item.setdefault("live_updated_at", sync_timestamp)
+        item.setdefault("provider_updated_at", sync_timestamp)
+    return match_status_truth(item)
+
+
+def _keep_public_live(match: dict[str, Any] | None) -> bool:
+    truth = _public_live_truth(match)
+    return bool(truth.get("is_live") and not truth.get("status_conflict") and not truth.get("is_stale"))
+
+
 def get_match_status_label(match: dict[str, Any] | None) -> str:
     match = dict(match or {})
-    lifecycle = match_status_truth(match).get("lifecycle")
+    lifecycle = _public_live_truth(match).get("lifecycle")
     return {
         "LIVE": "En directo",
         "HALFTIME": "Descanso",
@@ -73,6 +100,7 @@ def get_match_status_label(match: dict[str, Any] | None) -> str:
         "POSTPONED": "Aplazado",
         "CANCELLED": "Cancelado",
         "ABANDONED": "Abandonado",
+        "STALE": "Datos retrasados",
         "INCOMPLETE": "Estado pendiente",
         "UPCOMING": "Próximo",
     }.get(str(lifecycle), "Estado pendiente")
@@ -120,6 +148,7 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
     home = teams.get("home") if isinstance(teams, dict) else {}
     away = teams.get("away") if isinstance(teams, dict) else {}
     status = fixture.get("status") if isinstance(fixture, dict) else {}
+    sync_timestamp = _first(raw, "live_updated_at", "provider_updated_at", "last_synced_at", "updated_at")
     item = dict(raw)
     item.update(
         {
@@ -138,6 +167,8 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
             "away_score": _first(raw, "away_score") or goals.get("away"),
             "kickoff_iso": _first(raw, "kickoff_iso") or fixture.get("date"),
             "provider": _first(raw, "provider", "source") or "api-sports-cache",
+            "live_updated_at": sync_timestamp,
+            "provider_updated_at": sync_timestamp,
         }
     )
     item["v850_status_label"] = get_match_status_label(item)
@@ -148,7 +179,7 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
 
 def build_live_card_payload(match: dict[str, Any] | None) -> dict[str, Any]:
     item = normalize_live_match(match)
-    truth = match_status_truth(item)
+    truth = _public_live_truth(item)
     status = item["v850_status_label"]
     score = item["v850_score_label"]
     minute = item["v850_minute_label"]
@@ -160,22 +191,30 @@ def build_live_card_payload(match: dict[str, Any] | None) -> dict[str, Any]:
         "status_label": status,
         "minute_label": minute,
         "score_label": score,
-        "is_live": bool(truth.get("is_live") and not truth.get("status_conflict")),
+        "is_live": bool(truth.get("is_live") and not truth.get("status_conflict") and not truth.get("is_stale")),
         "is_finished": status == "Finalizado",
         "is_pending": score in {"VS", "Resultado pendiente"},
         "home_logo": _text(item.get("home_logo")),
         "away_logo": _text(item.get("away_logo")),
         "league_logo": _text(item.get("league_logo")),
         "provider": _text(_first(item, "provider", "source")) or "cache",
-        "data_state": "Datos live reales" if status in {"En directo", "Descanso", "Finalizado"} else "Esperando proveedor",
+        "data_state": "Datos live reales" if truth.get("is_live") else "Datos retrasados" if truth.get("is_stale") else "Esperando proveedor",
         "status_contract": truth.get("contract"),
         "status_conflict": bool(truth.get("status_conflict")),
+        "is_stale": bool(truth.get("is_stale")),
+        "stale_reason": truth.get("stale_reason") or "",
+        "live_age_seconds": truth.get("live_age_seconds"),
         "detail_url": f"/match/{item.get('id')}" if item.get("id") else "/partidos",
         "shark_url": f"/shark?match={item.get('id')}" if item.get("id") else "/shark",
     }
 
 
 def get_live_matches_cached(db_path: str | None = None, limit: int = 40) -> list[dict[str, Any]]:
+    """Return only fresh, truth-confirmed LIVE fixtures from local cache.
+
+    Stale snapshot rows are intentionally retained in SQLite for diagnostics;
+    this read path simply prevents them from leaking onto public LIVE surfaces.
+    """
     if not db_path:
         return []
     try:
@@ -183,8 +222,12 @@ def get_live_matches_cached(db_path: str | None = None, limit: int = 40) -> list
         conn.row_factory = sqlite3.Row
         try:
             if _table_exists(conn, "api_football_live_snapshots"):
-                rows = conn.execute("SELECT * FROM api_football_live_snapshots ORDER BY last_synced_at DESC LIMIT ?", (int(limit),)).fetchall()
-                return [normalize_live_match(dict(row)) for row in rows]
+                rows = conn.execute(
+                    "SELECT * FROM api_football_live_snapshots ORDER BY last_synced_at DESC LIMIT ?",
+                    (max(int(limit) * 3, int(limit)),),
+                ).fetchall()
+                items = [normalize_live_match(dict(row)) for row in rows]
+                return [item for item in items if _keep_public_live(item)][: int(limit)]
             if _table_exists(conn, "matches"):
                 rows = conn.execute(
                     """SELECT * FROM matches
@@ -192,9 +235,10 @@ def get_live_matches_cached(db_path: str | None = None, limit: int = 40) -> list
                           OR lower(COALESCE(status,'')) LIKE '%directo%'
                           OR COALESCE(minute,'')!=''
                        ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
-                    (int(limit),),
+                    (max(int(limit) * 3, int(limit)),),
                 ).fetchall()
-                return [normalize_live_match(dict(row)) for row in rows]
+                items = [normalize_live_match(dict(row)) for row in rows]
+                return [item for item in items if _keep_public_live(item)][: int(limit)]
         finally:
             conn.close()
     except Exception:
@@ -225,16 +269,17 @@ def live_cache_summary(db_path: str | None = None) -> dict[str, Any]:
         "empty_state": "Sin directos reales" if not live_count else "",
         "cache_first": True,
         "no_render_calls": True,
+        "stale_publication_blocked": True,
     }
 
 
 def explain_live_data_state(db_path: str | None = None) -> dict[str, Any]:
     summary = live_cache_summary(db_path)
     if summary["cached_live"]:
-        return {"label": "Directo cacheado", "message": "Hay partidos live reales en caché.", "summary": summary}
+        return {"label": "Directo cacheado", "message": "Hay partidos live reales y recientes en caché.", "summary": summary}
     if summary["cached_total"]:
-        return {"label": "Sin directos reales", "message": "Hay fixtures cacheados, pero ninguno está en directo ahora.", "summary": summary}
-    return {"label": "Esperando proveedor", "message": "No hay cache live disponible. La app no inventa marcador ni minuto.", "summary": summary}
+        return {"label": "Sin directos reales", "message": "Hay fixtures cacheados, pero ninguno tiene evidencia LIVE reciente.", "summary": summary}
+    return {"label": "Esperando proveedor", "message": "No hay cache live reciente disponible. La app no inventa marcador ni minuto.", "summary": summary}
 
 
 def get_live_matches_from_api_sports_safe(dry_run: bool = True) -> dict[str, Any]:
