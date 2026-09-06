@@ -230,6 +230,53 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
                     "finished_at": "2026-09-01T15:20:00+00:00",
                     "external_calls": 7,
                     "fixture_ids": ["9001", secret],
+                    "source": "LAST_PERSISTED_DEEP_SAMPLE",
+                    "scope": "DEEP_ENRICHMENT",
+                    "is_current_job": False,
+                    "freshness_state": "HISTORICAL_SAMPLE_AGE_UNASSESSED",
+                },
+                "job_execution": {
+                    "state": "OK",
+                    "ok": True,
+                    "external_calls": 0,
+                    "processed": 1,
+                    "scope": "CURRENT_SPORTS_SYNC",
+                },
+                "provider_access": {
+                    "provider": "API-Football",
+                    "state": "AUTHENTICATED",
+                    "configured": True,
+                    "authenticated": True,
+                    "checked_at": "2026-09-01T15:20:00+00:00",
+                    "source": "LAST_PERSISTED_DEEP_SAMPLE",
+                },
+                "quota_observation": {
+                    "state": "OBSERVED",
+                    "values": {"daily_remaining": 93},
+                    "observed_at": "2026-09-01T15:20:00+00:00",
+                    "source": "LAST_PERSISTED_DEEP_SAMPLE",
+                    "freshness": "LAST_OBSERVED_NOT_CURRENT",
+                },
+                "coverage": {
+                    "provider": "API-Football",
+                    "source": "LAST_PERSISTED_DEEP_SAMPLE",
+                    "observed_at": "2026-09-01T15:20:00+00:00",
+                    "capabilities": {
+                        "lineups": {
+                            "state": "LAST_OBSERVED",
+                            "requested": True,
+                            "received": 2,
+                            "persisted": 9,
+                            "received_scope": "LAST_PERSISTED_DEEP_SAMPLE_RESPONSE",
+                            "persisted_scope": "STORE_TOTAL",
+                            "reason": secret,
+                        }
+                    },
+                },
+                "data_freshness": {
+                    "state": "NOT_ESTABLISHED",
+                    "entity_timestamps_evaluated": False,
+                    "reason": "Los contadores no prueban frescura.",
                 },
                 "unexpected": secret,
             },
@@ -249,6 +296,13 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
     assert pipeline["quota"]["daily_remaining"] == 93
     assert pipeline["capabilities"]["lineups"]["persisted"] == 2
     assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
+    assert pipeline["last_sample"]["source"] == "LAST_PERSISTED_DEEP_SAMPLE"
+    assert pipeline["job_execution"]["scope"] == "CURRENT_SPORTS_SYNC"
+    assert pipeline["provider_access"]["state"] == "AUTHENTICATED"
+    assert pipeline["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert pipeline["coverage"]["capabilities"]["lineups"]["persisted_scope"] == "STORE_TOTAL"
+    assert pipeline["coverage"]["capabilities"]["lineups"]["reason"] == "REDACTED"
+    assert pipeline["data_freshness"]["state"] == "NOT_ESTABLISHED"
     assert "unexpected" not in pipeline
     assert secret not in output
 

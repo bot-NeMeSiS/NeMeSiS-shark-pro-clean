@@ -96,10 +96,36 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "persisted": safe_count(raw_value.get("persisted")),
         }
     raw_sample = raw.get("last_sample") if isinstance(raw.get("last_sample"), dict) else {}
+    raw_job = raw.get("job_execution") if isinstance(raw.get("job_execution"), dict) else {}
+    raw_deep = raw.get("deep_execution") if isinstance(raw.get("deep_execution"), dict) else {}
+    raw_access = raw.get("provider_access") if isinstance(raw.get("provider_access"), dict) else {}
+    raw_plan = raw.get("provider_plan_observation") if isinstance(raw.get("provider_plan_observation"), dict) else {}
+    raw_quota_observation = raw.get("quota_observation") if isinstance(raw.get("quota_observation"), dict) else {}
+    raw_quota_values = raw_quota_observation.get("values") if isinstance(raw_quota_observation.get("values"), dict) else {}
+    raw_coverage = raw.get("coverage") if isinstance(raw.get("coverage"), dict) else {}
+    raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
+    raw_freshness = raw.get("data_freshness") if isinstance(raw.get("data_freshness"), dict) else {}
     fixture_ids = [
         safe_label(value, secret, "")
         for value in list(raw_sample.get("fixture_ids") or [])[:1]
     ]
+    coverage = {}
+    for raw_name, raw_value in list(raw_coverage_capabilities.items())[:20]:
+        if not isinstance(raw_value, dict):
+            continue
+        name = safe_label(raw_name, secret, "unknown")
+        if name == "REDACTED":
+            continue
+        coverage[name] = {
+            "state": safe_label(raw_value.get("state"), secret),
+            "requested": bool(raw_value.get("requested")),
+            "received": safe_count(raw_value.get("received")),
+            "persisted": safe_count(raw_value.get("persisted")),
+            "received_scope": safe_label(raw_value.get("received_scope"), secret),
+            "persisted_scope": safe_label(raw_value.get("persisted_scope"), secret),
+            "observed_at": safe_label(raw_value.get("observed_at"), secret, ""),
+            "reason": safe_label(raw_value.get("reason"), secret, ""),
+        }
     return {
         "status": safe_label(raw.get("status"), secret),
         "deep_status": safe_label(raw.get("deep_status"), secret),
@@ -113,6 +139,72 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "finished_at": safe_label(raw_sample.get("finished_at"), secret, ""),
             "external_calls": safe_count(raw_sample.get("external_calls")),
             "fixture_ids": [value for value in fixture_ids if value and value != "REDACTED"],
+            "source": safe_label(raw_sample.get("source"), secret, "NONE"),
+            "scope": safe_label(raw_sample.get("scope"), secret, "DEEP_ENRICHMENT"),
+            "is_current_job": bool(raw_sample.get("is_current_job")),
+            "freshness_state": safe_label(raw_sample.get("freshness_state"), secret),
+        },
+        "job_execution": {
+            "state": safe_label(raw_job.get("state"), secret),
+            "ok": raw_job.get("ok") if isinstance(raw_job.get("ok"), bool) else None,
+            "started_at": safe_label(raw_job.get("started_at"), secret, ""),
+            "finished_at": safe_label(raw_job.get("finished_at"), secret, ""),
+            "trigger_type": safe_label(raw_job.get("trigger_type"), secret, ""),
+            "external_calls": safe_count(raw_job.get("external_calls")),
+            "processed": safe_count(raw_job.get("processed")),
+            "scope": safe_label(raw_job.get("scope"), secret, "CURRENT_SPORTS_SYNC"),
+        },
+        "deep_execution": {
+            "state": safe_label(raw_deep.get("state"), secret),
+            "status": safe_label(raw_deep.get("status"), secret),
+            "external_calls": safe_count(raw_deep.get("external_calls")),
+            "scope": safe_label(raw_deep.get("scope"), secret, "CURRENT_SPORTS_SYNC"),
+        },
+        "provider_access": {
+            "provider": safe_label(raw_access.get("provider"), secret, "API-Football"),
+            "state": safe_label(raw_access.get("state"), secret, "NOT_CHECKED"),
+            "configured": raw_access.get("configured") if isinstance(raw_access.get("configured"), bool) else None,
+            "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
+            "checked_at": safe_label(raw_access.get("checked_at"), secret, ""),
+            "source": safe_label(raw_access.get("source"), secret, "NONE"),
+        },
+        "provider_plan_observation": {
+            "state": safe_label(raw_plan.get("state"), secret),
+            "value": (
+                safe_label(raw_plan.get("value"), secret, "")
+                if raw_plan.get("value") is not None
+                else None
+            ),
+            "observed_at": safe_label(raw_plan.get("observed_at"), secret, ""),
+            "source": safe_label(raw_plan.get("source"), secret, "NONE"),
+        },
+        "quota_observation": {
+            "state": safe_label(raw_quota_observation.get("state"), secret),
+            "values": {
+                key: safe_count(raw_quota_values.get(key))
+                for key in (
+                    "daily_limit",
+                    "daily_used",
+                    "daily_remaining",
+                    "minute_limit",
+                    "minute_remaining",
+                )
+                if raw_quota_values.get(key) is not None
+            },
+            "observed_at": safe_label(raw_quota_observation.get("observed_at"), secret, ""),
+            "source": safe_label(raw_quota_observation.get("source"), secret, "NONE"),
+            "freshness": safe_label(raw_quota_observation.get("freshness"), secret),
+        },
+        "coverage": {
+            "provider": safe_label(raw_coverage.get("provider"), secret, "API-Football"),
+            "source": safe_label(raw_coverage.get("source"), secret, "NONE"),
+            "observed_at": safe_label(raw_coverage.get("observed_at"), secret, ""),
+            "capabilities": coverage,
+        },
+        "data_freshness": {
+            "state": safe_label(raw_freshness.get("state"), secret, "NOT_ESTABLISHED"),
+            "entity_timestamps_evaluated": bool(raw_freshness.get("entity_timestamps_evaluated")),
+            "reason": safe_label(raw_freshness.get("reason"), secret, ""),
         },
     }
 

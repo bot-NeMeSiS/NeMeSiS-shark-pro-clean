@@ -1,3 +1,4 @@
+import copy
 import csv
 import hashlib
 import ipaddress
@@ -319,7 +320,9 @@ from engines.team_identity_engine import (
 from engines.picks_quality_engine import (
     enrich_pick_quality,
     pick_is_premium_ready,
+    sort_enriched_picks_by_quality,
     sort_picks_by_quality,
+    split_enriched_picks_by_quality,
     split_picks_by_quality,
 )
 from engines.pick_analysis_experience_engine import enrich_pick_analysis
@@ -1469,6 +1472,329 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     return result
 
 
+def _sports_diagnostic_text(value, limit=120):
+    return sanitize_http_header_value(masked_admin_text(value, limit), limit=limit)
+
+
+def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
+    """Describe execution, access, quota and coverage without conflating them."""
+    sports_result = dict(sports_result or {})
+    deep = sports_result.get("deep_enrichment")
+    deep = dict(deep) if isinstance(deep, dict) else {}
+    deep_history = dict(deep_history or {})
+    latest_run = deep_history.get("latest_run")
+    latest_run = dict(latest_run) if isinstance(latest_run, dict) else {}
+    latest_payload = {}
+    try:
+        latest_payload = json.loads(str(latest_run.get("payload_json") or "{}"))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        latest_payload = {}
+    if not isinstance(latest_payload, dict):
+        latest_payload = {}
+
+    current_capabilities = deep.get("capabilities")
+    current_capabilities = (
+        dict(current_capabilities)
+        if isinstance(current_capabilities, dict)
+        else {}
+    )
+    historical_capabilities = latest_payload.get("capabilities")
+    historical_capabilities = (
+        dict(historical_capabilities)
+        if isinstance(historical_capabilities, dict)
+        else {}
+    )
+    continuity = {
+        str(item.get("capability") or "unknown"): dict(item)
+        for item in deep_history.get("continuity") or []
+        if isinstance(item, dict)
+    }
+
+    current_account = deep.get("account")
+    current_account = dict(current_account) if isinstance(current_account, dict) else {}
+    historical_account = deep_history.get("latest_account")
+    historical_account = (
+        dict(historical_account)
+        if isinstance(historical_account, dict)
+        else {}
+    )
+
+    def account_checked(account, capabilities):
+        trace = capabilities.get("account")
+        if isinstance(trace, dict):
+            return True
+        if not account:
+            return False
+        if bool(account.get("ok")) or as_int(account.get("http_status"), 0) > 0:
+            return True
+        return bool(account.get("configured") and account.get("error"))
+
+    current_account_checked = account_checked(current_account, current_capabilities)
+    historical_account_checked = account_checked(
+        historical_account,
+        historical_capabilities,
+    )
+    if current_account_checked:
+        observed_account = current_account
+        access_source = "CURRENT_DEEP_RUN"
+        access_observed_at = deep.get("finished_at") or sports_result.get("finished_at")
+        access_checked = True
+    elif historical_account_checked:
+        observed_account = historical_account
+        access_source = "LAST_PERSISTED_DEEP_SAMPLE"
+        access_observed_at = latest_run.get("finished_at")
+        access_checked = True
+    elif current_account:
+        observed_account = current_account
+        access_source = "CURRENT_CONFIGURATION_DETECTION"
+        access_observed_at = ""
+        access_checked = False
+    elif historical_account:
+        observed_account = historical_account
+        access_source = "PERSISTED_CONFIGURATION_DETECTION"
+        access_observed_at = ""
+        access_checked = False
+    else:
+        observed_account = {}
+        access_source = "NONE"
+        access_observed_at = ""
+        access_checked = False
+
+    if not access_checked:
+        access_state = "NOT_CHECKED"
+        authenticated = None
+    else:
+        authenticated = bool(observed_account.get("ok"))
+        access_state = "AUTHENTICATED" if authenticated else "ACCESS_FAILED"
+
+    plan_value = _sports_diagnostic_text(observed_account.get("plan"), 80)
+    plan_observed = bool(
+        access_checked
+        and plan_value
+        and plan_value.upper() not in {"INACCESSIBLE", "UNKNOWN"}
+    )
+    quota_value = (
+        dict(observed_account.get("quota"))
+        if isinstance(observed_account.get("quota"), dict)
+        else {}
+    )
+    quota_observed = bool(access_checked and quota_value)
+
+    current_coverage = {
+        key: value
+        for key, value in current_capabilities.items()
+        if key != "account" and isinstance(value, dict)
+    }
+    if current_coverage:
+        coverage_source = "CURRENT_DEEP_RUN"
+        coverage_observed_at = deep.get("finished_at") or sports_result.get("finished_at")
+        coverage_values = current_coverage
+        received_scope = "CURRENT_DEEP_RUN_RESPONSE"
+        persisted_scope = "CURRENT_DEEP_RUN_WRITES"
+    elif continuity:
+        coverage_source = "LAST_PERSISTED_DEEP_SAMPLE"
+        coverage_observed_at = latest_run.get("finished_at")
+        coverage_values = continuity
+        received_scope = "LAST_PERSISTED_DEEP_SAMPLE_RESPONSE"
+        persisted_scope = "STORE_TOTAL"
+    else:
+        coverage_source = "NONE"
+        coverage_observed_at = ""
+        coverage_values = {}
+        received_scope = "UNKNOWN"
+        persisted_scope = "UNKNOWN"
+
+    coverage_capabilities = {}
+    for raw_name, raw_value in coverage_values.items():
+        name = _sports_diagnostic_text(raw_name, 80) or "unknown"
+        value = dict(raw_value or {})
+        requested = bool(value.get("requested"))
+        received = as_int(value.get("received"), 0)
+        persisted = as_int(value.get("persisted"), 0)
+        reason = _sports_diagnostic_text(value.get("reason"), 100)
+        if coverage_source == "LAST_PERSISTED_DEEP_SAMPLE":
+            state = "LAST_OBSERVED"
+        elif not requested:
+            state = (
+                "QUOTA_LIMITED"
+                if "quota" in reason.lower()
+                else "NOT_AVAILABLE_FOR_CONTEXT"
+                if "missing" in reason.lower() or "unavailable" in reason.lower()
+                else "NOT_REQUESTED"
+            )
+        elif access_state == "ACCESS_FAILED":
+            state = "ACCESS_FAILED"
+        elif received:
+            state = "RECEIVED"
+        else:
+            state = "EMPTY_RESPONSE"
+        coverage_capabilities[name] = {
+            "state": state,
+            "requested": requested,
+            "received": received,
+            "persisted": persisted,
+            "received_scope": received_scope,
+            "persisted_scope": persisted_scope,
+            "observed_at": _sports_diagnostic_text(coverage_observed_at, 80),
+            "reason": reason,
+        }
+
+    legacy_account = current_account or historical_account
+    legacy_capability_source = current_capabilities or continuity
+    sample_is_historical = bool(latest_run)
+    sample_source = (
+        "LAST_PERSISTED_DEEP_SAMPLE"
+        if sample_is_historical
+        else "CURRENT_DEEP_RUN"
+        if deep
+        else "NONE"
+    )
+    sample_finished_at = latest_run.get("finished_at") or deep.get("finished_at") or ""
+    sample_status = latest_run.get("status") or deep.get("status") or "UNKNOWN"
+    sample_payload_fixture_ids = latest_payload.get("selected_fixture_ids") or []
+    sample_fixture_ids = (
+        sample_payload_fixture_ids
+        if sample_is_historical
+        else deep.get("selected_fixture_ids") or []
+    )
+    deep_status = sports_result.get("deep_status") or deep.get("status") or "UNKNOWN"
+    deep_status_text = _sports_diagnostic_text(deep_status, 80) or "UNKNOWN"
+    if deep_status_text.startswith("SKIPPED"):
+        deep_execution_state = "NOT_DUE"
+    elif deep_status_text == "UNKNOWN":
+        deep_execution_state = "UNKNOWN"
+    else:
+        deep_execution_state = "RAN"
+
+    return {
+        # Legacy fields remain stable for existing cron/admin consumers.
+        "status": _sports_diagnostic_text(sports_result.get("status"), 80) or "UNKNOWN",
+        "deep_status": deep_status_text,
+        "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
+        "provider_authenticated": bool(legacy_account.get("ok")),
+        "provider_plan": _sports_diagnostic_text(
+            legacy_account.get("plan"),
+            80,
+        )
+        or "INACCESSIBLE",
+        "quota": legacy_account.get("quota") or {},
+        "capabilities": {
+            _sports_diagnostic_text(key, 80): {
+                "requested": bool(value.get("requested")),
+                "received": as_int(value.get("received"), 0),
+                "persisted": as_int(value.get("persisted"), 0),
+            }
+            for key, value in legacy_capability_source.items()
+            if isinstance(value, dict) and _sports_diagnostic_text(key, 80)
+        },
+        "last_sample": {
+            "status": _sports_diagnostic_text(sample_status, 80) or "UNKNOWN",
+            "finished_at": _sports_diagnostic_text(sample_finished_at, 80),
+            "external_calls": as_int(
+                latest_run.get("external_calls")
+                if sample_is_historical
+                else deep.get("external_calls"),
+                0,
+            ),
+            "fixture_ids": [
+                _sports_diagnostic_text(value, 40)
+                for value in list(sample_fixture_ids)[:1]
+                if _sports_diagnostic_text(value, 40)
+            ],
+            "source": sample_source,
+            "scope": "DEEP_ENRICHMENT",
+            "is_current_job": bool(deep and not sample_is_historical),
+            "freshness_state": (
+                "CURRENT_RUN"
+                if deep and not sample_is_historical
+                else "HISTORICAL_SAMPLE_AGE_UNASSESSED"
+                if sample_is_historical
+                else "UNKNOWN"
+            ),
+        },
+        "job_execution": {
+            "state": _sports_diagnostic_text(sports_result.get("status"), 80)
+            or "UNKNOWN",
+            "ok": (
+                bool(sports_result.get("ok"))
+                if "ok" in sports_result
+                else None
+            ),
+            "started_at": _sports_diagnostic_text(sports_result.get("started_at"), 80),
+            "finished_at": _sports_diagnostic_text(sports_result.get("finished_at"), 80),
+            "trigger_type": _sports_diagnostic_text(
+                sports_result.get("trigger_type"),
+                80,
+            ),
+            "external_calls": as_int(sports_result.get("external_calls"), 0),
+            "processed": as_int(sports_result.get("processed"), 0),
+            "scope": "CURRENT_SPORTS_SYNC",
+        },
+        "deep_execution": {
+            "state": deep_execution_state,
+            "status": deep_status_text,
+            "external_calls": as_int(
+                sports_result.get("deep_external_calls"),
+                0,
+            ),
+            "scope": "CURRENT_SPORTS_SYNC",
+        },
+        "provider_access": {
+            "provider": "API-Football",
+            "state": access_state,
+            "configured": (
+                bool(observed_account.get("configured"))
+                if "configured" in observed_account
+                else None
+            ),
+            "authenticated": authenticated,
+            "checked_at": _sports_diagnostic_text(access_observed_at, 80),
+            "source": access_source,
+        },
+        "provider_plan_observation": {
+            "state": "OBSERVED" if plan_observed else "UNKNOWN",
+            "value": plan_value if plan_observed else None,
+            "observed_at": (
+                _sports_diagnostic_text(access_observed_at, 80)
+                if plan_observed
+                else ""
+            ),
+            "source": access_source if plan_observed else "NONE",
+        },
+        "quota_observation": {
+            "state": "OBSERVED" if quota_observed else "UNKNOWN",
+            "values": quota_value if quota_observed else {},
+            "observed_at": (
+                _sports_diagnostic_text(access_observed_at, 80)
+                if quota_observed
+                else ""
+            ),
+            "source": access_source if quota_observed else "NONE",
+            "freshness": (
+                "CURRENT_DEEP_RUN"
+                if quota_observed and access_source == "CURRENT_DEEP_RUN"
+                else "LAST_OBSERVED_NOT_CURRENT"
+                if quota_observed
+                else "UNKNOWN"
+            ),
+        },
+        "coverage": {
+            "provider": "API-Football",
+            "source": coverage_source,
+            "observed_at": _sports_diagnostic_text(coverage_observed_at, 80),
+            "capabilities": coverage_capabilities,
+        },
+        "data_freshness": {
+            "state": "NOT_ESTABLISHED",
+            "entity_timestamps_evaluated": False,
+            "reason": (
+                "Los contadores del pipeline no acreditan la frescura de cada "
+                "partido, marcador, alineación o estadística."
+            ),
+        },
+    }
+
+
 def telegram_cron_with_sports_sync(force=False):
     """Reuse the proven Telegram Cron trigger without coupling sports to delivery."""
     sports_result = {}
@@ -1497,44 +1823,10 @@ def telegram_cron_with_sports_sync(force=False):
             deep_history = api_exploitation_summary(DB_PATH) or {}
         except Exception:
             deep_history = {}
-    account = deep.get("account") or deep_history.get("latest_account") or {}
-    capability_source = deep.get("capabilities") or {
-        str(item.get("capability") or "unknown"): item
-        for item in deep_history.get("continuity") or []
-        if isinstance(item, dict)
-    }
-    latest_run = deep_history.get("latest_run") or {}
-    latest_payload = {}
-    try:
-        latest_payload = json.loads(str(latest_run.get("payload_json") or "{}"))
-    except (TypeError, ValueError, json.JSONDecodeError):
-        latest_payload = {}
-    telegram_result["sports_pipeline"] = {
-        "status": sports_result.get("status") or "UNKNOWN",
-        "deep_status": sports_result.get("deep_status") or "UNKNOWN",
-        "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
-        "provider_authenticated": bool(account.get("ok")),
-        "provider_plan": account.get("plan") or "INACCESSIBLE",
-        "quota": account.get("quota") or {},
-        "capabilities": {
-            key: {
-                "requested": bool(value.get("requested")),
-                "received": as_int(value.get("received"), 0),
-                "persisted": as_int(value.get("persisted"), 0),
-            }
-            for key, value in capability_source.items()
-            if isinstance(value, dict)
-        },
-        "last_sample": {
-            "status": latest_run.get("status") or deep.get("status") or "UNKNOWN",
-            "finished_at": latest_run.get("finished_at") or deep.get("finished_at") or "",
-            "external_calls": as_int(latest_run.get("external_calls") or deep.get("external_calls"), 0),
-            "fixture_ids": [
-                str(value)[:40]
-                for value in (latest_payload.get("selected_fixture_ids") or deep.get("selected_fixture_ids") or [])[:1]
-            ],
-        },
-    }
+    telegram_result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
+        sports_result,
+        deep_history,
+    )
     return telegram_result
 
 
@@ -1600,12 +1892,21 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         raw_quota = raw_pipeline.get("quota") if isinstance(raw_pipeline.get("quota"), dict) else {}
         raw_capabilities = raw_pipeline.get("capabilities") if isinstance(raw_pipeline.get("capabilities"), dict) else {}
         raw_sample = raw_pipeline.get("last_sample") if isinstance(raw_pipeline.get("last_sample"), dict) else {}
+        raw_job = raw_pipeline.get("job_execution") if isinstance(raw_pipeline.get("job_execution"), dict) else {}
+        raw_deep = raw_pipeline.get("deep_execution") if isinstance(raw_pipeline.get("deep_execution"), dict) else {}
+        raw_access = raw_pipeline.get("provider_access") if isinstance(raw_pipeline.get("provider_access"), dict) else {}
+        raw_plan = raw_pipeline.get("provider_plan_observation") if isinstance(raw_pipeline.get("provider_plan_observation"), dict) else {}
+        raw_quota_observation = raw_pipeline.get("quota_observation") if isinstance(raw_pipeline.get("quota_observation"), dict) else {}
+        raw_quota_values = raw_quota_observation.get("values") if isinstance(raw_quota_observation.get("values"), dict) else {}
+        raw_coverage = raw_pipeline.get("coverage") if isinstance(raw_pipeline.get("coverage"), dict) else {}
+        raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
+        raw_freshness = raw_pipeline.get("data_freshness") if isinstance(raw_pipeline.get("data_freshness"), dict) else {}
         compact["sports_pipeline"] = {
-            "status": sanitize_http_header_value(raw_pipeline.get("status"), limit=80) or "UNKNOWN",
-            "deep_status": sanitize_http_header_value(raw_pipeline.get("deep_status"), limit=80) or "UNKNOWN",
+            "status": _sports_diagnostic_text(raw_pipeline.get("status"), 80) or "UNKNOWN",
+            "deep_status": _sports_diagnostic_text(raw_pipeline.get("deep_status"), 80) or "UNKNOWN",
             "deep_external_calls": as_int(raw_pipeline.get("deep_external_calls"), 0),
             "provider_authenticated": bool(raw_pipeline.get("provider_authenticated")),
-            "provider_plan": sanitize_http_header_value(raw_pipeline.get("provider_plan"), limit=80) or "INACCESSIBLE",
+            "provider_plan": _sports_diagnostic_text(raw_pipeline.get("provider_plan"), 80) or "INACCESSIBLE",
             "quota": {
                 key: as_int(raw_quota.get(key), 0)
                 for key in (
@@ -1631,10 +1932,85 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "finished_at": sanitize_http_header_value(raw_sample.get("finished_at"), limit=80),
                 "external_calls": as_int(raw_sample.get("external_calls"), 0),
                 "fixture_ids": [
-                    sanitize_http_header_value(value, limit=40)
+                    _sports_diagnostic_text(value, 40)
                     for value in list(raw_sample.get("fixture_ids") or [])[:1]
-                    if sanitize_http_header_value(value, limit=40)
+                    if _sports_diagnostic_text(value, 40)
                 ],
+                "source": _sports_diagnostic_text(raw_sample.get("source"), 80) or "NONE",
+                "scope": _sports_diagnostic_text(raw_sample.get("scope"), 80) or "DEEP_ENRICHMENT",
+                "is_current_job": bool(raw_sample.get("is_current_job")),
+                "freshness_state": _sports_diagnostic_text(raw_sample.get("freshness_state"), 80) or "UNKNOWN",
+            },
+            "job_execution": {
+                "state": _sports_diagnostic_text(raw_job.get("state"), 80) or "UNKNOWN",
+                "ok": raw_job.get("ok") if isinstance(raw_job.get("ok"), bool) else None,
+                "started_at": _sports_diagnostic_text(raw_job.get("started_at"), 80),
+                "finished_at": _sports_diagnostic_text(raw_job.get("finished_at"), 80),
+                "trigger_type": _sports_diagnostic_text(raw_job.get("trigger_type"), 80),
+                "external_calls": as_int(raw_job.get("external_calls"), 0),
+                "processed": as_int(raw_job.get("processed"), 0),
+                "scope": _sports_diagnostic_text(raw_job.get("scope"), 80) or "CURRENT_SPORTS_SYNC",
+            },
+            "deep_execution": {
+                "state": _sports_diagnostic_text(raw_deep.get("state"), 80) or "UNKNOWN",
+                "status": _sports_diagnostic_text(raw_deep.get("status"), 80) or "UNKNOWN",
+                "external_calls": as_int(raw_deep.get("external_calls"), 0),
+                "scope": _sports_diagnostic_text(raw_deep.get("scope"), 80) or "CURRENT_SPORTS_SYNC",
+            },
+            "provider_access": {
+                "provider": _sports_diagnostic_text(raw_access.get("provider"), 80) or "API-Football",
+                "state": _sports_diagnostic_text(raw_access.get("state"), 80) or "NOT_CHECKED",
+                "configured": raw_access.get("configured") if isinstance(raw_access.get("configured"), bool) else None,
+                "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
+                "checked_at": _sports_diagnostic_text(raw_access.get("checked_at"), 80),
+                "source": _sports_diagnostic_text(raw_access.get("source"), 80) or "NONE",
+            },
+            "provider_plan_observation": {
+                "state": _sports_diagnostic_text(raw_plan.get("state"), 80) or "UNKNOWN",
+                "value": _sports_diagnostic_text(raw_plan.get("value"), 80) or None,
+                "observed_at": _sports_diagnostic_text(raw_plan.get("observed_at"), 80),
+                "source": _sports_diagnostic_text(raw_plan.get("source"), 80) or "NONE",
+            },
+            "quota_observation": {
+                "state": _sports_diagnostic_text(raw_quota_observation.get("state"), 80) or "UNKNOWN",
+                "values": {
+                    key: as_int(raw_quota_values.get(key), 0)
+                    for key in (
+                        "daily_limit",
+                        "daily_used",
+                        "daily_remaining",
+                        "minute_limit",
+                        "minute_remaining",
+                    )
+                    if raw_quota_values.get(key) is not None
+                },
+                "observed_at": _sports_diagnostic_text(raw_quota_observation.get("observed_at"), 80),
+                "source": _sports_diagnostic_text(raw_quota_observation.get("source"), 80) or "NONE",
+                "freshness": _sports_diagnostic_text(raw_quota_observation.get("freshness"), 80) or "UNKNOWN",
+            },
+            "coverage": {
+                "provider": _sports_diagnostic_text(raw_coverage.get("provider"), 80) or "API-Football",
+                "source": _sports_diagnostic_text(raw_coverage.get("source"), 80) or "NONE",
+                "observed_at": _sports_diagnostic_text(raw_coverage.get("observed_at"), 80),
+                "capabilities": {
+                    _sports_diagnostic_text(name, 80): {
+                        "state": _sports_diagnostic_text(value.get("state"), 80) or "UNKNOWN",
+                        "requested": bool(value.get("requested")),
+                        "received": as_int(value.get("received"), 0),
+                        "persisted": as_int(value.get("persisted"), 0),
+                        "received_scope": _sports_diagnostic_text(value.get("received_scope"), 80) or "UNKNOWN",
+                        "persisted_scope": _sports_diagnostic_text(value.get("persisted_scope"), 80) or "UNKNOWN",
+                        "observed_at": _sports_diagnostic_text(value.get("observed_at"), 80),
+                        "reason": _sports_diagnostic_text(value.get("reason"), 100),
+                    }
+                    for name, value in list(raw_coverage_capabilities.items())[:20]
+                    if isinstance(value, dict) and _sports_diagnostic_text(name, 80)
+                },
+            },
+            "data_freshness": {
+                "state": _sports_diagnostic_text(raw_freshness.get("state"), 80) or "NOT_ESTABLISHED",
+                "entity_timestamps_evaluated": bool(raw_freshness.get("entity_timestamps_evaluated")),
+                "reason": _sports_diagnostic_text(raw_freshness.get("reason"), 180),
             },
         }
     if endpoint == "daily_run":
@@ -5909,27 +6285,52 @@ def normalize_pick_row(pick):
 def get_picks(limit=50, status=None, membership=None, include_admin=False):
     clauses = []
     params = []
+    normalized_statuses = ()
     if status:
         statuses = status if isinstance(status, (list, tuple, set)) else [status]
+        normalized_statuses = tuple(normalize_pick_status(value) for value in statuses)
         placeholders = ",".join("?" for _ in statuses)
         clauses.append(f"lower(status) IN ({placeholders})")
-        params.extend([normalize_pick_status(x) for x in statuses])
+        params.extend(normalized_statuses)
     if membership and not include_admin:
         allowed = [plan for plan, rank in {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}.items() if rank <= membership_rank(membership)]
         placeholders = ",".join("?" for _ in allowed)
         clauses.append(f"upper(COALESCE(membership_required,'FREE')) IN ({placeholders})")
         params.extend(allowed)
+    request_cache = None
+    cache_key = None
+    if has_request_context() and request.method in {"GET", "HEAD"}:
+        request_cache = getattr(g, "nemesis_pick_query_cache", None)
+        if request_cache is None:
+            request_cache = {}
+            g.nemesis_pick_query_cache = request_cache
+        cache_key = (
+            str(DB_PATH),
+            str(session.get("user_id") or ""),
+            str(session.get("user_role") or ""),
+            str(session.get("membership") or session.get("user_membership") or ""),
+            int(limit),
+            normalized_statuses,
+            str(membership or "").upper(),
+            bool(include_admin),
+            today_iso(),
+        )
+        if cache_key in request_cache:
+            return copy.deepcopy(request_cache[cache_key])
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     query = f"SELECT * FROM picks{where} ORDER BY COALESCE(published_at, updated_at, created_at) DESC, confidence DESC LIMIT ?"
     params.append(int(limit))
-    return sort_picks_by_quality([normalize_pick_row(pick) for pick in rows(query, params)])
+    result = sort_enriched_picks_by_quality([normalize_pick_row(pick) for pick in rows(query, params)])
+    if request_cache is not None and cache_key is not None:
+        request_cache[cache_key] = copy.deepcopy(result)
+    return result
 
 
 def published_picks_for_user(user=None, limit=50):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = user.get("membership") or user.get("role") or "FREE"
     include_admin = normalize_role(user.get("role")) == "ADMIN"
-    return sort_picks_by_quality(get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin))
+    return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
 
 
 def create_or_update_pick(payload, pick_id=None, publish=False):
@@ -6543,19 +6944,21 @@ def build_client_alerts(limit=12, user_id=None):
     return alerts[: int(limit)]
 
 
-def client_retention_summary():
-    user = current_session_user() or {}
-    alerts = build_client_alerts(limit=8, user_id=user.get("id"))
-    activity = client_activity_feed(limit=8, user_id=user.get("id")) if user else []
+def client_retention_summary(user=None, alerts=None, activity=None, favorites=None, telegram=None):
+    user = user or current_session_user() or {}
+    alerts = alerts if alerts is not None else build_client_alerts(limit=8, user_id=user.get("id"))
+    activity = activity if activity is not None else (client_activity_feed(limit=8, user_id=user.get("id")) if user else [])
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=20)
     picks = published_picks_for_user(user or {"membership": "FREE"}, limit=10)
+    favorites = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user else [])
+    telegram = telegram if telegram is not None else telegram_config()
     return {
         "alerts": alerts,
         "activity": activity,
         "upcoming_count": len(upcoming),
         "picks_count": len(picks),
-        "favorites_count": len(get_favorites(user_id=user.get("id")) if user else []),
-        "telegram_ready": telegram_config().get("configured"),
+        "favorites_count": len(favorites),
+        "telegram_ready": telegram.get("configured"),
         "next_best_action": alerts[0] if alerts else None,
     }
 
@@ -6578,7 +6981,7 @@ def client_progress_score(user=None):
     return max(0, min(100, score))
 
 
-def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None):
+def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None, smart=None, alerts=None, activity=None):
     """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(today_iso())
@@ -6586,9 +6989,9 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     today_matches = get_matches(today_iso(), "today")
     favs = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user.get("id") else [])
     picks = picks if picks is not None else published_picks_for_user(user, limit=8)
-    smart = smart_pick_board(user, limit=8)
-    alerts = build_client_alerts(limit=6, user_id=user.get("id"))
-    activity = client_activity_feed(limit=6, user_id=user.get("id")) if user.get("id") else []
+    smart = smart if smart is not None else smart_pick_board(user, limit=8)
+    alerts = alerts if alerts is not None else build_client_alerts(limit=6, user_id=user.get("id"))
+    activity = activity if activity is not None else (client_activity_feed(limit=6, user_id=user.get("id")) if user.get("id") else [])
     next_action = alerts[0] if alerts else {
         "title": "Explora el calendario",
         "body": "Revisa partidos por liga y guarda tus favoritos para personalizar la experiencia.",
@@ -6636,9 +7039,9 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     }
 
 
-def client_command_center_data(user=None):
+def client_command_center_data(user=None, briefing=None):
     user = user or current_session_user() or {}
-    briefing = build_daily_briefing(user)
+    briefing = briefing if briefing is not None else build_daily_briefing(user)
     return {
         "briefing": briefing,
         "readiness": {
@@ -6885,9 +7288,9 @@ def favorite_feed_full(limit=80, user_id=None):
 
 
 
-def favorite_insights(user_id=None):
-    favs = get_favorites(user_id=user_id)
-    bundle = favorite_feed_full(user_id=user_id)
+def favorite_insights(user_id=None, favorites=None, bundle=None):
+    favs = favorites if favorites is not None else get_favorites(user_id=user_id)
+    bundle = bundle if bundle is not None else favorite_feed_full(user_id=user_id)
     by_kind = {"team": [], "league": [], "match": []}
     for fav in favs:
         by_kind.setdefault(fav.get("kind") or "other", []).append(fav)
@@ -8210,8 +8613,8 @@ def smart_pick_board(user=None, limit=24):
     suficiente. Lo dudoso queda en estudio para no vender señales débiles.
     """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    published = sort_picks_by_quality(published_picks_for_user(user, limit=max(limit, 50)))
-    quality = split_picks_by_quality(published)
+    published = published_picks_for_user(user, limit=max(limit, 50))
+    quality = split_enriched_picks_by_quality(published)
     hot = quality["ready"][:12]
     study = quality["study"][:12]
     top = quality["top"][:6]
@@ -8529,6 +8932,30 @@ def user_public(row):
 def current_session_user():
     if not session.get("user_id"):
         return None
+    cache_allowed = has_request_context() and request.method in {"GET", "HEAD"}
+
+    def session_identity():
+        return (
+            str(session.get("user_id") or ""),
+            str(session.get("user_role") or ""),
+            str(session.get("membership") or session.get("user_membership") or ""),
+            str(session.get("membership_expires_at") or ""),
+        )
+
+    if cache_allowed:
+        cached = getattr(g, "nemesis_session_user_cache", None)
+        if isinstance(cached, dict) and cached.get("identity") == session_identity():
+            return copy.deepcopy(cached.get("user"))
+
+    def remember(value):
+        result = dict(value or {})
+        if cache_allowed:
+            g.nemesis_session_user_cache = {
+                "identity": session_identity(),
+                "user": copy.deepcopy(result),
+            }
+        return result
+
     # If an admin gift or offer has expired, refresh the session once and keep
     # the rest of the app seeing the correct plan immediately.
     try:
@@ -8543,10 +8970,10 @@ def current_session_user():
                 session["user_membership"] = public["membership"]
                 session["membership"] = public["membership"]
                 session["membership_expires_at"] = public.get("membership_expires_at") or ""
-                return public
+                return remember(public)
     except Exception:
         pass
-    return {
+    return remember({
         "id": session.get("user_id"),
         "name": session.get("user_name") or "Cliente SHARK",
         "username": session.get("username") or session.get("user_name") or "",
@@ -8555,7 +8982,7 @@ def current_session_user():
         "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
         "membership_expires_at": session.get("membership_expires_at") or "",
         "membership_expires_label": membership_expires_label(session.get("membership_expires_at")),
-    }
+    })
 
 
 def current_user_id():
@@ -13174,6 +13601,7 @@ def dashboard_data(lane="today", date=None):
     upcoming_matches = get_upcoming_matches(date, days=7)
     comps = competitions()
     imports = rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 20")
+    session_user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     picks = [enrich_pick_client_context(p) for p in get_picks(limit=30)]
     combis = get_combis(limit=12)
     profile = default_profile()
@@ -13181,8 +13609,27 @@ def dashboard_data(lane="today", date=None):
     hub = match_hub(date)
     past_results = get_results_matches(date, days_back=21, limit=180)
     candidate_matches = pick_candidate_matches(limit=80, days=21)
-    smart_picks = smart_pick_board()
+    smart_picks = smart_pick_board(session_user)
     favorite_bundle = favorite_feed_full()
+    favorite_summary = favorite_insights(favorites=favorites, bundle=favorite_bundle)
+    client_alerts = build_client_alerts(limit=8)
+    client_activity = client_activity_feed(limit=8)
+    telegram = telegram_config()
+    retention = client_retention_summary(
+        user=session_user,
+        alerts=client_alerts,
+        activity=client_activity,
+        favorites=favorites,
+        telegram=telegram,
+    )
+    daily_briefing = build_daily_briefing(
+        session_user,
+        favorites=favorites,
+        smart=smart_picks,
+        alerts=client_alerts[:6],
+        activity=client_activity[:6],
+    )
+    client_command = client_command_center_data(session_user, briefing=daily_briefing)
     flow = build_live_flow(hub, favorites=favorites, picks=picks, profile=profile)
     matches_diag = match_calendar_diagnostics()
     groups = {}
@@ -13201,23 +13648,23 @@ def dashboard_data(lane="today", date=None):
         "picks": picks,
         "combis": combis,
         "profile": profile,
-        "session_user": current_session_user(),
+        "session_user": session_user,
         "favorites": favorites,
         "favorite_feed": favorite_bundle["matches"],
         "favorite_bundle": favorite_bundle,
-        "favorite_insights": favorite_insights(),
-        "client_alerts": build_client_alerts(limit=8),
-        "client_activity": client_activity_feed(limit=8),
-        "retention": client_retention_summary(),
-        "daily_briefing": build_daily_briefing(current_session_user() or {"membership": "FREE", "role": "FREE"}),
-        "client_command": client_command_center_data(current_session_user() or {"membership": "FREE", "role": "FREE"}),
+        "favorite_insights": favorite_summary,
+        "client_alerts": client_alerts,
+        "client_activity": client_activity,
+        "retention": retention,
+        "daily_briefing": daily_briefing,
+        "client_command": client_command,
         "match_hub": hub,
         "past_results": past_results,
         "candidate_matches": candidate_matches,
         "smart_picks": smart_picks,
         "live_flow": flow,
         "membership_plans": MEMBERSHIP_PLANS,
-        "telegram": telegram_config(),
+        "telegram": telegram,
         "sportsdb": crest_sync_status(),
         "sportsdb_feed": sportsdb_feed_status(),
         "odds": odds_diagnostics(),

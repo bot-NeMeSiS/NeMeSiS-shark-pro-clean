@@ -263,8 +263,10 @@ def quality_label(score: int) -> str:
     return "En estudio"
 
 
-def quality_bucket(score: int, item=None) -> str:
-    if not pick_is_premium_ready(item or {}, min_score=68):
+def quality_bucket(score: int, item=None, premium_ready=None) -> str:
+    if premium_ready is None:
+        premium_ready = pick_is_premium_ready(item or {}, min_score=68)
+    if not premium_ready:
         return "study"
     if score >= 88:
         return "top"
@@ -273,7 +275,7 @@ def quality_bucket(score: int, item=None) -> str:
     return "value"
 
 
-def pick_is_premium_ready(item, min_score=68) -> bool:
+def pick_is_premium_ready(item, min_score=68, quality_score=None) -> bool:
     item = dict(item or {})
     selection = _valid_selection(item)
     market = spanish_market_name(item.get("market") or item.get("pick_type") or "")
@@ -291,7 +293,8 @@ def pick_is_premium_ready(item, min_score=68) -> bool:
         return False
     if is_low_relevance_competition(item.get("competition_name") or item.get("league_name")):
         return False
-    return pick_quality_score(item) >= int(min_score)
+    score = pick_quality_score(item) if quality_score is None else int(quality_score)
+    return score >= int(min_score)
 
 
 def enrich_pick_quality(item) -> dict:
@@ -305,10 +308,11 @@ def enrich_pick_quality(item) -> dict:
         item["selection"] = selection
         item["selection_display"] = selection
     score = pick_quality_score(item)
+    premium_ready = pick_is_premium_ready(item, quality_score=score)
     item["quality_score"] = score
     item["quality_label"] = quality_label(score)
-    item["quality_bucket"] = quality_bucket(score, item)
-    item["premium_ready"] = pick_is_premium_ready(item)
+    item["quality_bucket"] = quality_bucket(score, item, premium_ready=premium_ready)
+    item["premium_ready"] = premium_ready
     item["competition_priority"] = competition_priority(item.get("competition_name") or item.get("league_name"))
     item["low_relevance_competition"] = is_low_relevance_competition(item.get("competition_name") or item.get("league_name"))
     item["stale_pick"] = is_stale_pick(item)
@@ -331,26 +335,34 @@ def enrich_pick_quality(item) -> dict:
     return item
 
 
-def sort_picks_by_quality(picks):
-    enriched = [enrich_pick_quality(p) for p in (picks or [])]
+def _quality_sort_key(pick):
+    return (
+        int(bool(pick.get("premium_ready"))),
+        -int(bool(pick.get("stale_pick"))),
+        -int(bool(pick.get("low_relevance_competition"))),
+        int(pick.get("quality_score") or 0),
+        int(pick.get("competition_priority") or 0),
+        _as_float(pick.get("odds"), 0),
+        _as_int(pick.get("confidence") or pick.get("shark_score"), 0),
+    )
+
+
+def sort_enriched_picks_by_quality(picks):
+    """Sort already-enriched picks without repeating localization or scoring."""
     return sorted(
-        enriched,
-        key=lambda p: (
-            int(bool(p.get("premium_ready"))),
-            -int(bool(p.get("stale_pick"))),
-            -int(bool(p.get("low_relevance_competition"))),
-            int(p.get("quality_score") or 0),
-            int(p.get("competition_priority") or 0),
-            _as_float(p.get("odds"), 0),
-            _as_int(p.get("confidence") or p.get("shark_score"), 0),
-        ),
+        [dict(pick or {}) for pick in (picks or [])],
+        key=_quality_sort_key,
         reverse=True,
     )
 
 
-def split_picks_by_quality(picks):
+def sort_picks_by_quality(picks):
+    return sort_enriched_picks_by_quality([enrich_pick_quality(pick) for pick in (picks or [])])
+
+
+def split_enriched_picks_by_quality(picks):
     result = {"top": [], "premium": [], "value": [], "study": [], "ready": []}
-    for pick in sort_picks_by_quality(picks):
+    for pick in sort_enriched_picks_by_quality(picks):
         bucket = pick.get("quality_bucket") or "study"
         if bucket not in result:
             bucket = "study"
@@ -358,3 +370,7 @@ def split_picks_by_quality(picks):
         if pick.get("premium_ready"):
             result["ready"].append(pick)
     return result
+
+
+def split_picks_by_quality(picks):
+    return split_enriched_picks_by_quality([enrich_pick_quality(pick) for pick in (picks or [])])
