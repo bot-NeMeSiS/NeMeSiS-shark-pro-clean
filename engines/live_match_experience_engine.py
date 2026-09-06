@@ -62,25 +62,8 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
 
 
 def _public_live_truth(match: dict[str, Any] | None) -> dict[str, Any]:
-    """Canonical fail-closed truth for public LIVE publication.
-
-    API-Football live snapshots persist between syncs.  Their freshness clock is
-    ``last_synced_at``; expose it through the canonical V935 timestamp names so
-    a fixture that disappears from the provider's LIVE response cannot remain
-    publicly LIVE forever.
-    """
-    item = dict(match or {})
-    sync_timestamp = _first(
-        item,
-        "live_updated_at",
-        "provider_updated_at",
-        "last_synced_at",
-        "updated_at",
-    )
-    if sync_timestamp:
-        item.setdefault("live_updated_at", sync_timestamp)
-        item.setdefault("provider_updated_at", sync_timestamp)
-    return match_status_truth(item)
+    """Delegate public LIVE publication to the single Sports Truth contract."""
+    return match_status_truth(dict(match or {}))
 
 
 def _keep_public_live(match: dict[str, Any] | None) -> bool:
@@ -98,6 +81,7 @@ def get_match_status_label(match: dict[str, Any] | None) -> str:
         "ARCHIVED": "Finalizado",
         "RESULT_PENDING": "Resultado pendiente",
         "POSTPONED": "Aplazado",
+        "SUSPENDED": "Suspendido",
         "CANCELLED": "Cancelado",
         "ABANDONED": "Abandonado",
         "STALE": "Datos retrasados",
@@ -131,8 +115,8 @@ def get_score_label(match: dict[str, Any] | None) -> str:
         return score
     home_score = _first(match, "home_score", "goals_home", "home_goals")
     away_score = _first(match, "away_score", "goals_away", "away_goals")
-    if home_score not in ("", None) or away_score not in ("", None):
-        return f"{home_score if home_score not in ('', None) else 0}-{away_score if away_score not in ('', None) else 0}"
+    if home_score not in ("", None) and away_score not in ("", None):
+        return f"{home_score}-{away_score}"
     status = get_match_status_label(match)
     if status in {"En directo", "Descanso", "Finalizado"}:
         return "Resultado pendiente"
@@ -148,7 +132,13 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
     home = teams.get("home") if isinstance(teams, dict) else {}
     away = teams.get("away") if isinstance(teams, dict) else {}
     status = fixture.get("status") if isinstance(fixture, dict) else {}
-    sync_timestamp = _first(raw, "live_updated_at", "provider_updated_at", "last_synced_at", "updated_at")
+    sync_timestamp = _first(raw, "live_updated_at", "provider_updated_at", "last_synced_at")
+    home_score = _first(raw, "home_score")
+    away_score = _first(raw, "away_score")
+    if home_score in (None, ""):
+        home_score = goals.get("home")
+    if away_score in (None, ""):
+        away_score = goals.get("away")
     item = dict(raw)
     item.update(
         {
@@ -163,8 +153,8 @@ def normalize_live_match(raw: dict[str, Any] | None) -> dict[str, Any]:
             "country": _first(raw, "country") or league.get("country"),
             "status": _first(raw, "status") or (status or {}).get("short") or (status or {}).get("long"),
             "minute": _first(raw, "minute") or (status or {}).get("elapsed"),
-            "home_score": _first(raw, "home_score") or goals.get("home"),
-            "away_score": _first(raw, "away_score") or goals.get("away"),
+            "home_score": home_score,
+            "away_score": away_score,
             "kickoff_iso": _first(raw, "kickoff_iso") or fixture.get("date"),
             "provider": _first(raw, "provider", "source") or "api-sports-cache",
             "live_updated_at": sync_timestamp,

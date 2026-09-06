@@ -1956,6 +1956,7 @@ def run_schema_migrations(conn):
         ("matches", "bookmaker", "TEXT"),
         ("matches", "odds_h2h_json", "TEXT"),
         ("matches", "odds_updated_at", "TEXT"),
+        ("matches", "last_synced_at", "TEXT"),
         ("matches", "sync_status", "TEXT"),
         ("picks", "sport_key", "TEXT DEFAULT 'soccer'"),
         ("picks", "stake_units", "REAL DEFAULT 1"),
@@ -2295,6 +2296,7 @@ def init_db():
             legal_note TEXT,
             raw_json TEXT,
             sync_status TEXT,
+            last_synced_at TEXT,
             updated_at TEXT
         )"""
     )
@@ -3712,9 +3714,9 @@ def sync_sportsdb_crests(refresh=False, limit=40):
 def sportsdb_score(home_score, away_score):
     home = "" if home_score in {None, ""} else str(home_score).strip()
     away = "" if away_score in {None, ""} else str(away_score).strip()
-    if home == "" and away == "":
+    if home == "" or away == "":
         return ""
-    return f"{home or 0}-{away or 0}"
+    return f"{home}-{away}"
 
 
 def sportsdb_match_status(event):
@@ -3726,8 +3728,9 @@ def sportsdb_match_status(event):
         "HALFTIME": "DESCANSO",
         "FINISHED": "FINALIZADO",
         "ARCHIVED": "FINALIZADO",
-        "RESULT_PENDING": "FINALIZADO",
+        "RESULT_PENDING": "RESULT_PENDING",
         "POSTPONED": "SUSPENDIDO",
+        "SUSPENDED": "SUSPENDIDO",
         "CANCELLED": "SUSPENDIDO",
         "ABANDONED": "SUSPENDIDO",
     }.get(str(truth.get("lifecycle") or ""), "PROGRAMADO")
@@ -3824,7 +3827,8 @@ def canonical_match_status(match):
         "HALFTIME": {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "FINISHED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
         "ARCHIVED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
-        "RESULT_PENDING": {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": True, "is_result_pending": True, "is_upcoming": False},
+        "RESULT_PENDING": {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": False, "is_result_pending": True, "is_upcoming": False},
+        "SUSPENDED": {"key": "SUSPENDED", "label": "Suspendido", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "POSTPONED": {"key": "POSTPONED", "label": "Aplazado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "CANCELLED": {"key": "CANCELLED", "label": "Cancelado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
         "ABANDONED": {"key": "ABANDONED", "label": "Abandonado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
@@ -3946,7 +3950,7 @@ def cache_sportsdb_event_team(name, external_id="", logo_url="", country="", lea
         cache_team_identity(name, identity)
 
 
-def sportsdb_event_to_match(event, fallback=None):
+def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", cache_teams=False):
     fallback = fallback or {}
     sport = str(event.get("strSport") or event.get("sport") or "Soccer").lower()
     if sport and sport not in {"soccer", "football"}:
@@ -3987,8 +3991,9 @@ def sportsdb_event_to_match(event, fallback=None):
     home_score = "" if raw_home_score in {None, ""} else str(raw_home_score)
     away_score = "" if raw_away_score in {None, ""} else str(raw_away_score)
     country = spanish_country_name(event.get("strCountry") or fallback.get("country") or "")
-    cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name)
-    cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name)
+    if cache_teams:
+        cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name)
+        cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name)
     return {
         "id": sportsdb_event_id(event),
         "external_id": event.get("idEvent") or event.get("idLiveScore") or "",
@@ -4019,6 +4024,7 @@ def sportsdb_event_to_match(event, fallback=None):
         "source": "TheSportsDB API",
         "legal_note": "Partido obtenido desde API permitida TheSportsDB y guardado en SQLite; sin scraping.",
         "raw_json": json.dumps(event, ensure_ascii=False)[:5000],
+        "last_synced_at": str(provider_observed_at or "").strip(),
     }
 
 
@@ -4101,9 +4107,15 @@ def sync_sportsdb_live_scores_only(limit=120):
         save_thesportsdb_error(exc)
         errors.append("livescore/soccer: " + str(exc)[:160])
     match_rows = []
+    provider_observed_at = now_iso()
     for event, fallback in events[: int(limit)]:
         try:
-            match = sportsdb_event_to_match(event, fallback)
+            match = sportsdb_event_to_match(
+                event,
+                fallback,
+                provider_observed_at=provider_observed_at,
+                cache_teams=True,
+            )
             if match:
                 # The endpoint can include scheduled and recently finished events.
                 # Keep only provider-confirmed status; never infer LIVE from endpoint origin.
@@ -4192,7 +4204,7 @@ def live_matches_from_live_table(limit=120):
             item["id"] = item.get("lm_match_id") or "live-unknown"
         # Being present in the provider live cache is not, by itself, proof of LIVE.
         item["status"] = item.get("lm_status") or item.get("status") or ""
-        item["live_updated_at"] = item.get("lm_updated_at") or item.get("live_updated_at") or item.get("updated_at") or ""
+        item["live_updated_at"] = item.get("lm_updated_at") or item.get("live_updated_at") or ""
         item["source"] = item.get("lm_source") or item.get("source") or ""
         item["minute"] = item.get("lm_minute") or item.get("minute") or ""
         item["home_score"] = item.get("lm_home_score") if item.get("lm_home_score") not in {None, ""} else item.get("home_score")
@@ -4242,8 +4254,8 @@ def upsert_sportsdb_matches(match_rows):
             """INSERT OR REPLACE INTO matches
                (id,external_id,match_date,kickoff_time,match_time,kickoff_iso,competition_id,competition_key,competition_name,league_name,country,
                 home_team,away_team,home_team_id,away_team_id,home_logo,away_logo,status,minute,score,home_score,away_score,venue,season,round,
-                priority,source,legal_note,raw_json,updated_at,bookmaker,odds_h2h_json,odds_updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                priority,source,legal_note,raw_json,last_synced_at,updated_at,bookmaker,odds_h2h_json,odds_updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 item["id"],
                 item.get("external_id") or item["id"],
@@ -4265,8 +4277,8 @@ def upsert_sportsdb_matches(match_rows):
                 item.get("status") or "PROGRAMADO",
                 item.get("minute") or "",
                 item.get("score") or "",
-                item.get("home_score") or "",
-                item.get("away_score") or "",
+                "" if item.get("home_score") in {None, ""} else item.get("home_score"),
+                "" if item.get("away_score") in {None, ""} else item.get("away_score"),
                 item.get("venue") or "",
                 item.get("season") or "",
                 item.get("round") or "",
@@ -4274,6 +4286,7 @@ def upsert_sportsdb_matches(match_rows):
                 item.get("source") or "TheSportsDB API",
                 item.get("legal_note") or "API autorizada TheSportsDB",
                 item.get("raw_json") or "{}",
+                item.get("last_synced_at") or "",
                 now_iso(),
                 item.get("bookmaker") or "",
                 item.get("odds_h2h_json") or "",
@@ -4290,11 +4303,11 @@ def upsert_sportsdb_matches(match_rows):
                     item["id"],
                     item.get("status") or "LIVE",
                     item.get("minute") or "",
-                    item.get("home_score") or "",
-                    item.get("away_score") or "",
+                    "" if item.get("home_score") in {None, ""} else item.get("home_score"),
+                    "" if item.get("away_score") in {None, ""} else item.get("away_score"),
                     item.get("raw_json") or "{}",
                     item.get("source") or "TheSportsDB API",
-                    now_iso(),
+                    item.get("last_synced_at") or "",
                 ),
             )
         else:
@@ -4343,8 +4356,14 @@ def sync_sportsdb_feed(limit=220):
         fetched, errors = fetch_sportsdb_feed_events(limit=limit)
         match_rows = []
         seen = set()
+        provider_observed_at = now_iso()
         for event, fallback in fetched:
-            match = sportsdb_event_to_match(event, fallback=fallback)
+            match = sportsdb_event_to_match(
+                event,
+                fallback=fallback,
+                provider_observed_at=provider_observed_at,
+                cache_teams=True,
+            )
             if not match or match["id"] in seen:
                 continue
             seen.add(match["id"])
@@ -4604,8 +4623,14 @@ def sync_sportsdb_results(limit=220):
         fetched, errors = fetch_sportsdb_results(limit=limit)
         matches = []
         seen = set()
+        provider_observed_at = now_iso()
         for event, fallback in fetched:
-            match = sportsdb_event_to_match(event, fallback=fallback)
+            match = sportsdb_event_to_match(
+                event,
+                fallback=fallback,
+                provider_observed_at=provider_observed_at,
+                cache_teams=True,
+            )
             if not match or match["id"] in seen:
                 continue
             match["status"] = "FINALIZADO" if match.get("score") else match.get("status", "FINALIZADO")
@@ -8020,7 +8045,8 @@ def match_lane_filter(match, lane):
     if lane in {"today", "week", "tomorrow"}:
         return True
     if lane in {"results", "finished"}:
-        return canonical_match_status(match).get("is_finished") or str(match.get("match_date") or "") < today_iso()
+        info = canonical_match_status(match)
+        return bool(info.get("is_finished") or info.get("is_result_pending"))
     if lane == "live":
         info = canonical_match_status(match)
         return bool(info.get("is_live")) and not info.get("is_finished") and not info.get("is_upcoming")
@@ -8571,7 +8597,7 @@ def jinja_match_time_label(value, status=None, minute=None):
         if status_info.get("is_live"):
             real_minute = canonical_live_minute(item)
             return f"{real_minute}'" if real_minute else status_info.get("label") or "En directo"
-        if status_info.get("is_finished") or status_info.get("key") in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
+        if status_info.get("is_finished") or status_info.get("key") in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
             return status_info.get("label") or "Estado pendiente"
     status_value = status if status is not None else item.get("status")
     minute_value = minute if minute is not None else ""
@@ -8678,8 +8704,9 @@ def canonical_match_for_domain_context(match):
     surface_contract = canonical_match_surface_contract(item)
     domain_status = {
         "FT": "FT",
-        "RESULT_PENDING": "FT",
+        "RESULT_PENDING": "TBD",
         "POSTPONED": "PST",
+        "SUSPENDED": "SUSP",
         "CANCELLED": "CANC",
         "ABANDONED": "ABD",
         "STALE": "TBD",
@@ -8727,6 +8754,8 @@ def client_match_display_context(match, now_madrid=None):
         status_label = f"En directo · {minute}'" if minute else "En directo"
     elif status_key == "POSTPONED":
         status_label = "Aplazado"
+    elif status_key == "SUSPENDED":
+        status_label = "Suspendido"
     elif status_key == "CANCELLED":
         status_label = "Cancelado"
     elif status_key == "ABANDONED":
@@ -8739,7 +8768,7 @@ def client_match_display_context(match, now_madrid=None):
         status_info.get("is_live")
         or status_info.get("is_finished")
         or status_info.get("is_result_pending")
-        or status_key in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
+        or status_key in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
     ) else schedule_label
     item.update({
         "client_timezone_label": "Hora oficial de España",
@@ -8978,6 +9007,8 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
     source = dict(item or {}) if isinstance(item, dict) else {}
     kind = str(entity_type or "match").strip().lower()
     factors = []
+    confidence_cap = None
+    confidence_limit_reason = ""
 
     def factor(label, points, maximum):
         safe_points = max(0, min(int(points or 0), int(maximum)))
@@ -8992,6 +9023,10 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         odds = _v937_number(enriched.get("client_odds_label") or enriched.get("odds") or enriched.get("price"))
         odds_state = enriched.get("v935_odds") or {}
         odds_status = str(odds_state.get("status") or "INVALID").upper()
+        if odds_status == "RECORDED":
+            confidence_cap, confidence_limit_reason = 69, "ODDS_NOT_FRESH"
+        elif odds_status != "FRESH":
+            confidence_cap, confidence_limit_reason = 49, "ODDS_UNUSABLE"
         odds_points = 15 if odds is not None and odds > 1 and odds_status == "FRESH" else 10 if odds is not None and odds > 1 and odds_status == "RECORDED" else 0
         timestamp = enriched.get("odds_updated_at") or enriched.get("updated_at") or enriched.get("published_at") or enriched.get("created_at")
         data_source = enriched.get("odds_source") or enriched.get("source")
@@ -9011,6 +9046,10 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         timestamp = source.get("odds_updated_at") or source.get("updated_at") or source.get("recorded_at")
         state = v935_get_odds_freshness(timestamp, odds=odds, source=data_source, match_lifecycle=str(source.get("v935_match_lifecycle") or "UPCOMING"))
         freshness = str(state.get("status") or "INVALID")
+        if freshness == "RECORDED":
+            confidence_cap, confidence_limit_reason = 69, "ODDS_NOT_FRESH"
+        elif freshness != "FRESH":
+            confidence_cap, confidence_limit_reason = 49, "ODDS_UNUSABLE"
         factor("Cuota válida", 25 if odds is not None and odds > 1 else 0, 25)
         factor("Fuente confirmada", 25 if _v937_present(data_source) else 0, 25)
         factor("Marca temporal", 25 if _v937_present(timestamp) else 0, 25)
@@ -9018,11 +9057,20 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
     else:
         enriched = v935_enrich_match_lifecycle(source)
         lifecycle = str(enriched.get("v935_lifecycle") or "INCOMPLETE")
+        status_truth = enriched.get("v935_status_truth") or {}
         teams = bool(_v937_present(enriched.get("home_team")) and _v937_present(enriched.get("away_team")))
         competition = enriched.get("competition_name") or enriched.get("league_name") or enriched.get("competition") or enriched.get("league")
         kickoff = enriched.get("kickoff_iso") or enriched.get("commence_time") or (f"{enriched.get('match_date')}T{enriched.get('kickoff_time') or enriched.get('match_time')}" if enriched.get("match_date") and (enriched.get("kickoff_time") or enriched.get("match_time")) else "")
         data_source = enriched.get("v935_source") or enriched.get("source")
-        timestamp = enriched.get("live_updated_at") or enriched.get("provider_updated_at") or enriched.get("updated_at")
+        timestamp = enriched.get("live_updated_at") or enriched.get("provider_updated_at") or enriched.get("last_synced_at")
+        if lifecycle in {"STALE", "INCOMPLETE"} or status_truth.get("status_conflict"):
+            confidence_cap, confidence_limit_reason = 49, "STATUS_EVIDENCE_UNSAFE"
+        elif status_truth.get("live_timestamp_in_future"):
+            confidence_cap, confidence_limit_reason = 49, "EVIDENCE_TIMESTAMP_IN_FUTURE"
+        elif lifecycle == "UPCOMING" and (status_truth.get("live_age_seconds") or 0) > 24 * 60 * 60:
+            confidence_cap, confidence_limit_reason = 49, "EVIDENCE_STALE"
+        elif not _v937_present(timestamp):
+            confidence_cap, confidence_limit_reason = 69, "PROVIDER_TIMESTAMP_UNKNOWN"
         score_ready = enriched.get("home_score") is not None and enriched.get("away_score") is not None
         minute_ready = _v937_present(enriched.get("minute") or enriched.get("elapsed") or enriched.get("live_minute"))
         if lifecycle == "UPCOMING":
@@ -9031,7 +9079,7 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
             evidence_points = (8 if score_ready else 0) + (7 if minute_ready or lifecycle == "HALFTIME" else 0)
         elif lifecycle in {"FINISHED", "ARCHIVED"}:
             evidence_points = 15 if score_ready or _v937_present(enriched.get("score") or enriched.get("result")) else 0
-        elif lifecycle in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}:
+        elif lifecycle in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED"}:
             evidence_points = 8 if _v937_present(data_source) else 0
         else:
             evidence_points = 0
@@ -9044,6 +9092,8 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         factor("Evidencia del estado", evidence_points, 15)
 
     score = int(round(100 * sum(part["points"] for part in factors) / max(1, sum(part["maximum"] for part in factors))))
+    if confidence_cap is not None:
+        score = min(score, int(confidence_cap))
     if score >= 85:
         label, tone = "Alta", "success"
     elif score >= 70:
@@ -9059,6 +9109,7 @@ def get_v937_nemesis_data_confidence(item, entity_type="match"):
         "tone": tone,
         "factors": factors,
         "missing": missing,
+        "limit_reason": confidence_limit_reason,
         "summary": "Calidad alta y trazable." if score >= 85 else "utilizable con límites visibles." if score >= 70 else "Requiere revisar la evidencia disponible." if score >= 50 else "No hay evidencia suficiente para sostener una decisión.",
         "disclaimer": "Mide calidad del dato, no probabilidad de ganar.",
     }
@@ -14629,7 +14680,7 @@ def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=Non
         score += 45
         reasons.append("TOP_TEAM")
     data_quality = "COMPLETE"
-    if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}:
+    if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED"}:
         score -= 90
         data_quality = "INCIDENT"
         reasons.append("INCIDENT_DEGRADED")
@@ -14964,7 +15015,7 @@ def _build_public_home_sports_summary():
     archived_matches = [item for item in valid_all if item.get("v935_lifecycle") == "ARCHIVED"]
     incident_matches = [
         item for item in valid_all
-        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}
+        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED"}
     ]
     prepared_picks = [v935_enrich_pick_lifecycle(_v931_prepare_pick(item, matches_by_id)) for item in raw_picks]
     safe_picks = get_safe_picks_context(prepared_picks)
@@ -14993,7 +15044,7 @@ def _build_public_home_sports_summary():
     archived_matches = [item for item in valid_all if item.get("v935_lifecycle") == "ARCHIVED"]
     incident_matches = [
         item for item in valid_all
-        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED"}
+        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED"}
     ]
     last_sync = max(
         [str(item.get("updated_at") or "") for item in raw_matches + raw_picks if item.get("updated_at")],
@@ -16811,7 +16862,9 @@ def _calendar_enrich_matches(matches, picks):
         competition_identity = canonical_competition_surface_contract(item)
         comp = competition_identity["display_name"]
         country = spanish_country_name(item.get("country") or item.get("safe_country") or "") or item.get("country") or "Global"
-        live_depth = item.get("live_depth") or {}
+        status_info = canonical_match_status(item)
+        live_minute = canonical_live_minute(item)
+        item["status_info"] = status_info
         item["calendar_competition"] = comp
         item["calendar_competition_id"] = competition_identity["canonical_id"]
         item["calendar_competition_key"] = competition_identity["key"]
@@ -16819,9 +16872,12 @@ def _calendar_enrich_matches(matches, picks):
         item["calendar_competition_identity_contract"] = competition_identity["contract"]
         item["calendar_country"] = country
         item["calendar_date_label"] = jinja_match_date_label(item)
-        item["calendar_time"] = live_depth.get("minute") if live_depth.get("badge") == "live" else jinja_match_time_short(item)
-        item["calendar_status"] = live_depth.get("label") or item.get("status") or "Próximo"
-        item["calendar_score"] = live_depth.get("score") or item.get("score") or "vs"
+        if status_info.get("is_live"):
+            item["calendar_time"] = f"{live_minute}'" if live_minute else "En directo"
+        else:
+            item["calendar_time"] = jinja_match_time_short(item)
+        item["calendar_status"] = status_info.get("label") or "Estado pendiente"
+        item["calendar_score"] = item.get("client_score_label") or item.get("score") or "vs"
         item["calendar_rank"] = v565_league_rank(item)
         item["calendar_priority"] = max(0, 100 - int(item.get("calendar_rank") or 80))
         item["has_pick"] = bool(pick)
@@ -16856,7 +16912,7 @@ def _calendar_apply_filters(matches, filters):
             if team not in teams:
                 continue
         if status:
-            status_text = normalized_label(" ".join([str(item.get("calendar_status") or ""), str((item.get("live_depth") or {}).get("badge") or "")]))
+            status_text = normalized_label(" ".join([str(item.get("calendar_status") or ""), str((item.get("status_info") or {}).get("badge") or "")]))
             if status not in status_text:
                 continue
         if only_pick and not item.get("has_pick"):
@@ -17224,6 +17280,9 @@ def _v940_calendar_href(filters=None, **overrides):
 
 def _v940_calendar_prepare_match(raw, pick_ids, favorites):
     item = dict(raw or {})
+    status_info = canonical_match_status(item)
+    live_minute = canonical_live_minute(item)
+    item["status_info"] = status_info
     match_id = str(item.get("id") or item.get("match_id") or "").strip()
     competition = (
         item.get("client_competition")
@@ -17252,14 +17311,11 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
     item["calendar_competition"] = competition
     item["calendar_country"] = country
     item["calendar_date_label"] = item.get("client_date_label") or jinja_match_date_label(item)
-    item["calendar_time"] = item.get("client_time_label") or jinja_match_time_short(item)
-    item["calendar_status"] = (
-        item.get("client_status_label")
-        or item.get("status_label")
-        or item.get("display_status")
-        or item.get("status")
-        or "Próximo"
-    )
+    if status_info.get("is_live"):
+        item["calendar_time"] = f"{live_minute}'" if live_minute else "En directo"
+    else:
+        item["calendar_time"] = item.get("client_time_label") or jinja_match_time_short(item)
+    item["calendar_status"] = status_info.get("label") or "Estado pendiente"
     item = apply_sports_relevance(item, pick_ids=pick_ids, favorites=favorites)
     item["calendar_rank"] = int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80)
     item["calendar_text"] = _calendar_match_text(item)
@@ -17288,7 +17344,10 @@ def _v940_calendar_source_matches(summary, filters, prepared_all, prepared_by_id
     if lane == "upcoming":
         return prepared_items("valid_upcoming_matches")
     if lane == "live":
-        return prepared_items("valid_live_events")
+        return [
+            item for item in prepared_items("valid_live_events")
+            if (item.get("status_info") or canonical_match_status(item)).get("is_live")
+        ]
     if lane in {"with_pick", "picks"}:
         return [item for item in prepared_all if item.get("has_pick")]
     if lane == "favorites":
@@ -22489,7 +22548,7 @@ def get_safe_sports_calendar_context(calendar=None) -> dict:
     results = [item for item in normalized if item.get("v935_lifecycle") in {"FINISHED", "ARCHIVED"}]
     incidents = [
         item for item in normalized
-        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
+        if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
     ]
     source_summary = str(calendar.get("source_summary") or "").strip()
     has_real_data = bool(matches)
@@ -22499,7 +22558,7 @@ def get_safe_sports_calendar_context(calendar=None) -> dict:
         "incidents": incidents,
         "lifecycle_counts": {
             state: sum(1 for item in normalized if item.get("v935_lifecycle") == state)
-            for state in ("UPCOMING", "LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE", "ARCHIVED")
+            for state in ("UPCOMING", "LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE", "ARCHIVED")
         },
         "provider_status": "data_available" if has_real_data else "waiting_for_real_sync",
         "last_sync": str(calendar.get("last_sync") or "").strip(),

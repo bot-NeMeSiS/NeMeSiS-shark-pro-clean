@@ -14,6 +14,8 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
 
+from engines.v935_launch_trust_engine import match_status_truth
+
 
 SPORTS_DOMAIN_MODEL_CONTRACT = "SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"
 TIMELINE_EVENT_CONTRACT = "SPORTS-CORE-TIMELINE-EVENT-V1"
@@ -142,7 +144,7 @@ def _age_minutes(source_timestamp: Any, now_value: Any = None) -> int | None:
     now = _parse_datetime(now_value) if now_value else datetime.now(timezone.utc)
     if now is None:
         now = datetime.now(timezone.utc)
-    return max(0, int((now - source).total_seconds() // 60))
+    return int((now - source).total_seconds() // 60)
 
 
 def _number(value: Any) -> int | None:
@@ -322,13 +324,18 @@ def build_freshness_entity(
     if stale_minutes is None:
         stale_minutes = 15 if status_key in {"LIVE", "1H", "2H", "HT", "ET", "P"} else 1440
     timestamp = source_timestamp or received_at
-    age = _age_minutes(timestamp, now_madrid)
+    signed_age = _age_minutes(timestamp, now_madrid)
+    future_anomaly = bool(signed_age is not None and signed_age < -5)
+    age = None if signed_age is None else max(0, signed_age)
     if not timestamp:
         state = "unknown"
         limitations = ["No source timestamp is available."]
     elif age is None:
         state = "unknown"
         limitations = ["Source timestamp could not be parsed."]
+    elif future_anomaly:
+        state = "stale"
+        limitations = ["Source timestamp is anomalously ahead of the observation clock."]
     elif age <= fresh_minutes:
         state = "fresh"
         limitations = []
@@ -346,6 +353,7 @@ def build_freshness_entity(
         "received_at": _text(received_at, 80) or None,
         "now_madrid": _text(now_madrid, 80) or None,
         "age_minutes": age,
+        "future_timestamp": future_anomaly,
         "fresh_minutes": fresh_minutes,
         "stale_minutes": stale_minutes,
         "usable_for_live": state in {"fresh", "aging"} and status_key in {"LIVE", "1H", "2H", "HT", "ET", "P"},
@@ -685,14 +693,54 @@ def normalize_match_entity(
     away = normalize_team_entity(data, side="away", provider=provider_name)
     competition = normalize_competition_entity(data, provider=provider_name)
     kickoff = data.get("kickoff_at") or data.get("kickoff_iso") or data.get("commence_time") or data.get("match_date")
-    status = normalize_status(data.get("status") or live.get("status"), data.get("minute") or live.get("minute"))
+    explicit_timestamp = next(
+        (
+            value
+            for source in (live, data)
+            for key in ("live_updated_at", "provider_updated_at", "last_synced_at", "source_timestamp")
+            if (value := source.get(key)) not in (None, "", "None", "null", "undefined")
+        ),
+        "",
+    )
+    truth_source = dict(data)
+    live_status = live.get("provider_status") or live.get("status_short") or live.get("status")
+    if live_status not in (None, ""):
+        truth_source["provider_status"] = live_status
+    if explicit_timestamp:
+        truth_source["live_updated_at"] = explicit_timestamp
+    truth = match_status_truth(
+        truth_source,
+        now=_parse_datetime(now_madrid) if now_madrid else None,
+    )
+    lifecycle = _text(truth.get("lifecycle"), 40).upper()
+    raw_minute = data.get("minute") or live.get("minute")
+    if truth.get("is_live"):
+        status_source = live_status or data.get("status")
+        status_minute = raw_minute
+    else:
+        status_source = {
+            "UPCOMING": "NS",
+            "FINISHED": "FT",
+            "ARCHIVED": "FT",
+            "POSTPONED": "POSTP",
+            "SUSPENDED": "SUSP",
+            "CANCELLED": "CANC",
+        }.get(lifecycle, "UNKNOWN")
+        status_minute = None
+    status = normalize_status(status_source, status_minute)
     freshness = build_freshness_entity(
-        source_timestamp=live.get("updated_at") or data.get("updated_at") or data.get("source_timestamp"),
-        received_at=data.get("updated_at"),
+        source_timestamp=explicit_timestamp,
+        received_at=data.get("received_at"),
         now_madrid=now_madrid,
         match_status=status.get("raw"),
         data_type="match",
     )
+    if truth.get("is_stale") or truth.get("status_conflict"):
+        freshness["state"] = "stale"
+        freshness["usable_for_live"] = False
+        freshness["usable_for_intelligence"] = False
+        reason = truth.get("stale_reason") or truth.get("conflict_type") or "STATUS_EVIDENCE_UNSAFE"
+        freshness["limitations"] = sorted(set((freshness.get("limitations") or []) + [str(reason)]))
     identity = canonical_identifier(
         "match",
         explicit_id=match_id if str(match_id or "").startswith("match:") else "",
@@ -741,9 +789,10 @@ def normalize_match_entity(
         "officials": [_text(data.get("referee"), 120)] if data.get("referee") else [],
         "events": events,
         "freshness": freshness,
+        "status_truth": truth,
         "source": provider_name,
         "source_timestamp": freshness.get("source_timestamp"),
-        "data_quality": "STALE" if freshness.get("state") == "stale" else identity["identity_state"],
+        "data_quality": "STALE" if freshness.get("state") == "stale" else "REQUIRES_REVIEW" if truth.get("status_conflict") else identity["identity_state"],
         "limitations": sorted(set(item for item in limitations if item)),
     }
 

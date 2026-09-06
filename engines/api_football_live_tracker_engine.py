@@ -22,7 +22,7 @@ from typing import Any, Iterable, Mapping, Optional
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TIMEZONE = "Europe/Madrid"
-LIVE_STATUS_SHORT = {"1H", "2H", "ET", "BT", "P", "SUSP", "INT", "LIVE", "HT"}
+LIVE_STATUS_SHORT = {"1H", "2H", "ET", "BT", "P", "LIVE", "HT"}
 FINISHED_STATUS_SHORT = {"FT", "AET", "PEN"}
 
 
@@ -223,6 +223,15 @@ def ensure_live_tracker_schema(db_path: str) -> dict[str, Any]:
             );
             """
         )
+        matches_exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='matches'"
+        ).fetchone()
+        if matches_exists:
+            match_columns = {
+                str(row[1]) for row in conn.execute("PRAGMA table_info(matches)").fetchall()
+            }
+            if "last_synced_at" not in match_columns:
+                conn.execute("ALTER TABLE matches ADD COLUMN last_synced_at TEXT")
         conn.commit()
         return {"ok": True, "schema": "api_football_live_tracker_ready"}
     finally:
@@ -309,21 +318,27 @@ def _upsert_fixture(conn: sqlite3.Connection, item: Mapping[str, Any]) -> int:
             f["home_team"], f["away_team"], f["home_logo"], f["away_logo"], f["home_score"], f["away_score"], f["venue"], f["payload_json"], now, now,
         ),
     )
-    _upsert_match_row(conn, f)
+    _upsert_match_row(conn, f, provider_observed_at=now)
     return 1
 
 
-def _upsert_match_row(conn: sqlite3.Connection, f: Mapping[str, Any]) -> None:
+def _upsert_match_row(
+    conn: sqlite3.Connection,
+    f: Mapping[str, Any],
+    *,
+    provider_observed_at: str = "",
+) -> None:
     """Mirror live fixture into existing matches table so /match/<id> works."""
     now = _now_iso()
     score = ""
-    if f.get("home_score") is not None or f.get("away_score") is not None:
-        score = f"{f.get('home_score') if f.get('home_score') is not None else 0}-{f.get('away_score') if f.get('away_score') is not None else 0}"
+    if f.get("home_score") is not None and f.get("away_score") is not None:
+        score = f"{f.get('home_score')}-{f.get('away_score')}"
+    synced_at = str(provider_observed_at or "").strip()
     try:
         conn.execute(
             """
-            INSERT INTO matches(id, external_id, sport_key, match_date, kickoff_time, match_time, kickoff_iso, competition_id, competition_key, competition_name, league_name, country, home_team, away_team, home_team_id, away_team_id, home_logo, away_logo, status, minute, score, home_score, away_score, venue, season, round, priority, source, legal_note, raw_json, sync_status, updated_at)
-            VALUES (?, ?, 'soccer', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 92, 'api_football_live', ?, ?, 'live_tracker', ?)
+            INSERT INTO matches(id, external_id, sport_key, match_date, kickoff_time, match_time, kickoff_iso, competition_id, competition_key, competition_name, league_name, country, home_team, away_team, home_team_id, away_team_id, home_logo, away_logo, status, minute, score, home_score, away_score, venue, season, round, priority, source, legal_note, raw_json, sync_status, last_synced_at, updated_at)
+            VALUES (?, ?, 'soccer', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 92, 'api_football_live', ?, ?, 'live_tracker', ?, ?)
             ON CONFLICT(id) DO UPDATE SET
               external_id=excluded.external_id,
               match_date=excluded.match_date,
@@ -353,14 +368,15 @@ def _upsert_match_row(conn: sqlite3.Connection, f: Mapping[str, Any]) -> None:
               legal_note=excluded.legal_note,
               raw_json=excluded.raw_json,
               sync_status=excluded.sync_status,
+              last_synced_at=excluded.last_synced_at,
               updated_at=excluded.updated_at
             """,
             (
                 f.get("match_id"), f.get("fixture_id"), f.get("match_date") or now[:10], _time_from_iso(f.get("kickoff_iso")), _time_from_iso(f.get("kickoff_iso")), f.get("kickoff_iso") or "",
                 f.get("league_id") or "", _competition_key(f.get("league_name"), f.get("country")), f.get("league_name") or "", f.get("league_name") or "", f.get("country") or "",
                 f.get("home_team") or "Local", f.get("away_team") or "Visitante", f.get("home_team_id") or "", f.get("away_team_id") or "", f.get("home_logo") or "", f.get("away_logo") or "",
-                f.get("status_short") or f.get("status_long") or "LIVE", str(f.get("elapsed") or ""), score, str(f.get("home_score") if f.get("home_score") is not None else ""), str(f.get("away_score") if f.get("away_score") is not None else ""),
-                f.get("venue") or "", f.get("season") or "", f.get("round_name") or "", "API-Football autorizado: livescore, eventos y estadísticas. NeMeSiS guarda caché normalizada; no se inventan coordenadas de balón.", f.get("payload_json") or "{}", now,
+                f.get("status_short") or f.get("status_long") or "UNKNOWN", str(f.get("elapsed") or ""), score, str(f.get("home_score") if f.get("home_score") is not None else ""), str(f.get("away_score") if f.get("away_score") is not None else ""),
+                f.get("venue") or "", f.get("season") or "", f.get("round_name") or "", "API-Football autorizado: livescore, eventos y estadísticas. NeMeSiS guarda caché normalizada; no se inventan coordenadas de balón.", f.get("payload_json") or "{}", synced_at, now,
             ),
         )
     except sqlite3.OperationalError:
@@ -877,6 +893,7 @@ def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], eve
         "source_label": "API-Football Pro",
         "fixture_id": row.get("fixture_id"),
         "updated_at": row.get("last_synced_at"),
+        "last_synced_at": row.get("last_synced_at"),
         "stats": stats,
         "events": events,
         "pressure": pressure,
@@ -946,7 +963,7 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
     rows = conn.execute(
         """
         SELECT * FROM api_football_live_snapshots
-        ORDER BY CASE WHEN status_short IN ('1H','2H','HT','ET','BT','P','SUSP','INT','LIVE') THEN 0 ELSE 1 END, elapsed DESC, league_name, home_team
+        ORDER BY CASE WHEN status_short IN ('1H','2H','HT','ET','BT','P','LIVE') THEN 0 ELSE 1 END, elapsed DESC, league_name, home_team
         LIMIT ?
         """,
         (int(limit),),
@@ -959,8 +976,8 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
         events = _events_for_fixture(conn, fixture_id, limit=10)
         pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "")
         score = ""
-        if r.get("home_score") is not None or r.get("away_score") is not None:
-            score = f"{r.get('home_score') if r.get('home_score') is not None else 0}-{r.get('away_score') if r.get('away_score') is not None else 0}"
+        if r.get("home_score") is not None and r.get("away_score") is not None:
+            score = f"{r.get('home_score')}-{r.get('away_score')}"
         tracker = _build_tracker_payload(r, stats, events, pressure)
         out.append(
             {
@@ -982,13 +999,14 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
                 "away_team_id": r.get("away_team_id") or "",
                 "home_logo": r.get("home_logo") or "",
                 "away_logo": r.get("away_logo") or "",
-                "status": r.get("status_short") or r.get("status_long") or "LIVE",
+                "status": r.get("status_short") or r.get("status_long") or "UNKNOWN",
                 "minute": str(r.get("elapsed") or ""),
                 "score": score,
                 "home_score": r.get("home_score"),
                 "away_score": r.get("away_score"),
                 "venue": r.get("venue") or "",
                 "source": "api_football_live",
+                "last_synced_at": r.get("last_synced_at") or "",
                 "legal_note": tracker["legal_note"],
                 "raw_json": r.get("payload_json") or "{}",
                 "api_football_live_tracker": tracker,

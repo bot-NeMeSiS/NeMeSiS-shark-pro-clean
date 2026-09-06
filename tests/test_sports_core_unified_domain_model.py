@@ -99,7 +99,7 @@ def _events() -> list[dict]:
 def test_match_team_competition_player_entities_are_canonical_and_honest():
     match = normalize_match_entity(
         _match_row(),
-        live_context={"provider": "api_football", "updated_at": "2026-07-26T21:58:00+02:00"},
+        live_context={"provider": "api_football", "last_synced_at": "2026-07-26T21:58:00+02:00"},
         timeline_events=_events(),
         now_madrid="2026-07-26T22:00:00+02:00",
     )
@@ -207,10 +207,11 @@ def test_match_context_and_match_intelligence_reuse_domain_entities():
     live_updated_at = datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds")
     match = _match_row()
     match["updated_at"] = live_updated_at
+    match["last_synced_at"] = live_updated_at
     context = build_match_context(
         {"match": match, "related_picks": []},
         madrid_context={"client_full_datetime_label": "domingo, 26 de julio - 20:30"},
-        live_context={"provider": "api_football", "updated_at": live_updated_at, "events": _events()},
+        live_context={"available": True, "provider": "api_football", "last_synced_at": live_updated_at, "events": _events()},
     )
     intelligence = context["intelligence"]
 
@@ -273,7 +274,13 @@ def test_module_has_no_io_network_or_generative_dependencies():
         if isinstance(node, ast.ImportFrom)
     )
 
-    assert imported_roots <= {"__future__", "hashlib", "re", "unicodedata", "datetime", "typing"}
+    assert imported_roots <= {"__future__", "hashlib", "re", "unicodedata", "datetime", "typing", "engines"}
+    engine_imports = [
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("engines.")
+    ]
+    assert engine_imports == ["engines.v935_launch_trust_engine"]
     lowered = source.lower()
     assert "sqlite3" not in lowered
     assert "urlopen" not in lowered

@@ -86,9 +86,9 @@ def state_bucket(match: dict) -> str:
     lifecycle = truth.get("lifecycle")
     if lifecycle in {"LIVE", "HALFTIME"} and not truth.get("status_conflict"):
         return "live"
-    if lifecycle in {"FINISHED", "ARCHIVED", "RESULT_PENDING"}:
+    if lifecycle in {"FINISHED", "ARCHIVED"}:
         return "finished"
-    if lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
+    if lifecycle in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}:
         return "postponed"
     return "upcoming"
 

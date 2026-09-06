@@ -48,6 +48,7 @@ def test_live_and_terminal_temporal_truth_never_invents_minute(app_module):
         "away_score": "1",
         "source": "qa",
         "updated_at": app_module.now_iso(),
+        "last_synced_at": app_module.now_iso(),
     }
     live = app_module.client_match_display_context({**base, "status": "LIVE", "minute": "67"})
     live_without_minute = app_module.client_match_display_context({**base, "status": "LIVE", "minute": ""})

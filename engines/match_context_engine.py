@@ -529,6 +529,7 @@ def _lifecycle_from_domain(
         "FINISHED": "Finalizado",
         "RESULT_PENDING": "Resultado pendiente",
         "POSTPONED": "Aplazado",
+        "SUSPENDED": "Suspendido",
         "CANCELLED": "Cancelado",
         "ABANDONED": "Abandonado",
         "STALE": "Actualización pendiente",

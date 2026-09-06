@@ -9,13 +9,13 @@ from typing import Any, Callable
 from zoneinfo import ZoneInfo
 
 from engines.madrid_time_engine import format_madrid_sync_label
+from engines.v935_launch_trust_engine import match_status_truth
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 LIVE_POLL_SECONDS = 45
 IDLE_POLL_SECONDS = 180
 MATCH_CACHE_TTL_SECONDS = 15
-LIVE_STALE_SECONDS = 120
 ODDS_FRESH_SECONDS = 900
 ODDS_STALE_SECONDS = 3600
 
@@ -72,17 +72,47 @@ def _minute(value: Any) -> int | None:
     return number if number is not None and number <= 130 else None
 
 
-def _status(value: Any) -> dict[str, Any]:
-    raw = _text(value, 50).lower()
-    if raw in {"1h", "2h", "live", "in play", "en directo", "playing"}:
-        return {"key": "live", "label": "En directo", "is_live": True, "is_finished": False}
-    if raw in {"ht", "half time", "halftime", "break", "descanso"}:
-        return {"key": "halftime", "label": "Descanso", "is_live": True, "is_finished": False}
-    if raw in {"ft", "aet", "pen", "finished", "finalizado", "final"}:
-        return {"key": "finished", "label": "Finalizado", "is_live": False, "is_finished": True}
-    if raw in {"postponed", "cancelled", "canceled", "suspended", "aplazado", "cancelado"}:
-        return {"key": "interrupted", "label": "Interrumpido", "is_live": False, "is_finished": False}
-    return {"key": "scheduled", "label": "Programado", "is_live": False, "is_finished": False}
+def _status_from_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
+    truth = match_status_truth(item, now)
+    lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
+    raw_lifecycle = str(truth.get("raw_lifecycle") or lifecycle)
+    keys = {
+        "LIVE": "live",
+        "HALFTIME": "halftime",
+        "FINISHED": "finished",
+        "ARCHIVED": "finished",
+        "RESULT_PENDING": "pending",
+        "POSTPONED": "postponed",
+        "SUSPENDED": "suspended",
+        "CANCELLED": "cancelled",
+        "ABANDONED": "abandoned",
+        "STALE": "stale",
+        "UPCOMING": "scheduled",
+        "INCOMPLETE": "pending",
+    }
+    labels = {
+        "LIVE": "En directo",
+        "HALFTIME": "Descanso",
+        "FINISHED": "Finalizado",
+        "ARCHIVED": "Finalizado",
+        "RESULT_PENDING": "Resultado pendiente",
+        "POSTPONED": "Aplazado",
+        "SUSPENDED": "Suspendido",
+        "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado",
+        "STALE": "Datos retrasados",
+        "UPCOMING": "Programado",
+        "INCOMPLETE": "Estado pendiente",
+    }
+    return {
+        "key": keys.get(lifecycle, "pending"),
+        "label": labels.get(lifecycle, "Estado pendiente"),
+        "is_live": bool(truth.get("is_live")),
+        "was_live_signal": raw_lifecycle in {"LIVE", "HALFTIME"},
+        "is_finished": bool(truth.get("is_finished")),
+        "is_stale": bool(truth.get("is_stale")),
+        "truth": truth,
+    }
 
 
 def odds_freshness(timestamp: Any, now: datetime | None = None) -> dict[str, Any]:
@@ -136,32 +166,23 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
     source = _text(item.get("source"), 80)
     if not all((match_id, home, away, competition, match_date, kickoff, source)):
         return None
-    raw_status = _text(
-        item.get("status")
-        or item.get("match_status")
-        or item.get("fixture_status")
-        or item.get("calendar_status"),
-        50,
-    )
-    status = _status(raw_status)
+    status = _status_from_truth(item, now)
     updated_at = _text(
         item.get("live_updated_at")
         or item.get("provider_updated_at")
-        or item.get("updated_at"),
+        or item.get("last_synced_at"),
         80,
     )
-    age = _age_seconds(updated_at, now)
+    age = status["truth"].get("live_age_seconds")
+    if age is None:
+        age = _age_seconds(updated_at, now)
     minute = _minute(item.get("minute") or item.get("elapsed") or item.get("live_minute")) if status["is_live"] else None
     home_score = _number(item.get("home_score"))
     away_score = _number(item.get("away_score"))
-    score_available = home_score is not None and away_score is not None and (status["is_live"] or status["is_finished"])
-    phase_evidence = raw_status.lower() in {
-        "1h", "2h", "ht", "half time", "halftime", "break", "descanso",
-        "first half", "second half", "1st half", "2nd half",
-    }
-    if status["is_live"] and minute is None and not score_available and not phase_evidence:
-        status = {"key": "pending", "label": "Estado pendiente", "is_live": False, "is_finished": False}
-    stale = bool(status["is_live"] and (age is None or age > LIVE_STALE_SECONDS))
+    score_available = home_score is not None and away_score is not None and (
+        status["is_live"] or status["was_live_signal"] or status["is_finished"]
+    )
+    stale = status["is_stale"]
     return {
         "id": match_id,
         "home_team": home,
@@ -170,8 +191,9 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
         "match_date": match_date,
         "kickoff_time": kickoff,
         "status": status["key"],
-        "status_label": "Datos retrasados" if stale else status["label"],
+        "status_label": status["label"],
         "is_live": status["is_live"],
+        "was_live_signal": status["was_live_signal"],
         "is_finished": status["is_finished"],
         "minute": minute,
         "home_score": home_score if score_available else None,
@@ -180,6 +202,7 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
         "updated_at": updated_at,
         "age_seconds": age,
         "is_stale": stale,
+        "status_truth": status["truth"],
         "detail_url": f"/match/{match_id}",
     }
 
@@ -225,9 +248,8 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
             seen.add(match["id"])
             normalized_matches.append(match)
     picks = [pick for pick in (normalize_pick(item, now) for item in summary.get("valid_active_picks") or []) if pick]
-    all_live = [item for item in normalized_matches if item["is_live"]]
-    stale_live = [item for item in all_live if item["is_stale"]]
-    live = [item for item in all_live if not item["is_stale"]]
+    stale_live = [item for item in normalized_matches if item["was_live_signal"] and item["is_stale"]]
+    live = [item for item in normalized_matches if item["is_live"]]
     # Stale live evidence remains available to protected diagnostics only. It must
     # not leak into public schedules, cards, counters, or polling decisions.
     matches = [item for item in normalized_matches if not item["is_stale"]]

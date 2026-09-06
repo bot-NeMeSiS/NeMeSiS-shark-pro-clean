@@ -25,6 +25,7 @@ def _match_detail(*, status: str = "upcoming") -> dict:
             "away_score": 0 if is_live else None,
             "source": "qa_cache",
             "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds") if is_live else "2026-08-30T20:45:00+02:00",
+            "last_synced_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds") if is_live else "2026-08-30T20:45:00+02:00",
         },
         "timeline": [],
         "statistics": {"items": []},

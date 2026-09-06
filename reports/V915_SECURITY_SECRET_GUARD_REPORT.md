@@ -1,13 +1,13 @@
 # V915 Security Secret Guard Report
 
-- Generado: `2026-07-29T16:04:48+02:00`
+- Generado: `2026-09-06T00:06:27+02:00`
 - Version: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
 
 - version: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`
 - ok: `True`
 - status: `ok`
 - dry_run: `True`
-- files_scanned: `1052`
+- files_scanned: `1102`
 - findings_count: `0`
 - values_printed: `False`
 - dangerous_actions_executed: `False`
@@ -15,7 +15,7 @@
 
 ## Detalle
 - Motor oficial: escaner redactado V938.
-- Archivos revisados: `1052`.
+- Archivos revisados: `1102`.
 - Hallazgos confirmados: `0`.
 - Valores impresos: `False`.
 - Acciones externas o destructivas: `False`.

@@ -6,14 +6,14 @@
 
 - Gate: observación real de 3-7 días naturales.
 - Inicio: 2026-08-28.
-- Evidencia completada: DAY 1 baseline + DAY 2 observación real.
+- Evidencia completada: DAY 1 baseline + DAY 2 + DAY 3 observaciones reales.
 - Producción observada: `https://bot-apuestas-crgf.onrender.com`.
-- SHA local/origin/Render observado: `4098d1c73921458b863b0ea50eb7812780202745` (commit de informe únicamente; código deportivo heredado de la base desplegada anterior).
+- Último SHA de producción observado: `fddbeea3b1205e2f05e62bcf95630a7a4c85a4cd` (DAY 3, 2026-09-06).
 - Gasto nuevo: **0**.
 - Cambios de producción: **0**.
 - Ranking modificado durante el gate: **NO**.
-- Resultado provisional: catálogo y sincronización operativos; LIVE y relevancia Home aún no certificados.
-- Corrección P0 posterior a Day 1: desplegada, pero **NO RECERTIFICADA**. DAY 2 demuestra una inconsistencia real entre la verdad cache-only de Directo y la presentación de Home/Match Center.
+- Resultado provisional: catálogo y sincronización operativos; Home prioriza Tier S/A en la muestra DAY 3, pero LIVE sigue sin muestra real suficiente.
+- DAY 3 no reprodujo falsos LIVE en las superficies inspeccionadas. No obstante, Match Center mostró simultáneamente evidencia desactualizada y `100/100 Alta`, una contradicción real de confianza que impide cerrar la calidad deportiva.
 
 No se declarará PASS por el mero transcurso de tres días. Debe existir una muestra real de partidos Tier S/A, idealmente en directo, y coherencia verificable entre proveedor, Home, Directo y Match Center.
 
@@ -415,6 +415,95 @@ No hubo un partido Tier S/A confirmado en directo. Los registros raw LIVE visibl
 **Pregunta DAY 2:** si hay un partido importante en directo ahora mismo, ¿NeMeSiS lo muestra automáticamente?
 
 **Respuesta:** `NOT_ENOUGH_EVIDENCE`. No hubo Tier S/A confirmado live. Además, Home y Match Center aún presentan como LIVE al menos una lectura que el contrato canónico de Directo excluye por retraso.
+
+## DAY 3 - Observación real 2026-09-06
+
+- **Ventana observada:** 00:10-00:17 Europe/Madrid.
+- **Origen:** `REAL_PRODUCTION_OBSERVATION`, lectura pública y cache-only.
+- **SHA servido:** `fddbeea3b1205e2f05e62bcf95630a7a4c85a4cd`.
+- **Referencia antigua de la automatización:** `354453071b0ca1b76c6263c1f1818182fd088e12`; queda superada para observaciones futuras.
+- **Health:** PASS; `active_errors_count=0`.
+- **Logs Render:** no reconsultados porque no existe workspace seleccionado en la integración y no se eligió uno sin confirmación.
+- **Endpoint con coste potencial `/api/live`:** NO CONSULTADO.
+- **Cambios de producción:** 0.
+
+### Estado cache-only
+
+| Señal | DAY 3 | Evidencia |
+|---|---:|---|
+| synchronized | 800 | `/api/realtime/sports` |
+| realtime matches | 222 | contrato cache hit |
+| today | 187 | contrato realtime |
+| confirmed live | 0 | `live=[]` |
+| stale live | 0 | agregado realtime |
+| no external calls | true | contrato realtime |
+| last safe sync | 2026-09-06 00:10 Madrid | contrato realtime |
+| calendar visible | 193 | `/api/calendar` |
+| Tier S / Tier A | 13 / 4 | IDs y aliases canónicos del calendario |
+| UNKNOWN | 176 | calendario; degradados fuera de Tier S/A |
+| status conflicts | 0 | calendario |
+| duplicate ID/tuple groups | 0 / 0 | calendario |
+| missing crests | 0 | 193 partidos |
+| live-state | 0 live, 233 upcoming, 56 finished, 6 suspended | `/api/live/state` |
+| highlights stored/authorized | 0 / 0 | `/api/client/highlights` |
+
+Los universos realtime, calendar y live-state tienen filtros y momentos distintos; sus
+totales no se comparan como si fueran el mismo contador.
+
+### Superficies públicas
+
+- Home: HTTP 200, `0 en directo`, 186 hoy y 79 destacados.
+- El primer bloque deportivo mostró Arsenal-Chelsea, Juventus-AC Milan,
+  Everton-Manchester United y Valencia-Barcelona: la muestra sí prioriza Tier S/A.
+- Directo: HTTP 200, estado vacío seguro y 0 partidos LIVE; no mostró próximos como directos.
+- Partidos: HTTP 200, 193 visibles, catálogo amplio y enlaces Match Center.
+- Match Center muestreado: Arsenal-Chelsea, misma identidad, competición, estado
+  `Próximo` y horario Madrid `15:30`; no inventó marcador ni minuto.
+- Navegación pública: Home/Directo/Partidos enlazan al mismo Match Center muestreado.
+
+### Hallazgo de confianza
+
+El Match Center muestreado declara simultáneamente:
+
+- frescura `Desactualizado`;
+- evidencia `Datos insuficientes`;
+- y un `Índice de Confianza NeMeSiS 100/100 Alta`.
+
+Esto es una contradicción real de presentación de confianza. No implica un falso LIVE,
+pero bloquea el cierre de calidad: evidencia obsoleta o insuficiente no debe recibir
+`100/Alta`. El candidato local Sports Truth contiene un endurecimiento específico para
+este caso; esta observación no lo certifica en producción porque el SHA servido sigue
+siendo `fddbeea3...`.
+
+### Cobertura deportiva
+
+- Important Tier S/A LIVE observed: 0.
+- Minute/events/lineups/stats LIVE: `INSUFFICIENT_SAMPLE`.
+- El único hecho del Match Center fue el estado `PROGRAMADO`; no certifica eventos deportivos.
+- Alineaciones, H2H, clasificación y estadísticas del partido muestreado: no disponibles.
+- Player IDs desde alineación: `INSUFFICIENT_REAL_DATA`.
+- Highlights encontrados/autorizados: 0/0; no hay media visible sin derechos.
+- Match start, goal, minute, halftime y fulltime P50/P95: `INSUFFICIENT_SAMPLE`.
+- Requests, quota y remaining reales: `UNKNOWN`.
+- Coste actual real: `UNKNOWN`; no se consultó facturación.
+- Acciones nuevas con coste iniciadas: 0.
+
+**Resultado DAY 3:** `REAL_SPORTS_CERTIFICATION_IN_PROGRESS`.
+
+No hubo partido Tier S/A realmente LIVE, por lo que DAY 3 no cierra el gate. La verdad
+LIVE fue coherente en la muestra (`0` en realtime, Home, Directo, calendario y Match
+Center), Home mostró prioridad deportiva correcta y no se reprodujo un falso directo.
+Queda abierta la contradicción de confianza `Desactualizado` frente a `100/Alta`.
+
+**Pregunta DAY 3:** si hay un partido importante en directo ahora mismo, ¿NeMeSiS lo
+muestra automáticamente?
+
+**Respuesta:** `NOT_ENOUGH_EVIDENCE`. No existía una muestra Tier S/A LIVE confirmada
+durante la ventana.
+
+Próxima observación: mantener el gate hasta obtener un Tier S/A LIVE real. Usar como
+baseline de producción `fddbeea3...` o el SHA que el runtime demuestre en ese momento,
+no la referencia histórica `354453...`.
 
 ## Provider gap matrix provisional
 

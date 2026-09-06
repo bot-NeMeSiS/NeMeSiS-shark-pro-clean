@@ -21,7 +21,7 @@ def real_time_state(match):
         key = "live"
     elif lifecycle in {"FINISHED", "ARCHIVED"}:
         key = "finished"
-    elif lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
+    elif lifecycle in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
         key = "suspended"
     else:
         key = "upcoming"

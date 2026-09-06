@@ -56,7 +56,7 @@ def normalize_live_state(match):
         key = "LIVE"
     elif lifecycle in {"FINISHED", "ARCHIVED"}:
         key = "FT"
-    elif lifecycle in {"POSTPONED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
+    elif lifecycle in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "RESULT_PENDING", "INCOMPLETE"}:
         key = "SUSPENDED"
     else:
         key = "UPCOMING"

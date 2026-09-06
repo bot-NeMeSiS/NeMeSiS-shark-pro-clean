@@ -1,0 +1,18 @@
+# Indice de Documentacion NeMeSiS
+
+Esta carpeta organiza por enlaces la documentacion existente. No mueve codigo, informes ni runbooks historicos. La verdad operativa empieza en `../NEMESIS_CONTROL_PROYECTO/00_LEER_PRIMERO.md`.
+
+1. `01_PRODUCTO_Y_UX`
+2. `02_SPORTS_TRUTH_Y_DATOS`
+3. `03_MATCH_CENTER_Y_GRAFO`
+4. `04_SHARK_PICKS_Y_TRACK_RECORD`
+5. `05_ADMIN_Y_FOUNDER`
+6. `06_GROWTH_Y_REVENUE`
+7. `07_AUTOMATIZACION_Y_EVOLUCION`
+8. `08_TELEGRAM`
+9. `09_PAGOS_Y_MEMBRESIAS`
+10. `10_SEGURIDAD_Y_PRIVACIDAD`
+11. `11_OPERACIONES_Y_RENDER`
+12. `12_QA_VISUAL_Y_RELEASE`
+13. `13_ARQUITECTURA_Y_DATOS`
+

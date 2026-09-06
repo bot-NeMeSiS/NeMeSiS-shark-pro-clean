@@ -288,6 +288,8 @@ def test_v940_company_intelligence_preserves_calendar_learning(app_module, tmp_p
 
 
 def _sports_relevance_match(app_module, match_id, competition, *, date_offset=1, kickoff="20:00", status="NS", home="Equipo Local", away="Equipo Visitante", **extra):
+    updated_at = extra.pop("updated_at", app_module.now_iso())
+    last_synced_at = extra.pop("last_synced_at", updated_at)
     item = {
         "id": match_id,
         "match_id": match_id,
@@ -299,7 +301,8 @@ def _sports_relevance_match(app_module, match_id, competition, *, date_offset=1,
         "country": extra.pop("country", "Global"),
         "source": extra.pop("source", "provider-test"),
         "status": status,
-        "updated_at": extra.pop("updated_at", app_module.now_iso()),
+        "updated_at": updated_at,
+        "last_synced_at": last_synced_at,
         "v935_lifecycle": extra.pop("v935_lifecycle", "UPCOMING"),
         "v935_surface": extra.pop("v935_surface", {"home": True, "calendar": True, "live": False}),
     }
@@ -875,6 +878,7 @@ def test_p0_day2_stale_live_cardinality_is_not_live_on_any_surface(app_module):
             evidence_origin="REAL_PRODUCTION_OBSERVATION" if index == 0 else "DAY2_CARDINALITY_REPLAY",
         )
         candidate["match_date"] = "2026-08-30"
+        candidate["last_synced_at"] = "2026-08-30T22:30:00+02:00"
         candidates.append(candidate)
 
     summary = _sports_relevance_summary(candidates, live=candidates)

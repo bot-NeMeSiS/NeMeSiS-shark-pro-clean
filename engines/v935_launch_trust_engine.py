@@ -17,7 +17,7 @@ MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 MATCH_LIFECYCLES = (
     "UPCOMING", "LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING",
-    "POSTPONED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE", "ARCHIVED",
+    "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE", "ARCHIVED",
 )
 PICK_LIFECYCLES = (
     "DRAFT", "INCOMPLETE", "REVIEW", "APPROVED", "PUBLISHED", "LIVE",
@@ -136,7 +136,7 @@ def _score_confirmed(item: dict[str, Any]) -> bool:
     score = _text(item.get("score") or item.get("result"), 40)
     if not score:
         return False
-    for separator in ("-", ":", "â€“"):
+    for separator in ("-", ":", "\u2013"):
         if separator in score:
             left, right = score.split(separator, 1)
             return _float(left) is not None and _float(right) is not None
@@ -148,10 +148,16 @@ _FINISHED_STATUS_KEYS = {
     "aet", "pen", "after penalties", "terminado",
 }
 _POSTPONED_STATUS_KEYS = {
-    "postponed", "post", "pst", "ppd", "aplazado", "aplazada", "suspended", "suspendido",
+    "postponed", "post", "pst", "ppd", "aplazado", "aplazada",
+}
+_RESULT_PENDING_STATUS_KEYS = {
+    "result pending", "resultado pendiente", "pending result",
+}
+_SUSPENDED_STATUS_KEYS = {
+    "suspended", "suspendido", "suspendida", "susp", "int", "interrupted", "interrumpido", "interrumpida",
 }
 _CANCELLED_STATUS_KEYS = {"cancelled", "canceled", "canc", "cancelado", "cancelada"}
-_ABANDONED_STATUS_KEYS = {"abandoned", "abd", "abandono", "abandonado", "interrupted"}
+_ABANDONED_STATUS_KEYS = {"abandoned", "abd", "abandono", "abandonado"}
 _HALFTIME_STATUS_KEYS = {"ht", "bt", "halftime", "half time", "break", "descanso"}
 _LIVE_STATUS_KEYS = {
     "live", "1h", "2h", "in play", "inplay", "in progress", "playing",
@@ -162,6 +168,7 @@ _UPCOMING_STATUS_KEYS = {
     "ns", "not started", "scheduled", "programado", "fixture", "upcoming", "proximo", "próximo",
 }
 LIVE_STALE_SECONDS = 120
+LIVE_FUTURE_SKEW_SECONDS = 300
 
 
 def _status_key(value: Any) -> str:
@@ -191,6 +198,7 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
     for field in (
         "lifecycle", "v935_lifecycle", "v935_raw_lifecycle", "match_status", "fixture_status", "sports_status",
         "provider_status", "status_short", "short_status", "status_code", "status",
+        "strStatus", "strProgress", "progress",
         "safe_status", "client_status_label", "live_status_label", "calendar_status",
     ):
         add(field, item.get(field))
@@ -221,7 +229,7 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
                 payload = None
         if not isinstance(payload, dict):
             continue
-        for key in ("status", "strStatus", "match_status", "fixture_status"):
+        for key in ("status", "strStatus", "strProgress", "progress", "match_status", "fixture_status"):
             add(f"{payload_field}.{key}", payload.get(key))
         nested_fixture = payload.get("fixture")
         if isinstance(nested_fixture, dict):
@@ -238,10 +246,14 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
 
 
 def _status_kind(key: str) -> str:
+    if key in _RESULT_PENDING_STATUS_KEYS:
+        return "RESULT_PENDING"
     if key in _FINISHED_STATUS_KEYS or key.startswith("finalizado") or key.startswith("finished"):
         return "FINISHED"
     if key in _POSTPONED_STATUS_KEYS or key.startswith("postpon") or key.startswith("aplaz"):
         return "POSTPONED"
+    if key in _SUSPENDED_STATUS_KEYS or key.startswith("suspend") or key.startswith("interrump"):
+        return "SUSPENDED"
     if key in _CANCELLED_STATUS_KEYS or key.startswith("cancel"):
         return "CANCELLED"
     if key in _ABANDONED_STATUS_KEYS or key.startswith("abandon"):
@@ -255,6 +267,20 @@ def _status_kind(key: str) -> str:
     if key in {"archived", "archive", "historical", "historico"}:
         return "ARCHIVED"
     return "UNKNOWN"
+
+
+def _live_evidence_timestamp(item: dict[str, Any]) -> tuple[Any, str]:
+    """Return the canonical provider freshness clock and its non-sensitive field name."""
+    source = item if isinstance(item, dict) else {}
+    for field in (
+        "live_updated_at",
+        "provider_updated_at",
+        "last_synced_at",
+    ):
+        value = source.get(field)
+        if value not in (None, "", "None", "null", "undefined"):
+            return value, field
+    return None, ""
 
 
 def _live_freshness_truth(
@@ -278,13 +304,11 @@ def _live_freshness_truth(
         or source.get("stale")
         or any(value.get("is_stale") or value.get("stale") for value in nested)
     )
-    timestamp = (
-        source.get("live_updated_at")
-        or source.get("provider_updated_at")
-        or source.get("updated_at")
-    )
+    timestamp, timestamp_source = _live_evidence_timestamp(source)
     parsed = _parse_iso(timestamp)
-    age = None if parsed is None else max(0, int((madrid_now(now) - parsed).total_seconds()))
+    signed_age = None if parsed is None else int((madrid_now(now) - parsed).total_seconds())
+    future_anomaly = bool(signed_age is not None and signed_age < -LIVE_FUTURE_SKEW_SECONDS)
+    age = None if signed_age is None else max(0, signed_age)
     raw_is_live = raw_lifecycle in {"LIVE", "HALFTIME"}
     match_shaped = bool(
         source.get("id")
@@ -296,12 +320,14 @@ def _live_freshness_truth(
     stale = bool(
         raw_is_live
         and freshness_required
-        and (explicit_stale or age is None or age > LIVE_STALE_SECONDS)
+        and (explicit_stale or future_anomaly or age is None or age > LIVE_STALE_SECONDS)
     )
     if not stale:
         stale_reason = ""
     elif explicit_stale:
         stale_reason = "EXPLICIT_STALE_EVIDENCE"
+    elif future_anomaly:
+        stale_reason = "LIVE_TIMESTAMP_IN_FUTURE"
     elif age is None:
         stale_reason = "LIVE_TIMESTAMP_MISSING"
     else:
@@ -312,6 +338,8 @@ def _live_freshness_truth(
         "is_stale": stale,
         "stale_reason": stale_reason,
         "timestamp_present": parsed is not None,
+        "timestamp_source": timestamp_source,
+        "future_timestamp": future_anomaly,
         "freshness_required": freshness_required,
     }
 
@@ -322,13 +350,13 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
     kinds = [_status_kind(key) for _source, key in signals]
     terminal_kinds = {
         kind for kind in kinds
-        if kind in {"FINISHED", "POSTPONED", "CANCELLED", "ABANDONED", "ARCHIVED"}
+        if kind in {"FINISHED", "RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "ARCHIVED"}
     }
     live_kinds = {kind for kind in kinds if kind in {"LIVE", "HALFTIME"}}
     conflict = bool(terminal_kinds and live_kinds)
 
     raw_lifecycle = ""
-    for terminal in ("ABANDONED", "CANCELLED", "POSTPONED", "ARCHIVED", "FINISHED"):
+    for terminal in ("ABANDONED", "CANCELLED", "SUSPENDED", "POSTPONED", "ARCHIVED", "FINISHED", "RESULT_PENDING"):
         if terminal in terminal_kinds:
             raw_lifecycle = terminal
             break
@@ -344,7 +372,7 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
         if kickoff is None:
             raw_lifecycle = "INCOMPLETE"
         elif kickoff < madrid_now(now):
-            raw_lifecycle = "FINISHED" if _score_confirmed(source) else "RESULT_PENDING"
+            raw_lifecycle = "RESULT_PENDING"
         else:
             raw_lifecycle = "UPCOMING"
 
@@ -360,6 +388,8 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
         "stale_reason": freshness["stale_reason"],
         "live_age_seconds": freshness["age_seconds"],
         "live_timestamp_present": freshness["timestamp_present"],
+        "live_timestamp_source": freshness["timestamp_source"],
+        "live_timestamp_in_future": freshness["future_timestamp"],
         "status_conflict": conflict,
         "conflict_type": "LIVE_TERMINAL" if conflict else "",
         "signal_kinds": sorted({kind for kind in kinds if kind != "UNKNOWN"}),
@@ -408,7 +438,7 @@ def classify_match_for_surface(item: dict[str, Any], now: datetime | None = None
         "calendar": lifecycle == "UPCOMING",
         "live": bool(truth.get("is_live")),
         "results": lifecycle in {"FINISHED", "ARCHIVED"},
-        "incidents": lifecycle in {"RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE"},
+        "incidents": lifecycle in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "STALE", "INCOMPLETE"},
         "admin": True,
     }
 
@@ -460,7 +490,7 @@ def get_odds_freshness(
     if value is None or value <= 1.0 or not _present(source_text):
         status = "INVALID"
         age = None
-    elif not market_open or match_lifecycle in {"LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING", "CANCELLED", "ABANDONED", "ARCHIVED"}:
+    elif not market_open or match_lifecycle in {"LIVE", "HALFTIME", "FINISHED", "RESULT_PENDING", "SUSPENDED", "CANCELLED", "ABANDONED", "ARCHIVED"}:
         status = "EXPIRED"
         age = None
     else:
@@ -559,7 +589,7 @@ def normalize_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) 
     if raw in {"cancelled", "canceled", "cancelado"}:
         return "CANCELLED"
     match_lifecycle = normalize_match_lifecycle(_pick_match_view(item), now)
-    if match_lifecycle in {"FINISHED", "RESULT_PENDING", "POSTPONED", "CANCELLED", "ABANDONED", "ARCHIVED"}:
+    if match_lifecycle in {"FINISHED", "RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "ARCHIVED"}:
         return "EXPIRED"
     if raw in {"draft", "borrador"}:
         return "DRAFT"
