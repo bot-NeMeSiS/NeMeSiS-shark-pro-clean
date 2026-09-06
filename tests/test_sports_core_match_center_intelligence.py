@@ -43,6 +43,7 @@ def _detail() -> dict:
         "away_score": 0,
         "score": "1-0",
         "source": "api_football_live",
+        "last_synced_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "status_info": {
             "key": "2H",
@@ -83,6 +84,7 @@ def _live_context() -> dict:
         "available": True,
         "read_only": True,
         "provider": "api_football",
+        "last_synced_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "updated_at": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "events": [
             {

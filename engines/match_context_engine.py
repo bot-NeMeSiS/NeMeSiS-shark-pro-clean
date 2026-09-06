@@ -24,11 +24,13 @@ from engines.sports_domain_model_engine import (
     legacy_match_from_entity,
 )
 from engines.sports_knowledge_layer_engine import build_sports_knowledge_snapshot
+from engines.spanish_localization_engine import parse_datetime_to_madrid
 from engines.v935_launch_trust_engine import match_status_truth
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
 MATCH_CENTER_FOUNDATION = "V944_MATCH_CENTER_FOUNDATION_PHASE_1_FINAL"
+MATCH_CONTEXT_INTELLIGENCE_CONTRACT = "MATCH-CONTEXT-INTELLIGENCE-CONTINUATION-V1"
 
 CANONICAL_COMPONENT_STATES = (
     "loading",
@@ -244,24 +246,47 @@ def _real_statistics(
     }
 
 
-def _head_to_head_context(raw_value: Any) -> dict[str, Any]:
+def _head_to_head_context(
+    raw_value: Any,
+    *,
+    home_team: Any = "",
+    away_team: Any = "",
+    before_kickoff: Any = "",
+) -> dict[str, Any]:
     raw = _mapping(raw_value)
     items = _items(raw.get("items") if raw else raw_value)
+    expected_pair = {
+        _text(home_team).casefold(),
+        _text(away_team).casefold(),
+    }
+    expected_pair.discard("")
+    context_kickoff = (
+        parse_datetime_to_madrid(before_kickoff) if before_kickoff else None
+    )
     normalized = []
     for item in items:
         home = _text(item.get("home_team"))
         away = _text(item.get("away_team"))
         kickoff_iso = _text(item.get("kickoff_iso"))
+        item_kickoff = parse_datetime_to_madrid(kickoff_iso) if kickoff_iso else None
         status = _text(item.get("status")).upper()
+        source = _text(item.get("source")) or _text(raw.get("source"))
         if (
             not home
             or not away
             or not kickoff_iso
+            or not source
             or status not in {"FT", "FINISHED", "FINAL", "AET", "PEN"}
         ):
             continue
+        if context_kickoff and (not item_kickoff or item_kickoff >= context_kickoff):
+            continue
+        if expected_pair and {home.casefold(), away.casefold()} != expected_pair:
+            continue
         home_score = item.get("home_score")
         away_score = item.get("away_score")
+        if home_score in (None, "") or away_score in (None, ""):
+            continue
         score = (
             _text(item.get("score"))
             if item.get("score") not in (None, "")
@@ -282,7 +307,7 @@ def _head_to_head_context(raw_value: Any) -> dict[str, Any]:
             "date_label": _text(item.get("date_label")) or None,
             "status": "FT",
             "href": _text(item.get("href")) or None,
-            "source": _text(item.get("source")) or _text(raw.get("source")) or None,
+            "source": source,
         })
     return {
         "contract": "NEMESIS-MATCH-H2H-CACHE-V1",
@@ -307,11 +332,41 @@ def _optional_int(value: Any) -> int | None:
         return None
 
 
-def _standings_context(raw_value: Any) -> dict[str, Any]:
+def _standings_context(
+    raw_value: Any,
+    *,
+    expected_season: Any = "",
+    expected_competition_id: Any = "",
+    kickoff_iso: Any = "",
+) -> dict[str, Any]:
     raw = _mapping(raw_value)
     rows = _items(raw.get("rows") if raw else raw_value)
+    expected_season_key = _text(expected_season).casefold()
+    expected_competition_key = _text(expected_competition_id).casefold()
+    provided_season = _text(raw.get("season") or raw.get("requested_season"))
+    provided_competition_id = _text(raw.get("competition_id"))
+    season_mismatch = bool(
+        expected_season_key
+        and provided_season
+        and provided_season.casefold() != expected_season_key
+    )
+    identity_mismatch = bool(
+        expected_competition_key
+        and provided_competition_id
+        and provided_competition_id.casefold() != expected_competition_key
+    )
     normalized = []
     for item in rows:
+        item_season = _text(item.get("season") or provided_season)
+        item_competition_id = _text(item.get("league_id") or provided_competition_id)
+        if expected_season_key and item_season.casefold() != expected_season_key:
+            continue
+        if (
+            expected_competition_key
+            and item_competition_id
+            and item_competition_id.casefold() != expected_competition_key
+        ):
+            continue
         team_name = _text(item.get("team_name") or item.get("name"))
         position = _optional_int(item.get("rank") or item.get("position"))
         if not team_name or position is None:
@@ -330,17 +385,401 @@ def _standings_context(raw_value: Any) -> dict[str, Any]:
             "points": _optional_int(item.get("points")),
             "form": _text(item.get("form")) or None,
             "description": _text(item.get("description")) or None,
+            "season": item_season or None,
+            "competition_id": item_competition_id or None,
         })
     normalized.sort(key=lambda item: item["position"])
+    if season_mismatch or identity_mismatch:
+        normalized = []
+    updated_at = raw.get("updated_at")
+    snapshot_time = parse_datetime_to_madrid(updated_at) if updated_at else None
+    match_time = parse_datetime_to_madrid(kickoff_iso) if kickoff_iso else None
+    if snapshot_time and match_time and snapshot_time > match_time:
+        temporal_state = "post_match_snapshot"
+    elif snapshot_time:
+        temporal_state = "observed_snapshot"
+    else:
+        temporal_state = "unknown"
+    season_verified = bool(
+        expected_season_key
+        and normalized
+        and all(
+            _text(item.get("season")).casefold() == expected_season_key
+            for item in normalized
+        )
+    )
+    identity_verified = bool(
+        expected_competition_key
+        and normalized
+        and all(
+            _text(item.get("competition_id")).casefold()
+            == expected_competition_key
+            for item in normalized
+        )
+    )
+    context_eligible = bool(
+        normalized
+        and not season_mismatch
+        and not identity_mismatch
+        and temporal_state == "observed_snapshot"
+        and expected_season_key
+        and season_verified
+        and expected_competition_key
+        and identity_verified
+    )
     return {
         "contract": "NEMESIS-MATCH-STANDINGS-CACHE-V1",
         "available": bool(normalized),
         "count": len(normalized),
         "rows": normalized[:24],
         "source": _text(raw.get("source")) or None,
-        "updated_at": raw.get("updated_at"),
+        "updated_at": updated_at,
+        "season": provided_season or None,
+        "requested_season": _text(expected_season) or None,
+        "season_verified": season_verified,
+        "competition_id": provided_competition_id or None,
+        "identity_verified": identity_verified,
+        "season_mismatch": season_mismatch,
+        "identity_mismatch": identity_mismatch,
+        "temporal_state": temporal_state,
+        "context_eligible": context_eligible,
         "external_calls": 0,
         "fake_rows_created": 0,
+    }
+
+
+def _form_summary(items: list[dict[str, Any]]) -> str:
+    wins = sum(item.get("result") == "W" for item in items)
+    draws = sum(item.get("result") == "D" for item in items)
+    losses = sum(item.get("result") == "L" for item in items)
+    return (
+        f"{wins} {'victoria' if wins == 1 else 'victorias'} · "
+        f"{draws} {'empate' if draws == 1 else 'empates'} · "
+        f"{losses} {'derrota' if losses == 1 else 'derrotas'}"
+        if items
+        else "Sin resultados finalizados confirmados."
+    )
+
+
+def _recent_form_side(
+    raw_value: Any,
+    *,
+    expected_team: Any,
+    expected_season: Any,
+    expected_competition_id: Any,
+    before_kickoff: Any,
+) -> dict[str, Any]:
+    raw = _mapping(raw_value)
+    team = _text(expected_team)
+    raw_team = _text(raw.get("team"))
+    expected_season_key = _text(expected_season).casefold()
+    expected_competition_key = _text(expected_competition_id).casefold()
+    context_kickoff = (
+        parse_datetime_to_madrid(before_kickoff) if before_kickoff else None
+    )
+    normalized = []
+    for item in _items(raw.get("matches")):
+        home = _text(item.get("home_team"))
+        away = _text(item.get("away_team"))
+        if team and team.casefold() not in {home.casefold(), away.casefold()}:
+            continue
+        status = _text(item.get("status")).upper()
+        if status not in {"FT", "FINISHED", "FINAL", "AET", "PEN"}:
+            continue
+        kickoff_iso = _text(item.get("kickoff_iso"))
+        item_kickoff = parse_datetime_to_madrid(kickoff_iso) if kickoff_iso else None
+        if context_kickoff and (not item_kickoff or item_kickoff >= context_kickoff):
+            continue
+        home_score = _optional_int(item.get("home_score"))
+        away_score = _optional_int(item.get("away_score"))
+        if home_score is None or away_score is None:
+            continue
+        item_season = _text(item.get("season") or raw.get("season"))
+        if expected_season_key and item_season.casefold() != expected_season_key:
+            continue
+        item_competition = _mapping(item.get("competition_identity"))
+        item_competition_id = _text(
+            item_competition.get("provider_id")
+            or item.get("competition_id")
+            or _mapping(raw.get("competition_identity")).get("provider_id")
+        )
+        if (
+            expected_competition_key
+            and item_competition_id.casefold() != expected_competition_key
+        ):
+            continue
+        source = _text(item.get("source")) or _text(raw.get("source"))
+        if not source:
+            continue
+        is_home = home.casefold() == team.casefold()
+        team_goals = home_score if is_home else away_score
+        rival_goals = away_score if is_home else home_score
+        result = "W" if team_goals > rival_goals else "L" if team_goals < rival_goals else "D"
+        normalized.append(
+            {
+                "match_id": _text(item.get("match_id")) or None,
+                "home_team": home,
+                "away_team": away,
+                "score": f"{home_score}-{away_score}",
+                "result": result,
+                "kickoff_iso": kickoff_iso or None,
+                "match_date": _text(item.get("match_date")) or None,
+                "source": source,
+            }
+        )
+    team_matches = not raw_team or not team or raw_team.casefold() == team.casefold()
+    if not team_matches:
+        normalized = []
+    requested = _optional_int(raw.get("requested_sample_size")) or 5
+    return {
+        "contract": "NEMESIS-MATCH-RECENT-FORM-CACHE-V1",
+        "available": bool(normalized),
+        "team": team,
+        "sample_size": len(normalized),
+        "requested_sample_size": requested,
+        "form": [item["result"] for item in normalized],
+        "summary": _form_summary(normalized),
+        "matches": normalized,
+        "source": _text(raw.get("source")) or (
+            normalized[0].get("source") if normalized else None
+        ),
+        "confirmed_results_only": True,
+        "freshness_policy": "terminal_results_do_not_expire",
+        "external_calls": 0,
+        "fake_matches_created": 0,
+    }
+
+
+def _recent_form_context(
+    raw_value: Any,
+    *,
+    home_team: Any,
+    away_team: Any,
+    expected_season: Any,
+    expected_competition_id: Any,
+    before_kickoff: Any,
+) -> dict[str, Any]:
+    raw = _mapping(raw_value)
+    home = _recent_form_side(
+        raw.get("home"),
+        expected_team=home_team,
+        expected_season=expected_season,
+        expected_competition_id=expected_competition_id,
+        before_kickoff=before_kickoff,
+    )
+    away = _recent_form_side(
+        raw.get("away"),
+        expected_team=away_team,
+        expected_season=expected_season,
+        expected_competition_id=expected_competition_id,
+        before_kickoff=before_kickoff,
+    )
+    available_sides = sum(side.get("available") for side in (home, away))
+    return {
+        "contract": "NEMESIS-MATCH-RECENT-FORM-CACHE-V1",
+        "available": bool(available_sides),
+        "state": (
+            "VERIFIED"
+            if available_sides == 2
+            else "PARTIALLY_VERIFIED"
+            if available_sides
+            else "INSUFFICIENT_DATA"
+        ),
+        "home": home,
+        "away": away,
+        "sample_size": home["sample_size"] + away["sample_size"],
+        "external_calls": 0,
+        "fake_matches_created": 0,
+    }
+
+
+def _team_standing(
+    standings: Mapping[str, Any],
+    team_name: Any,
+) -> dict[str, Any]:
+    expected = _text(team_name).casefold()
+    for row in _items(_mapping(standings).get("rows")):
+        if _text(row.get("team_name")).casefold() == expected:
+            return row
+    return {}
+
+
+def _standing_sentence(team_name: str, row: Mapping[str, Any]) -> str:
+    position = _optional_int(row.get("position"))
+    points = _optional_int(row.get("points"))
+    details = []
+    if position is not None:
+        details.append(f"{position}.º")
+    if points is not None:
+        details.append(f"{points} puntos")
+    return f"{team_name}: {' · '.join(details)}" if details else ""
+
+
+def _match_context_intelligence(
+    match: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+    competition: Mapping[str, Any],
+    madrid_time: Mapping[str, Any],
+    facts: Mapping[str, Any],
+    standings: Mapping[str, Any],
+    recent_form: Mapping[str, Any],
+    head_to_head: Mapping[str, Any],
+) -> dict[str, Any]:
+    home = _text(match.get("home_team")) or "Equipo local"
+    away = _text(match.get("away_team")) or "Equipo visitante"
+    competition_name = _text(competition.get("name"))
+    season = _text(facts.get("season") or match.get("season"))
+    round_name = _text(competition.get("round") or match.get("round"))
+    madrid_label = _text(madrid_time.get("label"))
+    source = _text(match.get("source")) or "Fuente no identificada"
+    evidence: list[dict[str, Any]] = []
+    limitations: list[str] = []
+
+    identity_parts = []
+    if competition_name:
+        identity_parts.append(competition_name)
+    if season:
+        identity_parts.append(f"temporada {season}")
+    if round_name:
+        identity_parts.append(round_name)
+    if madrid_label and madrid_label != "Hora Madrid pendiente":
+        identity_parts.append(madrid_label)
+    identity_text = " · ".join(identity_parts)
+
+    home_standing = _team_standing(standings, home)
+    away_standing = _team_standing(standings, away)
+    if standings.get("available") and standings.get("context_eligible"):
+        standing_parts = [
+            sentence
+            for sentence in (
+                _standing_sentence(home, home_standing),
+                _standing_sentence(away, away_standing),
+            )
+            if sentence
+        ]
+        if home_standing and away_standing and len(standing_parts) == 2:
+            observed = _text(standings.get("updated_at"))
+            suffix = f" (observada {observed})" if observed else ""
+            evidence.append(
+                {
+                    "id": "standings-context",
+                    "kind": "standings",
+                    "text": "Clasificación disponible: " + "; ".join(standing_parts) + suffix + ".",
+                    "source": _text(standings.get("source")) or None,
+                    "observed_at": standings.get("updated_at"),
+                }
+            )
+        else:
+            limitations.append("La tabla disponible no identifica a ambos equipos del partido.")
+    elif standings.get("temporal_state") == "post_match_snapshot":
+        limitations.append(
+            "La clasificación guardada es posterior al partido y no se usa para explicar su contexto previo."
+        )
+    elif standings.get("available"):
+        limitations.append(
+            "La clasificación no tiene una observación temporal suficiente para explicar este partido."
+        )
+    else:
+        limitations.append("No hay clasificación confirmada para este partido.")
+
+    for side_key, team_name in (("home", home), ("away", away)):
+        form = _mapping(recent_form.get(side_key))
+        if form.get("available"):
+            evidence.append(
+                {
+                    "id": f"recent-form-{side_key}",
+                    "kind": "recent_form",
+                    "text": (
+                        f"Forma de {team_name}: {form.get('summary')} "
+                        f"(muestra real: {form.get('sample_size')} "
+                        f"{'partido' if form.get('sample_size') == 1 else 'partidos'})."
+                    ),
+                    "source": form.get("source"),
+                    "observed_at": None,
+                }
+            )
+        else:
+            limitations.append(
+                f"No hay resultados finalizados confirmados de {team_name} para esta competición y temporada."
+            )
+
+    if head_to_head.get("available"):
+        count = int(head_to_head.get("count") or 0)
+        evidence.append(
+            {
+                "id": "head-to-head-context",
+                "kind": "head_to_head",
+                "text": (
+                    f"Histórico disponible: {count} "
+                    f"{'enfrentamiento directo finalizado' if count == 1 else 'enfrentamientos directos finalizados'} "
+                    "con resultado confirmado."
+                ),
+                "source": head_to_head.get("source"),
+                "observed_at": head_to_head.get("updated_at"),
+            }
+        )
+    else:
+        limitations.append("No hay enfrentamientos directos finalizados con resultado confirmado.")
+
+    substantive_kinds = {item["kind"] for item in evidence}
+    if (
+        {"standings", "recent_form", "head_to_head"}.issubset(substantive_kinds)
+        and recent_form.get("state") == "VERIFIED"
+    ):
+        state = "VERIFIED"
+        label = "Contexto factual completo"
+    elif substantive_kinds:
+        state = "PARTIALLY_VERIFIED"
+        label = "Contexto factual parcial"
+    else:
+        state = "INSUFFICIENT_DATA"
+        label = "Contexto deportivo insuficiente"
+
+    if evidence:
+        headline = evidence[0]["text"]
+    elif identity_text:
+        missing = "clasificación, forma reciente y H2H confirmados"
+        headline = f"{identity_text}. Faltan {missing} para explicar su relevancia deportiva."
+    else:
+        headline = (
+            "Faltan identidad competitiva, horario, clasificación, forma reciente "
+            "y H2H confirmados para explicar la relevancia deportiva."
+        )
+
+    lifecycle_key = _text(lifecycle.get("key")).upper()
+    return {
+        "contract": MATCH_CONTEXT_INTELLIGENCE_CONTRACT,
+        "available": bool(evidence),
+        "state": state,
+        "label": label,
+        "headline": headline,
+        "identity": {
+            "competition": competition_name or None,
+            "season": season or None,
+            "round": round_name or None,
+            "madrid_datetime": madrid_label
+            if madrid_label and madrid_label != "Hora Madrid pendiente"
+            else None,
+            "lifecycle": lifecycle_key or None,
+        },
+        "evidence": evidence,
+        "limitations": limitations,
+        "sources": sorted(
+            {
+                _text(item.get("source"))
+                for item in evidence
+                if _text(item.get("source"))
+            }
+        ),
+        "unsupported_claims": 0,
+        "predictive_claims": 0,
+        "betting_claims": 0,
+        "generative_ai_calls": 0,
+        "external_calls": 0,
+        "database_writes": 0,
+        "no_fake_data": True,
+        "status_is_canonical": bool(lifecycle.get("status_contract")),
+        "source": source,
     }
 
 
@@ -442,7 +881,16 @@ def _factual_summaries(
     key = _text(lifecycle.get("key")).upper()
     items: list[dict[str, Any]] = []
     evidence = ["match_status"]
-    if lifecycle.get("is_finished"):
+    terminal_copy = {
+        "CANCELLED": ("CANCELLED_SUMMARY", f"El partido entre {home} y {away} figura como cancelado."),
+        "POSTPONED": ("POSTPONED_SUMMARY", f"El partido entre {home} y {away} figura como aplazado."),
+        "SUSPENDED": ("SUSPENDED_SUMMARY", f"El partido entre {home} y {away} figura como suspendido."),
+        "ABANDONED": ("ABANDONED_SUMMARY", f"El partido entre {home} y {away} figura como abandonado."),
+        "RESULT_PENDING": ("RESULT_PENDING_SUMMARY", "El resultado definitivo está pendiente de confirmación."),
+    }
+    if key in terminal_copy:
+        summary_type, text = terminal_copy[key]
+    elif lifecycle.get("is_finished"):
         summary_type = "FULLTIME_SUMMARY"
         text = f"{home} y {away} finalizaron"
         if score.get("confirmed"):
@@ -512,15 +960,29 @@ def _lifecycle_from_domain(
     match = _mapping(canonical_match)
     raw = _mapping(raw_match)
     tracker = _mapping(live)
-    truth_source = dict(raw)
-    if tracker.get("available"):
-        tracker_status = tracker.get("status") or tracker.get("status_short") or tracker.get("phase")
-        if tracker_status:
-            truth_source["provider_status"] = tracker_status
-        tracker_updated = tracker.get("updated_at") or tracker.get("last_synced_at")
-        if tracker_updated:
-            truth_source["live_updated_at"] = tracker_updated
-    truth = match_status_truth(truth_source)
+    truth = _mapping(match.get("status_truth"))
+    if not truth.get("contract"):
+        truth_source = dict(raw)
+        if tracker.get("available"):
+            tracker_status = tracker.get("status") or tracker.get("status_short") or tracker.get("phase")
+            if tracker_status:
+                truth_source["provider_status"] = tracker_status
+            tracker_updated = next(
+                (
+                    tracker.get(key)
+                    for key in (
+                        "live_updated_at",
+                        "provider_updated_at",
+                        "last_synced_at",
+                        "source_timestamp",
+                    )
+                    if tracker.get(key) not in (None, "")
+                ),
+                None,
+            )
+            if tracker_updated:
+                truth_source["live_updated_at"] = tracker_updated
+        truth = match_status_truth(truth_source)
     lifecycle = _text(truth.get("lifecycle") or "INCOMPLETE").upper()
     labels = {
         "UPCOMING": "Programado",
@@ -559,10 +1021,7 @@ def _score_from_domain(canonical_match: Mapping[str, Any], display: Mapping[str,
             "label": score.get("label") or f"{score.get('home')}-{score.get('away')}",
             "confirmed": True,
         }
-    label = _text(display.get("client_score_label"))
-    if label.lower() in {"", "-", "vs", "pendiente"}:
-        label = "VS"
-    return {"home": None, "away": None, "label": label or "VS", "confirmed": False}
+    return {"home": None, "away": None, "label": "VS", "confirmed": False}
 
 
 def _team_view_from_domain(entity: Mapping[str, Any], *, side: str) -> dict[str, Any]:
@@ -631,6 +1090,9 @@ def _freshness_label(freshness: Mapping[str, Any]) -> str:
         "fresh": "Fresco",
         "aging": "Válido con antigüedad",
         "stale": "Desactualizado",
+        "historical_final": "Resultado final confirmado",
+        "observed_snapshot": "Instantánea observada",
+        "post_match_snapshot": "Instantánea posterior al partido",
         "unknown": "Frescura desconocida",
         "unavailable": "No disponible",
     }.get(state, "No disponible")
@@ -804,7 +1266,17 @@ def _story(
     latest = _mapping(event_summary.get("latest"))
     latest_title = _text(latest.get("title") or latest.get("detail"))
 
-    if lifecycle.get("is_finished"):
+    lifecycle_key = _text(lifecycle.get("key")).upper()
+    terminal_copy = {
+        "CANCELLED": ("Partido cancelado", f"El partido entre {home} y {away} figura como cancelado."),
+        "POSTPONED": ("Partido aplazado", f"El partido entre {home} y {away} figura como aplazado."),
+        "SUSPENDED": ("Partido suspendido", f"El partido entre {home} y {away} figura como suspendido."),
+        "ABANDONED": ("Partido abandonado", f"El partido entre {home} y {away} figura como abandonado."),
+        "RESULT_PENDING": ("Resultado pendiente", "El resultado definitivo está pendiente de confirmación."),
+    }
+    if lifecycle_key in terminal_copy:
+        phase, summary = terminal_copy[lifecycle_key]
+    elif lifecycle.get("is_finished"):
         if score.get("confirmed"):
             summary = f"{home} y {away} finalizaron con marcador {score.get('label')}."
         else:
@@ -854,6 +1326,8 @@ class MatchContext:
     lineups: dict[str, Any]
     head_to_head: dict[str, Any]
     standings: dict[str, Any]
+    recent_form: dict[str, Any]
+    context_intelligence: dict[str, Any]
     summaries: dict[str, Any]
     media: dict[str, Any]
     facts: dict[str, Any]
@@ -954,8 +1428,6 @@ def build_match_context(
         lifecycle,
         _mapping(detail_data.get("cached_statistics")),
     )
-    head_to_head = _head_to_head_context(detail_data.get("head_to_head"))
-    standings = _standings_context(detail_data.get("standings"))
     picks = {
         "available": bool(related_picks),
         "count": len(related_picks),
@@ -976,9 +1448,52 @@ def build_match_context(
         "time": _text(display.get("client_time_label") or match.get("kickoff_time")),
         "iso": match.get("kickoff_iso") or match.get("commence_time"),
     }
+    expected_competition_id = _text(
+        match.get("competition_id") or match.get("league_id")
+    )
+    expected_season = _text(facts.get("season") or match.get("season"))
+    head_to_head = _head_to_head_context(
+        detail_data.get("head_to_head"),
+        home_team=match.get("home_team"),
+        away_team=match.get("away_team"),
+        before_kickoff=madrid_time.get("iso"),
+    )
+    standings = _standings_context(
+        detail_data.get("standings"),
+        expected_season=expected_season,
+        expected_competition_id=expected_competition_id,
+        kickoff_iso=madrid_time.get("iso"),
+    )
+    recent_form = _recent_form_context(
+        detail_data.get("recent_form"),
+        home_team=match.get("home_team"),
+        away_team=match.get("away_team"),
+        expected_season=expected_season,
+        expected_competition_id=expected_competition_id,
+        before_kickoff=madrid_time.get("iso"),
+    )
+    context_intelligence = _match_context_intelligence(
+        match,
+        lifecycle,
+        competition,
+        madrid_time,
+        facts,
+        standings,
+        recent_form,
+        head_to_head,
+    )
 
     navigation = _navigation(teams, competition, timeline, lineups)
     event_summary["items"] = timeline
+    source_observed_at = (
+        canonical_match.get("source_timestamp")
+        or live.get("live_updated_at")
+        or live.get("provider_updated_at")
+        or live.get("last_synced_at")
+        or match.get("live_updated_at")
+        or match.get("provider_updated_at")
+        or match.get("last_synced_at")
+    )
     intelligence = build_match_intelligence(
         match,
         related_picks,
@@ -991,11 +1506,7 @@ def build_match_context(
         canonical_match=canonical_match,
         canonical_timeline=canonical_timeline,
         historical=head_to_head.get("items"),
-        observed_at_madrid=(
-            madrid_time.get("iso")
-            or live.get("updated_at")
-            or match.get("updated_at")
-        ),
+        observed_at_madrid=source_observed_at,
     )
     shark_context = build_shark_match_intelligence_state(intelligence)
     summaries = _factual_summaries(
@@ -1019,11 +1530,7 @@ def build_match_context(
         match_intelligence=intelligence,
         timeline_events=canonical_timeline,
         related_picks=related_picks,
-        now_madrid=(
-            madrid_time.get("iso")
-            or live.get("updated_at")
-            or match.get("updated_at")
-        ),
+        now_madrid=source_observed_at,
     )
 
     limitations: list[str] = []
@@ -1041,6 +1548,8 @@ def build_match_context(
         limitations.append("Sin enfrentamientos directos confirmados.")
     if not standings["available"]:
         limitations.append("Sin clasificación confirmada.")
+    if not recent_form["available"]:
+        limitations.append("Sin forma reciente confirmada para esta competición y temporada.")
     if lifecycle.get("is_stale"):
         limitations.append("La última lectura deportiva está desactualizada.")
 
@@ -1210,14 +1719,48 @@ def build_match_context(
         "head_to_head": _transparency_block(
             source=head_to_head.get("source"),
             evidence_state="VERIFIED" if head_to_head.get("available") else "INSUFFICIENT_DATA",
-            freshness={"state": "persisted" if head_to_head.get("updated_at") else "unknown"},
+            freshness={"state": "historical_final" if head_to_head.get("available") else "unknown"},
             limitations=[] if head_to_head.get("available") else ["Sin enfrentamientos directos confirmados."],
         ),
         "standings": _transparency_block(
             source=standings.get("source"),
-            evidence_state="VERIFIED" if standings.get("available") else "INSUFFICIENT_DATA",
-            freshness={"state": "persisted" if standings.get("updated_at") else "unknown"},
-            limitations=[] if standings.get("available") else ["Sin clasificación confirmada."],
+            evidence_state=(
+                "VERIFIED"
+                if standings.get("context_eligible")
+                else "PARTIALLY_VERIFIED"
+                if standings.get("available")
+                else "INSUFFICIENT_DATA"
+            ),
+            freshness={"state": standings.get("temporal_state") or "unknown"},
+            limitations=(
+                []
+                if standings.get("context_eligible")
+                else context_intelligence.get("limitations") or ["Sin clasificación confirmada."]
+            ),
+        ),
+        "recent_form": _transparency_block(
+            source=",".join(
+                source
+                for source in (
+                    _mapping(recent_form.get("home")).get("source"),
+                    _mapping(recent_form.get("away")).get("source"),
+                )
+                if source
+            ),
+            evidence_state=recent_form.get("state"),
+            freshness={"state": "historical_final" if recent_form.get("available") else "unknown"},
+            limitations=[
+                item
+                for item in context_intelligence.get("limitations") or []
+                if "resultados finalizados" in item
+            ],
+        ),
+        "context_intelligence": _transparency_block(
+            source=",".join(context_intelligence.get("sources") or [])
+            or context_intelligence.get("source"),
+            evidence_state=context_intelligence.get("state"),
+            freshness={"state": "observed_snapshot" if context_intelligence.get("available") else "unknown"},
+            limitations=context_intelligence.get("limitations") or [],
         ),
         "data_quality": _transparency_block(
             source=canonical_match.get("source"),
@@ -1240,6 +1783,8 @@ def build_match_context(
         {"id": "lineups", "label": "Alineaciones", "available": lineups.get("confirmed")},
         {"id": "head_to_head", "label": "Enfrentamientos directos", "available": head_to_head.get("available")},
         {"id": "standings", "label": "Clasificación", "available": standings.get("available")},
+        {"id": "recent_form", "label": "Forma reciente", "available": recent_form.get("available")},
+        {"id": "context_intelligence", "label": "Por qué importa", "available": context_intelligence.get("available")},
         {"id": "video", "label": "Vídeo autorizado", "available": bool(media.get("visible_count"))},
         {"id": "risks", "label": "Riesgos", "available": bool(risk_flags)},
         {"id": "data_quality", "label": "Calidad de datos", "available": True},
@@ -1273,6 +1818,8 @@ def build_match_context(
         lineups=lineups,
         head_to_head=head_to_head,
         standings=standings,
+        recent_form=recent_form,
+        context_intelligence=context_intelligence,
         summaries=summaries,
         media=media,
         facts=facts,
@@ -1312,6 +1859,11 @@ def build_match_context(
             "sports_knowledge_external_calls": _mapping(sports_knowledge.get("diagnostics")).get("external_calls"),
             "head_to_head_external_calls": head_to_head.get("external_calls"),
             "standings_external_calls": standings.get("external_calls"),
+            "recent_form_external_calls": recent_form.get("external_calls"),
+            "match_context_intelligence_contract": context_intelligence.get("contract"),
+            "match_context_intelligence_external_calls": context_intelligence.get("external_calls"),
+            "match_context_intelligence_database_writes": context_intelligence.get("database_writes"),
+            "match_context_intelligence_unsupported_claims": context_intelligence.get("unsupported_claims"),
             "statistics_snapshot_kind": statistics.get("snapshot_kind"),
             "telegram_readonly_contract": telegram_readonly_contract.get("contract"),
             "component_contracts": list(MATCH_CENTER_COMPONENTS),

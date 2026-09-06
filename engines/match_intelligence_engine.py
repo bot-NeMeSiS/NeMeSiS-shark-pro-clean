@@ -568,7 +568,7 @@ def build_match_intelligence(
             )
         )
     score_evidence_id = ""
-    if score_data.get("confirmed") or _text(score_data.get("label"), 40):
+    if score_data.get("confirmed"):
         score_evidence_id = "match-score"
         evidence.append(
             _evidence(

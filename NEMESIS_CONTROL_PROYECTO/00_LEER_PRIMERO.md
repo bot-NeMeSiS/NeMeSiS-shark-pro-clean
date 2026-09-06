@@ -2,12 +2,14 @@
 
 ## Verdad actual
 
-- Fecha de reconstruccion: 2026-09-05 (Europe/Madrid).
+- Fecha de conciliacion: 2026-09-06 (Europe/Madrid).
 - Rama: `main`.
-- Base local, GitHub y Render verificada antes de los cambios locales: `fddbeea3b1205e2f05e62bcf95630a7a4c85a4cd`.
+- Base local, GitHub y Render verificada antes de los cambios locales: `419a04d84ca92c021d7610ca15f4d62ccfaba76b`.
 - Version declarada: `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`.
-- Produccion: health PASS y runtime alineado con la base indicada.
-- Trabajo de esta fase: local y sin commit, push o deploy.
+- Produccion: health PASS y runtime alineado con `419a04d8` mediante consultas read-only.
+- Sports Truth y DAY 3 ya estan integrados en esa base.
+- Trabajo actual: `MATCH_CONTEXT_INTELLIGENCE_CONTINUATION`, local y sin commit, push o deploy.
+- Limpieza anterior: `NO_OP_ALREADY_CLEAN`; `RESTAURACION_NO_NECESARIA`.
 
 ## Orden de lectura
 

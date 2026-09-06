@@ -7493,6 +7493,8 @@ def _cached_h2h_for_match(match, limit=6):
     away_id = str(
         identity.get("away_team_id") or match.get("away_team_id") or ""
     ).strip()
+    current_kickoff = _context_match_datetime(match)
+    current_kickoff = _context_match_datetime(match)
     items = []
     seen = set()
     if db_table_exists("api_football_h2h_history"):
@@ -7529,8 +7531,14 @@ def _cached_h2h_for_match(match, limit=6):
                     "PEN",
                 }:
                     continue
+                if not _is_prior_context_match(raw, current_kickoff):
+                    continue
+                if not _is_prior_context_match(raw, current_kickoff):
+                    continue
                 home_score = raw.get("home_score")
                 away_score = raw.get("away_score")
+                if home_score in (None, "") or away_score in (None, ""):
+                    continue
                 item = {
                     "match_id": None,
                     "fixture_id": fixture_id or None,
@@ -7569,8 +7577,14 @@ def _cached_h2h_for_match(match, limit=6):
                 continue
             if not canonical_match_status(raw).get("is_finished"):
                 continue
+            if not _is_prior_context_match(raw, current_kickoff):
+                continue
+            if not _is_prior_context_match(raw, current_kickoff):
+                continue
             home_score = raw.get("home_score")
             away_score = raw.get("away_score")
+            if home_score in (None, "") or away_score in (None, ""):
+                continue
             temporal = raw.get("client_temporal_context") or {}
             items.append(
                 {
@@ -7636,22 +7650,53 @@ def _cached_match_standings(match, limit=24):
         or match.get("league_name"),
         "key": match.get("competition_key"),
     }
+    requested_season = str(match.get("season") or "").strip()
+    provider_competition_id = str(
+        identity.get("league_id")
+        or match.get("competition_id")
+        or competition.get("external_id")
+        or ""
+    ).strip()
+    if not requested_season or not provider_competition_id:
+        return {
+            **empty,
+            "competition_id": provider_competition_id or None,
+            "requested_season": requested_season or None,
+            "season": None,
+            "season_verified": False,
+            "identity_verified": False,
+        }
     standings = _competition_standings_for(
         competition,
         competition_id,
         limit=limit,
+        season=requested_season or None,
+        strict_identity=True,
     )
     for item in standings:
         item.setdefault("source", "api_football_standings_deep")
+    selected_season = str(standings[0].get("season") or "").strip() if standings else ""
     return {
         "available": bool(standings),
         "rows": standings,
         "source": "api_football_standings_deep" if standings else None,
         "updated_at": max(
-            (str(item.get("snapshot_at") or "") for item in standings),
+            (
+                str(item.get("snapshot_at") or item.get("updated_at") or "")
+                for item in standings
+            ),
             default="",
         )
         or None,
+        "competition_id": provider_competition_id or None,
+        "requested_season": requested_season or None,
+        "season": selected_season or None,
+        "season_verified": bool(
+            standings
+            and requested_season
+            and selected_season.casefold() == requested_season.casefold()
+        ),
+        "identity_verified": bool(standings and provider_competition_id),
         "external_calls": 0,
     }
 
@@ -7878,9 +7923,17 @@ def _competition_teams_for(matches, competition):
     return sorted(seen.values(), key=lambda item: str(item.get("name") or "").lower())
 
 
-def _competition_standings_for(competition, competition_id, limit=40):
+def _competition_standings_for(
+    competition,
+    competition_id,
+    limit=40,
+    *,
+    season=None,
+    strict_identity=False,
+):
     if not db_table_exists("api_football_standings_deep"):
         return []
+    available_columns = _sqlite_table_columns("api_football_standings_deep")
     candidates = _competition_route_candidates(competition_id)
     for value in (
         (competition or {}).get("key"),
@@ -7892,16 +7945,89 @@ def _competition_standings_for(competition, competition_id, limit=40):
             candidates.append(value)
     if not candidates:
         return []
-    placeholders = ",".join(["?"] * len(candidates))
-    params = [str(item).lower() for item in candidates]
-    return rows(
-        f"""SELECT * FROM api_football_standings_deep
-            WHERE lower(COALESCE(league_id,'')) IN ({placeholders})
-               OR lower(COALESCE(league_name,'')) IN ({placeholders})
-            ORDER BY CAST(rank AS INTEGER), team_name
-            LIMIT ?""",
-        tuple(params + params + [int(limit)]),
+    strict_values = []
+    for value in (
+        competition_id,
+        (competition or {}).get("external_id"),
+    ):
+        value = str(value or "").strip().lower()
+        if value and value not in strict_values:
+            strict_values.append(value)
+    if strict_identity and strict_values:
+        placeholders = ",".join(["?"] * len(strict_values))
+        identity_clause = f"lower(COALESCE(league_id,'')) IN ({placeholders})"
+        params = list(strict_values)
+    else:
+        placeholders = ",".join(["?"] * len(candidates))
+        normalized = [str(item).lower() for item in candidates]
+        identity_clause = (
+            f"(lower(COALESCE(league_id,'')) IN ({placeholders}) "
+            f"OR lower(COALESCE(league_name,'')) IN ({placeholders}))"
+        )
+        params = normalized + normalized
+
+    requested_season = str(season or "").strip()
+    if not requested_season:
+        return rows(
+            f"""SELECT * FROM api_football_standings_deep
+                WHERE {identity_clause}
+                ORDER BY CAST(rank AS INTEGER), team_name
+                LIMIT ?""",
+            tuple(params + [int(limit)]),
+        )
+
+    # Historical/local-safe databases predate season-aware standings. A match
+    # snapshot cannot be verified against its season there, so fail closed
+    # instead of mixing tables or requiring a schema migration during render.
+    if "season" not in available_columns:
+        return []
+
+    snapshot_column = (
+        "snapshot_at"
+        if "snapshot_at" in available_columns
+        else "updated_at"
+        if "updated_at" in available_columns
+        else None
     )
+    snapshot_order = f"COALESCE({snapshot_column},'') DESC, " if snapshot_column else ""
+
+    candidates_limit = max(int(limit) * 8, 160)
+    snapshots = rows(
+        f"""SELECT * FROM api_football_standings_deep
+            WHERE {identity_clause}
+              AND lower(COALESCE(season,''))=lower(?)
+            ORDER BY {snapshot_order}CAST(rank AS INTEGER), team_name
+            LIMIT ?""",
+        tuple(params + [requested_season, candidates_limit]),
+    )
+    if not snapshots:
+        return []
+    latest_snapshot = (
+        str(snapshots[0].get(snapshot_column) or "").strip()
+        if snapshot_column
+        else ""
+    )
+    if latest_snapshot:
+        snapshots = [
+            item
+            for item in snapshots
+            if str(item.get(snapshot_column) or "").strip() == latest_snapshot
+        ]
+    deduplicated = []
+    seen_teams = set()
+    for item in snapshots:
+        team_key = str(item.get("team_id") or item.get("team_name") or "").strip().casefold()
+        if not team_key or team_key in seen_teams:
+            continue
+        seen_teams.add(team_key)
+        deduplicated.append(item)
+    deduplicated.sort(
+        key=lambda item: (
+            int(item.get("rank")) if str(item.get("rank") or "").isdigit() else 10**6,
+            str(item.get("team_name") or "").casefold(),
+        )
+    )
+    return deduplicated[: int(limit)]
 
 
 def _competition_picks_for(competition, matches, limit=30):
@@ -8276,42 +8402,177 @@ def group_matches_by_league(matches):
     return result
 
 
-def recent_team_form(team_name, limit=5):
-    """Return compact recent form based only on persisted legal match results."""
-    team_name = str(team_name or "").strip()
-    if not team_name:
-        return {"team": "", "matches": [], "form": [], "summary": "Sin datos recientes."}
-    recent = []
-    for m in rows(
-        """SELECT * FROM matches
-           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
-             AND (status IN ('FT','finished','finalizado','Finalizado','FINAL') OR match_date < ?)
-           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
-        (team_name, team_name, today_iso(), int(limit)),
+def _confirmed_score_pair(match):
+    def parse_component(value):
+        candidate = str(value or "").strip()
+        return int(candidate) if re.fullmatch(r"\d{1,3}", candidate) else None
+
+    home_score = parse_component((match or {}).get("home_score"))
+    away_score = parse_component((match or {}).get("away_score"))
+    if home_score is not None and away_score is not None:
+        return home_score, away_score
+    score = str((match or {}).get("score") or "").strip()
+    parsed = re.fullmatch(r"(\d{1,3})\s*[-:]\s*(\d{1,3})", score)
+    if not parsed:
+        return None
+    return int(parsed.group(1)), int(parsed.group(2))
+
+
+def _context_match_datetime(value):
+    item = value if isinstance(value, dict) else {}
+    raw = item.get("kickoff_iso") if item else value
+    if not raw and item.get("match_date") and (
+        item.get("kickoff_time") or item.get("match_time")
     ):
-        if is_fake_match(m):
+        raw = (
+            f"{str(item.get('match_date'))[:10]}T"
+            f"{str(item.get('kickoff_time') or item.get('match_time'))[:5]}:00"
+        )
+    return parse_datetime_to_madrid(raw) if raw else None
+
+
+def _is_prior_context_match(candidate, current_kickoff):
+    if current_kickoff is None:
+        return True
+    candidate_kickoff = _context_match_datetime(candidate)
+    return bool(candidate_kickoff and candidate_kickoff < current_kickoff)
+
+
+def _same_canonical_competition(expected, candidate):
+    expected = dict(expected or {})
+    candidate = dict(candidate or {})
+    for key in ("provider_id", "canonical_id", "group_key"):
+        expected_value = str(expected.get(key) or "").strip().casefold()
+        candidate_value = str(candidate.get(key) or "").strip().casefold()
+        if expected_value:
+            return bool(candidate_value and candidate_value == expected_value)
+    return True
+
+
+def recent_team_form(
+    team_name,
+    limit=5,
+    *,
+    competition_identity=None,
+    season=None,
+    exclude_match_id=None,
+    before_kickoff=None,
+):
+    """Return confirmed persisted results without inferring FT from the clock."""
+    team_name = str(team_name or "").strip()
+    requested_limit = max(1, int(limit))
+    expected_season = str(season or "").strip()
+    expected_competition = dict(competition_identity or {})
+    base = {
+        "contract": "NEMESIS-MATCH-RECENT-FORM-CACHE-V1",
+        "available": False,
+        "team": team_name,
+        "matches": [],
+        "form": [],
+        "summary": "Sin resultados finalizados confirmados.",
+        "sample_size": 0,
+        "requested_sample_size": requested_limit,
+        "competition_identity": expected_competition,
+        "season": expected_season or None,
+        "source": None,
+        "external_calls": 0,
+        "fake_matches_created": 0,
+        "confirmed_results_only": True,
+        "freshness_policy": "terminal_results_do_not_expire",
+    }
+    if not team_name:
+        return base
+
+    excluded = str(exclude_match_id or "").strip()
+    context_kickoff = _context_match_datetime(before_kickoff)
+    fetch_limit = max(requested_limit * 12, 60)
+    candidates = rows(
+        """SELECT * FROM matches
+           WHERE lower(home_team)=lower(?) OR lower(away_team)=lower(?)
+           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
+        (team_name, team_name, fetch_limit),
+    )
+    recent = []
+    sources = []
+    for raw in candidates:
+        if len(recent) >= requested_limit:
+            break
+        identifiers = {
+            str(raw.get("id") or "").strip(),
+            str(raw.get("external_id") or "").strip(),
+        }
+        if excluded and excluded in identifiers:
             continue
-        item = annotate_match(m)
-        score = str(item.get("score") or "").replace(" ", "")
-        result = "D"
-        try:
-            import re
-            nums = [int(x) for x in re.findall(r"\d+", score)[:2]]
-            if len(nums) >= 2:
-                home_goals, away_goals = nums[0], nums[1]
-                is_home = str(item.get("home_team") or "").lower() == team_name.lower()
-                team_goals = home_goals if is_home else away_goals
-                rival_goals = away_goals if is_home else home_goals
-                result = "W" if team_goals > rival_goals else "L" if team_goals < rival_goals else "D"
-        except Exception:
-            result = "D"
-        item["form_result"] = result
-        recent.append(item)
-    wins = sum(1 for x in recent if x.get("form_result") == "W")
-    draws = sum(1 for x in recent if x.get("form_result") == "D")
-    losses = sum(1 for x in recent if x.get("form_result") == "L")
-    summary = f"{wins} victorias - {draws} empates - {losses} derrotas" if recent else "Sin resultados recientes guardados."
-    return {"team": team_name, "matches": recent, "form": [x.get("form_result") for x in recent], "summary": summary}
+        if not _is_prior_context_match(raw, context_kickoff):
+            continue
+        if is_fake_match(raw) or not canonical_match_status(raw).get("is_finished"):
+            continue
+        home_team = str(raw.get("home_team") or "").strip()
+        away_team = str(raw.get("away_team") or "").strip()
+        team_key = team_name.casefold()
+        if team_key not in {home_team.casefold(), away_team.casefold()}:
+            continue
+        candidate_season = str(raw.get("season") or "").strip()
+        if expected_season and candidate_season.casefold() != expected_season.casefold():
+            continue
+        candidate_competition = canonical_competition_surface_contract(raw)
+        if expected_competition and not _same_canonical_competition(
+            expected_competition,
+            candidate_competition,
+        ):
+            continue
+        score_pair = _confirmed_score_pair(raw)
+        if score_pair is None:
+            continue
+        home_score, away_score = score_pair
+        is_home = home_team.casefold() == team_key
+        team_goals = home_score if is_home else away_score
+        rival_goals = away_score if is_home else home_score
+        result = "W" if team_goals > rival_goals else "L" if team_goals < rival_goals else "D"
+        source = str(raw.get("source") or "canonical_match_cache").strip()
+        if source and source not in sources:
+            sources.append(source)
+        recent.append(
+            {
+                "match_id": raw.get("id"),
+                "external_id": raw.get("external_id"),
+                "home_team": home_team,
+                "away_team": away_team,
+                "home_score": home_score,
+                "away_score": away_score,
+                "score": f"{home_score}-{away_score}",
+                "form_result": result,
+                "match_date": raw.get("match_date"),
+                "kickoff_time": raw.get("kickoff_time"),
+                "kickoff_iso": raw.get("kickoff_iso"),
+                "competition_identity": candidate_competition,
+                "season": candidate_season or None,
+                "status": "FT",
+                "source": source,
+                "updated_at": raw.get("last_synced_at") or raw.get("updated_at"),
+                "href": f"/match/{raw.get('id')}" if raw.get("id") else None,
+            }
+        )
+
+    wins = sum(item["form_result"] == "W" for item in recent)
+    draws = sum(item["form_result"] == "D" for item in recent)
+    losses = sum(item["form_result"] == "L" for item in recent)
+    if recent:
+        base.update(
+            {
+                "available": True,
+                "matches": recent,
+                "form": [item["form_result"] for item in recent],
+                "summary": (
+                    f"{wins} {'victoria' if wins == 1 else 'victorias'} · "
+                    f"{draws} {'empate' if draws == 1 else 'empates'} · "
+                    f"{losses} {'derrota' if losses == 1 else 'derrotas'}"
+                ),
+                "sample_size": len(recent),
+                "source": ",".join(sources) or "canonical_match_cache",
+            }
+        )
+    return base
 
 
 def head_to_head_matches(home_team, away_team, limit=5):
@@ -18273,6 +18534,27 @@ def match_detail_page(match_id):
         detail["cached_statistics"] = _cached_match_statistics(detail["match"])
         detail["head_to_head"] = _cached_h2h_for_match(detail["match"])
         detail["standings"] = _cached_match_standings(detail["match"])
+        competition_identity = canonical_competition_surface_contract(detail["match"])
+        match_season = str(detail["match"].get("season") or "").strip()
+        current_match_id = detail["match"].get("id") or detail["match"].get("external_id")
+        detail["recent_form"] = {
+            "contract": "NEMESIS-MATCH-RECENT-FORM-CACHE-V1",
+            "home": recent_team_form(
+                detail["match"].get("home_team"),
+                competition_identity=competition_identity,
+                season=match_season or None,
+                exclude_match_id=current_match_id,
+                before_kickoff=detail["match"],
+            ),
+            "away": recent_team_form(
+                detail["match"].get("away_team"),
+                competition_identity=competition_identity,
+                season=match_season or None,
+                exclude_match_id=current_match_id,
+                before_kickoff=detail["match"],
+            ),
+            "external_calls": 0,
+        }
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}

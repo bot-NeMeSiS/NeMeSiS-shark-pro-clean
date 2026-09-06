@@ -141,6 +141,8 @@
 {% set component = context.get('components', {}).get('MatchStory') or {} %}
 {% set story = context.get('story') or {} %}
 {% set factual = ((context.get('summaries') or {}).get('items') or [{}])[0] %}
+{% set context_intelligence = context.get('context_intelligence') or {} %}
+{% set recent_form = context.get('recent_form') or {} %}
 {% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
 {% set risk = conclusions.get('riesgo') or {} %}
 {% set risk_value = risk.get('value') or {} %}
@@ -155,10 +157,10 @@
       <strong>{{ story.get('phase') or 'Cobertura parcial' }}</strong>
       <p>{{ factual.get('text') or story.get('summary') or 'No disponible todavía.' }}</p>
     </article>
-    <article>
-      <span>Inteligencia</span>
-      <strong>{{ 'Disponible' if (context.get('shark_context') or {}).get('available') else 'Parcial' }}</strong>
-      <p>{{ (context.get('shark_context') or {}).get('headline') or 'No hay lectura suficiente para ampliar el contexto.' }}</p>
+    <article data-match-context-intelligence="{{ context_intelligence.get('contract') or '' }}">
+      <span>Por qué importa este partido</span>
+      <strong>{{ context_intelligence.get('label') or 'Contexto deportivo insuficiente' }}</strong>
+      <p>{{ context_intelligence.get('headline') or 'No hay evidencia suficiente para explicar la relevancia deportiva.' }}</p>
     </article>
     <article>
       <span>Riesgos</span>
@@ -166,7 +168,29 @@
       <p>{{ 'Se muestran solo señales con evidencia.' if risk_value.get('flags') else 'No hay riesgo deportivo confirmado con los datos actuales.' }}</p>
     </article>
   </div>
-  {{ transparency_meta(context, 'summary') }}
+  {% if recent_form.get('available') %}
+  <dl class="v944-context-list v944-limitations" data-recent-form-contract="{{ recent_form.get('contract') or '' }}">
+    {% for side in ['home', 'away'] %}
+    {% set form = recent_form.get(side) or {} %}
+    <div>
+      <dt>{{ form.get('team') or ('Local' if side == 'home' else 'Visitante') }}</dt>
+      <dd>
+        {% if form.get('available') %}
+        {{ form.get('summary') }} · muestra {{ form.get('sample_size') }}
+        {% else %}
+        Sin resultados finalizados confirmados
+        {% endif %}
+      </dd>
+    </div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+  {% if (context_intelligence.get('evidence') or [])|length > 1 %}
+  <ul class="v944-limitations is-compact" aria-label="Hechos del contexto">
+    {% for fact in (context_intelligence.get('evidence') or [])[1:4] %}<li>{{ fact.get('text') }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {{ transparency_meta(context, 'context_intelligence') }}
   {% if context.get('limitations') %}
   <ul class="v944-limitations" aria-label="Limitaciones de los datos">
     {% for limitation in context.get('limitations')[:4] %}<li>{{ limitation }}</li>{% endfor %}
@@ -322,10 +346,14 @@
 {% macro standings_panel(context) -%}
 {% set component = context.get('components', {}).get('StandingsPanel') or {} %}
 {% set standings = context.get('standings') or {} %}
-{{ panel_start('StandingsPanel', component, 'Clasificación', 'Situación real de la competición.', 'standings') }}
+{{ panel_start('StandingsPanel', component, 'Clasificación', 'Instantánea guardada de la competición y temporada indicadas.', 'standings') }}
   {% if standings.get('available') %}
   <div class="v944-standings-scroll">
-    <table class="v944-standings" data-standings-contract="{{ standings.get('contract') }}" data-standings-source="{{ standings.get('source') or '' }}">
+    <table class="v944-standings"
+           data-standings-contract="{{ standings.get('contract') }}"
+           data-standings-source="{{ standings.get('source') or '' }}"
+           data-standings-season="{{ standings.get('season') or '' }}"
+           data-standings-temporal-state="{{ standings.get('temporal_state') or 'unknown' }}">
       <thead><tr><th>Pos.</th><th>Equipo</th><th>PJ</th><th>DG</th><th>Pts.</th></tr></thead>
       <tbody>
       {% for item in standings.get('rows') or [] %}
@@ -344,6 +372,11 @@
       </tbody>
     </table>
   </div>
+  <p class="v944-panel-footnote">
+    {% if standings.get('season') %}Temporada {{ standings.get('season') }} · {% endif %}
+    Observada: {{ standings.get('updated_at')|sync_madrid_label if standings.get('updated_at') else 'momento no disponible' }}.
+    {% if standings.get('temporal_state') == 'post_match_snapshot' %}No se utiliza para explicar retrospectivamente el contexto previo.{% endif %}
+  </p>
   {% else %}
   {{ state_notice(component, 'No hay clasificación confirmada para esta competición.') }}
   {% endif %}
