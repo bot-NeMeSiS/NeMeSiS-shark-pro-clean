@@ -1,136 +1,147 @@
 # Estado Actual del Proyecto
 
-Reconstruccion iniciada el 2026-09-05 y cierre QA el 2026-09-06
-(Europe/Madrid).
+Conciliacion vigente: 2026-09-06 (Europe/Madrid).
 
-## Resumen ejecutivo
+## Decision ejecutiva
 
-La base publicada observada esta alineada en
-`419a04d84ca92c021d7610ca15f4d62ccfaba76b`: `main`, `origin/main` y el
-runtime de Render consultado en modo read-only sirven ese mismo commit.
-`VERSION.txt`, `APP_VERSION` y `app.py` conservan
-`V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`.
+El conjunto actual esta integrado, desplegado y probado localmente en el commit
+`6295222a3cd0c77c8ebd3ac8c304017d7b93ca8b`. `main` local, `origin/main` y el
+runtime de Render apuntan al mismo SHA. El arbol estaba limpio antes de esta
+conciliacion; los unicos cambios locales posteriores son estos documentos de
+control y no estan preparados para commit.
 
-El commit `419a04d8` ya integra el candidato Sports Truth anterior, sus pruebas,
-la documentacion de control e indices tematicos y la observacion DAY 3. Por
-tanto, esa capacidad ya no debe describirse como un diff local sobre
-`fddbeea3`.
+`6295222a` es hijo directo de `46dbe05d81928248284580b66cfbf2a006fcf3e2`.
+El padre incorporo reutilizacion por peticion para dashboard/picks/usuario y un
+diagnostico deportivo separado por ejecucion, acceso, plan, cuota, cobertura y
+frescura. El hijo incorporo Match Context factual, H2H, forma, clasificacion y
+su integracion en Match Center. No se reinicio Match Context ni se creo un motor
+paralelo.
 
-Sobre `419a04d8` existe ahora un unico incremento local sin commit:
-`MATCH_CONTEXT_INTELLIGENCE_CONTINUATION`. Extiende el Match Center existente
-sin crear otro motor, pagina o panel. Clasificacion, forma reciente y H2H se
-validan contra identidad, temporada, resultado confirmado y el instante del
-partido; el bloque `Por que importa este partido` usa solo hechos disponibles y
-explica de forma concreta los datos parciales o insuficientes.
+## Estado por evidencia
 
-El estado previo de los archivos pertinentes esta respaldado fuera del release
-mediante copia selectiva y manifiesto SHA-256. No se copio la DB, el workspace
-completo, secretos, logs ni cache.
+| Ambito | Integrado | Desplegado | Probado localmente | Verificado en produccion |
+|---|---|---|---|---|
+| Dashboard runtime | SI | SI | PASS | PENDIENTE `/app` autenticado |
+| Diagnostico deportivo | SI | SI | PASS | Estructura observada; datos/frescura real no recertificados |
+| Match Context | SI | SI | PASS | SHA/health PASS; comportamiento autenticado PENDIENTE |
+| Sports Truth | SI | SI | PASS | Sin regresion en logs/smoke; LIVE real sigue en certificacion 3-7 dias |
+| Madrid Time | SI | SI | PASS | No revalidado con navegador autenticado |
+| Permisos cliente/admin | SI | SI | PASS aislado | PENDIENTE por falta de sesion/navegador utilizable |
 
-## Matriz
+## Integracion de `app.py`
 
-| Area | Produccion | Local actual | Evidencia / limite |
-|---|---|---|---|
-| Git / runtime | PASS | DIFF LOCAL SIN COMMIT | Base `419a04d8`; el incremento actual no esta publicado |
-| Health | PASS | N/A | `/api/health`, `/api/runtime-version` y `/version`, solo lectura |
-| Sports Truth | PASS PUBLICADO | PASS PRESERVADO | `MATCH-STATUS-TRUTH-V2` integrado en `419a04d8`; no fue modificado por el incremento |
-| Home / Live / Partidos | PASS conocido | PASS POR REGRESION | Sin llamadas nuevas a proveedor; `/api/live` sigue excluido por poder sincronizar |
-| Calendario | PASS conocido | PASS PRESERVADO | DAY 3 y exclusiones LIVE stale permanecen integras |
-| Match Center | V944 PUBLICADO | PASS LOCAL AMPLIADO | Contexto factual visible en 9 viewports, sin overflow ni colisiones |
-| Admin / Founder | IMPLEMENTADO | PASS LOCAL AISLADO | Sesion admin firmada, SQLite temporal, 9/9 cargas Browser QA |
-| SHARK / Picks / Telegram | IMPLEMENTADO | PRESERVADO | Consumen estado fail-closed; cero envios iniciados en esta fase |
-| Stripe / membresias | LIVE BLOQUEADO | SIN CAMBIOS | Cero cobros o cambios de precio iniciados |
-| Continuous Evolution | ACTIVE OBSERVADO | SIN CAMBIOS | Master tick read-only observado; politica no modificada |
-| Visual | NO REAUDITADO | SIN CAMBIOS | No se declara fidelidad visual sin comparacion fisica completa |
-| Sports 3-7 dias | EN CURSO | NO ALTERADO | No se inventa DAY ni LIVE Tier S/A |
+Los dos incrementos comparten el archivo, pero no se sobrescriben:
 
-## Trabajo integrado en `419a04d8`
+- `46dbe05d` modifica `_build_sports_pipeline_diagnostics`, payload de cron,
+  `get_picks`, `published_picks_for_user`, contextos de favoritos/briefing,
+  `current_session_user` y `dashboard_data`.
+- `6295222a` modifica `_cached_h2h_for_match`,
+  `_cached_match_standings`, `_competition_standings_for`,
+  `recent_team_form` y la composicion del detalle de partido.
+- Ninguna funcion modificada por el padre fue reemplazada por el hijo.
+- La cache de picks sigue limitada a GET/HEAD y a `flask.g`; su clave conserva
+  DB, usuario, rol, membresia, filtros, acceso admin y fecha Madrid, y devuelve
+  copias profundas.
+- La cache de usuario sigue limitada a la peticion, valida la identidad de
+  sesion y conserva expiracion de membresia y separacion ADMIN.
+- Match Context importa y delega en `match_status_truth`; no promueve horario,
+  score o cache a LIVE y oculta minuto cuando Sports Truth no confirma LIVE.
 
-- Sports Truth centralizado en `MATCH-STATUS-TRUTH-V2`, con reloj de proveedor
-  explicito y degradacion fail-closed de datos stale, futuros o contradictorios.
-- Realtime, Directo, dominio, Calendario y Match consumen la misma verdad sin
-  inventar LIVE, minuto, finalizacion ni score cero.
-- Pruebas permanentes de procedencia, lifecycle y consistencia entre superficies.
-- DAY 3 de `SPORTS_DATA_LIVE_CERTIFICATION.md` y documentacion de continuidad.
+## QA exacta del conjunto
 
-## Incremento local actual
+Se materializo el commit exacto mediante `git archive` fuera del repositorio.
+La ejecucion valida uso SQLite privado, jobs desactivados, claves externas
+vacias y bloqueo explicito de conexiones salientes; no uso datos reales.
 
-- `app.py`: H2H solo de los mismos equipos y previo al partido; clasificacion
-  exacta por competicion, temporada y ultimo snapshot; forma reciente solo con
-  resultados finalizados, score completo y muestra real.
-- `engines/match_context_engine.py`: contrato
-  `MATCH-CONTEXT-INTELLIGENCE-CONTINUATION-V1`; estados factual completo,
-  parcial e insuficiente; no promueve `updated_at` generico a reloj de proveedor.
-- `engines/match_intelligence_engine.py`: un score parcial o no confirmado no
-  se convierte en evidencia.
-- `templates/components/v944_match_center.html`: integra contexto compacto en el
-  MatchStory existente, sin panel, pagina o capa CSS adicional.
-- Tests: identidad y temporada incorrectas, snapshot posterior, H2H/forma
-  futuros, schema legacy, score parcial y estados terminales/suspendidos.
+- Suite completa: **456/456 PASS**.
+- Matriz focal dashboard + diagnostico + Match Context + permisos + Madrid Time
+  + Competition Identity + Sports Truth: **75/75 PASS**.
+- Conexiones externas: **0**.
+- La primera tentativa de suite se descarto: pytest no podia escribir en su
+  carpeta temporal y LOCAL SAFE bloqueo correctamente dos secretos sinteticos.
+  Se repitio con `--basetemp` privado y bloqueo de socket independiente.
+- No se modificaron DB real, usuarios, membresias, proveedores, cron, Telegram,
+  Stripe ni secretos.
 
-## Matriz del incremento
+## Rendimiento comparable de `/app`
 
-| Requisito | Implementacion actual | Carencia cerrada | Prueba |
-|---|---|---|---|
-| Identidad y Madrid Time | Contratos V944 + Sports Truth | Contexto conserva competicion, temporada, jornada e instante | Tests focales + 9 viewports |
-| Clasificacion | Cache local exacta por ID/temporada | No mezcla homonimos, temporadas ni snapshots posteriores | Tests exact/latest/legacy |
-| Forma reciente | Query local confirmada y previa | No inventa cinco resultados ni usa partidos futuros | Tests de status, score y cutoff |
-| H2H | Mismos equipos, completo y previo | No mezcla el partido actual/futuro | Tests de identidad y cutoff |
-| Por que importa | MatchContext factual | No afirma rivalidad, titulo, descenso o prediccion sin evidencia | Casos completo/parcial/sin datos |
+Benchmark autenticado local con el mismo arnes, entradas, permisos y reloj fijo
+`2026-09-06T12:00:00+02:00`; 0, 50 y 500 picks, una pasada fria y dos calientes.
+Son muestras locales, no latencia productiva ni P95.
 
-## Proveedores y salud observada
+| Picks | Padre `46dbe05d` frio / calientes | Combinado `6295222a` frio / calientes |
+|---:|---:|---:|
+| 0 | 466 / 194 / 129 ms | 436 / 195 / 134 ms |
+| 50 | 1217 / 775 / 720 ms | 1368 / 740 / 694 ms |
+| 500 | 6134 / 2304 / 2133 ms | 6409 / 2225 / 2175 ms |
 
-- Web Render: LIVE; disco `/data`; DB declarada `/data/database.db`.
-- `telegram-auto-tick`: activo, comando
-  `python tools/render_cron_master_tick.py`, cadencia observada cada cinco
-  minutos; no se modifico.
-- Master runner: PASS en la muestra. Esto acredita ejecucion del job, no
-  cobertura deportiva.
-- Sports pipeline: PARTIAL; `provider_authenticated=false`, plan
-  `INACCESSIBLE`, deep calls 0. El ultimo estado tambien registraba limite
-  diario del proveedor.
-- `api_sports_provider_available=true` solo acredita configuracion/habilitacion.
-- Acciones nuevas con coste iniciadas en esta sesion: ninguna. Facturacion y
-  coste corriente no fueron auditados, por lo que no se declara un importe.
+Las nueve respuestas fueron HTTP 200, con `network_attempts=0`. Los hashes
+semanticos y todos los contadores instrumentados coinciden entre padre y
+combinado. En 500 picks se conservan: `get_picks` 8 frio/7 caliente,
+`pick_quality_score` 407/207, lecturas SQL 2036/1100, briefing 1 y smart board 1.
+La variacion temporal observada no demuestra regresion; el trabajo ejecutado es
+identico y las pasadas calientes varian entre -4,5 % y +3,8 %.
 
-## QA reproducible
+## Produccion realmente comprobada
 
-- Pytest completo: 446/446 PASS.
-- Incremento Match Context: 19/19 PASS.
-- Matriz historica Sports Truth/Match/Knowledge/Temporal/desktop: PASS.
-- `py_compile` focal: PASS.
-- `compileall` de `app.py`, `engines`, `tests` y `tools`: PASS, pycache fuera del repo.
-- Jinja: 199/199 PASS.
-- Imports/rutas/static: 744 rutas GET, 151 templates referenciados, 0 templates
-  o assets ausentes.
-- Smoke de rutas: 8/8 PASS; `/api/live` no se uso.
-- Browser QA valido: PASS; 60 capturas, 54/54 clicks, 3/3 journeys, 3.810
-  instancias de componente, Match visible en 9/9 viewports, 0 overflow,
-  0 colisiones, 0 JS, 0 page errors y 0 llamadas de proveedor.
-- Una primera ejecucion Browser se invalido porque la DB temporal estaba fuera
-  del directorio autorizado por LOCAL SAFE; los 403 fueron del guard, no del
-  producto. La repeticion uso `data/local_dev`, aislada e ignorada por Git.
-  El run valido registra 0 issues; el Quality Director agregado conserva el
-  historial del intento invalido y no debe interpretarse como fallo del
-  candidato ni como certificacion de release.
-- Privacy/Secret Guard: 1.103 archivos, 0 secretos confirmados, 0 hallazgos de
-  privacidad y ningun valor impreso.
-- `git diff --check`: PASS antes de esta conciliacion; se repite al cierre.
+- Render web: deploy `dep-daeq2r67bikc73djups0`, `LIVE`, SHA `6295222a`.
+- Render cron: deploy `dep-daeq2r67bikc73djurk0`, `LIVE`, SHA `6295222a`.
+- `/api/health`: HTTP 200, `ok=true`.
+- `/api/runtime-version`: HTTP 200, SHA exacto, archivos de version alineados y
+  `active_errors_count=0`.
+- `/version`: HTTP 200.
+- Logs desde el deploy: 0 `error/critical`, 0 respuestas 5xx y 0
+  `WORKER TIMEOUT` en la ventana consultada.
+- `/app` autenticado y clicks de navegacion: **PENDIENTE**. La herramienta de
+  navegador no pudo iniciar; no se creo usuario, no se extrajeron credenciales
+  y no se uso un redirect como sustituto de la prueba.
 
-## Limites pendientes
+## Advertencia `runtime-version`
 
-- El incremento Match Context es PASS local; produccion sigue en `419a04d8`.
-- No hubo partido Tier S/A LIVE real en esta ejecucion ni llamadas de proveedor.
-- La especificacion original de V946 no se recupero; este incremento usa el
-  alcance explicito actual y no se declara V946 ni `PHASE_3_COMPLETE`.
-- No se hizo una auditoria visual completa ni de toda la aplicacion cliente.
-- `/api/live` mantiene un contrato de lectura que puede activar sincronizacion;
-  queda separado del candidato y no se uso para observar repetidamente.
-- Veintiun enlaces directos a API/admin son deuda de presentacion, no una fuga
-  de autorizacion demostrada.
+La muestra historica de 10,96 s sigue siendo una advertencia aislada, no P95 ni
+regresion confirmada. Una lectura productiva actual tardo 5,41 s. El mismo
+endpoint en local aislado tardo 365 / 205 / 202 ms y devolvio HTTP 200.
 
-## Publicacion
+El recorrido local lee `app.py`, varias hojas CSS, plantilla base y numerosos
+resumenes runtime antes de construir un payload de unos 40,8 KB. Esto explica
+una superficie de trabajo amplia, pero no prueba por si solo la causa de la
+latencia Render. No se hicieron sondeos intensivos.
 
-Incremento actual: commit NO, push NO, merge PR NO, deploy NO, Render writes NO.
-La siguiente decision requiere revision del diff y autorizacion expresa para
-publicar y certificar este candidato concreto.
+## Datos y limites vigentes
+
+- No se llamo a `/api/live`, sync, cron, test-send, proveedores ni pagos.
+- La disponibilidad, cuota, cobertura y frescura deportivas reales no se
+  recertificaron en este encargo; no deben inferirse del health HTTP.
+- DAY 3 permanece intacto en `SPORTS_DATA_LIVE_CERTIFICATION.md`, SHA-256
+  `BD6FD290282682986F626FB966127F9B56D6310DC970A3DA90207B8D4AFBD642`.
+- La certificacion Sports 3-7 dias continua; no se inventa un partido LIVE.
+- El informe `reports/DASHBOARD_RUNTIME_AND_SPORTS_DIAGNOSTICS_REPAIR.md` se
+  conserva como evidencia historica de su fase local y no se reescribe.
+
+## Excepcion de publicacion GitHub
+
+El registro del push normal anterior identifica reglas que exigian PR, tres
+checks (`preflight`, `qa`, `smoke`) y alcance de enforcement `non_admins`.
+La cuenta con capacidad administrativa pudo publicar y GitHub informo la
+excepcion. No se uso `--force` ni una opcion explicita de bypass. Para
+`6295222a`, GitHub no expone status checks ni workflow runs asociados en la
+consulta actual.
+
+Proxima entrega recomendada: rama dedicada, PR a `main`, ejecucion obligatoria
+de `preflight`, `qa` y `smoke`, revision de resultados y merge normal. Revisar
+que la proteccion se aplique tambien a administradores; no cambiar enforcement
+ni permisos dentro de este encargo.
+
+## Siguientes acciones (maximo tres)
+
+1. Repetir `/app` y navegacion real en produccion solo cuando exista una sesion
+   ya autorizada y un navegador operativo.
+2. Adoptar PR + checks obligatorios para la proxima publicacion y confirmar el
+   alcance de `enforcement` con un propietario del repositorio.
+3. Continuar la certificacion Sports DAY 3-7 y perfilar `runtime-version` solo
+   si nuevas muestras productivas confirman latencia sostenida.
+
+## Operaciones de este encargo
+
+Commit: NO. Push: NO. Merge: NO. Deploy: NO. Render writes: NO. Produccion,
+tareas, secretos y datos reales: SIN CAMBIOS.
