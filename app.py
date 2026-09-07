@@ -29944,9 +29944,39 @@ def admin_v808_autopilot_audit_page():
 def admin_v808_telegram_audit_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/telegram-audit")
-    data = dashboard_data()
-    data["telegram_diagnostics"] = telegram_diagnostics_safe()
-    return render_template("admin_telegram_audit.html", data=data)
+    unavailable = []
+
+    def read_section(name, query, params=()):
+        try:
+            return rows(query, params)
+        except (sqlite3.Error, OSError):
+            unavailable.append(name)
+            return None
+
+    counts = {}
+    queries = {
+        "published_picks": ("SELECT COUNT(*) AS total FROM picks WHERE lower(status)='published'", ()),
+        "subscribers_active": ("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1", ()),
+    }
+    for key, status in (("pick_queue_pending", QUEUE_PENDING), ("pick_queue_sent", QUEUE_SENT), ("pick_queue_failed", QUEUE_FAILED)):
+        queries[key] = ("SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)=? AND lower(coalesce(message_type,'')) LIKE '%pick%'", (status,))
+    for tier in ("free", "pro", "elite"):
+        queries["subscribers_" + tier] = ("SELECT COUNT(*) AS total FROM telegram_subscribers WHERE is_active=1 AND lower(membership)=?", (tier,))
+    for key, (query, params) in queries.items():
+        result = read_section(key, query, params)
+        counts[key] = result[0]["total"] if result else None
+    # These require eligibility analysis, not a persisted count. Do not invent it on render.
+    for key in ("sendable_picks", "blocked_by_membership", "badge_errors", "messages_text_only"):
+        counts[key] = None
+    settings = read_section("settings", "SELECT enabled,auto_daily_picks,daily_picks_time FROM telegram_settings WHERE id='default'")
+    sent = read_section("last_sent", "SELECT sent_at FROM telegram_queue WHERE lower(status)=? ORDER BY sent_at DESC LIMIT 1", (QUEUE_SENT,))
+    scheduler = read_section("scheduler", "SELECT task_name,status,last_run,next_run FROM scheduler_locks WHERE task_name IN ('telegram','auto_picks','recommendations')")
+    queue = read_section("pick_queue", "SELECT message_type,status,created_at FROM telegram_queue WHERE lower(coalesce(message_type,'')) LIKE '%pick%' ORDER BY created_at DESC LIMIT 20")
+    logs = read_section("recent_logs", "SELECT event_type,status,created_at FROM telegram_logs ORDER BY created_at DESC LIMIT 20")
+    audit = {"counts": counts, "settings": settings[0] if settings else None,
+             "last_sent": sent, "scheduler": scheduler, "pick_queue": queue,
+             "recent_logs": logs, "unavailable": unavailable}
+    return render_template("admin_telegram_audit.html", data={}, audit=audit)
 
 @app.route("/admin/intelligence-center")
 def admin_v808_intelligence_center_page():
@@ -29997,9 +30027,25 @@ def admin_v808_launch_center_page():
 def admin_v808_retention_center_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/retention-center")
-    data = dashboard_data()
-    data["retention"] = {"users": v808_admin_real_count("users"), "active": v808_admin_real_count("users"), "signals": [], "actions": ["Revisar cuentas", "Comprobar Telegram", "Mejorar onboarding"]}
-    return render_template("admin_retention_center.html", data=data)
+    retention = {"global_score": None, "data_score": None, "usage_score": None,
+                 "operations_score": None, "live_matches": None, "unavailable": [],
+                 "recommended_actions": ["Revisar cuentas", "Comprobar Telegram", "Mejorar onboarding"]}
+    queries = {
+        "users": "SELECT COUNT(*) AS total FROM users",
+        "favorites": "SELECT COUNT(*) AS total FROM favorites",
+        "published_picks": "SELECT COUNT(*) AS total FROM picks WHERE lower(status)='published'",
+        "matches": "SELECT COUNT(*) AS total FROM matches",
+        "telegram_pending": "SELECT COUNT(*) AS total FROM telegram_queue WHERE lower(status)='pending'",
+        "support_tickets": "SELECT COUNT(*) AS total FROM support_tickets WHERE lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')",
+    }
+    for key, query in queries.items():
+        try:
+            result = one(query)
+            retention[key] = result["total"] if result else None
+        except (sqlite3.Error, OSError):
+            retention[key] = None
+            retention["unavailable"].append(key)
+    return render_template("admin_retention_center.html", data={}, retention=retention)
 
 @app.route("/admin/beta-center")
 @app.route("/admin/feedback-center")

@@ -1,6 +1,189 @@
 # NEMESIS DESIGN SYSTEM 1.0 - OFFICIAL REFERENCE ALIGNMENT
 
-## Autorizacion limitada: expectativa de Favoritos (vigente)
+## Cierre local de errores admin y cobertura pendiente (vigente, 2026-09-07)
+
+**Dos errores de contexto corregidos y validados LOCALMENTE. Estado global: PARCIAL.**
+No se ha consultado ni modificado produccion. No se certifican envios Telegram,
+retencion comercial, datos deportivos reales ni aprobacion visual de marca.
+
+### Base y preservacion
+
+- Base real limpia: `main`, HEAD `50cced45f84f7d80e74768d11315f4ba32bdafee`.
+- Su padre es el commit externo `936cdc8863fba3fc967a2eeaf6b65750767766d0`:
+  incorpora 23 archivos del candidato anterior (758 altas/56 bajas), incluidos
+  estilos, templates, tests y herramientas. `50cced45` incorpora el ajuste
+  autorizado de Favoritos y el informe anterior. No son commits de esta operacion.
+- No se presupone que ninguno este desplegado. No hubo consultas a Render/GitHub.
+- Manifiesto inicial privado de 3541 archivos rastreados, HEAD, rama e indice:
+  `.tmp_reference_review/admin_render_closure/baseline.json`. Copias privadas de
+  los dos templates y `app.py`, sin DB ni secretos, en su subcarpeta `baseline/`.
+- Cambios de producto: exclusivamente los dos handlers abajo y sus templates.
+  Nuevo test: `tests/test_admin_readonly_render_context.py`. La unica documentacion
+  publica actualizada es este informe. No se modifica Favoritos ni el sistema visual.
+- Huella SHA-256 del conjunto final de esos cuatro archivos de codigo/tests:
+  `e0e9a15b9f73c3730a9807de746f9ed5454bf9c2d049db8dfdf5c316b3021abf`.
+  El fingerprint visual anterior no incluia estos templates; NO se usa como
+  prueba de su arreglo. Hashes individuales y control posterior: `verification.json`
+  dentro de la carpeta privada de esta operacion.
+
+### Causas y correccion
+
+| Ruta y endpoint efectivo | Reproduccion original | Contrato corregido |
+| --- | --- | --- |
+| `/admin/telegram-audit`, `admin_v808_telegram_audit_page` | `UndefinedError: 'audit' is undefined`, template original `admin_telegram_audit.html:19`, render en `app.py:29949`. La ruta entregaba solamente `data`, con `data.telegram_diagnostics`; el template exigia `audit.counts/settings/checks`. | Contexto superior `audit` explicito, construido mediante SELECT de picks, suscriptores, cola, configuracion, scheduler y registros persistidos. Sin inicializar configuracion, procesar cola ni consultar proveedores. |
+| `/admin/retention-center`, `admin_v808_retention_center_page` | `UndefinedError: 'retention' is undefined`, template original `admin_retention_center.html:10`, render en `app.py:30002`. Entregaba `data.retention` con users/active/signals/actions, incompatible tambien con los campos leidos por la vista. | Contexto superior `retention` con conteos persistidos de los indicadores existentes. No se crea un algoritmo de scores ni otro clasificador LIVE. |
+
+Trazas: `.tmp_reference_review/admin_render_closure/original_exceptions.json`.
+La reproduccion ejecuta los handlers/templates originales conservados, en Flask
+con sesion ADMIN de prueba y DB temporal, acotando sus servicios a datos vacios.
+Demuestra el contrato roto. NO equivale a repetir toda la pasada visual sobre
+el baseline historico con los mismos servicios/datos: se mantiene
+**ORIGEN PREEXISTENTE NO CONFIRMADO** para la atribucion historica de los 500.
+La primera bateria roja (`reproduction.xml`, 8 fallos/6 correctas) detectaba
+ademas el uso de `dashboard_data` prohibido por el guard focal; no se presenta
+como si sus ocho fallos fueran ocho UndefinedError.
+
+Detalles de seguridad y datos:
+
+- Se reutilizan `rows`/`one` y la conexion GET de lectura `request_read_db`.
+  El antiguo diagnostico Telegram podia llamar `get_telegram_settings`, que
+  inicializa/escribe configuracion. La nueva ruta no lo invoca durante render.
+- Solo se capturan `sqlite3.Error` y `OSError` del origen. Errores de programacion
+  como TypeError siguen propagandose y tienen una regresion explicita.
+- Consulta fallida o tabla ausente: `No disponible` y aviso degradado, nunca
+  cero ni `Sin incidencias`. Conteo conocido de conjunto vacio: cero real.
+- No hay fuente implementada en estos handlers para scores de retencion,
+  elegibilidad de picks, bloqueos de plan, auditoria de escudos/texto o LIVE
+  confirmado agregado. Permanecen no disponibles; no se inventan porcentajes
+  ni se deriva LIVE desde SQL/horario. En la DB QA no existe `support_tickets`:
+  ese indicador se degrada, sin crear la tabla ni ejecutar migracion.
+- Se conserva la seccion Checks con estado honesto no disponible y los enlaces
+  existentes. No se muestran cuerpos, payloads, destinatarios ni errores privados
+  de mensajes. Las acciones operativas NO se pulsaron.
+- En Retencion se separaron etiquetas/valores y filas con marcado local del
+  template: la primera captura revelaba textos pegados. Sin cambios de CSS global.
+
+### QA del arbol final
+
+- Regresiones focales finales: **16/16 PASS**. Datos poblados, vacios, parciales,
+  origen fallido, anonimo, cliente sin permisos, error de programacion, privacidad,
+  estados de cola en distinta capitalizacion, exclusividad de mensajes de picks
+  y suscriptores activos. Comprueban contenido/contexto, enlaces y huella de DB
+  inalterada durante GET; una tabla ausente no se recrea al abrir la pagina.
+- **Una unica suite completa final: 493/493 PASS**, 0 fallos, 0 errores y 0 omitidos,
+  242.390 segundos. Incluye 29 Sports Truth, 19 Match Context, 10 dashboard/runtime
+  y diagnostico, las regresiones temporales, de permisos y seguridad del conjunto.
+  No se han sumado cifras de suites anteriores. No se cambiaron tests para ocultar fallos.
+- Jinja: 199 templates compilados. `py_compile` de app y `compileall` de app/test:
+  PASS; bytecode exclusivamente privado. Avisos de pytest: cache local no escribible;
+  no son pruebas omitidas ni fallos del producto.
+- Entorno: `offline_safe`, DB temporal en `data/local_dev`, jobs apagados,
+  credenciales externas vacias, credenciales QA sinteticas y sockets externos
+  bloqueados. Intentos externos registrados por las ejecuciones: 0.
+- Navegador sobre ambos paneles finales: **16/16 observaciones** (2 rutas x 4
+  estados x escritorio 1366x768/movil 390x844), HTTP 200, 0 errores JS, 0 overflow
+  y 0 titulos tapados. Cuatro capturas completas adicionales permiten leer los
+  paneles inferiores. Se inspeccionaron las capturas reales; no se certifican
+  pixel-perfect ni todos los botones del producto.
+- `source_error` inyecta exclusivamente un error SQLite controlado en conteos
+  de la DB de prueba. Su etiqueta especifica se conserva en la matriz consolidada;
+  el escenario deportivo subyacente sigue poblado. No es un fallo de produccion.
+
+Comandos reproducibles (desde la raiz; sin proveedores ni produccion):
+
+```text
+.venv/Scripts/python.exe -B .tmp_reference_review/admin_render_closure/reproduce_original.py
+.venv/Scripts/python.exe -B .tmp_reference_review/consolidated_h01_h09/run_checks.py tests/test_admin_readonly_render_context.py --junitxml=.tmp_reference_review/admin_render_closure/focal_16_final.xml
+.venv/Scripts/python.exe -B .tmp_reference_review/consolidated_h01_h09/run_checks.py --junitxml=.tmp_reference_review/admin_render_closure/full_final.xml
+```
+
+La suite completa ya fue ejecutada una vez; estos comandos documentan lo hecho,
+no solicitan repetirla. Capturas y guardas: `.tmp_reference_review/consolidated_h01_h09/admin_final_*`,
+`admin_reading_review` y `admin_pending_*`. Galeria legible:
+`.tmp_reference_review/admin_render_closure/index.html`.
+
+### Cobertura pendiente completada, sin repetir la matriz global
+
+No hay solapamiento entre las ocho observaciones incompletas anteriores y las
+quince familias no recorridas. Se conservaron sus resultados historicos y se
+anadieron observaciones de esta operacion a la matriz privada existente
+`.tmp_reference_review/global_coverage/final_family_matrix.json`.
+
+| Observacion incompleta anterior | Resultado actual |
+| --- | --- |
+| `/admin/company-audit`, ADMIN, 390x844 | NOT_RUN: TimeoutError, limite 15 s |
+| `/admin/auto-improvement`, ADMIN, 390x844 | HTTP 200, layout automatizado correcto |
+| `/admin/codex-automation`, ADMIN, 390x844 y 1366x768 | NOT_RUN en ambas, TimeoutError 15 s |
+| `/admin/team-identity`, ADMIN, 390x844 y 1366x768 | HTTP 200 en ambas, layout automatizado correcto |
+| `/admin/not-found-events`, ADMIN, 390x844 y 1366x768 | HTTP 200 en ambas, estado vacio QA; memoria redirigida solo en harness a archivo privado, sin leer eventos de usuarios |
+
+Cinco de ocho completadas; tres siguen pendientes. El primer reintento en
+servidor QA monohilo quedo bloqueado por una auditoria lenta y se interrumpio
+solo ese proceso. Sus resultados parciales se conservan, no se cuentan como
+prueba independiente de las rutas en cola. Los reintentos finales usan servidor
+QA con peticiones independientes y temporales Chromium fuera del arbol escaneado.
+Empresa/Codex siguen recorriendo ficheros/evidencias del proyecto: hay un indicio
+de coste de escaneo, NO una causa unica demostrada ni una regresion productiva.
+
+De las quince familias no recorridas se abrieron diez, a 390x844 y 1366x768:
+
+| Familia/ruta representativa | Escenario y alcance real |
+| --- | --- |
+| `highlight_detail.html`, `/highlight/pqa-video-1` | Cliente PRO QA, registro de highlight sintetico autorizado solo para test; red/embeds externos bloqueados |
+| `password_reset_form.html`, `/reset-password/...` y `/admin-reset-password/...` | Anonimo con tokens exclusivamente QA validos; formulario renderizado, ningun cambio de password |
+| `local_safe_portal.html`, `/local-safe` | Anonimo, portal aislado; sin pulsar accesos/acciones |
+| `admin_bootstrap.html`, `/admin-bootstrap` | Anonimo, ya existe admin QA: bloqueo correcto; fallo de layout movil abajo |
+| `admin_sportsdb_sync.html`, `/admin/sportsdb-sync` | ADMIN, GET; sincronizacion reservada a POST, no ejecutada |
+| `admin_sportsdb_feed.html`, `/admin/sportsdb-feed` | ADMIN, GET; feed persistido QA, no sync |
+| `admin_matches_sync.html`, `/admin/matches-sync` | ADMIN, GET; diagnostico QA, no sync |
+| `admin_automation.html`, `/admin/automation` | ADMIN, GET; estado/configuracion, no daily run |
+| `admin_data_center.html`, `/admin/data-center` | ADMIN, GET; resumen QA, no scheduler |
+| `admin_track_record.html`, `/admin/track-record` | ADMIN, GET; historico QA, sin grading/aplicar |
+
+El conjunto de ampliacion suma **30 observaciones: 26 layout automatizado correcto,
+3 NOT_RUN y 1 FAIL_LAYOUT**. Incluye dos observaciones adicionales del alias de
+recuperacion admin, no dos familias nuevas. En la matriz hay ahora evidencia de
+recorrido para 141/146 familias; recorrido NO significa certificacion integral.
+Datos vacios, bootstrap bloqueado y media QA no acreditan cobertura real poblada.
+
+Hallazgo independiente: `/admin-bootstrap` a 390x844. La banda LOCAL SAFE ocupa
+y=54..76 y tapa parte del H1, y=60..90. Confirmado en captura real
+`admin_pending_safe/bootstrap_blocked_390.png`. Es un problema local de composicion
+entre esa vista y la banda, no el contexto audit/retention; no se corrige aqui ni
+se afirma que ocurra en produccion. Siguiente caso acotado: separacion del titulo
+y banda local, preservando el bloqueo de bootstrap.
+
+Cinco familias permanecen **NO OBSERVADO / NOT_RUN**, ADMIN, ambos viewports,
+porque requieren aislamiento especifico de acciones/ciclos, no GET indiscriminado:
+
+- `/admin/telegram`: diagnostico/configuracion con inicializacion persistente;
+  requiere separar o acotar esas escrituras antes de certificar solo lectura.
+- `/admin/api-sports-audit`: ejecuta `sync_api_sports_fixtures/live(dry_run=True)`
+  desde GET. No se invocaron sincronizadores para obtener una captura.
+- `/admin/sentinel-workflow`: ejecuta ciclo completo, no una lectura de resultado.
+- `/admin/visual-worker`: lanza inspeccion de otras rutas, no vista pasiva.
+- `/admin/sentinel-autopilot`: encadena ciclo Sentinel e inspeccion visual incluso
+  con `save_memory=False`. Hace falta delimitar su recorrido y efectos antes de abrirlo.
+
+No se declaran vulnerabilidades ni efectos externos demostrados para los tres
+ultimos por su nombre o `dry_run`; el limite es no activar esos ciclos adicionales
+sin revisar/acotar toda su ejecucion. No se han modificado sus implementaciones.
+
+### Estado de entrega
+
+Sports Truth, Match Context, Madrid Time, DAY 3, assets, CSS y trabajo anterior
+preservados por hashes. AST de `app.py` fuera de los dos handlers: identico.
+HEAD/indice sin cambios. `git diff --check`: PASS. Evidencia detallada de
+preservacion y resultados XML en la carpeta privada de esta operacion.
+
+Correccion admin: VALIDADA LOCAL. Produccion: NO COMPROBADA/NO MODIFICADA.
+Global: PARCIAL por los tres timeouts, bootstrap movil, cinco familias no
+observadas, cobertura adicional de escenarios/tiers no recorridos y revision
+humana de tiburon/fondo. Sin staging, commit, push, PR, merge ni deploy; sin
+Render, cron/tareas, proveedores, DB real, usuarios/membresias reales, pagos,
+campanas o envios Telegram. Fin de las modificaciones de este encargo.
+
+## Autorizacion limitada: expectativa de Favoritos (historico conservado)
 
 Operacion local posterior a la ampliacion global. Estado global: **PARCIAL**.
 No se ha cambiado la interfaz ni se ha repetido la matriz de navegador.

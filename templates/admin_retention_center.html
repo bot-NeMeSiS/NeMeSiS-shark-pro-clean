@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+{% macro value(item) %}{{ item if item is not none else 'No disponible' }}{% endmacro %}
 {% block content %}
+{% if retention.unavailable %}<div class="notice" role="status">No se pudo consultar parte de la información. Los valores no disponibles no equivalen a cero.</div>{% endif %}
 <section class="hero compact-hero admin-hero">
   <div class="eyebrow">Admin · Retención</div>
   <h1>Centro de retención y uso real</h1>
@@ -7,23 +9,23 @@
 </section>
 
 <section class="grid four">
-  <article class="card metric-card"><span>Score global</span><strong>{{ retention.global_score }}%</strong></article>
-  <article class="card metric-card"><span>Datos</span><strong>{{ retention.data_score }}%</strong></article>
-  <article class="card metric-card"><span>Uso</span><strong>{{ retention.usage_score }}%</strong></article>
-  <article class="card metric-card"><span>Operación</span><strong>{{ retention.operations_score }}%</strong></article>
+  <article class="card metric-card"><div>Score global</div><strong>{{ value(retention.global_score) }}{% if retention.global_score is not none %}%{% endif %}</strong></article>
+  <article class="card metric-card"><div>Datos</div><strong>{{ value(retention.data_score) }}{% if retention.data_score is not none %}%{% endif %}</strong></article>
+  <article class="card metric-card"><div>Uso</div><strong>{{ value(retention.usage_score) }}{% if retention.usage_score is not none %}%{% endif %}</strong></article>
+  <article class="card metric-card"><div>Operación</div><strong>{{ value(retention.operations_score) }}{% if retention.operations_score is not none %}%{% endif %}</strong></article>
 </section>
 
 <section class="grid two">
   <article class="card glass-card">
     <h2>Indicadores</h2>
-    <div class="mini-stats stacked">
-      <span>Usuarios: <strong>{{ retention.users }}</strong></span>
-      <span>Favoritos: <strong>{{ retention.favorites }}</strong></span>
-      <span>Picks publicados: <strong>{{ retention.published_picks }}</strong></span>
-      <span>Partidos guardados: <strong>{{ retention.matches }}</strong></span>
-      <span>Live activos: <strong>{{ retention.live_matches }}</strong></span>
-      <span>Telegram pendiente: <strong>{{ retention.telegram_pending }}</strong></span>
-      <span>Soporte abierto: <strong>{{ retention.support_tickets }}</strong></span>
+    <div class="stack">
+      <div class="list-row"><span>Usuarios</span><strong>{{ value(retention.users) }}</strong></div>
+      <div class="list-row"><span>Favoritos</span><strong>{{ value(retention.favorites) }}</strong></div>
+      <div class="list-row"><span>Picks publicados</span><strong data-admin-metric="published_picks">{{ value(retention.published_picks) }}</strong></div>
+      <div class="list-row"><span>Partidos guardados</span><strong>{{ value(retention.matches) }}</strong></div>
+      <div class="list-row"><span>Live activos</span><strong>{{ value(retention.live_matches) }}</strong></div>
+      <div class="list-row"><span>Telegram pendiente</span><strong>{{ value(retention.telegram_pending) }}</strong></div>
+      <div class="list-row"><span>Soporte abierto</span><strong>{{ value(retention.support_tickets) }}</strong></div>
     </div>
   </article>
   <article class="card glass-card">
