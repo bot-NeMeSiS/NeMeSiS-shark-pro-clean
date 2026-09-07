@@ -4517,6 +4517,7 @@ body.ns-app.ns-admin::before {
   aspect-ratio: auto;
   z-index: 0;
   pointer-events: none;
+  clip-path: none;
   background:
     linear-gradient(112deg, transparent 0 33%, rgba(196, 243, 255, .065) 47%, rgba(42, 144, 225, .025) 59%, transparent 72%),
     linear-gradient(101deg, transparent 0 51%, rgba(115, 210, 255, .04) 63%, transparent 79%),
@@ -4544,6 +4545,7 @@ body.ns-app.ns-admin::after {
   width: auto;
   height: auto;
   opacity: .52;
+  clip-path: none;
   background:
     radial-gradient(circle, rgba(121, 224, 255, .42) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
     radial-gradient(circle, rgba(255,255,255,.16) 0 .65px, transparent 1px) 13px 17px / 103px 103px,
@@ -4592,7 +4594,7 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   pointer-events: none;
   background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .76;
-  filter: drop-shadow(0 0 34px rgba(52, 181, 238, .28)) saturate(.94) brightness(.9);
+  filter: drop-shadow(0 0 24px rgba(52, 181, 238, .22)) saturate(.94) brightness(1.14);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -5037,7 +5039,7 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
     padding-top: calc(90px + env(safe-area-inset-top,0px)) !important;
   }
   body.ns-app:has(> .nemesis-local-safe-banner) .v933-admin-mobile-nav { top: 84px !important; }
-  body.ns-app:has(> .nemesis-local-safe-banner) main.v933-admin-shell { padding-top: 146px !important; }
+  html body.ns-app.ns-admin[data-v928-shell="true"]:has(> .nemesis-local-safe-banner) main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-admin-shell { padding-top: calc(146px + env(safe-area-inset-top,0px)) !important; }
   body.ns-app :is(.v933-mobile-bottom-nav a,.v933-admin-mobile-nav a) { min-height: 46px !important; padding: 5px 4px !important; }
   body.ns-app :is(.v933-mobile-bottom-nav span,.v933-admin-mobile-nav span) { font-size: .62rem !important; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) { padding: 14px !important; }
@@ -5208,6 +5210,42 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
   }
 }
 
+/* Shared semantic surfaces used by the remaining client and operations views. */
+html body.ns-app main.ns-main-shell > :is(.hero,.scoreboard-hero) {
+  min-height: 0; padding: 16px; border-radius: 8px; box-shadow: none;
+  background: rgba(4,18,34,.66); border-color: var(--nsx-border);
+}
+html body.ns-app main.ns-main-shell > :is(.hero,.scoreboard-hero) h1 {
+  /* V827-V837 still mark generic hero typography important. */
+  font-size: 1.65rem !important; line-height: 1.15 !important; margin: 6px 0 !important; letter-spacing: 0 !important;
+}
+html body.ns-app main.ns-main-shell > :is(.hero,.scoreboard-hero) .lead { font-size: .86rem; line-height: 1.45; margin-block: 6px; }
+html body.ns-app main.ns-main-shell .admin-menu { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+html body.ns-app main.ns-main-shell .admin-menu > a { flex: 0 0 auto; width: auto; min-width: 0; white-space: nowrap; word-break: normal; overflow-wrap: normal; padding: 9px 12px; }
+html body.ns-app.ns-admin main.ns-main-shell .hero h1 { font-size: 1.4rem !important; }
+html body.ns-app.ns-admin main.ns-main-shell .grid.compact-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)) !important; gap: 8px; }
+html body.ns-app.ns-admin main.ns-main-shell .grid.compact-grid > .card { min-width: 0; padding: 12px; border-radius: 8px; }
+html body.ns-app.ns-admin main.ns-main-shell .card > .metric { border: 0 !important; background: transparent !important; box-shadow: none; font-size: 1.4rem; line-height: 1.2; }
+html body.ns-app main.ns-main-shell .auth-grid { border: 0; background: transparent; padding: 0; box-shadow: none; gap: 12px; }
+html body.ns-app main.ns-main-shell :is(.auth-card,.auth-side) { border-radius: 8px; padding: 16px; }
+html body.ns-app main.ns-main-shell .auth-card > a { display: block; margin-top: 10px; }
+.ns-favorites-help > summary { padding: 12px 0; color: var(--nsx-cyan); cursor: pointer; font-weight: 700; }
+.ns-favorites-help > section { margin-top: 0; }
+@media (max-width: 820px) {
+  html body.ns-app main.ns-main-shell > :is(.hero,.scoreboard-hero) { padding: 12px; }
+  html body.ns-app main.ns-main-shell > :is(.hero,.scoreboard-hero) h1 { font-size: 1.4rem !important; }
+  html body.ns-app main.ns-main-shell .admin-menu { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 5px; }
+  html body.ns-app.ns-admin main.ns-main-shell .grid.compact-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  html body.ns-app[data-v928-shell="true"].ns-public:has(> .nemesis-local-safe-banner) main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-public-shell:has(> .auth-hero) { padding-top: 90px !important; }
+  html body.ns-app :is(.team-center-identity,.competition-center-identity,.player-center-identity) { display: grid; grid-template-columns: 56px minmax(0,1fr); gap: 10px; align-items: center; }
+  html body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { width: 56px; height: 56px; }
+  html body.ns-app :is(.team-center-title-block,.competition-center-title-block,.player-center-title-block) > p { display: none; }
+  html body.ns-app :is(.team-center-status-card,.competition-center-status-card,.player-center-status-card) { border: 0; border-top: 1px solid var(--nsx-border); border-radius: 0; background: transparent; padding: 8px 0 0; gap: 8px; }
+  html body.ns-app :is(.team-center-actions,.competition-center-actions,.player-center-actions) { display: flex; flex-wrap: wrap; gap: 6px; }
+  html body.ns-app :is(.team-center-actions,.competition-center-actions,.player-center-actions) > a { flex: 1 1 100px; min-width: 0; min-height: 44px; padding: 8px; border-radius: 6px; text-align: center; }
+  html body.ns-app :is(.team-center-meta-grid,.competition-center-meta-grid,.player-center-meta-grid) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
 /* SPORTS-FIRST HOME PRIORITY */
 .sports-priority-home { gap: 16px; }
 .sports-priority-home > .sports-priority-section,
@@ -5351,6 +5389,8 @@ body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-home-primary > .ns16-home-sports { padding-top: 8px; }
 .ns16-featured-pick:has(.v933-pick-card) { align-self: stretch; }
 .ns16-featured-pick:has(.v933-empty-state) { align-self: start; }
+.ns16-featured-pick .v933-empty-state { grid-template-columns: 32px minmax(0,1fr); }
+.ns16-featured-pick .v933-empty-state > .v933-action { grid-column: 1 / -1; justify-self: start; }
 .ns16-journey-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
 .ns16-journey-steps a { position: relative; min-width: 0; min-height: 70px; display: grid; grid-template-columns: 28px 30px minmax(0,1fr); align-items: center; gap: 7px; padding: 8px; border: 1px solid transparent; border-radius: 6px; color: var(--nsx-text); background: transparent; text-decoration: none; }
 .ns16-journey-steps a:not(:last-child)::after { content: ""; position: absolute; z-index: 0; left: calc(100% - 5px); top: 50%; width: 18px; border-top: 1px dashed rgba(88,174,240,.34); pointer-events: none; }
@@ -5439,6 +5479,12 @@ body.ns-app .v933-shark-analysis .v937-pick-brief article { padding: 8px; }
 body.ns-app .ns16-shark-more { margin: 0; }
 body.ns-app .ns16-shark-more > summary { min-height: 42px; }
 body.ns-app .v933-track-record .v933-table-wrap { max-height: 390px; overflow: auto; }
+body.ns-app .ns16-track-recent table { min-width: 1100px; table-layout: auto; }
+body.ns-app .ns16-track-recent td:first-child :is(strong, small) { display: block; }
+body.ns-app .ns16-track-recent td:nth-child(6) { min-width: 150px; }
+body.ns-app .ns16-track-recent td:last-child { min-width: 120px; }
+body.ns-app .ns16-track-recent :is(th,td) { word-break: normal; overflow-wrap: normal; }
+body.ns-app .ns16-track-recent th { white-space: nowrap; }
 .ns16-track-mobile-list { display: none; }
 
 body.ns-app .v933-shark-hero {
@@ -5502,6 +5548,7 @@ body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minma
   width: min(340px,36vw);
   aspect-ratio: 1280 / 420;
   pointer-events: none;
+  clip-path: none;
   background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .14;
   filter: drop-shadow(0 0 20px rgba(52,181,238,.2));
@@ -5610,9 +5657,9 @@ body.ns-app .v944-match-team.is-away {
 }
 body.ns-app .v944-match-team .v933-team-logo { width: 72px; height: 72px; }
 body.ns-app .v944-match-team strong { font-size: .94rem; }
-body.ns-app .v944-match-header__status { min-height: 96px; align-content: space-between; padding-block: 8px 2px; }
+body.ns-app .v944-match-header__status { min-height: 96px; align-content: center; gap: 8px; padding-block: 8px 2px; min-width: 0; border: 0; border-radius: 0; background: transparent; }
 body.ns-app .v944-score-widget {
-  position: absolute;
+  position: static;
   z-index: 2;
   top: 61%;
   left: 50%;
@@ -5623,7 +5670,7 @@ body.ns-app .v944-score-widget {
   background: transparent !important;
   box-shadow: none !important;
   pointer-events: none;
-  transform: translate(-50%,-50%);
+  transform: none;
 }
 body.ns-app .v944-score-widget__phase,
 body.ns-app .v944-score-widget > p,
@@ -5710,6 +5757,13 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.55rem !important; }
   body.ns-app .ns16-account-layout,
   body.ns-app.ns-admin .v933-admin-dashboard .v933-admin-layout { grid-template-columns: 1fr; }
   body.ns-app.ns-admin .v933-admin-panel > header { flex-wrap: wrap; }
+  body.ns-app.ns-admin .v930-admin-data-marketplace .v928-data-table :is(th,td) {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    max-width: 100%;
+  }
+  body.ns-app.ns-admin .v930-admin-data-marketplace .v928-kpi-grid { gap: 8px; }
   body.ns-app.ns-admin .v933-admin-panel > header > .v933-status-chip { justify-self: start; flex: 0 1 auto; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) { min-width: 0; max-width: 100%; overflow: hidden; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(.v933-table-wrap,table) { max-width: 100%; }
@@ -5755,6 +5809,21 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.55rem !important; }
   .ns16-account-status > a > .v933-icon { width: 24px; height: 24px; }
   .ns16-account-status small { display: none; }
   .ns16-account-actions { grid-template-columns: 1fr 1fr; }
+  .ns16-account-actions .v933-quick-action { min-height: 64px; padding: 8px; gap: 5px; }
+  .ns16-account .v933-activity-list article { padding-block: 7px; }
+  .v933-plan-grid { gap: 8px; }
+  body.ns-app .v933-plan-card { min-height: 0; padding: 10px; gap: 6px; }
+  body.ns-app .v933-plan-card header h3 { font-size: 1rem; }
+  body.ns-app .v933-plan-card .v933-plan-price { font-size: 1.35rem; }
+  .v933-plan-card details > summary { min-height: 36px; display: flex; align-items: center; cursor: pointer; }
+  .v933-telegram-page #vincular { padding: 10px; }
+  .v933-telegram-page #vincular .v933-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .v933-telegram-page #v936-telegram-value .v933-feature-grid { grid-template-columns: 1fr; }
+  .v933-telegram-page #v936-telegram-value article { display: grid; grid-template-columns: 24px minmax(0,1fr); gap: 4px 8px; padding: 7px 0; text-align: left; }
+  .v933-telegram-page #v936-telegram-value article p { grid-column: 2; margin: 0; }
+  .v933-telegram-page #v936-telegram-value article > .v933-icon { width: 24px; height: 24px; }
+  .v940-calendar-advanced > summary { min-height: 40px; display: flex; align-items: center; cursor: pointer; }
+  .v940-calendar-command-head p { display: none; }
   body.ns-app .v933-telegram-page > .ns-video-status-rail {
     grid-template-columns: repeat(2,minmax(0,1fr));
     gap: 6px !important;
@@ -5780,7 +5849,7 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.55rem !important; }
   body.ns-app .v944-match-team .v933-team-logo { width: 48px; height: 48px; }
   body.ns-app .v944-match-team strong { font-size: 12px; line-height: 1.15; }
   body.ns-app .v944-match-team small { font-size: 10px; }
-  body.ns-app .v944-match-header__status { min-height: 78px; padding-block: 5px 0; }
+  body.ns-app .v944-match-header__status { min-height: 78px; padding-block: 5px 0; gap: 8px; }
   body.ns-app .v944-match-header__status span { font-size: 11px; }
   body.ns-app .v944-match-header__status time { font-size: 10px; }
   body.ns-app .v944-score-widget { top: 61%; }

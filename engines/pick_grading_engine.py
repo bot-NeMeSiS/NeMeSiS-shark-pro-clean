@@ -427,6 +427,8 @@ def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
     else:
         item["event_datetime_label"] = ""
     item["event_datetime_iso"] = event_dt.isoformat(timespec="seconds") if event_dt else ""
+    if event_dt and not item.get("kickoff_iso"):
+        item["kickoff_iso"] = item["event_datetime_iso"]
     pick_created_at = item.get("pick_created_at") or item.get("created_at")
     item["pick_created_at_label"] = (
         format_madrid_client_datetime_label(pick_created_at) if pick_created_at else ""
@@ -478,6 +480,8 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
                   m.kickoff_time AS event_kickoff_time,
                   m.kickoff_iso AS event_kickoff_iso,
                   p.created_at AS pick_created_at,
+                  p.created_at AS created_at,
+                  p.source AS source,
                   p.selection AS selection,
                   COALESCE(p.pick_type, p.market) AS pick_type,
                   COALESCE(m.home_team, p.home_team) AS home_team,

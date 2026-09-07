@@ -24,7 +24,6 @@
      data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
   <div class="v944-match-anchor">
     {{ match_header(match_context) }}
-    {{ score_widget(match_context) }}
   </div>
 
   {% set lineups = match_context.get('lineups') or {} %}

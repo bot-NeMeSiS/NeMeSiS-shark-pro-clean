@@ -281,7 +281,9 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     css = (ROOT / "static/v933-product.css").read_text(encoding="utf-8")
 
     assert template.count("match_header(match_context)") == 1
-    assert template.count("score_widget(match_context)") == 1
+    assert template.count("score_widget(match_context)") == 0
+    assert components.count("{{ score_widget(context) }}") == 1
+    assert "{{ score_widget(context) }}" in components.split("{% macro match_header(", 1)[1].split("{% endmacro %}", 1)[0]
     assert template.count("data_quality_panel(match_context)") == 1
     assert 'data-sports-domain-model=' in template
     assert 'data-match-transparency="{{ key }}"' in components

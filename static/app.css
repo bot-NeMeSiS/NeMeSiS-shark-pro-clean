@@ -3986,7 +3986,7 @@ body[data-v813-shell="true"].ns-authenticated:not(.ns-admin){
     radial-gradient(circle at 92% 6%,rgba(40,220,255,.15),transparent 34%),
     linear-gradient(180deg,#020916 0,#01050d 72%,#01040a 100%)!important;
 }
-body[data-v813-shell="true"].ns-authenticated:not(.ns-admin)::after{
+body[data-v813-shell="true"].ns-authenticated:not(.ns-admin):not(.ns-app)::after{
   opacity:.085!important;
   right:-10vw!important;
   top:86px!important;
@@ -4066,7 +4066,7 @@ body[data-v813-shell="true"].ns-admin :is(.card,.band,.hero,.v807-admin-command-
   }
 }
 @media(max-width:560px){
-  body[data-v813-shell="true"].ns-authenticated:not(.ns-admin)::after{
+  body[data-v813-shell="true"].ns-authenticated:not(.ns-admin):not(.ns-app)::after{
     width:330px!important;
     height:330px!important;
     opacity:.06!important;
@@ -4106,7 +4106,7 @@ body[data-v814-shell="true"].ns-authenticated:not(.ns-admin){
 body[data-v814-shell="true"].ns-authenticated:not(.ns-admin)::before{
   opacity:.72!important;
 }
-body[data-v814-shell="true"].ns-authenticated:not(.ns-admin)::after{
+body[data-v814-shell="true"].ns-authenticated:not(.ns-admin):not(.ns-app)::after{
   content:""!important;
   position:fixed!important;
   right:-9vw!important;
@@ -4235,7 +4235,7 @@ body[data-v814-shell="true"].ns-admin .v808-admin-dock{
   }
 }
 @media(max-width:560px){
-  body[data-v814-shell="true"].ns-authenticated:not(.ns-admin)::after{
+  body[data-v814-shell="true"].ns-authenticated:not(.ns-admin):not(.ns-app)::after{
     width:310px!important;
     height:310px!important;
     right:-178px!important;

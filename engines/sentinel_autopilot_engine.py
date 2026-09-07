@@ -995,7 +995,6 @@ def build_v944_match_center_foundation_contract_snapshot(
         'data-v944-match-center-foundation="phase-1"',
         "data-match-contract=",
         "match_header(match_context)",
-        "score_widget(match_context)",
         "match_story(match_context)",
         "timeline(match_context)",
         "stats_panel(match_context)",
@@ -1008,6 +1007,11 @@ def build_v944_match_center_foundation_contract_snapshot(
         "data-sports-domain-model=",
         'data-sports-core-match-center="intelligence-phase-1"',
     ))
+    shell_contract = shell_contract and (
+        template.count("score_widget(match_context)") == 0
+        and components.count("{{ score_widget(context) }}") == 1
+        and "{{ score_widget(context) }}" in components.split("{% macro match_header(", 1)[-1].split("{% endmacro %}", 1)[0]
+    )
     safe_fallback_contract = (
         "No disponible." in components
         and "El marcador aparecerá únicamente" in components

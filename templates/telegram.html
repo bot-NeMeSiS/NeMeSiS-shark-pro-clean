@@ -10,10 +10,6 @@
 <div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
 
-  <section class="v933-telegram-hero">
-    <div><span class="v933-eyebrow">Canal NeMeSiS</span><h2>Alertas útiles, no ruido</h2><p>La conexión, el contenido y la calidad se muestran con estados reales. Esta pantalla nunca envía un mensaje por sí sola.</p></div>
-    <span class="v933-telegram-mark">{{ icon('telegram') }}</span>
-  </section>
 
   <section class="v933-kpi-grid ns-video-status-rail">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
@@ -24,15 +20,7 @@
 
   <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
-      <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
-        {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
-        <div class="v933-four-col v933-feature-grid">
-          <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
-          <article>{{ icon('live') }}<strong>Alertas en directo</strong><p>Solo cuando existe una señal real.</p></article>
-          <article>{{ icon('history') }}<strong>Resultados</strong><p>Cierre confirmado de picks publicados.</p></article>
-          <article>{{ icon('data') }}<strong>Resúmenes</strong><p>Calidad antes que frecuencia.</p></article>
-        </div>
-      </section><section class="v933-panel" id="vincular">
+      <section class="v933-panel" id="vincular">
         {{ section_header('Conexión de Telegram', 'Vincula o gestiona tu cuenta sin exponer identificadores.') }}
         {% if state.get('linked') %}
         <div class="v933-linked-state">
@@ -44,6 +32,16 @@
         <div class="v933-page-actions v933-inline-actions">{% if state.get('deep_link') %}<a class="v933-action is-primary is-cyan" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">{{ icon('telegram') }}<span>Conectar Telegram</span></a>{% endif %}<form method="post" action="/telegram/regenerar-código"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-blue" type="submit">Nuevo código</button></form></div>
         {% endif %}
       </section>
+      <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
+        {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
+        <div class="v933-four-col v933-feature-grid">
+          <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
+          <article>{{ icon('live') }}<strong>Alertas en directo</strong><p>Solo cuando existe una señal real.</p></article>
+          <article>{{ icon('history') }}<strong>Resultados</strong><p>Cierre confirmado de picks publicados.</p></article>
+          <article>{{ icon('data') }}<strong>Resúmenes</strong><p>Calidad antes que frecuencia.</p></article>
+        </div>
+      </section>
+
     </div>
 
     <aside class="v933-side-stack">

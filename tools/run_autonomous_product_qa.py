@@ -91,13 +91,13 @@ SCREEN_COMPONENTS = {
     "partidos": "templates/calendar.html",
     "directo": "templates/live.html",
     "match": "templates/match_detail.html",
-    "team": "templates/team_center.html",
-    "competition": "templates/competition_center.html",
-    "player": "templates/player_center.html",
+    "team": "templates/team_detail.html",
+    "competition": "templates/competition_detail.html",
+    "player": "templates/player_detail.html",
     "picks": "templates/picks.html",
     "shark": "templates/shark.html",
     "track_record": "templates/track_record.html",
-    "membership": "templates/memberships.html",
+    "membership": "templates/membership.html",
     "telegram": "templates/telegram.html",
     "profile": "templates/profile.html",
     "admin": "templates/admin_dashboard.html",
@@ -1453,11 +1453,66 @@ def _reference_map() -> dict[str, str]:
     }
 
 
+def inspect_text_geometry(page) -> dict:
+    """Measure rendered text lines, independently of outer card rectangles."""
+    return page.evaluate(r"""() => {
+      const visible = node => node && node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden';
+      const rects = node => {
+        if (!visible(node)) return [];
+        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+        const boxes = [];
+        while (walker.nextNode()) {
+          const text = walker.currentNode;
+          if (!text.textContent.trim() || !visible(text.parentElement)) continue;
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          for (const r of range.getClientRects()) if (r.width && r.height)
+            boxes.push({left:r.left,right:r.right,top:r.top,bottom:r.bottom});
+        }
+        return boxes;
+      };
+      const intersects = (a,b) => Math.min(a.right,b.right)-Math.max(a.left,b.left)>1 &&
+        Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1;
+      const score = rects(document.querySelector('.v944-score-widget > strong'));
+      const date = rects(document.querySelector('.v944-match-header__status time'));
+      const phase = rects(document.querySelector('.v944-match-header__status > span'));
+      const statusNode = document.querySelector('.v944-match-header__status');
+      const statusStyle = statusNode ? getComputedStyle(statusNode) : null;
+      const legacyCircle = !!statusStyle && parseFloat(statusStyle.borderTopWidth)>0 && parseFloat(statusStyle.borderTopLeftRadius)>20;
+      const textOverlap = score.some(a => [...date,...phase].some(b => intersects(a,b)));
+      const title = document.querySelector('main h1:not(.sr-only)');
+      const titleRects = rects(title).filter(r => r.bottom>0 && r.top<innerHeight);
+      const bars = [...document.querySelectorAll('.v933-mobile-header,.v933-admin-mobile-nav,.nemesis-local-safe-banner')]
+        .filter(visible).filter(n => ['fixed','sticky'].includes(getComputedStyle(n).position))
+        .map(n => n.getBoundingClientRect());
+      const headingObserved = titleRects.length > 0 && scrollY === 0;
+      const headingCovered = headingObserved && titleRects.some(a => bars.some(b => intersects(a,b)));
+      return {scroll_y:scrollY,score_rects:score,date_rects:date,phase_rects:phase,
+        legacy_status_circle:legacyCircle,
+        match_text_status:score.length && date.length ? (textOverlap || legacyCircle?'FAIL':'PASS'):'NOT_RUN',
+        heading_status:headingObserved ? (headingCovered?'FAIL':'PASS'):'NOT_RUN',
+        title_rects:titleRects,bar_rects:bars.map(r=>({top:r.top,bottom:r.bottom,left:r.left,right:r.right})),
+        match_text_overlap:textOverlap,heading_covered:headingCovered};
+    }""")
+
+
 def _visual_tree_fingerprint() -> str:
     paths = (
         "templates/base.html",
         "templates/client_app_center.html",
         "templates/shark.html",
+        "templates/components/v944_match_center.html",
+        "templates/components/v933_ui.html",
+        "templates/components/v937_sports_lifecycle.html",
+        "templates/track_record.html",
+        "templates/membership.html",
+        "templates/telegram.html",
+        "templates/calendar.html",
+        "templates/picks.html",
+        "templates/profile.html",
+        "templates/favorites.html",
+        "templates/client_login.html",
+        "engines/pick_grading_engine.py",
         "static/app.css",
         "static/v936-commercial.css",
         "static/v933-product.css",
@@ -1799,6 +1854,16 @@ def main() -> int:
                     page.screenshot(path=str(screenshot), full_page=False)
                     clean_route = route.split("#", 1)[0]
                     inspection = _inspect(page, clean_route, profile_name)
+                    inspection["text_geometry"] = inspect_text_geometry(page)
+                    for issue_type, failed in (
+                        ("MATCH_TEXT_OVERLAP", inspection["text_geometry"]["match_text_overlap"]),
+                        ("HEADING_COVERED_BY_NAV", inspection["text_geometry"]["heading_covered"]),
+                    ):
+                        if failed:
+                            inspection.setdefault("layout_collisions", []).append({
+                                "type": issue_type, "element": clean_route,
+                                "actual": "Rendered text regions intersect",
+                            })
                     reference_item = reference_items.get(clean_route) or {}
                     reference_file = reference_files.get(clean_route, "")
                     inspection.update({

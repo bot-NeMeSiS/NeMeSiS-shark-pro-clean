@@ -38,7 +38,7 @@
 
 {% macro professional_pick_brief(pick) -%}
 {% set reason = pick.get('reasoning') or pick.get('reason') or pick.get('analysis') or '' %}
-{% set risk = pick.get('risk_note') or pick.get('risk_reason') or pick.get('risk') or pick.get('risk_level') or '' %}
+{% set risk = pick.get('risk_note') or pick.get('risk_reason') or '' %}
 {% set invalidation = pick.get('invalidation') or pick.get('invalidate_if') or pick.get('invalidation_reason') or '' %}
 {% set reviewed = pick.get('reviewed_at') or pick.get('updated_at') or pick.get('published_at') or '' %}
 <section class="v937-pick-brief" aria-label="Expediente profesional del pick">
@@ -51,5 +51,8 @@
 
 {% macro learning_receipt(pick) -%}
 {% set learning = nemesis_pick_learning(pick or {}) %}
+{% if learning.get('label') == 'Pendiente' and pick.get('result_status') in ['won','lost','void'] %}
+{% set learning = {'label':'Aprendizaje pendiente','tone':'warning','detail':'Resultado registrado; falta contexto para evaluar la hipótesis.'} %}
+{% endif %}
 <span class="v937-learning-receipt is-{{ learning.get('tone') }}"><strong>{{ learning.get('label') }}</strong><small>{{ learning.get('detail') }}</small></span>
 {%- endmacro %}

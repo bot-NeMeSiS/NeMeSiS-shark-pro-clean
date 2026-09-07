@@ -1,5 +1,248 @@
 # NEMESIS DESIGN SYSTEM 1.0 - OFFICIAL REFERENCE ALIGNMENT
 
+## Ampliacion global de experiencia - 2026-09-07 (vigente, LOCAL PARCIAL)
+
+Este apartado prevalece para el alcance global. No declara toda la aplicacion
+aprobada, ni certifica produccion. Conserva el cierre H01-H09 inferior como
+historial y evidencia previa, sin reutilizar sus cifras como QA del arbol nuevo.
+
+### Base, preservacion y limites
+
+- HEAD: `7fa7b7ac241295da666921ea9f50f6f632804ce1`; indice vacio, sin cambios de rama.
+- Los 20 archivos del candidato H01-H09 se conservaron antes de ampliar el trabajo:
+  `.tmp_reference_review/global_coverage/baseline/manifest.json` y copias selectivas.
+- `app.py`, Sports Truth y `SPORTS_DATA_LIVE_CERTIFICATION.md` DAY 3 conservan
+  sus hashes anteriores. Match Context y aislamiento de usuarios no se editaron.
+- Las 16 PNG oficiales se reabrieron en cuatro contactos y conservan sus hashes.
+  R12 corresponde a Match Center; no se usa como contrato de la pantalla SHARK.
+- No se regeneraron tiburon, fondo ni referencias. Sin nueva capa CSS, datos,
+  funcionalidad, precios o cambios financieros. H03 permanece separado del estilo.
+- Sin staging, commit, push, PR, merge, deploy ni consultas de produccion/Render.
+  Sin proveedores, cron, pagos, usuarios reales ni envios Telegram.
+
+### Inventario global y matriz completa
+
+Se inventariaron **160 handlers HTML**, agrupados en **146 familias estaticas de
+templates**. El inventario conserva aliases, componentes incluidos, decoradores,
+ruta, fichero y linea. Se seleccionaron **131 GET HTML representativos** tras
+excluir acciones, sincronizaciones y rutas que necesitan contexto adicional.
+
+La matriz detallada de TODAS las familias esta en
+`.tmp_reference_review/global_coverage/final_family_matrix.json`; su version
+legible y las comparativas estan en `.tmp_reference_review/global_coverage/index.html`.
+Son evidencias privadas locales, no otro centro de control ni un paquete de release.
+
+Cada fila distingue rutas/aliases, template real renderizado, componentes, rol,
+viewport, HTTP, destino final y captura. Los aliases compartidos no se consideran
+journeys probados individualmente. Se uso cliente PRO de prueba, ADMIN de prueba
+y anonimo: FREE/ELITE/ELITE+ no quedan certificados por este recorrido PRO.
+Tampoco la presencia de un template equivale a una comprobacion de sus acciones.
+
+| Cobertura | Resultado y limite |
+| --- | --- |
+| Transversal poblado | 262 observaciones, 131 representantes x escritorio 1366x768 y movil 390x844. |
+| Layout automatico | 250 observaciones sin overflow global, cabecera cubierta ni colision de marcador detectada. No es fidelidad visual ni prueba de todos los botones. |
+| Errores locales | 4 respuestas 500, correspondientes a dos familias en ambos anchos; detalle inferior. |
+| Esperas agotadas | 8 observaciones NOT_RUN en cinco familias operativas. Nunca contadas como PASS. |
+| JS | 0 page_errors capturados en este recorrido; acciones no ejecutadas siguen pendientes. |
+| Focal de cambios | 30 capturas de 10 familias a 360/390/1366, mas 10 tablet 834x1194; sin fallos del detector ni page_errors. |
+| H01-H09 reejecutado | 28 vistas a 390/1366, sin fallos; controles positivos/negativos del detector y ampliacion de texto Match. |
+| Estados parcial/vacio | 5 vistas por estado, a 390: Home, Match, Membresias, Telegram e Historico. No extrapolados al resto de familias. |
+| Referencia y arte | Comparacion humana/IA acotada, no MATCH global. H07 y aprobacion de fondo/tiburon siguen pendientes. |
+| Produccion | NOT_RUN; ninguna de estas capturas procede de produccion. |
+
+Los timeouts afectan Company Audit, Auto Improvement, Codex Automation,
+Team Identity y Not Found Events. Algunos recorren el arbol local completo;
+los perfiles temporales del navegador provocaron ademas una carrera de stat()
+en Codex Automation. No se ha declarado caida productiva ni se han activado jobs.
+Las familias excluidas por acciones/contexto y las restantes sin comparacion
+individual mantienen PENDIENTE, no PASS por herencia de CSS.
+
+### Cambios compartidos y consumidores
+
+| Componente | Cambio real | Consumidores |
+| --- | --- | --- |
+| Heroes semanticos | Titulos compactos y espaciado consistente; precedencia acotada frente a V827-V837. | Acceso, Favoritos, Soporte, Observabilidad y otras vistas con hero directo bajo el shell. No todos los heroes personalizados. |
+| Navegacion operativa | Flex con etiquetas completas; desplazamiento horizontal movil en lugar de cortar palabras. | Vistas con admin-menu, incluida Observabilidad. |
+| Metricas operativas | Cuatro columnas desktop, dos movil; metric deja de ser otra tarjeta dentro de la tarjeta. | Admin grid.compact-grid y card > metric. |
+| Acceso local | Separacion de aviso LOCAL y cabecera auth a movil; formulario y recuperacion preservados. | Acceso cliente/admin y familia auth. |
+| Favoritos | Ayuda desplegable, cerrada cuando ya hay favoritos; contenido deportivo visible antes. | favorites.html y aliases. Formularios y destinos originales intactos. |
+| Entidades | Identidad compacta, acciones agrupadas y metadatos en dos columnas movil. | Team, Competition y Player con las clases canonicas existentes. |
+| QA | Inventario de templates corregido; anonimo realmente sin cookie; registro de template/destino/NOT_RUN; tablet explicita. | Herramientas locales existentes, sin nuevos motores. |
+
+Los !important nuevos se limitan a propiedades con una regla legacy ganadora
+demostrada mediante estilos calculados: titulos, columnas de KPI, decoracion de
+metricas y padding del acceso local. No se hizo una purga global ni otra hoja CSS.
+
+### Dependencias funcionales encontradas, NO ocultadas
+
+1. `/admin/telegram-audit`: el handler entrega `data.telegram_diagnostics`, pero
+   el template exige `audit.counts`, `audit.checks` y `audit.settings`; se reproduce
+   UndefinedError y 500. No se relleno con ceros ni se activo Telegram.
+2. `/admin/retention-center`: entrega `data.retention`, mientras el template exige
+   `retention.global_score` y otros campos que el handler no construye. Se reproduce
+   `retention is undefined`; no se inventaron scores para completar el dashboard.
+
+Ambos handlers y templates ya estaban asi antes de este incremento y no se
+editaron. Son dependencias funcionales pendientes, no ausencia normal de datos
+ni regresiones atribuibles al CSS. Requieren reconciliar su contrato de datos
+con evidencia real en un cambio separado y probado.
+
+### QA del arbol y trazabilidad
+
+- Jinja: 199 templates compilados en esta ejecucion.
+- Pruebas focales: 20/20 (formularios, favoritos, temporal y Match Center).
+- Primera suite completa: 477 tests, 475 pasados y 2 fallidos, sin omitidos.
+  Un fallo es una carrera de inventario de temporales con el navegador concurrente.
+  El otro exige literalmente `Crea tu primer favorito`, texto sustituido por
+  `Guarda lo que sigues` para no dar instrucciones falsas a quien ya tiene favoritos.
+- El intento de actualizar esa expectativa fue bloqueado por la revision de
+  seguridad. NO se modifico el test ni se elimino el check. La nueva prueba de
+  comportamiento comprueba ayuda abierta sin favoritos, cerrada con favoritos,
+  formulario conservado y contenido deportivo fuera del desplegable.
+- Reejecucion serial completa: **477 tests, 476 pasados, 1 fallido, 0 omitidos**.
+  El inventario pasa sin navegadores concurrentes. Persiste unicamente la
+  expectativa literal antigua de favoritos; no se sustituye por un PASS.
+  Evidencia: `.tmp_reference_review/global_coverage/pytest_serial.xml`.
+- `compileall` de las herramientas y test modificados: PASS. `git diff --check`:
+  PASS, con avisos informativos de normalizacion LF/CRLF, no errores del diff.
+- Huella visual del recorrido final:
+  `85c2c7d90fe1ca396b914e7c3267a74665e2e52c8534125ad52b52715294d62a`.
+- Evidencia: `global_final_matrix/evidence.json`, `global_core_regression/evidence.json`,
+  `global_focal_verified/evidence.json`, `global_tablet_verified/evidence.json`,
+  `global_partial_verified/evidence.json` y `global_empty_verified/evidence.json`
+  bajo `.tmp_reference_review/consolidated_h01_h09/`.
+- Fixtures exclusivamente SIMULATED_QA; DB de prueba, credenciales externas vacias,
+  jobs desactivados y red externa bloqueada. La suite registro 0 intentos externos.
+  Se bloqueo tambien `/api/live` en el navegador. No se ha medido coste del sistema
+  existente; esta ejecucion no contrato servicios ni inicio gasto o proveedores.
+
+### Comparacion artistica y decision
+
+Home conserva una franja LIVE mas alta y menor densidad inicial que R08, en parte
+por priorizar el deporte y una muestra pequena. No se rellena con partidos falsos.
+Match R12 difiere en escala de escudos, jerarquia y presencia del tiburon; no se
+copian porcentajes, cuotas o analisis de la referencia. Company OS y otras vistas
+legacy conservan estructuras propias y quedan PARCIALES. El tiburon sigue siendo
+geometricamente distinto de las PNG; no se ha reinterpretado ni regenerado aqui.
+
+El paquete incluye referencia frente a captura final y diez antes/despues reales,
+con origen SIMULATED_QA y escalado proporcional explicito. No son mockups.
+
+**Decision: candidato LOCAL PARCIAL, no aprobacion global.** H01-H09 se conserva;
+H07 artistico pendiente. Quedan por resolver los contratos de las dos vistas admin,
+autorizar la actualizacion semantica del test de favoritos y completar las familias,
+roles, estados e interacciones pendientes. No publicar este resultado como QA global PASS.
+
+## Cierre consolidado H01-H09 - 2026-09-07 (historico preservado)
+
+Esta seccion prevalece sobre los cierres historicos siguientes. Alcance LOCAL;
+no certifica produccion ni aprueba artisticamente tiburon o fondo.
+
+- Base real: `7fa7b7ac241295da666921ea9f50f6f632804ce1` (arbol limpio al inicio).
+  Los candidatos anteriores ya estaban incluidos en ese commit externo; no se restauraron.
+- Huella visual final: `96776bc8ead87b199b9067d3ed7df473a17f230ded5d74a7c1f6797c49cf5d10`.
+- Preservacion selectiva: `.tmp_reference_review/consolidated_h01_h09/baseline/manifest.csv`.
+- `app.py`, Sports Truth, `SPORTS_DATA_LIVE_CERTIFICATION.md` DAY 3 y el asset
+  atmosferico conservan contenido. Las 16 referencias conservan sus hashes.
+- Sin staging, commit, push, PR, merge, deploy, consultas de produccion o cambios remotos.
+
+### Hallazgos y resolucion
+
+| ID | Estado | Causa, correccion y prueba |
+| --- | --- | --- |
+| H01 | RESUELTO CON PRUEBA | El score absoluto a top 61% invadia la fecha. Ahora hay un unico marcador dentro del flujo de la cabecera. La regla legacy V858 `[class*="status"]` convertia toda la zona en un circulo: se anula solo en esta zona. Rectangulos reales Range para score/estado/fecha; controles correcto, solapado y circulo legacy. FT, LIVE confirmado y proximo, 390/430 y texto 130% con nombres largos. |
+| H02 | RESUELTO CON PRUEBA | Defecto reproducido a scroll 0, no solo scroll residual. La especificidad anulaba el espacio del banner LOCAL + barras admin. Selector canonico compartido, sin offsets por ruta. R05/R06 y Dashboard probados al entrar y al volver a scroll 0. Cabecera no visible por scroll deliberado = NOT_RUN, no fallo. |
+| H03 | RESUELTO CON PRUEBA | Campos mal conectados y contexto incompleto, no ROI incorrecta. Detalle de trazabilidad debajo. Cabeceras no parten palabras; fechas separadas; tabla desktop con desplazamiento horizontal interno para conservar columnas sin colision. |
+| H04 | RESUELTO CON PRUEBA | Planes compactos y prestaciones en details accesible. 12 aperturas reales entre cuatro anchos. Precios, tiers, condiciones y checkout intactos. |
+| H05 | RESUELTO CON PRUEBA | Se quita introduccion duplicada y se adelanta conexion. Una regla movil ocultaba sus acciones; excepcion local permite mostrarlas. Capturas y geometria de boton a 360/390/430. No se pulsa conectar ni nuevo codigo. |
+| H06 | RESUELTO CON PRUEBA | Filtros avanzados desplegables, Cuenta compacta, CTA vacio Home en fila completa, minuto no repetido si ya aparece en estado, nivel MEDIO/ALTO/BAJO no usado como explicacion de riesgo, metodologia de picks desplegable. Datos y filtros originales preservados. |
+| H07 | PENDIENTE | Una iteracion de integracion: brillo 0.90 a 1.14 y sombra mas contenida en la regla de heroes. Mismo WebP, anatomia y orientacion. No imagen nueva ni aprobacion automatica. |
+| H08 | RESUELTO CON PRUEBA | Planos diagonales provenian de clip-path de body::before/after y capas atmosfericas V813/V814 heredadas. Se excluyen de ns-app y se anulan ambos clips en la capa actual. Estilos computados finales: clip none en ambos, sin transform heredado. Estados parcial/vacio conservados. La preferencia artistica del fondo sigue pendiente. |
+| H09 | RESUELTO CON PRUEBA | Ajuste acotado de legibilidad: shell compartido, celdas largas de Data Marketplace y densidad KPI. No se crean analiticas, ingresos, graficas ni nueva jerarquia funcional. La semejanza artistica global de admin no se certifica en este alcance. |
+
+### H03: datos separados de CSS
+
+`engines/pick_grading_engine.py`, consulta `pick_grading_summary`:
+la correccion anterior ya incorporada en la base recupera `p.selection` y
+`COALESCE(p.pick_type,p.market)`. Antes, un payload vacio podia perder una seleccion
+real guardada; ahora se recupera por el join a picks. No se revierte ese hunk.
+Regresion permanente: `tests/test_temporal_context_consistency.py`, prueba de
+consulta real con payload vacio y seleccion guardada.
+
+Incremento actual de datos, cuatro lineas: se exponen `p.source`, `p.created_at`
+y el `kickoff_iso` desde el instante canonico ya calculado. Asi la fila evaluada
+atraviesa el contrato existente de aprendizaje; no se cambia su motor.
+Si una fila cerrada aun carece de contexto, el template distingue resultado
+registrado de aprendizaje pendiente, sin afirmar que no hay resultado.
+
+Escena poblada aislada: match m-1, seleccion real de la fixture, WON, stake 1 u.,
+profit 0.82 u.; `evaluable_total=1`, `decided_total=1`, ROI 82%, winrate 100%.
+El template antes buscaba closed_count/graded_count inexistentes y count/picks
+mensuales; ahora usa evaluable_total y by_month.total. Mes: total 1, profit 0.82.
+No existe ROI mensual en ese contrato: se retira esa columna, no se fabrica.
+Mes significa periodo de evaluacion; fecha de partido y fecha del pick se distinguen.
+ROI usa stake evaluado; winrate usa won+lost. Las ayudas explican esos universos.
+No cambian SQL de calculo, stake, liquidacion, filtros financieros, permisos ni DB real.
+
+### QA reproducible y limites
+
+Entorno local con DB nueva por escenario, credenciales de prueba, jobs desactivados,
+red externa bloqueada y reloj de escenas focales `2026-09-07T16:00:00+02:00`.
+Origen `SIMULATED_QA`, nunca REAL_PRODUCTION_OBSERVATION.
+
+- Suite: `.venv/Scripts/python.exe .tmp_reference_review/consolidated_h01_h09/run_checks.py tests`.
+  Resultado final en `pytest.xml`: 474/474 PASS, 0 fallos, 0 errores, 0 omitidos,
+  267.838 s; 0 intentos de red externa. No suma ejecuciones anteriores.
+- Jinja: 199 plantillas compiladas. compileall sobre Python modificado sin errores.
+- Browser focal: `tools/check_consolidated_visual_review.py --label accepted_local`:
+  56 vistas + 6 capturas de estres; 360x800, 390x844, 430x932, 1366x768.
+  0 fallos focales, 0 errores JS, 0 overflow de pagina. El scroll interno de tabla es deliberado.
+- Escenas `accepted_empty` y `accepted_partial`: 8 vistas cada una, 0 fallos.
+- Navegacion final: `final_navigation/PQA-20260907200337/autonomous_product_qa_result.json`:
+  10 capturas, 13 clicks reales, 9/9 journeys, 0 errores consola/JS, 0 provider calls.
+- Controles negativos detectan solapamiento y circulo legacy; positivo pasa.
+  No se usa un rectangulo externo de tarjeta como sustituto de las lineas de texto.
+- El primer pase detecto expectativas estaticas del marcador en su antigua ubicacion.
+  Sentinel y test V944 ahora exigen una unica invocacion dentro de match_header,
+  sin invocacion duplicada en match_detail. No se elimina el contrato.
+- Guard de privacidad/secretos en `--no-report`: 1106 archivos, 0 hallazgos confirmados
+  o para revision; no imprime valores ni regenera informes historicos.
+- Advertencias de pytest: acceso denegado a cache local, no fallos de tests.
+- `git diff --check`: PASS (solo avisos de normalizacion LF/CRLF de Git).
+- `final_manifest.json`: hashes del candidato y comprobacion byte a byte de archivos
+  protegidos contra la copia local inicial; indice sin cambios preparados, HEAD intacto.
+- No se mide latencia productiva, entrega Telegram, Stripe, LIVE real ni administracion real.
+  Las regresiones de rendimiento/permisos/Sports Truth/Match Context pertenecen a la suite local.
+
+### Evidencia para revision
+
+Directorio exacto desde la raiz oficial:
+`.tmp_reference_review/consolidated_h01_h09/founder_review/index.html`.
+
+11 comparativas focales antes/despues, imagenes finales y `manifest.json`.
+Los PNG originales permanecen en before/accepted_local/accepted_empty/accepted_partial.
+Cada evidence.json contiene ruta, viewport, rol, escenario, reloj, huella, scroll
+y geometria. Sin recorte de las capturas principales; las copias JPG solo comprimen
+para facilitar lectura. Las comparaciones con el paquete historico anterior senalan
+que sus escenarios pueden diferir: no se usan para certificar cambios LIVE ni metricas.
+La baseline inmediata tiene reloj de ejecucion diferente; valida composicion, no frescura.
+
+### Archivos modificados
+
+- Datos: `engines/pick_grading_engine.py`.
+- Contrato de QA: `engines/sentinel_autopilot_engine.py`.
+- Presentacion: `static/app.css`, `static/v933-product.css`, `templates/base.html`,
+  `calendar.html`, `membership.html`, `picks.html`, `telegram.html`, `track_record.html`,
+  `match_detail.html`, componentes `v933_ui.html`, `v937_sports_lifecycle.html`, `v944_match_center.html`.
+- QA: `tests/test_temporal_context_consistency.py`, `tests/test_v944_match_center_foundation.py`,
+  nuevo `tests/test_consolidated_visual_review.py`, `tools/run_autonomous_product_qa.py`,
+  nuevo `tools/check_consolidated_visual_review.py`.
+- Documentacion: este informe. Evidencias y DB QA quedan en ubicaciones locales excluidas.
+
+No se modifica VERSION ni se genera una release. Detener ediciones al entregar;
+H07 y la aprobacion artistica del fondo quedan para revision humana.
+
 ## Cierre local vigente - 2026-09-07
 
 > Esta seccion sustituye la decision ejecutiva y las cifras de QA historicas que

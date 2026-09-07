@@ -15,6 +15,7 @@
 {% set sports_metrics = calendar.get('sports_metrics') or data.get('sports_metrics') or {} %}
 {% set lifecycle_total = (counts.get('today', 0)|int) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) + (counts.get('incidents', 0)|int) %}
 
+    <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}><summary>Buscar y filtrar por competición o país</summary>
 <div class="v933-page v933-sports-board v933-calendar-board v940-calendar-experience"
      data-v933-template="calendar"
      data-v933-reference="official-ref-10"
@@ -97,6 +98,7 @@
       </label>
       <button class="v933-action is-primary is-blue" type="submit">{{ icon('search') }}Encontrar partidos</button>
     </form>
+    </details>
 
     {% if active_filters %}<div class="v940-calendar-layer-state"
          data-v940-calendar-filters-active="{{ active_filters|length }}">

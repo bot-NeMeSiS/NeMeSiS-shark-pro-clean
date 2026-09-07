@@ -4,8 +4,8 @@
 <section class="scoreboard-hero v701-scoreboard v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="favorites" data-v828-template="favorites" data-v829-template="favorites" data-v830-template="favorites" data-v832-template="favorites" data-v833-template="favorites" data-v836-template="favorites" data-v837-template="favorites" data-v826-template="favorites">
   <div>
     <div class="kicker">Favoritos</div>
-    <h1>Tu radar personal</h1>
-    <p class="lead">Equipos, ligas y partidos guardados para ver próximos, live, picks y señales SHARK relacionadas.</p>
+    <h1>Tus favoritos</h1>
+    <p class="lead">Equipos, competiciones y partidos guardados.</p>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ data.favorite_insights.by_kind.team|length }}</strong><span>Equipos</span></div>
@@ -16,8 +16,10 @@
 </section>
 
 
+<details class="ns-favorites-help"{% if not (data.favorite_insights.by_kind.team or data.favorite_insights.by_kind.league or data.favorite_insights.by_kind.match) %} open{% endif %}>
+<summary>Añadir favoritos</summary>
 <section class="band compact-band" data-top100-improvement="18">
-  <div class="section-head"><h2>Crea tu primer favorito</h2><span class="pill">Menos búsqueda</span></div>
+  <div class="section-head"><h2>Guarda lo que sigues</h2></div>
   <div class="grid dense-grid">
     <article class="card"><span class="badge">1</span><strong>Elige un equipo, liga o partido</strong><p class="small">Empieza por lo que más revisas. Un favorito basta para ordenar la jornada.</p></article>
     <article class="card"><span class="badge">2</span><strong>Usa una estrella o el alta manual</strong><p class="small">Cuando exista ID seguro, NeMeSiS lo reutiliza; si no, guarda una etiqueta honesta.</p></article>
@@ -25,6 +27,7 @@
   </div>
   <div class="actions"><a class="btn primary" href="/calendar">Buscar partido</a><a class="btn" href="#add-favorite-manual">Añadir manualmente</a></div>
 </section>
+</details>
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>Partidos relacionados</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
