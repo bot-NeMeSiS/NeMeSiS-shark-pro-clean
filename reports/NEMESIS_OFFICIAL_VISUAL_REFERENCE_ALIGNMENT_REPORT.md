@@ -1,5 +1,130 @@
 # NEMESIS DESIGN SYSTEM 1.0 - OFFICIAL REFERENCE ALIGNMENT
 
+## Autorizacion limitada: expectativa de Favoritos (vigente)
+
+Operacion local posterior a la ampliacion global. Estado global: **PARCIAL**.
+No se ha cambiado la interfaz ni se ha repetido la matriz de navegador.
+
+Conciliacion Git: la primera lectura vio `7fa7b7ac241295da666921ea9f50f6f632804ce1`.
+Antes del manifiesto y de la reproduccion aparecio el commit externo
+`936cdc8863fba3fc967a2eeaf6b65750767766d0`, hijo directo del anterior, que incorpora
+los 23 archivos del candidato previo. No fue creado por esta operacion. Esta es
+la base de la reproduccion y de la suite final. Los 22 archivos de producto/tests
+de ese candidato conservan exactamente sus hashes; el informe es el unico que
+se actualiza documentalmente aqui. No se consulto ni modifico produccion.
+El HEAD y el indice permanecen iguales desde el manifiesto previo a las pruebas.
+
+### Identificacion y prueba previa
+
+- Archivo: `tests/test_product_excellence_sprint_02.py`, linea 49.
+- Test: `tests/test_product_excellence_sprint_02.py::test_product_excellence_sprint_02_top100_markers_are_present`.
+- Literal anterior: `Crea tu primer favorito`.
+- Literal autorizado y aplicado: `Guarda lo que sigues`.
+- Productor: `templates/favorites.html`, encabezado de ayuda dentro de
+  `details.ns-favorites-help`; este template no se modifico en esta operacion.
+- Motivo: conserva la invitacion a guardar equipos, competiciones o partidos;
+  elimina la suposicion incorrecta de que quien consulta la ayuda no tiene
+  favoritos. El resumen sigue siendo `Añadir favoritos` y las instrucciones
+  siguen explicando seleccion, estrella/alta manual y regreso al radar.
+
+Diff completo autorizado del test:
+
+```diff
+-            "Crea tu primer favorito",
++            "Guarda lo que sigues",
+```
+
+No se agregaron alternativas, expresiones amplias, omisiones, cambios de umbral
+ni nuevos PASS artificiales. Los demas literales, marcadores, assert y pruebas
+permanentes conservan contenido. Se verifico igualdad exacta del archivo anterior
+tras esa unica sustitucion, incluidos sus finales de linea originales.
+
+Antes de editar se reprodujeron 14 tests: 13 PASS y el unico fallo esperado en
+ese literal. Las regresiones de ayuda poblada/vacia y aislamiento no fallaron.
+Un probe adicional SIMULATED_QA renderizo el template real con listas coherentes:
+18/18 comprobaciones de encabezado y guia, formulario existente, enlaces calendario
+y partido, destino de alta manual, retirada, datos visibles, ausencia de falso
+vacio con favoritos, vacio honesto, redireccion anonima y consultas por user_id.
+Es una comprobacion local de render/contratos, NO clicks ni una nueva certificacion
+completa de permisos. No escribio DB de negocio ni ejecuto acciones externas.
+
+La revision de seguridad normal permitio la operacion tras esta autorizacion;
+no se eludio el bloqueo anterior. Copia, hashes y evidencia antes/despues:
+`.tmp_reference_review/favorites_copy_authorization/`.
+
+### Validacion de esta operacion
+
+- Grupo focal posterior: **24/24 PASS**, 0 fallos y 0 omitidos; incluye el fichero
+  afectado, comportamiento visual, dashboard/aislamiento y validacion de rutas.
+- Suite completa unica de cierre: **477/477 PASS**, 0 fallos, 0 errores y 0
+  omitidos. XML: `.tmp_reference_review/favorites_copy_authorization/full_final.xml`.
+- `git diff --check`: PASS. La unica modificacion de prueba es la sustitucion
+  literal de una linea; el resto de cambios de esta operacion son este informe
+  y evidencias locales privadas. Sin staging, commit, push, PR, merge ni deploy.
+- Jinja: 199 plantillas. Red externa bloqueada; jobs apagados; secretos externos
+  vacios y credenciales sinteticas de prueba. No navegador concurrente.
+- No se cambian los resultados historicos de las suites anteriores.
+
+### Correccion de atribucion y pendientes globales
+
+Los dos 500 de la pasada global quedan como **ORIGEN PREEXISTENTE NO CONFIRMADO**.
+La ausencia de cambios en sus ficheros no demuestra una reproduccion equivalente
+contra el baseline protegido. No se realizo ahora esa comparacion ni una nueva
+ejecucion de las rutas; se conserva exclusivamente la evidencia ya disponible.
+
+| Ruta | Evidencia y condiciones observadas | Estado |
+| --- | --- | --- |
+| `/admin/telegram-audit` | HTTP 500 a 390x844 y 1366x768, ADMIN de prueba, DB local y escenario poblado SIMULATED_QA. UndefinedError de Jinja: `audit` no definido. El handler entrega `data.telegram_diagnostics`, pero el template lee `audit.counts/checks/settings`. | PENDIENTE; origen preexistente no confirmado |
+| `/admin/retention-center` | HTTP 500 en ambos anchos y mismo tipo de entorno. `jinja2.exceptions.UndefinedError: 'retention' is undefined`. El handler entrega `data.retention`; el template exige variable superior y campos de score no construidos por ese handler. | PENDIENTE; origen preexistente no confirmado |
+
+Fuente: `.tmp_reference_review/consolidated_h01_h09/global_final_matrix/evidence.json`,
+resumen global conservado y trazas observadas. El recorrido usaba reloj fijo
+2026-09-07T16:00:00+02:00, con desplazamiento de segundos por viewport registrado
+en cada fila. No certifica el comportamiento de produccion.
+
+Las ocho observaciones incompletas permanecen **NOT_RUN / TimeoutError**:
+
+| Ruta | Viewport | Motivo registrado |
+| --- | --- | --- |
+| `/admin/company-audit` | 390x844 | Navegacion excedio 15000 ms |
+| `/admin/auto-improvement` | 390x844 | Navegacion excedio 15000 ms |
+| `/admin/codex-automation` | 390x844 | Navegacion excedio 15000 ms |
+| `/admin/team-identity` | 390x844 | Navegacion excedio 15000 ms |
+| `/admin/not-found-events` | 390x844 | Navegacion excedio 15000 ms |
+| `/admin/codex-automation` | 1366x768 | Navegacion excedio 15000 ms |
+| `/admin/team-identity` | 1366x768 | Navegacion excedio 15000 ms |
+| `/admin/not-found-events` | 1366x768 | Navegacion excedio 15000 ms |
+
+La carrera de stat() de temporales observada en Codex Automation es una pista
+local adicional, no una causa demostrada para los ocho timeouts. No equivalen
+a una caida productiva ni se convierten en PASS.
+
+Las **15 familias sin recorrido** en la matriz global siguen pendientes:
+
+| Familia | Rutas representativas | Limite registrado |
+| --- | --- | --- |
+| highlight_detail / resource_unavailable | `/highlight/<highlight_id>`, `/resumen/<highlight_id>` | Entidad de prueba requerida |
+| password_reset_form | `/reset-password/<token>`, `/admin-reset-password/<token>` | Contexto/token de prueba requerido |
+| local_safe_portal | `/local-safe` | Contexto/accion por revisar |
+| admin_bootstrap | `/admin-bootstrap` | Accion de inicializacion excluida |
+| admin_sportsdb_sync | `/admin/sportsdb-sync` | Limite de sincronizacion |
+| admin_sportsdb_feed | `/admin/sportsdb-feed` | Limite de sincronizacion |
+| admin_matches_sync | `/admin/matches`, `/admin/matches-sync` | Limite de sincronizacion |
+| admin_telegram | `/admin/telegram` | Sincroniza suscriptores; no ejecutada |
+| admin_automation | `/admin/automation` | Ejecucion automatica excluida |
+| admin_data_center | `/admin/data-center` | Scheduler/sincronizacion excluidos |
+| admin_api_sports_audit | `/admin/api-sports`, `/admin/api-sports-audit` | Sincronizacion de fixtures/LIVE excluida |
+| admin_sentinel_workflow | `/admin/sentinel-workflow` y aliases | Ciclo Sentinel excluido |
+| admin_visual_worker | `/admin/visual-worker` y aliases | Worker excluido |
+| admin_sentinel_autopilot | `/admin/sentinel-autopilot` y aliases | Escaneo con acciones por revisar |
+| admin_track_record | `/admin/track-record` | Grading excluido |
+
+El inventario completo conserva todos los aliases en
+`.tmp_reference_review/global_coverage/final_family_matrix.json`. Ademas siguen
+pendientes los roles/estados e interacciones no probados por familia, la comparacion
+artistica global y la aprobacion humana de tiburon/fondo. Nada de ello se resuelve
+por actualizar la frase de un test. Los 500 quedan para un encargo separado.
+
 ## Ampliacion global de experiencia - 2026-09-07 (vigente, LOCAL PARCIAL)
 
 Este apartado prevalece para el alcance global. No declara toda la aplicacion
@@ -83,10 +208,11 @@ metricas y padding del acceso local. No se hizo una purga global ni otra hoja CS
    `retention.global_score` y otros campos que el handler no construye. Se reproduce
    `retention is undefined`; no se inventaron scores para completar el dashboard.
 
-Ambos handlers y templates ya estaban asi antes de este incremento y no se
-editaron. Son dependencias funcionales pendientes, no ausencia normal de datos
-ni regresiones atribuibles al CSS. Requieren reconciliar su contrato de datos
-con evidencia real en un cambio separado y probado.
+Ambos handlers y templates no se editaron en el incremento visual, pero no se
+comparo el baseline protegido bajo las mismas condiciones. Clasificacion corregida:
+**ORIGEN PREEXISTENTE NO CONFIRMADO**. Son dependencias funcionales pendientes;
+no se atribuyen al CSS ni se descartan como ausencia normal de datos. Requieren
+reconciliar su contrato en un cambio separado y probado.
 
 ### QA del arbol y trazabilidad
 
@@ -131,7 +257,7 @@ con origen SIMULATED_QA y escalado proporcional explicito. No son mockups.
 
 **Decision: candidato LOCAL PARCIAL, no aprobacion global.** H01-H09 se conserva;
 H07 artistico pendiente. Quedan por resolver los contratos de las dos vistas admin,
-autorizar la actualizacion semantica del test de favoritos y completar las familias,
+completar la validacion textual posterior registrada al inicio y completar las familias,
 roles, estados e interacciones pendientes. No publicar este resultado como QA global PASS.
 
 ## Cierre consolidado H01-H09 - 2026-09-07 (historico preservado)

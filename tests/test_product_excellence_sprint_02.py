@@ -46,7 +46,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         ],
         "templates/favorites.html": [
             'data-top100-improvement="18"',
-            "Crea tu primer favorito",
+            "Guarda lo que sigues",
             'id="add-favorite-manual"',
             "Añadir manualmente",
         ],
