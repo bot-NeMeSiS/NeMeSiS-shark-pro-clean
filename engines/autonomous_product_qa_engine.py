@@ -353,7 +353,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
 
     competition_identity = observation.get("competition_identity") or {}
     competition_mismatches = competition_identity.get("mismatches") or []
-    if competition_identity and (
+    if competition_identity and competition_identity.get("observed") is not False and (
         competition_identity.get("pass") is not True
         or competition_mismatches
     ):
@@ -441,12 +441,13 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
         ))
 
     temporal = observation.get("temporal_context") or {}
-    if temporal:
+    if temporal and int(temporal.get("checked_cards") or 0) > 0:
         missing = int(temporal.get("missing_cards") or 0)
         ambiguous = int(temporal.get("ambiguous_cards") or 0)
         cross_surface = temporal.get("cross_surface_consistent") is True
+        cross_surface_observed = temporal.get("observed") is not False
         madrid_time = temporal.get("madrid_time") is True
-        if missing or ambiguous or not cross_surface or not madrid_time:
+        if missing or ambiguous or not madrid_time or (cross_surface_observed and not cross_surface):
             issues.append(_issue(
                 worker="digital_user_journey_tester",
                 category="TEMPORAL_CONTEXT",
@@ -471,8 +472,10 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
         ("background", "VISUAL_BACKGROUND", "official-ocean-background"),
     ):
         state = visual.get(key) or {}
+        if state.get("observed") is False:
+            continue
         classification = str(state.get("classification") or "NOT_OBSERVED").upper()
-        if classification in {"MATCH", "MINOR_GAP"}:
+        if classification in {"MATCH", "MINOR_GAP", "FOUNDER_REVIEW_REQUIRED"}:
             continue
         issues.append(_issue(
             worker="visual_experience_inspector",
@@ -481,7 +484,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
             screen=str(state.get("screen") or "/"),
             viewport=str(state.get("viewport") or "unknown"),
             element=element,
-            expected="MATCH o MINOR_GAP respecto a la imagen oficial aplicable; aprobación humana obligatoria.",
+            expected="Sin diferencia objetiva bloqueante y con aprobación humana todavía obligatoria.",
             actual=classification,
             evidence=str(state.get("evidence") or "No existe evidencia visual suficiente para declarar coincidencia."),
             screenshot=str(state.get("screenshot") or ""),
@@ -495,7 +498,7 @@ def detect_product_qa_issues(observation: dict[str, Any], *, detected_at: str | 
     empty_dashboard_flags = density.get("empty_dashboard_flags") or []
     sports_above_fold_ratio = float(density.get("sports_above_fold_ratio") or 0)
     nested_depth = max(int(density.get("nested_panel_depth") or 0), int(density.get("nested_card_depth") or 0))
-    if density.get("first_viewport_product") is False or nested_depth > 2 or dead_space_flags or empty_dashboard_flags or sports_above_fold_ratio < .05:
+    if density.get("observed") is not False and (density.get("first_viewport_product") is False or nested_depth > 2 or dead_space_flags or empty_dashboard_flags or sports_above_fold_ratio < .05):
         issues.append(_issue(
             worker="visual_experience_inspector",
             category="UI_DENSITY",
@@ -736,7 +739,7 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     sports_pass = int(sports.get("confirmed_live_count") or 0) == int(sports.get("displayed_live_count") or 0)
     ft_pass = int(sports.get("ft_rendered_live") or 0) == 0
     cross_surface_mismatches = list(sports.get("cross_surface_live_mismatches") or [])
-    cross_surface_observed = "cross_surface_live_truth" in sports or bool(cross_surface_mismatches)
+    cross_surface_observed = sports.get("cross_surface_live_truth") is not None or bool(cross_surface_mismatches)
     cross_surface_pass = sports.get("cross_surface_live_truth") is True and not cross_surface_mismatches
 
     visual = observation.get("visual") or {}
@@ -745,6 +748,7 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     copy_state = observation.get("client_copy") or {}
     copy_pass = not (copy_state.get("technical_matches") or [])
     density = observation.get("density") or {}
+    density_observed = density.get("observed") is True if "observed" in density else bool(density)
     composition = observation.get("composition") or {}
     dead_space_flags = composition.get("dead_space_flags") or density.get("dead_space_flags") or []
     empty_dashboard_flags = composition.get("empty_dashboard_flags") or density.get("empty_dashboard_flags") or []
@@ -765,26 +769,13 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
     runtime = observation.get("runtime") or {}
     text_quality = observation.get("text_quality") or {}
     temporal = observation.get("temporal_context") or {}
-    temporal_observed = bool(temporal)
+    temporal_observed = temporal.get("observed") is True if "observed" in temporal else bool(temporal)
     temporal_pass = (
         temporal_observed
         and int(temporal.get("missing_cards") or 0) == 0
         and int(temporal.get("ambiguous_cards") or 0) == 0
         and temporal.get("cross_surface_consistent") is True
         and temporal.get("madrid_time") is True
-    )
-    competition = observation.get("competition_identity") or {}
-    competition_observed = int(competition.get("matches_compared") or 0) > 0
-    competition_pass = competition_observed and competition.get("pass") is True and not (competition.get("mismatches") or [])
-    layout = observation.get("layout") or {}
-    layout_observed = layout.get("observed") is True
-    collision_types = {str(item).strip().lower() for item in (layout.get("collision_types") or []) if str(item).strip()}
-    text_collision_types = {"button_clipping", "text_clipping", "interactive_overlap", "viewport_escape"}
-    mobile_360_observed = int(layout.get("mobile_360_captures") or 0) > 0
-    mobile_360_pass = (
-        mobile_360_observed
-        and int(layout.get("mobile_360_collisions") or 0) == 0
-        and int(layout.get("mobile_360_overflow") or 0) == 0
     )
     competition = observation.get("competition_identity") or {}
     competition_observed = int(competition.get("matches_compared") or 0) > 0
@@ -811,39 +802,19 @@ def _regression_result_defaults(observation: dict[str, Any]) -> dict[str, dict[s
             "status": "PASS" if competition_pass else "FAIL" if competition_observed else "NOT_RUN",
             "evidence": f"matches_compared={int(competition.get('matches_compared') or 0)}; mismatches={len(competition.get('mismatches') or [])}",
         },
-        "CROSS_SURFACE_COMPETITION_IDENTITY": {
-            "status": "PASS" if competition_pass else "FAIL" if competition_observed else "NOT_RUN",
-            "evidence": f"matches_compared={int(competition.get('matches_compared') or 0)}; mismatches={len(competition.get('mismatches') or [])}",
-        },
-        "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if shark in {"MATCH", "MINOR_GAP"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
-        "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
+        "OFFICIAL_SHARK_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if shark in {"MATCH", "MINOR_GAP", "FOUNDER_REVIEW_REQUIRED"} else "FAIL" if shark not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("shark") or {}).get("evidence")},
+        "OFFICIAL_BACKGROUND_REFERENCE": {"status": "FOUNDER_REVIEW_REQUIRED" if background in {"MATCH", "MINOR_GAP", "FOUNDER_REVIEW_REQUIRED"} else "FAIL" if background not in {"NOT_RUN", "NOT_OBSERVED"} else "NOT_RUN", "evidence": (visual.get("background") or {}).get("evidence")},
         "VISUAL_FALSE_PASS_RECURRENCE": {"status": "FOUNDER_REVIEW_REQUIRED", "evidence": "Automated visual acceptance was previously rejected by Founder; rendered comparison remains mandatory."},
         "CLIENT_TECHNICAL_COPY_LEAK": {"status": "PASS" if copy_pass else "FAIL", "evidence": f"technical_matches={len(copy_state.get('technical_matches') or [])}"},
-        "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={nested_depth}; bordered={density.get('bordered_containers')}; sports_ratio={sports_above_fold_ratio:.3f}"},
+        "RECTANGLE_FATIGUE_CONTENT_DENSITY": {"status": "PASS" if density_pass else "FAIL" if density_observed else "NOT_RUN", "evidence": f"first_viewport={density.get('first_viewport_product')}; depth={nested_depth}; bordered={density.get('bordered_containers')}; sports_ratio={sports_above_fold_ratio:.3f}"},
         "LARGE_UNJUSTIFIED_EMPTY_REGION": {"status": "PASS" if composition.get("observed") is True and not dead_space_flags else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"flags={len(dead_space_flags)}; coverage={composition.get('home_viewport_content_coverage')}"},
         "EMPTY_DASHBOARD": {"status": "PASS" if composition.get("observed") is True and not empty_dashboard_flags else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"flags={len(empty_dashboard_flags)}"},
-        "SPORTS_ABOVE_FOLD_RATIO": {"status": "PASS" if sports_above_fold_ratio >= .05 else "FAIL" if composition.get("observed") is True else "NOT_RUN", "evidence": f"ratio={sports_above_fold_ratio:.3f}"},
+        "SPORTS_ABOVE_FOLD_RATIO": {"status": "PASS" if density_observed and sports_above_fold_ratio >= .05 else "FAIL" if density_observed else "NOT_RUN", "evidence": f"ratio={sports_above_fold_ratio:.3f}"},
         "TEAM_TO_PLAYER": {"status": "PASS" if (journeys.get("golden_sports_knowledge") or {}).get("pass") is True else "NOT_RUN", "evidence": "golden_sports_knowledge"},
         "MEDIA_RIGHTS_FAIL_CLOSED": {"status": "PASS" if rights_pass else "FAIL", "evidence": f"unsafe_media_visible={knowledge.get('unsafe_media_visible', 0)}"},
         "MOJIBAKE": {"status": "PASS" if not (text_quality.get("mojibake_matches") or []) else "FAIL", "evidence": f"mojibake={len(text_quality.get('mojibake_matches') or [])}"},
         "BROKEN_LINKS": {"status": "PASS" if click_pass and all(item.get("pass") is True for item in journeys.values()) else "FAIL", "evidence": f"journeys={len(journeys)}; js_errors={len(runtime.get('js_errors') or [])}"},
         "MOBILE_BOTTOM_NAV": {"status": "PASS" if mobile_pass else "FAIL", "evidence": f"mobile_taps={len(mobile_clicks)}"},
-        "NO_TEXT_BORDER_COLLISION": {
-            "status": "PASS" if layout_observed and not (collision_types & text_collision_types) else "FAIL" if layout_observed else "NOT_RUN",
-            "evidence": f"captures={int(layout.get('captures') or 0)}; collisions={int(layout.get('collisions') or 0)}; types={sorted(collision_types)}",
-        },
-        "NO_CARD_OVERFLOW": {
-            "status": "PASS" if layout_observed and "card_overflow" not in collision_types else "FAIL" if layout_observed else "NOT_RUN",
-            "evidence": f"captures={int(layout.get('captures') or 0)}; card_overflow={'card_overflow' in collision_types}",
-        },
-        "SPANISH_COPY_STRESS": {
-            "status": "PASS" if layout_observed and not (collision_types & {"button_clipping", "text_clipping", "viewport_escape"}) else "FAIL" if layout_observed else "NOT_RUN",
-            "evidence": f"captures={int(layout.get('captures') or 0)}; clipping_types={sorted(collision_types & {'button_clipping', 'text_clipping', 'viewport_escape'})}",
-        },
-        "MOBILE_360_LAYOUT": {
-            "status": "PASS" if mobile_360_pass else "FAIL" if mobile_360_observed else "NOT_RUN",
-            "evidence": f"captures={int(layout.get('mobile_360_captures') or 0)}; collisions={int(layout.get('mobile_360_collisions') or 0)}; overflow={int(layout.get('mobile_360_overflow') or 0)}",
-        },
         "NO_TEXT_BORDER_COLLISION": {
             "status": "PASS" if layout_observed and not (collision_types & text_collision_types) else "FAIL" if layout_observed else "NOT_RUN",
             "evidence": f"captures={int(layout.get('captures') or 0)}; collisions={int(layout.get('collisions') or 0)}; types={sorted(collision_types)}",

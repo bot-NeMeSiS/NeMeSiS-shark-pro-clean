@@ -478,6 +478,8 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
                   m.kickoff_time AS event_kickoff_time,
                   m.kickoff_iso AS event_kickoff_iso,
                   p.created_at AS pick_created_at,
+                  p.selection AS selection,
+                  COALESCE(p.pick_type, p.market) AS pick_type,
                   COALESCE(m.home_team, p.home_team) AS home_team,
                   COALESCE(m.away_team, p.away_team) AS away_team,
                   COALESCE(m.competition_name, p.competition_name) AS competition_name

@@ -119,7 +119,8 @@ def test_track_record_separates_event_and_pick_dates(tmp_path):
         );
         CREATE TABLE picks(
             id TEXT PRIMARY KEY, match_id TEXT, match_date TEXT, created_at TEXT,
-            home_team TEXT, away_team TEXT, competition_name TEXT
+            home_team TEXT, away_team TEXT, competition_name TEXT,
+            selection TEXT, pick_type TEXT, market TEXT
         );
         CREATE TABLE pick_grading_results(
             id TEXT PRIMARY KEY, pick_id TEXT, match_id TEXT, result_status TEXT,
@@ -134,8 +135,11 @@ def test_track_record_separates_event_and_pick_dates(tmp_path):
         ("m-1", "2026-08-30", "21:00", "2026-08-30T19:00:00Z", "Real Madrid", "Barcelona", "LaLiga"),
     )
     conn.execute(
-        "INSERT INTO picks VALUES(?,?,?,?,?,?,?)",
-        ("p-1", "m-1", "2026-08-30", "2026-08-30T18:00:00Z", "Real Madrid", "Barcelona", "LaLiga"),
+        "INSERT INTO picks VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (
+            "p-1", "m-1", "2026-08-30", "2026-08-30T18:00:00Z",
+            "Real Madrid", "Barcelona", "LaLiga", "Real Madrid", "1X2", "Resultado final",
+        ),
     )
     conn.execute(
         "INSERT INTO pick_grading_results VALUES(?,?,?,?,?,?,?,?,?,?,?)",
@@ -149,6 +153,8 @@ def test_track_record_separates_event_and_pick_dates(tmp_path):
     assert row["event_datetime_label"].endswith("· 21:00")
     assert row["event_datetime_iso"] == "2026-08-30T21:00:00+02:00"
     assert row["pick_created_at_label"].endswith("· 20:00")
+    assert row["selection"] == "Real Madrid"
+    assert row["pick_label"] == "Real Madrid"
     assert row["temporal_contract"] == "MATCH-TEMPORAL-CONTEXT-V1"
 
 

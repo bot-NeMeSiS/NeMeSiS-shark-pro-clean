@@ -32,12 +32,33 @@
         {% else %}{{ empty_state('Sin muestra evaluable', 'No se dibuja una gráfica decorativa. La evolución aparecerá cuando existan picks cerrados suficientes.', '', '', 'history') }}{% endif %}
       </section>
 
-      <section class="v933-panel">
+      <section class="v933-panel ns16-track-recent">
         {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading.') }}
         {% if recent %}
           {% call data_table(['Partido','Selección','Cuota','Estado','Aprendizaje','Calidad','Rentabilidad']) %}
           {% for pick in recent[:30] %}{% set result = (pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong><small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">Partido · {{ pick.get('event_datetime_label') or 'Fecha no disponible' }}</time></small>{% if pick.get('pick_created_at_label') %}<small>Pick · {{ pick.get('pick_created_at_label') }}</small>{% endif %}</td><td>{{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</td></tr>{% endfor %}
           {% endcall %}
+          <div class="ns16-track-mobile-list" aria-label="Picks cerrados recientes">
+          {% for pick in recent[:30] %}
+          {% set result = (pick.get('result') or pick.get('status') or 'Cerrado') %}
+          {% set result_lower = result|string|lower %}
+          <article class="ns16-track-result"{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}>
+            <div class="ns16-track-result-main">
+              <strong>{% if pick.get('match_id') %}<a href="/match/{{ pick.get('match_id') }}">{% endif %}{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}{% if pick.get('match_id') %}</a>{% endif %}</strong>
+              <small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">{{ pick.get('event_datetime_label') or 'Fecha no disponible' }}</time> · {{ pick.get('selection_display') or pick.get('selection') or 'Sin selección registrada' }}</small>
+              <small>Cuota {{ pick.get('odds') if pick.get('odds') is not none else 'Sin dato' }}</small>
+            </div>
+            <div class="ns16-track-result-outcome">
+              {{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}
+              <strong>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else 'Sin dato') }}</strong>
+            </div>
+            <details class="ns16-track-result-evidence">
+              <summary>Ver evidencia</summary>
+              <div>{{ learning_receipt(pick) }}{{ data_confidence_badge(pick, 'pick') }}</div>
+            </details>
+          </article>
+          {% endfor %}
+          </div>
         {% else %}{{ empty_state('Aún no hay picks cerrados', 'El rendimiento permanecerá vacío hasta que el motor de grading confirme resultados reales.', 'Ver picks activos', '/picks', 'history') }}{% endif %}
       </section>
     </div>

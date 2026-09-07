@@ -70,7 +70,7 @@ def _sports_truth(payload: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
 
 def _visual_asset_contract(resources: list[str]) -> tuple[bool, dict[str, Any]]:
     brand_shark = any("nemesis-shark-brand.svg" in value for value in resources)
-    atmospheric_shark = any("nemesis-shark-atmosphere.svg" in value for value in resources)
+    atmospheric_shark = any("nemesis-shark-atmosphere-v2.webp" in value for value in resources)
     legacy_shark = any("shark-logo.svg" in value for value in resources)
     return brand_shark and atmospheric_shark and not legacy_shark, {
         "brand_shark_loaded": brand_shark,

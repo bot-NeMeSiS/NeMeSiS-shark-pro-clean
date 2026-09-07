@@ -10,6 +10,7 @@ from engines.autonomous_product_qa_engine import (
     build_quality_director_decision,
     build_autonomous_product_qa_status,
     detect_product_qa_issues,
+    _regression_result_defaults,
     evaluate_production_sentinel,
     load_product_qa_memory,
     product_qa_review_findings,
@@ -27,12 +28,163 @@ from engines.sentinel_issues_engine import (
 from engines.sentinel_codex_outbox_engine import write_codex_outbox
 from engines.shark_sentinel_engine import _inspect_html, build_codex_prompts
 from tools.run_autonomous_product_qa import (
+    _apply_data_scenario,
     _cross_surface_competition_identity_evidence,
     _cross_surface_live_truth_evidence,
+    _mobile_navigation_journey,
+    _sports_golden_journey,
     _reference_crop_box,
+    _reference_manifest_map,
+    _shark_asset_contract,
     _shark_asset_contract_from_text,
     _sports_priority_regression,
 )
+
+
+def test_mobile_navigation_journey_uses_the_selected_mobile_viewport():
+    clicks = [
+        {
+            "viewport": "mobile_430x932",
+            "element": "Inicio",
+            "expected_path": "/app",
+            "actual_path": "/app",
+            "clicked": True,
+            "hit_target": True,
+        },
+        {
+            "viewport": "mobile_430x932",
+            "element": "Partidos",
+            "expected_path": "/calendar",
+            "actual_path": "/calendar",
+            "clicked": True,
+            "hit_target": True,
+        },
+    ]
+
+    journey = _mobile_navigation_journey(clicks, "mobile_430x932")
+
+    assert journey["pass"] is True
+    assert journey["steps_total"] == 2
+    assert journey["viewport"] == "mobile_430x932"
+
+
+def test_mobile_navigation_journey_keeps_real_tap_failures_visible():
+    clicks = [{
+        "viewport": "mobile_430x932",
+        "element": "Partidos",
+        "expected_path": "/calendar",
+        "actual_path": "/app",
+        "clicked": True,
+        "hit_target": True,
+    }]
+
+    journey = _mobile_navigation_journey(clicks, "mobile_430x932")
+
+    assert journey["pass"] is False
+    assert journey["actual"] == "FAILED_STEP"
+
+
+def test_populated_visual_scenario_seeds_publishable_and_graded_pick_contracts(tmp_path: Path):
+    import sqlite3
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    db_path = tmp_path / "visual-scenario.sqlite"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """CREATE TABLE matches(
+                id TEXT PRIMARY KEY, external_id TEXT, match_date TEXT, kickoff_iso TEXT,
+                kickoff_time TEXT, match_time TEXT, home_team TEXT, away_team TEXT,
+                home_team_id TEXT, away_team_id TEXT, home_logo TEXT, away_logo TEXT,
+                status TEXT, minute TEXT, score TEXT, home_score TEXT, away_score TEXT,
+                source TEXT, legal_note TEXT, last_synced_at TEXT, updated_at TEXT
+            )"""
+        )
+        connection.execute(
+            "INSERT INTO matches VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                "m-2", "m-2", "2026-09-08", "2026-09-08T20:30:00+02:00",
+                "20:30", "20:30", "Club Este", "Club Oeste", "club-este", "club-oeste",
+                "", "", "NS", None, "", None, None, "SIMULATED_QA", "Fixture aislado",
+                None, "2026-09-07T12:00:00+02:00",
+            ),
+        )
+        connection.execute(
+            """CREATE TABLE picks(
+                id TEXT PRIMARY KEY,match_id TEXT,match_date TEXT,sport_key TEXT,
+                competition_key TEXT,competition_name TEXT,home_team TEXT,away_team TEXT,
+                pick_type TEXT,selection TEXT,odds REAL,confidence INTEGER,stake_units REAL,
+                status TEXT,source TEXT,legal_note TEXT,reasoning TEXT,raw_json TEXT,
+                created_at TEXT,updated_at TEXT,market TEXT,bookmaker TEXT,
+                stake_euros_example REAL,risk_level TEXT,warning_reason TEXT,
+                membership_required TEXT,result_status TEXT,published_at TEXT
+            )"""
+        )
+
+    _apply_data_scenario(
+        db_path,
+        "populated",
+        datetime(2026, 9, 7, 12, 0, tzinfo=ZoneInfo("Europe/Madrid")),
+    )
+
+    with sqlite3.connect(db_path) as connection:
+        published = connection.execute(
+            "SELECT match_id,status,result_status,market,odds FROM picks WHERE id=?",
+            ("pick-visual-qa-published",),
+        ).fetchone()
+        grading = connection.execute(
+            "SELECT result_status,odds,stake,profit,auto_validated FROM pick_grading_results WHERE id=?",
+            ("grading-visual-qa-won",),
+        ).fetchone()
+        run = connection.execute(
+            "SELECT status,picks_checked,auto_validated FROM pick_grading_runs WHERE id=?",
+            ("grading-run-visual-qa",),
+        ).fetchone()
+
+    assert published == ("m-3", "published", "pending", "Resultado final", 1.82)
+    assert grading == ("won", 1.82, 1.0, 0.82, 1)
+    assert run == ("completed", 1, 1)
+
+
+def test_live_visual_inspector_counts_visible_canonical_match_ids_before_kpi_copy():
+    source = Path(__file__).resolve().parents[1].joinpath("tools", "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+
+    assert "visibleLiveIds" in source
+    assert 'data-canonical-live="true"' in source
+    assert "if (visibleLiveIds.size) return visibleLiveIds.size" in source
+
+
+def test_track_record_uses_compact_mobile_results_instead_of_squeezing_seven_columns():
+    project_root = Path(__file__).resolve().parents[1]
+    template = project_root.joinpath("templates", "track_record.html").read_text(encoding="utf-8")
+    css = project_root.joinpath("static", "v933-product.css").read_text(encoding="utf-8")
+
+    assert "ns16-track-mobile-list" in template
+    assert "ns16-track-result-evidence" in template
+    assert ".ns16-track-recent > .v933-table-shell { display: none; }" in css
+    assert ".ns16-track-recent .ns16-track-mobile-list { display: grid;" in css
+
+
+def test_telegram_mobile_status_contract_uses_compact_rectangular_tiles():
+    css = Path(__file__).resolve().parents[1].joinpath("static", "v933-product.css").read_text(encoding="utf-8")
+
+    selector = "body.ns-app .v933-telegram-page > .ns-video-status-rail"
+    child_selector = selector + " > .v933-kpi"
+    assert selector in css
+    assert child_selector in css
+    assert "border-radius: 0 !important;" in css
+    assert "border-radius: 6px !important;" in css
+
+
+def test_sparse_sports_golden_journey_keeps_honest_optional_data_contract():
+    source = Path(__file__).resolve().parents[1].joinpath("tools", "run_autonomous_product_qa.py").read_text(encoding="utf-8")
+
+    assert _sports_golden_journey.__defaults__ == ("populated",)
+    assert 'enrichment_contract = "STRICT_ENRICHED_DATA"' in source
+    assert 'enrichment_contract = "HONEST_OPTIONAL_DATA"' in source
+    assert '_optional_section_journey(page, base_url + "/match/m-1", "lineups")' in source
+    assert '_optional_section_journey(page, base_url + "/match/m-1", "stats")' in source
+    assert '_optional_section_journey(page, base_url + "/match/m-1", "video")' in source
 
 
 def test_daily_policy_includes_sports_knowledge_summary_media_rights_and_time():
@@ -81,6 +233,59 @@ def test_cross_surface_competition_identity_compares_provider_backed_ids():
     assert clean == {"observed": True, "pass": True, "matches_compared": 1, "mismatches": []}
     assert mismatch["pass"] is False
     assert mismatch["mismatches"][0]["match_id"] == "m-1"
+
+
+def test_focused_pass_without_cross_surface_identity_does_not_open_false_p0():
+    observation = clean_observation()
+    observation["competition_identity"] = {
+        "observed": False,
+        "pass": None,
+        "matches_compared": 0,
+        "mismatches": [],
+    }
+    observation["temporal_context"] = {
+        "observed": False,
+        "checked_cards": 2,
+        "missing_cards": 0,
+        "ambiguous_cards": 0,
+        "cross_surface_consistent": False,
+        "madrid_time": True,
+    }
+    observation["visual"] = {
+        "shark": {"observed": False, "classification": "NOT_OBSERVED"},
+        "background": {"observed": False, "classification": "NOT_OBSERVED"},
+    }
+    observation["density"] = {
+        "observed": False,
+        "first_viewport_product": None,
+        "sports_above_fold_ratio": 0,
+    }
+
+    issues = detect_product_qa_issues(observation)
+
+    assert not any(issue["category"] == "COMPETITION_IDENTITY" for issue in issues)
+    assert not any(issue["category"] == "TEMPORAL_CONTEXT" for issue in issues)
+    assert not any(issue["category"] in {"VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY"} for issue in issues)
+
+
+def test_unobserved_focused_contracts_remain_not_run_without_masking_real_failures():
+    observation = clean_observation()
+    observation["sports_truth"]["cross_surface_live_truth"] = None
+    observation["sports_truth"]["cross_surface_live_mismatches"] = []
+    observation["density"] = {"observed": False}
+    observation["temporal_context"] = {"observed": False}
+    observation["security"] = {"client_admin_separation": "NOT_RUN"}
+
+    results = _regression_result_defaults(observation)
+
+    assert results["CROSS_SURFACE_LIVE_TRUTH"]["status"] == "NOT_RUN"
+    assert results["RECTANGLE_FATIGUE_CONTENT_DENSITY"]["status"] == "NOT_RUN"
+    assert results["SPORTS_ABOVE_FOLD_RATIO"]["status"] == "NOT_RUN"
+    assert results["TEMPORAL_CONTEXT_CONSISTENCY"]["status"] == "NOT_RUN"
+    assert results["CLIENT_ADMIN_SEPARATION"]["status"] == "NOT_RUN"
+
+    observation["security"] = {"client_admin_separation": "FAIL"}
+    assert _regression_result_defaults(observation)["CLIENT_ADMIN_SEPARATION"]["status"] == "FAIL"
 
 
 def test_layout_collision_evidence_opens_real_visual_issue():
@@ -143,7 +348,27 @@ def test_visual_inspector_rejects_mesh_shark_and_accepts_anatomical_contract():
     assert rejected["classification"] == "MAJOR_GAP"
     assert "data-mesh" in rejected["forbidden_markers"]
     assert accepted["status"] == "PASS"
-    assert accepted["classification"] == "MINOR_GAP"
+    assert accepted["classification"] == "FOUNDER_REVIEW_REQUIRED"
+
+
+def test_active_atmospheric_shark_is_optimized_transparent_original_recreation():
+    contract = _shark_asset_contract()
+
+    assert contract["status"] == "PASS"
+    assert contract["classification"] == "FOUNDER_REVIEW_REQUIRED"
+    assert contract["asset"] == "static/img/nemesis-shark-atmosphere-v2.webp"
+    assert contract["provenance"] == "ORIGINAL_RECREATION_FOR_NEMESIS"
+    assert contract["dimensions"] == [1400, 758]
+    assert contract["size_bytes"] < 350_000
+    assert contract["alpha_extrema"] == [0, 255]
+
+
+def test_r12_reference_maps_to_match_center_not_generic_shark():
+    references = _reference_manifest_map()
+
+    assert references["/match/m-1"]["reference_id"] == "REF-12"
+    assert references["/match/m-1"]["screen"] == "Match Center"
+    assert "/shark" not in references
 
 
 def test_reference_crop_selects_embedded_desktop_and_mobile_compositions():

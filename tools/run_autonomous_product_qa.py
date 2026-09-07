@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timedelta
+import hashlib
 import json
 import logging
 import os
@@ -27,6 +28,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.autonomous_product_qa_engine import record_product_qa_run  # noqa: E402
+from engines.pick_grading_engine import ensure_pick_grading_schema  # noqa: E402
 from tools.run_action_platform_browser_qa import seed_action_data  # noqa: E402
 from tools.run_competition_center_browser_qa import (  # noqa: E402
     BLOCKED_PROVIDER_HOSTS,
@@ -82,6 +84,33 @@ SCREENS = [
     ("operations", "/admin/operations-center", "admin"),
 ]
 CRITICAL_SCREEN_KEYS = {"landing", "public_home", "home", "partidos", "directo", "match", "profile", "founder"}
+SCREEN_COMPONENTS = {
+    "landing": "templates/home.html",
+    "public_home": "templates/home.html",
+    "home": "templates/client_app_center.html",
+    "partidos": "templates/calendar.html",
+    "directo": "templates/live.html",
+    "match": "templates/match_detail.html",
+    "team": "templates/team_center.html",
+    "competition": "templates/competition_center.html",
+    "player": "templates/player_center.html",
+    "picks": "templates/picks.html",
+    "shark": "templates/shark.html",
+    "track_record": "templates/track_record.html",
+    "membership": "templates/memberships.html",
+    "telegram": "templates/telegram.html",
+    "profile": "templates/profile.html",
+    "admin": "templates/admin_dashboard.html",
+    "admin_telegram": "templates/admin_telegram_command_center.html",
+    "admin_payments": "templates/admin_payments.html",
+    "admin_automation": "templates/admin_automation_center.html",
+    "admin_data_marketplace": "templates/admin_data_marketplace.html",
+    "admin_real_launch": "templates/admin_real_launch.html",
+    "admin_picks": "templates/admin_picks.html",
+    "founder": "templates/admin_founder_dashboard.html",
+    "growth": "templates/admin_founder_dashboard.html#growth-revenue",
+    "operations": "templates/admin_operations_center.html",
+}
 TECHNICAL_COPY_RE = re.compile(
     r"(?:provider|cache\s+(?:hit|miss)|sync\s+interval|next\s+refresh|"
     r"pr[oó]xima\s+revisi[oó]n\s+en\s+\d+\s*s|\bengine\b|raw\s+enum|"
@@ -120,9 +149,10 @@ def _session_cookie(app_module, role: str) -> str:
             "membership": "ADMIN",
         }
     else:
+        client_name = os.environ.get("NEMESIS_QA_CLIENT_NAME", "Cliente QA").strip() or "Cliente QA"
         payload = {
             "user_id": "qa-action-platform",
-            "user_name": "Cliente QA",
+            "user_name": client_name,
             "username": "cliente_qa",
             "user_email": "qa-action@example.invalid",
             "user_role": "PRO",
@@ -132,7 +162,7 @@ def _session_cookie(app_module, role: str) -> str:
     return serializer.dumps(payload)
 
 
-def _seed_extra(db_path: Path, qa_password: str) -> None:
+def _seed_extra(db_path: Path, qa_password: str, fixed_now: datetime) -> None:
     from werkzeug.security import generate_password_hash
     from engines.api_football_live_tracker_engine import ensure_live_tracker_schema
     from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
@@ -141,7 +171,8 @@ def _seed_extra(db_path: Path, qa_password: str) -> None:
     ensure_live_tracker_schema(str(db_path))
     connection = sqlite3.connect(db_path)
     try:
-        now = madrid_now()
+        now = fixed_now.astimezone(MADRID).replace(microsecond=0).isoformat()
+        client_name = os.environ.get("NEMESIS_QA_CLIENT_NAME", "Cliente QA").strip() or "Cliente QA"
         password_hash = generate_password_hash(qa_password)
         connection.execute(
             """INSERT OR REPLACE INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
@@ -151,7 +182,11 @@ def _seed_extra(db_path: Path, qa_password: str) -> None:
         connection.execute(
             """INSERT OR REPLACE INTO users(id,name,username,email,password_hash,role,membership,created_at,last_login)
                VALUES(?,?,?,?,?,?,?,?,?)""",
-            ("qa-client-autonomous-product", "Cliente QA", "cliente_qa", "client-qa@example.invalid", password_hash, "FREE", "FREE", now, now),
+            ("qa-client-autonomous-product", client_name, "cliente_qa", "client-qa@example.invalid", password_hash, "FREE", "FREE", now, now),
+        )
+        connection.execute(
+            "UPDATE users SET name=? WHERE id='qa-action-platform'",
+            (client_name,),
         )
         connection.execute(
             """CREATE TABLE IF NOT EXISTS player_registry(
@@ -165,8 +200,8 @@ def _seed_extra(db_path: Path, qa_password: str) -> None:
                VALUES(?,?,?,?,?,?,?,?)""",
             ("101", "Jugador QA", "club-norte", "Club Norte", "140", "Liga Real", "browser_qa_temp_db", now),
         )
-        today = datetime.now(MADRID).date().isoformat()
-        tomorrow = (datetime.now(MADRID).date() + timedelta(days=1)).isoformat()
+        today = fixed_now.astimezone(MADRID).date().isoformat()
+        tomorrow = (fixed_now.astimezone(MADRID).date() + timedelta(days=1)).isoformat()
         connection.execute(
             "UPDATE matches SET match_date=?, kickoff_iso=?, updated_at=? WHERE id='m-1'",
             (today, today + "T20:30:00+02:00", now),
@@ -242,6 +277,177 @@ def _seed_extra(db_path: Path, qa_password: str) -> None:
         connection.commit()
 
 
+def _table_exists(connection: sqlite3.Connection, table: str) -> bool:
+    return connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (table,),
+    ).fetchone() is not None
+
+
+def _apply_data_scenario(db_path: Path, scenario: str, fixed_now: datetime) -> None:
+    """Shape only the isolated QA database; production never imports these fixtures."""
+    now = fixed_now.astimezone(MADRID).replace(microsecond=0).isoformat()
+    removable_detail_tables = (
+        "api_football_live_events",
+        "api_football_live_stats",
+        "api_football_lineups_deep",
+        "sportsdb_match_highlights",
+    )
+    live_tables = ("api_football_live_snapshots", "live_matches", "live_memory_snapshots")
+    if scenario == "populated":
+        ensure_pick_grading_schema(str(db_path))
+    with sqlite3.connect(db_path) as connection:
+        for table in removable_detail_tables:
+            if _table_exists(connection, table) and scenario in {"partial", "empty"}:
+                connection.execute(f'DELETE FROM "{table}"')
+
+        if scenario == "populated":
+            live_kickoff = (fixed_now.astimezone(MADRID) - timedelta(minutes=47)).replace(microsecond=0)
+            connection.execute(
+                """UPDATE matches
+                   SET match_date=?, kickoff_iso=?, kickoff_time=?, match_time=?,
+                       status='LIVE', minute='67', score='1-1', home_score='1', away_score='1',
+                       last_synced_at=?, updated_at=?
+                   WHERE id='m-2'""",
+                (
+                    live_kickoff.date().isoformat(), live_kickoff.isoformat(),
+                    live_kickoff.strftime("%H:%M"), live_kickoff.strftime("%H:%M"), now, now,
+                ),
+            )
+            if _table_exists(connection, "api_football_live_snapshots"):
+                row = connection.execute(
+                    "SELECT match_date,kickoff_iso FROM matches WHERE id='m-2'"
+                ).fetchone()
+                connection.execute(
+                    """INSERT OR REPLACE INTO api_football_live_snapshots(
+                        fixture_id,match_id,league_id,league_name,country,season,round_name,
+                        kickoff_iso,match_date,status_short,status_long,elapsed,
+                        home_team_id,away_team_id,home_team,away_team,home_score,away_score,
+                        venue,payload_json,first_seen_at,last_synced_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        "m-2", "m-2", "140", "Liga Real", "Spain", "2026", "Jornada 12",
+                        row[1], row[0], "2H", "Second Half", 67,
+                        "club-este", "club-oeste", "Club Este", "Club Oeste", 1, 1,
+                        "Estadio Temporal QA", '{"evidence_origin":"SIMULATED_QA"}', now, now,
+                    ),
+                )
+            connection.row_factory = sqlite3.Row
+            source_match = connection.execute("SELECT * FROM matches WHERE id='m-2'").fetchone()
+            if source_match:
+                third_match = dict(source_match)
+                third_kickoff = (fixed_now.astimezone(MADRID) + timedelta(days=1, hours=6)).replace(microsecond=0)
+                third_match.update({
+                    "id": "m-3",
+                    "external_id": "m-3",
+                    "match_date": third_kickoff.date().isoformat(),
+                    "kickoff_iso": third_kickoff.isoformat(),
+                    "kickoff_time": third_kickoff.strftime("%H:%M"),
+                    "match_time": third_kickoff.strftime("%H:%M"),
+                    "home_team": "Club Norte",
+                    "away_team": "Club Este",
+                    "home_team_id": "club-norte",
+                    "away_team_id": "club-este",
+                    "home_logo": "/team-crest.svg?name=Club+Norte",
+                    "away_logo": "/team-crest.svg?name=Club+Este",
+                    "status": "NS",
+                    "minute": None,
+                    "score": "",
+                    "home_score": None,
+                    "away_score": None,
+                    "source": "SIMULATED_QA",
+                    "legal_note": "Fixture visual aislado; no es evidencia de produccion.",
+                    "last_synced_at": now,
+                    "updated_at": now,
+                })
+                columns = list(third_match)
+                placeholders = ",".join("?" for _ in columns)
+                quoted_columns = ",".join(f'"{column}"' for column in columns)
+                connection.execute(
+                    f"INSERT OR REPLACE INTO matches({quoted_columns}) VALUES({placeholders})",
+                    tuple(third_match[column] for column in columns),
+                )
+            connection.execute(
+                """INSERT OR REPLACE INTO picks(
+                    id,match_id,match_date,sport_key,competition_key,competition_name,
+                    home_team,away_team,pick_type,selection,odds,confidence,stake_units,
+                    status,source,legal_note,reasoning,raw_json,created_at,updated_at,
+                    market,bookmaker,stake_euros_example,risk_level,warning_reason,
+                    membership_required,result_status,published_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    "pick-visual-qa-closed", "m-1",
+                    fixed_now.astimezone(MADRID).date().isoformat(), "soccer",
+                    "liga-real", "Liga Real", "Club Norte", "Club Sur", "1X2",
+                    "Club Norte", 1.82, 68, 1.0, "closed", "SIMULATED_QA",
+                    "Fixture visual aislado; no es evidencia de produccion.",
+                    "Resultado respaldado por el fixture QA.", '{"evidence_origin":"SIMULATED_QA"}',
+                    now, now, "1X2", "QA", 0.0, "MEDIO", None, "FREE", "won", now,
+                ),
+            )
+            if source_match:
+                connection.execute(
+                    """INSERT OR REPLACE INTO picks(
+                        id,match_id,match_date,sport_key,competition_key,competition_name,
+                        home_team,away_team,pick_type,selection,odds,confidence,stake_units,
+                        status,source,legal_note,reasoning,raw_json,created_at,updated_at,
+                        market,bookmaker,stake_euros_example,risk_level,warning_reason,
+                        membership_required,result_status,published_at
+                    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        "pick-visual-qa-published", "m-3", third_kickoff.date().isoformat(),
+                        "soccer", "liga-real", "Liga Real", "Club Norte", "Club Este",
+                        "1X2", "Club Norte", 1.82, 68, 0.75, "published", "SIMULATED_QA",
+                        "Fixture visual aislado; no es evidencia de produccion.",
+                        "Seleccion respaldada solo por la fixture controlada.",
+                        '{"evidence_origin":"SIMULATED_QA"}', now, now, "Resultado final",
+                        "QA", 0.0, "MEDIO", "Muestra controlada sin efecto comercial.",
+                        "FREE", "pending", now,
+                    ),
+                )
+            connection.execute(
+                """INSERT OR REPLACE INTO pick_grading_results(
+                    id,pick_id,match_id,grading_status,result_status,confidence_before,
+                    confidence_after,odds,stake,profit,grading_score,auto_validated,
+                    reason,payload_json,graded_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    "grading-visual-qa-won", "pick-visual-qa-closed", "m-1",
+                    "AUTO_VALIDATED", "won", 68, 72, 1.82, 1.0, 0.82, 85, 1,
+                    "Resultado confirmado por la fixture aislada.",
+                    '{"evidence_origin":"SIMULATED_QA"}', now,
+                ),
+            )
+            connection.execute(
+                """INSERT OR REPLACE INTO pick_grading_runs(
+                    id,status,picks_checked,auto_validated,pending,won,lost,voids,profit,
+                    details_json,started_at,finished_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    "grading-run-visual-qa", "completed", 1, 1, 0, 1, 0, 0, 0.82,
+                    '{"evidence_origin":"SIMULATED_QA"}', now, now,
+                ),
+            )
+        elif scenario == "partial":
+            for table in live_tables:
+                if _table_exists(connection, table):
+                    connection.execute(f'DELETE FROM "{table}"')
+            connection.execute(
+                "UPDATE matches SET status='NS', minute=NULL, score='', home_score=NULL, away_score=NULL, last_synced_at=NULL WHERE id='m-2'"
+            )
+        elif scenario == "empty":
+            for table in (
+                *live_tables, "picks", "historical_picks", "pick_decisions", "pick_discards",
+                "pick_grading_results", "pick_grading_runs",
+            ):
+                if _table_exists(connection, table):
+                    connection.execute(f'DELETE FROM "{table}"')
+            connection.execute(
+                "UPDATE matches SET status='NS', minute=NULL, score='', home_score=NULL, away_score=NULL, last_synced_at=NULL WHERE id='m-2'"
+            )
+        connection.commit()
+
+
 def _route_guard(route, request) -> None:
     host = urlparse(request.url).hostname or ""
     if host in {"127.0.0.1", "localhost"}:
@@ -269,12 +475,16 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const body = document.body;
           const text = body ? body.innerText.replace(/\s+/g, ' ').trim() : '';
           const hero = document.querySelector('.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero');
+          const heroTitle = hero ? hero.querySelector('h1') : null;
           const shark = hero ? getComputedStyle(hero, '::before') : null;
           const bodyStyle = body ? getComputedStyle(body) : null;
           const brandMark = document.querySelector('.ns-brand-mark');
           const brandImage = brandMark ? brandMark.querySelector('img') : null;
           const brandStyle = brandMark ? getComputedStyle(brandMark) : null;
           const brandImageStyle = brandImage ? getComputedStyle(brandImage) : null;
+          const homePrimary = document.querySelector('.ns16-home-primary');
+          const homeSports = document.querySelector('.ns16-home-sports');
+          const homePick = document.querySelector('.ns16-featured-pick');
           const navigationEntry = performance.getEntriesByType('navigation')[0];
           const brokenImages = Array.from(document.images).filter(img => img.complete && img.naturalWidth === 0).map(img => img.currentSrc || img.src);
           const panels = Array.from(document.querySelectorAll('.v933-panel,.v933-admin-panel,.card'));
@@ -488,7 +698,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const sharkWidth = shark ? parseFloat(shark.width || '0') : 0;
           const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
           const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
-          const sharkAssetOk = /nemesis-shark-atmosphere\.svg(?:\?[^"')]+)?/.test(sharkImage);
+          const sharkAssetOk = /nemesis-shark-atmosphere-v2\.webp(?:\?[^"')]+)?/.test(sharkImage);
           const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .98;
           const backgroundLayers = (bg.match(/gradient/g) || []).length;
           const backgroundOk = backgroundLayers >= 4 && !/^none$/i.test(bg);
@@ -513,6 +723,19 @@ def _inspect(page, screen: str, viewport: str) -> dict:
             broken_images: brokenImages,
             first_viewport_product: firstViewportProduct,
             nested_panel_depth: nestedPanelDepth,
+            hero_metrics: hero && heroTitle ? {
+              height: Math.round(hero.getBoundingClientRect().height),
+              title_height: Math.round(heroTitle.getBoundingClientRect().height),
+              title_font_size: getComputedStyle(heroTitle).fontSize,
+              title_lines_estimate: Math.max(1, Math.round(heroTitle.getBoundingClientRect().height / parseFloat(getComputedStyle(heroTitle).lineHeight || getComputedStyle(heroTitle).fontSize))),
+            } : {},
+            home_reference_grid: homePrimary && homeSports && homePick ? {
+              primary_width: Math.round(homePrimary.getBoundingClientRect().width),
+              sports_width: Math.round(homeSports.getBoundingClientRect().width),
+              pick_width: Math.round(homePick.getBoundingClientRect().width),
+              pick_top: Math.round(homePick.getBoundingClientRect().top),
+              sports_top: Math.round(homeSports.getBoundingClientRect().top),
+            } : {},
             composition: {
               dead_space_flags: deadSpaceFlags,
               empty_dashboard_flags: emptyDashboardFlags,
@@ -543,17 +766,27 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               width_px: sharkWidth,
               width_ratio: Math.round(sharkRatio * 1000) / 1000,
               opacity: sharkOpacity,
-              classification: sharkAssetOk && sharkGeometryOk ? 'MINOR_GAP' : 'MAJOR_GAP',
+              classification: sharkAssetOk && sharkGeometryOk ? 'FOUNDER_REVIEW_REQUIRED' : 'MAJOR_GAP',
               evidence: `asset=${sharkImage}; ratio=${sharkRatio.toFixed(3)}; opacity=${sharkOpacity}`,
             },
             background: {
-              classification: backgroundOk ? 'MINOR_GAP' : 'MAJOR_GAP',
+              classification: backgroundOk ? 'FOUNDER_REVIEW_REQUIRED' : 'MAJOR_GAP',
               evidence: `layers=${backgroundLayers}; background=${bg.slice(0, 420)}`,
             },
             live_contract: {
               confirmed: Number(document.querySelector('[data-sports-live-confirmed]')?.getAttribute('data-sports-live-confirmed') || 0),
               displayed: (() => {
-                const candidates = Array.from(document.querySelectorAll('.v933-hero-proof span,.v933-client-hero-meta span,.sports-priority-kpis .v933-kpi'));
+                const liveNodes = Array.from(document.querySelectorAll('[data-canonical-live="true"][data-v934-match-id],[data-canonical-live="true"][data-match-id]'))
+                  .filter(node => {
+                    const rect = node.getBoundingClientRect();
+                    const style = getComputedStyle(node);
+                    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+                  });
+                const visibleLiveIds = new Set(liveNodes.map(node => (
+                  node.getAttribute('data-v934-match-id') || node.getAttribute('data-match-id') || ''
+                )).filter(Boolean));
+                if (visibleLiveIds.size) return visibleLiveIds.size;
+                const candidates = Array.from(document.querySelectorAll('.v933-kpi,.v933-hero-proof span,.v933-client-hero-meta span'));
                 for (const node of candidates) {
                   const value = (node.innerText || '').replace(/\s+/g, ' ').trim();
                   if (/en directo/i.test(value)) {
@@ -578,15 +811,6 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               competition_id: node.getAttribute('data-canonical-competition-id') || '',
               contract: node.getAttribute('data-competition-identity-contract') || '',
             })),
-            temporal_truth: Array.from(document.querySelectorAll('[data-match-temporal-context]')).map(node => {
-              const owner = node.closest('[data-v934-match-id],[data-match-id]');
-              return {
-                match_id: owner?.getAttribute('data-v934-match-id') || owner?.getAttribute('data-match-id') || '',
-                datetime: node.getAttribute('datetime') || '',
-                label: (node.innerText || node.textContent || '').replace(/\s+/g, ' ').trim(),
-                contract: node.getAttribute('data-match-temporal-context') || '',
-              };
-            }),
             temporal_truth: Array.from(document.querySelectorAll('[data-match-temporal-context]')).map(node => {
               const owner = node.closest('[data-v934-match-id],[data-match-id]');
               return {
@@ -705,6 +929,60 @@ def _section_anchor_journey(page, route: str, section: str) -> dict:
         }
 
 
+def _optional_section_journey(page, route: str, section: str) -> dict:
+    """Accept real content or an explicit, honest absence for sparse QA data."""
+    selector = f"[data-match-section-link='{section}']"
+    region_selector = f"[data-match-region='{section}']"
+    try:
+        response = page.goto(route, wait_until="domcontentloaded", timeout=10000)
+        target = page.locator(selector).first
+        if target.count() and target.is_visible():
+            target.click(timeout=5000)
+            expected_fragment = f"match-section-{section}"
+            fragment = urlparse(page.url).fragment
+            section_visible = page.locator(f"#{expected_fragment}").is_visible()
+            return {
+                "step": f"match_optional_section_{section}",
+                "route": route,
+                "expected": "AVAILABLE_OR_HONESTLY_UNAVAILABLE",
+                "actual": "AVAILABLE",
+                "http_status": response.status if response else 0,
+                "pass": bool(response and response.status < 500 and fragment == expected_fragment and section_visible),
+            }
+
+        region = page.locator(region_selector).first
+        if not region.count():
+            return {
+                "step": f"match_optional_section_{section}",
+                "route": route,
+                "expected": "AVAILABLE_OR_HONESTLY_UNAVAILABLE",
+                "actual": "HONESTLY_HIDDEN",
+                "http_status": response.status if response else 0,
+                "pass": bool(response and response.status < 500),
+            }
+
+        state = (region.get_attribute("data-component-state") or "unknown").strip().lower()
+        notice = region.locator(".v944-state-notice").first
+        honest_absence = state not in {"ready", "finished"} and bool(notice.count() and notice.is_visible())
+        return {
+            "step": f"match_optional_section_{section}",
+            "route": route,
+            "expected": "AVAILABLE_OR_HONESTLY_UNAVAILABLE",
+            "actual": f"HONESTLY_UNAVAILABLE:{state.upper()}",
+            "http_status": response.status if response else 0,
+            "pass": bool(response and response.status < 500 and honest_absence),
+        }
+    except Exception as exc:
+        return {
+            "step": f"match_optional_section_{section}",
+            "route": route,
+            "expected": "AVAILABLE_OR_HONESTLY_UNAVAILABLE",
+            "actual": "ERROR",
+            "pass": False,
+            "error": f"{type(exc).__name__}: {str(exc)[:220]}",
+        }
+
+
 def _page_ready_journey(page, route: str, label: str) -> dict:
     try:
         response = page.goto(route, wait_until="domcontentloaded", timeout=10000)
@@ -745,6 +1023,24 @@ def _golden_journey(name: str, steps: list[dict]) -> dict:
     }
 
 
+def _mobile_navigation_journey(navigation_clicks: list[dict], viewport: str) -> dict:
+    steps = []
+    for click in navigation_clicks:
+        if click.get("viewport") != viewport:
+            continue
+        expected = str(click.get("expected_path") or "")
+        actual = str(click.get("actual_path") or "")
+        steps.append({
+            "step": f"bottom_nav_{click.get('element')}",
+            "expected": expected,
+            "actual": actual,
+            "pass": bool(click.get("clicked") and click.get("hit_target") and actual.startswith(expected)),
+        })
+    result = _golden_journey("golden_mobile", steps)
+    result["viewport"] = viewport
+    return result
+
+
 def _public_golden_journey(page, base_url: str, qa_password: str) -> dict:
     steps: list[dict] = []
     page.context.clear_cookies()
@@ -771,24 +1067,46 @@ def _public_golden_journey(page, base_url: str, qa_password: str) -> dict:
     return _golden_journey("golden_public", steps)
 
 
-def _sports_golden_journey(page, base_url: str) -> dict:
+def _sports_golden_journey(page, base_url: str, data_scenario: str = "populated") -> dict:
     steps = [
         _journey_step(page, base_url + "/app", "[data-nav-zone='client-desktop'] a[href='/live']", "/live"),
         _live_center_journey(page, base_url + "/live"),
         _journey_step(page, base_url + "/app", "a[href^='/match/']", "/match/"),
-        _section_anchor_journey(page, base_url + "/match/m-1", "lineups"),
-        _journey_step(page, base_url + "/match/m-1", "[data-match-region='lineups'] a[href^='/player/']", "/player/"),
-        _journey_step(page, base_url + "/player/101", "a[href^='/team/']", "/team/"),
-        _journey_step(page, base_url + "/team/Club%20Norte", "a[href^='/competition/']", "/competition/"),
-        _journey_step(page, base_url + "/competition/140", "a[href^='/match/']", "/match/"),
-        _section_anchor_journey(page, base_url + "/match/m-1", "timeline"),
-        _section_anchor_journey(page, base_url + "/match/m-1", "stats"),
-        _section_anchor_journey(page, base_url + "/match/m-1", "story"),
-        _section_anchor_journey(page, base_url + "/match/m-1", "video"),
+    ]
+    if data_scenario == "populated":
+        steps.extend([
+            _section_anchor_journey(page, base_url + "/match/m-1", "lineups"),
+            _journey_step(page, base_url + "/match/m-1", "[data-match-region='lineups'] a[href^='/player/']", "/player/"),
+            _journey_step(page, base_url + "/player/101", "a[href^='/team/']", "/team/"),
+            _journey_step(page, base_url + "/team/Club%20Norte", "a[href^='/competition/']", "/competition/"),
+            _journey_step(page, base_url + "/competition/140", "a[href^='/match/']", "/match/"),
+            _section_anchor_journey(page, base_url + "/match/m-1", "timeline"),
+            _section_anchor_journey(page, base_url + "/match/m-1", "stats"),
+            _section_anchor_journey(page, base_url + "/match/m-1", "story"),
+            _section_anchor_journey(page, base_url + "/match/m-1", "video"),
+        ])
+        enrichment_contract = "STRICT_ENRICHED_DATA"
+    else:
+        steps.extend([
+            _page_ready_journey(page, base_url + "/match/m-1", "match_identity_ready"),
+            _journey_step(page, base_url + "/match/m-1", "[data-match-region='header'] a[href^='/team/']", "/team/"),
+            _journey_step(page, base_url + "/team/Club%20Norte", "a[href^='/competition/']", "/competition/"),
+            _journey_step(page, base_url + "/competition/140", "a[href^='/match/']", "/match/"),
+            _section_anchor_journey(page, base_url + "/match/m-1", "story"),
+            _optional_section_journey(page, base_url + "/match/m-1", "lineups"),
+            _optional_section_journey(page, base_url + "/match/m-1", "timeline"),
+            _optional_section_journey(page, base_url + "/match/m-1", "stats"),
+            _optional_section_journey(page, base_url + "/match/m-1", "video"),
+        ])
+        enrichment_contract = "HONEST_OPTIONAL_DATA"
+    steps.extend([
         _sports_knowledge_evidence_journey(page, base_url + "/match/m-1"),
         _journey_step(page, base_url + "/match/m-1", "a[href^='/shark?match=']", "/shark"),
-    ]
-    return _golden_journey("golden_sports_knowledge", steps)
+    ])
+    result = _golden_journey("golden_sports_knowledge", steps)
+    result["data_scenario"] = data_scenario.upper()
+    result["enrichment_contract"] = enrichment_contract
+    return result
 
 
 def _live_center_journey(page, route: str) -> dict:
@@ -1112,61 +1430,51 @@ def _cross_surface_temporal_evidence(captures: list[dict]) -> dict:
     }
 
 
-def _cross_surface_temporal_evidence(captures: list[dict]) -> dict:
-    """Verify that rendered match dates retain the canonical Madrid instant."""
-    sports_surfaces = {"home", "public_home", "partidos", "directo", "match", "team", "competition", "player", "picks", "shark", "track_record"}
-    by_match: dict[str, dict[str, str]] = {}
-    checked = 0
-    missing = 0
-    ambiguous = 0
-    madrid_values: list[str] = []
-    context_re = re.compile(r"(?:hoy|mañana|lunes|martes|miércoles|jueves|viernes|sábado|domingo|\d{1,2}[/:.-]|\d{1,2}:\d{2}|final|directo|aplazado|cancelado)", re.I)
-    for capture in captures:
-        surface = str(capture.get("key") or "")
-        if surface not in sports_surfaces:
-            continue
-        for item in capture.get("temporal_truth") or []:
-            checked += 1
-            label = str(item.get("label") or "").strip()
-            instant = str(item.get("datetime") or "").strip()
-            match_id = str(item.get("match_id") or "").strip()
-            if not label or re.search(r"(?:fecha pendiente|fecha no disponible|no disponible)", label, re.I):
-                missing += 1
-            elif not context_re.search(label):
-                ambiguous += 1
-            if instant:
-                madrid_values.append(instant)
-                if match_id:
-                    by_match.setdefault(match_id, {})[surface] = instant
-    compared = {match_id: surfaces for match_id, surfaces in by_match.items() if len(surfaces) >= 2}
-    mismatches = [
-        {"match_id": match_id, "surfaces": surfaces}
-        for match_id, surfaces in sorted(compared.items())
-        if len(set(surfaces.values())) > 1
-    ]
-    madrid_time = bool(madrid_values) and all(re.search(r"(?:[+-]01:00|[+-]02:00)$", value) for value in madrid_values)
-    return {
-        "observed": checked > 0 and bool(compared),
-        "checked_cards": checked,
-        "missing_cards": missing,
-        "ambiguous_cards": ambiguous,
-        "cross_surface_consistent": bool(compared) and not mismatches,
-        "matches_compared": len(compared),
-        "mismatches": mismatches,
-        "madrid_time": madrid_time,
-    }
-
-
-def _reference_map() -> dict[str, str]:
+def _reference_manifest_map() -> dict[str, dict]:
     path = ROOT / "reference_images" / "reference_manifest.json"
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
-    result = {str(item.get("screen_target")): str(item.get("reference_file") or item.get("filename")) for item in manifest.get("items") or []}
+    result = {
+        str(item.get("screen_target")): dict(item)
+        for item in manifest.get("items") or []
+        if item.get("screen_target")
+    }
     if "/membresias" in result:
-        result["/memberships"] = result["/membresias"]
+        result["/memberships"] = dict(result["/membresias"])
     return result
+
+
+def _reference_map() -> dict[str, str]:
+    return {
+        route: str(item.get("reference_file") or item.get("filename") or "")
+        for route, item in _reference_manifest_map().items()
+    }
+
+
+def _visual_tree_fingerprint() -> str:
+    paths = (
+        "templates/base.html",
+        "templates/client_app_center.html",
+        "templates/shark.html",
+        "static/app.css",
+        "static/v936-commercial.css",
+        "static/v933-product.css",
+        "static/img/nemesis-shark-atmosphere-v2.webp",
+        "static/img/nemesis-shark-brand.svg",
+        "reference_images/reference_manifest.json",
+        "tools/run_autonomous_product_qa.py",
+    )
+    digest = hashlib.sha256()
+    for relative in paths:
+        path = ROOT / relative
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        if path.exists():
+            digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _reference_crop_box(reference_size: tuple[int, int], current_width: int, reference_file: str) -> tuple[int, int, int, int]:
@@ -1212,7 +1520,7 @@ def _shark_asset_contract_from_text(atmosphere: str, brand: str) -> dict:
     passed = not forbidden and all(atmosphere_markers.values()) and all(brand_markers.values())
     return {
         "status": "PASS" if passed else "FAIL",
-        "classification": "MINOR_GAP" if passed else "MAJOR_GAP",
+        "classification": "FOUNDER_REVIEW_REQUIRED" if passed else "MAJOR_GAP",
         "forbidden_markers": forbidden,
         "atmosphere_anatomy": atmosphere_markers,
         "brand_anatomy": brand_markers,
@@ -1220,21 +1528,59 @@ def _shark_asset_contract_from_text(atmosphere: str, brand: str) -> dict:
 
 
 def _shark_asset_contract() -> dict:
+    atmosphere_path = ROOT / "static" / "img" / "nemesis-shark-atmosphere-v2.webp"
+    brand_path = ROOT / "static" / "img" / "nemesis-shark-brand.svg"
     try:
-        atmosphere = (ROOT / "static" / "img" / "nemesis-shark-atmosphere.svg").read_text(encoding="utf-8")
-        brand = (ROOT / "static" / "img" / "nemesis-shark-brand.svg").read_text(encoding="utf-8")
-    except OSError as exc:
+        from PIL import Image
+
+        brand = brand_path.read_text(encoding="utf-8")
+        with Image.open(atmosphere_path) as image:
+            width, height = image.size
+            bands = image.getbands()
+            alpha = image.getchannel("A") if "A" in bands else None
+            alpha_extrema = alpha.getextrema() if alpha else (255, 255)
+            alpha_bbox = list(alpha.getbbox()) if alpha and alpha.getbbox() else None
+        brand_markers = {
+            "filled_body": "brand-body" in brand,
+            "forked_tail": 'id="brand-reference-tail"' in brand,
+            "dorsal_fin": 'id="brand-reference-dorsal"' in brand,
+            "pectoral_fin": 'id="brand-reference-pectoral"' in brand,
+            "eye": 'id="brand-reference-eye"' in brand,
+        }
+        size_bytes = atmosphere_path.stat().st_size
+        passed = (
+            width >= 1200
+            and height >= 700
+            and size_bytes <= 350_000
+            and "A" in bands
+            and alpha_extrema[0] == 0
+            and alpha_extrema[1] == 255
+            and alpha_bbox is not None
+            and all(brand_markers.values())
+        )
+    except (OSError, ValueError, ImportError) as exc:
         return {
             "status": "FAIL",
             "classification": "MAJOR_GAP",
             "evidence": f"{type(exc).__name__}: {str(exc)[:180]}",
         }
-    result = _shark_asset_contract_from_text(atmosphere, brand)
-    result["evidence"] = (
-        f"status={result['status']}; forbidden={result['forbidden_markers']}; "
-        f"atmosphere={result['atmosphere_anatomy']}; brand={result['brand_anatomy']}"
-    )
-    return result
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "classification": "FOUNDER_REVIEW_REQUIRED" if passed else "MAJOR_GAP",
+        "asset": str(atmosphere_path.relative_to(ROOT)).replace("\\", "/"),
+        "provenance": "ORIGINAL_RECREATION_FOR_NEMESIS",
+        "format": "WEBP",
+        "dimensions": [width, height],
+        "size_bytes": size_bytes,
+        "alpha_extrema": list(alpha_extrema),
+        "alpha_bbox": alpha_bbox,
+        "brand_anatomy": brand_markers,
+        "evidence": (
+            f"technical_status={'PASS' if passed else 'FAIL'}; dimensions={width}x{height}; "
+            f"bytes={size_bytes}; alpha={alpha_extrema}; provenance=ORIGINAL_RECREATION_FOR_NEMESIS; "
+            "la semejanza anatomica permanece sujeta a comparacion renderizada y revision humana"
+        ),
+    }
 
 
 def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
@@ -1284,6 +1630,7 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
                 + (depth_score * 0.1),
                 4,
             )
+        reference_sha256 = hashlib.sha256(reference.read_bytes()).hexdigest()
     except (OSError, ValueError, ImportError) as exc:
         return {
             "classification": "NOT_OBSERVED",
@@ -1296,6 +1643,8 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
         "classification": classification,
         "score": score,
         "reference_file": reference_file,
+        "reference_sha256": reference_sha256,
+        "reference_original_size": list(reference_image.size),
         "metrics": {
             "pixel": round(pixel_score, 4),
             "palette": round(palette_score, 4),
@@ -1305,6 +1654,7 @@ def _reference_similarity(screenshot: Path, reference_file: str) -> dict:
             "depth": round(depth_score, 4),
         },
         "reference_crop": list(reference_crop),
+        "crop_policy": "embedded_mobile" if current_image.width <= 520 else "embedded_desktop",
         "evidence": (
             f"composition_similarity={score}; crop={reference_crop}; "
             f"structure={structure_score:.4f}; depth={depth_score:.4f}; reference={reference_file}"
@@ -1316,11 +1666,16 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default=str(ROOT / "browser_qa" / "AUTONOMOUS_PRODUCT_QA"))
     parser.add_argument("--production-sha", default="LOCAL")
-    parser.add_argument("--evidence-origin", default="LOCAL_QA", choices=["LOCAL_QA", "REAL_PRODUCTION_OBSERVATION", "SIMULATED_TEST"])
+    parser.add_argument("--evidence-origin", default="LOCAL_QA", choices=["LOCAL_QA", "REAL_PRODUCTION_OBSERVATION", "SIMULATED_TEST", "SIMULATED_QA"])
     parser.add_argument("--scope", default="full", choices=["critical", "full"])
     parser.add_argument("--trigger", default="AUTONOMOUS_BROWSER_QA")
     parser.add_argument("--db-path", default="")
     parser.add_argument("--browser-executable", default="")
+    parser.add_argument("--data-scenario", default="populated", choices=["populated", "partial", "empty"])
+    parser.add_argument("--screen-keys", default="", help="Comma-separated SCREENS keys for a focused visual pass.")
+    parser.add_argument("--profile-keys", default="", help="Comma-separated viewport profile keys for a focused visual pass.")
+    parser.add_argument("--client-name", default="Cliente QA")
+    parser.add_argument("--fixed-now", default="2026-09-07T12:00:00+02:00")
     args = parser.parse_args()
     output = Path(args.output).resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -1329,6 +1684,10 @@ def main() -> int:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if db_path.exists():
         raise SystemExit(f"QA database already exists; use a new isolated --db-path: {db_path}")
+    fixed_now = datetime.fromisoformat(args.fixed_now)
+    if fixed_now.tzinfo is None:
+        fixed_now = fixed_now.replace(tzinfo=MADRID)
+    fixed_now = fixed_now.astimezone(MADRID)
     os.environ.update({
         "DB_PATH": str(db_path),
         "NEMESIS_LOCAL_DB_NAME": db_path.name,
@@ -1341,10 +1700,11 @@ def main() -> int:
         "STRIPE_SECRET_KEY": "",
         "STRIPE_WEBHOOK_SECRET": "",
         "OPENAI_API_KEY": "",
+        "NEMESIS_QA_CLIENT_NAME": args.client_name,
     })
     qa_password = secrets.token_urlsafe(24)
     seed_database(db_path)
-    _seed_extra(db_path, qa_password)
+    _seed_extra(db_path, qa_password, fixed_now)
 
     import app as app_module
     from playwright.sync_api import sync_playwright
@@ -1356,7 +1716,8 @@ def main() -> int:
     app_module._SEEDED_DB_PATH = str(db_path)
     app_module._SEEDING_DB_PATH = None
     app_module.APP_INITIALIZED = True
-    _seed_extra(db_path, qa_password)
+    _seed_extra(db_path, qa_password, fixed_now)
+    _apply_data_scenario(db_path, args.data_scenario, fixed_now)
     server = make_server("127.0.0.1", 0, app_module.app)
     port = server.server_port
     base_url = f"http://127.0.0.1:{port}"
@@ -1369,8 +1730,28 @@ def main() -> int:
     console_errors: list[str] = []
     page_errors: list[str] = []
     provider_calls: list[str] = []
+    reference_items = _reference_manifest_map()
     reference_files = _reference_map()
+    tree_fingerprint = _visual_tree_fingerprint()
     selected_screens = SCREENS if args.scope == "full" else [item for item in SCREENS if item[0] in CRITICAL_SCREEN_KEYS]
+    if args.screen_keys:
+        requested_screens = {value.strip() for value in args.screen_keys.split(",") if value.strip()}
+        selected_screens = [item for item in selected_screens if item[0] in requested_screens]
+        unknown_screens = requested_screens - {item[0] for item in selected_screens}
+        if unknown_screens:
+            raise SystemExit(f"Unknown or out-of-scope screen keys: {sorted(unknown_screens)}")
+    selected_profiles = dict(LAYOUT_GATE_PROFILES)
+    if args.profile_keys:
+        requested_profiles = {value.strip() for value in args.profile_keys.split(",") if value.strip()}
+        selected_profiles = {
+            key: value for key, value in LAYOUT_GATE_PROFILES.items()
+            if key in requested_profiles
+        }
+        unknown_profiles = requested_profiles - set(selected_profiles)
+        if unknown_profiles:
+            raise SystemExit(f"Unknown viewport profile keys: {sorted(unknown_profiles)}")
+    if not selected_screens or not selected_profiles:
+        raise SystemExit("Focused QA selection must include at least one screen and one viewport.")
     started_at = datetime.now(MADRID).replace(microsecond=0)
     started = started_at.isoformat()
     run_id = "PQA-" + started_at.strftime("%Y%m%d%H%M%S")
@@ -1384,7 +1765,7 @@ def main() -> int:
                 launch_options["executable_path"] = str(Path(args.browser_executable).resolve())
             browser = playwright.chromium.launch(**launch_options)
             expected_captures = 0
-            for profile_name, profile in LAYOUT_GATE_PROFILES.items():
+            for profile_name, profile in selected_profiles.items():
                 profile_screens = selected_screens if profile_name in PROFILES else [
                     item for item in selected_screens if item[0] in EXTENDED_LAYOUT_SCREEN_KEYS
                 ]
@@ -1416,12 +1797,23 @@ def main() -> int:
                     page.wait_for_timeout(40)
                     screenshot = profile_dir / f"{key}.png"
                     page.screenshot(path=str(screenshot), full_page=False)
-                    inspection = _inspect(page, route.split("#", 1)[0], profile_name)
-                    reference_file = reference_files.get(route.split("#", 1)[0], "")
+                    clean_route = route.split("#", 1)[0]
+                    inspection = _inspect(page, clean_route, profile_name)
+                    reference_item = reference_items.get(clean_route) or {}
+                    reference_file = reference_files.get(clean_route, "")
                     inspection.update({
                         "key": key,
+                        "surface": key,
+                        "route": clean_route,
+                        "template_component": SCREEN_COMPONENTS.get(key, "UNMAPPED"),
+                        "role_plan": "PUBLIC" if audience == "public" else "ADMIN" if audience == "admin" else "PRO",
+                        "data_state": args.data_scenario.upper(),
+                        "evidence_origin": args.evidence_origin,
+                        "fixed_clock_madrid": fixed_now.isoformat(),
+                        "tree_fingerprint": tree_fingerprint,
                         "http_status": response.status if response else 0,
                         "screenshot": str(screenshot),
+                        "reference_id": str(reference_item.get("reference_id") or ""),
                         "reference_file": reference_file,
                         "reference_match": _reference_similarity(screenshot, reference_file),
                     })
@@ -1442,7 +1834,7 @@ def main() -> int:
                     if args.scope == "full":
                         context.clear_cookies()
                         _set_role_cookie(context, app_module, "client")
-                        journeys.append(_sports_golden_journey(page, base_url))
+                        journeys.append(_sports_golden_journey(page, base_url, args.data_scenario))
                         context.clear_cookies()
                         _set_role_cookie(context, app_module, "client")
                         journeys.append(_favorite_journey(page, base_url))
@@ -1456,19 +1848,13 @@ def main() -> int:
                         journeys.append(_admin_golden_journey(page, base_url, qa_password))
                 context.close()
 
-            mobile_steps = []
-            for click in navigation_clicks:
-                if click.get("viewport") != "mobile_390x844":
-                    continue
-                expected = str(click.get("expected_path") or "")
-                actual = str(click.get("actual_path") or "")
-                mobile_steps.append({
-                    "step": f"bottom_nav_{click.get('element')}",
-                    "expected": expected,
-                    "actual": actual,
-                    "pass": bool(click.get("clicked") and click.get("hit_target") and actual.startswith(expected)),
-                })
-            journeys.append(_golden_journey("golden_mobile", mobile_steps))
+            mobile_profiles = [
+                name for name, profile in selected_profiles.items()
+                if int(profile.get("width") or 0) <= 980
+            ]
+            if mobile_profiles:
+                mobile_viewport = "mobile_390x844" if "mobile_390x844" in mobile_profiles else mobile_profiles[0]
+                journeys.append(_mobile_navigation_journey(navigation_clicks, mobile_viewport))
             browser.close()
     finally:
         server.shutdown()
@@ -1487,7 +1873,10 @@ def main() -> int:
         mojibake_matches.extend(match.group(0) for match in MOJIBAKE_RE.finditer(visible_text))
     technical_matches = list(dict.fromkeys(technical_matches))[:20]
     mojibake_matches = list(dict.fromkeys(mojibake_matches))[:20]
-    sports_capture = public_home if public_home else home_capture
+    sports_capture = public_home or home_capture or next(
+        (item for item in captures if item.get("key") in {"directo", "partidos", "match"}),
+        {},
+    )
     match_capture = next((item for item in captures if item["key"] == "match" and item["viewport"] == "desktop_1366x768"), {})
     live_contract = sports_capture.get("live_contract") or {}
     broken_images = [f"{item.get('path')}: {image}" for item in captures for image in (item.get("broken_images") or [])]
@@ -1495,6 +1884,7 @@ def main() -> int:
     reference_classification = str(reference_match.get("classification") or "NOT_OBSERVED")
     shark_state = dict(home_capture.get("shark") or {})
     background_state = dict(home_capture.get("background") or {})
+    home_observed = bool(home_capture)
     shark_asset_contract = _shark_asset_contract()
     if shark_asset_contract.get("status") != "PASS":
         shark_state["classification"] = "MAJOR_GAP"
@@ -1507,6 +1897,8 @@ def main() -> int:
         str(shark_asset_contract.get("evidence") or ""),
     ]))
     shark_state["asset_contract"] = shark_asset_contract
+    shark_state["observed"] = home_observed
+    background_state["observed"] = home_observed
     background_state["evidence"] = "; ".join(filter(None, [str(background_state.get("evidence") or ""), str(reference_match.get("evidence") or "")]))
     client_admin_separation = next((item for item in journeys if item.get("journey") == "client_admin_separation"), {})
     admin_journey = next((item for item in journeys if item.get("journey") == "golden_admin"), {})
@@ -1517,7 +1909,6 @@ def main() -> int:
     sports_priority = _sports_priority_regression(app_module)
     cross_surface_truth = _cross_surface_live_truth_evidence(captures)
     cross_surface_competition = _cross_surface_competition_identity_evidence(captures)
-    temporal_context = _cross_surface_temporal_evidence(captures)
     temporal_context = _cross_surface_temporal_evidence(captures)
     layout_collisions = []
     for capture in captures:
@@ -1567,6 +1958,9 @@ def main() -> int:
         "production_sha": args.production_sha,
         "evidence_complete": bool(captures) and len(captures) == expected_captures and bool(journeys),
         "scope": args.scope,
+        "data_scenario": args.data_scenario.upper(),
+        "fixed_clock_madrid": fixed_now.isoformat(),
+        "visual_tree_fingerprint": tree_fingerprint,
         "next_expected_run": "Siguiente cambio, revision diaria critica o auditoria visual semanal, lo que ocurra primero.",
         "workers_executed": [
             "visual_experience_inspector",
@@ -1596,7 +1990,8 @@ def main() -> int:
         "competition_identity": {
             "screen": "sports surfaces",
             "viewport": "all",
-            "pass": cross_surface_competition["pass"] if cross_surface_competition["observed"] else False,
+            "observed": cross_surface_competition["observed"],
+            "pass": cross_surface_competition["pass"] if cross_surface_competition["observed"] else None,
             "matches_compared": cross_surface_competition["matches_compared"],
             "mismatches": cross_surface_competition["mismatches"],
             "evidence": "IDs canónicos leídos de las mismas cards renderizadas en todas las superficies deportivas.",
@@ -1654,6 +2049,7 @@ def main() -> int:
             "background": {**background_state, "screen": "/app", "viewport": "desktop_1366x768", "screenshot": home_capture.get("screenshot") or ""},
         },
         "density": {
+            "observed": home_observed,
             "screen": "/app",
             "viewport": "desktop_1366x768",
             "first_viewport_product": home_capture.get("first_viewport_product"),
@@ -1674,7 +2070,7 @@ def main() -> int:
             "screenshot": mobile_capture.get("screenshot") or "",
         },
         "security": {
-            "client_admin_separation": "PASS" if client_admin_separation.get("pass") is True else "FAIL",
+            "client_admin_separation": "PASS" if client_admin_separation.get("pass") is True else "FAIL" if client_admin_separation else "NOT_RUN",
             "actual": client_admin_separation.get("actual"),
             "evidence": client_admin_separation.get("evidence") or client_admin_separation.get("error"),
             "viewport": "desktop_1366x768",
@@ -1688,20 +2084,22 @@ def main() -> int:
         "quality_evidence": {
             "NAVIGATION": {"status": "PASS" if navigation_clicks and all(item.get("clicked") and item.get("hit_target") and item.get("page_ready") for item in navigation_clicks) else "FAIL"},
             "VISUAL": {
-                "status": "WARNING"
-                if str(shark_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
-                and str(background_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP"}
-                and not layout_collisions
-                and not dead_space_flags
-                and not empty_dashboard_flags
-                else "FAIL"
+                "status": "NOT_OBSERVED" if not home_observed else (
+                    "WARNING"
+                    if str(shark_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP", "FOUNDER_REVIEW_REQUIRED"}
+                    and str(background_state.get("classification") or "").upper() in {"MATCH", "MINOR_GAP", "FOUNDER_REVIEW_REQUIRED"}
+                    and not layout_collisions
+                    and not dead_space_flags
+                    and not empty_dashboard_flags
+                    else "FAIL"
+                )
             },
             "SPORTS_TRUTH": {"status": "PASS" if int(live_contract.get("confirmed") or 0) == int(live_contract.get("displayed") or 0) and int(live_contract.get("ft_rendered_live") or 0) == 0 else "FAIL"},
             "MOBILE": {"status": "PASS" if not mobile_capture.get("horizontal_overflow", False) and not any(str(item.get("viewport") or "").startswith("mobile_") for item in layout_collisions) else "FAIL"},
-            "ADMIN": {"status": "PASS" if admin_journey.get("pass") is True and not technical_matches and not mojibake_matches else "FAIL"},
-            "SECURITY": {"status": "PASS" if client_admin_separation.get("pass") is True else "FAIL"},
+            "ADMIN": {"status": "PASS" if admin_journey.get("pass") is True and not technical_matches and not mojibake_matches else "FAIL" if admin_journey else "NOT_RUN"},
+            "SECURITY": {"status": "PASS" if client_admin_separation.get("pass") is True else "FAIL" if client_admin_separation else "NOT_RUN"},
             "PERFORMANCE": {"status": performance_status},
-            "SPORTS_KNOWLEDGE": {"status": "PASS" if sports_journey.get("pass") is True else "FAIL"},
+            "SPORTS_KNOWLEDGE": {"status": "PASS" if sports_journey.get("pass") is True else "FAIL" if sports_journey else "NOT_RUN"},
             "MEDIA_RIGHTS": {"status": "PASS" if int((match_capture.get("sports_knowledge") or {}).get("unsafe_media_visible") or 0) == 0 else "FAIL"},
             "SUMMARY_TRUTH": {"status": "PASS" if int((match_capture.get("sports_knowledge") or {}).get("summary_unsupported_claims") or 0) == 0 else "FAIL"},
             "DATA_QUALITY": {"status": "PASS" if not broken_images and not console_errors and not page_errors else "FAIL"},
@@ -1720,6 +2118,7 @@ def main() -> int:
     result = record_product_qa_run(
         observation,
         project_root=ROOT,
+        storage_root=run_output / "continuous_evolution",
         trigger=args.trigger,
         evidence_origin=args.evidence_origin,
     )
@@ -1731,13 +2130,24 @@ def main() -> int:
         "visual_reference_matrix": [
             {
                 "key": item.get("key"),
+                "surface": item.get("surface"),
+                "route": item.get("route"),
                 "path": item.get("path"),
+                "template_component": item.get("template_component"),
+                "role_plan": item.get("role_plan"),
+                "data_state": item.get("data_state"),
+                "evidence_origin": item.get("evidence_origin"),
                 "viewport": item.get("viewport"),
+                "reference_id": item.get("reference_id"),
                 "reference_file": item.get("reference_file"),
+                "reference_sha256": (item.get("reference_match") or {}).get("reference_sha256"),
+                "reference_crop": (item.get("reference_match") or {}).get("reference_crop"),
+                "crop_policy": (item.get("reference_match") or {}).get("crop_policy"),
                 "classification": (item.get("reference_match") or {}).get("classification"),
                 "score": (item.get("reference_match") or {}).get("score"),
                 "metrics": (item.get("reference_match") or {}).get("metrics"),
                 "screenshot": item.get("screenshot"),
+                "tree_fingerprint": item.get("tree_fingerprint"),
             }
             for item in captures
             if item.get("reference_file")
@@ -1752,6 +2162,9 @@ def main() -> int:
         "stripe_actions": 0,
         "production_mutations": 0,
         "scope": args.scope,
+        "data_scenario": args.data_scenario.upper(),
+        "fixed_clock_madrid": fixed_now.isoformat(),
+        "visual_tree_fingerprint": tree_fingerprint,
     }
     result_path = run_output / "autonomous_product_qa_result.json"
     result_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

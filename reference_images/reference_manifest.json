@@ -475,8 +475,8 @@
       "reference_id": "REF-12",
       "filename": "reference_images/shark/reference_import_v900_12.png",
       "reference_file": "reference_images/shark/reference_import_v900_12.png",
-      "category": "shark",
-      "screen": "SHARK",
+      "category": "match",
+      "screen": "Match Center",
       "viewport": [
         "desktop",
         "mobile"
@@ -489,19 +489,21 @@
         "actions"
       ],
       "critical_elements": [
-        "official_shark",
+        "competition",
+        "teams",
+        "score_or_kickoff",
+        "status",
+        "tabs",
         "score",
-        "confidence",
-        "evidence",
-        "risk"
+        "match_context"
       ],
       "secondary_categories": [
         "desktop",
         "mobile"
       ],
-      "screen_target": "/shark",
-      "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
-      "priority": "medium",
+      "screen_target": "/match/m-1",
+      "notes": "La PNG representa un detalle de partido con equipos y pestanas. La ruta /shark se evalua como adaptacion del sistema comun, sin usar R12.",
+      "priority": "high",
       "size_bytes": 1674388,
       "width": 1672,
       "height": 941,

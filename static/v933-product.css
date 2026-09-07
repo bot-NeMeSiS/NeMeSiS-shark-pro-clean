@@ -45,7 +45,7 @@ body.ns-app:not(.ns-admin)::before {
   width: min(660px, 52vw);
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .1;
   filter: drop-shadow(0 0 48px rgba(32, 216, 244, .24));
 }
@@ -62,7 +62,7 @@ body.ns-app main.v933-client-shell { position: relative; z-index: 1; }
   width: 260px;
   aspect-ratio: 1.38;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .09;
 }
 .v933-admin-sidebar > * { position: relative; z-index: 1; }
@@ -75,7 +75,7 @@ body.ns-app[data-v928-shell="true"] .v933-admin-sidebar .brand.v808-brand .ns-br
   content: "";
   position: absolute;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   filter: drop-shadow(0 0 34px rgba(32, 216, 244, .22));
 }
 .v933-public-hero::after { inset: auto -42px -34px auto; width: 440px; height: 300px; opacity: .2; }
@@ -99,7 +99,7 @@ body.ns-app:not(.ns-admin) .v933-page-header::after {
   width: 300px;
   height: 210px;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .075;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
@@ -139,7 +139,7 @@ body.ns-app:not(.ns-admin) .v931-safe-error::before {
   position: absolute;
   z-index: -1;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .065;
 }
 body.ns-app:not(.ns-admin) .ns-not-found-card::after { top: -78px; right: -52px; width: 400px; height: 290px; }
@@ -4587,12 +4587,12 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   z-index: 0;
   top: 48%;
   right: clamp(-64px, -1vw, 8px);
-  width: clamp(520px, 46vw, 700px);
-  aspect-ratio: 1280 / 400;
+  width: clamp(500px, 43vw, 650px);
+  aspect-ratio: 1400 / 758;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
-  opacity: .72;
-  filter: drop-shadow(0 0 30px rgba(52, 181, 238, .28)) saturate(1.04) brightness(1.02);
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
+  opacity: .76;
+  filter: drop-shadow(0 0 34px rgba(52, 181, 238, .28)) saturate(.94) brightness(.9);
   transform: translateY(-50%);
 }
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero)::after {
@@ -5324,27 +5324,33 @@ body.ns-app .v774-kpis > .v774-kpi-item span { color: var(--nsx-muted); font-siz
 /* Official 16-screen rebuild: route-specific composition inside the canonical layer. */
 .ns16-home,.ns16-live { gap: 9px; }
 body.ns-app .ns16-home-hero {
-  min-height: 132px !important;
-  padding: 12px 15px !important;
+  min-height: 112px !important;
+  padding: 10px 14px !important;
   background:
     radial-gradient(ellipse at 73% 40%, rgba(25, 145, 232, .16), transparent 34%),
     linear-gradient(100deg, rgba(2, 14, 31, .62), rgba(2, 10, 23, .08) 72%) !important;
 }
 body.ns-app .ns16-home-hero::before {
-  right: clamp(8px, 2.5vw, 44px);
-  width: clamp(460px, 35vw, 530px);
-  top: 51%;
-  opacity: .76;
+  right: clamp(-26px, 1vw, 18px);
+  width: clamp(430px, 34vw, 515px);
+  top: 49%;
+  opacity: .8;
 }
-.ns16-home-hero h1 { margin: 4px 0 5px; }
+.ns16-home-hero > div { max-width: min(58%, 650px); }
+.ns16-home-hero h1 { margin: 3px 0 4px; }
+.ns16-home-hero h1 .ns16-user-name { color: inherit; font: inherit; }
 .ns16-home-hero p { margin: 0; font-size: .82rem; }
 .ns16-kpi-strip { gap: 8px; }
-body.ns-app .ns16-kpi-strip .v933-kpi { min-height: 66px; padding: 9px 10px !important; }
+body.ns-app .ns16-kpi-strip .v933-kpi { min-height: 60px; padding: 8px 10px !important; }
 .ns16-kpi-strip .v933-kpi > .v933-icon { width: 29px; height: 29px; }
 body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-kpi-strip .v933-kpi small { font-size: .58rem; }
-.ns16-home-command { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(280px,.65fr); gap: 10px; align-items: start; }
-.ns16-home-command > .v933-panel { min-width: 0; }
+.ns16-home-command { display: grid; grid-template-columns: minmax(0,1.43fr) minmax(285px,.57fr); gap: 10px; align-items: start; }
+.ns16-home-command > * { min-width: 0; }
+.ns16-home-primary { min-width: 0; display: grid; gap: 9px; align-content: start; }
+.ns16-home-primary > .ns16-home-sports { padding-top: 8px; }
+.ns16-featured-pick:has(.v933-pick-card) { align-self: stretch; }
+.ns16-featured-pick:has(.v933-empty-state) { align-self: start; }
 .ns16-journey-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
 .ns16-journey-steps a { position: relative; min-width: 0; min-height: 70px; display: grid; grid-template-columns: 28px 30px minmax(0,1fr); align-items: center; gap: 7px; padding: 8px; border: 1px solid transparent; border-radius: 6px; color: var(--nsx-text); background: transparent; text-decoration: none; }
 .ns16-journey-steps a:not(:last-child)::after { content: ""; position: absolute; z-index: 0; left: calc(100% - 5px); top: 50%; width: 18px; border-top: 1px dashed rgba(88,174,240,.34); pointer-events: none; }
@@ -5433,6 +5439,7 @@ body.ns-app .v933-shark-analysis .v937-pick-brief article { padding: 8px; }
 body.ns-app .ns16-shark-more { margin: 0; }
 body.ns-app .ns16-shark-more > summary { min-height: 42px; }
 body.ns-app .v933-track-record .v933-table-wrap { max-height: 390px; overflow: auto; }
+.ns16-track-mobile-list { display: none; }
 
 body.ns-app .v933-shark-hero {
   min-height: 166px;
@@ -5495,7 +5502,7 @@ body.ns-app .ns16-account-layout { grid-template-columns: minmax(0,1.52fr) minma
   width: min(340px,36vw);
   aspect-ratio: 1280 / 420;
   pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere.svg?v=design3-atmosphere-2') center / contain no-repeat;
+  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
   opacity: .14;
   filter: drop-shadow(0 0 20px rgba(52,181,238,.2));
   transform: translateY(-50%);
@@ -5580,7 +5587,49 @@ body.ns-app.ns-admin .v933-fact-grid > article {
 }
 
 /* The four sports entity centers use compact identity headers rather than oversized banners. */
-body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 132px !important; padding: 12px 14px !important; border-radius: 8px !important; }
+body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 132px !important; padding: 12px 14px !important; border-radius: 8px !important; }
+body.ns-app .v944-match-anchor { position: relative; display: block; min-width: 0; }
+body.ns-app .v944-match-header { min-height: 168px !important; padding: 10px 18px 16px !important; border-radius: 8px !important; }
+body.ns-app .v944-match-header__meta {
+  display: grid;
+  grid-template-columns: minmax(90px,1fr) auto minmax(90px,1fr);
+  gap: 10px;
+  margin-bottom: 5px;
+}
+body.ns-app .v944-match-header__meta > .v944-back-link { justify-self: start; }
+body.ns-app .v944-match-header__meta > .v944-match-header__competition { justify-self: center; }
+body.ns-app .v944-match-header__meta > .v933-status-chip { justify-self: end; }
+body.ns-app .v944-match-header__identity { grid-template-columns: minmax(0,1fr) 170px minmax(0,1fr); gap: 14px; }
+body.ns-app .v944-match-team,
+body.ns-app .v944-match-team.is-away {
+  grid-template-columns: 1fr;
+  grid-template-areas: "logo" "name" "role";
+  justify-items: center;
+  gap: 4px;
+  text-align: center;
+}
+body.ns-app .v944-match-team .v933-team-logo { width: 72px; height: 72px; }
+body.ns-app .v944-match-team strong { font-size: .94rem; }
+body.ns-app .v944-match-header__status { min-height: 96px; align-content: space-between; padding-block: 8px 2px; }
+body.ns-app .v944-score-widget {
+  position: absolute;
+  z-index: 2;
+  top: 61%;
+  left: 50%;
+  min-height: 0;
+  padding: 0;
+  gap: 3px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  transform: translate(-50%,-50%);
+}
+body.ns-app .v944-score-widget__phase,
+body.ns-app .v944-score-widget > p,
+body.ns-app .v944-score-widget .v944-transparency-disclosure { display: none; }
+body.ns-app .v944-score-widget > strong { font-size: 1.86rem; text-shadow: 0 0 24px rgba(57,216,255,.24); }
+body.ns-app .v944-score-widget > small { color: var(--nsx-positive); }
 body.ns-app :is(.team-center-v1,.competition-center-v1,.player-center-v1) { gap: 10px; }
 body.ns-app :is(.team-center-panel,.team-center-match-section,.competition-center-panel,.competition-center-match-section,.player-center-panel,.player-center-match-section) { padding: 11px; border-radius: 8px; }
 body.ns-app :is(.team-center-title-block,.competition-center-title-block,.player-center-title-block) h1 { font-size: clamp(1.45rem,2.2vw,2rem) !important; }
@@ -5619,7 +5668,7 @@ body.ns-app.ns-admin .v933-admin-dashboard .v933-admin-layout { grid-template-co
 body.ns-app .v933-topbar nav a { font-weight: 680; }
 body.ns-app :is(.v933-page-header h1,.ns16-home-hero h1) { font-weight: 800 !important; }
 body.ns-app .v933-section-header h2 { font-weight: 760; }
-body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
+body.ns-app .ns16-home-hero h1 { font-size: 1.55rem !important; }
 .sports-priority-home .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .ns16-home .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
 .ns16-live .v933-match-card :is(.v937-card-trust,.v935-provenance,.v937-attention-priority),
@@ -5644,13 +5693,18 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   .ns16-home > .ns16-home-hero { order: 1; }
   .ns16-home > .ns16-live-priority { order: 2; }
   .ns16-home > .ns16-kpi-strip { order: 3; }
-  .ns16-home > .ns16-home-command { display: contents; }
-  .ns16-home .ns16-journey { order: 4; }
-  .ns16-home > .ns16-home-sports { order: 5; }
-  .ns16-home .ns16-featured-pick { order: 6; }
-  .ns16-home > .ns16-home-actions { order: 7; }
-  .ns16-home > .ns16-more { order: 8; }
-  body.ns-app .ns16-home-hero h1 { max-width: 92%; font-size: 1.32rem !important; line-height: 1.06; overflow-wrap: anywhere; }
+  .ns16-home > .ns16-home-command { order: 4; display: grid; }
+  .ns16-home-command > .ns16-home-primary { display: contents; }
+  .ns16-home .ns16-journey { order: 1; }
+  .ns16-home .ns16-home-sports { order: 2; }
+  .ns16-home .ns16-featured-pick { order: 3; }
+  .ns16-home > .ns16-home-actions { order: 5; }
+  .ns16-home > .ns16-more { order: 6; }
+  body.ns-app .ns16-home-hero > div { max-width: 61%; }
+  body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 { max-width: 100%; font-size: 17px !important; line-height: 1.08; overflow-wrap: anywhere; }
+  body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 > span,
+  body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 > .ns16-user-name { display: inline; }
+  body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 > .ns16-user-name { font-size: 15px !important; line-height: 1.12; }
   body.ns-app .v933-picks-board > .v933-two-col,
   body.ns-app .v933-track-record > .v933-two-col,
   body.ns-app .ns16-account-layout,
@@ -5660,6 +5714,38 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) { min-width: 0; max-width: 100%; overflow: hidden; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(.v933-table-wrap,table) { max-width: 100%; }
   body.ns-app.ns-admin :is(#growth-revenue,#report-export) :is(a,strong,small,td,th) { overflow-wrap: anywhere; }
+  body.ns-app .ns16-track-recent > .v933-table-shell { display: none; }
+  body.ns-app .ns16-track-recent .ns16-track-mobile-list { display: grid; gap: 0; }
+  body.ns-app .ns16-track-result {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 7px 10px;
+    align-items: start;
+    padding: 10px 0;
+    border-top: 1px solid rgba(89,185,255,.13);
+  }
+  body.ns-app .ns16-track-result:first-child { border-top: 0; padding-top: 2px; }
+  body.ns-app .ns16-track-result-main { min-width: 0; display: grid; gap: 3px; }
+  body.ns-app .ns16-track-result-main strong,
+  body.ns-app .ns16-track-result-main a {
+    min-width: 0;
+    color: #f5fbff;
+    font-size: .74rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  body.ns-app .ns16-track-result-main a { text-decoration: none; }
+  body.ns-app .ns16-track-result-main small { color: var(--nsx-muted); font-size: .6rem; line-height: 1.3; }
+  body.ns-app .ns16-track-result-outcome { display: grid; justify-items: end; gap: 5px; }
+  body.ns-app .ns16-track-result-outcome > strong { color: var(--nsx-cyan); font-size: .76rem; }
+  body.ns-app .ns16-track-result-evidence { grid-column: 1 / -1; }
+  body.ns-app .ns16-track-result-evidence > summary {
+    color: var(--nsx-muted);
+    font-size: .59rem;
+    cursor: pointer;
+    list-style-position: inside;
+  }
+  body.ns-app .ns16-track-result-evidence > div { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
   body.ns-app .v933-shark-hero { min-height: 132px; grid-template-columns: 1fr; padding: 11px; }
   body.ns-app .v933-shark-hero p { display: none; }
   body.ns-app .v933-shark-hero img { top: 39%; right: -72px; width: 350px; max-height: 116px; opacity: .72; filter: drop-shadow(0 0 28px rgba(42,181,255,.44)) brightness(1.1) saturate(1.06); }
@@ -5669,15 +5755,39 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
   .ns16-account-status > a > .v933-icon { width: 24px; height: 24px; }
   .ns16-account-status small { display: none; }
   .ns16-account-actions { grid-template-columns: 1fr 1fr; }
-  .ns-video-status-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  body.ns-app .ns-video-status-rail > .v933-kpi:nth-child(2) { border-right: 0 !important; }
-  body.ns-app .ns-video-status-rail > .v933-kpi:nth-child(n+3) { border-top: 1px solid rgba(89,185,255,.13) !important; }
+  body.ns-app .v933-telegram-page > .ns-video-status-rail {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 6px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    overflow: visible;
+    clip-path: none;
+  }
+  body.ns-app .v933-telegram-page > .ns-video-status-rail > .v933-kpi {
+    min-height: 70px;
+    border: 1px solid rgba(89,185,255,.16) !important;
+    border-radius: 6px !important;
+    background: rgba(4,24,45,.5) !important;
+  }
   .ns-video-safety-note,.ns-video-admin-ok { grid-template-columns: 27px minmax(0,1fr); }
   .ns-video-safety-note > .v933-status-chip,.ns-video-admin-ok > .v933-status-chip { grid-column: 2; }
-  body.ns-app :is(.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
+  body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero) { min-height: 116px !important; padding: 10px !important; }
+  body.ns-app .v944-match-header { min-height: 154px !important; padding: 8px 9px 12px !important; }
+  body.ns-app .v944-match-header__meta { grid-template-columns: auto minmax(0,1fr) auto; gap: 6px; margin-bottom: 3px; }
+  body.ns-app .v944-match-header__meta > .v944-match-header__competition { max-width: 100%; }
+  body.ns-app .v944-match-header__identity { grid-template-columns: minmax(0,1fr) 82px minmax(0,1fr); gap: 4px; }
+  body.ns-app .v944-match-team .v933-team-logo { width: 48px; height: 48px; }
+  body.ns-app .v944-match-team strong { font-size: 12px; line-height: 1.15; }
+  body.ns-app .v944-match-team small { font-size: 10px; }
+  body.ns-app .v944-match-header__status { min-height: 78px; padding-block: 5px 0; }
+  body.ns-app .v944-match-header__status span { font-size: 11px; }
+  body.ns-app .v944-match-header__status time { font-size: 10px; }
+  body.ns-app .v944-score-widget { top: 61%; }
+  body.ns-app .v944-score-widget > strong { font-size: 24px; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
-  body.ns-app .ns16-home-hero { min-height: 102px !important; padding: 9px 10px !important; }
-  body.ns-app .ns16-home-hero::before { display: block; right: -74px; top: 45%; width: 340px; opacity: .48; }
+  body.ns-app .ns16-home-hero { min-height: 88px !important; padding: 8px 9px !important; }
+  body.ns-app .ns16-home-hero::before { display: block; right: -82px; top: 49%; width: 282px; opacity: .66; }
   .ns-video-empty-dashboard { min-height: 148px; padding: 10px 6px; }
   .ns-video-empty-dashboard::before { right: -92px; width: 280px; opacity: .12; }
   .ns-video-empty-actions { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
@@ -5689,6 +5799,8 @@ body.ns-app .ns16-home-hero h1 { font-size: 1.9rem !important; }
     background: linear-gradient(90deg, rgba(1,8,19,.94) 0%, rgba(1,8,19,.64) 51%, rgba(1,8,19,.12) 76%, rgba(1,8,19,.03) 100%);
   }
   .ns16-home-hero p { display: none; }
+  .ns16-home-hero .v933-eyebrow { font-size: .54rem; }
+  .ns16-home-hero .v933-client-hero-meta { margin-top: 4px; }
   .ns16-journey-steps { gap: 5px; }
   .ns16-journey-steps a { min-height: 68px; grid-template-columns: 1fr; justify-items: center; gap: 2px; padding: 6px 3px; text-align: center; }
   .ns16-journey-steps a:not(:last-child)::after { left: calc(100% - 2px); width: 10px; }

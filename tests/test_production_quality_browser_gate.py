@@ -59,7 +59,7 @@ def test_production_quality_gate_blocks_missing_evidence():
 def test_production_visual_contract_requires_two_current_sharks_and_rejects_legacy():
     passed, evidence = _visual_asset_contract([
         "https://example.invalid/static/img/nemesis-shark-brand.svg?v=official16-brand-2",
-        "https://example.invalid/static/img/nemesis-shark-atmosphere.svg?v=official16-atmosphere-3",
+        "https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1",
     ])
     assert passed is True
     assert evidence == {
@@ -70,7 +70,7 @@ def test_production_visual_contract_requires_two_current_sharks_and_rejects_lega
 
     legacy_passed, legacy_evidence = _visual_asset_contract([
         "https://example.invalid/static/img/nemesis-shark-brand.svg",
-        "https://example.invalid/static/img/nemesis-shark-atmosphere.svg",
+        "https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp",
         "https://example.invalid/static/img/shark-logo.svg",
     ])
     assert legacy_passed is False

@@ -48,15 +48,17 @@ def test_calendar_collection_reclaims_full_width_without_breaking_mobile_order()
     assert template.count("v933-match-grid") == 1
 
 
-def test_client_quick_actions_continue_outside_the_bounded_rail():
+def test_client_reference_grid_keeps_route_and_matches_left_with_pick_on_the_right():
     template = _read("templates/client_app_center.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
-    bounded_close = template.index("</section>", bounded)
+    primary = template.index('class="ns16-home-primary"', bounded)
+    journey = template.index('class="v933-panel ns16-journey"', primary)
     continuation = template.index('data-v939-layout-contract="full-width-continuation"')
+    featured_pick = template.index('class="v933-panel ns16-featured-pick"')
     quick_actions = template.index('aria-label="Accesos rápidos"')
 
-    assert bounded < bounded_close < continuation < quick_actions
-    assert "Tus accesos rápidos" not in template[bounded:bounded_close]
+    assert bounded < primary < journey < continuation < featured_pick < quick_actions
+    assert "Tus accesos rápidos" not in template[bounded:featured_pick]
     assert template.count("Tus accesos rápidos") == 1
     assert template.index("Tus accesos rápidos") > quick_actions
 
