@@ -95,6 +95,20 @@ def test_provider_progress_terminal_signal_wins_over_live_status():
     assert truth["conflict_type"] == "LIVE_TERMINAL"
 
 
+def test_sportsdb_finished_status_requires_and_accepts_confirmed_score(app_module):
+    assert app_module.sportsdb_match_status({"strStatus": "Match Finished"}) == "RESULT_PENDING"
+    assert app_module.sportsdb_match_status(
+        {"strStatus": "Match Finished", "intHomeScore": 2, "intAwayScore": 1}
+    ) == "FINALIZADO"
+
+
+def test_sportsdb_long_postponed_status_is_non_live(app_module):
+    payload = {"strStatus": "Match Postponed"}
+
+    assert match_status_truth(payload)["lifecycle"] == "POSTPONED"
+    assert app_module.sportsdb_match_status(payload) == "SUSPENDIDO"
+
+
 def test_generic_updated_at_cannot_rejuvenate_provider_live_evidence():
     now = datetime(2026, 9, 5, 20, 0, tzinfo=MADRID)
     match = _live_match(now, "generic-cache-clock")

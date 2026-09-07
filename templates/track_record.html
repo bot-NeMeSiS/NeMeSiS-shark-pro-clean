@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, data_table, empty_state, status_chip, filter_tabs, icon, quick_action %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_badge, learning_receipt %}
 {% block content %}
 {% set record = data.get('track_record') or {} %}
@@ -58,8 +58,13 @@
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-track-empty" data-empty-dashboard="resolved">
-    {{ empty_state('El histórico empieza con resultados reales', 'ROI, winrate y evolución aparecerán cuando existan picks cerrados y evaluables.', 'Ver picks', '/picks', 'history') }}
+    {{ empty_state('El histórico empieza con resultados reales', 'ROI, winrate y evolución aparecerán cuando existan picks cerrados y evaluables.', '', '', 'history') }}
   </section>
+  <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Histórico">
+    {{ quick_action('Ver picks', 'Consulta selecciones publicadas.', '/picks', 'target', 'cyan') }}
+    {{ quick_action('Explorar partidos', 'Abre el catálogo deportivo.', '/calendar', 'matches', 'blue') }}
+    {{ quick_action('Consultar SHARK', 'Revisa análisis disponibles.', '/shark', 'shark', 'green') }}
+  </nav>
   {% endif %}
 </div>
 {% endblock %}

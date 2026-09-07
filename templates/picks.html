@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, status_chip, icon, action_button, sports_contract_attributes %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, pick_card, filter_tabs, empty_state, status_chip, icon, action_button, quick_action, sports_contract_attributes %}
 {% from "components/v936_product.html" import intelligence_brief %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
@@ -66,8 +66,13 @@
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-picks-empty" data-empty-dashboard="resolved">
-    {{ empty_state('Todavía no hay picks publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', 'Explorar partidos', '/calendar', 'target') }}
+    {{ empty_state('Todavía no hay picks publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', '', '', 'target') }}
   </section>
+  <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Picks">
+    {{ quick_action('Explorar partidos', 'Encuentra el próximo partido.', '/calendar', 'matches', 'cyan') }}
+    {{ quick_action('Consultar SHARK', 'Abre el análisis deportivo.', '/shark', 'shark', 'blue') }}
+    {{ quick_action('Ver histórico', 'Consulta resultados evaluables.', '/track-record', 'history', 'green') }}
+  </nav>
   {% endif %}
 </div>
 {% endblock %}

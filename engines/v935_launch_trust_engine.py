@@ -148,7 +148,7 @@ _FINISHED_STATUS_KEYS = {
     "aet", "pen", "after penalties", "terminado",
 }
 _POSTPONED_STATUS_KEYS = {
-    "postponed", "post", "pst", "ppd", "aplazado", "aplazada",
+    "postponed", "match postponed", "post", "pst", "ppd", "aplazado", "aplazada",
 }
 _RESULT_PENDING_STATUS_KEYS = {
     "result pending", "resultado pendiente", "pending result",

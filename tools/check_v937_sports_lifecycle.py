@@ -73,11 +73,11 @@ for asset in ("v937-sports-lifecycle.css", "v937-sports-lifecycle.js"):
 
 template_markers = {
     "templates/calendar.html": "lifecycle_story",
-    "templates/live.html": "lifecycle_story",
+    "templates/live.html": "sports_metrics.get('live_confirmed', 0)",
     "templates/picks.html": "data_confidence_panel",
     "templates/match_detail.html": "data_confidence_panel",
     "templates/track_record.html": "learning_receipt",
-    "templates/shark.html": "no recomiendo una selección hoy",
+    "templates/shark.html": "SHARK espera evidencia suficiente",
     "templates/admin_data_trust_center.html": "Índice de Confianza NeMeSiS",
 }
 for path, marker in template_markers.items():
@@ -88,11 +88,12 @@ if "pixel_perfect_claim_allowed\": True" in app_source:
     errors.append("unsafe_pixel_perfect_claim")
 
 status_cases = (
-    ({"strStatus": "Match Finished"}, "FINALIZADO"),
+    ({"strStatus": "Match Finished"}, "RESULT_PENDING"),
+    ({"strStatus": "Match Finished", "intHomeScore": 2, "intAwayScore": 1}, "FINALIZADO"),
     ({"strStatus": "Not Started"}, "PROGRAMADO"),
     ({"strStatus": "Match Not Started"}, "PROGRAMADO"),
     ({"strStatus": "1H"}, "LIVE"),
-    ({"strProgress": "63"}, "LIVE"),
+    ({"strProgress": "63"}, "PROGRAMADO"),
     ({"strStatus": "Match Postponed"}, "SUSPENDIDO"),
     ({}, "PROGRAMADO"),
 )
@@ -115,17 +116,34 @@ generic_live = {
     "updated_at": app_module.now_iso(),
     "status": "LIVE",
 }
+fresh_current_live = {
+    **generic_live,
+    "id": "v937-fresh-current-live",
+    "home_score": 0,
+    "away_score": 0,
+    "last_synced_at": app_module.now_iso(),
+}
 if app_module.canonical_match_status(generic_live).get("is_live"):
     errors.append("generic_live_without_evidence_exposed")
-if app_module.canonical_match_status({**generic_live, "home_score": 0, "away_score": 0}).get("key") != "LIVE":
-    errors.append("confirmed_zero_zero_live_rejected")
-if normalize_match_lifecycle(generic_live) != "INCOMPLETE":
+if app_module.canonical_match_status({**generic_live, "home_score": 0, "away_score": 0}).get("is_live"):
+    errors.append("score_only_live_evidence_exposed")
+if app_module.canonical_match_status(fresh_current_live).get("key") != "LIVE":
+    errors.append("fresh_confirmed_zero_zero_live_rejected")
+if normalize_match_lifecycle(generic_live) != "STALE":
     errors.append("v935_generic_live_without_evidence_exposed")
-if normalize_match_lifecycle({**generic_live, "home_score": 0, "away_score": 0}) != "LIVE":
-    errors.append("v935_confirmed_zero_zero_live_rejected")
+if normalize_match_lifecycle(fresh_current_live) != "LIVE":
+    errors.append("v935_fresh_confirmed_zero_zero_live_rejected")
 normalized_generic = normalize_match(generic_live)
-if not normalized_generic or normalized_generic.get("is_live") or normalized_generic.get("status") != "pending":
+if (
+    not normalized_generic
+    or normalized_generic.get("is_live")
+    or not normalized_generic.get("is_stale")
+    or normalized_generic.get("status") != "stale"
+):
     errors.append("v934_generic_live_without_evidence_exposed")
+normalized_fresh = normalize_match(fresh_current_live)
+if not normalized_fresh or not normalized_fresh.get("is_live") or normalized_fresh.get("status") != "live":
+    errors.append("v934_fresh_confirmed_live_rejected")
 forced_snapshot = build_realtime_snapshot({
     "valid_matches_today": [{**generic_live, "status": "NS"}],
     "valid_live_events": [generic_live],
@@ -137,16 +155,18 @@ snapshot_now = datetime(2026, 7, 14, 20, 0, tzinfo=timezone.utc)
 fresh_confirmed_live = {
     **generic_live,
     "id": "v937-fresh-confirmed-live",
+    "match_date": "2026-07-14",
     "home_score": 0,
     "away_score": 0,
-    "updated_at": (snapshot_now - timedelta(seconds=30)).isoformat(),
+    "last_synced_at": (snapshot_now - timedelta(seconds=30)).isoformat(),
 }
 stale_confirmed_live = {
     **generic_live,
     "id": "v937-stale-confirmed-live",
+    "match_date": "2026-07-14",
     "home_score": 1,
     "away_score": 0,
-    "updated_at": (snapshot_now - timedelta(seconds=121)).isoformat(),
+    "last_synced_at": (snapshot_now - timedelta(seconds=121)).isoformat(),
 }
 evidence_snapshot = build_realtime_snapshot({
     "valid_matches_today": [fresh_confirmed_live, stale_confirmed_live],
@@ -194,6 +214,7 @@ try:
             "status": "LIVE",
             "minute": "63",
             "source": "TheSportsDB API",
+            "last_synced_at": app_module.now_iso(),
         }
         app_module.upsert_sportsdb_matches([match])
         with closing(sqlite3.connect(app_module.DB_PATH)) as conn:
@@ -214,7 +235,7 @@ try:
         if live_rows != 0:
             errors.append("sportsdb_finished_match_left_in_live_table")
 
-        match.update({"status": "LIVE", "minute": "", "home_score": "", "away_score": "", "score": ""})
+        match.update({"status": "LIVE", "minute": "", "home_score": "", "away_score": "", "score": "", "last_synced_at": ""})
         app_module.upsert_sportsdb_matches([match])
         with closing(sqlite3.connect(app_module.DB_PATH)) as conn:
             live_rows = conn.execute(

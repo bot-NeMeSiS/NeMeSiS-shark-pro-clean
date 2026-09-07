@@ -6,16 +6,16 @@
 
 - Gate: observación real de 3-7 días naturales.
 - Inicio: 2026-08-28.
-- Evidencia completada: DAY 1 baseline + DAY 2 + DAY 3 observaciones reales.
+- Evidencia completada: DAY 1 baseline + DAY 2 + DAY 3, con dos ventanas reales en DAY 3.
 - Producción observada: `https://bot-apuestas-crgf.onrender.com`.
-- Último SHA de producción observado: `fddbeea3b1205e2f05e62bcf95630a7a4c85a4cd` (DAY 3, 2026-09-06).
+- Último SHA de producción observado: `8ab59a16b6dd0ae69727547c78709d012b4d3fb7` (DAY 3, seguimiento 2026-09-06 22:42 Madrid).
 - Gasto nuevo: **0**.
 - Cambios de producción: **0**.
 - Ranking modificado durante el gate: **NO**.
-- Resultado provisional: catálogo y sincronización operativos; Home prioriza Tier S/A en la muestra DAY 3, pero LIVE sigue sin muestra real suficiente.
-- DAY 3 no reprodujo falsos LIVE en las superficies inspeccionadas. No obstante, Match Center mostró simultáneamente evidencia desactualizada y `100/100 Alta`, una contradicción real de confianza que impide cerrar la calidad deportiva.
+- Resultado provisional: catálogo y sincronización operativos. El seguimiento DAY 3 observó un candidato Tier S marcado LIVE por el proveedor y priorizado por Home, además de su exclusión automática al quedar stale. La coherencia temporal real del partido no quedó suficientemente demostrada para cerrar LIVE.
+- La contradicción histórica `Desactualizado` frente a `100/100 Alta` no se reprodujo en el SHA actual: Match Center mostró confianza no probabilística y degradó el estado a `Actualización pendiente` durante la ventana stale. El fallo histórico se conserva como evidencia y no se reescribe como PASS retroactivo.
 
-No se declarará PASS por el mero transcurso de tres días. Debe existir una muestra real de partidos Tier S/A, idealmente en directo, y coherencia verificable entre proveedor, Home, Directo y Match Center.
+No se declarará PASS por el mero transcurso de tres días. Debe existir una muestra real de partidos Tier S/A en directo con coherencia verificable entre estado, tiempo, proveedor, Home, Directo y Match Center.
 
 ## Política de evidencia
 
@@ -504,6 +504,72 @@ durante la ventana.
 Próxima observación: mantener el gate hasta obtener un Tier S/A LIVE real. Usar como
 baseline de producción `fddbeea3...` o el SHA que el runtime demuestre en ese momento,
 no la referencia histórica `354453...`.
+
+### Seguimiento DAY 3 - 2026-09-06 22:34-22:42 Madrid
+
+Esta ventana pertenece a la misma fecha natural que DAY 3 y **no crea un DAY 4**.
+
+- **Origen:** `REAL_PRODUCTION_OBSERVATION`, endpoints públicos cache-only y HTML servido.
+- **SHA servido:** `8ab59a16b6dd0ae69727547c78709d012b4d3fb7`.
+- **Health:** HTTP 200, `ok=true`, `active_errors_count=0`.
+- **Render MCP/logs:** no utilizados; la integración no tenía workspace previamente seleccionado.
+- **Endpoint `/api/live`:** NO CONSULTADO.
+- **Llamadas nuevas a proveedor:** 0; `/api/realtime/sports` declaró `no_external_calls=true`.
+- **Cambios de producción, ranking, cron o datos:** 0.
+
+Fotografía consolidada de las 22:42 Madrid:
+
+| Señal | Resultado | Evidencia |
+|---|---:|---|
+| synchronized | 800 | `/api/realtime/sports` |
+| realtime matches / today | 26 / 26 | snapshot cache-only |
+| confirmed live / stale live | 22 / 0 | snapshot posterior a sync 22:40:35 |
+| finished | 139 | agregado realtime |
+| calendar visible | 181 | `/api/calendar` |
+| Tier S / Tier A | 4 / 0 | contrato `sports-relevance-v2` |
+| UNKNOWN | 177 | siguen degradados respecto a Tier S/A |
+| status conflicts | 0 | calendario |
+| duplicate IDs | 0 | calendario |
+| missing crests | 0 | calendario |
+| live-state visible | 12 | colección pública resumida; no se equipara al universo realtime |
+| important LIVE candidate | 1 | Juventus-AC Milan, Italian Serie A, Tier S |
+| minute | no disponible | no se inventó minuto |
+| highlights returned | 1 | existencia observada; autorización no inferida solo por el contador |
+
+#### Transición de frescura observada
+
+1. Con evidencia recién sincronizada, Juventus-AC Milan apareció como LIVE con marcador
+   `0-1`, sin minuto inventado. Home y Directo lo colocaron primero, por delante de
+   competiciones UNKNOWN; Partidos conservó el enlace al mismo Match Center.
+2. Al expirar la evidencia, realtime pasó temporalmente a `0 live / 22 stale` y
+   `/api/live/state` a `0`. Home y Directo retiraron el fixture del catálogo LIVE.
+   Match Center mostró `Actualización pendiente`, frescura `Desactualizado`, confianza
+   no probabilística y ninguna etiqueta `En directo`.
+3. Tras la siguiente sincronización cacheada, el fixture reapareció de forma coherente
+   en Home, Directo, Partidos y Match Center. No se observó FT como LIVE ni un minuto
+   derivado del horario.
+
+Esta transición aporta evidencia positiva para los dos contratos obligatorios:
+
+- un LIVE confirmado por el proveedor y reciente se publica;
+- el mismo LIVE deja de publicarse cuando su evidencia queda stale.
+
+No obstante, el fixture no cierra todavía la certificación real: a las 22:42 Madrid el
+proveedor seguía informando `2H` para un kickoff mostrado a las 18:45 y no entregaba
+minuto. El gate no infiere FT por horario, pero tampoco convierte esa señal temporalmente
+anómala en prueba independiente de un partido realmente en curso. Minute, events,
+lineups, stats y latencias de gol/descanso/final siguen en `INSUFFICIENT_SAMPLE`.
+
+**Resultado del seguimiento:** `REAL_SPORTS_CERTIFICATION_IN_PROGRESS`.
+
+**Respuesta operativa:** cuando el proveedor presentó el candidato Tier S como LIVE y
+reciente, NeMeSiS lo puso automáticamente primero. **Respuesta de certificación real:**
+`NOT_ENOUGH_EVIDENCE` hasta observar un Tier S/A LIVE con contexto temporal coherente y
+profundidad deportiva suficiente en una fecha natural posterior.
+
+Próxima observación: DAY 4 solo puede comenzar en otra fecha natural. Mantener lectura
+cache-first y comprobar de nuevo Tier S/A, minuto real, eventos, lineups, stats,
+frescura y coherencia entre Home, Directo, Partidos y Match Center.
 
 ## Provider gap matrix provisional
 

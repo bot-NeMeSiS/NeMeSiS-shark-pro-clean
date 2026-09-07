@@ -339,7 +339,8 @@ def test_resolved_empty_state_must_still_fill_an_intentional_visual_stage():
 
     assert ".ns-video-empty-dashboard" in inspector
     assert "&& !emptyDashboardResolved && !purposefulSportsContent" not in inspector
-    assert "min-height: clamp(300px, 46vh, 440px)" in css
+    assert "min-height: clamp(156px, 22vh, 196px)" in css
+    assert "width: min(660px, 100%)" in css
 
 
 def test_track_record_pending_only_does_not_render_evaluable_history_dashboard(app_module):

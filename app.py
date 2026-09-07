@@ -4098,7 +4098,18 @@ def sportsdb_score(home_score, away_score):
 def sportsdb_match_status(event):
     status = str(event.get("strStatus") or event.get("status") or "").strip()
     progress = str(event.get("strProgress") or event.get("progress") or "").strip()
-    truth = v935_match_status_truth({"status": status, "strProgress": progress})
+    home_score = event.get("home_score")
+    away_score = event.get("away_score")
+    if home_score in {None, ""}:
+        home_score = event.get("intHomeScore")
+    if away_score in {None, ""}:
+        away_score = event.get("intAwayScore")
+    truth = v935_match_status_truth({
+        "status": status,
+        "strProgress": progress,
+        "home_score": home_score,
+        "away_score": away_score,
+    })
     return {
         "LIVE": "LIVE",
         "HALFTIME": "DESCANSO",

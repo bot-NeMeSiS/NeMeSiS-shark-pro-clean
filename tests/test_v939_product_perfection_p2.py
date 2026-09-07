@@ -51,13 +51,14 @@ def test_calendar_collection_reclaims_full_width_without_breaking_mobile_order()
 def test_client_quick_actions_continue_outside_the_bounded_rail():
     template = _read("templates/client_app_center.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
+    bounded_close = template.index("</section>", bounded)
     continuation = template.index('data-v939-layout-contract="full-width-continuation"')
-    segment = template[continuation:bounded]
+    quick_actions = template.index('aria-label="Accesos rápidos"')
 
-    assert continuation < bounded
-    assert "Tus accesos rápidos" not in segment
+    assert bounded < bounded_close < continuation < quick_actions
+    assert "Tus accesos rápidos" not in template[bounded:bounded_close]
     assert template.count("Tus accesos rápidos") == 1
-    assert template.index("Tus accesos rápidos") > continuation
+    assert template.index("Tus accesos rápidos") > quick_actions
 
 
 def test_telegram_supporting_content_stays_flat_after_the_rail():

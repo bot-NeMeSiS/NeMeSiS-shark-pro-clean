@@ -1,66 +1,63 @@
 <svg width="1280" height="420" viewBox="0 0 1280 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tiburon atmosferico NeMeSiS">
   <defs>
-    <linearGradient id="reference-body" x1="54" y1="150" x2="1112" y2="286" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#41BDE7" stop-opacity=".7"/>
-      <stop offset=".2" stop-color="#1476AF" stop-opacity=".62"/>
-      <stop offset=".52" stop-color="#095083" stop-opacity=".5"/>
-      <stop offset=".82" stop-color="#06335D" stop-opacity=".4"/>
-      <stop offset="1" stop-color="#02172E" stop-opacity=".2"/>
+    <linearGradient id="shark-body" x1="58" y1="172" x2="1090" y2="252" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9BEFFF" stop-opacity=".18"/>
+      <stop offset=".2" stop-color="#188BC3" stop-opacity=".14"/>
+      <stop offset=".55" stop-color="#08609B" stop-opacity=".09"/>
+      <stop offset=".83" stop-color="#064270" stop-opacity=".055"/>
+      <stop offset="1" stop-color="#02182F" stop-opacity=".025"/>
     </linearGradient>
-    <linearGradient id="reference-belly" x1="84" y1="232" x2="955" y2="329" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#A6F2FF" stop-opacity=".2"/>
-      <stop offset=".48" stop-color="#2A91B8" stop-opacity=".17"/>
-      <stop offset="1" stop-color="#061B34" stop-opacity=".04"/>
+    <linearGradient id="shark-fin" x1="420" y1="34" x2="612" y2="404" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1683BC" stop-opacity=".32"/>
+      <stop offset=".58" stop-color="#075284" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#02172D" stop-opacity=".08"/>
     </linearGradient>
-    <linearGradient id="reference-fin" x1="520" y1="22" x2="692" y2="395" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#157DB0" stop-opacity=".78"/>
-      <stop offset=".58" stop-color="#08446E" stop-opacity=".72"/>
-      <stop offset="1" stop-color="#03182E" stop-opacity=".42"/>
+    <linearGradient id="shark-rim" x1="32" y1="118" x2="1268" y2="292" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D9FCFF" stop-opacity=".9"/>
+      <stop offset=".16" stop-color="#57DDF7" stop-opacity=".8"/>
+      <stop offset=".5" stop-color="#149FDF" stop-opacity=".52"/>
+      <stop offset=".8" stop-color="#0A6DB8" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#06477E" stop-opacity=".05"/>
     </linearGradient>
-    <linearGradient id="reference-rim" x1="48" y1="126" x2="1238" y2="287" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D5FAFF" stop-opacity=".94"/>
-      <stop offset=".18" stop-color="#55D7F5" stop-opacity=".82"/>
-      <stop offset=".58" stop-color="#1499D4" stop-opacity=".56"/>
-      <stop offset=".86" stop-color="#0B65B1" stop-opacity=".28"/>
-      <stop offset="1" stop-color="#0A5193" stop-opacity=".08"/>
-    </linearGradient>
-    <radialGradient id="reference-head-light" cx="0" cy="0" r="1" gradientTransform="translate(196 188) rotate(8) scale(233 93)" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#C7F8FF" stop-opacity=".38"/>
-      <stop offset=".4" stop-color="#38AED8" stop-opacity=".2"/>
-      <stop offset="1" stop-color="#061B34" stop-opacity="0"/>
+    <radialGradient id="head-light" cx="0" cy="0" r="1" gradientTransform="translate(196 196) rotate(-8) scale(276 132)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E4FDFF" stop-opacity=".28"/>
+      <stop offset=".38" stop-color="#45C4E9" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#041B35" stop-opacity="0"/>
     </radialGradient>
-    <pattern id="reference-mesh" width="34" height="29" patternUnits="userSpaceOnUse">
-      <circle cx="3" cy="3" r="1.2" fill="#8AEBFF" opacity=".76"/>
-      <circle cx="29" cy="14" r="1" fill="#35B8EE" opacity=".66"/>
-      <circle cx="11" cy="27" r=".9" fill="#60D8F7" opacity=".58"/>
-      <path d="M3 3L29 14L11 27L3 3" stroke="#39B9E8" stroke-width=".55" opacity=".36"/>
+    <pattern id="reference-mesh" width="31" height="27" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.25" fill="#A8F2FF" opacity=".8"/>
+      <circle cx="27" cy="13" r="1" fill="#43C8F2" opacity=".72"/>
+      <circle cx="10" cy="25" r=".9" fill="#6BDDF7" opacity=".66"/>
+      <path d="M3 3L27 13L10 25L3 3" stroke="#39BCEB" stroke-width=".52" opacity=".42"/>
     </pattern>
-    <filter id="reference-glow" x="-10%" y="-28%" width="124%" height="160%" color-interpolation-filters="sRGB">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .01 0 0 0 0 .5 0 0 0 0 .92 0 0 0 .34 0" result="aqua"/>
-      <feMerge><feMergeNode in="aqua"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="shark-glow" x="-8%" y="-24%" width="120%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.45" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 .01 0 0 0 0 .55 0 0 0 0 .96 0 0 0 .28 0" result="cyan"/>
+      <feMerge><feMergeNode in="cyan"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <path id="reference-anatomical-body" d="M48 218C75 182 143 157 238 145C365 129 506 137 635 157C759 176 864 188 969 179C1007 176 1032 166 1055 158C1082 166 1100 184 1105 205C1101 228 1084 246 1059 256C1028 249 1001 246 968 249C848 263 744 299 624 321C480 346 327 336 211 303C122 278 66 249 48 225C47 223 47 220 48 218Z"/>
-    <clipPath id="reference-body-clip"><use href="#reference-anatomical-body"/></clipPath>
+    <path id="reference-anatomical-body" d="M58 198C83 169 149 137 244 111C373 76 526 79 671 110C794 136 892 159 1008 145C1041 154 1066 174 1080 199C1052 222 1001 245 924 268C785 310 632 326 472 316C319 307 187 276 96 241C70 231 55 216 58 198Z"/>
+    <clipPath id="body-clip"><use href="#reference-anatomical-body"/></clipPath>
   </defs>
-  <g filter="url(#reference-glow)" stroke-linecap="round" stroke-linejoin="round">
-    <path id="reference-tail" d="M1045 160C1122 143 1186 91 1250 28C1237 101 1211 161 1173 205C1218 220 1248 270 1268 372C1207 316 1135 270 1055 256C1083 229 1080 187 1045 160Z" fill="#052D54" fill-opacity=".68" stroke="url(#reference-rim)" stroke-width="1.8"/>
-    <path id="reference-dorsal-fin" d="M526 145C584 79 649 38 727 12C704 76 710 128 748 170C668 161 593 151 526 145Z" fill="url(#reference-fin)" stroke="url(#reference-rim)" stroke-width="1.8"/>
-    <path id="reference-pectoral-fin" d="M429 307C486 358 555 392 646 415C599 358 581 313 592 273C529 292 474 302 429 307Z" fill="url(#reference-fin)" stroke="url(#reference-rim)" stroke-width="1.5"/>
-    <path d="M708 309C750 346 795 370 850 385C819 345 813 310 829 281C786 293 747 302 708 309Z" fill="#052747" fill-opacity=".5" stroke="#22A9D8" stroke-opacity=".42" stroke-width="1"/>
-    <use href="#reference-anatomical-body" fill="url(#reference-body)" stroke="url(#reference-rim)" stroke-width="2.2"/>
-    <g clip-path="url(#reference-body-clip)">
-      <rect x="45" y="115" width="1080" height="235" fill="url(#reference-head-light)"/>
-      <path d="M52 224C184 282 335 317 507 318C674 319 829 285 970 249C866 305 744 334 618 345C466 357 315 345 204 312C117 286 67 254 52 224Z" fill="url(#reference-belly)"/>
-      <rect x="46" y="126" width="1065" height="220" fill="url(#reference-mesh)" opacity=".86"/>
-      <path d="M66 197C214 151 388 140 567 157C735 173 887 204 1059 204M54 221C238 201 426 210 620 241C790 268 914 274 1077 244M84 265C266 250 442 267 615 302C748 329 857 322 970 292" stroke="#63D5F1" stroke-opacity=".31" stroke-width=".85"/>
-      <path d="M205 149C192 194 202 254 231 299M326 134C310 189 324 276 366 336M454 137C440 202 463 293 509 344M585 150C581 216 607 296 653 336M718 169C727 225 754 291 798 311M852 184C865 224 890 267 928 280" stroke="#28A8DA" stroke-opacity=".26" stroke-width=".7"/>
+  <g filter="url(#shark-glow)" stroke-linecap="round" stroke-linejoin="round">
+    <path id="reference-tail" d="M1008 145C1090 126 1173 78 1255 24C1235 94 1201 153 1154 195C1204 213 1243 264 1270 355C1207 307 1127 278 1022 255C1062 229 1080 183 1008 145Z" fill="url(#reference-mesh)" fill-opacity=".3" stroke="url(#shark-rim)" stroke-width="1.35"/>
+    <path id="reference-dorsal-fin" d="M486 83C546 50 612 31 688 34C651 70 648 104 678 132C609 116 546 99 486 83Z" fill="url(#shark-fin)" stroke="url(#shark-rim)" stroke-width="1.35"/>
+    <path id="reference-pectoral-fin" d="M354 296C421 341 499 371 590 386C539 340 520 302 532 270C468 279 409 288 354 296Z" fill="url(#shark-fin)" stroke="url(#shark-rim)" stroke-width="1.15"/>
+    <path d="M709 300C749 329 795 347 846 354C817 324 811 297 827 275C785 285 746 293 709 300Z" fill="#06345B" fill-opacity=".08" stroke="#27B3E5" stroke-opacity=".26" stroke-width=".8"/>
+    <use href="#reference-anatomical-body" fill="url(#shark-body)" stroke="url(#shark-rim)" stroke-width="1.8"/>
+    <g clip-path="url(#body-clip)">
+      <rect x="28" y="105" width="1090" height="250" fill="url(#head-light)"/>
+      <rect x="29" y="104" width="1090" height="252" fill="url(#reference-mesh)" opacity=".9"/>
+      <path d="M72 187C219 128 395 111 568 133C733 154 881 189 1052 194M60 211C231 184 416 197 614 227C784 253 918 259 1066 231M84 250C243 239 414 259 588 294C727 321 850 313 968 277" stroke="#6BDCF5" stroke-opacity=".31" stroke-width=".82"/>
+      <path d="M190 132C169 176 174 232 205 276M304 106C284 163 297 249 337 306M426 87C409 154 430 258 475 319M552 88C546 165 568 266 613 316M681 112C687 184 716 263 759 300M814 142C827 198 854 253 896 278" stroke="#22A8DB" stroke-opacity=".27" stroke-width=".68"/>
+      <path id="reference-belly" d="M60 211C175 269 322 306 485 310C648 314 813 290 977 248C862 300 740 322 610 329C454 337 307 316 193 281C111 256 70 231 60 211Z" fill="#8FEAFF" fill-opacity=".035"/>
+      <path d="M59 199C107 181 164 181 229 197C198 221 157 239 101 249C75 235 59 219 59 199Z" fill="#B5F4FF" fill-opacity=".045" stroke="#8EEBFA" stroke-opacity=".34" stroke-width=".8"/>
     </g>
-    <path id="reference-mouth" d="M61 225C119 219 176 230 239 258C181 246 124 251 77 273" stroke="#02101D" stroke-opacity=".68" stroke-width="1.35"/>
-    <path d="M78 273C132 280 187 273 239 258" stroke="#67D9EC" stroke-opacity=".36" stroke-width=".8"/>
-    <path d="M69 198C134 162 206 151 283 166" stroke="#E8FDFF" stroke-opacity=".65" stroke-width="1.55"/>
-    <path id="reference-gills" d="M171 153C182 172 185 190 183 211M196 149C208 169 212 190 209 214M222 148C234 169 239 191 237 217" stroke="#55CBE8" stroke-opacity=".58" stroke-width="1.15"/>
-    <circle id="reference-eye" cx="158" cy="174" r="3.7" fill="#EFFFFF"/>
-    <circle cx="158" cy="174" r="1.35" fill="#00101B"/>
+    <path d="M61 215C116 208 178 222 247 254C190 247 140 255 101 270C83 254 69 235 61 215Z" fill="#000A13" fill-opacity=".74" stroke="#071A29" stroke-width="1.7"/>
+    <path d="M101 270C147 268 197 263 247 254" stroke="#83E8F7" stroke-opacity=".48" stroke-width=".85"/>
+    <path d="M83 225L91 232L99 226L107 235L115 229L124 239L133 233L142 243L152 237L162 247L172 242L182 251L193 247" stroke="#D8FAFF" stroke-opacity=".58" stroke-width=".7"/>
+    <path d="M68 190C132 147 212 128 301 139" stroke="#E9FEFF" stroke-opacity=".68" stroke-width="1.4"/>
+    <path id="reference-gills" d="M238 120C252 145 257 174 254 205M266 114C282 143 287 174 283 209M296 109C312 141 318 174 314 212" stroke="#68D7EF" stroke-opacity=".58" stroke-width="1.05"/>
+    <circle id="reference-eye" cx="184" cy="160" r="3.7" fill="#F1FFFF"/>
+    <circle cx="184" cy="160" r="1.3" fill="#00101B"/>
   </g>
 </svg>

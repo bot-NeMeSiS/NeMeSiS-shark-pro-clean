@@ -488,7 +488,7 @@ def _inspect(page, screen: str, viewport: str) -> dict:
           const sharkWidth = shark ? parseFloat(shark.width || '0') : 0;
           const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
           const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
-          const sharkAssetOk = /nemesis-shark-atmosphere\.svg\?v=design2-atmosphere-1/.test(sharkImage);
+          const sharkAssetOk = /nemesis-shark-atmosphere\.svg(?:\?[^"')]+)?/.test(sharkImage);
           const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .98;
           const backgroundLayers = (bg.match(/gradient/g) || []).length;
           const backgroundOk = backgroundLayers >= 4 && !/^none$/i.test(bg);
