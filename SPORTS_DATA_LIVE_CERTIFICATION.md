@@ -6,14 +6,15 @@
 
 - Gate: observación real de 3-7 días naturales.
 - Inicio: 2026-08-28.
-- Evidencia completada: DAY 1 baseline + DAY 2 + DAY 3, con dos ventanas reales en DAY 3.
+- Evidencia registrada: DAY 1 baseline + DAY 2 + DAY 3 (dos ventanas) + DAY 4 (2026-09-07). No se afirma que sean fechas consecutivas ni dias certificados PASS.
 - Producción observada: `https://bot-apuestas-crgf.onrender.com`.
-- Último SHA de producción observado: `8ab59a16b6dd0ae69727547c78709d012b4d3fb7` (DAY 3, seguimiento 2026-09-06 22:42 Madrid).
+- Último SHA de producción observado: `4df7fc20e3de9cbe84d2098f3d6b3a74577631f5` (DAY 4, 2026-09-07 22:34 y 22:38 Madrid, demostrado por `/api/runtime-version`).
 - Gasto nuevo: **0**.
 - Cambios de producción: **0**.
 - Ranking modificado durante el gate: **NO**.
 - Resultado provisional: catálogo y sincronización operativos. El seguimiento DAY 3 observó un candidato Tier S marcado LIVE por el proveedor y priorizado por Home, además de su exclusión automática al quedar stale. La coherencia temporal real del partido no quedó suficientemente demostrada para cerrar LIVE.
 - La contradicción histórica `Desactualizado` frente a `100/100 Alta` no se reprodujo en el SHA actual: Match Center mostró confianza no probabilística y degradó el estado a `Actualización pendiente` durante la ventana stale. El fallo histórico se conserva como evidencia y no se reescribe como PASS retroactivo.
+- DAY 4 repite la transicion de evidencia reciente a stale: el candidato Udinese-Lazio deja de publicarse como LIVE y el indice del detalle baja de 93/100 a 49/100. No certifica que el partido estuviera realmente en curso: faltan minuto y coherencia temporal independiente. Home autenticada no comprobada sin sesion.
 
 No se declarará PASS por el mero transcurso de tres días. Debe existir una muestra real de partidos Tier S/A en directo con coherencia verificable entre estado, tiempo, proveedor, Home, Directo y Match Center.
 
@@ -570,6 +571,131 @@ profundidad deportiva suficiente en una fecha natural posterior.
 Próxima observación: DAY 4 solo puede comenzar en otra fecha natural. Mantener lectura
 cache-first y comprobar de nuevo Tier S/A, minuto real, eventos, lineups, stats,
 frescura y coherencia entre Home, Directo, Partidos y Match Center.
+
+## DAY 4 - 2026-09-07: observacion real cache-first
+
+**Origen: REAL_PRODUCTION_OBSERVATION. Estado: REAL_SPORTS_CERTIFICATION_IN_PROGRESS.**
+
+Ventana: 22:33:12-22:38:33 Europe/Madrid (20:33:12-20:38:33 UTC).
+Nueva fecha natural respecto a DAY 3; no se reinicia la certificacion ni se
+rellenan fechas intermedias sin observacion. No es un DAY 4 PASS.
+
+### Identidad y limites de acceso
+
+- Runtime servido a las 22:34:28 y al cierre: `4df7fc20e3de9cbe84d2098f3d6b3a74577631f5`.
+  Version `V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL`;
+  `version_files_match=true`, `active_errors_count=0`.
+- `/api/health`: HTTP 200 y `ok=true`. No se equipara liveness a calidad deportiva.
+- `deployment_alignment_status=aligned_local_files` no demuestra por si solo
+  alineacion con GitHub. No se consulto remoto ni se publico nada en esta ventana.
+- Render MCP: `get_selected_workspace` no tiene workspace seleccionado.
+  No se eligio uno ni se consultaron recursos/logs: `EXTERNAL_BLOCKER_RENDER_LOG_ACCESS`.
+- `/app`: HTTP 302 a `/cliente-login?next=/app`; sin sesion autorizada,
+  **HOME AUTENTICADA NO COMPROBADA**. No hubo login, bypass ni creacion de usuarios.
+- `/`, `/partidos`, `/live` y el Match Center se leyeron como HTML publico.
+  No se ejecutaron JS, clicks, capturas de navegador ni pruebas visuales.
+- `/api/live`, sync, cron, test-send, pagos y endpoints de accion: NO CONSULTADOS.
+  Los endpoints deportivos utilizados declaran `no_external_calls=true` o
+  `external_calls=0`/`no_render_api_call=true`. No se llamo a un proveedor.
+
+### Fotografias de cache, sin equiparar universos diferentes
+
+| Instante Madrid | Superficie y universo | Evidencia |
+| --- | --- | --- |
+| 22:34:02 | Realtime cache | 800 sincronizados; 41 matches; 5 today; 91 finished; LIVE 0; stale_live 0; picks 0. Ultimo safe sync 22:30:34. |
+| 22:34:03 | Calendar | 124 matches visibles; primer resultado prioritario Cagliari-Lecce 1-0 Final y despues Getafe-Celta 1-1 Final. |
+| 22:36:29 | Calendar tras actualizacion automatica existente | 145 visibles; 26 today; 21 LIVE; 91 finished; 102 incidents; 84 leagues. Snapshot `7de48919b79740e6`, sync 22:35:12. |
+| 22:36:29 | Tier de los 145 visibles | S=4, A=2, B=3, UNKNOWN=136; IDs duplicados=0; filas sin alguna URL de escudo=0. URL presente no demuestra descarga/render del escudo. |
+| 22:36:29 | Sports quality, universo operativo | 47 Tier S/A available; 16 surfaced; UNKNOWN=531; live_conflicts=0; stale=0. No son denominadores del catalogo de 145. |
+| 22:37:22 | Realtime al caducar la evidencia | LIVE 0; stale_live 21 excluidos; 41 matches y 5 today; 800 sincronizados. Mismo ultimo sync 22:35:12. |
+
+La diferencia 124 -> 145 coincide con la entrada de 21 lecturas LIVE recientes;
+la posterior exclusion no se interpreta como 21 partidos finalizados. El monitor
+no provoco sincronizacion ni altero la frecuencia del sistema.
+
+### Candidatos importantes y coherencia entre superficies
+
+| Fixture persistido | Tier | Kickoff Madrid | Marcador y senal reciente, 22:36 |
+| --- | --- | --- | --- |
+| `sportsdb-de83edbe35bff4534c`, Udinese-Lazio | S | 18:45 | LIVE, 1-0, minuto no disponible |
+| `sportsdb-3923bfceb3bc7633cb`, Elche-Real Sociedad | S | 19:30 | LIVE, 0-1, minuto no disponible |
+| `sportsdb-8bc71a11a5cf17ff0a`, Sabadell-Cordoba | A | 18:30 | LIVE, 2-1, minuto no disponible |
+| `sportsdb-a985a1c92e44c1ff40`, Estoril Praia-Arouca | A | 19:15 | LIVE, 0-0, minuto no disponible |
+
+Los cuatro usan `MATCH-STATUS-TRUTH-V2`: edad LIVE 77 s, reloj
+`last_synced_at`, `status_conflict=false`, sin inferir LIVE desde minuto,
+marcador u horario. Esa frescura demuestra recepcion reciente, no que la
+actividad deportiva descrita sea actual. Los kickoffs llevan mas de tres horas
+sin minuto que contraste el estado: **CONTEXTO TEMPORAL NO CERTIFICADO**.
+No se infiere FT ni se inventa una correccion de marcador.
+
+- `/live` a las 22:36:32 muestra primero esos cuatro candidatos S/A, con sus
+  marcadores y enlaces canonicos, antes del ejemplo Tier B Palermo. Hay evidencia
+  positiva de orden importante en Directo, no una certificacion de Home autenticada.
+- `/partidos` contiene los mismos IDs y conserva el catalogo amplio. Los dos
+  resultados S observados (Cagliari-Lecce y Getafe-Celta) siguen Final, no LIVE.
+- Match Center de Udinese-Lazio a las 22:36:33: mismo ID/equipos/competicion,
+  score 1-0, LIVE, 18:45 Madrid; minuto ausente. Ningun minuto estimado observado.
+- A las 22:37:21 ese detalle muestra `Actualizacion pendiente` y `Desactualizado`;
+  el indice pasa de 93/100 Alta a 49/100, sin 100/100 ni 93/100 residuales.
+  El bloque de calidad mantiene confianza no probabilistica.
+- A las 22:38:31 `/live` ya no enlaza ese candidato. No se equiparan otros enlaces
+  de la pagina a partidos LIVE sin comprobar su seccion/estado.
+- `/` publico se leyo solo despues de la caducidad; sus enlaces a proximos no
+  demuestran ni descartan como ordenaba un LIVE reciente. `/app` queda pendiente.
+
+**CONFIDENCE STALE CHECK:** la contradiccion 100/Alta frente a stale no se
+reprodujo en el detalle muestreado. La marca Alta 93 durante la recepcion fresca
+no certifica minutos, eventos o cobertura completa; el propio desglose concede
+solo 8/15 a evidencia de estado. Queda por contrastar esa etiqueta global cuando
+el proveedor vuelve a entregar un estado deportivamente dudoso pero recien recibido.
+
+### Sports Knowledge, SHARK y Media
+
+- Match observado: no alineacion confirmada, sin Player IDs desde alineacion,
+  sin estadisticas, H2H ni clasificacion confirmados. Es carencia de muestra,
+  no ausencia de esas capacidades en todo el producto.
+- Cronologia: un registro `LIVE - marcador 1-0`, con `Minuto no disponible`.
+  Es una instantanea de estado, **no** prueba de un gol/evento deportivo ni de
+  latencia de eventos. No se cuenta como cobertura de goles/tarjetas/sustituciones.
+- Resumen servido afirma partido en curso desde esa senal. Su concordancia con
+  el estado cacheado no verifica independientemente la realidad del encuentro.
+- SHARK: contenido insuficiente/no disponible, sin completar senales deportivas
+  ausentes. No se ha certificado analisis LIVE real.
+- `/api/client/highlights`, HTTP 200: stored_media_total=0, highlights_total=0,
+  authorized=0, blocked=0, with_video=0; centro available=0, embedded=0,
+  pending_matches=14. No hay muestra autorizada visible que certificar.
+- El contador de highlight del seguimiento DAY 3 no se reescribe: hoy los
+  contadores explicitos son cero. No se deduce borrado, perdida ni fallo de derechos.
+- Fotos/jugadores, cuotas/mercados actuales y cuota/remaining de proveedores:
+  **NO COMPROBADO / INSUFFICIENT_REAL_DATA**. API-Sports declara disponible y
+  sincronizacion conocida en runtime; no acredita cobertura de alineaciones/eventos.
+
+### Comparacion, coste y siguiente observacion
+
+Se repite el patron DAY 3: las senales recientes se publican y se retiran al
+quedar stale. La muestra cambia de un candidato S a cuatro candidatos S/A,
+pero sigue faltando contexto independiente de un partido realmente LIVE.
+No se convierte el mero cambio de SHA ni esta transicion en SPORTS LIVE PASS.
+
+P50/P95 de start, goal, minute, halftime/fulltime y porcentajes de cobertura:
+**INSUFFICIENT_SAMPLE**. La respuesta aislada de highlights tardo 17.166 s;
+es una advertencia de consulta, no P95 ni regresion confirmada. No hubo sondeos
+intensivos para reproducirla. Todas las respuestas obtenidas fueron 200 salvo
+la redireccion esperada de `/app` (302); esto no certifica todo el servicio.
+
+Coste real actual y facturacion: **UNKNOWN**. Gasto/contrataciones iniciados por
+este monitor: 0. Sin cambios de codigo, rankings, produccion, cron, usuarios,
+membresias, proveedores, Telegram, Stripe o pagos. Solo se actualiza este informe.
+
+**Siguiente observacion:** conservar DAY 1-4; continuar en una fecha posterior
+o ventana deportiva util con el SHA que demuestre runtime. Buscar evidencia
+coherente Tier S/A, minuto/eventos/lineups/stats; mantener Home autenticada y
+logs como limites de acceso. No cerrar por transcurso del tiempo.
+
+**Si existe un partido importante LIVE, Home lo muestra automaticamente?**
+`NOT_ENOUGH_EVIDENCE`: Directo lo priorizo bajo senal reciente; Home autenticada
+no se pudo observar y la realidad LIVE independiente sigue sin certificarse.
 
 ## Provider gap matrix provisional
 

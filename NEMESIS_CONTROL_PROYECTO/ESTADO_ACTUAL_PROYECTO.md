@@ -1,5 +1,22 @@
 # Estado Actual del Proyecto
 
+## Vigencia local 2026-09-07: continuidad A/B
+
+Base real de esta ejecucion: `main`, HEAD
+`4df7fc20e3de9cbe84d2098f3d6b3a74577631f5`, indice sin staging.
+No se han consultado GitHub/Render en este encargo; las referencias inferiores
+son historicas, no una nueva comprobacion de produccion.
+
+Candidato local: lectura admin acotada, bootstrap sin solapamiento y snapshot
+historico que distingue NULL de cero y no colisiona entre ejecuciones.
+527/527 tests del arbol final; 52 observaciones focales de navegador A/B.
+Global PARCIAL: primera visita local escribe perfil/cache/estado; no se ha
+modificado esa logica sensible ni certificado proveedor real o derechos historicos.
+DAY 3 y DAY 4 intactos. Arte SHARK/fondo pendiente humano. Sin publicacion.
+
+Unico cierre y evidencia: [informe A/B](../reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md).
+El tablero existente recoge NEM-01/02/03/04/05/08/09/10/11 sin duplicar tareas.
+
 Conciliacion vigente: 2026-09-06 (Europe/Madrid).
 
 ## Decision ejecutiva

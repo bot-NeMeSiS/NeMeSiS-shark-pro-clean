@@ -1,5 +1,214 @@
 # NEMESIS DESIGN SYSTEM 1.0 - OFFICIAL REFERENCE ALIGNMENT
 
+## Continuidad consolidada A/B (vigente, 2026-09-07)
+
+**Candidato LOCAL. A: pendientes de presentacion recorridos. B: conexion
+deportiva comprobada con SIMULATED_QA; cierre global PARCIAL.**
+Los apartados siguientes a este cierre conservan el historial anterior; sus
+totales no se suman a esta ejecucion. Produccion no se ha consultado ni cambiado.
+
+### Base y huella protegida
+
+- Rama `main`; HEAD `4df7fc20e3de9cbe84d2098f3d6b3a74577631f5`.
+  El commit externo posterior a `50cced45f84f7d80e74768d11315f4ba32bdafee`
+  incorpora las dos reparaciones admin, sus 16 tests y el informe. Su padre
+  anterior `936cdc8863fba3fc967a2eeaf6b65750767766d0` no se ha revertido.
+- Indice inicialmente vacio de cambios preparados. Unico diff previo:
+  `SPORTS_DATA_LIVE_CERTIFICATION.md`, 128 altas/2 bajas, observacion DAY 4.
+  DAY 3 y DAY 4 quedan protegidos por el hash del archivo completo.
+- Salvaguarda selectiva: 12 copias, 3727 hashes, sin DB ni secretos;
+  [manifiesto previo](../.tmp_reference_review/continuity_ab/before.json).
+  A se conserva aparte antes de B en `continuity_ab/a_closed/`.
+- Unico hunk funcional de `app.py`: `admin_codex_automation_page`, llamada
+  `build_daily_report(project_root, interactive=True)`. No se afirma que TODO
+  `app.py` sea identico: los restantes handlers se comparan por AST.
+  [Verificacion](../.tmp_reference_review/continuity_ab/verification.json).
+
+### A. Causas, cambios y cobertura
+
+| Pendiente exacto | Reproduccion | Causa y correccion | Resultado local |
+|---|---|---|---|
+| `/admin/company-audit`, ADMIN, 390x844 | Espera `domcontentloaded` 15 s; handler frio 200 en 58,66 s instrumentados; `_file_stats` 51,19 s | `rglob` recorria entornos y QA antes de excluirlos. `_iter_files` poda antes de entrar, sin seguir enlaces simbolicos | Handler frio 7,41 s; caliente/vacio 0,18 s; navegador desktop/movil completa |
+| `/admin/codex-automation`, ADMIN, 1366x768 | Handler 200 en 110,74 s instrumentados; bloqueo en `audit_tree` | Inventario recursivo de entornos/datos/temporales en cada GET. Modo interactivo de fuentes, alcance parcial explicito; auditoria CLI completa conservada | 6,23 s poblado; 6,35 s vacio; navegador completa |
+| Misma ruta, ADMIN, 390x844 | Timeout independiente en la matriz anterior; mismo handler lento, no un problema de `networkidle` | Misma correccion de lectura, sin aumentar timeout | Navegador movil completa con ambos estados |
+| `/admin-bootstrap`, anonimo, 390x844 | Banner y54-76 sobre H1 y60-90, incluso scroll inicial | Faltaba `auth-hero`, contrato de espaciado ya existente. Se anade esa clase, sin otra hoja CSS | Sin solapamiento inicial ni tras volver de `/local-safe`, texto 130%; control negativo detecta banner superpuesto |
+
+Tiempos anteriores/posteriores son mediciones locales con cProfile, no TTFB
+productivo ni P95. Una primera medicion 302 se descarto por sesion QA incompleta.
+La primera poda de Codex aun tardaba 42,95-52,35 s: se corrigio la exclusion de
+`tmp`; no se marco PASS en esa iteracion. El diagnostico original del cuarto
+caso (Codex vacio) se detuvo al agotar el recorrido acotado; no se inventa su tiempo.
+Tramos SQL, runtime y filesystem: `timings_before_authenticated.json`,
+`timings_after.json`, `timings_after_pruned.json` en la evidencia privada.
+
+Inventario parcial no equivale a limpieza aprobada: Codex muestra
+`No disponible` / `No evaluado: inventario parcial`, con su alcance visible.
+No se alteran sus herramientas CLI de auditoria completa ni se elimina un check.
+
+| Familia pendiente, aliases agrupados por handler | Limite sustituido solo en QA | Cobertura |
+|---|---|---|
+| `/admin/telegram` | Creacion de suscriptor/sync de usuarios detenidos; settings preaprovisionados en DB QA; diagnostico/consultas/template reales | Presentacion poblada/vacia, desktop/movil y permisos; envios NO ejecutados |
+| `/admin/api-sports-audit` (`/admin/api-sports`) | Dos sincronizadores exigen `dry_run=True` y devuelven `NOT_RUN_QA_BOUNDARY` | Handler, auth, cache QA y template reales; proveedor NO verificado |
+| `/admin/sentinel-workflow` (issue-to-improvement/fix-pipeline) | Ejecucion del ciclo sustituida por resultado tipado NOT_RUN; constructor workflow real | Presentacion y permisos; jobs NO ejecutados |
+| `/admin/visual-worker` (company-worker/app-worker/qa-visual/visual-inspector) | Ejecucion de rutas del worker no se lanza; constructor de resumen real | Presentacion y permisos; inspeccion automatica interna NO ejecutada |
+| `/admin/sentinel-autopilot` (autopilot/self-improvement/mejoras-automaticas) | Inspecciones de rutas detenidas; agregador real; memoria dirigida a QA | Presentacion y permisos; memoria operativa y acciones NO ejecutadas |
+
+32 observaciones A = 8 rutas representativas x 2 escenarios x 2 viewports.
+Son 5 familias sensibles completadas en PRESENTACION, no 32 familias ni cinco
+integraciones externas certificadas. Las acciones reales siguen NOT_RUN por
+autorizacion. No se visitan sus destinos productivos para compensarlo.
+La matriz de 146 familias conserva sus observaciones historicas y anade
+`continuity_ab_observations`; tener observacion no significa PASS global.
+No se vuelve a certificar todo el producto ni todos los tiers.
+
+37/37 focal A (21 nuevos + los 16 consumidores admin previos).
+Una iteracion fallo en 14 preparaciones por instrumentar un import local como
+atributo global; se corrigio el arnes, no permisos ni comportamiento.
+Regresiones: poda antes del recorrido, fuentes legitimas conservadas, auditoria
+CLI aun detecta temporales, excepcion real no silenciada, auth antes de jobs,
+bootstrap con banner y deteccion negativa permanente en runner de navegador.
+
+### B. Una entidad, almacenamiento y consumidor real
+
+**SIMULATED_QA**, no replay de una respuesta real del proveedor.
+`idEvent=QA-VERTICAL-BROWSER` normalizado por `sportsdb_event_to_match` produce
+`sportsdb-299e05172e55b0f1f5`; competicion 4335, temporada 2026-2027.
+Se suministra respuesta sintetica con estado LIVE, marcador 0-1, minuto 67 y
+reloj de observacion explicito; no se consulta ninguna API.
+
+Cadena ejercitada:
+`respuesta con forma TheSportsDB -> adaptador existente -> upsert_sportsdb_matches
+-> matches -> MATCH-STATUS-TRUTH-V2 -> contextos reales -> HTML/navegador`.
+Rama historica de la MISMA identidad: extracto exclusivamente deportivo en DB
+temporal -> `snapshot_warehouse` -> `warehouse_match_facts.payload_json`.
+Home NO consume esa tabla historica: no se presenta la rama como conexion inexistente.
+
+Primer enlace defectuoso de la rama historica reproducido: `as_float(score)`
+transformaba NULL en 0.0, aunque `result_label` seguia `unknown`. Se usa el default
+None en esas DOS conversiones, conservando el 0-0 confirmado. Ademas, repetir
+snapshot dentro del mismo segundo provocaba `UNIQUE warehouse_sync_runs.id`.
+Ahora cada invocacion tiene ID propio; el partido mantiene su ID estable.
+Dos importaciones producen una fila de partido. Una correccion actualiza esa
+fila; tres invocaciones dejan tres registros de ejecucion, no tres partidos.
+No cambia schema, criterio LIVE, marcador operativo, picks ni liquidaciones.
+
+| Superficie realmente leida | Revision fresca | Revision stale del mismo ID |
+|---|---|---|
+| Home `/app` | Dos apariciones de la misma entidad, 0-1, 67', canonical LIVE | Ausente del listado observado |
+| `/live` | Una tarjeta, 0-1, 67', canonical LIVE | Ausente correctamente |
+| `/calendar` | Incluida, 0-1, 67', hora Madrid | Ausente bajo los filtros observados |
+| `/partidos` | Incluida, 0-1, 67', hora Madrid | Ausente bajo los filtros observados |
+| `/match/{id}` | Header 0-1 / 67 / En directo | Identidad y 0-1 conservados; Actualizacion pendiente; canonical LIVE=false |
+
+20 observaciones finales B = 5 superficies x 2 revisiones x 2 viewports.
+Cada template registra su payload real y cada captura selecciona el ID exacto.
+No se duplico un payload bajo cinco nombres; multiples referencias internas al
+mismo ID no se cuentan como partidos distintos. Misma hora de QA congelada;
+revision fresca observada hace 20 s, revision stale hace 600 s, declaradas distintas.
+El primer guardado de evidencia fallo por encoding; otra iteracion seleccionaba
+el primer `[data-canonical-live]` en lugar de la entidad: se corrigieron ambos
+arneses y se conservaron las iteraciones, sin reutilizarlas como cierre.
+
+**Salvedad de solo lectura, NO ocultada:** el hash SQLite cambio durante el
+recorrido. Comparacion de tablas en una nueva muestra de cinco rutas:
+`client_profiles` 1->2, `live_sync_state` 0->1, `persistent_cache` 0->1.
+Las demas tablas permanecieron identicas, incluidos partidos, usuarios, picks
+y membresias. Es una escritura real en DB QA al primer acceso, no solo WAL.
+No se certifica cero mutaciones de negocio para un usuario sin perfil previo.
+No se ha cambiado la logica sensible de perfiles/auth para hacer pasar el gate.
+Es un hallazgo LOCAL pendiente de revision acotada, no incidente productivo demostrado.
+
+El detalle stale tambien conserva texto de un snapshot en la cronologia y una
+frase de resumen `tienen un partido programado`; eso no prueba FT ni un evento
+de gol y requiere revision del relato por separado. No se amplia Summary Truth
+en esta reparacion historica. No hay cobertura real nueva de eventos/alineaciones.
+
+Evidencias: `continuity_b_final_fresh_trace.json`,
+`continuity_b_final_stale_trace.json`, `continuity_b_logical_read_check_trace.json`.
+Los tests verifican marcador parcial/ausente/0-0, correccion e idempotencia,
+LIVE reciente/stale/futuro/sin reloj, descanso, aplazado y terminal; raw del evento
+5 separado del reloj de encuentro 91, sin convertirlo en 90+1; temporada e ID
+conservados. Leer/copiar el payload no cambia `last_synced_at` ni su vigencia.
+
+### Inventario contrastado, no configuracion supuesta
+
+| Pieza | Implementado/conectado | Ejecutado/verificado en esta entrega |
+|---|---|---|
+| TheSportsDB | Adaptador/upsert en app.py, matches/live_matches/raw_json/last_synced_at; Home, Live, Calendar, Partidos y Match | Cadena SIMULATED_QA descrita; autenticacion, plan y respuesta nueva reales NO comprobados |
+| API-Sports/API-Football | api_sports_provider_engine, api_football_live_tracker_engine; snapshots/events/stats y matches; sync/detail/window disponibles | Tests vigentes locales; sincronizacion NO ejecutada. Cuota agotada es una observacion historica, no lectura actual |
+| The Odds API | Integracion existente y snapshots de cuotas; consumidor de picks/SHARK | No nuevas observaciones ni llamadas; mercados/cuota/plan actuales NO comprobados |
+| historical_warehouse_engine | Snapshot y resumen implementados; no se encontraron llamadas desde app/rutas/herramientas actuales | Snapshot en DB solo deportiva de QA y regresiones; produccion NO verificada |
+| football_data_warehouse_engine | Normalizadores, upsert por provider/external_id; fixtures/events/lineups/standings/team history | Inspeccion de codigo; no llamadas efectivas encontradas fuera del propio modulo; no sync ejecutado |
+| shark_historical_intelligence_engine | Derivados desde football_matches_history; hechos/equipos/ligas | No conexion actual encontrada desde app; no reconstruccion ejecutada. Otro default de marcador a cero en `_build_match_facts` queda identificado, fuera de la unica rama corregida |
+| match_context_engine | Conectado al Match Center vigente y contratos/consumidores existentes | HTML real local observado; no reconstruido ni conectado artificialmente al warehouse legacy |
+| autonomous_product_qa_engine / sentinel_autopilot_engine / runner existente | Contratos de hallazgos, memoria, dedupe y agregacion presentes | Reutilizacion en QA; no nuevo worker, scheduler ni bucle autonomo |
+
+Defaults de codigo, NO valores Render comprobados: V934 polling 45 s con LIVE /
+180 s sin LIVE, cache de match 15 s; API-Sports TTL default 900 s. Warehouse
+football default limit 500, -3/+7 dias e include_api_football=True; NO se invoco.
+La ultima evidencia real consultada es DAY 4 ya guardada en SPORTS_DATA_LIVE_CERTIFICATION:
+2026-09-07 22:33-22:38 Madrid, base 4df7fc20; no se transforma en prueba del candidato.
+Provider_updated_at no establecido en la muestra; last_synced_at procede de
+observacion autorizada en el adaptador; snapshot_at es persistencia historica,
+updated_at generico no sustituye el reloj de Sports Truth. No se inventan segundos.
+
+### Piloto historico preparado, NO activado
+
+- Propuesta acotada: TheSportsDB, LaLiga ID4335, temporada 2026-2027,
+  maximo 10 partidos finalizados ya identificados; primero extracto saneado
+  autorizado, sin nuevas peticiones. Nada de temporadas completas ni scraping.
+- Antes de ingerir: confirmar terminos/contrato de almacenamiento, retencion,
+  uso comercial y atribucion. La politica existente remite a documentacion y
+  `https://www.thesportsdb.com/docs_terms_of_use.php`, revision historica 2026-08-30;
+  NO se han revalidado los terminos en esta entrega. No hay permiso de retencion
+  comercial demostrado aqui: piloto BLOQUEADO por esa evidencia, no aprobado.
+- Campos: provider/external_id/canonical_match_id, competicion/temporada, kickoff,
+  estado/marcador nullable, raw permitido, fuente y relojes separados. Correcciones
+  mantienen identidad. No usar conocimiento posterior para analizar una previa.
+- El snapshot V572 reemplaza hechos por match_id; conserva ultimo estado, NO un
+  historial inmutable de todas las revisiones. Football DW dispone de claves
+  provider/external_id y snapshots separados; NO hay cursor reanudable ni
+  presupuesto historico reservado demostrado. No se simulan como completados.
+- Retencion/backup configurados en produccion NO comprobados. Ningun cambio de
+  politica ni copia de DB. Las frases fijas `Fuente autorizada`/`legal_note` del
+  codigo son anotaciones, NO prueba de licencia. No se adquiere propiedad de datos
+  ajenos por almacenarlos. Medios y binarios excluidos del piloto.
+
+### Workforce, QA y limites del cierre
+
+Se reutiliza `record_product_qa_run` con storage_root privado. Replay dos veces
+del hallazgo real de layout permite comprobar una issue deduplicada con dos
+registros; no equivale a dos fallos nuevos ni trabajadores activos. Memoria
+operativa, Product Memory productiva y decisiones artisticas intactas.
+Falta un contrato de propuesta/parche aislado y revision para cerrar el bucle;
+propuesta NO programada: editor unico por archivo, dos intentos maximos y
+presupuesto explicito. El reparador no puede cambiar sus criterios ni permisos.
+
+Suite completa final: **527/527**, cero fallos, errores u omisiones, 186,892 s;
+una sola ejecucion completa tras el ultimo cambio de codigo. Jinja 199/199,
+py_compile de fuentes tocadas y compileall de engines/services/blueprints/tools/tests.
+Privacy/Secret Guard sobre 9 rutas de codigo/template/test del diff: cero hallazgos.
+Red externa: cero intentos observados en el proceso de suite; los runners de
+navegador registran bloqueos de escritura fuera de QA vacios y cero intentos externos.
+Advertencias no funcionales de pytest: cache no escribible por permisos; no se
+desactivaron controles ni se cambiaron permisos para evitarlas. Evidencia:
+[conteos exactos](../.tmp_reference_review/continuity_ab/test_counts.json),
+[XML final](../.tmp_reference_review/continuity_ab/full_final.xml),
+[privacidad saneada](../.tmp_reference_review/continuity_ab/privacy_redacted.json).
+No sumar ejecuciones focales al total final. Los subprocesos de QA de Local Safe
+usan DB/PID en data/local_dev y comprueban bloqueo de red, sync, Telegram y Stripe.
+No se ejecutaron generadores V915/V938 de informes historicos.
+
+[Galeria real local](../.tmp_reference_review/continuity_ab/index.html).
+Tiburon y fondo siguen PENDIENTES DE REVISION HUMANA, sin regeneracion.
+No se certifica lanzamiento comercial, proveedor, produccion ni cero gasto total
+del sistema. Acciones de compra/pago/infraestructura iniciadas: ninguna.
+Sin staging, commit, push, PR, merge, deploy, servicios, cron ni ZIP de aplicacion.
+
+Siguientes acciones (maximo tres): revisar la escritura de perfil/cache en GET
+mediante encargo propio; aportar extracto/permiso de retencion para el piloto
+acotado; revisar candidato y arte con el fundador antes de cualquier publicacion.
+
 ## Cierre local de errores admin y cobertura pendiente (vigente, 2026-09-07)
 
 **Dos errores de contexto corregidos y validados LOCALMENTE. Estado global: PARCIAL.**

@@ -134,6 +134,19 @@ def main():
                     computed=page.evaluate("""() => ['main','main h1','.grid.compact-grid','.metric'].map(selector=>{const n=document.querySelector(selector);if(!n)return {selector};const s=getComputedStyle(n);const rules=[];function scan(list){for(const r of list){if(r.selectorText){try{if(n.matches(r.selectorText)&&/padding|font-size|grid-template-columns|border/.test(r.style.cssText))rules.push(r.cssText)}catch{}}else if(r.cssRules)scan(r.cssRules)}}for(const sheet of document.styleSheets){try{scan(sheet.cssRules)}catch{}}return {selector,classes:n.className,padding:s.paddingTop,font:s.fontSize,grid:s.gridTemplateColumns,border:s.border,rules:rules.slice(-18)}})""")
                     shot=output/f"{key}_{width}.png"
                     page.screenshot(path=str(shot))
+                    bootstrap_checks = {}
+                    if route == '/admin-bootstrap' and width <= 430:
+                        page.evaluate('window.scrollTo(0,500)')
+                        page.goto(url+'/local-safe', wait_until='domcontentloaded', timeout=15000)
+                        page.go_back(wait_until='domcontentloaded', timeout=15000)
+                        page.evaluate('window.scrollTo(0,0)')
+                        page.locator('main h1').evaluate("n => n.style.fontSize = (parseFloat(getComputedStyle(n).fontSize)*1.3)+'px'")
+                        bootstrap_checks['return_text130'] = qa.inspect_text_geometry(page)
+                        page.screenshot(path=str(output/f'{key}_{width}_text130.png'))
+                        banner = page.locator('[data-local-safe-banner]')
+                        banner.evaluate("n => {n.style.height='400px';n.style.zIndex='99999'}")
+                        bootstrap_checks['negative_overlap_detected'] = qa.inspect_text_geometry(page)['heading_covered']
+                        banner.evaluate("n => {n.style.removeProperty('height');n.style.removeProperty('z-index')}")
                     row={"surface":key,"route":route,"role":role,"viewport":[width,height],
                         "scenario":"SIMULATED_QA_"+args.scenario.upper(),"clock":(FIXED+FrozenDatetime.offset).isoformat(),
                         "tree":qa._visual_tree_fingerprint(),"http":response.status,
@@ -143,6 +156,8 @@ def main():
                         "final_path":urlparse(page.url).path,
                         "heading":page.locator('main h1:not(.sr-only)').all_text_contents(),
                         "overflow":page.evaluate("document.documentElement.scrollWidth>innerWidth+1")}
+                    if bootstrap_checks:
+                        row['bootstrap_checks'] = bootstrap_checks
                     if key=="track_record":
                         row["text"]=page.locator(".v933-track-record").inner_text()
                         with module.app.test_request_context("/track-record"):
@@ -199,6 +214,7 @@ def main():
         "interactions":interactions,"page_errors":errors}
     (output/"evidence.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
     failures=[r["surface"]+str(r["viewport"]) for r in rows if not r["http"] or r["http"]>=500 or r["overflow"]
+        or (r.get('bootstrap_checks') and (r['bootstrap_checks']['return_text130']['heading_covered'] or not r['bootstrap_checks']['negative_overlap_detected']))
         or r["geometry"]["match_text_status"] == "FAIL" or r["geometry"]["heading_covered"]
         or r.get("enlarged",{}).get("match_text_overlap")
         or (r.get("primary_action") and not r["primary_action"]["visible"])

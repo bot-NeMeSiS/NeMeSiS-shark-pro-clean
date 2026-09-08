@@ -20,7 +20,7 @@
     <span class="pill">{{ version }}</span>
   </div>
   <div class="grid compact-grid">
-    <article class="card"><strong>{{ report.cleanliness.score }}/100</strong><p class="small">limpieza del proyecto</p></article>
+    <article class="card"><strong>{{ (report.cleanliness.score|string ~ '/100') if report.cleanliness.score is not none else 'No disponible' }}</strong><p class="small">limpieza del proyecto</p></article>
     <article class="card"><strong>{{ report.cleanliness.status }}</strong><p class="small">estado general</p></article>
     <article class="card"><strong>{{ report.zip.name or 'Sin ZIP' }}</strong><p class="small">último ZIP Listo para Render</p></article>
     <article class="card"><strong>{{ report.data_memory.status }}</strong><p class="small">memoria de datos</p></article>
@@ -29,6 +29,9 @@
 
 <section class="band compact-band">
   <div class="section-head"><h2>Módulos activos, hora y release</h2><span class="pill">{{ report.timezone.timezone }}</span></div>
+  {% if report.audit.scope == 'INTERACTIVE_SOURCE_ONLY' %}
+  <p class="notice">Inventario interactivo de fuentes. No recorre entornos, datos locales ni evidencias temporales; no certifica la limpieza completa del proyecto.</p>
+  {% endif %}
   <div class="grid compact-grid">
     <article class="card"><strong>{% if report.timezone.selftest_ok %}OK{% else %}Revisar{% endif %}</strong><p class="small">hora Europe/Madrid</p></article>
     <article class="card"><strong>{% if report.zip.outside_project %}Externo{% else %}Fallback{% endif %}</strong><p class="small">ubicación ZIP</p></article>

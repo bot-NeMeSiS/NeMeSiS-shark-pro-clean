@@ -46,8 +46,19 @@ def classify_path(path: Path, root: Path) -> dict:
         return {"path": rel, "size": size, "category": "NECESARIO", "reason": "archivo/carpeta activo del proyecto", "action": "conservar", "risk": "bajo", "auto_delete": False}
     return {"path": rel, "size": size, "category": "DUDOSO_REVISAR", "reason": "no clasificado como producción ni basura segura", "action": "revisar manualmente", "risk": "medio", "auto_delete": False}
 
-def audit_tree(root: Path) -> dict:
-    files = [p for p in root.rglob("*") if p.is_file()]
+def audit_tree(root: Path, *, interactive: bool = False) -> dict:
+    excluded = []
+    if interactive:
+        files = []
+        for directory, dirs, names in os.walk(root, followlinks=False):
+            base = Path(directory)
+            for name in list(dirs):
+                if name in FORBIDDEN_DIRS | {'tmp', '.cache', 'data', 'browser_qa', 'reference_images', 'REFERENCE_ONLY'} or name.startswith('.tmp') or (base / name).is_symlink():
+                    excluded.append((base / name).relative_to(root).as_posix())
+                    dirs.remove(name)
+            files.extend(base / name for name in names if not (base / name).is_symlink())
+    else:
+        files = [p for p in root.rglob("*") if p.is_file()]
     items = [classify_path(p, root) for p in files]
     by_category: dict[str, int] = {}
     for item in items:
@@ -57,6 +68,9 @@ def audit_tree(root: Path) -> dict:
         top = p.relative_to(root).parts[0] if p.relative_to(root).parts else "."
         folders[top] = folders.get(top, 0) + p.stat().st_size
     return {
+        "scope": "INTERACTIVE_SOURCE_ONLY" if interactive else "FULL_TREE",
+        "complete": not interactive,
+        "excluded_directories": sorted(excluded),
         "root": str(root),
         "version": project_version(root),
         "generated_at": datetime.now(TZ).isoformat(timespec="seconds"),
@@ -196,9 +210,11 @@ def recommendations(root: Path, audit: dict | None = None) -> list[str]:
     return recs
 
 
-def build_daily_report(root: Path) -> dict:
-    audit = audit_tree(root)
+def build_daily_report(root: Path, *, interactive: bool = False) -> dict:
+    audit = audit_tree(root, interactive=interactive)
     clean = cleanliness_status(audit)
+    if interactive:
+        clean = {"score": None, "status": "No evaluado: inventario parcial"}
     return {
         "version": project_version(root),
         "generated_at": datetime.now(TZ).isoformat(timespec="seconds"),

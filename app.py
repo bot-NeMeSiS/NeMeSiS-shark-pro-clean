@@ -25628,7 +25628,7 @@ def admin_codex_automation_page():
     from engines.codex_daily_automation_engine import build_daily_report, prompt_from_report
 
     project_root = Path(os.path.dirname(os.path.abspath(__file__)))
-    report = build_daily_report(project_root)
+    report = build_daily_report(project_root, interactive=True)
     prompt = prompt_from_report(report)
     return render_template(
         "admin_codex_automation.html",

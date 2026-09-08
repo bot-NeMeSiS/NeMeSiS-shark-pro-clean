@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from uuid import uuid4
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 
@@ -220,7 +221,7 @@ def snapshot_warehouse(db_path: str, limit: int = 250) -> Dict[str, Any]:
         cur.execute("""INSERT OR REPLACE INTO warehouse_match_facts
             (id,match_id,match_date,kickoff_iso,league_name,country,home_team,away_team,status,minute,home_score,away_score,result_label,has_live,has_odds,has_pick,source,payload_json,snapshot_at,updated_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (stable_id("wm", match_id), match_id, m.get("match_date"), m.get("kickoff_iso"), m.get("league_name") or m.get("competition_name"), m.get("country"), m.get("home_team"), m.get("away_team"), m.get("status"), m.get("minute"), as_float(home_score), as_float(away_score), result_label(home_score, away_score), has_live, has_odds, has_pick, m.get("source"), json_dumps(m), started, m.get("updated_at") or started))
+            (stable_id("wm", match_id), match_id, m.get("match_date"), m.get("kickoff_iso"), m.get("league_name") or m.get("competition_name"), m.get("country"), m.get("home_team"), m.get("away_team"), m.get("status"), m.get("minute"), as_float(home_score, None), as_float(away_score, None), result_label(home_score, away_score), has_live, has_odds, has_pick, m.get("source"), json_dumps(m), started, m.get("updated_at") or started))
         counts["matches"] += 1
 
     for o in rows(conn, "SELECT * FROM odds_snapshots ORDER BY created_at DESC LIMIT ?", (int(limit),)):
@@ -271,7 +272,9 @@ def snapshot_warehouse(db_path: str, limit: int = 250) -> Dict[str, Any]:
         (metric_date, metrics["matches_total"], metrics["live_total"], metrics["finished_total"], metrics["odds_total"], metrics["picks_total"], metrics["users_active"], metrics["telegram_queue_pending"], metrics["data_quality_score"], json_dumps(metrics), started))
     counts["daily"] = 1
 
-    run_id = stable_id("wr", started, json_dumps(counts))
+    # Invocations within the same second share a clock, not an execution ID.
+    # Match facts remain keyed by canonical match identity.
+    run_id = stable_id("wr", started, uuid4().hex)
     cur.execute("""INSERT INTO warehouse_sync_runs(id,run_type,status,inserted,updated,skipped,details_json,started_at,finished_at)
         VALUES (?,?,?,?,?,?,?,?,?)""", (run_id, "snapshot", "OK", sum(counts.values()), counts["matches"], 0, json_dumps(counts), started, utc_now()))
     conn.commit()

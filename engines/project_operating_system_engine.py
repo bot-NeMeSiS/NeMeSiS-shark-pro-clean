@@ -159,13 +159,18 @@ def _skip_parts(relative: Path, *, include_evidence: bool = False) -> bool:
 
 
 def _iter_files(root: Path, *, include_evidence: bool = False) -> Iterable[Path]:
-    for path in root.rglob("*"):
-        if not path.is_file():
-            continue
-        relative = path.relative_to(root)
-        if _skip_parts(relative, include_evidence=include_evidence):
-            continue
-        yield path
+    # Prune before traversal; filtering rglob afterwards still scans environments
+    # and private browser evidence on every cold dashboard request.
+    for directory, dirs, names in os.walk(root, followlinks=False):
+        base = Path(directory)
+        dirs[:] = [name for name in dirs
+                   if not name.startswith('.tmp')
+                   and not (base / name).is_symlink()
+                   and not _skip_parts((base / name).relative_to(root), include_evidence=include_evidence)]
+        for name in names:
+            path = base / name
+            if not path.is_symlink() and not _skip_parts(path.relative_to(root), include_evidence=include_evidence):
+                yield path
 
 
 def _git(root: Path, *args: str) -> str:

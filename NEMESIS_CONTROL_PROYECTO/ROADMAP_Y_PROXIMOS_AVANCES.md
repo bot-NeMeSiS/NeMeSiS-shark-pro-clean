@@ -1,5 +1,27 @@
 # Roadmap y Proximos Avances
 
+## Actualizacion local 2026-09-07: continuidad A/B
+
+Base real `4df7fc20e3de9cbe84d2098f3d6b3a74577631f5`; el tablero historico
+inferior se conserva y estas anotaciones prevalecen para el candidato actual.
+Informe unico: [cierre A/B](../reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md).
+
+| ID existente | Estado actual del incremento | Evidencia / siguiente accion |
+|---|---|---|
+| NEM-01 | VALIDADO LOCAL | Salvaguardas selectivas before.json/a_closed; DAY 3 y DAY 4 protegidos, indice sin staging |
+| NEM-02 | VALIDADO LOCAL | Sports Truth sin cambios de motor; nueva traza SIMULATED_QA e historico nullable; no certificacion productiva del diff |
+| NEM-03 | BLOQUEADO POR AUTORIZACION | No commit/push/deploy. Revisar candidato, autorizar por separado y usar PR + checks antes de promocion |
+| NEM-04 | EN DESARROLLO | Plan/cuota reales no consultados. Piloto max10 partidos LaLiga 2026-2027 condicionado a extracto autorizado y derechos de retencion |
+| NEM-05 | EN DESARROLLO | Primera visita local escribe client_profiles y cache/estado; revisar lectura y provisionado en trabajo acotado, sin modificar auth aqui |
+| NEM-08 | VALIDADO LOCAL PARCIAL | Misma entidad en cinco superficies; snapshot historico conserva NULL/0 e idempotencia. Almacenes legacy no se declaran conectados |
+| NEM-09 | VALIDADO LOCAL (presentacion focal) | Tres timeouts y bootstrap resueltos en muestra; 5 familias sensibles recorridas con limites QA. Acciones reales NOT_RUN, marca pendiente humana |
+| NEM-10 | PROPUESTO | Memoria de hallazgos deduplicada solo en QA; reparador/editor unico y dos intentos siguen propuesta, no worker activado |
+| NEM-11 | BLOQUEADO | Sin lanzamiento comercial, cobros, Telegram comercial ni permiso de nuevas llamadas |
+
+Responsables conservados del tablero: Codex/QA integra y prueba; Datos prepara
+el piloto; Founder autoriza permisos, arte y publicacion. Aceptacion de B sigue
+parcial hasta resolver la salvedad de escrituras al primer acceso y la muestra real.
+
 Fecha de conciliacion: 2026-09-06 (Europe/Madrid).
 
 La prioridad de desarrollo no equivale a severidad de incidencia. `PUBLICADO`
