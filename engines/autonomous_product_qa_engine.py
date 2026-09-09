@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from engines.reference_image_manifest_engine import build_creative_design_status
+
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 AUTONOMOUS_PRODUCT_QA_CONTRACT = "NEMESIS-AUTONOMOUS-PRODUCT-QA-WORKFORCE-V1"
@@ -1154,6 +1156,24 @@ def record_product_qa_run(
         "regression_manager": regression_manager,
         "production_sentinel": production_sentinel,
     }
+    creative = build_creative_design_status(
+        project_root or Path(__file__).resolve().parents[1], issues=list(previous.values()),
+        reviews=observation.get("design_reviews") or [],
+    )
+    latest["creative_design"] = creative
+    # Decisions are versioned with the existing memory, never by a render request.
+    if creative.get("contract_available"):
+        history = memory.setdefault("design_decisions", [])
+        if not any(item.get("fingerprint") == creative["contract_fingerprint"] for item in history):
+            history.append({"fingerprint": creative["contract_fingerprint"], "recorded_at": at,
+                            "authority": creative["authority"], "decisions": creative["design_memory"]})
+    latest["design_reviews"] = [
+        {key: review.get(key) for key in (
+            "screen_id", "contract_fingerprint", "candidate_revision", "observed_at", "viewport",
+            "screenshots", "reference_id", "reference_comparison", "functional_qa", "visual_qa", "design_status",
+        )}
+        for review in (observation.get("design_reviews") or []) if isinstance(review, dict)
+    ]
     if write:
         paths["history"].mkdir(parents=True, exist_ok=True)
         _write_json(paths["history"] / f"{run_id}.json", latest)
@@ -1270,6 +1290,9 @@ def build_autonomous_product_qa_status(
         "regression_manager": regression_manager,
         "production_sentinel": production_sentinel,
         "dangerous_actions_executed": False,
+        "creative_design": build_creative_design_status(
+            project_root or Path(__file__).resolve().parents[1], issues=issues, reviews=latest.get("design_reviews") or [],
+        ),
     }
 
 

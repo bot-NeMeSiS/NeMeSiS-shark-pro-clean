@@ -31,6 +31,8 @@ DONE siempre indica alcance/evidencia; DONE local no significa publicado.
 | AI-001 | BACKLOG | SHARK / Datos | LOCAL_ONLY | Hechos normalizados ya presentes; demostrar input real antes de otra inferencia |
 | UX-001 | BLOCKED | Founder | NOT_TESTED | Decision artistica SHARK/fondo; no automated override |
 | UX-002 | BLOCKED | Codex / Release | LOCAL_ONLY | App icons implementados, cdd88e50 en PR #9; 139/139 focales. Produccion bloqueada por preflight/smoke previos; no bypass ni otra capacidad |
+| UX-003 | DONE | Codex / QA | LOCAL_ONLY | Creative & Design formalizado en ejecutores existentes; 16 referencias, 7 roles y Founder. No aprobacion visual ni despliegue |
+| QA-002 | BLOCKED | Codex / Release | LOCAL_ONLY | Smoke: dependencia corregida sin commit; V944: falta evidencia real generada en CI. 623 tests: 611 PASS, 12 LOCAL_SAFE_BLOCKED. Revisar antes de continuar |
 | QA-001 | BLOCKED | QA / Plataforma | LOCAL_SAFE_BLOCKED | 12 positivos de SE; arnes heredable, PID exclusivo, sin quitar LOCAL SAFE |
 | OPS-001 | BLOCKED | Release / Founder | NOT_TESTED | Autorizacion candidato, rama + PR + checks, luego Sentinel SHA efectivo |
 | OPS-002 | QA | Codex | LOCAL_ONLY | Higiene CX: referencias/ignore/retirada cache y huellas, sin codigo funcional |

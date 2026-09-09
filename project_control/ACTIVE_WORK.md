@@ -1,5 +1,15 @@
 # Active Work
 
+## Cierre vigente: UX-003 / QA-002
+
+Reconciliacion local de Creative & Design, APP ICON y gates de CI.
+Creative formalizado y probado LOCAL_ONLY; QA-002 BLOCKED por evidencia V944 y
+verificacion CI pendiente. El arreglo de dependencias smoke queda sin commit.
+No iniciar CX-ORG-01 R2 ni RESULTS hasta revision de este cierre.
+Resumen unico: [Producto/Visual](domains/PRODUCT_VISUAL.md#reconciliacion-ux-002--ux-003--qa-002).
+HEAD/remote branch 6858aedb, main c6eaa003; commit externo no equivale a merge.
+Todo lo siguiente conserva su alcance historico, no contradice esta reconciliacion.
+
 ## UX-002 / App Icon Identity
 
 Estado: **BLOCKED** para produccion; implementacion y pruebas locales completadas.
@@ -11,8 +21,8 @@ diff-check y performance SHARK local correctos. Suite combinada 590/602 PASS,
 12 bloqueos previos LOCAL SAFE, 0 errors; no PASS global.
 Bloqueos CI preexistentes reproducidos en logs base/nuevo: Playwright falta en
 smoke; preflight exige resultado Browser QA V944 no generado por el workflow.
-No eliminar checks, copiar evidencias antiguas ni hacer bypass. Reparacion CI
-requiere alcance separado. Render workspace aun sin confirmacion; no deploy.
+No eliminar checks, copiar evidencias antiguas ni hacer bypass. La reparacion CI
+fue autorizada despues y queda reflejada arriba. Render aun sin confirmacion; no deploy.
 Evidencia privada: `.tmp_reference_review/app_icon_20260909/`; no incluir en PR.
 Todos los temporales DB de esta QA retirados tras terminar los procesos.
 Se detiene aqui; no iniciar CX-RESULTS ni otra limpieza.

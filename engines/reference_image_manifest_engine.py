@@ -7,7 +7,7 @@ without real captures.
 from __future__ import annotations
 
 from datetime import datetime
-from hashlib import sha1
+from hashlib import sha1, sha256
 import json
 from pathlib import Path
 from typing import Any
@@ -34,6 +34,122 @@ CATEGORY_TARGETS = {
     "unknown": "producto general",
 }
 
+DESIGN_STATUSES = {
+    "DESIGN_MATCH", "MINOR_DESIGN_GAP", "DESIGN_REWORK_REQUIRED",
+    "FOUNDER_SUBJECTIVE_REVIEW",
+}
+DESIGN_AREAS = ("DESIGN_SYSTEM", "BRAND", "APP_ICON", "CLIENT", "SPORTS", "MOBILE", "ADMIN")
+
+
+def load_creative_design_contract(root: str | Path) -> dict[str, Any]:
+    """Read the versioned specification, never generate or approve references."""
+    path = Path(root) / "reference_images" / "design_contracts.json"
+    try:
+        raw = path.read_bytes()
+        contract = json.loads(raw)
+        if not isinstance(contract, dict) or contract.get("contract") != "NEMESIS-CREATIVE-DESIGN-1":
+            raise ValueError("Unknown design contract")
+        screens = []
+        for item in contract["screens"]:
+            screen = {**contract["defaults"], **contract["profiles"][item["profile"]], **item}
+            required = ("screen_id", "target_reference", "purpose", "primary_content", "components",
+                        "actions", "responsive_behavior", "brand_intensity", "sports_priority",
+                        "empty_state", "design_status", "route", "reference_file")
+            if not all(screen.get(key) for key in required) or screen["design_status"] not in DESIGN_STATUSES:
+                raise ValueError("Incomplete screen contract")
+            screens.append(screen)
+        if len({s["screen_id"] for s in screens}) != len(screens):
+            raise ValueError("Duplicate screen identity")
+        contract["screens"] = screens
+        contract["fingerprint"] = sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
+        return contract
+    except (OSError, ValueError, KeyError, TypeError):
+        return {}
+
+
+def build_creative_design_status(
+    root: str | Path, *, issues: list[dict[str, Any]] | None = None,
+    reviews: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Project existing QA evidence into independent design axes; no IO writes."""
+    base = Path(root)
+    contract = load_creative_design_contract(base)
+    screens = []
+    objective_gaps = []
+    open_issues = [i for i in (issues or []) if i.get("status") in {
+        "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "FOUNDER_REJECTED",
+    }]
+    visual_categories = {"VISUAL", "VISUAL_SHARK", "VISUAL_BACKGROUND", "UI_DENSITY",
+                         "LAYOUT_COLLISION", "MOBILE_LAYOUT", "BROKEN_IMAGE"}
+    for item in contract.get("screens", []):
+        screen = {**item, "functional_qa": "NOT_RUN", "visual_qa": "NOT_RUN",
+                  "review_revision": None, "review_viewport": None}
+        # A review is last-observed evidence, not a certification of today's tree.
+        candidates = [r for r in (reviews or []) if isinstance(r, dict) and r.get("screen_id") == item["screen_id"]
+                      and r.get("contract_fingerprint") == contract["fingerprint"]
+                      and r.get("candidate_revision") and r.get("observed_at")
+                      and r.get("viewport") and r.get("screenshots")]
+        if candidates:
+            review = candidates[-1]
+            screen["review_revision"] = str(review["candidate_revision"])[:80]
+            screen["review_viewport"] = str(review["viewport"])[:60]
+            for axis in ("functional_qa", "visual_qa"):
+                value = review.get(axis)
+                screen[axis] = value if value in {"PASS", "FAIL", "PARTIAL", "NOT_RUN"} else "NOT_RUN"
+            compared = review.get("reference_id") == item["target_reference"] and review.get("reference_comparison") is True
+            if compared and review.get("design_status") in {"MINOR_DESIGN_GAP", "DESIGN_REWORK_REQUIRED"}:
+                screen["design_status"] = review["design_status"]
+            # Automated MATCH cannot approve the brand or replace the reference.
+            screen["assessment"] = "LAST_OBSERVED_REVIEW"
+        routes = {item["route"], *item.get("aliases", [])}
+        relevant = [i for i in open_issues if i.get("category") in visual_categories
+                    and (i.get("screen") in routes or i.get("category") in {"VISUAL_SHARK", "VISUAL_BACKGROUND"})]
+        if relevant or screen["visual_qa"] == "FAIL":
+            screen["design_status"] = "DESIGN_REWORK_REQUIRED"
+        if screen["design_status"] == "DESIGN_REWORK_REQUIRED" and candidates:
+            objective_gaps.append({"id": "DESIGN_REVIEW_REWORK", "screen_id": item["screen_id"]})
+        screen["gap_ids"] = [str(i.get("issue_id") or i.get("category")) for i in relevant]
+        if not (base / item["reference_file"]).is_file():
+            screen["design_status"] = "DESIGN_REWORK_REQUIRED"
+            screen["gap_ids"].append("REFERENCE_UNAVAILABLE")
+            objective_gaps.append({"id": "REFERENCE_UNAVAILABLE", "screen_id": item["screen_id"]})
+        screens.append(screen)
+    brand_kit = []
+    for item in contract.get("brand_kit", []):
+        exists = (base / item["source"]).is_file()
+        brand_kit.append({**item, "available": exists})
+        if not exists:
+            objective_gaps.append({"id": "BRAND_ASSET_UNAVAILABLE", "screen_id": item["role"]})
+    for issue in open_issues:
+        if issue.get("category") in visual_categories:
+            objective_gaps.append({"id": str(issue.get("issue_id") or issue["category"]),
+                                   "screen_id": str(issue.get("screen") or "GLOBAL")})
+    groups = []
+    for area in DESIGN_AREAS:
+        selected = [s for s in screens if area == "DESIGN_SYSTEM"
+                    or area == s["profile"] or area == "MOBILE" and s["profile"] == "CLIENT"
+                    or area == "SPORTS" and s["screen_id"] in {"HOME", "LIVE", "MATCHES", "MATCH", "TEAM", "PLAYER", "COMPETITION"}]
+        status = "DESIGN_REWORK_REQUIRED" if any(s["design_status"] == "DESIGN_REWORK_REQUIRED" for s in selected) else "FOUNDER_SUBJECTIVE_REVIEW"
+        if selected and all(s["design_status"] in {"DESIGN_MATCH", "MINOR_DESIGN_GAP"} for s in selected):
+            status = "MINOR_DESIGN_GAP" if any(s["design_status"] == "MINOR_DESIGN_GAP" for s in selected) else "DESIGN_MATCH"
+        if area in {"BRAND", "APP_ICON"} and any(not b["available"] for b in brand_kit):
+            status = "DESIGN_REWORK_REQUIRED"
+        if area == "BRAND" and any(i.get("category") in {"VISUAL_SHARK", "VISUAL_BACKGROUND"} for i in open_issues):
+            status = "DESIGN_REWORK_REQUIRED"
+        groups.append({"area": area, "design_status": status,
+                       "assessed": sum(s["assessment"] != "NOT_TESTED" for s in selected),
+                       "screens": len(selected)})
+    return {
+        "division": "NEMESIS CREATIVE & DESIGN", "contract_available": bool(contract),
+        "contract_fingerprint": contract.get("fingerprint"),
+        "authority": contract.get("authority", []), "roles": contract.get("roles", []),
+        "design_memory": contract.get("design_memory", []), "screens": screens,
+        "brand_kit": brand_kit, "groups": groups, "objective_gaps": objective_gaps,
+        "review_pending": contract.get("review_pending", []),
+        "release_quality": "WARNING", "production_certified": False,
+        "new_processes": 0, "automatic_approval": False,
+    }
+
 REFERENCE_TARGET_OVERRIDES = {
     "reference_import_v900_01.png": ("REF-01", "Admin Dashboard", "/admin/dashboard"),
     "reference_import_v900_02.png": ("REF-02", "Telegram Command Center", "/admin/telegram/command-center"),
@@ -46,7 +162,7 @@ REFERENCE_TARGET_OVERRIDES = {
     "reference_import_v900_09.png": ("REF-09", "Directo", "/live"),
     "reference_import_v900_10.png": ("REF-10", "Partidos", "/calendar"),
     "reference_import_v900_11.png": ("REF-11", "Picks", "/picks"),
-    "reference_import_v900_12.png": ("REF-12", "SHARK", "/shark"),
+    "reference_import_v900_12.png": ("REF-12", "Match Center", "/match/m-1"),
     "reference_import_v900_13.png": ("REF-13", "Track Record", "/track-record"),
     "reference_import_v900_14.png": ("REF-14", "Memberships", "/membresias"),
     "reference_import_v900_15.png": ("REF-15", "Profile", "/profile"),
@@ -61,6 +177,7 @@ CATEGORY_CRITICAL_ELEMENTS = {
     "calendar": ["filters", "competition", "match_rows", "status", "match_navigation"],
     "picks": ["match", "selection", "odds", "shark_score", "status"],
     "shark": ["official_shark", "score", "confidence", "evidence", "risk"],
+    "match": ["competition", "teams", "score", "status", "timeline", "evidence"],
     "track-record": ["real_kpis", "filters", "results", "honest_empty_state"],
     "memberships": ["free", "pro", "elite", "cta"],
     "profile": ["identity", "plan", "security", "preferences", "logout"],
@@ -124,6 +241,16 @@ def classify_reference_image(path: Path, root: str | Path) -> dict[str, Any]:
         category.replace("-", " ").title(),
         CATEGORY_TARGETS.get(category, "producto general"),
     )
+    # Imported folder names are historical; the inspected specification owns mapping.
+    contract_screen = next((s for s in load_creative_design_contract(base).get("screens", [])
+                            if s["reference_file"] == rel and s["reference_relation"] == "DIRECT"), None)
+    if contract_screen:
+        reference_id = contract_screen["target_reference"]
+        if "<" not in contract_screen["route"]:
+            screen_target = contract_screen["route"]
+        category = "admin" if contract_screen["profile"] == "ADMIN" else category
+        if contract_screen["screen_id"] == "MATCH":
+            category = "match"
     secondary: list[str] = []
     if category not in {"admin", "unknown"} and dims.get("width") and dims.get("height") and int(dims["width"] or 0) > int(dims["height"] or 0):
         secondary.extend(["desktop", "mobile"])
@@ -138,7 +265,9 @@ def classify_reference_image(path: Path, root: str | Path) -> dict[str, Any]:
         "critical_elements": CATEGORY_CRITICAL_ELEMENTS.get(category, ["background", "navigation", "cards", "typography"]),
         "secondary_categories": secondary,
         "screen_target": screen_target,
-        "notes": "Clasificada por carpeta/nombre; requiere browser QA para comparacion real.",
+        "canonical_route": contract_screen["route"] if contract_screen else screen_target,
+        "notes": ("Asignacion del contrato inspeccionado; no implica aprobacion visual."
+                  if contract_screen else "Clasificada por carpeta/nombre; requiere browser QA para comparacion real."),
         "priority": priority,
         "size_bytes": path.stat().st_size,
         "width": dims.get("width"),

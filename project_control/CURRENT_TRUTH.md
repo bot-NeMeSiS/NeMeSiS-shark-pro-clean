@@ -1,7 +1,7 @@
 # Current Truth
 
 Hechos con alcance; no guardar credenciales, PII, logs completos ni DB aqui.
-Actualizacion: 2026-09-09, UX-002. Alias de coordinacion conservados.
+Actualizacion: 2026-09-09, UX-002/UX-003/QA-002. Alias conservados.
 
 ## Identidad
 
@@ -9,14 +9,14 @@ Actualizacion: 2026-09-09, UX-002. Alias de coordinacion conservados.
 |---|---|---|
 | PRODUCTION_SHA | `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04` | DAY 5: runtime a 2026-09-08 22:33:49 y 22:37:56 Madrid |
 | GITHUB_SHA | `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04` | GET ref heads/main, conector GitHub, 2026-09-09 |
-| LOCAL_SHA | `cdd88e507a9dd422d7e528f8eb795c2030060c3c` | codex/app-icon-identity; publicado en esa rama, no main; indice vacio |
+| LOCAL_SHA | `6858aedbbd04211500028b7aaf56c3f5980f833d` | codex/app-icon-identity; publicado en rama, no main; indice vacio, Creative/CI sin commit |
 
 [GitHub main](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/tree/main).
 Produccion actual: NOT_TESTED. Render responde `no workspace selected`;
 requiere confirmacion del workspace `NeMeSiS's workspace` antes de consultar.
 No se ha seleccionado, cambiado configuracion ni llamado endpoints deportivos.
 
-## SE-01 cerrado, no publicado
+## SE-01 cerrado localmente, publicado en rama pero no main
 
 Decision: **PASS_LOCAL_SCOPE**, no PASS global ni certificacion productiva.
 Suite: 555 total, **543 PASS**, **12 LOCAL_SAFE_BLOCKED / NOT_CERTIFIED**, 0 errors,
@@ -59,10 +59,12 @@ DAY 3/4/5:
 Los 774 archivos inicialmente clasificados UNKNOWN pertenecen al inventario de
 higiene, NO a los diagnosticos SE-01. No contradicen UNKNOWN_SE01 = 0.
 
-## Iconografia UX-002
+## Iconografia UX-002: historial y reconciliacion actual
 
-[PR #9](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/pull/9), 22 rutas;
-solo iconos, metadata, generador y tests. No incluye los cambios SE/CX locales.
+[PR #9](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/pull/9): el commit
+original cdd88e50 contiene 22 rutas de iconos/metadata/generador/tests. El commit
+externo posterior 6858aedb SI incorpora SE/CX y documentacion en la misma rama.
+No describir la PR actual como un candidato exclusivamente de iconos.
 Base c6eaa003; candidato cdd88e50. Sin merge, deploy ni Sentinel productivo nuevo.
 139/139 focales sobre la combinacion publicable exacta; 602 en el arbol combinado:
 590 PASS, los mismos 12 LOCAL_SAFE_BLOCKED/NOT_CERTIFIED, 0 errors, 0 omitidos.
@@ -70,3 +72,17 @@ No sustituye ni reetiqueta la suite historica SE-01.
 GitHub qa SUCCESS; preflight FAILURE (Browser QA V944 result missing), smoke
 FAILURE (Playwright no instalado). Mismas causas verificadas en logs del SHA base.
 Instalacion nativa por SO NOT_TESTED. Detalle en [Producto/Visual](domains/PRODUCT_VISUAL.md).
+
+Relectura GitHub 2026-09-09: main=c6eaa003; rama/HEAD=6858aedb; PR abierta,
+merged=false. Cadena lineal base -> cdd88e50 -> 6858aedb; 0/2 divergencia desde
+base. El merge_commit_sha de una PR abierta no acredita un merge real.
+Runs de 6858aedb: qa 34373698530 SUCCESS; preflight 34373698511 FAILURE;
+smoke 34373698481 FAILURE; certify-production SKIPPED.
+Render actual NOT_VERIFIED: workspace no confirmado. Lectura publica de runtime
+tampoco accesible por el conector utilizado. No atribuir un SHA actual por inferencia.
+
+Creative local: 16 PNG inspeccionadas, 21 contratos (16 directos + 5 derivados),
+7 responsabilidades, cero procesos nuevos. Focal 95/95 y protegido 131/131.
+Suite final nueva 623: 611 PASS + 12 LOCAL_SAFE_BLOCKED/NOT_CERTIFIED, 0 errors.
+La suite SE historica 543/555 permanece PARCIAL; ninguna se convierte en PASS global.
+Sin modificaciones de produccion, staging, commit, push, merge, deploy ni Actions.
