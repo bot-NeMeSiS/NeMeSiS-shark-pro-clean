@@ -449,6 +449,7 @@ APP_NAME = "NeMeSiS SHARK PRO"
 APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
 
 def _raw_env_flag(name: str, default: bool = False) -> bool:
     value = os.getenv(name)
@@ -3441,6 +3442,8 @@ LIGHT_STARTUP_ENDPOINTS = {
     "team_crest_svg",
     "service_worker",
     "manifest_json",
+    "favicon_ico",
+    "apple_touch_icon",
     "static",
     "home",
 }
@@ -9863,6 +9866,7 @@ def inject_session_user():
     return {
         "current_user": user,
         "app_version": APP_VERSION,
+        "app_icon_version": APP_ICON_VERSION,
         "madrid_now": now_madrid_label(),
         "nemesis_data_confidence": get_v937_nemesis_data_confidence,
         "nemesis_attention_priority": get_v937_attention_priority,
@@ -13975,10 +13979,10 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        "const NEMESIS_CACHE='NEMESIS_CACHE_V940';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V940_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
-        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
     )
     response = Response(body, mimetype="application/javascript")
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -13988,24 +13992,33 @@ def service_worker():
 
 @app.route("/manifest.json")
 def manifest_json():
-    return jsonify({
+    response = jsonify({
         "name": "NeMeSiS SHARK PRO",
         "short_name": "NeMeSiS",
-        "description": "NeMeSiS SHARK PRO: app premium de picks, directos, SHARK IA y Telegram.",
+        "description": "Partidos, resultados y SHARK con contexto deportivo real.",
+        "id": "/",
         "start_url": "/",
         "scope": "/",
         "display": "standalone",
-        "theme_color": "#06111f",
-        "background_color": "#06111f",
+        "theme_color": "#020c18",
+        "background_color": "#020c18",
         "icons": [
             {
-                "src": "/static/img/nemesis-shark-brand.svg?v=design2-brand-1",
-                "sizes": "any",
-                "type": "image/svg+xml",
-                "purpose": "any maskable",
+                "src": url_for("static", filename=f"img/app-icons/app-icon-{size}.png", v=APP_ICON_VERSION),
+                "sizes": f"{size}x{size}", "type": "image/png", "purpose": "any",
             }
+            for size in (192, 512)
+        ] + [
+            {
+                "src": url_for("static", filename=f"img/app-icons/app-icon-maskable-{size}.png", v=APP_ICON_VERSION),
+                "sizes": f"{size}x{size}", "type": "image/png", "purpose": "maskable",
+            }
+            for size in (192, 512)
         ],
     })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.mimetype = "application/manifest+json"
+    return response
 
 
 V896_ROUTE_ALIASES = {
@@ -17380,7 +17393,12 @@ def home():
 
 @app.route("/favicon.ico")
 def favicon_ico():
-    return redirect(url_for("static", filename="img/nemesis-shark-brand.svg"))
+    return send_file(BASE_DIR / "static/img/app-icons/app-icon.ico", mimetype="image/x-icon", max_age=0)
+
+
+@app.route("/apple-touch-icon.png")
+def apple_touch_icon():
+    return send_file(BASE_DIR / "static/img/app-icons/app-icon-180.png", mimetype="image/png", max_age=0)
 
 
 COMPANY_PLATFORM_CONTRACT = "NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1"

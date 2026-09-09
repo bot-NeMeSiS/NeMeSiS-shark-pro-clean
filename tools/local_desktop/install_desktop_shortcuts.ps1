@@ -4,6 +4,8 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $desktop = [Environment]::GetFolderPath("Desktop")
 $start = Join-Path $root "tools\local_desktop\start_nemesis_local.cmd"
 $stop = Join-Path $root "tools\local_desktop\stop_nemesis_local.cmd"
+$appIcon = Join-Path $root "static\img\app-icons\app-icon.ico"
+if (-not (Test-Path -LiteralPath $appIcon -PathType Leaf)) { throw "NeMeSiS app icon is missing." }
 $wsh = New-Object -ComObject WScript.Shell
 function New-NemesisShortcut([string]$name, [string]$targetScript, [string]$arguments, [string]$description, [int]$iconIndex) {
     $path = Join-Path $desktop ($name + ".lnk")
@@ -12,7 +14,7 @@ function New-NemesisShortcut([string]$name, [string]$targetScript, [string]$argu
     $shortcut.Arguments = '/d /c ""' + $targetScript + '" ' + $arguments + '"'
     $shortcut.WorkingDirectory = $root
     $shortcut.Description = $description
-    $shortcut.IconLocation = "$env:SystemRoot\System32\shell32.dll,$iconIndex"
+    $shortcut.IconLocation = if ($targetScript -eq $start) { "$appIcon,0" } else { "$env:SystemRoot\System32\shell32.dll,$iconIndex" }
     $shortcut.WindowStyle = 1
     $shortcut.Save()
     return $path
