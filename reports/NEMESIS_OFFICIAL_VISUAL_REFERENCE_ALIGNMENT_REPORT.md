@@ -1,5 +1,324 @@
 # NEMESIS DESIGN SYSTEM 1.0 - OFFICIAL REFERENCE ALIGNMENT
 
+## Cierre exclusivo SE-01: revalidacion 2026-09-09
+
+**SE-01 PASS LOCAL DEL ALCANCE; SUITE GLOBAL PARCIAL, NO PASS.**
+Decision basada en reproduccion, no en reclasificar fallos como exitos.
+Gate: PRODUCT_REGRESSION abierta 0, UNKNOWN 0, UNEXPLAINED_FAILURES 0.
+CX-ORG-01, RESULTS-01, limpieza general y nuevos desarrollos NO INICIADOS.
+Este apartado sustituye la decision pendiente anterior, pero conserva su evidencia.
+
+### Base y alcance preservados
+
+- HEAD/main: `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04`. Origin/main en cache
+  local coincide; no se vuelve a verificar produccion ni se publica codigo.
+- Indice SHA-256 `CB703728B6319F9915AABB850C7457EB4F92316B64F9DED1F0D2E2964D7DF167`,
+  identico, cero staged. No cambio de rama ni restauracion.
+- Huella inicial de 4122 archivos tracked y el nuevo test SE-01: 4123 archivos.
+  [Manifiesto previo](../.tmp_reference_review/coord_se_01_20260909/revalidation/before.json),
+  SHA-256 `CCAE295D8C988B32E0022638AF61B5370FF7E7E20E9DA0AE49B857442D27AA8F`.
+  Copias selectivas verificadas en su subdirectorio privado `before/`.
+- DAY 3/4/5 integro: `CDDC3BEBCC65E0C5B1B36FFBF22F6CA68069D450F0DF560723DCDC67C13427A4`.
+  Ningun archivo protegido desaparece. Los cuatro modulos previos de SE-01
+  (`app.py`, sports_service, match_context, shark_historical_intelligence)
+  conservan exactamente sus bytes de entrada a esta ejecucion.
+- Nuevos cambios de producto: tres lineas en `normalize_match_entity` de
+  `engines/sports_domain_model_engine.py`. Tests: cuatro casos de procedencia,
+  cierre explicito de conexiones propias y fixture aislada del archive test.
+  Solo se actualizan estos dos documentos de control, sin sustituir historicos.
+- Huella agregada de siete fuentes/tests del candidato:
+  `EB90F91AD2E39C851A3A3ED419D509B2C9D9D8F6814D28ECD284597CE8395B63`.
+  [Verificacion y hashes completos](../.tmp_reference_review/coord_se_01_20260909/revalidation/verification.json).
+
+### Reproduccion individual y clasificacion unica
+
+Los 14 tests se ejecutaron cada uno en proceso nuevo, primero candidato y despues
+con importacion de las versiones exactas HEAD de los cuatro modulos SE-01 previos.
+No se cambio el checkout ni se sustituyo el workspace. Son comparaciones de esos
+modulos, no un segundo clon. Todos reprodujeron el mismo fallo inicial aislados;
+el archive test reprodujo tambien el teardown. No evidencia de ORDER_DEPENDENCY.
+
+| ID | Test completo | Categoria unica | Causa, prueba y resultado actual |
+|---|---|---|---|
+| F01 | `tests/test_app_imports.py::test_core_files_compile` | TEST_HARNESS_DEFECT | py_compile escribia junto al fuente fuera de la raiz QA; mismo rechazo en HEAD. Destino pycache privado en el arnes, test sin modificar. PASS final |
+| F02 | `tests/test_consolidated_visual_review.py::test_text_geometry_detects_overlap_and_accepts_separate_lines` | LOCAL_SAFE_ENVIRONMENT | Inicialmente socketpair local bloqueado. Permitido solo loopback, reaparece WinError 5 en CreateFile del pipe asyncio antes del proceso driver. No se ejecuta el detector; NOT_PASS, no evidencia de fallo visual del producto |
+| F03 | `tests/test_continuous_evolution_os.py::test_safe_production_runner_requires_safe_mode_and_persistent_storage` | LOCAL_SAFE_ENVIRONMENT | QA_PROCESS_BLOCKED antes de iniciar subprocess, candidato y HEAD. No se permite hijo sin heredar aislamiento. Positivo runner NOT_RUN |
+| F04 | `tests/test_continuous_evolution_os.py::test_continuous_evolution_web_endpoint_auth_safe_mode_and_storage` | LOCAL_SAFE_ENVIRONMENT | 403 LOCAL_SAFE_BLOCKED previo al handler, no su contrato query_secret_accepted; cuerpo capturado. Positivos del endpoint NOT_RUN |
+| F05 | `tests/test_continuous_evolution_os.py::test_continuous_evolution_web_endpoint_runs_idempotently_without_external_actions` | LOCAL_SAFE_ENVIRONMENT | Esperaba 200, recibe 403 LOCAL_SAFE_BLOCKED incluso con secreto sintetico. Idempotencia HTTP positiva NOT_RUN |
+| F06 | `tests/test_continuous_evolution_os.py::test_continuous_evolution_web_endpoint_reports_concurrent_lock` | LOCAL_SAFE_ENVIRONMENT | 403 LOCAL_SAFE_BLOCKED antes del lock. No se desactiva la frontera para forzar 200 |
+| F07 | `tests/test_continuous_evolution_os.py::test_render_cron_continuous_evolution_caller_does_not_require_disk_for_config_errors` | LOCAL_SAFE_ENVIRONMENT | QA_PROCESS_BLOCKED antes del hijo, tambien HEAD. Configuracion del runner no evaluada por este test |
+| F08 | `tests/test_local_desktop_experience.py::test_offline_safe_runner_isolated_and_blocks_external_actions` | LOCAL_SAFE_ENVIRONMENT | QA_PROCESS_BLOCKED antes del self-test hijo en ambos arboles |
+| F09 | `tests/test_local_desktop_experience.py::test_integration_shortcut_remains_closed_without_explicit_authorization` | LOCAL_SAFE_ENVIRONMENT | QA_PROCESS_BLOCKED antes del self-test hijo; no autoriza modo de integracion ni acceso externo |
+| F10 | `tests/test_local_desktop_experience.py::test_runner_handles_busy_port_duplicate_shutdown_and_restart` | LOCAL_SAFE_ENVIRONMENT | Primer paso intenta borrar PID compartido data/local_dev/nemesis_local.pid.json, fuera del run QA. Rechazo correcto en ambos; no se borra ni se prueba restart |
+| F11 | `tests/test_local_desktop_experience.py::test_lan_mobile_access_uses_temporary_token_and_blocks_unsafe_paths` | LOCAL_SAFE_ENVIRONMENT | QA_PROCESS_BLOCKED antes del runner hijo. LAN real NOT_RUN, no confundir con navegador movil local |
+| F12 | `tests/test_master_operating_system.py::test_dev_source_archive_uses_allowlist_and_excludes_private_artifacts` | TEST_HARNESS_DEFECT | Fixture creaba TemporaryDirectory 0700 bajo ROOT, fuera del run y no accesible en este sandbox. Usa tmp_path del ejecutor aislado; assertions allowlist/exclusiones intactas. PASS final |
+| F13 | `tests/test_sports_data_pipeline_reality.py::test_render_cron_endpoint_preserves_sanitized_pipeline_evidence` | LOCAL_SAFE_ENVIRONMENT | 403 LOCAL_SAFE_BLOCKED del limite previo a automatizacion Telegram, capturado; handler positivo NOT_RUN |
+| F14 | `tests/test_v716_release_validation.py::test_cron_endpoints_require_secret_and_accept_valid_secret` | LOCAL_SAFE_ENVIRONMENT | 403 LOCAL_SAFE_BLOCKED con/sin secreto sintetico, antes de cron. No se altera auth ni se envia Telegram |
+| E01 | Teardown de F12, mismo test | TEMP_CLEANUP_FAILURE | Directorio privado 0700 inaccesible en candidato y HEAD. Corregida propiedad de tmp_path y limpieza al terminar proceso. Error final 0 |
+
+Totales historicos clasificados: PRODUCT_REGRESSION 0 entre esos 14 fallos,
+TEST_HARNESS_DEFECT 2 corregidos, LOCAL_SAFE_ENVIRONMENT 12 pendientes,
+STALE_TEST_EXPECTATION 0, LEGACY_FALSE_POSITIVE 0, ORDER_DEPENDENCY 0,
+TEMP_CLEANUP_FAILURE 1 corregido, UNKNOWN 0. No se elimina ni omite ningun check.
+Esto demuestra que esos rechazos no fueron introducidos por SE-01; no certifica
+las partes positivas que el entorno impidio alcanzar.
+
+Evidencia: [28 reproducciones aisladas](../.tmp_reference_review/coord_se_01_20260909/revalidation/reproductions.json),
+XML individuales en `revalidation/current/` y `revalidation/baseline/`,
+[limite Playwright](../.tmp_reference_review/coord_se_01_20260909/revalidation/browser_driver_limit.xml),
+[respuestas LOCAL SAFE reales](../.tmp_reference_review/coord_se_01_20260909/revalidation/local_boundary_responses.json).
+Los cinco tests HTTP conservan sus assertions fallidas; la instrumentacion solo
+registra status/campos saneados y devuelve intacta la respuesta real.
+
+### Limpieza y aislamiento del arnes
+
+El primer intento de cleanup por fixture revelo ademas conexiones SQLite propias
+abiertas: `with connection` gestiona transaccion pero no cierra el handle.
+Se conservan sus 10 teardown errors intermedios en `focal_after.xml` (30 pass);
+se usan `closing(connection)` y transaccion en los cuatro fixtures afectados.
+Como pytest normal, el arnes conserva directorios hasta finalizar el proceso,
+cuando tambien se han cerrado conexiones de fixtures de sesion existentes.
+
+La limpieza posterior valida ruta absoluta y nombre exacto de este run, rechaza
+reparse points y elimina exclusivamente su DB/directorio temporal, nunca carpetas
+del proyecto completas. Run focal final, limite Playwright, suite completa,
+sondeo de frontera y servidor navegador: cleanup verificado, 0 errores.
+Los directorios inaccesibles de reproducciones fallidas anteriores se conservan
+como evidencia; no son fixtures activos ni fueron objeto de purge/ACL manual.
+No se afirma haber retirado esos residuos historicos.
+
+### Procedencia pendiente: RESOLVED LOCAL
+
+Dato exacto: `live_context.provider = api_football` retornado por
+`live_tracker_for_match` con `available=False` y `read_only=True` cuando faltaba
+tabla o fila de tracker. Es metadata runtime de CAPACIDAD NO DISPONIBLE,
+no una observacion canonica del partido ni un resultado historico API-Football.
+La muestra deportiva saneada de QA procedia del adaptador TheSportsDB.
+
+`normalize_match_entity` preferia aquel provider sobre `match.source`, alterando
+procedencia y canonical ID pese a no existir observacion tracker. Afecta SE-01:
+la misma cadena de proyeccion alimenta evidencia y transparencia del detalle.
+Defecto real preexistente encontrado al resolver la observacion, no explicado
+como falso positivo visual. Tres reproducciones fallidas y un control positivo
+antes del fix: [provenance_before.xml](../.tmp_reference_review/coord_se_01_20260909/revalidation/provenance_before.xml).
+
+Cambio minimo: si `live.available is False`, no utilizar ese contexto como
+evidencia del partido. No toca scoring financiero, DB, proveedor, sync, scheduler
+ni los criterios de MATCH-STATUS-TRUTH. No elimina tracker `available=True`.
+Cuatro regresiones permanentes: tabla ausente, fila ausente, reloj reciente de
+tracker no disponible que no rejuvenece stale, tracker disponible que conserva
+su provider. Comprueban fuente, ID, evidencia/transparencia del consumidor y
+no mutacion de entradas. Los cuatro PASS dentro de 28 SE-01 y de la suite final.
+Correccion verificada localmente; no se afirma incidente ni reparacion productiva.
+
+### Ejecuciones nuevas del arbol final
+
+| Control | Resultado nuevo |
+|---|---|
+| Focal SE-01 + compile + archive allowlist | 30/30 PASS; 28 SE-01; 0 error/skip; 5,835 s |
+| Suite completa tests, proceso/DB/temporales nuevos | 555 distintos / 543 PASS / 12 FAIL / 0 ERROR / 0 SKIP; 174,681 s |
+| py_compile | 7 archivos PASS, bytecode privado |
+| compileall | engines/services/tests PASS, no escritura junto al fuente |
+| Jinja | 199 plantillas parseadas, PASS |
+| Secret/Privacy guard existente | 7 fuentes/tests escaneados; 0 hallazgos nuevos ni previos; valores no impresos |
+| git diff --check | PASS, exit 0; avisos LF/CRLF no se normalizan |
+| Fronteras de suite | 79 intentos bloqueados; conexiones externas exitosas 0; no hijos ni escrituras fuera de QA |
+| Navegador integrado | Servidor local aislado; 1366x768 y 390x844; cinco clicks reales; consola 0 errores; overflow horizontal observado 0 |
+
+Los 4 tests adicionales explican 551 -> 555; no se suman focales ni teardown como
+tests nuevos. XML final conserva los doce fallos ambientales reales. Compilar y
+parsear no sustituye esos positivos bloqueados. Suite completa no declarada verde.
+[Full suite](../.tmp_reference_review/coord_se_01_20260909/revalidation/full_final.xml),
+[focal](../.tmp_reference_review/coord_se_01_20260909/revalidation/focal_closed.xml),
+[limpieza final](../.tmp_reference_review/coord_se_01_20260909/revalidation/full_final_cleanup.json).
+
+### Navegador relevante, no nueva certificacion global
+
+SIMULATED_QA con adaptador/upsert/handlers reales y DB exclusiva, reloj fijo
+`2026-09-09T15:19:31.693198+02:00`. Fixture fresco recibido 20 s antes; stale 600 s;
+kickoff una hora antes. No se consultan proveedores ni se presenta LIVE real.
+
+- Detalle fresco desktop/movil: mismo ID `sportsdb-48b2ec1c2678a5531e`, 0-0,
+  En directo, minuto 67 del fixture; calendario y Directo coinciden.
+- Detalle stale desktop/movil: `sportsdb-92e542f4220fdfc7e0`, Actualizacion pendiente,
+  0-0 ultimo conocido, sin minuto ni afirmacion de estar jugando; relato explicito.
+- Calendario y Live: stale ausente, fresco presente; final QA 2-0 en calendario
+  pero no confundido con LIVE. No se inicia RESULTS-01 por esta observacion.
+- Cinco clicks: detalle movil -> calendario -> mismo detalle; detalle stale
+  escritorio -> calendario; topbar -> Directo; bottom nav movil -> Partidos.
+- Capturas nativas inline inspeccionadas; no se afirma paquete PNG guardado.
+  Sin errores de consola devueltos ni overflow horizontal observado.
+- Beacon existente growth/funnel-event 202 solo en DB QA. No se afirma que
+  toda navegacion sea libre de escrituras: observador SE-01 puro y GET completo
+  son contratos distintos. Servidor detenido y DB temporal eliminada al cierre.
+- Playwright Python sigue bloqueado antes de driver; navegador integrado es
+  evidencia alternativa de producto, no un PASS artificial de F02.
+
+[Registro del navegador](../.tmp_reference_review/coord_se_01_20260909/revalidation/browser_observations.json),
+[guardas](../.tmp_reference_review/coord_se_01_20260909/revalidation/integrated_browser_guard.json),
+[cleanup navegador](../.tmp_reference_review/coord_se_01_20260909/revalidation/browser_closed_cleanup.json).
+No se revisa arte SHARK/fondo ni admin completo. Revision humana visual intacta.
+
+### Decision, limites y parada
+
+SE-01 IMPLEMENTED/CONNECTED/EXECUTED/VERIFIED LOCAL para su alcance;
+procedencia corregida, cero regresiones abiertas demostradas, todos los fallos
+explicados con contraste aislado. Suite global PARCIAL por doce controles que
+no pueden completar sus positivos en estas fronteras, sin afirmar que pasaron.
+Producto/proveedor/plan/cuota/produccion reales NOT_RUN. No se altera la
+certificacion deportiva DAY 3/4/5 ni se declara LIVE real certificado.
+Master Scheduler y Continuous Evolution: fuentes/configuracion intactas,
+estado ACTIVE actual no consultado. No tareas creadas ni scheduler nuevo.
+
+SAFE_TO_START_CX_ORG_01 = YES y SAFE_TO_START_RESULTS_01 = YES exclusivamente
+como disponibilidad tecnica para el siguiente encargo LOCAL acotado, tras
+revision. No son aprobacion de publicacion, acceso ampliado ni trabajo iniciado.
+Se detiene aqui; no reabre A/B, CX, resultados, organizacion ni limpieza legacy.
+
+Siguientes acciones, sin ejecutarlas: (1) revision de este cierre por fundador;
+(2) resolver por separado positivos ambientales con aislamiento heredable y
+PID exclusivo, sin desactivar LOCAL SAFE; (3) decidir el siguiente alcance
+local y la disponibilidad de muestra deportiva real autorizada.
+
+Sin staging, commit, push, PR, merge, deploy, Render, cambios de cron, proveedor,
+DB real, secretos, usuarios, membresias, Telegram ni Stripe.
+
+## SE-01 prerrequisito de CX-ORG-01 (2026-09-09)
+
+**LOCAL ONLY. SE-01 IMPLEMENTADO / REVALIDACION PARCIAL. CX-ORG-01 NO INICIADO.**
+Este apartado no repite el cierre A/B ni hereda sus cifras. RESULTS-01 espera
+la revision del fundador posterior a CX; AUTO-01 no se activa.
+
+### Base y proteccion
+
+- HEAD, rama main y main remoto leido: `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04`.
+  Render/health actuales NO OBSERVADOS: conector sin workspace seleccionado;
+  la herramienta web rechazo la consulta antes de obtener HTTP. No acredita caida.
+- Diff previo unico: `SPORTS_DATA_LIVE_CERTIFICATION.md`, +127/-3, DAY 5.
+  DAY 3/4/5 integro: SHA-256 `CDDC3BEBCC65E0C5B1B36FFBF22F6CA68069D450F0DF560723DCDC67C13427A4`.
+- Indice sin staging e intacto: `CB703728B6319F9915AABB850C7457EB4F92316B64F9DED1F0D2E2964D7DF167`.
+- 4122 archivos versionados antes/despues; ninguno perdido. Huellas y cinco
+  copias selectivas iniciales, mas copia de estos dos documentos antes de editarlos:
+  [before.json](../.tmp_reference_review/coord_se_01_20260909/before.json).
+  Manifiesto inicial SHA-256 `90CFB140617AFE7B897618710D852FF200A8640DC6D1E746818973AFAEDB8BB0`.
+- Solo cuatro modulos propios y un test nuevo, mas continuidad en estos dos
+  documentos. AST de app.py: solo cambia `match_detail`, junto con un import.
+  Request DB, dashboard, permisos, ROI, cron, pagos y lifecycle canonico no editados.
+- Sandbox nativo: SANDBOX_PROBE_OK exit 0 y A/B/C comprobados. Sin nuevo setup,
+  UAC, cambios de ACL/configuracion ni acceso ampliado para editar producto.
+  Directorios QA historicos inaccesibles limitan inventario untracked; no se purgan.
+
+### Causas y diff acotado
+
+| Archivo y bloque | Cambio | Evidencia / limite |
+|---|---|---|
+| `services/sports_service.py`: `read_match_record`, `observe_persisted_match` | SELECT parametrizado compartido; observador interno con SQLite `mode=ro`, reloj explicito y ausencia de esquema/entidad honesta | Dos lecturas: cuatro SELECT, cero intentos DDL/DML, hash DB identico. No endpoint publico ni sesion sustitutiva |
+| `app.py`: import y `match_detail` | Sustituye exactamente su SELECT por `read_match_record(one, match_id)` | Conserva conexion de lectura por peticion y controles reales. No se afirma read-only de todo el GET |
+| `engines/match_context_engine.py`: `_factual_summaries` | STALE_SUMMARY: actualizacion no confirmada, ultimo marcador conocido | No dice programado, final o minuto actual. Reproduccion inicial fallida, retest focal y navegador correcto |
+| Mismo modulo: `build_match_context` | `evaluation_time` opcional; deja de usar etiqueta de kickoff o updated_at como reloj de evaluacion | El reloj del dato no rejuvenece LIVE. Reutiliza el proyector y Sports Truth existentes |
+| Mismo modulo: timeline | Excluye `event_type/type=state` del conjunto de eventos confirmados | Navegador descubrio `Evento confirmado LIVE` heredado; regresion permanente conserva un gol real en minuto 5 y no lo convierte en reloj actual |
+| `engines/shark_historical_intelligence_engine.py`: `_build_match_facts` | Default de score None, no cero; ganador/total solo con final canonico y marcador completo | NULL, parcial, 0-0, 2-1 y LIVE probados. No helper financiero global ni migracion |
+| Mismo modulo: `_rebuild_team_form`, `_rebuild_league_profiles` | Filtran resultados completos y recomputan sus tablas derivadas cuando se invoca el rebuild | Correccion a desconocido elimina certeza derivada sin duplicar partido. No se ejecuta sobre DB real |
+| `tests/test_coord_sports_evidence.py` | 24 casos nuevos SIMULATED_QA | Primera/segunda lectura, ausencia, relojes, historia nullable, correccion, evento/estado |
+
+Se instrumentaron las funciones reales `default_profile` y `match_hub`, tras
+preparacion explicita de DB QA. Primer acceso: escrituras en `client_profiles`
+(perfil), `persistent_cache` (cache tecnica), `live_sync_state` (estado tecnico).
+Segundo acceso: cero DML en esa muestra. No se eliminan inicializaciones legitimas
+ni se afirma que todos los handlers sean puros. El nuevo observador no las llama.
+
+### Origen, almacenamiento, consumidor y navegador
+
+**SIMULATED_QA, no AUTHORIZED_REAL_REPLAY.** Respuesta con forma TheSportsDB,
+competicion 4335/temporada 2026-2027, adaptador/upsert reales y DB QA exclusiva.
+Navegador final con reloj explicito `2026-09-09T14:17:28.908390+02:00`:
+stale recibido 600 s antes, fresco 20 s antes, kickoff una hora antes.
+
+| Capa | Comprobacion de esta ejecucion |
+|---|---|
+| Almacen y proyector interno | Primera/segunda consulta real SQLite; mismos campos y decision canonica, sin mutacion |
+| Payloads de Home/Directo/Partidos | No recapturados individualmente; pruebas deportivas existentes no equivalen a nueva observacion de cada HTML |
+| Match stale, escritorio/movil | `sportsdb-92e542f4220fdfc7e0`, Athletic Club/Real Betis: 0-0 ultimo conocido, actualizacion pendiente, sin minuto ni evento LIVE |
+| Match fresco, escritorio/movil | `sportsdb-48b2ec1c2678a5531e`, Real Madrid/Valencia: En directo, 0-0 y 67 real de fixture |
+| Calendario y retorno | Click desktop, tap movil y vuelta al mismo ID; fresco incluido, stale ausente bajo esos filtros |
+| Capturas | Render real local inspeccionado en navegador integrado, 1366x768 y 390x844. Capturas inline; no se afirma paquete PNG guardado ni revision de referencias |
+
+No overflow horizontal en las cuatro vistas de detalle observadas. Consola final
+consultada: 0 entradas error. No es una nueva certificacion visual global.
+Primer montaje con dos fixtures identicos salvo ID activo el deduplicador:
+stale desaparecio y devolvio 404. Se corrigio SOLO la muestra QA (equipos distintos).
+No se oculta ese intento ni se confunde con perdida productiva.
+El DOM transitorio del detalle fresco incluyo `Fuente Api Football` pese a origen
+SportsDB de la muestra: **OBSERVACION PENDIENTE DE AISLAR**, sin afirmar visibilidad
+cliente estable, causa ni incidente productivo. La procedencia transversal no queda
+totalmente certificada por el score correcto.
+
+No se encontro extracto real saneado con retencion/derechos comprobados. Se publico
+durante el trabajo [REAL_SAMPLE_REQUEST](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/issues/8#issuecomment-5601390591):
+preferencia extracto existente autorizado; alternativa de una peticion previamente
+autorizada, sin ejecutarla. Cuota, plan, derechos y coste actuales UNKNOWN.
+
+### QA real y bloqueos que NO son PASS
+
+- Reproduccion previa en SQLite memoria: 7 tests, 5 fallos y 2 pass.
+- Focal semantica: 46/46, 10,929 s. Focal permisos: 21/21, 9,625 s.
+- Focal final tras timeline: **43/43**, 4,488 s (24 SE-01 + 19 Match Context).
+- Primera suite antes del hallazgo timeline: 550 distintos, 536 pass, 14 fallos,
+  1 error adicional de teardown. Se conserva, no se suma al cierre final.
+- Unica suite completa tras ultimo cambio de producto: **551 tests distintos,
+  537 pass, 14 fallos, 1 error de teardown del mismo test fallido, 0 omitidos**,
+  162,293 s. XML contiene 552 registros por el teardown adicional.
+- Compilacion de cinco archivos cambiados y compileall engines/services/tests:
+  PASS con salida pycache privada. Jinja: 199/199 parseados. Escaner existente
+  de privacidad/secretos, alcance cinco archivos: 0 hallazgos; no imprime valores.
+- `git diff --check`: resultado final registrado en la verificacion; no se normalizan
+  archivos ajenos por avisos LF/CRLF.
+
+| Fallos de suite final | Causa observada y cobertura pendiente |
+|---|---|
+| `test_core_files_compile` | Guard impide escribir pycache fuera del area QA; compilacion separada con destino privado PASS, fallo de suite conservado |
+| `test_text_geometry_detects_overlap_and_accepts_separate_lines` | Guard de sockets bloquea self-pipe asyncio. Intento Playwright separado: WinError 5 creando pipe antes del driver; no se elude con elevacion |
+| Dos runners de Continuous Evolution y tres de Local Desktop | Guard de procesos impide subprocess; positivos NO VERIFICADOS |
+| Tres endpoints de Continuous Evolution, endpoint de pipeline y cron V716 | LOCAL SAFE devuelve 403 antes de las expectativas del test; una espera clave `query_secret_accepted`. No se desactiva el control para obtener verde |
+| Busy-port/restart | Escritura/retirada de PID fuera del area QA bloqueada |
+| Archive allowlist | Escritura bloqueada y temporal Python 0o700 inaccesible; teardown WinError 5. Sin reparar ACL ni borrar el directorio |
+
+Fixtures tmp_path focales usan directorios nuevos con herencia normal dentro de
+LOCAL_SAFE; no se cambian ACLs de carpetas fallidas. La biblioteca tempfile intento
+restablecer permisos al limpiar un temporal y fue rechazada; no se repite a mano.
+Se mantienen los temporales de ejecuciones fallidas como evidencia privada.
+Guardas finales: 82 intentos bloqueados, 0 conexiones externas exitosas; servidor
+integrado local: 0 intentos externos registrados. No se llama cero intentos a la
+suite completa. Ni DB real ni memoria operativa modificadas. Servidor QA detenido.
+
+El contrato existente de memoria QA se ejecuto en almacenamiento privado: dos
+replays del MISMO hallazgo de timeline, un ID `PQA-41226960193D`, seen_count=2.
+No son dos navegaciones nuevas ni worker programado. Un primer input del arnes
+tenia worker_outcomes con tipo incorrecto; se corrigio el input, no el motor.
+No se conecta reparador autonomo ni se activan tareas. Candidato y evidencia:
+[verification.json](../.tmp_reference_review/coord_se_01_20260909/verification.json),
+[suite final](../.tmp_reference_review/coord_se_01_20260909/full_after_timeline.xml),
+[memoria QA](../.tmp_reference_review/coord_se_01_20260909/memory_replay_result.json).
+
+### Estado y siguientes acciones
+
+IMPLEMENTED/CONNECTED: servicio interno, Match Context e historico local.
+EXECUTED/VERIFIED: focales y navegador descritos, exclusivamente SIMULATED_QA.
+BLOCKED/PARTIAL: cierre global por suite/entorno y procedencia pendiente de aislar.
+NOT_RUN: replay real, proveedor, produccion, CX-ORG-01 y RESULTS-01.
+
+1. Compatibilizar el arnes con las fronteras verificadas (temporales, procesos QA
+   explicitamente permitidos y pruebas positivas locales de automatizacion),
+   sin Full Access, ACL manuales ni desactivar LOCAL SAFE; aislar etiqueta de fuente.
+2. Revalidar el candidato SE-01 exacto y completar el extracto real autorizado
+   cuando exista; no equiparar ausencia de muestra con fallo LIVE productivo.
+3. Solo tras SE-01 cerrado, comenzar CX-ORG-01. RESULTS-01 requiere revision
+   posterior del fundador. Ningun archivo retirado en esta ejecucion.
+
+Sin staging, commit, push, PR, merge, deploy, Render, cron, proveedor real,
+usuarios, membresias, pagos, Telegram, secretos ni reconstruccion artistica.
+Se conserva debajo integro el historial A/B y visual anterior.
+
 ## Continuidad consolidada A/B (vigente, 2026-09-07)
 
 **Candidato LOCAL. A: pendientes de presentacion recorridos. B: conexion

@@ -1,5 +1,9 @@
 # NeMeSiS SHARK PRO — README Master
 
+> Control operativo vigente: [MASTER_CONTROL](project_control/MASTER_CONTROL.md).
+> Las versiones y afirmaciones inferiores son contexto historico. No prueban
+> el estado actual, autorizaciones ni los tiers realmente configurados.
+
 ## Estado
 
 Versión actual: V600 Clean Core + V601 Live Intelligence.

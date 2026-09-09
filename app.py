@@ -71,6 +71,7 @@ from engines.football_population_engine import (
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.match_context_engine import build_match_context
+from services.sports_service import read_match_record
 from engines.live_experience_engine import build_live_experience, live_experience_snapshot
 from engines.v934_realtime_sports_engine import (
     LIVE_POLL_SECONDS as V934_LIVE_POLL_SECONDS,
@@ -8678,7 +8679,7 @@ def match_depth_payload(match, *, preannotated=False, timeline=None, related_pic
 
 def match_detail(match_id, *, include_depth=True):
     """Load one canonical match snapshot; optional depth reuses its facts."""
-    match = one("SELECT * FROM matches WHERE id=?", (match_id,))
+    match = read_match_record(one, match_id)
     if not match:
         return None
     annotated = annotate_match(match)

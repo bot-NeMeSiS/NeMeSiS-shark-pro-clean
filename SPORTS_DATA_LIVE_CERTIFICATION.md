@@ -6,10 +6,10 @@
 
 - Gate: observación real de 3-7 días naturales.
 - Inicio: 2026-08-28.
-- Evidencia registrada: DAY 1 baseline + DAY 2 + DAY 3 (dos ventanas) + DAY 4 (2026-09-07). No se afirma que sean fechas consecutivas ni dias certificados PASS.
+- Evidencia registrada: DAY 1 baseline + DAY 2 + DAY 3 (dos ventanas) + DAY 4 (2026-09-07) + DAY 5 (2026-09-08). No se afirma que sean fechas consecutivas ni dias certificados PASS.
 - Producción observada: `https://bot-apuestas-crgf.onrender.com`.
-- Último SHA de producción observado: `4df7fc20e3de9cbe84d2098f3d6b3a74577631f5` (DAY 4, 2026-09-07 22:34 y 22:38 Madrid, demostrado por `/api/runtime-version`).
-- Gasto nuevo: **0**.
+- Último SHA de producción observado: `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04` (DAY 5, 2026-09-08 22:33:49 y 22:37:56 Madrid, demostrado por `/api/runtime-version`).
+- Compras/gasto iniciados por el monitor: **0**. Coste total real: **UNKNOWN**.
 - Cambios de producción: **0**.
 - Ranking modificado durante el gate: **NO**.
 - Resultado provisional: catálogo y sincronización operativos. El seguimiento DAY 3 observó un candidato Tier S marcado LIVE por el proveedor y priorizado por Home, además de su exclusión automática al quedar stale. La coherencia temporal real del partido no quedó suficientemente demostrada para cerrar LIVE.
@@ -696,6 +696,130 @@ logs como limites de acceso. No cerrar por transcurso del tiempo.
 **Si existe un partido importante LIVE, Home lo muestra automaticamente?**
 `NOT_ENOUGH_EVIDENCE`: Directo lo priorizo bajo senal reciente; Home autenticada
 no se pudo observar y la realidad LIVE independiente sigue sin certificarse.
+
+## DAY 5 - 2026-09-08: recepcion reciente, caducidad y confianza
+
+**REAL_PRODUCTION_OBSERVATION. REAL_SPORTS_CERTIFICATION_IN_PROGRESS.**
+
+Ventana: 22:32:13-22:37:56 Europe/Madrid (20:32:13-20:37:56 UTC).
+Nueva fecha natural; se conservan DAY 1-4, sin reinicio ni PASS por tiempo.
+SHA servido verificado a las 22:33:49 y 22:37:56:
+`c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04`. Las lecturas de las 22:32 preceden
+a la primera extraccion registrada del SHA; no se afirma un deploy observado.
+Runtime: V940, version_files_match=true, active_errors_count=0.
+Health: 200 / ok=true a las 22:32:14; no equivale a calidad deportiva.
+Render MCP: sin workspace seleccionado; no se eligio uno ni se leyeron logs.
+Se mantiene EXTERNAL_BLOCKER_RENDER_LOG_ACCESS.
+
+Solo HTML publico y GET cache-first permitidos. `/app`: 302 a login,
+HOME AUTENTICADA NO OBSERVADA. Sin sesiones, JS, clicks, screenshots ni
+descargas de escudos. La preparacion inicial del lector fallo por dependencia
+local ausente antes de hacer peticiones; se uso el parser estandar sin instalar.
+No se consultaron `/api/live`, refresh, sync, cron, test-send, pagos ni proveedores.
+Realtime declara no_external_calls=true; Calendar external_calls=0,
+database_written=false y no_render_api_call=true. Son declaraciones del contrato,
+no una auditoria interna de todas las escrituras de las paginas.
+
+### Muestras y universos
+
+| Hora Madrid | Superficie | Evidencia |
+| --- | --- | --- |
+| 22:32:55 | Realtime | 800 sincronizados; 41 matches; 5 today; 68 finished; LIVE 0; stale_live 72; picks 0; sync 22:30:20. |
+| 22:33:01 | Live/state | live=0, with_odds=0, with_picks=0. Finished=149 pertenece a otro universo que los 68 de hoy. |
+| 22:33:57 | Calendar, 110 visibles | S=2, A=2, B=1, UNKNOWN=105; 46 ligas; IDs duplicados=0; ausencia de URL de algun escudo=0. No se verifico render de imagenes. |
+| 22:33:57 | Snapshot ea57fe5153affa0f, metricas operativas | 48 Tier S/A available; 14 surfaced; UNKNOWN=509; live_conflicts=0; stale=72. No son denominadores del catalogo visible. |
+| 22:35:54-57 | Home publica, Directo, Partidos | Tras sync existente: LIVE=72, hoy=77; Partidos conserva 182 visibles; cuatro candidatos S primero. |
+| 22:36:43 | Realtime | LIVE=72; stale_live=0; matches=113; today=77; sync 22:35:26. Cuatro primeros: edad 80 s, last_synced_at 22:35:23. |
+| 22:37:52-55 | Detalle, Directo, Home publica y realtime | Detalle degradado; Home/Directo sin nodos canonical LIVE; realtime LIVE=0/stale_live=72, mismo sync 22:35:26. |
+
+El monitor no provoco la sincronizacion. 0 -> 72 -> 0 NO equivale a inicios o
+finales de 72 partidos. Recepcion reciente no demuestra actualidad deportiva.
+UNKNOWN 509 frente a 531 DAY 4 no prueba mappings: cambian fecha y muestra.
+
+### Identidad, relevancia, LIVE y minuto
+
+| ID canonico | Partido | Tier/senal | Score | Kickoff Madrid |
+| --- | --- | --- | --- | --- |
+| sportsdb-2493c5ae907fbde626 | Porto-Manchester City | S, HALFTIME | 0-0 | 19:00 |
+| sportsdb-beb6ca5e2d9c975562 | Borussia Dortmund-Villarreal | S, HALFTIME | 0-0 | 19:00 |
+| sportsdb-ca847aa0254b6311f2 | Real Madrid-Inter de Milan | S, HALFTIME | 2-0 | 19:00 |
+| sportsdb-c49c85fb56868252da | Lille-Real Betis | S, HALFTIME | 2-1 | 19:00 |
+| sportsdb-8b9f47662e66fc1eea | AEK Athens-LASK | S, FT | 1-0 | 16:45 |
+| sportsdb-a766c8b19ddefee728 | Club Brugge-Aston Villa | S, FT | 2-3 | 16:45 |
+| sportsdb-80e218ea207dbca1fa | Platense-Fluminense | A, RESULT_PENDING | Ausente | 22:00 |
+| sportsdb-bf432a2d0eec1f65f3 | Santa Fe-Vasco da Gama | A, RESULT_PENDING | Ausente | 22:00 |
+
+Los cuatro en descanso aparecen primero en Home publica y Directo, antes de
+Blackburn-Sheffield United, y conservan enlaces en Partidos. Minuto=null en
+los cuatro, sin minuto inventado observado. Decision MATCH-STATUS-TRUTH-V2,
+sin inferir LIVE por horario/score/minuto. Los ceros recibidos se conservan;
+Platense/Santa Fe conservan score ausente. HALFTIME a las 22:36 con kickoff
+19:00 necesita contraste independiente; no prueba futbol en juego ni permite
+inferir FT. IMPORTANT LIVE REAL: NOT_ENOUGH_EVIDENCE.
+
+AEK-LASK detalle: Finalizado 1-0, misma competicion/hora que Calendar,
+canonical LIVE=false. No se observa FT como LIVE en esa muestra.
+Porto detalle 22:37:14: Descanso 0-0, canonical LIVE=true. A las 22:37:52:
+mismo ID/score, Actualizacion pendiente, Desactualizado, canonical LIVE=false.
+A las 22:37:53-54 su enlace desaparece de Home publica/Directo. Exclusion
+agregada=72; trazado individual de detalle=1, NO 72/72 detalles certificados.
+
+### Hallazgos productivos; no autocorreccion
+
+1. RELATO_STALE_AMBIGUO: Porto conserva en resumen "tienen un partido
+   programado" al caducar la senal de descanso, pese al header Actualizacion
+   pendiente. No prueba reprogramacion. El pendiente local A/B ahora tiene
+   reproduccion productiva concreta; no se modifico Summary Truth ni la UI.
+2. CONFIANZA_GLOBAL_REQUIERE_REVISION: Home publica y Directo muestran
+   100 / Alta para los cuatro candidatos recientes. Porto detalle muestra
+   100/100 Alta pese a contexto deportivo insuficiente y ausencia de minuto,
+   lineup/stats/H2H/forma confirmados. El indice mide calidad, no probabilidad;
+   esa aclaracion no demuestra actualidad deportiva independiente. El gate
+   de confianza suficiente NO queda certificado. Al quedar stale baja a
+   49/100 Insuficiente: NO se reproduce 100/Alta en el detalle ya stale.
+   Platense sin marcador confirmado muestra 93/100 Alta, otro limite semantico.
+3. PROCEDENCIA_POR_CONTRASTAR: payload y resumen citan TheSportsDB; el pie
+   de los detalles dice Fuente Api Football. No demuestra llamadas a ambos
+   ni segunda verificacion. Falta trazar la atribucion por campo.
+
+Son evidencias para revision, no autorizaciones de cambio. No se atribuyen
+automaticamente al ultimo commit ni se declara regresion funcional global.
+
+### Knowledge, media, cuota y continuidad
+
+- Detalles AEK, Platense y Porto: sin lineup confirmada, sin Player IDs
+  enlazados desde alineacion, stats/H2H/clasificacion no confirmados.
+  Hay enlaces a equipos, sin clicks ni certificacion del journey completo.
+- Timeline llama "Evento confirmado" a una instantanea de estado/resultado;
+  no acredita gol, tarjeta, sustitucion ni latencia de eventos deportivos.
+- SHARK declara falta de senales suficientes/frescas. No se certifica analisis
+  LIVE real ni se transforma preparado/conectado en cobertura.
+- Highlights, 22:33:18, 200: almacenados=0, encontrados=0, autorizados=0,
+  bloqueados=0, videos=0; pendientes=24. INSUFFICIENT_REAL_DATA para derechos
+  y video autorizado, no fallo global de rights. Ningun iframe en los detalles.
+- Odds: no cuotas reales en realtime, with_odds/with_picks=0 en estado leido.
+  Cuota/remaining, errores por proveedor y coste real: UNKNOWN. Los flags
+  provider_available/last_sync_known no acreditan plan ni peticion exitosa.
+- Highlights tardo 17,031 s (17,166 s DAY 4): advertencia repetida de consulta,
+  no P95 ni causa determinada. Respuestas obtenidas 200 salvo 302 de `/app`;
+  no se audito todo el servicio ni se hicieron sondeos intensivos.
+
+DAY 4 -> DAY 5: mismo patron de recepcion y caducidad; 72 senales frente a 21
+no demuestran empeoramiento por contar universos distintos. Home PUBLICA
+tiene nueva evidencia de prioridad; autenticada sin acceso. El relato stale
+ya se reproduce en produccion. Sigue faltando Tier S/A LIVE independiente.
+P50/P95 de inicio, gol, minuto, descanso/final y cobertura porcentual:
+INSUFFICIENT_SAMPLE. No hay muestra de transiciones deportivas para medirlos.
+Coste real total UNKNOWN; compras/cobros/planes iniciados 0. Solo se actualiza
+este documento; sin codigo, rankings, produccion, cron, tareas, proveedores,
+Telegram, Stripe, secretos ni datos reales modificados por el monitor.
+
+Siguiente observacion: DAY 6 en fecha natural posterior con SHA comprobado;
+preservar DAY 1-5 y priorizar minuto/fase coherentes, procedencia y confianza.
+La revision del relato requiere el encargo separado; este monitor no la aplica.
+Home ante futbol importante LIVE REAL: NOT_ENOUGH_EVIDENCE. Bajo la senal
+reciente del feed, Home publica SI priorizo los cuatro y SI los retiro al
+caducar. No se declara LIVE PASS ni cierre de la certificacion.
 
 ## Provider gap matrix provisional
 

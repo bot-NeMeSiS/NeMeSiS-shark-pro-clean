@@ -686,6 +686,9 @@ def normalize_match_entity(
 ) -> dict[str, Any]:
     data = _mapping(row)
     live = _mapping(live_context)
+    # An unavailable adapter describes its capability, not this match's evidence.
+    if live.get("available") is False:
+        live = {}
     provider_name = _provider(provider or live.get("provider") or data.get("source") or data.get("provider"))
     provider_id = data.get("external_id") or data.get("fixture_id") or data.get("id")
     match_id = data.get("id") or data.get("match_id")

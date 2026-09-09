@@ -291,6 +291,16 @@ def include(path: Path) -> bool:
     if not parts:
         return False
     rel_posix = rel.as_posix()
+    # Global exclusions also apply to reports and explicit runtime allowances.
+    if any(part in EXCLUDE_DIRS for part in parts):
+        return False
+    if path.name in EXCLUDE_NAMES:
+        return False
+    lower_name = path.name.lower()
+    if any(marker in lower_name for marker in SECRET_NAME_MARKERS) and path.name not in SAFE_SENSITIVE_NAMES:
+        return False
+    if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
+        return False
     if parts[0] == "reports":
         if path.suffix.lower() in REPORT_BINARY_SUFFIXES:
             return False
@@ -648,16 +658,6 @@ def include(path: Path) -> bool:
         "data/runtime/v934_realtime_worker_latest.json",
     }:
         return True
-    if any(part in EXCLUDE_DIRS for part in parts):
-        return False
-    if path.name in EXCLUDE_NAMES:
-        return False
-    lower_name = path.name.lower()
-    lower_rel = rel.as_posix().lower()
-    if any(marker in lower_name for marker in SECRET_NAME_MARKERS) and path.name not in SAFE_SENSITIVE_NAMES:
-        return False
-    if any(lower_name.endswith(suffix) for suffix in EXCLUDE_SUFFIXES):
-        return False
     if parts[0] in INCLUDE_TOP_LEVEL_DIRS:
         return True
     return len(parts) == 1 and path.name in INCLUDE_TOP_LEVEL_FILES

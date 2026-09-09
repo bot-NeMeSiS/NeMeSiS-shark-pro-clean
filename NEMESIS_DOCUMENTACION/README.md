@@ -1,6 +1,6 @@
 # Indice de Documentacion NeMeSiS
 
-Esta carpeta organiza por enlaces la documentacion existente. No mueve codigo, informes ni runbooks historicos. La verdad operativa empieza en `../NEMESIS_CONTROL_PROYECTO/00_LEER_PRIMERO.md`.
+Esta carpeta organiza por enlaces la documentacion existente. No mueve codigo, informes ni runbooks historicos. La verdad operativa empieza en [MASTER_CONTROL](../project_control/MASTER_CONTROL.md). Los 14 indices y la continuidad anterior se conservan.
 
 1. `01_PRODUCTO_Y_UX`
 2. `02_SPORTS_TRUTH_Y_DATOS`
@@ -15,4 +15,3 @@ Esta carpeta organiza por enlaces la documentacion existente. No mueve codigo, i
 11. `11_OPERACIONES_Y_RENDER`
 12. `12_QA_VISUAL_Y_RELEASE`
 13. `13_ARQUITECTURA_Y_DATOS`
-
