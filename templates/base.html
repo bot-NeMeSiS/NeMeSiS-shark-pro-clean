@@ -421,28 +421,6 @@
   </script>
 
   <script>
-  (function nsV779TeamIdentityFallback(){
-    function initials(text){
-      return String(text||'NS').split(/\s+/).filter(Boolean).map(function(w){return w[0]||''}).join('').slice(0,3).toUpperCase() || 'NS';
-    }
-    function fixCrests(){
-      document.querySelectorAll('.crest,.compact-crest,.v779-crest').forEach(function(box){
-        var img=box.querySelector('img');
-        var fallback=box.getAttribute('data-fallback') || initials(box.getAttribute('title') || (img && img.getAttribute('alt')) || 'NS');
-        box.setAttribute('data-fallback', fallback);
-        var em=box.querySelector('em');
-        if(!em){ em=document.createElement('em'); em.setAttribute('aria-hidden','true'); em.textContent=fallback; box.appendChild(em); }
-        if(!img) return;
-        var src=(img.getAttribute('src')||'').trim();
-        if(!src || src === window.location.href || src === window.location.pathname){ img.remove(); return; }
-        img.addEventListener('error', function(){ try{ img.remove(); }catch(e){} }, {once:true});
-      });
-    }
-    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', fixCrests); else fixCrests();
-  })();
-  </script>
-
-  <script>
   (function nsV794LivingAdmin(){
     function tick(){
       var now=new Date();
@@ -556,7 +534,7 @@
     });
   })();
   </script>
-  <script src="{{ url_for('static', filename='v937-product-client.js') }}?v={{ app_version }}" defer></script>
+  <script src="{{ url_for('static', filename='v937-product-client.js') }}?v={{ app_version }}-crest-fallback-1" defer></script>
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
 </html>
