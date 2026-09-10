@@ -129,3 +129,11 @@ tools/local_desktop/*.pid
 tools/local_desktop/*.log
 # Master finalization reproducible audit artifact
 reports/master_finalization/master_finalization_audit.json
+
+# CX-ORG-01: generated QA roots, not source or acceptance evidence.
+/.nemesis_test_*/
+/.tmp_pytest*/
+/.coverage.*
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal

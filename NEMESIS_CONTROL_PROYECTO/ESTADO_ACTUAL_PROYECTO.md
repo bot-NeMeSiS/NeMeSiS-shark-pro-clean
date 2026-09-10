@@ -1,5 +1,77 @@
 # Estado Actual del Proyecto
 
+> ARCHIVO DE CONTINUIDAD: desde CX-ORG-01 (2026-09-09), la entrada operativa es
+> [MASTER_CONTROL](../project_control/MASTER_CONTROL.md). El contenido inferior
+> conserva su fecha y alcance; no representa el estado actual por defecto.
+
+## Vigencia local 2026-09-09: cierre exclusivo SE-01 revalidado
+
+**SE-01: PASS LOCAL DEL ALCANCE. SUITE GLOBAL: PARCIAL, NO PASS.**
+HEAD/main: `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04`; referencia origin/main
+local coincidente, no nueva certificacion remota. Indice intacto y sin staging.
+DAY 3/4/5 intactos. Se conservan candidato anterior e historicos inferiores.
+
+Los 14 fallos y el teardown previos se reprodujeron individualmente en procesos
+aislados, tambien con las versiones HEAD de los cuatro modulos SE-01.
+Clasificacion: 2 TEST_HARNESS_DEFECT corregidos; 12 LOCAL_SAFE_ENVIRONMENT
+reproducidos y pendientes de ejecutar en un arnes compatible; 1
+TEMP_CLEANUP_FAILURE corregido. Ninguna expectativa eliminada, ningun skip.
+PRODUCT_REGRESSION abierta = 0; UNKNOWN = 0; fallos sin explicar = 0.
+
+Procedencia RESOLVED local: `live_tracker_for_match` devolvia metadata de capacidad
+API-Football con `available=False`, que sustituia la fuente real SportsDB.
+El proyector canonico ignora ese contexto no disponible; cuatro casos permanentes
+conservan fuente/identidad, reloj stale y tracker realmente disponible.
+No se cambia Sports Truth ni se crea otro lifecycle. Los cuatro modulos SE-01
+previos, incluido app.py, permanecen byte a byte iguales a la entrada de este cierre.
+
+Suite final nueva: **555 / 543 PASS / 12 FAIL ambientales / 0 ERROR / 0 SKIP**,
+174,681 s. Focal nueva: 30/30 (28 SE-01 + compilacion + archivo allowlist).
+py_compile 7/7; compileall engines/services/tests; Jinja 199; Privacy/Secret
+7 archivos, 0 hallazgos; diff --check PASS. Limpieza del run final y navegador
+terminados verificada, sin residuos activos ni cambios ACL.
+Navegador integrado local: Match fresco/stale, Calendario y Directo,
+1366x768/390x844, cinco clicks reales, 0 overflow/errores de consola observados.
+SIMULATED_QA exclusivamente; no proveedor ni produccion certificados.
+
+Fuente y tests exactos: huella SHA-256
+`EB90F91AD2E39C851A3A3ED419D509B2C9D9D8F6814D28ECD284597CE8395B63`.
+Detalle individual y limites: [cierre SE-01](../reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md#cierre-exclusivo-se-01-revalidacion-2026-09-09).
+
+CX-ORG-01 y RESULTS-01 NO INICIADOS. Continuacion local tecnicamente habilitada
+solo tras revision del fundador, no autorizacion de publicacion ni de efectos
+externos. AUTO-01 no activado; Master Scheduler/Continuous Evolution no tocados
+ni recertificados como ACTIVE. Tiburon/fondo siguen pendientes humanos.
+Sin staging, commit, push, PR, merge, deploy, limpieza general ni reorganizacion.
+Los apartados siguientes conservan la evidencia anterior, no el resultado vigente.
+
+## Vigencia local 2026-09-09: SE-01 previo a CX-ORG-01
+
+HEAD y main remoto comprobado: `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04`.
+Rama main; indice intacto, sin staging. DAY 3/4/5 conservados byte a byte.
+El sandbox nativo de esta sesion supera proceso inocuo y fronteras A/B/C;
+no se repite setup ni se desactiva aislamiento. Persisten incompatibilidades
+con temporales privados de Python/pytest y el driver local de Playwright.
+
+SE-01: **IMPLEMENTADO LOCAL / REVALIDACION PARCIAL**, no cerrado ni publicado.
+Lectura interna del almacen sin inicializaciones, relato stale explicito,
+reloj de evaluacion independiente y scores historicos nullable con derivados
+solo de resultados completos. El fallback de estado no es un evento confirmado.
+43/43 focales finales; suite final: 551 tests distintos, 537 pass, 14 fallos
+y 1 error de teardown del mismo test fallido; 0 omitidos. No es PASS global.
+Compilacion y 199 plantillas PASS; navegador integrado local verifica stale y
+LIVE reciente en 1366x768/390x844 y retorno Calendario/detalle. SIMULATED_QA.
+Produccion, proveedor, cuotas y replay real NO VERIFICADOS. Solicitud acotada
+de muestra publicada en issue #8; no ejecutada. Render sin workspace seleccionado.
+
+**CX-ORG-01 NO INICIADO**: espera cierre/revalidacion SE-01. No limpieza,
+retirada de legacy ni nuevo centro de control. RESULTS-01 NO INICIADO;
+requiere revision del fundador tras CX. AUTO-01 no activado.
+Sin staging, commit, push, PR, merge, deploy ni efectos productivos.
+
+Unico cierre detallado: [SE-01 y limites de revalidacion](../reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md#se-01-prerrequisito-de-cx-org-01-2026-09-09).
+Los apartados inferiores son evidencia historica, no nuevos resultados.
+
 ## Vigencia local 2026-09-07: continuidad A/B
 
 Base real de esta ejecucion: `main`, HEAD

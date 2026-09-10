@@ -17,6 +17,8 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Mapping
 
+from engines.v935_launch_trust_engine import match_status_truth
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -275,16 +277,18 @@ def _build_match_facts(conn: sqlite3.Connection, limit: int) -> Dict[str, int]:
         provider = r.get("provider") or "unknown"
         external_id = str(r.get("external_id") or r.get("id") or "")
         internal_id = str(r.get("internal_match_id") or "")
-        home_score = _as_int(r.get("home_score"), 0)
-        away_score = _as_int(r.get("away_score"), 0)
-        if home_score > away_score:
+        home_score = _as_int(r.get("home_score"), None)
+        away_score = _as_int(r.get("away_score"), None)
+        complete = home_score is not None and away_score is not None
+        finished = complete and match_status_truth(r).get("is_finished")
+        if not finished:
+            winner = "pending"
+        elif home_score > away_score:
             winner = "home"
         elif away_score > home_score:
             winner = "away"
-        elif str(r.get("status") or "").lower() in {"finalizado", "final", "ft", "match finished"}:
-            winner = "draw"
         else:
-            winner = "pending"
+            winner = "draw"
         event_count = 0
         odds_count = 0
         signal_count = 0
@@ -322,7 +326,7 @@ def _build_match_facts(conn: sqlite3.Connection, limit: int) -> Dict[str, int]:
             (
                 fact_id, internal_id, provider, external_id, r.get("league_name") or "", r.get("season") or "",
                 r.get("match_date") or str(r.get("kickoff_iso") or "")[:10], r.get("status") or "", r.get("home_team") or "", r.get("away_team") or "",
-                home_score, away_score, home_score + away_score, winner, 1 if event_count else 0, 1 if odds_count else 0, 1 if signal_count else 0,
+                home_score, away_score, home_score + away_score if finished else None, winner, 1 if event_count else 0, 1 if odds_count else 0, 1 if signal_count else 0,
                 "Hecho historico interno construido desde fuentes autorizadas/cache operativo. No redistribuir datos crudos sin licencia.", _json({"source": r, "events": event_count, "odds": odds_count, "signals": signal_count}), now, now,
             ),
         )
@@ -341,9 +345,12 @@ def _rebuild_team_form(conn: sqlite3.Connection) -> int:
         """
         SELECT * FROM shark_historical_match_facts
         WHERE winner IN ('home','away','draw')
+          AND home_score IS NOT NULL AND away_score IS NOT NULL
         ORDER BY COALESCE(match_date, last_seen_at) ASC
         """
     ).fetchall()
+    # Recomputed aggregates must also forget a result corrected to unknown.
+    conn.execute("DELETE FROM shark_historical_team_form")
     stats: Dict[tuple[str, str], Dict[str, Any]] = {}
     for row in rows:
         r = dict(row)
@@ -416,10 +423,13 @@ def _rebuild_league_profiles(conn: sqlite3.Connection) -> int:
                SUM(has_shark_signal) AS signal_matches
         FROM shark_historical_match_facts
         WHERE COALESCE(league_name,'') <> ''
+          AND winner IN ('home','away','draw')
+          AND home_score IS NOT NULL AND away_score IS NOT NULL
         GROUP BY league_name
         ORDER BY matches_total DESC
         """
     ).fetchall()
+    conn.execute("DELETE FROM shark_historical_league_profile")
     now = _now_iso()
     total = 0
     for row in rows:
@@ -540,6 +550,7 @@ def rebuild_historical_intelligence(db_path: str, limit: int = 1000, scope: str 
     started = _now_iso()
     result: Dict[str, Any] = {"ok": True, "scope": scope, "processed": 0, "inserted": 0, "updated": 0, "errors": []}
     conn = _connect(db_path)
+    run_id = None
     try:
         conn.execute(
             "INSERT INTO shark_historical_sync_runs(started_at, status, scope, payload_json) VALUES (?, ?, ?, ?)",
@@ -577,9 +588,11 @@ def rebuild_historical_intelligence(db_path: str, limit: int = 1000, scope: str 
         result["ok"] = False
         result["errors"].append(str(exc)[:500])
         try:
+            # Keep the last complete projection; persist only this run's error.
+            conn.rollback()
             conn.execute(
-                "UPDATE shark_historical_sync_runs SET finished_at=?, status=?, errors_count=?, error_message=?, payload_json=? WHERE started_at=?",
-                (_now_iso(), "ERROR", 1, str(exc)[:500], _json(result), started),
+                "UPDATE shark_historical_sync_runs SET finished_at=?, status=?, errors_count=?, error_message=?, payload_json=? WHERE id=?",
+                (_now_iso(), "ERROR", 1, str(exc)[:500], _json(result), run_id),
             )
             conn.commit()
         except Exception:

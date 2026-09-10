@@ -1,5 +1,9 @@
 # Reglas de Trabajo ChatGPT, Codex y Releases
 
+> ARCHIVO DE CONTINUIDAD: desde CX-ORG-01 (2026-09-09), la entrada operativa es
+> [MASTER_CONTROL](../project_control/MASTER_CONTROL.md). Las restricciones
+> conservadas debajo siguen vigentes; los informes no conceden permisos.
+
 ## Evidencia
 
 - Separar `PRODUCTION`, `LOCAL`, `SIMULATED_TEST` e `INSUFFICIENT_REAL_DATA`.

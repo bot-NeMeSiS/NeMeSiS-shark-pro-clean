@@ -1,0 +1,83 @@
+{
+  "master": "official_app_icon_master.svg",
+  "source": "../nemesis-shark-atmosphere-v2.webp",
+  "source_sha256": "76961eeb2fa2ab328b5a91e6e31b917903237ae34479c9b96b233fcfd098e60e",
+  "fingerprint": "8d0ed4207e73",
+  "sizes": [
+    16,
+    32,
+    48,
+    64,
+    96,
+    128,
+    152,
+    167,
+    180,
+    192,
+    256,
+    512
+  ],
+  "maskable_scale": 0.8,
+  "files": {
+    "app-icon-16.png": {
+      "bytes": 658,
+      "sha256": "5f365acc35c290d624def6e724bfcd480e48d2fe705e81ff369af675965d0ef6"
+    },
+    "app-icon-32.png": {
+      "bytes": 1739,
+      "sha256": "6fcdb305875502c9a7899ccb68ef3b12abf74e269d22e121a4a63c1c0e8acfed"
+    },
+    "app-icon-48.png": {
+      "bytes": 2959,
+      "sha256": "c133c974fa6fdbbf39d79469e3889a01b8f7d90ce7dec0847a2eb5a1b49896b6"
+    },
+    "app-icon-64.png": {
+      "bytes": 5488,
+      "sha256": "a49569a370b28adef8ff014ad31d5a25b434c16ea2c7c5224e22466425ad7393"
+    },
+    "app-icon-96.png": {
+      "bytes": 9722,
+      "sha256": "f0b5bd0d456110d83f5d13ea08e633fa39b6e203453bea75c69d7def92289dc5"
+    },
+    "app-icon-128.png": {
+      "bytes": 15298,
+      "sha256": "35e37dd35f2127f775eba6f058640746c054308d6c13cb8fffce9829317efc20"
+    },
+    "app-icon-152.png": {
+      "bytes": 19804,
+      "sha256": "9c55dd1bb9c957448c958c6ab8625016339877706649aa102a2a409318e1305f"
+    },
+    "app-icon-167.png": {
+      "bytes": 22831,
+      "sha256": "963aa9ed7806ed3c11adc509aad44ae8b1d035e1c7745a01c6b743b92ed78faf"
+    },
+    "app-icon-180.png": {
+      "bytes": 25751,
+      "sha256": "ac5d13d97f49d52fe3b69fd100f06a1b0679c6e1c7308253a81e3ffd49514fa8"
+    },
+    "app-icon-192.png": {
+      "bytes": 28242,
+      "sha256": "a71cda5cfc471203379ae94f4d363f7faed1fbcc2257bc18bce7275d6fe181e2"
+    },
+    "app-icon-256.png": {
+      "bytes": 44323,
+      "sha256": "4cfef4d2fcefd73afb4e35b7ad1b887ae28374c8e5085800ac355d56ede67376"
+    },
+    "app-icon-512.png": {
+      "bytes": 129358,
+      "sha256": "adbf492dfe86976c141996566da98c1485d1c3e413926b85ef91a14e47bed9eb"
+    },
+    "app-icon-maskable-192.png": {
+      "bytes": 24824,
+      "sha256": "170b65a1393dad09e042f79ed3fd53724724fb2beaf2e5cb5bbac6053e25b188"
+    },
+    "app-icon-maskable-512.png": {
+      "bytes": 105645,
+      "sha256": "d9c30a52c5cee0e16272214f95e7af7788251b2cfe67a817aa3f86126b3f01a5"
+    },
+    "app-icon.ico": {
+      "bytes": 70567,
+      "sha256": "63d8fd817d810b4dfc6d35995dcce3f6adff62c1a04550dd775b748dfdc9f2ac"
+    }
+  }
+}

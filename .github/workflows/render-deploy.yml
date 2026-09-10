@@ -71,6 +71,11 @@ jobs:
       - name: Install production dependencies
         run: python -m pip install -r requirements.txt
 
+      - name: Install preflight browser dependencies
+        run: |
+          python -m pip install -r browser_qa/playwright_requirements.txt
+          python -m playwright install --with-deps chromium
+
       - name: Verify installed imports
         run: |
           python -c "import flask, jinja2, PIL, stripe; print('production_imports_ok')"
@@ -107,6 +112,9 @@ jobs:
               raise SystemExit("No Jinja templates found")
           print(f"jinja_templates_ok={parsed}")
           PY
+
+      - name: Generate isolated V944 browser evidence
+        run: python tools/run_v944_match_center_browser_qa.py
 
       - name: Critical release checks
         run: |
@@ -159,7 +167,10 @@ jobs:
         if: always()
         with:
           name: render-preflight-${{ github.run_id }}
-          path: reports/
+          path: |
+            reports/
+            browser_qa/V944_MATCH_CENTER_FOUNDATION/*.json
+            browser_qa/V944_MATCH_CENTER_FOUNDATION/*.png
           if-no-files-found: warn
           retention-days: 14
 

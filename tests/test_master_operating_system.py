@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import tempfile
 import zipfile
 from pathlib import Path
 
@@ -29,9 +28,9 @@ VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 
 
 @pytest.fixture
-def local_tmp_path():
-    with tempfile.TemporaryDirectory(prefix=".nemesis_test_", dir=ROOT) as directory:
-        yield Path(directory)
+def local_tmp_path(tmp_path):
+    # Use the test executor's isolated temporary root, never the source tree.
+    return tmp_path
 
 
 def test_developer_snapshot_has_one_evidence_backed_source():

@@ -897,6 +897,12 @@ def _factual_summaries(
             text += f" {score.get('label')}"
             evidence.append("score")
         text += "."
+    elif lifecycle.get("is_stale"):
+        summary_type = "STALE_SUMMARY"
+        text = "La actualización del partido no está confirmada."
+        if score.get("confirmed"):
+            text += f" Último marcador conocido: {score.get('label')}; no confirma el estado actual."
+            evidence.append("last_known_score")
     elif key in {"HT", "HALFTIME", "DESCANSO"}:
         summary_type = "HALFTIME_SUMMARY"
         text = f"{home} y {away} están al descanso"
@@ -1359,6 +1365,7 @@ def build_match_context(
     madrid_context: Mapping[str, Any] | None = None,
     live_context: Mapping[str, Any] | None = None,
     offline: bool = False,
+    evaluation_time: Any = None,
 ) -> dict[str, Any]:
     """Build one immutable factual snapshot for every Match Center component."""
 
@@ -1385,17 +1392,20 @@ def build_match_context(
             if _text(event.get("source") or event.get("provider"))
         ]
 
+    # The legacy fallback emits a state snapshot, not a confirmed match event.
+    raw_timeline = [
+        event for event in raw_timeline
+        if _text(event.get("event_type") or event.get("type")).casefold() != "state"
+    ]
+
     related_picks = _items(detail_data.get("related_picks"))
     domain_model = build_unified_domain_snapshot(
         match,
         live_context=live,
         timeline_events=raw_timeline,
         picks=related_picks,
-        now_madrid=(
-            display.get("client_full_datetime_label")
-            or live.get("updated_at")
-            or match.get("updated_at")
-        ),
+        # Evidence time and kickoff labels are not the clock evaluating freshness.
+        now_madrid=evaluation_time,
     )
     canonical_match = _mapping(domain_model.get("match"))
     canonical_timeline = _items(

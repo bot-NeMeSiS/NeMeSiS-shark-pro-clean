@@ -1,5 +1,9 @@
 # Tareas Programadas y Vigilancia
 
+> ARCHIVO DE CONTINUIDAD: desde CX-ORG-01 (2026-09-09), la entrada operativa es
+> [MASTER_CONTROL](../project_control/MASTER_CONTROL.md). El contenido inferior
+> conserva su fecha y alcance; no representa el estado actual por defecto.
+
 ## Produccion observada en solo lectura
 
 | Elemento | Estado | Evidencia |

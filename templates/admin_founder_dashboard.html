@@ -47,6 +47,7 @@
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
+{% set creative = product_qa.creative_design or {} %}
 {% set qa_director = product_qa.quality_director or {} %}
 {% set regression_manager = product_qa.regression_manager or {} %}
 {% set production_sentinel = product_qa.production_sentinel or {} %}
@@ -176,6 +177,30 @@
           <div><span><strong>{{ worker }}</strong><small>{{ calibration.why }}</small></span>{{ status_chip(calibration.state or 'INSUFFICIENT_HISTORY', 'neutral') }}</div>
           {% endfor %}
         </div>
+      </details>
+      <details class="v933-safe-copy" id="creative-design" data-creative-design="read-only">
+        <summary>NEMESIS CREATIVE &amp; DESIGN · {{ 'Revisión pendiente' if creative.contract_available else 'Contrato no disponible' }}</summary>
+        <div class="v933-truth-list is-no-icon" aria-label="Estado de diseño por área">
+          {% for group in creative.groups or [] %}
+          <div><span><strong>{{ {'DESIGN_SYSTEM':'Design System', 'BRAND':'Marca', 'APP_ICON':'Icono de app', 'CLIENT':'Cliente', 'SPORTS':'Deporte', 'MOBILE':'Móvil', 'ADMIN':'Admin'}[group.area] }}</strong><small>{{ {'DESIGN_MATCH':'Conforme al diseño', 'MINOR_DESIGN_GAP':'Diferencias menores', 'DESIGN_REWORK_REQUIRED':'Requiere corrección', 'FOUNDER_SUBJECTIVE_REVIEW':'Revisión de marca pendiente'}[group.design_status] }}</small></span></div>
+          {% endfor %}
+        </div>
+        <p>Funcionamiento, revisión visual y conformidad de diseño se evalúan por separado. La aprobación de marca sigue siendo humana.</p>
+        {% if creative.objective_gaps %}
+        <strong>Gaps con evidencia</strong>
+        <ul>{% for gap in creative.objective_gaps[:8] %}<li>{{ gap.screen_id }} · {{ gap.id }}</li>{% endfor %}</ul>
+        {% else %}
+        <p>Sin nuevos gaps registrados en este resumen; no equivale a una revisión completa.</p>
+        {% endif %}
+        <ul>{% for pending in creative.review_pending or [] %}<li>{{ pending.reason }}</li>{% endfor %}</ul>
+        <details>
+          <summary>Contratos y última evidencia por pantalla</summary>
+          <div class="v933-truth-list is-no-icon">
+          {% for screen in creative.screens or [] %}
+            <div><span><strong>{{ screen.screen_id }} · {{ screen.target_reference }}</strong><small>{{ screen.reference_relation }} · funcional {{ screen.functional_qa }} · visual {{ screen.visual_qa }}<br>{{ screen.design_status }}<br>{% if screen.review_revision %}Última muestra: {{ screen.review_revision[:8] }} · {{ screen.review_viewport }}{% else %}Sin muestra evaluada en este contrato{% endif %}</small></span></div>
+          {% endfor %}
+          </div>
+        </details>
       </details>
     </div>
   </section>
