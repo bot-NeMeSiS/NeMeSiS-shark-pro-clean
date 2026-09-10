@@ -109,6 +109,93 @@ def test_correction_to_unknown_removes_only_derived_certainty(historical_db):
             assert conn.execute("SELECT COUNT(*) FROM shark_historical_league_profile").fetchone()[0] == 0
 
 
+def _seed_rebuild_control(conn, monkeypatch):
+    monkeypatch.setattr(history, "_now_iso", lambda: "2026-09-10T08:00:00+00:00")
+    conn.executemany("""INSERT INTO football_matches_history
+        (id,external_id,provider,status,home_score,away_score,home_team,away_team,league_name,season)
+        VALUES (?,?,'sportsdb','FT',0,0,?,?,?,'2026')""", [
+            ("qa-alpha", "qa-alpha", "QA Home A", "QA Away A", "QA League A"),
+            ("qa-beta", "qa-beta", "QA Home B", "QA Away B", "QA League B"),
+        ])
+    conn.commit()
+    assert history.rebuild_historical_intelligence(":memory:")["ok"]
+
+
+def _derived_history_snapshot(conn):
+    return {
+        table: [tuple(row) for row in conn.execute("SELECT * FROM " + table + " ORDER BY id")]
+        for table in (
+            "shark_historical_match_facts", "shark_historical_team_form",
+            "shark_historical_league_profile", "shark_historical_market_profile",
+            "shark_historical_source_registry", "shark_historical_data_quality",
+        )
+    }
+
+
+@pytest.mark.parametrize("table", ["shark_historical_team_form", "shark_historical_league_profile"])
+@pytest.mark.parametrize("after_one_insert", [False, True], ids=["first-insert", "partial-rebuild"])
+def test_rebuild_failure_preserves_complete_history_and_can_retry(historical_db, monkeypatch, table, after_one_insert):
+    conn = historical_db
+    _seed_rebuild_control(conn, monkeypatch)
+    prior = _derived_history_snapshot(conn)
+    assert len(prior["shark_historical_team_form"]) == 4
+    assert len(prior["shark_historical_league_profile"]) == 2
+    # A committed provider correction must survive, but no partial projection may.
+    conn.execute("UPDATE football_matches_history SET home_score=2, away_score=1 WHERE id='qa-alpha'")
+    condition = " WHEN (SELECT COUNT(*) FROM " + table + ") = 1" if after_one_insert else ""
+    conn.execute("CREATE TRIGGER qa_rebuild_failure BEFORE INSERT ON " + table + condition +
+                 " BEGIN SELECT RAISE(ABORT, 'SIMULATED_QA_INSERT_FAILURE'); END")
+    conn.commit()
+
+    result = history.rebuild_historical_intelligence(":memory:")
+    assert result["ok"] is False
+    assert result["errors"] == ["SIMULATED_QA_INSERT_FAILURE"]
+    assert not conn.in_transaction
+    assert _derived_history_snapshot(conn) == prior
+    assert tuple(conn.execute("SELECT home_score,away_score FROM football_matches_history WHERE id='qa-alpha'").fetchone()) == (2, 1)
+    runs = conn.execute("SELECT status,errors_count FROM shark_historical_sync_runs ORDER BY id").fetchall()
+    assert [tuple(row) for row in runs] == [("OK", 0), ("ERROR", 1)]
+
+    conn.execute("DROP TRIGGER qa_rebuild_failure")
+    conn.commit()
+    assert history.rebuild_historical_intelligence(":memory:")["ok"]
+    assert tuple(conn.execute("SELECT home_score,away_score,winner FROM shark_historical_match_facts WHERE external_id='qa-alpha'").fetchone()) == (2, 1, "home")
+    assert tuple(conn.execute("SELECT home_score,away_score,winner FROM shark_historical_match_facts WHERE external_id='qa-beta'").fetchone()) == (0, 0, "draw")
+    conn.execute("UPDATE football_matches_history SET home_score=NULL, away_score=NULL WHERE id='qa-alpha'")
+    conn.commit()
+    assert history.rebuild_historical_intelligence(":memory:")["ok"]
+    assert tuple(conn.execute("SELECT home_score,away_score,total_goals,winner FROM shark_historical_match_facts WHERE external_id='qa-alpha'").fetchone()) == (None, None, None, "pending")
+    assert conn.execute("SELECT COUNT(*) FROM shark_historical_team_form").fetchone()[0] == 2
+    assert conn.execute("SELECT COUNT(*) FROM shark_historical_league_profile").fetchone()[0] == 1
+
+
+def test_rebuild_error_updates_only_its_run_in_same_second(historical_db, monkeypatch):
+    conn = historical_db
+    _seed_rebuild_control(conn, monkeypatch)
+
+    def fail_projection(_conn, limit):
+        raise sqlite3.OperationalError("SIMULATED_QA_PROJECTION_FAILURE")
+
+    monkeypatch.setattr(history, "_build_match_facts", fail_projection)
+    result = history.rebuild_historical_intelligence(":memory:")
+    assert result["ok"] is False
+    assert [row[0] for row in conn.execute("SELECT status FROM shark_historical_sync_runs ORDER BY id")] == ["OK", "ERROR"]
+
+
+def test_rebuild_run_insert_failure_does_not_change_previous_run(historical_db, monkeypatch):
+    conn = historical_db
+    _seed_rebuild_control(conn, monkeypatch)
+    before = [tuple(row) for row in conn.execute("SELECT * FROM shark_historical_sync_runs ORDER BY id")]
+    conn.execute("""CREATE TRIGGER qa_run_failure BEFORE INSERT ON shark_historical_sync_runs
+        BEGIN SELECT RAISE(ABORT, 'SIMULATED_QA_RUN_FAILURE'); END""")
+    conn.commit()
+    result = history.rebuild_historical_intelligence(":memory:")
+    assert result["ok"] is False
+    assert result["errors"] == ["SIMULATED_QA_RUN_FAILURE"]
+    assert [tuple(row) for row in conn.execute("SELECT * FROM shark_historical_sync_runs ORDER BY id")] == before
+    assert not conn.in_transaction
+
+
 def test_stored_or_render_time_does_not_rejuvenate_live():
     row = sample(age=600)
     row["updated_at"] = row["last_synced_at"]

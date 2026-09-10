@@ -550,6 +550,7 @@ def rebuild_historical_intelligence(db_path: str, limit: int = 1000, scope: str 
     started = _now_iso()
     result: Dict[str, Any] = {"ok": True, "scope": scope, "processed": 0, "inserted": 0, "updated": 0, "errors": []}
     conn = _connect(db_path)
+    run_id = None
     try:
         conn.execute(
             "INSERT INTO shark_historical_sync_runs(started_at, status, scope, payload_json) VALUES (?, ?, ?, ?)",
@@ -587,9 +588,11 @@ def rebuild_historical_intelligence(db_path: str, limit: int = 1000, scope: str 
         result["ok"] = False
         result["errors"].append(str(exc)[:500])
         try:
+            # Keep the last complete projection; persist only this run's error.
+            conn.rollback()
             conn.execute(
-                "UPDATE shark_historical_sync_runs SET finished_at=?, status=?, errors_count=?, error_message=?, payload_json=? WHERE started_at=?",
-                (_now_iso(), "ERROR", 1, str(exc)[:500], _json(result), started),
+                "UPDATE shark_historical_sync_runs SET finished_at=?, status=?, errors_count=?, error_message=?, payload_json=? WHERE id=?",
+                (_now_iso(), "ERROR", 1, str(exc)[:500], _json(result), run_id),
             )
             conn.commit()
         except Exception:
