@@ -15,14 +15,13 @@
 {% set sports_metrics = calendar.get('sports_metrics') or data.get('sports_metrics') or {} %}
 {% set lifecycle_total = (counts.get('today', 0)|int) + (counts.get('live', 0)|int) + (counts.get('picks', 0)|int) + (counts.get('finished', 0)|int) + (counts.get('incidents', 0)|int) %}
 
-    <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}><summary>Buscar y filtrar por competición o país</summary>
 <div class="v933-page v933-sports-board v933-calendar-board v940-calendar-experience"
      data-v933-template="calendar"
      data-v933-reference="official-ref-10"
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Partidos', 'Agenda completa · Hora Madrid.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
+  {{ page_header('Calendario', 'Tu agenda deportiva.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
 
 
 
@@ -59,6 +58,8 @@
       {{ filter_tabs(calendar.get('date_chips') or [], filters.get('date')) }}
     </div>
 
+    <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}>
+      <summary>Buscar y filtrar por competición o país</summary>
     <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendar">
       <input type="hidden" name="lane" value="{{ lane }}">
       <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">

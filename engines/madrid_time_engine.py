@@ -180,6 +180,25 @@ def _madrid_now_value(value: object = None) -> datetime:
     return to_madrid_time(value) or madrid_now()
 
 
+def madrid_greeting(name: object = None, *, username: object = None, now: object = None) -> dict[str, str]:
+    """Short greeting from the server's canonical Madrid clock, never device time."""
+    hour = _madrid_now_value(now).hour
+    label = "Buenos días" if 5 <= hour < 12 else "Buenas tardes" if 12 <= hour < 20 else "Buenas noches"
+    display_name = " ".join(str(name or "").split())
+    # Session snapshots may contain a generated username or placeholder as name.
+    technical_names = {"cliente", "cliente shark", "admin", "admin shark", "usuario", "user", "none", "null"}
+    if (
+        display_name.casefold() in technical_names
+        or display_name.casefold() == str(username or "").strip().casefold()
+        or not all(char.isalpha() or char in " '-’" for char in display_name)
+    ):
+        display_name = ""
+    first_name = display_name.split()[0] if display_name else ""
+    if first_name.casefold() in technical_names or not any(char.isalpha() for char in first_name) or len(first_name) > 32:
+        first_name = ""
+    return {"label": label, "name": first_name}
+
+
 def format_madrid_client_date_label(value: object, *, now: object = None, detail: bool = False) -> str:
     """Format one canonical Madrid instant for compact or match-detail client UX."""
     dt = to_madrid_time(value)

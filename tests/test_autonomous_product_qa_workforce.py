@@ -314,7 +314,10 @@ def test_home_dense_match_cards_use_the_active_home_container():
     css = (project_root / "static" / "v933-product.css").read_text(encoding="utf-8")
 
     assert "sports-priority-home" in template
-    assert ".sports-priority-home .v933-match-card :is(.v937-card-trust" in css
+    rule = next(line for line in css.splitlines()
+                if line.startswith(".sports-priority-home .v933-match-card :is("))
+    assert ".v937-confidence-badge" in rule
+    assert ".v937-card-trust" not in rule  # Its sibling time must remain visible.
 
 
 def test_brand_shark_cache_version_is_consistent_across_active_surfaces():

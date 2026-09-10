@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes %}
 {% block content %}
-{% set user_name = current_user.name or current_user.username or 'Cliente' %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
 {% set hub = data.get('match_hub') or {} %}
 {% set sports_home = hub.get('sports_home') or {} %}
@@ -19,7 +18,7 @@
   <section class="v933-client-hero ns16-home-hero">
     <div>
       <span class="v933-eyebrow">Tu centro deportivo · Hora Madrid</span>
-      <h1><span>Buenos días,</span> <strong class="ns16-user-name">{{ user_name }}</strong></h1>
+      <h1 data-madrid-greeting><span>{{ greeting.label }}{% if greeting.name %},{% endif %}</span>{% if greeting.name %} <strong class="ns16-user-name">{{ greeting.name }}</strong>{% endif %}</h1>
       <p>Partidos, directo y SHARK en una sola vista.</p>
       <div class="v933-client-hero-meta">
         {{ status_chip('Plan ' ~ plan_name, 'gold' if plan_name in ['ELITE','ELITE_PLUS'] else ('cyan' if plan_name == 'PRO' else 'blue')) }}
@@ -47,10 +46,10 @@
       <article class="v933-panel ns16-journey">
         {{ section_header('Ruta recomendada de hoy', '') }}
         <div class="ns16-journey-steps">
-          <a href="/calendar"><b>1</b>{{ icon('matches') }}<span>Mira<strong>Partidos</strong></span></a>
+          <a href="/calendar"><b>1</b>{{ icon('matches') }}<span>Mira<strong>Calendario</strong></span></a>
           <a href="/picks"><b>2</b>{{ icon('target') }}<span>Revisa<strong>Picks</strong></span></a>
           <a href="/shark{% if first_match and first_match.get('id') %}?match={{ first_match.get('id') }}{% endif %}"><b>3</b>{{ icon('shark') }}<span>Consulta<strong>SHARK</strong></span></a>
-          <a href="/track-record"><b>4</b>{{ icon('history') }}<span>Sigue<strong>Resultados</strong></span></a>
+          <a href="/track-record"><b>4</b>{{ icon('history') }}<span>Sigue<strong>Histórico de picks</strong></span></a>
         </div>
       </article>
 

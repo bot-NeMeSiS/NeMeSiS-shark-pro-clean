@@ -3,7 +3,7 @@
 {% macro nav_icon(name) -%}<span class="v933-nav-icon v928-icon" data-v928-icon="{{ name }}" aria-hidden="true"></span>{%- endmacro %}
 
 {% macro v933_public_navigation() -%}
-{% set links = [('Inicio','/','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark')] %}
+{% set links = [('Inicio','/','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark')] %}
 <header class="v933-topbar v933-public-topbar" data-nav-zone="public-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/', 'topbar') }}
@@ -23,7 +23,7 @@
 {%- endmacro %}
 
 {% macro v933_client_navigation(plan='FREE') -%}
-{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
+{% set links = [('Inicio','/app','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
 <header class="v933-topbar v933-client-topbar" data-nav-zone="client-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/app', 'topbar') }}
@@ -94,7 +94,7 @@
 {%- endmacro %}
 
 {% macro v933_mobile_bottom_nav(authenticated=false) -%}
-{% if authenticated %}{% set links = [('Inicio','/app','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Cuenta','/profile','user')] %}{% else %}{% set links = [('Inicio','/','home'),('Partidos','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Entrar','/cliente-login','user')] %}{% endif %}
+{% if authenticated %}{% set links = [('Inicio','/app','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Cuenta','/profile','user')] %}{% else %}{% set links = [('Inicio','/','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Picks','/picks','target'),('Entrar','/cliente-login','user')] %}{% endif %}
 <nav class="v933-mobile-bottom-nav" aria-label="Navegación móvil" data-nav-zone="client-bottom">
   {% for label, href, icon_name in links %}
   {% set active = request.path == href or (href == '/calendar' and request.path in ['/calendario','/partidos','/partidos-hoy']) %}

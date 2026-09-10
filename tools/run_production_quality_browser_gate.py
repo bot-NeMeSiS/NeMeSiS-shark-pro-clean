@@ -78,6 +78,86 @@ def _visual_asset_contract(resources: list[str]) -> tuple[bool, dict[str, Any]]:
         "legacy_shark_loaded": legacy_shark,
     }
 
+def classify_browser_resources(
+    base_url: str,
+    policy_blocks: list[dict[str, Any]],
+    request_failures: list[dict[str, Any]],
+    console_messages: list[dict[str, Any]],
+    image_failures: list[dict[str, Any]],
+    successful_resources: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Exonerate only recorded policy aborts, never an unobserved fallback."""
+    origin = urllib.parse.urlsplit(base_url).netloc
+    blocked = {
+        (item.get("url"), item.get("method"))
+        for item in policy_blocks
+        if item.get("reason") == "BLOCKED_BY_QA_POLICY"
+    }
+    aborted = {
+        (item.get("url"), item.get("method"))
+        for item in request_failures
+        if item.get("error") in {"net::ERR_FAILED", "net::ERR_BLOCKED_BY_CLIENT", "net::ERR_BLOCKED_BY_CLIENT.Inspector"}
+    }
+    proven = blocked & aborted
+    proven_urls = {url for url, _ in proven}
+    policy_console = []
+    unexplained_console = []
+    expected_messages = {
+        "Failed to load resource: net::ERR_FAILED",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT",
+        "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+    }
+    for item in console_messages:
+        target = policy_console if item.get("url") in proven_urls and item.get("text") in expected_messages else unexplained_console
+        target.append(item)
+    images = []
+    for item in image_failures:
+        row = dict(item)
+        url = str(row.get("url") or "")
+        local = urllib.parse.urlsplit(url).netloc == origin
+        if local or row.get("kind") in {"BRAND_ASSET", "APP_ICON"}:
+            row["classification"] = "REQUIRED_ASSET_FAILURE"
+            row["check"] = "FAIL"
+        elif (url, "GET") in proven:
+            row["classification"] = "QA_BLOCKED_EXTERNAL"
+            if row.get("fallback_working") is True:
+                row["check"] = "PASS"
+            elif row.get("fallback_working") is False:
+                row["check"] = "FAIL"
+            else:
+                row["check"] = "NOT_RUN"
+        else:
+            row["classification"] = "UNVERIFIED_RESOURCE_FAILURE"
+            row["check"] = "NOT_RUN"
+        images.append(row)
+    navigation_cancellations = [item for item in request_failures
+        if item.get("error") == "net::ERR_ABORTED" and item.get("phase") == "QA_NAVIGATION"
+        and item.get("type") == "image" and isinstance(item.get("failed_at"), (int, float))
+        and any(response.get("url") == item.get("url") and response.get("status") == 200
+                and response.get("received_at", -1) > item["failed_at"]
+                for response in successful_resources or [])]
+    unclassified_requests = [item for item in request_failures
+        if (item.get("url"), item.get("method")) not in proven and item not in navigation_cancellations]
+    required_asset_failures = [
+        item for item in request_failures
+        if item not in navigation_cancellations and urllib.parse.urlsplit(str(item.get("url") or "")).netloc == origin
+        and (urllib.parse.urlsplit(str(item.get("url") or "")).path.startswith("/static/")
+             or item.get("type") in {"document", "stylesheet", "script", "font"})
+    ]
+    image_check = "FAIL" if required_asset_failures or any(row["check"] == "FAIL" for row in images) else (
+        "NOT_RUN" if unclassified_requests or any(row["check"] == "NOT_RUN" for row in images) else "PASS"
+    )
+    return {
+        "policy_console": policy_console,
+        "unexplained_console": unexplained_console,
+        "unclassified_requests": unclassified_requests,
+        "required_asset_failures": required_asset_failures,
+        "qa_navigation_cancellations": navigation_cancellations,
+        "images": images,
+        "subresources_and_fallbacks": image_check,
+    }
+
+
 def build_post_deploy_result(
     *,
     expected_sha: str,
@@ -112,6 +192,7 @@ def build_post_deploy_result(
 
 
 def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) -> list[dict[str, Any]]:
+    page._sentinel_phase = "QA_NAVIGATION"
     results: list[dict[str, Any]] = []
     for path in paths:
         page.goto(base_url, wait_until="domcontentloaded", timeout=30_000)
@@ -137,6 +218,7 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
 
 
 def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
+    page._sentinel_phase = "CRITICAL_PAGE"
     started = time.perf_counter()
     response = page.goto(
         urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
@@ -148,6 +230,27 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
         """() => ({
           overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
           brokenImages: [...document.images].filter((img) => img.complete && img.naturalWidth === 0).map((img) => img.currentSrc || img.src),
+          imageFailures: [...document.images].filter((img) => img.complete && img.naturalWidth === 0).map((img) => {
+            const visible = (node) => Boolean(node && node.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})
+              && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
+            const owner = img.closest('.crest, .v928-crest, [data-player-photo], .player-photo') || img.parentElement;
+            const fallback = owner && owner.querySelector('em, [data-fallback-label]');
+            const bounds = owner && owner.getBoundingClientRect();
+            const fb = fallback && fallback.getBoundingClientRect();
+            const fits = Boolean(bounds && fb && fb.left >= bounds.left - 1 && fb.right <= bounds.right + 1
+              && fb.top >= bounds.top - 1 && fb.bottom <= bounds.bottom + 1);
+            const fallbackVisible = visible(fallback) && Boolean((fallback.textContent || '').trim());
+            const url = img.currentSrc || img.src;
+            return {
+              url,
+              kind: url.includes('/team/badge/') ? 'TEAM_CREST' : url.includes('/league/') ? 'LEAGUE_LOGO'
+                : url.includes('/player/') ? 'PLAYER_IMAGE' : /favicon|apple-touch|icon-/.test(url) ? 'APP_ICON'
+                : /shark|wordmark/.test(url) ? 'BRAND_ASSET' : 'OTHER',
+              image_visible: visible(img), hidden_attribute: img.hidden, display: getComputedStyle(img).display,
+              fallback_visible: fallbackVisible, fallback_fits: fits,
+              fallback_working: !visible(img) && fallbackVisible && fits,
+            };
+          }),
           text: document.body ? document.body.innerText : '',
           shell: Boolean(document.querySelector('[data-v933-surface]')),
           cssVersioned: [...document.querySelectorAll('link[rel="stylesheet"]')].some((link) => /app\\.css\\?v=/.test(link.href)),
@@ -180,6 +283,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
 
 def _discover_entity_paths(page: Any, base_url: str) -> tuple[str, ...]:
     """Follow at most one real link per sports entity without provider calls."""
+    page._sentinel_phase = "QA_NAVIGATION"
     discovered: list[str] = []
     pending = ["/", "/calendar", "/picks", "/shark"]
     visited: set[str] = set()
@@ -209,6 +313,8 @@ def run_gate(
     expected_sha: str,
     output_dir: Path,
     browser_executable: str = "",
+    *,
+    policy_blocked_requests: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     runtime, runtime_http = _request_json(base_url, "/api/runtime-version")
     health, health_http = _request_json(base_url, "/api/health")
@@ -217,7 +323,26 @@ def run_gate(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     console_errors: list[str] = []
+    console_messages: list[dict[str, Any]] = []
+    request_failures: list[dict[str, Any]] = []
+    successful_resources: list[dict[str, Any]] = []
     page_errors: list[str] = []
+
+    def attach_observers(page: Any) -> None:
+        def on_console(msg: Any) -> None:
+            if msg.type == "error":
+                console_errors.append(msg.text[:500])
+                console_messages.append({"text": msg.text[:500], "url": msg.location.get("url", "")})
+
+        page.on("console", on_console)
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)[:500]))
+        page.on("requestfailed", lambda req: request_failures.append({
+            "url": req.url, "method": req.method, "type": req.resource_type, "error": req.failure,
+            "phase": getattr(page, "_sentinel_phase", "UNKNOWN"), "failed_at": time.perf_counter(),
+        }))
+        page.on("response", lambda response: successful_resources.append({
+            "url": response.url, "status": response.status, "received_at": time.perf_counter(),
+        }))
     playwright_module = __import__("playwright.sync_api", fromlist=["sync_playwright"])
     with playwright_module.sync_playwright() as playwright:
         launch_options: dict[str, Any] = {"headless": True}
@@ -226,8 +351,7 @@ def run_gate(
         browser = playwright.chromium.launch(**launch_options)
         desktop = browser.new_context(viewport={"width": 1366, "height": 768})
         desktop_page = desktop.new_page()
-        desktop_page.on("console", lambda msg: console_errors.append(msg.text[:500]) if msg.type == "error" else None)
-        desktop_page.on("pageerror", lambda exc: page_errors.append(str(exc)[:500]))
+        attach_observers(desktop_page)
         topbar = _click_journey(desktop_page, base_url, "public-desktop", PUBLIC_NAV)
         entity_paths = _discover_entity_paths(desktop_page, base_url)
         audited_paths = tuple(dict.fromkeys((*CRITICAL_PAGES, *entity_paths)))
@@ -243,8 +367,7 @@ def run_gate(
             device_scale_factor=1,
         )
         mobile_page = mobile.new_page()
-        mobile_page.on("console", lambda msg: console_errors.append(msg.text[:500]) if msg.type == "error" else None)
-        mobile_page.on("pageerror", lambda exc: page_errors.append(str(exc)[:500]))
+        attach_observers(mobile_page)
         mobile_nav = _click_journey(mobile_page, base_url, "client-bottom", MOBILE_NAV)
         mobile_page.goto(base_url, wait_until="networkidle", timeout=45_000)
         mobile_layout = mobile_page.evaluate(
@@ -258,6 +381,7 @@ def run_gate(
               };
             }"""
         )
+        mobile_evidence = _page_evidence(mobile_page, base_url, "/")
         mobile_page.screenshot(path=str(output_dir / "home_mobile.png"), full_page=False)
         mobile.close()
 
@@ -306,13 +430,23 @@ def run_gate(
         if len(instants) > 1
     }
     temporal_pass = temporal_missing == 0 and not temporal_conflicts and routes_pass
-    browser_clean = not console_errors and not page_errors and not broken_images and not overflow and not mojibake and not technical_copy
+    resource_classification = classify_browser_resources(
+        base_url,
+        policy_blocked_requests or [],
+        request_failures,
+        console_messages,
+        [dict(image, path=item["path"]) for item in [*pages, mobile_evidence] for image in item.get("imageFailures") or []],
+        successful_resources,
+    )
+    application_console = resource_classification["unexplained_console"]
+    browser_clean = not application_console and not page_errors and not overflow and not mojibake and not technical_copy
     actual_sha = str(runtime.get("git_commit_hint") or "")
     checks = {
         "health": "PASS" if health_http == 200 and bool(health) else "FAIL",
         "sha_alignment": "PASS" if runtime_http == 200 and actual_sha == expected_sha else "FAIL",
-        "logs_recent": "PASS" if int(runtime.get("sentinel_active_issues_count") or 0) == 0 and not console_errors and not page_errors else "FAIL",
+        "logs_recent": "PASS" if int(runtime.get("sentinel_active_issues_count") or 0) == 0 and not application_console and not page_errors else "FAIL",
         "critical_routes": "PASS" if routes_pass and browser_clean else "FAIL",
+        "subresources_and_fallbacks": resource_classification["subresources_and_fallbacks"],
         "topbar_click_journey": "PASS" if topbar_pass else "FAIL",
         "mobile_nav": "PASS" if mobile_pass else "FAIL",
         "sports_truth": "PASS" if sports_http == 200 and sports_pass else "FAIL",
@@ -328,6 +462,7 @@ def run_gate(
         "topbar_clicks": topbar,
         "mobile_clicks": mobile_nav,
         "mobile_layout": mobile_layout,
+        "mobile_page": mobile_evidence,
         "pages": pages,
         "sports": sports_evidence,
         "temporal_context": {
@@ -342,6 +477,11 @@ def run_gate(
         },
         "admin_final_path": admin_final_path,
         "console_errors": console_errors,
+        "console_messages": console_messages,
+        "request_failures": request_failures,
+        "resource_responses": successful_resources,
+        "resource_classification": resource_classification,
+        "logs_scope": "Current browser errors and runtime issue count only; Render server logs are not queried by this runner.",
         "page_errors": page_errors,
         "broken_images": broken_images,
         "overflow": overflow,
