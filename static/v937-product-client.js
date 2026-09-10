@@ -2,6 +2,62 @@
   "use strict";
 
   const body = document.body;
+  const crestSelector = '.crest,.compact-crest,.v779-crest,.v928-crest,.team-crest,.identity-crest';
+  function refreshCrest(box) {
+    if (!box || box.tagName === 'IMG') return;
+    const image = box.querySelector('img');
+    let fallback = box.querySelector('em,[data-fallback-label]');
+    if (!fallback) {
+      const label = box.dataset.fallback || box.title || image?.alt || box.textContent.trim() || 'NS';
+      fallback = document.createElement('em');
+      fallback.textContent = box.dataset.fallback || label.split(/\s+/).filter(Boolean).map(word => word[0]).join('').slice(0, 3);
+      fallback.setAttribute('aria-hidden', 'true');
+      [...box.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).forEach(node => node.textContent = '');
+      box.appendChild(fallback);
+    }
+    if (image) image.removeAttribute('onerror');
+    const source = (image?.getAttribute('src') || '').trim();
+    let valid = false;
+    try { valid = Boolean(source) && ['https:', 'http:'].includes(new URL(source, location.href).protocol); } catch (_) { /* Invalid source uses initials. */ }
+    const loaded = Boolean(image && valid && image.complete && image.naturalWidth > 0);
+    const pending = Boolean(image && valid && !image.complete);
+    box.dataset.crestState = loaded ? 'loaded' : pending ? 'loading' : 'fallback';
+    box.classList.toggle('crest-image-error', !loaded && !pending);
+    if (image) {
+      image.hidden = false;
+      image.style.display = loaded || pending ? '' : 'none';
+      image.style.visibility = loaded ? 'visible' : 'hidden';
+      image.style.gridArea = '1 / 1';
+    }
+    fallback.style.display = loaded ? 'none' : '';
+    fallback.style.visibility = loaded ? 'hidden' : 'visible';
+    fallback.style.opacity = loaded ? '0' : '1';
+    fallback.style.gridArea = '1 / 1';
+  }
+  function refreshCrests(root = document) {
+    if (root.matches?.(crestSelector)) refreshCrest(root);
+    root.querySelectorAll?.(crestSelector).forEach(refreshCrest);
+  }
+  // Capture failures for late/lazy inserts and also reconcile cached failures.
+  for (const eventName of ['load', 'error']) {
+    document.addEventListener(eventName, event => {
+      if (event.target.tagName === 'IMG') refreshCrest(event.target.closest(crestSelector));
+    }, true);
+  }
+  const crestObserver = new MutationObserver(records => {
+    for (const record of records) {
+      if (record.type === 'attributes') refreshCrest(record.target.closest(crestSelector));
+      else record.addedNodes.forEach(node => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        refreshCrests(node);
+        refreshCrest(node.closest(crestSelector));
+      });
+    }
+  });
+  if (body) {
+    refreshCrests(body);
+    crestObserver.observe(body, {childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset']});
+  }
   if (!body || body.classList.contains("ns-admin") || body.dataset.admin === "true") return;
 
   const route = body.dataset.nsRoute || body.dataset.route || location.pathname || "/";
@@ -9,6 +65,7 @@
   body.dataset.v937Route = route;
 
   document.querySelectorAll("img").forEach((image) => {
+    if (image.closest(crestSelector)) return;
     image.addEventListener(
       "error",
       () => {
