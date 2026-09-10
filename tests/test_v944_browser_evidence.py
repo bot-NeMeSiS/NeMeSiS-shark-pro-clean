@@ -9,8 +9,33 @@ from PIL import Image
 
 from tools.check_v944_match_center_foundation import validate_browser_evidence
 from tools.run_v944_match_center_browser_qa import (
-    COMPONENTS, PROFILES, SCENARIOS, install_boundary, observation_failures, write_result,
+    COMPONENTS, PROFILES, SCENARIOS, install_boundary, observation_failures, qa_identity, write_result,
 )
+
+
+def test_browser_qa_credentials_are_ephemeral_and_not_provider_credentials():
+    first, second = qa_identity(), qa_identity()
+    assert first["SECRET_KEY"] != second["SECRET_KEY"]
+    assert first["ADMIN_PASSWORD"] != second["ADMIN_PASSWORD"]
+    assert len(first["SECRET_KEY"]) >= 43 and len(first["ADMIN_PASSWORD"]) >= 32
+    assert first["AUTOMATION_SECRET"] == second["AUTOMATION_SECRET"] == ""
+    assert first["ADMIN_EMAIL"].endswith("@example.invalid")
+
+
+def test_browser_runner_passes_unchanged_secret_guard(tmp_path):
+    from tools.check_repository_privacy_and_secrets import scan_repository
+    target = tmp_path / "tools"
+    target.mkdir()
+    source = Path(__file__).resolve().parents[1] / "tools/run_v944_match_center_browser_qa.py"
+    (target / source.name).write_bytes(source.read_bytes())
+    result = scan_repository(tmp_path)
+    assert result["ok"] and result["files_scanned"] == 1
+    assert result["privacy_findings"] == []
+    # A new hardcoded session secret must still fail; no scanner exceptions.
+    (target / "bad_runner.py").write_text("SECRET_KEY = 'unapproved-static-session-value'\n", encoding="utf-8")
+    result = scan_repository(tmp_path)
+    assert not result["ok"]
+    assert any(f["type"] == "sensitive_literal_assignment" for f in result["secret_findings"])
 
 
 def capture(scenario, profile):

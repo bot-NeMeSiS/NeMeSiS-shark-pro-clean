@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import secrets
 import sys
 from urllib.parse import urlparse
 from urllib.request import url2pathname
@@ -19,6 +20,16 @@ COMPONENTS = (
     "SharkPanel", "TelegramPanel", "BankrollPanel", "CompetitionPanel", "QuickActions",
 )
 DEFAULT_OUTPUT = ROOT / "browser_qa/V944_MATCH_CENTER_FOUNDATION"
+
+
+def qa_identity() -> dict[str, str]:
+    """Ephemeral credentials shared only by this isolated app and its browser."""
+    return {
+        "ADMIN_EMAIL": "qa@example.invalid",
+        "ADMIN_PASSWORD": secrets.token_urlsafe(24),
+        "SECRET_KEY": secrets.token_urlsafe(32),
+        "AUTOMATION_SECRET": "",
+    }
 
 # DOM observations are shared by the CI browser and supervised local browser QA.
 INSPECT_JS = r"""() => {
@@ -201,9 +212,8 @@ def main() -> int:
     configure_local_environment("OFFLINE_SAFE", 5000, database.name)
     for key in ("BACKGROUND_JOBS_ENABLED", "AUTO_GENERATE_PICKS", "AUTO_SEND_TELEGRAM_PICKS"):
         os.environ[key] = "false"
-    os.environ.update(ADMIN_EMAIL="qa@example.invalid", ADMIN_PASSWORD="qa-only-password",
-                      SECRET_KEY="v944-qa-only-session", AUTOMATION_SECRET="",
-                      CONTINUOUS_EVOLUTION_STORAGE_PATH=str(temp / "continuous_evolution_os"))
+    identity = qa_identity()
+    os.environ.update(identity, CONTINUOUS_EVOLUTION_STORAGE_PATH=str(temp / "continuous_evolution_os"))
     driver_command = []
     if not args.serve:
         from playwright._impl._driver import compute_driver_executable
@@ -211,7 +221,7 @@ def main() -> int:
     guards = install_boundary(temp, output, database, driver_command)
     from tools import run_autonomous_product_qa as qa
     qa.seed_database(database)
-    qa._seed_extra(database, "qa-local-only-password", datetime.now(ZoneInfo("Europe/Madrid")))
+    qa._seed_extra(database, identity["ADMIN_PASSWORD"], datetime.now(ZoneInfo("Europe/Madrid")))
     import app
     app.DB_PATH = str(database)
     app._SEEDED_DB_PATH = str(database)
@@ -270,7 +280,7 @@ def main() -> int:
                 page.on("response", lambda r: http_errors.append({"path": urlparse(r.url).path, "http": r.status}) if r.status >= 400 else None)
                 page.goto(base_url + "/cliente-login", wait_until="domcontentloaded")
                 page.locator("input[name='login']").fill("client-qa@example.invalid")
-                page.locator("input[name='password']").fill("qa-local-only-password")
+                page.locator("input[name='password']").fill(identity["ADMIN_PASSWORD"])
                 page.locator("button[type='submit']").click()
                 page.wait_for_url("**/app")
                 for scenario, match_id in SCENARIOS.items():
