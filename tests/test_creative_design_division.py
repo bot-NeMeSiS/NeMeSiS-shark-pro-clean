@@ -154,7 +154,12 @@ def test_existing_memory_records_decisions_once_and_reads_never_write(tmp_path):
     record_product_qa_run({**observation, "run_id": "DESIGN-QA-2"}, project_root=ROOT, storage_root=tmp_path, now="2026-09-09T12:01:00+02:00")
     memory = load_product_qa_memory(ROOT, tmp_path)
     assert len(memory["design_decisions"]) == 1
-    assert len(memory["design_decisions"][0]["decisions"]) == 8
+    expected = load_creative_design_contract(ROOT)["design_memory"]
+    recorded = memory["design_decisions"][0]["decisions"]
+    assert recorded == expected
+    assert len({item["id"] for item in recorded}) == len(recorded)
+    assert {"MOBILE_PRIMARY_NAV", "CALENDAR_HUB", "HOME_SELECTION",
+            "TRACK_RECORD_PICKS", "SHARK_CONTEXTUAL", "SPORTS_VISUAL_TOKENS"} <= {item["id"] for item in recorded}
     assert memory["founder_overrides"]
     before = {str(p): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
     status = build_autonomous_product_qa_status(ROOT, storage_root=tmp_path)

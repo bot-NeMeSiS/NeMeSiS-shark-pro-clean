@@ -47,12 +47,22 @@
   <div class="v944-match-layout">
     <section class="v944-match-main" id="match-story" aria-label="Historia y datos del partido">
       {{ match_story(match_context) }}
-      {{ lineups_panel(match_context) }}
-      {{ timeline(match_context) }}
-      {{ stats_panel(match_context) }}
-      {{ head_to_head_panel(match_context) }}
-      {{ standings_panel(match_context) }}
-      {{ video_panel(match_context) }}
+      {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
+      {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
+      {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
+      {% if head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
+      {% if standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
+      {% if media.get('visible_count') %}{{ video_panel(match_context) }}{% endif %}
+      {% if not (lineups.get('confirmed') and events.get('available') and statistics.get('available') and head_to_head.get('available') and standings.get('available')) %}
+      <details class="v944-coverage-details">
+        <summary>Cobertura pendiente</summary>
+        {% if not lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
+        {% if not events.get('available') %}{{ timeline(match_context) }}{% endif %}
+        {% if not statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
+        {% if not head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
+        {% if not standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
+      </details>
+      {% endif %}
       {{ competition_panel(match_context) }}
       {{ data_quality_panel(match_context) }}
     </section>

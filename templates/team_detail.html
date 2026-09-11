@@ -65,13 +65,13 @@
   <main class="team-center-layout">
     <section class="team-center-panel team-center-form" data-team-center-section="recent-form">
       <div class="team-center-section-head"><span>Forma reciente</span><strong>{{ form.trend or 'No disponible' }}</strong></div>
-      <div class="team-center-form-metrics">
+      {% if form_items %}<div class="team-center-form-metrics">
         <div><span>V</span><strong>{{ form.wins or 0 }}</strong></div>
         <div><span>E</span><strong>{{ form.draws or 0 }}</strong></div>
         <div><span>D</span><strong>{{ form.losses or 0 }}</strong></div>
         <div><span>GF</span><strong>{{ form.goals_for or 0 }}</strong></div>
         <div><span>GC</span><strong>{{ form.goals_against or 0 }}</strong></div>
-      </div>
+      </div>{% endif %}
       {% if form_items %}
       <ol class="team-center-form-list">
         {% for item in form_items[:5] %}

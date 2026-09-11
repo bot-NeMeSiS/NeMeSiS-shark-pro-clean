@@ -54,7 +54,7 @@
     <div>
       <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
       {% if current_user %}
-      <h1>Buenos días, <span>{{ current_user.name or current_user.username or 'cliente' }}</span></h1>
+      <h1 data-madrid-greeting>{{ greeting.label }}{% if greeting.name %}, <span>{{ greeting.name }}</span>{% endif %}</h1>
       <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
       <div class="v933-hero-actions">
         {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}

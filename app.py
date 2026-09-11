@@ -442,6 +442,7 @@ from engines.madrid_time_engine import (
     format_madrid_short_time,
     format_madrid_sync_label,
     madrid_conversion_selftest,
+    madrid_greeting,
     madrid_time_diagnostics,
     normalize_kickoff_for_display,
 )
@@ -9866,6 +9867,7 @@ def inject_session_user():
     user = current_session_user()
     return {
         "current_user": user,
+        "greeting": madrid_greeting((user or {}).get("name"), username=(user or {}).get("username")),
         "app_version": APP_VERSION,
         "app_icon_version": APP_ICON_VERSION,
         "madrid_now": now_madrid_label(),
