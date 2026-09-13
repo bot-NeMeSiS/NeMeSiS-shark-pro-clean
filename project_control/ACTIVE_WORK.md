@@ -1,6 +1,50 @@
 # Active Work
 
-## Estado vigente R10 (2026-09-13)
+## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. No publicar ni iniciar RESULTS-01.
+Checkpoint local autorizado: preservacion selectiva del trabajo R1-R4, no main.
+Soporte entrega en bandeja admin local: PASS_LOCAL; produccion no comprobada.
+Suite 1016: 973 PASS, mismos 43 bloqueos NOT_CERTIFIED, cero nuevos fallos/errors.
+Match pasa a MINOR_DESIGN_GAP en composicion QA; ledger 0 MATCH / 6 minor / 15 rework.
+Anatomia/atmosfera y cobertura i18n siguen pendientes. Player real NOT_TESTED.
+[Cierre R4 y alcance](../reports/CX_DESIGN_02_R4_20260913.md).
+
+## Historico: CX-DESIGN-02 R3 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Main protegido; sin commit, push, PR,
+merge ni deploy. Continuacion real de R2, no nuevo macrotrabajo.
+727 entradas ES/EN/FR; contexto y estados dinamicos ampliados, relojes y tabla
+admin conectados a Madrid, Cuenta compacta y Calendario sin identidad duplicada.
+La cobertura completa y la conformidad visual siguen sin certificarse.
+Soporte real sigue P1; Player real NOT_TESTED_BY_DATA_AVAILABILITY.
+[Cierre R3 y evidencia](../reports/CX_DESIGN_02_R3_20260913.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. Ningun PASS local es produccion.
+
+## Historico: CX-DESIGN-02 R2 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Sin publicacion ni nuevo macrotrabajo.
+Madrid: conversion con zona de origen explicita, rollover y orden DST; manual
+Madrid sin doble conversion. Verificacion global exhaustiva aun no certificada.
+I18N: catalogo unico ES/EN/FR, selector y preferencia no destructiva; 475 entradas.
+La cobertura critica EN/FR es PARTIAL, no completa. Soporte real sigue P1 abierto.
+Home movil mas compacto y bloque vacio sin recuadros anidados; ninguna nueva
+certificacion DESIGN_MATCH por ausencia de overflow. Main/candidato protegidos.
+[Cierre R2 y QA](../reports/CX_DESIGN_02_R2_20260913.md).
+[Cobertura y memoria i18n](I18N_COVERAGE_MATRIX.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. SE-01 PASS_LOCAL_SCOPE y los
+12 LOCAL_SAFE_BLOCKED historicos permanecen NOT_CERTIFIED.
+
+## Iteracion anterior: CX-DESIGN-02 (2026-09-13)
+
+IN_PROGRESS / LOCAL_ONLY. CX_DESIGN_02_STARTED = YES por autorizacion del Founder.
+Un integrador, siete responsabilidades existentes, cero nuevos workers.
+18 rutas del candidato revisadas; no cherry-pick ni copia global del commit.
+Main, objetos/copia del candidato y evidencias DAY 3/4/5 preservados.
+No publicacion: gaps objetivos de diseno y canal real de Soporte pendiente.
+[Matriz, defectos y QA](../reports/CX_DESIGN_02_ITERATION_20260913.md).
+
+## Historico: estado R10 (2026-09-13)
 
 La decision actual esta en [MASTER_CONTROL](MASTER_CONTROL.md). Esta copia preserva
 la continuidad mas reciente del candidato, no publica producto ni reinicia Design.

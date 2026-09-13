@@ -1,6 +1,53 @@
 # Current Truth
 
-## Estado vigente R10 (2026-09-13)
+## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+
+PARTIAL / LOCAL_ONLY. Main/origin-main c4a81003; no nueva certificacion productiva.
+Soporte recibe y persiste mensajes en bandeja administrativa LOCAL verificada.
+OPEN_FUNCTIONAL_P1 = 0 en ese alcance, no certificacion de atencion en produccion.
+1016 pruebas: 973 PASS, mismos 43 bloqueos heredados NOT_CERTIFIED, cero errors.
+Match mejora a MINOR_DESIGN_GAP; 0 MATCH / 6 MINOR / 15 REWORK; Player sin dato real.
+775 entradas i18n, cobertura aun PARTIAL. Marca/atmosfera requieren trabajo objetivo.
+Checkpoint de commits locales selectivos autorizado; sin push/PR/merge/deploy.
+[Cierre R4](../reports/CX_DESIGN_02_R4_20260913.md). SAFE_TO_PUBLISH = NO.
+
+## Historico: CX-DESIGN-02 R3 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Main protegido; sin commit, push, PR,
+merge ni deploy. Continuacion real de R2, no nuevo macrotrabajo.
+727 entradas ES/EN/FR; contexto y estados dinamicos ampliados, relojes y tabla
+admin conectados a Madrid, Cuenta compacta y Calendario sin identidad duplicada.
+La cobertura completa y la conformidad visual siguen sin certificarse.
+Soporte real sigue P1; Player real NOT_TESTED_BY_DATA_AVAILABILITY.
+[Cierre R3 y evidencia](../reports/CX_DESIGN_02_R3_20260913.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. Ningun PASS local es produccion.
+
+## Historico: CX-DESIGN-02 R2 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Sin publicacion ni nuevo macrotrabajo.
+Madrid: conversion con zona de origen explicita, rollover y orden DST; manual
+Madrid sin doble conversion. Verificacion global exhaustiva aun no certificada.
+I18N: catalogo unico ES/EN/FR, selector y preferencia no destructiva; 475 entradas.
+La cobertura critica EN/FR es PARTIAL, no completa. Soporte real sigue P1 abierto.
+Home movil mas compacto y bloque vacio sin recuadros anidados; ninguna nueva
+certificacion DESIGN_MATCH por ausencia de overflow. Main/candidato protegidos.
+[Cierre R2 y QA](../reports/CX_DESIGN_02_R2_20260913.md).
+[Cobertura y memoria i18n](I18N_COVERAGE_MATRIX.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. SE-01 PASS_LOCAL_SCOPE y los
+12 LOCAL_SAFE_BLOCKED historicos permanecen NOT_CERTIFIED.
+
+## Iteracion anterior: CX-DESIGN-02 (2026-09-13)
+
+IN_PROGRESS / LOCAL_ONLY; resultado de iteracion PARTIAL, no cierre productivo.
+Main base c4a81003; rama Design HEAD 2c1a9b67 con cambios locales sin publicar.
+La verdad productiva anterior no se sustituye por fixtures de QA.
+Saludo Madrid, favoritos, estado de equipo y navegacion tienen regresiones locales.
+Soporte ya no confirma un mensaje no entregado; el canal real sigue pendiente.
+La suite local conserva bloqueos del aislamiento: nunca PASS global automatico.
+SE-01 PASS_LOCAL_SCOPE y 12 LOCAL_SAFE_BLOCKED historicos siguen NOT_CERTIFIED.
+[Evidencia y limites](../reports/CX_DESIGN_02_ITERATION_20260913.md).
+
+## Historico: estado R10 (2026-09-13)
 
 La decision actual esta en [MASTER_CONTROL](MASTER_CONTROL.md). Esta copia preserva
 la continuidad mas reciente del candidato, no publica producto ni reinicia Design.

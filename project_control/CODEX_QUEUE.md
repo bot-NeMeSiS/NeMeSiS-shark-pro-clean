@@ -1,6 +1,24 @@
 # Codex Queue
 
-## Estado vigente R10 (2026-09-13)
+## Cola vigente CX-DESIGN-02 (2026-09-13)
+
+R4 sigue IN_PROGRESS / LOCAL_ONLY. [Evidencia R4](../reports/CX_DESIGN_02_R4_20260913.md).
+No publicar: cobertura critica i18n incompleta,
+gaps de diseno y marca pendientes. Soporte P1 cerrado solo en entrega local
+a bandeja admin verificada; no correo ni produccion certificados.
+Continuar solo este trabajo tras revision, no otro macrotrabajo.
+[Cierre R2](../reports/CX_DESIGN_02_R2_20260913.md).
+[Cobertura ES/EN/FR](I18N_COVERAGE_MATRIX.md).
+
+| Trabajo | Estado | Evidencia | Siguiente accion |
+|---|---|---|---|
+| CX-LOCAL-RECONCILE-01 R8/R9/R10-CLOSE | DONE | LOCAL_ONLY | Cierres aceptados; no repetir |
+| CX-DESIGN-02 | IN_PROGRESS | LOCAL_ONLY | Resolver gaps objetivos y cobertura pendiente; ver informe de iteracion; no publicar |
+| CX-RESULTS-01 / CX-DATA-01 / CX-ORG-01 R2 | BLOCKED | NOT_TESTED | No iniciar dentro de Design |
+
+CX_DESIGN_02_STARTED = YES. [Evidencia vigente](../reports/CX_DESIGN_02_ITERATION_20260913.md).
+
+## Historico: estado R10 (2026-09-13)
 
 La decision actual esta en [MASTER_CONTROL](MASTER_CONTROL.md). Esta copia preserva
 la continuidad mas reciente del candidato, no publica producto ni reinicia Design.
@@ -53,6 +71,7 @@ DONE siempre indica alcance/evidencia; DONE local no significa publicado.
 | OPS-002 | QA | Codex | LOCAL_ONLY | Higiene CX: referencias/ignore/retirada cache y huellas, sin codigo funcional |
 | OPS-003 | BLOCKED | Arquitectura / Founder | NOT_TESTED | Retirada legacy adicional: especificacion completa y consumidor/alternativa demostrados |
 | BIZ-001 | BACKLOG | Founder | NOT_TESTED | FIRST 10 tras gates deportivos, calidad, operacion y permisos comerciales |
+| BIZ-002 | BLOCKED | Client Success / Codex | LOCAL_ONLY | Soporte: SMTP existente solo para recuperacion; falta destino/canal de soporte y entrega verificable. P1 abierto. No cerrar por formulario traducido ni iniciar nueva infraestructura |
 
 ## Correspondencia historica
 

@@ -1,6 +1,77 @@
 # NeMeSiS - Master Control
 
-## Vigente: cierre local R10-CLOSE (2026-09-13)
+## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. SAFE_TO_PUBLISH = NO.
+Rama codex/cx-design-02; main base c4a81003 limpio y no modificado.
+Checkpoint local autorizado para preservar R1-R4. No push, PR, merge ni deploy.
+Suite final 1016 = 973 PASS + mismos 43 ENVIRONMENT_BLOCKED / NOT_CERTIFIED;
+cero nuevos fallos y cero errors. No declarar PASS global.
+Soporte: persistencia y lectura admin reales en DB QA, PASS_LOCAL; P1 local cerrado.
+No afirmar entrega productiva, correo, notificaciones ni respuesta humana.
+Madrid PASS_LOCAL en inventario de presentadores; i18n 775 entradas, cobertura PARTIAL.
+Conformidad 0 MATCH / 6 MINOR / 15 REWORK; Player real NOT_TESTED separado.
+BRAND_ANATOMY_MATCH REWORK_REQUIRED; decision B de presentacion hacia maestro aprobado.
+SE-01 PASS_LOCAL_SCOPE, 12 historicos NOT_CERTIFIED, DAY 3/4/5 preservados.
+[Evidencia R4](../reports/CX_DESIGN_02_R4_20260913.md).
+Siguiente: continuar solo gaps de CX-DESIGN-02 tras este cierre. No RESULTS-01.
+
+## Historico: CX-DESIGN-02 R3 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Main protegido; sin commit, push, PR,
+merge ni deploy. Continuacion real de R2, no nuevo macrotrabajo.
+727 entradas ES/EN/FR; contexto y estados dinamicos ampliados, relojes y tabla
+admin conectados a Madrid, Cuenta compacta y Calendario sin identidad duplicada.
+La cobertura completa y la conformidad visual siguen sin certificarse.
+Suite final R3: 986 total, 943 PASS, mismos 43 bloqueos heredados, 0 nuevos
+fallos, 0 errors. Global PARTIAL; 336 combinaciones de navegador deduplicadas,
+266 clicks/taps y 14 escenarios fallback. Evidencia exclusivamente local simulada.
+Soporte real sigue P1; Player real NOT_TESTED_BY_DATA_AVAILABILITY.
+[Cierre R3 y evidencia](../reports/CX_DESIGN_02_R3_20260913.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. Ningun PASS local es produccion.
+
+## Historico: CX-DESIGN-02 R2 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Sin publicacion ni nuevo macrotrabajo.
+Madrid: conversion con zona de origen explicita, rollover y orden DST; manual
+Madrid sin doble conversion. Verificacion global exhaustiva aun no certificada.
+I18N: catalogo unico ES/EN/FR, selector y preferencia no destructiva; 475 entradas.
+La cobertura critica EN/FR es PARTIAL, no completa. Soporte real sigue P1 abierto.
+Home movil mas compacto y bloque vacio sin recuadros anidados; ninguna nueva
+certificacion DESIGN_MATCH por ausencia de overflow. Main/candidato protegidos.
+[Cierre R2 y QA](../reports/CX_DESIGN_02_R2_20260913.md).
+[Cobertura y memoria i18n](I18N_COVERAGE_MATRIX.md).
+SAFE_TO_PUBLISH = NO. RESULTS-01 no iniciado. SE-01 PASS_LOCAL_SCOPE y los
+12 LOCAL_SAFE_BLOCKED historicos permanecen NOT_CERTIFIED.
+
+## Iteracion anterior: CX-DESIGN-02 (2026-09-13)
+
+CX-DESIGN-02 = IN_PROGRESS / LOCAL_ONLY. CX_DESIGN_02_STARTED = YES.
+R8/R9/R10-CLOSE aceptados; no se repiten limpieza ni reconciliacion.
+Rama codex/cx-design-02; HEAD documental 2c1a9b676036ae2630e14028cd5539fe1713acf4,
+base de producto c4a81003de1b5ccdb3036831583e9c1eb65e4417. Candidato 7202c188:
+18 rutas revisadas individualmente y adaptadas; las cinco documentales no se copian.
+Main y preservaciones no se editan. No nuevo commit/push/PR/merge/deploy.
+
+Las 16 PNG se reabren fisicamente. REF-12 sigue siendo Match Center con SHARK.
+QA funcional, visual y conformidad son independientes. Hay gaps objetivos de
+marca, composicion y cobertura funcional; SAFE_TO_PUBLISH = NO. No convertir
+LOCAL_ONLY/SIMULATED_QA en produccion ni una ausencia de overflow en DESIGN_MATCH.
+El envio de Soporte carece de persistencia/entrega: se elimina la falsa confirmacion,
+se muestra indisponibilidad y queda una capacidad funcional pendiente, no DONE.
+La anatomia del icono aprobado difiere de las referencias: REWORK_REQUIRED,
+pendiente de resolver la autoridad sobre un eventual cambio del icono preservado.
+
+Produccion/GitHub c4a81003: ultima base certificada comunicada, no recertificada
+en esta iteracion. SE-01 = PASS_LOCAL_SCOPE; 12 LOCAL_SAFE_BLOCKED / NOT_CERTIFIED
+historicos se conservan. Los fallos de la nueva suite aislada se comparan con su
+propio baseline, sin reescribir los historicos. DAY 3/4/5 e iconos protegidos.
+
+Siguiente accion unica: continuar CX-DESIGN-02 desde sus gaps y evidencias.
+RESULTS-01, DATA-01 y CX-ORG-01 R2 no iniciados. No nuevos workers/procesos de negocio.
+Detalle y matriz: [iteracion de Design](../reports/CX_DESIGN_02_ITERATION_20260913.md).
+
+## Historico: cierre local R10-CLOSE (2026-09-13)
 
 El Founder autoriza exclusivamente un commit LOCAL de ACTIVE_WORK, CODEX_QUEUE,
 CURRENT_TRUTH, MASTER_CONTROL y domains/PRODUCT_VISUAL en codex/cx-design-02.

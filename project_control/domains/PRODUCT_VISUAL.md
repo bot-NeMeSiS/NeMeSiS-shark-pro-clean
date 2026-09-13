@@ -1,6 +1,45 @@
 # Product / Visual
 
-## Estado vigente R10 (2026-09-13)
+## Vigente: CX-DESIGN-02 (2026-09-13)
+
+Continuacion R4: Home reduce fila desktop 179px a 126px en captura comparada.
+Match muestra SHARK/resumen/acciones en una fila desktop y modulos disponibles
+en dos columnas con rail contextual; una columna movil. REF-12 comparada fisicamente.
+Match: MINOR_DESIGN_GAP local; ledger 0 MATCH / 6 MINOR / 15 REWORK. No pixel-perfect.
+Decision B: ADAPT_ATMOSPHERIC_SHARK_TO_APPROVED_MASTER para crop/escala/luz;
+icono intacto, mandibula/dientes frente a PNG siguen REWORK_REQUIRED.
+Soporte entrega en inbox admin local; no certificacion de produccion.
+[Cierre R4 y design memory](../../reports/CX_DESIGN_02_R4_20260913.md).
+Los apartados inferiores son evidencia historica, no estado productivo actual.
+
+Historico R3: Cuenta usa servicios en una columna movil y disclosures nativos.
+Calendario conserva el macro y gates canonicos; no repite visualmente la liga
+ya presentada en su grupo. La hora permanece visible y los escudos no cambian.
+Home adapta el partido unico a una fila desktop con anchura propia para estados.
+Coherencia interna de assets no equivale a anatomia coincidente con las PNG.
+[Cierre R3](../../reports/CX_DESIGN_02_R3_20260913.md).
+
+Historico R2: Home movil reduce la altura del partido y elimina el recuadro
+interior del empty state de picks. Las etiquetas KPI respetan palabras EN/FR.
+No se certifica anatomia ni se suben pantallas a MATCH por geometria.
+I18N canonica: 475 entradas, selector ES/EN/FR, cobertura critica PARTIAL.
+Madrid mantiene el instante independiente del idioma y la zona del dispositivo.
+[Cobertura y memoria](../I18N_COVERAGE_MATRIX.md).
+[Cierre R2](../../reports/CX_DESIGN_02_R2_20260913.md).
+
+IN_PROGRESS / LOCAL_ONLY. Las 16 referencias fueron abiertas nuevamente;
+REF-12 es Match Center con SHARK. No se modifica ninguna referencia.
+18 rutas del candidato revisadas individualmente; icono/fallback productivos retenidos.
+Baseline y recaptura real de 21 superficies en siete viewports; fixtures privados,
+red/proveedores/efectos externos bloqueados. Player real NOT_TESTED sin ID autorizado.
+No DESIGN_MATCH automatico: anatomia frente a PNG requiere rework; compactos derivan
+del icono aprobado, pero eso no certifica coincidencia anatomica con las referencias.
+Calendar conserva cinco aliases; fecha usa el snapshot existente, no archivo historico.
+Soporte real sigue pendiente; Founder solo conserva decisiones subjetivas/autoridad
+del icono, no recibe como subjetivos los gaps objetivos de layout.
+[Matriz y plan de continuacion](../../reports/CX_DESIGN_02_ITERATION_20260913.md).
+
+## Historico: estado R10 (2026-09-13)
 
 La decision actual esta en [MASTER_CONTROL](../MASTER_CONTROL.md). Esta copia preserva
 la continuidad mas reciente del candidato, no publica producto ni reinicia Design.
