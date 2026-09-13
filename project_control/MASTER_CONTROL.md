@@ -1,6 +1,22 @@
 # NeMeSiS - Master Control
 
-## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+## Vigente: CX-DESIGN-02 R5 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. SAFE_TO_PUBLISH = NO.
+Main c4a81003 protegido. Continuacion sobre b6881ad0, solo commits locales.
+Sin push, PR, merge, deploy ni RESULTS-01. No nuevos procesos.
+1020 mensajes ES/EN/FR; reloj central Madrid, filas compactas, fallbacks,
+contexto Match plegable, profundidad oceanica y correccion de etiquetas admin.
+298/298 interacciones locales; 216 observaciones; 96 casos Madrid de navegador.
+Conformidad 0 MATCH / 6 MINOR / 15 REWORK: mejoras no equivalen a MATCH.
+BRAND_ANATOMY_MATCH REWORK_REQUIRED; cobertura i18n exhaustiva pendiente.
+Soporte PASS_LOCAL; no correo, respuesta humana ni entrega productiva certificados.
+SE-01 PASS_LOCAL_SCOPE; 12 historicos NOT_CERTIFIED; DAY 3/4/5 preservados.
+Los 43 bloqueos ambientales siguen separados y NOT_CERTIFIED.
+[Cierre R5 y QA final](../reports/CX_DESIGN_02_R5_20260913.md).
+Siguiente: continuar gaps de CX-DESIGN-02; no declarar DONE ni iniciar otro trabajo.
+
+## Historico: CX-DESIGN-02 R4 (2026-09-13)
 
 PARTIAL / IN_PROGRESS / LOCAL_ONLY. SAFE_TO_PUBLISH = NO.
 Rama codex/cx-design-02; main base c4a81003 limpio y no modificado.

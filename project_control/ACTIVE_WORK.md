@@ -1,6 +1,18 @@
 # Active Work
 
-## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+## Vigente: CX-DESIGN-02 R5 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Sin push/PR/merge/deploy ni RESULTS-01.
+1020 mensajes i18n; reloj Madrid central, Calendario mas denso, Favoritos
+canonicos, contexto Match plegable y fondo oceanico integrado. Etiquetas admin
+sin palabras partidas tras recaptura. Soporte PASS_LOCAL preservado.
+Conformidad 0 MATCH / 6 MINOR / 15 REWORK; no promociones artificiales.
+298 interacciones, 216 observaciones deduplicadas y 96 casos Madrid locales.
+Cobertura i18n global, anatomia y composicion siguen pendientes.
+[Cierre R5 y alcance](../reports/CX_DESIGN_02_R5_20260913.md).
+SAFE_TO_PUBLISH = NO. El cierre documenta avance, no fin de CX-DESIGN-02.
+
+## Historico: CX-DESIGN-02 R4 (2026-09-13)
 
 PARTIAL / IN_PROGRESS / LOCAL_ONLY. No publicar ni iniciar RESULTS-01.
 Checkpoint local autorizado: preservacion selectiva del trabajo R1-R4, no main.

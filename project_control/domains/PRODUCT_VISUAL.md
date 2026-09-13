@@ -2,7 +2,16 @@
 
 ## Vigente: CX-DESIGN-02 (2026-09-13)
 
-Continuacion R4: Home reduce fila desktop 179px a 126px en captura comparada.
+Continuacion R5: reloj Madrid protagonista en proximo partido, filas de Calendario
+con logo seguro/fallback comun y controles separados; Favorites reutiliza match_card.
+Contexto incompleto Match en disclosures compactos, nueva profundidad oceanica,
+etiquetas admin con anchura minima de palabra; recapturas ES/EN/FR realizadas.
+0 MATCH / 6 MINOR / 15 REWORK. Anatomia, composicion y cobertura i18n no cerradas.
+El nuevo raster no incluye tiburon; App Icon y maestro existentes intactos.
+[Cierre R5 y design memory](../../reports/CX_DESIGN_02_R5_20260913.md).
+No publicar ni iniciar RESULTS-01. Mejoras de componentes no son MATCH de pantalla.
+
+Historico R4: Home reduce fila desktop 179px a 126px en captura comparada.
 Match muestra SHARK/resumen/acciones en una fila desktop y modulos disponibles
 en dos columnas con rail contextual; una columna movil. REF-12 comparada fisicamente.
 Match: MINOR_DESIGN_GAP local; ledger 0 MATCH / 6 MINOR / 15 REWORK. No pixel-perfect.

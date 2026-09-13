@@ -2,11 +2,12 @@
 
 ## Cola vigente CX-DESIGN-02 (2026-09-13)
 
-R4 sigue IN_PROGRESS / LOCAL_ONLY. [Evidencia R4](../reports/CX_DESIGN_02_R4_20260913.md).
+R5 sigue IN_PROGRESS / LOCAL_ONLY. [Evidencia R5](../reports/CX_DESIGN_02_R5_20260913.md).
 No publicar: cobertura critica i18n incompleta,
 gaps de diseno y marca pendientes. Soporte P1 cerrado solo en entrega local
 a bandeja admin verificada; no correo ni produccion certificados.
-Continuar solo este trabajo tras revision, no otro macrotrabajo.
+Continuar anatomia aprobada, composicion/fondo, idiomas y densidad admin;
+no otro macrotrabajo. Checkpoint selectivo local, sin push/PR/merge/deploy.
 [Cierre R2](../reports/CX_DESIGN_02_R2_20260913.md).
 [Cobertura ES/EN/FR](I18N_COVERAGE_MATRIX.md).
 

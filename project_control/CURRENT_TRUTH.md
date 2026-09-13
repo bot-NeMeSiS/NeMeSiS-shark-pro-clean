@@ -1,6 +1,17 @@
 # Current Truth
 
-## Vigente: CX-DESIGN-02 R4 (2026-09-13)
+## Vigente: CX-DESIGN-02 R5 (2026-09-13)
+
+PARTIAL / LOCAL_ONLY. Base main c4a81003 limpia; incoming Design b6881ad0.
+No nueva certificacion productiva ni publicacion. Soporte PASS_LOCAL, P1 local 0.
+25 rutas producto/asset/tests y 7 documentos en checkpoint selectivo local.
+1020 mensajes canonicos ES/EN/FR; cobertura completa sigue PARTIAL.
+Madrid PASS_LOCAL en inventario declarado; 96 pruebas de navegador en cuatro zonas.
+0 MATCH / 6 MINOR / 15 REWORK. Anatomia sigue REWORK_REQUIRED.
+298 interacciones verificadas; fallbacks preservados; datos QA no son produccion.
+[Cierre R5](../reports/CX_DESIGN_02_R5_20260913.md). SAFE_TO_PUBLISH = NO.
+
+## Historico: CX-DESIGN-02 R4 (2026-09-13)
 
 PARTIAL / LOCAL_ONLY. Main/origin-main c4a81003; no nueva certificacion productiva.
 Soporte recibe y persiste mensajes en bandeja administrativa LOCAL verificada.

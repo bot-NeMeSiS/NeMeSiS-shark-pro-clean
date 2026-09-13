@@ -1,6 +1,6 @@
 # I18N Coverage Matrix
 
-CX-DESIGN-02-R4 / LOCAL_ONLY / IN_PROGRESS. No production certification.
+CX-DESIGN-02-R5 / LOCAL_ONLY / IN_PROGRESS. No production certification.
 This matrix measures coverage, not merely catalogue completeness.
 
 ## Canonical Contract
@@ -21,9 +21,9 @@ This matrix measures coverage, not merely catalogue completeness.
 | Area | Connected | Remaining | Status |
 |---|---|---|---|
 | CLIENT_CRITICAL | Navigation, Home, Calendar, Live, cards, Picks; Match Center factual and typed context, form/H2H, score states | Advanced SHARK explanations, expanded filters and data-quality details | PARTIAL |
-| CLIENT_SECONDARY | Team/Player/Competition literals and quality states, Team context, controlled season/stage evidence, Telegram, Madrid Track Record instants | Other knowledge narratives, Favorites and activity/history detail | PARTIAL |
+| CLIENT_SECONDARY | Team/Player/Competition literals and quality states, Team context, round/season evidence, Telegram, Madrid Track Record instants, Favorites/Activity/Alerts/Preferences forms and feedback | Populated secondary branches, provider event/position code maps, remaining knowledge narratives | PARTIAL |
 | AUTH | Login/register/reset, real validation and expired-token messages; selector; CSRF remains active | Public landing, exhaustive global error branches | PARTIAL |
-| ACCOUNT | Language persistence, account actions, recent activity labels and dates | Linked preferences/security subpages and all errors | PARTIAL |
+| ACCOUNT | Language persistence, account actions, recent activity labels/dates, linked preferences and four safe local preference actions | Exhaustive security/error branches | PARTIAL |
 | MEMBERSHIPS | Plan descriptions, benefits, controls, empty checkout state and configured monthly cadence | Legal checkout acknowledgements and commercial paths not exercised | PARTIAL |
 | SHARK | Dedicated page literals, known states, typed pressure/recent-change signals, app-owned entity pressure text | Free-form explanations and deeper knowledge evidence; do not invent translations of external narratives | PARTIAL |
 | SUPPORT | Form, categories, help, persisted receipt, rate/validation/storage errors ES/EN/FR; real local admin inbox | Production rollout, notifications and human response not verified | PASS_LOCAL / PRODUCTION_NOT_TESTED |
@@ -33,9 +33,19 @@ This matrix measures coverage, not merely catalogue completeness.
 CLIENT_CRITICAL_ES_EN_FR = NOT_COMPLETE. Zero missing entries inside the current
 catalogue does not mean zero untranslated product text. No blanket translation of
 rendered HTML, provider fields, IDs or user messages is allowed.
-R4 catalogue: 775 entries. Explicit ownership: APP_OWNED_TEXT is localized;
+R5 catalogue: 1020 entries (R4: 775). Explicit ownership: APP_OWNED_TEXT is localized;
 PROVIDER_PROPER_NOUN preserved; PROVIDER_DYNAMIC_TEXT and USER_CONTENT stay verbatim.
 The absence of technical keys in captured pages does not certify all hidden branches.
+
+R5 closes reported Resultado disponible and Conocimiento ampliado copy, bounded
+round/market/risk/freshness patterns and common secondary-page copy. Final selected
+captures contain no exact untranslated catalogue lines in EN/FR, but this is a
+bounded detector, not complete translation certification. Known remaining fields
+include provider event/position codes (Normal Goal, MED), free-form narratives,
+legal/commercial and populated secondary/error branches. Admin remains backlog.
+Do not claim VISIBLE_UNLOCALIZED_CLIENT_TEXT = 0 globally.
+R5 browser matrix: 216 deduplicated observations, 28 screen IDs; 96 Madrid cases
+across Tokyo/New York/London/Paris and ES/EN/FR. Product data and language are separate.
 
 ## Design Memory
 
@@ -57,3 +67,13 @@ The absence of technical keys in captured pages does not certify all hidden bran
 - Match overview uses three desktop columns and one mobile column; available modules
   follow in two desktop columns. No fake confidence, recommendation or external narrative.
 - Support success means a committed inbox row, never an email or a staff reply.
+- Upcoming match's primary value is its existing Madrid clock; known score wins,
+  including real 0-0. Missing/stale updates clear the previous score, never invent 0-0.
+- League logo payload is sanitized at the caller and rendered through the same
+  crest load/error exclusivity; missing logo is neutral initials, not an official mark.
+- Calendar date navigation owns one mobile row; French Aujourd'hui cannot split
+  within a word at 360px. Desktop controls and secondary filters have separate rows.
+- Status chips retain at least min-content width and wrap between words; do not
+  shrink official operational state labels letter by letter to hide layout defects.
+- Ocean raster is a continuous background layer with constrained contrast, not a
+  separate wallpaper card. Admin atmosphere remains subdued. Anatomy is not certified.
