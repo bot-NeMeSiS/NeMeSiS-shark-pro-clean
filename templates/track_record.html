@@ -36,7 +36,7 @@
         {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading.') }}
         {% if recent %}
           {% call data_table(['Partido','Selección','Cuota','Estado','Aprendizaje','Calidad','Resultado (u.)']) %}
-          {% for pick in recent[:30] %}{% set result = (pick.get('result_status') or pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong><small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">{{ ui('Partido') }} · {{ ui_match_datetime(pick.get('event_datetime_iso'), true) if pick.get('event_datetime_iso') else ui_owned(pick.get('event_datetime_label') or 'Fecha no disponible') }}</time></small>{% if pick.get('pick_created_at_label') %}<small>Pick · {{ pick.get('pick_created_at_label') }}</small>{% endif %}</td><td>{{ pick.get('selection_display') or pick.get('selection') or ui('Sin selección registrada') }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else ui('Sin dato') }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else ui('Sin dato')) }}</td></tr>{% endfor %}
+          {% for pick in recent[:30] %}{% set result = (pick.get('result_status') or pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong><small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">{{ ui('Partido') }} · {{ ui_match_datetime(pick.get('event_datetime_iso'), true) if pick.get('event_datetime_iso') else ui_owned(pick.get('event_datetime_label') or 'Fecha no disponible') }}</time></small>{% if pick.get('pick_created_at_label') %}<small>{{ ui("Pick ·") }} {{ pick.get('pick_created_at_label') }}</small>{% endif %}</td><td>{{ pick.get('selection_display') or pick.get('selection') or ui('Sin selección registrada') }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else ui('Sin dato') }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else ui('Sin dato')) }}</td></tr>{% endfor %}
           {% endcall %}
           <div class="ns16-track-mobile-list" aria-label="Picks cerrados recientes">
           {% for pick in recent[:30] %}
@@ -53,7 +53,7 @@
               <strong>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else ui('Sin dato')) }}</strong>
             </div>
             <details class="ns16-track-result-evidence">
-              <summary>Ver evidencia</summary>
+              <summary>{{ ui("Ver evidencia") }}</summary>
               <div>{{ learning_receipt(pick) }}{{ data_confidence_badge(pick, 'pick') }}</div>
             </details>
           </article>
@@ -67,14 +67,14 @@
       <section class="v933-panel">
         {{ section_header('Metodología del histórico', 'Muestra suficiente y resultados evaluables.') }}
         <div class="v933-truth-list">
-          <div>{{ icon('check') }}<span><strong>Entra en el cálculo</strong><small>Resultado final obligatorio</small></span>{{ status_chip('Validado','success') }}</div>
-          <div>{{ icon('odds') }}<span><strong>Stake</strong><small>Real y evaluable</small></span>{{ status_chip('Validado','success') }}</div>
-          <div>{{ icon('pause') }}<span><strong>Void</strong><small>Sin beneficio ficticio</small></span>{{ status_chip('Neutral','neutral') }}</div>
-          <div>{{ icon('clock') }}<span><strong>{{ ui("Pendientes") }}</strong><small>Fuera del ROI</small></span>{{ status_chip('Excluidos','warning') }}</div>
+          <div>{{ icon('check') }}<span><strong>{{ ui("Entra en el cálculo") }}</strong><small>{{ ui("Resultado final obligatorio") }}</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('odds') }}<span><strong>Stake</strong><small>{{ ui("Real y evaluable") }}</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('pause') }}<span><strong>{{ ui("Void") }}</strong><small>{{ ui("Sin beneficio ficticio") }}</small></span>{{ status_chip('Neutral','neutral') }}</div>
+          <div>{{ icon('clock') }}<span><strong>{{ ui("Pendientes") }}</strong><small>{{ ui("Fuera del ROI") }}</small></span>{{ status_chip('Excluidos','warning') }}</div>
         </div>
         <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p>
       </section>
-      <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.</p></section>
+      <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">{{ ui("Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.") }}</p></section>
     </aside>
   </section>
   {% else %}

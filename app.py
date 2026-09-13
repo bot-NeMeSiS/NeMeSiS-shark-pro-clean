@@ -9963,7 +9963,7 @@ def set_ui_language_headers(response):
     return response
 
 
-app.jinja_env.globals.update(ui=ui_text, ui_match_datetime=ui_match_datetime, ui_calendar_date=ui_calendar_date,
+app.jinja_env.globals.update(ui=ui_text, ui_match_datetime=ui_match_datetime, ui_match_clock=jinja_match_time_short, ui_calendar_date=ui_calendar_date,
                             ui_value=lambda value: localize_identity_value(value, current_ui_locale()),
                             ui_owned=lambda value: localize_owned_text(value, current_ui_locale()),
                             ui_entity_copy=lambda detail, kind: localize_entity_copy(detail, kind, current_ui_locale(), ui_match_datetime),

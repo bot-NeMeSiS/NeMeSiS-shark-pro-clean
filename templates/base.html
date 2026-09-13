@@ -34,12 +34,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='v936-commercial.css') }}?v={{ app_version }}&amp;r=diamond-3" data-v936-commercial-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-product-client.css') }}?v={{ app_version }}-polish-4">
   <link rel="stylesheet" href="{{ url_for('static', filename='v937-sports-lifecycle.css') }}?v={{ app_version }}-polish-1" data-v937-sports-lifecycle-version="{{ app_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-design-02-r3-1" data-v933-product-version="{{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v933-product.css') }}?v={{ app_version }}-design-02-r5-1" data-v933-product-version="{{ app_version }}">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
-  <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-i18n-1" data-v934-realtime-version="{{ app_version }}"></script>
+  <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1" data-v934-realtime-version="{{ app_version }}"></script>
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
 {% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
@@ -174,7 +174,7 @@
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>{{ ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>
-    <nav><a href="/landing">{{ ui("Oficial") }}</a><a href="/precios">{{ ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ui("Estado") }}</a><a href="/roadmap">Roadmap</a><a href="/legal">Legal</a><a href="/terminos">{{ ui("Términos") }}</a><a href="/privacidad">{{ ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ui("Juego responsable") }}</a><a href="/support">{{ ui("Soporte") }}</a></nav>
+    <nav><a href="/landing">{{ ui("Oficial") }}</a><a href="/precios">{{ ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ui("Estado") }}</a><a href="/roadmap">{{ ui("Roadmap") }}</a><a href="/legal">{{ ui("Legal") }}</a><a href="/terminos">{{ ui("Términos") }}</a><a href="/privacidad">{{ ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ui("Juego responsable") }}</a><a href="/support">{{ ui("Soporte") }}</a></nav>
   </footer>
 
   {% if show_mobile_bottom_nav %}{{ v933_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
@@ -184,18 +184,18 @@
     <button class="shark-fab v810-shark-fab v812-shark-fab" id="sharkFab" type="button" aria-label="Abrir SHARK IA"><img src="/static/img/app-icons/app-icon-96.png?v={{ app_icon_version }}" alt="" width="48" height="48"><span>SHARK</span></button>
     <div class="shark-panel" id="sharkPanel" hidden>
       <div class="shark-panel-head">
-        <strong>SHARK IA</strong>
+        <strong>{{ ui("SHARK IA") }}</strong>
         <button type="button" id="sharkClose" aria-label="Cerrar SHARK">x</button>
       </div>
       <div class="shark-messages" id="sharkMessages">
-        <div class="shark-msg bot">Preguntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dira claro.</div>
+        <div class="shark-msg bot">{{ ui("Preguntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dira claro.") }}</div>
         <div class="shark-quick">
-          <button type="button" data-q="Dame el mejor pick de hoy con cuota, stake, riesgo y motivo">Pick de hoy</button>
-          <button type="button" data-q="Que NO tocaria hoy y que dejarias en estudio">No tocar</button>
-          <button type="button" data-q="Prepara una combi responsable de 3 partidos y avisa del riesgo">Combi responsable</button>
-          <button type="button" data-q="Prepara una combinada larga de hasta 15 partidos y avisa del riesgo">Combi 15</button>
+          <button type="button" data-q="Dame el mejor pick de hoy con cuota, stake, riesgo y motivo">{{ ui("Pick de hoy") }}</button>
+          <button type="button" data-q="Que NO tocaria hoy y que dejarias en estudio">{{ ui("No tocar") }}</button>
+          <button type="button" data-q="Prepara una combi responsable de 3 partidos y avisa del riesgo">{{ ui("Combi responsable") }}</button>
+          <button type="button" data-q="Prepara una combinada larga de hasta 15 partidos y avisa del riesgo">{{ ui("Combi 15") }}</button>
           <button type="button" data-q="Resume el directo con marcador minuto y riesgo">{{ ui("Directo") }}</button>
-          <button type="button" data-q="Dime las mejores oportunidades SHARK de hoy con value y aviso de riesgo">Value</button>
+          <button type="button" data-q="Dime las mejores oportunidades SHARK de hoy con value y aviso de riesgo">{{ ui("Value") }}</button>
         </div>
       </div>
       <form id="sharkForm" class="shark-form" method="get" action="/shark">
@@ -541,7 +541,6 @@
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
 </html>
-
 
 
 

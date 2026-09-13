@@ -123,7 +123,10 @@ def test_sports_styles_use_canonical_sizes_and_version_both_stylesheets():
     token_link = next(line for line in base.splitlines() if "filename='v933_design_tokens.css'" in line)
     product_link = next(line for line in base.splitlines() if "filename='v933-product.css'" in line)
     assert '-design-02-sports-1' in token_link
-    assert '-design-02-r3-1' in product_link
+    realtime_script = next(line for line in base.splitlines() if "filename='v934-realtime.js'" in line)
+    assert '-design-02-r5-1' in product_link
+    assert '-design-02-r5-1' in realtime_script
+    assert '-design-02-r3-1' not in product_link
     assert '-design-02-conformance-2' not in product_link
 
 

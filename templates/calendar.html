@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes with context %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes, competition_logo with context %}
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
@@ -73,7 +73,7 @@
     </div>
 
     <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}>
-      <summary>{{ ui("Buscar y filtrar por competición o país") }}</summary>
+      <summary>{{ icon('search') }}<span class="v940-filter-label">{{ ui("Buscar y filtrar por competición o país") }}</span></summary>
     <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendar">
       <input type="hidden" name="lane" value="{{ lane }}">
       <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
@@ -191,7 +191,10 @@
                  data-v940-calendar-section="league"
                  data-v940-context-label="{{ league.get('context_label') }}">
           <header>
-            <div>{{ icon('football') }}<strong>{{ league.get('label') or league.get('name') or league.get('competition') or 'Competición' }}</strong></div>
+            {% set league_name = league.get('label') or league.get('name') or league.get('competition') or ui('Competición') %}
+            {% set first_match = (league.get('matches') or [{}])[0] %}
+            {% set league_asset = {'name': league_name, 'league_logo': league.get('logo_url') or first_match.get('competition_logo') or first_match.get('league_logo') or ''}|v850_league_logo %}
+            <div>{{ competition_logo(league_name, league_asset) }}<strong>{{ league_name }}</strong></div>
             <span>{{ ui('{count} partido' if (league.get('matches') or [])|length == 1 else '{count} partidos', count=(league.get('matches') or [])|length) }}</span>
           </header>
           <div class="v933-match-grid">{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}</div>

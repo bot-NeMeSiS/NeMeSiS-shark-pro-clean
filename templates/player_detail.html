@@ -123,21 +123,21 @@
     <section class="player-center-panel" data-player-center-section="sports-knowledge">
       <div class="player-center-section-head"><span>{{ ui("Conocimiento deportivo") }}</span><strong>{{ ui(quality_labels.get(center.player_knowledge.certification_state or 'PARTIALLY_VERIFIED', 'Verificación parcial')) }}</strong></div>
       <dl class="player-center-data-list">
-        <div><dt>Conocimiento del jugador</dt><dd>{{ 'Disponible' if center.player_knowledge_contract else ui('No disponible') }}</dd></div>
+        <div><dt>{{ ui("Conocimiento del jugador") }}</dt><dd>{{ 'Disponible' if center.player_knowledge_contract else ui('No disponible') }}</dd></div>
         <div><dt>{{ ui("Modelo deportivo") }}</dt><dd>{{ ui_owned('Disponible' if center.source_domain_contract else ui('No disponible')) }}</dd></div>
-        <div><dt>Capa de conocimiento</dt><dd>{{ ui_owned('Disponible' if center.sports_knowledge_contract else ui('No disponible')) }}</dd></div>
+        <div><dt>{{ ui("Capa de conocimiento") }}</dt><dd>{{ ui_owned('Disponible' if center.sports_knowledge_contract else ui('No disponible')) }}</dd></div>
       </dl>
       {% if center.player_knowledge.limitations %}<ul class="player-center-evidence-list">{% for item in center.player_knowledge.limitations[:5] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="sports-graph">
       <div class="player-center-section-head"><span>{{ ui("Grafo deportivo") }}</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
-      <p>Relaciones internas preparadas sin persistir grafo ni crear datos ficticios.</p>
+      <p>{{ ui("Relaciones internas preparadas sin persistir grafo ni crear datos ficticios.") }}</p>
       {% if center.sports_graph.relationships %}<ul class="player-center-evidence-list">{% for item in center.sports_graph.relationships[:9] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="player-center-empty">{{ ui("Información pendiente.") }}</p>{% endif %}
     </section>
 
     <section class="player-center-panel" data-player-center-section="user-intelligence">
-      <div class="player-center-section-head"><span>Inteligencia de usuario</span><strong>{{ ui(quality_labels.get(center.user_intelligence.state or 'PREPARED_NOT_APPLIED', 'Preparado')) }}</strong></div>
+      <div class="player-center-section-head"><span>{{ ui("Inteligencia de usuario") }}</span><strong>{{ ui(quality_labels.get(center.user_intelligence.state or 'PREPARED_NOT_APPLIED', 'Preparado')) }}</strong></div>
       <p>{{ center.user_intelligence.summary or 'Preparado, no aplicado automaticamente.' }}</p>
       {% if center.user_intelligence.limitations %}<ul class="player-center-evidence-list">{% for item in center.user_intelligence.limitations[:3] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
     </section>
@@ -146,7 +146,7 @@
       <div class="player-center-section-head"><span>{{ ui("Transparencia") }}</span><strong>{{ ui(quality_labels.get(data_quality.certification_state or 'REQUIRES_REVIEW', 'Revisión pendiente')) }}</strong></div>
       <dl class="player-center-data-list">
         <div><dt>{{ ui("Procedencia") }}</dt><dd>{{ data_quality.source or ui('No disponible') }}</dd></div>
-        <div><dt>{{ ui("Frescura") }}</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else ui('No disponible') }}</dd></div>
+        <div><dt>{{ ui("Frescura") }}</dt><dd>{{ ui_owned(data_quality.freshness.label) if data_quality.freshness else ui('No disponible') }}</dd></div>
         <div><dt>{{ ui("Foto") }}</dt><dd>{{ media_labels.get(player.photo_rights.decision, 'No disponible') if player.photo_rights else ui('No disponible') }}</dd></div>
         <div><dt>{{ ui("Limitaciones") }}</dt><dd>{{ data_quality.limitations|length if data_quality.limitations else 0 }}</dd></div>
       </dl>
@@ -164,9 +164,9 @@
       <div class="player-center-section-head"><span>{{ ui("Conexiones") }}</span><strong>{{ ui("Modelo deportivo") }}</strong></div>
       <nav class="player-center-link-grid" aria-label="Centros deportivos relacionados">
         {% if links.match_center %}<a href="{{ links.match_center }}">{{ ui("Centro del partido") }}</a>{% else %}<span>{{ ui("Centro del partido · No disponible") }}</span>{% endif %}
-        {% if links.team_center %}<a href="{{ links.team_center }}">{{ ui("Centro del equipo") }}</a>{% else %}<span>Centro del equipo · No disponible</span>{% endif %}
+        {% if links.team_center %}<a href="{{ links.team_center }}">{{ ui("Centro del equipo") }}</a>{% else %}<span>{{ ui("Centro del equipo · No disponible") }}</span>{% endif %}
         {% if links.competition_center %}<a href="{{ links.competition_center }}">{{ ui("Centro de la competicion") }}</a>{% else %}<span>{{ ui("Centro de la competicion · No disponible") }}</span>{% endif %}
-        <a href="{{ links.user_intelligence or '/user-intelligence' }}">Inteligencia de usuario</a>
+        <a href="{{ links.user_intelligence or '/user-intelligence' }}">{{ ui("Inteligencia de usuario") }}</a>
         <span>{{ ui("Grafo deportivo · Contrato interno") }}</span>
       </nav>
     </section>

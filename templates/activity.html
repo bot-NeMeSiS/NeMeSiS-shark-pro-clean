@@ -1,22 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="product-hero compact-band">
-  <div class="kicker">Tu historial</div>
+  <div class="kicker">{{ ui("Tu historial") }}</div>
   <h1>{{ ui("Actividad reciente") }}</h1>
-  <p class="lead">Lo que vas consultando ayuda a SHARK a preparar una experiencia más personalizada con favoritos, picks y partidos.</p>
-  <div class="actions"><a class="btn primary" href="/perfil">Mi perfil</a><a class="btn" href="/alertas">Alertas</a></div>
+  <p class="lead">{{ ui("Lo que vas consultando ayuda a SHARK a preparar una experiencia más personalizada con favoritos, picks y partidos.") }}</p>
+  <div class="actions"><a class="btn primary" href="/perfil">{{ ui("Mi perfil") }}</a><a class="btn" href="/alertas">{{ ui("Alertas") }}</a></div>
 </section>
 <section class="band compact-band">
-  <div class="section-head"><h2>Últimos movimientos</h2><span class="pill">Privado</span></div>
+  <div class="section-head"><h2>{{ ui("Últimos movimientos") }}</h2><span class="pill">{{ ui("Privado") }}</span></div>
   <div class="stack activity-stack">
     {% for act in data.client_activity %}
     <div class="card activity-card">
-      <div class="comp-top"><strong>{{ act.label }}</strong><span class="pill">{{ act.activity_type }}</span></div>
-      <p class="small">{{ act.target_type }} · {{ act.target_id }}</p>
-      <p class="muted">{{ act.created_at|madrid_datetime_label }}</p>
+      <div class="comp-top"><strong>{{ ui_owned(act.label) }}</strong></div>
+      <p class="muted"><time datetime="{{ act.created_at }}">{{ ui_match_datetime(act.created_at, true) }}</time></p>
     </div>
     {% else %}
-    <div class="empty premium-empty"><strong>Sin actividad aún</strong><p>Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.</p></div>
+    <div class="empty premium-empty"><strong>{{ ui("Sin actividad aún") }}</strong><p>{{ ui("Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.") }}</p></div>
     {% endfor %}
   </div>
 </section>

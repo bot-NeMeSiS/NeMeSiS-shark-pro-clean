@@ -95,9 +95,9 @@
 
     <section class="team-center-panel" data-team-center-section="traits">
       <div class="team-center-section-head"><span>{{ ui("Fortalezas detectadas") }}</span><strong>{{ center.strengths|length }}</strong></div>
-      {% if center.strengths %}<ul class="team-center-evidence-list">{% for item in center.strengths %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente. Ninguna fuente lo confirma.") }}</p>{% endif %}
+      {% if center.strengths %}<ul class="team-center-evidence-list">{% for item in center.strengths %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente. Ninguna fuente lo confirma.") }}</p>{% endif %}
       <div class="team-center-section-head is-sub"><span>{{ ui("Debilidades detectadas") }}</span><strong>{{ center.weaknesses|length }}</strong></div>
-      {% if center.weaknesses %}<ul class="team-center-evidence-list">{% for item in center.weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente. Ninguna fuente lo confirma.") }}</p>{% endif %}
+      {% if center.weaknesses %}<ul class="team-center-evidence-list">{% for item in center.weaknesses %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente. Ninguna fuente lo confirma.") }}</p>{% endif %}
     </section>
 
     <section class="team-center-panel team-center-wide" data-team-center-section="squad" data-lineup-state="{{ (squad.state or 'NOT_CONFIRMED')|lower }}">
@@ -176,24 +176,24 @@
       <div class="team-center-section-head"><span>{{ ui("Calidad de datos") }}</span><strong>{{ ui(quality_labels.get(quality_state, quality_state|replace('_', ' ')|title)) }}</strong></div>
       <dl class="team-center-data-list">
         <div><dt>{{ ui("Procedencia") }}</dt><dd>{{ nemesis_source_label(data_quality.source) }}</dd></div>
-        <div><dt>{{ ui("Frescura") }}</dt><dd>{{ data_quality.freshness.label if data_quality.freshness else ui('No disponible') }}</dd></div>
+        <div><dt>{{ ui("Frescura") }}</dt><dd>{{ ui_owned(data_quality.freshness.label) if data_quality.freshness else ui('No disponible') }}</dd></div>
         <div><dt>{{ ui("Datos deportivos") }}</dt><dd>{{ ui_owned('Disponible' if center.source_domain_contract else ui('No disponible')) }}</dd></div>
         <div><dt>{{ ui("Contexto deportivo") }}</dt><dd>{{ ui_owned('Disponible' if center.sports_knowledge_contract else ui('No disponible')) }}</dd></div>
       </dl>
-      {% if data_quality.limitations %}<ul class="team-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ item }}</li>{% endfor %}</ul>{% endif %}
+      {% if data_quality.limitations %}<ul class="team-center-evidence-list">{% for item in data_quality.limitations[:6] %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% endif %}
     </section>
 
     <section class="team-center-panel" data-team-center-section="information-state">
       <div class="team-center-section-head"><span>{{ ui("Información disponible") }}</span><strong>{{ center.available_information|length }}</strong></div>
-      {% if center.available_information %}<ul class="team-center-evidence-list">{% for item in center.available_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("No disponible.") }}</p>{% endif %}
+      {% if center.available_information %}<ul class="team-center-evidence-list">{% for item in center.available_information %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("No disponible.") }}</p>{% endif %}
       <div class="team-center-section-head is-sub"><span>{{ ui("Información no disponible") }}</span><strong>{{ center.missing_information|length }}</strong></div>
-      {% if center.missing_information %}<ul class="team-center-evidence-list">{% for item in center.missing_information %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Sin ausencias relevantes detectadas.") }}</p>{% endif %}
+      {% if center.missing_information %}<ul class="team-center-evidence-list">{% for item in center.missing_information %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Sin ausencias relevantes detectadas.") }}</p>{% endif %}
     </section>
 
     <section class="team-center-panel" data-team-center-section="sports-graph">
       <div class="team-center-section-head"><span>{{ ui("Grafo deportivo") }}</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
-      <p>Relaciones confirmadas entre equipo, partidos y competición.</p>
-      {% if center.sports_graph.relationships %}<ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente.") }}</p>{% endif %}
+      <p>{{ ui("Relaciones confirmadas entre equipo, partidos y competición.") }}</p>
+      {% if center.sports_graph.relationships %}<ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente.") }}</p>{% endif %}
     </section>
 
     <section class="team-center-panel" data-team-center-section="future-links">

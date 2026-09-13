@@ -79,8 +79,18 @@
     document.querySelectorAll('[data-v934-match-id="' + CSS.escape(String(match.id)) + '"]').forEach(function (card) {
       card.classList.toggle('is-stale', Boolean(match.is_stale));
       var score = card.querySelector('[data-v934-score]');
+      var upcoming = ['UPCOMING', 'SCHEDULED', 'PREMATCH', 'NOT_STARTED', 'NS'].includes(
+        String(match.canonical_status || match.status_key || match.status || '').toUpperCase()
+      ) && !match.is_live && !match.is_stale;
       if (score && match.home_score !== null && match.home_score !== undefined && match.away_score !== null && match.away_score !== undefined) {
         score.textContent = match.home_score + ' - ' + match.away_score;
+        score.hidden = false;
+        card.querySelectorAll('[data-match-kickoff-clock],[data-match-kickoff-zone]').forEach(function (node) { node.hidden = true; });
+      } else if (score) {
+        score.textContent = 'VS';
+        var hasClock = Boolean(card.querySelector('[data-match-kickoff-clock]'));
+        score.hidden = upcoming && hasClock;
+        card.querySelectorAll('[data-match-kickoff-clock],[data-match-kickoff-zone]').forEach(function (node) { node.hidden = !upcoming; });
       }
       var status = card.querySelector('[data-v934-status] .v933-status-chip') || card.querySelector('[data-v934-status]');
       if (status) {
@@ -92,7 +102,7 @@
       if (minute) {
         var hasMinute = match.minute !== null && match.minute !== undefined && match.is_live;
         minute.hidden = !hasMinute;
-        minute.textContent = hasMinute ? 'Min ' + match.minute : '';
+        minute.textContent = hasMinute ? text('Min') + ' ' + match.minute : '';
       }
     });
   }

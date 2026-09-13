@@ -196,7 +196,7 @@
     </div>
     <div class="v933-launch-guide-grid is-compact">
       <a class="v933-launch-step" href="/live" data-launch-step="live">{{ icon('live') }}<span>{{ ui("Directo") }}</span><strong>Ver live</strong><small>1 toque.</small></a>
-      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Partidos") }}</span><strong>Explorar</strong><small>Todo el catálogo.</small></a>
+      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Partidos") }}</span><strong>{{ ui("Explorar") }}</strong><small>Todo el catálogo.</small></a>
       <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendar' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Match</span><strong>Detalle</strong><small>Contexto real.</small></a>
       <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>{{ ui("Evidencia") }}</strong><small>Sin promesas.</small></a>
       <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>

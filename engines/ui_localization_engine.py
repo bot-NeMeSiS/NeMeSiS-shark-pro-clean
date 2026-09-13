@@ -73,16 +73,35 @@ def owned_text(value, language='es'):
     text = str(value or '')
     if not text or text in {'None', 'null', 'undefined'}:
         return translate('No disponible', language)
+    codes = {
+        'UPCOMING': 'Próximo', 'SCHEDULED': 'Programado', 'LIVE': 'En directo',
+        'FINISHED': 'Finalizado', 'FINAL': 'Finalizado', 'POSTPONED': 'Aplazado',
+        'SUSPENDED': 'Suspendido', 'STALE': 'Datos desactualizados',
+        'UNKNOWN': 'Estado pendiente', 'HIGH': 'Alto', 'MEDIUM': 'Medio', 'LOW': 'Bajo',
+        'W': 'Victoria', 'D': 'Empate', 'L': 'Derrota',
+    }
+    if text in codes:
+        return translate(codes[text], language)
     patterns = (
         (r'Temporada confirmada: (.+)\.', 'Temporada confirmada: {value}.'),
         (r'Jornada o fase visible: (.+)\.', 'Jornada o fase visible: {value}.'),
         (r'(\d+) partidos en directo confirmados en la muestra local\.', '{value} partidos en directo confirmados en la muestra local.'),
         (r'(.+) presiona', '{value} presiona'),
+        (r'Jornada (\d+)', 'Jornada {value}'),
+        (r'Temporada (\d+(?:/\d+)?)', 'Temporada {value}'),
+        (r'Posición (\d+)', 'Posición {value}'),
+        (r'Actualizado hace (\d+) min', 'Actualizado hace {value} min'),
+        (r'Más de (\d+(?:[.,]\d+)?) goles', 'Más de {value} goles'),
+        (r'Menos de (\d+(?:[.,]\d+)?) goles', 'Menos de {value} goles'),
+        (r'Hay (\d+) partido\(s\) en directo\. Revisa marcador, estado y favoritos\.', 'Hay {value} partido(s) en directo. Revisa marcador, estado y favoritos.'),
+        (r'Tienes (\d+) pick\(s\) visibles según tu membresía\.', 'Tienes {value} pick(s) visibles según tu membresía.'),
+        (r'Tus (\d+) favorito\(s\) alimentan partidos, equipos, ligas y alertas futuras\.', 'Tus {value} favorito(s) alimentan partidos, equipos, ligas y alertas futuras.'),
     )
     for pattern, source in patterns:
         match = re.fullmatch(pattern, text)
         if match:
-            return translate(source, language, value=match[1])
+            parameter = owned_text(match[1], language) if source == 'Jornada o fase visible: {value}.' else match[1]
+            return translate(source, language, value=parameter)
     return translate(text, language)
 
 
@@ -166,7 +185,7 @@ def context_copy(context, language='es', datetime_label=None):
     if identity.get('season'):
         parts.append(translate('Temporada {season}', language, season=identity['season']))
     if identity.get('round'):
-        parts.append(identity['round'])
+        parts.append(owned_text(identity['round'], language))
     if context.get('match'):
         parts.append(present_date(context['match']))
     missing = translate('Faltan clasificación, forma reciente y H2H confirmados para explicar su relevancia deportiva.', language)
@@ -194,7 +213,7 @@ def shark_copy(context, language='es'):
                                  home=(teams.get('home') or {}).get('name') or '', away=(teams.get('away') or {}).get('name') or '',
                                  home_pct=pressure['home_pct'], away_pct=pressure['away_pct']))
     elif pressure.get('label'):
-        signals.append(pressure['label'])
+        signals.append(owned_text(pressure['label'], language))
     count = value('cambios_recientes').get('count')
     if isinstance(count, int) and count > 0:
         signals.append(plural('{count} cambio confirmado en la ventana reciente', '{count} cambios confirmados en la ventana reciente', count, language))

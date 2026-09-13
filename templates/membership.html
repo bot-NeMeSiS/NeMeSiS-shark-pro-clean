@@ -39,7 +39,7 @@
       <article>{{ icon('shield') }}<strong>+18</strong><p>{{ ui("Solo para mayores de edad.") }}</p></article>
       <article>{{ icon('check') }}<strong>{{ ui("Juego responsable") }}</strong><p>{{ ui("Sin beneficios garantizados.") }}</p></article>
       <article>{{ icon('data') }}<strong>{{ ui("Plataforma informativa") }}</strong><p>{{ ui("No somos casa de apuestas.") }}</p></article>
-      <article>{{ icon('payments') }}<strong>Checkout</strong><p>{{ ui('Stripe configurado' if pay.get('checkout_ready') else 'Configuración pendiente') }}.</p></article>
+      <article>{{ icon('payments') }}<strong>{{ ui("Checkout") }}</strong><p>{{ ui('Stripe configurado' if pay.get('checkout_ready') else 'Configuración pendiente') }}.</p></article>
     </div>
   </section>
 </div>

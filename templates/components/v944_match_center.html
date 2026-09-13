@@ -149,13 +149,17 @@
     </article>
     <article data-match-context-intelligence="{{ context_intelligence.get('contract') or '' }}">
       <span>{{ ui("Por qué importa este partido") }}</span>
+      {% if context_intelligence.get('evidence') %}
       <strong>{{ ui(context_intelligence.get('label') or 'Contexto deportivo insuficiente') }}</strong>
       <p>{{ context_text.get('headline') or ui('No hay evidencia suficiente para explicar la relevancia deportiva.') }}</p>
+      {% else %}
+      <details class="v944-story-detail"><summary>{{ ui(context_intelligence.get('label') or 'Contexto deportivo insuficiente') }}</summary><p>{{ context_text.get('headline') or ui('No hay evidencia suficiente para explicar la relevancia deportiva.') }}</p></details>
+      {% endif %}
     </article>
     <article>
       <span>{{ ui("Riesgos") }}</span>
       <strong>{{ ui('Riesgo confirmado' if risk_value.get('flags') else 'Sin riesgo confirmado') }}</strong>
-      <p>{{ ui('Se muestran solo señales con evidencia.' if risk_value.get('flags') else 'No hay riesgo deportivo confirmado con los datos actuales.') }}</p>
+      {% if risk_value.get('flags') %}<p>{{ ui('Se muestran solo señales con evidencia.') }}</p>{% endif %}
     </article>
   </div>
   {% if recent_form.get('available') %}
@@ -182,9 +186,9 @@
   {% endif %}
   {{ transparency_meta(context, 'context_intelligence') }}
   {% if context.get('limitations') %}
-  <ul class="v944-limitations" aria-label="Limitaciones de los datos">
+  <details class="v944-story-detail"><summary>{{ ui('Limitaciones de los datos') }}</summary><ul class="v944-limitations" aria-label="{{ ui('Limitaciones de los datos') }}">
     {% for limitation in context.get('limitations')[:4] %}<li>{{ ui(limitation) }}</li>{% endfor %}
-  </ul>
+  </ul></details>
   {% endif %}
   {{ state_notice(component) }}
 </section>{%- endmacro %}
@@ -418,7 +422,7 @@
 {{ panel_start('CompetitionPanel', component, 'Contexto', 'Competición, sede, equipos y responsables confirmados.', 'competition') }}
   <dl class="v944-context-list">
     <div><dt>{{ ui("Competición") }}</dt><dd>{% if competition.get('href') %}<a href="{{ competition.get('href') }}" data-entity-contract="competition">{{ competition.get('name') or ui('No disponible') }}</a>{% else %}{{ competition.get('name') or ui('No disponible') }}{% endif %}</dd></div>
-    <div><dt>{{ ui("Jornada o fase") }}</dt><dd>{{ competition.get('round') or ui('No disponible') }}</dd></div>
+    <div><dt>{{ ui("Jornada o fase") }}</dt><dd>{{ ui_owned(competition.get('round') or 'No disponible') }}</dd></div>
     <div><dt>{{ ui("País") }}</dt><dd>{{ competition.get('country') or ui('No disponible') }}</dd></div>
     <div><dt>{{ ui("Temporada") }}</dt><dd>{{ facts.get('season') or ui('No disponible') }}</dd></div>
     <div><dt>{{ ui("Estadio") }}</dt><dd>{{ facts.get('stadium') or ui('No disponible') }}</dd></div>
@@ -449,22 +453,22 @@
   <header class="v944-match-panel__header">
     <div>
       <span class="v944-match-panel__eyebrow">{{ ui("Evidencia") }}</span>
-      <h2>Calidad, frescura e información ausente</h2>
-      <p>Todo lo que el Centro del partido sabe, no sabe y deja pendiente.</p>
+      <h2>{{ ui("Calidad, frescura e información ausente") }}</h2>
+      <p>{{ ui("Todo lo que el Centro del partido sabe, no sabe y deja pendiente.") }}</p>
     </div>
   </header>
   <div class="v944-quality-grid">
-    <span><b>Fuente</b>{{ (context.get('evidence') or {}).get('source') or 'Fuente no identificada' }}</span>
-    <span><b>Actualización</b>{{ (context.get('evidence') or {}).get('updated_at')|sync_madrid_label }}</span>
+    <span><b>{{ ui("Fuente") }}</b>{{ (context.get('evidence') or {}).get('source') or 'Fuente no identificada' }}</span>
+    <span><b>{{ ui("Actualización") }}</b>{{ (context.get('evidence') or {}).get('updated_at')|sync_madrid_label }}</span>
     <span><b>{{ ui("Frescura") }}</b>{{ ((context.get('transparency') or {}).get('data_quality') or {}).get('freshness') or ui('No disponible') }}</span>
-    <span><b>Grafo</b>{{ (context.get('sports_graph') or {}).get('edge_count') or 0 }} relaciones preparadas</span>
+    <span><b>{{ ui("Grafo") }}</b>{{ (context.get('sports_graph') or {}).get('edge_count') or 0 }} {{ ui("relaciones preparadas") }}</span>
   </div>
   {% if context.get('absent_information') %}
   <ul class="v944-limitations" aria-label="{{ ui("Información ausente") }}">
     {% for item in context.get('absent_information')[:5] %}<li>{{ item }}</li>{% endfor %}
   </ul>
   {% else %}
-  <p class="v944-safe-copy">No hay información ausente crítica en este snapshot.</p>
+  <p class="v944-safe-copy">{{ ui("No hay información ausente crítica en este snapshot.") }}</p>
   {% endif %}
   <div class="v944-integration-strip" aria-label="Integraciones preparadas">
     {% for item in context.get('prepared_integrations') or [] %}
