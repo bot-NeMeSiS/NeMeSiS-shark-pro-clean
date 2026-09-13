@@ -33,7 +33,8 @@ def test_contract_has_16_direct_references_and_complete_derived_screens():
     direct = [s for s in contract["screens"] if s["reference_relation"] == "DIRECT"]
     assert len(direct) == 16
     assert {s["target_reference"] for s in direct} == {f"REF-{n:02}" for n in range(1, 17)}
-    assert len(contract["screens"]) == 21
+    assert len(contract["screens"]) == 22
+    assert any(s['screen_id'] == 'SUPPORT' and s['reference_relation'] == 'DERIVED_ACCOUNT' for s in contract['screens'])
     for screen in contract["screens"]:
         assert screen["design_status"] in DESIGN_STATUSES
         assert (ROOT / screen["reference_file"]).is_file()
@@ -76,7 +77,10 @@ def test_brand_kit_has_one_app_icon_master_and_all_sources_exist():
     assert kit["APP_ICON"]["derived_from"] == "ATMOSPHERIC_SHARK"
     for role in ("FAVICON", "PWA_ICONS", "APPLE_TOUCH_ICON"):
         assert kit[role]["derived_from"] == "APP_ICON"
-    assert kit["BRAND_SHARK"]["status"] == "FOUNDER_SUBJECTIVE_REVIEW"
+    assert kit["BRAND_SHARK"]["status"] == "DESIGN_REWORK_REQUIRED"
+    status = build_creative_design_status(ROOT)
+    assert next(g for g in status['groups'] if g['area'] == 'BRAND')['design_status'] == 'DESIGN_REWORK_REQUIRED'
+    assert any(g['id'] == 'BRAND_ASSET_REWORK' for g in status['objective_gaps'])
 
 
 def test_functional_pass_does_not_hide_design_rework():
@@ -154,7 +158,12 @@ def test_existing_memory_records_decisions_once_and_reads_never_write(tmp_path):
     record_product_qa_run({**observation, "run_id": "DESIGN-QA-2"}, project_root=ROOT, storage_root=tmp_path, now="2026-09-09T12:01:00+02:00")
     memory = load_product_qa_memory(ROOT, tmp_path)
     assert len(memory["design_decisions"]) == 1
-    assert len(memory["design_decisions"][0]["decisions"]) == 8
+    expected = load_creative_design_contract(ROOT)["design_memory"]
+    recorded = memory["design_decisions"][0]["decisions"]
+    assert recorded == expected
+    assert len({item["id"] for item in recorded}) == len(recorded)
+    assert {"MOBILE_PRIMARY_NAV", "CALENDAR_HUB", "HOME_SELECTION",
+            "TRACK_RECORD_PICKS", "SHARK_CONTEXTUAL", "SPORTS_VISUAL_TOKENS"} <= {item["id"] for item in recorded}
     assert memory["founder_overrides"]
     before = {str(p): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
     status = build_autonomous_product_qa_status(ROOT, storage_root=tmp_path)
@@ -184,7 +193,7 @@ def test_founder_renders_compact_division_with_independent_axes(client, app_modu
     assert response.status_code == 200
     assert b'data-creative-design="read-only"' in response.data
     assert b'NEMESIS CREATIVE &amp; DESIGN' in response.data
-    assert response.data.count(b"Sin muestra evaluada en este contrato") == 21
+    assert response.data.count(b"Sin muestra evaluada en este contrato") == 22
     assert "Revisión de marca pendiente".encode() in response.data
 
 

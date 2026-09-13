@@ -314,7 +314,10 @@ def test_home_dense_match_cards_use_the_active_home_container():
     css = (project_root / "static" / "v933-product.css").read_text(encoding="utf-8")
 
     assert "sports-priority-home" in template
-    assert ".sports-priority-home .v933-match-card :is(.v937-card-trust" in css
+    rule = next(line for line in css.splitlines()
+                if line.startswith(".sports-priority-home .v933-match-card :is("))
+    assert ".v937-confidence-badge" in rule
+    assert ".v937-card-trust" not in rule  # Its sibling time must remain visible.
 
 
 def test_brand_shark_cache_version_is_consistent_across_active_surfaces():
@@ -331,7 +334,12 @@ def test_brand_shark_cache_version_is_consistent_across_active_surfaces():
     active_sources = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
     assert "design1-brand-3" not in active_sources
-    assert "nemesis-shark-brand.svg?v=design2-brand-1" in active_sources
+    # CX-DESIGN-02 uses the published icon, not the legacy vector silhouette.
+    template_sources = "\n".join(path.read_text(encoding="utf-8") for path in paths if path.suffix == ".html")
+    assert "nemesis-shark-brand.svg" not in template_sources
+    assert "img/app-icons/app-icon-96.png" in template_sources
+    css = (project_root / "static/v933-product.css").read_text(encoding="utf-8")
+    assert 'body.ns-app .shark-fab::before { content: none; }' in css
 
 
 def test_visual_inspector_rejects_mesh_shark_and_accepts_anatomical_contract():

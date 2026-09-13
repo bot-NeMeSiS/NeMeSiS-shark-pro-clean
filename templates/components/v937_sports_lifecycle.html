@@ -1,8 +1,8 @@
 {% macro data_confidence_badge(item, kind='match', compact=true) -%}
 {% set trust = nemesis_data_confidence(item or {}, kind) %}
-<span class="v937-confidence-badge is-{{ trust.get('tone') }}{% if compact %} is-compact{% endif %}" title="{{ trust.get('disclaimer') }}" data-v937-confidence-score="{{ trust.get('score') }}">
+<span class="v937-confidence-badge is-{{ trust.get('tone') }}{% if compact %} is-compact{% endif %}" title="{{ ui(trust.get('disclaimer')) }}" data-v937-confidence-score="{{ trust.get('score') }}">
   <span aria-hidden="true">{{ trust.get('score') }}</span>
-  <span><strong>Confianza del dato</strong><small>{{ trust.get('label') }}</small></span>
+  <span><strong>{{ ui('Confianza del dato') }}</strong><small>{{ ui(trust.get('label')) }}</small></span>
 </span>
 {%- endmacro %}
 
@@ -28,10 +28,10 @@
 {% macro lifecycle_story(counts, active='') -%}
 {% set counts = counts or {} %}
 <nav class="v937-lifecycle-story" aria-label="Historia deportiva del día">
-  <a href="/calendar?lane=today" class="{% if active == 'today' %}is-active{% endif %}"><span>01</span><strong>Hoy</strong><small>{{ counts.get('today', 0) }} completos</small></a>
-  <a href="/live?f=live" class="{% if active in ['live','directo'] %}is-active{% endif %}"><span>02</span><strong>En directo</strong><small>{{ counts.get('live', 0) }} activos</small></a>
+  <a href="/calendar?lane=today" class="{% if active == 'today' %}is-active{% endif %}"><span>01</span><strong>{{ ui("Hoy") }}</strong><small>{{ counts.get('today', 0) }} completos</small></a>
+  <a href="/live?f=live" class="{% if active in ['live','directo'] %}is-active{% endif %}"><span>02</span><strong>{{ ui("En directo") }}</strong><small>{{ counts.get('live', 0) }} activos</small></a>
   <a href="/calendar?lane=with_pick" class="{% if active in ['with_pick','picks'] %}is-active{% endif %}"><span>03</span><strong>Con criterio</strong><small>{{ counts.get('picks', 0) }} picks</small></a>
-  <a href="/calendar?lane=finished" class="{% if active == 'finished' %}is-active{% endif %}"><span>04</span><strong>Finalizados</strong><small>{{ counts.get('finished', 0) }} cerrados</small></a>
+  <a href="/calendar?lane=finished" class="{% if active == 'finished' %}is-active{% endif %}"><span>04</span><strong>{{ ui("Finalizados") }}</strong><small>{{ counts.get('finished', 0) }} cerrados</small></a>
   <span class="is-context"><span>05</span><strong>Datos pendientes</strong><small>{{ counts.get('incidents', 0) }} excluidos</small></span>
 </nav>
 {%- endmacro %}
@@ -45,7 +45,7 @@
   <article><span>Por qué existe</span><p>{{ reason or 'La explicación editorial todavía no está documentada. Revisa los datos del partido antes de decidir.' }}</p></article>
   <article><span>Qué puede salir mal</span><p>{{ risk or 'No hay un riesgo específico documentado; aplica cautela y revisa cambios de contexto.' }}</p></article>
   <article><span>Qué lo invalidaría</span><p>{{ invalidation or 'Sin condición de invalidación registrada. No asumas que el análisis sigue vigente si cambia el contexto.' }}</p></article>
-  <footer><strong>Última revisión</strong><time>{{ reviewed or 'Sin marca temporal confirmada' }}</time></footer>
+  <footer><strong>{{ ui('Última revisión') }}</strong><time>{{ ui_match_datetime(reviewed) if reviewed else ui('Sin marca temporal confirmada') }}</time></footer>
 </section>
 {%- endmacro %}
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 UTC_TZ = ZoneInfo("UTC")
@@ -95,7 +95,7 @@ def madrid_local_from_parts(date_value: object, time_value: object = "") -> date
     return parse_madrid_local_datetime(f"{date_text}T{time_text}:00")
 
 
-def parse_match_datetime(value: object) -> datetime | None:
+def parse_match_datetime(value: object, *, source_timezone: str | None = None) -> datetime | None:
     """Parse any known match datetime into an aware UTC datetime."""
     if value in (None, ""):
         return None
@@ -125,7 +125,18 @@ def parse_match_datetime(value: object) -> datetime | None:
                 if dt is None:
                     return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC_TZ)
+        try:
+            zone = ZoneInfo(source_timezone) if source_timezone else UTC_TZ
+        except (ZoneInfoNotFoundError, ValueError, TypeError):
+            return None
+        first = dt.replace(tzinfo=zone, fold=0)
+        second = dt.replace(tzinfo=zone, fold=1)
+        # A local provider hour in a DST gap/fold needs an explicit offset/epoch.
+        if first.utcoffset() != second.utcoffset():
+            return None
+        if first.astimezone(UTC_TZ).astimezone(zone).replace(tzinfo=None) != dt:
+            return None
+        dt = first
     return dt.astimezone(UTC_TZ)
 
 
@@ -180,12 +191,49 @@ def _madrid_now_value(value: object = None) -> datetime:
     return to_madrid_time(value) or madrid_now()
 
 
-def format_madrid_client_date_label(value: object, *, now: object = None, detail: bool = False) -> str:
+def madrid_greeting(name: object = None, *, username: object = None, now: object = None, locale: str = "es") -> dict[str, str]:
+    """Short greeting from the server's canonical Madrid clock, never device time."""
+    hour = _madrid_now_value(now).hour
+    label = "Buenos días" if 5 <= hour < 12 else "Buenas tardes" if 12 <= hour < 20 else "Buenas noches"
+    if locale != "es":
+        from engines.ui_localization_engine import translate
+        label = translate(label, locale)
+    display_name = " ".join(str(name or "").split())
+    # Session snapshots may contain a generated username or placeholder as name.
+    technical_names = {"cliente", "cliente shark", "admin", "admin shark", "usuario", "user", "none", "null"}
+    if (
+        display_name.casefold() in technical_names
+        or display_name.casefold() == str(username or "").strip().casefold()
+        or not all(char.isalpha() or char in " '-’" for char in display_name)
+    ):
+        display_name = ""
+    first_name = display_name.split()[0] if display_name else ""
+    if first_name.casefold() in technical_names or not any(char.isalpha() for char in first_name) or len(first_name) > 32:
+        first_name = ""
+    return {"label": label, "name": first_name}
+
+
+def format_madrid_client_date_label(value: object, *, now: object = None, detail: bool = False, locale: str = "es") -> str:
     """Format one canonical Madrid instant for compact or match-detail client UX."""
     dt = to_madrid_time(value)
     if not dt:
         return ""
     current = _madrid_now_value(now)
+    if locale in {"en", "fr"}:
+        weekdays, months = {
+            "en": (["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                   ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]),
+            "fr": (["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"],
+                   ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]),
+        }[locale]
+        from engines.ui_localization_engine import translate
+        delta = (dt.date() - current.date()).days
+        if not detail and delta in {-1, 0, 1}:
+            return translate({-1: "Ayer", 0: "Hoy", 1: "Mañana"}[delta], locale)
+        year = f" {dt.year}" if dt.year != current.year else ""
+        if detail:
+            return f"{weekdays[dt.weekday()]}, {dt.day} {months[dt.month - 1]}{year}"
+        return f"{dt.day} {months[dt.month - 1][:3]}{year}"
     if detail:
         year = f" de {dt.year}" if dt.year != current.year else ""
         return f"{WEEKDAYS_ES[dt.weekday()]}, {dt.day} de {MONTHS_ES[dt.month - 1]}{year}"
@@ -200,11 +248,11 @@ def format_madrid_client_date_label(value: object, *, now: object = None, detail
     return f"{dt.day} {MONTHS_ES_SHORT[dt.month - 1]}{year}"
 
 
-def format_madrid_client_datetime_label(value: object, *, now: object = None, detail: bool = False) -> str:
+def format_madrid_client_datetime_label(value: object, *, now: object = None, detail: bool = False, locale: str = "es") -> str:
     dt = to_madrid_time(value)
     if not dt:
         return ""
-    date_label = format_madrid_client_date_label(dt, now=now, detail=detail)
+    date_label = format_madrid_client_date_label(dt, now=now, detail=detail, locale=locale)
     return f"{date_label} · {dt:%H:%M}"
 
 
@@ -249,24 +297,32 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
     raw_text = str(raw_value or "").strip()
     dt_madrid = None
     dt_utc = None
+    source_timezone = item.get("source_timezone")
     if key == "match_date+time":
-        dt_madrid = madrid_local_from_parts(item.get("match_date") or item.get("date"), item.get("kickoff_time") or item.get("match_time") or item.get("time"))
-        dt_utc = dt_madrid.astimezone(UTC_TZ) if dt_madrid else None
-        if dt_madrid:
-            warnings.append("manual_madrid_local")
+        if source_timezone and source_timezone != "Europe/Madrid":
+            dt_utc = parse_match_datetime(raw_value, source_timezone=source_timezone)
+            dt_madrid = dt_utc.astimezone(MADRID_TZ) if dt_utc else None
+            if dt_utc:
+                item["kickoff_iso"] = dt_utc.isoformat(timespec="seconds")
+            warnings.append("explicit_provider_timezone")
         else:
+            dt_madrid = madrid_local_from_parts(item.get("match_date") or item.get("date"), item.get("kickoff_time") or item.get("match_time") or item.get("time"))
+            dt_utc = dt_madrid.astimezone(UTC_TZ) if dt_madrid else None
+        if dt_madrid and not (source_timezone and source_timezone != "Europe/Madrid"):
+            warnings.append("manual_madrid_local")
+        elif not dt_madrid:
             warnings.append("missing_or_invalid_madrid_time")
     elif key == "match_date":
         dt_utc = None
         dt_madrid = None
         warnings.append("date_without_time")
     else:
-        dt_utc = parse_match_datetime(raw_value)
+        dt_utc = parse_match_datetime(raw_value, source_timezone=source_timezone)
         dt_madrid = dt_utc.astimezone(MADRID_TZ) if dt_utc else None
         if not raw_text:
             warnings.append("missing_kickoff")
         elif raw_text and not _has_tz_suffix(raw_text) and "T" in raw_text:
-            warnings.append("naive_api_datetime_assumed_utc")
+            warnings.append("explicit_provider_timezone" if source_timezone else "naive_api_datetime_assumed_utc")
     if raw_text.endswith("+01:00") or raw_text.endswith("+02:00"):
         warnings.append("source_already_timezone_aware")
     if dt_madrid:
@@ -295,17 +351,22 @@ def normalize_kickoff_for_display(match: dict | None) -> dict:
     else:
         fallback_date = str(item.get("match_date") or "")[:10]
         fallback_time = str(item.get("kickoff_time") or item.get("match_time") or "")[:5]
+        if source_timezone and source_timezone != "Europe/Madrid":
+            fallback_date = fallback_time = ""
+            warnings.append("unresolved_provider_datetime")
+            for field in ("madrid_dt_iso", "madrid_utc_iso", "kickoff_iso_madrid"):
+                item.pop(field, None)
         item["madrid_time"] = fallback_time
         item["madrid_date"] = fallback_date
         item["madrid_date_label"] = format_madrid_date_label(fallback_date) if fallback_date else "Sin fecha"
         item["madrid_display"] = (f"{item['madrid_date_label']} · {fallback_time}" if fallback_date and fallback_time else (f"{item['madrid_date_label']} · Hora pendiente" if fallback_date else "Hora pendiente"))
         item["safe_time"] = fallback_time or "Hora pendiente"
-        item["safe_date"] = item.get("safe_date") or fallback_date
+        item["safe_date"] = fallback_date
         item["display_time"] = item["safe_time"]
         item["display_date_label"] = item["madrid_date_label"] or "Sin fecha"
         item["display_status_label"] = item["madrid_display"]
         item["kickoff_display"] = item["madrid_display"]
-        item["display_datetime"] = item.get("display_datetime") or item["madrid_display"]
+        item["display_datetime"] = item["madrid_display"]
     item["timezone_label"] = "Europe/Madrid"
     item["time_context"] = "Hora oficial de España (Madrid)"
     item["time_source_field"] = key
@@ -337,7 +398,13 @@ def format_telegram_match_time_madrid(match: dict | None) -> dict:
     detected = "unknown"
     dt_madrid: datetime | None = None
 
-    if source_key == "match_date+time":
+    if item.get("source_timezone") and item["source_timezone"] != "Europe/Madrid":
+        normalized = normalize_kickoff_for_display(item)
+        dt_madrid = datetime.fromisoformat(normalized["madrid_dt_iso"]) if normalized.get("madrid_dt_iso") else None
+        detected = "explicit_provider_timezone"
+        if not dt_madrid:
+            warning = "unresolved_provider_datetime"
+    elif source_key == "match_date+time":
         date_value = str(item.get("match_date") or item.get("date") or "")[:10]
         time_value = str(item.get("kickoff_time") or item.get("match_time") or item.get("time") or "")[:5]
         try:
@@ -360,6 +427,8 @@ def format_telegram_match_time_madrid(match: dict | None) -> dict:
     if not dt_madrid:
         fallback_date = str(item.get("match_date") or "")[:10]
         fallback_time = str(item.get("kickoff_time") or item.get("match_time") or "")[:5]
+        if warning == "unresolved_provider_datetime":
+            fallback_date = fallback_time = ""
         fallback_label = "Hora pendiente"
         if fallback_date and fallback_time:
             fallback_label = f"{fallback_date} · {fallback_time} · Madrid"

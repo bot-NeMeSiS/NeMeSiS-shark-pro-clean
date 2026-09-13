@@ -1,0 +1,8 @@
+<form method="post" action="/preferences/language" class="v933-language-selector" data-language-selector>
+  <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+  <label for="ui-language">{{ ui('Idioma') }}</label>
+  <select name="language" id="ui-language" aria-label="{{ ui('Idioma') }}">
+    {% for code, name in ui_languages.items() %}<option value="{{ code }}"{% if ui_locale == code %} selected{% endif %}>{{ name }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="v933-icon-button" aria-label="{{ ui('Guardar idioma') }}" title="{{ ui('Guardar idioma') }}"><span class="v928-icon" data-v928-icon="check" aria-hidden="true"></span></button>
+</form>

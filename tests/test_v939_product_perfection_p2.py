@@ -48,19 +48,20 @@ def test_calendar_collection_reclaims_full_width_without_breaking_mobile_order()
     assert template.count("v933-match-grid") == 1
 
 
-def test_client_reference_grid_keeps_route_and_matches_left_with_pick_on_the_right():
+def test_client_reference_grid_keeps_matches_left_with_pick_right_without_duplicate_navigation():
     template = _read("templates/client_app_center.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
     primary = template.index('class="ns16-home-primary"', bounded)
-    journey = template.index('class="v933-panel ns16-journey"', primary)
     continuation = template.index('data-v939-layout-contract="full-width-continuation"')
-    featured_pick = template.index('class="v933-panel ns16-featured-pick"')
-    quick_actions = template.index('aria-label="Accesos rápidos"')
+    featured_pick = template.index('class="ns16-section ns16-featured-pick"')
+    quick_actions = template.index('class="ns16-home-actions"')
 
-    assert bounded < primary < journey < continuation < featured_pick < quick_actions
-    assert "Tus accesos rápidos" not in template[bounded:featured_pick]
-    assert template.count("Tus accesos rápidos") == 1
-    assert template.index("Tus accesos rápidos") > quick_actions
+    assert bounded < primary < continuation < featured_pick < quick_actions
+    # CX-DESIGN-02 replaces the old tutorial rail with sports-first composition.
+    assert 'ns16-journey' not in template
+    actions = template[quick_actions:template.index('</nav>', quick_actions)]
+    assert all(path in actions for path in ('/favorites', '/memberships', '/support'))
+    assert all(path not in actions for path in ('/calendar', '/live', '/picks', '/shark'))
 
 
 def test_telegram_supporting_content_stays_flat_after_the_rail():
@@ -120,6 +121,18 @@ def test_pqv939_005_trust_icons_use_direct_child_css_contract():
     assert snapshot["validation_result"] == "PASS"
     assert snapshot["evidence"]["violations"] == []
     assert detect_product_quality_contract_issues(ROOT, "V939") == []
+
+
+def test_localized_trust_contract_still_rejects_missing_icon(tmp_path):
+    fixture_root = _write_trust_contract_fixture(tmp_path, _read("static/v933-product.css"))
+    template = fixture_root / "templates/components/v933_ui.html"
+    source = template.read_text(encoding="utf-8")
+    source = source.replace("{{ icon('target') }} {{ ui(\"Picks completos\") }}", "{{ ui(\"Picks completos\") }}")
+    assert source != template.read_text(encoding="utf-8")
+    template.write_text(source, encoding="utf-8")
+    snapshot = build_customer_trust_icon_contract_snapshot(fixture_root, "DESIGN02")
+    assert snapshot["validation_result"] == "REGRESSION"
+    assert "customer_trust_macro_contract_missing" in snapshot["evidence"]["violations"]
 
 
 def test_pqv939_005_regression_opens_p2_and_requires_human_approval(tmp_path):
@@ -361,6 +374,8 @@ def _visible_text(html: str) -> str:
 def _timestamp_contract_environment() -> Environment:
     environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
     environment.filters["sync_madrid_label"] = format_madrid_sync_label
+    from engines.ui_localization_engine import translate
+    environment.globals["ui"] = translate
     return environment
 
 

@@ -13,8 +13,8 @@
 
   <section class="v933-kpi-grid ns-video-status-rail">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
-    {{ kpi_card('Canal activo', 'Sí' if channel_enabled else 'En pausa', 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
-    {{ kpi_card('Último envío', config.get('last_sent_at')|madrid_datetime_label if config.get('last_sent_at') else none, 'Hora Madrid', 'blue', 'history') }}
+    {{ kpi_card('Canal activo', ui('Sí' if channel_enabled else 'En pausa'), 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
+    {{ kpi_card('Último envío', ui_match_datetime(config.get('last_sent_at')) if config.get('last_sent_at') else none, 'Hora Madrid', 'blue', 'history') }}
     {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/memberships') }}
   </section>
 
@@ -25,20 +25,20 @@
         {% if state.get('linked') %}
         <div class="v933-linked-state">
           <div>{{ status_chip('Cuenta vinculada','success') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div>
-          <form method="post" action="/telegram/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-danger" type="submit">Desvincular</button></form>
+          <form method="post" action="/telegram/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-danger" type="submit">{{ ui("Desvincular") }}</button></form>
         </div>
         {% else %}
-        <div class="v933-link-code"><span>Código de vinculación</span><strong>{{ state.get('code') or 'Pendiente de generar' }}</strong><p>{{ state.get('command') or 'Genera un código para iniciar la vinculación segura.' }}</p></div>
-        <div class="v933-page-actions v933-inline-actions">{% if state.get('deep_link') %}<a class="v933-action is-primary is-cyan" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">{{ icon('telegram') }}<span>Conectar Telegram</span></a>{% endif %}<form method="post" action="/telegram/regenerar-código"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-blue" type="submit">Nuevo código</button></form></div>
+        <div class="v933-link-code"><span>{{ ui("Código de vinculación") }}</span><strong>{{ state.get('code') or 'Pendiente de generar' }}</strong><p>{{ state.get('command') or 'Genera un código para iniciar la vinculación segura.' }}</p></div>
+        <div class="v933-page-actions v933-inline-actions">{% if state.get('deep_link') %}<a class="v933-action is-primary is-cyan" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">{{ icon('telegram') }}<span>{{ ui("Conectar Telegram") }}</span></a>{% endif %}<form method="post" action="/telegram/regenerar-código"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-blue" type="submit">{{ ui("Nuevo código") }}</button></form></div>
         {% endif %}
       </section>
       <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
         {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
         <div class="v933-four-col v933-feature-grid">
-          <article>{{ icon('target') }}<strong>Picks premium</strong><p>Mercado, selección, cuota y riesgo completos.</p></article>
-          <article>{{ icon('live') }}<strong>Alertas en directo</strong><p>Solo cuando existe una señal real.</p></article>
-          <article>{{ icon('history') }}<strong>Resultados</strong><p>Cierre confirmado de picks publicados.</p></article>
-          <article>{{ icon('data') }}<strong>Resúmenes</strong><p>Calidad antes que frecuencia.</p></article>
+          <article>{{ icon('target') }}<strong>{{ ui("Picks premium") }}</strong><p>{{ ui("Mercado, selección, cuota y riesgo completos.") }}</p></article>
+          <article>{{ icon('live') }}<strong>{{ ui("Alertas en directo") }}</strong><p>{{ ui("Solo cuando existe una señal real.") }}</p></article>
+          <article>{{ icon('history') }}<strong>{{ ui("Resultados") }}</strong><p>{{ ui("Cierre confirmado de picks publicados.") }}</p></article>
+          <article>{{ icon('data') }}<strong>{{ ui("Resúmenes") }}</strong><p>{{ ui("Calidad antes que frecuencia.") }}</p></article>
         </div>
       </section>
 
@@ -56,6 +56,6 @@
     </aside>
   </section>
 
-  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>Calidad protegida</strong><small>Las alertas llevan al partido real y esta pantalla nunca envía mensajes por sí sola.</small></span>{{ status_chip('Activo','success') }}</aside>
+  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>{{ ui("Calidad protegida") }}</strong><small>{{ ui("Las alertas llevan al partido real y esta pantalla nunca envía mensajes por sí sola.") }}</small></span>{{ status_chip('Activo','success') }}</aside>
 </div>
 {% endblock %}

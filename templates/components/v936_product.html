@@ -28,7 +28,7 @@
   </article>
   <i aria-hidden="true">{{ icon('arrow') }}</i>
   <article class="is-elite{% if plan in ['ELITE','ELITE_PLUS'] %} is-current{% endif %}">
-    <span>Prioridad</span><strong>ELITE</strong><p>Acceso avanzado y soporte, sin promesas de rentabilidad.</p>
+    <span>{{ ui("Prioridad") }}</span><strong>ELITE</strong><p>Acceso avanzado y soporte, sin promesas de rentabilidad.</p>
   </article>
 </section>
 {%- endmacro %}
@@ -44,7 +44,7 @@
 {% macro intelligence_brief(reason, risk, recommendation, action_label, action_href, blocked=false) -%}
 <section class="v936-intelligence-brief" aria-label="Resumen de inteligencia SHARK">
   <article><span>Por qué</span><strong>{{ reason }}</strong></article>
-  <article><span>Riesgo</span><strong>{{ risk }}</strong></article>
+  <article><span>{{ ui("Riesgo") }}</span><strong>{{ risk }}</strong></article>
   <article><span>Recomendación</span><strong>{{ recommendation }}</strong></article>
   <div>{{ action_button(action_label, action_href, not blocked, 'cyan', blocked, 'shark') }}</div>
 </section>
@@ -71,7 +71,7 @@
     <article class="is-blue"><span>Agenda validada</span><strong>{{ validated_matches }}</strong><small>partidos completos de hoy</small></article>
     <article class="is-live"><span>Directo confirmado</span><strong>{{ live_count }}</strong><small>sin marcadores simulados</small></article>
     <article class="is-cyan"><span>Picks publicables</span><strong>{{ publicable_picks }}</strong><small>con mercado, selección y cuota</small></article>
-    <article class="is-muted"><span>Pendientes</span><strong>{{ pending_count }}</strong><small>fuera de la experiencia principal</small></article>
+    <article class="is-muted"><span>{{ ui("Pendientes") }}</span><strong>{{ pending_count }}</strong><small>fuera de la experiencia principal</small></article>
   </div>
 </section>
 {%- endmacro %}

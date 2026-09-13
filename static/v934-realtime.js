@@ -5,6 +5,9 @@
   var adminButtons = Array.prototype.slice.call(document.querySelectorAll('[data-v934-admin-action]'));
   if (!bars.length && !adminButtons.length) return;
   var shared = window.__nemesisV935Realtime || (window.__nemesisV935Realtime = { entries: {} });
+  function text(source, values) {
+    return window.NemesisI18n ? window.NemesisI18n.text(source, values) : source;
+  }
 
   function number(value) {
     var parsed = Number(value);
@@ -62,9 +65,13 @@
       node.removeAttribute('datetime');
       node.removeAttribute('data-v934-last-sync-raw');
     }
+    var clientLabel = payload.last_safe_sync_label || text('Sin sincronización confirmada');
+    if (window.NemesisI18n && window.NemesisI18n.locale !== 'es' && rawSync) {
+      clientLabel = window.NemesisI18n.madridDatetime(rawSync);
+    }
     node.textContent = technical
       ? (rawSync || 'Sin sincronización confirmada')
-      : (payload.last_safe_sync_label || 'Sin sincronización confirmada');
+      : clientLabel;
   }
 
   function updateMatch(match) {
@@ -77,7 +84,7 @@
       }
       var status = card.querySelector('[data-v934-status] .v933-status-chip') || card.querySelector('[data-v934-status]');
       if (status) {
-        status.textContent = match.status_label || 'Estado actualizado';
+        status.textContent = text(match.status_label || 'Estado actualizado');
         status.classList.remove('is-success', 'is-blue', 'is-warning', 'is-neutral');
         status.classList.add(match.is_stale ? 'is-warning' : match.is_live ? 'is-success' : 'is-blue');
       }
@@ -96,7 +103,7 @@
       setText(card, '[data-v934-odds]', pick.odds);
       var freshness = card.querySelector('[data-v934-odds-freshness]');
       if (freshness && pick.odds_freshness) {
-        freshness.textContent = pick.odds_freshness.label || 'Última registrada';
+        freshness.textContent = text(pick.odds_freshness.label || 'Última registrada');
         freshness.className = 'v934-odds-freshness is-' + (pick.odds_freshness.status || 'recorded');
       }
     });
@@ -112,12 +119,12 @@
     var technical = bar.getAttribute('data-v934-technical') === 'true';
     var message = technical
       ? 'DB/caché: ' + (payload.cache_state || payload.cache_status || 'estado seguro') + '. Render sin llamada directa al proveedor.'
-      : (payload.safe_message || 'La información confirmada sigue disponible entre actualizaciones.');
-    setText(bar, '[data-v934-realtime-title]', hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales');
+      : text(payload.safe_message || 'La información confirmada sigue disponible entre actualizaciones.');
+    setText(bar, '[data-v934-realtime-title]', text(hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
     setText(bar, '[data-v934-realtime-message]', message);
-    setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : 'Actualización segura');
+    setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : text('Actualización segura'));
     updateSyncTimestamp(bar, payload, technical);
-    setText(bar, '[data-v934-next-refresh]', 'Próxima revisión en ' + clampPoll(payload.poll_after_seconds) + ' s');
+    setText(bar, '[data-v934-next-refresh]', text('Próxima revisión en {seconds} s', {seconds:clampPoll(payload.poll_after_seconds)}));
     bar.classList.toggle('is-live', hasLive);
     bar.classList.toggle('is-stale', payload.realtime_live_status === 'stale');
     bar.classList.remove('is-error');
@@ -151,7 +158,7 @@
         .catch(function () {
           failures += 1;
           bar.classList.add('is-error');
-          setText(bar, '[data-v934-realtime-message]', 'Actualización temporalmente no disponible. Se conserva la última lectura segura.');
+          setText(bar, '[data-v934-realtime-message]', text('Actualización temporalmente no disponible. Se conserva la última lectura segura.'));
           schedule(Math.min(300, 30 * Math.pow(2, Math.min(failures, 3))));
         });
     }

@@ -23,6 +23,10 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label
+from engines.support_inbox_engine import submit as submit_support_request, admin_snapshot as support_inbox_snapshot, SupportRejected
+from engines.ui_localization_engine import identity_value as localize_identity_value, owned_text as localize_owned_text, entity_copy as localize_entity_copy
+import uuid
 
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.security_engine import (
@@ -442,8 +446,10 @@ from engines.madrid_time_engine import (
     format_madrid_short_time,
     format_madrid_sync_label,
     madrid_conversion_selftest,
+    madrid_greeting,
     madrid_time_diagnostics,
     normalize_kickoff_for_display,
+    parse_madrid_local_datetime,
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
@@ -4256,12 +4262,17 @@ def canonical_live_minute(match):
     return ""
 
 def sportsdb_event_time(event):
+    return sportsdb_event_madrid_values(event).get("kickoff_time") or ""
+
+
+def sportsdb_event_madrid_values(event):
+    # Soccer provider fields are UTC; dateEventLocal/strTimeLocal are not used.
     timestamp = str(event.get("strTimestamp") or "").strip()
-    values = madrid_values_from_datetime(timestamp)
-    if values.get("kickoff_time"):
-        return values["kickoff_time"]
     raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
-    return raw_time[:5] if raw_time and len(raw_time) >= 5 else raw_time
+    if not timestamp and event.get("dateEvent") and raw_time:
+        timestamp = f"{str(event['dateEvent'])[:10]}T{raw_time}"
+    item = normalize_kickoff_for_display({"kickoff_iso": timestamp, "source_timezone": "UTC"})
+    return madrid_values_from_datetime(item.get("madrid_dt_iso") or "")
 
 
 def kickoff_iso_value(match_date, match_time):
@@ -4370,7 +4381,7 @@ def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", ca
     comp_id = event_comp_id or fallback_comp_id
     status = sportsdb_match_status(event)
     score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
-    time_values = madrid_values_from_datetime(event.get("strTimestamp") or "", event.get("dateEvent") or today_iso(), sportsdb_event_time(event))
+    time_values = sportsdb_event_madrid_values(event)
     match_date = time_values.get("match_date") or event.get("dateEvent") or today_iso()
     match_time = time_values.get("kickoff_time") or sportsdb_event_time(event)
     home_badge = event.get("strHomeTeamBadge") or event.get("strHomeTeamLogo") or ""
@@ -6488,15 +6499,17 @@ def record_user_activity(activity_type, target_type="", target_id="", payload=No
     user_id = user_id or current_user_id()
     if not user_id:
         return None
-    activity_id = hashlib.md5(f"act-{user_id}-{activity_type}-{target_type}-{target_id}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    activity_id = secrets.token_hex(16)
     conn = db()
-    conn.execute(
-        """INSERT INTO user_activity(id,user_id,activity_type,target_type,target_id,payload_json,created_at)
-           VALUES (?,?,?,?,?,?,?)""",
-        (activity_id, user_id, activity_type, target_type, target_id, json.dumps(payload or {}, ensure_ascii=False)[:3000], now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """INSERT INTO user_activity(id,user_id,activity_type,target_type,target_id,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?)""",
+            (activity_id, user_id, activity_type, target_type, target_id, json.dumps(payload or {}, ensure_ascii=False)[:3000], now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return activity_id
 
 
@@ -7805,13 +7818,24 @@ def team_page_data(team_id, limit=80):
            ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
         (name, name, today_iso(), int(limit//2)),
     ) if not is_fake_match(m)]
-    live = [m for m in upcoming if (m.get("status_info") or {}).get("is_live")]
+    # Date bounds limit the read; the existing canonical state owns presentation.
+    team_matches = upcoming + recent
+    live = [m for m in team_matches if (m.get("status_info") or {}).get("is_live")]
+    upcoming = [m for m in team_matches if (m.get("status_info") or {}).get("is_upcoming")]
+    recent = sorted(
+        (m for m in team_matches if (m.get("status_info") or {}).get("is_finished")),
+        key=lambda m: (str(m.get("match_date") or ""), str(m.get("kickoff_time") or "")),
+        reverse=True,
+    )
+    pending = [m for m in team_matches if not any(
+        (m.get("status_info") or {}).get(key) for key in ("is_live", "is_upcoming", "is_finished")
+    )]
     related = []
     for pick in get_picks(limit=120):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
-    players = _cached_players_for_team(team, upcoming + recent)
+    players = _cached_players_for_team(team, team_matches)
     detail = {
         "team": team,
         "key": key,
@@ -7822,6 +7846,7 @@ def team_page_data(team_id, limit=80):
         "live": live,
         "picks": related[:8],
         "players": players,
+        "pending": pending,
         "is_favorite": is_favorite,
         "stats": {
             "upcoming": len(upcoming),
@@ -9280,6 +9305,8 @@ def jinja_market_es(value):
 def _jinja_match_time_source(value, fallback_date="", fallback_time=""):
     if isinstance(value, dict):
         item = normalize_kickoff_for_display(value)
+        if "unresolved_provider_datetime" in item.get("time_warnings", []):
+            return item, ""
         return item, item.get("madrid_dt_iso") or item.get("kickoff_iso_madrid") or item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or item.get("event_time") or (madrid_local_iso(item.get("match_date"), item.get("kickoff_time") or item.get("match_time")) if item.get("match_date") and (item.get("kickoff_time") or item.get("match_time")) else "")
     return {}, value or (madrid_local_iso(fallback_date, fallback_time) if fallback_date and fallback_time else "")
 
@@ -9861,11 +9888,109 @@ app.jinja_env.globals.update(
 )
 
 
+def current_ui_locale():
+    if not has_request_context():
+        return "es"
+    if hasattr(g, "ui_locale"):
+        return g.ui_locale
+    user = current_session_user() or {}
+    preference = None
+    if user.get("id"):
+        try:
+            preference = valid_language(_load_user_intelligence_preferences(user["id"]).get("language"))
+        except sqlite3.OperationalError:
+            app.logger.warning("UI locale profile unavailable; using browser preference")
+    g.ui_locale = (preference or valid_language(session.get("ui_locale"))
+                   or valid_language(request.cookies.get("nemesis_locale"))
+                   or request.accept_languages.best_match(LANGUAGES) or "es")
+    return g.ui_locale
+
+
+def ui_text(source, **values):
+    return translate_ui(source, current_ui_locale(), **values)
+
+
+def ui_match_datetime(value, detail=False):
+    _item, source = _jinja_match_time_source(value)
+    return format_madrid_client_datetime_label(source, detail=detail, locale=current_ui_locale()) or ui_text("Fecha pendiente")
+
+
+def ui_calendar_date(value):
+    day = parse_madrid_local_datetime(str(value or "")[:10])
+    return format_madrid_client_date_label(day, locale=current_ui_locale()) if day else ui_text("Fecha pendiente")
+
+
+@app.route("/preferences/language", methods=["POST"])
+def update_ui_language():
+    language = valid_language(request.form.get("language"))
+    if not language:
+        return Response(ui_text("Idioma no válido"), status=400, content_type="text/plain; charset=utf-8")
+    user = current_session_user() or {}
+    if user.get("id"):
+        conn = db()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            profile_id = _user_intelligence_profile_id(user["id"])
+            row = conn.execute("SELECT preferences_json FROM client_profiles WHERE id=?", (profile_id,)).fetchone()
+            preferences = parse_payload_json(row["preferences_json"], {}) if row else {}
+            preferences["language"] = language
+            if row:
+                conn.execute("UPDATE client_profiles SET preferences_json=?,updated_at=? WHERE id=?",
+                             (json.dumps(preferences, ensure_ascii=False), now_iso(), profile_id))
+            else:
+                conn.execute("INSERT INTO client_profiles(id,name,preferences_json,created_at,updated_at) VALUES(?,?,?,?,?)",
+                             (profile_id, "Inteligencia de usuario Profile", json.dumps(preferences), now_iso(), now_iso()))
+            conn.commit()
+        except sqlite3.Error:
+            conn.rollback()
+            return Response(ui_text("No se pudo guardar la preferencia. Inténtalo de nuevo."), status=503, content_type="text/plain; charset=utf-8")
+        finally:
+            conn.close()
+    session["ui_locale"] = language
+    g.ui_locale = language
+    response = redirect(_safe_client_next(request.form.get("next"), default="/profile" if user else "/cliente-login"), code=303)
+    response.set_cookie("nemesis_locale", language, max_age=31536000, httponly=True,
+                        secure=request.is_secure or bool(app.config.get("SESSION_COOKIE_SECURE")), samesite="Lax", path="/")
+    return response
+
+
+@app.after_request
+def set_ui_language_headers(response):
+    if response.mimetype == "text/html" and hasattr(g, "ui_locale"):
+        response.headers["Content-Language"] = g.ui_locale
+        response.vary.add("Cookie")
+        response.vary.add("Accept-Language")
+    return response
+
+
+app.jinja_env.globals.update(ui=ui_text, ui_match_datetime=ui_match_datetime, ui_calendar_date=ui_calendar_date,
+                            ui_value=lambda value: localize_identity_value(value, current_ui_locale()),
+                            ui_owned=lambda value: localize_owned_text(value, current_ui_locale()),
+                            ui_entity_copy=lambda detail, kind: localize_entity_copy(detail, kind, current_ui_locale(), ui_match_datetime),
+                            ui_match_summary=lambda context: localize_match_summary(context, current_ui_locale()),
+                            ui_plural=lambda one, many, count, **values: plural_ui(one, many, count, current_ui_locale(), **values),
+                            ui_context_copy=lambda context: localize_context_copy(context, current_ui_locale(), ui_match_datetime),
+                            ui_form_summary=lambda form: localize_form_summary(form, current_ui_locale()),
+                            ui_shark_copy=lambda context: localize_shark_copy(context, current_ui_locale()),
+                            ui_price_label=lambda value: localize_price_label(value, current_ui_locale()))
+
+
 @app.context_processor
 def inject_session_user():
     user = current_session_user()
     return {
         "current_user": user,
+        "greeting": madrid_greeting((user or {}).get("name"), username=(user or {}).get("username"), locale=current_ui_locale()),
+        "ui_locale": current_ui_locale(),
+        "ui_languages": LANGUAGE_NAMES,
+        "ui_messages": {source: translate_ui(source, current_ui_locale()) for source in (
+            "En directo", "Finalizado", "Aplazado", "Suspendido", "Programado", "Descanso", "Datos retrasados",
+            "Partidos disponibles", "Esperando datos deportivos", "Estado confirmado", "Sin sincronización confirmada",
+            "La información confirmada sigue disponible entre actualizaciones.", "Estado actualizado", "Última registrada",
+            "Continuar", "Volver al partido", "Cuenta", "Inicio", "Calendario", "Directo", "Picks", "Favoritos",
+            "Actualización en directo", "Datos deportivos sincronizados", "Esperando datos reales", "Actualización segura",
+            "Próxima revisión en {seconds} s",
+            "Actualización temporalmente no disponible. Se conserva la última lectura segura.")},
         "app_version": APP_VERSION,
         "app_icon_version": APP_ICON_VERSION,
         "madrid_now": now_madrid_label(),
@@ -17667,9 +17792,9 @@ def _calendar_sort(matches, sort_key):
     ]
 
     def time_key(item):
+        display = normalize_kickoff_for_display(item)
         return (
-            item.get("match_date") or "9999-99-99",
-            normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "99:99",
+            display.get("madrid_utc_iso") or "9999-99-99",
             int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80),
             item.get("calendar_competition") or "",
             item.get("safe_home") or "",
@@ -17688,7 +17813,7 @@ def _calendar_sort(matches, sort_key):
         return 2
 
     if sort_key == "time":
-        return sorted(ranked, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
+        return sorted(ranked, key=lambda item: (normalize_kickoff_for_display(item).get("madrid_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
     if sort_key == "league":
         return sorted(ranked, key=lambda item: (int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
@@ -17725,7 +17850,7 @@ def _calendar_group(matches):
     date_buckets = []
     by_date = {}
     for item in matches:
-        key = item.get("match_date") or normalize_kickoff_for_display(item).get("match_date") or "sin-fecha"
+        key = normalize_kickoff_for_display(item).get("madrid_date") or "sin-fecha"
         label = item.get("calendar_date_label") or jinja_match_date_label(item)
         by_date.setdefault(key, {"date_key": key, "date": key, "date_label": label, "label": label, "matches_count": 0, "total": 0, "leagues": {}})
         bucket = by_date[key]
@@ -18195,6 +18320,22 @@ def _v940_calendar_date_chips(filters, date_counts):
     return chips
 
 
+def _design02_calendar_date_navigation(filters):
+    """Presentation links over the existing date-filtered snapshot, not an archive."""
+    selected = _safe_date_value(filters.get("date"), today_iso())
+    selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
+    return {
+        "selected": selected,
+        "previous": _v940_calendar_href(filters, lane="today", date=(selected_day - timedelta(days=1)).isoformat()),
+        "next": _v940_calendar_href(filters, lane="today", date=(selected_day + timedelta(days=1)).isoformat()),
+        "shortcuts": [
+            {"label": label, "key": today_iso(offset),
+             "href": _v940_calendar_href(filters, lane="today", date=today_iso(offset))}
+            for offset, label in ((-1, "Ayer"), (0, "Hoy"), (1, "Mañana"))
+        ],
+    }
+
+
 def v940_calendar_context(summary, lane="today", date_value=None):
     """One request-local Calendar view over sports-metrics-v1 and canonical matches."""
     summary = summary if isinstance(summary, dict) else {}
@@ -18304,6 +18445,7 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "facets": facets,
         "tabs": _v940_calendar_tabs(filters, counts),
         "date_chips": _v940_calendar_date_chips(filters, date_counts),
+        "date_navigation": _design02_calendar_date_navigation(filters),
         "day_navigation": day_navigation,
         "active_filters": active_filters,
         "has_filters": bool(active_filters),
@@ -28076,32 +28218,41 @@ def api_admin_v791_client_screen_audit():
 @app.route("/soporte", methods=["GET", "POST"])
 def v724_contact_alias_page():
     data = home_light_data()
-    sent = False
+    user = current_session_user() or {}
+    available = bool(user.get('id'))
+    sent = bool(session.pop('support_receipt', None))
     error = ""
+    status = 200
     if request.method == "POST":
-        subject = (request.form.get("subject") or "").strip()
-        message = (request.form.get("message") or "").strip()
-        if not subject or not message:
-            error = "Escribe un asunto y un mensaje para que podamos revisarlo bien."
+        sent = False
+        if not available:
+            error, status = 'Inicia sesión para contactar con soporte.', 401
+        elif request.form.get('request_id') != session.get('support_request_id'):
+            error, status = 'Recarga el formulario e inténtalo de nuevo.', 403
         else:
-            sent = True
             try:
-                record_security_event(
-                    DB_PATH,
-                    event_type="support_message",
-                    severity="INFO",
-                    ip_address=security_client_ip(),
-                    path=request.path,
-                    method=request.method,
-                    success=True,
-                    reason=f"{(request.form.get('category') or 'general')}: {subject[:80]}",
-                )
-            except Exception:
-                pass
+                receipt = submit_support_request(DB_PATH, user_id=user['id'], request_id=session['support_request_id'],
+                    subject=request.form.get('subject'), message=request.form.get('message'),
+                    category=request.form.get('category'), priority=request.form.get('priority'))
+                session['support_receipt'] = receipt
+                return redirect('/support', code=303)
+            except SupportRejected as exc:
+                messages = {'length':'El asunto debe tener entre 3 y 120 caracteres y el mensaje entre 10 y 4000.',
+                            'sensitive':'No envíes contraseñas, claves ni tokens. Retíralos del mensaje.',
+                            'rate':'Espera un minuto entre mensajes. Máximo tres mensajes por hora.',
+                            'category':'Selecciona un tipo y una prioridad válidos.',
+                            'session':'Recarga el formulario e inténtalo de nuevo.'}
+                error, status = messages[exc.reason], 429 if exc.reason == 'rate' else 400
+            except sqlite3.Error:
+                error, status = 'No se pudo guardar el mensaje. No se ha confirmado su recepción.', 503
+    if request.method == 'GET' or not session.get('support_request_id'):
+        session['support_request_id'] = uuid.uuid4().hex
     data.update(
         {
             "sent": sent,
             "error": error,
+            "support_available": available,
+            "support_request_id": session['support_request_id'],
             "support_tips": [
                 {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
                 {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},
@@ -28109,7 +28260,8 @@ def v724_contact_alias_page():
             ],
         }
     )
-    return render_template("support.html", data=data)
+    response = render_template("support.html", data=data)
+    return (response, status) if status != 200 else response
 
 
 @app.route("/intelligence-hub")
@@ -29664,11 +29816,12 @@ def v808_admin_real_count(table, where="1=1", params=()):
 
 
 def v808_support_center_context():
+    inbox = support_inbox_snapshot(DB_PATH)
     beta_counts = beta_feedback_counts()
     feedback_total = v808_admin_real_count("client_feedback") + v808_admin_real_count("feedback") + int(beta_counts.get("feedback_total") or 0)
-    tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets")
+    tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets") + inbox['total']
     open_feedback = v808_admin_real_count("client_feedback", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')") + int(beta_counts.get("open_items") or 0)
-    open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')") + inbox['open']
     recent_beta = [
         {
             "name": "Beta",
@@ -29686,7 +29839,7 @@ def v808_support_center_context():
         "open_tickets": open_tickets,
         "total_feedback": feedback_total,
         "total_tickets": tickets_total,
-        "recent": recent_beta,
+        "recent": inbox['recent'] + recent_beta,
         "actions": [
             {"title": "Revisar feedback beta", "body": "Abrir Beta Center para priorizar errores reproducibles, solicitudes y satisfaccion sin datos sensibles."},
             {"title": "Revisar experiencia cliente", "body": "Recorre Inicio, Partidos, Directo, Picks, SHARK, Telegram y Cuenta desde Vista cliente."},
