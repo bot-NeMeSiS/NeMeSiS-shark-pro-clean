@@ -439,6 +439,8 @@ def test_pipeline_diagnostics_marks_historical_quota_and_store_totals(
     assert pipeline["provider_access"] == {
         "provider": "API-Football",
         "state": "AUTHENTICATED",
+        "is_current_observation": False,
+        "current_state": "NOT_CHECKED",
         "configured": True,
         "authenticated": True,
         "checked_at": "2026-09-05T22:05:25+00:00",

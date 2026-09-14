@@ -25,6 +25,7 @@ from flask import Flask, Response, abort, g, has_request_context, jsonify, redir
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database_manager import connect as sqlite_connect, retry_locked
+from engines.sportsdb_fetch_budget_engine import SportsDBBudgetExhausted, fallback_budget
 from engines.security_engine import (
     generate_csrf_token,
     rate_limit_status,
@@ -1349,6 +1350,7 @@ def _api_football_deep_enrichment_candidates(limit=1):
 
 def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     """Refresh sports cache without Telegram, payments or render-time provider calls."""
+    cycle_started = time.monotonic()
     started_at = now_iso()
     before = sports_sync_window_state()
     if has_request_context():
@@ -1364,7 +1366,12 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     )
     fallback = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
     if fixtures.get("ok") is False and not fixtures.get("skipped"):
-        fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
+        # The optional league fallback must not multiply 12 s waits inside
+        # the web worker used by the master cron. Other providers are unchanged.
+        fallback = _safe_sports_sync_call(
+            "sportsdb_calendar", sync_sportsdb_calendar, limit=180,
+            budget=fallback_budget(cycle_started),
+        )
 
     # Reopen the request read snapshot after provider writers committed.
     if has_request_context():
@@ -1410,7 +1417,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
     for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("deep", deep), ("grading", grading)):
-        if result.get("ok") is False:
+        if result.get("ok") is False or (label == "fallback" and result.get("errors")):
             errors.append(result.get("error") or f"{label}_{result.get('status') or 'unavailable'}")
     processed = sum(
         as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
@@ -1419,7 +1426,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, live, deep)
+        for result in (fixtures, fallback, live, deep)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1661,7 +1668,9 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
     )
     deep_status = sports_result.get("deep_status") or deep.get("status") or "UNKNOWN"
     deep_status_text = _sports_diagnostic_text(deep_status, 80) or "UNKNOWN"
-    if deep_status_text.startswith("SKIPPED"):
+    if deep_status_text == "SKIPPED_NO_API_FOOTBALL_FIXTURE":
+        deep_execution_state = "NO_ELIGIBLE_FIXTURE"
+    elif deep_status_text.startswith("SKIPPED"):
         deep_execution_state = "NOT_DUE"
     elif deep_status_text == "UNKNOWN":
         deep_execution_state = "UNKNOWN"
@@ -1741,9 +1750,17 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             ),
             "scope": "CURRENT_SPORTS_SYNC",
         },
+        "fallback_execution": {
+            "status": _sports_diagnostic_text((sports_result.get("fallback") or {}).get("status"), 80) or "UNKNOWN",
+            "external_calls": as_int((sports_result.get("fallback") or {}).get("external_calls"), 0),
+            "budget": dict((sports_result.get("fallback") or {}).get("fetch_budget") or {}),
+            "scope": "CURRENT_SPORTSDB_FALLBACK",
+        },
         "provider_access": {
             "provider": "API-Football",
             "state": access_state,
+            "is_current_observation": access_source == "CURRENT_DEEP_RUN",
+            "current_state": access_state if access_source == "CURRENT_DEEP_RUN" else "NOT_CHECKED",
             "configured": (
                 bool(observed_account.get("configured"))
                 if "configured" in observed_account
@@ -3870,7 +3887,7 @@ def fetch_json_response(url, headers=None, timeout=10):
         }
 
 
-def sportsdb_v1(endpoint, params=None):
+def sportsdb_v1(endpoint, params=None, budget=None):
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -3880,14 +3897,20 @@ def sportsdb_v1(endpoint, params=None):
     )
     if params:
         url += "?" + urllib.parse.urlencode(params)
+    if budget is not None:
+        req = urllib.request.Request(url, headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
+        return budget.read_json(req)
     return fetch_json_url(url, timeout=12)
 
 
-def sportsdb_v2(path):
+def sportsdb_v2(path, budget=None):
     api_key = thesportsdb_key()
     if not api_key:
         return {}
     url = "https://www.thesportsdb.com/api/v2/json/" + path.strip("/")
+    if budget is not None:
+        req = urllib.request.Request(url, headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key})
+        return budget.read_json(req)
     return fetch_json_url(
         url,
         headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key},
@@ -4429,12 +4452,15 @@ def sportsdb_event_collection(payload):
     return []
 
 
-def fetch_sportsdb_feed_events(limit=220):
+def fetch_sportsdb_feed_events(limit=220, budget=None):
     events = []
     errors = []
+    kwargs = {"budget": budget} if budget is not None else {}
     try:
-        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
+        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"}, **kwargs)
         events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
+    except SportsDBBudgetExhausted:
+        return events[: int(limit)], ["SPORTSDB_TIME_BUDGET_EXHAUSTED"]
     except Exception as exc:
         save_thesportsdb_error(exc)
         errors.append("eventsday: " + str(exc)[:160])
@@ -4442,15 +4468,20 @@ def fetch_sportsdb_feed_events(limit=220):
         if len(events) >= int(limit):
             break
         try:
-            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
+            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]}, **kwargs)
             events.extend([(item, league) for item in sportsdb_event_collection(payload)])
+        except SportsDBBudgetExhausted:
+            errors.append("SPORTSDB_TIME_BUDGET_EXHAUSTED")
+            return events[: int(limit)], errors
         except Exception as exc:
             save_thesportsdb_error(exc)
             errors.append(f"{league['name']}: {str(exc)[:160]}")
     if sportsdb_live_enabled():
         try:
-            payload = sportsdb_v2("livescore/soccer")
+            payload = sportsdb_v2("livescore/soccer", **kwargs)
             events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
+        except SportsDBBudgetExhausted:
+            errors.append("SPORTSDB_TIME_BUDGET_EXHAUSTED")
         except Exception as exc:
             save_thesportsdb_error(exc)
             errors.append("livescore: " + str(exc)[:160])
@@ -4737,14 +4768,27 @@ def upsert_sportsdb_matches(match_rows):
     return summary
 
 
-def sync_sportsdb_feed(limit=220):
+def sync_sportsdb_feed(limit=220, budget=None):
     seed_core()
     if not thesportsdb_key():
         result = {"ok": False, "sin_key": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
         return result
     log_id = sync_log_start("TheSportsDB", "matches")
     try:
-        fetched, errors = fetch_sportsdb_feed_events(limit=limit)
+        fetched, errors = fetch_sportsdb_feed_events(limit=limit, **({"budget": budget} if budget is not None else {}))
+        if budget is not None and not fetched and errors:
+            # A deferred/failed fetch has no data to persist. In particular,
+            # never call the existing upsert/cleanup on this empty result.
+            result = {
+                "ok": False, "status": "PARTIAL", "sin_key": False,
+                "processed": 0, "imported": 0, "updated": 0,
+                "errors": errors[:12], "external_calls": budget.requests_started,
+                "fetch_budget": budget.snapshot(),
+                "fetch_completed_without_errors": False,
+                "next_action": "review_partial_coverage_before_next_scheduled_sync",
+            }
+            sync_log_finish(log_id, "PARTIAL", 0, "; ".join(errors[:3]))
+            return result
         match_rows = []
         seen = set()
         provider_observed_at = now_iso()
@@ -4763,6 +4807,15 @@ def sync_sportsdb_feed(limit=220):
         result["errors"] = errors[:12]
         result["live_enabled"] = sportsdb_live_enabled()
         result["sin_key"] = False
+        if budget is not None:
+            result["fetch_budget"] = budget.snapshot()
+            result["external_calls"] = budget.requests_started
+            result["status"] = "PARTIAL" if errors else "OK"
+            result["fetch_completed_without_errors"] = not bool(errors)
+            if budget.exhausted:
+                result["next_action"] = "review_partial_coverage_before_next_scheduled_sync"
+                # An empty deferred run must not count as a successful fallback.
+                result["ok"] = bool(result.get("processed"))
         sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
     except Exception as exc:
         save_thesportsdb_error(exc)
@@ -5038,8 +5091,8 @@ def sync_sportsdb_results(limit=220):
         return empty_sync("sportsdb", "results", str(exc)[:200])
 
 
-def sync_sportsdb_calendar(limit=160):
-    result = sync_sportsdb_feed(limit=limit)
+def sync_sportsdb_calendar(limit=160, budget=None):
+    result = sync_sportsdb_feed(limit=limit, **({"budget": budget} if budget is not None else {}))
     result.setdefault("source", "sportsdb")
     result["sync_type"] = "calendar"
     result["inserted"] = result.get("inserted", result.get("imported", 0))

@@ -99,12 +99,24 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw_job = raw.get("job_execution") if isinstance(raw.get("job_execution"), dict) else {}
     raw_deep = raw.get("deep_execution") if isinstance(raw.get("deep_execution"), dict) else {}
     raw_access = raw.get("provider_access") if isinstance(raw.get("provider_access"), dict) else {}
+    raw_fallback = raw.get("fallback_execution") if isinstance(raw.get("fallback_execution"), dict) else {}
+    raw_budget = raw_fallback.get("budget") if isinstance(raw_fallback.get("budget"), dict) else {}
     raw_plan = raw.get("provider_plan_observation") if isinstance(raw.get("provider_plan_observation"), dict) else {}
     raw_quota_observation = raw.get("quota_observation") if isinstance(raw.get("quota_observation"), dict) else {}
     raw_quota_values = raw_quota_observation.get("values") if isinstance(raw_quota_observation.get("values"), dict) else {}
     raw_coverage = raw.get("coverage") if isinstance(raw.get("coverage"), dict) else {}
     raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
     raw_freshness = raw.get("data_freshness") if isinstance(raw.get("data_freshness"), dict) else {}
+    # Source identity, not the legacy authenticated flag, determines whether
+    # this tick actually observed access. Historical data remains historical.
+    access_is_current = raw_access.get("source") == "CURRENT_DEEP_RUN"
+    current_access_state = safe_label(raw_access.get("state"), secret, "NOT_CHECKED") if access_is_current else "NOT_CHECKED"
+    deep_state = (
+        "NO_ELIGIBLE_FIXTURE"
+        if (raw_deep.get("status") or raw.get("deep_status")) == "SKIPPED_NO_API_FOOTBALL_FIXTURE"
+        else safe_label(raw_deep.get("state"), secret)
+    )
+
     fixture_ids = [
         safe_label(value, secret, "")
         for value in list(raw_sample.get("fixture_ids") or [])[:1]
@@ -155,13 +167,28 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "scope": safe_label(raw_job.get("scope"), secret, "CURRENT_SPORTS_SYNC"),
         },
         "deep_execution": {
-            "state": safe_label(raw_deep.get("state"), secret),
+            "state": deep_state,
             "status": safe_label(raw_deep.get("status"), secret),
             "external_calls": safe_count(raw_deep.get("external_calls")),
             "scope": safe_label(raw_deep.get("scope"), secret, "CURRENT_SPORTS_SYNC"),
         },
+        "fallback_execution": {
+            "status": safe_label(raw_fallback.get("status"), secret, "NOT_REPORTED"),
+            "external_calls": safe_count(raw_fallback.get("external_calls")) if raw_fallback.get("external_calls") is not None else None,
+            "scope": "CURRENT_SPORTSDB_FALLBACK",
+            "budget": {
+                "scope": "SPORTSDB_FALLBACK_ONLY",
+                "elapsed_ms": safe_count(raw_budget.get("elapsed_ms")) if raw_budget.get("elapsed_ms") is not None else None,
+                "requests_started": safe_count(raw_budget.get("requests_started")) if raw_budget.get("requests_started") is not None else None,
+                "responses_completed": safe_count(raw_budget.get("responses_completed")) if raw_budget.get("responses_completed") is not None else None,
+                "budget_exhausted": raw_budget.get("budget_exhausted") if isinstance(raw_budget.get("budget_exhausted"), bool) else None,
+                "hard_deadline_guaranteed": False,
+            },
+        },
         "provider_access": {
             "provider": safe_label(raw_access.get("provider"), secret, "API-Football"),
+            "is_current_observation": access_is_current,
+            "current_state": current_access_state,
             "state": safe_label(raw_access.get("state"), secret, "NOT_CHECKED"),
             "configured": raw_access.get("configured") if isinstance(raw_access.get("configured"), bool) else None,
             "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
