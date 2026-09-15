@@ -6,12 +6,13 @@ or decide lifecycle independently. MATCH-STATUS-TRUTH-V2 remains the authority.
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from math import isfinite
 import re
 from typing import Any, Iterable
 
 from engines.v935_launch_trust_engine import (
+    LIVE_STALE_SECONDS,
     get_match_source,
     madrid_now,
     match_kickoff_madrid,
@@ -265,6 +266,14 @@ def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None
         "status_canonical": _text(truth.get("lifecycle"), 40) or "INCOMPLETE",
         "status_raw_canonical": _text(truth.get("raw_lifecycle"), 40) or "INCOMPLETE",
         "is_live": is_live,
+        # Sports Truth truncates age to integral seconds and rejects age > TTL.
+        # Export its deadline; browsers may withdraw LIVE but never infer a new
+        # lifecycle, minute or result. Absolute UTC arithmetic also handles DST.
+        "live_valid_until_madrid": (
+            (observed_dt.astimezone(timezone.utc) + timedelta(seconds=LIVE_STALE_SECONDS + 1))
+            .astimezone(evaluated_at.tzinfo).isoformat()
+            if is_live and observed_dt is not None else ""
+        ),
         "is_finished": bool(truth.get("is_finished")),
         "is_stale": bool(truth.get("is_stale")),
         "score_home": home_score,

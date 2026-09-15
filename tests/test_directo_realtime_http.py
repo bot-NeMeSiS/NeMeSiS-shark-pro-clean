@@ -197,3 +197,63 @@ def test_browser_reads_the_actual_flask_live_response(live_store, tmp_path, widt
             assert external == []
         finally:
             browser.close()
+
+
+@pytest.mark.parametrize('width,height', [(1366,768), (390,844), (430,932)])
+def test_open_actual_live_route_updates_without_reload(live_store, width, height):
+    """Real Flask-rendered page + actual JS, with local HTTP intercepted in CI.
+
+    The browser clock advances; only SIMULATED_QA observations are changed.
+    No provider, cron, commercial send or real database is contacted.
+    """
+    from playwright.sync_api import sync_playwright, expect
+    import mimetypes
+    client, put, now, attempts = live_store
+    root = Path(__file__).resolve().parents[1]
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        page = browser.new_page(viewport={'width':width,'height':height})
+        page.clock.install(time=now)
+        seen = []; errors = []; external = []
+        page.on('pageerror', lambda e: errors.append(str(e)))
+        def intercept(route):
+            request = route.request; parsed = urlsplit(request.url)
+            if parsed.netloc != 'directo-inplace-qa.invalid':
+                external.append(request.url); route.abort(); return
+            if parsed.path.startswith('/static/'):
+                asset = (root/parsed.path.lstrip('/')).resolve()
+                if not asset.is_relative_to(root/'static') or not asset.is_file():
+                    route.fulfill(status=404,body='');return
+                route.fulfill(content_type=mimetypes.guess_type(str(asset))[0] or 'application/octet-stream', body=asset.read_bytes());return
+            if parsed.path in {'/live','/api/realtime/sports'} and request.method=='GET':
+                seen.append(parsed.path)
+                response=client.get(parsed.path+('?' + parsed.query if parsed.query else ''))
+                route.fulfill(status=response.status_code, content_type=response.content_type, body=response.data)
+                return
+            # All other actions/URLs are outside the fixture, never dispatched.
+            route.fulfill(status=404,content_type='application/json',body='{}')
+        page.route('**/*',intercept)
+        try:
+            page.goto('http://directo-inplace-qa.invalid/live?f=live&q=Local',wait_until='networkidle')
+            card=page.locator('[data-realtime-consumer="directo-v1"]')
+            expect(card).to_have_count(1)
+            link=card.locator('a[href="/match/directo-http-qa"]');link.focus()
+            page.evaluate('window.originalCard=document.querySelector("[data-realtime-consumer]")')
+            put(home_score=2, minute=70, last_synced_at=(now+timedelta(seconds=15)).isoformat())
+            page.clock.run_for(45000)
+            expect(card.locator('[data-v934-score]')).to_have_text('2 - 0')
+            expect(card.locator('[data-v934-minute]')).to_have_text('Min 70')
+            assert link.evaluate('(node)=>node===document.activeElement')
+            assert page.evaluate('originalCard===document.querySelector("[data-realtime-consumer]")')
+            assert page.url.endswith('/live?f=live&q=Local')
+            put(status='FT', home_score=2, minute=90, last_synced_at=(now+timedelta(seconds=60)).isoformat())
+            page.clock.run_for(45000)
+            expect(card.locator('[data-canonical-live]')).to_have_attribute('data-canonical-live','false')
+            expect(card.locator('[data-v934-status]')).to_contain_text('Finalizado')
+            expect(card.locator('[data-v934-minute]')).to_be_hidden()
+            assert seen.count('/live')==1
+            assert seen.count('/api/realtime/sports')==2
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+            assert errors==[] and external==[] and attempts==[]
+        finally:
+            browser.close()

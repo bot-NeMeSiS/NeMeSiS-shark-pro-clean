@@ -28,6 +28,7 @@
     'v935_freshness': {'label': freshness, 'status': state.get('freshness_state'), 'is_stale': stale, 'age_seconds': state.get('freshness_seconds')}
   }) %}
   <div class="v933-live-card" data-realtime-consumer="directo-v1"
+       data-realtime-state="{{ state|tojson|forceescape }}"
        data-realtime-contract="{{ state.get('contract') }}"
        data-realtime-fixture-id="{{ state.get('fixture_id') or '' }}"
        data-realtime-evaluated-at="{{ state.get('evaluated_at_madrid') or '' }}"
@@ -36,6 +37,7 @@
     <small class="v934-realtime-meta" data-realtime-freshness="{{ state.get('freshness_state') or 'NOT_ESTABLISHED' }}">
       {{ freshness }}{% if state.get('provider_observed_at') %} · <time datetime="{{ state.get('provider_observed_at') }}">{{ state.get('provider_observed_at')|sync_madrid_label }}</time>{% endif %}
     </small>
+    <small class="v934-realtime-meta" data-directo-card-notice hidden></small>
   </div>
 {% else %}
   {# Lanes not projected by the existing route keep their established path. #}
