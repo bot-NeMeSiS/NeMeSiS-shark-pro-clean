@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from engines.madrid_time_engine import format_madrid_sync_label
 from engines.v935_launch_trust_engine import match_status_truth
+from engines.realtime_state_engine import build_realtime_match_state
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -166,19 +167,19 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
     source = _text(item.get("source"), 80)
     if not all((match_id, home, away, competition, match_date, kickoff, source)):
         return None
-    status = _status_from_truth(item, now)
-    updated_at = _text(
-        item.get("live_updated_at")
-        or item.get("provider_updated_at")
-        or item.get("last_synced_at"),
-        80,
-    )
-    age = status["truth"].get("live_age_seconds")
-    if age is None:
-        age = _age_seconds(updated_at, now)
-    minute = _minute(item.get("minute") or item.get("elapsed") or item.get("live_minute")) if status["is_live"] else None
-    home_score = _number(item.get("home_score"))
-    away_score = _number(item.get("away_score"))
+    # One evaluation for the existing snapshot and its additive UI projection.
+    # Sports Truth still owns lifecycle; this is not another classifier.
+    evaluated_at = _now(now)
+    state = build_realtime_match_state(item, now=evaluated_at)
+    status = _status_from_truth(item, evaluated_at)
+    # Invalid priority timestamps do not fall back to a newer generic clock.
+    updated_at = state["provider_observed_at"]
+    age = state["freshness_seconds"]
+    raw_minute = state["minute"]
+    # Keep numeric legacy minutes while retaining observed added time (90+4).
+    minute = int(raw_minute) if raw_minute is not None and raw_minute.isdigit() else raw_minute
+    home_score = state["score_home"]
+    away_score = state["score_away"]
     score_available = home_score is not None and away_score is not None and (
         status["is_live"] or status["was_live_signal"] or status["is_finished"]
     )
@@ -203,6 +204,7 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
         "age_seconds": age,
         "is_stale": stale,
         "status_truth": status["truth"],
+        "realtime_state": state,
         "detail_url": f"/match/{match_id}",
     }
 
@@ -240,14 +242,15 @@ def normalize_pick(item: dict[str, Any], now: datetime | None = None) -> dict[st
 
 def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     summary = summary if isinstance(summary, dict) else {}
+    evaluated_at = _now(now)
     seen: set[str] = set()
     normalized_matches: list[dict[str, Any]] = []
     for raw in list(summary.get("valid_matches_today") or []) + list(summary.get("valid_upcoming_matches") or []):
-        match = normalize_match(raw, now)
+        match = normalize_match(raw, evaluated_at)
         if match and match["id"] not in seen:
             seen.add(match["id"])
             normalized_matches.append(match)
-    picks = [pick for pick in (normalize_pick(item, now) for item in summary.get("valid_active_picks") or []) if pick]
+    picks = [pick for pick in (normalize_pick(item, evaluated_at) for item in summary.get("valid_active_picks") or []) if pick]
     stale_live = [item for item in normalized_matches if item["was_live_signal"] and item["is_stale"]]
     live = [item for item in normalized_matches if item["is_live"]]
     # Stale live evidence remains available to protected diagnostics only. It must
@@ -265,7 +268,7 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
     )
     last_safe_sync = _text(summary.get("last_sync"), 80)
     return {
-        "generated_at_madrid": _iso(now),
+        "generated_at_madrid": _iso(evaluated_at),
         "matches": matches,
         "live": live,
         "stale_live": stale_live,
