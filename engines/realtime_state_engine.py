@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
+import re
 from typing import Any, Iterable
 
 from engines.v935_launch_trust_engine import (
@@ -51,11 +52,13 @@ def _parse_iso(value: Any) -> datetime | None:
 
 
 def _provider_clock(item: dict[str, Any]) -> tuple[str, str, datetime | None]:
+    # Match Sports Truth precedence, including an invalid first-present clock.
+    # Skipping an invalid priority clock would invent fallback provenance.
     for field in _PROVIDER_CLOCK_FIELDS:
         value = item.get(field)
-        parsed = _parse_iso(value)
-        if parsed is not None:
-            return field, _text(value, 100), parsed
+        if value not in (None, "", "None", "null", "undefined"):
+            parsed = _parse_iso(value)
+            return field, _text(value, 100) if parsed is not None else "", parsed
     return "", "", None
 
 
@@ -90,12 +93,14 @@ def _minute(item: dict[str, Any], *, is_live: bool) -> str | None:
     if not is_live:
         return None
     for field in ("minute", "elapsed", "live_minute", "strProgress"):
-        value = _text(item.get(field), 24)
-        if not value:
-            continue
-        normalized = value.replace("'", "").strip()
-        if normalized.isdigit():
-            return str(int(normalized))
+        value = item.get(field)
+        normalized = str(value).strip().strip("'’") if value is not None else ""
+        if re.fullmatch(r"[0-9]{1,3}", normalized) and int(normalized) <= 130:
+            extra = item.get("extra") or item.get("stoppage_time")
+            suffix = str(extra).strip() if extra is not None else ""
+            return f"{int(normalized)}+{suffix}" if re.fullmatch(r"[0-9]{1,2}", suffix) else str(int(normalized))
+        if re.fullmatch(r"[0-9]{1,3}\+[0-9]{1,2}", normalized) and int(normalized.split("+", 1)[0]) <= 130:
+            return normalized
     return None
 
 
@@ -112,38 +117,98 @@ def _identity(item: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def _coverage_result(state: str = "NOT_ESTABLISHED", available: bool | None = None,
+                     observed: bool = False, count: int | None = None) -> dict[str, Any]:
+    return dict(state=state, available=available, observed=observed, count=count)
+
+
+def _coverage_descriptor(value: dict[str, Any]) -> dict[str, Any]:
+    """Project declared capability metadata, never the number of its keys.
+
+    Availability is not a claim about completeness/freshness. Conflicting or
+    malformed declarations fail to unknown; operational states stay explicit.
+    """
+    status = _text(value.get("state") or value.get("status"), 40).upper()
+    available, observed, count = value.get("available"), value.get("observed"), value.get("count")
+    if status == "NOT_REQUESTED":
+        return _coverage_result("NOT_REQUESTED")
+    if observed is False or (observed is not None and type(observed) is not bool):
+        return _coverage_result()
+    if available is not None and type(available) is not bool:
+        return _coverage_result()
+    if count is not None and (type(count) is not int or count < 0):
+        return _coverage_result()
+    if status in {"NOT_ESTABLISHED", "UNKNOWN"}:
+        return _coverage_result()
+    if status in {"UNAVAILABLE", "ACCESS_FAILED", "UNSUPPORTED"}:
+        return _coverage_result() if available is True else _coverage_result(status, False, True)
+    if status in {"PARTIAL", "STALE"}:
+        return _coverage_result(status, available, True, count)
+    if status == "EMPTY_OBSERVED":
+        if available is True or count not in (None, 0):
+            return _coverage_result()
+        return _coverage_result(status, False, True, 0)
+    rows = value.get("data", value.get("response"))
+    if isinstance(rows, (list, tuple, set)):
+        if count is not None and count != len(rows):
+            return _coverage_result()
+        count = len(rows)
+    if status == "AVAILABLE":
+        if available is not True or count == 0:
+            return _coverage_result()
+        return _coverage_result(status, True, True, count)
+    if status:
+        return _coverage_result()
+    if available is False:
+        return _coverage_result("UNAVAILABLE", False, True)
+    if available is True and count != 0:
+        return _coverage_result("AVAILABLE", True, True, count)
+    return _coverage_result()
+
+
 def _capability_state(item: dict[str, Any], name: str) -> dict[str, Any]:
-    explicit_key = f"{name}_available"
-    if explicit_key in item:
-        available = item.get(explicit_key)
-        if available is True:
-            return {"state": "AVAILABLE", "available": True, "observed": True, "count": None}
-        if available is False:
-            return {"state": "UNAVAILABLE", "available": False, "observed": True, "count": None}
-
-    nested = item.get("coverage")
-    if isinstance(nested, dict) and name in nested:
-        value = nested.get(name)
-        if isinstance(value, dict):
-            state = _text(value.get("state") or value.get("status"), 40).upper() or "NOT_ESTABLISHED"
-            return {
-                "state": state,
-                "available": value.get("available") if isinstance(value.get("available"), bool) else None,
-                "observed": True,
-                "count": value.get("count") if isinstance(value.get("count"), int) else None,
-            }
-        if isinstance(value, bool):
-            return {"state": "AVAILABLE" if value else "UNAVAILABLE", "available": value, "observed": True, "count": None}
-
     payload = item.get(name)
-    if isinstance(payload, (list, tuple, set)):
-        count = len(payload)
-        return {"state": "AVAILABLE" if count else "EMPTY_OBSERVED", "available": bool(count), "observed": True, "count": count}
-    if isinstance(payload, dict):
-        count = len(payload)
-        return {"state": "AVAILABLE" if count else "EMPTY_OBSERVED", "available": bool(count), "observed": True, "count": count}
-
-    return {"state": "NOT_ESTABLISHED", "available": None, "observed": False, "count": None}
+    nested = item.get("coverage")
+    explicit = item.get(f"{name}_available")
+    descriptor_keys = {"state", "status", "available", "observed", "count", "error", "errors"}
+    # Explicit coverage/operational metadata wins over payload shape. A global
+    # positive flag may not turn NOT_REQUESTED into an observed lineup.
+    if isinstance(nested, dict) and name in nested:
+        value = nested[name]
+        if isinstance(value, dict):
+            result = _coverage_descriptor(value)
+        elif type(value) is bool:
+            result = _coverage_result("AVAILABLE" if value else "UNAVAILABLE", value, True)
+        else:
+            result = _coverage_result()
+    elif isinstance(payload, dict) and descriptor_keys.intersection(payload):
+        result = _coverage_descriptor(payload)
+    elif type(explicit) is bool:
+        result = _coverage_result("AVAILABLE" if explicit else "UNAVAILABLE", explicit, True)
+    else:
+        # Only explicit row sequences/wrappers prove observed content. An
+        # arbitrary metadata dict is not a lineup and is not counted as rows.
+        rows = payload
+        if isinstance(payload, dict):
+            rows = payload.get("data", payload.get("response"))
+        if isinstance(rows, (list, tuple, set)):
+            count = len(rows)
+            result = _coverage_result("AVAILABLE" if count else "EMPTY_OBSERVED", bool(count), True, count)
+        else:
+            result = _coverage_result()
+    if result["available"] is True:
+        if explicit is False:
+            return _coverage_result()
+        if isinstance(nested, dict) and name in nested and isinstance(payload, dict) and descriptor_keys.intersection(payload):
+            # Positive metadata cannot override an explicit unavailable payload.
+            if _coverage_descriptor(payload)["available"] is not True:
+                return _coverage_result()
+        rows = payload.get("data", payload.get("response")) if isinstance(payload, dict) else payload
+        if isinstance(rows, (list, tuple, set)):
+            if not rows or (result["count"] is not None and result["count"] != len(rows)):
+                return _coverage_result()
+            result["count"] = len(rows)
+    return result
 
 
 def _confidence_state(truth: dict[str, Any], provider: str, observed_at: str) -> str:
@@ -152,7 +217,7 @@ def _confidence_state(truth: dict[str, Any], provider: str, observed_at: str) ->
     if truth.get("is_stale"):
         return "DEGRADED"
     if truth.get("is_live"):
-        return "CURRENT" if observed_at else "NOT_ESTABLISHED"
+        return "CURRENT" if provider and observed_at else "NOT_ESTABLISHED"
     if provider and observed_at:
         return "OBSERVED"
     return "NOT_ESTABLISHED"
@@ -166,10 +231,10 @@ def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None
     and presentation-safe values.
     """
     source = dict(item or {})
-    truth = match_status_truth(source, now=now)
+    evaluated_at = madrid_now(now)
+    truth = match_status_truth(source, now=evaluated_at)
     provider = get_match_source(source)
     clock_field, observed_at, observed_dt = _provider_clock(source)
-    evaluated_at = madrid_now(now)
     observed_age_seconds = None
     if observed_dt is not None:
         observed_age_seconds = max(0, int((evaluated_at - observed_dt).total_seconds()))
@@ -218,10 +283,11 @@ def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None
 
 
 def build_realtime_state_snapshot(items: Iterable[dict[str, Any]], now: datetime | None = None) -> dict[str, Any]:
-    states = [build_realtime_match_state(item, now=now) for item in (items or [])]
+    evaluated_at = madrid_now(now)
+    states = [build_realtime_match_state(item, now=evaluated_at) for item in (items or [])]
     return {
         "contract": REALTIME_STATE_CONTRACT,
-        "evaluated_at_madrid": madrid_now(now).isoformat(),
+        "evaluated_at_madrid": evaluated_at.isoformat(),
         "counts": {
             "total": len(states),
             "live": sum(1 for state in states if state["is_live"]),
