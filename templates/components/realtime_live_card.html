@@ -1,0 +1,44 @@
+{# Directo's consumer of the server snapshot. Shared layout/actions stay intact.
+   No lifecycle is inferred here, and no provider access or polling is added. #}
+{% from "components/v933_ui.html" import match_card, live_card as legacy_live_card %}
+{% macro live_card(match) -%}
+{% set match = match or {} %}
+{% set state = match.get('realtime_state') or {} %}
+{% if state.get('contract') == 'NEMESIS-REALTIME-STATE-V1' and state.get('sports_truth_contract') == 'MATCH-STATUS-TRUTH-V2' %}
+  {% set item = dict(match) %}
+  {% set live = state.get('is_live') is sameas true %}
+  {% set stale = state.get('is_stale') is sameas true %}
+  {% set conflict = state.get('status_conflict') is sameas true %}
+  {% set lifecycle = state.get('status_canonical') or 'INCOMPLETE' %}
+  {% set label = match.get('status_label') or 'Estado pendiente' %}
+  {% set minute = state.get('minute') if live else none %}
+  {% set home_score = match.get('home_score') %}{% set away_score = match.get('away_score') %}
+  {% set score_label = (home_score|string ~ ' - ' ~ away_score|string) if home_score is not none and away_score is not none else ('VS' if lifecycle == 'UPCOMING' else 'Resultado pendiente') %}
+  {% set freshness = 'Datos retrasados' if stale else ('Señales en conflicto' if conflict else ('Observación registrada' if state.get('provider_observed_at') else 'Frescura no establecida')) %}
+  {# Replace the display aliases together. Preserve IDs, crests, permissions,
+     competition identity, scheduling labels and all the existing actions. #}
+  {% set _ = item.update({
+    'client_status_label': label,
+    'calendar_status': label,
+    'client_live_minute': minute,
+    'is_live': live,
+    'is_stale': stale,
+    'v935_lifecycle': lifecycle,
+    'status_info': {'key': lifecycle, 'is_live': live, 'is_finished': state.get('is_finished') is sameas true},
+    'v935_freshness': {'label': freshness, 'status': state.get('freshness_state'), 'is_stale': stale, 'age_seconds': state.get('freshness_seconds')}
+  }) %}
+  <div class="v933-live-card" data-realtime-consumer="directo-v1"
+       data-realtime-contract="{{ state.get('contract') }}"
+       data-realtime-fixture-id="{{ state.get('fixture_id') or '' }}"
+       data-realtime-evaluated-at="{{ state.get('evaluated_at_madrid') or '' }}"
+       data-realtime-observed-at="{{ state.get('provider_observed_at') or '' }}">
+    {{ match_card(item, true, true, score_label) }}
+    <small class="v934-realtime-meta" data-realtime-freshness="{{ state.get('freshness_state') or 'NOT_ESTABLISHED' }}">
+      {{ freshness }}{% if state.get('provider_observed_at') %} · <time datetime="{{ state.get('provider_observed_at') }}">{{ state.get('provider_observed_at')|sync_madrid_label }}</time>{% endif %}
+    </small>
+  </div>
+{% else %}
+  {# Lanes not projected by the existing route keep their established path. #}
+  {{ legacy_live_card(match) }}
+{% endif %}
+{%- endmacro %}

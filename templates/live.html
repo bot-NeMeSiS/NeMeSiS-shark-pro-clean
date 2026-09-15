@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, live_card, match_card, filter_tabs, empty_state, sports_contract_attributes %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, sports_contract_attributes %}
+{% from "components/realtime_live_card.html" import live_card %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
