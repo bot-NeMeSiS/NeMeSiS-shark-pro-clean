@@ -22,7 +22,7 @@
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Calendario', 'Tu agenda deportiva.', 'calendar', [{'label':'Ir a directo','href':'/live'},{'label':'Con pick','href':'/calendar?lane=with_pick','primary':true,'icon':'target'}]) }}
+  {{ page_header('Calendario', 'Tu agenda deportiva.', 'calendar') }}
 
 
 
@@ -60,13 +60,18 @@
         {% if date_navigation %}
         <a class="v933-icon-button v933-calendar-previous" href="{{ date_navigation.previous }}" aria-label="{{ ui("Día anterior") }}" title="{{ ui("Día anterior") }}">{{ icon('arrow') }}</a>
         {{ filter_tabs(date_navigation.shortcuts, filters.get('date')) }}
+        <details class="v933-calendar-date-picker">
+        <summary class="v933-icon-button" title="{{ ui('Fecha del calendario') }}">{{ icon('calendar') }}<span class="sr-only">{{ ui('Fecha del calendario') }}</span></summary>
         <form method="get" action="/calendar" class="v933-calendar-date-form">
+          <a class="v933-icon-button v933-calendar-panel-arrow v933-calendar-previous" href="{{ date_navigation.previous }}" aria-label="{{ ui('Día anterior') }}">{{ icon('arrow') }}</a>
           <input type="hidden" name="lane" value="today">
           {% for key in ['q','league','country','team','status','sort','with_pick'] %}{% if filters.get(key) %}<input type="hidden" name="{{ key }}" value="{{ filters.get(key) }}">{% endif %}{% endfor %}
           <label class="sr-only" for="calendar-date">{{ ui("Fecha del calendario") }}</label>
           <input id="calendar-date" type="date" name="date" value="{{ date_navigation.selected }}" required>
-          <button class="v933-icon-button" type="submit" aria-label="{{ ui("Ver fecha") }}" title="{{ ui("Ver fecha") }}">{{ icon('calendar') }}</button>
+          <button class="v933-icon-button" type="submit" aria-label="{{ ui("Ver fecha") }}" title="{{ ui("Ver fecha") }}">{{ icon('arrow') }}</button>
+          <a class="v933-icon-button v933-calendar-panel-arrow" href="{{ date_navigation.next }}" aria-label="{{ ui('Día siguiente') }}">{{ icon('arrow') }}</a>
         </form>
+        </details>
         <a class="v933-icon-button" href="{{ date_navigation.next }}" aria-label="{{ ui("Día siguiente") }}" title="{{ ui("Día siguiente") }}">{{ icon('arrow') }}</a>
         {% else %}{{ filter_tabs(calendar.get('date_chips') or [], filters.get('date')) }}{% endif %}
       </div>
@@ -177,7 +182,7 @@
                data-v940-calendar-section="day"
                data-v940-context-label="{{ day.get('context_label') }}">
         {% set day_count = day.get('matches_count') or day.get('total') or 0 %}
-        {{ section_header(ui_calendar_date(day.get('date')), ui('{count} partido confirmado' if day_count == 1 else '{count} partidos confirmados', count=day_count)) }}
+        {{ section_header(ui_calendar_date(day.get('date'), detail=true), '') }}
         {% if (day.get('league_navigation') or [])|length > 1 %}
         <nav class="v940-calendar-league-index" aria-label="{{ ui('Competiciones de {date}', date=ui_calendar_date(day.get('date'))) }}">
           {% for item in day.get('league_navigation') or [] %}
@@ -202,7 +207,15 @@
         {% endfor %}
       </section>
       {% else %}
-        {{ empty_state('Sin partidos reales para estas capas', 'Conservamos tu contexto. Retira una capa o revisa la semana; no se muestran encuentros de ejemplo.', 'Limpiar capas', calendar.get('reset_href') or '/calendar?lane=week', 'calendar') }}
+        {% if safe.get('provider_status') == 'temporarily_unavailable' %}
+        <div data-calendar-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', request.full_path, 'calendar') }}</div>
+        {% elif active_filters %}
+        <div data-calendar-empty="FILTER_EMPTY">{{ empty_state('No hay partidos que coincidan', 'Prueba otra fecha o ajusta los filtros.', 'Limpiar capas', calendar.get('reset_href') or '/calendar', 'calendar') }}</div>
+        {% elif safe.get('has_real_data') %}
+        <div data-calendar-empty="REAL_EMPTY">{{ empty_state('No hay partidos para esta fecha', 'Consulta otra fecha de la agenda disponible.', 'Semana completa', '/calendar?lane=week', 'calendar') }}</div>
+        {% else %}
+        <div data-calendar-empty="DATA_NOT_AVAILABLE">{{ empty_state('Agenda pendiente de actualización', 'Todavía no hay encuentros completos disponibles.', 'Reintentar', request.full_path, 'calendar') }}</div>
+        {% endif %}
       {% endfor %}
     </main>
 

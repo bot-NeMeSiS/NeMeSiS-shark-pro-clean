@@ -136,5 +136,6 @@ def test_team_calendar_action_targets_canonical_hub_without_removing_legacy_rout
 
 def test_single_home_match_footer_and_mobile_calendar_preserve_label_width():
     css = (ROOT/'static/v933-product.css').read_text(encoding='utf-8')
-    assert '.ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-card-footer { display: grid; grid-template-columns: minmax(0,1fr);' in css
+    assert '.ns16-home-sports .ns16-match-row > .v933-match-card:only-child { width: min(100%,560px);' in css
+    assert '.ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-card-footer { display: grid; grid-template-columns: minmax(0,1fr) auto;' in css
     assert '.v933-calendar-board .v933-kpi { grid-template-columns: minmax(0,1fr); }' in css

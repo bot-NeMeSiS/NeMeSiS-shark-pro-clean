@@ -35,6 +35,10 @@ def translate(source, language='es', **values):
     language = valid_language(language) or 'es'
     translated = source if language == 'es' else catalogue().get(source, {}).get(language)
     if translated is None:
+        live = re.fullmatch(r"En directo( · [0-9]{1,3}(?:\+[0-9]{1,2})?['’]?)", source)
+        if live:
+            translated = translate('En directo', language) + live[1]
+    if translated is None:
         # Never log a dynamic value: it could be a name, message or other PII.
         LOG.debug('UI translation fallback: locale=%s', language)
         translated = source

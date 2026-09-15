@@ -1,6 +1,51 @@
 # NeMeSiS - Master Control
 
-## Vigente: CX-DESIGN-02 R5 (2026-09-13)
+## Vigente: CX-DESIGN-02 R8 (2026-09-13)
+
+PARTIAL / LOCAL_ONLY. R8-ENTREGA-VISIBLE-20260913-01 ejecutado en alcance
+explicito de mensajes; adjunto completo R8 no disponible, no certificado.
+HEAD c1aa685d + R6/R7 conservados; union 19 rutas, staged 0, sin commit.
+Home desktop: accesos reutilizados bajo previews, altura 1050 -> 973 px.
+Movil conservado (1355 -> 1362 px); Calendar MINOR preservado.
+LIVE visible sin IDs duplicados; etiqueta compuesta EN/FR corregida en capa
+canonica, minuto intacto. Home -> Calendar -> match -> retorno PASS_LOCAL.
+Tap: 12 controles R7 + 36 R8 pasan; causa original NOT_DEMONSTRATED, no falsa reparacion.
+81 observaciones / 60 pares / 90 registros R8; 58 protegidos / 14 crests PASS.
+1152 = 1109 PASS + mismos 43 por ID y causa NOT_CERTIFIED; 0 nuevos fallos/errors.
+28 IDs / 21 unidades intactos: 0 MATCH / 7 MINOR / 14 REWORK; no cierre global.
+Main c4a81003 limpio; 26/26 copias y 53/53 protegidos. Sin consulta Render/remota.
+Icono/tiburon/fondo intactos; dependencia artistica y gaps globales pendientes.
+SE-01 PASS_LOCAL_SCOPE; 12 historicos NOT_CERTIFIED; DAY 3/4/5 preservados.
+Sin commit/push/PR/merge/deploy/instalador/limpieza/RESULTS-01; SAFE_TO_PUBLISH NO.
+[Entrega visible R8, comparaciones, cambios y limites](../reports/CX_DESIGN_02_R8_20260913.md).
+Se detiene esta ejecucion. CX-DESIGN-02 sigue IN_PROGRESS; no siguiente sprint iniciado.
+
+## Historico: CX-DESIGN-02 R7 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Home estructural, Calendar solo regresion.
+HEAD c1aa685d + diff R6 preservado; union local 15 rutas, staged 0, sin commit.
+Main c4a81003 limpio. No nueva consulta remota ni certificacion productiva.
+Home: previews nativas horizontales en movil, pick legible, contexto accesible;
+referencia/R6/R7 comparados fisicamente. REWORK sigue por balance vertical,
+dependencia artistica y gaps de estado/localizacion documentados, no por conteo.
+28 IDs / 21 unidades intactos: 0 MATCH / 7 MINOR / 14 REWORK.
+1122 = 1079 PASS + mismos 43 bloqueos por ID y causa, NOT_CERTIFIED.
+84 observaciones, 48 pares equivalentes, 213 comprobaciones R7 y 58 protegidas;
+14 casos crest PASS, imagen rota/simultanea 0. Todo SIMULATED_QA / LOCAL_ONLY.
+26 copias y 53 archivos main protegidos intactos; App Icon/tiburon/fondo sin editar.
+Publicacion, RESULTS-01 y limpieza detenidos. No commit/push/PR/merge/deploy.
+[Cierre unico R7, comparaciones y limites](../reports/CX_DESIGN_02_R7_20260913.md).
+
+## Historico: CX-DESIGN-02 R6 (2026-09-13)
+
+PARTIAL / IN_PROGRESS / LOCAL_ONLY. Home/Calendario; no nuevo macrotrabajo.
+HEAD c1aa685d conservado; R6 local sin commit. Main c4a81003 limpio.
+Conjunto fijo de 21 unidades: 0 MATCH / 7 MINOR / 14 REWORK; solo Calendario asciende.
+1101 = 1058 PASS + mismos 43 bloqueos por ID y causa, NOT_CERTIFIED.
+Publicacion, RESULTS-01 y limpieza detenidos; no push, PR, merge ni deploy.
+[Unico cierre R6, alcance, evidencia y limites](../reports/CX_DESIGN_02_R6_20260913.md).
+
+## Historico: CX-DESIGN-02 R5 (2026-09-13)
 
 PARTIAL / IN_PROGRESS / LOCAL_ONLY. SAFE_TO_PUBLISH = NO.
 Main c4a81003 protegido. Continuacion sobre b6881ad0, solo commits locales.

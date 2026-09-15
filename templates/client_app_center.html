@@ -9,10 +9,13 @@
 {% set important_matches = sports_home.get('important_today') or hub.get('today') or [] %}
 {% set favorite_matches = sports_home.get('favorites') or hub.get('favorites') or [] %}
 {% set upcoming_matches = sports_home.get('upcoming') or hub.get('upcoming') or [] %}
-{% set featured_matches = important_matches or upcoming_matches %}
+{% set visible_live_ids = live_matches[:3]|map(attribute='id')|list %}
+{% set featured_matches = (important_matches|rejectattr('id', 'in', visible_live_ids)|list) or (upcoming_matches|rejectattr('id', 'in', visible_live_ids)|list) %}
 {% set recent_results = sports_home.get('recent_results') or hub.get('finished') or [] %}
+{% set last_result = (recent_results|rejectattr('id', 'in', featured_matches|map(attribute='id')|list)|rejectattr('id', 'in', visible_live_ids)|list)|first %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set safe = data.get('v925_calendar') or {} %}
 {% set first_match = (live_matches or important_matches or upcoming_matches or matches)|first %}
 
 <div class="v933-page v933-client-dashboard ns16-home" data-v933-template="client_app_center" data-v933-reference="official-ref-08" {{ sports_contract_attributes(sports_metrics) }}>
@@ -45,22 +48,23 @@
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">
     <div class="ns16-home-primary">
       <section class="ns16-section ns16-home-sports" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
-        {{ section_header('Partidos destacados', '', 'Ver todos', '/calendar', 'HOY' if important_matches else 'PRÓXIMOS') }}
-        {% if featured_matches %}<div class="ns16-match-row{% if featured_matches|length == 2 %} is-two{% endif %}">{% for match in featured_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}</div>
+        {% set spotlight = featured_matches[:3] + ([last_result] if last_result and featured_matches|length < 3 else []) %}
+        {{ section_header('Partidos destacados', '', 'Ver todos', '/calendar', '' if last_result else ('HOY' if important_matches else 'PRÓXIMOS')) }}
+        {% if spotlight %}<div class="ns16-match-row{% if spotlight|length == 2 %} is-two{% endif %}" data-home-match-previews role="region" aria-label="{{ ui('Partidos destacados') }}" tabindex="0">{% for match in spotlight %}{{ match_card(match, true, true) }}{% endfor %}</div>
+        {% elif safe.get('provider_status') == 'temporarily_unavailable' %}<div data-home-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', '/app', 'calendar') }}</div>
         {% else %}{{ empty_state('Sin partidos destacados ahora', 'La agenda aparecerá cuando existan encuentros completos.', 'Abrir calendario', '/calendar', 'calendar') }}{% endif %}
       </section>
     </div>
     <section class="ns16-section ns16-featured-pick">
       {{ section_header('Pick destacado', '', 'Ver todos', '/picks') }}
-      {% if picks %}{{ pick_card(picks[0], true) }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
+      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
     </section>
-  </section>
-
-  <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
+    <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
     {{ quick_action('Favoritos', 'Tu selección', '/favorites', 'star') }}
     {{ quick_action('Membresías', 'Planes', '/memberships', 'plan', 'gold') }}
     {{ quick_action('Soporte', 'Ayuda', '/support', 'support') }}
-  </nav>
+    </nav>
+  </section>
 
   <details class="v933-home-more ns16-more">
     <summary>{{ ui("Más de tu jornada") }}</summary>

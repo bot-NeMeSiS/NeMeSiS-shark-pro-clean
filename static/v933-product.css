@@ -614,6 +614,13 @@ body.ns-app .v933-match-card-actions > .fav-star { position: static; transform: 
 .v933-calendar-date-navigation .v933-filter-tabs { margin: 0; }
 .v933-calendar-date-form { display: flex; align-items: center; gap: 6px; max-width: 100%; }
 .v933-calendar-date-form input { min-width: 0; width: 154px; min-height: 44px; color-scheme: dark; }
+.v933-calendar-date-picker { display: contents; }
+.v933-calendar-date-picker > summary { display: flex; align-items: center; justify-content: center; cursor: pointer; list-style: none; }
+.v933-calendar-date-picker > summary::-webkit-details-marker { display: none; }
+.v933-calendar-date-picker:not([open]) > form { display: none; }
+.v933-calendar-date-picker[open] > form { flex-basis: 100%; padding-block: 6px; }
+.v933-calendar-date-picker > summary:focus-visible { outline: 2px solid var(--nsx-cyan); outline-offset: 3px; }
+body.ns-app .v933-calendar-panel-arrow { display: none; }
 .v933-calendar-date-navigation .v933-icon-button { min-width: 44px; min-height: 44px; }
 .v933-calendar-previous .v933-icon { transform: rotate(180deg); }
 .v933-support-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
@@ -5403,10 +5410,14 @@ body.ns-app .ns16-kpi-strip .v933-kpi { min-height: 60px; padding: 8px 10px !imp
 .ns16-kpi-strip .v933-kpi > .v933-icon { width: 29px; height: 29px; }
 body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 .ns16-kpi-strip .v933-kpi small { font-size: .58rem; }
-.ns16-home-command { display: grid; grid-template-columns: minmax(0,1.43fr) minmax(285px,.57fr); gap: 10px; align-items: start; }
+.ns16-home-command { display: grid; grid-template-columns: minmax(0,2fr) minmax(310px,1fr); grid-template-areas: "sports pick" "actions pick"; grid-template-rows: auto 1fr; gap: 16px; align-items: start; }
 .ns16-home-command > * { min-width: 0; }
+.ns16-home-command > .ns16-home-primary { grid-area: sports; }
+.ns16-home-command > .ns16-featured-pick { grid-area: pick; }
+.ns16-home-command > .ns16-home-actions { grid-area: actions; }
 .ns16-home-primary { min-width: 0; display: grid; gap: 9px; align-content: start; }
 .ns16-home-primary > .ns16-home-sports { padding-top: 8px; }
+.ns16-home-sports .v933-match-teams strong,.ns16-home-sports .v933-match-card-header > div:first-child > span { display: block; -webkit-line-clamp: unset; overflow: visible; overflow-wrap: anywhere; }
 .ns16-featured-pick:has(.v933-pick-card) { align-self: stretch; }
 .ns16-featured-pick:has(.v933-empty-state) { align-self: start; }
 body.ns-app .ns16-featured-pick { border: 0 !important; border-top: 1px solid rgba(89,185,255,.12) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 0 0 !important; }
@@ -5420,8 +5431,25 @@ body.ns-app .ns16-featured-pick .v933-empty-state { grid-template-columns: 32px 
 .ns16-journey-steps a > .v933-icon { width: 26px; height: 26px; color: var(--nsx-cyan); }
 .ns16-journey-steps a > span { min-width: 0; display: grid; color: var(--nsx-muted); font-size: .61rem; }
 .ns16-journey-steps a strong { color: #fff; font-size: .72rem; }
-.ns16-featured-pick .v933-pick-card { min-height: 0; box-shadow: none !important; }
-.ns16-featured-pick .v933-pick-card :is(.v937-card-trust,.v935-provenance,.v937-pick-brief) { display: none; }
+.ns16-featured-pick .v933-pick-card { min-height: 0; gap: 8px; box-shadow: none !important; }
+.ns16-featured-pick .v933-pick-card > footer { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.ns16-featured-pick .v933-pick-card :is(.v937-card-trust,.v935-provenance) { display: none; }
+.ns16-featured-pick .v933-pick-card dl { grid-template-columns: minmax(0,1fr); gap: 0; }
+.ns16-featured-pick .v933-pick-card dl > div { display: grid; grid-template-columns: minmax(80px,.7fr) minmax(0,1fr); align-items: baseline; gap: 4px 12px; padding: 6px 0; border: 0; border-bottom: 1px solid var(--v933-border); border-radius: 0; background: transparent; }
+.ns16-featured-pick .v933-pick-card dt { font-size: 12px; text-transform: none; }
+.ns16-featured-pick .v933-pick-card dd { margin: 0; font-size: 14px; text-align: right; overflow-wrap: break-word; }
+.ns16-featured-pick .v933-pick-card [data-v934-odds] { color: var(--nsx-cyan); font-size: 18px; }
+.ns16-featured-pick .v934-odds-freshness { grid-column: 1 / -1; justify-self: end; font-size: 11px; line-height: 1.4; overflow-wrap: normal; }
+.ns16-featured-pick .v933-pick-signals { gap: 12px; }
+.ns16-featured-pick .v933-pick-signals span { padding: 4px 0; border: 0; border-radius: 0; background: transparent; font-size: 11px; }
+.ns16-featured-pick .v933-pick-signals b { font-size: 13px; }
+.v933-pick-summary { min-width: 0; display: grid; gap: 10px; }
+.v933-pick-summary > p { padding-left: 10px; border-left: 2px solid var(--nsx-cyan); font-size: 13px; line-height: 1.5; overflow-wrap: break-word; }
+.v933-pick-summary summary { width: fit-content; cursor: pointer; color: var(--nsx-muted); font-size: 12px; padding-block: 8px; }
+.v933-pick-summary summary:focus-visible,[data-home-match-previews]:focus-visible { outline: 2px solid var(--nsx-cyan); outline-offset: 2px; }
+.v933-pick-summary .v937-pick-brief { grid-template-columns: minmax(0,1fr); gap: 8px; margin-top: 4px; }
+.v933-pick-summary .v937-pick-brief article { padding: 8px 0; border: 0; border-radius: 0; background: transparent; }
+.v933-pick-summary .v937-pick-brief p { font-size: 12px; }
 .ns16-section { min-width: 0; padding: 10px 0 0; border-top: 1px solid rgba(89,185,255,.12); }
 .ns16-section > .v933-section-header { margin-bottom: 8px; }
 .ns16-match-row { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
@@ -5466,7 +5494,7 @@ body.ns-app[data-v928-shell="true"] .v933-page .v940-calendar-command { display:
 body.ns-app .v933-calendar-day { padding: 6px 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
 .v933-calendar-day .v933-league-group { padding: 7px 0 0; border: 0; border-top: 1px solid rgba(93,178,241,.12); background: transparent; }
 .v933-calendar-day .v933-match-grid { grid-template-columns: 1fr !important; gap: 0; }
-.v933-calendar-day .v933-match-card { min-height: 74px !important; display: grid; grid-template-columns: minmax(110px,.24fr) minmax(300px,1fr) minmax(210px,.42fr); grid-template-rows: 1fr; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 0 !important; border-width: 0 0 1px !important; box-shadow: none !important; }
+body.ns-app .v933-calendar-day .v933-match-card { min-height: 74px !important; display: grid; grid-template-columns: minmax(110px,.24fr) minmax(300px,1fr) minmax(210px,.42fr); grid-template-rows: 1fr; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 0 !important; border-width: 0 0 1px !important; box-shadow: none !important; }
 .v933-calendar-day .v933-match-card-header,.v933-calendar-day .v933-match-card-footer { min-width: 0; }
 .v933-calendar-day .v933-match-card-header > div:first-child:not(.v937-card-trust) { display: none; }
 .v933-calendar-day .v933-match-teams { min-height: 0; grid-template-columns: minmax(0,1fr) 68px minmax(0,1fr); }
@@ -5495,10 +5523,12 @@ body.ns-app.ns-authenticated:not(.ns-admin)[data-v928-shell="true"] .v787-legal-
 }
 @media (max-width: 600px) {
   body.ns-app.ns-authenticated:not(.ns-admin)::before { background-position: center, 66% center; opacity: .82; }
-  body.ns-app .v940-calendar-command .v933-calendar-date-navigation { display: grid; grid-template-columns: 40px minmax(0,1fr) 40px; gap: 5px; width: 100%; }
-  .v940-calendar-command .v933-calendar-date-navigation > .v933-filter-tabs { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; }
-  .v940-calendar-command .v933-calendar-date-navigation > a:last-child { grid-column: 3; grid-row: 1; }
-  .v940-calendar-command .v933-calendar-date-form { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: minmax(0,1fr) 44px; width: 100%; }
+  body.ns-app .v940-calendar-command .v933-calendar-date-navigation { display: grid; grid-template-columns: minmax(0,1fr) 44px; gap: 5px; width: 100%; }
+  .v940-calendar-command .v933-calendar-date-navigation > .v933-filter-tabs { grid-column: 1; grid-row: 1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; }
+  body.ns-app .v940-calendar-command .v933-calendar-date-navigation > a { display: none; }
+  .v933-calendar-date-picker > summary { grid-column: 2; grid-row: 1; }
+  .v940-calendar-command .v933-calendar-date-picker[open] > .v933-calendar-date-form { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: 44px minmax(0,1fr) 44px 44px; width: 100%; }
+  body.ns-app .v933-calendar-date-form > .v933-calendar-panel-arrow { display: flex; }
   .v940-calendar-command .v933-calendar-date-form input[type=date] { min-width: 0; width: 100%; }
   .v940-calendar-command .v933-filter-tabs > a { padding-inline: 7px; font-size: 12px; }
   body.ns-app .v940-calendar-command .v933-calendar-date-navigation > .v933-filter-tabs > a { white-space: nowrap; overflow-wrap: normal; font-size: 11px !important; padding-inline: 4px; min-width: 0; }
@@ -5855,17 +5885,17 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   body.ns-app .ns16-home { display: flex !important; flex-direction: column; align-items: stretch; }
   .ns16-home > .ns16-home-command { display: grid; }
   .ns16-home > [data-sports-priority="important-today"] { width: 100%; }
-  .ns16-home-sports .ns16-match-row > .v933-match-card:only-child { display: grid; grid-template-columns: minmax(110px,.3fr) minmax(240px,1fr) minmax(140px,.4fr); grid-template-rows: auto; align-items: center; gap: 12px; min-height: 126px; }
-  .ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-card-footer { display: grid; grid-template-columns: minmax(0,1fr); justify-items: end; gap: 10px; }
+  .ns16-home-sports .ns16-match-row > .v933-match-card:only-child { width: min(100%,560px); justify-self: start; display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(64px,auto) auto; gap: 10px; min-height: 180px; }
+  .ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-card-footer { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px; }
   .ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-card-signals { justify-self: stretch; }
   .ns16-home-sports .ns16-match-row > .v933-match-card:only-child .v933-match-teams { grid-template-columns: minmax(0,1fr) 56px minmax(0,1fr); }
 }
 @media (max-width: 1100px) {
-  .ns16-home-command { grid-template-columns: 1fr; }
+  .ns16-home-command { grid-template-columns: minmax(0,1fr) minmax(290px,.7fr); }
   .ns16-match-row,.ns16-match-row.is-four { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .v940-calendar-filter-form { grid-template-columns: minmax(210px,1fr) minmax(130px,.4fr) minmax(110px,.32fr) !important; }
   .v940-calendar-filter-form .v933-action { grid-column: 1 / -1; justify-self: end; }
-  .v933-calendar-day .v933-match-card { grid-template-columns: minmax(130px,.3fr) minmax(260px,1fr); }
+  body.ns-app .v933-calendar-day .v933-match-card { grid-template-columns: minmax(130px,.3fr) minmax(260px,1fr); }
   .v933-calendar-day .v933-match-card-footer { grid-column: 1 / -1; }
   .ns16-live-overview { grid-template-columns: 1fr; }
   .ns16-live-overview > .v933-page-header { grid-column: auto; }
@@ -5875,12 +5905,17 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-home > .ns16-home-hero { order: 1; }
   .ns16-home > .ns16-live-priority { order: 2; }
   .ns16-home > .ns16-kpi-strip { order: 3; }
-  .ns16-home > .ns16-home-command { order: 4; display: grid; }
+  .ns16-home > .ns16-home-command { order: 4; display: grid; grid-template-columns: minmax(0,1fr); grid-template-areas: none; grid-template-rows: none; }
+  .ns16-home-command > .ns16-featured-pick,.ns16-home-command > .ns16-home-actions { grid-area: auto; }
   .ns16-home-command > .ns16-home-primary { display: contents; }
   .ns16-home .ns16-journey { order: 1; }
   .ns16-home .ns16-home-sports { order: 2; }
   .ns16-home .ns16-featured-pick { order: 3; }
-  .ns16-home > .ns16-home-actions { order: 5; }
+  .v933-pick-summary summary { min-height: 44px; align-content: center; }
+  .ns16-home-sports .ns16-match-row[data-home-match-previews] { display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 86%; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 2px; scrollbar-width: thin; scrollbar-color: var(--nsx-cyan) transparent; padding: 2px 2px 10px; }
+  .ns16-home-sports [data-home-match-previews]:has(> :only-child) { grid-auto-columns: minmax(0,1fr); }
+  .ns16-home-sports [data-home-match-previews] > * { scroll-snap-align: start; }
+  .ns16-home-command > .ns16-home-actions { order: 4; }
   .ns16-home > .ns16-more { order: 6; }
   body.ns-app .ns16-home-hero > div { max-width: 61%; }
   body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 { max-width: 100%; font-size: 20px !important; line-height: 1.25; overflow-wrap: anywhere; }
@@ -6031,15 +6066,15 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-home-sports .v933-match-card.is-compact { min-height: 0; gap: 8px; grid-template-rows: auto minmax(44px,auto) auto; }
   .ns16-home-sports .v933-match-card-footer { grid-template-columns: minmax(0,1fr) auto; align-items: center; }
   .ns16-home-sports .v933-match-card-actions .v933-action { min-height: 44px; padding: 8px; }
-  .ns16-home-sports .v933-match-teams > div { grid-template-columns: var(--crest-sm) minmax(0,1fr); align-items: center; justify-items: start; text-align: left; }
-  .ns16-home-sports .v933-team-logo { --sports-crest-size: var(--crest-sm); }
+  .ns16-home-sports .v933-match-teams > div { grid-template-columns: minmax(0,1fr); align-items: start; justify-items: center; text-align: center; }
+  .ns16-home-sports .v933-team-logo { --sports-crest-size: var(--crest-md); }
   .ns16-home-sports .v933-match-teams > b { font-size: var(--score-size-compact); }
   .ns16-live-feature { max-width: none; }
   .v940-calendar-command-section { display: grid; gap: 5px; }
   .v940-calendar-command-section > span { flex: initial; }
   .v940-calendar-filter-form { grid-template-columns: 1fr 1fr !important; }
   .v940-calendar-filter-form .v933-search,.v940-calendar-filter-form .v933-action { grid-column: 1 / -1; width: 100%; }
-  .v933-calendar-day .v933-match-card { grid-template-columns: 1fr; grid-template-rows: auto auto auto; min-height: 0 !important; }
+  body.ns-app .v933-calendar-day .v933-match-card { grid-template-columns: 1fr; grid-template-rows: auto auto auto; min-height: 0 !important; }
   .v933-calendar-day .v933-match-card-footer { grid-column: auto; }
 }
 @media (max-width: 430px) {

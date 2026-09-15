@@ -21,7 +21,11 @@
       return formatMadrid(instant, {day:'2-digit', month:'short', year:'numeric'});
     },
     text(source, values = {}) {
-      const message = Object.hasOwn(messages, source) ? messages[source] : source;
+      let message = Object.hasOwn(messages, source) ? messages[source] : source;
+      if (!Object.hasOwn(messages, source) && typeof source === 'string') {
+        const live = /^En directo( · [0-9]{1,3}(?:\+[0-9]{1,2})?['’]?)$/.exec(source);
+        if (live && live[0] === source) message = (messages['En directo'] || 'En directo') + live[1];
+      }
       return String(message).replace(/\{(\w+)\}/g, (match, name) => Object.hasOwn(values, name) ? String(values[name]) : match);
     }
   });

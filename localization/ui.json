@@ -1,4 +1,11 @@
 {
+  "design_r7": {
+    "Contexto y riesgos": {"en": "Context and risks", "fr": "Contexte et risques"},
+    "Resultado final": {"en": "Match result", "fr": "Résultat du match"},
+    "Cuota actual": {"en": "Current odds", "fr": "Cote actuelle"},
+    "Última cuota registrada": {"en": "Last recorded odds", "fr": "Dernière cote enregistrée"},
+    "MEDIO": {"en": "MEDIUM", "fr": "MODÉRÉ"}
+  },
   "factual_summary": {
     "{home} y {away} finalizaron.": {
       "en": "{home} and {away} have finished.",
@@ -3126,6 +3133,16 @@
       "en": "Messaging is unavailable. Your message has not been sent or saved.",
       "fr": "L'envoi est indisponible. Votre message n'a été ni envoyé ni enregistré."
     }
+  },
+  "design_r6": {
+    "Agenda temporalmente no disponible": {"en": "Schedule temporarily unavailable", "fr": "Calendrier temporairement indisponible"},
+    "No se pudo consultar la agenda. Vuelve a intentarlo.": {"en": "The schedule could not be loaded. Please try again.", "fr": "Le calendrier n'a pas pu être chargé. Veuillez réessayer."},
+    "No hay partidos que coincidan": {"en": "No matching matches", "fr": "Aucun match correspondant"},
+    "Prueba otra fecha o ajusta los filtros.": {"en": "Try another date or adjust the filters.", "fr": "Essayez une autre date ou modifiez les filtres."},
+    "No hay partidos para esta fecha": {"en": "No matches for this date", "fr": "Aucun match à cette date"},
+    "Consulta otra fecha de la agenda disponible.": {"en": "Check another date in the available schedule.", "fr": "Consultez une autre date du calendrier disponible."},
+    "Agenda pendiente de actualización": {"en": "Schedule awaiting an update", "fr": "Calendrier en attente de mise à jour"},
+    "Todavía no hay encuentros completos disponibles.": {"en": "Complete match information is not available yet.", "fr": "Les informations complètes sur les matchs ne sont pas encore disponibles."}
   },
   "design_r5": {
     "Resultado disponible": {

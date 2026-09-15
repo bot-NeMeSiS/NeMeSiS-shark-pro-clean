@@ -9915,9 +9915,9 @@ def ui_match_datetime(value, detail=False):
     return format_madrid_client_datetime_label(source, detail=detail, locale=current_ui_locale()) or ui_text("Fecha pendiente")
 
 
-def ui_calendar_date(value):
+def ui_calendar_date(value, detail=False):
     day = parse_madrid_local_datetime(str(value or "")[:10])
-    return format_madrid_client_date_label(day, locale=current_ui_locale()) if day else ui_text("Fecha pendiente")
+    return format_madrid_client_date_label(day, detail=detail, locale=current_ui_locale()) if day else ui_text("Fecha pendiente")
 
 
 @app.route("/preferences/language", methods=["POST"])
