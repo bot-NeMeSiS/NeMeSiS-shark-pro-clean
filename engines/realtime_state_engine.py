@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from datetime import datetime
+from math import isfinite
 import re
 from typing import Any, Iterable
 
@@ -69,7 +70,7 @@ def _score_value(value: Any) -> int | float | None:
         number = float(str(value).strip().replace(",", "."))
     except (TypeError, ValueError):
         return None
-    if number < 0:
+    if not isfinite(number) or number < 0:
         return None
     return int(number) if number.is_integer() else number
 
@@ -77,7 +78,10 @@ def _score_value(value: Any) -> int | float | None:
 def _score_pair(item: dict[str, Any]) -> tuple[int | float | None, int | float | None]:
     home = _score_value(item.get("home_score"))
     away = _score_value(item.get("away_score"))
-    if home is not None or away is not None:
+    # Explicit invalid numeric evidence remains unknown. A cached display
+    # string must not silently resurrect a rejected NaN/Infinity/invalid pair.
+    if any(item.get(key) not in (None, "", "None", "null", "undefined")
+           for key in ("home_score", "away_score")):
         return home, away
 
     score = _text(item.get("score") or item.get("result"), 40)
