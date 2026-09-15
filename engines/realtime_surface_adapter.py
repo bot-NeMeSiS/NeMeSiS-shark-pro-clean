@@ -34,6 +34,10 @@ def build_live_surface_state(match: dict[str, Any] | None, now: datetime | None 
     evaluated_at = madrid_now(now)
     source = deepcopy(match or {})
     normalized = normalize_live_match(source)
+    # Preserve an explicit numeric zero lost by the legacy `or` fallback.
+    # Absent values still permit the existing nested-provider normalization.
+    if "minute" in source and source["minute"] not in (None, ""):
+        normalized["minute"] = source["minute"]
     # Legacy normalization adapts identity/score shapes, but also aliases clocks
     # and provides a default source. Restore actual provenance before projection.
     for field in ("live_updated_at", "provider_updated_at", "last_synced_at"):
