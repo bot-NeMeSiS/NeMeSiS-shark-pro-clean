@@ -120,6 +120,8 @@ def build_creative_design_status(
         brand_kit.append({**item, "available": exists})
         if not exists:
             objective_gaps.append({"id": "BRAND_ASSET_UNAVAILABLE", "screen_id": item["role"]})
+        elif item.get("status") == "DESIGN_REWORK_REQUIRED":
+            objective_gaps.append({"id": "BRAND_ASSET_REWORK", "screen_id": item["role"]})
     for issue in open_issues:
         if issue.get("category") in visual_categories:
             objective_gaps.append({"id": str(issue.get("issue_id") or issue["category"]),
@@ -135,6 +137,8 @@ def build_creative_design_status(
         if area in {"BRAND", "APP_ICON"} and any(not b["available"] for b in brand_kit):
             status = "DESIGN_REWORK_REQUIRED"
         if area == "BRAND" and any(i.get("category") in {"VISUAL_SHARK", "VISUAL_BACKGROUND"} for i in open_issues):
+            status = "DESIGN_REWORK_REQUIRED"
+        if area == "BRAND" and any(b.get("status") == "DESIGN_REWORK_REQUIRED" for b in brand_kit):
             status = "DESIGN_REWORK_REQUIRED"
         groups.append({"area": area, "design_status": status,
                        "assessed": sum(s["assessment"] != "NOT_TESTED" for s in selected),

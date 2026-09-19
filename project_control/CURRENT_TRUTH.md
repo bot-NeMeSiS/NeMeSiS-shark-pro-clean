@@ -1,88 +1,53 @@
 # Current Truth
 
-Hechos con alcance; no guardar credenciales, PII, logs completos ni DB aqui.
-Actualizacion: 2026-09-09, UX-002/UX-003/QA-002. Alias conservados.
+Actualizacion: 2026-09-19. Alcance: copia local Sentinel. No PII ni secretos.
 
-## Identidad
+## Identidades observadas
 
-| Campo | Valor | Evidencia y limite |
-|---|---|---|
-| PRODUCTION_SHA | `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04` | DAY 5: runtime a 2026-09-08 22:33:49 y 22:37:56 Madrid |
-| GITHUB_SHA | `c6eaa003e6ae0e9d4af7d98198ec6eefafc97b04` | GET ref heads/main, conector GitHub, 2026-09-09 |
-| LOCAL_SHA | `6858aedbbd04211500028b7aaf56c3f5980f833d` | codex/app-icon-identity; publicado en rama, no main; indice vacio, Creative/CI sin commit |
+- Rama efectiva: codex/sentinel-operaciones-local.
+- HEAD/base: c4a81003de1b5ccdb3036831583e9c1eb65e4417; cambios SIN COMMIT.
+- Main local y origin/main local: c4a81003de1b5ccdb3036831583e9c1eb65e4417, main limpio.
+- GitHub/Render actuales: NOT_TESTED en este cierre local. Una referencia local no prueba el remoto.
+- PR14: ultimo cierre local registra borrador ef759cb88d46463424342598a765a68a0a057a7a; no nueva consulta ni merge.
+- Design: 317ac8c37c3c74f39b736a207f55079c7d454856, PRESERVE; 4401 registros dirty en la observacion anterior. No ejecutado ni editado.
+- Worktree documental: ad297cf56b7ab302a86b16ae261634549c5a68a4; 6131 registros dirty en la observacion anterior, PRESERVE.
+- Inventario anterior: data/local_dev/organization-20260919/inventory.json. Cuatro worktrees, siete ramas locales. No reinventariados ni retirados en este cierre.
 
-[GitHub main](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/tree/main).
-Produccion actual: NOT_TESTED. Render responde `no workspace selected`;
-requiere confirmacion del workspace `NeMeSiS's workspace` antes de consultar.
-No se ha seleccionado, cambiado configuracion ni llamado endpoints deportivos.
+## Evidencia y alcance
 
-## SE-01 cerrado localmente, publicado en rama pero no main
+Ultimo cierre: preview reproducible y FINAL_OVERRIDES_STALE_LIVE_V1.
+380 casos distintos de seleccion pertinente: 358 PASS mas bloque Sentinel
+22/22 PASS tras corregir el main guard del runner Windows. Primer pase 379 PASS
+y un fallo de arnes, conservado en el informe. No suite global certificada.
+Replay 10/10: mismo final 5-0 en cinco superficies, navegador desktop/mobile,
+sin recarga en Directo ni revival por T2 antiguo. REAL_WORLD_REPLAY_QA, no produccion.
+45/45 vistas finales en 1366/390/430, recorrido Home/detalle/retorno/Calendario
+y formulario de idioma real. Cero fallos de shell, overflow, JS o requests externas.
+203 Jinja y compilacion PASS. Secret/Privacy: 1174 archivos, cero hallazgos.
 
-Decision: **PASS_LOCAL_SCOPE**, no PASS global ni certificacion productiva.
-Suite: 555 total, **543 PASS**, **12 LOCAL_SAFE_BLOCKED / NOT_CERTIFIED**, 0 errors,
-0 omitidos. XML conserva 12 failed; clasificacion no altera el resultado pytest.
-Ejecucion de 174,681 s; focal 28 SE-01 + compile/archive = 30/30.
-PRODUCT_REGRESSIONS abiertas 0; UNKNOWN 0; UNEXPLAINED_FAILURES 0;
-CLEANUP_FINAL_ERRORS 0. Dos defectos de arnes corregidos y cleanup resuelto.
-No se suman ejecuciones antiguas. Higiene CX no vuelve a ejecutar la suite deportiva.
+Huella de producto/pruebas/herramientas, excluye documentos:
+`8e3475faa56656546f4a9535163ca1ed48722afc3e3371df0d27abc128197326`.
+Manifest acumulado: `data/local_dev/final-source-manifest.json`; 129 rutas,
+indice vacio. Detalle, procedencia y XML en
+[LOCAL_CONTINUITY](../reports/LOCAL_CONTINUITY_20260919.md).
+La clasificacion documental anterior conserva sus UNKNOWN; no autoriza retiradas.
 
-Procedencia: tracker API-Football `available=False` dejaba metadata de capacidad
-que sustituia SportsDB. Corregido localmente; cuatro regresiones. No otro lifecycle.
-Lectura observacional mode=ro, relato stale explicito, marcador desconocido != 0-0,
-eventos reales separados de snapshots de estado. Primer GET completo puede
-crear perfil/cache tecnica: no confundirlo con el observador puro.
+- Sentinel: motor aceptado sin nueva capacidad; runner LOCAL SAFE con inicio/parada/reuso de instancia. Preview 54910 activa al cierre, no servicio productivo.
+- R8: diferencias versionadas integradas selectivamente y conservadas; /historico vuelve al handler canonico. R9 NOT_CERTIFIED; arte y conformidad global pendientes.
+- Directo/Match Center: HTTP y navegador reales, minuto 0/descuento y periodos observados preservados; fixtures SIMULATED_QA no prueban feed real ni cobertura universal.
+- SHARK/apuestas: flujo activo de recomendaciones sin confianza/seleccion inventadas. Hechos, contexto, analisis y cuotas observadas separados; WAIT/NO_BET no se publican como pick.
+- Soporte: persistencia y bandeja admin locales; no email externo ni respuesta humana certificados.
+- Membresias: concesion manual, ADMIN, suscripcion vigente, cancelacion y expiracion probadas localmente; corregida degradacion del rol ADMIN por expiracion generica. Stripe externo no probado; ELITE+ sin contrato.
+- /app: 603 partidos, mismo hash; A/B sin perfilador 5.730/2.084/2.095 -> 5.737/2.085/2.040 s. Menos SQL por lote, sin mejora significativa de latencia. Timeout productivo no resuelto. Aislamiento de usuarios preservado.
 
-[Cierre individual SE-01](../reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md#cierre-exclusivo-se-01-revalidacion-2026-09-09) |
-[Cierre verificado en issue #8](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/issues/8#issuecomment-5602758147).
+## Contratos y pendientes
 
-Huella de siete fuentes/tests SE-01:
-`EB90F91AD2E39C851A3A3ED419D509B2C9D9D8F6814D28ECD284597CE8395B63`.
-Indice Git al cerrar SE-01 (historico, no el indice tras el commit de iconos):
-`CB703728B6319F9915AABB850C7457EB4F92316B64F9DED1F0D2E2964D7DF167`.
-DAY 3/4/5:
-`CDDC3BEBCC65E0C5B1B36FFBF22F6CA68069D450F0DF560723DCDC67C13427A4`.
+SE-01 sigue PASS_LOCAL_SCOPE; los 12 LOCAL_SAFE_BLOCKED historicos siguen
+NOT_CERTIFIED. Los 43 bloqueos ambientales posteriores tampoco se reetiquetan.
+DAY 3/4/5 y SPORTS_DATA_LIVE_CERTIFICATION.md preservados; no nueva observacion
+productiva. Madrid, Sports Truth, App Icon y fallback no se alteran por organizar.
+No se afirma P0/P1 global cero sin revisar produccion.
 
-## Funcionamiento, limites e incidentes
-
-| Area | Evidencia | Estado |
-|---|---|---|
-| Sports Truth/Match Context/identidad/Madrid Time | LOCAL_ONLY; tests del candidato preservados | Sin regresion abierta demostrada en SE-01 |
-| Navegacion relevante | LOCAL_ONLY, SIMULATED_QA; Match/Calendar/Live, 1366x768/390x844, 5 clicks | 0 overflow/errores de consola observados, no toda la app |
-| Produccion y usuarios/admin reales | NOT_TESTED hoy | No nueva certificacion de permisos, rendimiento ni disponibilidad |
-| P0/P1 SE-01 | LOCAL_ONLY | 0 regresiones abiertas; doce positivos ambientales NO certificados |
-| P0/P1 globales | NOT_TESTED hoy | No copiar el cero de un reporte antiguo |
-| Sports certification | REAL_PRODUCTION DAY 1-5 historico | IN_PROGRESS; faltan coherencia LIVE independiente y muestra suficiente |
-| Cuota, plan, costes actuales | NOT_TESTED | UNKNOWN; ningun gasto/llamada de proveedor iniciado por CX |
-| Master/CE/Telegram Cron | Codigo intacto; ejecucion actual NOT_TESTED | No afirmar ACTIVE actual desde un archivo |
-| SHARK/fondo | Revision humana pendiente | No aprobacion automatica ni generacion nueva |
-
-Los 774 archivos inicialmente clasificados UNKNOWN pertenecen al inventario de
-higiene, NO a los diagnosticos SE-01. No contradicen UNKNOWN_SE01 = 0.
-
-## Iconografia UX-002: historial y reconciliacion actual
-
-[PR #9](https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean/pull/9): el commit
-original cdd88e50 contiene 22 rutas de iconos/metadata/generador/tests. El commit
-externo posterior 6858aedb SI incorpora SE/CX y documentacion en la misma rama.
-No describir la PR actual como un candidato exclusivamente de iconos.
-Base c6eaa003; candidato cdd88e50. Sin merge, deploy ni Sentinel productivo nuevo.
-139/139 focales sobre la combinacion publicable exacta; 602 en el arbol combinado:
-590 PASS, los mismos 12 LOCAL_SAFE_BLOCKED/NOT_CERTIFIED, 0 errors, 0 omitidos.
-No sustituye ni reetiqueta la suite historica SE-01.
-GitHub qa SUCCESS; preflight FAILURE (Browser QA V944 result missing), smoke
-FAILURE (Playwright no instalado). Mismas causas verificadas en logs del SHA base.
-Instalacion nativa por SO NOT_TESTED. Detalle en [Producto/Visual](domains/PRODUCT_VISUAL.md).
-
-Relectura GitHub 2026-09-09: main=c6eaa003; rama/HEAD=6858aedb; PR abierta,
-merged=false. Cadena lineal base -> cdd88e50 -> 6858aedb; 0/2 divergencia desde
-base. El merge_commit_sha de una PR abierta no acredita un merge real.
-Runs de 6858aedb: qa 34373698530 SUCCESS; preflight 34373698511 FAILURE;
-smoke 34373698481 FAILURE; certify-production SKIPPED.
-Render actual NOT_VERIFIED: workspace no confirmado. Lectura publica de runtime
-tampoco accesible por el conector utilizado. No atribuir un SHA actual por inferencia.
-
-Creative local: 16 PNG inspeccionadas, 21 contratos (16 directos + 5 derivados),
-7 responsabilidades, cero procesos nuevos. Focal 95/95 y protegido 131/131.
-Suite final nueva 623: 611 PASS + 12 LOCAL_SAFE_BLOCKED/NOT_CERTIFIED, 0 errors.
-La suite SE historica 543/555 permanece PARCIAL; ninguna se convierte en PASS global.
-Sin modificaciones de produccion, staging, commit, push, merge, deploy ni Actions.
+[Cola](CODEX_QUEUE.md), [bloqueos](BLOCKERS.md), [versiones](RELEASE_STATE.md).
+Los SHA/CI/PR9 abiertos citados en documentos de septiembre 9 son historia,
+no incidentes actuales. No se inventa una recertificacion de produccion.

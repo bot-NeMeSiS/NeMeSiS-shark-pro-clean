@@ -1,0 +1,25 @@
+{% macro betting_evidence(r) -%}
+{% set evidence = r.evidence or {} %}
+{% set facts = evidence.get('facts') or {} %}
+{% set betting = evidence.get('betting') or {} %}
+<div data-betting-evidence data-betting-decision="{{ r.decision }}">
+  <p><strong>{{ ui('Hechos') }}</strong> · {{ r|match_time_label }} · {{ ui((facts.get('status') or {}).get('label') or 'Estado pendiente') }}</p>
+  <p><strong>{{ ui('Contexto') }}</strong> · {{ r.league_name or ui('Sin dato') }}</p>
+  <p><strong>{{ ui('Análisis') }}</strong> · {{ ui(r.reason) }}</p>
+  <p><strong>{{ ui('Apuesta') }}</strong> · {{ ui(r.selection) }}</p>
+  {% if betting.get('observations') %}
+  <details><summary>{{ ui('Cuotas observadas') }} · {{ betting.observations|length }}</summary>
+    {% for quote in betting.observations %}
+    <dl>
+      <dt>{{ quote.market }} · {{ ui('Empate') if quote.selection == 'Empate' else quote.selection }}</dt><dd>{{ quote.odds }}</dd>
+      <dt>{{ ui('Fuente') }} / {{ ui('Bookmaker') }}</dt><dd>{{ quote.source or ui('Sin dato') }} / {{ quote.bookmaker or ui('Sin dato') }}</dd>
+      <dt>{{ ui('Observación') }}</dt><dd>{{ quote.observed_at|madrid_datetime_label if quote.observed_at else ui('Sin dato') }}</dd>
+    </dl>
+    {% endfor %}
+    <p>{{ ui('Vigencia no verificada') }}</p>
+  </details>
+  {% else %}<p class="muted">{{ ui('Sin cuota observada') }}</p>{% endif %}
+  <p class="small">{{ ui(r.warning) }}</p>
+  <a class="mini-link" href="/match/{{ r.match_id }}">{{ ui('Ver partido') }}</a>
+</div>
+{%- endmacro %}

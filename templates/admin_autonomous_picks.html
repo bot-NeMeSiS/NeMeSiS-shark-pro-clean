@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/betting_evidence.html" import betting_evidence with context %}
 {% block content %}
 <section class="hero compact admin-hero">
   <div class="kicker">Admin · Motor autónomo</div>
@@ -29,7 +30,7 @@
     <h2>Actualizar diagnóstico</h2>
     <p class="small">Usa partidos próximos reales y cuotas cacheadas. Recomendado después de sincronizar calendario/Odds.</p>
     <div class="field"><label>Límite</label><input name="limit" value="8"></div>
-    <button class="primary" type="submit">Generar picks automáticos</button>
+    <button class="primary" type="submit">{{ ui('Actualizar revisión') }}</button>
   </form>
   <aside class="card">
     <h2>Reglas</h2>
@@ -44,11 +45,9 @@
   <div class="stack">
     {% for r in data.recommendations %}
     <article class="card pick-card">
-      <div class="match-top"><div><div class="comp-name">{{ r.league_name|competition_es }}</div><div class="small">{{ r|match_full_datetime }} · {{ r.market }}</div></div><span class="pill">SHARK {{ r.shark_score }}</span></div>
+      <div class="match-top"><div class="comp-name">{{ r.league_name }}</div><span class="pill">{{ ui(r.value_label) }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% else %} · pendiente de cuota{% endif %}</p>
-      <div class="status"><span>{{ r.confidence }}%</span><span>{{ r.risk_level }}</span><span>{{ r.value_rating }}</span><span>{{ r.membership_required }}</span></div>
-      <p class="small">{{ r.reasoning }}</p>
+      {{ betting_evidence(r) }}
     </article>
     {% else %}
     <div class="empty">Sin recomendaciones todavía. Sincroniza calendario/Odds.</div>

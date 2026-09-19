@@ -1,8 +1,8 @@
 {% macro data_confidence_badge(item, kind='match', compact=true) -%}
 {% set trust = nemesis_data_confidence(item or {}, kind) %}
-<span class="v937-confidence-badge is-{{ trust.get('tone') }}{% if compact %} is-compact{% endif %}" title="{{ trust.get('disclaimer') }}" data-v937-confidence-score="{{ trust.get('score') }}">
+<span class="v937-confidence-badge is-{{ trust.get('tone') }}{% if compact %} is-compact{% endif %}" title="{{ ui(trust.get('disclaimer')) }}" data-v937-confidence-score="{{ trust.get('score') }}">
   <span aria-hidden="true">{{ trust.get('score') }}</span>
-  <span><strong>Confianza del dato</strong><small>{{ trust.get('label') }}</small></span>
+  <span><strong>{{ ui('Confianza del dato') }}</strong><small>{{ ui(trust.get('label')) }}</small></span>
 </span>
 {%- endmacro %}
 
@@ -11,28 +11,28 @@
 <section class="v937-confidence-panel is-{{ trust.get('tone') }}" aria-label="{{ title }}">
   <header>
     <div><span>{{ title }}</span><strong>{{ trust.get('score') }}/100</strong></div>
-    <span class="v937-confidence-label">{{ trust.get('label') }}</span>
+    <span class="v937-confidence-label">{{ ui_owned(trust.get('label')) }}</span>
   </header>
   <div class="v937-confidence-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ trust.get('score') }}"><i style="--v937-confidence:{{ trust.get('score') }}%"></i></div>
-  <p>{{ trust.get('summary') }}</p>
-  <ul>{% for factor in trust.get('factors') or [] %}<li class="{% if factor.get('ok') %}is-ok{% else %}is-limited{% endif %}"><span>{{ factor.get('label') }}</span><b>{{ factor.get('points') }}/{{ factor.get('maximum') }}</b></li>{% endfor %}</ul>
-  <small>{{ trust.get('disclaimer') }}</small>
+  <p>{{ ui_owned(trust.get('summary')) }}</p>
+  <ul>{% for factor in trust.get('factors') or [] %}<li class="{% if factor.get('ok') %}is-ok{% else %}is-limited{% endif %}"><span>{{ ui_owned(factor.get('label')) }}</span><b>{{ factor.get('points') }}/{{ factor.get('maximum') }}</b></li>{% endfor %}</ul>
+  <small>{{ ui_owned(trust.get('disclaimer')) }}</small>
 </section>
 {%- endmacro %}
 
 {% macro attention_priority(match) -%}
 {% set priority = nemesis_attention_priority(match or {}) %}
-<span class="v937-attention-priority is-level-{{ priority.get('level') }}" title="{{ priority.get('disclaimer') }}"><b aria-hidden="true">{{ '★' * priority.get('level') }}{{ '☆' * (5 - priority.get('level')) }}</b><span>{{ priority.get('label') }}</span></span>
+<span class="v937-attention-priority is-level-{{ priority.get('level') }}" title="{{ ui_owned(priority.get('disclaimer')) }}"><b aria-hidden="true">{{ '★' * priority.get('level') }}{{ '☆' * (5 - priority.get('level')) }}</b><span>{{ ui_owned(priority.get('label')) }}</span></span>
 {%- endmacro %}
 
 {% macro lifecycle_story(counts, active='') -%}
 {% set counts = counts or {} %}
-<nav class="v937-lifecycle-story" aria-label="Historia deportiva del día">
-  <a href="/calendar?lane=today" class="{% if active == 'today' %}is-active{% endif %}"><span>01</span><strong>Hoy</strong><small>{{ counts.get('today', 0) }} completos</small></a>
-  <a href="/live?f=live" class="{% if active in ['live','directo'] %}is-active{% endif %}"><span>02</span><strong>En directo</strong><small>{{ counts.get('live', 0) }} activos</small></a>
-  <a href="/calendar?lane=with_pick" class="{% if active in ['with_pick','picks'] %}is-active{% endif %}"><span>03</span><strong>Con criterio</strong><small>{{ counts.get('picks', 0) }} picks</small></a>
-  <a href="/calendar?lane=finished" class="{% if active == 'finished' %}is-active{% endif %}"><span>04</span><strong>Finalizados</strong><small>{{ counts.get('finished', 0) }} cerrados</small></a>
-  <span class="is-context"><span>05</span><strong>Datos pendientes</strong><small>{{ counts.get('incidents', 0) }} excluidos</small></span>
+<nav class="v937-lifecycle-story" aria-label="{{ ui("Historia deportiva del día") }}">
+  <a href="/calendar?lane=today" class="{% if active == 'today' %}is-active{% endif %}"><span>01</span><strong>{{ ui("Hoy") }}</strong><small>{{ counts.get('today', 0) }} {{ ui("completos") }}</small></a>
+  <a href="/live?f=live" class="{% if active in ['live','directo'] %}is-active{% endif %}"><span>02</span><strong>{{ ui("En directo") }}</strong><small>{{ counts.get('live', 0) }} {{ ui("activos") }}</small></a>
+  <a href="/calendar?lane=with_pick" class="{% if active in ['with_pick','picks'] %}is-active{% endif %}"><span>03</span><strong>{{ ui("Con criterio") }}</strong><small>{{ counts.get('picks', 0) }} picks</small></a>
+  <a href="/calendar?lane=finished" class="{% if active == 'finished' %}is-active{% endif %}"><span>04</span><strong>{{ ui("Finalizados") }}</strong><small>{{ counts.get('finished', 0) }} {{ ui("cerrados") }}</small></a>
+  <span class="is-context"><span>05</span><strong>{{ ui("Datos pendientes") }}</strong><small>{{ counts.get('incidents', 0) }} {{ ui("excluidos") }}</small></span>
 </nav>
 {%- endmacro %}
 
@@ -41,11 +41,11 @@
 {% set risk = pick.get('risk_note') or pick.get('risk_reason') or '' %}
 {% set invalidation = pick.get('invalidation') or pick.get('invalidate_if') or pick.get('invalidation_reason') or '' %}
 {% set reviewed = pick.get('reviewed_at') or pick.get('updated_at') or pick.get('published_at') or '' %}
-<section class="v937-pick-brief" aria-label="Expediente profesional del pick">
-  <article><span>Por qué existe</span><p>{{ reason or 'La explicación editorial todavía no está documentada. Revisa los datos del partido antes de decidir.' }}</p></article>
-  <article><span>Qué puede salir mal</span><p>{{ risk or 'No hay un riesgo específico documentado; aplica cautela y revisa cambios de contexto.' }}</p></article>
-  <article><span>Qué lo invalidaría</span><p>{{ invalidation or 'Sin condición de invalidación registrada. No asumas que el análisis sigue vigente si cambia el contexto.' }}</p></article>
-  <footer><strong>Última revisión</strong><time>{{ reviewed or 'Sin marca temporal confirmada' }}</time></footer>
+<section class="v937-pick-brief" aria-label="{{ ui("Expediente profesional del pick") }}">
+  <article><span>{{ ui("Por qué existe") }}</span><p>{{ reason or ui('La explicación editorial todavía no está documentada. Revisa los datos del partido antes de decidir.') }}</p></article>
+  <article><span>{{ ui("Qué puede salir mal") }}</span><p>{{ risk or ui('No hay un riesgo específico documentado; aplica cautela y revisa cambios de contexto.') }}</p></article>
+  <article><span>{{ ui("Qué lo invalidaría") }}</span><p>{{ invalidation or ui('Sin condición de invalidación registrada. No asumas que el análisis sigue vigente si cambia el contexto.') }}</p></article>
+  <footer><strong>{{ ui('Última revisión') }}</strong><time>{{ ui_match_datetime(reviewed) if reviewed else ui('Sin marca temporal confirmada') }}</time></footer>
 </section>
 {%- endmacro %}
 
@@ -54,5 +54,5 @@
 {% if learning.get('label') == 'Pendiente' and pick.get('result_status') in ['won','lost','void'] %}
 {% set learning = {'label':'Aprendizaje pendiente','tone':'warning','detail':'Resultado registrado; falta contexto para evaluar la hipótesis.'} %}
 {% endif %}
-<span class="v937-learning-receipt is-{{ learning.get('tone') }}"><strong>{{ learning.get('label') }}</strong><small>{{ learning.get('detail') }}</small></span>
+<span class="v937-learning-receipt is-{{ learning.get('tone') }}"><strong>{{ ui_owned(learning.get('label')) }}</strong><small>{{ ui_owned(learning.get('detail')) }}</small></span>
 {%- endmacro %}

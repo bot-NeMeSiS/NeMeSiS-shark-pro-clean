@@ -483,12 +483,38 @@ def build_customer_trust_icon_contract_snapshot(
         r"\.v935-customer-trust-rules\s+\.v933-icon\s*\{[^}]*width:\s*14px;[^}]*height:\s*14px;",
         css,
     ))
-    macro_contract = (
-        "{% macro customer_trust_panel(trust)" in template
-        and template.count("{{ icon('target') }} Picks completos") == 1
-        and template.count("{{ icon('history') }} Hist") == 1
-        and template.count("{{ icon('shield') }} Sin beneficio garantizado") == 1
-    )
+    from jinja2 import Environment, TemplateSyntaxError, nodes
+    macro_contract = False
+    try:
+        macros = [node for node in Environment().parse(template).find_all(nodes.Macro)
+                  if node.name == "customer_trust_panel"]
+        if len(macros) == 1:
+            macro = macros[0]
+            def literal_call(node, name, value):
+                return (isinstance(node, nodes.Call) and isinstance(node.node, nodes.Name)
+                        and node.node.name == name and len(node.args) == 1
+                        and isinstance(node.args[0], nodes.Const) and node.args[0].value == value)
+            def paired_icon_count(icon, label):
+                count = 0
+                for output in macro.find_all(nodes.Output):
+                    for index, node in enumerate(output.nodes):
+                        if not literal_call(node, "icon", icon):
+                            continue
+                        following = iter(output.nodes[index + 1:])
+                        next_node = next(following, None)
+                        if isinstance(next_node, nodes.TemplateData) and not next_node.data.strip():
+                            next_node = next(following, None)
+                        count += bool(literal_call(next_node, "ui", label)
+                                      or isinstance(next_node, nodes.TemplateData)
+                                      and next_node.data.strip().startswith(label + "<"))
+                return count
+            macro_contract = all(
+                paired_icon_count(icon, label) == 1
+                for icon, label in (("target", "Picks completos"), ("history", "Histórico evaluable"),
+                                    ("shield", "Sin beneficio garantizado"))
+            )
+    except TemplateSyntaxError:
+        pass
 
     violations = []
     if not direct_chip or descendant_chip:

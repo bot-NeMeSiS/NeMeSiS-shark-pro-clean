@@ -1,0 +1,4196 @@
+{
+  "betting_evidence": {
+    "Revisión de apuestas": {"en":"Betting review","fr":"Analyse des paris"},
+    "Hechos y cuotas observadas, separados del análisis y la decisión.": {"en":"Observed facts and odds, separate from analysis and decisions.","fr":"Faits et cotes observés, distincts de l'analyse et de la décision."},
+    "Partidos en revisión": {"en":"Matches under review","fr":"Matchs à examiner"},
+    "Sin partidos en revisión": {"en":"No matches under review","fr":"Aucun match à examiner"},
+    "Apuesta": {"en":"Betting","fr":"Pari"},
+    "Cuotas observadas": {"en":"Observed odds","fr":"Cotes observées"},
+    "Observación": {"en":"Observation","fr":"Observation"},
+    "Vigencia no verificada": {"en":"Validity not verified","fr":"Validité non vérifiée"},
+    "Sin cuota observada": {"en":"No observed odds","fr":"Aucune cote observée"},
+    "Esperar": {"en":"Wait","fr":"Attendre"},
+    "No apostar": {"en":"No bet","fr":"Ne pas parier"},
+    "Datos insuficientes para recomendar una apuesta.": {"en":"Insufficient evidence to recommend a bet.","fr":"Données insuffisantes pour recommander un pari."},
+    "Una cuota observada no demuestra valor ni probabilidad de ganar.": {"en":"Observed odds do not establish value or a probability of winning.","fr":"Une cote observée ne prouve ni valeur ni probabilité de gain."},
+    "Actualizar revisión": {"en":"Refresh review","fr":"Actualiser l'analyse"}
+  },
+  "directo_inplace": {
+    "Marcador actualizado: {score}. No confirma un evento de gol.": {"en":"Score updated: {score}. This does not confirm a goal event.","fr":"Score mis à jour : {score}. Cela ne confirme pas un événement de but."},
+    "Actualizar lista manteniendo filtros": {"en":"Refresh list keeping filters","fr":"Actualiser la liste en conservant les filtres"},
+    "Actualización no disponible. Las lecturas conservan su vencimiento original.": {"en":"Update unavailable. Observations retain their original expiry.","fr":"Mise à jour indisponible. Les observations conservent leur échéance initiale."},
+    "Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.": {"en":"Some observations no longer confirm live play. Minutes and results are not inferred.","fr":"Certaines observations ne confirment plus le direct. Aucune minute ni aucun résultat ne sont déduits."},
+    "Cambio sin observación nueva": {"en":"Change without a new observation","fr":"Changement sans nouvelle observation"},
+    "Datos retrasados · Última lectura": {"en":"Delayed data · Last observation","fr":"Données retardées · Dernière observation"},
+    "Estado de la observación. No mide probabilidad de ganar.": {"en":"Observation status. Not a probability of winning.","fr":"État de l'observation. Ce n'est pas une probabilité de gain."},
+    "Fuera de la última lectura confirmada": {"en":"Not in the latest confirmed observation","fr":"Absent de la dernière observation confirmée"},
+    "Fuera del filtro actual. Se conserva la última lectura y el acceso al partido.": {"en":"Outside the current filter. The last observation and match link are retained.","fr":"Hors du filtre actuel. La dernière observation et le lien du match sont conservés."},
+    "Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.": {"en":"There are matches outside this view. Refresh the list to apply your filters.","fr":"Des matchs ne figurent pas dans cette vue. Actualisez la liste pour appliquer vos filtres."},
+    "Identidad pendiente de confirmar": {"en":"Identity awaiting confirmation","fr":"Identité à confirmer"},
+    "Información sin confirmar": {"en":"Unconfirmed information","fr":"Information non confirmée"},
+    "Información sin confirmar · Última lectura": {"en":"Unconfirmed information · Last observation","fr":"Information non confirmée · Dernière observation"},
+    "Observación registrada": {"en":"Recorded observation","fr":"Observation enregistrée"},
+    "Observación vigente": {"en":"Current observation","fr":"Observation actuelle"},
+    "Pendiente de confirmar": {"en":"Awaiting confirmation","fr":"À confirmer"},
+    "Resultado pendiente": {"en":"Result pending","fr":"Résultat en attente"}
+  },
+  "design_r7": {
+    "Contexto y riesgos": {"en": "Context and risks", "fr": "Contexte et risques"},
+    "Resultado final": {"en": "Match result", "fr": "Résultat du match"},
+    "Cuota actual": {"en": "Current odds", "fr": "Cote actuelle"},
+    "Última cuota registrada": {"en": "Last recorded odds", "fr": "Dernière cote enregistrée"},
+    "MEDIO": {"en": "MEDIUM", "fr": "MODÉRÉ"}
+  },
+  "factual_summary": {
+    "{home} y {away} finalizaron.": {
+      "en": "{home} and {away} have finished.",
+      "fr": "Le match entre {home} et {away} est terminé."
+    },
+    "{home} y {away} finalizaron {score}.": {
+      "en": "{home} and {away} finished {score}.",
+      "fr": "Le match entre {home} et {away} s'est terminé sur le score de {score}."
+    },
+    "{home} y {away} tienen un partido programado.": {
+      "en": "{home} and {away} have a scheduled match.",
+      "fr": "Un match est prévu entre {home} et {away}."
+    },
+    "La actualización del partido no está confirmada.": {
+      "en": "The match update is not confirmed.",
+      "fr": "La mise à jour du match n'est pas confirmée."
+    },
+    "Último marcador conocido: {score}; no confirma el estado actual.": {
+      "en": "Last known score: {score}; it does not confirm the current status.",
+      "fr": "Dernier score connu : {score} ; il ne confirme pas l'état actuel."
+    },
+    "{home} y {away} están al descanso.": {
+      "en": "{home} and {away} are at half-time.",
+      "fr": "{home} et {away} sont à la mi-temps."
+    },
+    "{home} y {away} están disputando el partido.": {
+      "en": "{home} and {away} are playing.",
+      "fr": "Le match entre {home} et {away} est en cours."
+    },
+    "Marcador confirmado: {score}.": {
+      "en": "Confirmed score: {score}.",
+      "fr": "Score confirmé : {score}."
+    },
+    "El resultado definitivo está pendiente de confirmación.": {
+      "en": "The final result is awaiting confirmation.",
+      "fr": "Le résultat final attend confirmation."
+    },
+    "El partido entre {home} y {away} figura como cancelado.": {
+      "en": "The match between {home} and {away} is listed as cancelled.",
+      "fr": "Le match entre {home} et {away} est indiqué comme annulé."
+    },
+    "El partido entre {home} y {away} figura como aplazado.": {
+      "en": "The match between {home} and {away} is listed as postponed.",
+      "fr": "Le match entre {home} et {away} est indiqué comme reporté."
+    },
+    "El partido entre {home} y {away} figura como suspendido.": {
+      "en": "The match between {home} and {away} is listed as suspended.",
+      "fr": "Le match entre {home} et {away} est indiqué comme suspendu."
+    },
+    "El partido entre {home} y {away} figura como abandonado.": {
+      "en": "The match between {home} and {away} is listed as abandoned.",
+      "fr": "Le match entre {home} et {away} est indiqué comme abandonné."
+    }
+  },
+  "client_detail_copy": {
+    "Próximo": {
+      "en": "Upcoming",
+      "fr": "À venir"
+    },
+    "Cierre del partido": {
+      "en": "Full-time summary",
+      "fr": "Bilan du match"
+    },
+    "Sin enfrentamientos directos confirmados.": {
+      "en": "No confirmed head-to-head records.",
+      "fr": "Aucune confrontation directe confirmée."
+    },
+    "Sin clasificación confirmada.": {
+      "en": "No confirmed standings.",
+      "fr": "Aucun classement confirmé."
+    },
+    "Sin forma reciente confirmada para esta competición y temporada.": {
+      "en": "No confirmed recent form for this competition and season.",
+      "fr": "Aucune forme récente confirmée pour cette compétition et cette saison."
+    },
+    "Jugadores confirmados para este partido.": {
+      "en": "Confirmed players for this match.",
+      "fr": "Joueurs confirmés pour ce match."
+    },
+    "Formación no disponible": {
+      "en": "Formation unavailable",
+      "fr": "Formation indisponible"
+    },
+    "Cronología": {
+      "en": "Timeline",
+      "fr": "Chronologie"
+    },
+    "Hechos confirmados del partido.": {
+      "en": "Confirmed match events.",
+      "fr": "Événements confirmés du match."
+    },
+    "Estadísticas disponibles": {
+      "en": "Available statistics",
+      "fr": "Statistiques disponibles"
+    },
+    "Comparativa confirmada del partido.": {
+      "en": "Confirmed match comparison.",
+      "fr": "Comparaison confirmée du match."
+    },
+    "Dato": {
+      "en": "Statistic",
+      "fr": "Statistique"
+    },
+    "Posesión": {
+      "en": "Possession",
+      "fr": "Possession"
+    },
+    "Resumen oficial autorizado": {
+      "en": "Authorised official highlights",
+      "fr": "Résumé officiel autorisé"
+    },
+    "Ver resumen en vídeo": {
+      "en": "Watch highlights",
+      "fr": "Voir le résumé vidéo"
+    },
+    "Competición, sede, equipos y responsables confirmados.": {
+      "en": "Confirmed competition, venue, teams and officials.",
+      "fr": "Compétition, lieu, équipes et officiels confirmés."
+    },
+    "Jornada o fase": {
+      "en": "Round or stage",
+      "fr": "Journée ou phase"
+    },
+    "Temporada": {
+      "en": "Season",
+      "fr": "Saison"
+    },
+    "Estadio": {
+      "en": "Stadium",
+      "fr": "Stade"
+    },
+    "Ciudad": {
+      "en": "City",
+      "fr": "Ville"
+    },
+    "Árbitro": {
+      "en": "Referee",
+      "fr": "Arbitre"
+    },
+    "Equipos relacionados": {
+      "en": "Related teams",
+      "fr": "Équipes associées"
+    },
+    "Volver al calendario": {
+      "en": "Back to calendar",
+      "fr": "Retour au calendrier"
+    },
+    "Consultar picks": {
+      "en": "Browse picks",
+      "fr": "Consulter les picks"
+    },
+    "Análisis disponible según la evidencia del partido.": {
+      "en": "Analysis based on available match evidence.",
+      "fr": "Analyse fondée sur les éléments disponibles du match."
+    },
+    "SHARK no completa conclusiones, riesgos ni recomendaciones cuando faltan datos suficientes.": {
+      "en": "SHARK does not invent conclusions, risks or recommendations when evidence is insufficient.",
+      "fr": "SHARK n'invente pas de conclusions, de risques ou de recommandations lorsque les données sont insuffisantes."
+    },
+    "Contrato preparado en solo lectura, sin envío real.": {
+      "en": "Read-only preview. No message is sent.",
+      "fr": "Aperçu en lecture seule. Aucun message n'est envoyé."
+    },
+    "Telegram podrá reutilizar este partido, timeline e inteligencia sin recalcular datos.": {
+      "en": "Telegram can reuse this match, timeline and analysis without recalculating data.",
+      "fr": "Telegram peut réutiliser ce match, sa chronologie et son analyse sans recalculer les données."
+    },
+    "Exposición voluntaria y juego responsable.": {
+      "en": "Optional exposure and responsible gambling.",
+      "fr": "Exposition volontaire et jeu responsable."
+    },
+    "Ninguna cifra de gestión se calcula sin una selección y una cuota reales.": {
+      "en": "No bankroll figures are calculated without a real selection and odds.",
+      "fr": "Aucun chiffre de gestion n'est calculé sans sélection et cote réelles."
+    },
+    "Selecciones reales con mercado, cuota y riesgo visibles.": {
+      "en": "Real selections with market, odds and risk shown.",
+      "fr": "Sélections réelles avec marché, cote et risque visibles."
+    },
+    "SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.": {
+      "en": "SHARK will publish a selection when the match, market, odds and risk are complete.",
+      "fr": "SHARK publiera une sélection lorsque le match, le marché, la cote et le risque seront complets."
+    },
+    "Explorar partidos": {
+      "en": "Explore matches",
+      "fr": "Explorer les matchs"
+    },
+    "Encuentra el próximo partido.": {
+      "en": "Find your next match.",
+      "fr": "Trouvez le prochain match."
+    },
+    "Abre el análisis deportivo.": {
+      "en": "Open sports analysis.",
+      "fr": "Ouvrez l'analyse sportive."
+    },
+    "Ver histórico": {
+      "en": "View history",
+      "fr": "Voir l'historique"
+    },
+    "Consulta resultados evaluables.": {
+      "en": "View settled pick results.",
+      "fr": "Consultez les résultats des picks évaluables."
+    },
+    "Ver picks": {
+      "en": "View picks",
+      "fr": "Voir les picks"
+    },
+    "Análisis, evidencia y riesgo.": {
+      "en": "Analysis, evidence and risk.",
+      "fr": "Analyse, éléments factuels et risque."
+    },
+    "INTELIGENCIA DEPORTIVA": {
+      "en": "SPORTS INTELLIGENCE",
+      "fr": "INTELLIGENCE SPORTIVE"
+    },
+    "Análisis con evidencia": {
+      "en": "Evidence-backed analysis",
+      "fr": "Analyse étayée"
+    },
+    "Partidos, selecciones y riesgos explicados solo con los datos disponibles.": {
+      "en": "Matches, selections and risks explained using only available data.",
+      "fr": "Matchs, sélections et risques expliqués uniquement à partir des données disponibles."
+    },
+    "Ver directo": {
+      "en": "View live",
+      "fr": "Voir le direct"
+    },
+    "Revisar picks": {
+      "en": "Review picks",
+      "fr": "Examiner les picks"
+    },
+    "SHARK espera evidencia suficiente": {
+      "en": "SHARK is waiting for enough evidence",
+      "fr": "SHARK attend des données suffisantes"
+    },
+    "Los partidos siguen disponibles aunque todavía no exista una selección publicable.": {
+      "en": "Matches remain available even when no selection is ready to publish.",
+      "fr": "Les matchs restent disponibles même sans sélection publiable."
+    },
+    "Rendimiento real de picks cerrados.": {
+      "en": "Actual performance of settled picks.",
+      "fr": "Performance réelle des picks clôturés."
+    },
+    "El histórico empieza con resultados reales": {
+      "en": "History starts with real results",
+      "fr": "L'historique commence avec des résultats réels"
+    },
+    "ROI, winrate y evolución aparecerán cuando existan picks cerrados y evaluables.": {
+      "en": "ROI, win rate and trends will appear when settled, evaluable picks are available.",
+      "fr": "Le ROI, le taux de réussite et les tendances apparaîtront lorsque des picks clôturés seront évaluables."
+    },
+    "Consulta selecciones publicadas.": {
+      "en": "View published selections.",
+      "fr": "Consultez les sélections publiées."
+    },
+    "Abre el catálogo deportivo.": {
+      "en": "Open the sports calendar.",
+      "fr": "Ouvrez le calendrier sportif."
+    },
+    "Revisa análisis disponibles.": {
+      "en": "Review available analysis.",
+      "fr": "Consultez les analyses disponibles."
+    },
+    "Actividad registrada en tu cuenta.": {
+      "en": "Activity recorded in your account.",
+      "fr": "Activité enregistrée sur votre compte."
+    },
+    "{count} partido confirmado": {
+      "en": "{count} confirmed match",
+      "fr": "{count} match confirmé"
+    },
+    "{count} eventos confirmados": {
+      "en": "{count} confirmed events",
+      "fr": "{count} événements confirmés"
+    }
+  },
+  "realtime_updates": {
+    "Actualización en directo": {
+      "en": "Live updates",
+      "fr": "Mises à jour en direct"
+    },
+    "Datos deportivos sincronizados": {
+      "en": "Sports data synced",
+      "fr": "Données sportives synchronisées"
+    },
+    "Esperando datos reales": {
+      "en": "Waiting for sports data",
+      "fr": "En attente de données sportives"
+    },
+    "Actualización segura": {
+      "en": "Confirmed updates",
+      "fr": "Mises à jour confirmées"
+    },
+    "Próxima revisión en {seconds} s": {
+      "en": "Next update in {seconds} s",
+      "fr": "Prochaine mise à jour dans {seconds} s"
+    },
+    "Actualización temporalmente no disponible. Se conserva la última lectura segura.": {
+      "en": "Updates are temporarily unavailable. The last confirmed data is retained.",
+      "fr": "Mises à jour temporairement indisponibles. Les dernières données confirmées sont conservées."
+    }
+  },
+  "critical_details": {
+    "Resumen": {
+      "en": "Summary",
+      "fr": "Résumé"
+    },
+    "Alineaciones": {
+      "en": "Line-ups",
+      "fr": "Compositions"
+    },
+    "Clasificación": {
+      "en": "Standings",
+      "fr": "Classement"
+    },
+    "Estadísticas": {
+      "en": "Statistics",
+      "fr": "Statistiques"
+    },
+    "Eventos": {
+      "en": "Events",
+      "fr": "Événements"
+    },
+    "Vídeo": {
+      "en": "Video",
+      "fr": "Vidéo"
+    },
+    "Cobertura pendiente": {
+      "en": "Coverage pending",
+      "fr": "Couverture en attente"
+    },
+    "Fuente:": {
+      "en": "Source:",
+      "fr": "Source :"
+    },
+    "Actualización:": {
+      "en": "Updated:",
+      "fr": "Mise à jour :"
+    },
+    "Contexto coherente": {
+      "en": "Consistent context",
+      "fr": "Contexte cohérent"
+    },
+    "Contexto parcial": {
+      "en": "Partial context",
+      "fr": "Contexte partiel"
+    },
+    "Partido no disponible": {
+      "en": "Match unavailable",
+      "fr": "Match indisponible"
+    },
+    "No se encontró un registro real para este identificador.": {
+      "en": "No match record was found for this identifier.",
+      "fr": "Aucun match n'a été trouvé pour cet identifiant."
+    },
+    "Sin detalle de partido": {
+      "en": "No match details",
+      "fr": "Aucun détail du match"
+    },
+    "Vuelve al calendario para elegir un encuentro disponible.": {
+      "en": "Return to the calendar to choose an available match.",
+      "fr": "Revenez au calendrier pour choisir un match disponible."
+    },
+    "Volver a partidos": {
+      "en": "Back to matches",
+      "fr": "Retour aux matchs"
+    },
+    "Secciones disponibles del partido": {
+      "en": "Available match sections",
+      "fr": "Rubriques disponibles du match"
+    },
+    "Historia y datos del partido": {
+      "en": "Match story and data",
+      "fr": "Contexte et données du match"
+    },
+    "Contexto y continuidad del partido": {
+      "en": "Match context and next steps",
+      "fr": "Contexte et suivi du match"
+    },
+    "Evidencia del contexto del partido": {
+      "en": "Match context evidence",
+      "fr": "Sources du contexte du match"
+    },
+    "No disponible": {
+      "en": "Unavailable",
+      "fr": "Indisponible"
+    },
+    "No disponible todavía.": {
+      "en": "Not available yet.",
+      "fr": "Pas encore disponible."
+    },
+    "Cargando": {
+      "en": "Loading",
+      "fr": "Chargement"
+    },
+    "Disponible": {
+      "en": "Available",
+      "fr": "Disponible"
+    },
+    "Parcial": {
+      "en": "Partial",
+      "fr": "Partiel"
+    },
+    "Sin conexión": {
+      "en": "Offline",
+      "fr": "Hors connexion"
+    },
+    "Calidad del dato": {
+      "en": "Data quality",
+      "fr": "Qualité des données"
+    },
+    "Procedencia": {
+      "en": "Provenance",
+      "fr": "Provenance"
+    },
+    "Evidencia": {
+      "en": "Evidence",
+      "fr": "Sources"
+    },
+    "Frescura": {
+      "en": "Freshness",
+      "fr": "Actualité"
+    },
+    "Confianza": {
+      "en": "Confidence",
+      "fr": "Confiance"
+    },
+    "No probabilística": {
+      "en": "Not a probability",
+      "fr": "Pas une probabilité"
+    },
+    "Hechos": {
+      "en": "Facts",
+      "fr": "Faits"
+    },
+    "Datos": {
+      "en": "Data",
+      "fr": "Données"
+    },
+    "Historial": {
+      "en": "History",
+      "fr": "Historique"
+    },
+    "Tabla": {
+      "en": "Table",
+      "fr": "Tableau"
+    },
+    "Inteligencia": {
+      "en": "Intelligence",
+      "fr": "Intelligence"
+    },
+    "Continuidad": {
+      "en": "Continuity",
+      "fr": "Suivi"
+    },
+    "Responsabilidad": {
+      "en": "Responsibility",
+      "fr": "Responsabilité"
+    },
+    "Contexto": {
+      "en": "Context",
+      "fr": "Contexte"
+    },
+    "Acciones": {
+      "en": "Actions",
+      "fr": "Actions"
+    },
+    "Partido": {
+      "en": "Match",
+      "fr": "Match"
+    },
+    "Favorito": {
+      "en": "Favourite",
+      "fr": "Favori"
+    },
+    "Visitante": {
+      "en": "Away",
+      "fr": "Visiteur"
+    },
+    "La identidad del partido no está disponible.": {
+      "en": "Match identity is unavailable.",
+      "fr": "L'identité du match est indisponible."
+    },
+    "Marcador y estado del partido": {
+      "en": "Match score and status",
+      "fr": "Score et statut du match"
+    },
+    "El marcador aparecerá únicamente cuando exista evidencia confirmada.": {
+      "en": "The score appears only when confirmed by evidence.",
+      "fr": "Le score apparaît uniquement lorsqu'il est confirmé."
+    },
+    "Resumen del partido": {
+      "en": "Match summary",
+      "fr": "Résumé du match"
+    },
+    "Estado, contexto y riesgos disponibles.": {
+      "en": "Available status, context and risks.",
+      "fr": "État, contexte et risques disponibles."
+    },
+    "Estado actual": {
+      "en": "Current status",
+      "fr": "État actuel"
+    },
+    "Cobertura parcial": {
+      "en": "Partial coverage",
+      "fr": "Couverture partielle"
+    },
+    "Por qué importa este partido": {
+      "en": "Why this match matters",
+      "fr": "Pourquoi suivre ce match"
+    },
+    "Contexto deportivo insuficiente": {
+      "en": "Insufficient sporting context",
+      "fr": "Contexte sportif insuffisant"
+    },
+    "No hay evidencia suficiente para explicar la relevancia deportiva.": {
+      "en": "There is not enough evidence to explain the sporting relevance.",
+      "fr": "Les données ne suffisent pas à expliquer l'enjeu sportif."
+    },
+    "Riesgos": {
+      "en": "Risks",
+      "fr": "Risques"
+    },
+    "Riesgo confirmado": {
+      "en": "Confirmed risk",
+      "fr": "Risque confirmé"
+    },
+    "Sin riesgo confirmado": {
+      "en": "No confirmed risk",
+      "fr": "Aucun risque confirmé"
+    },
+    "Se muestran solo señales con evidencia.": {
+      "en": "Only evidence-backed signals are shown.",
+      "fr": "Seuls les signaux étayés sont affichés."
+    },
+    "No hay riesgo deportivo confirmado con los datos actuales.": {
+      "en": "No sporting risk is confirmed by the current data.",
+      "fr": "Aucun risque sportif n'est confirmé par les données actuelles."
+    },
+    "Sin resultados finalizados confirmados": {
+      "en": "No confirmed final results",
+      "fr": "Aucun résultat final confirmé"
+    },
+    "Cuota real": {
+      "en": "Available odds",
+      "fr": "Cote disponible"
+    },
+    "Definición completa": {
+      "en": "Complete definition",
+      "fr": "Définition complète"
+    },
+    "El stake es orientativo. NeMeSiS no promete beneficios: revisa contexto, riesgo y límite.": {
+      "en": "Stake is indicative. NeMeSiS does not promise profit: review context, risk and limits.",
+      "fr": "La mise est indicative. NeMeSiS ne promet aucun gain : examinez le contexte, le risque et vos limites."
+    },
+    "Fecha, hora y fuente": {
+      "en": "Date, time and source",
+      "fr": "Date, heure et source"
+    },
+    "Mercado y selección": {
+      "en": "Market and selection",
+      "fr": "Marché et sélection"
+    },
+    "No hay más selecciones completas disponibles ahora.": {
+      "en": "No more complete selections are available right now.",
+      "fr": "Aucune autre sélection complète n'est disponible actuellement."
+    },
+    "Partido real": {
+      "en": "Real match",
+      "fr": "Match réel"
+    },
+    "Regla de publicación": {
+      "en": "Publication rule",
+      "fr": "Règle de publication"
+    },
+    "Revisión editorial": {
+      "en": "Editorial review",
+      "fr": "Vérification éditoriale"
+    },
+    "Riesgo y estado": {
+      "en": "Risk and status",
+      "fr": "Risque et statut"
+    },
+    "Sin estimaciones visibles": {
+      "en": "No estimated odds",
+      "fr": "Aucune cote estimée"
+    },
+    "Email o usuario": {
+      "en": "Email or username",
+      "fr": "E-mail ou nom d'utilisateur"
+    },
+    "Enviar enlace": {
+      "en": "Send link",
+      "fr": "Envoyer le lien"
+    },
+    "Introduce tu email o usuario y te enviaremos un enlace seguro si la cuenta existe.": {
+      "en": "Enter your email or username. If the account exists, we will send a secure link.",
+      "fr": "Saisissez votre e-mail ou nom d'utilisateur. Si le compte existe, un lien sécurisé sera envoyé."
+    },
+    "Recuperar contraseña": {
+      "en": "Reset password",
+      "fr": "Réinitialiser le mot de passe"
+    },
+    "SMTP no está configurado. En modo diagnóstico:": {
+      "en": "Email is not configured. Diagnostic mode:",
+      "fr": "L'e-mail n'est pas configuré. Mode diagnostic :"
+    },
+    "abrir enlace de recuperación": {
+      "en": "open recovery link",
+      "fr": "ouvrir le lien de récupération"
+    },
+    "Crea una contraseña segura para volver a entrar en NeMeSiS SHARK PRO.": {
+      "en": "Create a secure password to sign in to NeMeSiS SHARK PRO again.",
+      "fr": "Créez un mot de passe sécurisé pour vous reconnecter à NeMeSiS SHARK PRO."
+    },
+    "Guardar contraseña": {
+      "en": "Save password",
+      "fr": "Enregistrer le mot de passe"
+    },
+    "Nueva contraseña": {
+      "en": "New password",
+      "fr": "Nouveau mot de passe"
+    },
+    "Solicitar otro enlace": {
+      "en": "Request another link",
+      "fr": "Demander un autre lien"
+    },
+    "Elige tu plan": {
+      "en": "Choose your plan",
+      "fr": "Choisissez votre offre"
+    },
+    "Elige por lo que quieres resolver.": {
+      "en": "Choose the features you need.",
+      "fr": "Choisissez selon vos besoins."
+    },
+    "Comparar ELITE": {
+      "en": "Compare ELITE",
+      "fr": "Comparer ELITE"
+    },
+    "Base segura para empezar.": {
+      "en": "A safe place to start.",
+      "fr": "Une base sûre pour commencer."
+    },
+    "Ver prestaciones": {
+      "en": "View features",
+      "fr": "Voir les fonctionnalités"
+    },
+    "Calendario y estados deportivos": {
+      "en": "Calendar and match statuses",
+      "fr": "Calendrier et statuts des matchs"
+    },
+    "Directo con datos reales disponibles": {
+      "en": "Live matches with available real data",
+      "fr": "Direct avec les données réelles disponibles"
+    },
+    "Picks públicos según disponibilidad": {
+      "en": "Public picks when available",
+      "fr": "Picks publics selon disponibilité"
+    },
+    "Acceso al contenido informativo": {
+      "en": "Access to information",
+      "fr": "Accès au contenu informatif"
+    },
+    "Experiencia completa": {
+      "en": "Complete experience",
+      "fr": "Expérience complète"
+    },
+    "Picks completos según datos reales": {
+      "en": "Complete picks based on real data",
+      "fr": "Picks complets fondés sur des données réelles"
+    },
+    "Alertas Telegram": {
+      "en": "Telegram alerts",
+      "fr": "Alertes Telegram"
+    },
+    "SHARK con contexto disponible": {
+      "en": "SHARK with available context",
+      "fr": "SHARK avec le contexte disponible"
+    },
+    "Histórico cuando exista": {
+      "en": "History when available",
+      "fr": "Historique lorsqu'il est disponible"
+    },
+    "Prioridad y acceso avanzado": {
+      "en": "Priority and advanced access",
+      "fr": "Priorité et accès avancé"
+    },
+    "Todo lo incluido en PRO": {
+      "en": "Everything in PRO",
+      "fr": "Tout ce qui est inclus dans PRO"
+    },
+    "Alertas prioritarias": {
+      "en": "Priority alerts",
+      "fr": "Alertes prioritaires"
+    },
+    "Soporte según disponibilidad": {
+      "en": "Support subject to availability",
+      "fr": "Assistance selon disponibilité"
+    },
+    "Acceso anticipado a funciones": {
+      "en": "Early access to features",
+      "fr": "Accès anticipé aux fonctionnalités"
+    },
+    "Configuración pendiente": {
+      "en": "Setup pending",
+      "fr": "Configuration en attente"
+    },
+    "Cambiar o cancelar sin fricción": {
+      "en": "Change or cancel easily",
+      "fr": "Modifier ou résilier simplement"
+    },
+    "Sin presión y con condiciones visibles antes de cualquier checkout.": {
+      "en": "No pressure, with terms visible before checkout.",
+      "fr": "Sans pression, avec les conditions visibles avant tout paiement."
+    },
+    "Solo para mayores de edad.": {
+      "en": "For adults only.",
+      "fr": "Réservé aux personnes majeures."
+    },
+    "Juego responsable": {
+      "en": "Responsible gambling",
+      "fr": "Jeu responsable"
+    },
+    "Sin beneficios garantizados.": {
+      "en": "No guaranteed profit.",
+      "fr": "Aucun gain garanti."
+    },
+    "Plataforma informativa": {
+      "en": "Information platform",
+      "fr": "Plateforme d'information"
+    },
+    "No somos casa de apuestas.": {
+      "en": "We are not a bookmaker.",
+      "fr": "Nous ne sommes pas un site de paris."
+    },
+    "Stripe configurado": {
+      "en": "Stripe configured",
+      "fr": "Stripe configuré"
+    },
+    "+18 - Información deportiva, no casa de apuestas.": {
+      "en": "18+ - Sports information, not a bookmaker.",
+      "fr": "18 ans et plus - Information sportive, pas un site de paris."
+    },
+    "NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.": {
+      "en": "NeMeSiS SHARK PRO does not accept bets, hold gambling funds, pay winnings or guarantee profit.",
+      "fr": "NeMeSiS SHARK PRO n'accepte pas de paris, ne conserve pas de fonds de jeu, ne verse pas de gains et ne garantit aucun bénéfice."
+    },
+    "Abrir SHARK": {
+      "en": "Open SHARK",
+      "fr": "Ouvrir SHARK"
+    },
+    "Arriba": {
+      "en": "Top",
+      "fr": "Haut"
+    },
+    "Oficial": {
+      "en": "Official",
+      "fr": "Officiel"
+    },
+    "Precios": {
+      "en": "Pricing",
+      "fr": "Tarifs"
+    },
+    "Estado": {
+      "en": "Status",
+      "fr": "Statut"
+    },
+    "Enviar": {
+      "en": "Send",
+      "fr": "Envoyer"
+    },
+    "Produccion desconectada": {
+      "en": "Production disconnected",
+      "fr": "Production déconnectée"
+    },
+    "DB local": {
+      "en": "Local DB",
+      "fr": "Base locale"
+    },
+    "Telegram y Stripe desactivados": {
+      "en": "Telegram and Stripe disabled",
+      "fr": "Telegram et Stripe désactivés"
+    },
+    "Panel local": {
+      "en": "Local panel",
+      "fr": "Panneau local"
+    },
+    "Offline seguro": {
+      "en": "Safe offline mode",
+      "fr": "Mode hors ligne sécurisé"
+    },
+    "Prueba de integracion controlada": {
+      "en": "Controlled integration test",
+      "fr": "Test d'intégration contrôlé"
+    }
+  },
+  "navigation": {
+    "Inicio": {
+      "en": "Home",
+      "fr": "Accueil"
+    },
+    "Calendario": {
+      "en": "Calendar",
+      "fr": "Calendrier"
+    },
+    "Directo": {
+      "en": "Live",
+      "fr": "Direct"
+    },
+    "Picks": {
+      "en": "Picks",
+      "fr": "Picks"
+    },
+    "Cuenta": {
+      "en": "Account",
+      "fr": "Compte"
+    },
+    "Histórico": {
+      "en": "Track record",
+      "fr": "Historique"
+    },
+    "Partidos": {
+      "en": "Matches",
+      "fr": "Matchs"
+    },
+    "Favoritos": {
+      "en": "Favourites",
+      "fr": "Favoris"
+    },
+    "Membresías": {
+      "en": "Memberships",
+      "fr": "Abonnements"
+    },
+    "Soporte": {
+      "en": "Support",
+      "fr": "Assistance"
+    },
+    "Entrar": {
+      "en": "Sign in",
+      "fr": "Connexion"
+    },
+    "Crear cuenta": {
+      "en": "Create account",
+      "fr": "Créer un compte"
+    },
+    "Cerrar sesión": {
+      "en": "Sign out",
+      "fr": "Déconnexion"
+    },
+    "Mi cuenta": {
+      "en": "My account",
+      "fr": "Mon compte"
+    },
+    "Idioma": {
+      "en": "Language",
+      "fr": "Langue"
+    },
+    "Guardar idioma": {
+      "en": "Save language",
+      "fr": "Enregistrer la langue"
+    },
+    "Idioma guardado": {
+      "en": "Language saved",
+      "fr": "Langue enregistrée"
+    },
+    "Idioma no válido": {
+      "en": "Invalid language",
+      "fr": "Langue non valide"
+    },
+    "No se pudo guardar la preferencia. Inténtalo de nuevo.": {
+      "en": "Could not save your preference. Please try again.",
+      "fr": "Impossible d'enregistrer votre préférence. Réessayez."
+    },
+    "Navegación pública": {
+      "en": "Public navigation",
+      "fr": "Navigation publique"
+    },
+    "Navegación cliente": {
+      "en": "Client navigation",
+      "fr": "Navigation client"
+    },
+    "Navegación móvil": {
+      "en": "Mobile navigation",
+      "fr": "Navigation mobile"
+    },
+    "Entrar en NeMeSiS": {
+      "en": "Sign in to NeMeSiS",
+      "fr": "Se connecter à NeMeSiS"
+    },
+    "Abrir mi cuenta": {
+      "en": "Open my account",
+      "fr": "Ouvrir mon compte"
+    },
+    "Abrir Telegram": {
+      "en": "Open Telegram",
+      "fr": "Ouvrir Telegram"
+    },
+    "Accesos rápidos": {
+      "en": "Quick links",
+      "fr": "Accès rapides"
+    },
+    "Volver": {
+      "en": "Back",
+      "fr": "Retour"
+    },
+    "Abrir": {
+      "en": "Open",
+      "fr": "Ouvrir"
+    },
+    "Continuar": {
+      "en": "Continue",
+      "fr": "Continuer"
+    },
+    "Ver todos": {
+      "en": "View all",
+      "fr": "Tout voir"
+    },
+    "Plan": {
+      "en": "Plan",
+      "fr": "Offre"
+    },
+    "Plan {plan}": {
+      "en": "{plan} plan",
+      "fr": "Offre {plan}"
+    }
+  },
+  "sports": {
+    "Hoy": {
+      "en": "Today",
+      "fr": "Aujourd'hui"
+    },
+    "Ayer": {
+      "en": "Yesterday",
+      "fr": "Hier"
+    },
+    "Mañana": {
+      "en": "Tomorrow",
+      "fr": "Demain"
+    },
+    "HOY": {
+      "en": "TODAY",
+      "fr": "AUJOURD'HUI"
+    },
+    "PRÓXIMOS": {
+      "en": "UPCOMING",
+      "fr": "À VENIR"
+    },
+    "Semana": {
+      "en": "Week",
+      "fr": "Semaine"
+    },
+    "Agenda": {
+      "en": "Schedule",
+      "fr": "Programme"
+    },
+    "Ahora": {
+      "en": "Now",
+      "fr": "Maintenant"
+    },
+    "Próximos": {
+      "en": "Upcoming",
+      "fr": "À venir"
+    },
+    "En directo": {
+      "en": "Live",
+      "fr": "En direct"
+    },
+    "Programado": {
+      "en": "Scheduled",
+      "fr": "Programmé"
+    },
+    "Finalizado": {
+      "en": "Full time",
+      "fr": "Terminé"
+    },
+    "Finalizados": {
+      "en": "Finished",
+      "fr": "Terminés"
+    },
+    "Descanso": {
+      "en": "Half-time",
+      "fr": "Mi-temps"
+    },
+    "Aplazado": {
+      "en": "Postponed",
+      "fr": "Reporté"
+    },
+    "Suspendido": {
+      "en": "Suspended",
+      "fr": "Suspendu"
+    },
+    "Cancelado": {
+      "en": "Cancelled",
+      "fr": "Annulé"
+    },
+    "Datos retrasados": {
+      "en": "Delayed data",
+      "fr": "Données retardées"
+    },
+    "Datos desactualizados": {
+      "en": "Outdated data",
+      "fr": "Données obsolètes"
+    },
+    "Pendiente": {
+      "en": "Pending",
+      "fr": "En attente"
+    },
+    "Estado pendiente": {
+      "en": "Status pending",
+      "fr": "Statut en attente"
+    },
+    "Hora pendiente": {
+      "en": "Time pending",
+      "fr": "Horaire en attente"
+    },
+    "Hora Madrid pendiente": {
+      "en": "Madrid time pending",
+      "fr": "Heure de Madrid en attente"
+    },
+    "Fecha pendiente": {
+      "en": "Date pending",
+      "fr": "Date en attente"
+    },
+    "Sin fecha": {
+      "en": "Date unavailable",
+      "fr": "Date indisponible"
+    },
+    "Sin dato": {
+      "en": "Unavailable",
+      "fr": "Indisponible"
+    },
+    "Sin muestra": {
+      "en": "No sample",
+      "fr": "Aucun échantillon"
+    },
+    "Equipo pendiente": {
+      "en": "Team pending",
+      "fr": "Équipe en attente"
+    },
+    "Pendiente de completar": {
+      "en": "Incomplete data",
+      "fr": "Données incomplètes"
+    },
+    "Competición": {
+      "en": "Competition",
+      "fr": "Compétition"
+    },
+    "Competiciones": {
+      "en": "Competitions",
+      "fr": "Compétitions"
+    },
+    "País": {
+      "en": "Country",
+      "fr": "Pays"
+    },
+    "Con pick": {
+      "en": "With pick",
+      "fr": "Avec pick"
+    },
+    "Todos": {
+      "en": "All",
+      "fr": "Tous"
+    },
+    "Todas": {
+      "en": "All",
+      "fr": "Toutes"
+    },
+    "Ver partido": {
+      "en": "View match",
+      "fr": "Voir le match"
+    },
+    "Ver análisis": {
+      "en": "View analysis",
+      "fr": "Voir l'analyse"
+    },
+    "Guardar favorito": {
+      "en": "Save favourite",
+      "fr": "Enregistrer en favori"
+    },
+    "Prioridad": {
+      "en": "Priority",
+      "fr": "Priorité"
+    },
+    "Estándar": {
+      "en": "Standard",
+      "fr": "Standard"
+    },
+    "Local": {
+      "en": "Local",
+      "fr": "Local"
+    },
+    "Competición pendiente": {
+      "en": "Competition pending",
+      "fr": "Compétition en attente"
+    },
+    "Resultados": {
+      "en": "Results",
+      "fr": "Résultats"
+    },
+    "Filtros": {
+      "en": "Filters",
+      "fr": "Filtres"
+    },
+    "{count} partido": {
+      "en": "{count} match",
+      "fr": "{count} match"
+    },
+    "{count} partidos": {
+      "en": "{count} matches",
+      "fr": "{count} matchs"
+    },
+    "{count} partido para hoy": {
+      "en": "{count} match today",
+      "fr": "{count} match aujourd'hui"
+    },
+    "{count} partidos para hoy": {
+      "en": "{count} matches today",
+      "fr": "{count} matchs aujourd'hui"
+    },
+    "{count} en directo": {
+      "en": "{count} live",
+      "fr": "{count} en direct"
+    },
+    "Buenos días": {
+      "en": "Good morning",
+      "fr": "Bonjour"
+    },
+    "Buenas tardes": {
+      "en": "Good afternoon",
+      "fr": "Bon après-midi"
+    },
+    "Buenas noches": {
+      "en": "Good evening",
+      "fr": "Bonsoir"
+    }
+  },
+  "home": {
+    "NeMeSiS · Tu jornada": {
+      "en": "NeMeSiS · Your matchday",
+      "fr": "NeMeSiS · Votre journée"
+    },
+    "Tu próxima jornada, en el calendario.": {
+      "en": "Your next matchday is in the calendar.",
+      "fr": "Votre prochaine journée est dans le calendrier."
+    },
+    "Partidos hoy": {
+      "en": "Today's matches",
+      "fr": "Matchs du jour"
+    },
+    "Picks activos": {
+      "en": "Active picks",
+      "fr": "Picks actifs"
+    },
+    "Tu radar": {
+      "en": "Your watchlist",
+      "fr": "Votre sélection"
+    },
+    "Partidos destacados": {
+      "en": "Featured matches",
+      "fr": "Matchs à suivre"
+    },
+    "Sin partidos destacados ahora": {
+      "en": "No featured matches right now",
+      "fr": "Aucun match à suivre pour le moment"
+    },
+    "La agenda aparecerá cuando existan encuentros completos.": {
+      "en": "Matches appear when their details are confirmed.",
+      "fr": "Les matchs apparaîtront lorsque leurs informations seront confirmées."
+    },
+    "Abrir calendario": {
+      "en": "Open calendar",
+      "fr": "Ouvrir le calendrier"
+    },
+    "Abrir Directo": {
+      "en": "Open live matches",
+      "fr": "Voir le direct"
+    },
+    "Abrir partidos": {
+      "en": "Open matches",
+      "fr": "Voir les matchs"
+    },
+    "Pick destacado": {
+      "en": "Featured pick",
+      "fr": "Pick à la une"
+    },
+    "Todavía no hay picks publicados": {
+      "en": "No picks published yet",
+      "fr": "Aucun pick publié pour le moment"
+    },
+    "SHARK espera evidencia completa.": {
+      "en": "SHARK is waiting for complete evidence.",
+      "fr": "SHARK attend des données complètes."
+    },
+    "Tu selección": {
+      "en": "Your selection",
+      "fr": "Votre sélection"
+    },
+    "Planes": {
+      "en": "Plans",
+      "fr": "Offres"
+    },
+    "Ayuda": {
+      "en": "Help",
+      "fr": "Aide"
+    },
+    "Más de tu jornada": {
+      "en": "More from your matchday",
+      "fr": "Plus sur votre journée"
+    },
+    "Semana completa": {
+      "en": "Full week",
+      "fr": "Toute la semaine"
+    },
+    "Esperando próximos partidos": {
+      "en": "Waiting for upcoming matches",
+      "fr": "En attente des prochains matchs"
+    },
+    "Sin calendario inventado.": {
+      "en": "Only confirmed fixtures are shown.",
+      "fr": "Seuls les matchs confirmés sont affichés."
+    },
+    "Favoritos y resultados": {
+      "en": "Favourites and results",
+      "fr": "Favoris et résultats"
+    },
+    "Abrir favoritos": {
+      "en": "Open favourites",
+      "fr": "Ouvrir les favoris"
+    },
+    "Sin actividad reciente": {
+      "en": "No recent activity",
+      "fr": "Aucune activité récente"
+    },
+    "Guarda un partido para verlo aquí.": {
+      "en": "Save a match to see it here.",
+      "fr": "Enregistrez un match pour le retrouver ici."
+    },
+    "Elegir favoritos": {
+      "en": "Choose favourites",
+      "fr": "Choisir des favoris"
+    },
+    "Resumen de la jornada": {
+      "en": "Matchday summary",
+      "fr": "Résumé de la journée"
+    }
+  },
+  "calendar": {
+    "Tu agenda deportiva.": {
+      "en": "Your sports schedule.",
+      "fr": "Votre agenda sportif."
+    },
+    "Ir a directo": {
+      "en": "Go to live matches",
+      "fr": "Voir le direct"
+    },
+    "Resumen deportivo": {
+      "en": "Sports summary",
+      "fr": "Résumé sportif"
+    },
+    "Prioridad deportiva": {
+      "en": "Sports priority",
+      "fr": "Priorité sportive"
+    },
+    "Agenda deportiva confirmada.": {
+      "en": "Confirmed sports schedule.",
+      "fr": "Programme sportif confirmé."
+    },
+    "Resultados visibles": {
+      "en": "Visible results",
+      "fr": "Résultats affichés"
+    },
+    "partido visible": {
+      "en": "match shown",
+      "fr": "match affiché"
+    },
+    "partidos visibles": {
+      "en": "matches shown",
+      "fr": "matchs affichés"
+    },
+    "Qué quieres ver": {
+      "en": "What to watch",
+      "fr": "Que souhaitez-vous voir"
+    },
+    "Cambiar de día": {
+      "en": "Choose a day",
+      "fr": "Choisir un jour"
+    },
+    "Día anterior": {
+      "en": "Previous day",
+      "fr": "Jour précédent"
+    },
+    "Día siguiente": {
+      "en": "Next day",
+      "fr": "Jour suivant"
+    },
+    "Fecha del calendario": {
+      "en": "Calendar date",
+      "fr": "Date du calendrier"
+    },
+    "Ver fecha": {
+      "en": "View date",
+      "fr": "Afficher la date"
+    },
+    "Buscar y filtrar por competición o país": {
+      "en": "Search and filter by competition or country",
+      "fr": "Rechercher par compétition ou pays"
+    },
+    "Buscar equipo, liga o competición": {
+      "en": "Search team, league or competition",
+      "fr": "Rechercher une équipe, ligue ou compétition"
+    },
+    "Equipo, liga o competición": {
+      "en": "Team, league or competition",
+      "fr": "Équipe, ligue ou compétition"
+    },
+    "Encontrar partidos": {
+      "en": "Find matches",
+      "fr": "Trouver des matchs"
+    },
+    "Filtros activos": {
+      "en": "Active filters",
+      "fr": "Filtres actifs"
+    },
+    "Quitar": {
+      "en": "Remove",
+      "fr": "Retirer"
+    },
+    "Limpiar capas": {
+      "en": "Clear filters",
+      "fr": "Effacer les filtres"
+    },
+    "Contexto actual del calendario": {
+      "en": "Current calendar context",
+      "fr": "Contexte actuel du calendrier"
+    },
+    "Estás explorando": {
+      "en": "Currently viewing",
+      "fr": "Vous consultez"
+    },
+    "Cambiar filtros": {
+      "en": "Change filters",
+      "fr": "Modifier les filtres"
+    },
+    "Ir a un día de la colección": {
+      "en": "Go to a day in this schedule",
+      "fr": "Aller à un jour du programme"
+    },
+    "Ir a un día": {
+      "en": "Go to a day",
+      "fr": "Aller à un jour"
+    },
+    "Partidos encontrados": {
+      "en": "Matches found",
+      "fr": "Matchs trouvés"
+    },
+    "Jornada": {
+      "en": "Matchday",
+      "fr": "Journée"
+    },
+    "Sin partidos reales para estas capas": {
+      "en": "No matches for these filters",
+      "fr": "Aucun match pour ces filtres"
+    },
+    "Conservamos tu contexto. Retira una capa o revisa la semana; no se muestran encuentros de ejemplo.": {
+      "en": "Your filters are saved. Clear a filter or view the week.",
+      "fr": "Vos filtres sont conservés. Retirez un filtre ou consultez la semaine."
+    },
+    "Estado y cierre del calendario": {
+      "en": "Calendar status",
+      "fr": "État du calendrier"
+    },
+    "Colección recorrida": {
+      "en": "End of schedule",
+      "fr": "Fin du programme"
+    },
+    "Tu contexto sigue disponible aunque llegues al final.": {
+      "en": "Your filters remain available at the end.",
+      "fr": "Vos filtres restent disponibles à la fin."
+    },
+    "Días": {
+      "en": "Days",
+      "fr": "Jours"
+    },
+    "Siguiente decisión": {
+      "en": "Next step",
+      "fr": "Étape suivante"
+    },
+    "Cambia de capa o vuelve al punto de búsqueda.": {
+      "en": "Change filters or return to search.",
+      "fr": "Modifiez les filtres ou revenez à la recherche."
+    },
+    "Volver a filtros": {
+      "en": "Back to filters",
+      "fr": "Retour aux filtres"
+    },
+    "{count} partidos confirmados": {
+      "en": "{count} confirmed matches",
+      "fr": "{count} matchs confirmés"
+    },
+    "de {count} en esta colección": {
+      "en": "of {count} in this schedule",
+      "fr": "sur {count} dans ce programme"
+    },
+    "Partidos en juego ahora.": {
+      "en": "Matches being played now.",
+      "fr": "Matchs en cours."
+    },
+    "Pausa": {
+      "en": "Break",
+      "fr": "Pause"
+    },
+    "Ahora mismo": {
+      "en": "Right now",
+      "fr": "En ce moment"
+    },
+    "No hay partidos para este estado": {
+      "en": "No matches with this status",
+      "fr": "Aucun match avec ce statut"
+    },
+    "Los últimos datos confirmados siguen accesibles. Consulta los próximos encuentros.": {
+      "en": "The latest confirmed data remains available. Check upcoming matches.",
+      "fr": "Les dernières données confirmées restent disponibles. Consultez les prochains matchs."
+    },
+    "Próximos encuentros": {
+      "en": "Upcoming matches",
+      "fr": "Prochains matchs"
+    },
+    "Resumen del directo": {
+      "en": "Live summary",
+      "fr": "Résumé du direct"
+    }
+  },
+  "account": {
+    "Plan, preferencias y seguridad.": {
+      "en": "Plan, preferences and security.",
+      "fr": "Offre, préférences et sécurité."
+    },
+    "Gestionar plan": {
+      "en": "Manage plan",
+      "fr": "Gérer l'abonnement"
+    },
+    "Sesión activa": {
+      "en": "Signed in",
+      "fr": "Session active"
+    },
+    "Cuenta y servicios": {
+      "en": "Account and services",
+      "fr": "Compte et services"
+    },
+    "Plan y facturación": {
+      "en": "Plan and billing",
+      "fr": "Abonnement et facturation"
+    },
+    "Conexión y alertas": {
+      "en": "Connection and alerts",
+      "fr": "Connexion et alertes"
+    },
+    "Equipos y partidos": {
+      "en": "Teams and matches",
+      "fr": "Équipes et matchs"
+    },
+    "Notificaciones": {
+      "en": "Notifications",
+      "fr": "Notifications"
+    },
+    "Preferencias": {
+      "en": "Preferences",
+      "fr": "Préférences"
+    },
+    "Privacidad y medición de uso": {
+      "en": "Privacy and usage settings",
+      "fr": "Confidentialité et mesure d'utilisation"
+    },
+    "Tus datos": {
+      "en": "Your data",
+      "fr": "Vos données"
+    },
+    "Actividad reciente": {
+      "en": "Recent activity",
+      "fr": "Activité récente"
+    },
+    "Tus últimas acciones.": {
+      "en": "Your latest actions.",
+      "fr": "Vos dernières actions."
+    },
+    "Ver toda": {
+      "en": "View all",
+      "fr": "Tout voir"
+    },
+    "Actividad": {
+      "en": "Activity",
+      "fr": "Activité"
+    },
+    "Registrada": {
+      "en": "Recorded",
+      "fr": "Enregistrée"
+    },
+    "Registrado": {
+      "en": "Recorded",
+      "fr": "Enregistré"
+    },
+    "Tus acciones aparecerán aquí.": {
+      "en": "Your actions will appear here.",
+      "fr": "Vos actions apparaîtront ici."
+    },
+    "Seguridad": {
+      "en": "Security",
+      "fr": "Sécurité"
+    },
+    "Cambiar contraseña": {
+      "en": "Change password",
+      "fr": "Modifier le mot de passe"
+    },
+    "Credenciales": {
+      "en": "Credentials",
+      "fr": "Identifiants"
+    },
+    "Términos": {
+      "en": "Terms",
+      "fr": "Conditions"
+    },
+    "Condiciones": {
+      "en": "Terms",
+      "fr": "Conditions"
+    },
+    "Privacidad": {
+      "en": "Privacy",
+      "fr": "Confidentialité"
+    },
+    "Tratamiento de datos": {
+      "en": "Data processing",
+      "fr": "Traitement des données"
+    },
+    "Reembolsos": {
+      "en": "Refunds",
+      "fr": "Remboursements"
+    },
+    "Política": {
+      "en": "Policy",
+      "fr": "Politique"
+    }
+  },
+  "auth": {
+    "Acceso": {
+      "en": "Sign in",
+      "fr": "Connexion"
+    },
+    "Email o nombre de usuario": {
+      "en": "Email or username",
+      "fr": "E-mail ou nom d'utilisateur"
+    },
+    "Contraseña": {
+      "en": "Password",
+      "fr": "Mot de passe"
+    },
+    "He olvidado mi contraseña": {
+      "en": "Forgot password",
+      "fr": "Mot de passe oublié"
+    },
+    "Nuevo cliente": {
+      "en": "New here?",
+      "fr": "Nouveau client"
+    },
+    "Accede a tu cuenta NeMeSiS.": {
+      "en": "Sign in to your NeMeSiS account.",
+      "fr": "Connectez-vous à votre compte NeMeSiS."
+    },
+    "Crea una cuenta FREE para activar el perfil y dejar lista la capa premium.": {
+      "en": "Create a FREE account to set up your profile.",
+      "fr": "Créez un compte FREE pour configurer votre profil."
+    },
+    "Ver planes y precios": {
+      "en": "View plans and pricing",
+      "fr": "Voir les offres et tarifs"
+    },
+    "Vuelves al pago tras entrar.": {
+      "en": "You will return to checkout after signing in.",
+      "fr": "Vous reviendrez au paiement après la connexion."
+    },
+    "Entra para activar {plan}": {
+      "en": "Sign in to activate {plan}",
+      "fr": "Connectez-vous pour activer {plan}"
+    },
+    "Guardamos tu plan elegido. Al entrar volverás a membresías para continuar con Stripe.": {
+      "en": "Your selected plan is saved. After signing in you will return to memberships to continue with Stripe.",
+      "fr": "Votre offre est conservée. Après connexion, vous reviendrez aux abonnements pour continuer avec Stripe."
+    },
+    "Entrar y seguir con {plan}": {
+      "en": "Sign in and continue with {plan}",
+      "fr": "Se connecter et continuer avec {plan}"
+    },
+    "Crea tu cuenta y volverás al plan {plan} para pagar en Stripe.": {
+      "en": "Create an account to return to the {plan} checkout on Stripe.",
+      "fr": "Créez un compte pour revenir au paiement {plan} sur Stripe."
+    },
+    "Crear cuenta y seguir": {
+      "en": "Create account and continue",
+      "fr": "Créer un compte et continuer"
+    },
+    "seleccionado": {
+      "en": "selected",
+      "fr": "sélectionné"
+    },
+    "Registro": {
+      "en": "Sign up",
+      "fr": "Inscription"
+    },
+    "Nombre visible": {
+      "en": "Display name",
+      "fr": "Nom affiché"
+    },
+    "Nombre de usuario": {
+      "en": "Username",
+      "fr": "Nom d'utilisateur"
+    },
+    "Email": {
+      "en": "Email",
+      "fr": "E-mail"
+    },
+    "Acceso cliente SHARK": {
+      "en": "SHARK client account",
+      "fr": "Compte client SHARK"
+    },
+    "Crea cuenta para activar {plan}": {
+      "en": "Create an account to activate {plan}",
+      "fr": "Créez un compte pour activer {plan}"
+    },
+    "La cuenta empieza en FREE y al terminar volverás al plan elegido para pagar con Stripe.": {
+      "en": "Your account starts on FREE. You will then return to your chosen plan to pay with Stripe.",
+      "fr": "Votre compte commence avec FREE. Vous reviendrez ensuite à l'offre choisie pour payer avec Stripe."
+    },
+    "Registra tu cuenta FREE y conecta el perfil con favoritos, live, picks y futuras membresías premium.": {
+      "en": "Create your FREE account for favourites, live matches and picks.",
+      "fr": "Créez votre compte FREE pour les favoris, le direct et les picks."
+    },
+    "Después del registro continúas al pago.": {
+      "en": "You will continue to checkout after signing up.",
+      "fr": "Vous continuerez au paiement après l'inscription."
+    },
+    "Crear cuenta y seguir con {plan}": {
+      "en": "Create account and continue with {plan}",
+      "fr": "Créer un compte et continuer avec {plan}"
+    },
+    "El plan inicial es FREE. PRO/ELITE se activan automáticamente cuando Stripe confirma el pago.": {
+      "en": "Your initial plan is FREE. PRO/ELITE activates when Stripe confirms payment.",
+      "fr": "Votre offre initiale est FREE. PRO/ELITE s'active lorsque Stripe confirme le paiement."
+    },
+    "Ya tengo cuenta": {
+      "en": "Already have an account?",
+      "fr": "Vous avez déjà un compte"
+    },
+    "Entra y volverás al plan {plan} para terminar el pago.": {
+      "en": "Sign in to finish payment for {plan}.",
+      "fr": "Connectez-vous pour terminer le paiement de {plan}."
+    },
+    "Entra para volver a tu perfil y recuperar tu sesión premium.": {
+      "en": "Sign in to return to your profile.",
+      "fr": "Connectez-vous pour retrouver votre profil."
+    },
+    "Entrar y seguir": {
+      "en": "Sign in and continue",
+      "fr": "Se connecter et continuer"
+    },
+    "Completa nombre, usuario, email y contrasena.": {
+      "en": "Enter your name, username, email and password.",
+      "fr": "Saisissez votre nom, nom d'utilisateur, e-mail et mot de passe."
+    },
+    "El nombre de usuario debe tener al menos 3 caracteres.": {
+      "en": "Your username must have at least 3 characters.",
+      "fr": "Le nom d'utilisateur doit contenir au moins 3 caractères."
+    },
+    "Ese nombre de usuario ya está registrado.": {
+      "en": "That username is already registered.",
+      "fr": "Ce nom d'utilisateur est déjà enregistré."
+    },
+    "Email o usuario y contraseña no válidos.": {
+      "en": "Invalid email, username or password.",
+      "fr": "E-mail, nom d'utilisateur ou mot de passe incorrect."
+    },
+    "Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo.": {
+      "en": "Session expired or invalid form. Reload the page and try again.",
+      "fr": "Session expirée ou formulaire non valide. Rechargez la page et réessayez."
+    }
+  },
+  "support": {
+    "Contactar con soporte": {
+      "en": "Contact support",
+      "fr": "Contacter l'assistance"
+    },
+    "El envío de mensajes no está disponible en este momento.": {
+      "en": "Sending messages is currently unavailable.",
+      "fr": "L'envoi de messages est indisponible pour le moment."
+    },
+    "Tipo": {
+      "en": "Type",
+      "fr": "Type"
+    },
+    "Partidos / calendario": {
+      "en": "Matches / calendar",
+      "fr": "Matchs / calendrier"
+    },
+    "Directo / resultados": {
+      "en": "Live / results",
+      "fr": "Direct / résultats"
+    },
+    "Picks / combinadas": {
+      "en": "Picks / accumulators",
+      "fr": "Picks / combinés"
+    },
+    "Cuenta / membresía": {
+      "en": "Account / membership",
+      "fr": "Compte / abonnement"
+    },
+    "Cancelación / cambio de plan": {
+      "en": "Cancellation / plan change",
+      "fr": "Résiliation / changement d'offre"
+    },
+    "Privacidad / datos personales": {
+      "en": "Privacy / personal data",
+      "fr": "Confidentialité / données personnelles"
+    },
+    "General": {
+      "en": "General",
+      "fr": "Général"
+    },
+    "Normal": {
+      "en": "Normal",
+      "fr": "Normale"
+    },
+    "Alta": {
+      "en": "High",
+      "fr": "Haute"
+    },
+    "Baja": {
+      "en": "Low",
+      "fr": "Basse"
+    },
+    "Asunto": {
+      "en": "Subject",
+      "fr": "Objet"
+    },
+    "Mensaje": {
+      "en": "Message",
+      "fr": "Message"
+    },
+    "Enviar al soporte": {
+      "en": "Send to support",
+      "fr": "Envoyer à l'assistance"
+    },
+    "Ayuda y privacidad": {
+      "en": "Help and privacy",
+      "fr": "Aide et confidentialité"
+    },
+    "No incluyas contraseñas, tarjetas ni datos sensibles en tu mensaje.": {
+      "en": "Do not include passwords, payment cards or sensitive information in your message.",
+      "fr": "N'incluez pas de mots de passe, de cartes bancaires ni de données sensibles dans votre message."
+    },
+    "Consultar SHARK": {
+      "en": "Ask SHARK",
+      "fr": "Consulter SHARK"
+    },
+    "Preguntas frecuentes": {
+      "en": "Frequently asked questions",
+      "fr": "Questions fréquentes"
+    }
+  },
+  "shared": {
+    "Confirmado": {
+      "en": "Confirmed",
+      "fr": "Confirmé"
+    },
+    "Verificación parcial": {
+      "en": "Partially verified",
+      "fr": "Vérification partielle"
+    },
+    "No certificado": {
+      "en": "Not certified",
+      "fr": "Non certifié"
+    },
+    "No configurado": {
+      "en": "Not configured",
+      "fr": "Non configuré"
+    },
+    "Bloqueado por acceso": {
+      "en": "Access blocked",
+      "fr": "Accès bloqué"
+    },
+    "Hipótesis": {
+      "en": "Hypothesis",
+      "fr": "Hypothèse"
+    },
+    "Requiere revisión": {
+      "en": "Review required",
+      "fr": "À vérifier"
+    },
+    "Bloqueado": {
+      "en": "Blocked",
+      "fr": "Bloqué"
+    },
+    "Publicado": {
+      "en": "Published",
+      "fr": "Publié"
+    },
+    "Mercado": {
+      "en": "Market",
+      "fr": "Marché"
+    },
+    "Selección": {
+      "en": "Selection",
+      "fr": "Sélection"
+    },
+    "Cuota": {
+      "en": "Odds",
+      "fr": "Cote"
+    },
+    "Riesgo": {
+      "en": "Risk",
+      "fr": "Risque"
+    },
+    "Confianza del análisis": {
+      "en": "Analysis confidence",
+      "fr": "Confiance de l'analyse"
+    },
+    "No se publica hasta tener partido, mercado, selección y cuota reales.": {
+      "en": "Publication requires a real match, market, selection and odds.",
+      "fr": "La publication exige un match, un marché, une sélection et une cote réels."
+    },
+    "Datos deportivos": {
+      "en": "Sports data",
+      "fr": "Données sportives"
+    },
+    "Actualizados": {
+      "en": "Up to date",
+      "fr": "À jour"
+    },
+    "Esperando datos": {
+      "en": "Waiting for data",
+      "fr": "En attente de données"
+    },
+    "Datos reales disponibles.": {
+      "en": "Confirmed data available.",
+      "fr": "Données confirmées disponibles."
+    },
+    "La app seguirá operativa y se actualizará cuando haya información confirmada.": {
+      "en": "The app remains available and updates when information is confirmed.",
+      "fr": "L'application reste disponible et se met à jour lorsque les informations sont confirmées."
+    },
+    "Última actualización segura:": {
+      "en": "Last confirmed update:",
+      "fr": "Dernière mise à jour confirmée :"
+    },
+    "Sin sincronización confirmada": {
+      "en": "No confirmed update",
+      "fr": "Aucune mise à jour confirmée"
+    },
+    "Plan actual": {
+      "en": "Current plan",
+      "fr": "Offre actuelle"
+    },
+    "Precio no configurado": {
+      "en": "Price unavailable",
+      "fr": "Tarif indisponible"
+    },
+    "Elegir {plan}": {
+      "en": "Choose {plan}",
+      "fr": "Choisir {plan}"
+    },
+    "/mes": {
+      "en": "/month",
+      "fr": "/mois"
+    },
+    "Próxima acción": {
+      "en": "Next action",
+      "fr": "Prochaine action"
+    },
+    "Datos deportivos trazables": {
+      "en": "Traceable sports data",
+      "fr": "Données sportives traçables"
+    },
+    "Solo se muestran datos reales o un estado seguro.": {
+      "en": "Only confirmed data or a safe status is shown.",
+      "fr": "Seules des données confirmées ou un état sûr sont affichés."
+    },
+    "Picks completos": {
+      "en": "Complete picks",
+      "fr": "Picks complets"
+    },
+    "Histórico evaluable": {
+      "en": "Evaluable history",
+      "fr": "Historique évaluable"
+    },
+    "Sin beneficio garantizado": {
+      "en": "No guaranteed profit",
+      "fr": "Aucun gain garanti"
+    },
+    "Confianza de datos": {
+      "en": "Data confidence",
+      "fr": "Fiabilité des données"
+    },
+    "Trazabilidad del dato": {
+      "en": "Data provenance",
+      "fr": "Provenance des données"
+    },
+    "Estado confirmado": {
+      "en": "Confirmed status",
+      "fr": "Statut confirmé"
+    },
+    "Partidos disponibles": {
+      "en": "Available matches",
+      "fr": "Matchs disponibles"
+    },
+    "Esperando datos deportivos": {
+      "en": "Waiting for sports data",
+      "fr": "En attente de données sportives"
+    },
+    "La información confirmada sigue disponible entre actualizaciones.": {
+      "en": "Confirmed information remains available between updates.",
+      "fr": "Les informations confirmées restent disponibles entre les mises à jour."
+    },
+    "Deporte con contexto, evidencia y limites visibles.": {
+      "en": "Sports with context, evidence and clear limits.",
+      "fr": "Le sport avec du contexte, des preuves et des limites claires."
+    }
+  },
+  "design_r3": {
+    "Inteligencia deportiva": {
+      "en": "Sports intelligence",
+      "fr": "Intelligence sportive"
+    },
+    "Análisis ampliado": {
+      "en": "Extended analysis",
+      "fr": "Analyse approfondie"
+    },
+    "Análisis": {
+      "en": "Analysis",
+      "fr": "Analyse"
+    },
+    "Consultar directo": {
+      "en": "View live matches",
+      "fr": "Consulter le direct"
+    },
+    "Consultas rápidas": {
+      "en": "Quick questions",
+      "fr": "Questions rapides"
+    },
+    "Leer la agenda": {
+      "en": "Read the schedule",
+      "fr": "Consulter le calendrier"
+    },
+    "Partidos completos disponibles": {
+      "en": "Complete match records available",
+      "fr": "Fiches de match complètes disponibles"
+    },
+    "Sin inventar marcador ni minuto": {
+      "en": "No invented scores or minutes",
+      "fr": "Aucun score ni minute inventés"
+    },
+    "Solo selecciones publicadas": {
+      "en": "Published selections only",
+      "fr": "Sélections publiées uniquement"
+    },
+    "Riesgo visible": {
+      "en": "Visible risk",
+      "fr": "Risque visible"
+    },
+    "Cuotas": {
+      "en": "Odds",
+      "fr": "Cotes"
+    },
+    "Resultado": {
+      "en": "Result",
+      "fr": "Résultat"
+    },
+    "Si falta un dato real, SHARK lo marca como pendiente. No promete resultados ni sustituye la decisión del usuario.": {
+      "en": "SHARK marks missing data as pending. It does not promise results or replace your decision.",
+      "fr": "SHARK indique les données manquantes comme en attente. Il ne promet aucun résultat et ne remplace pas votre décision."
+    },
+    "Ampliado": {
+      "en": "Extended",
+      "fr": "Approfondie"
+    },
+    "Con evidencia disponible": {
+      "en": "With available evidence",
+      "fr": "Avec les éléments disponibles"
+    },
+    "Contexto seguro": {
+      "en": "Reliable context",
+      "fr": "Contexte fiable"
+    },
+    "Sin pick real publicado": {
+      "en": "No real pick published",
+      "fr": "Aucun pick réel publié"
+    },
+    "Pendientes": {
+      "en": "Pending",
+      "fr": "En attente"
+    },
+    "Análisis actual": {
+      "en": "Current analysis",
+      "fr": "Analyse actuelle"
+    },
+    "Selección, riesgo y evidencia disponible.": {
+      "en": "Selection, risk and available evidence.",
+      "fr": "Sélection, risque et éléments disponibles."
+    },
+    "Cómo leer SHARK": {
+      "en": "Understanding SHARK",
+      "fr": "Comprendre SHARK"
+    },
+    "Dato confirmado, contexto y límites claros.": {
+      "en": "Confirmed facts, context and clear limits.",
+      "fr": "Faits confirmés, contexte et limites claires."
+    },
+    "Estado del contexto": {
+      "en": "Context status",
+      "fr": "État du contexte"
+    },
+    "Datos que puede utilizar.": {
+      "en": "Data available for analysis.",
+      "fr": "Données utilisables pour l'analyse."
+    },
+    "¿Qué partidos hay?": {
+      "en": "Which matches are available?",
+      "fr": "Quels matchs sont disponibles ?"
+    },
+    "¿Hay un pick completo?": {
+      "en": "Is there a complete pick?",
+      "fr": "Y a-t-il un pick complet ?"
+    },
+    "¿Qué riesgo existe?": {
+      "en": "What are the risks?",
+      "fr": "Quels sont les risques ?"
+    },
+    "¿Qué está en directo?": {
+      "en": "What is live?",
+      "fr": "Quels matchs sont en direct ?"
+    },
+    "¿Es apto para Telegram?": {
+      "en": "Is it ready for Telegram?",
+      "fr": "Est-ce prêt pour Telegram ?"
+    },
+    "¿Qué ofrece mi plan?": {
+      "en": "What does my plan include?",
+      "fr": "Que comprend mon offre ?"
+    },
+    "Agenda real disponible": {
+      "en": "Available match schedule",
+      "fr": "Calendrier des matchs disponibles"
+    },
+    "Mercado, selección y cuota": {
+      "en": "Market, selection and odds",
+      "fr": "Marché, sélection et cote"
+    },
+    "Explicación sin garantías": {
+      "en": "Explanation without guarantees",
+      "fr": "Explication sans garantie"
+    },
+    "Solo estados confirmados": {
+      "en": "Confirmed states only",
+      "fr": "États confirmés uniquement"
+    },
+    "Calidad y dedupe": {
+      "en": "Quality and deduplication",
+      "fr": "Qualité et déduplication"
+    },
+    "Beneficios configurados": {
+      "en": "Configured benefits",
+      "fr": "Avantages configurés"
+    },
+    "Hora Madrid": {
+      "en": "Madrid time",
+      "fr": "Heure de Madrid"
+    },
+    "Hora de Madrid": {
+      "en": "Madrid time",
+      "fr": "Heure de Madrid"
+    },
+    "Final": {
+      "en": "Final",
+      "fr": "Final"
+    },
+    "Información parcial": {
+      "en": "Partial information",
+      "fr": "Informations partielles"
+    },
+    "Verificado": {
+      "en": "Verified",
+      "fr": "Vérifié"
+    },
+    "Revisión pendiente": {
+      "en": "Review pending",
+      "fr": "Vérification en attente"
+    },
+    "Desactualizado": {
+      "en": "Outdated",
+      "fr": "Obsolète"
+    },
+    "Datos insuficientes": {
+      "en": "Insufficient data",
+      "fr": "Données insuffisantes"
+    },
+    "Centro del equipo ·": {
+      "en": "Team centre ·",
+      "fr": "Centre de l'équipe ·"
+    },
+    "Centro del equipo": {
+      "en": "Team centre",
+      "fr": "Centre de l'équipe"
+    },
+    "Centro del jugador ·": {
+      "en": "Player centre ·",
+      "fr": "Centre du joueur ·"
+    },
+    "Centro del jugador": {
+      "en": "Player centre",
+      "fr": "Centre du joueur"
+    },
+    "Centro de la competición ·": {
+      "en": "Competition centre ·",
+      "fr": "Centre de la compétition ·"
+    },
+    "Centro de la competición": {
+      "en": "Competition centre",
+      "fr": "Centre de la compétition"
+    },
+    "Centro de la competicion": {
+      "en": "Competition centre",
+      "fr": "Centre de la compétition"
+    },
+    "Centro del partido": {
+      "en": "Match centre",
+      "fr": "Centre du match"
+    },
+    "Partidos, resultados, plantilla y contexto disponible del club.": {
+      "en": "Matches, results, squad and available club context.",
+      "fr": "Matchs, résultats, effectif et contexte disponible du club."
+    },
+    "Equipo, competición, estadísticas y partidos relacionados disponibles.": {
+      "en": "Team, competition, statistics and related matches available.",
+      "fr": "Équipe, compétition, statistiques et matchs associés disponibles."
+    },
+    "Clasificación, equipos, partidos y resultados disponibles.": {
+      "en": "Available standings, teams, matches and results.",
+      "fr": "Classement, équipes, matchs et résultats disponibles."
+    },
+    "Seguimiento": {
+      "en": "Following",
+      "fr": "Suivi"
+    },
+    "Quitar favorito": {
+      "en": "Remove favourite",
+      "fr": "Retirer des favoris"
+    },
+    "Guardar equipo": {
+      "en": "Follow team",
+      "fr": "Suivre l'équipe"
+    },
+    "Partido relacionado": {
+      "en": "Related match",
+      "fr": "Match associé"
+    },
+    "Equipo relacionado": {
+      "en": "Related team",
+      "fr": "Équipe associée"
+    },
+    "Fundación": {
+      "en": "Founded",
+      "fr": "Fondation"
+    },
+    "Equipo": {
+      "en": "Team",
+      "fr": "Équipe"
+    },
+    "Equipos": {
+      "en": "Teams",
+      "fr": "Équipes"
+    },
+    "Forma reciente": {
+      "en": "Recent form",
+      "fr": "Forme récente"
+    },
+    "Forma": {
+      "en": "Form",
+      "fr": "Forme"
+    },
+    "V": {
+      "en": "W",
+      "fr": "V"
+    },
+    "E": {
+      "en": "D",
+      "fr": "N"
+    },
+    "D": {
+      "en": "L",
+      "fr": "D"
+    },
+    "GF": {
+      "en": "GF",
+      "fr": "BP"
+    },
+    "GC": {
+      "en": "GA",
+      "fr": "BC"
+    },
+    "PJ": {
+      "en": "P",
+      "fr": "MJ"
+    },
+    "DG": {
+      "en": "GD",
+      "fr": "DB"
+    },
+    "Pos.": {
+      "en": "Pos.",
+      "fr": "Pos."
+    },
+    "Pos": {
+      "en": "Pos",
+      "fr": "Pos"
+    },
+    "Pts": {
+      "en": "Pts",
+      "fr": "Pts"
+    },
+    "Pts.": {
+      "en": "Pts.",
+      "fr": "Pts."
+    },
+    "Partidos relacionados": {
+      "en": "Related matches",
+      "fr": "Matchs associés"
+    },
+    "Picks relacionados": {
+      "en": "Related picks",
+      "fr": "Picks associés"
+    },
+    "Contexto SHARK": {
+      "en": "SHARK context",
+      "fr": "Contexte SHARK"
+    },
+    "Contexto deportivo": {
+      "en": "Sports context",
+      "fr": "Contexte sportif"
+    },
+    "Fortalezas detectadas": {
+      "en": "Observed strengths",
+      "fr": "Points forts observés"
+    },
+    "Debilidades detectadas": {
+      "en": "Observed weaknesses",
+      "fr": "Points faibles observés"
+    },
+    "Plantilla": {
+      "en": "Squad",
+      "fr": "Effectif"
+    },
+    "Titular": {
+      "en": "Starter",
+      "fr": "Titulaire"
+    },
+    "Plantilla todavía no confirmada.": {
+      "en": "Squad not yet confirmed.",
+      "fr": "Effectif non encore confirmé."
+    },
+    "Próximos partidos": {
+      "en": "Upcoming matches",
+      "fr": "Prochains matchs"
+    },
+    "Últimos resultados": {
+      "en": "Recent results",
+      "fr": "Derniers résultats"
+    },
+    "Relaciones": {
+      "en": "Relationships",
+      "fr": "Relations"
+    },
+    "Conexiones": {
+      "en": "Connections",
+      "fr": "Connexions"
+    },
+    "Disponibles": {
+      "en": "Available",
+      "fr": "Disponibles"
+    },
+    "No disponible.": {
+      "en": "Not available.",
+      "fr": "Indisponible."
+    },
+    "Información pendiente.": {
+      "en": "Information pending.",
+      "fr": "Informations en attente."
+    },
+    "Información pendiente. Ninguna fuente lo confirma.": {
+      "en": "Information pending. No source confirms it.",
+      "fr": "Informations en attente. Aucune source ne les confirme."
+    },
+    "No disponible. Ninguna fuente confirma una muestra suficiente.": {
+      "en": "Unavailable. No source confirms a sufficient sample.",
+      "fr": "Indisponible. Aucune source ne confirme un échantillon suffisant."
+    },
+    "No disponible. No hay próximos partidos sincronizados para este equipo.": {
+      "en": "No upcoming matches are currently synced for this team.",
+      "fr": "Aucun prochain match synchronisé pour cette équipe."
+    },
+    "No disponible. No hay proximos partidos confirmados.": {
+      "en": "No confirmed upcoming matches available.",
+      "fr": "Aucun prochain match confirmé disponible."
+    },
+    "No disponible. No hay resultados recientes confirmados.": {
+      "en": "No confirmed recent results available.",
+      "fr": "Aucun résultat récent confirmé disponible."
+    },
+    "No disponible. No hay equipos relacionados confirmados.": {
+      "en": "No confirmed related teams available.",
+      "fr": "Aucune équipe associée confirmée disponible."
+    },
+    "Aún no hay picks publicados para este equipo.": {
+      "en": "No picks have been published for this team yet.",
+      "fr": "Aucun pick publié pour cette équipe pour le moment."
+    },
+    "El análisis utiliza únicamente la evidencia deportiva disponible.": {
+      "en": "The analysis uses only available sports evidence.",
+      "fr": "L'analyse utilise uniquement les faits sportifs disponibles."
+    },
+    "Contexto SHARK no disponible.": {
+      "en": "SHARK context unavailable.",
+      "fr": "Contexte SHARK indisponible."
+    },
+    "No crea clasificaciones ni contexto sin evidencia confirmada.": {
+      "en": "No standings or context are created without confirmed evidence.",
+      "fr": "Aucun classement ni contexte créé sans éléments confirmés."
+    },
+    "No disponible. Ninguna fuente confirma una clasificacion sincronizada para está competicion.": {
+      "en": "No source confirms synced standings for this competition.",
+      "fr": "Aucune source ne confirme un classement synchronisé pour cette compétition."
+    },
+    "Información disponible": {
+      "en": "Available information",
+      "fr": "Informations disponibles"
+    },
+    "Información no disponible": {
+      "en": "Unavailable information",
+      "fr": "Informations indisponibles"
+    },
+    "Información ausente": {
+      "en": "Missing information",
+      "fr": "Informations manquantes"
+    },
+    "Información básica": {
+      "en": "Basic information",
+      "fr": "Informations générales"
+    },
+    "Calidad de datos": {
+      "en": "Data quality",
+      "fr": "Qualité des données"
+    },
+    "Grafo deportivo": {
+      "en": "Sports graph",
+      "fr": "Graphe sportif"
+    },
+    "Grafo deportivo · Contrato interno": {
+      "en": "Sports graph · Internal contract",
+      "fr": "Graphe sportif · Contrat interne"
+    },
+    "Sin ausencias relevantes detectadas.": {
+      "en": "No relevant missing information detected.",
+      "fr": "Aucune information importante manquante détectée."
+    },
+    "Sin limitaciones relevantes en la muestra disponible.": {
+      "en": "No relevant limitations in the available sample.",
+      "fr": "Aucune limite importante dans l'échantillon disponible."
+    },
+    "Limitaciones": {
+      "en": "Limitations",
+      "fr": "Limites"
+    },
+    "Transparencia": {
+      "en": "Transparency",
+      "fr": "Transparence"
+    },
+    "Modelo deportivo": {
+      "en": "Sports model",
+      "fr": "Modèle sportif"
+    },
+    "Conocimiento deportivo": {
+      "en": "Sports knowledge",
+      "fr": "Connaissances sportives"
+    },
+    "partidos confirmados": {
+      "en": "confirmed matches",
+      "fr": "matchs confirmés"
+    },
+    "historial disponible": {
+      "en": "available history",
+      "fr": "historique disponible"
+    },
+    "eventos ahora": {
+      "en": "current events",
+      "fr": "événements actuels"
+    },
+    "relacionados": {
+      "en": "related",
+      "fr": "associés"
+    },
+    "deportivas": {
+      "en": "sports",
+      "fr": "sportives"
+    },
+    "registrados": {
+      "en": "recorded",
+      "fr": "enregistrés"
+    },
+    "confirmadas": {
+      "en": "confirmed",
+      "fr": "confirmées"
+    },
+    "partidos": {
+      "en": "matches",
+      "fr": "matchs"
+    },
+    "partidos ·": {
+      "en": "matches ·",
+      "fr": "matchs ·"
+    },
+    "cerrados o recientes": {
+      "en": "finished or recent",
+      "fr": "terminés ou récents"
+    },
+    "calendario confirmado": {
+      "en": "confirmed schedule",
+      "fr": "calendrier confirmé"
+    },
+    "Calendario de competicion": {
+      "en": "Competition calendar",
+      "fr": "Calendrier de la compétition"
+    },
+    "Jornada / fase": {
+      "en": "Round / stage",
+      "fr": "Journée / phase"
+    },
+    "Proxima jornada": {
+      "en": "Next round",
+      "fr": "Prochaine journée"
+    },
+    "Altura": {
+      "en": "Height",
+      "fr": "Taille"
+    },
+    "Peso": {
+      "en": "Weight",
+      "fr": "Poids"
+    },
+    "Edad": {
+      "en": "Age",
+      "fr": "Âge"
+    },
+    "Nacimiento": {
+      "en": "Born",
+      "fr": "Naissance"
+    },
+    "Pie": {
+      "en": "Preferred foot",
+      "fr": "Pied préféré"
+    },
+    "Posición": {
+      "en": "Position",
+      "fr": "Poste"
+    },
+    "Dorsal": {
+      "en": "Shirt number",
+      "fr": "Numéro"
+    },
+    "Nombre oficial": {
+      "en": "Official name",
+      "fr": "Nom officiel"
+    },
+    "Foto": {
+      "en": "Photo",
+      "fr": "Photo"
+    },
+    "Goles": {
+      "en": "Goals",
+      "fr": "Buts"
+    },
+    "Tarjetas": {
+      "en": "Cards",
+      "fr": "Cartons"
+    },
+    "Cambios": {
+      "en": "Substitutions",
+      "fr": "Remplacements"
+    },
+    "Participacion reciente": {
+      "en": "Recent appearances",
+      "fr": "Participations récentes"
+    },
+    "Timeline personal": {
+      "en": "Player timeline",
+      "fr": "Chronologie du joueur"
+    },
+    "Timeline del equipo": {
+      "en": "Team timeline",
+      "fr": "Chronologie de l'équipe"
+    },
+    "No disponible. Ninguna fuente confirma partidos asociados a este jugador.": {
+      "en": "No source confirms matches associated with this player.",
+      "fr": "Aucune source ne confirme de matchs associés à ce joueur."
+    },
+    "No disponible. No hay eventos personales confirmados.": {
+      "en": "No confirmed player events available.",
+      "fr": "Aucun événement confirmé pour ce joueur."
+    },
+    "Posición no disponible": {
+      "en": "Position unavailable",
+      "fr": "Poste indisponible"
+    },
+    "Suplentes ·": {
+      "en": "Substitutes ·",
+      "fr": "Remplaçants ·"
+    },
+    "Evento confirmado": {
+      "en": "Confirmed event",
+      "fr": "Événement confirmé"
+    },
+    "Gol": {
+      "en": "Goal",
+      "fr": "But"
+    },
+    "Goal": {
+      "en": "Goal",
+      "fr": "But"
+    },
+    "Normal Goal": {
+      "en": "Goal",
+      "fr": "But"
+    },
+    "Tiros a puerta": {
+      "en": "Shots on target",
+      "fr": "Tirs cadrés"
+    },
+    "Tiros totales": {
+      "en": "Total shots",
+      "fr": "Total des tirs"
+    },
+    "Faltas": {
+      "en": "Fouls",
+      "fr": "Fautes"
+    },
+    "Córners": {
+      "en": "Corners",
+      "fr": "Corners"
+    },
+    "Fuera de juego": {
+      "en": "Offsides",
+      "fr": "Hors-jeu"
+    },
+    "Tarjetas amarillas": {
+      "en": "Yellow cards",
+      "fr": "Cartons jaunes"
+    },
+    "Tarjetas rojas": {
+      "en": "Red cards",
+      "fr": "Cartons rouges"
+    },
+    "Min": {
+      "en": "Min",
+      "fr": "Min"
+    },
+    "Muestra: {count}": {
+      "en": "Sample: {count}",
+      "fr": "Échantillon : {count}"
+    },
+    "{count} evento confirmado": {
+      "en": "{count} confirmed event",
+      "fr": "{count} événement confirmé"
+    },
+    "{count} excluido sin evidencia suficiente": {
+      "en": "{count} excluded without sufficient evidence",
+      "fr": "{count} exclu faute de preuves suffisantes"
+    },
+    "{count} excluidos sin evidencia suficiente": {
+      "en": "{count} excluded without sufficient evidence",
+      "fr": "{count} exclus faute de preuves suffisantes"
+    },
+    "Temporada {season}": {
+      "en": "Season {season}",
+      "fr": "Saison {season}"
+    },
+    "Posición {position}": {
+      "en": "Position {position}",
+      "fr": "Position {position}"
+    },
+    "{points} puntos": {
+      "en": "{points} points",
+      "fr": "{points} points"
+    },
+    "{count} victoria": {
+      "en": "{count} win",
+      "fr": "{count} victoire"
+    },
+    "{count} victorias": {
+      "en": "{count} wins",
+      "fr": "{count} victoires"
+    },
+    "{count} empate": {
+      "en": "{count} draw",
+      "fr": "{count} match nul"
+    },
+    "{count} empates": {
+      "en": "{count} draws",
+      "fr": "{count} matchs nuls"
+    },
+    "{count} derrota": {
+      "en": "{count} loss",
+      "fr": "{count} défaite"
+    },
+    "{count} derrotas": {
+      "en": "{count} losses",
+      "fr": "{count} défaites"
+    },
+    "Forma de {team}: {summary}.": {
+      "en": "{team} form: {summary}.",
+      "fr": "Forme de {team} : {summary}."
+    },
+    "{count} enfrentamiento finalizado con resultado confirmado.": {
+      "en": "{count} finished head-to-head match with a confirmed result.",
+      "fr": "{count} confrontation terminée avec un résultat confirmé."
+    },
+    "{count} enfrentamientos finalizados con resultado confirmado.": {
+      "en": "{count} finished head-to-head matches with confirmed results.",
+      "fr": "{count} confrontations terminées avec des résultats confirmés."
+    },
+    "Clasificación disponible: {summary}.": {
+      "en": "Available standings: {summary}.",
+      "fr": "Classement disponible : {summary}."
+    },
+    "Observada: {datetime}": {
+      "en": "Observed: {datetime}",
+      "fr": "Observé : {datetime}"
+    },
+    "Faltan clasificación, forma reciente y H2H confirmados para explicar su relevancia deportiva.": {
+      "en": "Confirmed standings, recent form and head-to-head data are missing to explain its sporting significance.",
+      "fr": "Il manque un classement, une forme récente et des confrontations confirmés pour expliquer son enjeu sportif."
+    },
+    "No hay resultados finalizados confirmados": {
+      "en": "No confirmed finished results",
+      "fr": "Aucun résultat final confirmé"
+    },
+    "Dominio observado: {team}": {
+      "en": "Observed dominance: {team}",
+      "fr": "Domination observée : {team}"
+    },
+    "Presión observada: {home} {home_pct}% · {away} {away_pct}%": {
+      "en": "Observed pressure: {home} {home_pct}% · {away} {away_pct}%",
+      "fr": "Pression observée : {home} {home_pct}% · {away} {away_pct}%"
+    },
+    "{count} cambio confirmado en la ventana reciente": {
+      "en": "{count} confirmed change in the recent window",
+      "fr": "{count} changement confirmé sur la période récente"
+    },
+    "{count} cambios confirmados en la ventana reciente": {
+      "en": "{count} confirmed changes in the recent window",
+      "fr": "{count} changements confirmés sur la période récente"
+    },
+    "Sin dominio confirmado": {
+      "en": "No confirmed dominance",
+      "fr": "Aucune domination confirmée"
+    },
+    "Evidencia parcial": {
+      "en": "Partial evidence",
+      "fr": "Éléments partiels"
+    },
+    "Evidencia confirmada": {
+      "en": "Confirmed evidence",
+      "fr": "Éléments confirmés"
+    },
+    "Contexto disponible": {
+      "en": "Context available",
+      "fr": "Contexte disponible"
+    },
+    "Dominio observado:": {
+      "en": "Observed dominance:",
+      "fr": "Domination observée :"
+    },
+    "Alertas en directo": {
+      "en": "Live alerts",
+      "fr": "Alertes en direct"
+    },
+    "Calidad antes que frecuencia.": {
+      "en": "Quality before frequency.",
+      "fr": "La qualité avant la fréquence."
+    },
+    "Calidad protegida": {
+      "en": "Protected quality",
+      "fr": "Qualité préservée"
+    },
+    "Cierre confirmado de picks publicados.": {
+      "en": "Confirmed settlement of published picks.",
+      "fr": "Résultat confirmé des picks publiés."
+    },
+    "Conectar Telegram": {
+      "en": "Connect Telegram",
+      "fr": "Connecter Telegram"
+    },
+    "Código de vinculación": {
+      "en": "Link code",
+      "fr": "Code de liaison"
+    },
+    "Desvincular": {
+      "en": "Disconnect",
+      "fr": "Déconnecter"
+    },
+    "Las alertas llevan al partido real y esta pantalla nunca envía mensajes por sí sola.": {
+      "en": "Alerts link to the real match; this screen never sends messages by itself.",
+      "fr": "Les alertes renvoient au match réel ; cet écran n'envoie jamais de messages de lui-même."
+    },
+    "Mercado, selección, cuota y riesgo completos.": {
+      "en": "Complete market, selection, odds and risk.",
+      "fr": "Marché, sélection, cote et risque complets."
+    },
+    "Nuevo código": {
+      "en": "New code",
+      "fr": "Nouveau code"
+    },
+    "Picks premium": {
+      "en": "Premium picks",
+      "fr": "Picks premium"
+    },
+    "Resúmenes": {
+      "en": "Summaries",
+      "fr": "Résumés"
+    },
+    "Solo cuando existe una señal real.": {
+      "en": "Only when there is a real signal.",
+      "fr": "Uniquement lorsqu'un signal réel existe."
+    },
+    "Identidad Telegram protegida": {
+      "en": "Protected Telegram identity",
+      "fr": "Identité Telegram protégée"
+    },
+    "Pendiente de generar": {
+      "en": "Not generated yet",
+      "fr": "En attente de génération"
+    },
+    "Genera un código para iniciar la vinculación segura.": {
+      "en": "Generate a code to start secure linking.",
+      "fr": "Générez un code pour démarrer une liaison sécurisée."
+    },
+    "Telegram conectado": {
+      "en": "Telegram connected",
+      "fr": "Telegram connecté"
+    },
+    "Vinculación de tu cuenta": {
+      "en": "Account linking",
+      "fr": "Liaison de votre compte"
+    },
+    "Canal activo": {
+      "en": "Channel active",
+      "fr": "Canal actif"
+    },
+    "En pausa": {
+      "en": "Paused",
+      "fr": "En pause"
+    },
+    "Preferencias del canal": {
+      "en": "Channel preferences",
+      "fr": "Préférences du canal"
+    },
+    "Último envío": {
+      "en": "Last message",
+      "fr": "Dernier envoi"
+    },
+    "Contenido según membresía": {
+      "en": "Content by membership",
+      "fr": "Contenu selon l'abonnement"
+    },
+    "Alertas y resúmenes según tu plan.": {
+      "en": "Alerts and summaries according to your plan.",
+      "fr": "Alertes et résumés selon votre offre."
+    },
+    "Conexión de Telegram": {
+      "en": "Telegram connection",
+      "fr": "Connexion Telegram"
+    },
+    "Vincula o gestiona tu cuenta sin exponer identificadores.": {
+      "en": "Link or manage your account without exposing identifiers.",
+      "fr": "Liez ou gérez votre compte sans exposer d'identifiants."
+    },
+    "Lo que recibirás en tu canal": {
+      "en": "What your channel receives",
+      "fr": "Ce que votre canal reçoit"
+    },
+    "Contenido de calidad, sin mensajes de relleno.": {
+      "en": "Quality content, without filler messages.",
+      "fr": "Du contenu de qualité, sans messages inutiles."
+    },
+    "Configurar en 3 pasos": {
+      "en": "Set up in 3 steps",
+      "fr": "Configurer en 3 étapes"
+    },
+    "Proceso protegido.": {
+      "en": "Protected process.",
+      "fr": "Processus protégé."
+    },
+    "1. Vincula Telegram": {
+      "en": "1. Link Telegram",
+      "fr": "1. Liez Telegram"
+    },
+    "Usa el código o enlace seguro": {
+      "en": "Use the code or secure link",
+      "fr": "Utilisez le code ou le lien sécurisé"
+    },
+    "2. Revisa alertas": {
+      "en": "2. Review alerts",
+      "fr": "2. Vérifiez les alertes"
+    },
+    "Comprueba el estado de conexión": {
+      "en": "Check the connection status",
+      "fr": "Vérifiez l'état de la connexion"
+    },
+    "3. Elige tu plan": {
+      "en": "3. Choose your plan",
+      "fr": "3. Choisissez votre offre"
+    },
+    "Elegir": {
+      "en": "Choose",
+      "fr": "Choisir"
+    },
+    "Inicio de sesión no válido.": {
+      "en": "Invalid sign-in.",
+      "fr": "Connexion non valide."
+    },
+    "Credenciales incorrectas.": {
+      "en": "Incorrect credentials.",
+      "fr": "Identifiants incorrects."
+    },
+    "Contraseña incorrecta.": {
+      "en": "Incorrect password.",
+      "fr": "Mot de passe incorrect."
+    },
+    "Enlace no válido o caducado.": {
+      "en": "Invalid or expired link.",
+      "fr": "Lien non valide ou expiré."
+    },
+    "Ese email ya está registrado.": {
+      "en": "That email is already registered.",
+      "fr": "Cette adresse e-mail est déjà enregistrée."
+    },
+    "La contraseña debe tener al menos 8 caracteres.": {
+      "en": "The password must contain at least 8 characters.",
+      "fr": "Le mot de passe doit comporter au moins 8 caractères."
+    },
+    "Email, usuario o contraseña incorrectos.": {
+      "en": "Incorrect email, username or password.",
+      "fr": "E-mail, identifiant ou mot de passe incorrect."
+    },
+    "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos.": {
+      "en": "Sign-in is temporarily unavailable. Try again in a few minutes.",
+      "fr": "La connexion est temporairement indisponible. Réessayez dans quelques minutes."
+    },
+    "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña.": {
+      "en": "If a matching account exists, you will receive a password reset link.",
+      "fr": "Si un compte correspondant existe, vous recevrez un lien de réinitialisation du mot de passe."
+    },
+    "El enlace ha caducado o ya fue usado.": {
+      "en": "The link has expired or has already been used.",
+      "fr": "Le lien a expiré ou a déjà été utilisé."
+    },
+    "{count} resultado": {
+      "en": "{count} result",
+      "fr": "{count} résultat"
+    },
+    "{count} resultados": {
+      "en": "{count} results",
+      "fr": "{count} résultats"
+    },
+    "Quitar {label}: {value}": {
+      "en": "Remove {label}: {value}",
+      "fr": "Retirer {label} : {value}"
+    },
+    "Competiciones de {date}": {
+      "en": "Competitions on {date}",
+      "fr": "Compétitions du {date}"
+    },
+    "Confianza del dato": {
+      "en": "Data confidence",
+      "fr": "Fiabilité des données"
+    },
+    "Sólida": {
+      "en": "Strong",
+      "fr": "Solide"
+    },
+    "Limitada": {
+      "en": "Limited",
+      "fr": "Limitée"
+    },
+    "Insuficiente": {
+      "en": "Insufficient",
+      "fr": "Insuffisante"
+    },
+    "Mide calidad del dato, no probabilidad de ganar.": {
+      "en": "Measures data quality, not the probability of winning.",
+      "fr": "Mesure la qualité des données, pas la probabilité de gagner."
+    },
+    "Última revisión": {
+      "en": "Last review",
+      "fr": "Dernière révision"
+    },
+    "Sin marca temporal confirmada": {
+      "en": "No confirmed timestamp",
+      "fr": "Aucun horodatage confirmé"
+    },
+    "Presion": {
+      "en": "Pressure",
+      "fr": "Pression"
+    },
+    "Estadisticas": {
+      "en": "Statistics",
+      "fr": "Statistiques"
+    },
+    "Presión": {
+      "en": "Pressure",
+      "fr": "Pression"
+    },
+    "No hay clasificación confirmada para este partido.": {
+      "en": "No confirmed standings are available for this match.",
+      "fr": "Aucun classement confirmé n'est disponible pour ce match."
+    },
+    "muestra {count}": {
+      "en": "sample {count}",
+      "fr": "échantillon de {count}"
+    }
+  },
+  "design_r4": {
+    "Inicia sesión para contactar con soporte.": {
+      "en": "Sign in to contact support.",
+      "fr": "Connectez-vous pour contacter l'assistance."
+    },
+    "Recarga el formulario e inténtalo de nuevo.": {
+      "en": "Reload the form and try again.",
+      "fr": "Rechargez le formulaire et réessayez."
+    },
+    "El asunto debe tener entre 3 y 120 caracteres y el mensaje entre 10 y 4000.": {
+      "en": "Use 3 to 120 characters for the subject and 10 to 4000 for the message.",
+      "fr": "Utilisez 3 à 120 caractères pour l'objet et 10 à 4000 pour le message."
+    },
+    "No envíes contraseñas, claves ni tokens. Retíralos del mensaje.": {
+      "en": "Do not send passwords, keys or tokens. Remove them from the message.",
+      "fr": "N'envoyez pas de mots de passe, de clés ni de jetons. Retirez-les du message."
+    },
+    "Espera un minuto entre mensajes. Máximo tres mensajes por hora.": {
+      "en": "Wait one minute between messages. Maximum three messages per hour.",
+      "fr": "Attendez une minute entre les messages. Trois messages maximum par heure."
+    },
+    "Selecciona un tipo y una prioridad válidos.": {
+      "en": "Select a valid category and priority.",
+      "fr": "Sélectionnez une catégorie et une priorité valides."
+    },
+    "No se pudo guardar el mensaje. No se ha confirmado su recepción.": {
+      "en": "The message could not be saved. Receipt has not been confirmed.",
+      "fr": "Le message n'a pas pu être enregistré. Sa réception n'est pas confirmée."
+    },
+    "Mensaje recibido en la bandeja de soporte. Todavía no ha sido revisado.": {
+      "en": "Message received in the support inbox. It has not been reviewed yet.",
+      "fr": "Message reçu dans la boîte d'assistance. Il n'a pas encore été examiné."
+    },
+    "Seguimiento y gestión": {
+      "en": "Follow-up and management",
+      "fr": "Suivi et gestion"
+    },
+    "Contexto SHARK para {team} preparado con datos cacheados reales.": {
+      "en": "SHARK context for {team} uses available cached data.",
+      "fr": "Le contexte SHARK de {team} utilise les données disponibles en cache."
+    },
+    "Próximo partido: {home} vs {away} ({datetime}).": {
+      "en": "Next match: {home} vs {away} ({datetime}).",
+      "fr": "Prochain match : {home} vs {away} ({datetime})."
+    },
+    "No hay próximos partidos sincronizados para este equipo todavía.": {
+      "en": "No upcoming matches have been synced for this team yet.",
+      "fr": "Aucun prochain match n'a encore été synchronisé pour cette équipe."
+    },
+    "Hay {count} pick relacionado publicado o preparado.": {
+      "en": "There is {count} related published or prepared pick.",
+      "fr": "Il y a {count} pick associé publié ou préparé."
+    },
+    "Hay {count} picks relacionados publicados o preparados.": {
+      "en": "There are {count} related published or prepared picks.",
+      "fr": "Il y a {count} picks associés publiés ou préparés."
+    },
+    "Aún no hay picks relacionados publicados.": {
+      "en": "No related picks have been published yet.",
+      "fr": "Aucun pick associé n'a encore été publié."
+    },
+    "Temporada confirmada: {value}.": {
+      "en": "Confirmed season: {value}.",
+      "fr": "Saison confirmée : {value}."
+    },
+    "Jornada o fase visible: {value}.": {
+      "en": "Matchday or stage: {value}.",
+      "fr": "Journée ou phase : {value}."
+    },
+    "{value} partidos en directo confirmados en la muestra local.": {
+      "en": "{value} confirmed live matches in the available sample.",
+      "fr": "{value} matchs en direct confirmés dans l'échantillon disponible."
+    },
+    "{value} presiona": {
+      "en": "{value} is applying pressure",
+      "fr": "{value} exerce une pression"
+    },
+    "La competicion tiene calendario y resultados disponibles.": {
+      "en": "The competition has fixtures and results available.",
+      "fr": "La compétition dispose d'un calendrier et de résultats."
+    },
+    "La competicion tiene proximos partidos disponibles.": {
+      "en": "The competition has upcoming matches available.",
+      "fr": "La compétition dispose de prochains matchs."
+    },
+    "La competicion solo tiene resultados recientes en la muestra disponible.": {
+      "en": "Only recent results are available for this competition in the current sample.",
+      "fr": "Seuls des résultats récents sont disponibles pour cette compétition dans l'échantillon actuel."
+    },
+    "Existe clasificacion sincronizada para contextualizar objetivos.": {
+      "en": "Synced standings are available to provide context.",
+      "fr": "Un classement synchronisé est disponible pour apporter du contexte."
+    },
+    "No hay suficiente informacion para construir contexto SHARK de competicion.": {
+      "en": "There is not enough information for SHARK competition context.",
+      "fr": "Les informations sont insuffisantes pour le contexte SHARK de la compétition."
+    },
+    "Temporada en curso": {
+      "en": "Season in progress",
+      "fr": "Saison en cours"
+    },
+    "Victoria": {
+      "en": "Win",
+      "fr": "Victoire"
+    },
+    "Derrota": {
+      "en": "Loss",
+      "fr": "Défaite"
+    },
+    "Empate": {
+      "en": "Draw",
+      "fr": "Match nul"
+    },
+    "Campeon": {
+      "en": "Champion",
+      "fr": "Champion"
+    },
+    "Europa": {
+      "en": "European qualification",
+      "fr": "Qualification européenne"
+    },
+    "Playoff": {
+      "en": "Play-off",
+      "fr": "Barrage"
+    },
+    "Descenso": {
+      "en": "Relegation",
+      "fr": "Relégation"
+    },
+    "Liga": {
+      "en": "League",
+      "fr": "Championnat"
+    },
+    "Copa": {
+      "en": "Cup",
+      "fr": "Coupe"
+    },
+    "Conocimiento de la competición": {
+      "en": "Competition knowledge",
+      "fr": "Connaissances sur la compétition"
+    },
+    "Competition logo is not available.": {
+      "en": "Competition logo is not available.",
+      "fr": "Le logo de la compétition est indisponible."
+    },
+    "Conexiones preparadas": {
+      "en": "Connections",
+      "fr": "Connexions"
+    },
+    "Centro del jugador · Información pendiente": {
+      "en": "Player centre · Information pending",
+      "fr": "Centre du joueur · Informations en attente"
+    },
+    "Centro del partido · No disponible": {
+      "en": "Match centre · Unavailable",
+      "fr": "Centre du match · Indisponible"
+    },
+    "Centro de la competicion · No disponible": {
+      "en": "Competition centre · Unavailable",
+      "fr": "Centre de la compétition · Indisponible"
+    },
+    "Contexto del equipo": {
+      "en": "Team context",
+      "fr": "Contexte de l'équipe"
+    },
+    "Seguimiento del equipo": {
+      "en": "Team following",
+      "fr": "Suivi de l'équipe"
+    },
+    "Acciones rápidas": {
+      "en": "Quick actions",
+      "fr": "Actions rapides"
+    },
+    "Datos del club": {
+      "en": "Club information",
+      "fr": "Informations du club"
+    },
+    "Indica equipo, competición y hora si ves un dato raro.": {
+      "en": "Include the team, competition and time when reporting a data issue.",
+      "fr": "Indiquez l'équipe, la compétition et l'heure pour signaler un problème de données."
+    },
+    "Cuéntanos qué selección o cuota quieres revisar.": {
+      "en": "Tell us which selection or odds you want reviewed.",
+      "fr": "Indiquez la sélection ou la cote que vous souhaitez faire vérifier."
+    },
+    "Describe si el problema es vinculación, canal o mensaje privado.": {
+      "en": "Describe whether the issue concerns linking, a channel or a private message.",
+      "fr": "Précisez si le problème concerne la connexion, un canal ou un message privé."
+    },
+    "El envío de mensajes no está disponible. Tu mensaje no se ha enviado ni guardado.": {
+      "en": "Messaging is unavailable. Your message has not been sent or saved.",
+      "fr": "L'envoi est indisponible. Votre message n'a été ni envoyé ni enregistré."
+    }
+  },
+  "design_r6": {
+    "Agenda temporalmente no disponible": {"en": "Schedule temporarily unavailable", "fr": "Calendrier temporairement indisponible"},
+    "No se pudo consultar la agenda. Vuelve a intentarlo.": {"en": "The schedule could not be loaded. Please try again.", "fr": "Le calendrier n'a pas pu être chargé. Veuillez réessayer."},
+    "No hay partidos que coincidan": {"en": "No matching matches", "fr": "Aucun match correspondant"},
+    "Prueba otra fecha o ajusta los filtros.": {"en": "Try another date or adjust the filters.", "fr": "Essayez une autre date ou modifiez les filtres."},
+    "No hay partidos para esta fecha": {"en": "No matches for this date", "fr": "Aucun match à cette date"},
+    "Consulta otra fecha de la agenda disponible.": {"en": "Check another date in the available schedule.", "fr": "Consultez une autre date du calendrier disponible."},
+    "Agenda pendiente de actualización": {"en": "Schedule awaiting an update", "fr": "Calendrier en attente de mise à jour"},
+    "Todavía no hay encuentros completos disponibles.": {"en": "Complete match information is not available yet.", "fr": "Les informations complètes sur les matchs ne sont pas encore disponibles."}
+  },
+  "design_r5": {
+    "Resultado disponible": {
+      "en": "Result available",
+      "fr": "Résultat disponible"
+    },
+    "Jornada {value}": {
+      "en": "Matchday {value}",
+      "fr": "Journée {value}"
+    },
+    "Temporada {value}": {
+      "en": "Season {value}",
+      "fr": "Saison {value}"
+    },
+    "Posición {value}": {
+      "en": "Position {value}",
+      "fr": "Position {value}"
+    },
+    "Actualizado hace {value} min": {
+      "en": "Updated {value} min ago",
+      "fr": "Mis à jour il y a {value} min"
+    },
+    "Conocimiento ampliado": {
+      "en": "Extended context",
+      "fr": "Contexte approfondi"
+    },
+    "Acceso protegido": {
+      "en": "Protected access",
+      "fr": "Accès protégé"
+    },
+    "Administrador": {
+      "en": "Administrator",
+      "fr": "Administrateur"
+    },
+    "Buscar en el panel": {
+      "en": "Search dashboard",
+      "fr": "Rechercher dans le tableau de bord"
+    },
+    "Estado real en Sentinel": {
+      "en": "Actual status in Sentinel",
+      "fr": "État réel dans Sentinel"
+    },
+    "Incidencias": {
+      "en": "Issues",
+      "fr": "Incidents"
+    },
+    "Supervisión activa": {
+      "en": "Active monitoring",
+      "fr": "Surveillance active"
+    },
+    "Combi responsable": {
+      "en": "Responsible accumulator",
+      "fr": "Combiné responsable"
+    },
+    "Combi 15": {
+      "en": "15-leg accumulator",
+      "fr": "Combiné de 15"
+    },
+    "No tocar": {
+      "en": "Leave unchanged",
+      "fr": "Ne pas modifier"
+    },
+    "Pick de hoy": {
+      "en": "Today's pick",
+      "fr": "Pick du jour"
+    },
+    "Preguntame por picks, combinadas hasta 15, favoritos, directo u oportunidades. SHARK no inventa: si falta cuota o dato real, te lo dira claro.": {
+      "en": "Ask about picks, accumulators of up to 15 legs, favourites, live matches or opportunities. SHARK will clearly tell you when odds or real data are missing.",
+      "fr": "Posez vos questions sur les picks, les combinés jusqu'à 15 sélections, les favoris, le direct ou les opportunités. SHARK indique clairement si une cote ou une donnée réelle manque."
+    },
+    "Value": {
+      "en": "Value",
+      "fr": "Valeur"
+    },
+    "SHARK IA": {
+      "en": "SHARK AI",
+      "fr": "SHARK IA"
+    },
+    "Entra en el cálculo": {
+      "en": "Included in the calculation",
+      "fr": "Inclus dans le calcul"
+    },
+    "Fuera del ROI": {
+      "en": "Excluded from ROI",
+      "fr": "Exclu du ROI"
+    },
+    "Pick ·": {
+      "en": "Pick ·",
+      "fr": "Pick ·"
+    },
+    "Real y evaluable": {
+      "en": "Real and evaluable",
+      "fr": "Réel et évaluable"
+    },
+    "Resultado final obligatorio": {
+      "en": "Final result required",
+      "fr": "Résultat final obligatoire"
+    },
+    "Sin beneficio ficticio": {
+      "en": "No fictitious profit",
+      "fr": "Aucun bénéfice fictif"
+    },
+    "Ver evidencia": {
+      "en": "View evidence",
+      "fr": "Voir les éléments factuels"
+    },
+    "Void": {
+      "en": "Void",
+      "fr": "Annulé"
+    },
+    "Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.": {
+      "en": "When the sample is insufficient, NeMeSiS displays “No evaluable sample” instead of a misleading 0%.",
+      "fr": "Lorsque l'échantillon est insuffisant, NeMeSiS affiche « Aucun échantillon évaluable » plutôt qu'un 0 % trompeur."
+    },
+    "Con criterio": {
+      "en": "With context",
+      "fr": "Avec du contexte"
+    },
+    "Datos pendientes": {
+      "en": "Pending data",
+      "fr": "Données en attente"
+    },
+    "Por qué existe": {
+      "en": "Rationale",
+      "fr": "Justification"
+    },
+    "Qué lo invalidaría": {
+      "en": "Invalidation conditions",
+      "fr": "Conditions d'invalidation"
+    },
+    "Qué puede salir mal": {
+      "en": "Potential risks",
+      "fr": "Risques possibles"
+    },
+    "completos": {
+      "en": "complete",
+      "fr": "complets"
+    },
+    "activos": {
+      "en": "active",
+      "fr": "actifs"
+    },
+    "cerrados": {
+      "en": "closed",
+      "fr": "clos"
+    },
+    "excluidos": {
+      "en": "excluded",
+      "fr": "exclus"
+    },
+    "Por qué": {
+      "en": "Why",
+      "fr": "Pourquoi"
+    },
+    "Por qué confiar": {
+      "en": "Why trust it",
+      "fr": "Pourquoi s'y fier"
+    },
+    "Recomendación": {
+      "en": "Recommendation",
+      "fr": "Recommandation"
+    },
+    "Agenda validada": {
+      "en": "Validated fixtures",
+      "fr": "Calendrier validé"
+    },
+    "Directo confirmado": {
+      "en": "Confirmed live",
+      "fr": "Direct confirmé"
+    },
+    "Picks publicables": {
+      "en": "Publishable picks",
+      "fr": "Picks publiables"
+    },
+    "Radar de decisión": {
+      "en": "Decision radar",
+      "fr": "Radar de décision"
+    },
+    "Foco ejecutivo": {
+      "en": "Executive focus",
+      "fr": "Priorités de direction"
+    },
+    "Lo que merece tu atención ahora": {
+      "en": "What needs your attention now",
+      "fr": "Ce qui mérite votre attention maintenant"
+    },
+    "Decidir con contexto": {
+      "en": "Decide with context",
+      "fr": "Décider avec du contexte"
+    },
+    "Explorar": {
+      "en": "Explore",
+      "fr": "Explorer"
+    },
+    "partidos completos de hoy": {
+      "en": "today's complete matches",
+      "fr": "matchs complets du jour"
+    },
+    "sin marcadores simulados": {
+      "en": "no simulated scores",
+      "fr": "sans scores simulés"
+    },
+    "con mercado, selección y cuota": {
+      "en": "with market, selection and odds",
+      "fr": "avec marché, sélection et cote"
+    },
+    "registros pendientes fuera de KPIs": {
+      "en": "pending records excluded from KPIs",
+      "fr": "enregistrements en attente exclus des indicateurs"
+    },
+    "fuera de la experiencia principal": {
+      "en": "outside the main experience",
+      "fr": "en dehors de l'expérience principale"
+    },
+    "Índice de confianza del dato": {
+      "en": "Data confidence index",
+      "fr": "Indice de confiance des données"
+    },
+    "Agenda, directo y estados deportivos honestos.": {
+      "en": "Fixtures, live matches and accurate match statuses.",
+      "fr": "Calendrier, direct et états sportifs fiables."
+    },
+    "Picks completos, SHARK y alertas según disponibilidad real.": {
+      "en": "Complete picks, SHARK and alerts subject to actual availability.",
+      "fr": "Picks complets, SHARK et alertes selon la disponibilité réelle."
+    },
+    "Acceso avanzado y soporte, sin promesas de rentabilidad.": {
+      "en": "Advanced access and support, without promises of returns.",
+      "fr": "Accès avancé et assistance, sans promesse de rentabilité."
+    },
+    "No mide la probabilidad de ganar. Resume si la información visible tiene completitud, origen y actualización suficientes.": {
+      "en": "This is not the probability of winning. It summarises the completeness, provenance and freshness of the displayed information.",
+      "fr": "Il ne mesure pas la probabilité de gagner. Il résume la complétude, la provenance et la fraîcheur des informations affichées."
+    },
+    "NeMeSiS separa actividad confirmada, oportunidades publicables y registros todavía pendientes de validación.": {
+      "en": "NeMeSiS separates confirmed activity, publishable opportunities and records still awaiting validation.",
+      "fr": "NeMeSiS distingue l'activité confirmée, les opportunités publiables et les enregistrements en attente de validation."
+    },
+    "Actualización": {
+      "en": "Update",
+      "fr": "Mise à jour"
+    },
+    "Fuente": {
+      "en": "Source",
+      "fr": "Source"
+    },
+    "Grafo": {
+      "en": "Graph",
+      "fr": "Graphe"
+    },
+    "Calidad, frescura e información ausente": {
+      "en": "Quality, freshness and missing information",
+      "fr": "Qualité, fraîcheur et informations manquantes"
+    },
+    "No hay información ausente crítica en este snapshot.": {
+      "en": "No critical information is missing from this snapshot.",
+      "fr": "Aucune information critique ne manque dans cet instantané."
+    },
+    "Todo lo que el Centro del partido sabe, no sabe y deja pendiente.": {
+      "en": "Everything the Match Centre knows, does not know and leaves pending.",
+      "fr": "Tout ce que le Centre du match sait, ignore ou laisse en attente."
+    },
+    "relaciones preparadas": {
+      "en": "prepared relationships",
+      "fr": "relations préparées"
+    },
+    "Relaciones confirmadas entre equipo, partidos y competición.": {
+      "en": "Confirmed relationships between team, matches and competition.",
+      "fr": "Relations confirmées entre l'équipe, les matchs et la compétition."
+    },
+    "Capa de conocimiento": {
+      "en": "Knowledge layer",
+      "fr": "Couche de connaissances"
+    },
+    "Conocimiento del jugador": {
+      "en": "Player context",
+      "fr": "Contexte du joueur"
+    },
+    "Centro del equipo · No disponible": {
+      "en": "Team Centre · Unavailable",
+      "fr": "Centre de l'équipe · Indisponible"
+    },
+    "Inteligencia de usuario": {
+      "en": "User intelligence",
+      "fr": "Intelligence utilisateur"
+    },
+    "Relaciones internas preparadas sin persistir grafo ni crear datos ficticios.": {
+      "en": "Internal relationships prepared without storing a graph or creating fictitious data.",
+      "fr": "Relations internes préparées sans stockage de graphe ni création de données fictives."
+    },
+    "Relaciones internas preparadas sin crear un grafo persistente ni relaciones artificiales.": {
+      "en": "Internal relationships prepared without creating a persistent graph or artificial relationships.",
+      "fr": "Relations internes préparées sans création de graphe persistant ni de relations artificielles."
+    },
+    "Añadir favorito manualmente": {
+      "en": "Add a favourite manually",
+      "fr": "Ajouter un favori manuellement"
+    },
+    "Añadir favoritos": {
+      "en": "Add favourites",
+      "fr": "Ajouter des favoris"
+    },
+    "Añadir manualmente": {
+      "en": "Add manually",
+      "fr": "Ajouter manuellement"
+    },
+    "Aún no hay partidos relacionados con tus favoritos.": {
+      "en": "There are no matches related to your favourites yet.",
+      "fr": "Aucun match n'est encore lié à vos favoris."
+    },
+    "Buscar partido": {
+      "en": "Find a match",
+      "fr": "Rechercher un match"
+    },
+    "Elige un equipo, liga o partido": {
+      "en": "Choose a team, league or match",
+      "fr": "Choisissez une équipe, un championnat ou un match"
+    },
+    "Empieza por lo que más revisas. Un favorito basta para ordenar la jornada.": {
+      "en": "Start with what you follow most. One favourite can help organise your matchday.",
+      "fr": "Commencez par ce que vous suivez le plus. Un favori suffit pour organiser votre journée."
+    },
+    "Equipos, competiciones y partidos guardados.": {
+      "en": "Saved teams, competitions and matches.",
+      "fr": "Équipes, compétitions et matchs enregistrés."
+    },
+    "Etiqueta visible": {
+      "en": "Display label",
+      "fr": "Libellé affiché"
+    },
+    "Favoritos alimenta calendario, directo, picks relacionados y recap sin inventar datos.": {
+      "en": "Favourites inform the calendar, live matches, related picks and recap without inventing data.",
+      "fr": "Les favoris alimentent le calendrier, le direct, les picks associés et le récapitulatif sans inventer de données."
+    },
+    "Feed": {
+      "en": "Feed",
+      "fr": "Fil"
+    },
+    "Guarda lo que sigues": {
+      "en": "Save what you follow",
+      "fr": "Enregistrez ce que vous suivez"
+    },
+    "Guardados": {
+      "en": "Saved",
+      "fr": "Enregistrés"
+    },
+    "Liga / competición": {
+      "en": "League / competition",
+      "fr": "Championnat / compétition"
+    },
+    "Ligas": {
+      "en": "Leagues",
+      "fr": "Championnats"
+    },
+    "Live relacionados": {
+      "en": "Related live matches",
+      "fr": "Directs associés"
+    },
+    "Marca estrellas desde Sports Hub, Live, Calendar o el detalle de partido para construir tu radar.": {
+      "en": "Use stars in the sports hub, Live, Calendar or match details to build your radar.",
+      "fr": "Utilisez les étoiles du hub sportif, du direct, du calendrier ou du détail d'un match pour construire votre radar."
+    },
+    "Nombre o ID": {
+      "en": "Name or ID",
+      "fr": "Nom ou identifiant"
+    },
+    "Sin directos relacionados ahora mismo.": {
+      "en": "No related live matches right now.",
+      "fr": "Aucun direct associé pour le moment."
+    },
+    "Sin picks conectados a tus favoritos todavía.": {
+      "en": "No picks are linked to your favourites yet.",
+      "fr": "Aucun pick n'est encore lié à vos favoris."
+    },
+    "Todavía no tienes favoritos guardados.": {
+      "en": "You have no saved favourites yet.",
+      "fr": "Vous n'avez pas encore de favoris enregistrés."
+    },
+    "Tus favoritos": {
+      "en": "Your favourites",
+      "fr": "Vos favoris"
+    },
+    "Usa una estrella o el alta manual": {
+      "en": "Use a star or add manually",
+      "fr": "Utilisez une étoile ou l'ajout manuel"
+    },
+    "Ver partidos": {
+      "en": "View matches",
+      "fr": "Voir les matchs"
+    },
+    "Vuelve al radar": {
+      "en": "Return to radar",
+      "fr": "Revenir au radar"
+    },
+    "Alertas inteligentes": {
+      "en": "Smart alerts",
+      "fr": "Alertes intelligentes"
+    },
+    "Aún no hay actividad registrada.": {
+      "en": "No activity has been recorded yet.",
+      "fr": "Aucune activité n'a encore été enregistrée."
+    },
+    "Centro cliente": {
+      "en": "Client centre",
+      "fr": "Espace client"
+    },
+    "No hay acción prioritaria ahora mismo.": {
+      "en": "There is no priority action right now.",
+      "fr": "Aucune action prioritaire pour le moment."
+    },
+    "No hay alertas activas. Guarda favoritos o revisa partidos para personalizar tu feed.": {
+      "en": "No active alerts. Save favourites or browse matches to personalise your feed.",
+      "fr": "Aucune alerte active. Enregistrez des favoris ou consultez des matchs pour personnaliser votre fil."
+    },
+    "Prioridad de hoy": {
+      "en": "Today's priority",
+      "fr": "Priorité du jour"
+    },
+    "Resumen claro de lo importante para ti: live, picks, favoritos, próximos partidos y Telegram. Sin textos técnicos.": {
+      "en": "A clear summary of what matters to you: live matches, picks, favourites, upcoming matches and Telegram. No technical jargon.",
+      "fr": "Un résumé clair de l'essentiel : direct, picks, favoris, prochains matchs et Telegram. Sans jargon technique."
+    },
+    "Siguiente mejor acción": {
+      "en": "Next recommended action",
+      "fr": "Prochaine action recommandée"
+    },
+    "Todo tranquilo": {
+      "en": "All quiet",
+      "fr": "Tout est calme"
+    },
+    "Ver actividad": {
+      "en": "View activity",
+      "fr": "Voir l'activité"
+    },
+    "Volver al perfil": {
+      "en": "Return to profile",
+      "fr": "Revenir au profil"
+    },
+    "Alertas": {
+      "en": "Alerts",
+      "fr": "Alertes"
+    },
+    "Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.": {
+      "en": "Your visits to matches, picks, accumulators and favourites are recorded to improve your experience.",
+      "fr": "Vos consultations de matchs, picks, combinés et favoris sont enregistrées pour améliorer votre expérience."
+    },
+    "Lo que vas consultando ayuda a SHARK a preparar una experiencia más personalizada con favoritos, picks y partidos.": {
+      "en": "What you view helps SHARK personalise your experience with favourites, picks and matches.",
+      "fr": "Vos consultations aident SHARK à personnaliser votre expérience avec des favoris, des picks et des matchs."
+    },
+    "Mi perfil": {
+      "en": "My profile",
+      "fr": "Mon profil"
+    },
+    "Privado": {
+      "en": "Private",
+      "fr": "Privé"
+    },
+    "Sin actividad aún": {
+      "en": "No activity yet",
+      "fr": "Aucune activité pour le moment"
+    },
+    "Tu historial": {
+      "en": "Your history",
+      "fr": "Votre historique"
+    },
+    "Últimos movimientos": {
+      "en": "Recent activity",
+      "fr": "Activité récente"
+    },
+    "Muestra insuficiente para tendencia fiable.": {
+      "en": "Insufficient sample for a reliable trend.",
+      "fr": "Échantillon insuffisant pour une tendance fiable."
+    },
+    "La explicación editorial todavía no está documentada. Revisa los datos del partido antes de decidir.": {
+      "en": "The editorial rationale is not documented yet. Review the match data before deciding.",
+      "fr": "L'explication éditoriale n'est pas encore documentée. Consultez les données du match avant de décider."
+    },
+    "No hay un riesgo específico documentado; aplica cautela y revisa cambios de contexto.": {
+      "en": "No specific risk is documented; be cautious and review changes in context.",
+      "fr": "Aucun risque spécifique n'est documenté ; restez prudent et vérifiez les changements de contexte."
+    },
+    "Sin condición de invalidación registrada. No asumas que el análisis sigue vigente si cambia el contexto.": {
+      "en": "No invalidation condition is recorded. Do not assume the analysis remains valid if the context changes.",
+      "fr": "Aucune condition d'invalidation n'est enregistrée. Ne supposez pas que l'analyse reste valable si le contexte change."
+    },
+    "Aprendizaje pendiente": {
+      "en": "Learning pending",
+      "fr": "Apprentissage en attente"
+    },
+    "Resultado registrado; falta contexto para evaluar la hipótesis.": {
+      "en": "Result recorded; context is missing to evaluate the hypothesis.",
+      "fr": "Résultat enregistré ; le contexte manque pour évaluer l'hypothèse."
+    },
+    "No hay próximos partidos confirmados para este equipo.": {
+      "en": "No confirmed upcoming matches for this team.",
+      "fr": "Aucun prochain match confirmé pour cette équipe."
+    },
+    "Historia deportiva del día": {
+      "en": "Matchday timeline",
+      "fr": "Chronologie sportive du jour"
+    },
+    "Expediente profesional del pick": {
+      "en": "Pick analysis record",
+      "fr": "Dossier d'analyse du pick"
+    },
+    "Índice de Confianza NeMeSiS": {
+      "en": "NeMeSiS Confidence Index",
+      "fr": "Indice de confiance NeMeSiS"
+    },
+    "Partido pendiente": {
+      "en": "Match pending",
+      "fr": "Match en attente"
+    },
+    "Alto": {
+      "en": "High",
+      "fr": "Élevé"
+    },
+    "Medio": {
+      "en": "Medium",
+      "fr": "Moyen"
+    },
+    "Bajo": {
+      "en": "Low",
+      "fr": "Faible"
+    },
+    "Más de {value} goles": {
+      "en": "Over {value} goals",
+      "fr": "Plus de {value} buts"
+    },
+    "Menos de {value} goles": {
+      "en": "Under {value} goals",
+      "fr": "Moins de {value} buts"
+    },
+    "Ambos equipos marcan": {
+      "en": "Both teams to score",
+      "fr": "Les deux équipes marquent"
+    },
+    "Doble oportunidad": {
+      "en": "Double chance",
+      "fr": "Double chance"
+    },
+    "Ganador del partido": {
+      "en": "Match winner",
+      "fr": "Vainqueur du match"
+    },
+    "Total de goles": {
+      "en": "Total goals",
+      "fr": "Total de buts"
+    },
+    "Checkout": {
+      "en": "Checkout",
+      "fr": "Paiement"
+    },
+    "Limitaciones de los datos": {
+      "en": "Data limitations",
+      "fr": "Limites des données"
+    },
+    "Cuando exista ID seguro, NeMeSiS lo reutiliza; si no, guarda una etiqueta honesta.": {
+      "en": "When a reliable ID exists, NeMeSiS reuses it; otherwise, it stores a descriptive label.",
+      "fr": "Lorsqu'un identifiant fiable existe, NeMeSiS le réutilise ; sinon, il enregistre un libellé descriptif."
+    },
+    "Mi equipo, liga favorita...": {
+      "en": "My team, favourite league...",
+      "fr": "Mon équipe, mon championnat préféré..."
+    },
+    "Has revisado la zona de picks.": {
+      "en": "You viewed the picks area.",
+      "fr": "Vous avez consulté les picks."
+    },
+    "Has abierto el constructor de combinadas.": {
+      "en": "You opened the accumulator builder.",
+      "fr": "Vous avez ouvert le créateur de combinés."
+    },
+    "Favorito actualizado.": {
+      "en": "Favourite updated.",
+      "fr": "Favori mis à jour."
+    },
+    "Partido consultado.": {
+      "en": "Match viewed.",
+      "fr": "Match consulté."
+    },
+    "Equipo consultado.": {
+      "en": "Team viewed.",
+      "fr": "Équipe consultée."
+    },
+    "Partidos en directo ahora": {
+      "en": "Live matches now",
+      "fr": "Matchs en direct maintenant"
+    },
+    "Picks publicados disponibles": {
+      "en": "Published picks available",
+      "fr": "Picks publiés disponibles"
+    },
+    "Partidos próximos listos para análisis": {
+      "en": "Upcoming matches ready for analysis",
+      "fr": "Prochains matchs prêts à être analysés"
+    },
+    "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.": {
+      "en": "No picks are published yet, but SHARK can help you review real upcoming matches.",
+      "fr": "Aucun pick n'est encore publié, mais SHARK peut vous aider à examiner les prochains matchs réels."
+    },
+    "Feed de favoritos activo": {
+      "en": "Favourites feed active",
+      "fr": "Fil des favoris actif"
+    },
+    "Personaliza tu experiencia": {
+      "en": "Personalise your experience",
+      "fr": "Personnalisez votre expérience"
+    },
+    "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.": {
+      "en": "Save teams, leagues or matches to make Home, SHARK and Telegram more useful.",
+      "fr": "Enregistrez des équipes, des championnats ou des matchs pour rendre l'accueil, SHARK et Telegram plus utiles."
+    },
+    "Telegram pendiente de configurar": {
+      "en": "Telegram setup pending",
+      "fr": "Configuration de Telegram en attente"
+    },
+    "Cuando está conectado podrás recibir partidos del día, picks y alertas premium.": {
+      "en": "When connected, you can receive today's matches, picks and premium alerts.",
+      "fr": "Une fois connecté, vous pourrez recevoir les matchs du jour, les picks et les alertes premium."
+    },
+    "Próximo partido destacado": {
+      "en": "Featured upcoming match",
+      "fr": "Prochain match à suivre"
+    },
+    "ANÁLISIS": {
+      "en": "ANALYSIS",
+      "fr": "ANALYSE"
+    },
+    "PERSONALIZA": {
+      "en": "PERSONALISE",
+      "fr": "PERSONNALISER"
+    },
+    "PRÓXIMO": {
+      "en": "UPCOMING",
+      "fr": "À VENIR"
+    },
+    "Hay {value} partido(s) en directo. Revisa marcador, estado y favoritos.": {
+      "en": "There are {value} live matches. Check scores, status and favourites.",
+      "fr": "Il y a {value} matchs en direct. Consultez les scores, les états et les favoris."
+    },
+    "Tienes {value} pick(s) visibles según tu membresía.": {
+      "en": "You have {value} picks available under your membership.",
+      "fr": "Votre abonnement vous donne accès à {value} picks."
+    },
+    "Tus {value} favorito(s) alimentan partidos, equipos, ligas y alertas futuras.": {
+      "en": "Your {value} favourites inform matches, teams, leagues and future alerts.",
+      "fr": "Vos {value} favoris alimentent les matchs, les équipes, les championnats et les futures alertes."
+    },
+    "Ultima registrada": {
+      "en": "Last recorded",
+      "fr": "Dernière cote enregistrée"
+    },
+    "Dato retrasado": {
+      "en": "Delayed data",
+      "fr": "Donnée retardée"
+    },
+    "Legal": {
+      "en": "Legal",
+      "fr": "Mentions légales"
+    },
+    "Roadmap": {
+      "en": "Roadmap",
+      "fr": "Feuille de route"
+    },
+    "Centro de inteligencia de usuario": {
+      "en": "User intelligence centre",
+      "fr": "Centre d'intelligence utilisateur"
+    },
+    "Tu experiencia deportiva bajo tu control": {
+      "en": "Your sports experience, your control",
+      "fr": "Votre expérience sportive, sous votre contrôle"
+    },
+    "Estado de personalización": {
+      "en": "Personalisation status",
+      "fr": "État de personnalisation"
+    },
+    "Preparadas": {
+      "en": "Prepared",
+      "fr": "Préparées"
+    },
+    "Acciones de privacidad": {
+      "en": "Privacy actions",
+      "fr": "Actions de confidentialité"
+    },
+    "observados": {
+      "en": "observed",
+      "fr": "observées"
+    },
+    "observadas": {
+      "en": "observed",
+      "fr": "observées"
+    },
+    "usadas": {
+      "en": "used",
+      "fr": "utilisés"
+    },
+    "Aplicación auto": {
+      "en": "Automatic application",
+      "fr": "Application automatique"
+    },
+    "Home intacta": {
+      "en": "Home unchanged",
+      "fr": "Accueil inchangé"
+    },
+    "Qué se mide y qué no": {
+      "en": "What is measured and what is not",
+      "fr": "Ce qui est mesuré et ce qui ne l'est pas"
+    },
+    "Transparente": {
+      "en": "Transparent",
+      "fr": "Transparent"
+    },
+    "Activación": {
+      "en": "Activation",
+      "fr": "Activation"
+    },
+    "Retención": {
+      "en": "Retention",
+      "fr": "Fidélisation"
+    },
+    "No almacenado": {
+      "en": "Not stored",
+      "fr": "Non stocké"
+    },
+    "Datos sensibles": {
+      "en": "Sensitive data",
+      "fr": "Données sensibles"
+    },
+    "Eventos propios: abrir calendario, partido, SHARK, favorito, briefing o plan. Si no existe muestra, no se calcula conversión.": {
+      "en": "First-party events: opening the calendar, a match, SHARK, a favourite, briefing or plan. No sample means no conversion calculation.",
+      "fr": "Événements internes : ouverture du calendrier, d'un match, de SHARK, d'un favori, d'un briefing ou d'un plan. Sans échantillon, aucune conversion n'est calculée."
+    },
+    "Pantallas usadas y favoritos ayudan a entender si vuelves por valor real. No se infieren gustos sensibles.": {
+      "en": "Visited screens and favourites help us understand whether you return for real value. Sensitive preferences are not inferred.",
+      "fr": "Les écrans consultés et les favoris aident à comprendre ce qui vous fait revenir. Aucune préférence sensible n'est déduite."
+    },
+    "El usuario puede exportar, resetear, desactivar o borrar el perfil. La Home no cambia automáticamente.": {
+      "en": "You can export, reset, disable or delete the profile. Home does not change automatically.",
+      "fr": "Vous pouvez exporter, réinitialiser, désactiver ou supprimer le profil. L'accueil ne change pas automatiquement."
+    },
+    "No se guardan tokens, tarjetas, contraseñas, contenido privado externo ni datos para vender a terceros.": {
+      "en": "This profile does not store tokens, payment cards, passwords, external private content or data for sale to third parties.",
+      "fr": "Ce profil ne stocke ni jetons, ni cartes bancaires, ni mots de passe, ni contenu privé externe, ni données destinées à la vente."
+    },
+    "Perfil deportivo observado": {
+      "en": "Observed sports profile",
+      "fr": "Profil sportif observé"
+    },
+    "Equipos consultados": {
+      "en": "Viewed teams",
+      "fr": "Équipes consultées"
+    },
+    "Competiciones consultadas": {
+      "en": "Viewed competitions",
+      "fr": "Compétitions consultées"
+    },
+    "Partidos abiertos": {
+      "en": "Opened matches",
+      "fr": "Matchs ouverts"
+    },
+    "Pantallas mas usadas": {
+      "en": "Most used screens",
+      "fr": "Écrans les plus utilisés"
+    },
+    "Filtros utilizados": {
+      "en": "Used filters",
+      "fr": "Filtres utilisés"
+    },
+    "Horarios habituales": {
+      "en": "Usual times",
+      "fr": "Horaires habituels"
+    },
+    "Mercados consultados": {
+      "en": "Viewed markets",
+      "fr": "Marchés consultés"
+    },
+    "Contenido sin uso reciente": {
+      "en": "Content not used recently",
+      "fr": "Contenu non consulté récemment"
+    },
+    "No disponible. No existe evidencia propia suficiente.": {
+      "en": "Unavailable. There is insufficient first-party evidence.",
+      "fr": "Indisponible. Les données internes sont insuffisantes."
+    },
+    "{count} señales": {
+      "en": "{count} signals",
+      "fr": "{count} signaux"
+    },
+    "Personalización": {
+      "en": "Personalisation",
+      "fr": "Personnalisation"
+    },
+    "Datos salen de NeMeSiS": {
+      "en": "Data leaves NeMeSiS",
+      "fr": "Données transmises hors de NeMeSiS"
+    },
+    "Venta de datos": {
+      "en": "Data sale",
+      "fr": "Vente de données"
+    },
+    "IA generativa": {
+      "en": "Generative AI",
+      "fr": "IA générative"
+    },
+    "Activada": {
+      "en": "Enabled",
+      "fr": "Activée"
+    },
+    "Desactivada": {
+      "en": "Disabled",
+      "fr": "Désactivée"
+    },
+    "Revisar": {
+      "en": "Review",
+      "fr": "Vérifier"
+    },
+    "Resetear preferencias": {
+      "en": "Reset preferences",
+      "fr": "Réinitialiser les préférences"
+    },
+    "Borrar perfil": {
+      "en": "Delete profile",
+      "fr": "Supprimer le profil"
+    },
+    "Personalizacion preparada": {
+      "en": "Prepared personalisation",
+      "fr": "Personnalisation préparée"
+    },
+    "Controlada": {
+      "en": "Controlled",
+      "fr": "Contrôlée"
+    },
+    "No cambia la Home automaticamente. Solo deja preparada la infraestructura para futuras decisiones con consentimiento.": {
+      "en": "Home does not change automatically. This only prepares the infrastructure for future decisions with consent.",
+      "fr": "L'accueil ne change pas automatiquement. L'infrastructure est seulement préparée pour de futures décisions avec consentement."
+    },
+    "Siguientes usos posibles": {
+      "en": "Possible next uses",
+      "fr": "Prochaines utilisations possibles"
+    },
+    "No disponible. Aún no hay muestra suficiente o consentimiento activo.": {
+      "en": "Unavailable. There is not yet a sufficient sample or active consent.",
+      "fr": "Indisponible. L'échantillon est insuffisant ou le consentement n'est pas actif."
+    },
+    "No hay ausencias criticas en el snapshot actual.": {
+      "en": "No critical information is missing from the current snapshot.",
+      "fr": "Aucune information critique ne manque dans l'instantané actuel."
+    },
+    "Correcto": {
+      "en": "Correct",
+      "fr": "Correct"
+    },
+    "Sin datos suficientes": {
+      "en": "Insufficient data",
+      "fr": "Données insuffisantes"
+    },
+    "No concedido": {
+      "en": "Not granted",
+      "fr": "Non accordé"
+    },
+    "Concedido": {
+      "en": "Granted",
+      "fr": "Accordé"
+    },
+    "Preparado, sin aplicar": {
+      "en": "Prepared, not applied",
+      "fr": "Préparé, non appliqué"
+    },
+    "Muestra razonable": {
+      "en": "Reasonable sample",
+      "fr": "Échantillon raisonnable"
+    },
+    "Muestra limitada": {
+      "en": "Limited sample",
+      "fr": "Échantillon limité"
+    },
+    "Destacar equipos consultados": {
+      "en": "Highlight viewed teams",
+      "fr": "Mettre en avant les équipes consultées"
+    },
+    "Destacar competiciones consultadas": {
+      "en": "Highlight viewed competitions",
+      "fr": "Mettre en avant les compétitions consultées"
+    },
+    "Recordar filtros usados": {
+      "en": "Remember used filters",
+      "fr": "Mémoriser les filtres utilisés"
+    },
+    "No hay actividad reciente suficiente para aprender preferencias.": {
+      "en": "There is not enough recent activity to learn preferences.",
+      "fr": "L'activité récente est insuffisante pour identifier les préférences."
+    },
+    "No hay favoritos guardados.": {
+      "en": "There are no saved favourites.",
+      "fr": "Aucun favori n'est enregistré."
+    },
+    "La personalizacion no esta activada por consentimiento.": {
+      "en": "Personalisation has not been enabled by consent.",
+      "fr": "La personnalisation n'a pas été activée avec consentement."
+    },
+    "No hay mercados consultados con evidencia propia.": {
+      "en": "There is no first-party evidence of viewed markets.",
+      "fr": "Aucune donnée interne ne confirme des marchés consultés."
+    },
+    "No se recibio snapshot SHARK Intelligence completo.": {
+      "en": "The complete SHARK context is unavailable.",
+      "fr": "Le contexte SHARK complet est indisponible."
+    },
+    "NeMeSiS puede preparar accesos y preferencias usando solo actividad propia observada.": {
+      "en": "NeMeSiS can prepare shortcuts and preferences using only observed first-party activity.",
+      "fr": "NeMeSiS peut préparer des raccourcis et des préférences à partir de la seule activité interne observée."
+    },
+    "La plataforma muestra lo almacenado y no aplica personalizacion automatica sin consentimiento.": {
+      "en": "The platform shows stored information and does not apply automatic personalisation without consent.",
+      "fr": "La plateforme affiche les informations stockées et n'applique aucune personnalisation automatique sans consentement."
+    },
+    "NeMeSiS prepara personalización solo con uso propio observado, sin IA generativa y sin vender datos.": {
+      "en": "NeMeSiS prepares personalisation using only observed first-party activity, without generative AI or selling data.",
+      "fr": "NeMeSiS prépare la personnalisation à partir de la seule activité interne observée, sans IA générative ni vente de données."
+    },
+    "destacar equipos favoritos": {
+      "en": "highlight favourite teams",
+      "fr": "mettre en avant les équipes favorites"
+    },
+    "destacar competiciones favoritas": {
+      "en": "highlight favourite competitions",
+      "fr": "mettre en avant les compétitions favorites"
+    },
+    "destacar proximos partidos relevantes": {
+      "en": "highlight relevant upcoming matches",
+      "fr": "mettre en avant les prochains matchs pertinents"
+    },
+    "recordar filtros utilizados": {
+      "en": "remember used filters",
+      "fr": "mémoriser les filtres utilisés"
+    },
+    "personalizar accesos rapidos": {
+      "en": "personalise shortcuts",
+      "fr": "personnaliser les raccourcis"
+    },
+    "Activar": {
+      "en": "Enable",
+      "fr": "Activer"
+    },
+    "Desactivar": {
+      "en": "Disable",
+      "fr": "Désactiver"
+    },
+    "Exportar": {
+      "en": "Export",
+      "fr": "Exporter"
+    },
+    "Control": {
+      "en": "Control",
+      "fr": "Contrôle"
+    },
+    "Pantallas": {
+      "en": "Screens",
+      "fr": "Écrans"
+    },
+    "Perfil": {
+      "en": "Profile",
+      "fr": "Profil"
+    },
+    "No": {
+      "en": "No",
+      "fr": "Non"
+    },
+    "Sí": {
+      "en": "Yes",
+      "fr": "Oui"
+    },
+    "Pausado": {
+      "en": "Paused",
+      "fr": "En pause"
+    },
+    "Activo": {
+      "en": "Active",
+      "fr": "Actif"
+    },
+    "Prórroga": {
+      "en": "Extra time",
+      "fr": "Prolongation"
+    },
+    "Penaltis": {
+      "en": "Penalty shoot-out",
+      "fr": "Tirs au but"
+    },
+    "Final tras prórroga": {
+      "en": "Finished after extra time",
+      "fr": "Terminé après prolongation"
+    },
+    "Final tras penaltis": {
+      "en": "Finished after penalties",
+      "fr": "Terminé après tirs au but"
+    },
+    "Partido en curso": {
+      "en": "Match in progress",
+      "fr": "Match en cours"
+    },
+    "Contexto aún no disponible": {
+      "en": "Context not yet available",
+      "fr": "Contexte pas encore disponible"
+    },
+    "No disponible: faltan señales deportivas suficientes o frescas.": {
+      "en": "Unavailable: there is not enough recent sporting evidence.",
+      "fr": "Indisponible : les données sportives récentes sont insuffisantes."
+    },
+    "No disponible: faltan senales deportivas suficientes o frescas.": {
+      "en": "Unavailable: there is not enough recent sporting evidence.",
+      "fr": "Indisponible : les données sportives récentes sont insuffisantes."
+    }
+  }
+}

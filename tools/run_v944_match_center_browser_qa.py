@@ -134,7 +134,7 @@ def write_result(output: Path, captures: list[dict], fingerprint: str, guards: l
     return result
 
 
-def install_boundary(temp: Path, output: Path, database: Path, driver_command: list[str]) -> list[str]:
+def install_boundary(temp: Path, output: Path, database: Path, driver_command: list[str], additional_commands=()) -> list[str]:
     """Restrict the Python app to this run's disposable storage and loopback."""
     blocked: list[str] = []
 
@@ -158,7 +158,7 @@ def install_boundary(temp: Path, output: Path, database: Path, driver_command: l
             blocked.append("NETWORK")
             raise PermissionError("V944_QA_NETWORK_BLOCKED")
         if event == "subprocess.Popen":
-            if driver_command and list(args[1]) == driver_command:
+            if (driver_command and list(args[1]) == driver_command) or any(list(args[1]) == command for command in additional_commands):
                 return
             blocked.append("PROCESS")
             raise PermissionError("V944_QA_PROCESS_BLOCKED")

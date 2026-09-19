@@ -716,7 +716,9 @@ def normalize_match_entity(
         now=_parse_datetime(now_madrid) if now_madrid else None,
     )
     lifecycle = _text(truth.get("lifecycle"), 40).upper()
-    raw_minute = data.get("minute") or live.get("minute")
+    raw_minute = data.get("minute")
+    if raw_minute in (None, ""):
+        raw_minute = live.get("minute")
     if truth.get("is_live"):
         status_source = live_status or data.get("status")
         status_minute = raw_minute

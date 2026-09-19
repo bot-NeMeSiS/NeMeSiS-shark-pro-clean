@@ -295,7 +295,17 @@ def worker_main(role: str) -> int:
     parser.add_argument("--dry-run", action="store_true", help="Confirm safe read-only execution")
     parser.add_argument("--db-path", default="", help="Optional local database path")
     parser.add_argument("--no-write", action="store_true", help="Do not persist sanitized worker evidence")
+    parser.add_argument("--static-only", action="store_true", help="Inspect product templates without opening any database")
     args = parser.parse_args()
-    result = run_role(role, args.db_path, write=not args.no_write)
+    if args.static_only:
+        if role != "product_experience" or not args.no_write:
+            parser.error("static-only requires product_experience and no-write")
+        from engines.sentinel_jobs import TEMPLATES
+        result = evaluate(role, {})
+        result["scope"] = list(TEMPLATES)
+        result["database_status"] = "NOT_ACCESSED"
+        result["next_action"] = "review_findings" if result["findings"] else "review_other_scopes_separately"
+    else:
+        result = run_role(role, args.db_path, write=not args.no_write)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if result.get("ok") else 1
