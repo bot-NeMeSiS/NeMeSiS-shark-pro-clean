@@ -24,8 +24,13 @@ from zoneinfo import ZoneInfo
 RUNNER_NAME = "nemesis_master_tick"
 TELEGRAM_ENDPOINT = "/api/automation/telegram/tick?runner=render_cron"
 CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
+READINESS_ENDPOINT = "/api/runtime-version"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
+READINESS_TIMEOUT_SECONDS = 8
+READINESS_ATTEMPTS = 6
+READINESS_BACKOFF_SECONDS = 5
+TRANSIENT_READINESS_HTTP = {502, 503, 504}
 CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"}
 
 
@@ -273,6 +278,68 @@ def request_error_result(prefix: str, started: float, error: str, http_status: i
     }
 
 
+def wait_for_web_ready(base_url: str) -> dict:
+    """Wait briefly for the web service during an atomic Render deploy.
+
+    This probe is read-only and carries no automation secret. Side-effecting
+    ticks only start after the web service answers successfully, which avoids
+    turning a normal deploy overlap into a failed cron run.
+    """
+    started = time.perf_counter()
+    last_http = None
+    last_result = "WEB_NOT_READY"
+    for attempt in range(1, READINESS_ATTEMPTS + 1):
+        request = urllib.request.Request(
+            f"{base_url}{READINESS_ENDPOINT}",
+            headers={
+                "User-Agent": "NeMeSiS-SHARK-PRO-Master-Cron-Readiness/V1",
+                "Accept": "application/json",
+            },
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=READINESS_TIMEOUT_SECONDS) as response:
+                http_status = int(response.status)
+                if 200 <= http_status < 300:
+                    return {
+                        "readiness_status": "PASS",
+                        "readiness_http": http_status,
+                        "readiness_result": "WEB_READY",
+                        "readiness_attempts": attempt,
+                        "readiness_duration_ms": max(
+                            0, round((time.perf_counter() - started) * 1000)
+                        ),
+                    }
+                last_http = http_status
+                last_result = f"HTTP_{http_status}"
+                if http_status not in TRANSIENT_READINESS_HTTP:
+                    break
+        except urllib.error.HTTPError as exc:
+            last_http = int(exc.code)
+            last_result = f"HTTP_{last_http}"
+            if last_http not in TRANSIENT_READINESS_HTTP:
+                break
+        except Exception as exc:
+            reason = getattr(exc, "reason", None)
+            is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(
+                reason, (TimeoutError, socket.timeout)
+            )
+            last_result = "TIMEOUT" if is_timeout else type(exc).__name__
+
+        if attempt < READINESS_ATTEMPTS:
+            time.sleep(READINESS_BACKOFF_SECONDS)
+
+    return {
+        "readiness_status": "FAIL",
+        "readiness_http": last_http,
+        "readiness_result": last_result,
+        "readiness_attempts": READINESS_ATTEMPTS,
+        "readiness_duration_ms": max(
+            0, round((time.perf_counter() - started) * 1000)
+        ),
+    }
+
+
 def telegram_tick(base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     request = urllib.request.Request(
@@ -368,6 +435,32 @@ def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
         return request_error_result(prefix, started, type(exc).__name__)
 
 
+def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
+    reason = safe_label(readiness.get("readiness_result"), "", "WEB_NOT_READY")
+    return {
+        "runner": RUNNER_NAME,
+        "web_readiness": readiness,
+        "telegram_status": "NOT_EXECUTED",
+        "continuous_evolution_status": "NOT_EXECUTED",
+        "telegram": {
+            "telegram_http": None,
+            "telegram_status": "NOT_EXECUTED",
+            "telegram_result": reason,
+            "telegram_duration_ms": 0,
+        },
+        "continuous_evolution": {
+            "continuous_http": None,
+            "continuous_status": "NOT_EXECUTED",
+            "continuous_result": reason,
+            "continuous_duration_ms": 0,
+        },
+        "overall": "FAIL",
+        "timestamp_madrid": madrid_now,
+        "timestamp_utc": utc_now,
+        "duration_ms": safe_count(readiness.get("readiness_duration_ms")),
+    }
+
+
 def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
     return {
         "runner": RUNNER_NAME,
@@ -416,11 +509,19 @@ def main() -> int:
         print_event(payload)
         return 2
 
+    readiness = wait_for_web_ready(base_url)
+    if readiness.get("readiness_status") != "PASS":
+        payload = readiness_failure(readiness, utc_now, madrid_now)
+        payload["duration_ms"] = max(0, round((time.perf_counter() - started) * 1000))
+        print_event(payload)
+        return 2
+
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     overall = overall_status(telegram, continuous)
     print_event({
         "runner": RUNNER_NAME,
+        "web_readiness": readiness,
         "telegram_status": telegram.get("telegram_status"),
         "continuous_evolution_status": continuous.get("continuous_status"),
         "telegram": telegram,
