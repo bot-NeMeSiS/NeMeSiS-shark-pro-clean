@@ -43,5 +43,40 @@ jobs:
               with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
                   handle.write("NEMESIS_QA_CHROMIUM=" + pw.chromium.executable_path + "\n")
           PY
-      - name: Run tests in LOCAL SAFE harness
-        run: python tools/check_local_candidate.py
+      - name: Prepare isolated QA workspace
+        run: mkdir -p data/local_dev
+      - name: Run standard full suite
+        env:
+          SECRET_KEY: test-secret-key-for-ci
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: admin-password
+          BACKGROUND_JOBS_ENABLED: 'false'
+          AUTO_GENERATE_PICKS: 'false'
+          AUTO_SEND_TELEGRAM_PICKS: 'false'
+          DB_PATH: /tmp/nemesis_ci.db
+          PYTEST_ADDOPTS: >-
+            --ignore=tests/test_final_replay.py
+            --ignore=tests/test_local_betting_evidence.py
+            --ignore=tests/test_local_client_continuity.py
+            --ignore=tests/test_local_membership_preservation.py
+            --ignore=tests/test_project_control_http.py
+            --ignore=tests/test_sentinel_jobs_http.py
+            --ignore=tests/test_sentinel_operational_browser.py
+        run: pytest
+      - name: Run LOCAL SAFE candidate tests
+        run: |
+          set -e
+          for test_file in \
+            tests/test_final_replay.py \
+            tests/test_local_betting_evidence.py \
+            tests/test_local_client_continuity.py \
+            tests/test_local_membership_preservation.py
+          do
+            python tools/check_local_candidate.py "$test_file"
+          done
+      - name: Run Sentinel boundary tests in fresh processes
+        run: |
+          set -e
+          python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-project-control tests/test_project_control_http.py
+          python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-sentinel-http tests/test_sentinel_jobs_http.py
+          python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-sentinel-browser tests/test_sentinel_operational_browser.py
