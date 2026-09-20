@@ -1679,9 +1679,70 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
     else:
         deep_execution_state = "RAN"
 
+    fixtures_stage = sports_result.get("fixtures") if isinstance(sports_result.get("fixtures"), dict) else {}
+    fallback_stage = sports_result.get("fallback") if isinstance(sports_result.get("fallback"), dict) else {}
+    live_stage = sports_result.get("live") if isinstance(sports_result.get("live"), dict) else {}
+    odds_stage = sports_result.get("odds") if isinstance(sports_result.get("odds"), dict) else {}
+
+    primary_ok = fixtures_stage.get("ok") is True
+    fallback_used = bool(
+        as_int(fallback_stage.get("processed"), 0)
+        or (
+            fallback_stage
+            and str(fallback_stage.get("status") or "").upper()
+            not in {"", "NOT_REQUIRED", "SKIPPED"}
+        )
+    )
+    fallback_ok = fallback_stage.get("ok") is True and fallback_used
+    if primary_ok:
+        selected_source = "API_FOOTBALL_PRIMARY"
+    elif fallback_ok:
+        selected_source = "SPORTSDB_FALLBACK"
+    else:
+        selected_source = "NO_CONFIRMED_SOURCE"
+
+    current_sync = {
+        "selected_source": selected_source,
+        "api_football_primary": {
+            "state": _sports_diagnostic_text(fixtures_stage.get("status"), 80) or "UNKNOWN",
+            "ok": fixtures_stage.get("ok") if isinstance(fixtures_stage.get("ok"), bool) else None,
+            "configured": fixtures_stage.get("configured") if isinstance(fixtures_stage.get("configured"), bool) else None,
+            "enabled": fixtures_stage.get("enabled") if isinstance(fixtures_stage.get("enabled"), bool) else None,
+            "external_calls": as_int(fixtures_stage.get("external_calls"), 0),
+            "fixtures_count": as_int(fixtures_stage.get("fixtures_count"), 0),
+            "error_present": bool(fixtures_stage.get("error") or fixtures_stage.get("errors")),
+        },
+        "sportsdb_fallback": {
+            "state": _sports_diagnostic_text(fallback_stage.get("status"), 80) or "UNKNOWN",
+            "ok": fallback_stage.get("ok") if isinstance(fallback_stage.get("ok"), bool) else None,
+            "used": fallback_used,
+            "processed": as_int(fallback_stage.get("processed"), 0),
+            "error_present": bool(fallback_stage.get("error") or fallback_stage.get("errors")),
+        },
+        "live_refresh": {
+            "state": _sports_diagnostic_text(live_stage.get("status"), 80) or "UNKNOWN",
+            "ok": live_stage.get("ok") if isinstance(live_stage.get("ok"), bool) else None,
+            "external_calls": as_int(live_stage.get("external_calls"), 0),
+            "fixtures_count": as_int(live_stage.get("fixtures_count"), 0),
+            "error_present": bool(live_stage.get("error") or live_stage.get("errors")),
+        },
+        "odds_refresh": {
+            "state": _sports_diagnostic_text(odds_stage.get("status"), 80) or "UNKNOWN",
+            "ok": odds_stage.get("ok") if isinstance(odds_stage.get("ok"), bool) else None,
+            "processed": as_int(
+                odds_stage.get("processed")
+                or odds_stage.get("events")
+                or odds_stage.get("updated"),
+                0,
+            ),
+            "error_present": bool(odds_stage.get("error") or odds_stage.get("errors")),
+        },
+    }
+
     return {
         # Legacy fields remain stable for existing cron/admin consumers.
         "status": _sports_diagnostic_text(sports_result.get("status"), 80) or "UNKNOWN",
+        "current_sync": current_sync,
         "deep_status": deep_status_text,
         "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
         "provider_authenticated": bool(legacy_account.get("ok")),
@@ -1914,6 +1975,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         raw_coverage = raw_pipeline.get("coverage") if isinstance(raw_pipeline.get("coverage"), dict) else {}
         raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
         raw_freshness = raw_pipeline.get("data_freshness") if isinstance(raw_pipeline.get("data_freshness"), dict) else {}
+        raw_current_sync = raw_pipeline.get("current_sync") if isinstance(raw_pipeline.get("current_sync"), dict) else {}
         compact["sports_pipeline"] = {
             "status": _sports_diagnostic_text(raw_pipeline.get("status"), 80) or "UNKNOWN",
             "deep_status": _sports_diagnostic_text(raw_pipeline.get("deep_status"), 80) or "UNKNOWN",
@@ -2018,6 +2080,38 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     }
                     for name, value in list(raw_coverage_capabilities.items())[:20]
                     if isinstance(value, dict) and _sports_diagnostic_text(name, 80)
+                },
+            },
+            "current_sync": {
+                "selected_source": _sports_diagnostic_text(raw_current_sync.get("selected_source"), 80) or "UNKNOWN",
+                "api_football_primary": {
+                    "state": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
+                    "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
+                    "enabled": (raw_current_sync.get("api_football_primary") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("enabled"), bool) else None,
+                    "external_calls": as_int((raw_current_sync.get("api_football_primary") or {}).get("external_calls"), 0),
+                    "fixtures_count": as_int((raw_current_sync.get("api_football_primary") or {}).get("fixtures_count"), 0),
+                    "error_present": bool((raw_current_sync.get("api_football_primary") or {}).get("error_present")),
+                },
+                "sportsdb_fallback": {
+                    "state": _sports_diagnostic_text((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
+                    "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
+                    "processed": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("processed"), 0),
+                    "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
+                },
+                "live_refresh": {
+                    "state": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
+                    "external_calls": as_int((raw_current_sync.get("live_refresh") or {}).get("external_calls"), 0),
+                    "fixtures_count": as_int((raw_current_sync.get("live_refresh") or {}).get("fixtures_count"), 0),
+                    "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
+                },
+                "odds_refresh": {
+                    "state": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
+                    "processed": as_int((raw_current_sync.get("odds_refresh") or {}).get("processed"), 0),
+                    "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
                 },
             },
             "data_freshness": {
