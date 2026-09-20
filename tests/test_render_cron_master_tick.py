@@ -287,9 +287,20 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
                     },
                 },
                 "data_freshness": {
-                    "state": "NOT_ESTABLISHED",
-                    "entity_timestamps_evaluated": False,
-                    "reason": "Los contadores no prueban frescura.",
+                    "state": "PARTIAL",
+                    "entity_timestamps_evaluated": True,
+                    "reason": "Existe evidencia stale.",
+                    "stale_samples": [{
+                        "fixture_id": "stale-9001",
+                        "home_team": secret,
+                        "away_team": "Visitante",
+                        "competition": "Liga QA",
+                        "provider": "SportsDB",
+                        "provider_observed_at": "2026-09-20T09:00:00+00:00",
+                        "freshness_seconds": 7200,
+                        "stale_reason": "LIVE_OBSERVATION_TOO_OLD",
+                        "status_canonical": "LIVE",
+                    }],
                 },
                 "unexpected": secret,
             },
@@ -315,7 +326,10 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
     assert pipeline["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert pipeline["coverage"]["capabilities"]["lineups"]["persisted_scope"] == "STORE_TOTAL"
     assert pipeline["coverage"]["capabilities"]["lineups"]["reason"] == "REDACTED"
-    assert pipeline["data_freshness"]["state"] == "NOT_ESTABLISHED"
+    assert pipeline["data_freshness"]["state"] == "PARTIAL"
+    assert pipeline["data_freshness"]["stale_samples"][0]["fixture_id"] == "stale-9001"
+    assert pipeline["data_freshness"]["stale_samples"][0]["home_team"] == "REDACTED"
+    assert pipeline["data_freshness"]["stale_samples"][0]["freshness_seconds"] == 7200
     assert "unexpected" not in pipeline
     assert secret not in output
 
