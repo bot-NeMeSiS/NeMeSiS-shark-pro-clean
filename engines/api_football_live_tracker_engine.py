@@ -86,10 +86,31 @@ def _api_key() -> str:
     return str(os.getenv("API_FOOTBALL_KEY") or os.getenv("API_FOOTBALL_API_KEY") or "").strip()
 
 
+def _safe_provider_reason_code(value: Any) -> str:
+    """Collapse provider/network error details into a non-sensitive category."""
+    try:
+        raw = json.dumps(value, ensure_ascii=True, default=str).lower()
+    except Exception:
+        raw = str(value or "").lower()
+    if not raw.strip() or raw.strip() in {"[]", "{}", """"}:
+        return ""
+    if any(token in raw for token in ("401", "403", "unauthor", "forbidden", "invalid api key", "api key", "api_key", "access denied")):
+        return "AUTH_OR_ACCESS"
+    if any(token in raw for token in ("429", "quota", "rate limit", "too many", "request limit", "daily limit", "requests limit")):
+        return "RATE_OR_QUOTA"
+    if re.search(r"\b(free plan|free tier|plan|season|subscription)\b", raw):
+        return "PLAN_OR_SEASON_ACCESS"
+    if any(token in raw for token in ("timeout", "timed out", "urlerror", "connection", "network", "dns")):
+        return "NETWORK_OR_TIMEOUT"
+    if any(token in raw for token in ("parameter", "field", "required", "malformed", "invalid request")):
+        return "INVALID_REQUEST"
+    return "PROVIDER_ERROR"
+
+
 def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int = 18) -> dict[str, Any]:
     key = _api_key()
     if not key:
-        return {"ok": False, "response": [], "error": "Falta API_FOOTBALL_KEY."}
+        return {"ok": False, "response": [], "error": "Falta API_FOOTBALL_KEY.", "provider_reason_code": "NOT_CONFIGURED"}
     clean_params = {k: v for k, v in (params or {}).items() if v not in (None, "")}
     query = urllib.parse.urlencode(clean_params)
     url = f"{API_FOOTBALL_BASE_URL.rstrip('/')}/{path.strip('/')}"
@@ -112,9 +133,15 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
             "payload": payload,
             "errors": errors,
             "requests": payload.get("paging") or {},
+            "provider_reason_code": _safe_provider_reason_code(errors) if errors else "",
         }
     except Exception as exc:  # pragma: no cover - network dependent
-        return {"ok": False, "response": [], "error": str(exc)[:300]}
+        return {
+            "ok": False,
+            "response": [],
+            "error": str(exc)[:300],
+            "provider_reason_code": _safe_provider_reason_code(exc),
+        }
 
 
 def _as_int(value: Any, default: int = 0) -> int:
@@ -491,13 +518,43 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
     conn = _connect(db_path)
     try:
         cache_seconds = _as_int(os.getenv("API_FOOTBALL_LIVE_CACHE_SECONDS", "55"), 55)
+        failure_backoff_seconds = _as_int(os.getenv("API_FOOTBALL_FAILURE_BACKOFF_SECONDS", "1800"), 1800)
         age = _last_sync_age(conn)
+        last_row = conn.execute(
+            "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key='live'"
+        ).fetchone()
+        last_status = str((last_row["status"] if last_row else "") or "").strip().lower()
+        last_fixtures = _as_int(last_row["fixtures_count"] if last_row else 0, 0)
+        last_error = str((last_row["error"] if last_row else "") or "")
         if not tracker_enabled():
             state = {"ok": False, "configured": api_key_configured(), "enabled": tracker_enabled(), "status": "pendiente_api_football", "message": "API-Football live tracker no configurado o desactivado."}
             _write_sync_state(conn, state, 0, 0, 0, 0, "")
             conn.commit()
             state["matches"] = live_tracker_matches(db_path, limit=80)
             return state
+        if (
+            not force
+            and last_status in {"partial", "error"}
+            and last_fixtures == 0
+            and age < failure_backoff_seconds
+        ):
+            matches = _live_tracker_matches_from_conn(conn, limit=100)
+            return {
+                "ok": False,
+                "configured": True,
+                "enabled": True,
+                "status": "CACHE_PROVIDER_FAILURE",
+                "cache_age_seconds": age,
+                "failure_backoff_seconds": failure_backoff_seconds,
+                "matches": matches,
+                "fixtures_count": 0,
+                "external_calls": 0,
+                "cached_provider_failure": True,
+                "cached_from_status": last_status.upper(),
+                "provider_reason_code": _safe_provider_reason_code(last_error),
+                "error": "cached_provider_failure",
+                "message": "Fallo live del proveedor en backoff; se protege cuota sin declarar éxito.",
+            }
         if not force and age < cache_seconds:
             matches = _live_tracker_matches_from_conn(conn, limit=100)
             return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "matches": matches, "fixtures_count": len(matches), "external_calls": 0, "message": "Caché live API-Football reutilizada."}
@@ -509,8 +566,10 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         fixtures = live_payload.get("response") or []
         fixtures_count = events_count = stats_count = 0
         errors: list[str] = []
+        provider_reason_codes: list[str] = []
         if not live_payload.get("ok"):
             errors.append(str(live_payload.get("error") or live_payload.get("errors") or "Error API-Football live")[:220])
+            provider_reason_codes.append(str(live_payload.get("provider_reason_code") or "PROVIDER_ERROR"))
         for item in fixtures:
             fixtures_count += _upsert_fixture(conn, item)
         conn.commit()
@@ -525,12 +584,14 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
                 events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
             else:
                 errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
+                provider_reason_codes.append(str(ev_payload.get("provider_reason_code") or "PROVIDER_ERROR"))
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
             external_calls += 1
             if st_payload.get("ok"):
                 stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
             else:
                 errors.append(str(st_payload.get("error") or st_payload.get("errors") or "Estadísticas no disponibles")[:180])
+                provider_reason_codes.append(str(st_payload.get("provider_reason_code") or "PROVIDER_ERROR"))
         status = "ok" if not errors else "partial"
         state = {
             "ok": True,
@@ -542,6 +603,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "stats_count": stats_count,
             "external_calls": external_calls,
             "cache_age_seconds": 0,
+            "provider_reason_code": next((code for code in provider_reason_codes if code), ""),
             "errors": errors[:8],
             "message": "API-Football live sincronizado con caché y límites." if fixtures_count else "Sin partidos live devueltos por API-Football ahora mismo.",
         }
@@ -1189,11 +1251,12 @@ def sync_api_football_match_window(
         age = _last_sync_age_for_key(conn, _state_key_for_window())
         if not force and age < cache_seconds:
             cached_row = conn.execute(
-                "SELECT status, fixtures_count FROM api_football_live_sync_state WHERE key=?",
+                "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key=?",
                 (_state_key_for_window(),),
             ).fetchone()
             cached_status = str((cached_row["status"] if cached_row else "") or "").strip().upper()
             cached_fixtures = _as_int(cached_row["fixtures_count"] if cached_row else 0, 0)
+            cached_error = str((cached_row["error"] if cached_row else "") or "")
             if cached_status == "OK":
                 return {
                     "ok": True,
@@ -1215,18 +1278,21 @@ def sync_api_football_match_window(
                 "external_calls": 0,
                 "cached_provider_failure": True,
                 "cached_from_status": cached_status or "UNKNOWN",
+                "provider_reason_code": _safe_provider_reason_code(cached_error),
                 "error": "cached_provider_failure",
                 "message": "Se conserva el fallo del proveedor en caché para proteger cuota y mantener el fallback.",
             }
         dates = _date_range(days_back, days_ahead)
         fixtures_count = stats_count = events_count = calls = 0
         errors = []
+        provider_reason_codes: list[str] = []
         all_fixtures = []
         for date_value in dates:
             payload = _api_get("fixtures", {"date": date_value, "timezone": os.getenv("APP_TIMEZONE", DEFAULT_TIMEZONE)})
             calls += 1
             if not payload.get("ok"):
                 errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
+                provider_reason_codes.append(str(payload.get("provider_reason_code") or "PROVIDER_ERROR"))
                 continue
             fixtures = [_normalize_fixture(item) for item in (payload.get("response") or [])]
             all_fixtures.extend(fixtures)
@@ -1269,6 +1335,7 @@ def sync_api_football_match_window(
             "stats_count": stats_count,
             "external_calls": calls,
             "cache_seconds": cache_seconds,
+            "provider_reason_code": next((code for code in provider_reason_codes if code), ""),
             "dates": dates,
             "message": "Ventana API-Football sincronizada: resultados/minutos/caché actualizados sin inventar datos.",
             "errors": errors[:8],
