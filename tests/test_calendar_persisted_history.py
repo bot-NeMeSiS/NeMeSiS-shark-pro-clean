@@ -89,6 +89,10 @@ def test_past_calendar_date_reads_persisted_match_and_keeps_match_center(
     assert item["status_info"]["is_finished"] is True
     assert item["status_info"]["is_live"] is False
     assert item["has_pick"] is False
+
+    with app_module.app.test_request_context("/calendar?lane=finished&date=2026-09-19"):
+        finished_calendar = app_module.v940_calendar_context(summary, "finished", "2026-09-19")
+    assert all(row["id"] != "history-result-pending" for row in finished_calendar["matches"])
     assert item["id"] == "history-final-1"
 
 
@@ -126,7 +130,9 @@ def test_finished_lane_reads_bounded_persisted_history(
         calendar = app_module.v940_calendar_context(summary, "finished", "2026-09-19")
 
     ids = {item["id"] for item in calendar["matches"]}
-    assert {"history-final-older", "history-final-yesterday"} <= ids
+    assert ids == {"history-final-yesterday"}
+    assert "history-final-older" not in ids
+    assert calendar["counts"]["finished"] == 1
     assert calendar["history_status"] == "PERSISTED_DB"
     assert calendar["history_date"] == "2026-09-19"
 
