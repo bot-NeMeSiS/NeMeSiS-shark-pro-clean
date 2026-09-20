@@ -117,6 +117,29 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
         return {"ok": False, "response": [], "error": str(exc)[:300]}
 
 
+def _safe_provider_failure_category(payload: Mapping[str, Any] | None) -> str:
+    """Classify provider failures without exposing provider text or secrets."""
+    data = dict(payload or {}) if isinstance(payload, Mapping) else {}
+    if data.get("ok") is True:
+        return ""
+    raw = json.dumps(
+        {"error": data.get("error"), "errors": data.get("errors")},
+        ensure_ascii=True,
+        default=str,
+    ).lower()[:2000]
+    if any(token in raw for token in ("401", "403", "unauthor", "forbidden", "invalid key", "api key", "api_key", "access denied", "authentication")):
+        return "AUTH_OR_ACCESS"
+    if any(token in raw for token in ("429", "quota", "rate limit", "too many", "request limit", "daily limit")):
+        return "RATE_OR_QUOTA"
+    if any(token in raw for token in ("timeout", "timed out", "urlerror", "connection", "network", "dns", "ssl")):
+        return "NETWORK_OR_TIMEOUT"
+    if any(token in raw for token in ("plan", "subscription", "coverage", "not available", "not allowed", "endpoint", "season")):
+        return "PLAN_OR_COVERAGE"
+    if data.get("error") or data.get("errors"):
+        return "PROVIDER_RESPONSE"
+    return "UNKNOWN_PROVIDER_ERROR"
+
+
 def _as_int(value: Any, default: int = 0) -> int:
     try:
         if value is None or value == "":
@@ -1189,11 +1212,17 @@ def sync_api_football_match_window(
         age = _last_sync_age_for_key(conn, _state_key_for_window())
         if not force and age < cache_seconds:
             cached_row = conn.execute(
-                "SELECT status, fixtures_count FROM api_football_live_sync_state WHERE key=?",
+                "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key=?",
                 (_state_key_for_window(),),
             ).fetchone()
             cached_status = str((cached_row["status"] if cached_row else "") or "").strip().upper()
             cached_fixtures = _as_int(cached_row["fixtures_count"] if cached_row else 0, 0)
+            cached_error = str((cached_row["error"] if cached_row else "") or "")
+            cached_failure_category = (
+                _safe_provider_failure_category({"ok": False, "error": cached_error})
+                if cached_error
+                else ""
+            )
             if cached_status == "OK":
                 return {
                     "ok": True,
@@ -1209,7 +1238,11 @@ def sync_api_football_match_window(
                 "ok": False,
                 "configured": True,
                 "enabled": True,
-                "status": "CACHE_PROVIDER_FAILURE",
+                "status": (
+                    f"CACHE_PROVIDER_FAILURE_{cached_failure_category}"
+                    if cached_failure_category
+                    else "CACHE_PROVIDER_FAILURE"
+                ),
                 "cache_age_seconds": age,
                 "fixtures_count": cached_fixtures,
                 "external_calls": 0,
@@ -1221,12 +1254,14 @@ def sync_api_football_match_window(
         dates = _date_range(days_back, days_ahead)
         fixtures_count = stats_count = events_count = calls = 0
         errors = []
+        provider_failure_categories = []
         all_fixtures = []
         for date_value in dates:
             payload = _api_get("fixtures", {"date": date_value, "timezone": os.getenv("APP_TIMEZONE", DEFAULT_TIMEZONE)})
             calls += 1
             if not payload.get("ok"):
                 errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
+                provider_failure_categories.append(_safe_provider_failure_category(payload))
                 continue
             fixtures = [_normalize_fixture(item) for item in (payload.get("response") or [])]
             all_fixtures.extend(fixtures)
@@ -1263,7 +1298,25 @@ def sync_api_football_match_window(
             "ok": not bool(errors),
             "configured": True,
             "enabled": True,
-            "status": "OK" if not errors else "PARTIAL",
+            "status": (
+                "OK"
+                if not errors
+                else "PARTIAL_" + next(
+                    (
+                        category
+                        for category in (
+                            "AUTH_OR_ACCESS",
+                            "RATE_OR_QUOTA",
+                            "NETWORK_OR_TIMEOUT",
+                            "PLAN_OR_COVERAGE",
+                            "PROVIDER_RESPONSE",
+                            "UNKNOWN_PROVIDER_ERROR",
+                        )
+                        if category in provider_failure_categories
+                    ),
+                    "PROVIDER_RESPONSE",
+                )
+            ),
             "fixtures_count": fixtures_count,
             "events_count": events_count,
             "stats_count": stats_count,

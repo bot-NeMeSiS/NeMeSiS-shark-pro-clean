@@ -89,7 +89,7 @@ def test_match_window_cached_provider_failure_stays_failure_without_new_call(tmp
             external_calls,error,payload_json
         ) VALUES (?,?,?,?,?,?,?,?,?)
         """,
-        ("match_window", tracker._now_iso(), "PARTIAL", 0, 0, 0, 5, "provider failure", "{}"),
+        ("match_window", tracker._now_iso(), "PARTIAL", 0, 0, 0, 5, "HTTP 429 rate limit secret-canary", "{}"),
     )
     conn.commit()
     conn.close()
@@ -111,9 +111,37 @@ def test_match_window_cached_provider_failure_stays_failure_without_new_call(tmp
     )
 
     assert result["ok"] is False
-    assert result["status"] == "CACHE_PROVIDER_FAILURE"
+    assert result["status"] == "CACHE_PROVIDER_FAILURE_RATE_OR_QUOTA"
     assert result["cached_provider_failure"] is True
     assert result["cached_from_status"] == "PARTIAL"
     assert result["external_calls"] == 0
     assert calls == []
 
+
+
+def test_safe_provider_failure_category_never_returns_provider_text():
+    assert tracker._safe_provider_failure_category({"ok": False, "errors": {"token": "secret-canary invalid API key"}}) == "AUTH_OR_ACCESS"
+    assert tracker._safe_provider_failure_category({"ok": False, "error": "HTTP 429 rate limit"}) == "RATE_OR_QUOTA"
+    assert tracker._safe_provider_failure_category({"ok": False, "error": "connection timed out"}) == "NETWORK_OR_TIMEOUT"
+    assert tracker._safe_provider_failure_category({"ok": False, "errors": {"plan": "season not available"}}) == "PLAN_OR_COVERAGE"
+    assert tracker._safe_provider_failure_category({"ok": False, "errors": {"weird": "opaque-sensitive-provider-text"}}) == "PROVIDER_RESPONSE"
+
+
+def test_match_window_exposes_only_safe_category_in_status(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "match-window-provider-category.db")
+    _enable_provider(monkeypatch)
+
+    def fake_get(path, params=None, timeout=18):
+        return {"ok": False, "response": [], "errors": {"plan": "season not available secret-canary"}}
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_match_window(
+        db_path,
+        days_back=0,
+        days_ahead=0,
+        force=True,
+        deep_limit=0,
+    )
+    assert result["ok"] is False
+    assert result["status"] == "PARTIAL_PLAN_OR_COVERAGE"
+    assert "secret-canary" not in result["status"]
