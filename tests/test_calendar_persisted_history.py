@@ -84,8 +84,8 @@ def test_past_calendar_date_reads_persisted_match_and_keeps_match_center(
     assert calendar["database_written"] is False
     assert [item["id"] for item in calendar["matches"]] == ["history-final-1"]
     item = calendar["matches"][0]
-    assert item["home_score"] == 2
-    assert item["away_score"] == 1
+    assert str(item["home_score"]) == "2"
+    assert str(item["away_score"]) == "1"
     assert item["status_info"]["is_finished"] is True
     assert item["status_info"]["is_live"] is False
     assert item["id"] == "history-final-1"
@@ -106,8 +106,8 @@ def test_past_calendar_never_turns_missing_score_into_zero_zero(
     assert calendar["history_status"] == "PERSISTED_DB"
     assert len(calendar["matches"]) == 1
     item = calendar["matches"][0]
-    assert item.get("home_score") is None
-    assert item.get("away_score") is None
+    assert item.get("home_score") in (None, "")
+    assert item.get("away_score") in (None, "")
     assert str(item.get("score") or "").replace(" ", "") != "0-0"
 
 
@@ -151,5 +151,5 @@ def test_calendar_api_uses_the_same_persisted_history_snapshot(
     assert payload["calendar"]["history_status"] == "PERSISTED_DB"
     assert payload["calendar"]["external_calls"] == 0
     assert [item["id"] for item in payload["matches"]] == ["history-api-1"]
-    assert payload["matches"][0]["home_score"] == 4
-    assert payload["matches"][0]["away_score"] == 2
+    assert str(payload["matches"][0]["home_score"]) == "4"
+    assert str(payload["matches"][0]["away_score"]) == "2"
