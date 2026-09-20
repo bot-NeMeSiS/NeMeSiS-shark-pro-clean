@@ -4,12 +4,13 @@ Actualizacion: 2026-09-20. Autoridad: GitHub main + Render observado. Sin PII ni
 
 ## Identidad actual
 
-- GitHub `main`: `7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba`.
+- GitHub `main`: `bf0a36dd1f2ff928d143ae6ac0254bf20f991529`.
 - Origen: merge de PR #16, candidato reconciliado del 19/09.
 - PR #16: MERGED.
+- PR #19: MERGED; Calendario hidrata resultados persistidos para fechas pasadas mediante lectura SQLite sin nuevas llamadas a proveedor.
 - PR #14 Directo: CLOSED / SUPERSEDED por main; su frente funcional sigue abierto a validacion real.
 - PR #15 integracion Sentinel: CLOSED / SUPERSEDED por PR #16.
-- Render web `nemesissharkpro`: LIVE en el SHA exacto `7a1ba50b...`.
+- Render web `nemesissharkpro`: LIVE en el SHA exacto `bf0a36dd...`.
 - Render cron `telegram-auto-tick`: LIVE en el mismo SHA.
 
 ## Evidencia verificada
