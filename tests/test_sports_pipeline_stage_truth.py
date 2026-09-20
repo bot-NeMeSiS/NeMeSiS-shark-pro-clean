@@ -188,3 +188,43 @@ def test_current_sync_declares_match_window_scope_and_odds_calls(app_module):
     )["sports_pipeline"]["current_sync"]
     assert compact["source_scope"] == "MATCH_WINDOW_PRIMARY_FALLBACK"
     assert compact["odds_refresh"]["external_calls"] == 2
+
+
+def test_partial_primary_with_persisted_rows_is_still_primary_source(app_module):
+    payload = _fallback_run()
+    payload["fixtures"] = {
+        "ok": False,
+        "status": "PARTIAL",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 5,
+        "fixtures_count": 3,
+        "errors": {"provider": "partial response"},
+    }
+    payload["fallback"] = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
+    current = app_module._build_sports_pipeline_diagnostics(payload, {})["current_sync"]
+    assert current["selected_source"] == "API_FOOTBALL_PRIMARY"
+    assert current["api_football_primary"]["fixtures_count"] == 3
+
+
+def test_partial_fallback_with_persisted_rows_is_still_fallback_source(app_module):
+    payload = _fallback_run()
+    payload["fallback"] = {
+        "ok": False,
+        "status": "PARTIAL",
+        "processed": 75,
+        "errors": ["one league unavailable"],
+    }
+    current = app_module._build_sports_pipeline_diagnostics(payload, {})["current_sync"]
+    assert current["selected_source"] == "SPORTSDB_FALLBACK"
+    assert current["sportsdb_fallback"]["processed"] == 75
+    assert current["sportsdb_fallback"]["error_present"] is True
+
+
+def test_reason_code_distinguishes_missing_and_disabled_configuration(app_module):
+    assert app_module._sports_stage_reason_code(
+        {"ok": False, "sin_key": True, "errors": ["Falta THE_ODDS_API_KEY."]}
+    ) == "NOT_CONFIGURED"
+    assert app_module._sports_stage_reason_code(
+        {"ok": False, "disabled": True, "skipped": True}
+    ) == "DISABLED"

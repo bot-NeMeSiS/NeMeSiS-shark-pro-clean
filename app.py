@@ -1493,6 +1493,10 @@ def _sports_stage_reason_code(stage):
     stage = dict(stage or {}) if isinstance(stage, dict) else {}
     if stage.get("ok") is True:
         return "NONE"
+    if stage.get("sin_key") is True:
+        return "NOT_CONFIGURED"
+    if stage.get("disabled") is True:
+        return "DISABLED"
     if stage.get("configured") is False:
         return "NOT_CONFIGURED"
     if stage.get("enabled") is False:
@@ -1731,10 +1735,16 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             not in {"", "NOT_REQUIRED", "SKIPPED"}
         )
     )
+    fallback_has_data = as_int(fallback_stage.get("processed"), 0) > 0
     fallback_ok = fallback_stage.get("ok") is True and fallback_used
-    if primary_has_data and fallback_ok:
+    if primary_has_data and fallback_has_data:
         selected_source = "MIXED_PRIMARY_AND_FALLBACK"
+    elif primary_has_data:
+        selected_source = "API_FOOTBALL_PRIMARY"
+    elif fallback_has_data:
+        selected_source = "SPORTSDB_FALLBACK"
     elif primary_ok:
+        # Includes an API-Football cache hit with no new writes this tick.
         selected_source = "API_FOOTBALL_PRIMARY"
     elif fallback_ok:
         selected_source = "SPORTSDB_FALLBACK"
