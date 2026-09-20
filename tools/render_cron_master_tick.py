@@ -105,6 +105,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw_coverage = raw.get("coverage") if isinstance(raw.get("coverage"), dict) else {}
     raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
     raw_freshness = raw.get("data_freshness") if isinstance(raw.get("data_freshness"), dict) else {}
+    raw_current_sync = raw.get("current_sync") if isinstance(raw.get("current_sync"), dict) else {}
     fixture_ids = [
         safe_label(value, secret, "")
         for value in list(raw_sample.get("fixture_ids") or [])[:1]
@@ -200,6 +201,38 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "source": safe_label(raw_coverage.get("source"), secret, "NONE"),
             "observed_at": safe_label(raw_coverage.get("observed_at"), secret, ""),
             "capabilities": coverage,
+        },
+        "current_sync": {
+            "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
+            "api_football_primary": {
+                "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
+                "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
+                "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
+                "enabled": (raw_current_sync.get("api_football_primary") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("enabled"), bool) else None,
+                "external_calls": safe_count((raw_current_sync.get("api_football_primary") or {}).get("external_calls")),
+                "fixtures_count": safe_count((raw_current_sync.get("api_football_primary") or {}).get("fixtures_count")),
+                "error_present": bool((raw_current_sync.get("api_football_primary") or {}).get("error_present")),
+            },
+            "sportsdb_fallback": {
+                "state": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), secret),
+                "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
+                "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
+                "processed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("processed")),
+                "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
+            },
+            "live_refresh": {
+                "state": safe_label((raw_current_sync.get("live_refresh") or {}).get("state"), secret),
+                "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
+                "external_calls": safe_count((raw_current_sync.get("live_refresh") or {}).get("external_calls")),
+                "fixtures_count": safe_count((raw_current_sync.get("live_refresh") or {}).get("fixtures_count")),
+                "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
+            },
+            "odds_refresh": {
+                "state": safe_label((raw_current_sync.get("odds_refresh") or {}).get("state"), secret),
+                "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
+                "processed": safe_count((raw_current_sync.get("odds_refresh") or {}).get("processed")),
+                "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
+            },
         },
         "data_freshness": {
             "state": safe_label(raw_freshness.get("state"), secret, "NOT_ESTABLISHED"),
