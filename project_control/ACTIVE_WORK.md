@@ -1,6 +1,6 @@
 # Active Work
 
-Actualizado 2026-09-20. Base efectiva: `main@7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba`.
+Actualizado 2026-09-20. Base efectiva: `main@bf0a36dd1f2ff928d143ae6ac0254bf20f991529`.
 
 ## 1. OPS-001 — Sentinel operational closure
 
@@ -22,9 +22,11 @@ Pendiente:
 
 ## 3. Resultados
 
-Estado: QA / pendiente de profundizacion.
+Estado: IN_MAIN_WITH_GAPS.
 
+Calendario ya puede hidratar resultados persistidos de una fecha pasada mediante lectura local.
 Mantener resultados deportivos por fecha separados de Track Record/ROI.
+Pendiente: cobertura real del proveedor/retencion y QA productiva de fechas con datos existentes.
 No inventar resultados ni convertir ausencia de score en 0-0.
 
 ## 4. Design
