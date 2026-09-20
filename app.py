@@ -1546,6 +1546,21 @@ def _sports_stage_reason_code(stage):
     return "UNKNOWN"
 
 
+def _sports_safe_failure_class(stage, expected_prefix=""):
+    """Expose only our own exception class label, never provider error text."""
+    stage = dict(stage or {}) if isinstance(stage, dict) else {}
+    reason = _sports_stage_reason_code(stage)
+    if reason not in {"LOCAL_PRECALL_ERROR", "LOCAL_DB_OR_SCHEMA"}:
+        return ""
+    raw = str(stage.get("error") or "").strip()
+    prefix = str(expected_prefix or "").strip()
+    if prefix and not raw.startswith(prefix):
+        return ""
+    candidate = raw[len(prefix):] if prefix else raw.rsplit("_", 1)[-1]
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,79}", candidate or ""):
+        return ""
+    return candidate
+
 def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
     """Describe execution, access, quota and coverage without conflating them."""
     sports_result = dict(sports_result or {})
@@ -1786,6 +1801,10 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             "data_contributed": primary_has_data,
             "cache_reused": str(fixtures_stage.get("status") or "").lower() == "cache",
             "reason_code": _sports_stage_reason_code(fixtures_stage),
+            "failure_class": _sports_safe_failure_class(
+                fixtures_stage,
+                "api_football_match_window_",
+            ),
             "ok": fixtures_stage.get("ok") if isinstance(fixtures_stage.get("ok"), bool) else None,
             "configured": fixtures_stage.get("configured") if isinstance(fixtures_stage.get("configured"), bool) else None,
             "enabled": fixtures_stage.get("enabled") if isinstance(fixtures_stage.get("enabled"), bool) else None,

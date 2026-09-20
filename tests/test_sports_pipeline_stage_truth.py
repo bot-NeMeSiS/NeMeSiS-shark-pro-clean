@@ -52,6 +52,7 @@ def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_erro
     assert current["api_football_primary"] == {
         "state": "ERROR",
         "reason_code": "PROVIDER_ERROR",
+        "failure_class": "",
         "ok": False,
         "configured": True,
         "enabled": True,
@@ -391,3 +392,47 @@ def test_provider_failure_after_real_call_keeps_provider_reason(app_module):
         "errors": ["provider response rejected"],
     }
     assert app_module._sports_stage_reason_code(stage) == "PROVIDER_ERROR"
+
+
+def test_pre_call_failure_class_exposes_only_internal_exception_label(app_module):
+    stage = {
+        "ok": False,
+        "status": "ERROR",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "error": "api_football_match_window_RuntimeError",
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics({"fixtures": stage}, {})
+    primary = diagnostics["current_sync"]["api_football_primary"]
+    assert primary["reason_code"] == "LOCAL_PRECALL_ERROR"
+    assert primary["failure_class"] == "RuntimeError"
+
+
+def test_provider_error_text_is_never_exposed_as_failure_class(app_module):
+    stage = {
+        "ok": False,
+        "status": "PARTIAL",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 1,
+        "error": "provider says secret=CANARY",
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics({"fixtures": stage}, {})
+    primary = diagnostics["current_sync"]["api_football_primary"]
+    assert primary["reason_code"] == "PROVIDER_ERROR"
+    assert primary["failure_class"] == ""
+
+
+def test_wrong_internal_prefix_is_not_exposed(app_module):
+    stage = {
+        "ok": False,
+        "status": "ERROR",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "error": "different_stage_RuntimeError",
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics({"fixtures": stage}, {})
+    primary = diagnostics["current_sync"]["api_football_primary"]
+    assert primary["failure_class"] == ""
