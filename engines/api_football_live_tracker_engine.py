@@ -684,9 +684,12 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "",
         )
         safe_error_shape = _safe_provider_error_shape(live_payload) if not live_payload.get("ok") else ""
-        status = "ok" if not errors else (
-            f"partial_{safe_failure_category}" if safe_failure_category else "partial"
-        )
+        status_parts = ["partial"]
+        if safe_failure_category:
+            status_parts.append(safe_failure_category)
+        if safe_error_shape:
+            status_parts.append(safe_error_shape)
+        status = "ok" if not errors else "_".join(status_parts)
         state = {
             "ok": True,
             "configured": True,
