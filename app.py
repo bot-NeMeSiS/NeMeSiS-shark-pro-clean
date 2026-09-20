@@ -18461,7 +18461,7 @@ def _v940_calendar_date_chips(filters, date_counts):
 
 
 def _design02_calendar_date_navigation(filters):
-    """Presentation links over the existing date-filtered snapshot, not an archive."""
+    """Navigate Madrid civil dates; past dates can be backed by persisted match history."""
     selected = _safe_date_value(filters.get("date"), today_iso())
     selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
     return {
@@ -18474,6 +18474,48 @@ def _design02_calendar_date_navigation(filters):
             for offset, label in ((-1, "Ayer"), (0, "Hoy"), (1, "Mañana"))
         ],
     }
+
+
+def _v940_calendar_with_persisted_history(summary, lane="today", date_value=None):
+    """Add bounded read-only persisted history for past-date/result calendar views.
+
+    This never calls a sports provider and never writes the database. Realtime keeps
+    using the original request snapshot; only Calendar receives this augmented view.
+    """
+    base = dict(summary or {})
+    raw_lane = str(lane or "today").strip().lower()
+    selected_lane = {"finalizados": "finished"}.get(raw_lane, raw_lane)
+    fallback_date = today_iso(1) if selected_lane == "tomorrow" else today_iso()
+    selected_date = _safe_date_value(date_value, fallback_date)
+    needs_history = selected_date < today_iso() or selected_lane in {"finished", "results"}
+    if not needs_history:
+        base["calendar_history_status"] = "SNAPSHOT_ONLY"
+        return base
+
+    try:
+        if selected_lane in {"finished", "results"}:
+            persisted = get_results_matches(selected_date, days_back=21, limit=320)
+        else:
+            persisted = get_matches(selected_date, "today")
+    except sqlite3.OperationalError:
+        base["calendar_history_status"] = "READ_UNAVAILABLE"
+        base["calendar_history_date"] = selected_date
+        return base
+
+    persisted = _dedupe_sports_matches(persisted)
+    existing_all = list(base.get("all_valid_matches") or base.get("valid_upcoming_matches") or [])
+    base["all_valid_matches"] = _dedupe_sports_matches(existing_all + persisted)
+    persisted_results = [
+        item for item in persisted
+        if (lambda info: info.get("is_finished") or info.get("is_result_pending"))(canonical_match_status(item))
+    ]
+    base["finished_matches"] = _dedupe_sports_matches(
+        list(base.get("finished_matches") or []) + persisted_results
+    )
+    base["calendar_history_status"] = "PERSISTED_DB" if persisted else "EMPTY"
+    base["calendar_history_date"] = selected_date
+    base["calendar_history_external_calls"] = 0
+    return base
 
 
 def v940_calendar_context(summary, lane="today", date_value=None):
@@ -18566,7 +18608,10 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         first_day = day_groups[0]
         first_league = (first_day.get("leagues") or [{}])[0]
         default_context = first_league.get("context_label") or first_day.get("context_label") or default_context
-    if counts["visible"]:
+    history_status = str(summary.get("calendar_history_status") or "SNAPSHOT_ONLY")
+    if counts["visible"] and history_status == "PERSISTED_DB":
+        source_summary = "Histórico persistido y ordenado por día, competición y hora Madrid."
+    elif counts["visible"]:
         source_summary = "Agenda confirmada y ordenada por día, competición y hora Madrid."
     elif counts["all"]:
         source_summary = "Ningún partido confirmado coincide con todas las capas activas."
@@ -18595,6 +18640,8 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "selected_summary": selected_summary,
         "default_context": default_context,
         "source_summary": source_summary,
+        "history_status": history_status,
+        "history_date": summary.get("calendar_history_date") or filters.get("date"),
         "no_render_api_call": True,
         "database_written": False,
         "external_calls": 0,
@@ -18698,7 +18745,8 @@ def calendar_page():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
-    data["calendar"] = v940_calendar_context(summary, lane, date_value)
+    calendar_summary = _v940_calendar_with_persisted_history(summary, lane, date_value)
+    data["calendar"] = v940_calendar_context(calendar_summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
