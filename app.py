@@ -18461,7 +18461,7 @@ def _v940_calendar_date_chips(filters, date_counts):
 
 
 def _design02_calendar_date_navigation(filters):
-    """Presentation links over the existing date-filtered snapshot, not an archive."""
+    """Navigate dates; past days may hydrate persisted results without provider calls."""
     selected = _safe_date_value(filters.get("date"), today_iso())
     selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
     return {
@@ -18689,6 +18689,59 @@ def global_football():
 
 
 
+def _v940_hydrate_selected_date_results(summary, date_value):
+    """Hydrate one past calendar day from persisted match results only.
+
+    This is a read-only SQLite path. It never calls a provider and does not turn
+    pick Track Record into a sports-results archive.
+    """
+    selected = _safe_date_value(date_value, today_iso())
+    if selected >= today_iso():
+        return summary
+    try:
+        historical = get_results_matches(selected, days_back=0, limit=400)
+    except sqlite3.OperationalError as exc:
+        if "locked" in str(exc).lower():
+            return summary
+        raise
+    exact = [
+        dict(item)
+        for item in historical
+        if str((item or {}).get("match_date") or "") == selected
+    ]
+    if not exact:
+        return summary
+    merged = dict(summary or {})
+    merged_all = _dedupe_sports_matches(
+        list(merged.get("all_valid_matches") or []) + exact
+    )
+    finished = [
+        item for item in exact
+        if canonical_match_status(item).get("is_finished")
+    ]
+    pending = [
+        item for item in exact
+        if canonical_match_status(item).get("is_result_pending")
+    ]
+    merged["all_valid_matches"] = merged_all
+    merged["finished_matches"] = _dedupe_sports_matches(
+        list(merged.get("finished_matches") or []) + finished
+    )
+    merged["result_pending_matches"] = _dedupe_sports_matches(
+        list(merged.get("result_pending_matches") or []) + pending
+    )
+    if pending:
+        merged["incident_matches"] = _dedupe_sports_matches(
+            list(merged.get("incident_matches") or []) + pending
+        )
+    merged["valid_matches_total"] = len(merged_all)
+    merged["historical_results_date"] = selected
+    merged["historical_results_count"] = len(exact)
+    merged["historical_results_source"] = "local_db_read_only"
+    merged["sports_metrics"] = build_sports_metrics_contract(merged)
+    return merged
+
+
 @app.route("/calendar")
 @app.route("/calendario")
 @app.route("/calendario-global")
@@ -18698,6 +18751,7 @@ def calendar_page():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
+    summary = _v940_hydrate_selected_date_results(summary, date_value)
     data["calendar"] = v940_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
