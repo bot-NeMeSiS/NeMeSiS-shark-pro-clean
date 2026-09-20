@@ -12,7 +12,7 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 |---|---|---|---|---|---|---|---|
 | CX-001 | CX-SE-01 / COORD-8-SE-01 R1 | DONE | Codex / QA | PASS_LOCAL_SCOPE | ENV | reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md | Preservar SE-01 y sus doce positivos no certificados |
 | CX-002 | CX-ORG-01 | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CONVERSATION_INDEX.md | Revisar consolidacion e inventario; ninguna purga autorizada |
-| CX-003 | CX-RESULTS-01 / COORD-8-RESULTS-01 R1 | QA | Codex / Datos | IN_MAIN_WITH_GAPS | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Main productivo conserva replay/ciclo de resultados; resultados por fecha y feed real siguen pendientes de cierre |
+| CX-003 | CX-RESULTS-01 / COORD-8-RESULTS-01 R1 | IN_PROGRESS | Codex / Datos | IN_MAIN_WITH_GAPS | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Siguiente frente activo tras Sentinel: Directos/resultado real, fechas pasadas y feed sin inventar datos |
 | CX-004 | CX-DATA-01 | BLOCKED | Datos / Founder | NOT_TESTED | EXTERNAL | project_control/domains/DATA.md | Piloto real autorizado y cobertura; no otro proveedor |
 | CX-005 | CX-INTELLIGENCE-01 | QA | Codex / Sports UX | LOCAL_ONLY | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Match Context preserva descuento/periodo; comprobar datos reales solo bajo autorizacion |
 | CX-006 | CX-SHARK-01 | QA | Codex / SHARK | LOCAL_ONLY | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | WAIT/NO_BET trazables sin confianza inventada; modelo y vigencia de cuotas pendientes |
@@ -29,7 +29,7 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 | UX-003 | CX-DESIGN-02 / R8 / R9 | QA | Codex / Creative Director | PRESERVE_CURRENT_MAIN | ART | reports/LOCAL_CONTINUITY_20260919.md | Trabajo visual integrado se conserva; R9/H07/conformidad global pendientes; no asumir viejo CX-DESIGN-02 como orden vigente |
 | QA-002 | CI / preflight / smoke | PRODUCTION_VALIDATION | Codex / Release | MAIN_CI_PASS | PUBLISH | project_control/RELEASE_STATE.md | QA y Smoke SUCCESS; preflight SUCCESS; esperar cierre de certify-production del SHA exacto |
 | QA-001 | Environmental positive cases | BLOCKED | QA / Plataforma | NOT_CERTIFIED | ENV | reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md | Mantener bloqueos historicos; resolver causa sin skips ni expectativas rebajadas |
-| OPS-001 | Sentinel / release gate | PRODUCTION_VALIDATION | Codex / Founder | IN_MAIN_LOCAL_SAFE | PUBLISH | project_control/CURRENT_TRUTH.md | Codigo integrado y guardas CI verdes; cerrar limites de ejecucion/persistencia sin convertir Sentinel en executor productivo |
+| OPS-001 | Sentinel / release gate | DONE | Codex / Founder | DONE_LOCAL_SAFE |  | reports/SENTINEL_OPERATIONAL_CLOSURE_20260920.md | Cierre operacional LOCAL SAFE verificado; no executor productivo, no auto-fix/deploy |
 | OPS-002 | Hygiene / organization | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CONVERSATION_INDEX.md | Revisar categorias y dependencias, conservar UNKNOWN |
 | OPS-003 | Legacy retirement | BLOCKED | Arquitectura / Founder | NOT_CERTIFIED | LEGACY,MATERIAL | project_control/CONVERSATION_INDEX.md | Cero consumidores, alternativa, pruebas y rollback antes de retirada |
 | BIZ-001 | LRM-001 / FIRST10 | BACKLOG | Founder | NOT_TESTED | PUBLISH,COMMERCIAL | project_control/ROADMAP.md | No activar pagos, altas ni mensajes automaticamente |
