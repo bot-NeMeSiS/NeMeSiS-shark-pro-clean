@@ -34,6 +34,7 @@ def _fallback_run():
             "ok": True,
             "status": "OK",
             "processed": 0,
+            "external_calls": 2,
         },
         "deep_enrichment": {
             "status": "SKIPPED_NO_API_FOOTBALL_FIXTURE",
@@ -171,3 +172,19 @@ def test_diagnostics_mark_mixed_source_when_partial_primary_also_persisted(app_m
     assert current["selected_source"] == "MIXED_PRIMARY_AND_FALLBACK"
     assert current["api_football_primary"]["fixtures_count"] == 3
     assert current["sportsdb_fallback"]["processed"] == 180
+
+
+def test_current_sync_declares_match_window_scope_and_odds_calls(app_module):
+    current = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})["current_sync"]
+    assert current["source_scope"] == "MATCH_WINDOW_PRIMARY_FALLBACK"
+    assert current["selected_source"] == "SPORTSDB_FALLBACK"
+    assert current["odds_refresh"]["external_calls"] == 2
+
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {"ok": True, "status": "OLD_MATCH", "sports_pipeline": app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})},
+        "2026-09-20T12:15:16+02:00",
+        "2026-09-20T12:15:24+02:00",
+    )["sports_pipeline"]["current_sync"]
+    assert compact["source_scope"] == "MATCH_WINDOW_PRIMARY_FALLBACK"
+    assert compact["odds_refresh"]["external_calls"] == 2

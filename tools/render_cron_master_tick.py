@@ -207,6 +207,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "capabilities": coverage,
         },
         "current_sync": {
+            "source_scope": safe_label(raw_current_sync.get("source_scope"), secret, "MATCH_WINDOW_PRIMARY_FALLBACK"),
             "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
             "api_football_primary": {
                 "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
@@ -239,6 +240,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "reason_code": safe_label((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
                 "processed": safe_count((raw_current_sync.get("odds_refresh") or {}).get("processed")),
+                "external_calls": safe_count((raw_current_sync.get("odds_refresh") or {}).get("external_calls")),
                 "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
             },
         },

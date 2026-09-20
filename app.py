@@ -1742,6 +1742,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
         selected_source = "NO_CONFIRMED_SOURCE"
 
     current_sync = {
+        "source_scope": "MATCH_WINDOW_PRIMARY_FALLBACK",
         "selected_source": selected_source,
         "api_football_primary": {
             "state": _sports_diagnostic_text(fixtures_stage.get("status"), 80) or "UNKNOWN",
@@ -1779,6 +1780,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
                 or odds_stage.get("updated"),
                 0,
             ),
+            "external_calls": as_int(odds_stage.get("external_calls"), 0),
             "error_present": bool(odds_stage.get("error") or odds_stage.get("errors")),
         },
     }
@@ -2135,6 +2137,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 },
             },
             "current_sync": {
+                "source_scope": _sports_diagnostic_text(raw_current_sync.get("source_scope"), 80) or "MATCH_WINDOW_PRIMARY_FALLBACK",
                 "selected_source": _sports_diagnostic_text(raw_current_sync.get("selected_source"), 80) or "UNKNOWN",
                 "api_football_primary": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("state"), 80) or "UNKNOWN",
@@ -2167,6 +2170,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
                     "processed": as_int((raw_current_sync.get("odds_refresh") or {}).get("processed"), 0),
+                    "external_calls": as_int((raw_current_sync.get("odds_refresh") or {}).get("external_calls"), 0),
                     "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
                 },
             },
