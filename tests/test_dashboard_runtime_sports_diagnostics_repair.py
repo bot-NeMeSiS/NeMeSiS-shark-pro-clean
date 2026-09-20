@@ -634,3 +634,97 @@ def test_compact_pipeline_keeps_new_contract_and_masks_known_secret(
         == "CURRENT_DEEP_RUN_WRITES"
     )
     assert secret not in serialized
+
+
+
+def test_sports_entity_freshness_snapshot_uses_canonical_projection(
+    app_module,
+    monkeypatch,
+):
+    captured = {}
+
+    def fake_rows(query, params=()):
+        captured["query"] = query
+        captured["params"] = tuple(params)
+        return [
+            {"id": "qa-fresh-1"},
+            {"id": "qa-observed-1"},
+            {"id": "qa-stale-1"},
+            {"id": "qa-unknown-1"},
+        ]
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+    monkeypatch.setattr(
+        app_module,
+        "build_realtime_state_snapshot",
+        lambda items: {
+            "matches": [
+                {"freshness_state": "FRESH"},
+                {"freshness_state": "OBSERVED"},
+                {"freshness_state": "STALE"},
+                {"freshness_state": "NOT_ESTABLISHED"},
+            ]
+        },
+    )
+
+    result = app_module._sports_entity_freshness_snapshot(limit=4)
+
+    assert result["state"] == "PARTIAL"
+    assert result["entity_timestamps_evaluated"] is True
+    assert result["scope"] == "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS"
+    assert result["total"] == 4
+    assert result["fresh"] == 1
+    assert result["observed"] == 1
+    assert result["stale"] == 1
+    assert result["not_established"] == 1
+    assert "FROM matches" in captured["query"]
+    assert "updated_at" not in captured["query"].lower()
+    assert captured["params"] == (4,)
+
+
+def test_pipeline_freshness_survives_compact_and_master_sanitizer(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    freshness = {
+        "state": "PARTIAL",
+        "entity_timestamps_evaluated": True,
+        "scope": "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+        "total": 12,
+        "fresh": 2,
+        "observed": 7,
+        "stale": 1,
+        "not_established": 2,
+        "reason": "Evidencia QA canónica.",
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics(
+        {"status": "PARTIAL", "ok": True},
+        {},
+        freshness,
+    )
+    assert diagnostics["data_freshness"] == freshness
+
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {
+            "ok": True,
+            "status": "OLD_MATCH",
+            "sports_pipeline": diagnostics,
+        },
+        "2026-09-20T19:30:00+02:00",
+        "2026-09-20T19:30:05+02:00",
+    )["sports_pipeline"]
+    assert compact["data_freshness"]["state"] == "PARTIAL"
+    assert compact["data_freshness"]["total"] == 12
+    assert compact["data_freshness"]["fresh"] == 2
+    assert compact["data_freshness"]["observed"] == 7
+    assert compact["data_freshness"]["stale"] == 1
+    assert compact["data_freshness"]["not_established"] == 2
+
+    sanitized = sanitized_sports_pipeline(
+        {"sports_pipeline": compact},
+        "secret-canary",
+    )
+    assert sanitized["data_freshness"]["state"] == "PARTIAL"
+    assert sanitized["data_freshness"]["total"] == 12
+    assert sanitized["data_freshness"]["scope"] == "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS"
+    assert "secret-canary" not in str(sanitized)
