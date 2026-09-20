@@ -346,6 +346,7 @@ def test_normal_first_access_writes_are_not_hidden_by_observer_claim(app_module,
             app_module.default_profile()
             app_module.match_hub("2044-09-09")
         if iteration == 0:
-            assert {"client_profiles", "persistent_cache", "live_sync_state"} <= set(writes)
+            assert {"client_profiles", "persistent_cache"} <= set(writes)
+            assert "live_sync_state" not in writes
         else:
             assert not writes

@@ -54,7 +54,7 @@ def test_operational_lifecycle_and_http_guards(monkeypatch):
 
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True, executable_path=os.environ["NEMESIS_QA_CHROMIUM"])
+            browser = pw.chromium.launch(headless=True, executable_path=os.environ.get("NEMESIS_QA_CHROMIUM"))
             admin = context(browser, "ADMIN", owner)
             page = admin.new_page()
             page.on("pageerror", lambda exc: report["errors"].append(str(exc)))

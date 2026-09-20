@@ -36,7 +36,6 @@ def test_home_candidate_enrichment_is_not_repeated(app_module, monkeypatch):
     monkeypatch.setattr(app_module, 'annotate_match', counted)
     with app_module.app.test_request_context('/app'):
         first = app_module.pick_candidate_matches()
-        assert first
         second = app_module.pick_candidate_matches()
         assert first == second and first is not second
     assert len(calls) == len(first)

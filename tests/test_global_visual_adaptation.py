@@ -32,15 +32,12 @@ def test_favorites_help_does_not_replace_existing_sports_content(app_module, sav
 
 
 def test_access_form_preserves_destination_and_fields(app_module):
-    env=app_module.app.jinja_env.overlay(loader=ChoiceLoader([
-        DictLoader({'base.html':'{% block content %}{% endblock %}'}),
-        app_module.app.jinja_env.loader,
-    ]))
-    with app_module.app.test_request_context('/cliente-login?next=/favorites'):
-        html=env.get_template('client_login.html').render(data={})
+    response=app_module.app.test_client().get('/cliente-login?next=/favorites')
+    assert response.status_code==200
+    html=response.get_data(as_text=True)
     nodes=Elements(html).nodes
-    form=next(attrs for tag,attrs in nodes if tag=='form')
-    assert form['action']=='/cliente-login' and form['method']=='post'
+    form=next(attrs for tag,attrs in nodes if tag=='form' and attrs.get('action')=='/cliente-login')
+    assert form['method']=='post'
     inputs=[attrs for tag,attrs in nodes if tag=='input']
     assert {n.get('name') for n in inputs} >= {'login','password','next','plan'}
     assert next(n for n in inputs if n.get('name')=='next')['value']=='/favorites'

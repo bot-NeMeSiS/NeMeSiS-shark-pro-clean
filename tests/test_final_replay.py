@@ -113,7 +113,7 @@ def test_real_flask_browser_final_replay_all_surfaces(replay, tmp_path, width):
               'width':width,'surfaces':[], 'external':[], 'errors':[], 'certification':'LOCAL_ONLY'}
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(executable_path=os.environ['NEMESIS_QA_CHROMIUM'])
+            browser = pw.chromium.launch(executable_path=os.environ.get('NEMESIS_QA_CHROMIUM'))
             context = browser.new_context(viewport={'width':width,'height':900},timezone_id='Asia/Tokyo',locale='es')
             def network(route):
                 if route.request.url.startswith(base+'/'): route.continue_()

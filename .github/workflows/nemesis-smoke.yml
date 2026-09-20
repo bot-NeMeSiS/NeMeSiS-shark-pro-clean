@@ -43,4 +43,19 @@ jobs:
           AUTO_GENERATE_PICKS: 'false'
           AUTO_SEND_TELEGRAM_PICKS: 'false'
           DB_PATH: /tmp/nemesis_ci.db
-        run: pytest
+        run: |
+          pytest \
+            --ignore-glob='tests/test_local_*.py' \
+            --ignore=tests/test_project_control_http.py \
+            --ignore=tests/test_sentinel_jobs_http.py \
+            --ignore=tests/test_sentinel_operational_browser.py
+          NEMESIS_LOCAL_SAFE_MODE=1 \
+          NEMESIS_LOCAL_MODE=OFFLINE_SAFE \
+          NEMESIS_OFFLINE_MODE=1 \
+          NEMESIS_LOCAL_EXTERNAL_AUTHORIZED=0 \
+          NEMESIS_LOCAL_ACCESS_TOKEN=ci-local-safe-token \
+          SESSION_COOKIE_SECURE=0 \
+            pytest tests/test_local_*.py
+          pytest tests/test_project_control_http.py
+          pytest tests/test_sentinel_jobs_http.py
+          pytest tests/test_sentinel_operational_browser.py

@@ -311,11 +311,11 @@ def test_real_socket_live_match_return_expiry_and_final(live_store, app_module, 
     thread.start()
     base = f'http://127.0.0.1:{server.server_port}'
     out = Path(app_module.BASE_DIR) / 'data/local_dev/directo-operational-close'
-    out.mkdir(exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     report = {'environment':'SIMULATED_QA', 'transport':'REAL_FLASK_HTTP_SOCKET', 'locale':locale, 'width':width, 'states':[], 'errors':[], 'external':[]}
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(executable_path=os.environ['NEMESIS_QA_CHROMIUM'])
+            browser = pw.chromium.launch(executable_path=os.environ.get('NEMESIS_QA_CHROMIUM'))
             context = browser.new_context(viewport={'width':width,'height':900}, locale=locale, timezone_id='America/New_York', service_workers='block')
             def network(route):
                 if route.request.url.startswith(base + '/'):
