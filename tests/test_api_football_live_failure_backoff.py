@@ -137,3 +137,51 @@ def test_network_failure_does_not_use_plan_backoff(tmp_path, monkeypatch):
     assert result["status"] == "ok"
     assert result["external_calls"] == 1
     assert len(calls) == 1
+
+
+def test_live_refresh_exposes_safe_provider_category_without_extra_calls(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-safe-category.db")
+    _enable_provider(monkeypatch)
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        return {
+            "ok": False,
+            "response": [],
+            "errors": {"plan": "Free plan access restricted secret-canary"},
+        }
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_live_tracker(
+        db_path,
+        force=True,
+        deep_limit=0,
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "partial_FREE_PLAN_RESTRICTED"
+    assert result["failure_category"] == "FREE_PLAN_RESTRICTED"
+    assert result["external_calls"] == 1
+    assert [path for path, _params in calls] == ["fixtures"]
+    assert "secret-canary" not in result["status"]
+    assert "secret-canary" not in result["failure_category"]
+
+
+def test_live_refresh_network_category_does_not_masquerade_as_plan(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-network-category.db")
+    _enable_provider(monkeypatch)
+
+    def fake_get(path, params=None, timeout=18):
+        return {"ok": False, "response": [], "error": "connection timed out"}
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_live_tracker(
+        db_path,
+        force=True,
+        deep_limit=0,
+    )
+
+    assert result["status"] == "partial_NETWORK_OR_TIMEOUT"
+    assert result["failure_category"] == "NETWORK_OR_TIMEOUT"
+    assert result["external_calls"] == 1
