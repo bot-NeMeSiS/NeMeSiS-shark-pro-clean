@@ -211,6 +211,9 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
             "api_football_primary": {
                 "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
+                "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
+                "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
+                "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
                 "reason_code": safe_label((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                 "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
@@ -221,6 +224,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             },
             "sportsdb_fallback": {
                 "state": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), secret),
+                "data_contributed": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("data_contributed")),
                 "reason_code": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
                 "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),

@@ -1756,6 +1756,9 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
         "selected_source": selected_source,
         "api_football_primary": {
             "state": _sports_diagnostic_text(fixtures_stage.get("status"), 80) or "UNKNOWN",
+            "used": bool(primary_ok or primary_has_data),
+            "data_contributed": primary_has_data,
+            "cache_reused": str(fixtures_stage.get("status") or "").lower() == "cache",
             "reason_code": _sports_stage_reason_code(fixtures_stage),
             "ok": fixtures_stage.get("ok") if isinstance(fixtures_stage.get("ok"), bool) else None,
             "configured": fixtures_stage.get("configured") if isinstance(fixtures_stage.get("configured"), bool) else None,
@@ -1766,6 +1769,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
         },
         "sportsdb_fallback": {
             "state": _sports_diagnostic_text(fallback_stage.get("status"), 80) or "UNKNOWN",
+            "data_contributed": fallback_has_data,
             "reason_code": _sports_stage_reason_code(fallback_stage),
             "ok": fallback_stage.get("ok") if isinstance(fallback_stage.get("ok"), bool) else None,
             "used": fallback_used,
@@ -2151,6 +2155,9 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "selected_source": _sports_diagnostic_text(raw_current_sync.get("selected_source"), 80) or "UNKNOWN",
                 "api_football_primary": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("state"), 80) or "UNKNOWN",
+                    "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
+                    "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
+                    "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                     "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
@@ -2161,6 +2168,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 },
                 "sportsdb_fallback": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), 80) or "UNKNOWN",
+                    "data_contributed": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("data_contributed")),
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("sportsdb_fallback") or {}).get("reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
                     "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),

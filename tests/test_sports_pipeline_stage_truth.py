@@ -228,3 +228,39 @@ def test_reason_code_distinguishes_missing_and_disabled_configuration(app_module
     assert app_module._sports_stage_reason_code(
         {"ok": False, "disabled": True, "skipped": True}
     ) == "DISABLED"
+
+
+def test_api_football_cache_reuse_is_not_claimed_as_new_data(app_module):
+    payload = _fallback_run()
+    payload["fixtures"] = {
+        "ok": True,
+        "status": "cache",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+    }
+    payload["fallback"] = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
+    current = app_module._build_sports_pipeline_diagnostics(payload, {})["current_sync"]
+    primary = current["api_football_primary"]
+    assert current["selected_source"] == "API_FOOTBALL_PRIMARY"
+    assert primary["used"] is True
+    assert primary["data_contributed"] is False
+    assert primary["cache_reused"] is True
+    assert primary["external_calls"] == 0
+
+
+def test_fallback_contribution_survives_compact_and_sanitized_contract(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+    diagnostics = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})
+    assert diagnostics["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {"ok": True, "status": "OLD_MATCH", "sports_pipeline": diagnostics},
+        "2026-09-20T12:15:16+02:00",
+        "2026-09-20T12:15:24+02:00",
+    )["sports_pipeline"]
+    assert compact["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
+    assert sanitized["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
