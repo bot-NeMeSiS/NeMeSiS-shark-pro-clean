@@ -258,15 +258,23 @@ def test_fallback_contribution_survives_compact_and_sanitized_contract(app_modul
     payload = _fallback_run()
     payload["fallback"].update({
         "external_calls": 2,
+        "provider_identity_rows_reconciled": 3,
         "stale_reconciliation_candidates": 3,
-        "stale_reconciliation_observed": 2,
+        "stale_reconciliation_observed": 3,
+        "stale_reconciliation_resolved": 2,
+        "stale_reconciliation_remaining": 1,
+        "stale_reconciliation_missing": 0,
     })
     diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
     fallback = diagnostics["current_sync"]["sportsdb_fallback"]
     assert fallback["data_contributed"] is True
     assert fallback["external_calls"] == 2
+    assert fallback["provider_identity_rows_reconciled"] == 3
     assert fallback["stale_reconciliation_candidates"] == 3
-    assert fallback["stale_reconciliation_observed"] == 2
+    assert fallback["stale_reconciliation_observed"] == 3
+    assert fallback["stale_reconciliation_resolved"] == 2
+    assert fallback["stale_reconciliation_remaining"] == 1
+    assert fallback["stale_reconciliation_missing"] == 0
 
     compact = app_module._cron_compact_payload(
         "telegram_tick",
@@ -277,15 +285,23 @@ def test_fallback_contribution_survives_compact_and_sanitized_contract(app_modul
     compact_fallback = compact["current_sync"]["sportsdb_fallback"]
     assert compact_fallback["data_contributed"] is True
     assert compact_fallback["external_calls"] == 2
+    assert compact_fallback["provider_identity_rows_reconciled"] == 3
     assert compact_fallback["stale_reconciliation_candidates"] == 3
-    assert compact_fallback["stale_reconciliation_observed"] == 2
+    assert compact_fallback["stale_reconciliation_observed"] == 3
+    assert compact_fallback["stale_reconciliation_resolved"] == 2
+    assert compact_fallback["stale_reconciliation_remaining"] == 1
+    assert compact_fallback["stale_reconciliation_missing"] == 0
 
     sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
     sanitized_fallback = sanitized["current_sync"]["sportsdb_fallback"]
     assert sanitized_fallback["data_contributed"] is True
     assert sanitized_fallback["external_calls"] == 2
+    assert sanitized_fallback["provider_identity_rows_reconciled"] == 3
     assert sanitized_fallback["stale_reconciliation_candidates"] == 3
-    assert sanitized_fallback["stale_reconciliation_observed"] == 2
+    assert sanitized_fallback["stale_reconciliation_observed"] == 3
+    assert sanitized_fallback["stale_reconciliation_resolved"] == 2
+    assert sanitized_fallback["stale_reconciliation_remaining"] == 1
+    assert sanitized_fallback["stale_reconciliation_missing"] == 0
 
 
 def test_ok_true_with_errors_keeps_specific_stage_reason(app_module):
