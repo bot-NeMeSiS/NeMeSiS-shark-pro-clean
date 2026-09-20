@@ -281,7 +281,8 @@ def main() -> int:
                 page.goto(base_url + "/cliente-login", wait_until="domcontentloaded")
                 page.locator("input[name='login']").fill("client-qa@example.invalid")
                 page.locator("input[name='password']").fill(identity["ADMIN_PASSWORD"])
-                page.locator("button[type='submit']").click()
+                login_form = page.locator("input[name='password']").locator("xpath=ancestor::form[1]")
+                login_form.locator("button[type='submit']").click()
                 page.wait_for_url("**/app")
                 for scenario, match_id in SCENARIOS.items():
                     path = "/match/" + match_id
