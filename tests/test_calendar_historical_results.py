@@ -118,3 +118,31 @@ def test_historical_db_lock_falls_back_without_fabricating_results(app_module, m
     monkeypatch.setattr(app_module, "get_results_matches", locked)
     summary = _empty_summary(app_module)
     assert app_module._v940_hydrate_selected_date_results(summary, "2026-09-18") is summary
+
+
+def test_historical_provider_state_matches_visible_results(app_module, monkeypatch):
+    monkeypatch.setattr(
+        app_module,
+        "_v931_provider_context",
+        lambda summary: {
+            "has_real_data": False,
+            "provider_status": "waiting_for_sync",
+            "safe_message": "No hay partidos completos disponibles ahora.",
+        },
+    )
+    context = app_module._v940_calendar_provider_context(
+        {"historical_results_count": 2}
+    )
+    assert context["has_real_data"] is True
+    assert context["provider_status"] == "data_available"
+    assert "Resultados persistidos" in context["safe_message"]
+
+
+def test_calendar_provider_state_is_unchanged_without_historical_results(app_module, monkeypatch):
+    expected = {
+        "has_real_data": False,
+        "provider_status": "waiting_for_sync",
+        "safe_message": "Sin agenda actual.",
+    }
+    monkeypatch.setattr(app_module, "_v931_provider_context", lambda summary: dict(expected))
+    assert app_module._v940_calendar_provider_context({}) == expected
