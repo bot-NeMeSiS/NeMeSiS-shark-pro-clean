@@ -1939,6 +1939,9 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "ok": fallback_stage.get("ok") if isinstance(fallback_stage.get("ok"), bool) else None,
             "used": fallback_used,
             "processed": as_int(fallback_stage.get("processed"), 0),
+            "external_calls": as_int(fallback_stage.get("external_calls"), 0),
+            "stale_reconciliation_candidates": as_int(fallback_stage.get("stale_reconciliation_candidates"), 0),
+            "stale_reconciliation_observed": as_int(fallback_stage.get("stale_reconciliation_observed"), 0),
             "error_present": bool(fallback_stage.get("error") or fallback_stage.get("errors")),
         },
         "live_refresh": {
@@ -2384,6 +2387,9 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
                     "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
                     "processed": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("processed"), 0),
+                    "external_calls": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("external_calls"), 0),
+                    "stale_reconciliation_candidates": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_candidates"), 0),
+                    "stale_reconciliation_observed": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_observed"), 0),
                     "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
                 },
                 "live_refresh": {
@@ -4866,10 +4872,85 @@ def sportsdb_event_collection(payload):
     return []
 
 
-def fetch_sportsdb_feed_events(limit=220):
+def _sportsdb_external_event_id(event):
+    return str((event or {}).get("idEvent") or (event or {}).get("idLiveScore") or "").strip()
+
+
+def sportsdb_stale_external_ids(limit=5):
+    """Return bounded provider ids for persisted SportsDB rows that need reconciliation."""
+    try:
+        candidates = rows(
+            """SELECT * FROM matches
+               WHERE source LIKE 'TheSportsDB%'
+                 AND COALESCE(external_id,'')<>''
+               ORDER BY COALESCE(updated_at,'') DESC
+               LIMIT ?""",
+            (max(40, int(limit or 5) * 40),),
+        )
+    except Exception:
+        return []
+    out = []
+    for row in candidates:
+        try:
+            truth = v935_match_status_truth(dict(row))
+        except Exception:
+            continue
+        if not truth.get("is_stale"):
+            continue
+        external_id = str(row.get("external_id") or "").strip()
+        if external_id and external_id not in out:
+            out.append(external_id)
+        if len(out) >= max(1, int(limit or 5)):
+            break
+    return out
+
+
+def _prioritize_sportsdb_feed_events(events, limit=220, priority_external_ids=None):
+    """Keep stale-reconciliation and provider-LIVE rows ahead of the bounded feed cut."""
+    max_items = max(0, int(limit or 0))
+    if max_items <= 0:
+        return []
+    priority_ids = {
+        str(value or "").strip()
+        for value in (priority_external_ids or [])
+        if str(value or "").strip()
+    }
+
+    # The live endpoint is appended after eventsday. Preserve the first position
+    # but let the latest provider representation replace a duplicate payload.
+    order = []
+    latest = {}
+    for event, fallback in events or []:
+        event = event if isinstance(event, dict) else {}
+        fallback = fallback if isinstance(fallback, dict) else {}
+        key = _sportsdb_external_event_id(event) or sportsdb_event_id(event)
+        if key not in latest:
+            order.append(key)
+        latest[key] = (event, fallback)
+
+    reconciliation = []
+    live = []
+    normal = []
+    for key in order:
+        event, fallback = latest[key]
+        external_id = _sportsdb_external_event_id(event)
+        row = (event, fallback)
+        if external_id and external_id in priority_ids:
+            reconciliation.append(row)
+            continue
+        if sportsdb_match_status(event) in {"LIVE", "DESCANSO"}:
+            live.append(row)
+            continue
+        normal.append(row)
+    return (reconciliation + live + normal)[:max_items]
+
+
+def fetch_sportsdb_feed_events(limit=220, priority_external_ids=None):
     events = []
     errors = []
+    external_calls = 0
     try:
+        external_calls += 1
         payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
         events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
     except Exception as exc:
@@ -4879,6 +4960,7 @@ def fetch_sportsdb_feed_events(limit=220):
         if len(events) >= int(limit):
             break
         try:
+            external_calls += 1
             payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
             events.extend([(item, league) for item in sportsdb_event_collection(payload)])
         except Exception as exc:
@@ -4886,12 +4968,18 @@ def fetch_sportsdb_feed_events(limit=220):
             errors.append(f"{league['name']}: {str(exc)[:160]}")
     if sportsdb_live_enabled():
         try:
+            external_calls += 1
             payload = sportsdb_v2("livescore/soccer")
             events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
         except Exception as exc:
             save_thesportsdb_error(exc)
             errors.append("livescore: " + str(exc)[:160])
-    return events[: int(limit)], errors
+    selected = _prioritize_sportsdb_feed_events(
+        events,
+        limit=limit,
+        priority_external_ids=priority_external_ids,
+    )
+    return selected, errors, external_calls
 
 
 
@@ -5199,7 +5287,11 @@ def sync_sportsdb_feed(limit=220):
         return result
     log_id = sync_log_start("TheSportsDB", "matches")
     try:
-        fetched, errors = fetch_sportsdb_feed_events(limit=limit)
+        priority_external_ids = sportsdb_stale_external_ids(limit=min(5, max(1, int(limit or 1))))
+        fetched, errors, external_calls = fetch_sportsdb_feed_events(
+            limit=limit,
+            priority_external_ids=priority_external_ids,
+        )
         match_rows = []
         seen = set()
         provider_observed_at = now_iso()
@@ -5215,7 +5307,16 @@ def sync_sportsdb_feed(limit=220):
             seen.add(match["id"])
             match_rows.append(match)
         result = upsert_sportsdb_matches(match_rows)
+        observed_external_ids = {
+            str(item.get("external_id") or "").strip()
+            for item in match_rows
+            if str(item.get("external_id") or "").strip()
+        }
+        priority_set = {str(value or "").strip() for value in priority_external_ids if str(value or "").strip()}
         result["errors"] = errors[:12]
+        result["external_calls"] = external_calls
+        result["stale_reconciliation_candidates"] = len(priority_set)
+        result["stale_reconciliation_observed"] = len(priority_set & observed_external_ids)
         result["live_enabled"] = sportsdb_live_enabled()
         result["sin_key"] = False
         sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
