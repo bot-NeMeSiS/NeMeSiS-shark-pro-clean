@@ -16492,7 +16492,7 @@ def home_light_data(sports_summary=None, include_payments=True):
     _payments_public = {"checkout_ready": False, "plans": {}, "blockers": []}
     if include_payments:
         try:
-            _stripe_public_status = stripe_runtime_status(DB_PATH)
+            _stripe_public_status = stripe_runtime_status("")
             _payments_public = {"checkout_ready": bool(_stripe_public_status.get("checkout_ready")), "plans": _stripe_public_status.get("plans", {}), "blockers": _stripe_public_status.get("blockers", [])}
         except Exception as exc:
             try:
@@ -21831,7 +21831,7 @@ def membership_page():
             {"checkout_ready": False, "plans": {}, "blockers": ["Datos de pago temporalmente no disponibles"]},
         )
     else:
-        stripe_state = v931_safe_context(request.path, "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
+        stripe_state = v931_safe_context(request.path, "stripe_status", lambda: stripe_runtime_status(""), {})
         data["payments_client"] = {"checkout_ready": False, "plans": stripe_state.get("plans", {}), "blockers": []}
     data["legal_compliance"] = v931_safe_context(request.path, "legal_compliance", legal_compliance_payload, {})
     data["checkout_legal"] = v931_safe_context(request.path, "checkout_legal", checkout_legal_checklist, [])
@@ -27950,7 +27950,13 @@ def admin_payments_page():
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
     data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH), {})
     data["stripe"] = v932_safe_context(request.path, "admin", "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
-    data["subscriptions"] = v932_safe_context(request.path, "admin", "subscription_summary", lambda: subscription_summary(DB_PATH, apply_rules=False), {})
+    data["subscriptions"] = v932_safe_context(
+        request.path,
+        "admin",
+        "subscription_summary",
+        lambda: subscription_summary(DB_PATH, apply_rules=False, persist_metrics=False),
+        {},
+    )
     data["last_result"] = result
     return render_template("admin_payments.html", data=data)
 
@@ -27959,16 +27965,20 @@ def admin_payments_page():
 def api_admin_payments():
     if not is_admin_session():
         return admin_json_forbidden()
-    result = None
-    if request.method == "POST":
-        result = apply_subscription_rules(DB_PATH)
+    is_write = request.method == "POST"
+    result = apply_subscription_rules(DB_PATH) if is_write else None
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
         "payments": payment_readiness_snapshot(DB_PATH),
         "stripe": stripe_runtime_status(DB_PATH),
-        "subscriptions": subscription_summary(DB_PATH, apply_rules=True),
+        "subscriptions": subscription_summary(
+            DB_PATH,
+            apply_rules=False,
+            persist_metrics=is_write,
+        ),
         "result": result,
+        "read_only": not is_write,
     })
 
 

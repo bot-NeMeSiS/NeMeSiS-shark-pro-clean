@@ -199,7 +199,7 @@ def apply_subscription_rules(db_path: str) -> Dict[str, Any]:
     return {"ok": True, "users_synced": inserted, "subscriptions_updated": updated}
 
 
-def subscription_summary(db_path: str, apply_rules: bool = True) -> Dict[str, Any]:
+def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics: bool = True) -> Dict[str, Any]:
     ensure_subscription_schema(db_path)
     if apply_rules:
         apply_subscription_rules(db_path)
@@ -242,12 +242,13 @@ def subscription_summary(db_path: str, apply_rules: bool = True) -> Dict[str, An
     if not active_paid:
         actions.append({"title": "Sin usuarios pagados", "detail": "El MRR está en 0€. Correcto para beta, pendiente para lanzamiento comercial.", "priority": 65})
     recent_events = rows(conn, "SELECT * FROM subscription_events ORDER BY created_at DESC LIMIT 12")
-    today = utc_now()[:10]
-    conn.execute("""INSERT OR REPLACE INTO revenue_daily_metrics
-                   (metric_date,active_paid,trialing,past_due,soft_blocked,estimated_mrr,churn_risk,payload_json,updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
-                 (today, active_paid, trialing, past_due, soft_blocked, estimated_mrr, churn_risk, dumps({"by_tier": by_tier, "by_status": by_status, "conversion": conversion}), utc_now()))
-    conn.commit()
+    if persist_metrics:
+        today = utc_now()[:10]
+        conn.execute("""INSERT OR REPLACE INTO revenue_daily_metrics
+                       (metric_date,active_paid,trialing,past_due,soft_blocked,estimated_mrr,churn_risk,payload_json,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                     (today, active_paid, trialing, past_due, soft_blocked, estimated_mrr, churn_risk, dumps({"by_tier": by_tier, "by_status": by_status, "conversion": conversion}), utc_now()))
+        conn.commit()
     conn.close()
     return {
         "ok": True,
