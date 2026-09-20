@@ -357,6 +357,10 @@ def test_shared_cron_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_
     pipeline = result["sports_pipeline"]
 
     assert pipeline["provider_authenticated"] is True
+    assert pipeline["provider_access_is_current"] is False
+    assert pipeline["provider_access_freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert pipeline["provider_access"]["is_current"] is False
+    assert pipeline["provider_access"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert pipeline["quota"]["daily_remaining"] == 93
     assert pipeline["capabilities"]["lineups"]["persisted"] == 2
     assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
@@ -467,3 +471,71 @@ def test_existing_odds_calls_capture_quota_without_extra_probe(app_module, monke
         "requests_remaining": 58,
         "http_status": 200,
     }
+
+
+def test_historical_provider_access_is_not_presented_as_current(app_module):
+    pipeline = app_module._build_sports_pipeline_diagnostics(
+        {
+            "ok": True,
+            "status": "PARTIAL",
+            "deep_status": "SKIPPED_NOT_DUE",
+            "deep_external_calls": 0,
+            "deep_enrichment": {"status": "SKIPPED_NOT_DUE"},
+        },
+        {
+            "latest_account": {
+                "ok": False,
+                "configured": True,
+                "plan": "INACCESSIBLE",
+                "quota": {"daily_limit": 100, "daily_remaining": 99},
+                "http_status": 401,
+                "error": "unauthorized",
+            },
+            "latest_run": {
+                "status": "PARTIAL",
+                "finished_at": "2026-09-10T22:20:23+00:00",
+                "external_calls": 1,
+                "payload_json": "{}",
+            },
+            "continuity": [],
+        },
+    )
+
+    # Legacy compatibility stays intact, but cannot be mistaken for a fresh check.
+    assert pipeline["provider_authenticated"] is False
+    assert pipeline["provider_access_is_current"] is False
+    assert pipeline["provider_access_freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert pipeline["provider_access"]["state"] == "ACCESS_FAILED"
+    assert pipeline["provider_access"]["source"] == "LAST_PERSISTED_DEEP_SAMPLE"
+    assert pipeline["provider_access"]["checked_at"] == "2026-09-10T22:20:23+00:00"
+    assert pipeline["provider_access"]["is_current"] is False
+    assert pipeline["provider_access"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert pipeline["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+
+
+def test_current_provider_access_is_marked_current(app_module):
+    pipeline = app_module._build_sports_pipeline_diagnostics(
+        {
+            "ok": True,
+            "status": "OK",
+            "deep_status": "OK",
+            "deep_external_calls": 1,
+            "finished_at": "2026-09-20T10:20:00+00:00",
+            "deep_enrichment": {
+                "status": "OK",
+                "finished_at": "2026-09-20T10:20:00+00:00",
+                "account": {
+                    "ok": True,
+                    "configured": True,
+                    "plan": "Free",
+                    "quota": {"daily_remaining": 90},
+                    "http_status": 200,
+                },
+                "capabilities": {"account": {"requested": True, "http_status": 200}},
+            },
+        }
+    )
+    assert pipeline["provider_access_is_current"] is True
+    assert pipeline["provider_access_freshness"] == "CURRENT_DEEP_RUN"
+    assert pipeline["provider_access"]["is_current"] is True
+    assert pipeline["provider_access"]["freshness"] == "CURRENT_DEEP_RUN"

@@ -130,6 +130,8 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
         "status": safe_label(raw.get("status"), secret),
         "deep_status": safe_label(raw.get("deep_status"), secret),
         "deep_external_calls": safe_count(raw.get("deep_external_calls")),
+        "provider_access_is_current": bool(raw.get("provider_access_is_current")),
+        "provider_access_freshness": safe_label(raw.get("provider_access_freshness"), secret),
         "provider_authenticated": bool(raw.get("provider_authenticated")),
         "provider_plan": safe_label(raw.get("provider_plan"), secret, "INACCESSIBLE"),
         "quota": quota,
@@ -167,6 +169,8 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
             "checked_at": safe_label(raw_access.get("checked_at"), secret, ""),
             "source": safe_label(raw_access.get("source"), secret, "NONE"),
+            "is_current": bool(raw_access.get("is_current")),
+            "freshness": safe_label(raw_access.get("freshness"), secret),
         },
         "provider_plan_observation": {
             "state": safe_label(raw_plan.get("state"), secret),

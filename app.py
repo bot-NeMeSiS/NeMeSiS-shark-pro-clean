@@ -1679,11 +1679,25 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
     else:
         deep_execution_state = "RAN"
 
+    if access_source == "CURRENT_DEEP_RUN":
+        provider_access_freshness = "CURRENT_DEEP_RUN"
+    elif access_source == "LAST_PERSISTED_DEEP_SAMPLE":
+        provider_access_freshness = "LAST_OBSERVED_NOT_CURRENT"
+    elif access_source in {"CURRENT_CONFIGURATION_DETECTION", "PERSISTED_CONFIGURATION_DETECTION"}:
+        provider_access_freshness = "CONFIGURATION_ONLY"
+    else:
+        provider_access_freshness = "UNKNOWN"
+    provider_access_is_current = provider_access_freshness == "CURRENT_DEEP_RUN"
+
     return {
         # Legacy fields remain stable for existing cron/admin consumers.
         "status": _sports_diagnostic_text(sports_result.get("status"), 80) or "UNKNOWN",
         "deep_status": deep_status_text,
         "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
+        # Legacy fields below preserve compatibility. Consumers that need current
+        # truth must use the explicit freshness/currentness fields.
+        "provider_access_is_current": provider_access_is_current,
+        "provider_access_freshness": provider_access_freshness,
         "provider_authenticated": bool(legacy_account.get("ok")),
         "provider_plan": _sports_diagnostic_text(
             legacy_account.get("plan"),
@@ -1763,6 +1777,8 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             "authenticated": authenticated,
             "checked_at": _sports_diagnostic_text(access_observed_at, 80),
             "source": access_source,
+            "is_current": provider_access_is_current,
+            "freshness": provider_access_freshness,
         },
         "provider_plan_observation": {
             "state": "OBSERVED" if plan_observed else "UNKNOWN",
@@ -1918,6 +1934,8 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             "status": _sports_diagnostic_text(raw_pipeline.get("status"), 80) or "UNKNOWN",
             "deep_status": _sports_diagnostic_text(raw_pipeline.get("deep_status"), 80) or "UNKNOWN",
             "deep_external_calls": as_int(raw_pipeline.get("deep_external_calls"), 0),
+            "provider_access_is_current": bool(raw_pipeline.get("provider_access_is_current")),
+            "provider_access_freshness": _sports_diagnostic_text(raw_pipeline.get("provider_access_freshness"), 80) or "UNKNOWN",
             "provider_authenticated": bool(raw_pipeline.get("provider_authenticated")),
             "provider_plan": _sports_diagnostic_text(raw_pipeline.get("provider_plan"), 80) or "INACCESSIBLE",
             "quota": {
@@ -1977,6 +1995,8 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
                 "checked_at": _sports_diagnostic_text(raw_access.get("checked_at"), 80),
                 "source": _sports_diagnostic_text(raw_access.get("source"), 80) or "NONE",
+                "is_current": bool(raw_access.get("is_current")),
+                "freshness": _sports_diagnostic_text(raw_access.get("freshness"), 80) or "UNKNOWN",
             },
             "provider_plan_observation": {
                 "state": _sports_diagnostic_text(raw_plan.get("state"), 80) or "UNKNOWN",

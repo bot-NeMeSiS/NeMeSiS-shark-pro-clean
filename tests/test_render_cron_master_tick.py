@@ -218,6 +218,8 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
                 "status": "OK",
                 "deep_status": "SKIPPED_NOT_DUE",
                 "deep_external_calls": 0,
+                "provider_access_is_current": False,
+                "provider_access_freshness": "LAST_OBSERVED_NOT_CURRENT",
                 "provider_authenticated": True,
                 "provider_plan": "Free",
                 "quota": {"daily_limit": 100, "daily_used": 7, "daily_remaining": 93},
@@ -249,6 +251,8 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
                     "authenticated": True,
                     "checked_at": "2026-09-01T15:20:00+00:00",
                     "source": "LAST_PERSISTED_DEEP_SAMPLE",
+                    "is_current": False,
+                    "freshness": "LAST_OBSERVED_NOT_CURRENT",
                 },
                 "quota_observation": {
                     "state": "OBSERVED",
@@ -293,6 +297,10 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
 
     assert return_code == 0
     assert pipeline["provider_authenticated"] is True
+    assert pipeline["provider_access_is_current"] is False
+    assert pipeline["provider_access_freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert pipeline["provider_access"]["is_current"] is False
+    assert pipeline["provider_access"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert pipeline["quota"]["daily_remaining"] == 93
     assert pipeline["capabilities"]["lineups"]["persisted"] == 2
     assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
