@@ -443,6 +443,8 @@ def test_pipeline_diagnostics_marks_historical_quota_and_store_totals(
         "authenticated": True,
         "checked_at": "2026-09-05T22:05:25+00:00",
         "source": "LAST_PERSISTED_DEEP_SAMPLE",
+        "is_current": False,
+        "freshness": "LAST_OBSERVED_NOT_CURRENT",
     }
     assert pipeline["quota_observation"]["state"] == "OBSERVED"
     assert pipeline["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
