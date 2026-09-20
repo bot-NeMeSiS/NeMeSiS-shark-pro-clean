@@ -220,6 +220,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
                 "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
                 "reason_code": safe_label((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), secret),
+                "provider_reason_code": safe_label((raw_current_sync.get("api_football_primary") or {}).get("provider_reason_code"), secret),
                 "failure_class": safe_label((raw_current_sync.get("api_football_primary") or {}).get("failure_class"), secret, ""),
                 "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                 "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
@@ -240,6 +241,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "live_refresh": {
                 "state": safe_label((raw_current_sync.get("live_refresh") or {}).get("state"), secret),
                 "reason_code": safe_label((raw_current_sync.get("live_refresh") or {}).get("reason_code"), secret),
+                "provider_reason_code": safe_label((raw_current_sync.get("live_refresh") or {}).get("provider_reason_code"), secret),
                 "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
                 "external_calls": safe_count((raw_current_sync.get("live_refresh") or {}).get("external_calls")),
                 "fixtures_count": safe_count((raw_current_sync.get("live_refresh") or {}).get("fixtures_count")),
