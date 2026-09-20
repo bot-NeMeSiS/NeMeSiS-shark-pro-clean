@@ -52,6 +52,7 @@ def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_erro
     assert current["api_football_primary"] == {
         "state": "ERROR",
         "reason_code": "PROVIDER_ERROR",
+        "failure_class": "",
         "ok": False,
         "configured": True,
         "enabled": True,
