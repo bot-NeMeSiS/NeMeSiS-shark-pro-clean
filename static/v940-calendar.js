@@ -8,7 +8,7 @@
   const search = root.querySelector("[data-v940-calendar-search]");
   const currentContext = root.querySelector("[data-v940-current-context]");
   const sections = Array.from(root.querySelectorAll("[data-v940-calendar-section]"));
-  const storageKey = `nemesis:v940:calendar:${window.location.pathname}${window.location.search}`;
+  const storageKey = `nemesis:v940:calendar:${document.documentElement.lang}:${window.location.pathname}${window.location.search}`;
   const maxRestoreAgeMs = 2 * 60 * 60 * 1000;
 
   const storage = {

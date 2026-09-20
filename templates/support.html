@@ -1,82 +1,54 @@
 {% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, icon %}
 {% block content %}
-<section class="hero compact-hero v824-certified-screen v824-support-screen v825-certified-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v825-support-screen" data-v824-template="support" data-v825-template="support" data-v827-template="support" data-v828-template="support" data-v829-template="support" data-v830-template="support" data-v832-template="support" data-v833-template="support" data-v836-template="support" data-v837-template="support" data-v826-template="support">
-  <div>
-    <p class="eyebrow">Centro de ayuda</p>
-    <h1>Soporte NeMeSiS SHARK PRO</h1>
-    <p>Cuéntanos cualquier fallo de partidos, picks, live, Telegram o cuenta. Lo guardamos para revisarlo y mejorar la app.</p>
+<div class="v933-page v933-support-page" data-v933-template="support" data-top100-improvement="9,10">
+  {{ page_header('Soporte', 'NeMeSiS SHARK PRO', 'support', [{'label':'Inicio','href':'/app','icon':'home'}]) }}
+  {% if data.error %}<div class="premium-alert danger" role="alert">{{ ui(data.error) }}</div>{% endif %}
+  {% if data.sent %}<div class="premium-alert success" role="status" data-support-received>{{ ui('Mensaje recibido en la bandeja de soporte. Todavía no ha sido revisado.') }}</div>{% endif %}
+  <div class="v933-two-col is-balanced">
+    <section class="v933-main-stack" aria-labelledby="support-form-title">
+      <h2 id="support-form-title">{{ ui("Contactar con soporte") }}</h2>
+      {% if not data.support_available %}<a class="v933-action" href="/cliente-login?next=/support">{{ ui('Inicia sesión para contactar con soporte.') }}</a>{% endif %}
+      <form method="post" class="v933-support-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="request_id" value="{{ data.support_request_id }}">
+        <fieldset class="form-grid"{% if not data.support_available %} disabled{% endif %}>
+        <label>{{ ui("Tipo") }}
+          <select name="category">
+            <option value="partidos">{{ ui("Partidos / calendario") }}</option>
+            <option value="live">{{ ui("Directo / resultados") }}</option>
+            <option value="picks">{{ ui("Picks / combinadas") }}</option>
+            <option value="telegram">Telegram</option>
+            <option value="cuenta">{{ ui("Cuenta / membresía") }}</option>
+            <option value="cancelacion">{{ ui("Cancelación / cambio de plan") }}</option>
+            <option value="privacidad">{{ ui("Privacidad / datos personales") }}</option>
+            <option value="general">{{ ui("General") }}</option>
+          </select>
+        </label>
+        <label>{{ ui("Prioridad") }}
+          <select name="priority"><option value="normal">{{ ui("Normal") }}</option><option value="alta">{{ ui("Alta") }}</option><option value="baja">{{ ui("Baja") }}</option></select>
+        </label>
+        <label class="is-wide">{{ ui("Asunto") }}<input name="subject" minlength="3" maxlength="120" required></label>
+        <label class="is-wide">{{ ui("Mensaje") }}<textarea name="message" rows="5" minlength="10" maxlength="4000" required></textarea></label>
+        <button class="v933-action is-primary is-blue is-wide" type="submit">{{ icon('send') }}{{ ui("Enviar al soporte") }}</button>
+        </fieldset>
+      </form>
+    </section>
+    <aside class="v933-main-stack">
+      <h2>{{ ui("Ayuda y privacidad") }}</h2>
+      <p>{{ ui("No incluyas contraseñas, tarjetas ni datos sensibles en tu mensaje.") }}</p>
+      <a class="v933-action" href="/profile">{{ icon('user') }}{{ ui("Mi cuenta") }}</a>
+      <a class="v933-action" href="/shark">{{ icon('shark') }}{{ ui("Consultar SHARK") }}</a>
+      {% if data.support_tips %}
+      <details class="v933-home-more">
+        <summary>{{ ui("Preguntas frecuentes") }}</summary>
+        {% for tip in data.support_tips %}<section><h3>{{ ui(tip.title) }}</h3><p>{{ ui(tip.body) }}</p></section>{% endfor %}
+      </details>
+      {% endif %}
+    </aside>
   </div>
-  <div class="hero-actions">
-    <a class="btn" href="/mi-dia">Volver a Mi día</a>
-    <a class="btn ghost" href="/shark">Preguntar a SHARK</a>
-  </div>
-</section>
-
-{% if data.sent %}
-  <div class="premium-alert ok">Mensaje recibido. Lo hemos guardado en el centro de soporte para revisión.</div>
-{% endif %}
-{% if data.error %}
-  <div class="premium-alert danger">{{ data.error }}</div>
-{% endif %}
-
-
-<section class="band compact-band" data-top100-improvement="9,10">
-  <div class="section-head"><h2>Cómo pedir ayuda sin perder tiempo</h2><span class="pill">Soporte beta</span></div>
-  <div class="grid dense-grid">
-    <article class="card"><span class="badge">Datos</span><strong>Partidos, directo o picks</strong><p class="small">Indica equipo, competición, hora Madrid y qué dato no encaja. Si falta evidencia, lo trataremos como pendiente, no como fallo confirmado.</p></article>
-    <article class="card"><span class="badge">Cuenta</span><strong>Plan, acceso o cancelación</strong><p class="small">Explica qué querías hacer y qué viste. No publiques tarjetas, contraseñas, tokens ni capturas con datos sensibles.</p></article>
-    <article class="card"><span class="badge">Privacidad</span><strong>Preferencias y datos</strong><p class="small">Puedes pedir revisión, exportación o borrado desde los controles de privacidad. El soporte solo necesita el contexto mínimo.</p></article>
-  </div>
-</section>
-<section class="grid two">
-  <div class="card">
-    <h2>Enviar incidencia o sugerencia</h2>
-    <form method="post" class="form-grid">
-      <label>Tipo
-        <select name="category">
-          <option value="partidos">Partidos / calendario</option>
-          <option value="live">Directo / resultados</option>
-          <option value="picks">Picks / combinadas</option>
-          <option value="telegram">Telegram</option>
-          <option value="cuenta">Cuenta / membresía</option>
-          <option value="cancelacion">Cancelación / cambio de plan</option>
-          <option value="privacidad">Privacidad / datos personales</option>
-          <option value="general">General</option>
-        </select>
-      </label>
-      <label>Prioridad
-        <select name="priority">
-          <option value="normal">Normal</option>
-          <option value="alta">Alta</option>
-          <option value="baja">Baja</option>
-        </select>
-      </label>
-      <label>Asunto
-        <input name="subject" placeholder="Ej: No veo picks para los partidos de hoy">
-      </label>
-      <label>Mensaje
-        <textarea name="message" rows="6" placeholder="Explica qué estabas viendo, qué botón pulsaste o qué dato falta."></textarea>
-      </label>
-      <button class="btn primary" type="submit">Enviar al soporte</button>
-    </form>
-  </div>
-  <div class="card stack">
-    <h2>Para ayudarte mejor</h2>
-    {% for tip in data.support_tips %}
-      <div class="mini-card">
-        <strong>{{ tip.title }}</strong>
-        <p>{{ tip.body }}</p>
-      </div>
-    {% endfor %}
-    <div class="mini-card accent">
-      <strong>Privacidad</strong>
-      <p>No mostramos ruido técnico ni claves al cliente. El equipo SHARK revisa incidencias desde un entorno privado.</p>
-    </div>
-  </div>
-</section>
+</div>
 {% endblock %}
-
-
 
 
 

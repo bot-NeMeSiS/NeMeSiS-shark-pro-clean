@@ -1,0 +1,58 @@
+<details class="sentinel-project" id="project-control" data-project-control>
+  <summary>Proyecto y continuidad{% if project_control %} · {{ project_control.queue|length }} trabajos{% endif %}</summary>
+  {% if not project_control %}
+  <p role="status">Fuente operativa no disponible. No se han confirmado recuentos ni estados.</p>
+  {% else %}
+  <p>LOCAL ONLY · Estados declarados en la cola, no certificación productiva.</p>
+  <p>Rama observada: <code>{{ project_control.identity.branch or 'No verificada' }}</code><br>HEAD: <code>{{ project_control.identity.head or 'No verificado' }}</code></p>
+  <p>El HEAD no incluye cambios sin commit. Esta consulta no repite QA ni ejecuta trabajos.</p>
+  <dl class="sentinel-project-counts">
+    {% for label, key in [('Activos', 'active'), ('Bloqueados', 'blocked'), ('Pendientes de QA', 'qa'), ('Sin responsable', 'unassigned'), ('Pendientes de publicación', 'publication_pending'), ('Evidencia ausente', 'evidence_missing')] %}
+    <div><dt>{{ label }}</dt><dd>{{ project_control.counts[key] }}</dd></div>
+    {% endfor %}
+  </dl>
+  <div class="sentinel-project-filters">
+    <label>Buscar trabajo<input class="ns-input" type="search" data-project-search placeholder="ID, tema o responsable"></label>
+    <label>Estado<select class="ns-input" data-project-filter>
+      <option value="all">Todos</option><option value="active">Activos</option><option value="BLOCKED">Bloqueados</option><option value="QA">Pendientes de QA</option><option value="unassigned">Sin responsable</option><option value="publication">Pendientes de publicación</option>
+    </select></label>
+  </div>
+  <p data-project-count role="status">{{ project_control.queue|length }} trabajos visibles</p>
+  <table class="sentinel-project-table">
+    <thead><tr><th>Trabajo</th><th>Estado / ámbito</th><th>Responsable</th><th>Siguiente acción / evidencia</th></tr></thead>
+    <tbody>{% for task in project_control.queue %}
+      <tr data-project-row data-state="{{ task.Estado }}" data-owner="{{ task.Responsable }}" data-publication="{{ 'yes' if 'PUBLISH' in task.blocker_ids else 'no' }}">
+        <td data-label="Trabajo"><strong>{{ task.ID }}</strong><br>{{ task.Alias }}</td>
+        <td data-label="Estado / ámbito">{{ task.Estado }}<br><small>{{ task.Ambito }}</small>{% if task.Bloqueo != 'NONE' %}<br><small>Dependencia: {{ task.Bloqueo }}</small>{% endif %}</td>
+        <td data-label="Responsable">{{ task.Responsable }}</td>
+        <td data-label="Siguiente acción / evidencia">{{ task.Siguiente }}<br><button type="button" class="ns-button ns-button-secondary" data-control-source="{{ task.source_id }}">{{ 'Ver evidencia' if task.evidence_available else 'Fuente no disponible' }}</button></td>
+      </tr>
+    {% endfor %}</tbody>
+  </table>
+  <details><summary>Bloqueos y dependencias</summary><dl>
+    {% for blocker in project_control.blockers %}<dt><strong>{{ blocker.ID }}</strong></dt><dd>{{ blocker.Motivo }}<br>{{ blocker.Desbloqueo }}</dd>{% endfor %}
+  </dl></details>
+  <details><summary>Candidatos y versiones</summary>
+    {% for release in project_control.releases %}<div class="sentinel-project-release">
+      <h3>{{ release.ID }} · {{ release.Estado }}</h3><p>{{ release.Rama }}<br><code>{{ release.HEAD }}</code></p>
+      {% if release.verification == 'CONFLICT_OR_UNVERIFIED' %}<p role="alert">La declaración no coincide con Git o no pudo verificarse. No se acredita este candidato.</p>{% elif release.verification == 'HEAD_MATCH_ONLY' %}<p>HEAD comprobado. El diff local requiere su propia evidencia.</p>{% else %}<p>Observación anterior; no revalidada por esta consulta.</p>{% endif %}
+      <p>{{ release.Limite }}</p>
+    </div>{% endfor %}
+  </details>
+  <details><summary>Documentación, archivos y worktrees</summary>
+    {% if project_control.inventory %}
+    <p>Inventario observado: {{ project_control.inventory.observed_at_madrid }} · {{ project_control.inventory.branch_count }} ramas · {{ project_control.inventory.retired }} archivos retirados.</p>
+    <ul>{% for kind, count in project_control.inventory.document_counts.items() %}<li>{{ kind }}: {{ count }}</li>{% endfor %}</ul>
+    <p>{{ project_control.inventory.duplicate_document_groups }} grupos documentales byte-idénticos. Conservados; igualdad no autoriza retirada.</p>
+    <ul>{% for tree in project_control.inventory.worktrees %}<li>{{ tree.branch }}: {{ tree.classification }} · Cambios observados: {{ tree.dirty_records if tree.dirty_records is not none else 'No comprobados' }} · No retirar.</li>{% endfor %}</ul>
+    {% else %}<p>Inventario no disponible; no se infiere cero archivos.</p>{% endif %}
+  </details>
+  <nav class="ns-actions" aria-label="Fuentes operativas">
+    {% for key, label in [('conversations','Índice de conversaciones'), ('truth','Verdad actual'), ('queue','Cola única'), ('decisions','Decisiones'), ('release','Publicación')] %}<button type="button" class="ns-button ns-button-secondary" data-control-source="{{ key }}">{{ label }}</button>{% endfor %}
+  </nav>
+  <section data-control-evidence hidden aria-labelledby="control-evidence-title">
+    <h3 id="control-evidence-title" tabindex="-1">Fuente consultada</h3>
+    <p data-control-source-path></p><pre data-control-source-text></pre>
+  </section>
+  {% endif %}
+</details>

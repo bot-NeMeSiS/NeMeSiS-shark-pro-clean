@@ -10,6 +10,7 @@
 <div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16" data-first-use-contract="Primer uso real" data-habit-contract="Hábito sin invasión">
   {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
+  {% include 'partials/language_selector.html' %}
 
   <section class="v933-two-col ns16-account-layout">
     <div class="v933-main-stack">
@@ -25,25 +26,27 @@
         </div>
       </section>
 
-      <section class="v933-panel">
-        {{ section_header('Actividad reciente', 'Tus últimas acciones.', 'Ver toda', '/actividad') }}
-        {% if activity %}<div class="v933-activity-list">{% for item in activity[:6] %}<article><time>{{ item.get('created_at')|madrid_datetime_label if item.get('created_at') else 'Fecha pendiente' }}</time><div><strong>{{ item.get('title') or item.get('action') or 'Actividad' }}</strong><small>{{ item.get('label') or item.get('kind') or 'Registrada' }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
+      <details class="v933-panel ns16-account-disclosure" open data-account-disclosure>
+        <summary>{{ icon('history') }}<strong>{{ ui('Actividad reciente') }}</strong></summary>
+        {% if activity %}<div class="v933-activity-list">{% for item in activity[:3] %}<article><time>{{ ui_match_datetime(item.get('created_at')) if item.get('created_at') else ui('Fecha pendiente') }}</time><div><strong>{{ ui(item.get('title') or item.get('action') or 'Actividad') }}</strong><small>{{ ui(item.get('label') or item.get('kind') or 'Registrada') }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
         {% else %}{{ empty_state('Sin actividad reciente', 'Tus acciones aparecerán aquí.', '', '', 'history') }}{% endif %}
-      </section>
+        {{ action_button('Ver toda', '/actividad') }}
+      </details>
     </div>
 
     <aside class="v933-side-stack">
-      <section class="v933-panel">
-        {{ section_header('Seguridad', '') }}
+      <details class="v933-panel ns16-account-disclosure" open data-account-disclosure>
+        <summary>{{ icon('shield') }}<strong>{{ ui('Seguridad') }}</strong></summary>
         <div class="v933-main-stack">
           {{ quick_action('Cambiar contraseña', 'Credenciales', '/password-reset', 'shield') }}
           {{ quick_action('Términos', 'Condiciones', '/terminos', 'document') }}
           {{ quick_action('Privacidad', 'Tratamiento de datos', '/privacidad', 'lock') }}
           {{ quick_action('Reembolsos', 'Política', '/reembolsos', 'payments') }}
         </div>
-      </section>
+      </details>
       {{ action_button('Cerrar sesión', '/logout', false, 'danger', false, 'logout') }}
     </aside>
   </section>
 </div>
+<script src="{{ url_for('static', filename='account-disclosures.js') }}?v=design02-r3-1" defer></script>
 {% endblock %}

@@ -35,7 +35,7 @@ ALLOWED_EVIDENCE_STATES = {
     "REQUIRES_REVIEW",
 }
 
-ALLOWED_LANGUAGE = {"es", "en"}
+ALLOWED_LANGUAGE = {"es", "en", "fr"}
 ALLOWED_THEME = {"system", "dark", "compact", "comfortable"}
 
 

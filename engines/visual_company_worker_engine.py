@@ -289,6 +289,24 @@ def build_codex_prompt(route: str, category: str, severity: str, evidence: str) 
     )
 
 
+def _has_safe_sports_state(html: str, text: str) -> bool:
+    if any(state in text for state in SAFE_STATES):
+        return True
+    from engines.ui_localization_engine import translate
+    states = {
+        "ERROR": "Agenda temporalmente no disponible",
+        "FILTER_EMPTY": "No hay partidos que coincidan",
+        "REAL_EMPTY": "No hay partidos para esta fecha",
+        "DATA_NOT_AVAILABLE": "Agenda pendiente de actualización",
+    }
+    # A marker alone is not evidence: require the actual canonical empty component and its copy.
+    return 'data-empty-state="premium"' in html and any(
+        f'data-calendar-empty="{state}"' in html
+        and any(translate(title, language) in text for language in ("es", "en", "fr"))
+        for state, title in states.items()
+    )
+
+
 def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
     response = client.get(route, follow_redirects=False)
     status = int(getattr(response, "status_code", 0) or 0)
@@ -365,7 +383,7 @@ def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
     sports_route = route in {"/partidos", "/calendar", "/live", "/directo", "/picks"}
     if sports_route and status == 200:
         has_rows = any(token in html for token in ("ns-match-row", "ns-pick-card", "match-row", "pick-card", "v882-core-grid"))
-        has_safe_state = any(state in text for state in SAFE_STATES)
+        has_safe_state = _has_safe_sports_state(html, text)
         if not has_rows and not has_safe_state:
             issues.append(_issue(route, profile, "data", "high", "Pantalla deportiva vacia sin estado seguro", "No hay filas/cards ni estado seguro visible.", "Mostrar estado premium y tarea admin sin inventar datos."))
         elif not has_rows and has_safe_state:
@@ -379,7 +397,7 @@ def inspect_route(client: Any, route: str, profile: str) -> dict[str, Any]:
         "html_size": len(html),
         "text_size": len(text),
         "issues": issues,
-        "safe_state_detected": any(state in text for state in SAFE_STATES),
+        "safe_state_detected": _has_safe_sports_state(html, text),
         "admin_protected": route.startswith("/admin/") and status in {302, 303, 401, 403},
     }
 

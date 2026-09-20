@@ -427,6 +427,14 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
             safe_json(raw or {}),
         ),
     )
+    current = user_by_id(conn, user_id)
+    # Billing history is retained, but it cannot replace an administrative grant
+    # or change an administrator's role as a side effect of a subscription event.
+    manual_access = str(current.get("membership_admin_granted") or "0").lower() in {"1", "true"}
+    manual_access = manual_access or str(current.get("membership_source") or "").lower() == "admin_manual"
+    if manual_access or str(current.get("role") or "").upper() == "ADMIN":
+        return {"applied": True, "action": "subscription_recorded_access_preserved", "membership_changed": False,
+                "user_id": user_id, "plan": current.get("membership"), "status": status}
     if status in KEEP_ACCESS_STATUSES:
         membership_status_note = "Membresía activada por Stripe."
         if status == "past_due":
@@ -458,8 +466,8 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
         )
         return {"applied": True, "action": "membership_active", "user_id": user_id, "plan": plan, "status": status}
     if status in CANCEL_STATUSES:
-        current = user_by_id(conn, user_id)
-        if str(current.get("membership_source") or "") == "stripe" or str(current.get("stripe_subscription_id") or "") == subscription_id:
+        if (subscription_id and str(current.get("membership_source") or "") == "stripe"
+                and str(current.get("stripe_subscription_id") or "") == subscription_id):
             conn.execute(
                 """UPDATE users
                       SET role='FREE', membership='FREE', membership_source='stripe_cancelled', membership_expires_at='',

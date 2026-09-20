@@ -1,10 +1,12 @@
 import copy
 import csv
 import hashlib
+import inspect
 import ipaddress
 import html
 import io
 import json
+import math
 import os
 import re
 import secrets
@@ -18,11 +20,16 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timedelta
 from email.message import EmailMessage
+from functools import wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
+from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label
+from engines.support_inbox_engine import submit as submit_support_request, admin_snapshot as support_inbox_snapshot, SupportRejected
+from engines.ui_localization_engine import identity_value as localize_identity_value, owned_text as localize_owned_text, entity_copy as localize_entity_copy
+import uuid
 
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.security_engine import (
@@ -169,6 +176,8 @@ from engines.company_operating_system_engine import build_company_os_summary
 from engines.company_audit_board_engine import build_company_audit_summary
 from engines.auto_improvement_engine import build_auto_improvement_summary, run_auto_improvement_diagnostic
 from engines.shark_sentinel_engine import build_static_sentinel_summary, run_static_flask_inspection
+from engines.sentinel_jobs import Store as SentinelJobStore, Rejected as SentinelJobRejected, revision as sentinel_job_revision
+from engines.project_control_reader import snapshot as project_control_snapshot, evidence as project_control_evidence, ControlUnavailable
 from engines.continuous_shark_sentinel_engine import build_continuous_sentinel_summary, run_continuous_sentinel_cycle
 from engines.sentinel_improvement_workflow_engine import build_workflow_summary, update_issue_state
 from engines.visual_company_worker_engine import build_visual_company_worker_summary, run_visual_company_worker
@@ -442,8 +451,10 @@ from engines.madrid_time_engine import (
     format_madrid_short_time,
     format_madrid_sync_label,
     madrid_conversion_selftest,
+    madrid_greeting,
     madrid_time_diagnostics,
     normalize_kickoff_for_display,
+    parse_madrid_local_datetime,
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
@@ -835,7 +846,7 @@ def request_csrf_token():
     token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token") or request.headers.get("X-CSRFToken")
     if not token and request.is_json:
         payload = request.get_json(silent=True) or {}
-        token = payload.get("csrf_token")
+        token = payload.get("csrf_token") if isinstance(payload, dict) else None
     return token or ""
 
 
@@ -2208,8 +2219,19 @@ def initials(name):
 
 def normalized_label(value):
     text = str(value or "").strip().lower()
+    cache = None
+    if has_request_context() and request.path == "/app" and request.method in {"GET", "HEAD"}:
+        cache = getattr(g, "nemesis_home_labels", None)
+        if cache is None:
+            cache = g.nemesis_home_labels = {}
+        if text in cache:
+            return cache[text]
+    key = text
     text = "".join(c for c in unicodedata.normalize("NFD", text) if unicodedata.category(c) != "Mn")
-    return re.sub(r"\s+", " ", text)
+    result = re.sub(r"\s+", " ", text)
+    if cache is not None and len(cache) < 4096:
+        cache[key] = result
+    return result
 
 
 def is_fake_team_name(value):
@@ -4250,18 +4272,24 @@ def canonical_live_minute(match):
         return ""
     item = match or {}
     for field in ("minute", "elapsed", "live_minute"):
-        value = str(item.get(field) or "").strip().strip("'\u2019")
-        if re.fullmatch(r"(?:[1-9]\d?|1[0-2]\d)(?:\+\d{1,2})?", value):
+        raw = item.get(field)
+        value = str(raw if raw is not None else "").strip().strip("'\u2019")
+        if re.fullmatch(r"(?:0|[1-9]\d?|1[0-2]\d)(?:\+\d{1,2})?", value):
             return value
     return ""
 
 def sportsdb_event_time(event):
+    return sportsdb_event_madrid_values(event).get("kickoff_time") or ""
+
+
+def sportsdb_event_madrid_values(event):
+    # Soccer provider fields are UTC; dateEventLocal/strTimeLocal are not used.
     timestamp = str(event.get("strTimestamp") or "").strip()
-    values = madrid_values_from_datetime(timestamp)
-    if values.get("kickoff_time"):
-        return values["kickoff_time"]
     raw_time = str(event.get("strTime") or event.get("strEventTime") or event.get("timeEvent") or "").strip()
-    return raw_time[:5] if raw_time and len(raw_time) >= 5 else raw_time
+    if not timestamp and event.get("dateEvent") and raw_time:
+        timestamp = f"{str(event['dateEvent'])[:10]}T{raw_time}"
+    item = normalize_kickoff_for_display({"kickoff_iso": timestamp, "source_timezone": "UTC"})
+    return madrid_values_from_datetime(item.get("madrid_dt_iso") or "")
 
 
 def kickoff_iso_value(match_date, match_time):
@@ -4370,7 +4398,7 @@ def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", ca
     comp_id = event_comp_id or fallback_comp_id
     status = sportsdb_match_status(event)
     score = sportsdb_score(event.get("intHomeScore"), event.get("intAwayScore"))
-    time_values = madrid_values_from_datetime(event.get("strTimestamp") or "", event.get("dateEvent") or today_iso(), sportsdb_event_time(event))
+    time_values = sportsdb_event_madrid_values(event)
     match_date = time_values.get("match_date") or event.get("dateEvent") or today_iso()
     match_time = time_values.get("kickoff_time") or sportsdb_event_time(event)
     home_badge = event.get("strHomeTeamBadge") or event.get("strHomeTeamLogo") or ""
@@ -4632,7 +4660,24 @@ def live_matches_any_date(limit=160):
 
 def upsert_sportsdb_matches(match_rows):
     conn = db()
+    try:
+        result = _upsert_sportsdb_matches_transaction(conn, match_rows)
+        conn.commit()
+        if result['inserted'] or result['updated']:
+            invalidate_v934_realtime_cache('v934:sports:')
+        return result
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _upsert_sportsdb_matches_transaction(conn, match_rows):
+    from engines.realtime_state_engine import older_match_observation
     cur = conn.cursor()
+    # Serialize the comparison and replacement, also across importer processes.
+    conn.execute("BEGIN IMMEDIATE")
     imported = 0
     updated = 0
     skipped = 0
@@ -4640,7 +4685,10 @@ def upsert_sportsdb_matches(match_rows):
         if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
             skipped += 1
             continue
-        exists = cur.execute("SELECT id FROM matches WHERE id=?", (item["id"],)).fetchone()
+        exists = cur.execute("SELECT * FROM matches WHERE id=?", (item["id"],)).fetchone()
+        if exists and older_match_observation(dict(exists), item):
+            skipped += 1
+            continue
         cur.execute(
             """INSERT OR REPLACE INTO matches
                (id,external_id,match_date,kickoff_time,match_time,kickoff_iso,competition_id,competition_key,competition_name,league_name,country,
@@ -4732,8 +4780,6 @@ def upsert_sportsdb_matches(match_rows):
            VALUES (?,?,?)""",
         ("sportsdb_feed_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
     )
-    conn.commit()
-    conn.close()
     return summary
 
 
@@ -6488,15 +6534,17 @@ def record_user_activity(activity_type, target_type="", target_id="", payload=No
     user_id = user_id or current_user_id()
     if not user_id:
         return None
-    activity_id = hashlib.md5(f"act-{user_id}-{activity_type}-{target_type}-{target_id}-{now_iso()}".encode("utf-8")).hexdigest()[:18]
+    activity_id = secrets.token_hex(16)
     conn = db()
-    conn.execute(
-        """INSERT INTO user_activity(id,user_id,activity_type,target_type,target_id,payload_json,created_at)
-           VALUES (?,?,?,?,?,?,?)""",
-        (activity_id, user_id, activity_type, target_type, target_id, json.dumps(payload or {}, ensure_ascii=False)[:3000], now_iso()),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """INSERT INTO user_activity(id,user_id,activity_type,target_type,target_id,payload_json,created_at)
+               VALUES (?,?,?,?,?,?,?)""",
+            (activity_id, user_id, activity_type, target_type, target_id, json.dumps(payload or {}, ensure_ascii=False)[:3000], now_iso()),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return activity_id
 
 
@@ -7168,6 +7216,42 @@ def remove_favorite(kind, value, user_id=None):
     return {"ok": True, "removed": fav_id}
 
 
+def _home_request_result(key, read):
+    # Only the read-only Home request shares work; no cross-request cache or TTL.
+    if not has_request_context() or request.path != "/app" or request.method not in {"GET", "HEAD"}:
+        return read()
+    user = current_session_user() or {}
+    scope = (str(DB_PATH), user.get("id"), user.get("role"), user.get("membership"),
+             session.get("language"), today_iso(), key)
+    cache = getattr(g, "nemesis_home_work", None)
+    if cache is None:
+        cache = g.nemesis_home_work = {}
+    if scope not in cache:
+        value = read()
+        if len(cache) >= 2048:
+            return value
+        # These readers produce JSON-shaped sports/SQLite records. Store an
+        # immutable encoding so every consumer gets its own nested containers.
+        try:
+            cache[scope] = json.dumps(value, ensure_ascii=False, allow_nan=False)
+        except (TypeError, ValueError):
+            return value
+        return value
+    return json.loads(cache[scope])
+
+
+def _home_request_memo(func):
+    signature = inspect.signature(func)
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        bound = signature.bind(*args, **kwargs)
+        bound.apply_defaults()
+        return _home_request_result((func.__name__, tuple(bound.arguments.items())),
+                                    lambda: func(*args, **kwargs))
+    return wrapped
+
+
+@_home_request_memo
 def get_favorites(kind=None, user_id=None):
     user_id = user_id if user_id is not None else current_user_id()
     if not user_id:
@@ -7239,8 +7323,45 @@ def annotate_match(match, favs=None, include_timeline=True):
     return client_match_display_context(match)
 
 
+def _home_timeline_cache():
+    if not has_request_context() or request.path != '/app' or request.method not in {'GET', 'HEAD'}:
+        return None
+    cache = getattr(g, 'nemesis_home_timelines', None)
+    if cache is None:
+        cache = g.nemesis_home_timelines = {}
+    return cache.setdefault(str(DB_PATH), {})
+
+
+def _prefetch_home_timelines(matches):
+    cache = _home_timeline_cache()
+    if cache is None:
+        return
+    pending = list(dict.fromkeys(str(item['id']) for item in matches
+                                 if item.get('id') is not None and str(item['id']) not in cache))
+    pending = pending[:max(0, 2048 - len(cache))]
+    for offset in range(0, len(pending), 256):
+        chunk = pending[offset:offset + 256]
+        grouped = {match_id: [] for match_id in chunk}
+        placeholders = ','.join('?' for _ in chunk)
+        # Same per-match ordering/limit as the individual reader, one bounded batch.
+        events = rows(f'''SELECT * FROM (
+            SELECT *, ROW_NUMBER() OVER (PARTITION BY match_id ORDER BY created_at DESC) AS _home_rank
+            FROM match_timeline WHERE match_id IN ({placeholders})
+        ) WHERE _home_rank <= 20 ORDER BY match_id, created_at DESC''', tuple(chunk))
+        for event in events:
+            event.pop('_home_rank', None)
+            grouped[str(event['match_id'])].append(event)
+        cache.update({key: json.dumps(value, ensure_ascii=False) for key, value in grouped.items()})
+
+
 def match_timeline(match):
-    existing = rows("SELECT * FROM match_timeline WHERE match_id=? ORDER BY created_at DESC LIMIT 20", (match.get("id"),))
+    cache = _home_timeline_cache()
+    key = str(match.get('id'))
+    if cache is not None and key in cache:
+        existing = json.loads(cache[key])
+    else:
+        existing = _home_request_result(("timeline", match.get("id")), lambda: rows(
+            "SELECT * FROM match_timeline WHERE match_id=? ORDER BY created_at DESC LIMIT 20", (match.get("id"),)))
     if existing:
         return existing
     return fallback_timeline(match)
@@ -7805,13 +7926,24 @@ def team_page_data(team_id, limit=80):
            ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
         (name, name, today_iso(), int(limit//2)),
     ) if not is_fake_match(m)]
-    live = [m for m in upcoming if (m.get("status_info") or {}).get("is_live")]
+    # Date bounds limit the read; the existing canonical state owns presentation.
+    team_matches = upcoming + recent
+    live = [m for m in team_matches if (m.get("status_info") or {}).get("is_live")]
+    upcoming = [m for m in team_matches if (m.get("status_info") or {}).get("is_upcoming")]
+    recent = sorted(
+        (m for m in team_matches if (m.get("status_info") or {}).get("is_finished")),
+        key=lambda m: (str(m.get("match_date") or ""), str(m.get("kickoff_time") or "")),
+        reverse=True,
+    )
+    pending = [m for m in team_matches if not any(
+        (m.get("status_info") or {}).get(key) for key in ("is_live", "is_upcoming", "is_finished")
+    )]
     related = []
     for pick in get_picks(limit=120):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
-    players = _cached_players_for_team(team, upcoming + recent)
+    players = _cached_players_for_team(team, team_matches)
     detail = {
         "team": team,
         "key": key,
@@ -7822,6 +7954,7 @@ def team_page_data(team_id, limit=80):
         "live": live,
         "picks": related[:8],
         "players": players,
+        "pending": pending,
         "is_favorite": is_favorite,
         "stats": {
             "upcoming": len(upcoming),
@@ -8831,6 +8964,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
                ORDER BY match_date DESC, kickoff_time DESC, competition_name
                LIMIT ?"""
     data = dedupe_matches_list([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)])
+    _prefetch_home_timelines(data)
     enriched = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -8857,6 +8991,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
     return enriched
 
 
+@_home_request_memo
 def pick_candidate_matches(limit=80, days=21):
     candidates = []
     for match in get_upcoming_matches(today_iso(), days=days, limit=max(limit * 3, 300)):
@@ -8922,12 +9057,16 @@ def smart_pick_board(user=None, limit=24):
 
 def match_hub(date=None, lane="today"):
     date = date or today_iso()
-    cache_key = f"match-hub:{date}:{lane}"
+    favorites = get_favorites()
+    user = (current_session_user() or {}) if has_request_context() else {}
+    scope = {"user": user.get("id"), "role": user.get("role"), "plan": user.get("membership"),
+             "favorites": sorted((str(f.get("kind")), str(f.get("value"))) for f in favorites)}
+    scope_hash = hashlib.sha256(json.dumps(scope, sort_keys=True).encode()).hexdigest()[:24]
+    cache_key = f"match-hub:v2:{date}:{lane}:{scope_hash}"
     cached = cache_get(cache_key)
     if cached:
         return cached
     favs = favorite_sets()
-    favorites = get_favorites()
     picks = get_picks(limit=200)
     today_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_matches(date, "today")])
     window_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)])
@@ -8983,7 +9122,8 @@ def match_hub(date=None, lane="today"):
             "popular": len(combined),
         },
     }
-    save_live_sync_state("global", hub)
+    if not has_request_context():
+        save_live_sync_state("global", hub)
     cache_set(cache_key, hub, seconds=45)
     return hub
 
@@ -9148,7 +9288,7 @@ def expire_user_memberships_if_needed(user_id=""):
     try:
         conn = db()
         params = [now_iso(), now_iso()]
-        where = "COALESCE(membership_expires_at,'')!='' AND membership_expires_at<=? AND upper(COALESCE(membership,'FREE')) NOT IN ('FREE','ADMIN')"
+        where = "COALESCE(membership_expires_at,'')!='' AND membership_expires_at<=? AND upper(COALESCE(membership,'FREE')) NOT IN ('FREE','ADMIN') AND upper(COALESCE(role,'FREE'))!='ADMIN'"
         if user_id:
             where += " AND id=?"
             params.append(user_id)
@@ -9280,6 +9420,8 @@ def jinja_market_es(value):
 def _jinja_match_time_source(value, fallback_date="", fallback_time=""):
     if isinstance(value, dict):
         item = normalize_kickoff_for_display(value)
+        if "unresolved_provider_datetime" in item.get("time_warnings", []):
+            return item, ""
         return item, item.get("madrid_dt_iso") or item.get("kickoff_iso_madrid") or item.get("kickoff_iso") or item.get("commence_time") or item.get("start_time") or item.get("event_time") or (madrid_local_iso(item.get("match_date"), item.get("kickoff_time") or item.get("match_time")) if item.get("match_date") and (item.get("kickoff_time") or item.get("match_time")) else "")
     return {}, value or (madrid_local_iso(fallback_date, fallback_time) if fallback_date and fallback_time else "")
 
@@ -9418,6 +9560,7 @@ def canonical_match_for_domain_context(match):
         "UPCOMING": "NS",
         "INCOMPLETE": "TBD",
     }.get(str(status_info.get("key") or ""), "TBD")
+    item["_observed_status"] = item.get("status")
     item["status"] = domain_status
     item["status_info"] = status_info
     item["minute"] = canonical_live_minute(item) or None
@@ -9861,11 +10004,120 @@ app.jinja_env.globals.update(
 )
 
 
+def current_ui_locale():
+    if not has_request_context():
+        return "es"
+    if hasattr(g, "ui_locale"):
+        return g.ui_locale
+    user = current_session_user() or {}
+    preference = None
+    if user.get("id"):
+        try:
+            preference = valid_language(_load_user_intelligence_preferences(user["id"]).get("language"))
+        except sqlite3.OperationalError:
+            app.logger.warning("UI locale profile unavailable; using browser preference")
+    g.ui_locale = (preference or valid_language(session.get("ui_locale"))
+                   or valid_language(request.cookies.get("nemesis_locale"))
+                   or request.accept_languages.best_match(LANGUAGES) or "es")
+    return g.ui_locale
+
+
+def ui_text(source, **values):
+    return translate_ui(source, current_ui_locale(), **values)
+
+
+def ui_match_datetime(value, detail=False):
+    _item, source = _jinja_match_time_source(value)
+    return format_madrid_client_datetime_label(source, detail=detail, locale=current_ui_locale()) or ui_text("Fecha pendiente")
+
+
+def ui_calendar_date(value, detail=False):
+    day = parse_madrid_local_datetime(str(value or "")[:10])
+    return format_madrid_client_date_label(day, detail=detail, locale=current_ui_locale()) if day else ui_text("Fecha pendiente")
+
+
+@app.route("/preferences/language", methods=["POST"])
+def update_ui_language():
+    language = valid_language(request.form.get("language"))
+    if not language:
+        return Response(ui_text("Idioma no válido"), status=400, content_type="text/plain; charset=utf-8")
+    user = current_session_user() or {}
+    if user.get("id"):
+        conn = db()
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            profile_id = _user_intelligence_profile_id(user["id"])
+            row = conn.execute("SELECT preferences_json FROM client_profiles WHERE id=?", (profile_id,)).fetchone()
+            preferences = parse_payload_json(row["preferences_json"], {}) if row else {}
+            preferences["language"] = language
+            if row:
+                conn.execute("UPDATE client_profiles SET preferences_json=?,updated_at=? WHERE id=?",
+                             (json.dumps(preferences, ensure_ascii=False), now_iso(), profile_id))
+            else:
+                conn.execute("INSERT INTO client_profiles(id,name,preferences_json,created_at,updated_at) VALUES(?,?,?,?,?)",
+                             (profile_id, "Inteligencia de usuario Profile", json.dumps(preferences), now_iso(), now_iso()))
+            conn.commit()
+        except sqlite3.Error:
+            conn.rollback()
+            return Response(ui_text("No se pudo guardar la preferencia. Inténtalo de nuevo."), status=503, content_type="text/plain; charset=utf-8")
+        finally:
+            conn.close()
+    session["ui_locale"] = language
+    g.ui_locale = language
+    response = redirect(_safe_client_next(request.form.get("next"), default="/profile" if user else "/cliente-login"), code=303)
+    response.set_cookie("nemesis_locale", language, max_age=31536000, httponly=True,
+                        secure=request.is_secure or bool(app.config.get("SESSION_COOKIE_SECURE")), samesite="Lax", path="/")
+    return response
+
+
+@app.after_request
+def set_ui_language_headers(response):
+    if response.mimetype == "text/html" and hasattr(g, "ui_locale"):
+        response.headers["Content-Language"] = g.ui_locale
+        response.vary.add("Cookie")
+        response.vary.add("Accept-Language")
+    return response
+
+
+app.jinja_env.globals.update(ui=ui_text, ui_match_datetime=ui_match_datetime, ui_match_clock=jinja_match_time_short, ui_calendar_date=ui_calendar_date,
+                            ui_value=lambda value: localize_identity_value(value, current_ui_locale()),
+                            ui_owned=lambda value: localize_owned_text(value, current_ui_locale()),
+                            ui_entity_copy=lambda detail, kind: localize_entity_copy(detail, kind, current_ui_locale(), ui_match_datetime),
+                            ui_match_summary=lambda context: localize_match_summary(context, current_ui_locale()),
+                            ui_plural=lambda one, many, count, **values: plural_ui(one, many, count, current_ui_locale(), **values),
+                            ui_context_copy=lambda context: localize_context_copy(context, current_ui_locale(), ui_match_datetime),
+                            ui_form_summary=lambda form: localize_form_summary(form, current_ui_locale()),
+                            ui_shark_copy=lambda context: localize_shark_copy(context, current_ui_locale()),
+                            ui_price_label=lambda value: localize_price_label(value, current_ui_locale()))
+
+
 @app.context_processor
 def inject_session_user():
     user = current_session_user()
     return {
         "current_user": user,
+        "greeting": madrid_greeting((user or {}).get("name"), username=(user or {}).get("username"), locale=current_ui_locale()),
+        "ui_locale": current_ui_locale(),
+        "ui_languages": LANGUAGE_NAMES,
+        "ui_messages": {source: translate_ui(source, current_ui_locale()) for source in (
+            "En directo", "Finalizado", "Aplazado", "Suspendido", "Programado", "Descanso", "Datos retrasados",
+            "Partidos disponibles", "Esperando datos deportivos", "Estado confirmado", "Sin sincronización confirmada",
+            "La información confirmada sigue disponible entre actualizaciones.", "Estado actualizado", "Última registrada",
+            "Continuar", "Volver al partido", "Cuenta", "Inicio", "Calendario", "Directo", "Picks", "Favoritos",
+            "Actualización en directo", "Datos deportivos sincronizados", "Esperando datos reales", "Actualización segura",
+            "Próxima revisión en {seconds} s",
+            "Resultado pendiente", "Estado pendiente", "Cancelado", "Abandonado", "Pendiente de confirmar",
+            "Marcador actualizado: {score}. No confirma un evento de gol.",
+            "Prórroga", "Penaltis", "Final tras prórroga", "Final tras penaltis",
+            "Observación registrada", "Observación vigente", "Información sin confirmar",
+            "Identidad pendiente de confirmar", "Cambio sin observación nueva",
+            "Datos retrasados · Última lectura", "Información sin confirmar · Última lectura",
+            "Fuera de la última lectura confirmada", "Estado de la observación. No mide probabilidad de ganar.",
+            "Fuera del filtro actual. Se conserva la última lectura y el acceso al partido.",
+            "Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.",
+            "Actualización no disponible. Las lecturas conservan su vencimiento original.",
+            "Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.",
+            "Actualización temporalmente no disponible. Se conserva la última lectura segura.")},
         "app_version": APP_VERSION,
         "app_icon_version": APP_ICON_VERSION,
         "madrid_now": now_madrid_label(),
@@ -10585,6 +10837,13 @@ def _shark_recommendation_lines(limit=4):
         recs = []
     lines = []
     for rec in recs:
+        if rec.get("decision") in {"WAIT", "NO_BET"}:
+            lines.append(f"{rec.get('home_team') or ''} vs {rec.get('away_team') or ''}: "
+                         + ui_text(rec.get("selection") or "Esperar") + ". "
+                         + ui_text("Datos insuficientes para recomendar una apuesta."))
+            if len(lines) >= limit:
+                break
+            continue
         rec = enrich_pick_quality(dict(rec or {}))
         if not pick_is_premium_ready(rec, min_score=62) and len(lines) >= max(1, limit // 2):
             continue
@@ -13560,6 +13819,7 @@ def telegram_daily_message():
     )
 
 
+@_home_request_memo
 def get_matches(date=None, lane="today"):
     date = date or today_iso()
     clauses = ["match_date=?"]
@@ -13574,6 +13834,7 @@ def get_matches(date=None, lane="today"):
         clauses.append("lower(competition_key)='andalucia-regional'")
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 300"
     data = dedupe_matches_list([item for item in rows(query, params) if not is_fake_match(item)])
+    _prefetch_home_timelines(data)
     prepared = []
     for item in data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -13591,6 +13852,7 @@ def get_matches(date=None, lane="today"):
     return prepared
 
 
+@_home_request_memo
 def get_upcoming_matches(start_date=None, days=7, limit=300):
     start_date = start_date or today_iso()
     end_date = (datetime.fromisoformat(start_date).date() + timedelta(days=int(days))).isoformat()
@@ -13599,6 +13861,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
                ORDER BY match_date, kickoff_time, priority DESC, competition_name
                LIMIT ?"""
     raw_data = dedupe_matches_list([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
+    _prefetch_home_timelines(raw_data)
     data = []
     for item in raw_data:
         item["kickoff_time"] = item.get("kickoff_time") or item.get("match_time") or ""
@@ -15632,20 +15895,22 @@ def build_sports_home_sections(summary, limit=6, reuse_ranked=False):
         ranked = sort_matches_by_sports_relevance(source, "home", pick_ids=pick_ids, favorites=favorites)
     today = today_iso()
     live_now = [item for item in ranked if (item.get("sports_relevance") or {}).get("is_live")]
+    live_objects = {id(item) for item in live_now}
     important_today = [
         item for item in ranked
         if str(item.get("match_date") or "") == today
         and not (item.get("sports_relevance") or {}).get("is_finished")
-        and item not in live_now
+        and id(item) not in live_objects
         and (item.get("sports_relevance_bucket") in {"PRIORITY", "STANDARD"})
     ]
     favorite_matches = [item for item in ranked if item.get("is_favorite")]
+    today_objects = {id(item) for item in important_today}
     upcoming = [
         item for item in ranked
         if (item.get("sports_relevance") or {}).get("is_upcoming")
         and str(item.get("match_date") or "") >= today
-        and item not in live_now
-        and item not in important_today
+        and id(item) not in live_objects
+        and id(item) not in today_objects
     ]
     finished_source = _dedupe_sports_matches(summary.get("finished_matches") or [])
     if can_reuse_ranked and all(isinstance(item.get("sports_relevance"), dict) for item in finished_source):
@@ -17667,9 +17932,9 @@ def _calendar_sort(matches, sort_key):
     ]
 
     def time_key(item):
+        display = normalize_kickoff_for_display(item)
         return (
-            item.get("match_date") or "9999-99-99",
-            normalize_kickoff_for_display(item).get("madrid_time") or item.get("kickoff_time") or item.get("match_time") or "99:99",
+            display.get("madrid_utc_iso") or "9999-99-99",
             int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80),
             item.get("calendar_competition") or "",
             item.get("safe_home") or "",
@@ -17688,7 +17953,7 @@ def _calendar_sort(matches, sort_key):
         return 2
 
     if sort_key == "time":
-        return sorted(ranked, key=lambda item: (item.get("match_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
+        return sorted(ranked, key=lambda item: (normalize_kickoff_for_display(item).get("madrid_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
     if sort_key == "league":
         return sorted(ranked, key=lambda item: (int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
@@ -17725,7 +17990,7 @@ def _calendar_group(matches):
     date_buckets = []
     by_date = {}
     for item in matches:
-        key = item.get("match_date") or normalize_kickoff_for_display(item).get("match_date") or "sin-fecha"
+        key = normalize_kickoff_for_display(item).get("madrid_date") or "sin-fecha"
         label = item.get("calendar_date_label") or jinja_match_date_label(item)
         by_date.setdefault(key, {"date_key": key, "date": key, "date_label": label, "label": label, "matches_count": 0, "total": 0, "leagues": {}})
         bucket = by_date[key]
@@ -18195,6 +18460,22 @@ def _v940_calendar_date_chips(filters, date_counts):
     return chips
 
 
+def _design02_calendar_date_navigation(filters):
+    """Presentation links over the existing date-filtered snapshot, not an archive."""
+    selected = _safe_date_value(filters.get("date"), today_iso())
+    selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
+    return {
+        "selected": selected,
+        "previous": _v940_calendar_href(filters, lane="today", date=(selected_day - timedelta(days=1)).isoformat()),
+        "next": _v940_calendar_href(filters, lane="today", date=(selected_day + timedelta(days=1)).isoformat()),
+        "shortcuts": [
+            {"label": label, "key": today_iso(offset),
+             "href": _v940_calendar_href(filters, lane="today", date=today_iso(offset))}
+            for offset, label in ((-1, "Ayer"), (0, "Hoy"), (1, "Mañana"))
+        ],
+    }
+
+
 def v940_calendar_context(summary, lane="today", date_value=None):
     """One request-local Calendar view over sports-metrics-v1 and canonical matches."""
     summary = summary if isinstance(summary, dict) else {}
@@ -18304,6 +18585,7 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "facets": facets,
         "tabs": _v940_calendar_tabs(filters, counts),
         "date_chips": _v940_calendar_date_chips(filters, date_counts),
+        "date_navigation": _design02_calendar_date_navigation(filters),
         "day_navigation": day_navigation,
         "active_filters": active_filters,
         "has_filters": bool(active_filters),
@@ -18502,6 +18784,13 @@ def live_page():
     realtime = get_realtime_safe_live_context(summary)
     live_summary = _v937_live_summary_without_stale(summary, realtime)
     data["live_experience"] = v931_live_context(live_summary, lane=lane, query=query)
+    # All displayed lanes consume the same snapshot, including confirmed finals.
+    # Preserve the richer row identity/actions when a snapshot projection exists.
+    projected = {str(item["id"]): item for item in realtime.get("matches") or [] if item.get("id")}
+    data["live_experience"]["matches"] = [
+        {**item, **projected.get(str(item.get("id") or item.get("match_id") or item.get("external_id") or ""), {})}
+        for item in data["live_experience"]["matches"]
+    ]
     data["v925_live"] = _v931_provider_context(summary)
     data["v934_realtime"] = realtime
     return render_template("live.html", data=data)
@@ -20465,7 +20754,98 @@ def admin_sentinel_issues_page():
         issue for issue in actionable if str(issue.get("severity") or "").lower() in {"critical", "high"}
     ][:6]
     summary["history_hidden_count"] = max(0, len(all_issues) - len(summary["display_issues"]))
-    return render_template("admin_sentinel_issues.html", data=dashboard_data(), summary=summary, statuses=SENTINEL_ISSUE_STATUSES)
+    project_control = None
+    if session.get("user_id") and local_safe_mode_enabled() and app.config.get("SENTINEL_JOBS_ENABLED", False):
+        try:
+            project_control = project_control_snapshot(BASE_DIR)
+        except ControlUnavailable:
+            pass
+    return render_template("admin_sentinel_issues.html", data=dashboard_data(), summary=summary, statuses=SENTINEL_ISSUE_STATUSES, project_control=project_control)
+
+
+def sentinel_project_access():
+    if not is_admin_session() or not session.get("user_id"):
+        return admin_json_forbidden()
+    if not local_safe_mode_enabled() or not app.config.get("SENTINEL_JOBS_ENABLED", False):
+        return jsonify(ok=False, error="local_control_not_connected"), 503
+    return None
+
+
+@app.route("/api/admin/sentinel/project-control")
+def api_admin_sentinel_project_control():
+    error = sentinel_project_access()
+    if error is not None:
+        return error
+    try:
+        response = jsonify(ok=True, **project_control_snapshot(BASE_DIR))
+    except ControlUnavailable:
+        response = jsonify(ok=False, error="project_control_unavailable")
+        response.status_code = 503
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/api/admin/sentinel/project-control/sources/<source_id>")
+def api_admin_sentinel_project_source(source_id):
+    error = sentinel_project_access()
+    if error is not None:
+        return error
+    try:
+        response = jsonify(ok=True, **project_control_evidence(BASE_DIR, source_id))
+    except ControlUnavailable:
+        response = jsonify(ok=False, error="source_unavailable")
+        response.status_code = 404
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+def sentinel_job_context():
+    if not is_admin_session() or not session.get("user_id"):
+        return None, None, admin_json_forbidden()
+    if not local_safe_mode_enabled() or not app.config.get("SENTINEL_JOBS_ENABLED", False):
+        return None, None, (jsonify(ok=False, error="executor_not_connected"), 503)
+    job_path = Path(app.config.get("SENTINEL_JOBS_PATH", LOCAL_SAFE_DATA_DIR / "sentinel_jobs.sqlite"))
+    if job_path.resolve().parent != LOCAL_SAFE_DATA_DIR.resolve():
+        return None, None, (jsonify(ok=False, error="executor_not_connected"), 503)
+    store = SentinelJobStore(job_path)
+    if not store.path.is_file():
+        return None, None, (jsonify(ok=False, error="executor_not_connected"), 503)
+    return store, str(session["user_id"]), None
+
+
+@app.route("/api/admin/sentinel/jobs", methods=["GET", "POST"])
+def api_admin_sentinel_jobs():
+    store, owner, error = sentinel_job_context()
+    if error is not None:
+        return error
+    if request.method == "GET":
+        response = jsonify(ok=True, jobs=store.list(owner), executor_connected=store.available())
+        response.headers["Cache-Control"] = "no-store"
+        return response
+    if not validate_csrf(session, request_csrf_token()):
+        return csrf_failure_response()
+    if not store.available():
+        return jsonify(ok=False, error="executor_not_connected"), 503
+    try:
+        job, reused = store.submit(owner, request.get_json(silent=True), sentinel_job_revision(BASE_DIR))
+    except SentinelJobRejected as exc:
+        return jsonify(ok=False, error=str(exc)), exc.status
+    response = jsonify(ok=True, job=job, reused=reused)
+    response.headers["Cache-Control"] = "no-store"
+    return response, 200 if reused else 202
+
+
+@app.route("/api/admin/sentinel/jobs/<job_id>")
+def api_admin_sentinel_job(job_id):
+    store, owner, error = sentinel_job_context()
+    if error is not None:
+        return error
+    job = store.get(owner, job_id)
+    if job is None:
+        return jsonify(ok=False, error="job_not_found"), 404
+    response = jsonify(ok=True, job=job)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.route("/api/admin/sentinel/issues")
@@ -20490,6 +20870,8 @@ def api_admin_sentinel_issues_summary():
 def api_admin_sentinel_issues_scan():
     if not is_admin_session():
         return admin_json_forbidden()
+    if request.method == "GET":
+        return jsonify(ok=False, error="post_required", next_action="use_sentinel_jobs_panel"), 405
     mode = request.args.get("mode") or "quick"
     summary = _v892_sentinel_issues_summary(save_memory=True, mode=mode)
     return jsonify({"ok": True, "dangerous_actions_executed": False, **summary})
@@ -20499,6 +20881,8 @@ def api_admin_sentinel_issues_scan():
 def api_admin_sentinel_issues_sync_autopilot():
     if not is_admin_session():
         return admin_json_forbidden()
+    if request.method == "GET":
+        return jsonify(ok=False, error="post_required"), 405
     summary = _v892_sentinel_issues_summary(save_memory=True, mode=request.args.get("mode") or "quick", include_autopilot=True, include_visual=False)
     return jsonify({"ok": True, "source": "autopilot", "dangerous_actions_executed": False, **summary})
 
@@ -20507,6 +20891,8 @@ def api_admin_sentinel_issues_sync_autopilot():
 def api_admin_sentinel_issues_sync_visual_worker():
     if not is_admin_session():
         return admin_json_forbidden()
+    if request.method == "GET":
+        return jsonify(ok=False, error="post_required"), 405
     summary = _v892_sentinel_issues_summary(save_memory=True, mode=request.args.get("mode") or "visual", include_autopilot=False, include_visual=True)
     return jsonify({"ok": True, "source": "visual_worker", "dangerous_actions_executed": False, **summary})
 
@@ -27165,6 +27551,7 @@ def v742_track_record_context():
 
 
 @app.route("/track-record")
+@app.route("/historico")
 @app.route("/seguimiento")
 @app.route("/rendimiento-picks")
 def public_track_record_page():
@@ -27444,9 +27831,14 @@ def v565_extract_odds(match):
             parsed = json.loads(raw)
         except Exception:
             parsed = {}
-    home = as_float(parsed.get("home") or parsed.get("h2h_home") or match.get("home_price"), 0)
-    draw = as_float(parsed.get("draw") or parsed.get("h2h_draw") or match.get("draw_price"), 0)
-    away = as_float(parsed.get("away") or parsed.get("h2h_away") or match.get("away_price"), 0)
+    if not isinstance(parsed, dict):
+        parsed = {}
+    def valid_price(value):
+        price = as_float(value, 0)
+        return price if math.isfinite(price) and price > 1 else 0
+    home = valid_price(parsed.get("home") or parsed.get("h2h_home") or match.get("home_price"))
+    draw = valid_price(parsed.get("draw") or parsed.get("h2h_draw") or match.get("draw_price"))
+    away = valid_price(parsed.get("away") or parsed.get("h2h_away") or match.get("away_price"))
     outcomes = parsed.get("outcomes") or []
     if isinstance(outcomes, list) and outcomes:
         home_name = normalized_label(match.get("home_team") or "")
@@ -27455,21 +27847,15 @@ def v565_extract_odds(match):
             if not isinstance(outcome, dict):
                 continue
             name = normalized_label(outcome.get("name") or outcome.get("description") or "")
-            price = as_float(outcome.get("price") or outcome.get("odds"), 0)
+            price = valid_price(outcome.get("price") or outcome.get("odds"))
             if price <= 1:
                 continue
             if name in {"draw", "empate", "x"}:
                 draw = draw or price
-            elif home_name and (name == home_name or home_name in name or name in home_name):
+            elif home_name and name == home_name:
                 home = home or price
-            elif away_name and (name == away_name or away_name in name or name in away_name):
+            elif away_name and name == away_name:
                 away = away or price
-            elif not home:
-                home = price
-            elif not away:
-                away = price
-            elif not draw:
-                draw = price
     return {
         "home": home,
         "draw": draw,
@@ -27480,34 +27866,22 @@ def v565_extract_odds(match):
 
 
 def v565_recommendation_for_match(match):
+    truth = canonical_match_status(match)
     status = v565_match_status(match)
     odds = v565_extract_odds(match)
     league_rank = v565_league_rank(match)
-    priority = as_int(match.get("priority"), 50)
-    base = 54 + max(0, 22 - min(22, league_rank)) + min(12, max(0, priority - 60) // 3)
-    if odds["available"]:
-        prices = [("Local", odds["home"]), ("Empate", odds["draw"]), ("Visitante", odds["away"])]
-        selection, price = max([x for x in prices if x[1] > 1], key=lambda x: (x[1] <= 2.8, x[1]))
-        base += 8
-    else:
-        selection, price = "Pendiente de cuota", 0
-        base -= 6
-    if status["is_live"] or status["is_finished"]:
-        base -= 20
-    score = max(1, min(96, int(base)))
-    if score >= 78:
-        risk = "BAJO"
-        confidence = "Alta"
-        membership = "PRO"
-    elif score >= 66:
-        risk = "MEDIO"
-        confidence = "Media"
-        membership = "FREE"
-    else:
-        risk = "ALTO"
-        confidence = "Controlada"
-        membership = "ELITE"
+    # Calendar relevance and a price are not a calibrated betting model.
+    observations = [
+        {"market": "1X2", "selection": name, "odds": odds[key],
+         "source": match.get("odds_source") or "",
+         "bookmaker": match.get("bookmaker") or "",
+         "observed_at": match.get("odds_updated_at") or ""}
+        for key, name in (("home", match.get("home_team")), ("draw", "Empate"),
+                          ("away", match.get("away_team"))) if odds[key] > 1 and name
+    ]
+    decision = "WAIT" if truth.get("is_upcoming") else "NO_BET"
     return {
+        "id": match.get("id"),
         "match_id": match.get("id"),
         "league_name": match.get("league_name") or match.get("competition_name") or "Competición",
         "home_team": match.get("home_team") or "Local",
@@ -27516,16 +27890,24 @@ def v565_recommendation_for_match(match):
         "kickoff_time": match.get("kickoff_time") or match.get("match_time") or "",
         "status": status,
         "odds": odds,
-        "selection": selection,
-        "odds_value": price,
-        "score": score,
-        "confidence": confidence,
-        "risk": risk,
-        "membership_required": membership,
-        "value_label": "Con cuota" if odds["available"] else "Esperando cuota",
-        "reason": "Liga prioritaria y partido próximo con datos suficientes para análisis." if score >= 70 else "Candidato preparado; falta más información de cuotas/live para elevar confianza.",
-        "warning": "No decidir si la cuota cambia mucho o falta confirmación de alineaciones." if odds["available"] else "No publicar como pick real hasta tener cuota validada.",
+        "selection": "Esperar" if decision == "WAIT" else "No apostar",
+        "market": "1X2" if observations else "Sin cuota observada",
+        "odds_value": None, "score": None, "confidence": None, "risk": None,
+        "kickoff_iso": match.get("kickoff_iso") or "",
+        "membership_required": "FREE",
+        "decision": decision, "can_publish": False,
+        "value_label": "Esperar" if decision == "WAIT" else "No apostar",
+        "reason": "Datos insuficientes para recomendar una apuesta.",
+        "warning": "Una cuota observada no demuestra valor ni probabilidad de ganar.",
         "league_rank": league_rank,
+        "evidence": {
+            "facts": {"status": truth, "source": match.get("source") or "",
+                      "observed_at": match.get("updated_at") or ""},
+            "context": {"competition": match.get("competition_name") or match.get("league_name") or ""},
+            "analysis": {"available": False, "reason": "Datos insuficientes para recomendar una apuesta."},
+            "betting": {"observations": observations, "validity": "NOT_VERIFIED",
+                        "probability": None, "ev": None, "stake": None},
+        },
     }
 
 
@@ -27538,7 +27920,7 @@ def v565_recommendation_pool(limit=40):
             continue
         rec = v565_recommendation_for_match(match)
         valid.append(rec)
-    valid.sort(key=lambda r: (r["league_rank"], -r["score"], r.get("match_date") or "", r.get("kickoff_time") or ""))
+    valid.sort(key=lambda r: (r["league_rank"], r.get("match_date") or "", r.get("kickoff_time") or ""))
     return valid[: int(limit)]
 
 
@@ -27631,6 +28013,8 @@ def api_v565_convert_recommendation():
             break
     if not rec:
         return jsonify({"ok": False, "error": "Recomendación no encontrada o partido no válido."}), 404
+    if not rec.get("can_publish"):
+        return jsonify({"ok": False, "error": "REQUIRES_EDITORIAL_EVIDENCE", "published": False}), 409
     pick_payload = {
         "match_id": rec["match_id"],
         "league_name": rec["league_name"],
@@ -27866,10 +28250,10 @@ def v566_template_recommendations(limit=20):
     items = []
     for rec in v565_recommendation_pool(limit=limit):
         item = dict(rec)
-        item["shark_score"] = item.get("shark_score") or item.get("score") or 0
-        item["risk_level"] = item.get("risk_level") or item.get("risk") or "MEDIO"
+        item["shark_score"] = item.get("score")
+        item["risk_level"] = item.get("risk")
         item["market"] = item.get("market") or "Resultado"
-        item["odds"] = item.get("odds_value") or 0
+        item["odds"] = item.get("odds_value")
         item["reasoning"] = item.get("reasoning") or item.get("reason") or ""
         item["warning_reason"] = item.get("warning_reason") or item.get("warning") or ""
         items.append(item)
@@ -28076,32 +28460,41 @@ def api_admin_v791_client_screen_audit():
 @app.route("/soporte", methods=["GET", "POST"])
 def v724_contact_alias_page():
     data = home_light_data()
-    sent = False
+    user = current_session_user() or {}
+    available = bool(user.get('id'))
+    sent = bool(session.pop('support_receipt', None))
     error = ""
+    status = 200
     if request.method == "POST":
-        subject = (request.form.get("subject") or "").strip()
-        message = (request.form.get("message") or "").strip()
-        if not subject or not message:
-            error = "Escribe un asunto y un mensaje para que podamos revisarlo bien."
+        sent = False
+        if not available:
+            error, status = 'Inicia sesión para contactar con soporte.', 401
+        elif request.form.get('request_id') != session.get('support_request_id'):
+            error, status = 'Recarga el formulario e inténtalo de nuevo.', 403
         else:
-            sent = True
             try:
-                record_security_event(
-                    DB_PATH,
-                    event_type="support_message",
-                    severity="INFO",
-                    ip_address=security_client_ip(),
-                    path=request.path,
-                    method=request.method,
-                    success=True,
-                    reason=f"{(request.form.get('category') or 'general')}: {subject[:80]}",
-                )
-            except Exception:
-                pass
+                receipt = submit_support_request(DB_PATH, user_id=user['id'], request_id=session['support_request_id'],
+                    subject=request.form.get('subject'), message=request.form.get('message'),
+                    category=request.form.get('category'), priority=request.form.get('priority'))
+                session['support_receipt'] = receipt
+                return redirect('/support', code=303)
+            except SupportRejected as exc:
+                messages = {'length':'El asunto debe tener entre 3 y 120 caracteres y el mensaje entre 10 y 4000.',
+                            'sensitive':'No envíes contraseñas, claves ni tokens. Retíralos del mensaje.',
+                            'rate':'Espera un minuto entre mensajes. Máximo tres mensajes por hora.',
+                            'category':'Selecciona un tipo y una prioridad válidos.',
+                            'session':'Recarga el formulario e inténtalo de nuevo.'}
+                error, status = messages[exc.reason], 429 if exc.reason == 'rate' else 400
+            except sqlite3.Error:
+                error, status = 'No se pudo guardar el mensaje. No se ha confirmado su recepción.', 503
+    if request.method == 'GET' or not session.get('support_request_id'):
+        session['support_request_id'] = uuid.uuid4().hex
     data.update(
         {
             "sent": sent,
             "error": error,
+            "support_available": available,
+            "support_request_id": session['support_request_id'],
             "support_tips": [
                 {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
                 {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},
@@ -28109,7 +28502,8 @@ def v724_contact_alias_page():
             ],
         }
     )
-    return render_template("support.html", data=data)
+    response = render_template("support.html", data=data)
+    return (response, status) if status != 200 else response
 
 
 @app.route("/intelligence-hub")
@@ -28239,8 +28633,10 @@ def api_admin_control_center():
 def v566_admin_recommendations_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/recommendations")
+    if request.method == "POST":
+        return jsonify({"ok": False, "error": "REQUIRES_EDITORIAL_EVIDENCE", "published": False}), 409
     data = dashboard_data()
-    data["recommendations"] = v566_template_recommendations(limit=30)
+    data["recommendations"] = v566_template_recommendations(limit=min(80, max(5, as_int(request.args.get("limit"), 30))))
     data["recommendation_stats"] = {
         "total": len(data["recommendations"]),
         "hot": len([r for r in data["recommendations"] if (r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
@@ -29664,11 +30060,12 @@ def v808_admin_real_count(table, where="1=1", params=()):
 
 
 def v808_support_center_context():
+    inbox = support_inbox_snapshot(DB_PATH)
     beta_counts = beta_feedback_counts()
     feedback_total = v808_admin_real_count("client_feedback") + v808_admin_real_count("feedback") + int(beta_counts.get("feedback_total") or 0)
-    tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets")
+    tickets_total = v808_admin_real_count("support_tickets") + v808_admin_real_count("tickets") + inbox['total']
     open_feedback = v808_admin_real_count("client_feedback", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')") + int(beta_counts.get("open_items") or 0)
-    open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')")
+    open_tickets = v808_admin_real_count("support_tickets", "lower(coalesce(status,'')) NOT IN ('closed','cerrado','resolved','resuelto')") + inbox['open']
     recent_beta = [
         {
             "name": "Beta",
@@ -29686,7 +30083,7 @@ def v808_support_center_context():
         "open_tickets": open_tickets,
         "total_feedback": feedback_total,
         "total_tickets": tickets_total,
-        "recent": recent_beta,
+        "recent": inbox['recent'] + recent_beta,
         "actions": [
             {"title": "Revisar feedback beta", "body": "Abrir Beta Center para priorizar errores reproducibles, solicitudes y satisfaccion sin datos sensibles."},
             {"title": "Revisar experiencia cliente", "body": "Recorre Inicio, Partidos, Directo, Picks, SHARK, Telegram y Cuenta desde Vista cliente."},
@@ -29808,16 +30205,19 @@ def api_v808_betting_generate():
     return jsonify({"ok": True, "version": APP_VERSION, "recommendations": recs, "count": len(recs), "note": "Generado desde partidos/cuotas reales disponibles; no inventa picks."})
 
 
-@app.route("/api/betting/convert-to-pick")
+@app.route("/api/betting/convert-to-pick", methods=["POST"])
 def api_v808_betting_convert_to_pick():
     if not is_admin_session():
         return admin_json_forbidden()
-    rec_id = request.args.get("id") or request.args.get("recommendation_id") or ""
-    publish = request.args.get("publish") in {"1", "true", "yes"}
+    payload = request.get_json(silent=True) or request.form.to_dict() or {}
+    rec_id = payload.get("id") or payload.get("recommendation_id") or ""
+    publish = str(payload.get("publish") or "").lower() in {"1", "true", "yes"}
     recs = v566_template_recommendations(limit=80)
     rec = next((r for r in recs if str(r.get("id") or r.get("recommendation_id") or r.get("match_id")) == str(rec_id)), None)
     if not rec:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Recomendación no encontrada o no generada con datos actuales."}), 404
+    if not rec.get("can_publish"):
+        return jsonify({"ok": False, "error": "REQUIRES_EDITORIAL_EVIDENCE", "published": False}), 409
     payload = {
         "match_id": rec.get("match_id") or "",
         "home_team": rec.get("home_team") or "",

@@ -1,48 +1,40 @@
 {% extends "base.html" %}
+{% from "components/betting_evidence.html" import betting_evidence with context %}
+{% from "components/v933_ui.html" import page_header, section_header, status_chip, empty_state %}
 {% block content %}
-<section class="hero compact-hero">
-  <div class="kicker">Recomendaciones SHARK</div>
-  <h1>Oportunidades explicadas por membresía</h1>
-  <p class="lead">FREE recibe una vista limitada. PRO ve confianza, riesgo y value básico. ELITE desbloquea value avanzado, Auto Picks y mejores oportunidades.</p>
-  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/memberships">{{ data.membership.next_cta }}</a></div>
-</section>
-
-<section class="band compact-band">
-  <div class="grid compact-grid metric-row">
-    <div class="card"><div class="metric">{{ data.recommendation_stats.total }}</div><div class="muted">visibles</div></div>
-    <div class="card"><div class="metric">{{ data.recommendation_stats.hot }}</div><div class="muted">hot/value</div></div>
-    <div class="card"><div class="metric">{{ data.recommendation_stats.avg_score }}</div><div class="muted">score medio</div></div>
-  </div>
-</section>
-
-<section class="band compact-band">
-  <div class="section-head"><h2>Recomendaciones disponibles</h2><span class="pill {{ data.membership.badge.class }}">{{ data.membership.membership }}</span></div>
+<div class="v933-page" data-v933-template="betting-review">
+{{ page_header('Revisión de apuestas', 'Hechos y cuotas observadas, separados del análisis y la decisión.', 'shark') }}
+<section class="v933-main-stack">
+  <header class="v933-section-header">
+    <h2>{{ ui('Partidos en revisión') }} · {{ data.recommendation_stats.total }}</h2>
+    <a href="/picks">{{ ui('Picks publicados') }}</a>
+  </header>
   {% if data.recommendations %}
-  <div class="grid dense-grid">
+  <div class="v933-match-grid">
     {% for r in data.recommendations %}
-    <article class="card pick-card rec-card">
-      <div class="card-topline"><span class="badge">{{ r.value_label or 'SHARK' }}</span><span class="muted">{{ r.league_name|competition_es }}</span></div>
-      <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <div class="metric-row"><span>Score SHARK <strong>{{ r.shark_score }}/100</strong></span><span>Nivel de confianza <strong>{{ r.confidence }}%</strong></span><span>Riesgo <strong>{{ r.risk_level }}</strong></span></div>
-      <p><strong>{{ r.market }}:</strong> {{ r.selection }}{% if r.odds %} <span class="chip">Cuota {{ '%.2f'|format(r.odds|float) }}</span>{% endif %}</p>
-      <p class="small"><strong>Motivo principal:</strong> {{ r.reason or r.reasoning or 'Análisis SHARK pendiente de revisión.' }}</p>
-      {% if data.membership.is_elite %}<p class="warning">{{ r.caution or r.warning_reason }}</p>{% endif %}
+    <article class="v933-match-card">
+      <header class="v933-match-card-header">{{ status_chip(r.value_label or 'SHARK') }}<span>{{ r.league_name }}</span></header>
+      <div class="v933-main-stack">
+      <div class="v933-pick-match"><strong>{{ r.home_team }} vs {{ r.away_team }}</strong></div>
+      {{ betting_evidence(r) }}
+      </div>
     </article>
     {% endfor %}
   </div>
   {% else %}
-  <div class="empty premium-empty"><strong>SHARK está analizando los próximos partidos.</strong><p>Las recomendaciones apareceran cuando haya datos suficientes.</p></div>
+  {{ empty_state('Sin partidos en revisión', 'Datos insuficientes para recomendar una apuesta.', 'Calendario', '/calendar', 'matches') }}
   {% endif %}
 </section>
 
 {% if data.locked_recommendations %}
-<section class="band compact-band">
-  <div class="section-head"><h2>Premium bloqueado</h2><a class="pill" href="/memberships">Ver planes</a></div>
-  <div class="grid dense-grid">
+<section class="v933-main-stack">
+  {{ section_header('Premium bloqueado', '', 'Ver planes', '/memberships') }}
+  <div class="v933-match-grid">
   {% for item in data.locked_recommendations %}
-    <article class="card locked-feature"><span class="badge {{ item.badge.class }}">Disponible en {{ item.required }}</span><h3>{{ item.label }}</h3><p class="small">{{ item.message }}</p></article>
+    <article class="v933-match-card">{{ status_chip(item.required) }}<div class="v933-main-stack"><h3>{{ ui(item.label) }}</h3><p class="small">{{ ui(item.message) }}</p></div></article>
   {% endfor %}
   </div>
 </section>
 {% endif %}
+</div>
 {% endblock %}

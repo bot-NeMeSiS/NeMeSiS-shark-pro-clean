@@ -235,7 +235,7 @@ def build_team_center_context(
     live = _items(data.get("live"))
     picks = _items(data.get("picks"))
     raw_players = _items(data.get("players"))
-    matches = upcoming + recent
+    matches = upcoming + recent + _items(data.get("live")) + _items(data.get("pending"))
     source = team.get("source") or identity.get("crest_source") or "local_cache"
     canonical_team = normalize_team_entity(
         {
