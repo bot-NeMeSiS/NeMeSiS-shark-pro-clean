@@ -7,7 +7,7 @@ locales del 2026-09-19 que siguen debajo se preservan como historia y evidencia;
 no describen el estado actual de GitHub/Render.
 
 - Repositorio canónico: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.
-- `main` remoto desplegado: `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
+- Baseline remoto verificado antes del candidato STALE: `main@c7237c4669f7f5c5e0ceefe4150fd71039b49507`. Tras cualquier merge, el SHA vigente debe resolverse desde GitHub `main` y confirmarse contra Render exact-SHA; no se infiere desde este documento.
 - Render Web `nemesissharkpro`: LIVE en ese SHA.
 - Render Cron `telegram-auto-tick`: LIVE en ese SHA, horario `*/5 * * * *`.
 - PR #48: frescura canónica por timestamps de entidad.
