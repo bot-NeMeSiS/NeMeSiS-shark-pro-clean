@@ -2204,6 +2204,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
                     "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), 80) or "UNKNOWN",
+                    "failure_class": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("failure_class"), 80) or "",
                     "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                     "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
                     "enabled": (raw_current_sync.get("api_football_primary") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("enabled"), bool) else None,

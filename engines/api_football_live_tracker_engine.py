@@ -1152,6 +1152,7 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
 
 
 
+
 def _state_key_for_window() -> str:
     return "match_window"
 
@@ -1185,7 +1186,7 @@ def sync_api_football_match_window(
             conn.execute("INSERT OR REPLACE INTO api_football_live_sync_state(key,last_sync_at,status,fixtures_count,events_count,stats_count,external_calls,error,payload_json) VALUES (?,?,?,?,?,?,?,?,?)", (_state_key_for_window(), _now_iso(), state["status"], 0, 0, 0, 0, state.get("message"), _json(state)))
             conn.commit()
             return state
-        age = _cache_age_seconds(conn, _state_key_for_window())
+        age = _last_sync_age_for_key(conn, _state_key_for_window())
         if not force and age is not None and age < cache_seconds:
             return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "external_calls": 0, "message": "Ventana API-Football reutilizada para proteger créditos."}
         dates = _date_range(days_back, days_ahead)
