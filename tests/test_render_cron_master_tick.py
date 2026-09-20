@@ -37,6 +37,8 @@ def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secre
     calls = []
 
     def fake_urlopen(request, timeout):
+        if request.full_url.endswith(master.READINESS_ENDPOINT):
+            return MockResponse({"ok": True, "version": "SIMULATED_QA"})
         calls.append({"request": request, "timeout": timeout})
         outcome = outcomes[len(calls) - 1]
         if isinstance(outcome, BaseException):
@@ -334,3 +336,77 @@ def test_master_runner_is_stateless_and_uses_only_approved_configuration():
         "RENDER_API",
     ):
         assert forbidden not in source
+
+
+def test_readiness_probe_retries_transient_502_then_recovers(monkeypatch):
+    outcomes = [
+        urllib.error.HTTPError("https://example.invalid/api/runtime-version", 502, "bad gateway", {}, None),
+        urllib.error.HTTPError("https://example.invalid/api/runtime-version", 503, "unavailable", {}, None),
+        MockResponse({"ok": True}, 200),
+    ]
+    calls = []
+    sleeps = []
+
+    def fake_urlopen(request, timeout):
+        calls.append((request.full_url, timeout))
+        outcome = outcomes[len(calls) - 1]
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(master.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(master.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    result = master.wait_for_web_ready("https://example.invalid")
+
+    assert result["readiness_status"] == "PASS"
+    assert result["readiness_http"] == 200
+    assert result["readiness_result"] == "WEB_READY"
+    assert result["readiness_attempts"] == 3
+    assert sleeps == [master.READINESS_BACKOFF_SECONDS, master.READINESS_BACKOFF_SECONDS]
+    assert all(url.endswith(master.READINESS_ENDPOINT) for url, _ in calls)
+    assert all(timeout == master.READINESS_TIMEOUT_SECONDS for _, timeout in calls)
+
+
+def test_readiness_failure_does_not_run_side_effecting_ticks(monkeypatch, capsys):
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
+    monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
+    monkeypatch.setattr(
+        master,
+        "wait_for_web_ready",
+        lambda _base_url: {
+            "readiness_status": "FAIL",
+            "readiness_http": 502,
+            "readiness_result": "HTTP_502",
+            "readiness_attempts": master.READINESS_ATTEMPTS,
+            "readiness_duration_ms": 25000,
+        },
+    )
+    monkeypatch.setattr(master, "telegram_tick", lambda *_args: pytest.fail("telegram must not run"))
+    monkeypatch.setattr(master, "continuous_evolution_tick", lambda *_args: pytest.fail("evolution must not run"))
+
+    return_code = master.main()
+    payload = json.loads(capsys.readouterr().out)
+
+    assert return_code == 2
+    assert payload["overall"] == "FAIL"
+    assert payload["web_readiness"]["readiness_result"] == "HTTP_502"
+    assert payload["telegram_status"] == "NOT_EXECUTED"
+    assert payload["continuous_evolution_status"] == "NOT_EXECUTED"
+
+
+def test_readiness_probe_never_sends_automation_secret(monkeypatch):
+    seen = []
+
+    def fake_urlopen(request, timeout):
+        seen.append(request)
+        return MockResponse({"ok": True}, 200)
+
+    monkeypatch.setattr(master.urllib.request, "urlopen", fake_urlopen)
+    result = master.wait_for_web_ready("https://example.invalid")
+
+    assert result["readiness_status"] == "PASS"
+    assert len(seen) == 1
+    assert seen[0].get_method() == "GET"
+    assert seen[0].full_url.endswith("/api/runtime-version")
+    assert "X-automation-secret" not in seen[0].headers
