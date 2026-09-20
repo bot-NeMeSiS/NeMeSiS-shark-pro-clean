@@ -16248,7 +16248,11 @@ def _v931_legacy_home_summary(summary):
             "upcoming": sports_metrics["matches_available"],
             "live": sports_metrics["live_confirmed"],
             "picks": sports_metrics["picks_ready"],
-            "finished": sports_metrics["finished_verified"],
+            "finished": sum(
+            1 for item in prepared_all
+            if str(item.get("match_date") or "") == filters["date"]
+            and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
+        ),
             "favorites": len(favorites),
             "incomplete": sports_metrics["incomplete_excluded"],
             "priority": (sports_home.get("counts") or {}).get("priority", 0),
@@ -18355,8 +18359,20 @@ def _v940_calendar_source_matches(summary, filters, prepared_all, prepared_by_id
         return [item for item in prepared_all if item.get("has_pick")]
     if lane == "favorites":
         return [item for item in prepared_all if item.get("is_favorite")]
-    if lane in {"finished", "results"}:
-        return prepared_items("finished_matches")
+    if lane == "finished":
+        return [
+            item for item in prepared_all
+            if str(item.get("match_date") or "") == selected_date
+            and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
+        ]
+    if lane == "results":
+        return [
+            item for item in prepared_all
+            if str(item.get("match_date") or "") == selected_date
+            and (lambda info: info.get("is_finished") or info.get("is_result_pending"))(
+                item.get("status_info") or canonical_match_status(item)
+            )
+        ]
     if lane == "incidents":
         return prepared_items("incident_matches")
     if lane in {"top", "spain", "andalucia", "international", "uefa", "national", "world"}:
@@ -18494,7 +18510,7 @@ def _v940_calendar_with_persisted_history(summary, lane="today", date_value=None
 
     try:
         if selected_lane in {"finished", "results"}:
-            persisted = get_results_matches(selected_date, days_back=21, limit=320)
+            persisted = get_results_matches(selected_date, days_back=0, limit=320)
         else:
             persisted = get_matches(selected_date, "today")
     except sqlite3.OperationalError:
@@ -18505,12 +18521,12 @@ def _v940_calendar_with_persisted_history(summary, lane="today", date_value=None
     persisted = _dedupe_sports_matches(persisted)
     existing_all = list(base.get("all_valid_matches") or base.get("valid_upcoming_matches") or [])
     base["all_valid_matches"] = _dedupe_sports_matches(existing_all + persisted)
-    persisted_results = [
+    persisted_finished = [
         item for item in persisted
-        if (lambda info: info.get("is_finished") or info.get("is_result_pending"))(canonical_match_status(item))
+        if canonical_match_status(item).get("is_finished")
     ]
     base["finished_matches"] = _dedupe_sports_matches(
-        list(base.get("finished_matches") or []) + persisted_results
+        list(base.get("finished_matches") or []) + persisted_finished
     )
     base["calendar_history_status"] = "PERSISTED_DB" if persisted else "EMPTY"
     base["calendar_history_date"] = selected_date
