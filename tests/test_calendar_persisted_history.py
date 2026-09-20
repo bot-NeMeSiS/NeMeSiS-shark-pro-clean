@@ -128,3 +128,28 @@ def test_finished_lane_reads_bounded_persisted_history(
     assert {"history-final-older", "history-final-yesterday"} <= ids
     assert calendar["history_status"] == "PERSISTED_DB"
     assert calendar["history_date"] == "2026-09-19"
+
+
+def test_calendar_api_uses_the_same_persisted_history_snapshot(
+    app_module, tmp_path, monkeypatch
+):
+    _prepare_db(app_module, tmp_path, monkeypatch)
+    _persist(app_module, "history-api-1", "2026-09-19", home_score=4, away_score=2)
+
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *args, **kwargs: ({}, _empty_summary()),
+    )
+
+    response = app_module.app.test_client().get(
+        "/api/calendar?lane=today&date=2026-09-19"
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["calendar"]["history_status"] == "PERSISTED_DB"
+    assert payload["calendar"]["external_calls"] == 0
+    assert [item["id"] for item in payload["matches"]] == ["history-api-1"]
+    assert payload["matches"][0]["home_score"] == 4
+    assert payload["matches"][0]["away_score"] == 2
