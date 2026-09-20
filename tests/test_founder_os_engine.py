@@ -81,4 +81,6 @@ def test_founder_os_does_not_infer_sports_freshness_without_evidence(tmp_path):
     assert freshness['provider_calls']==0
     assert freshness['observed_at']==''
     assert freshness['evidence_age_seconds'] is None
-    assert any(item['category']=='SPORTS_DATA' and item['severity']=='HIGH' for item in snap['alerts']['items'])
+    sports_alert=next(item for item in snap['alerts']['items'] if item['category']=='SPORTS_DATA')
+    assert sports_alert['severity']=='HIGH'
+    assert sports_alert['push_eligible'] is False
