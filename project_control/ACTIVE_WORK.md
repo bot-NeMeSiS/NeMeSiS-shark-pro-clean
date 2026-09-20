@@ -4,24 +4,14 @@ Actualizado 2026-09-20. Base efectiva: `main@7a1ba50bf9d6fec8648fcacc2dae72b7cbe
 
 ## 1. OPS-001 — Sentinel operational closure
 
-Estado: PRODUCTION_VALIDATION / LOCAL_SAFE.
+Estado: DONE_LOCAL_SAFE.
 
-Objetivo inmediato:
-- confirmar que el codigo integrado conserva el limite LOCAL SAFE;
-- revisar persistencia y fronteras de escritura del runner;
-- mantener Sentinel como QA/observabilidad y no como executor productivo;
-- reconciliar estados de Project Control con GitHub/Render actuales;
-- no crear scheduler, worker autonomo productivo ni permisos nuevos.
-
-Evidencia actual:
-- CI y smoke verdes en main;
-- preflight productivo verde;
-- Secret Guard, rutas, Jinja, navegacion y Continuous Sentinel verdes;
-- runner LOCAL SAFE separado en CI para no contaminar otros tests.
+Cierre: `reports/SENTINEL_OPERATIONAL_CLOSURE_20260920.md`.
+Sentinel queda disponible como QA/observabilidad local, con executor productivo explícitamente NO habilitado.
 
 ## 2. Sports Reality / Directos
 
-Estado: INTEGRATED_WITH_GAPS.
+Estado: IN_PROGRESS / INTEGRATED_WITH_GAPS.
 
 El antiguo PR #14 esta superseded. Main ya contiene su actualizacion en pagina abierta y mejoras posteriores.
 Pendiente:
