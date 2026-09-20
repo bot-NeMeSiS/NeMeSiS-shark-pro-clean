@@ -36,7 +36,7 @@ def prepare(port=54910, db_name="sentinel_preview.sqlite", allow_browser=False):
         node, cli = compute_driver_executable()
         driver = [str(node), str(cli), "run-driver"]
         browser_commands.append(list(subprocess.list2cmdline(driver)) if os.name == "nt" else driver)
-    blocked = install_boundary(local, local, Path(os.environ["DB_PATH"]), audit_command, browser_commands)
+    # Audit hooks cannot be removed from a running Python process. The standalone\n    # LOCAL SAFE supervisor installs the boundary, while pytest validates the same\n    # boundary in isolation and must not leak it into unrelated tests.\n    blocked = [] if "pytest" in sys.modules else install_boundary(\n        local, local, Path(os.environ["DB_PATH"]), audit_command, browser_commands\n    )
     import app as module
     module.app.config["SENTINEL_JOBS_ENABLED"] = True
     seed_local_database(module)
