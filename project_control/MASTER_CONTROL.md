@@ -1,5 +1,37 @@
 # NeMeSiS - Master Control
 
+## Verdad operativa remota vigente · 2026-09-20
+
+Esta sección es la entrada autoritativa para continuar trabajo remoto. Las secciones
+locales del 2026-09-19 que siguen debajo se preservan como historia y evidencia; ya
+no describen el estado actual de GitHub/Render.
+
+- Repositorio canónico: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.
+- `main` remoto desplegado: `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
+- Render Web `nemesissharkpro`: LIVE en ese SHA.
+- Render Cron `telegram-auto-tick`: LIVE en ese SHA, horario `*/5 * * * *`.
+- PR #48: frescura canónica por timestamps de entidad.
+- PR #50: Founder OS operativo PC/móvil, obligaciones, inbox y Web Push foundation.
+- PR #51: fail-fast sistémico de The Odds API, contrato normal preservado; QA,
+  preflight y Smoke verdes; producción posterior sin errores/5xx.
+- PR #52: Founder OS consume `data_freshness` persistida con 0 llamadas nuevas a
+  proveedores; QA, preflight y Smoke verdes; Web/Cron LIVE.
+- Observación real del cron 2026-09-20 22:50 Madrid: overall PASS,
+  web_readiness PASS, `SPORTSDB_FALLBACK` 180 partidos, API-Football 0 llamadas
+  actuales por backoff, Odds `CACHE_REUSED` con 0 llamadas; frescura
+  `PARTIAL` sobre 200 filas: 18 FRESH, 179 OBSERVED, 3 STALE, 0 sin reloj.
+- El fail-fast de #51 está certificado por pruebas; esa ronda real no lo ejercitó
+  porque Odds reutilizó caché, por lo que no se afirma un 429 real post-deploy.
+- Trabajo activo: convertir los 3 STALE en evidencia accionable, limitada y
+  secret-safe (partido/proveedor/reloj/antigüedad/motivo), sin llamadas externas.
+- Regla de despliegue: GitHub `main` + Render Auto Deploy; no disparar deploys
+  manuales duplicados.
+
+DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
+
+## Historial local preservado · 2026-09-19
+
+
 Entrada operativa unica. Actualizado 2026-09-19, candidato LOCAL_ONLY.
 DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
 
