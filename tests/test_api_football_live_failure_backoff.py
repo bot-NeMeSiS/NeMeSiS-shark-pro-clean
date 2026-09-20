@@ -185,3 +185,39 @@ def test_live_refresh_network_category_does_not_masquerade_as_plan(tmp_path, mon
     assert result["status"] == "partial_NETWORK_OR_TIMEOUT"
     assert result["failure_category"] == "NETWORK_OR_TIMEOUT"
     assert result["external_calls"] == 1
+
+
+def test_safe_provider_error_shape_exposes_only_mapping_key():
+    payload = {
+        "ok": False,
+        "errors": {"live": "sensitive-provider-message secret-canary"},
+    }
+    assert tracker._safe_provider_error_shape(payload) == "ERROR_KEY_LIVE"
+    assert "secret-canary" not in tracker._safe_provider_error_shape(payload)
+
+
+def test_live_refresh_includes_safe_error_shape_without_extra_calls(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-error-shape.db")
+    _enable_provider(monkeypatch)
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        return {
+            "ok": False,
+            "response": [],
+            "errors": {"live": "opaque provider response secret-canary"},
+        }
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_live_tracker(
+        db_path,
+        force=True,
+        deep_limit=0,
+    )
+
+    assert result["failure_category"] == "PROVIDER_RESPONSE"
+    assert result["failure_shape"] == "ERROR_KEY_LIVE"
+    assert result["external_calls"] == 1
+    assert [path for path, _params in calls] == ["fixtures"]
+    assert "secret-canary" not in result["failure_shape"]

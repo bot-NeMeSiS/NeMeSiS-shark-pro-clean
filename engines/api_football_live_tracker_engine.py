@@ -173,6 +173,28 @@ def _safe_provider_state_label(payload: Mapping[str, Any] | None) -> str:
     return subtype or category
 
 
+def _safe_provider_error_shape(payload: Mapping[str, Any] | None) -> str:
+    """Expose only the structural key/type of an API error, never its message."""
+    data = dict(payload or {}) if isinstance(payload, Mapping) else {}
+    errors = data.get("errors")
+    if isinstance(errors, Mapping):
+        safe_keys = []
+        for key in errors.keys():
+            normalized = re.sub(r"[^A-Za-z0-9_]+", "_", str(key or "").strip()).strip("_").upper()[:40]
+            if normalized and normalized not in safe_keys:
+                safe_keys.append(normalized)
+        if safe_keys:
+            return "ERROR_KEY_" + safe_keys[0]
+        return "ERROR_MAPPING"
+    if isinstance(errors, (list, tuple)):
+        return "ERROR_LIST"
+    if isinstance(errors, str) and errors.strip():
+        return "ERROR_STRING"
+    if data.get("error"):
+        return "ERROR_EXCEPTION_OR_HTTP"
+    return ""
+
+
 def _as_int(value: Any, default: int = 0) -> int:
     try:
         if value is None or value == "":
@@ -661,6 +683,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             (category for category in failure_priority if category in provider_failure_categories),
             "",
         )
+        safe_error_shape = _safe_provider_error_shape(live_payload) if not live_payload.get("ok") else ""
         status = "ok" if not errors else (
             f"partial_{safe_failure_category}" if safe_failure_category else "partial"
         )
@@ -675,6 +698,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "external_calls": external_calls,
             "cache_age_seconds": 0,
             "failure_category": safe_failure_category,
+            "failure_shape": safe_error_shape,
             "errors": errors[:8],
             "message": "API-Football live sincronizado con caché y límites." if fixtures_count else "Sin partidos live devueltos por API-Football ahora mismo.",
         }
