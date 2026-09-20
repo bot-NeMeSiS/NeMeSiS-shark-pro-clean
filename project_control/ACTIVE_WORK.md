@@ -1,6 +1,6 @@
 # Active Work
 
-Actualizado 2026-09-20. Base efectiva: `main@959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+Actualizado 2026-09-20. Base efectiva: `main@cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`.
 
 ## 1. OPS-001 — Sentinel operational closure
 
@@ -13,7 +13,7 @@ Sentinel queda disponible como QA/observabilidad local, con executor productivo 
 
 Prioridad activa tras integrar el histórico por fecha en main. Resultados queda IN_MAIN_WITH_GAPS: falta cobertura/proveedor real, no más UI duplicada.
 
-Estado: IN_PROGRESS / INTEGRATED_WITH_GAPS.
+Estado: PRODUCTION_VALIDATION / INTEGRATED_WITH_GAPS.
 
 El antiguo PR #14 esta superseded. Main ya contiene su actualizacion en pagina abierta y mejoras posteriores.
 Pendiente:
