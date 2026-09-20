@@ -105,6 +105,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw_coverage = raw.get("coverage") if isinstance(raw.get("coverage"), dict) else {}
     raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
     raw_freshness = raw.get("data_freshness") if isinstance(raw.get("data_freshness"), dict) else {}
+    raw_current_sync = raw.get("current_sync") if isinstance(raw.get("current_sync"), dict) else {}
     fixture_ids = [
         safe_label(value, secret, "")
         for value in list(raw_sample.get("fixture_ids") or [])[:1]
@@ -130,6 +131,8 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
         "status": safe_label(raw.get("status"), secret),
         "deep_status": safe_label(raw.get("deep_status"), secret),
         "deep_external_calls": safe_count(raw.get("deep_external_calls")),
+        "provider_access_is_current": bool(raw.get("provider_access_is_current")),
+        "provider_access_freshness": safe_label(raw.get("provider_access_freshness"), secret),
         "provider_authenticated": bool(raw.get("provider_authenticated")),
         "provider_plan": safe_label(raw.get("provider_plan"), secret, "INACCESSIBLE"),
         "quota": quota,
@@ -167,6 +170,8 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "authenticated": raw_access.get("authenticated") if isinstance(raw_access.get("authenticated"), bool) else None,
             "checked_at": safe_label(raw_access.get("checked_at"), secret, ""),
             "source": safe_label(raw_access.get("source"), secret, "NONE"),
+            "is_current": bool(raw_access.get("is_current")),
+            "freshness": safe_label(raw_access.get("freshness"), secret),
         },
         "provider_plan_observation": {
             "state": safe_label(raw_plan.get("state"), secret),
@@ -200,6 +205,48 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "source": safe_label(raw_coverage.get("source"), secret, "NONE"),
             "observed_at": safe_label(raw_coverage.get("observed_at"), secret, ""),
             "capabilities": coverage,
+        },
+        "current_sync": {
+            "source_scope": safe_label(raw_current_sync.get("source_scope"), secret, "MATCH_WINDOW_PRIMARY_FALLBACK"),
+            "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
+            "api_football_primary": {
+                "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
+                "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
+                "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
+                "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
+                "reason_code": safe_label((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), secret),
+                "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
+                "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
+                "enabled": (raw_current_sync.get("api_football_primary") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("enabled"), bool) else None,
+                "external_calls": safe_count((raw_current_sync.get("api_football_primary") or {}).get("external_calls")),
+                "fixtures_count": safe_count((raw_current_sync.get("api_football_primary") or {}).get("fixtures_count")),
+                "error_present": bool((raw_current_sync.get("api_football_primary") or {}).get("error_present")),
+            },
+            "sportsdb_fallback": {
+                "state": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), secret),
+                "data_contributed": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("data_contributed")),
+                "reason_code": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("reason_code"), secret),
+                "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
+                "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
+                "processed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("processed")),
+                "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
+            },
+            "live_refresh": {
+                "state": safe_label((raw_current_sync.get("live_refresh") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("live_refresh") or {}).get("reason_code"), secret),
+                "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
+                "external_calls": safe_count((raw_current_sync.get("live_refresh") or {}).get("external_calls")),
+                "fixtures_count": safe_count((raw_current_sync.get("live_refresh") or {}).get("fixtures_count")),
+                "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
+            },
+            "odds_refresh": {
+                "state": safe_label((raw_current_sync.get("odds_refresh") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), secret),
+                "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
+                "processed": safe_count((raw_current_sync.get("odds_refresh") or {}).get("processed")),
+                "external_calls": safe_count((raw_current_sync.get("odds_refresh") or {}).get("external_calls")),
+                "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
+            },
         },
         "data_freshness": {
             "state": safe_label(raw_freshness.get("state"), secret, "NOT_ESTABLISHED"),
