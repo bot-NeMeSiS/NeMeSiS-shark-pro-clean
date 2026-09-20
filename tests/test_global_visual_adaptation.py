@@ -43,4 +43,4 @@ def test_access_form_preserves_destination_and_fields(app_module):
     assert form['action']=='/cliente-login' and form['method']=='post'
     inputs=[attrs for tag,attrs in nodes if tag=='input']
     assert {n.get('name') for n in inputs} >= {'login','password','next','plan'}
-    assert next(n for n in inputs if n.get('name')=='next')['value']=='/favorites'
+    assert any(n.get('name')=='next' and n.get('value')=='/favorites' for n in inputs)
