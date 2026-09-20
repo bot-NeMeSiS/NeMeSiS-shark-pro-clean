@@ -3,7 +3,7 @@
 Actualizado 2026-09-20 con GitHub y Render observados.
 
 <!-- releases:start -->
-| ID | Tipo | Rama/Ref | HEAD | Estado | Evidencia | Limite |
+| ID | Tipo | Rama | HEAD | Estado | Evidencia | Limite |
 |---|---|---|---|---|---|---|
 | MAIN | PRODUCTION_BASE | main | 7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba | LIVE | GitHub PR #16 + Render web/cron | certify-production aun completa ventanas de observacion |
 | PR16 | MERGED_CANDIDATE | PR #16 | 2ed82e57ec7d8fd3a5dd92e8d77402ac5cd16610 -> 7a1ba50b | MERGED | QA/Smoke/preflight verdes | no certifica externos por si solo |
