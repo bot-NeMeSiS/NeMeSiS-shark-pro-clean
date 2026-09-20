@@ -255,8 +255,18 @@ def test_api_football_cache_reuse_is_not_claimed_as_new_data(app_module):
 
 def test_fallback_contribution_survives_compact_and_sanitized_contract(app_module):
     from tools.render_cron_master_tick import sanitized_sports_pipeline
-    diagnostics = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})
-    assert diagnostics["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+    payload = _fallback_run()
+    payload["fallback"].update({
+        "external_calls": 2,
+        "stale_reconciliation_candidates": 3,
+        "stale_reconciliation_observed": 2,
+    })
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    fallback = diagnostics["current_sync"]["sportsdb_fallback"]
+    assert fallback["data_contributed"] is True
+    assert fallback["external_calls"] == 2
+    assert fallback["stale_reconciliation_candidates"] == 3
+    assert fallback["stale_reconciliation_observed"] == 2
 
     compact = app_module._cron_compact_payload(
         "telegram_tick",
@@ -264,10 +274,18 @@ def test_fallback_contribution_survives_compact_and_sanitized_contract(app_modul
         "2026-09-20T12:15:16+02:00",
         "2026-09-20T12:15:24+02:00",
     )["sports_pipeline"]
-    assert compact["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+    compact_fallback = compact["current_sync"]["sportsdb_fallback"]
+    assert compact_fallback["data_contributed"] is True
+    assert compact_fallback["external_calls"] == 2
+    assert compact_fallback["stale_reconciliation_candidates"] == 3
+    assert compact_fallback["stale_reconciliation_observed"] == 2
 
     sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
-    assert sanitized["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+    sanitized_fallback = sanitized["current_sync"]["sportsdb_fallback"]
+    assert sanitized_fallback["data_contributed"] is True
+    assert sanitized_fallback["external_calls"] == 2
+    assert sanitized_fallback["stale_reconciliation_candidates"] == 3
+    assert sanitized_fallback["stale_reconciliation_observed"] == 2
 
 
 def test_ok_true_with_errors_keeps_specific_stage_reason(app_module):
