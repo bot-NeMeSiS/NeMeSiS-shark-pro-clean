@@ -267,3 +267,91 @@ def test_fallback_contribution_survives_compact_and_sanitized_contract(app_modul
 
     sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
     assert sanitized["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+
+
+def test_ok_true_with_errors_keeps_specific_stage_reason(app_module):
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "status": "partial",
+        "errors": ["HTTP 429 rate limit after partial data"],
+    }) == "RATE_OR_QUOTA"
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "status": "partial",
+        "error": "connection timed out after partial data",
+    }) == "NETWORK_OR_TIMEOUT"
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "status": "partial",
+        "errors": ["one provider subrequest failed"],
+    }) == "PROVIDER_ERROR"
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "status": "OK",
+        "errors": [],
+    }) == "NONE"
+
+
+def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch):
+    stages = {
+        "api_football_match_window": {
+            "ok": False,
+            "status": "ERROR",
+            "external_calls": 2,
+            "processed": 0,
+        },
+        "sportsdb_calendar": {
+            "ok": True,
+            "status": "OK",
+            "external_calls": 1,
+            "processed": 180,
+        },
+        "api_football_live_tracker": {
+            "ok": True,
+            "status": "partial",
+            "external_calls": 1,
+            "fixtures_count": 0,
+            "errors": ["partial live response"],
+        },
+        "api_football_deep_enrichment": {
+            "ok": True,
+            "status": "OK",
+            "external_calls": 3,
+            "processed": 1,
+        },
+        "odds": {
+            "ok": True,
+            "status": "PARTIAL",
+            "external_calls": 14,
+            "processed": 0,
+            "errors": ["some odds requests failed"],
+        },
+        "pick_grading": {
+            "ok": True,
+            "status": "OK",
+            "processed": 0,
+        },
+    }
+
+    monkeypatch.setattr(
+        app_module,
+        "_safe_sports_sync_call",
+        lambda label, *_args, **_kwargs: dict(stages[label]),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "sports_sync_window_state",
+        lambda: {"live_refresh_required": True},
+    )
+    monkeypatch.setattr(app_module, "_api_football_deep_enrichment_candidates", lambda limit=1: [])
+    monkeypatch.setattr(app_module, "invalidate_v934_realtime_cache", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(app_module, "automation_safe_set", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(app_module, "has_request_context", lambda: False)
+
+    result = app_module.run_sports_sync_cycle(force=False, trigger_type="pytest")
+
+    assert result["ok"] is True
+    assert result["status"] == "PARTIAL"
+    assert result["external_calls"] == 21
+    assert any(str(item).startswith("odds_PARTIAL") for item in result["errors"])
+    assert any(str(item).startswith("live_partial") for item in result["errors"])
