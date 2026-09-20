@@ -1712,6 +1712,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
     odds_stage = sports_result.get("odds") if isinstance(sports_result.get("odds"), dict) else {}
 
     primary_ok = fixtures_stage.get("ok") is True
+    primary_has_data = as_int(fixtures_stage.get("fixtures_count"), 0) > 0
     fallback_used = bool(
         as_int(fallback_stage.get("processed"), 0)
         or (
@@ -1721,7 +1722,9 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
         )
     )
     fallback_ok = fallback_stage.get("ok") is True and fallback_used
-    if primary_ok:
+    if primary_has_data and fallback_ok:
+        selected_source = "MIXED_PRIMARY_AND_FALLBACK"
+    elif primary_ok:
         selected_source = "API_FOOTBALL_PRIMARY"
     elif fallback_ok:
         selected_source = "SPORTSDB_FALLBACK"
