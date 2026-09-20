@@ -296,7 +296,7 @@ def sync_generated_alerts(db_path,obligations=None,providers=None,sports_freshne
             fp=f"provider:{i['key']}:{op}"; desired[fp]={"fingerprint":fp,"severity":"WARNING","category":"PROVIDER","title":f"{i['label']} requiere atención","message":f"Estado operativo: {op}","entity_ref":i["key"],"push_eligible":True}
     sports_state=str(sports_freshness.get("state") or "NOT_ESTABLISHED").upper()
     if sports_state=="NOT_ESTABLISHED":
-        fp="sports_data:freshness:not_established"; desired[fp]={"fingerprint":fp,"severity":"HIGH","category":"SPORTS_DATA","title":"Frescura deportiva no establecida","message":_safe(sports_freshness.get("reason"),500),"entity_ref":"sports_data_freshness","push_eligible":True}
+        fp="sports_data:freshness:not_established"; desired[fp]={"fingerprint":fp,"severity":"HIGH","category":"SPORTS_DATA","title":"Frescura deportiva no establecida","message":_safe(sports_freshness.get("reason"),500),"entity_ref":"sports_data_freshness","push_eligible":bool(sports_freshness.get("source_state_key"))}
     elif sports_state=="PARTIAL":
         fp="sports_data:freshness:partial"; desired[fp]={"fingerprint":fp,"severity":"WARNING","category":"SPORTS_DATA","title":"Frescura deportiva parcial","message":f"Stale: {_nonnegative_int(sports_freshness.get('stale'))} · sin reloj: {_nonnegative_int(sports_freshness.get('not_established'))} · muestra: {_nonnegative_int(sports_freshness.get('total'))}","entity_ref":"sports_data_freshness","push_eligible":True}
     conn=_connect(db_path)
