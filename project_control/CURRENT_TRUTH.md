@@ -4,13 +4,13 @@ Actualizacion: 2026-09-20. Autoridad: GitHub main + Render observado. Sin PII ni
 
 ## Identidad actual
 
-- GitHub `main`: `bf0a36dd1f2ff928d143ae6ac0254bf20f991529`.
+- GitHub `main`: `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
 - Origen: merge de PR #16, candidato reconciliado del 19/09.
 - PR #16: MERGED.
 - PR #19: MERGED; Calendario hidrata resultados persistidos para fechas pasadas mediante lectura SQLite sin nuevas llamadas a proveedor.
 - PR #14 Directo: CLOSED / SUPERSEDED por main; su frente funcional sigue abierto a validacion real.
 - PR #15 integracion Sentinel: CLOSED / SUPERSEDED por PR #16.
-- Render web `nemesissharkpro`: LIVE en el SHA exacto `bf0a36dd...`.
+- Render web `nemesissharkpro`: LIVE en el SHA exacto `959ce5b2...`.
 - Render cron `telegram-auto-tick`: LIVE en el mismo SHA.
 
 ## Evidencia verificada
@@ -53,3 +53,15 @@ Prioridad interna activa tras el cierre de Sentinel.
 - Stripe/pagos externos: NOT_CERTIFIED.
 - ELITE+: contrato no definido.
 - Doce positivos SE-01 y bloqueos ambientales historicos conservan su clasificacion; no se convierten en PASS global.
+
+## Calendar history follow-up
+
+- PR #23: MERGED en `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+- Finalizados y Resultados respetan la fecha seleccionada.
+- `/api/calendar` hidrata el mismo histórico persistido que la página.
+- El contador de Finalizados es date-scoped.
+- El estado visible de proveedor/calendario se calcula sobre el resumen ya hidratado.
+- Fuente histórica: SQLite persistida read-only; 0 llamadas nuevas a proveedor y 0 escrituras de DB desde render.
+- Track Record/ROI permanece separado.
+- Resultado pendiente no se convierte en 0-0.
+- Web y cron Render están LIVE en el SHA actual; barrido inicial sin 500/502/503/Traceback/ERROR.
