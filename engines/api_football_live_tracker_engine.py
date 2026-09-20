@@ -1152,6 +1152,27 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
 
 
 
+
+def _cache_age_seconds(conn: sqlite3.Connection, key: str) -> Optional[int]:
+    """Return age of a persisted sync marker; invalid/missing timestamps force refresh."""
+    row = conn.execute(
+        "SELECT last_sync_at FROM api_football_live_sync_state WHERE key=?",
+        (str(key or ""),),
+    ).fetchone()
+    if not row:
+        return None
+    raw = str(row["last_sync_at"] or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()
+        return max(0, int(age))
+    except (TypeError, ValueError, OverflowError):
+        return None
+
 def _state_key_for_window() -> str:
     return "match_window"
 
