@@ -12,7 +12,7 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 |---|---|---|---|---|---|---|---|
 | CX-001 | CX-SE-01 / COORD-8-SE-01 R1 | DONE | Codex / QA | PASS_LOCAL_SCOPE | ENV | reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md | Preservar SE-01 y sus doce positivos no certificados |
 | CX-002 | CX-ORG-01 | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CONVERSATION_INDEX.md | Revisar consolidacion e inventario; ninguna purga autorizada |
-| CX-003 | CX-RESULTS-01 / COORD-8-RESULTS-01 R1 | IN_PROGRESS | Codex / Datos | IN_MAIN_WITH_GAPS | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Siguiente frente activo tras Sentinel: Directos/resultado real, fechas pasadas y feed sin inventar datos |
+| CX-003 | CX-RESULTS-01 / COORD-8-RESULTS-01 R1 | QA | Codex / Datos | IN_MAIN_WITH_GAPS | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Lectura historica por fecha ya integrada en main; validar cobertura real/retencion y experiencia productiva sin inventar datos |
 | CX-004 | CX-DATA-01 | BLOCKED | Datos / Founder | NOT_TESTED | EXTERNAL | project_control/domains/DATA.md | Piloto real autorizado y cobertura; no otro proveedor |
 | CX-005 | CX-INTELLIGENCE-01 | QA | Codex / Sports UX | LOCAL_ONLY | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Match Context preserva descuento/periodo; comprobar datos reales solo bajo autorizacion |
 | CX-006 | CX-SHARK-01 | QA | Codex / SHARK | LOCAL_ONLY | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | WAIT/NO_BET trazables sin confianza inventada; modelo y vigencia de cuotas pendientes |
