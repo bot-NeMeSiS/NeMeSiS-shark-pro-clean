@@ -554,6 +554,57 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             conn.commit()
             state["matches"] = live_tracker_matches(db_path, limit=80)
             return state
+        cached_live_row = conn.execute(
+            "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key='live'"
+        ).fetchone()
+        cached_live_error = str((cached_live_row["error"] if cached_live_row else "") or "")
+        cached_live_failure = (
+            _safe_provider_state_label({"ok": False, "error": cached_live_error})
+            if cached_live_error
+            else ""
+        )
+        plan_failure_labels = {
+            "FREE_PLAN_SEASON_RESTRICTED",
+            "SEASON_UNAVAILABLE",
+            "FREE_PLAN_RESTRICTED",
+            "ENDPOINT_RESTRICTED",
+            "COVERAGE_UNAVAILABLE",
+            "SUBSCRIPTION_RESTRICTED",
+            "PLAN_OR_COVERAGE_OTHER",
+        }
+        plan_backoff_seconds = max(
+            300,
+            min(
+                86400,
+                _as_int(
+                    os.getenv("API_FOOTBALL_LIVE_PLAN_BACKOFF_SECONDS", "21600"),
+                    21600,
+                ),
+            ),
+        )
+        if (
+            not force
+            and cached_live_failure in plan_failure_labels
+            and age < plan_backoff_seconds
+        ):
+            matches = _live_tracker_matches_from_conn(conn, limit=100)
+            return {
+                "ok": True,
+                "configured": True,
+                "enabled": True,
+                "status": f"PROVIDER_FAILURE_BACKOFF_{cached_live_failure}",
+                "cache_age_seconds": age,
+                "backoff_seconds": plan_backoff_seconds,
+                "retry_after_seconds": max(0, plan_backoff_seconds - age),
+                "failure_category": cached_live_failure,
+                "provider_failure_backoff": True,
+                "skipped": True,
+                "matches": matches,
+                "fixtures_count": len(matches),
+                "external_calls": 0,
+                "errors": ["provider_failure_backoff"],
+                "message": "API-Football live en backoff seguro; se conserva el fallback sin repetir una llamada restringida.",
+            }
         if not force and age < cache_seconds:
             matches = _live_tracker_matches_from_conn(conn, limit=100)
             return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "matches": matches, "fixtures_count": len(matches), "external_calls": 0, "message": "Caché live API-Football reutilizada."}
