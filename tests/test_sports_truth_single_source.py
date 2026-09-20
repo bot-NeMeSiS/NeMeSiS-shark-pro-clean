@@ -620,3 +620,284 @@ def test_sportsdb_stale_reconciliation_candidates_are_bounded_and_canonical(
     monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: candidates)
 
     assert app_module.sportsdb_stale_external_ids(limit=1) == ["2440438"]
+
+
+def test_sportsdb_provider_identity_reconciles_legacy_internal_id_atomically(
+    app_module,
+    monkeypatch,
+    tmp_path,
+):
+    db_path = tmp_path / "sportsdb-provider-identity.sqlite"
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path), raising=False)
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None, raising=False)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None, raising=False)
+    app_module.init_db()
+
+    today = datetime.now(MADRID).date().isoformat()
+    legacy_id = "legacy-live-2440438"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """INSERT INTO matches(
+                   id,external_id,match_date,kickoff_time,competition_name,
+                   home_team,away_team,status,minute,score,home_score,away_score,
+                   source,last_synced_at,updated_at
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                legacy_id,
+                "2440438",
+                today,
+                "20:00",
+                "Estonian Esiliiga B",
+                "Tartu Kalev",
+                "Jõhvi Phoenix",
+                "LIVE",
+                "67",
+                "1-0",
+                "1",
+                "0",
+                "TheSportsDB API",
+                "",
+                "",
+            ),
+        )
+        conn.execute(
+            """INSERT INTO live_matches(
+                   id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at
+               ) VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                "live-" + legacy_id,
+                legacy_id,
+                "LIVE",
+                "67",
+                "1",
+                "0",
+                "{}",
+                "TheSportsDB API",
+                "",
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    observed_at = datetime.now(MADRID).isoformat()
+    incoming = app_module.sportsdb_event_to_match(
+        {
+            "idEvent": "2440438",
+            "strSport": "Soccer",
+            "strHomeTeam": "Tartu Kalev",
+            "strAwayTeam": "Jõhvi Phoenix",
+            "strLeague": "Estonian Esiliiga B",
+            "dateEvent": today,
+            "strTime": "20:00:00",
+            "strStatus": "Match Finished",
+            "intHomeScore": "2",
+            "intAwayScore": "1",
+        },
+        provider_observed_at=observed_at,
+    )
+    assert incoming is not None
+    assert incoming["id"] != legacy_id
+
+    result = app_module.upsert_sportsdb_matches([incoming])
+    assert result["inserted"] == 0
+    assert result["updated"] == 1
+    assert result["provider_identity_rows_reconciled"] == 1
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        stored = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT * FROM matches WHERE external_id=?",
+                ("2440438",),
+            ).fetchall()
+        ]
+        live_rows = conn.execute(
+            "SELECT COUNT(*) FROM live_matches WHERE match_id=?",
+            (legacy_id,),
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    assert len(stored) == 1
+    assert stored[0]["id"] == legacy_id
+    assert stored[0]["last_synced_at"] == observed_at
+    assert stored[0]["score"] == "2-1"
+    assert app_module.v935_match_status_truth(stored[0])["is_finished"] is True
+    assert app_module.v935_match_status_truth(stored[0])["is_stale"] is False
+    assert live_rows == 0
+    assert app_module.sportsdb_reconciliation_status(["2440438"]) == {
+        "requested": 1,
+        "resolved": 1,
+        "remaining": 0,
+        "missing": 0,
+    }
+
+
+def test_sportsdb_provider_identity_updates_all_legacy_duplicates_before_cleanup(
+    app_module,
+    monkeypatch,
+    tmp_path,
+):
+    db_path = tmp_path / "sportsdb-provider-duplicates.sqlite"
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path), raising=False)
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None, raising=False)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None, raising=False)
+    app_module.init_db()
+
+    today = datetime.now(MADRID).date().isoformat()
+    conn = sqlite3.connect(db_path)
+    try:
+        for legacy_id in ("legacy-a-2429209", "legacy-b-2429209"):
+            conn.execute(
+                """INSERT INTO matches(
+                       id,external_id,match_date,kickoff_time,competition_name,
+                       home_team,away_team,status,score,home_score,away_score,
+                       source,last_synced_at,updated_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    legacy_id,
+                    "2429209",
+                    today,
+                    "18:00",
+                    "Estonian Esiliiga",
+                    "Maardu Linnameeskond",
+                    "Flora Tallinn U21",
+                    "LIVE",
+                    "0-0",
+                    "0",
+                    "0",
+                    "TheSportsDB API",
+                    "",
+                    "",
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    observed_at = datetime.now(MADRID).isoformat()
+    incoming = app_module.sportsdb_event_to_match(
+        {
+            "idEvent": "2429209",
+            "strSport": "Soccer",
+            "strHomeTeam": "Maardu Linnameeskond",
+            "strAwayTeam": "Flora Tallinn U21",
+            "strLeague": "Estonian Esiliiga",
+            "dateEvent": today,
+            "strTime": "18:00:00",
+            "strStatus": "Match Finished",
+            "intHomeScore": "1",
+            "intAwayScore": "3",
+        },
+        provider_observed_at=observed_at,
+    )
+    assert incoming is not None
+
+    result = app_module.upsert_sportsdb_matches([incoming])
+    assert result["provider_identity_rows_reconciled"] == 2
+    assert result["duplicates_removed"] >= 1
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        stored = [
+            dict(row)
+            for row in conn.execute(
+                "SELECT * FROM matches WHERE external_id=?",
+                ("2429209",),
+            ).fetchall()
+        ]
+    finally:
+        conn.close()
+
+    assert len(stored) == 1
+    assert stored[0]["last_synced_at"] == observed_at
+    assert stored[0]["score"] == "1-3"
+    assert app_module.v935_match_status_truth(stored[0])["is_stale"] is False
+
+
+def test_sportsdb_provider_identity_rejects_older_snapshot_for_same_external_id(
+    app_module,
+    monkeypatch,
+    tmp_path,
+):
+    db_path = tmp_path / "sportsdb-provider-out-of-order.sqlite"
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path), raising=False)
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None, raising=False)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None, raising=False)
+    app_module.init_db()
+
+    today = datetime.now(MADRID).date().isoformat()
+    newer_at = datetime.now(MADRID)
+    older_at = newer_at - timedelta(minutes=5)
+    legacy_id = "legacy-final-2440424"
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute(
+            """INSERT INTO matches(
+                   id,external_id,match_date,kickoff_time,competition_name,
+                   home_team,away_team,status,score,home_score,away_score,
+                   source,last_synced_at,updated_at
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                legacy_id,
+                "2440424",
+                today,
+                "17:00",
+                "Estonian Esiliiga B",
+                "Levadia U19 Tallinn",
+                "Tartu U21 Tammeka",
+                "FINALIZADO",
+                "2-0",
+                "2",
+                "0",
+                "TheSportsDB API",
+                newer_at.isoformat(),
+                newer_at.isoformat(),
+            ),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    incoming = app_module.sportsdb_event_to_match(
+        {
+            "idEvent": "2440424",
+            "strSport": "Soccer",
+            "strHomeTeam": "Levadia U19 Tallinn",
+            "strAwayTeam": "Tartu U21 Tammeka",
+            "strLeague": "Estonian Esiliiga B",
+            "dateEvent": today,
+            "strTime": "17:00:00",
+            "strStatus": "LIVE",
+            "strProgress": "2H",
+            "intHomeScore": "1",
+            "intAwayScore": "0",
+        },
+        provider_observed_at=older_at.isoformat(),
+    )
+    assert incoming is not None
+
+    result = app_module.upsert_sportsdb_matches([incoming])
+    assert result["skipped"] == 1
+    assert result["updated"] == 0
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        stored = dict(
+            conn.execute(
+                "SELECT * FROM matches WHERE id=?",
+                (legacy_id,),
+            ).fetchone()
+        )
+    finally:
+        conn.close()
+
+    assert stored["status"] == "FINALIZADO"
+    assert stored["score"] == "2-0"
+    assert stored["last_synced_at"] == newer_at.isoformat()
