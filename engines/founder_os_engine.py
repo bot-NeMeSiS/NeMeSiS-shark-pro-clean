@@ -161,6 +161,65 @@ def _automation_state(conn,key):
     if row.get("updated_at") and not payload.get("last_sync"): payload["observed_at"]=row.get("updated_at")
     return payload
 
+def _parse_datetime(value):
+    text=_safe(value,100)
+    if not text: return None
+    try:
+        parsed=datetime.fromisoformat(text.replace("Z","+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None: parsed=parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+def _nonnegative_int(value):
+    try: return max(0,int(value or 0))
+    except (TypeError,ValueError): return 0
+
+def sports_data_freshness_snapshot(db_path):
+    """Read canonical sports freshness already persisted by the cron; never call providers."""
+    ensure_founder_os_schema(db_path); conn=_connect(db_path)
+    state_keys=("telegram_tick_last_detail","sports_sync_last_detail")
+    for state_key in state_keys:
+        detail=_automation_state(conn,state_key)
+        compact=detail.get("compact") if isinstance(detail.get("compact"),dict) else {}
+        pipeline=compact.get("sports_pipeline") if isinstance(compact.get("sports_pipeline"),dict) else {}
+        freshness=pipeline.get("data_freshness") if isinstance(pipeline.get("data_freshness"),dict) else {}
+        if not freshness:
+            continue
+        state=(_safe(freshness.get("state"),80) or "NOT_ESTABLISHED").upper()
+        if state not in {"ESTABLISHED","PARTIAL","NOT_ESTABLISHED"}: state="NOT_ESTABLISHED"
+        observed_at=_safe(detail.get("finished_at") or detail.get("called_at") or detail.get("observed_at") or compact.get("now_madrid"),100)
+        observed_dt=_parse_datetime(observed_at)
+        age_seconds=max(0,int((datetime.now(timezone.utc)-observed_dt).total_seconds())) if observed_dt else None
+        result={
+            "contract":"NEMESIS-FOUNDER-SPORTS-FRESHNESS-V1",
+            "state":state,
+            "entity_timestamps_evaluated":bool(freshness.get("entity_timestamps_evaluated")),
+            "scope":_safe(freshness.get("scope"),120) or "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+            "total":_nonnegative_int(freshness.get("total")),
+            "fresh":_nonnegative_int(freshness.get("fresh")),
+            "observed":_nonnegative_int(freshness.get("observed")),
+            "stale":_nonnegative_int(freshness.get("stale")),
+            "not_established":_nonnegative_int(freshness.get("not_established")),
+            "reason":_safe(freshness.get("reason"),500) or "La evidencia no incluye una explicación de frescura.",
+            "observed_at":observed_at,
+            "evidence_age_seconds":age_seconds,
+            "source_state_key":state_key,
+            "provider_calls":0,
+        }
+        conn.close()
+        return result
+    conn.close()
+    return {
+        "contract":"NEMESIS-FOUNDER-SPORTS-FRESHNESS-V1",
+        "state":"NOT_ESTABLISHED",
+        "entity_timestamps_evaluated":False,
+        "scope":"MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+        "total":0,"fresh":0,"observed":0,"stale":0,"not_established":0,
+        "reason":"Founder OS todavía no tiene una observación persistida de frescura deportiva.",
+        "observed_at":"","evidence_age_seconds":None,"source_state_key":"","provider_calls":0,
+    }
+
 def _provider_evidence(conn,key):
     if key=="the_odds_api":
         s=_automation_state(conn,"odds_events_sync"); q=s.get("quota") if isinstance(s.get("quota"),dict) else {}
@@ -219,8 +278,8 @@ def _upsert_alert(conn,a):
          a.get("due_at") or "",status,int(bool(a.get("push_eligible"))),old.get("first_seen_at") or now,now,old.get("last_notified_at") or "",
          old.get("acknowledged_at") or "","",json.dumps(a.get("payload") or {},ensure_ascii=False)[:3000]))
 
-def sync_generated_alerts(db_path,obligations=None,providers=None):
-    ensure_founder_os_schema(db_path); obligations=obligations or obligations_snapshot(db_path); providers=providers or providers_snapshot(db_path,obligations)
+def sync_generated_alerts(db_path,obligations=None,providers=None,sports_freshness=None):
+    ensure_founder_os_schema(db_path); obligations=obligations or obligations_snapshot(db_path); providers=providers or providers_snapshot(db_path,obligations); sports_freshness=sports_freshness or sports_data_freshness_snapshot(db_path)
     desired={}; billing_map={"OVERDUE":("CRITICAL",True,"Pago vencido"),"DUE_NOW":("HIGH",True,"Pago vence ahora"),"DUE_SOON":("WARNING",True,"Pago próximo"),"UPCOMING":("INFO",False,"Renovación próxima")}
     for i in obligations.get("items") or []:
         if i.get("effective_state") not in billing_map: continue
@@ -235,6 +294,11 @@ def sync_generated_alerts(db_path,obligations=None,providers=None):
         op=str(i.get("operational_state") or "").upper()
         if any(t in op for t in ("ERROR","FAIL","RESTRICT","BACKOFF")):
             fp=f"provider:{i['key']}:{op}"; desired[fp]={"fingerprint":fp,"severity":"WARNING","category":"PROVIDER","title":f"{i['label']} requiere atención","message":f"Estado operativo: {op}","entity_ref":i["key"],"push_eligible":True}
+    sports_state=str(sports_freshness.get("state") or "NOT_ESTABLISHED").upper()
+    if sports_state=="NOT_ESTABLISHED":
+        fp="sports_data:freshness:not_established"; desired[fp]={"fingerprint":fp,"severity":"HIGH","category":"SPORTS_DATA","title":"Frescura deportiva no establecida","message":_safe(sports_freshness.get("reason"),500),"entity_ref":"sports_data_freshness","push_eligible":bool(sports_freshness.get("source_state_key"))}
+    elif sports_state=="PARTIAL":
+        fp="sports_data:freshness:partial"; desired[fp]={"fingerprint":fp,"severity":"WARNING","category":"SPORTS_DATA","title":"Frescura deportiva parcial","message":f"Stale: {_nonnegative_int(sports_freshness.get('stale'))} · sin reloj: {_nonnegative_int(sports_freshness.get('not_established'))} · muestra: {_nonnegative_int(sports_freshness.get('total'))}","entity_ref":"sports_data_freshness","push_eligible":True}
     conn=_connect(db_path)
     for a in desired.values(): _upsert_alert(conn,a)
     for row in _rows(conn,"SELECT id,fingerprint FROM founder_alerts WHERE source='generated' AND status IN ('OPEN','ACK')"):
@@ -289,7 +353,7 @@ def test_founder_push(db_path):
     return _send_push(db_path,{"title":"NeMeSiS Founder","body":"Prueba de notificación del Founder OS.","url":"/admin/founder-os#inbox","severity":"INFO","tag":"founder-test"})
 
 def dispatch_pending_founder_push(db_path,limit=5):
-    obligations=obligations_snapshot(db_path); providers=providers_snapshot(db_path,obligations); sync_generated_alerts(db_path,obligations,providers); cfg=push_configuration()
+    obligations=obligations_snapshot(db_path); providers=providers_snapshot(db_path,obligations); sports_freshness=sports_data_freshness_snapshot(db_path); sync_generated_alerts(db_path,obligations,providers,sports_freshness); cfg=push_configuration()
     if not cfg["configured"]: return {"ok":True,"status":"NOT_CONFIGURED","sent":0,"alerts_checked":0}
     conn=_connect(db_path); rows=_rows(conn,"""SELECT * FROM founder_alerts WHERE status='OPEN' AND push_eligible=1 ORDER BY CASE severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 ELSE 3 END,last_seen_at DESC LIMIT ?""",(max(1,min(int(limit),20)),)); conn.close()
     repeat=max(15,min(int(os.getenv("FOUNDER_PUSH_REPEAT_MINUTES","60") or 60),1440)); now=datetime.now(timezone.utc); sent=failed=checked=0
@@ -306,9 +370,9 @@ def dispatch_pending_founder_push(db_path,limit=5):
     return {"ok":True,"status":"SENT" if sent else "NO_DUE_DELIVERY","sent":sent,"failed":failed,"alerts_checked":checked}
 
 def founder_os_snapshot(db_path):
-    obligations=obligations_snapshot(db_path); providers=providers_snapshot(db_path,obligations); sync_generated_alerts(db_path,obligations,providers); alerts=alerts_snapshot(db_path); push=push_snapshot(db_path)
+    obligations=obligations_snapshot(db_path); providers=providers_snapshot(db_path,obligations); sports_freshness=sports_data_freshness_snapshot(db_path); sync_generated_alerts(db_path,obligations,providers,sports_freshness); alerts=alerts_snapshot(db_path); push=push_snapshot(db_path)
     health="CRITICAL" if alerts["counts"].get("CRITICAL") else "ATTENTION" if alerts["counts"].get("HIGH") or alerts["counts"].get("WARNING") else "HEALTHY"
-    return {"contract":"NEMESIS-FOUNDER-OS-V1","generated_at":utc_now(),"health_state":health,"alerts":alerts,"obligations":obligations,"providers":providers,"push":push,
+    return {"contract":"NEMESIS-FOUNDER-OS-V1","generated_at":utc_now(),"health_state":health,"alerts":alerts,"obligations":obligations,"providers":providers,"sports_data_freshness":sports_freshness,"push":push,
             "safety":{"secrets_visible":False,"charges_executed":False,"memberships_modified":False,"dangerous_actions_one_tap":False}}
 
 def founder_alert_tick(db_path):
