@@ -1420,9 +1420,9 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
 
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
-    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("deep", deep), ("grading", grading)):
-        if result.get("ok") is False:
-            errors.append(result.get("error") or f"{label}_{result.get('status') or 'unavailable'}")
+    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("deep", deep), ("odds", odds), ("grading", grading)):
+        if result.get("ok") is False or result.get("error") or result.get("errors"):
+            errors.append(result.get("error") or f"{label}_{result.get('status') or 'provider_error'}")
     processed = sum(
         as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
         for result in (fixtures, fallback, live, deep, odds)
@@ -1430,7 +1430,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, live, deep)
+        for result in (fixtures, fallback, live, deep, odds)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1491,8 +1491,8 @@ def _sports_diagnostic_text(value, limit=120):
 
 def _sports_stage_reason_code(stage):
     stage = dict(stage or {}) if isinstance(stage, dict) else {}
-    if stage.get("ok") is True:
-        return "NONE"
+    # A stage can return usable partial data and still report a provider issue.
+    # NONE means there is no recorded issue, not merely ok=True.
     if stage.get("sin_key") is True:
         return "NOT_CONFIGURED"
     if stage.get("disabled") is True:
@@ -1517,6 +1517,8 @@ def _sports_stage_reason_code(stage):
         return "NETWORK_OR_TIMEOUT"
     if stage.get("error") or stage.get("errors"):
         return "PROVIDER_ERROR"
+    if stage.get("ok") is True:
+        return "NONE"
     return "UNKNOWN"
 
 
