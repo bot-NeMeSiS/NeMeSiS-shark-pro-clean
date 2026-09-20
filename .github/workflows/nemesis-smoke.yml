@@ -34,13 +34,14 @@ jobs:
           AUTO_SEND_TELEGRAM_PICKS: 'false'
           DB_PATH: /tmp/nemesis_ci.db
         run: python tools/smoke_check.py
-      - name: Run tests
-        env:
-          SECRET_KEY: test-secret-key-for-ci
-          ADMIN_EMAIL: admin@example.com
-          ADMIN_PASSWORD: admin-password
-          BACKGROUND_JOBS_ENABLED: 'false'
-          AUTO_GENERATE_PICKS: 'false'
-          AUTO_SEND_TELEGRAM_PICKS: 'false'
-          DB_PATH: /tmp/nemesis_ci.db
-        run: pytest
+      - name: Resolve QA browser
+        run: |
+          python - <<'PY'
+          import os
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as pw:
+              with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as handle:
+                  handle.write("NEMESIS_QA_CHROMIUM=" + pw.chromium.executable_path + "\n")
+          PY
+      - name: Run tests in LOCAL SAFE harness
+        run: python tools/check_local_candidate.py
