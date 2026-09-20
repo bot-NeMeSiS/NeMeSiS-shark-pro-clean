@@ -160,7 +160,7 @@ def test_live_refresh_exposes_safe_provider_category_without_extra_calls(tmp_pat
     )
 
     assert result["ok"] is True
-    assert result["status"] == "partial_FREE_PLAN_RESTRICTED"
+    assert result["status"] == "partial_FREE_PLAN_RESTRICTED_ERROR_KEY_PLAN"
     assert result["failure_category"] == "FREE_PLAN_RESTRICTED"
     assert result["external_calls"] == 1
     assert [path for path, _params in calls] == ["fixtures"]
@@ -182,7 +182,7 @@ def test_live_refresh_network_category_does_not_masquerade_as_plan(tmp_path, mon
         deep_limit=0,
     )
 
-    assert result["status"] == "partial_NETWORK_OR_TIMEOUT"
+    assert result["status"] == "partial_NETWORK_OR_TIMEOUT_ERROR_EXCEPTION_OR_HTTP"
     assert result["failure_category"] == "NETWORK_OR_TIMEOUT"
     assert result["external_calls"] == 1
 
@@ -216,6 +216,7 @@ def test_live_refresh_includes_safe_error_shape_without_extra_calls(tmp_path, mo
         deep_limit=0,
     )
 
+    assert result["status"] == "partial_PROVIDER_RESPONSE_ERROR_KEY_LIVE"
     assert result["failure_category"] == "PROVIDER_RESPONSE"
     assert result["failure_shape"] == "ERROR_KEY_LIVE"
     assert result["external_calls"] == 1
