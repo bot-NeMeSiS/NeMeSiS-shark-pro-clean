@@ -5813,14 +5813,22 @@ def odds_last_sync():
 
 def odds_recently_synced():
     last = odds_last_sync()
-    timestamp = last.get("time") or ""
+    # Current syncs persist "last_sync"; older builds used "time".
+    # Accept both so the paid Odds API cache guard survives deployments and
+    # does not spend credits again every cron tick.
+    timestamp = last.get("last_sync") or last.get("time") or ""
     if not timestamp:
         return False
     try:
         dt = datetime.fromisoformat(timestamp)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=TZ)
+        else:
+            dt = dt.astimezone(TZ)
         return (datetime.now(TZ) - dt).total_seconds() < odds_cache_minutes() * 60
-    except ValueError:
+    except (TypeError, ValueError):
         return False
+
 
 
 def odds_event_id(sport_key, event):
@@ -5927,7 +5935,14 @@ def sync_odds_events(limit=250, force=False):
         return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no está activo."]}
     if odds_recently_synced() and not force:
         last = odds_last_sync()
-        return {"ok": True, "skipped": True, "reason": "cache_activa", "cache_minutes": odds_cache_minutes(), **last}
+        return {
+            **last,
+            "ok": last.get("ok", True) is not False,
+            "skipped": True,
+            "reason": "cache_activa",
+            "cache_minutes": odds_cache_minutes(),
+            "external_calls": 0,
+        }
     log_id = sync_log_start("The Odds API", "events")
     try:
         fetched, errors, quota = fetch_odds_events(limit=limit)
