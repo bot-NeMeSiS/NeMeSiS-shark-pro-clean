@@ -304,6 +304,16 @@ from engines.final_release_engine import final_release_snapshot, final_release_v
 from engines.client_visual_perfection_engine import client_visual_perfection_snapshot
 from engines.calendar_experience_engine import calendar_experience_snapshot
 from engines.payment_readiness_engine import payment_readiness_snapshot
+from engines.founder_os_engine import (
+    acknowledge_alert as founder_acknowledge_alert,
+    founder_alert_tick,
+    founder_os_snapshot,
+    mark_obligation_paid as founder_mark_obligation_paid,
+    push_configuration as founder_push_configuration,
+    save_obligation as founder_save_obligation,
+    save_push_subscription as founder_save_push_subscription,
+    test_founder_push,
+)
 from engines.legal_compliance_engine import (
     LEGAL_COMPLIANCE_VERSION,
     legal_compliance_payload,
@@ -2115,6 +2125,15 @@ def telegram_cron_with_sports_sync(force=False):
         deep_history,
         _sports_entity_freshness_snapshot(),
     )
+    try:
+        telegram_result["founder_alerts"] = founder_alert_tick(DB_PATH)
+    except Exception as exc:
+        telegram_result["founder_alerts"] = {
+            "ok": False,
+            "status": "CONTROLLED_ERROR",
+            "safe_error": type(exc).__name__,
+            "sent": 0,
+        }
     return telegram_result
 
 
@@ -3794,6 +3813,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "team_crest_svg",
     "service_worker",
     "manifest_json",
+    "founder_manifest_json",
     "favicon_ico",
     "apple_touch_icon",
     "static",
@@ -14600,7 +14620,9 @@ def service_worker():
         f"const NEMESIS_CACHE='NEMESIS_CACHE_V940_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
-        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
+        "self.addEventListener('push',event=>{let data={};try{data=event.data?event.data.json():{};}catch(e){data={body:event.data?event.data.text():'NeMeSiS Founder'};}const title=data.title||'NeMeSiS Founder';const options={body:data.body||'',icon:'/static/img/app-icons/app-icon-192.png',badge:'/static/img/app-icons/app-icon-192.png',tag:data.tag||'nemesis-founder',data:{url:data.url||'/admin/founder-os#inbox',severity:data.severity||'INFO'}};event.waitUntil(self.registration.showNotification(title,options));});\n"
+        "self.addEventListener('notificationclick',event=>{event.notification.close();const target=(event.notification.data&&event.notification.data.url)||'/admin/founder-os#inbox';event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus' in client){client.navigate(target);return client.focus();}}return clients.openWindow(target);}));});\n"
     )
     response = Response(body, mimetype="application/javascript")
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -14630,6 +14652,33 @@ def manifest_json():
             {
                 "src": url_for("static", filename=f"img/app-icons/app-icon-maskable-{size}.png", v=APP_ICON_VERSION),
                 "sizes": f"{size}x{size}", "type": "image/png", "purpose": "maskable",
+            }
+            for size in (192, 512)
+        ],
+    })
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.mimetype = "application/manifest+json"
+    return response
+
+
+@app.route("/founder-manifest.json")
+def founder_manifest_json():
+    response = jsonify({
+        "name": "NeMeSiS Founder Control",
+        "short_name": "Founder",
+        "description": "Centro de control privado de NeMeSiS para PC y móvil.",
+        "id": "/admin/founder-os",
+        "start_url": "/admin/founder-os",
+        "scope": "/",
+        "display": "standalone",
+        "theme_color": "#06111f",
+        "background_color": "#06111f",
+        "icons": [
+            {
+                "src": url_for("static", filename=f"img/app-icons/app-icon-{size}.png", v=APP_ICON_VERSION),
+                "sizes": f"{size}x{size}",
+                "type": "image/png",
+                "purpose": "any",
             }
             for size in (192, 512)
         ],
@@ -19781,7 +19830,7 @@ def local_safe_quick_login(profile):
     session["nemesis_local_access"] = True
     session["nemesis_local_profile"] = profile
     if profile == "founder":
-        return redirect("/admin/founder-dashboard")
+        return redirect("/admin/founder-os")
     if profile == "admin":
         return redirect("/admin/control-center")
     return redirect("/app")
@@ -32327,6 +32376,97 @@ def go_to_market_office_snapshot():
         "product_review_score": review.get("score") or review.get("overall_score") or "No certificado",
         "next_action": "Cerrar evidencias operativas de LRM-001 antes de invitar usuarios beta reales.",
     }
+
+
+@app.route("/admin/founder-os")
+@app.route("/admin/founder-control")
+@app.route("/admin/company-control-center")
+@app.route("/admin/founder-mobile")
+def admin_founder_os_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-os")
+    return render_template(
+        "admin_founder_os.html",
+        data=dashboard_data(),
+        founder_os=founder_os_snapshot(DB_PATH),
+        title="NeMeSiS Founder OS",
+    )
+
+
+@app.route("/api/admin/founder-os")
+def api_admin_founder_os():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "founder_os": founder_os_snapshot(DB_PATH)})
+
+
+@app.route("/admin/founder-os/obligations/save", methods=["POST"])
+def admin_founder_os_save_obligation():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-os")
+    try:
+        founder_save_obligation(
+            DB_PATH,
+            request.form.to_dict(flat=True),
+            actor=session.get("user_name") or "admin",
+        )
+        return redirect("/admin/founder-os?billing=saved#billing")
+    except ValueError as exc:
+        return redirect(
+            "/admin/founder-os?billing=error&reason="
+            + urllib.parse.quote(str(exc))
+            + "#billing"
+        )
+
+
+@app.route("/admin/founder-os/obligations/<obligation_id>/paid", methods=["POST"])
+def admin_founder_os_mark_paid(obligation_id):
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-os")
+    founder_mark_obligation_paid(
+        DB_PATH,
+        obligation_id,
+        actor=session.get("user_name") or "admin",
+    )
+    return redirect("/admin/founder-os?billing=paid#billing")
+
+
+@app.route("/admin/founder-os/alerts/<alert_id>/ack", methods=["POST"])
+def admin_founder_os_ack_alert(alert_id):
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/founder-os")
+    founder_acknowledge_alert(DB_PATH, alert_id)
+    return redirect("/admin/founder-os?alert=ack#inbox")
+
+
+@app.route("/api/admin/founder-os/push/subscribe", methods=["POST"])
+def api_admin_founder_os_push_subscribe():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    try:
+        result = founder_save_push_subscription(
+            DB_PATH,
+            request.get_json(silent=True) or {},
+            user_id=session.get("user_id") or "admin",
+            user_agent=request.headers.get("User-Agent") or "",
+        )
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.route("/api/admin/founder-os/push/test", methods=["POST"])
+def api_admin_founder_os_push_test():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(test_founder_push(DB_PATH))
+
+
+@app.route("/api/admin/founder-os/push/status")
+def api_admin_founder_os_push_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, **founder_push_configuration()})
 
 
 @app.route("/admin/founder-dashboard")
