@@ -18745,13 +18745,14 @@ def calendar_page():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
-    calendar_summary = _v940_calendar_with_persisted_history(summary, lane, date_value)
-    data["calendar"] = v940_calendar_context(calendar_summary, lane, date_value)
+    realtime_summary = summary
+    summary = _v940_calendar_with_persisted_history(summary, lane, date_value)
+    data["calendar"] = v940_calendar_context(summary, lane, date_value)
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
-    data["v925_calendar"] = _v931_provider_context(summary)
-    data["v934_realtime"] = get_realtime_safe_matches_context(summary)
+    data["v925_calendar"] = _v931_provider_context(realtime_summary)
+    data["v934_realtime"] = get_realtime_safe_matches_context(realtime_summary)
     return render_template("calendar.html", data=data)
 
 
@@ -25806,6 +25807,7 @@ def api_calendar():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     _data, summary = v932_safe_dashboard_data("/api/calendar", "today", date_value, compact=True)
+    summary = _v940_calendar_with_persisted_history(summary, lane, date_value)
     calendar = v940_calendar_context(summary, lane, date_value)
     return jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
 
