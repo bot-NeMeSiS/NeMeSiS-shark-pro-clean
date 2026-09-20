@@ -4,13 +4,13 @@ Actualizacion: 2026-09-20. Autoridad: GitHub main + Render observado. Sin PII ni
 
 ## Identidad actual
 
-- GitHub `main`: `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+- GitHub `main`: `cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`.
 - Origen: merge de PR #16, candidato reconciliado del 19/09.
 - PR #16: MERGED.
 - PR #19: MERGED; Calendario hidrata resultados persistidos para fechas pasadas mediante lectura SQLite sin nuevas llamadas a proveedor.
 - PR #14 Directo: CLOSED / SUPERSEDED por main; su frente funcional sigue abierto a validacion real.
 - PR #15 integracion Sentinel: CLOSED / SUPERSEDED por PR #16.
-- Render web `nemesissharkpro`: LIVE en el SHA exacto `959ce5b2...`.
+- Render web `nemesissharkpro`: LIVE en el SHA exacto `cc6c7dfc...`.
 - Render cron `telegram-auto-tick`: LIVE en el mismo SHA.
 
 ## Evidencia verificada
@@ -56,7 +56,7 @@ Prioridad interna activa tras el cierre de Sentinel.
 
 ## Calendar history follow-up
 
-- PR #23: MERGED en `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+- PR #23: MERGED en `cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`.
 - Finalizados y Resultados respetan la fecha seleccionada.
 - `/api/calendar` hidrata el mismo histórico persistido que la página.
 - El contador de Finalizados es date-scoped.
@@ -68,7 +68,7 @@ Prioridad interna activa tras el cierre de Sentinel.
 
 ## Calendar history follow-up
 
-- PR #23: MERGED en `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+- PR #23: MERGED en `cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`.
 - Finalizados y Resultados respetan la fecha seleccionada.
 - `/api/calendar` hidrata el mismo histórico persistido que la página.
 - El contador de Finalizados es date-scoped.
@@ -77,3 +77,13 @@ Prioridad interna activa tras el cierre de Sentinel.
 - Track Record/ROI permanece separado.
 - Resultado pendiente no se convierte en 0-0.
 - Web y cron Render están LIVE en el SHA actual; barrido inicial sin 500/502/503/Traceback/ERROR.
+
+## Sports Reality diagnostics — PR #26
+
+- PR #26 MERGED en `cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`.
+- Web y cron Render observados LIVE sobre el mismo SHA.
+- La app distingue ahora fuente de la ventana actual, contribucion efectiva, cache reutilizada y frescura del acceso al proveedor.
+- Evidencia historica de API-Football no puede presentarse como acceso actual: `provider_access_is_current` y `provider_access_freshness` lo separan explicitamente.
+- Live y Odds se diagnostican por separado de la fuente principal.
+- Los errores se exponen solo mediante reason codes saneados.
+- Falta registrar el primer tick de cron posterior al deploy para conocer la fuente REAL actual observada. Hasta entonces no se asigna una fuente concreta.
