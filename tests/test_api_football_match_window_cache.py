@@ -75,3 +75,45 @@ def test_match_window_force_refresh_reaches_provider_after_local_setup(tmp_path,
     assert result["status"] == "OK"
     assert result["external_calls"] == 3
     assert [path for path, _params in calls] == ["fixtures", "fixtures", "fixtures"]
+
+def test_match_window_cached_provider_failure_stays_failure_without_new_call(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "match-window-failure-cache.db")
+    _enable_provider(monkeypatch)
+    tracker.ensure_live_tracker_schema(db_path)
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO api_football_live_sync_state(
+            key,last_sync_at,status,fixtures_count,events_count,stats_count,
+            external_calls,error,payload_json
+        ) VALUES (?,?,?,?,?,?,?,?,?)
+        """,
+        ("match_window", tracker._now_iso(), "PARTIAL", 0, 0, 0, 5, "provider failure", "{}"),
+    )
+    conn.commit()
+    conn.close()
+
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        return {"ok": True, "response": []}
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+
+    result = tracker.sync_api_football_match_window(
+        db_path,
+        days_back=1,
+        days_ahead=1,
+        force=False,
+        deep_limit=0,
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "CACHE_PROVIDER_FAILURE"
+    assert result["cached_provider_failure"] is True
+    assert result["cached_from_status"] == "PARTIAL"
+    assert result["external_calls"] == 0
+    assert calls == []
+

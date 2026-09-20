@@ -1504,6 +1504,8 @@ def _sports_stage_reason_code(stage):
     status = str(stage.get("status") or "").lower()
     if "pendiente_api_football" in status:
         return "NOT_CONFIGURED_OR_DISABLED"
+    if stage.get("cached_provider_failure") is True:
+        return "CACHED_PROVIDER_ERROR"
     raw = json.dumps(
         {"error": stage.get("error"), "errors": stage.get("errors")},
         ensure_ascii=True,

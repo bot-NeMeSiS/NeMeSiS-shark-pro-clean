@@ -468,3 +468,20 @@ def test_safe_failure_class_survives_compact_and_master_cron_sanitizer(app_modul
     assert "api_football_match_window_RuntimeError" not in str(sanitized)
     assert "secret-canary" not in str(sanitized)
 
+def test_cached_provider_failure_is_not_reclassified_as_local_precall(app_module):
+    stage = {
+        "ok": False,
+        "status": "CACHE_PROVIDER_FAILURE",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "cached_provider_failure": True,
+        "cached_from_status": "PARTIAL",
+        "error": "cached_provider_failure",
+    }
+    assert app_module._sports_stage_reason_code(stage) == "CACHED_PROVIDER_ERROR"
+    diagnostics = app_module._build_sports_pipeline_diagnostics({"fixtures": stage}, {})
+    primary = diagnostics["current_sync"]["api_football_primary"]
+    assert primary["reason_code"] == "CACHED_PROVIDER_ERROR"
+    assert primary["failure_class"] == ""
+

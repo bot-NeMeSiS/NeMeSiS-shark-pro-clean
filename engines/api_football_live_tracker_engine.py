@@ -1187,8 +1187,37 @@ def sync_api_football_match_window(
             conn.commit()
             return state
         age = _last_sync_age_for_key(conn, _state_key_for_window())
-        if not force and age is not None and age < cache_seconds:
-            return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "external_calls": 0, "message": "Ventana API-Football reutilizada para proteger créditos."}
+        if not force and age < cache_seconds:
+            cached_row = conn.execute(
+                "SELECT status, fixtures_count FROM api_football_live_sync_state WHERE key=?",
+                (_state_key_for_window(),),
+            ).fetchone()
+            cached_status = str((cached_row["status"] if cached_row else "") or "").strip().upper()
+            cached_fixtures = _as_int(cached_row["fixtures_count"] if cached_row else 0, 0)
+            if cached_status == "OK":
+                return {
+                    "ok": True,
+                    "configured": True,
+                    "enabled": True,
+                    "status": "cache",
+                    "cache_age_seconds": age,
+                    "fixtures_count": cached_fixtures,
+                    "external_calls": 0,
+                    "message": "Ventana API-Football reutilizada para proteger créditos.",
+                }
+            return {
+                "ok": False,
+                "configured": True,
+                "enabled": True,
+                "status": "CACHE_PROVIDER_FAILURE",
+                "cache_age_seconds": age,
+                "fixtures_count": cached_fixtures,
+                "external_calls": 0,
+                "cached_provider_failure": True,
+                "cached_from_status": cached_status or "UNKNOWN",
+                "error": "cached_provider_failure",
+                "message": "Se conserva el fallo del proveedor en caché para proteger cuota y mantener el fallback.",
+            }
         dates = _date_range(days_back, days_ahead)
         fixtures_count = stats_count = events_count = calls = 0
         errors = []
