@@ -54,6 +54,7 @@ def test_cached_odds_sync_makes_zero_provider_calls(app_module, monkeypatch):
             "processed": 7,
             "last_sync": _iso(app_module),
             "external_calls": 14,
+            "errors": ["historical provider error"],
         },
     )
     monkeypatch.setattr(app_module, "odds_cache_minutes", lambda: 60)
@@ -70,5 +71,9 @@ def test_cached_odds_sync_makes_zero_provider_calls(app_module, monkeypatch):
     assert result["ok"] is True
     assert result["skipped"] is True
     assert result["reason"] == "cache_activa"
+    assert result["status"] == "CACHE_REUSED"
     assert result["external_calls"] == 0
-    assert result["processed"] == 7
+    assert result["processed"] == 0
+    assert result["errors"] == []
+    assert result["cached_processed"] == 7
+    assert result["cached_external_calls"] == 14
