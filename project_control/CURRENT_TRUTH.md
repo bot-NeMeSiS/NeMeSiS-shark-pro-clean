@@ -87,3 +87,16 @@ Prioridad interna activa tras el cierre de Sentinel.
 - Live y Odds se diagnostican por separado de la fuente principal.
 - Los errores se exponen solo mediante reason codes saneados.
 - Falta registrar el primer tick de cron posterior al deploy para conocer la fuente REAL actual observada. Hasta entonces no se asigna una fuente concreta.
+
+## REAL_PRODUCTION Sports Reality — 12:55 Madrid
+
+Primer tick ejecutado despues de PR #26 sobre `cc6c7dfc33eb2909adb2c66e5b7175e330e2f1d0`:
+
+- master cron: `overall=PASS`.
+- fuente de ventana actual: `SPORTSDB_FALLBACK`.
+- SportsDB: `used=true`, `data_contributed=true`, `processed=180`, `ok=true`.
+- API-Football primary: `used=false`, `data_contributed=false`, `fixtures_count=0`, `state=ERROR`, `reason_code=PROVIDER_ERROR`.
+- acceso API-Football: `provider_access_is_current=false`, `provider_access_freshness=LAST_OBSERVED_NOT_CURRENT`; la observacion de acceso del 10/09 es historica, no prueba acceso actual.
+- Live: ejecuto 1 llamada y 0 fixtures; devolvio resultado util/parcial, pero registro error.
+- Odds: ejecuto 14 llamadas, 0 procesados y registro error.
+- Se detecto defecto diagnostico: etapas `ok=true` con errores quedaban `reason_code=NONE`. PR #29 corrige esa contradiccion; hasta su validacion/merge no se da Sports Reality por cerrado.
