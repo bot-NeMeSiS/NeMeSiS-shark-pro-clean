@@ -19,6 +19,8 @@ CASES = {"valid": "/valid.png", "404": "/404.png", "blocked": "/blocked.png", "t
 def render_crest(path: str, name: str, source: str | None) -> str:
     env = Environment(autoescape=True)
     env.filters["team_crest_url"] = lambda value: ""
+    # Isolated macro QA has no Flask template context; identity text stays unchanged.
+    env.globals["ui"] = lambda value: value
     ast = env.parse((ROOT / "templates" / path).read_text(encoding="utf-8"))
     macro = next(item for item in ast.find_all(nodes.Macro) if item.name == name)
     template = env.from_string(nodes.Template([macro]))
