@@ -5,8 +5,8 @@
 Esta sección sustituye como verdad actual al snapshot local del 2026-09-19 que se
 mantiene debajo únicamente como procedencia histórica.
 
-- GitHub `main`: `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
-- Render Web y Cron: LIVE exactamente en `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
+- Baseline de `main` verificado antes del candidato STALE: `c7237c4669f7f5c5e0ceefe4150fd71039b49507`. Después de un merge, consultar GitHub `main` y Render exact-SHA para obtener la identidad vigente.
+- Render Web y Cron estaban LIVE exactamente en ese baseline al abrir el candidato; un SHA posterior solo se considera producción cuando Render lo marque LIVE.
 - Auto Deploy activo desde `main`; Cron cada 5 minutos.
 - PR #48/#50/#51/#52 integradas. PR #49 cerrada como supersedida por #51.
 - #51 pasó CI QA + preflight + Smoke; el primer cron posterior fue PASS y no gastó
