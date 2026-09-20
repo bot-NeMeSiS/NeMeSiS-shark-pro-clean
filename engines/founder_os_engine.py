@@ -206,6 +206,21 @@ def sports_data_freshness_snapshot(db_path):
             "evidence_age_seconds":age_seconds,
             "source_state_key":state_key,
             "provider_calls":0,
+            "stale_samples":[
+                {
+                    "fixture_id":_safe(item.get("fixture_id"),100),
+                    "home_team":_safe(item.get("home_team"),120),
+                    "away_team":_safe(item.get("away_team"),120),
+                    "competition":_safe(item.get("competition"),140),
+                    "provider":_safe(item.get("provider"),80),
+                    "provider_observed_at":_safe(item.get("provider_observed_at"),100),
+                    "freshness_seconds":_nonnegative_int(item.get("freshness_seconds")),
+                    "stale_reason":_safe(item.get("stale_reason"),100),
+                    "status_canonical":_safe(item.get("status_canonical"),60),
+                }
+                for item in list(freshness.get("stale_samples") or [])[:5]
+                if isinstance(item,dict)
+            ],
         }
         conn.close()
         return result
@@ -218,6 +233,7 @@ def sports_data_freshness_snapshot(db_path):
         "total":0,"fresh":0,"observed":0,"stale":0,"not_established":0,
         "reason":"Founder OS todavía no tiene una observación persistida de frescura deportiva.",
         "observed_at":"","evidence_age_seconds":None,"source_state_key":"","provider_calls":0,
+        "stale_samples":[],
     }
 
 def _provider_evidence(conn,key):
