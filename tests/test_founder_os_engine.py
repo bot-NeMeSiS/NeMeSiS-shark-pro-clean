@@ -50,6 +50,17 @@ def test_founder_os_surfaces_canonical_sports_freshness_from_last_tick(tmp_path)
                     'stale':2,
                     'not_established':1,
                     'reason':'Parte de la muestra está stale o no establece reloj válido.',
+                    'stale_samples':[{
+                        'fixture_id':'stale-founder-1',
+                        'home_team':'Equipo A',
+                        'away_team':'Equipo B',
+                        'competition':'Liga Founder',
+                        'provider':'SportsDB',
+                        'provider_observed_at':'2026-09-20T09:00:00+00:00',
+                        'freshness_seconds':5400,
+                        'stale_reason':'LIVE_OBSERVATION_TOO_OLD',
+                        'status_canonical':'LIVE',
+                    }],
                 }
             }
         }
@@ -67,6 +78,10 @@ def test_founder_os_surfaces_canonical_sports_freshness_from_last_tick(tmp_path)
     assert freshness['source_state_key']=='telegram_tick_last_detail'
     assert freshness['provider_calls']==0
     assert isinstance(freshness['evidence_age_seconds'],int)
+    assert freshness['stale_samples'][0]['fixture_id']=='stale-founder-1'
+    assert freshness['stale_samples'][0]['provider']=='SportsDB'
+    assert freshness['stale_samples'][0]['freshness_seconds']==5400
+    assert freshness['stale_samples'][0]['stale_reason']=='LIVE_OBSERVATION_TOO_OLD'
     assert any(item['category']=='SPORTS_DATA' and item['severity']=='WARNING' for item in snap['alerts']['items'])
 
 
@@ -81,6 +96,7 @@ def test_founder_os_does_not_infer_sports_freshness_without_evidence(tmp_path):
     assert freshness['provider_calls']==0
     assert freshness['observed_at']==''
     assert freshness['evidence_age_seconds'] is None
+    assert freshness['stale_samples']==[]
     sports_alert=next(item for item in snap['alerts']['items'] if item['category']=='SPORTS_DATA')
     assert sports_alert['severity']=='HIGH'
     assert sports_alert['push_eligible'] is False
