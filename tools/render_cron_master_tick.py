@@ -236,8 +236,12 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
                 "processed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("processed")),
                 "external_calls": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("external_calls")),
+                "provider_identity_rows_reconciled": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("provider_identity_rows_reconciled")),
                 "stale_reconciliation_candidates": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_candidates")),
                 "stale_reconciliation_observed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_observed")),
+                "stale_reconciliation_resolved": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_resolved")),
+                "stale_reconciliation_remaining": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_remaining")),
+                "stale_reconciliation_missing": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_missing")),
                 "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
             },
             "live_refresh": {
