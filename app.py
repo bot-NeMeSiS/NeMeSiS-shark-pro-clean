@@ -1515,6 +1515,30 @@ def _sports_stage_reason_code(stage):
         return "RATE_OR_QUOTA"
     if any(token in raw for token in ("timeout", "timed out", "urlerror", "connection", "network", "dns")):
         return "NETWORK_OR_TIMEOUT"
+    external_calls = as_int(
+        stage.get("external_calls")
+        or (stage.get("metrics") or {}).get("external_calls"),
+        0,
+    )
+    configured = stage.get("configured")
+    enabled = stage.get("enabled")
+    if (
+        stage.get("ok") is False
+        and external_calls == 0
+        and (stage.get("error") or stage.get("errors"))
+        and configured is not False
+        and enabled is not False
+    ):
+        if any(token in raw for token in (
+            "operationalerror",
+            "sqlite",
+            "database",
+            "database is locked",
+            "no such table",
+            "schema",
+        )):
+            return "LOCAL_DB_OR_SCHEMA"
+        return "LOCAL_PRECALL_ERROR"
     if stage.get("error") or stage.get("errors"):
         return "PROVIDER_ERROR"
     if stage.get("ok") is True:

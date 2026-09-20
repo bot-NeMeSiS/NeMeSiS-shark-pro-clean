@@ -355,3 +355,39 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
     assert result["external_calls"] == 21
     assert any(str(item).startswith("odds_PARTIAL") for item in result["errors"])
     assert any(str(item).startswith("live_partial") for item in result["errors"])
+
+
+def test_zero_call_configured_failure_is_local_not_provider(app_module):
+    stage = {
+        "ok": False,
+        "status": "ERROR",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "error": "api_football_match_window_OperationalError",
+    }
+    assert app_module._sports_stage_reason_code(stage) == "LOCAL_DB_OR_SCHEMA"
+
+
+def test_zero_call_unknown_failure_is_pre_call_runtime(app_module):
+    stage = {
+        "ok": False,
+        "status": "ERROR",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "error": "api_football_match_window_RuntimeError",
+    }
+    assert app_module._sports_stage_reason_code(stage) == "LOCAL_PRECALL_ERROR"
+
+
+def test_provider_failure_after_real_call_keeps_provider_reason(app_module):
+    stage = {
+        "ok": False,
+        "status": "PARTIAL",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 1,
+        "errors": ["provider response rejected"],
+    }
+    assert app_module._sports_stage_reason_code(stage) == "PROVIDER_ERROR"
