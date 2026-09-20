@@ -206,6 +206,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
             "api_football_primary": {
                 "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                 "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
                 "enabled": (raw_current_sync.get("api_football_primary") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("enabled"), bool) else None,
@@ -215,6 +216,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             },
             "sportsdb_fallback": {
                 "state": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("sportsdb_fallback") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
                 "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
                 "processed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("processed")),
@@ -222,6 +224,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             },
             "live_refresh": {
                 "state": safe_label((raw_current_sync.get("live_refresh") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("live_refresh") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
                 "external_calls": safe_count((raw_current_sync.get("live_refresh") or {}).get("external_calls")),
                 "fixtures_count": safe_count((raw_current_sync.get("live_refresh") or {}).get("fixtures_count")),
@@ -229,6 +232,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             },
             "odds_refresh": {
                 "state": safe_label((raw_current_sync.get("odds_refresh") or {}).get("state"), secret),
+                "reason_code": safe_label((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
                 "processed": safe_count((raw_current_sync.get("odds_refresh") or {}).get("processed")),
                 "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
