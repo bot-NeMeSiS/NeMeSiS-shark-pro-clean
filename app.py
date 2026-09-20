@@ -1509,6 +1509,29 @@ def _sports_stage_reason_code(stage):
         ensure_ascii=True,
         default=str,
     ).lower()[:1600]
+    external_calls = as_int(
+        stage.get("external_calls")
+        or (stage.get("metrics") or {}).get("external_calls"),
+        0,
+    )
+    configured = stage.get("configured")
+    enabled = stage.get("enabled")
+    if (
+        external_calls == 0
+        and (stage.get("error") or stage.get("errors"))
+        and configured is not False
+        and enabled is not False
+    ):
+        if any(token in raw for token in (
+            "operationalerror",
+            "sqlite",
+            "database",
+            "database is locked",
+            "no such table",
+            "schema",
+        )):
+            return "LOCAL_DB_OR_SCHEMA"
+        return "LOCAL_PRECALL_ERROR"
     if any(token in raw for token in ("401", "403", "unauthor", "forbidden", "token", "api key", "api_key", "access denied")):
         return "AUTH_OR_ACCESS"
     if any(token in raw for token in ("429", "quota", "rate limit", "too many", "request limit", "daily limit")):
