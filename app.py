@@ -1803,6 +1803,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             "data_contributed": primary_has_data,
             "cache_reused": str(fixtures_stage.get("status") or "").lower() == "cache",
             "reason_code": _sports_stage_reason_code(fixtures_stage),
+            "provider_reason_code": _sports_diagnostic_text(fixtures_stage.get("provider_reason_code"), 80) or "UNKNOWN",
             "failure_class": _sports_safe_failure_class(
                 fixtures_stage,
                 "api_football_match_window_",
@@ -1826,6 +1827,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
         "live_refresh": {
             "state": _sports_diagnostic_text(live_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(live_stage),
+            "provider_reason_code": _sports_diagnostic_text(live_stage.get("provider_reason_code"), 80) or "UNKNOWN",
             "ok": live_stage.get("ok") if isinstance(live_stage.get("ok"), bool) else None,
             "external_calls": as_int(live_stage.get("external_calls"), 0),
             "fixtures_count": as_int(live_stage.get("fixtures_count"), 0),
@@ -2206,6 +2208,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
                     "cache_reused": bool((raw_current_sync.get("api_football_primary") or {}).get("cache_reused")),
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("reason_code"), 80) or "UNKNOWN",
+                    "provider_reason_code": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("provider_reason_code"), 80) or "UNKNOWN",
                     "failure_class": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("failure_class"), 80) or "",
                     "ok": (raw_current_sync.get("api_football_primary") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("ok"), bool) else None,
                     "configured": (raw_current_sync.get("api_football_primary") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_primary") or {}).get("configured"), bool) else None,
@@ -2226,6 +2229,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "live_refresh": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
+                    "provider_reason_code": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("provider_reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
                     "external_calls": as_int((raw_current_sync.get("live_refresh") or {}).get("external_calls"), 0),
                     "fixtures_count": as_int((raw_current_sync.get("live_refresh") or {}).get("fixtures_count"), 0),
