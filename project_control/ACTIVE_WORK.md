@@ -1,5 +1,29 @@
 # Active Work
 
+## Frente remoto activo · 2026-09-20
+
+Único siguiente bloque autorizado por la evidencia actual: **Sports stale evidence
++ continuidad operativa**.
+
+Objetivo:
+- reutilizar `build_realtime_state_snapshot` y `_sports_entity_freshness_snapshot`;
+- mantener los contadores actuales sin cambiar su clasificación;
+- adjuntar como máximo 5 muestras STALE con fixture/partido, competición, proveedor,
+  reloj observado, antigüedad, motivo y estado canónico;
+- transportar la muestra por diagnóstico -> compact cron -> sanitizador;
+- hacer que Founder OS la muestre sin llamadas a APIs;
+- añadir regresiones de límite, contrato y redacción de secretos;
+- actualizar `project_control` en el mismo cambio para evitar otro deploy solo por docs.
+
+Base remota al iniciar este frente:
+`c7237c4669f7f5c5e0ceefe4150fd71039b49507`, Web/Cron LIVE.
+
+No se modifica el algoritmo de frescura, no se inventan datos, no se fuerzan
+proveedores, no se alteran pagos/membresías/Telegram y no se dispara deploy manual.
+
+## Historial local preservado · 2026-09-19
+
+
 Actualizado 2026-09-19. Vista resumida; estados ejecutables solo en [CODEX_QUEUE](CODEX_QUEUE.md).
 
 ## CX-002 / OPS-002: organizacion incremental
