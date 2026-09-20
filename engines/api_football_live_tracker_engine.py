@@ -579,6 +579,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         cached_live_row = conn.execute(
             "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key='live'"
         ).fetchone()
+        cached_live_status = str((cached_live_row["status"] if cached_live_row else "") or "").strip().upper()
         cached_live_error = str((cached_live_row["error"] if cached_live_row else "") or "")
         cached_live_failure = (
             _safe_provider_state_label({"ok": False, "error": cached_live_error})
@@ -594,6 +595,14 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "SUBSCRIPTION_RESTRICTED",
             "PLAN_OR_COVERAGE_OTHER",
         }
+        cached_live_shape = "ERROR_KEY_ACCESS" if "ERROR_KEY_ACCESS" in cached_live_status else ""
+        restricted_failure_category = (
+            cached_live_failure
+            if cached_live_failure in plan_failure_labels
+            else "ACCESS_RESTRICTED"
+            if cached_live_shape == "ERROR_KEY_ACCESS"
+            else ""
+        )
         plan_backoff_seconds = max(
             300,
             min(
@@ -606,7 +615,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         )
         if (
             not force
-            and cached_live_failure in plan_failure_labels
+            and restricted_failure_category
             and age < plan_backoff_seconds
         ):
             matches = _live_tracker_matches_from_conn(conn, limit=100)
@@ -614,11 +623,12 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
                 "ok": True,
                 "configured": True,
                 "enabled": True,
-                "status": f"PROVIDER_FAILURE_BACKOFF_{cached_live_failure}",
+                "status": f"PROVIDER_FAILURE_BACKOFF_{restricted_failure_category}",
                 "cache_age_seconds": age,
                 "backoff_seconds": plan_backoff_seconds,
                 "retry_after_seconds": max(0, plan_backoff_seconds - age),
-                "failure_category": cached_live_failure,
+                "failure_category": restricted_failure_category,
+                "failure_shape": cached_live_shape,
                 "provider_failure_backoff": True,
                 "skipped": True,
                 "matches": matches,

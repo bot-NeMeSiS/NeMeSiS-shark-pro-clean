@@ -13,7 +13,7 @@ def _enable_provider(monkeypatch):
     monkeypatch.setenv("API_FOOTBALL_LIVE_PLAN_BACKOFF_SECONDS", "21600")
 
 
-def _insert_live_failure(db_path, *, error, last_sync_at=None):
+def _insert_live_failure(db_path, *, error, last_sync_at=None, status="partial"):
     tracker.ensure_live_tracker_schema(db_path)
     conn = sqlite3.connect(db_path)
     conn.execute(
@@ -26,7 +26,7 @@ def _insert_live_failure(db_path, *, error, last_sync_at=None):
         (
             "live",
             last_sync_at or tracker._now_iso(),
-            "partial",
+            status,
             0,
             0,
             0,
@@ -222,3 +222,53 @@ def test_live_refresh_includes_safe_error_shape_without_extra_calls(tmp_path, mo
     assert result["external_calls"] == 1
     assert [path for path, _params in calls] == ["fixtures"]
     assert "secret-canary" not in result["failure_shape"]
+
+
+def test_live_access_shape_backoff_uses_zero_provider_calls(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-access-backoff.db")
+    _enable_provider(monkeypatch)
+    _insert_live_failure(
+        db_path,
+        error="opaque provider response secret-canary",
+        status="partial_PROVIDER_RESPONSE_ERROR_KEY_ACCESS",
+    )
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        return {"ok": True, "response": []}
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_live_tracker(db_path, force=False, deep_limit=0)
+
+    assert result["ok"] is True
+    assert result["status"] == "PROVIDER_FAILURE_BACKOFF_ACCESS_RESTRICTED"
+    assert result["failure_category"] == "ACCESS_RESTRICTED"
+    assert result["failure_shape"] == "ERROR_KEY_ACCESS"
+    assert result["provider_failure_backoff"] is True
+    assert result["external_calls"] == 0
+    assert result["retry_after_seconds"] > 0
+    assert calls == []
+    assert "secret-canary" not in str(result)
+
+
+def test_force_refresh_bypasses_live_access_shape_backoff(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-access-force.db")
+    _enable_provider(monkeypatch)
+    _insert_live_failure(
+        db_path,
+        error="opaque provider response secret-canary",
+        status="partial_PROVIDER_RESPONSE_ERROR_KEY_ACCESS",
+    )
+    calls = []
+
+    def fake_get(path, params=None, timeout=18):
+        calls.append((path, dict(params or {})))
+        return {"ok": True, "response": []}
+
+    monkeypatch.setattr(tracker, "_api_get", fake_get)
+    result = tracker.sync_api_football_live_tracker(db_path, force=True, deep_limit=0)
+
+    assert result["status"] == "ok"
+    assert result["external_calls"] == 1
+    assert [path for path, _params in calls] == ["fixtures"]
