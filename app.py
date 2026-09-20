@@ -1523,7 +1523,8 @@ def _sports_stage_reason_code(stage):
     configured = stage.get("configured")
     enabled = stage.get("enabled")
     if (
-        external_calls == 0
+        stage.get("ok") is False
+        and external_calls == 0
         and (stage.get("error") or stage.get("errors"))
         and configured is not False
         and enabled is not False
