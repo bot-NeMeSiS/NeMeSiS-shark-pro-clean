@@ -310,3 +310,43 @@ def test_ok_true_with_specific_error_keeps_specific_reason(app_module):
         "ok": True,
         "errors": ["connection timed out after partial data"],
     }) == "NETWORK_OR_TIMEOUT"
+
+
+def test_odds_cache_reuse_never_replays_previous_calls_as_current(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "seed_core", lambda: None)
+    monkeypatch.setattr(app_module, "odds_recently_synced", lambda: True)
+    monkeypatch.setattr(app_module, "odds_cache_minutes", lambda: 60)
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": True,
+        "time": "2026-09-20T12:50:00+02:00",
+        "last_sync": "2026-09-20T12:50:00+02:00",
+        "external_calls": 14,
+        "processed": 0,
+        "errors": ["historical provider error"],
+        "skipped": False,
+        "quota": {"requests_remaining": 1234},
+    })
+    monkeypatch.setattr(
+        app_module,
+        "fetch_odds_events",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("cache hit must not call provider")),
+    )
+
+    cached = app_module.sync_odds_events(limit=80, force=False)
+
+    assert cached["ok"] is True
+    assert cached["status"] == "CACHE_REUSED"
+    assert cached["skipped"] is True
+    assert cached["external_calls"] == 0
+    assert cached["processed"] == 0
+    assert cached["errors"] == []
+    assert cached["cached_external_calls"] == 14
+    assert cached["last_sync"] == "2026-09-20T12:50:00+02:00"
+
+    diagnostics = app_module._build_sports_pipeline_diagnostics({"odds": cached}, {})
+    odds = diagnostics["current_sync"]["odds_refresh"]
+    assert odds["state"] == "CACHE_REUSED"
+    assert odds["external_calls"] == 0
+    assert odds["processed"] == 0
+    assert odds["error_present"] is False
+    assert odds["reason_code"] == "NONE"
