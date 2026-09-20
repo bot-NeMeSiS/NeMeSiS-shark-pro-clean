@@ -58,6 +58,9 @@ def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_erro
         "external_calls": 1,
         "fixtures_count": 0,
         "error_present": True,
+        "used": False,
+        "data_contributed": False,
+        "cache_reused": False,
     }
     assert current["sportsdb_fallback"]["ok"] is True
     assert current["sportsdb_fallback"]["used"] is True
