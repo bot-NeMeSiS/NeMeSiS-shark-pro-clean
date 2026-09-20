@@ -146,3 +146,65 @@ def test_calendar_provider_state_is_unchanged_without_historical_results(app_mod
     }
     monkeypatch.setattr(app_module, "_v931_provider_context", lambda summary: dict(expected))
     assert app_module._v940_calendar_provider_context({}) == expected
+
+
+def test_finished_lane_and_counter_are_scoped_to_selected_date(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "today_iso", _today_factory("2026-09-20"))
+    selected = _finished("selected-day", "2026-09-18")
+    other = _finished("other-day", "2026-09-17")
+    summary = _empty_summary(app_module)
+    summary["all_valid_matches"] = [selected, other]
+    summary["finished_matches"] = [selected, other]
+    summary["sports_metrics"] = app_module.build_sports_metrics_contract(summary)
+
+    with app_module.app.test_request_context("/calendar?lane=finished&date=2026-09-18"):
+        calendar = app_module.v940_calendar_context(summary, "finished", "2026-09-18")
+
+    assert [item["id"] for item in calendar["matches"]] == ["selected-day"]
+    assert calendar["counts"]["finished"] == 1
+
+
+def test_calendar_api_hydrates_same_persisted_history_as_page(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "today_iso", _today_factory("2026-09-20"))
+    monkeypatch.setattr(app_module, "get_results_matches", lambda *a, **k: [_finished()])
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *a, **k: ({}, _empty_summary(app_module)),
+    )
+
+    response = app_module.app.test_client().get(
+        "/api/calendar?lane=today&date=2026-09-18"
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert [item["id"] for item in payload["matches"]] == ["hist-result-1"]
+    assert payload["calendar"]["external_calls"] == 0
+    assert payload["calendar"]["database_written"] is False
+
+
+def test_calendar_page_provider_state_uses_hydrated_history(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "today_iso", _today_factory("2026-09-20"))
+    monkeypatch.setattr(app_module, "get_results_matches", lambda *a, **k: [_finished()])
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *a, **k: ({}, _empty_summary(app_module)),
+    )
+    captured = {}
+
+    def render(name, **kwargs):
+        captured["name"] = name
+        captured.update(kwargs)
+        return "ok"
+
+    monkeypatch.setattr(app_module, "render_template", render)
+    with app_module.app.test_request_context("/calendar?lane=today&date=2026-09-18"):
+        assert app_module.calendar_page() == "ok"
+
+    assert captured["name"] == "calendar.html"
+    state = captured["data"]["v925_calendar"]
+    assert state["has_real_data"] is True
+    assert state["provider_status"] == "data_available"
+    assert "Resultados persistidos" in state["safe_message"]
