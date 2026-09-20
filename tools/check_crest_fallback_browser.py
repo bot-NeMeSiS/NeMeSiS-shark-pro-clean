@@ -18,6 +18,10 @@ CASES = {"valid": "/valid.png", "404": "/404.png", "blocked": "/blocked.png", "t
 
 def render_crest(path: str, name: str, source: str | None) -> str:
     env = Environment(autoescape=True)
+    # The shared V933 macro now expects the same UI-localization helper that Flask injects.
+    # This isolated regression renders only synthetic Spanish QA labels, so identity is correct
+    # and keeps the harness independent from request/session state.
+    env.globals["ui"] = lambda value, *args, **kwargs: value
     env.filters["team_crest_url"] = lambda value: ""
     ast = env.parse((ROOT / "templates" / path).read_text(encoding="utf-8"))
     macro = next(item for item in ast.find_all(nodes.Macro) if item.name == name)
