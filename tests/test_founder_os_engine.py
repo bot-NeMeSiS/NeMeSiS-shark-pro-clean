@@ -1,4 +1,6 @@
 from datetime import datetime,timedelta,timezone
+import json
+import sqlite3
 from engines import founder_os_engine as founder
 
 def test_obligation_due_alert_and_paid_rollover(tmp_path):
@@ -21,3 +23,62 @@ def test_push_configuration_never_exposes_private_key(monkeypatch):
 def test_push_subscription_public_result_is_hashed(tmp_path):
     db=str(tmp_path/'push.db'); result=founder.save_push_subscription(db,{'endpoint':'https://push.example.invalid/a','keys':{'p256dh':'p','auth':'a'}})
     assert result['ok'] and 'push.example.invalid' not in str(result); assert founder.push_snapshot(db)['subscriptions']==1
+
+
+def _save_automation_state(db,key,payload):
+    conn=sqlite3.connect(db)
+    conn.execute("CREATE TABLE IF NOT EXISTS automation_state(key TEXT PRIMARY KEY,value_json TEXT,updated_at TEXT)")
+    conn.execute("INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",(key,json.dumps(payload),datetime.now(timezone.utc).isoformat(timespec="seconds")))
+    conn.commit(); conn.close()
+
+
+def test_founder_os_surfaces_canonical_sports_freshness_from_last_tick(tmp_path):
+    db=str(tmp_path/'sports-freshness.db')
+    observed=datetime.now(timezone.utc).isoformat(timespec="seconds")
+    _save_automation_state(db,'telegram_tick_last_detail',{
+        'called_at':observed,
+        'finished_at':observed,
+        'compact':{
+            'sports_pipeline':{
+                'data_freshness':{
+                    'state':'PARTIAL',
+                    'entity_timestamps_evaluated':True,
+                    'scope':'MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS',
+                    'total':10,
+                    'fresh':3,
+                    'observed':4,
+                    'stale':2,
+                    'not_established':1,
+                    'reason':'Parte de la muestra está stale o no establece reloj válido.',
+                }
+            }
+        }
+    })
+
+    snap=founder.founder_os_snapshot(db)
+    freshness=snap['sports_data_freshness']
+
+    assert freshness['contract']=='NEMESIS-FOUNDER-SPORTS-FRESHNESS-V1'
+    assert freshness['state']=='PARTIAL'
+    assert freshness['total']==10
+    assert freshness['fresh']==3
+    assert freshness['stale']==2
+    assert freshness['not_established']==1
+    assert freshness['source_state_key']=='telegram_tick_last_detail'
+    assert freshness['provider_calls']==0
+    assert isinstance(freshness['evidence_age_seconds'],int)
+    assert any(item['category']=='SPORTS_DATA' and item['severity']=='WARNING' for item in snap['alerts']['items'])
+
+
+def test_founder_os_does_not_infer_sports_freshness_without_evidence(tmp_path):
+    db=str(tmp_path/'sports-unknown.db')
+    snap=founder.founder_os_snapshot(db)
+    freshness=snap['sports_data_freshness']
+
+    assert freshness['state']=='NOT_ESTABLISHED'
+    assert freshness['entity_timestamps_evaluated'] is False
+    assert freshness['total']==0
+    assert freshness['provider_calls']==0
+    assert freshness['observed_at']==''
+    assert freshness['evidence_age_seconds'] is None
+    assert any(item['category']=='SPORTS_DATA' and item['severity']=='HIGH' for item in snap['alerts']['items'])
