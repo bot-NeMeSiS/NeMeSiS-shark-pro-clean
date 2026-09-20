@@ -6044,6 +6044,17 @@ def odds_event_to_match(sport, event):
     }
 
 
+def _odds_systemic_failure_response(response):
+    """Return True only when repeating the same Odds request family is wasteful."""
+    response = dict(response or {}) if isinstance(response, dict) else {}
+    status = as_int(response.get("http_status"), 0)
+    return bool(
+        status == 0
+        or status in {400, 401, 402, 403, 429}
+        or status >= 500
+    )
+
+
 def fetch_odds_events(limit=250):
     events = []
     errors = []
@@ -6053,6 +6064,9 @@ def fetch_odds_events(limit=250):
         "requests_used": 0,
         "requests_remaining": 0,
         "http_status": 0,
+        "systemic_failure": False,
+        "systemic_http_status": 0,
+        "stopped_early": False,
     }
     for sport in odds_competitions():
         if len(events) >= int(limit):
@@ -6076,6 +6090,11 @@ def fetch_odds_events(limit=250):
             payload = response.get("payload")
             if not response.get("ok"):
                 errors.append(f"{sport['name']}: {response.get('error') or 'provider_error'}")
+                if _odds_systemic_failure_response(response):
+                    quota["systemic_failure"] = True
+                    quota["systemic_http_status"] = as_int(response.get("http_status"), 0)
+                    quota["stopped_early"] = True
+                    break
                 continue
             if isinstance(payload, list):
                 events.extend([(sport, item) for item in payload if isinstance(item, dict)])
@@ -6124,6 +6143,18 @@ def sync_odds_events(limit=250, force=False):
         result = upsert_sportsdb_matches(match_rows)
         odds_snapshot_result = upsert_odds_snapshots(fetched)
         result["errors"] = errors[:12]
+        if errors and not fetched:
+            result["ok"] = False
+            result["status"] = (
+                "PROVIDER_FAILURE_STOPPED_EARLY"
+                if quota.get("systemic_failure")
+                else "PROVIDER_FAILURE"
+            )
+        elif errors:
+            result["status"] = "PARTIAL_PROVIDER_ERRORS"
+        else:
+            result["status"] = "OK"
+        result["provider_failure_systemic"] = bool(quota.get("systemic_failure"))
         result["source"] = "The Odds API"
         result["sync_type"] = "events"
         result["inserted"] = result.get("inserted", result.get("imported", 0))

@@ -77,3 +77,86 @@ def test_cached_odds_sync_makes_zero_provider_calls(app_module, monkeypatch):
     assert result["errors"] == []
     assert result["cached_processed"] == 7
     assert result["cached_external_calls"] == 14
+
+
+
+def test_odds_systemic_failure_stops_after_first_competition(app_module, monkeypatch):
+    sports = [
+        {"odds_key": "soccer_a", "name": "Liga A"},
+        {"odds_key": "soccer_b", "name": "Liga B"},
+        {"odds_key": "soccer_c", "name": "Liga C"},
+    ]
+    calls = []
+    monkeypatch.setattr(app_module, "odds_competitions", lambda: list(sports))
+
+    def fake_request(path, params=None):
+        calls.append(path)
+        return {
+            "ok": False,
+            "payload": {},
+            "http_status": 429,
+            "quota": {},
+            "error": "HTTPError",
+        }
+
+    monkeypatch.setattr(app_module, "odds_api_request", fake_request)
+
+    events, errors, quota = app_module.fetch_odds_events(limit=80)
+
+    assert events == []
+    assert len(errors) == 1
+    assert calls == ["sports/soccer_a/odds"]
+    assert quota["observed_calls"] == 1
+    assert quota["systemic_failure"] is True
+    assert quota["systemic_http_status"] == 429
+    assert quota["stopped_early"] is True
+
+
+def test_odds_sport_specific_not_found_does_not_stop_other_competitions(
+    app_module,
+    monkeypatch,
+):
+    sports = [
+        {"odds_key": "soccer_old", "name": "Liga antigua"},
+        {"odds_key": "soccer_live", "name": "Liga válida"},
+    ]
+    calls = []
+    monkeypatch.setattr(app_module, "odds_competitions", lambda: list(sports))
+
+    responses = [
+        {
+            "ok": False,
+            "payload": {},
+            "http_status": 404,
+            "quota": {},
+            "error": "HTTPError",
+        },
+        {
+            "ok": True,
+            "payload": [
+                {
+                    "id": "event-1",
+                    "home_team": "A",
+                    "away_team": "B",
+                }
+            ],
+            "http_status": 200,
+            "quota": {},
+            "error": "",
+        },
+    ]
+
+    def fake_request(path, params=None):
+        calls.append(path)
+        return responses.pop(0)
+
+    monkeypatch.setattr(app_module, "odds_api_request", fake_request)
+
+    events, errors, quota = app_module.fetch_odds_events(limit=80)
+
+    assert len(errors) == 1
+    assert len(events) == 1
+    assert len(calls) == 2
+    assert quota["observed_calls"] == 2
+    assert quota["systemic_failure"] is False
+    assert quota["stopped_early"] is False
