@@ -6083,9 +6083,6 @@ def fetch_odds_events(limit=250):
         "requests_used": 0,
         "requests_remaining": 0,
         "http_status": 0,
-        "systemic_failure": False,
-        "systemic_http_status": 0,
-        "stopped_early": False,
     }
     for sport in odds_competitions():
         if len(events) >= int(limit):
