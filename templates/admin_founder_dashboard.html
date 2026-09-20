@@ -55,6 +55,7 @@
 {% set issue_health = issue_ledger.health or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
+    {'label':'Founder OS','href':'/admin/founder-os','primary':true,'icon':'dashboard'},
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
     {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},

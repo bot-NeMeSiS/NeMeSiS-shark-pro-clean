@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#020c18">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="NeMeSiS">
+  {% set _founder_pwa = request.path.startswith('/admin/founder-os') or request.path.startswith('/admin/founder-control') or request.path.startswith('/admin/company-control-center') or request.path.startswith('/admin/founder-mobile') %}
+  <meta name="apple-mobile-web-app-title" content="{{ 'NeMeSiS Founder' if _founder_pwa else 'NeMeSiS' }}">
   <meta name="nemesis-version" content="{{ app_version }}">
   {% set _meta_title = title if title is defined and title else 'NeMeSiS SHARK PRO' %}
   {% set _meta_description = meta_description if meta_description is defined and meta_description else 'Deporte con contexto, evidencia y limites visibles.' %}
@@ -26,7 +27,7 @@
   {% for _touch_size in (152, 167, 180) %}
   <link rel="apple-touch-icon" sizes="{{ _touch_size }}x{{ _touch_size }}" href="{{ url_for('static', filename='img/app-icons/app-icon-' ~ _touch_size ~ '.png', v=app_icon_version) }}">
   {% endfor %}
-  <link rel="manifest" href="{{ url_for('manifest_json') }}">
+  <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}-design-system-1-8" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
@@ -40,6 +41,10 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
+  {% if _founder_pwa %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}">
+  <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
+  {% endif %}
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
 {% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
