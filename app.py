@@ -1491,8 +1491,9 @@ def _sports_diagnostic_text(value, limit=120):
 
 def _sports_stage_reason_code(stage):
     stage = dict(stage or {}) if isinstance(stage, dict) else {}
-    if stage.get("ok") is True:
-        return "NONE"
+    # A partial stage may be usable and still report provider errors.  Never let
+    # ok=True erase that evidence: NONE means no recorded problem, not merely
+    # that the stage returned a usable result.
     if stage.get("sin_key") is True:
         return "NOT_CONFIGURED"
     if stage.get("disabled") is True:
@@ -1517,6 +1518,8 @@ def _sports_stage_reason_code(stage):
         return "NETWORK_OR_TIMEOUT"
     if stage.get("error") or stage.get("errors"):
         return "PROVIDER_ERROR"
+    if stage.get("ok") is True:
+        return "NONE"
     return "UNKNOWN"
 
 
