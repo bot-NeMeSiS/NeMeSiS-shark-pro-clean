@@ -616,8 +616,10 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         fixtures = live_payload.get("response") or []
         fixtures_count = events_count = stats_count = 0
         errors: list[str] = []
+        provider_failure_categories: list[str] = []
         if not live_payload.get("ok"):
             errors.append(str(live_payload.get("error") or live_payload.get("errors") or "Error API-Football live")[:220])
+            provider_failure_categories.append(_safe_provider_state_label(live_payload))
         for item in fixtures:
             fixtures_count += _upsert_fixture(conn, item)
         conn.commit()
@@ -632,13 +634,36 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
                 events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
             else:
                 errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
+                provider_failure_categories.append(_safe_provider_state_label(ev_payload))
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
             external_calls += 1
             if st_payload.get("ok"):
                 stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
             else:
                 errors.append(str(st_payload.get("error") or st_payload.get("errors") or "Estadísticas no disponibles")[:180])
-        status = "ok" if not errors else "partial"
+                provider_failure_categories.append(_safe_provider_state_label(st_payload))
+        failure_priority = (
+            "AUTH_OR_ACCESS",
+            "RATE_OR_QUOTA",
+            "NETWORK_OR_TIMEOUT",
+            "FREE_PLAN_SEASON_RESTRICTED",
+            "SEASON_UNAVAILABLE",
+            "FREE_PLAN_RESTRICTED",
+            "ENDPOINT_RESTRICTED",
+            "COVERAGE_UNAVAILABLE",
+            "SUBSCRIPTION_RESTRICTED",
+            "PLAN_OR_COVERAGE_OTHER",
+            "PLAN_OR_COVERAGE",
+            "PROVIDER_RESPONSE",
+            "UNKNOWN_PROVIDER_ERROR",
+        )
+        safe_failure_category = next(
+            (category for category in failure_priority if category in provider_failure_categories),
+            "",
+        )
+        status = "ok" if not errors else (
+            f"partial_{safe_failure_category}" if safe_failure_category else "partial"
+        )
         state = {
             "ok": True,
             "configured": True,
@@ -649,6 +674,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "stats_count": stats_count,
             "external_calls": external_calls,
             "cache_age_seconds": 0,
+            "failure_category": safe_failure_category,
             "errors": errors[:8],
             "message": "API-Football live sincronizado con caché y límites." if fixtures_count else "Sin partidos live devueltos por API-Football ahora mismo.",
         }
