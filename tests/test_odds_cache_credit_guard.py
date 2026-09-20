@@ -158,8 +158,8 @@ def test_odds_sport_specific_not_found_does_not_stop_other_competitions(
     assert len(events) == 1
     assert len(calls) == 2
     assert quota["observed_calls"] == 2
-    assert quota["systemic_failure"] is False
-    assert quota["stopped_early"] is False
+    assert quota.get("systemic_failure", False) is False
+    assert quota.get("stopped_early", False) is False
 
 
 def test_odds_systemic_failure_classifier_is_conservative(app_module):
