@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/betting_evidence.html" import betting_evidence with context %}
 {% block content %}
 <section class="hero compact product-hero">
   <div class="kicker">Admin · Betting QA</div>
@@ -30,8 +31,7 @@
     <article class="card rec-card">
       <div class="match-top"><div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r|match_time_label }}</div></div><span class="badge">{{ r.badge }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
-      <p><strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %} · {{ r.confidence }}%</p>
-      <p class="small">{{ r.reasoning }}</p>
+      {{ betting_evidence(r) }}
       <div class="inline-actions"><a class="mini-link" href="/admin/picks">Revisar en Admin Picks</a>{% if r.match_id %}<a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>{% else %}<span class="mini-link" aria-disabled="true">Partido no disponible</span>{% endif %}</div>
     </article>
     {% else %}<div class="empty">Pulsa generar recomendaciones para analizar próximos partidos reales.</div>{% endfor %}

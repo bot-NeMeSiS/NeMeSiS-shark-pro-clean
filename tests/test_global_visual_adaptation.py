@@ -37,10 +37,10 @@ def test_access_form_preserves_destination_and_fields(app_module):
         app_module.app.jinja_env.loader,
     ]))
     with app_module.app.test_request_context('/cliente-login?next=/favorites'):
-        html=env.get_template('client_login.html').render(data={})
+        html=env.get_template('client_login.html').render(data={}, ui_languages=app_module.LANGUAGE_NAMES, ui_locale='es')
     nodes=Elements(html).nodes
-    form=next(attrs for tag,attrs in nodes if tag=='form')
+    form=next(attrs for tag,attrs in nodes if tag=='form' and attrs.get('action')=='/cliente-login')
     assert form['action']=='/cliente-login' and form['method']=='post'
     inputs=[attrs for tag,attrs in nodes if tag=='input']
     assert {n.get('name') for n in inputs} >= {'login','password','next','plan'}
-    assert next(n for n in inputs if n.get('name')=='next')['value']=='/favorites'
+    assert any(n.get('name')=='next' and n.get('value')=='/favorites' for n in inputs)

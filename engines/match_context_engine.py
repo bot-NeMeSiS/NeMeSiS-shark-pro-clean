@@ -26,6 +26,7 @@ from engines.sports_domain_model_engine import (
 from engines.sports_knowledge_layer_engine import build_sports_knowledge_snapshot
 from engines.spanish_localization_engine import parse_datetime_to_madrid
 from engines.v935_launch_trust_engine import match_status_truth
+from engines.realtime_state_engine import observed_live_minute, observed_period_label
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
@@ -1004,14 +1005,15 @@ def _lifecycle_from_domain(
         "ARCHIVED": "Finalizado",
         "INCOMPLETE": "Estado pendiente",
     }
+    observed_minute = observed_live_minute(raw, is_live=bool(truth.get('is_live')))
     return {
         "key": lifecycle,
-        "label": labels.get(lifecycle, "Estado pendiente"),
+        "label": observed_period_label(raw, truth) or labels.get(lifecycle, "Estado pendiente"),
         "is_finished": bool(truth.get("is_finished")),
         "is_live": bool(truth.get("is_live")),
         "is_stale": bool(truth.get("is_stale")),
         "stale_reason": truth.get("stale_reason") or "",
-        "minute": match.get("minute") if truth.get("is_live") else None,
+        "minute": (observed_minute if observed_minute and '+' in observed_minute else match.get("minute")) if truth.get("is_live") else None,
         "phase": lifecycle.lower(),
         "source": match.get("source") or raw.get("source"),
         "evidence_state": match.get("data_quality") or "INSUFFICIENT_DATA",

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes %}
+{% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes with context %}
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
@@ -54,7 +54,7 @@
     <div>
       <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
       {% if current_user %}
-      <h1>Buenos días, <span>{{ current_user.name or current_user.username or 'cliente' }}</span></h1>
+      <h1 data-madrid-greeting>{{ greeting.label }}{% if greeting.name %}, <span>{{ greeting.name }}</span>{% endif %}</h1>
       <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
       <div class="v933-hero-actions">
         {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}
@@ -79,9 +79,9 @@
       </div>
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
         <a href="/live"><strong>LIVE</strong><span>1 toque</span></a>
-        <a href="/calendar"><strong>HOY</strong><span>Partidos</span></a>
-        <a href="/favorites"><strong>★</strong><span>Favoritos</span></a>
-        <a href="/picks"><strong>SHARK</strong><span>Picks</span></a>
+        <a href="/calendar"><strong>{{ ui("HOY") }}</strong><span>{{ ui("Partidos") }}</span></a>
+        <a href="/favorites"><strong>★</strong><span>{{ ui("Favoritos") }}</span></a>
+        <a href="/picks"><strong>SHARK</strong><span>{{ ui("Picks") }}</span></a>
       </nav>
     </div>
 
@@ -195,22 +195,22 @@
       <button class="v933-action is-blue" type="button" data-launch-onboarding-dismiss aria-label="Omitir guía inicial"><span>Omitir</span></button>
     </div>
     <div class="v933-launch-guide-grid is-compact">
-      <a class="v933-launch-step" href="/live" data-launch-step="live">{{ icon('live') }}<span>Directo</span><strong>Ver live</strong><small>1 toque.</small></a>
-      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>Partidos</span><strong>Explorar</strong><small>Todo el catálogo.</small></a>
+      <a class="v933-launch-step" href="/live" data-launch-step="live">{{ icon('live') }}<span>{{ ui("Directo") }}</span><strong>Ver live</strong><small>1 toque.</small></a>
+      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Partidos") }}</span><strong>{{ ui("Explorar") }}</strong><small>Todo el catálogo.</small></a>
       <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendar' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Match</span><strong>Detalle</strong><small>Contexto real.</small></a>
-      <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>Evidencia</strong><small>Sin promesas.</small></a>
-      <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>Favoritos</span><strong>Personal</strong><small>Tu radar.</small></a>
-      <a class="v933-launch-step" href="/memberships" data-launch-step="pro">{{ icon('star') }}<span>PRO</span><strong>Planes</strong><small>Sin letra pequeña.</small></a>
+      <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>{{ ui("Evidencia") }}</strong><small>Sin promesas.</small></a>
+      <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>
+      <a class="v933-launch-step" href="/memberships" data-launch-step="pro">{{ icon('star') }}<span>PRO</span><strong>{{ ui("Planes") }}</strong><small>Sin letra pequeña.</small></a>
     </div>
   </section>
 
   <section class="v933-panel v933-launch-continuity" data-launch-excellence="productivity" data-top100-improvement="19,20,26,33,83">
     {{ section_header('Continuar', '', 'Smart Home', '/smart-home') }}
     <div class="v933-launch-continuity-grid is-compact">
-      <a class="v933-launch-memory-card is-primary" href="/smart-home" data-launch-continue="last-route" data-launch-last-match="true" data-fallback-label="Abrir Smart Home">{{ icon('arrow') }}<span>Continuar</span><strong>Smart Home</strong><small>Tu siguiente acción.</small></a>
-      <a class="v933-launch-memory-card" href="/daily-briefing">{{ icon('calendar') }}<span>Briefing</span><strong>Hoy</strong><small>Prioridades.</small></a>
+      <a class="v933-launch-memory-card is-primary" href="/smart-home" data-launch-continue="last-route" data-launch-last-match="true" data-fallback-label="Abrir Smart Home">{{ icon('arrow') }}<span>{{ ui("Continuar") }}</span><strong>Smart Home</strong><small>Tu siguiente acción.</small></a>
+      <a class="v933-launch-memory-card" href="/daily-briefing">{{ icon('calendar') }}<span>Briefing</span><strong>{{ ui("Hoy") }}</strong><small>Prioridades.</small></a>
       <a class="v933-launch-memory-card" href="/evening-recap">{{ icon('history') }}<span>Recap</span><strong>Cierre</strong><small>Cambios.</small></a>
-      <a class="v933-launch-memory-card" href="/activity-center">{{ icon('data') }}<span>Actividad</span><strong>Reciente</strong><small>Tu recorrido.</small></a>
+      <a class="v933-launch-memory-card" href="/activity-center">{{ icon('data') }}<span>{{ ui("Actividad") }}</span><strong>Reciente</strong><small>Tu recorrido.</small></a>
     </div>
   </section>
 
@@ -225,7 +225,7 @@
     <div class="v933-three-col">
       <div><strong>Sports first</strong><p>Live, importancia y favoritos mandan.</p></div>
       <div><strong>SHARK con evidencia</strong><p>Sin datos suficientes, no hay señal inventada.</p></div>
-      <div><strong>Juego responsable</strong><p>+18. No somos casa de apuestas.</p></div>
+      <div><strong>{{ ui("Juego responsable") }}</strong><p>+18. No somos casa de apuestas.</p></div>
     </div>
   </section>
   {{ evidence_receipt('Sports Relevance activo', 'Home ordena por directo, tier, favoritos, proximidad, frescura y datos completos. Picks son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Home, Directo y Partidos') }}

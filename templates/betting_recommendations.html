@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/betting_evidence.html" import betting_evidence with context %}
 {% block content %}
 <section class="hero compact product-hero">
   <div class="kicker">SHARK Betting Radar</div>
@@ -20,10 +21,10 @@
       <div class="match-top"><div><div class="comp-name">{{ (r.league_name or 'Competición')|competition_es }}</div><div class="small">{{ r|match_time_label }}</div></div><span class="badge">{{ r.badge }}</span></div>
       <h3>{{ r.home_team }} vs {{ r.away_team }}</h3>
       <p class="selection">{{ r.market }} · <strong>{{ r.selection }}</strong>{% if r.odds %} · cuota {{ r.odds }}{% endif %}</p>
-      <div class="status"><span>{{ r.confidence }}% confianza</span><span>{{ r.risk_level }}</span><span>{% if r.has_real_odds %}Cuota real{% else %}Watchlist{% endif %}</span></div>
+      {{ betting_evidence(r) }}
       <p class="small"><strong>Motivo:</strong> {{ r.reasoning }}</p>
       <p class="small"><strong>Precaución:</strong> {{ r.warning_reason }}</p>
-      <div class="inline-actions"><a class="mini-link" href="/match/{{ r.match_id }}">Ver partido</a>{% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/api/betting/convert-to-pickid={{ r.id }}&publish=1">Publicar pick</a>{% endif %}</div>
+      {% if current_user and current_user.role == 'ADMIN' %}<a class="mini-link" href="/admin/picks">{{ ui('Revisión editorial') }}</a>{% endif %}
     </article>
     {% endfor %}
   </div>
