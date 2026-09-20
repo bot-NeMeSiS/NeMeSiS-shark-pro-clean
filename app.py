@@ -1940,8 +1940,12 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "used": fallback_used,
             "processed": as_int(fallback_stage.get("processed"), 0),
             "external_calls": as_int(fallback_stage.get("external_calls"), 0),
+            "provider_identity_rows_reconciled": as_int(fallback_stage.get("provider_identity_rows_reconciled"), 0),
             "stale_reconciliation_candidates": as_int(fallback_stage.get("stale_reconciliation_candidates"), 0),
             "stale_reconciliation_observed": as_int(fallback_stage.get("stale_reconciliation_observed"), 0),
+            "stale_reconciliation_resolved": as_int(fallback_stage.get("stale_reconciliation_resolved"), 0),
+            "stale_reconciliation_remaining": as_int(fallback_stage.get("stale_reconciliation_remaining"), 0),
+            "stale_reconciliation_missing": as_int(fallback_stage.get("stale_reconciliation_missing"), 0),
             "error_present": bool(fallback_stage.get("error") or fallback_stage.get("errors")),
         },
         "live_refresh": {
@@ -2388,8 +2392,12 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
                     "processed": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("processed"), 0),
                     "external_calls": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("external_calls"), 0),
+                    "provider_identity_rows_reconciled": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("provider_identity_rows_reconciled"), 0),
                     "stale_reconciliation_candidates": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_candidates"), 0),
                     "stale_reconciliation_observed": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_observed"), 0),
+                    "stale_reconciliation_resolved": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_resolved"), 0),
+                    "stale_reconciliation_remaining": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_remaining"), 0),
+                    "stale_reconciliation_missing": as_int((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_missing"), 0),
                     "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
                 },
                 "live_refresh": {
@@ -5170,91 +5178,138 @@ def upsert_sportsdb_matches(match_rows):
         conn.close()
 
 
+def _sportsdb_existing_provider_rows(cur, item):
+    """Resolve one SportsDB provider event across current and legacy internal ids."""
+    found = {}
+    direct = cur.execute("SELECT * FROM matches WHERE id=?", (item["id"],)).fetchone()
+    if direct:
+        direct_item = dict(direct)
+        found[str(direct_item.get("id") or item["id"])] = direct_item
+
+    external_id = str(item.get("external_id") or "").strip()
+    if external_id:
+        provider_rows = cur.execute(
+            """SELECT * FROM matches
+               WHERE external_id=?
+                 AND source LIKE 'TheSportsDB%'""",
+            (external_id,),
+        ).fetchall()
+        for row in provider_rows:
+            row_item = dict(row)
+            row_id = str(row_item.get("id") or "").strip()
+            if row_id:
+                found[row_id] = row_item
+    return list(found.values())
+
+
+def _write_sportsdb_match_snapshot(cur, item, target_id):
+    """Persist one provider observation atomically under an existing or current internal id."""
+    cur.execute(
+        """INSERT OR REPLACE INTO matches
+           (id,external_id,match_date,kickoff_time,match_time,kickoff_iso,competition_id,competition_key,competition_name,league_name,country,
+            home_team,away_team,home_team_id,away_team_id,home_logo,away_logo,status,minute,score,home_score,away_score,venue,season,round,
+            priority,source,legal_note,raw_json,last_synced_at,updated_at,bookmaker,odds_h2h_json,odds_updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            target_id,
+            item.get("external_id") or target_id,
+            item.get("match_date") or today_iso(),
+            item.get("kickoff_time") or "",
+            item.get("match_time") or item.get("kickoff_time") or "",
+            item.get("kickoff_iso") or kickoff_iso_value(item.get("match_date") or today_iso(), item.get("kickoff_time") or ""),
+            item.get("competition_id") or "",
+            item.get("competition_key") or "sportsdb",
+            item.get("competition_name") or "TheSportsDB",
+            item.get("league_name") or item.get("competition_name") or "TheSportsDB",
+            item.get("country") or "",
+            item.get("home_team") or "",
+            item.get("away_team") or "",
+            item.get("home_team_id") or "",
+            item.get("away_team_id") or "",
+            item.get("home_logo") or "",
+            item.get("away_logo") or "",
+            item.get("status") or "PROGRAMADO",
+            item.get("minute") or "",
+            item.get("score") or "",
+            "" if item.get("home_score") in {None, ""} else item.get("home_score"),
+            "" if item.get("away_score") in {None, ""} else item.get("away_score"),
+            item.get("venue") or "",
+            item.get("season") or "",
+            item.get("round") or "",
+            as_int(item.get("priority"), 70),
+            item.get("source") or "TheSportsDB API",
+            item.get("legal_note") or "API autorizada TheSportsDB",
+            item.get("raw_json") or "{}",
+            item.get("last_synced_at") or "",
+            now_iso(),
+            item.get("bookmaker") or "",
+            item.get("odds_h2h_json") or "",
+            item.get("odds_updated_at") or "",
+        ),
+    )
+
+    status_info = canonical_match_status(item)
+    if status_info.get("is_live"):
+        cur.execute(
+            """INSERT OR REPLACE INTO live_matches(id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (
+                "live-" + target_id,
+                target_id,
+                item.get("status") or "LIVE",
+                item.get("minute") or "",
+                "" if item.get("home_score") in {None, ""} else item.get("home_score"),
+                "" if item.get("away_score") in {None, ""} else item.get("away_score"),
+                item.get("raw_json") or "{}",
+                item.get("source") or "TheSportsDB API",
+                item.get("last_synced_at") or "",
+            ),
+        )
+    else:
+        cur.execute(
+            "DELETE FROM live_matches WHERE match_id=? OR id=?",
+            (target_id, "live-" + target_id),
+        )
+
+
 def _upsert_sportsdb_matches_transaction(conn, match_rows):
     from engines.realtime_state_engine import older_match_observation
     cur = conn.cursor()
-    # Serialize the comparison and replacement, also across importer processes.
+    # Serialize provider-identity reconciliation and replacement across importer processes.
     conn.execute("BEGIN IMMEDIATE")
     imported = 0
     updated = 0
     skipped = 0
+    provider_identity_rows_reconciled = 0
+
     for item in match_rows:
         if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
             skipped += 1
             continue
-        exists = cur.execute("SELECT * FROM matches WHERE id=?", (item["id"],)).fetchone()
-        if exists and older_match_observation(dict(exists), item):
+
+        existing_rows = _sportsdb_existing_provider_rows(cur, item)
+        # One newer row for the same provider event is enough to reject this whole snapshot.
+        # This prevents an older duplicate representation from rolling back any sibling row.
+        if any(older_match_observation(existing, item) for existing in existing_rows):
             skipped += 1
             continue
-        cur.execute(
-            """INSERT OR REPLACE INTO matches
-               (id,external_id,match_date,kickoff_time,match_time,kickoff_iso,competition_id,competition_key,competition_name,league_name,country,
-                home_team,away_team,home_team_id,away_team_id,home_logo,away_logo,status,minute,score,home_score,away_score,venue,season,round,
-                priority,source,legal_note,raw_json,last_synced_at,updated_at,bookmaker,odds_h2h_json,odds_updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                item["id"],
-                item.get("external_id") or item["id"],
-                item.get("match_date") or today_iso(),
-                item.get("kickoff_time") or "",
-                item.get("match_time") or item.get("kickoff_time") or "",
-                item.get("kickoff_iso") or kickoff_iso_value(item.get("match_date") or today_iso(), item.get("kickoff_time") or ""),
-                item.get("competition_id") or "",
-                item.get("competition_key") or "sportsdb",
-                item.get("competition_name") or "TheSportsDB",
-                item.get("league_name") or item.get("competition_name") or "TheSportsDB",
-                item.get("country") or "",
-                item.get("home_team") or "",
-                item.get("away_team") or "",
-                item.get("home_team_id") or "",
-                item.get("away_team_id") or "",
-                item.get("home_logo") or "",
-                item.get("away_logo") or "",
-                item.get("status") or "PROGRAMADO",
-                item.get("minute") or "",
-                item.get("score") or "",
-                "" if item.get("home_score") in {None, ""} else item.get("home_score"),
-                "" if item.get("away_score") in {None, ""} else item.get("away_score"),
-                item.get("venue") or "",
-                item.get("season") or "",
-                item.get("round") or "",
-                as_int(item.get("priority"), 70),
-                item.get("source") or "TheSportsDB API",
-                item.get("legal_note") or "API autorizada TheSportsDB",
-                item.get("raw_json") or "{}",
-                item.get("last_synced_at") or "",
-                now_iso(),
-                item.get("bookmaker") or "",
-                item.get("odds_h2h_json") or "",
-                item.get("odds_updated_at") or "",
-            ),
-        )
-        status_info = canonical_match_status(item)
-        if status_info.get("is_live"):
-            cur.execute(
-                """INSERT OR REPLACE INTO live_matches(id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?)""",
-                (
-                    "live-" + item["id"],
-                    item["id"],
-                    item.get("status") or "LIVE",
-                    item.get("minute") or "",
-                    "" if item.get("home_score") in {None, ""} else item.get("home_score"),
-                    "" if item.get("away_score") in {None, ""} else item.get("away_score"),
-                    item.get("raw_json") or "{}",
-                    item.get("source") or "TheSportsDB API",
-                    item.get("last_synced_at") or "",
-                ),
-            )
-        else:
-            cur.execute(
-                "DELETE FROM live_matches WHERE match_id=? OR id=?",
-                (item["id"], "live-" + item["id"]),
-            )
-        if exists:
+
+        target_ids = [str(existing.get("id") or "").strip() for existing in existing_rows]
+        target_ids = [target_id for target_id in target_ids if target_id]
+        if not target_ids:
+            target_ids = [item["id"]]
+
+        for target_id in target_ids:
+            _write_sportsdb_match_snapshot(cur, item, target_id)
+
+        if existing_rows:
             updated += 1
+            provider_identity_rows_reconciled += sum(
+                1 for target_id in target_ids if target_id != str(item.get("id") or "")
+            )
         else:
             imported += 1
+
     dedupe_result = cleanup_duplicate_matches(cur)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
@@ -5265,6 +5320,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         "imported": imported,
         "updated": updated,
         "skipped": skipped,
+        "provider_identity_rows_reconciled": provider_identity_rows_reconciled,
         "duplicates_removed": dedupe_result.get("duplicates_removed", 0),
         "duplicate_groups": dedupe_result.get("groups", 0),
         "processed": len(match_rows),
@@ -5278,6 +5334,51 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         ("sportsdb_feed_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
     )
     return summary
+
+
+def sportsdb_reconciliation_status(external_ids):
+    """Read-only result for bounded stale candidates after provider persistence."""
+    requested = []
+    for value in external_ids or []:
+        external_id = str(value or "").strip()
+        if external_id and external_id not in requested:
+            requested.append(external_id)
+        if len(requested) >= 10:
+            break
+    if not requested:
+        return {"requested": 0, "resolved": 0, "remaining": 0, "missing": 0}
+
+    placeholders = ",".join("?" for _ in requested)
+    try:
+        matched_rows = rows(
+            f"""SELECT * FROM matches
+                WHERE source LIKE 'TheSportsDB%'
+                  AND external_id IN ({placeholders})""",
+            tuple(requested),
+        )
+    except Exception:
+        return {"requested": len(requested), "resolved": 0, "remaining": 0, "missing": len(requested)}
+
+    grouped = {}
+    for row in matched_rows:
+        grouped.setdefault(str(row.get("external_id") or "").strip(), []).append(dict(row))
+
+    resolved = remaining = missing = 0
+    for external_id in requested:
+        items = grouped.get(external_id) or []
+        if not items:
+            missing += 1
+            continue
+        if any(v935_match_status_truth(item).get("is_stale") for item in items):
+            remaining += 1
+        else:
+            resolved += 1
+    return {
+        "requested": len(requested),
+        "resolved": resolved,
+        "remaining": remaining,
+        "missing": missing,
+    }
 
 
 def sync_sportsdb_feed(limit=220):
@@ -5314,9 +5415,13 @@ def sync_sportsdb_feed(limit=220):
         }
         priority_set = {str(value or "").strip() for value in priority_external_ids if str(value or "").strip()}
         result["errors"] = errors[:12]
+        reconciliation = sportsdb_reconciliation_status(priority_set)
         result["external_calls"] = external_calls
         result["stale_reconciliation_candidates"] = len(priority_set)
         result["stale_reconciliation_observed"] = len(priority_set & observed_external_ids)
+        result["stale_reconciliation_resolved"] = reconciliation["resolved"]
+        result["stale_reconciliation_remaining"] = reconciliation["remaining"]
+        result["stale_reconciliation_missing"] = reconciliation["missing"]
         result["live_enabled"] = sportsdb_live_enabled()
         result["sin_key"] = False
         sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
