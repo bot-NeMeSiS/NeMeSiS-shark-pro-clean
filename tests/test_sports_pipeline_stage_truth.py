@@ -436,3 +436,35 @@ def test_wrong_internal_prefix_is_not_exposed(app_module):
     diagnostics = app_module._build_sports_pipeline_diagnostics({"fixtures": stage}, {})
     primary = diagnostics["current_sync"]["api_football_primary"]
     assert primary["failure_class"] == ""
+
+
+def test_safe_failure_class_survives_compact_and_master_cron_sanitizer(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    payload = _fallback_run()
+    payload["fixtures"] = {
+        "ok": False,
+        "status": "ERROR",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "fixtures_count": 0,
+        "error": "api_football_match_window_RuntimeError",
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {"ok": True, "status": "OLD_MATCH", "sports_pipeline": diagnostics},
+        "2026-09-20T14:55:21+02:00",
+        "2026-09-20T14:55:27+02:00",
+    )["sports_pipeline"]
+    assert compact["current_sync"]["api_football_primary"]["reason_code"] == "LOCAL_PRECALL_ERROR"
+    assert compact["current_sync"]["api_football_primary"]["failure_class"] == "RuntimeError"
+
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
+    primary = sanitized["current_sync"]["api_football_primary"]
+    assert primary["reason_code"] == "LOCAL_PRECALL_ERROR"
+    assert primary["failure_class"] == "RuntimeError"
+    assert "api_football_match_window_RuntimeError" not in str(sanitized)
+    assert "secret-canary" not in str(sanitized)
+
