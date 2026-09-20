@@ -264,6 +264,21 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "stale": safe_count(raw_freshness.get("stale")),
             "not_established": safe_count(raw_freshness.get("not_established")),
             "reason": safe_label(raw_freshness.get("reason"), secret, ""),
+            "stale_samples": [
+                {
+                    "fixture_id": safe_label(item.get("fixture_id"), secret, ""),
+                    "home_team": safe_label(item.get("home_team"), secret, ""),
+                    "away_team": safe_label(item.get("away_team"), secret, ""),
+                    "competition": safe_label(item.get("competition"), secret, ""),
+                    "provider": safe_label(item.get("provider"), secret, ""),
+                    "provider_observed_at": safe_label(item.get("provider_observed_at"), secret, ""),
+                    "freshness_seconds": safe_count(item.get("freshness_seconds")),
+                    "stale_reason": safe_label(item.get("stale_reason"), secret, ""),
+                    "status_canonical": safe_label(item.get("status_canonical"), secret, ""),
+                }
+                for item in list(raw_freshness.get("stale_samples") or [])[:5]
+                if isinstance(item, dict)
+            ],
         },
     }
 

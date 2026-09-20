@@ -1626,6 +1626,27 @@ def _sports_entity_freshness_snapshot(limit=200):
             1 for item in states if item.get("freshness_state") == "NOT_ESTABLISHED"
         ),
     }
+    stale_samples = []
+    for item in states:
+        if item.get("freshness_state") != "STALE":
+            continue
+        stale_samples.append({
+            "fixture_id": _sports_diagnostic_text(item.get("fixture_id"), 100),
+            "home_team": _sports_diagnostic_text(item.get("home_team"), 120),
+            "away_team": _sports_diagnostic_text(item.get("away_team"), 120),
+            "competition": _sports_diagnostic_text(item.get("competition"), 140),
+            "provider": _sports_diagnostic_text(item.get("provider"), 80),
+            "provider_observed_at": _sports_diagnostic_text(
+                item.get("provider_observed_at"), 100
+            ),
+            "freshness_seconds": as_int(item.get("freshness_seconds"), 0),
+            "stale_reason": _sports_diagnostic_text(item.get("stale_reason"), 100),
+            "status_canonical": _sports_diagnostic_text(
+                item.get("status_canonical"), 60
+            ),
+        })
+        if len(stale_samples) >= 5:
+            break
     established = counts["total"] - counts["not_established"]
     if not counts["total"] or not established:
         state = "NOT_ESTABLISHED"
@@ -1651,6 +1672,7 @@ def _sports_entity_freshness_snapshot(limit=200):
         "scope": scope,
         **counts,
         "reason": reason,
+        "stale_samples": stale_samples,
     }
 
 
@@ -2088,6 +2110,25 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
                 "Los contadores del pipeline no acreditan la frescura de cada "
                 "partido, marcador, alineación o estadística."
             ),
+            "stale_samples": [
+                {
+                    "fixture_id": _sports_diagnostic_text(item.get("fixture_id"), 100),
+                    "home_team": _sports_diagnostic_text(item.get("home_team"), 120),
+                    "away_team": _sports_diagnostic_text(item.get("away_team"), 120),
+                    "competition": _sports_diagnostic_text(item.get("competition"), 140),
+                    "provider": _sports_diagnostic_text(item.get("provider"), 80),
+                    "provider_observed_at": _sports_diagnostic_text(
+                        item.get("provider_observed_at"), 100
+                    ),
+                    "freshness_seconds": as_int(item.get("freshness_seconds"), 0),
+                    "stale_reason": _sports_diagnostic_text(item.get("stale_reason"), 100),
+                    "status_canonical": _sports_diagnostic_text(
+                        item.get("status_canonical"), 60
+                    ),
+                }
+                for item in list(entity_freshness.get("stale_samples") or [])[:5]
+                if isinstance(item, dict)
+            ],
         },
     }
 
@@ -2372,6 +2413,25 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "stale": as_int(raw_freshness.get("stale"), 0),
                 "not_established": as_int(raw_freshness.get("not_established"), 0),
                 "reason": _sports_diagnostic_text(raw_freshness.get("reason"), 180),
+                "stale_samples": [
+                    {
+                        "fixture_id": _sports_diagnostic_text(item.get("fixture_id"), 100),
+                        "home_team": _sports_diagnostic_text(item.get("home_team"), 120),
+                        "away_team": _sports_diagnostic_text(item.get("away_team"), 120),
+                        "competition": _sports_diagnostic_text(item.get("competition"), 140),
+                        "provider": _sports_diagnostic_text(item.get("provider"), 80),
+                        "provider_observed_at": _sports_diagnostic_text(
+                            item.get("provider_observed_at"), 100
+                        ),
+                        "freshness_seconds": as_int(item.get("freshness_seconds"), 0),
+                        "stale_reason": _sports_diagnostic_text(item.get("stale_reason"), 100),
+                        "status_canonical": _sports_diagnostic_text(
+                            item.get("status_canonical"), 60
+                        ),
+                    }
+                    for item in list(raw_freshness.get("stale_samples") or [])[:5]
+                    if isinstance(item, dict)
+                ],
             },
         }
     if endpoint == "daily_run":

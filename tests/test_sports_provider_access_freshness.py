@@ -80,7 +80,31 @@ def test_current_access_is_explicitly_current(app_module):
 
 
 def test_freshness_survives_compact_endpoint_and_master_sanitizer(app_module):
-    pipeline = app_module._build_sports_pipeline_diagnostics(_historical(), _history())
+    entity_freshness = {
+        "state": "PARTIAL",
+        "entity_timestamps_evaluated": True,
+        "scope": "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+        "total": 2,
+        "fresh": 0,
+        "observed": 1,
+        "stale": 1,
+        "not_established": 0,
+        "reason": "Existe una fila stale.",
+        "stale_samples": [{
+            "fixture_id": "fixture-stale-1",
+            "home_team": "Local",
+            "away_team": "Visitante",
+            "competition": "Liga QA",
+            "provider": "SportsDB",
+            "provider_observed_at": "2026-09-20T09:00:00+00:00",
+            "freshness_seconds": 7200,
+            "stale_reason": "LIVE_OBSERVATION_TOO_OLD",
+            "status_canonical": "LIVE",
+        }],
+    }
+    pipeline = app_module._build_sports_pipeline_diagnostics(
+        _historical(), _history(), entity_freshness
+    )
     compact = app_module._cron_compact_payload(
         "telegram_tick",
         {"ok": True, "status": "OLD_MATCH", "sports_pipeline": pipeline},
@@ -91,10 +115,53 @@ def test_freshness_survives_compact_endpoint_and_master_sanitizer(app_module):
     assert compact["provider_access_is_current"] is False
     assert compact["provider_access_freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert compact["provider_access"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert compact["data_freshness"]["state"] == "PARTIAL"
+    assert compact["data_freshness"]["stale_samples"][0]["fixture_id"] == "fixture-stale-1"
+    assert compact["data_freshness"]["stale_samples"][0]["stale_reason"] == "LIVE_OBSERVATION_TOO_OLD"
 
     sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
     assert sanitized["provider_access_is_current"] is False
     assert sanitized["provider_access_freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert sanitized["provider_access"]["is_current"] is False
     assert sanitized["provider_access"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert sanitized["data_freshness"]["stale_samples"][0]["fixture_id"] == "fixture-stale-1"
+    assert sanitized["data_freshness"]["stale_samples"][0]["freshness_seconds"] == 7200
     assert "historical unauthorized detail" not in str(sanitized)
+
+
+def test_entity_freshness_exposes_only_bounded_canonical_stale_samples(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: [{"id": "seed"}])
+    stale = [
+        {
+            "fixture_id": f"stale-{index}",
+            "home_team": f"Local {index}",
+            "away_team": f"Visitante {index}",
+            "competition": "Liga QA",
+            "provider": "SportsDB",
+            "provider_observed_at": "2026-09-20T09:00:00+00:00",
+            "freshness_seconds": 3600 + index,
+            "freshness_state": "STALE",
+            "stale_reason": "LIVE_OBSERVATION_TOO_OLD",
+            "status_canonical": "LIVE",
+        }
+        for index in range(7)
+    ]
+    monkeypatch.setattr(
+        app_module,
+        "build_realtime_state_snapshot",
+        lambda _sample: {"matches": stale + [{
+            "fixture_id": "observed-ok",
+            "freshness_state": "OBSERVED",
+            "is_stale": False,
+        }]},
+    )
+
+    snapshot = app_module._sports_entity_freshness_snapshot(limit=200)
+
+    assert snapshot["state"] == "PARTIAL"
+    assert snapshot["stale"] == 7
+    assert len(snapshot["stale_samples"]) == 5
+    assert [item["fixture_id"] for item in snapshot["stale_samples"]] == [
+        "stale-0", "stale-1", "stale-2", "stale-3", "stale-4"
+    ]
+    assert all(item["stale_reason"] == "LIVE_OBSERVATION_TOO_OLD" for item in snapshot["stale_samples"])
