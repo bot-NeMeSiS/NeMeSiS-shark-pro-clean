@@ -272,3 +272,36 @@ def test_force_refresh_bypasses_live_access_shape_backoff(tmp_path, monkeypatch)
     assert result["status"] == "ok"
     assert result["external_calls"] == 1
     assert [path for path, _params in calls] == ["fixtures"]
+
+
+def test_live_backoff_separates_current_count_from_cached_count(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "live-cache-count-truth.db")
+    _enable_provider(monkeypatch)
+    _insert_live_failure(
+        db_path,
+        error="opaque provider response secret-canary",
+        status="partial_PROVIDER_RESPONSE_ERROR_KEY_ACCESS",
+    )
+    cached = [{"id": "cached-1"}, {"id": "cached-2"}]
+    monkeypatch.setattr(
+        tracker,
+        "_live_tracker_matches_from_conn",
+        lambda _conn, limit=100: list(cached),
+    )
+    monkeypatch.setattr(
+        tracker,
+        "_api_get",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("provider must not be called during access backoff")
+        ),
+    )
+
+    result = tracker.sync_api_football_live_tracker(db_path, force=False, deep_limit=0)
+
+    assert result["status"] == "PROVIDER_FAILURE_BACKOFF_ACCESS_RESTRICTED"
+    assert result["fixtures_count"] == 0
+    assert result["cached_fixtures_count"] == 2
+    assert result["cache_reused"] is True
+    assert result["data_contributed"] is False
+    assert len(result["matches"]) == 2
+    assert result["external_calls"] == 0
