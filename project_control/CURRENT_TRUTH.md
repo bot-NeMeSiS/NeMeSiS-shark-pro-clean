@@ -28,10 +28,12 @@ Actualizacion: 2026-09-20. Autoridad: GitHub main + Render observado. Sin PII ni
 - Codigo Sentinel y project control estan integrados en main.
 - El runner de escritorio sigue siendo LOCAL SAFE: no se convierte en executor productivo por estar desplegado.
 - CI separa los tests LOCAL SAFE/Sentinel en procesos aislados sin retirar la suite estandar.
-- Prioridad interna actual: cerrar OPS-001 sobre el main actual, verificando limites de ejecucion/persistencia y reconciliacion de verdad operativa.
+- OPS-001 queda DONE_LOCAL_SAFE: cierre formal en `reports/SENTINEL_OPERATIONAL_CLOSURE_20260920.md`.
 - No se autoriza por este documento escritura automatica en produccion, DB real, pagos, proveedores o Telegram fuera de los flujos ya existentes.
 
 ## Directo / Sports Reality
+
+Prioridad interna activa tras el cierre de Sentinel.
 
 - La funcionalidad de actualizacion en pagina abierta ya esta integrada en main y supera el antiguo PR #14.
 - Main conserva marcador nullable, minuto 0/descuento, caducidad LIVE, proteccion frente a respuestas antiguas y actualizacion hacia finalizados.
