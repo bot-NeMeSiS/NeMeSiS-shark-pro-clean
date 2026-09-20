@@ -1,53 +1,52 @@
 # Current Truth
 
-Actualizacion: 2026-09-19. Alcance: copia local Sentinel. No PII ni secretos.
+Actualizacion: 2026-09-20. Autoridad: GitHub main + Render observado. Sin PII ni secretos.
 
-## Identidades observadas
+## Identidad actual
 
-- Rama efectiva: codex/sentinel-operaciones-local.
-- HEAD/base: c4a81003de1b5ccdb3036831583e9c1eb65e4417; cambios SIN COMMIT.
-- Main local y origin/main local: c4a81003de1b5ccdb3036831583e9c1eb65e4417, main limpio.
-- GitHub/Render actuales: NOT_TESTED en este cierre local. Una referencia local no prueba el remoto.
-- PR14: ultimo cierre local registra borrador ef759cb88d46463424342598a765a68a0a057a7a; no nueva consulta ni merge.
-- Design: 317ac8c37c3c74f39b736a207f55079c7d454856, PRESERVE; 4401 registros dirty en la observacion anterior. No ejecutado ni editado.
-- Worktree documental: ad297cf56b7ab302a86b16ae261634549c5a68a4; 6131 registros dirty en la observacion anterior, PRESERVE.
-- Inventario anterior: data/local_dev/organization-20260919/inventory.json. Cuatro worktrees, siete ramas locales. No reinventariados ni retirados en este cierre.
+- GitHub `main`: `7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba`.
+- Origen: merge de PR #16, candidato reconciliado del 19/09.
+- PR #16: MERGED.
+- PR #14 Directo: CLOSED / SUPERSEDED por main; su frente funcional sigue abierto a validacion real.
+- PR #15 integracion Sentinel: CLOSED / SUPERSEDED por PR #16.
+- Render web `nemesissharkpro`: LIVE en el SHA exacto `7a1ba50b...`.
+- Render cron `telegram-auto-tick`: LIVE en el mismo SHA.
 
-## Evidencia y alcance
+## Evidencia verificada
 
-Ultimo cierre: preview reproducible y FINAL_OVERRIDES_STALE_LIVE_V1.
-380 casos distintos de seleccion pertinente: 358 PASS mas bloque Sentinel
-22/22 PASS tras corregir el main guard del runner Windows. Primer pase 379 PASS
-y un fallo de arnes, conservado en el informe. No suite global certificada.
-Replay 10/10: mismo final 5-0 en cinco superficies, navegador desktop/mobile,
-sin recarga en Directo ni revival por T2 antiguo. REAL_WORLD_REPLAY_QA, no produccion.
-45/45 vistas finales en 1366/390/430, recorrido Home/detalle/retorno/Calendario
-y formulario de idioma real. Cero fallos de shell, overflow, JS o requests externas.
-203 Jinja y compilacion PASS. Secret/Privacy: 1174 archivos, cero hallazgos.
+- CI push sobre main: NeMeSiS CI QA = SUCCESS.
+- Smoke push sobre main = SUCCESS.
+- Render Deploy Guard: preflight = SUCCESS; certify-production sigue en PRODUCTION_VALIDATION mientras completa sus ventanas de observacion.
+- Preflight incluye compilacion, Jinja, V944, controles criticos, navegacion, Continuous Sentinel, Secret Guard, auditoria de rutas y release identity.
+- Produccion observada tras deploy: `/`, `/calendar`, `/live`, `/picks`, `/shark`, `/api/runtime-version`, `/api/health`, `/api/realtime/sports`, `/manifest.json` y `/service-worker.js` responden sin 5xx en las muestras revisadas.
+- No se observaron Traceback, ERROR, Exception, 500, 502 ni 503 desde el deploy revisado.
+- Cron real: ejecuciones `overall=PASS`; Telegram registro al menos una ejecucion `SENT` y ejecuciones posteriores con dedupe/OLD_MATCH.
+- API-Football deep/provider permanece PARTIAL / ACCESS_FAILED en la ultima muestra persistida; freshness profunda sigue NOT_ESTABLISHED. No se reetiqueta como certificado.
 
-Huella de producto/pruebas/herramientas, excluye documentos:
-`8e3475faa56656546f4a9535163ca1ed48722afc3e3371df0d27abc128197326`.
-Manifest acumulado: `data/local_dev/final-source-manifest.json`; 129 rutas,
-indice vacio. Detalle, procedencia y XML en
-[LOCAL_CONTINUITY](../reports/LOCAL_CONTINUITY_20260919.md).
-La clasificacion documental anterior conserva sus UNKNOWN; no autoriza retiradas.
+## Sentinel
 
-- Sentinel: motor aceptado sin nueva capacidad; runner LOCAL SAFE con inicio/parada/reuso de instancia. Preview 54910 activa al cierre, no servicio productivo.
-- R8: diferencias versionadas integradas selectivamente y conservadas; /historico vuelve al handler canonico. R9 NOT_CERTIFIED; arte y conformidad global pendientes.
-- Directo/Match Center: HTTP y navegador reales, minuto 0/descuento y periodos observados preservados; fixtures SIMULATED_QA no prueban feed real ni cobertura universal.
-- SHARK/apuestas: flujo activo de recomendaciones sin confianza/seleccion inventadas. Hechos, contexto, analisis y cuotas observadas separados; WAIT/NO_BET no se publican como pick.
-- Soporte: persistencia y bandeja admin locales; no email externo ni respuesta humana certificados.
-- Membresias: concesion manual, ADMIN, suscripcion vigente, cancelacion y expiracion probadas localmente; corregida degradacion del rol ADMIN por expiracion generica. Stripe externo no probado; ELITE+ sin contrato.
-- /app: 603 partidos, mismo hash; A/B sin perfilador 5.730/2.084/2.095 -> 5.737/2.085/2.040 s. Menos SQL por lote, sin mejora significativa de latencia. Timeout productivo no resuelto. Aislamiento de usuarios preservado.
+- Codigo Sentinel y project control estan integrados en main.
+- El runner de escritorio sigue siendo LOCAL SAFE: no se convierte en executor productivo por estar desplegado.
+- CI separa los tests LOCAL SAFE/Sentinel en procesos aislados sin retirar la suite estandar.
+- Prioridad interna actual: cerrar OPS-001 sobre el main actual, verificando limites de ejecucion/persistencia y reconciliacion de verdad operativa.
+- No se autoriza por este documento escritura automatica en produccion, DB real, pagos, proveedores o Telegram fuera de los flujos ya existentes.
 
-## Contratos y pendientes
+## Directo / Sports Reality
 
-SE-01 sigue PASS_LOCAL_SCOPE; los 12 LOCAL_SAFE_BLOCKED historicos siguen
-NOT_CERTIFIED. Los 43 bloqueos ambientales posteriores tampoco se reetiquetan.
-DAY 3/4/5 y SPORTS_DATA_LIVE_CERTIFICATION.md preservados; no nueva observacion
-productiva. Madrid, Sports Truth, App Icon y fallback no se alteran por organizar.
-No se afirma P0/P1 global cero sin revisar produccion.
+- La funcionalidad de actualizacion en pagina abierta ya esta integrada en main y supera el antiguo PR #14.
+- Main conserva marcador nullable, minuto 0/descuento, caducidad LIVE, proteccion frente a respuestas antiguas y actualizacion hacia finalizados.
+- Main ademas incorpora localizacion, `SCORE_UPDATE` factual y tests HTTP ampliados.
+- Esto NO certifica feed real universal, cobertura, Safari/iPhone fisico ni proveedor profundo.
 
-[Cola](CODEX_QUEUE.md), [bloqueos](BLOCKERS.md), [versiones](RELEASE_STATE.md).
-Los SHA/CI/PR9 abiertos citados en documentos de septiembre 9 son historia,
-no incidentes actuales. No se inventa una recertificacion de produccion.
+## Diseño
+
+- El frente Design/R9 sigue PRESERVE / NOT_CERTIFIED.
+- No se considera resuelto por el merge de PR #16.
+- La conformidad global con referencias y H07 siguen pendientes de decision/evidencia.
+
+## Otros limites abiertos
+
+- `/app`: rendimiento productivo historico sigue siendo un frente a medir; no se declara resuelto por este deploy.
+- Stripe/pagos externos: NOT_CERTIFIED.
+- ELITE+: contrato no definido.
+- Doce positivos SE-01 y bloqueos ambientales historicos conservan su clasificacion; no se convierten en PASS global.
