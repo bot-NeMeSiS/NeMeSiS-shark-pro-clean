@@ -153,3 +153,21 @@ def test_reason_code_classifies_quota_and_network(app_module):
     assert app_module._sports_stage_reason_code(
         {"ok": False, "configured": True, "enabled": True, "error": "connection timed out"}
     ) == "NETWORK_OR_TIMEOUT"
+
+
+def test_diagnostics_mark_mixed_source_when_partial_primary_also_persisted(app_module):
+    payload = _fallback_run()
+    payload["fixtures"] = {
+        "ok": False,
+        "status": "PARTIAL",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 5,
+        "fixtures_count": 3,
+        "errors": {"provider": "partial response"},
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    current = diagnostics["current_sync"]
+    assert current["selected_source"] == "MIXED_PRIMARY_AND_FALLBACK"
+    assert current["api_football_primary"]["fixtures_count"] == 3
+    assert current["sportsdb_fallback"]["processed"] == 180
