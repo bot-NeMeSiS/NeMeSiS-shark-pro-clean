@@ -1,0 +1,123 @@
+"""Truthful, secret-safe diagnostics for the current sports sync stages."""
+
+
+def _fallback_run():
+    return {
+        "ok": True,
+        "status": "PARTIAL",
+        "processed": 180,
+        "external_calls": 1,
+        "started_at": "2026-09-20T12:15:16+02:00",
+        "finished_at": "2026-09-20T12:15:24+02:00",
+        "trigger_type": "shared_telegram_cron",
+        "fixtures": {
+            "ok": False,
+            "status": "ERROR",
+            "configured": True,
+            "enabled": True,
+            "external_calls": 1,
+            "fixtures_count": 0,
+            "error": "provider-sensitive-detail-must-not-be-forwarded",
+        },
+        "fallback": {
+            "ok": True,
+            "status": "OK",
+            "processed": 180,
+        },
+        "live": {
+            "ok": True,
+            "status": "SAFE_SKIP_NO_LIVE_WINDOW",
+            "external_calls": 0,
+            "fixtures_count": 0,
+        },
+        "odds": {
+            "ok": True,
+            "status": "OK",
+            "processed": 0,
+        },
+        "deep_enrichment": {
+            "status": "SKIPPED_NO_API_FOOTBALL_FIXTURE",
+            "external_calls": 0,
+        },
+        "deep_external_calls": 0,
+    }
+
+
+def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_error(app_module):
+    diagnostics = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})
+    current = diagnostics["current_sync"]
+
+    assert current["selected_source"] == "SPORTSDB_FALLBACK"
+    assert current["api_football_primary"] == {
+        "state": "ERROR",
+        "ok": False,
+        "configured": True,
+        "enabled": True,
+        "external_calls": 1,
+        "fixtures_count": 0,
+        "error_present": True,
+    }
+    assert current["sportsdb_fallback"]["ok"] is True
+    assert current["sportsdb_fallback"]["used"] is True
+    assert current["sportsdb_fallback"]["processed"] == 180
+    assert "provider-sensitive-detail" not in str(diagnostics)
+
+
+def test_diagnostics_prefer_api_football_when_primary_succeeds(app_module):
+    payload = _fallback_run()
+    payload["status"] = "OK"
+    payload["processed"] = 12
+    payload["fixtures"] = {
+        "ok": True,
+        "status": "OK",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 5,
+        "fixtures_count": 12,
+    }
+    payload["fallback"] = {
+        "ok": True,
+        "status": "NOT_REQUIRED",
+        "skipped": True,
+        "processed": 0,
+    }
+
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    current = diagnostics["current_sync"]
+    assert current["selected_source"] == "API_FOOTBALL_PRIMARY"
+    assert current["api_football_primary"]["fixtures_count"] == 12
+    assert current["sportsdb_fallback"]["used"] is False
+
+
+def test_compact_cron_payload_preserves_only_stage_truth(app_module):
+    diagnostics = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {
+            "ok": True,
+            "status": "OLD_MATCH",
+            "sports_pipeline": diagnostics,
+            "sent": 0,
+            "processed": 0,
+        },
+        "2026-09-20T12:15:16+02:00",
+        "2026-09-20T12:15:24+02:00",
+    )
+    current = compact["sports_pipeline"]["current_sync"]
+    assert current["selected_source"] == "SPORTSDB_FALLBACK"
+    assert current["sportsdb_fallback"]["processed"] == 180
+    assert current["api_football_primary"]["error_present"] is True
+    assert "provider-sensitive-detail" not in str(compact)
+
+
+def test_master_cron_sanitizer_preserves_stage_truth_and_redacts_secret(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    diagnostics = app_module._build_sports_pipeline_diagnostics(_fallback_run(), {})
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": diagnostics}, "super-secret-value")
+    current = sanitized["current_sync"]
+    assert current["selected_source"] == "SPORTSDB_FALLBACK"
+    assert current["sportsdb_fallback"]["processed"] == 180
+    assert current["api_football_primary"]["external_calls"] == 1
+    assert "provider-sensitive-detail" not in str(sanitized)
+    assert "super-secret-value" not in str(sanitized)
