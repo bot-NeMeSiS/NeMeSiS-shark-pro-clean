@@ -143,7 +143,7 @@ def test_match_window_exposes_only_safe_category_in_status(tmp_path, monkeypatch
         deep_limit=0,
     )
     assert result["ok"] is False
-    assert result["status"] == "PARTIAL_PLAN_OR_COVERAGE"
+    assert result["status"] == "PARTIAL_SEASON_UNAVAILABLE"
     assert "secret-canary" not in result["status"]
 
 
