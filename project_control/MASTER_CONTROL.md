@@ -6,9 +6,10 @@ DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
 ## Base real
 
 Produccion y GitHub convergen actualmente en:
-`7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba`.
+`bf0a36dd1f2ff928d143ae6ac0254bf20f991529`.
 
-PR #16 esta fusionado y Render web + cron estan LIVE sobre ese SHA.
+PR #16 y PR #19 estan fusionados. Render web + cron estan LIVE sobre el SHA actual.
+PR #19 añade lectura historica persistida por fecha en Calendario sin tocar Track Record ni proveedores.
 PR #14 y PR #15 quedaron cerrados como SUPERSEDED, sin borrar su evidencia historica.
 
 ## Orden operativo vigente
