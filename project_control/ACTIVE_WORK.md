@@ -1,6 +1,6 @@
 # Active Work
 
-Actualizado 2026-09-20. Base efectiva: `main@bf0a36dd1f2ff928d143ae6ac0254bf20f991529`.
+Actualizado 2026-09-20. Base efectiva: `main@959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
 
 ## 1. OPS-001 — Sentinel operational closure
 
@@ -10,6 +10,8 @@ Cierre: `reports/SENTINEL_OPERATIONAL_CLOSURE_20260920.md`.
 Sentinel queda disponible como QA/observabilidad local, con executor productivo explícitamente NO habilitado.
 
 ## 2. Sports Reality / Directos
+
+Prioridad activa tras integrar el histórico por fecha en main. Resultados queda IN_MAIN_WITH_GAPS: falta cobertura/proveedor real, no más UI duplicada.
 
 Estado: IN_PROGRESS / INTEGRATED_WITH_GAPS.
 
