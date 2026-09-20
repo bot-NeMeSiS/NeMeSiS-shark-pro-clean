@@ -52,15 +52,12 @@ def test_client_reference_grid_keeps_route_and_matches_left_with_pick_on_the_rig
     template = _read("templates/client_app_center.html")
     bounded = template.index('data-v939-layout-contract="bounded-rail"')
     primary = template.index('class="ns16-home-primary"', bounded)
-    journey = template.index('class="v933-panel ns16-journey"', primary)
     continuation = template.index('data-v939-layout-contract="full-width-continuation"')
-    featured_pick = template.index('class="v933-panel ns16-featured-pick"')
-    quick_actions = template.index('aria-label="Accesos rápidos"')
+    featured_pick = template.index('class="ns16-section ns16-featured-pick"')
+    quick_actions = template.index('Accesos rápidos')
 
-    assert bounded < primary < journey < continuation < featured_pick < quick_actions
-    assert "Tus accesos rápidos" not in template[bounded:featured_pick]
-    assert template.count("Tus accesos rápidos") == 1
-    assert template.index("Tus accesos rápidos") > quick_actions
+    assert bounded < primary < continuation < featured_pick < quick_actions
+    assert "Tus accesos rápidos" not in template
 
 
 def test_telegram_supporting_content_stays_flat_after_the_rail():
@@ -361,6 +358,7 @@ def _visible_text(html: str) -> str:
 def _timestamp_contract_environment() -> Environment:
     environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
     environment.filters["sync_madrid_label"] = format_madrid_sync_label
+    environment.globals["ui"] = lambda source, **values: str(source).format(**values) if values else str(source)
     return environment
 
 

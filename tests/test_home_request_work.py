@@ -34,6 +34,9 @@ def test_home_candidate_enrichment_is_not_repeated(app_module, monkeypatch):
         calls.append(args[0]['id'])
         return original(*args, **kwargs)
     monkeypatch.setattr(app_module, 'annotate_match', counted)
+    fixture = {'id':'qa-candidate','home_team':'Local QA','away_team':'Visitante QA','status':'NS'}
+    monkeypatch.setattr(app_module, 'get_upcoming_matches', lambda *args, **kwargs: [dict(fixture)])
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda item: {'is_upcoming': True})
     with app_module.app.test_request_context('/app'):
         first = app_module.pick_candidate_matches()
         assert first

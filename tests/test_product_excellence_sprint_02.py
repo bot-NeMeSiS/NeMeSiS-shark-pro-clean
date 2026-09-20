@@ -17,7 +17,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         ],
         "templates/support.html": [
             'data-top100-improvement="9,10"',
-            "Cómo pedir ayuda sin perder tiempo",
+            "Contactar con soporte",
             "Cancelación / cambio de plan",
             "Privacidad / datos personales",
         ],
