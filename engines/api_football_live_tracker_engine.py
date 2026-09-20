@@ -140,6 +140,39 @@ def _safe_provider_failure_category(payload: Mapping[str, Any] | None) -> str:
     return "UNKNOWN_PROVIDER_ERROR"
 
 
+def _safe_plan_coverage_subtype(payload: Mapping[str, Any] | None) -> str:
+    """Refine plan/coverage failures into closed labels without exposing provider text."""
+    data = dict(payload or {}) if isinstance(payload, Mapping) else {}
+    raw = json.dumps(
+        {"error": data.get("error"), "errors": data.get("errors")},
+        ensure_ascii=True,
+        default=str,
+    ).lower()[:2000]
+    if not raw:
+        return ""
+    if "free" in raw and "season" in raw:
+        return "FREE_PLAN_SEASON_RESTRICTED"
+    if "season" in raw:
+        return "SEASON_UNAVAILABLE"
+    if "free" in raw and any(token in raw for token in ("plan", "subscription", "access", "available")):
+        return "FREE_PLAN_RESTRICTED"
+    if "endpoint" in raw and any(token in raw for token in ("not allowed", "not available", "access", "restricted")):
+        return "ENDPOINT_RESTRICTED"
+    if "coverage" in raw or "not available" in raw:
+        return "COVERAGE_UNAVAILABLE"
+    if "subscription" in raw or "plan" in raw:
+        return "SUBSCRIPTION_RESTRICTED"
+    return "PLAN_OR_COVERAGE_OTHER"
+
+
+def _safe_provider_state_label(payload: Mapping[str, Any] | None) -> str:
+    category = _safe_provider_failure_category(payload)
+    if category != "PLAN_OR_COVERAGE":
+        return category
+    subtype = _safe_plan_coverage_subtype(payload)
+    return subtype or category
+
+
 def _as_int(value: Any, default: int = 0) -> int:
     try:
         if value is None or value == "":
@@ -1219,7 +1252,7 @@ def sync_api_football_match_window(
             cached_fixtures = _as_int(cached_row["fixtures_count"] if cached_row else 0, 0)
             cached_error = str((cached_row["error"] if cached_row else "") or "")
             cached_failure_category = (
-                _safe_provider_failure_category({"ok": False, "error": cached_error})
+                _safe_provider_state_label({"ok": False, "error": cached_error})
                 if cached_error
                 else ""
             )
@@ -1261,7 +1294,7 @@ def sync_api_football_match_window(
             calls += 1
             if not payload.get("ok"):
                 errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
-                provider_failure_categories.append(_safe_provider_failure_category(payload))
+                provider_failure_categories.append(_safe_provider_state_label(payload))
                 continue
             fixtures = [_normalize_fixture(item) for item in (payload.get("response") or [])]
             all_fixtures.extend(fixtures)
@@ -1308,6 +1341,13 @@ def sync_api_football_match_window(
                             "AUTH_OR_ACCESS",
                             "RATE_OR_QUOTA",
                             "NETWORK_OR_TIMEOUT",
+                            "FREE_PLAN_SEASON_RESTRICTED",
+                            "SEASON_UNAVAILABLE",
+                            "FREE_PLAN_RESTRICTED",
+                            "ENDPOINT_RESTRICTED",
+                            "COVERAGE_UNAVAILABLE",
+                            "SUBSCRIPTION_RESTRICTED",
+                            "PLAN_OR_COVERAGE_OTHER",
                             "PLAN_OR_COVERAGE",
                             "PROVIDER_RESPONSE",
                             "UNKNOWN_PROVIDER_ERROR",
