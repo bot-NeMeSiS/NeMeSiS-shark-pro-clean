@@ -18355,8 +18355,20 @@ def _v940_calendar_source_matches(summary, filters, prepared_all, prepared_by_id
         return [item for item in prepared_all if item.get("has_pick")]
     if lane == "favorites":
         return [item for item in prepared_all if item.get("is_favorite")]
-    if lane in {"finished", "results"}:
-        return prepared_items("finished_matches")
+    if lane == "finished":
+        return [
+            item for item in prepared_all
+            if str(item.get("match_date") or "") == selected_date
+            and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
+        ]
+    if lane == "results":
+        return [
+            item for item in prepared_all
+            if str(item.get("match_date") or "") == selected_date
+            and (lambda info: info.get("is_finished") or info.get("is_result_pending"))(
+                item.get("status_info") or canonical_match_status(item)
+            )
+        ]
     if lane == "incidents":
         return prepared_items("incident_matches")
     if lane in {"top", "spain", "andalucia", "international", "uefa", "national", "world"}:
@@ -18548,7 +18560,11 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "live": sports_metrics["live_confirmed"],
         "picks": sports_metrics["matches_with_picks"],
         "favorites": sum(1 for item in prepared_all if item.get("is_favorite")),
-        "finished": sports_metrics["finished_verified"],
+        "finished": sum(
+            1 for item in prepared_all
+            if str(item.get("match_date") or "") == filters["date"]
+            and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
+        ),
         "incidents": len(summary.get("incident_matches") or []),
     }
     active_filters = _v940_calendar_active_filters(filters)
@@ -18769,7 +18785,7 @@ def calendar_page():
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
-    data["v925_calendar"] = _v931_provider_context(summary)
+    data["v925_calendar"] = _v940_calendar_provider_context(summary)
     data["v934_realtime"] = get_realtime_safe_matches_context(summary)
     return render_template("calendar.html", data=data)
 
@@ -25825,6 +25841,7 @@ def api_calendar():
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     _data, summary = v932_safe_dashboard_data("/api/calendar", "today", date_value, compact=True)
+    summary = _v940_hydrate_selected_date_results(summary, date_value)
     calendar = v940_calendar_context(summary, lane, date_value)
     return jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
 
