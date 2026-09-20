@@ -162,6 +162,17 @@ def test_evolution_timeout_preserves_telegram(monkeypatch, capsys):
 
 
 def test_unexpected_telegram_exception_still_allows_evolution(monkeypatch, capsys):
+    monkeypatch.setattr(
+        master,
+        "wait_for_web_ready",
+        lambda _base_url: {
+            "readiness_status": "PASS",
+            "readiness_http": 200,
+            "readiness_result": "WEB_READY",
+            "readiness_attempts": 1,
+            "readiness_duration_ms": 1,
+        },
+    )
     monkeypatch.setattr(master, "telegram_tick", lambda *_args: (_ for _ in ()).throw(RuntimeError("sensitive detail")))
     monkeypatch.setattr(
         master,
