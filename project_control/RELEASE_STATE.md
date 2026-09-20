@@ -1,5 +1,22 @@
 # Release State
 
+## Estado remoto vigente · 2026-09-20
+
+| ID | Tipo | SHA | Estado | Evidencia | Límite |
+|---|---|---|---|---|---|
+| MAIN_REMOTE | PRODUCTION | c7237c4669f7f5c5e0ceefe4150fd71039b49507 | LIVE_WEB_CRON | Render exact-SHA + PR #52 QA/preflight/Smoke | La observación +3600s del guard puede seguir en curso |
+| PR51 | MERGED | 1d6afbe7034edb5f63ae1c990edcc807a200c535 | SUPERSEDED_BY_MAIN | fail-fast Odds; post-deploy cron PASS | 429 real post-merge no observado porque Odds usó caché |
+| PR52 | MERGED | c7237c4669f7f5c5e0ceefe4150fd71039b49507 | LIVE | Founder Sports freshness, 0 provider calls | Admin visual requiere sesión; CI Browser gate sí pasó |
+| NEXT | ACTIVE_BRANCH | — | STALE_EVIDENCE | 3 STALE observados en muestra 200 | No merge hasta QA + preflight + Smoke |
+
+Publicación actual: GitHub `main` despliega automáticamente a Render. No usar hook
+o deploy manual mientras Auto Deploy funcione. El snapshot local del 2026-09-19
+que sigue debajo queda preservado como histórico y sus frases
+`Produccion NOT_TESTED` / `SAFE_TO_PUBLISH=NO` no describen el remoto actual.
+
+## Snapshot local histórico · 2026-09-19
+
+
 Observado localmente 2026-09-19. No consulta productiva ni nueva consulta remota.
 HEAD no incluye cambios sin commit. Una huella de prueba no certifica el arbol posterior.
 Estado de candidato no es estado de la cola ni permiso de publicacion.
