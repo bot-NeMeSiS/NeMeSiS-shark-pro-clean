@@ -16501,7 +16501,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     })
     hub["counts"] = counts
     data["match_hub"] = hub
-    data["v925_calendar"] = _v931_provider_context(summary)
+    data["v925_calendar"] = _v940_calendar_provider_context(summary)
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
@@ -18740,6 +18740,19 @@ def _v940_hydrate_selected_date_results(summary, date_value):
     merged["historical_results_source"] = "local_db_read_only"
     merged["sports_metrics"] = build_sports_metrics_contract(merged)
     return merged
+
+
+def _v940_calendar_provider_context(summary):
+    context = dict(_v931_provider_context(summary) or {})
+    historical_count = int((summary or {}).get("historical_results_count") or 0)
+    if historical_count:
+        context["has_real_data"] = True
+        context["provider_status"] = "data_available"
+        context["safe_message"] = (
+            "Resultados persistidos disponibles para la fecha seleccionada. "
+            "Lectura local sin llamada nueva al proveedor."
+        )
+    return context
 
 
 @app.route("/calendar")
