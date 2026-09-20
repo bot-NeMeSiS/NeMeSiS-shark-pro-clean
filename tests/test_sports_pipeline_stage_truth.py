@@ -485,3 +485,48 @@ def test_cached_provider_failure_is_not_reclassified_as_local_precall(app_module
     assert primary["reason_code"] == "CACHED_PROVIDER_ERROR"
     assert primary["failure_class"] == ""
 
+def test_provider_reason_code_survives_compact_and_master_cron_sanitizer(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    payload = _fallback_run()
+    payload["fixtures"] = {
+        "ok": False,
+        "status": "CACHE_PROVIDER_FAILURE",
+        "configured": True,
+        "enabled": True,
+        "external_calls": 0,
+        "fixtures_count": 0,
+        "cached_provider_failure": True,
+        "provider_reason_code": "PLAN_OR_SEASON_ACCESS",
+        "error": "cached_provider_failure",
+    }
+    payload["live"] = {
+        "ok": False,
+        "status": "CACHE_PROVIDER_FAILURE",
+        "external_calls": 0,
+        "fixtures_count": 0,
+        "cached_provider_failure": True,
+        "provider_reason_code": "PLAN_OR_SEASON_ACCESS",
+        "error": "cached_provider_failure",
+    }
+
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    current = diagnostics["current_sync"]
+    assert current["api_football_primary"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+    assert current["live_refresh"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {"ok": True, "status": "OLD_MATCH", "sports_pipeline": diagnostics},
+        "2026-09-20T15:30:00+02:00",
+        "2026-09-20T15:30:05+02:00",
+    )["sports_pipeline"]
+    assert compact["current_sync"]["api_football_primary"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+    assert compact["current_sync"]["live_refresh"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
+    assert sanitized["current_sync"]["api_football_primary"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+    assert sanitized["current_sync"]["live_refresh"]["provider_reason_code"] == "PLAN_OR_SEASON_ACCESS"
+    assert "Free plan does not have access" not in str(sanitized)
+    assert "secret-canary" not in str(sanitized)
+
