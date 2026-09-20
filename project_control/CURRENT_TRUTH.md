@@ -65,3 +65,15 @@ Prioridad interna activa tras el cierre de Sentinel.
 - Track Record/ROI permanece separado.
 - Resultado pendiente no se convierte en 0-0.
 - Web y cron Render están LIVE en el SHA actual; barrido inicial sin 500/502/503/Traceback/ERROR.
+
+## Calendar history follow-up
+
+- PR #23: MERGED en `959ce5b23397f6f693ad4f6d233eca3b7e52d453`.
+- Finalizados y Resultados respetan la fecha seleccionada.
+- `/api/calendar` hidrata el mismo histórico persistido que la página.
+- El contador de Finalizados es date-scoped.
+- El estado visible de proveedor/calendario se calcula sobre el resumen ya hidratado.
+- Fuente histórica: SQLite persistida read-only; 0 llamadas nuevas a proveedor y 0 escrituras de DB desde render.
+- Track Record/ROI permanece separado.
+- Resultado pendiente no se convierte en 0-0.
+- Web y cron Render están LIVE en el SHA actual; barrido inicial sin 500/502/503/Traceback/ERROR.
