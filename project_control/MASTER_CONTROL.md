@@ -1,43 +1,38 @@
 # NeMeSiS - Master Control
 
-Entrada operativa unica. Actualizado 2026-09-19, candidato LOCAL_ONLY.
+Entrada operativa unica. Actualizado 2026-09-20.
 DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
 
-## Leer solo lo necesario
+## Base real
 
-- [Verdad actual](CURRENT_TRUTH.md): hechos, revision y limites.
-- [Trabajo activo](ACTIVE_WORK.md): cierre en curso, no otra cola.
-- [Cola unica](CODEX_QUEUE.md): un registro por ID; estado, responsable, dependencia y siguiente paso.
-- [Decisiones](DECISIONS.md) y [contratos protegidos](LOCKED_CONTRACTS.md): reglas vigentes.
-- [Bloqueos](BLOCKERS.md): condiciones, no incidencias cerradas por un documento.
-- [Candidatos y publicacion](RELEASE_STATE.md): version y alcance por candidato.
-- [Indice de conversaciones](CONVERSATION_INDEX.md): conocimiento recuperable, fuentes y arquitectura documental.
-- [Roadmap](ROADMAP.md): estrategia subordinada a la cola, no autorizacion.
-- [Dominios](domains/QUALITY.md): especificaciones de consulta; sus estados fechados no sustituyen la verdad actual.
+Produccion y GitHub convergen actualmente en:
+`7a1ba50bf9d6fec8648fcacc2dae72b7cbe730ba`.
+
+PR #16 esta fusionado y Render web + cron estan LIVE sobre ese SHA.
+PR #14 y PR #15 quedaron cerrados como SUPERSEDED, sin borrar su evidencia historica.
+
+## Orden operativo vigente
+
+1. OPS-001 — cierre operativo Sentinel sobre main actual, manteniendo LOCAL SAFE y verificando persistencia/limites.
+2. Sports Reality / Directos — continuar desde main, no desde PR #14; validar comportamiento productivo y verdad deportiva sin inventar feed.
+3. Resultados / navegacion historica — completar experiencia deportiva por fecha separada de Track Record/ROI.
+4. Design / Product Finish — conservar frente visual y cerrar conformidad contra referencias sin asumir R9/H07 resueltos.
+5. Comercial — pagos/Stripe/ELITE+ solo tras gates especificos.
 
 ## Autoridad
 
-Produccion observada con SHA/fecha/alcance -> GitHub comprobado -> codigo local y
-pruebas de su revision -> informes fechados -> sintesis operativa -> historia.
-La jerarquia acredita hechos, nunca amplifica permisos. Un archivo presente no
-certifica su contenido; HEAD no identifica cambios sin commit.
+REAL_PRODUCTION observada con SHA/fecha/alcance -> GitHub main/CI -> codigo y pruebas del mismo SHA -> informes fechados -> sintesis -> historia.
 
-Solo desarrollo local en Sentinel. Main limpio en la observacion local; Design
-preservado. Sin staging/commit/push/PR/merge/deploy, DB real, proveedores ni pagos.
-Sentinel muestra esta informacion en lectura; no ejecuta texto de documentos.
+Un PASS local no sustituye produccion.
+Un deploy LIVE no certifica proveedor, pagos, derechos, experiencia fisica ni todos los consumidores.
+Un documento no concede permisos.
 
-## Continuidad sin duplicaciones
+## Guardrails
 
-Ultimo cierre: preview reproducible en 54910 y replay final 5-0, cinco superficies.
-380 casos distintos comprobados mediante seleccion pertinente y retest afectado;
-45 vistas finales. No suite global ni produccion certificadas. Motor Sentinel
-conservado; su runner local tiene inicio/parada/reuso. R8, SHARK, membresias y
-trabajo anterior preservados. Dos defectos de precedencia/final corregidos.
-Main/Design preservados. Siguiente paso: revisar el candidato exacto, sin staging
-ni publicacion automatica. La primera carga /app y los bloqueos externos siguen abiertos.
+- Sentinel local no se transforma en worker productivo.
+- No inventar marcadores, minutos, picks, cuotas, resultados o confianza.
+- No ampliar proveedor ni gasto sin autorizacion y evidencia.
+- No mezclar ramas historicas superseded con main automaticamente.
+- Design y Sports Reality permanecen frentes activos hasta su cierre verificable.
 
-El [cierre funcional local](../reports/LOCAL_CONTINUITY_20260919.md) conserva
-resultados y evidencias. Los estados anteriores del 09/09 se recuperan en Git
-en c4a81003 y en NEMESIS_CONTROL_PROYECTO; ya no son el encabezado operativo.
-No se han movido ni borrado fuentes historicas. No se marca un frente DONE
-por organizarlo ni se inicia automaticamente el siguiente.
+Ver [CURRENT_TRUTH](CURRENT_TRUTH.md), [ACTIVE_WORK](ACTIVE_WORK.md), [CODEX_QUEUE](CODEX_QUEUE.md), [BLOCKERS](BLOCKERS.md) y [RELEASE_STATE](RELEASE_STATE.md).
