@@ -50,6 +50,7 @@ def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_erro
     assert current["selected_source"] == "SPORTSDB_FALLBACK"
     assert current["api_football_primary"] == {
         "state": "ERROR",
+        "reason_code": "PROVIDER_ERROR",
         "ok": False,
         "configured": True,
         "enabled": True,
@@ -86,6 +87,7 @@ def test_diagnostics_prefer_api_football_when_primary_succeeds(app_module):
     current = diagnostics["current_sync"]
     assert current["selected_source"] == "API_FOOTBALL_PRIMARY"
     assert current["api_football_primary"]["fixtures_count"] == 12
+    assert current["api_football_primary"]["reason_code"] == "NONE"
     assert current["sportsdb_fallback"]["used"] is False
 
 
@@ -121,3 +123,33 @@ def test_master_cron_sanitizer_preserves_stage_truth_and_redacts_secret(app_modu
     assert current["api_football_primary"]["external_calls"] == 1
     assert "provider-sensitive-detail" not in str(sanitized)
     assert "super-secret-value" not in str(sanitized)
+
+
+def test_reason_code_classifies_auth_without_exposing_message(app_module):
+    stage = {
+        "ok": False,
+        "status": "PARTIAL",
+        "configured": True,
+        "enabled": True,
+        "errors": {"token": "Invalid API key: SECRET-CANARY"},
+    }
+    assert app_module._sports_stage_reason_code(stage) == "AUTH_OR_ACCESS"
+    diagnostics = app_module._build_sports_pipeline_diagnostics(
+        {
+            **_fallback_run(),
+            "fixtures": stage,
+        },
+        {},
+    )
+    text = str(diagnostics)
+    assert diagnostics["current_sync"]["api_football_primary"]["reason_code"] == "AUTH_OR_ACCESS"
+    assert "SECRET-CANARY" not in text
+
+
+def test_reason_code_classifies_quota_and_network(app_module):
+    assert app_module._sports_stage_reason_code(
+        {"ok": False, "configured": True, "enabled": True, "error": "HTTP 429 rate limit"}
+    ) == "RATE_OR_QUOTA"
+    assert app_module._sports_stage_reason_code(
+        {"ok": False, "configured": True, "enabled": True, "error": "connection timed out"}
+    ) == "NETWORK_OR_TIMEOUT"
