@@ -1,5 +1,29 @@
 # Current Truth
 
+## Producción y remoto verificados · 2026-09-20
+
+Esta sección sustituye como verdad actual al snapshot local del 2026-09-19 que se
+mantiene debajo únicamente como procedencia histórica.
+
+- GitHub `main`: `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
+- Render Web y Cron: LIVE exactamente en `c7237c4669f7f5c5e0ceefe4150fd71039b49507`.
+- Auto Deploy activo desde `main`; Cron cada 5 minutos.
+- PR #48/#50/#51/#52 integradas. PR #49 cerrada como supersedida por #51.
+- #51 pasó CI QA + preflight + Smoke; el primer cron posterior fue PASS y no gastó
+  llamadas de Odds ni API-Football en esa ronda.
+- #52 pasó CI QA + preflight + Smoke y conecta Founder OS a la frescura deportiva
+  persistida sin consultar proveedores.
+- Última evidencia deportiva real observada: SportsDB fallback 180; muestra
+  canónica 200 = 18 FRESH, 179 OBSERVED, 3 STALE, 0 NOT_ESTABLISHED; estado PARTIAL.
+- El estado PARTIAL es evidencia, no un error inventado ni una garantía universal.
+- Pendiente inmediato: identificar los 3 STALE desde el snapshot canónico y llevar
+  esa evidencia a diagnóstico/Founder OS con límite de muestra y sanitización.
+- No se afirma que el fail-fast sistémico de Odds haya recibido un 429 real en
+  producción post-merge; la ronda observada usó caché y realizó 0 llamadas Odds.
+
+## Snapshot local histórico · 2026-09-19
+
+
 Actualizacion: 2026-09-19. Alcance: copia local Sentinel. No PII ni secretos.
 
 ## Identidades observadas
