@@ -117,7 +117,14 @@ def test_live_plan_backoff_expires_and_retries_provider(tmp_path, monkeypatch):
 def test_network_failure_does_not_use_plan_backoff(tmp_path, monkeypatch):
     db_path = str(tmp_path / "live-network.db")
     _enable_provider(monkeypatch)
-    _insert_live_failure(db_path, error="connection timed out")
+    recent_but_past_normal_cache = (
+        datetime.now(timezone.utc) - timedelta(minutes=2)
+    ).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    _insert_live_failure(
+        db_path,
+        error="connection timed out",
+        last_sync_at=recent_but_past_normal_cache,
+    )
     calls = []
 
     def fake_get(path, params=None, timeout=18):
