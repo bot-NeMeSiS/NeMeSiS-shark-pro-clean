@@ -5935,13 +5935,23 @@ def sync_odds_events(limit=250, force=False):
         return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no está activo."]}
     if odds_recently_synced() and not force:
         last = odds_last_sync()
+        # Cache reuse is a fact about this tick. Preserve historical counters
+        # separately instead of replaying old calls/errors as current activity.
         return {
-            **last,
-            "ok": last.get("ok", True) is not False,
+            "ok": True,
+            "status": "CACHE_REUSED",
             "skipped": True,
             "reason": "cache_activa",
             "cache_minutes": odds_cache_minutes(),
+            "imported": 0,
+            "updated": 0,
+            "processed": 0,
+            "errors": [],
             "external_calls": 0,
+            "quota": last.get("quota") or {},
+            "last_sync": last.get("last_sync") or last.get("time") or "",
+            "cached_processed": as_int(last.get("processed"), 0),
+            "cached_external_calls": as_int(last.get("external_calls"), 0),
         }
     log_id = sync_log_start("The Odds API", "events")
     try:
