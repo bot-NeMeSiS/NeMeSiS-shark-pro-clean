@@ -517,3 +517,106 @@ def test_suspended_api_status_is_never_counted_or_labelled_live(status):
     assert status not in LIVE_STATUS_SHORT
     assert get_match_status_label({"status": status}) == "Suspendido"
     assert match_status_truth({"status": status})["is_live"] is False
+
+
+def test_sportsdb_feed_prioritizes_stale_reconciliation_and_live_with_same_limit(
+    app_module,
+    monkeypatch,
+):
+    day_events = [
+        {
+            "idEvent": "live-1",
+            "strStatus": "Not Started",
+            "strHomeTeam": "Home A",
+            "strAwayTeam": "Away A",
+        },
+        {
+            "idEvent": "filler-1",
+            "strStatus": "Not Started",
+            "strHomeTeam": "Home B",
+            "strAwayTeam": "Away B",
+        },
+        {
+            "idEvent": "stale-1",
+            "strStatus": "Match Finished",
+            "intHomeScore": "2",
+            "intAwayScore": "1",
+            "strHomeTeam": "Home C",
+            "strAwayTeam": "Away C",
+        },
+    ]
+    live_events = [
+        {
+            "idEvent": "live-1",
+            "strStatus": "LIVE",
+            "strProgress": "2H",
+            "intHomeScore": "1",
+            "intAwayScore": "0",
+            "strHomeTeam": "Home A",
+            "strAwayTeam": "Away A",
+        }
+    ]
+
+    calls = []
+    monkeypatch.setattr(app_module, "SPORTSDB_FEED_LEAGUES", [], raising=False)
+    monkeypatch.setattr(app_module, "sportsdb_live_enabled", lambda: True)
+    monkeypatch.setattr(
+        app_module,
+        "sportsdb_v1",
+        lambda endpoint, params=None: calls.append(("v1", endpoint)) or {"events": day_events},
+    )
+    monkeypatch.setattr(
+        app_module,
+        "sportsdb_v2",
+        lambda path: calls.append(("v2", path)) or {"events": live_events},
+    )
+
+    selected, errors, external_calls = app_module.fetch_sportsdb_feed_events(
+        limit=2,
+        priority_external_ids=["stale-1"],
+    )
+
+    assert errors == []
+    assert external_calls == 2
+    assert len(selected) == 2
+    assert [app_module._sportsdb_external_event_id(item) for item, _fallback in selected] == [
+        "stale-1",
+        "live-1",
+    ]
+    assert selected[1][0]["strStatus"] == "LIVE"
+    assert calls == [("v1", "eventsday.php"), ("v2", "livescore/soccer")]
+
+
+def test_sportsdb_stale_reconciliation_candidates_are_bounded_and_canonical(
+    app_module,
+    monkeypatch,
+):
+    now = datetime.now(MADRID)
+    candidates = [
+        {
+            "id": "sportsdb-stale",
+            "external_id": "2440438",
+            "source": "TheSportsDB API",
+            "status": "LIVE",
+            "last_synced_at": "",
+        },
+        {
+            "id": "sportsdb-fresh",
+            "external_id": "fresh-1",
+            "source": "TheSportsDB API",
+            "status": "LIVE",
+            "last_synced_at": (now - timedelta(seconds=15)).isoformat(),
+        },
+        {
+            "id": "sportsdb-final",
+            "external_id": "final-1",
+            "source": "TheSportsDB API",
+            "status": "FINALIZADO",
+            "home_score": "1",
+            "away_score": "0",
+            "last_synced_at": "",
+        },
+    ]
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: candidates)
+
+    assert app_module.sportsdb_stale_external_ids(limit=1) == ["2440438"]
