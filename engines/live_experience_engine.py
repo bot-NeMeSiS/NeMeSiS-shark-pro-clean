@@ -105,8 +105,13 @@ def match_filter(match: dict, lane: str, query: str = "") -> bool:
     if query and query.lower() not in blob:
         return False
     bucket = state_bucket(match)
+    truth = match_status_truth(dict(match or {})) if match_status_truth else {}
+    lifecycle = truth.get("lifecycle")
+    conflict = bool(truth.get("status_conflict"))
     if lane in {"live", "directo"}:
-        return bucket == "live"
+        return lifecycle == "LIVE" and not conflict
+    if lane in {"break", "halftime", "descanso"}:
+        return lifecycle == "HALFTIME" and not conflict
     if lane in {"today", "hoy", "all"}:
         return True
     if lane in {"upcoming", "proximos", "próximos"}:
@@ -385,7 +390,22 @@ def build_live_experience(matches: list[dict], lane: str = "live", query: str = 
         "total": len(all_matches),
         "filtered": len(sorted_filtered),
         "counts": {
-            "live": sum(1 for m in all_matches if state_bucket(m) == "live"),
+            "live": sum(
+                1
+                for m in all_matches
+                if (
+                    (match_status_truth(dict(m or {})) if match_status_truth else {}).get("lifecycle") == "LIVE"
+                    and not bool((match_status_truth(dict(m or {})) if match_status_truth else {}).get("status_conflict"))
+                )
+            ),
+            "halftime": sum(
+                1
+                for m in all_matches
+                if (
+                    (match_status_truth(dict(m or {})) if match_status_truth else {}).get("lifecycle") == "HALFTIME"
+                    and not bool((match_status_truth(dict(m or {})) if match_status_truth else {}).get("status_conflict"))
+                )
+            ),
             "upcoming": sum(1 for m in all_matches if state_bucket(m) == "upcoming"),
             "finished": sum(1 for m in all_matches if state_bucket(m) == "finished"),
             "with_pick": sum(1 for m in all_matches if has_pick(m)),
