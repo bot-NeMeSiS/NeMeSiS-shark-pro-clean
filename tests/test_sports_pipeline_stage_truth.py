@@ -267,3 +267,46 @@ def test_fallback_contribution_survives_compact_and_sanitized_contract(app_modul
 
     sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
     assert sanitized["current_sync"]["sportsdb_fallback"]["data_contributed"] is True
+
+
+def test_ok_true_never_erases_partial_stage_errors(app_module):
+    stage = {
+        "ok": True,
+        "status": "partial",
+        "error": "one provider subrequest failed",
+    }
+    assert app_module._sports_stage_reason_code(stage) == "PROVIDER_ERROR"
+
+    payload = _fallback_run()
+    payload["live"] = {
+        "ok": True,
+        "status": "partial",
+        "external_calls": 1,
+        "fixtures_count": 0,
+        "errors": ["partial live response"],
+    }
+    payload["odds"] = {
+        "ok": True,
+        "status": "PARTIAL",
+        "external_calls": 14,
+        "processed": 0,
+        "errors": ["some odds requests failed"],
+    }
+    current = app_module._build_sports_pipeline_diagnostics(payload, {})["current_sync"]
+    assert current["live_refresh"]["ok"] is True
+    assert current["live_refresh"]["error_present"] is True
+    assert current["live_refresh"]["reason_code"] == "PROVIDER_ERROR"
+    assert current["odds_refresh"]["ok"] is True
+    assert current["odds_refresh"]["error_present"] is True
+    assert current["odds_refresh"]["reason_code"] == "PROVIDER_ERROR"
+
+
+def test_ok_true_with_specific_error_keeps_specific_reason(app_module):
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "errors": ["HTTP 429 rate limit while partial data was retained"],
+    }) == "RATE_OR_QUOTA"
+    assert app_module._sports_stage_reason_code({
+        "ok": True,
+        "errors": ["connection timed out after partial data"],
+    }) == "NETWORK_OR_TIMEOUT"
