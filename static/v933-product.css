@@ -5872,7 +5872,7 @@ body.ns-app.ns-admin .v933-admin-picks .v933-data-table td:nth-child(1) { min-wi
 body.ns-app.ns-admin .v933-admin-picks .v933-data-table td:nth-child(2) { min-width: 140px; }
 body.ns-app.ns-admin .v930-admin-launch .v928-data-table { min-width: 620px; table-layout: auto !important; }
 body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child { min-width: 60px; white-space: nowrap !important; word-break: normal !important; }
-.sports-priority-home .v933-match-card :is(.v937-card-trust,.v937-confidence-badge,.v935-provenance,.v937-attention-priority),
+.sports-priority-home .v933-match-card :is(.v937-confidence-badge,.v935-provenance,.v937-attention-priority),
 .ns16-home .v933-match-card :is(.v937-confidence-badge,.v935-provenance,.v937-attention-priority),
 .ns16-live .v933-match-card :is(.v937-confidence-badge,.v935-provenance,.v937-attention-priority),
 .v933-calendar-board .v933-match-card :is(.v937-confidence-badge,.v935-provenance,.v937-attention-priority) { display: none !important; }
