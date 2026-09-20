@@ -70,7 +70,7 @@
 {%- endmacro %}
 
 {% macro team_logo(name, logo='', size='md') -%}
-{% set label = name or 'Equipo' %}<span class="crest v933-team-logo is-{{ size }}" data-fallback="{{ label[:2]|upper }}" title="{{ ui(label) }}">{% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}<em aria-hidden="true">{{ label[:2]|upper }}</em></span>
+{% set label = name or 'Equipo' %}<span class="crest v933-team-logo is-{{ size }}" data-fallback="{{ label[:2]|upper }}" title="{{ label }}">{% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}<em aria-hidden="true">{{ label[:2]|upper }}</em></span>
 {%- endmacro %}
 {% macro sports_contract_attributes(metrics) -%}
 {% set metrics = metrics or {} %}data-sports-contract="{{ metrics.get('contract') or '' }}" data-sports-snapshot="{{ metrics.get('snapshot_id') or '' }}" data-sports-matches-today="{{ metrics.get('matches_today', 0) }}" data-sports-matches-available="{{ metrics.get('matches_available', 0) }}" data-sports-live-confirmed="{{ metrics.get('live_confirmed', 0) }}" data-sports-picks-ready="{{ metrics.get('picks_ready', 0) }}" data-sports-matches-with-picks="{{ metrics.get('matches_with_picks', 0) }}" data-sports-finished-verified="{{ metrics.get('finished_verified', 0) }}" data-sports-matches-synchronized="{{ metrics.get('matches_synchronized', 0) }}"
