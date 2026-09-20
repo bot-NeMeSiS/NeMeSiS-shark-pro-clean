@@ -88,6 +88,7 @@ from engines.v934_realtime_sports_engine import (
     invalidate_realtime_cache as invalidate_v934_realtime_cache,
     realtime_cache_status as v934_realtime_cache_status,
 )
+from engines.realtime_state_engine import build_realtime_state_snapshot
 from engines.v935_launch_trust_engine import (
     build_data_trust_snapshot as build_v935_data_trust_snapshot,
     classify_match_for_surface as v935_classify_match_for_surface,
@@ -1563,12 +1564,97 @@ def _sports_safe_failure_class(stage, expected_prefix=""):
         return ""
     return candidate
 
-def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
+def _sports_entity_freshness_snapshot(limit=200):
+    """Evaluate local match timestamps through the canonical realtime contract."""
+    safe_limit = max(1, min(as_int(limit, 200), 500))
+    scope = "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS"
+    empty_counts = {
+        "total": 0,
+        "fresh": 0,
+        "observed": 0,
+        "stale": 0,
+        "not_established": 0,
+    }
+    try:
+        sample = rows(
+            "SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC LIMIT ?",
+            (safe_limit,),
+        )
+    except Exception:
+        return {
+            "state": "NOT_ESTABLISHED",
+            "entity_timestamps_evaluated": False,
+            "scope": scope,
+            **empty_counts,
+            "reason": "No se pudo evaluar la muestra local de timestamps de partidos.",
+        }
+    if not sample:
+        return {
+            "state": "NOT_ESTABLISHED",
+            "entity_timestamps_evaluated": False,
+            "scope": scope,
+            **empty_counts,
+            "reason": "No hay partidos locales disponibles para evaluar timestamps.",
+        }
+    try:
+        snapshot = build_realtime_state_snapshot(sample)
+    except Exception:
+        return {
+            "state": "NOT_ESTABLISHED",
+            "entity_timestamps_evaluated": False,
+            "scope": scope,
+            **empty_counts,
+            "reason": "La proyección canónica de frescura no pudo evaluar la muestra local.",
+        }
+    states = [item for item in snapshot.get("matches") or [] if isinstance(item, dict)]
+    counts = {
+        "total": len(states),
+        "fresh": sum(1 for item in states if item.get("freshness_state") == "FRESH"),
+        "observed": sum(1 for item in states if item.get("freshness_state") == "OBSERVED"),
+        "stale": sum(1 for item in states if item.get("freshness_state") == "STALE"),
+        "not_established": sum(
+            1 for item in states if item.get("freshness_state") == "NOT_ESTABLISHED"
+        ),
+    }
+    established = counts["total"] - counts["not_established"]
+    if not counts["total"] or not established:
+        state = "NOT_ESTABLISHED"
+        reason = (
+            "La muestra fue evaluada, pero no aporta "
+            "live_updated_at/provider_updated_at/last_synced_at válidos."
+        )
+    elif counts["not_established"] or counts["stale"]:
+        state = "PARTIAL"
+        reason = (
+            "Hay timestamps canónicos, pero parte de la muestra está stale "
+            "o no establece un reloj válido."
+        )
+    else:
+        state = "ESTABLISHED"
+        reason = (
+            "Todos los partidos evaluados tienen reloj canónico; ESTABLISHED "
+            "no implica que todos sean datos recientes."
+        )
+    return {
+        "state": state,
+        "entity_timestamps_evaluated": bool(counts["total"]),
+        "scope": scope,
+        **counts,
+        "reason": reason,
+    }
+
+
+def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_freshness=None):
     """Describe execution, access, quota and coverage without conflating them."""
     sports_result = dict(sports_result or {})
     deep = sports_result.get("deep_enrichment")
     deep = dict(deep) if isinstance(deep, dict) else {}
     deep_history = dict(deep_history or {})
+    entity_freshness = (
+        dict(entity_freshness)
+        if isinstance(entity_freshness, dict)
+        else {}
+    )
     latest_run = deep_history.get("latest_run")
     latest_run = dict(latest_run) if isinstance(latest_run, dict) else {}
     latest_payload = {}
@@ -1970,9 +2056,25 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None):
             "capabilities": coverage_capabilities,
         },
         "data_freshness": {
-            "state": "NOT_ESTABLISHED",
-            "entity_timestamps_evaluated": False,
-            "reason": (
+            "state": _sports_diagnostic_text(
+                entity_freshness.get("state"), 80
+            ) or "NOT_ESTABLISHED",
+            "entity_timestamps_evaluated": bool(
+                entity_freshness.get("entity_timestamps_evaluated")
+            ),
+            "scope": _sports_diagnostic_text(
+                entity_freshness.get("scope"), 100
+            ) or "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+            "total": as_int(entity_freshness.get("total"), 0),
+            "fresh": as_int(entity_freshness.get("fresh"), 0),
+            "observed": as_int(entity_freshness.get("observed"), 0),
+            "stale": as_int(entity_freshness.get("stale"), 0),
+            "not_established": as_int(
+                entity_freshness.get("not_established"), 0
+            ),
+            "reason": _sports_diagnostic_text(
+                entity_freshness.get("reason"), 180
+            ) or (
                 "Los contadores del pipeline no acreditan la frescura de cada "
                 "partido, marcador, alineación o estadística."
             ),
@@ -2011,6 +2113,7 @@ def telegram_cron_with_sports_sync(force=False):
     telegram_result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
         sports_result,
         deep_history,
+        _sports_entity_freshness_snapshot(),
     )
     return telegram_result
 
@@ -2243,6 +2346,12 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             "data_freshness": {
                 "state": _sports_diagnostic_text(raw_freshness.get("state"), 80) or "NOT_ESTABLISHED",
                 "entity_timestamps_evaluated": bool(raw_freshness.get("entity_timestamps_evaluated")),
+                "scope": _sports_diagnostic_text(raw_freshness.get("scope"), 100) or "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+                "total": as_int(raw_freshness.get("total"), 0),
+                "fresh": as_int(raw_freshness.get("fresh"), 0),
+                "observed": as_int(raw_freshness.get("observed"), 0),
+                "stale": as_int(raw_freshness.get("stale"), 0),
+                "not_established": as_int(raw_freshness.get("not_established"), 0),
                 "reason": _sports_diagnostic_text(raw_freshness.get("reason"), 180),
             },
         }

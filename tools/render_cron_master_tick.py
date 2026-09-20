@@ -257,6 +257,12 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
         "data_freshness": {
             "state": safe_label(raw_freshness.get("state"), secret, "NOT_ESTABLISHED"),
             "entity_timestamps_evaluated": bool(raw_freshness.get("entity_timestamps_evaluated")),
+            "scope": safe_label(raw_freshness.get("scope"), secret, "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS"),
+            "total": safe_count(raw_freshness.get("total")),
+            "fresh": safe_count(raw_freshness.get("fresh")),
+            "observed": safe_count(raw_freshness.get("observed")),
+            "stale": safe_count(raw_freshness.get("stale")),
+            "not_established": safe_count(raw_freshness.get("not_established")),
             "reason": safe_label(raw_freshness.get("reason"), secret, ""),
         },
     }
