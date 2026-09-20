@@ -695,6 +695,7 @@ def test_pipeline_freshness_survives_compact_and_master_sanitizer(app_module):
         "stale": 1,
         "not_established": 2,
         "reason": "Evidencia QA canónica.",
+        "stale_samples": [],
     }
     diagnostics = app_module._build_sports_pipeline_diagnostics(
         {"status": "PARTIAL", "ok": True},
