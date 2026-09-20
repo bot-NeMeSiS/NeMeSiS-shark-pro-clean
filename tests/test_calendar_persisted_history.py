@@ -88,6 +88,7 @@ def test_past_calendar_date_reads_persisted_match_and_keeps_match_center(
     assert str(item["away_score"]) == "1"
     assert item["status_info"]["is_finished"] is True
     assert item["status_info"]["is_live"] is False
+    assert item["has_pick"] is False
     assert item["id"] == "history-final-1"
 
 
@@ -153,3 +154,32 @@ def test_calendar_api_uses_the_same_persisted_history_snapshot(
     assert [item["id"] for item in payload["matches"]] == ["history-api-1"]
     assert str(payload["matches"][0]["home_score"]) == "4"
     assert str(payload["matches"][0]["away_score"]) == "2"
+
+
+def test_past_scheduled_match_without_score_becomes_result_pending(
+    app_module, tmp_path, monkeypatch
+):
+    _prepare_db(app_module, tmp_path, monkeypatch)
+    _persist(
+        app_module,
+        "history-result-pending",
+        "2026-09-19",
+        home_score=None,
+        away_score=None,
+        status="NS",
+    )
+
+    with app_module.app.test_request_context("/calendar?lane=today&date=2026-09-19"):
+        summary = app_module._v940_calendar_with_persisted_history(
+            _empty_summary(), "today", "2026-09-19"
+        )
+        calendar = app_module.v940_calendar_context(summary, "today", "2026-09-19")
+
+    item = next(row for row in calendar["matches"] if row["id"] == "history-result-pending")
+    assert item["status_info"]["is_result_pending"] is True
+    assert item["status_info"]["is_upcoming"] is False
+    assert item["status_info"]["is_live"] is False
+    assert item.get("home_score") in (None, "")
+    assert item.get("away_score") in (None, "")
+    assert str(item.get("score") or "").replace(" ", "") != "0-0"
+    assert item["has_pick"] is False
