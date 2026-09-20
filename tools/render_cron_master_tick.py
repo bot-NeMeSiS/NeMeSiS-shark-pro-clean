@@ -235,6 +235,9 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "ok": (raw_current_sync.get("sportsdb_fallback") or {}).get("ok") if isinstance((raw_current_sync.get("sportsdb_fallback") or {}).get("ok"), bool) else None,
                 "used": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("used")),
                 "processed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("processed")),
+                "external_calls": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("external_calls")),
+                "stale_reconciliation_candidates": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_candidates")),
+                "stale_reconciliation_observed": safe_count((raw_current_sync.get("sportsdb_fallback") or {}).get("stale_reconciliation_observed")),
                 "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
             },
             "live_refresh": {
