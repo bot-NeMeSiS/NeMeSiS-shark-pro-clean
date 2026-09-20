@@ -175,6 +175,17 @@ def test_unexpected_telegram_exception_still_allows_evolution(monkeypatch, capsy
     )
     monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
     monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
+    monkeypatch.setattr(
+        master,
+        "wait_for_web_ready",
+        lambda _base_url: {
+            "readiness_status": "PASS",
+            "readiness_http": 200,
+            "readiness_result": "WEB_READY",
+            "readiness_attempts": 1,
+            "readiness_duration_ms": 1,
+        },
+    )
     return_code = master.main()
     payload = json.loads(capsys.readouterr().out)
     assert return_code == 1
