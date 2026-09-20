@@ -1,28 +1,28 @@
 {% extends "base.html" %}
-{% import "partials/admin_visual_system.html" as admin_ui %}
+{% import "partials/admin_visual_system.html" as ui %}
 {% block content %}
 {% set os = data.daily_automation_os %}
 {% set status = os.status %}
-{% call admin_ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
+{% call ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
 <div class="v933-page v933-admin-command-center v933-admin-daily-automation v928-admin-command-center v930-page v930-admin-page v930-admin-daily-automation" data-v933-template="admin_daily_automation" data-v933-reference="canonical-admin-automation" data-v928-template="admin_daily_automation" data-v930-template="admin_daily_automation">
 <section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_daily_automation" data-v828-template="admin_daily_automation" data-v829-template="admin_daily_automation" data-v830-template="admin_daily_automation" data-v832-template="admin_daily_automation" data-v833-template="admin_daily_automation" data-v836-template="admin_daily_automation" data-v837-template="admin_daily_automation" data-v826-template="admin_daily_automation">
-  {{ admin_ui.kpi('Estado general', 'OK' if status.ok else 'Revisar', status.madrid_now, 'A', 'green' if status.ok else 'red') }}
-  {{ admin_ui.kpi('Telegram hoy', status.telegram_sent_today, 'Mensajes enviados', 'T', 'blue') }}
-  {{ admin_ui.kpi('Fallos hoy', status.jobs_failed|length, 'Jobs con error', '!', 'red' if status.jobs_failed else 'green') }}
-  {{ admin_ui.kpi('Resultados pendientes', status.results_pending, 'Sin marcador real', 'R', 'gold') }}
-  {{ admin_ui.kpi('API Football', status.api_usage.remaining_estimated.api_football, 'Estimadas restantes', 'F', 'blue') }}
-  {{ admin_ui.kpi('Odds API', status.api_usage.remaining_estimated.odds_api, 'Estimadas restantes', 'O', 'blue') }}
+  {{ ui.kpi('Estado general', 'OK' if status.ok else 'Revisar', status.madrid_now, 'A', 'green' if status.ok else 'red') }}
+  {{ ui.kpi('Telegram hoy', status.telegram_sent_today, 'Mensajes enviados', 'T', 'blue') }}
+  {{ ui.kpi('Fallos hoy', status.jobs_failed|length, 'Jobs con error', '!', 'red' if status.jobs_failed else 'green') }}
+  {{ ui.kpi('Resultados pendientes', status.results_pending, 'Sin marcador real', 'R', 'gold') }}
+  {{ ui.kpi('API Football', status.api_usage.remaining_estimated.api_football, 'Estimadas restantes', 'F', 'blue') }}
+  {{ ui.kpi('Odds API', status.api_usage.remaining_estimated.odds_api, 'Estimadas restantes', 'O', 'blue') }}
 </section>
 
 <section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_daily_automation">
   <div class="v794-admin-grid">
     <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Próximos jobs</h2><span>{{ admin_ui.status('Madrid Time','ok') }}</span></div>
+      <div class="v794-panel-head"><h2>Próximos jobs</h2><span>{{ ui.status('Madrid Time','ok') }}</span></div>
       <table class="v794-admin-table">
         <thead><tr><th>Job</th><th>Ventana</th><th>Estado</th></tr></thead>
         <tbody>
         {% for job in status.next_jobs %}
-          <tr><td><strong>{{ job.name }}</strong><br><small>{{ job.job_key }}</small></td><td>{{ job.window }}</td><td>{{ admin_ui.status('Programado','info') }}</td></tr>
+          <tr><td><strong>{{ job.name }}</strong><br><small>{{ job.job_key }}</small></td><td>{{ job.window }}</td><td>{{ ui.status('Programado','info') }}</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -34,7 +34,7 @@
         <thead><tr><th>Job</th><th>Estado</th><th>Inicio</th><th>Duración</th></tr></thead>
         <tbody>
         {% for run in os.runs[:12] %}
-          <tr><td>{{ run.job_key }}</td><td>{{ admin_ui.status(run.status, 'ok' if run.status in ['OK','SKIPPED','DRY_RUN'] else 'red') }}</td><td>{{ run.started_at }}</td><td>{{ run.duration_ms }} ms</td></tr>
+          <tr><td>{{ run.job_key }}</td><td>{{ ui.status(run.status, 'ok' if run.status in ['OK','SKIPPED','DRY_RUN'] else 'red') }}</td><td>{{ run.started_at }}</td><td>{{ run.duration_ms }} ms</td></tr>
         {% else %}
           <tr><td colspan="4">Sin ejecuciones V818 registradas todavia.</td></tr>
         {% endfor %}
