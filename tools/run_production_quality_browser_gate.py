@@ -68,8 +68,33 @@ def _sports_truth(payload: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
     }
 
 
-def _visual_asset_contract(resources: list[str]) -> tuple[bool, dict[str, Any]]:
+def _official_brand_in_page(metrics: dict[str, Any], base_url: str) -> bool:
+    """Accept the official icon only with same-origin, decoded, visible DOM evidence."""
+    base = urllib.parse.urlsplit(base_url)
+    if base.scheme not in {"http", "https"} or not base.netloc:
+        return False
+    loaded = set(metrics.get("resources") or [])
+    for image in metrics.get("officialBrandImages") or []:
+        url = str(image.get("url") or "")
+        parsed = urllib.parse.urlsplit(url)
+        try:
+            decoded = float(image.get("naturalWidth") or 0) > 0 and float(image.get("naturalHeight") or 0) > 0
+        except (TypeError, ValueError):
+            decoded = False
+        if (image.get("source") == "official-app-icon" and image.get("visible") is True
+                and image.get("complete") is True and decoded and url in loaded
+                and (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)
+                and parsed.path == "/static/img/app-icons/app-icon-96.png"):
+            return True
+    return False
+
+
+def _visual_asset_contract(resources: list[str], *, official_brand_verified: bool = False) -> tuple[bool, dict[str, Any]]:
+    # Keep the historical SVG contract, but recognize the official app-icon
+    # migration only when every sampled surface proves a visible decoded logo.
     brand_shark = any("nemesis-shark-brand.svg" in value for value in resources)
+    official_icon_loaded = any(urllib.parse.urlsplit(value).path == "/static/img/app-icons/app-icon-96.png" for value in resources)
+    brand_shark = brand_shark or (official_brand_verified is True and official_icon_loaded)
     atmospheric_shark = any("nemesis-shark-atmosphere-v2.webp" in value for value in resources)
     legacy_shark = any("shark-logo.svg" in value for value in resources)
     return brand_shark and atmospheric_shark and not legacy_shark, {
@@ -260,6 +285,15 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           shell: Boolean(document.querySelector('[data-v933-surface]')),
           cssVersioned: [...document.querySelectorAll('link[rel="stylesheet"]')].some((link) => /app\\.css\\?v=/.test(link.href)),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
+          officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-app-icon"]')].map((img) => ({
+            url: img.currentSrc || img.src,
+            source: img.getAttribute('data-brand-source'),
+            complete: img.complete,
+            naturalWidth: img.naturalWidth,
+            naturalHeight: img.naturalHeight,
+            visible: Boolean(img.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})
+              && img.getBoundingClientRect().width > 0 && img.getBoundingClientRect().height > 0),
+          })),
           temporalCards: document.querySelectorAll('[data-match-temporal-context]').length,
           relevantMatchCards: document.querySelectorAll('[data-v934-match-card], [data-v934-pick-card]').length,
           missingTemporalCards: [...document.querySelectorAll('[data-v934-match-card], [data-v934-pick-card]')]
@@ -417,7 +451,13 @@ def run_gate(
     mojibake = [value for item in pages for value in item.get("mojibake") or []]
     technical_copy = [value for item in pages for value in item.get("technical_copy") or []]
     resources = [value for item in pages for value in item.get("resources") or []]
-    visual_assets_pass, visual_asset_evidence = _visual_asset_contract(resources)
+    official_brand_surfaces = [
+        {"path": item.get("path") or "/", "verified": _official_brand_in_page(item, base_url)}
+        for item in [*pages, mobile_evidence]
+    ]
+    official_brand_verified = bool(official_brand_surfaces) and all(item["verified"] for item in official_brand_surfaces)
+    visual_assets_pass, visual_asset_evidence = _visual_asset_contract(resources, official_brand_verified=official_brand_verified)
+    visual_asset_evidence["official_brand_surfaces"] = official_brand_surfaces
     performance_pass = all(
         item.get("elapsed_ms", 99_999) <= (8_000 if item["path"] == "/shark" else 5_000)
         for item in pages

@@ -183,3 +183,62 @@ def test_production_quality_gate_can_use_an_installed_browser():
 
     assert 'parser.add_argument("--browser-executable", default="")' in source
     assert 'launch_options["executable_path"]' in source
+
+
+# Synthetic DOM evidence: these cases do not re-certify any production report.
+def _official_brand_metrics():
+    url = "https://example.invalid/static/img/app-icons/app-icon-96.png?v=official"
+    return {"resources": [url], "officialBrandImages": [{
+        "url": url, "source": "official-app-icon", "complete": True,
+        "visible": True, "naturalWidth": 96, "naturalHeight": 96,
+    }]}
+
+
+def test_official_brand_requires_actual_decoded_visible_dom_evidence():
+    from tools.run_production_quality_browser_gate import _official_brand_in_page
+    metrics = _official_brand_metrics()
+    assert _official_brand_in_page(metrics, "https://example.invalid") is True
+    resources = metrics["resources"] + ["https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp"]
+    assert _visual_asset_contract(resources)[0] is False
+    assert _visual_asset_contract(resources, official_brand_verified=True)[0] is True
+    assert _visual_asset_contract(resources, official_brand_verified="true")[0] is False
+
+
+@pytest.mark.parametrize('field,value', [
+    ('visible', False), ('complete', False), ('naturalWidth', 0),
+    ('naturalHeight', 0), ('naturalWidth', 'invalid'), ('source', 'other'),
+    ('url', 'https://other.invalid/static/img/app-icons/app-icon-96.png?v=official'),
+    ('url', 'https://example.invalid/static/img/another-image.png'),
+])
+def test_official_brand_rejects_unproven_or_wrong_image(field, value):
+    from tools.run_production_quality_browser_gate import _official_brand_in_page
+    metrics = _official_brand_metrics()
+    metrics['officialBrandImages'][0][field] = value
+    if field == 'url':
+        metrics['resources'] = [value]
+    assert _official_brand_in_page(metrics, 'https://example.invalid') is False
+
+
+def test_official_brand_does_not_accept_an_unloaded_or_absent_icon():
+    from tools.run_production_quality_browser_gate import _official_brand_in_page
+    metrics = _official_brand_metrics()
+    metrics['resources'] = []
+    assert _official_brand_in_page(metrics, 'https://example.invalid') is False
+    assert _official_brand_in_page({'resources': [], 'officialBrandImages': []}, 'https://example.invalid') is False
+    assert _official_brand_in_page(_official_brand_metrics(), '') is False
+
+
+def test_official_icon_does_not_bypass_atmosphere_or_legacy_guards():
+    icon = _official_brand_metrics()['resources'][0]
+    atmosphere = 'https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp'
+    legacy = 'https://example.invalid/static/img/shark-logo.svg'
+    assert _visual_asset_contract([icon], official_brand_verified=True)[0] is False
+    assert _visual_asset_contract([icon, atmosphere, legacy], official_brand_verified=True)[0] is False
+
+
+def test_official_brand_capture_and_all_surfaces_gate_are_wired():
+    source = (Path(__file__).parents[1] / 'tools/run_production_quality_browser_gate.py').read_text()
+    assert '.ns-brand img[data-brand-source="official-app-icon"]' in source
+    assert 'for item in [*pages, mobile_evidence]' in source
+    assert 'all(item["verified"] for item in official_brand_surfaces)' in source
+    assert 'official_brand_verified=official_brand_verified' in source
