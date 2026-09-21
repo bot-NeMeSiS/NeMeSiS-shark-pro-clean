@@ -1,7 +1,7 @@
 """Safe realtime sports snapshots built exclusively from local DB/cache data."""
 from __future__ import annotations
 
-import copy
+from engines.snapshot_copy_engine import clone_snapshot
 import threading
 import time
 from datetime import datetime
@@ -23,6 +23,7 @@ ODDS_STALE_SECONDS = 3600
 _CACHE_LOCK = threading.RLock()
 _CACHE: dict[str, dict[str, Any]] = {}
 _CACHE_BUILD_LOCKS: dict[str, threading.Lock] = {}
+_CACHE_GENERATIONS: dict[str, object] = {}
 
 
 def _now(now: datetime | None = None) -> datetime:
@@ -249,6 +250,11 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
     for raw in (list(summary.get("valid_matches_today") or [])
                 + list(summary.get("valid_upcoming_matches") or [])
                 + list(summary.get("finished_matches") or [])):
+        # Keep the same first-valid-record policy, but do not normalize a match
+        # again just because it is also present in another summary section.
+        raw_id = _text(raw.get("id") or raw.get("match_id") or raw.get("external_id"), 90) if isinstance(raw, dict) else ""
+        if raw_id and raw_id in seen:
+            continue
         match = normalize_match(raw, evaluated_at)
         if match and match["id"] not in seen:
             seen.add(match["id"])
@@ -318,37 +324,49 @@ def cached_realtime_snapshot(
     now_mono = time.monotonic()
     with _CACHE_LOCK:
         cached = _CACHE.get(cache_key)
-        if cached and not force and now_mono < float(cached.get("expires_at") or 0):
-            return copy.deepcopy(cached["payload"]), "hit"
-        build_lock = _CACHE_BUILD_LOCKS.setdefault(cache_key, threading.Lock())
+        hit = bool(cached and not force and now_mono < float(cached.get("expires_at") or 0))
+        if not hit:
+            build_lock = _CACHE_BUILD_LOCKS.setdefault(cache_key, threading.Lock())
+    if hit:
+        # Cache payloads are private and replaced, never mutated in place.
+        # Copying outside the index lock lets independent keys keep progressing.
+        return clone_snapshot(cached["payload"]), "hit"
 
-    # Only one request rebuilds a missing key. Waiting requests re-check the
-    # cache and reuse that result instead of repeating the CPU-heavy builder.
+    # Keep one builder per key and recheck after waiting for it. Force still
+    # requests a rebuild; it does not bypass copy isolation or invalidation.
     with build_lock:
         now_mono = time.monotonic()
         with _CACHE_LOCK:
             cached = _CACHE.get(cache_key)
-            if cached and not force and now_mono < float(cached.get("expires_at") or 0):
-                return copy.deepcopy(cached["payload"]), "hit"
+            hit = bool(cached and not force and now_mono < float(cached.get("expires_at") or 0))
+            generation = _CACHE_GENERATIONS.setdefault(cache_key, object())
+        if hit:
+            return clone_snapshot(cached["payload"]), "hit"
         try:
             payload = builder()
         except Exception:
             with _CACHE_LOCK:
                 stale = _CACHE.get(cache_key)
-                if stale:
-                    fallback = copy.deepcopy(stale["payload"])
-                    fallback["cache_status"] = "stale_fallback"
-                    fallback["safe_message"] = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
-                    return fallback, "stale_fallback"
+            if stale:
+                fallback = clone_snapshot(stale["payload"])
+                fallback["cache_status"] = "stale_fallback"
+                fallback["safe_message"] = "Actualización temporalmente no disponible. Se conserva la última información confirmada."
+                return fallback, "stale_fallback"
             return build_realtime_snapshot({}), "safe_empty"
+        stored_payload = clone_snapshot(payload)
         stored_at = time.monotonic()
         with _CACHE_LOCK:
-            _CACHE[cache_key] = {
-                "payload": copy.deepcopy(payload),
-                "created_at": stored_at,
-                "expires_at": stored_at + max(5, min(int(ttl_seconds), 300)),
-            }
-        return copy.deepcopy(payload), "refreshed"
+            # A sync may invalidate this key while its old builder is running.
+            # That in-flight caller keeps its isolated view, but no later request
+            # may hit a value built before the invalidation. No clock is renewed.
+            if _CACHE_GENERATIONS.get(cache_key) is generation:
+                _CACHE[cache_key] = {
+                    "payload": stored_payload,
+                    "created_at": stored_at,
+                    "expires_at": stored_at + max(5, min(int(ttl_seconds), 300)),
+                }
+        return clone_snapshot(payload), "refreshed"
+
 
 def invalidate_realtime_cache(prefix: str = "") -> int:
     safe_prefix = _text(prefix, 160)
@@ -356,6 +374,11 @@ def invalidate_realtime_cache(prefix: str = "") -> int:
         keys = [key for key in _CACHE if not safe_prefix or key.startswith(safe_prefix)]
         for key in keys:
             _CACHE.pop(key, None)
+        # Include builds that have not published an entry yet. Retain per-key
+        # build locks so invalidation cannot create a second concurrent builder.
+        for key in _CACHE_BUILD_LOCKS:
+            if not safe_prefix or key.startswith(safe_prefix):
+                _CACHE_GENERATIONS[key] = object()
     return len(keys)
 
 
