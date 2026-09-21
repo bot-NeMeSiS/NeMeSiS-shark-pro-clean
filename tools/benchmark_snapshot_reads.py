@@ -1,6 +1,7 @@
 """Paired, isolated local benchmark. Never measures or touches production."""
 from pathlib import Path
 import os, sys, socket, tempfile, json, time, random, statistics, importlib.util, copy, re
+import secrets
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -16,8 +17,9 @@ OUT = args.output_dir.resolve(); OUT.mkdir(parents=True, exist_ok=True)
 assert (ROOT / 'app.py').is_file() and (BASE / 'engines/v934_realtime_sports_engine.py').is_file()
 sys.path.insert(0, str(ROOT)); os.chdir(ROOT)
 TEMP = tempfile.TemporaryDirectory(prefix='nemesis-local-benchmark-')
-os.environ.update(DB_PATH=str(Path(TEMP.name)/'qa.sqlite'),SECRET_KEY='performance-qa-only',
- ADMIN_EMAIL='qa@example.test',ADMIN_PASSWORD='synthetic-test-password',AUTOMATION_SECRET='local-synthetic-only',
+# Fresh in-memory credentials for this temporary DB; never reuse production values.
+os.environ.update(DB_PATH=str(Path(TEMP.name)/'qa.sqlite'),SECRET_KEY=secrets.token_urlsafe(32),
+ ADMIN_EMAIL='qa@example.test',ADMIN_PASSWORD=secrets.token_urlsafe(32),AUTOMATION_SECRET=secrets.token_urlsafe(32),
  BACKGROUND_JOBS_ENABLED='false',AUTO_GENERATE_PICKS='false',AUTO_SEND_TELEGRAM_PICKS='false')
 attempts = []
 def block(*a, **k):

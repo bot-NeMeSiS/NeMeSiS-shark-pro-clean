@@ -239,3 +239,48 @@ def test_real_request_contexts_never_reuse_mutated_summary(app_module, monkeypat
         assert second is not first
         assert 'private_note' not in second['all_valid_matches'][0]
     assert 'private_note' not in row and attempts == []
+
+
+def _benchmark_setup_node():
+    import ast
+    from pathlib import Path
+    source = Path(__file__).resolve().parents[1] / 'tools/benchmark_snapshot_reads.py'
+    nodes = ast.parse(source.read_text(encoding='utf-8')).body
+    return next(node for node in nodes if isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Call)
+                and ast.unparse(node.value.func) == 'os.environ.update')
+
+
+def test_benchmark_uses_generated_credentials_not_fixed_literals():
+    import ast
+    setup = _benchmark_setup_node().value
+    arguments = {keyword.arg: keyword.value for keyword in setup.keywords}
+    for name in ('SECRET_KEY', 'ADMIN_PASSWORD', 'AUTOMATION_SECRET'):
+        value = arguments[name]
+        assert isinstance(value, ast.Call)
+        assert ast.unparse(value.func) == 'secrets.token_urlsafe'
+        assert ast.literal_eval(value.args[0]) >= 32
+
+
+def test_benchmark_setup_is_ephemeral_and_does_not_reuse_existing_credentials(tmp_path):
+    import ast
+    import secrets
+    from pathlib import Path
+    from types import SimpleNamespace
+    setup = ast.Module(body=[_benchmark_setup_node()], type_ignores=[])
+    ast.fix_missing_locations(setup)
+    code = compile(setup, 'benchmark-isolated-setup', 'exec')
+    names = ('SECRET_KEY', 'ADMIN_PASSWORD', 'AUTOMATION_SECRET')
+    generated = []
+    for _ in range(2):
+        # Execute only the environment assignment against a private dictionary,
+        # never the benchmark, app import or actual process environment.
+        isolated = SimpleNamespace(environ={name: 'existing-test-value' for name in names})
+        exec(code, {'os': isolated, 'TEMP': SimpleNamespace(name=str(tmp_path)),
+                    'Path': Path, 'secrets': secrets})
+        generated.extend(isolated.environ[name] for name in names)
+        assert isolated.environ['DB_PATH'] == str(tmp_path / 'qa.sqlite')
+        assert isolated.environ['BACKGROUND_JOBS_ENABLED'] == 'false'
+        assert isolated.environ['AUTO_GENERATE_PICKS'] == 'false'
+        assert isolated.environ['AUTO_SEND_TELEGRAM_PICKS'] == 'false'
+    assert len(set(generated)) == 6 and all(len(value) >= 40 for value in generated)
