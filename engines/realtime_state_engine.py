@@ -400,3 +400,72 @@ def compare_realtime_match_state(previous: dict[str, Any] | None, current: dict[
         "changed": bool(changes) if same_fixture else False,
         "changes": changes if same_fixture else [],
     }
+
+
+# A clock belongs to its entire provider observation. Never attach a newer
+# clock to an older score/status or use a generic DB write time as provenance.
+_MATCH_OBSERVATION_FIELDS = (
+    "external_id", "fixture_id", "provider", "source", "data_source", "source_name",
+    "legal_note", "status", "provider_status", "status_short", "short_status",
+    "status_code", "strStatus", "strProgress", "progress", "match_status",
+    "fixture_status", "sports_status", "lifecycle", "v935_lifecycle",
+    "v935_raw_lifecycle", "safe_status", "client_status_label", "live_status_label",
+    "calendar_status", "status_info", "fixture", "is_live", "is_finished",
+    "is_stale", "stale", "stale_reason", "status_conflict", "conflict_type",
+    "v935_freshness", "freshness", "live_depth", "minute", "elapsed", "live_minute",
+    "extra", "stoppage_time", "score", "result", "home_score", "away_score",
+    "raw_json", "payload_json", "live_updated_at", "provider_updated_at",
+    "last_synced_at", "lifecycle_observed_at", "score_observed_at",
+    "minute_observed_at", "events_observed_at", "stats_observed_at", "coverage",
+    "events", "lineups", "stats", "players", "injuries",
+    "status_canonical", "status_raw_canonical", "provider_observed_at",
+    "provider_observed_at_source", "live_valid_until_madrid", "freshness_seconds",
+    "freshness_state", "confidence_state", "evaluated_at_madrid", "period_label",
+    "score_home", "score_away", "client_live_minute",
+)
+_MATCH_ENRICHMENT_FIELDS = (
+    "kickoff_time", "match_time", "kickoff_iso", "competition_id", "competition_key",
+    "competition_name", "league_name", "country", "home_team_id", "away_team_id",
+    "home_logo", "away_logo", "venue", "season", "round", "bookmaker",
+    "odds_h2h_json", "odds_updated_at",
+)
+
+
+def merge_match_observations(primary: dict[str, Any], duplicate: dict[str, Any]) -> dict[str, Any]:
+    """Merge known duplicates while retaining the primary's stable local id.
+
+    Visual richness may choose that id, but never chooses sports truth. Select
+    one whole provider observation by the existing canonical clock precedence.
+    Missing/invalid clocks remain missing. An untimed final cannot be rolled
+    back to LIVE without evidence, consistent with older_match_observation.
+    """
+    primary, duplicate = dict(primary or {}), dict(duplicate or {})
+    previous_clock = _provider_clock(primary)[2]
+    next_clock = _provider_clock(duplicate)[2]
+    previous_final = bool(match_status_truth(primary).get("is_finished"))
+    next_final = bool(match_status_truth(duplicate).get("is_finished"))
+    donor = primary
+    if previous_clock is not None and next_clock is not None:
+        before = previous_clock.astimezone(timezone.utc)
+        after = next_clock.astimezone(timezone.utc)
+        if after > before or (after == before and next_final and not previous_final):
+            donor = duplicate
+    elif next_clock is not None:
+        if not (previous_final and not next_final):
+            donor = duplicate
+    elif previous_clock is None and next_final and not previous_final:
+        donor = duplicate
+
+    merged = deepcopy(primary)
+    for key in _MATCH_ENRICHMENT_FIELDS:
+        if merged.get(key) in (None, "") and duplicate.get(key) not in (None, ""):
+            merged[key] = deepcopy(duplicate[key])
+    for key in _MATCH_OBSERVATION_FIELDS:
+        merged.pop(key, None)
+        if key in donor:
+            merged[key] = deepcopy(donor[key])
+    if primary.get("id") not in (None, ""):
+        merged["id"] = primary["id"]
+    elif duplicate.get("id") not in (None, ""):
+        merged["id"] = duplicate["id"]
+    return merged

@@ -14496,22 +14496,8 @@ def match_quality_score(match):
 
 
 def merge_match_payload(primary, duplicate):
-    merged = dict(primary or {})
-    for key in (
-        "external_id", "kickoff_time", "match_time", "kickoff_iso", "competition_id", "competition_key",
-        "competition_name", "league_name", "country", "home_team_id", "away_team_id", "home_logo", "away_logo",
-        "status", "minute", "score", "home_score", "away_score", "venue", "season", "round", "bookmaker",
-        "odds_h2h_json", "odds_updated_at", "raw_json",
-    ):
-        if not merged.get(key) and (duplicate or {}).get(key):
-            merged[key] = duplicate.get(key)
-    if match_quality_score(duplicate) > match_quality_score(merged):
-        better = dict(duplicate or {})
-        for key, value in merged.items():
-            if not better.get(key) and value:
-                better[key] = value
-        return better
-    return merged
+    from engines.realtime_state_engine import merge_match_observations
+    return merge_match_observations(primary, duplicate)
 
 
 def dedupe_matches_list(matches):
@@ -14557,81 +14543,76 @@ def match_deduplication_metrics(sample_limit=5000):
 
 
 def cleanup_duplicate_matches(cur=None):
+    from engines.realtime_state_engine import _provider_clock
+
     own_conn = None
     if cur is None:
         own_conn = db()
         cur = own_conn.cursor()
     try:
-        raw = cur.execute("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC").fetchall()
-    except sqlite3.OperationalError:
+        if own_conn:
+            own_conn.execute("BEGIN IMMEDIATE")
+        try:
+            raw = cur.execute("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC").fetchall()
+        except sqlite3.OperationalError:
+            return {"duplicates_removed": 0, "groups": 0}
+        # Fixed allowlist + existing columns: supports older DBs without schema writes.
+        columns = {row[1] for row in cur.execute("PRAGMA table_info(matches)").fetchall()}
+        fields = tuple(key for key in (
+            "external_id", "kickoff_time", "match_time", "kickoff_iso", "competition_id", "competition_key",
+            "competition_name", "league_name", "country", "home_team_id", "away_team_id", "home_logo", "away_logo",
+            "status", "minute", "score", "home_score", "away_score", "venue", "season", "round", "bookmaker",
+            "odds_h2h_json", "odds_updated_at", "raw_json", "source", "legal_note",
+            "last_synced_at", "live_updated_at", "provider_updated_at", "updated_at",
+        ) if key in columns)
+        update_sql = "UPDATE matches SET " + ", ".join(key + "=?" for key in fields) + " WHERE id=?"
+        by_key = {}
+        for row in raw:
+            item = dict(row)
+            if not is_fake_match(item):
+                by_key.setdefault(match_logical_key(item), []).append(item)
+        removed = groups = 0
+        for items in by_key.values():
+            if len(items) <= 1:
+                continue
+            groups += 1
+            # Keep existing links stable; observation selection is separate.
+            keeper = max(items, key=match_quality_score)
+            merged = dict(keeper)
+            for item in items:
+                if item.get("id") != keeper.get("id"):
+                    merged = merge_match_payload(merged, item)
+            merged["updated_at"] = now_iso()  # DB write clock, never a provider clock.
+            cur.execute(update_sql, tuple(merged.get(key) for key in fields) + (keeper["id"],))
+            for item in items:
+                duplicate_id = item["id"]
+                # Remove the old live row before its match (also safe with a FK).
+                cur.execute("DELETE FROM live_matches WHERE match_id=? OR id=?",
+                            (duplicate_id, "live-" + duplicate_id))
+                if duplicate_id != keeper["id"]:
+                    cur.execute("UPDATE picks SET match_id=? WHERE match_id=?", (keeper["id"], duplicate_id))
+                    cur.execute("DELETE FROM matches WHERE id=?", (duplicate_id,))
+                    removed += 1
+            clock = _provider_clock(merged)
+            if canonical_match_status(merged).get("is_live") and clock[2] is not None:
+                cur.execute(
+                    """INSERT OR REPLACE INTO live_matches
+                       (id,match_id,status,minute,home_score,away_score,payload_json,source,updated_at)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
+                    ("live-" + keeper["id"], keeper["id"], merged.get("status"), merged.get("minute"),
+                     merged.get("home_score"), merged.get("away_score"), merged.get("raw_json") or "{}",
+                     merged.get("source"), clock[1]),
+                )
+        if own_conn:
+            own_conn.commit()
+        return {"duplicates_removed": removed, "groups": groups}
+    except Exception:
+        if own_conn:
+            own_conn.rollback()
+        raise
+    finally:
         if own_conn:
             own_conn.close()
-        return {"duplicates_removed": 0, "groups": 0}
-    by_key = {}
-    for row in raw:
-        item = dict(row)
-        if is_fake_match(item):
-            continue
-        by_key.setdefault(match_logical_key(item), []).append(item)
-    removed = 0
-    groups = 0
-    for items in by_key.values():
-        if len(items) <= 1:
-            continue
-        groups += 1
-        keeper = max(items, key=match_quality_score)
-        merged = dict(keeper)
-        for item in items:
-            if item.get("id") == keeper.get("id"):
-                continue
-            merged = merge_match_payload(merged, item)
-        cur.execute(
-            """UPDATE matches
-               SET external_id=?, kickoff_time=?, match_time=?, kickoff_iso=?, competition_id=?, competition_key=?,
-                   competition_name=?, league_name=?, country=?, home_team_id=?, away_team_id=?, home_logo=?, away_logo=?,
-                   status=?, minute=?, score=?, home_score=?, away_score=?, venue=?, season=?, round=?, bookmaker=?,
-                   odds_h2h_json=?, odds_updated_at=?, raw_json=?, updated_at=?
-               WHERE id=?""",
-            (
-                merged.get("external_id") or "",
-                merged.get("kickoff_time") or "",
-                merged.get("match_time") or merged.get("kickoff_time") or "",
-                merged.get("kickoff_iso") or "",
-                merged.get("competition_id") or "",
-                merged.get("competition_key") or "",
-                merged.get("competition_name") or "",
-                merged.get("league_name") or "",
-                merged.get("country") or "",
-                merged.get("home_team_id") or "",
-                merged.get("away_team_id") or "",
-                merged.get("home_logo") or "",
-                merged.get("away_logo") or "",
-                merged.get("status") or "",
-                merged.get("minute") or "",
-                merged.get("score") or "",
-                merged.get("home_score") or "",
-                merged.get("away_score") or "",
-                merged.get("venue") or "",
-                merged.get("season") or "",
-                merged.get("round") or "",
-                merged.get("bookmaker") or "",
-                merged.get("odds_h2h_json") or "",
-                merged.get("odds_updated_at") or "",
-                merged.get("raw_json") or "{}",
-                now_iso(),
-                keeper.get("id"),
-            ),
-        )
-        delete_ids = [item.get("id") for item in items if item.get("id") != keeper.get("id")]
-        for duplicate_id in delete_ids:
-            cur.execute("UPDATE picks SET match_id=? WHERE match_id=?", (keeper.get("id"), duplicate_id))
-            cur.execute("UPDATE live_matches SET match_id=? WHERE match_id=?", (keeper.get("id"), duplicate_id))
-            cur.execute("DELETE FROM matches WHERE id=?", (duplicate_id,))
-            removed += 1
-    if own_conn:
-        own_conn.commit()
-        own_conn.close()
-    return {"duplicates_removed": removed, "groups": groups}
 
 
 
