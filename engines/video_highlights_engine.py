@@ -2,15 +2,25 @@
 from __future__ import annotations
 
 from engines.content_rights_engine import classify_external_content, classify_media_asset
+from engines.highlight_url_engine import public_https_url, safe_embed_url
 
 
 def classify_match_video(item: dict | None = None) -> dict:
     item = dict(item or {})
     item.setdefault("content_type", "video")
+    original = public_https_url(item.get("original_url") or item.get("video_url") or item.get("url"))
+    proposed = item.get("embed_url") or ""
+    # An embed-only asset can be reviewed, but arbitrary hosts/paths are never iframes.
+    embed = safe_embed_url(original or proposed, proposed) if proposed else ""
+    item["original_url"] = original
+    item["embed_url"] = embed
+    if not original and not embed:
+        item["rights_status"] = "BLOCKED"
+    item["url"] = original
     legacy = classify_external_content(item)
-    media = classify_media_asset(item, channel="APP")
+    media = classify_media_asset(item, channel=str(item.get("channel") or "APP"))
     can_embed = bool(media["can_display"] and legacy.get("can_embed"))
-    can_link = bool(media["can_display"] and legacy.get("can_link"))
+    can_link = bool(original and media["can_display"] and legacy.get("can_link"))
     rights_status = str(media.get("rights_status") or "UNKNOWN_RIGHTS")
     if media.get("decision") == "BLOCKED":
         video_classification = "BLOCKED"

@@ -61,4 +61,7 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
         out = write_route_map("ROUTE_MAP_V608.md", app_py="app.py")
         return jsonify({"ok": True, "version": app_version, "created": str(out)})
 
+    # Explicit composition: media operations share the existing DB and admin guard.
+    from blueprints.media_review import create_media_review_blueprint
+    bp.register_blueprint(create_media_review_blueprint(db_path, is_admin_callback))
     return bp

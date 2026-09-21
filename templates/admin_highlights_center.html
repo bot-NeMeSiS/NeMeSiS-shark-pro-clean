@@ -4,9 +4,10 @@
 <section class="hero compact-hero">
   <div class="eyebrow">Admin · Highlights</div>
   <h1>Centro de resúmenes</h1>
-  <p>Estado real de highlights, vídeos enlazados, pendientes y sincronización. No expone secrets ni descarga vídeos.</p>
-  <div class="actions"><a class="btn primary" href="/api/admin/highlights/sync?force=1&days_back=7&limit=300" target="_blank">Sincronizar ahora</a><a class="btn" href="/resumenes">Vista cliente</a><a class="btn" href="/api/admin/highlights/status" target="_blank">API estado</a></div>
+  <p>Detección, asociación y autorización de vídeos son estados distintos. No expone secrets ni descarga vídeos.</p>
+  <div class="actions"><a class="btn primary" href="/admin/highlights-review">Revisar enlaces y sincronización</a><a class="btn" href="/resumenes">Vista cliente</a><a class="btn" href="/api/admin/highlights/status" target="_blank">API estado</a></div>
 </section>
+<p>Guardados: {{ (center.counts or {}).get('stored',0) }} · Pendientes o bloqueados por derechos en la muestra: {{ (center.counts or {}).get('rights_warnings',0) }}. Tener una clave configurada no demuestra que existan vídeos publicables.</p>
 <section class="grid cards-4">
   <article class="card stat-card"><span>Estado</span><strong>{{ center.status }}</strong><small>{{ center.key_present and 'Key configurada' or 'Falta key' }}</small></article>
   <article class="card stat-card"><span>Vídeos</span><strong>{{ (center.counts or {}).get('videos', 0) }}</strong><small>{{ (center.counts or {}).get('embeddable', 0) }} embebibles</small></article>
@@ -14,14 +15,14 @@
   <article class="card stat-card"><span>Enlazados</span><strong>{{ (center.counts or {}).get('linked_matches', 0) }}</strong><small>partidos con match_id</small></article>
 </section>
 <section class="band compact-band">
-  <div class="section-head"><h2>Render Cron recomendado</h2><span class="pill">{{ (center.cron or {}).recommended }}</span></div>
+  <div class="section-head"><h2>Sincronización existente</h2><span class="pill">{{ (center.cron or {}).recommended }}</span></div>
   <p><code>{{ (center.cron or {}).command }}</code></p>
   <p class="small"><code>{{ (center.cron or {}).endpoint }}</code></p>
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>Últimos vídeos</h2><span class="pill">{{ (center.available or [])|length }}</span></div>
   <div class="stack compact-list">
-    {% for h in (center.available or [])[:12] %}<div class="list-row"><span>{{ h.match_label }}<small>{{ h.event_date_label }} · {{ h.competition_label }} · {{ h.client_status }}</small></span><a class="btn small-btn" href="{{ h.detail_url }}">Ver</a></div>{% else %}<div class="empty-state">Todavía no hay vídeos sincronizados.</div>{% endfor %}
+    {% for h in (center.available or [])[:12] %}<div class="list-row"><span>{{ h.match_label }}<small>{{ h.event_date_label }} · {{ h.competition_label }} · {{ h.client_status }}</small></span><a class="btn small-btn" href="{{ h.detail_url }}">Ver</a></div>{% else %}<div class="empty-state">No hay vídeos autorizados en esta muestra. Revisa los enlaces detectados antes de publicar.</div>{% endfor %}
   </div>
 </section>
 <section class="band compact-band">

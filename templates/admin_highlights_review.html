@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='highlights-experience.css') }}?v=media-review-1">
+<section class="ns-highlights-review">
+  <header><p>Administración · Contenido externo</p><h1>Revisión de vídeo-resúmenes</h1>
+    <p>Un enlace encontrado no es una autorización. Revisa su fuente y las condiciones aplicables antes de publicarlo.</p>
+    <a href="/admin/highlights-center">Volver al centro de resúmenes</a> · <a href="/resumenes">Vista cliente</a>
+  </header>
+  {% if review_error %}<p role="alert" class="ns-media-alert">{{ review_error }}</p>{% endif %}
+  <section class="ns-media-overview"><h2>Detección y disponibilidad</h2>
+    <p>{{ review.counts.get('stored', 0) }} registros guardados. Esta vista revisa hasta {{ review.sample_limit }} enlaces recientes; no es una medición de toda la cobertura.</p>
+    {% if review.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo leer el catálogo. No se ha interpretado el error como cero vídeos.</p>{% endif %}
+    <form method="post" action="/admin/highlights-review/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p>Consultar hoy y ayer: como máximo dos peticiones, dentro del presupuesto diario. No autoriza ni envía vídeos.</p>
+      <button type="submit">Buscar resúmenes recientes</button></form>
+    {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found or 0 }} enlaces detectados · {{ run.linked_matches or 0 }} asociados</p>{% endfor %}
+  </section>
+  {% for item in review['items'] %}
+  <article class="ns-media-review-card" data-highlight-review="{{ item.id }}">
+    <h2>{{ item.title }}</h2><p>{{ item.event_date }} · {{ item.source }}</p>
+    <p><strong>{{ 'Visible con autorización registrada' if item.can_display else 'No publicado' }}</strong> · {{ item.reason }}</p>
+    {% if item.match_id %}<a href="{{ '/match/' ~ (item.match_id|urlencode) }}">Abrir partido asociado</a>{% else %}<p>Sin asociación inequívoca: no se permite autorizar.</p>{% endif %}
+    {% if item.video_url %}<p><a href="{{ item.video_url }}" target="_blank" rel="noopener noreferrer">Examinar enlace original (externo)</a></p>{% endif %}
+    <details><summary>Registrar revisión</summary>
+      <form method="post" action="/admin/highlights-review/{{ item.id|urlencode }}/decision">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="review_token" value="{{ item.review_token }}">
+        <label>Decisión<select name="decision"><option value="REVIEW_REQUIRED">Mantener pendiente / retirar autorización</option><option value="LINK_ONLY">Autorizar solo enlace externo</option><option value="EMBED">Autorizar reproductor externo</option><option value="BLOCKED">Bloquear publicación</option></select></label>
+        <label>Base de derechos<select name="rights_status"><option value="">Sin verificar</option><option value="LICENSED">Licencia documentada</option><option value="PROVIDER_ALLOWED">Condiciones del proveedor</option><option value="OPEN_LICENSE_ALLOWED">Licencia abierta compatible</option><option value="OWNED">Contenido propio</option><option value="ATTRIBUTION_REQUIRED">Licencia con atribución obligatoria</option></select></label>
+        <label>URL pública de la evidencia<input type="url" name="evidence_url" placeholder="https://…" maxlength="2048"></label>
+        <label>Atribución que verá el cliente<input name="attribution" value="{{ item.attribution }}" maxlength="500"></label>
+        <label>Fundamento y alcance de la autorización<textarea name="basis" rows="3" maxlength="1500"></textarea></label>
+        <label class="ns-media-check"><input type="checkbox" name="confirmed" value="1">He verificado el uso comercial en la app y la modalidad seleccionada. Una URL de YouTube o de una API, por sí sola, no basta.</label>
+        <label class="ns-media-check"><input type="checkbox" name="official" value="1">La fuente oficial también está verificada.</label>
+        <p>No pegues claves ni contraseñas. Cada decisión conserva su evidencia y la revisión anterior. Si cambia el enlace, se requiere una nueva revisión.</p>
+        <button type="submit">Guardar decisión</button>
+      </form>
+    </details>
+  </article>
+  {% else %}<p class="ns-media-empty">No hay enlaces para revisar en esta lectura. Esto no garantiza que todos los partidos tengan un resumen.</p>{% endfor %}
+</section>
+{% endblock %}

@@ -354,6 +354,10 @@ def should_send_result_alert(match=None, pick=None, current=None):
 
 
 def should_send_highlight_alert(match=None, highlight=None, current=None):
+    # A media review for APP does not authorize distribution in Telegram.
+    channels = (highlight or {}).get("allowed_channels")
+    if channels and (not isinstance(channels, (list, tuple)) or "TELEGRAM" not in channels):
+        return False
     cfg = telegram_activity_config()
     if not cfg["send_highlight_alerts"]:
         return False
