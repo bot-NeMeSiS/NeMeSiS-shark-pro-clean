@@ -9,6 +9,7 @@ import json
 import re
 import unicodedata
 from datetime import datetime, timedelta
+from functools import lru_cache
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
@@ -172,7 +173,14 @@ LIVE_FUTURE_SKEW_SECONDS = 300
 
 
 def _status_key(value: Any) -> str:
-    text = _text(value, 180).casefold().replace("_", " ").replace("-", " ")
+    # Cache only the bounded text transformation, NEVER a match, clock or LIVE decision.
+    # Conversion remains outside the cache: arbitrary input objects are not retained.
+    return _normalized_status_text(_text(value, 180))
+
+
+@lru_cache(maxsize=256)
+def _normalized_status_text(text: str) -> str:
+    text = text.casefold().replace("_", " ").replace("-", " ")
     text = "".join(
         character
         for character in unicodedata.normalize("NFD", text)

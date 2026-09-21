@@ -5,6 +5,8 @@ sin romper el arranque si alguna tabla antigua no existe todavia.
 """
 from __future__ import annotations
 
+from contextlib import closing
+
 import hashlib
 import os
 import platform
@@ -26,7 +28,7 @@ def _connect(db_path: str) -> sqlite3.Connection:
 
 def ensure_observability_schema(db_path: str) -> None:
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
-    with _connect(db_path) as conn:
+    with closing(_connect(db_path)) as conn, conn:
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS observability_events (
@@ -108,7 +110,7 @@ def record_observability_event(
 ) -> bool:
     try:
         ensure_observability_schema(db_path)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO observability_events
@@ -164,7 +166,7 @@ def record_observability_error(
 ) -> bool:
     try:
         ensure_observability_schema(db_path)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO observability_errors
@@ -203,7 +205,7 @@ def record_observability_error(
 def latest_observability_errors(db_path: str, limit: int = 100) -> List[Dict[str, Any]]:
     try:
         ensure_observability_schema(db_path)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             rows = conn.execute(
                 """
                 SELECT error_id, created_at, path, method, endpoint, user_id, email, membership,
@@ -222,7 +224,7 @@ def latest_observability_errors(db_path: str, limit: int = 100) -> List[Dict[str
 def observability_error_detail(db_path: str, error_id: str) -> Dict[str, Any]:
     try:
         ensure_observability_schema(db_path)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             row = conn.execute(
                 """
                 SELECT error_id, created_at, path, method, endpoint, user_id, email, membership,
@@ -290,7 +292,7 @@ def observability_summary(db_path: str, app_version: str = "") -> Dict[str, Any]
     try:
         if os.path.exists(db_path):
             db_size_mb = round(os.path.getsize(db_path) / (1024 * 1024), 2)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             conn.execute("SELECT 1").fetchone()
             db_ok = True
             latest_events = _latest_events(conn, limit=20)
@@ -373,7 +375,7 @@ def observability_summary(db_path: str, app_version: str = "") -> Dict[str, Any]
 def mark_route_check(db_path: str, route: str, status: str = "ok", note: str = "") -> None:
     try:
         ensure_observability_schema(db_path)
-        with _connect(db_path) as conn:
+        with closing(_connect(db_path)) as conn, conn:
             conn.execute(
                 """
                 INSERT INTO observability_route_checks(route, last_checked_at, status, note)

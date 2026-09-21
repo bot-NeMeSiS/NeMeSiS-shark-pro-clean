@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 
 from engines.madrid_time_engine import format_madrid_sync_label
 from engines.v935_launch_trust_engine import match_status_truth
-from engines.realtime_state_engine import build_realtime_match_state
+from engines.realtime_state_engine import build_realtime_match_evidence
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -75,7 +75,11 @@ def _minute(value: Any) -> int | None:
 
 
 def _status_from_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    truth = match_status_truth(item, now)
+    return _status_presentation(match_status_truth(item, now))
+
+
+def _status_presentation(truth: dict[str, Any]) -> dict[str, Any]:
+    """Format an already-computed local decision, not a second lifecycle engine."""
     lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
     raw_lifecycle = str(truth.get("raw_lifecycle") or lifecycle)
     keys = {
@@ -171,8 +175,8 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
     # One evaluation for the existing snapshot and its additive UI projection.
     # Sports Truth still owns lifecycle; this is not another classifier.
     evaluated_at = _now(now)
-    state = build_realtime_match_state(item, now=evaluated_at)
-    status = _status_from_truth(item, evaluated_at)
+    state, truth = build_realtime_match_evidence(item, now=evaluated_at)
+    status = _status_presentation(truth)
     # Invalid priority timestamps do not fall back to a newer generic clock.
     updated_at = state["provider_observed_at"]
     age = state["freshness_seconds"]
