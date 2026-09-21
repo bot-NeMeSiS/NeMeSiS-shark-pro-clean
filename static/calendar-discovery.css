@@ -1,0 +1,47 @@
+/* Calendar-only delivery. The existing sports cards and shell remain authoritative. */
+body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v940-calendar-command {
+  grid-template-columns: minmax(0,1fr); gap: 8px 16px;
+}
+[data-calendar-discovery="v1"] .v940-calendar-command-section:has(.v933-calendar-date-navigation) { grid-column: 1; grid-row: 2; }
+[data-calendar-discovery="v1"] .v940-calendar-command-section:has(> .v933-filter-tabs) { grid-column: 1; grid-row: 3; }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form {
+  grid-column: 1 / -1; grid-row: 1; min-width: 0;
+  display: grid !important; grid-template-columns: minmax(0,1fr) auto !important;
+  gap: 8px !important; align-items: end;
+}
+[data-calendar-discovery="v1"] .v940-calendar-filter-form :is(input,select,.v933-action) { min-height: 44px !important; min-width: 0; }
+[data-calendar-discovery="v1"] .v940-calendar-search-field { grid-column: 1 / -1; min-width: 0; }
+[data-calendar-discovery="v1"] .v940-calendar-search-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
+[data-calendar-discovery="v1"] .v940-calendar-search-label label { color: var(--ns-text); font-size: 14px; font-weight: 700; }
+[data-calendar-discovery="v1"] .v940-calendar-search-label a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v933-cyan); font-size: 13px; }
+[data-calendar-discovery="v1"] .v940-calendar-search-field .v933-search { width: 100%; display: flex; align-items: center; gap: 8px; }
+[data-calendar-discovery="v1"] .v940-calendar-search-field input { width: 100%; font-size: 16px; }
+[data-calendar-discovery="v1"] .v940-calendar-advanced { grid-column: 1; grid-row: auto; min-width: 0; }
+[data-calendar-discovery="v1"] .v940-calendar-advanced[open] { grid-column: 1 / -1; grid-row: auto; }
+[data-calendar-discovery="v1"] .v940-calendar-advanced > summary { min-height: 44px; }
+[data-calendar-discovery="v1"] .v940-calendar-advanced .v940-filter-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 13px; }
+[data-calendar-discovery="v1"] .v940-calendar-advanced > summary .v933-icon,
+[data-calendar-discovery="v1"] .v933-calendar-date-navigation .v933-icon { flex: 0 0 20px; width: 20px; height: 20px; }
+[data-calendar-discovery="v1"] .v940-calendar-facets { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; padding: 4px 0 2px; min-width: 0; }
+[data-calendar-discovery="v1"] .v940-calendar-facets label { display: grid; gap: 5px; min-width: 0; }
+[data-calendar-discovery="v1"] .v940-calendar-facets label > span { font-size: 13px; color: var(--ns-text-muted); }
+[data-calendar-discovery="v1"] .v940-calendar-facets select { display: block; width: 100%; max-width: 100%; font-size: 16px; }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action { grid-column: 2; justify-self: end; width: auto; }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action { grid-column: 1 / -1; }
+[data-calendar-discovery="v1"] .v940-calendar-pending { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--ns-text); }
+[data-calendar-discovery="v1"] .v940-calendar-pending[hidden] { display: none; }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form :is(input,select,summary,a,button):focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 3px; }
+[data-calendar-discovery="v1"] :is(#v933-calendar-filters,#v940-calendar-search) { scroll-margin-top: calc(var(--v933-topbar,58px) + 14px); }
+/* Restore context explicitly over the retired display:none !important rule. */
+[data-calendar-discovery="v1"] .v940-calendar-context { display: flex !important; top: calc(var(--v933-topbar,56px) + 8px); }
+@media (max-width: 760px) {
+  [data-calendar-discovery="v1"] .v940-calendar-context { top: calc(var(--v933-topbar,58px) + 6px); }
+  [data-calendar-discovery="v1"] .v940-calendar-context > div:last-child { flex-direction: column; align-items: flex-end; gap: 1px; }
+  [data-calendar-discovery="v1"] .v940-calendar-context > div:last-child > span { display: block; font-size: 12px; }
+  [data-calendar-discovery="v1"] .v940-calendar-context a { min-height: 44px; padding-inline: 9px; font-size: 12px; }
+}
+@media (max-width: 600px) {
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action { font-size: 12px; padding-inline: 10px; }
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action { width: 100%; }
+  [data-calendar-discovery="v1"] .v940-calendar-facets { grid-template-columns: minmax(0,1fr); }
+}

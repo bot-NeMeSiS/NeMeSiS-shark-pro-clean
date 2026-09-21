@@ -3,6 +3,9 @@
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-1">
+{# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
+{% set pending_copy = {'es': 'Cambios sin aplicar. Pulsa Encontrar partidos.', 'en': 'Changes not applied. Select Find matches.', 'fr': 'Modifications non appliquées. Choisissez Trouver des matchs.'} %}
 {% set calendar = data.get('calendar') or {} %}
 {% set filters = calendar.get('filters') or {} %}
 {% set counts = calendar.get('counts') or {} %}
@@ -18,6 +21,7 @@
 
 <div class="v933-page v933-sports-board v933-calendar-board v940-calendar-experience"
      data-v933-template="calendar"
+     data-calendar-discovery="v1"
      data-v933-reference="official-ref-10"
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
@@ -49,6 +53,63 @@
       </div>
     </header>
 
+    <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendar"
+          role="search" aria-label="{{ ui('Buscar partido') }}" data-v940-discovery-form>
+      <input type="hidden" name="lane" value="{{ lane }}">
+      <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
+      {% if filters.get('team') %}<input type="hidden" name="team" value="{{ filters.get('team') }}">{% endif %}
+      {% if filters.get('status') %}<input type="hidden" name="status" value="{{ filters.get('status') }}">{% endif %}
+      {% if filters.get('sort') and filters.get('sort') != 'importance' %}<input type="hidden" name="sort" value="{{ filters.get('sort') }}">{% endif %}
+      {% if filters.get('with_pick') %}<input type="hidden" name="with_pick" value="{{ filters.get('with_pick') }}">{% endif %}
+      <div class="v940-calendar-search-field">
+        <div class="v940-calendar-search-label">
+          <label for="v940-calendar-search">{{ ui('Buscar partido') }}</label>
+          {% for item in active_filters if item.get('key') == 'q' %}
+          <a href="{{ item.get('remove_href') }}" data-v940-clear-search aria-label="{{ ui('Quitar {label}: {value}', label=ui(item.get('label')), value=filters.get('q') or '') }}">{{ ui('Quitar') }}</a>
+          {% endfor %}
+        </div>
+        <div class="v933-search">
+          {{ icon('search') }}
+          <input id="v940-calendar-search" type="search" name="q" maxlength="90"
+                 value="{{ filters.get('q') or '' }}" placeholder="{{ ui('Equipo, liga o competición') }}"
+                 autocomplete="off" enterkeyhint="search" data-v940-calendar-search>
+        </div>
+      </div>
+      <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}>
+        <summary>{{ icon('settings') }}<span class="v940-filter-label">{{ ui('Filtros') }}</span></summary>
+        <div class="v940-calendar-facets">
+          {% set league_options = (calendar.get('facets') or {}).get('leagues') or [] %}
+          {% set country_options = (calendar.get('facets') or {}).get('countries') or [] %}
+          <label for="v940-calendar-league">
+            <span>{{ ui('Competición') }}</span>
+            <select id="v940-calendar-league" name="league">
+              <option value="">{{ ui('Todas') }}</option>
+              {% if filters.get('league') and filters.get('league') not in league_options|map(attribute='value')|list %}
+              <option value="{{ filters.get('league') }}" selected data-v940-retained-selection="true">{{ filters.get('league') }}</option>
+              {% endif %}
+              {% for item in league_options %}
+              <option value="{{ item.get('value') }}"{% if filters.get('league') == item.get('value') %} selected{% endif %}>{{ item.get('label') }} ({{ item.get('count') }})</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label for="v940-calendar-country">
+            <span>{{ ui('País') }}</span>
+            <select id="v940-calendar-country" name="country">
+              <option value="">{{ ui('Todos') }}</option>
+              {% if filters.get('country') and filters.get('country') not in country_options|map(attribute='value')|list %}
+              <option value="{{ filters.get('country') }}" selected data-v940-retained-selection="true">{{ filters.get('country') }}</option>
+              {% endif %}
+              {% for item in country_options %}
+              <option value="{{ item.get('value') }}"{% if filters.get('country') == item.get('value') %} selected{% endif %}>{{ item.get('label') }} ({{ item.get('count') }})</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+      </details>
+      <p class="v940-calendar-pending" data-v940-pending-filters role="status" aria-live="polite" hidden>{{ pending_copy.get(ui_locale|default('es'), pending_copy.es) }}</p>
+      <button class="v933-action is-primary is-blue" type="submit">{{ icon('search') }}{{ ui('Encontrar partidos') }}</button>
+    </form>
+
     <div class="v940-calendar-command-section">
       <span>{{ ui("Qué quieres ver") }}</span>
       {{ filter_tabs((calendar.get('tabs') or [])|rejectattr('key', 'in', ['today', 'tomorrow'])|list, lane) }}
@@ -77,49 +138,6 @@
       </div>
     </div>
 
-    <details class="v940-calendar-advanced"{% if active_filters %} open{% endif %}>
-      <summary>{{ icon('search') }}<span class="v940-filter-label">{{ ui("Buscar y filtrar por competición o país") }}</span></summary>
-    <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendar">
-      <input type="hidden" name="lane" value="{{ lane }}">
-      <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
-      {% if filters.get('team') %}<input type="hidden" name="team" value="{{ filters.get('team') }}">{% endif %}
-      {% if filters.get('status') %}<input type="hidden" name="status" value="{{ filters.get('status') }}">{% endif %}
-      {% if filters.get('sort') and filters.get('sort') != 'importance' %}<input type="hidden" name="sort" value="{{ filters.get('sort') }}">{% endif %}
-      {% if filters.get('with_pick') %}<input type="hidden" name="with_pick" value="{{ filters.get('with_pick') }}">{% endif %}
-      <label class="v933-search" for="v940-calendar-search">
-        {{ icon('search') }}
-        <span class="sr-only">{{ ui("Buscar equipo, liga o competición") }}</span>
-        <input id="v940-calendar-search"
-               type="search"
-               name="q"
-               value="{{ filters.get('q') or '' }}"
-               placeholder="{{ ui("Equipo, liga o competición") }}"
-               autocomplete="off"
-               enterkeyhint="search"
-               data-v940-calendar-search>
-      </label>
-      <label>
-        <span>{{ ui("Competición") }}</span>
-        <select name="league">
-          <option value="">{{ ui("Todas") }}</option>
-          {% for item in (calendar.get('facets') or {}).get('leagues') or [] %}
-          <option value="{{ item.get('value') }}"{% if filters.get('league') == item.get('value') %} selected{% endif %}>{{ item.get('label') }} ({{ item.get('count') }})</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label>
-        <span>{{ ui("País") }}</span>
-        <select name="country">
-          <option value="">{{ ui("Todos") }}</option>
-          {% for item in (calendar.get('facets') or {}).get('countries') or [] %}
-          <option value="{{ item.get('value') }}"{% if filters.get('country') == item.get('value') %} selected{% endif %}>{{ item.get('label') }} ({{ item.get('count') }})</option>
-          {% endfor %}
-        </select>
-      </label>
-      <button class="v933-action is-primary is-blue" type="submit">{{ icon('search') }}{{ ui("Encontrar partidos") }}</button>
-    </form>
-    </details>
-
     {% if active_filters %}<div class="v940-calendar-layer-state"
          data-v940-calendar-filters-active="{{ active_filters|length }}">
       <div>
@@ -135,7 +153,7 @@
           <em>{{ ui("Quitar") }}</em>
         </a>
         {% endfor %}
-        <a class="v940-calendar-reset" href="{{ calendar.get('reset_href') or '/calendar' }}">{{ ui("Limpiar capas") }}</a>
+        <a class="v940-calendar-reset" data-v940-reset-filters href="{{ calendar.get('reset_href') or '/calendar' }}">{{ ui("Limpiar capas") }}</a>
       </nav>
     </div>{% endif %}
   </section>
@@ -151,7 +169,7 @@
       </span>
     </div>
     <div>
-      <span>{{ ui_plural('{count} resultado', '{count} resultados', counts.get('visible', 0)) }}</span>
+      <span data-v940-visible-count="{{ counts.get('visible', 0) }}">{{ ui_plural('{count} resultado', '{count} resultados', counts.get('visible', 0)) }}</span>
       <a href="#v933-calendar-filters">{{ ui("Cambiar filtros") }}</a>
     </div>
   </nav>
@@ -240,5 +258,5 @@
     </section>
   </div>
 </div>
-<script src="{{ url_for('static', filename='v940-calendar.js') }}?v={{ app_version }}" defer></script>
+<script src="{{ url_for('static', filename='v940-calendar.js') }}?v={{ app_version }}-client-discovery-1" defer></script>
 {% endblock %}
