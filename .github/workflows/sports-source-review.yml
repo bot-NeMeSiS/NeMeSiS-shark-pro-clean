@@ -14,7 +14,8 @@ jobs:
         with:
           python-version: '3.13'
       - name: Download wheels for isolated local testing
-        run: python -m pip download --only-binary=:all: --no-deps Flask==3.0.3 Werkzeug==3.0.3 blinker==1.9.0 stripe==15.3.0 --dest /tmp/nemesis-test-wheels
+        run: |
+          python -m pip download --only-binary=:all: --no-deps Flask==3.0.3 Werkzeug==3.0.3 blinker==1.9.0 stripe==15.3.0 --dest /tmp/nemesis-test-wheels
       - uses: actions/upload-artifact@v4
         with:
           name: nemesis-isolated-test-wheels
