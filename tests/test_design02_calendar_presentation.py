@@ -59,7 +59,13 @@ def assert_calendar_structure(html):
     for node in (header, collection):
         assert root in node['parents']
         assert advanced not in node['parents']
-    assert advanced in form['parents']
+    # Search and submit are always discoverable; only optional facets collapse.
+    assert form in advanced['parents']
+    search, = [n for n in dom.nodes if 'data-v940-calendar-search' in n['attrs']]
+    submit, = [n for n in dom.nodes if n['tag'] == 'button' and n['attrs'].get('type') == 'submit' and form in n['parents']]
+    for node in (search, submit):
+        assert form in node['parents']
+        assert advanced not in node['parents']
     assert root in advanced['parents']
     return advanced
 

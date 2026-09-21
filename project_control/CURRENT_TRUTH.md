@@ -1,5 +1,35 @@
 # Current Truth
 
+## Punto operativo remoto y entrega cliente · 2026-09-21
+
+- Base remota comprobada: `main@63cd3d9a1d70d839bd0f91d78fb4875931fa635e`.
+- PR #56 integrada tras QA, preflight y Smoke completos. Web y Cron fueron
+  verificados LIVE en ese SHA; la certificación posterior es el run `35626750137`.
+  Consultar su estado real: este documento no lo convierte en PASS por anticipado.
+- PR #56 contiene cuatro archivos: listas de Founder OS, gate del icono oficial y
+  sus regresiones. NO publicó el candidato cliente/móvil completo.
+- Entrega cliente actual: búsqueda de Calendario siempre visible, selecciones
+  conservadas fuera de las opciones actuales, cambios sin aplicar, contexto
+  visible y restauración prudente de la posición. Rama de revisión prevista:
+  `chatgpt/publicacion-calendario-cliente-20260921`.
+- Prueba local de este subconjunto: 183 casos PASS, 0 fallos/errores/omitidos;
+  incluye 54 casos nuevos, de ellos 39 de componentes Chromium. Datos SIMULATED_QA.
+  Los cambios del historial del navegador se simulan, no certifican un iPhone.
+- No cambia `app.py`, Sports Truth, tarjetas compartidas, proveedores, DB, usuarios,
+  pagos, membresías, Telegram, cron ni configuración Render. No nuevas llamadas
+  deportivas. La selección de partidos sigue siendo del servidor.
+- Estado al preparar esta entrega: pendiente de QA/preflight/Smoke remotos e
+  integración. El cierre verificable se registra en la PR, no se infiere aquí.
+- Siguen pendientes los demás bloques acumulados: identidad/historial/temporada,
+  metadatos y banderas, LIVE animado, favoritos, diagnóstico completo y PWA.
+  No sobrescribir main con un ZIP anterior. Reconciliar por archivo desde su SHA.
+- La presentación aislada usa `static/calendar-discovery.css` solo en Calendario.
+  Al consolidar el candidato completo, reconciliar su CSS y la copia de estado
+  localizada de la plantilla, sin duplicar autoridades ni perder la entrega.
+
+Las secciones inferiores son evidencia histórica, no el estado remoto actual.
+Después de cualquier integración, consultar main y Render exact-SHA.
+
 ## Producción y remoto verificados · 2026-09-20
 
 Esta sección sustituye como verdad actual al snapshot local del 2026-09-19 que se

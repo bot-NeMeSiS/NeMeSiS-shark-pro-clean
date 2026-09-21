@@ -1,6 +1,35 @@
 # Active Work
 
-## Frente remoto activo · 2026-09-20
+## Frente de publicación autorizado · 2026-09-21
+
+El fundador ha autorizado subir e integrar las mejoras desde esta conversación.
+Trabajar por bloques verificables; no añadir funciones sin publicar lo validado.
+Base remota: `63cd3d9a1d70d839bd0f91d78fb4875931fa635e`, posterior a PR #56.
+
+**Bloque actual: descubrimiento de partidos en Calendario.**
+
+- Buscador fuera del desplegable; filtros opcionales dentro del mismo GET.
+- Conservar liga/país seleccionados aunque no existan en las opciones actuales.
+- Avisar de cambios sin aplicar, sin alterar partidos ni contadores al escribir.
+- Recuperar contexto visible, controles táctiles y foco al volver al buscador.
+- Restaurar posición solo para historial válido, sin reponer datos deportivos ni
+  sobrescribir una interacción iniciada por el cliente.
+- 183 pruebas locales PASS, incluidas 39 de componentes Chromium; CI y despliegue
+  de este bloque aún no certificados al redactar. Consultar la PR de la rama
+  `chatgpt/publicacion-calendario-cliente-20260921` para el cierre.
+
+Antes de integrar: exigir QA + preflight + Smoke completos del HEAD exacto.
+Después: comprobar Web/Cron y la identidad servida; Auto Deploy es el único
+mecanismo, no lanzar un deploy manual duplicado. No forzar proveedores ni tocar
+DB productiva, secretos, pagos o envíos de Telegram.
+
+Los candidatos anteriores permanecen conservados, no desplegados en su totalidad.
+PR #56 ya entregó su gate y pruebas; preservar también la prueba nueva de listas
+Founder. La búsqueda se entrega aquí como subconjunto frontend independiente:
+no declarar corregidas las reglas de etiquetas backend ni la temporada completa.
+Reconciliar los siguientes bloques contra main, no contra el antiguo `accba672`.
+
+## Frente remoto histórico · 2026-09-20 (superado por PR #53–#56)
 
 Único siguiente bloque autorizado por la evidencia actual: **Sports stale evidence
 + continuidad operativa**.
