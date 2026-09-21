@@ -1,0 +1,24 @@
+/* Scoped to the recorded-results component; no changes to the shared shell. */
+.team-history { min-width:0; margin:16px 0; padding:16px; color:var(--ns-text,#edf6ff); background:var(--ns-panel,#0d1b30); border:1px solid var(--ns-border,#2a405b); border-radius:16px; }
+.team-history h2 { margin:0 0 8px; font-size:1.05rem; line-height:1.35; }
+.team-history header p, .team-history-note { margin:6px 0; font-size:.85rem; line-height:1.5; color:var(--ns-text-muted,#c1ccdc); }
+.team-history-group { min-width:0; padding:12px 0; border-top:1px solid var(--ns-border,#2a405b); margin-top:12px; }
+.team-history h3 { margin:0 0 10px; font-size:.95rem; line-height:1.45; overflow-wrap:anywhere; }
+.team-history h3 span { font-weight:400; }
+.team-history-totals { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; margin:0; }
+.team-history-totals div { min-width:0; padding:8px; border-radius:8px; background:rgba(255,255,255,.04); }
+.team-history-totals dt { font-size:.8rem; line-height:1.4; }
+.team-history-totals dd { margin:4px 0 0; font-size:1.15rem; font-weight:700; font-variant-numeric:tabular-nums; }
+.team-history summary { min-height:44px; padding:12px 0; cursor:pointer; line-height:1.4; overflow-wrap:anywhere; }
+.team-history ol { list-style:none; padding:0; margin:0; }
+.team-history li { display:grid; grid-template-columns:145px minmax(0,1fr) auto; align-items:center; gap:6px 12px; padding:8px 0; border-top:1px solid var(--ns-border,#2a405b); }
+.team-history time { font-size:.8rem; }
+.team-history a { display:flex; align-items:center; min-height:44px; color:var(--v933-cyan,#8adeff); overflow-wrap:anywhere; text-decoration:underline; text-underline-offset:3px; }
+.team-history strong { font-variant-numeric:tabular-nums; white-space:nowrap; }
+.team-history :is(summary,a):focus-visible { outline:2px solid var(--v933-cyan,#8adeff); outline-offset:3px; }
+@media (max-width:600px) {
+  .team-history { padding:12px; }
+  .team-history-totals { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .team-history li { grid-template-columns:minmax(0,1fr) auto; }
+  .team-history time { grid-column:1 / -1; }
+}
