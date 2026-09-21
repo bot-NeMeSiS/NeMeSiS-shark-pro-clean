@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import time
+from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
@@ -81,7 +82,7 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
 
 
 def ensure_automation_schema(db_path: str) -> dict[str, Any]:
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         ensure_automation_schema_conn(conn)
         conn.commit()
     return {"ok": True, "schema": "v818_daily_automation_ready"}
@@ -217,7 +218,7 @@ def reconcile_match_lifecycle(db_path: str, now: datetime | None = None) -> dict
     updated = {"past_pending": 0, "future_upcoming": 0, "finalized": 0}
     today = now.date().isoformat()
     current_time = now.strftime("%H:%M")
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         conn.row_factory = sqlite3.Row
         ensure_automation_schema_conn(conn)
         if not _table_exists(conn, "matches"):
@@ -259,7 +260,7 @@ def reconcile_match_lifecycle(db_path: str, now: datetime | None = None) -> dict
 
 
 def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     checks: dict[str, Any] = {
         "db_path": db_path,
         "db_accessible": False,
@@ -273,7 +274,7 @@ def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None 
     }
     warnings = []
     try:
-        with sqlite3.connect(db_path) as conn:
+        with closing(sqlite3.connect(db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             ensure_automation_schema_conn(conn)
             checks["db_accessible"] = True
@@ -292,9 +293,9 @@ def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None 
 
 
 def automation_status(db_path: str, app_version: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     now = madrid_now()
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         conn.row_factory = sqlite3.Row
         ensure_automation_schema_conn(conn)
         states = [dict(row) for row in conn.execute("SELECT * FROM automation_jobs_state ORDER BY updated_at DESC LIMIT 30").fetchall()]
@@ -319,7 +320,7 @@ def automation_status(db_path: str, app_version: str, env: Mapping[str, str] | N
 
 
 def automation_runs(db_path: str, limit: int = 80) -> dict[str, Any]:
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         conn.row_factory = sqlite3.Row
         ensure_automation_schema_conn(conn)
         runs = [dict(row) for row in conn.execute("SELECT * FROM automation_job_runs ORDER BY started_at DESC LIMIT ?", (int(limit),)).fetchall()]
@@ -348,7 +349,7 @@ def run_master_tick(
     force: bool = False,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     now = madrid_now()
     due = jobs_due(now, force=force)
     jobs_run: list[dict[str, Any]] = []
@@ -357,52 +358,77 @@ def run_master_tick(
     telegram_sent = 0
     api_calls_estimated = 0
     warnings: list[str] = []
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn:
         conn.row_factory = sqlite3.Row
-        ensure_automation_schema_conn(conn)
-        _cleanup_dedupe(conn, now)
+        with conn:
+            ensure_automation_schema_conn(conn)
+            _cleanup_dedupe(conn, now)
         for job_key in due:
             started = madrid_now()
             daily_once = job_key in JOB_WINDOWS or job_key in {"system_health_daily_check"}
             dedupe_key = f"v818:{now.date().isoformat()}:{job_key}"
-            if daily_once and not force and not claim_dedupe(conn, job_key, dedupe_key, ttl_hours=36):
-                skipped = {"job_key": job_key, "reason": "dedupe_already_done", "dedupe_key": dedupe_key}
-                jobs_skipped.append(skipped)
-                _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
-                continue
             if dry_run:
-                skipped = {"job_key": job_key, "reason": "dry_run", "would_run": True}
+                # A simulation records its audit, never claims future real work.
+                claimed = daily_once and not force and conn.execute(
+                    "SELECT 1 FROM automation_dedupe WHERE dedupe_key=?", (dedupe_key,)
+                ).fetchone() is not None
+                skipped = {"job_key": job_key, "reason": "dedupe_already_done" if claimed else "dry_run", "would_run": not claimed}
                 jobs_skipped.append(skipped)
-                _record_run(conn, job_key, trigger_type, "DRY_RUN", started, skipped)
+                with conn:
+                    _record_run(conn, job_key, trigger_type, "DRY_RUN", started, skipped)
                 continue
+            if daily_once and not force:
+                # Commit the unique claim before external effects. An interruption
+                # cannot roll it back and cause an automatic duplicate delivery.
+                with conn:
+                    claimed = claim_dedupe(conn, job_key, dedupe_key, ttl_hours=36)
+                    if not claimed:
+                        skipped = {"job_key": job_key, "reason": "dedupe_already_done", "dedupe_key": dedupe_key}
+                        _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
+                if not claimed:
+                    jobs_skipped.append(skipped)
+                    continue
             provider_estimate = API_ESTIMATES.get(job_key)
             if provider_estimate:
                 provider, estimate = provider_estimate
+                # No master write lock is held while the guard opens its own DB.
                 guard = allow_api_job(db_path, provider, job_key, estimate, env=env)
                 api_calls_estimated += estimate if guard.get("ok") else 0
                 if not guard.get("ok"):
                     skipped = {"job_key": job_key, "reason": guard.get("reason"), "api_guard": guard}
                     jobs_skipped.append(skipped)
-                    _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
+                    with conn:
+                        _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
                     continue
+            callback_error = None
+            sent = 0
             try:
+                # Each callback owns its own I/O and transactions. Never hold a
+                # master write transaction while it runs or waits on a provider.
                 summary = _fallback_job(job_key, db_path, callbacks)
                 status = "OK" if summary.get("ok", True) else "FAILED"
+                error = "" if status == "OK" else str(summary.get("error") or summary.get("reason") or "job_failed")
                 if status == "OK":
-                    jobs_run.append({"job_key": job_key, "summary": summary})
-                    telegram_sent += int(summary.get("telegram_sent") or summary.get("sent") or summary.get("sent_count") or 0)
-                else:
-                    jobs_failed.append({"job_key": job_key, "error": summary.get("error") or summary.get("reason") or "job_failed", "summary": summary})
-                _record_run(conn, job_key, trigger_type, status, started, summary, "" if status == "OK" else str(summary.get("error") or summary.get("reason") or "job_failed"))
+                    sent = int(summary.get("telegram_sent") or summary.get("sent") or summary.get("sent_count") or 0)
             except Exception as exc:
                 error = str(exc)[:900]
-                failed = {"job_key": job_key, "error": error}
-                jobs_failed.append(failed)
-                conn.execute(
-                    "INSERT INTO automation_health_events(level, area, message, details_json, created_at) VALUES (?,?,?,?,?)",
-                    ("ERROR", job_key, "V818 job failed", _json(failed), madrid_now().isoformat(timespec="seconds")),
-                )
-                _record_run(conn, job_key, trigger_type, "FAILED", started, failed, error)
+                summary = {"job_key": job_key, "error": error}
+                status = "FAILED"
+                callback_error = summary
+            # Commit one audit record at a time. A later job cannot roll back an
+            # earlier completed job's evidence. Do not retry a callback on failure.
+            with conn:
+                if callback_error is not None:
+                    conn.execute(
+                        "INSERT INTO automation_health_events(level, area, message, details_json, created_at) VALUES (?,?,?,?,?)",
+                        ("ERROR", job_key, "V818 job failed", _json(callback_error), madrid_now().isoformat(timespec="seconds")),
+                    )
+                _record_run(conn, job_key, trigger_type, status, started, summary, error)
+            if status == "OK":
+                jobs_run.append({"job_key": job_key, "summary": summary})
+                telegram_sent += sent
+            else:
+                jobs_failed.append(callback_error if callback_error is not None else {"job_key": job_key, "error": error, "summary": summary})
         master_summary = {
             "due": due,
             "run": len(jobs_run),
@@ -410,8 +436,8 @@ def run_master_tick(
             "failed": len(jobs_failed),
             "telegram_sent": telegram_sent,
         }
-        _mark_job_state(conn, "master_tick", "OK" if not jobs_failed else "PARTIAL", 0, "")
-        conn.commit()
+        with conn:
+            _mark_job_state(conn, "master_tick", "OK" if not jobs_failed else "PARTIAL", 0, "")
     if not env.get("AUTOMATION_SECRET"):
         warnings.append("AUTOMATION_SECRET no configurado en entorno.")
     return {

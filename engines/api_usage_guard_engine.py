@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Mapping
 from zoneinfo import ZoneInfo
@@ -26,8 +27,9 @@ def _int(value: Any, default: int) -> int:
         return default
 
 
-def _budget(name: str, default: int) -> int:
-    raw = str(os.getenv(name, "auto") or "auto").strip().lower()
+def _budget(name: str, default: int, env: Mapping[str, str] | None = None) -> int:
+    source = os.environ if env is None else env
+    raw = str(source.get(name, "auto") or "auto").strip().lower()
     if raw in {"auto", ""}:
         return default
     return max(0, _int(raw, default))
@@ -60,20 +62,20 @@ def ensure_api_usage_guard_schema(conn: sqlite3.Connection) -> None:
 
 
 def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     today = madrid_now().date().isoformat()
     budgets = {
-        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120),
-        "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40),
+        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
+        "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
     }
     used = {"api_football": 0, "odds_api": 0}
     try:
-        with sqlite3.connect(db_path) as conn:
+        with closing(sqlite3.connect(db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             ensure_api_usage_guard_schema(conn)
             for provider in used:
                 row = conn.execute(
-                    "SELECT COALESCE(SUM(estimated_calls),0) AS calls FROM api_usage_guard WHERE provider=? AND window_key=?",
+                    "SELECT COALESCE(SUM(CASE WHEN status='ALLOWED' AND estimated_calls>0 THEN estimated_calls ELSE 0 END),0) AS calls FROM api_usage_guard WHERE provider=? AND window_key=?",
                     (provider, today),
                 ).fetchone()
                 used[provider] = int(row["calls"] if row else 0)
@@ -93,39 +95,67 @@ def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> di
 
 
 def allow_api_job(db_path: str, provider: str, job_key: str, estimated_calls: int, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
-    today = madrid_now().date().isoformat()
-    snapshot = api_usage_snapshot(db_path, env=env)
-    budget = int((snapshot.get("budgets") or {}).get(provider, 0))
-    used = int((snapshot.get("used_estimated") or {}).get(provider, 0))
-    remaining = max(0, budget - used)
-    allowed = estimated_calls <= remaining
+    """Atomically reserve an estimate before authorizing work; never call a provider.
+
+    A stored estimate is not the provider's measured quota. A failed reservation
+    must not authorize work. Approved reservations remain consumed if a callback
+    subsequently fails: this guard cannot prove that the provider was not called.
+    """
+    env = os.environ if env is None else env
+    now = madrid_now()
+    today = now.date().isoformat()
+    budgets = {
+        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
+        "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
+    }
+    valid_estimate = type(estimated_calls) is int and estimated_calls >= 0
     result = {
-        "ok": allowed,
+        "ok": False,
         "provider": provider,
         "job_key": job_key,
-        "estimated_calls": int(estimated_calls or 0),
-        "remaining_before": remaining,
-        "budget": budget,
-        "reason": "" if allowed else "api_budget_exceeded",
+        "estimated_calls": estimated_calls if valid_estimate else 0,
+        "remaining_before": None,
+        "budget": budgets.get(provider, 0),
+        "reason": "invalid_api_estimate" if not valid_estimate else "unknown_api_provider",
     }
+    if not valid_estimate or provider not in budgets:
+        return result
     try:
-        with sqlite3.connect(db_path) as conn:
-            ensure_api_usage_guard_schema(conn)
-            conn.execute(
-                """INSERT INTO api_usage_guard(provider, window_key, job_key, estimated_calls, actual_calls, status, details_json, created_at)
-                   VALUES (?,?,?,?,?,?,?,?)""",
-                (provider, today, job_key, int(estimated_calls or 0), 0, "ALLOWED" if allowed else "BLOCKED", _json(result), madrid_now().isoformat(timespec="seconds")),
-            )
-            conn.commit()
-    except Exception:
-        pass
-    return result
+        with closing(sqlite3.connect(db_path)) as conn:
+            with conn:
+                ensure_api_usage_guard_schema(conn)
+            # Read + decide + reserve share one write transaction. Other callers
+            # cannot all approve against the same stale remaining budget.
+            with conn:
+                conn.execute("BEGIN IMMEDIATE")
+                used = conn.execute(
+                    """SELECT COALESCE(SUM(CASE WHEN status='ALLOWED' AND estimated_calls>0
+                               THEN estimated_calls ELSE 0 END),0)
+                       FROM api_usage_guard WHERE provider=? AND window_key=?""",
+                    (provider, today),
+                ).fetchone()[0]
+                remaining = max(0, budgets[provider] - int(used))
+                allowed = estimated_calls <= remaining
+                result.update(ok=allowed, remaining_before=remaining,
+                              reason="" if allowed else "api_budget_exceeded")
+                conn.execute(
+                    """INSERT INTO api_usage_guard(provider, window_key, job_key,
+                           estimated_calls, actual_calls, status, details_json, created_at)
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (provider, today, job_key, estimated_calls if allowed else 0, 0,
+                     "ALLOWED" if allowed else "BLOCKED", _json(result), now.isoformat(timespec="seconds")),
+                )
+            # Success is returned only after COMMIT, not merely after INSERT.
+        return result
+    except (sqlite3.Error, OSError, ValueError, OverflowError):
+        # Do not echo DB paths, SQL or secrets from exception messages.
+        result.update(ok=False, remaining_before=None, reason="api_budget_storage_unavailable")
+        return result
 
 
 def cache_get(db_path: str, provider: str, cache_key: str) -> Any:
     try:
-        with sqlite3.connect(db_path) as conn:
+        with closing(sqlite3.connect(db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             ensure_api_usage_guard_schema(conn)
             row = conn.execute("SELECT value_json, expires_at FROM api_response_cache WHERE provider=? AND cache_key=?", (provider, cache_key)).fetchone()
@@ -142,7 +172,7 @@ def cache_get(db_path: str, provider: str, cache_key: str) -> Any:
 def cache_set(db_path: str, provider: str, cache_key: str, value: Any, ttl_seconds: int = 900) -> None:
     try:
         now = madrid_now()
-        with sqlite3.connect(db_path) as conn:
+        with closing(sqlite3.connect(db_path)) as conn, conn:
             ensure_api_usage_guard_schema(conn)
             conn.execute(
                 """INSERT OR REPLACE INTO api_response_cache(cache_key, provider, value_json, expires_at, updated_at)
