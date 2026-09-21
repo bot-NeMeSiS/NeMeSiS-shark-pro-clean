@@ -267,7 +267,18 @@ def _confidence_state(truth: dict[str, Any], provider: str, observed_at: str) ->
 
 
 def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
-    """Project one provider/cache record into the shared real-time contract.
+    """Return the existing public state contract, without adding cached truth fields."""
+    state, _truth = build_realtime_match_evidence(item, now=now)
+    return state
+
+
+def build_realtime_match_evidence(
+    item: dict[str, Any], now: datetime | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Compute state and its authoritative truth together at one evaluation instant.
+
+    Both dictionaries are fresh for this invocation. There is no caller-supplied
+    truth argument and no trust in persisted/preclassified status dictionaries.
 
     The function is pure. Lifecycle and LIVE truth are delegated to
     MATCH-STATUS-TRUTH-V2; this layer only adds identity, provenance, coverage,
@@ -309,7 +320,7 @@ def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None
         freshness_state = "NOT_ESTABLISHED"
 
     coverage = {name: _capability_state(source, name) for name in _CAPABILITIES}
-    return {
+    state = {
         "contract": REALTIME_STATE_CONTRACT,
         **identity,
         "kickoff_madrid": kickoff.isoformat() if kickoff else "",
@@ -347,6 +358,7 @@ def build_realtime_match_state(item: dict[str, Any], now: datetime | None = None
         "evaluated_at_madrid": evaluated_at.isoformat(),
         "sports_truth_contract": _text(truth.get("contract"), 80),
     }
+    return state, truth
 
 
 def build_realtime_state_snapshot(items: Iterable[dict[str, Any]], now: datetime | None = None) -> dict[str, Any]:
