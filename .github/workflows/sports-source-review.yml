@@ -1,4 +1,4 @@
-name: Isolated Sports Source Review
+name: Isolated Test Dependencies
 on:
   push:
     branches: [chatgpt/sports-reconciliation-evidence-20260921]
@@ -6,48 +6,18 @@ on:
 permissions:
   contents: read
 jobs:
-  source:
+  dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          persist-credentials: false
-      - name: Package tracked source only
-        shell: bash
-        run: |
-          python - <<'PY'
-          import hashlib, json, pathlib, subprocess, zipfile
-          root = pathlib.Path('.')
-          assert subprocess.check_output(['git','hash-object','app.py'], text=True).strip() == '1879f0c53e3ac59a62370906f2aabefee2c283e5'
-          out = pathlib.Path('_review'); out.mkdir()
-          allowed_roots = {'engines','services','tools','tests','templates','static','automation_workforce','project_control','config','browser_qa','.github'}
-          allowed_suffixes = {'.py','.html','.css','.js','.json','.md','.toml','.txt','.ini','.yaml','.yml','.svg','.bat'}
-          manifest = {}
-          paths = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          with zipfile.ZipFile(out / 'source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
-              for name in paths:
-                  if not name:
-                      continue
-                  path = pathlib.Path(name)
-                  if path.is_symlink() or not path.is_file():
-                      continue
-                  if path.name.startswith('.env') or path.suffix.lower() not in allowed_suffixes:
-                      continue
-                  if len(path.parts) > 1 and path.parts[0] not in allowed_roots:
-                      continue
-                  if name == '.github/workflows/sports-source-review.yml':
-                      continue
-                  data = path.read_bytes()
-                  manifest[name] = hashlib.sha256(data).hexdigest()
-                  archive.writestr(name, data)
-              archive.writestr('SOURCE_REVIEW_MANIFEST.json', json.dumps({'base':'accba67240136fc5745ffd5de80e58e33eabbb15','files':manifest}, indent=2))
-          print('Tracked source files:', len(manifest))
-          print('No application import, provider calls, production data, secrets, deploy or runtime mutation.')
-          PY
+          python-version: '3.13'
+      - name: Download wheels for isolated local testing
+        run: python -m pip download --only-binary=:all: --no-deps Flask==3.0.3 Werkzeug==3.0.3 blinker==1.9.0 stripe==15.3.0 --dest /tmp/nemesis-test-wheels
       - uses: actions/upload-artifact@v4
         with:
-          name: sports-source-accba672
-          path: _review/source.zip
+          name: nemesis-isolated-test-wheels
+          path: /tmp/nemesis-test-wheels/*.whl
           retention-days: 1
           if-no-files-found: error
