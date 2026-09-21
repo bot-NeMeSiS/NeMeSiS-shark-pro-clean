@@ -3,7 +3,7 @@
   'use strict';
   document.querySelectorAll('[data-highlight-player]').forEach((root) => {
     if (root.dataset.playerReady) return;
-    const button = root.querySelector('[data-highlight-load]');
+    const button = root.querySelector('[data-highlight-load][data-action="highlight-player-toggle"]');
     const frame = root.querySelector('[data-highlight-frame]');
     const status = root.querySelector('[data-highlight-status]');
     if (!button || !frame) return;

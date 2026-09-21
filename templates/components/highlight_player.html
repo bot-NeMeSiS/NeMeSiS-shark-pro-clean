@@ -1,7 +1,7 @@
 {% macro highlight_player(video) -%}
 <article class="ns-highlight-player" data-highlight-player data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video">
   {% if video.get('can_embed') %}
-  <button type="button" data-highlight-load data-embed-url="{{ video.get('embed_url') }}" data-video-title="{{ video.get('title') or 'Vídeo-resumen' }}" aria-expanded="false" hidden>▶ Cargar vídeo-resumen</button>
+  <button type="button" data-action="highlight-player-toggle" data-highlight-load data-embed-url="{{ video.get('embed_url') }}" data-video-title="{{ video.get('title') or 'Vídeo-resumen' }}" aria-expanded="false" hidden>▶ Cargar vídeo-resumen</button>
   <div class="ns-highlight-frame" data-highlight-frame hidden></div>
   <p data-highlight-status role="status">El reproductor externo solo se carga al pulsar. Sin reproducción automática.</p>
   {% endif %}
