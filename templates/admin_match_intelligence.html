@@ -2,6 +2,7 @@
 {% block content %}
 {% set mi = data.match_intelligence_admin or {} %}
 {% set intel = mi.intelligence or {} %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-team-form.css', v='confirmed-form-v1') }}">
 <section class="scoreboard-hero v701-scoreboard">
   <div>
     <div class="kicker">Admin · Inteligencia del partido</div>
@@ -48,4 +49,5 @@
     </article>
   </div>
 </section>
+{% include "components/admin_team_form.html" %}
 {% endblock %}
