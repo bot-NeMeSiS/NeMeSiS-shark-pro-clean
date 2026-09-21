@@ -1,0 +1,36 @@
+{# Existing Team Center data only. Counts never certify an entire season. #}
+{% set history = center.result_history or {} %}
+{% set translations = {
+  'es': {'title':'Resultados registrados por temporada', 'coverage':'Solo resultados disponibles en esta ficha. El total de la temporada no está verificado.', 'form':'La forma reciente utiliza como máximo cinco resultados; no representa toda la temporada.', 'source':'Procedencia', 'sample':'Resultados', 'season':'Temporada sin identificar', 'competition':'Competición sin identificar', 'unknown':'Identidad de competición o temporada incompleta.', 'view':'Ver resultados de esta muestra', 'home':'En casa', 'away':'Fuera', 'wins':'Victorias', 'draws':'Empates', 'losses':'Derrotas', 'gf':'Goles a favor', 'ga':'Goles en contra', 'omitted':'Registros no incluidos en este resumen', 'empty':'No hay resultados finales válidos con fecha para resumir.', 'scope':'Balance según el marcador final registrado; no determina quién pasó de ronda.'},
+  'en': {'title':'Recorded results by season', 'coverage':'Only results available on this page. The full season total has not been verified.', 'form':'Recent form uses at most five results; it does not represent a complete season.', 'source':'Source', 'sample':'Results', 'season':'Season not identified', 'competition':'Competition not identified', 'unknown':'Competition or season identity is incomplete.', 'view':'View results in this sample', 'home':'At home', 'away':'Away', 'wins':'Wins', 'draws':'Draws', 'losses':'Losses', 'gf':'Goals for', 'ga':'Goals against', 'omitted':'Records excluded from this summary', 'empty':'No valid final results with a date are available to summarize.', 'scope':'Based on the recorded final score; it does not determine knockout qualification.'},
+  'fr': {'title':'Résultats enregistrés par saison', 'coverage':'Uniquement les résultats disponibles sur cette page. Le total de la saison n’est pas vérifié.', 'form':'La forme récente utilise au maximum cinq résultats ; elle ne représente pas toute la saison.', 'source':'Source', 'sample':'Résultats', 'season':'Saison non identifiée', 'competition':'Compétition non identifiée', 'unknown':'Identité de compétition ou de saison incomplète.', 'view':'Voir les résultats de cet échantillon', 'home':'À domicile', 'away':'À l’extérieur', 'wins':'Victoires', 'draws':'Nuls', 'losses':'Défaites', 'gf':'Buts marqués', 'ga':'Buts encaissés', 'omitted':'Enregistrements exclus de ce résumé', 'empty':'Aucun résultat final valide et daté disponible.', 'scope':'Bilan selon le score final enregistré ; il ne détermine pas la qualification.'}
+} %}
+{% set words = translations.get(ui_locale|default('es'), translations.es) %}
+<section class="team-history" data-team-result-evidence="{{ history.contract or '' }}" aria-labelledby="team-history-heading">
+  <header><h2 id="team-history-heading">{{ words.title }}</h2><p>{{ words.coverage }}</p><p>{{ words.form }}</p></header>
+  {% for group in history.groups or [] %}
+  <article class="team-history-group">
+    <h3>{{ group.competition or words.competition }} <span>· {{ group.season or words.season }}</span></h3>
+    {% if group.provider %}<p class="team-history-note">{{ words.source }}: {{ group.provider }}</p>{% endif %}
+    {% if not group.scope_identified %}<p class="team-history-note">{{ words.unknown }}</p>{% endif %}
+    <dl class="team-history-totals">
+      {% for key, label in [('sample_size',words.sample),('wins',words.wins),('draws',words.draws),('losses',words.losses),('goals_for',words.gf),('goals_against',words.ga)] %}
+      <div><dt>{{ label }}</dt><dd>{{ group.totals.get(key, 0) }}</dd></div>
+      {% endfor %}
+    </dl>
+    <p class="team-history-note">{{ words.home }}: {{ group.home.sample_size }} · {{ words.away }}: {{ group.away.sample_size }}</p>
+    <details><summary>{{ words.view }} ({{ group.totals.sample_size }})</summary>
+      <ol>
+      {% for item in group.get('items', []) %}
+        <li><time datetime="{{ item.kickoff }}">{{ item.date_label }}</time>
+          {% if item.href %}<a href="{{ item.href }}">{{ item.match.home_team or item.match.safe_home }} — {{ item.match.away_team or item.match.safe_away }}</a>{% else %}<span>{{ item.match.home_team or item.match.safe_home }} — {{ item.match.away_team or item.match.safe_away }}</span>{% endif %}
+          <strong>{{ item.home_score }}–{{ item.away_score }}</strong>
+        </li>
+      {% endfor %}
+      </ol>
+    </details>
+  </article>
+  {% else %}<p class="team-history-note">{{ words.empty }}</p>{% endfor %}
+  {% if history.omitted_count %}<p class="team-history-note" data-history-omissions>{{ words.omitted }}: {{ history.omitted_count }}</p>{% endif %}
+  <p class="team-history-note">{{ words.scope }}</p>
+</section>

@@ -2,6 +2,7 @@
 {% from "partials/team_identity.html" import crest %}
 {% from "components/v933_ui.html" import match_card with context %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='team-history.css') }}?v=team-result-evidence-v1">
 {% set t = detail or {} %}
 {% set center = t.team_center or {} %}
 {% set team = center.team or {} %}
@@ -62,7 +63,9 @@
     <article><span>{{ ui("Relaciones") }}</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>{{ ui("deportivas") }}</small></article>
   </section>
 
-  <main class="team-center-layout">
+  {% include "components/team_result_history.html" %}
+
+  <div class="team-center-layout">
     <section class="team-center-panel team-center-form" data-team-center-section="recent-form">
       <div class="team-center-section-head"><span>{{ ui("Forma reciente") }}</span><strong>{{ ui_owned(form.trend or 'No disponible') }}</strong></div>
       {% if form_items %}<div class="team-center-form-metrics">
@@ -205,6 +208,6 @@
         {% if links.sports_graph %}<a href="{{ links.sports_graph }}">{{ ui("Grafo deportivo") }}</a>{% else %}<span>{{ ui("Grafo deportivo · Contrato interno") }}</span>{% endif %}
       </nav>
     </section>
-  </main>
+  </div>
 </section>
 {% endblock %}

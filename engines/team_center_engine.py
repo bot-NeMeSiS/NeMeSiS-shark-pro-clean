@@ -11,6 +11,11 @@ from typing import Any, Iterable, Mapping
 from urllib.parse import quote
 
 from engines.match_intelligence_engine import build_match_intelligence
+from engines.team_result_evidence_engine import (
+    build_team_result_evidence,
+    result_for_team,
+    score_number,
+)
 from engines.sports_domain_model_engine import (
     SPORTS_DOMAIN_MODEL_CONTRACT,
     build_unified_domain_snapshot,
@@ -54,12 +59,7 @@ def _text(value: Any, limit: int = 240) -> str:
 
 
 def _score_number(value: Any) -> int | None:
-    if value in (None, ""):
-        return None
-    try:
-        return int(float(str(value).strip()))
-    except (TypeError, ValueError):
-        return None
+    return score_number(value)
 
 
 def _competition_route_id(competition: Mapping[str, Any]) -> str:
@@ -103,41 +103,19 @@ def _domain_for_match(match: Mapping[str, Any], *, now_madrid: Any = "") -> dict
 
 
 def _result_for_team(match: Mapping[str, Any], team_name: str) -> dict[str, Any]:
-    side = _team_side(match, team_name)
-    home = _score_number(match.get("home_score"))
-    away = _score_number(match.get("away_score"))
-    if side not in {"home", "away"} or home is None or away is None:
-        return {
-            "available": False,
-            "outcome": "No disponible",
-            "goals_for": None,
-            "goals_against": None,
-            "limitation": "El marcador o el lado del equipo no estan confirmados.",
-        }
-    goals_for = home if side == "home" else away
-    goals_against = away if side == "home" else home
-    if goals_for > goals_against:
-        outcome = "Victoria"
-    elif goals_for == goals_against:
-        outcome = "Empate"
-    else:
-        outcome = "Derrota"
-    return {
-        "available": True,
-        "outcome": outcome,
-        "goals_for": goals_for,
-        "goals_against": goals_against,
-        "side": side,
-    }
+    return result_for_team(match, team_name)
 
 
-def _form_summary(matches: Iterable[Mapping[str, Any]], team_name: str) -> dict[str, Any]:
+def _form_summary(
+    matches: Iterable[Mapping[str, Any]], team_name: str,
+    evidence: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     items = []
     wins = draws = losses = goals_for = goals_against = 0
-    for match in _items(matches):
-        result = _result_for_team(match, team_name)
-        if not result["available"]:
-            continue
+    history = evidence if evidence is not None else build_team_result_evidence(_items(matches), team_name)
+    for item in history.get("items", []):
+        match = item["match"]
+        result = {key: value for key, value in item.items() if key != "match"}
         if result["outcome"] == "Victoria":
             wins += 1
         elif result["outcome"] == "Empate":
@@ -314,7 +292,8 @@ def build_team_center_context(
         related_picks=picks,
         now_madrid=observed_at_madrid,
     )
-    form = _form_summary(recent, name)
+    history = build_team_result_evidence(recent, name)
+    form = _form_summary(recent, name, evidence=history)
     traits = _strengths_and_weaknesses(form)
     graph = build_sports_graph_relationships(
         team_entity=canonical_team,
@@ -368,6 +347,7 @@ def build_team_center_context(
             "players": len(players),
         },
         "form": form,
+        "result_history": history,
         "streak": {
             "label": form.get("trend") or "No disponible",
             "sample_size": form.get("sample_size") or 0,
