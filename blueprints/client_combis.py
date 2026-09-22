@@ -1,0 +1,179 @@
+"""Explicit compatibility adapter for the existing combinadas routes.
+
+Registered at application setup by the existing composition root. One set of
+handlers owns old and new URLs; no second sports feed or request-time monkeypatch.
+"""
+from __future__ import annotations
+import uuid
+import re
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from flask import Blueprint, g, jsonify, redirect, render_template, request, session
+from engines import client_combi_store as store
+from engines.combi_advisor_engine import CombiError, CONTRACT
+from engines.security_engine import validate_csrf
+
+
+def create_client_combi_blueprint(db_path):
+    bp = Blueprint('client_combis', __name__)
+
+    def values():
+        if request.content_length is not None and request.content_length > 65536:
+            raise CombiError('PAYLOAD_TOO_LARGE', 'El formulario es demasiado grande.', 413)
+        if request.is_json:
+            data = request.get_json(silent=True)
+            if not isinstance(data, dict):
+                raise CombiError('INVALID_PAYLOAD', 'El cuerpo debe ser un objeto JSON.')
+            return data
+        data = request.form.to_dict()
+        data['pick_ids'] = request.form.getlist('pick_ids')
+        return data
+
+    def mutation_guard(data):
+        if not session.get('user_id'):
+            raise CombiError('AUTH_REQUIRED', 'Inicia sesión para crear tu borrador.', 401)
+        token = request.headers.get('X-CSRF-Token') or request.headers.get('X-CSRFToken') or data.get('csrf_token')
+        if not validate_csrf(session, token):
+            raise CombiError('CSRF_REQUIRED', 'La sesión ha cambiado. Recarga la página antes de continuar.', 403)
+
+    def read_center():
+        return store.read_center(db_path, session.get('user_id',''))
+
+    def response_page(result=None, error='', status=200):
+        try:
+            center = read_center()
+        except CombiError as exc:
+            error, status = str(exc), exc.status
+            center = {'capabilities':{'plan':'FREE','can_build':False,'can_suggest':False,'max_legs':0},
+                      'candidates':[], 'blocked':[], 'saved':[], 'sample_limit':200, 'signed_in':False}
+        return render_template('combis.html', data={}, center=center, preview=result, error=error,
+                               request_id=uuid.uuid4().hex), status
+
+    @bp.route('/combinadas', methods=['GET','POST'])
+    def page():
+        if request.method == 'GET':
+            return response_page()
+        try:
+            data = values(); mutation_guard(data)
+            if data.get('action') == 'save':
+                store.save_draft(db_path,session['user_id'],data)
+                return redirect('/combinadas?guardado=1#combinadas-guardadas',code=303)
+            result = store.make_preview(db_path,session['user_id'],data)
+            return response_page(result)
+        except CombiError as exc:
+            return response_page(error=exc.message,status=exc.status)
+
+    @bp.get('/api/client/combinadas')
+    def collection():
+        try:
+            if not session.get('user_id'):
+                raise CombiError('AUTH_REQUIRED','Inicia sesión para consultar tus borradores.',401)
+            result = read_center()
+            return jsonify({'ok':True, 'combis':[d['payload'] for d in result['saved'] if not d['locked']], **result})
+        except CombiError as exc:
+            return jsonify({'ok':False,'error':exc.code,'message':exc.message}), exc.status
+
+    def mutation(save=False):
+        try:
+            data = values(); mutation_guard(data)
+            result = (store.save_draft if save else store.make_preview)(db_path,session['user_id'],data)
+            return jsonify({'ok':True,'combi':result,'contract':CONTRACT}), (201 if save and not result.get('replayed') else 200)
+        except CombiError as exc:
+            return jsonify({'ok':False,'error':exc.code,'message':exc.message}), exc.status
+
+    @bp.post('/api/client/combinadas/preview')
+    def preview_api():
+        return mutation()
+
+    @bp.post('/api/client/combinadas/save')
+    def save_api():
+        return mutation(save=True)
+
+    @bp.get('/api/shark/combi-advice')
+    def advice_api():
+        try:
+            result = store.read_advice(db_path, session.get('user_id',''),
+                     pick_id=request.args.get('pick',''),match_id=request.args.get('match_id',''))
+            return jsonify({'ok':True,'advice':result})
+        except CombiError as exc:
+            return jsonify({'ok':False,'error':exc.code,'message':exc.message}), exc.status
+
+    def advice_for_template(pick_id='', match_id=''):
+        cache = getattr(g, 'combi_advice_cache', {})
+        lookup = (str(pick_id),str(match_id),str(session.get('user_id','')))
+        if lookup not in cache:
+            try:
+                cache[lookup] = store.read_advice(db_path, lookup[2],pick_id=lookup[0],match_id=lookup[1])
+            except CombiError as exc:
+                cache[lookup] = {'error':exc.message}
+            g.combi_advice_cache = cache
+        return cache[lookup]
+
+    @bp.app_context_processor
+    def template_helpers():
+        return {'combi_advice': advice_for_template}
+
+    @bp.after_app_request
+    def private_responses(response):
+        if request.path in {'/combis','/combinadas','/api/combis','/api/combis/build','/api/shark/combi-advice','/api/shark/ask','/shark'} or request.path.startswith('/api/client/combinadas'):
+            response.headers['Cache-Control'] = 'private, no-store'
+            response.vary.add('Cookie')
+        return response
+
+    def widget_reply(data):
+        question = str(data.get('question') or data.get('q') or '')[:1000]
+        number = re.search(r'\b(\d{1,3})\s*(?:partidos?|selecciones?|eventos?)\b', question, re.I) or re.search(r'\bcombi(?:nada)?\s+(?:de|con)\s+(\d{1,3})\b', question, re.I)
+        count = int(number.group(1)) if number else 3
+        risk = 'agresivo' if 'agresiv' in question.lower() else 'equilibrado' if 'equilibrad' in question.lower() else 'conservador'
+        explicit_date = re.search(r'\b(20\d{2}-\d{2}-\d{2})\b', question)
+        day = datetime.now(ZoneInfo('Europe/Madrid')).date()
+        target_date = explicit_date.group(1) if explicit_date else (day+timedelta(days=1)).isoformat() if 'mañana' in question.lower() else day.isoformat() if re.search(r'\bhoy\b',question,re.I) else ''
+        try:
+            if request.method == 'POST':
+                token = request.headers.get('X-CSRF-Token') or request.headers.get('X-CSRFToken') or data.get('csrf_token')
+                if not validate_csrf(session, token):
+                    raise CombiError('CSRF_REQUIRED', 'Recarga la página para renovar la sesión.', 403)
+            result = store.make_preview(db_path, session.get('user_id',''),
+                {'mode':'suggest','count':str(count),'risk':risk,'stake':'0.10','date':target_date})
+            answer = result['copy_text'] + '\n\n' + '\n'.join(result['warnings'])
+            answer += '\nRevisa el borrador desde Combinadas antes de guardarlo. El perfil solo ordena cuotas; no es una predicción.'
+        except CombiError as exc:
+            if exc.code == 'CSRF_REQUIRED':
+                return jsonify({'ok':False,'message':exc.message}), exc.status
+            result = None
+            answer = exc.message + ' Abre Combinadas para revisar los requisitos y las selecciones disponibles. No he guardado ni apostado nada.'
+        return jsonify({'ok':True, 'shark':{'focus':'combis','answer':answer,'next_url':'/combinadas',
+                        'actions':[{'label':'Revisar combinadas','href':'/combinadas'}],
+                        'context':{'contract':CONTRACT,'preview':result,'external_calls':0},
+                        'next_action':'Revisar; no se ha colocado ninguna apuesta.'}})
+
+    @bp.record_once
+    def adapt_legacy_routes(state):
+        # Adapt three legacy combi entries and the specific widget intent at setup.
+        # No duplicate URL rules, before-request interception or runtime rebinding.
+        aliases = {'combis_page':('/combis',page), 'api_combis':('/api/combis',collection),
+                   'api_combis_build':('/api/combis/build',preview_api)}
+        for endpoint,(path,handler) in aliases.items():
+            rules = list(state.app.url_map.iter_rules(endpoint)) if endpoint in state.app.view_functions else []
+            if rules and any(rule.rule != path for rule in rules):
+                raise RuntimeError('Unexpected legacy combi route binding: '+endpoint)
+        for endpoint,(path,handler) in aliases.items():
+            if endpoint in state.app.view_functions:
+                state.app.view_functions[endpoint] = handler
+        original_ask = state.app.view_functions.get('api_shark_ask')
+        if original_ask:
+            if any(rule.rule != '/api/shark/ask' for rule in state.app.url_map.iter_rules('api_shark_ask')):
+                raise RuntimeError('Unexpected legacy SHARK route binding')
+            def ask_adapter():
+                if request.content_length is not None and request.content_length > 65536:
+                    return jsonify({'ok':False,'message':'El mensaje es demasiado grande.'}), 413
+                data = request.get_json(silent=True) if request.is_json else dict(request.form or request.args)
+                data = data if isinstance(data, dict) else {}
+                question = str(data.get('question') or data.get('q') or '')[:1000]
+                if re.search(r'\bcombi(?:nada)?s?\b',question,re.I):
+                    return widget_reply(data)
+                return original_ask()
+            state.app.view_functions['api_shark_ask'] = ask_adapter
+        state.app.extensions['nemesis_combi_routes'] = {'contract':CONTRACT,'legacy_build_is_preview_only':True}
+
+    return bp

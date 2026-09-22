@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, pick_card, sports_contract_attributes %}
+{% from 'components/combi_advice.html' import advice_card %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=private-drafts-1">
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
 {% set context = assistant.get('context') or {} %}
@@ -24,7 +26,12 @@
     <img src="/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1" alt="" aria-hidden="true">
   </section>
 
-  {% if picks %}{% set focus_pick = picks[0] %}
+  {% if request.args.get('pick') or request.args.get('match_id') %}
+  {{ advice_card(combi_advice(request.args.get('pick',''), request.args.get('match_id',''))) }}
+  {% else %}
+  <section class="v933-panel"><h2>Combinadas y decisiones con evidencia</h2><p>Abre un pick o una ficha para que SHARK explique sus datos, motivos de exclusión y qué falta comprobar. No hace falta tener un pick para revisar un partido.</p><a class="v933-action" href="/combinadas">Revisar combinadas 1X2</a></section>
+  {% endif %}
+  {% if picks and not (request.args.get('pick') or request.args.get('match_id')) %}{% set focus_pick = picks[0] %}
     <a class="v933-quick-action is-cyan" href="{{ focus_pick.get('client_match_url') or ('/match/' ~ focus_pick.get('match_id') if focus_pick.get('match_id') else '/picks') }}"{% if focus_pick.get('match_id') %} data-match-id="{{ focus_pick.get('match_id') }}"{% endif %}>{{ icon('calendar') }}<span><strong>{{ focus_pick.get('client_match_label') or ui('Partido analizado') }}</strong><small>{{ focus_pick.get('client_competition') or ui('Competición') }} · <time{% if focus_pick.get('madrid_dt_iso') %} datetime="{{ focus_pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ focus_pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ ui_match_datetime(focus_pick) }}</time></small></span>{{ icon('arrow') }}</a>
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
@@ -75,7 +82,7 @@
       <p class="v933-safe-copy">{{ ui("Si falta un dato real, SHARK lo marca como pendiente. No promete resultados ni sustituye la decisión del usuario.") }}</p>
     </aside>
   </section>
-  {% else %}
+  {% elif not (request.args.get('pick') or request.args.get('match_id')) %}
   <section class="ns-video-empty-dashboard ns-video-shark-empty" data-empty-dashboard="resolved">
     {{ empty_state('SHARK espera evidencia suficiente', 'Los partidos siguen disponibles aunque todavía no exista una selección publicable.', 'Explorar partidos', '/calendar', 'shark') }}
   </section>
