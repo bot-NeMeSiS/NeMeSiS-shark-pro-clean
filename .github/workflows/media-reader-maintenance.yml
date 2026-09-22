@@ -1,0 +1,61 @@
+name: Apply reviewed media reader delta (branch only)
+
+# One-off source commit on PR60. Remove this file before merging the PR.
+# Does not deploy, import the application, query providers or access production.
+on:
+  push:
+    branches: [chatgpt/highlights-revision-y-reproductor-20260921]
+    paths: [.github/workflows/media-reader-maintenance.yml]
+
+permissions: {}
+
+jobs:
+  source-commit:
+    if: github.repository == 'bot-NeMeSiS/NeMeSiS-shark-pro-clean' && github.ref == 'refs/heads/chatgpt/highlights-revision-y-reproductor-20260921' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: true
+      - name: Apply only the byte-verified reader correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          path = Path('app.py')
+          source = path.read_bytes()
+          def blob(value):
+              return hashlib.sha1(b'blob ' + str(len(value)).encode() + b'\0' + value).hexdigest()
+          before = '1879f0c53e3ac59a62370906f2aabefee2c283e5'
+          after = 'e6033b745f0a65c01312b3ec9b85938515c4df5f'
+          if blob(source) != before:
+              raise SystemExit('Unexpected app.py revision; no changes applied')
+          old = b'    identifiers = [\r\n        str(value).strip()\r\n        for value in (match.get("id"), match.get("external_id"))\r\n        if str(value or "").strip()\r\n    ]\r\n    if not identifiers:\r\n        return video_highlights_snapshot([])\r\n    placeholders = ",".join(["?"] * len(identifiers))\r\n    items = rows(\r\n        f"SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,\'\') IN ({placeholders}) ORDER BY COALESCE(updated_at,\'\') DESC LIMIT ?",\r\n        tuple(identifiers + [int(limit)]),\r\n    )\r\n'
+          new = b'    # match_id stores the canonical local match, never an unscoped provider ID.\r\n    # Legacy external associations must be reconciled during ingestion/review,\r\n    # not guessed while rendering a client\'s match page.\r\n    raw_local_id = match.get("id")\r\n    local_id = str(raw_local_id).strip() if raw_local_id is not None else ""\r\n    if not local_id:\r\n        return video_highlights_snapshot([])\r\n    items = rows(\r\n        "SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,\'\') = ? ORDER BY COALESCE(updated_at,\'\') DESC LIMIT ?",\r\n        (local_id, int(limit)),\r\n    )\r\n'
+          if source.count(old) != 1:
+              raise SystemExit('Reader boundary differs; no changes applied')
+          revised = source.replace(old, new, 1)
+          if blob(revised) != after:
+              raise SystemExit('Revised bytes do not match the reviewed patch')
+          compile(revised, 'app.py', 'exec')
+          path.write_bytes(revised)
+          print('Verified source delta:', before, '->', after)
+          PY
+      - name: Commit source only to the same reviewed branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch='refs/heads/chatgpt/highlights-revision-y-reproductor-20260921'
+          test "$(git diff --name-only)" = 'app.py'
+          remote_sha="$(git ls-remote --exit-code origin "$branch" | cut -f1)"
+          test "$remote_sha" = "$GITHUB_SHA"
+          git add -- app.py
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(media): read cached video only by canonical local match ID' -m 'Byte-verified source correction only. No startup patch or production action. Full PR checks and removal of the one-off maintenance workflow are required before integration.'
+          git push origin "HEAD:$branch"
+          git rev-parse HEAD
