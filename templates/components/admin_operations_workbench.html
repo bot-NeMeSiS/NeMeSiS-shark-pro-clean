@@ -1,0 +1,25 @@
+<section class="admin-workbench" data-admin-workbench="{{ workbench.contract }}" id="operations-incidents" aria-labelledby="admin-workbench-title">
+  <header><div><h2 id="admin-workbench-title">Tu jornada de operaciones</h2><p>Prioriza, abre el panel adecuado y prepara la tarea desde el mismo lugar.</p></div><a href="#v938-safe-actions">Diagnóstico y herramientas ↓</a></header>
+  <p class="admin-workbench-scope">{% if workbench.generated_at %}Lectura local: <time datetime="{{ workbench.generated_at }}">{{ workbench.generated_at|madrid_datetime_label }}</time>.{% else %}Hora de lectura no verificable.{% endif %} No acredita la actualidad de los proveedores ni vigilancia continua.</p>
+  {% if workbench.state != 'READABLE' %}<p role="status" class="admin-workbench-warning">La bandeja no se ha podido comprobar completamente. No equivale a cero incidencias.</p>{% endif %}
+  {% if workbench.truncated %}<p role="status">Vista limitada a {{ workbench.limit }} registros de {{ workbench.total_supplied }} recibidos. No representa una revisión completa.</p>{% endif %}
+  <div class="admin-workbench-counts"><span><b>{{ workbench.counts.confirmed if workbench.counts is not none else '—' }}</b> confirmados en esta vista</span><span><b>{{ workbench.counts.verify if workbench.counts is not none else '—' }}</b> por certificar</span><span><b>{{ workbench.counts.investigate if workbench.counts is not none else '—' }}</b> por investigar</span></div>
+  <div class="admin-workbench-filters" data-admin-task-filters hidden>
+    <label>Buscar tarea<input type="search" data-task-search placeholder="Área, evidencia o tarea" maxlength="120"></label>
+    <label>Tipo<select data-task-category><option value="all">Todos los pendientes</option><option value="confirmed">Hallazgos confirmados</option><option value="verify">Evidencia pendiente</option><option value="investigate">Por investigar</option></select></label>
+    <label>Prioridad<select data-task-priority><option value="all">Todas</option><option value="urgent">Crítica o alta</option><option value="other">Otras</option></select></label>
+    <button type="button" data-action="admin-reset-filters">Limpiar filtros</button>
+  </div>
+  <p role="status" data-admin-task-count>{{ workbench.displayed }} tareas visibles de esta lectura.</p>
+  <div class="admin-workbench-tasks">
+    {% for task in workbench.tasks %}<article id="{{ task.dom_id }}" data-admin-task data-search-text="{{ task.title }} {{ task.area }} {{ task.evidence }} {{ task.next_action }} {{ task.source }}" data-category="{{ task.category }}" data-priority="{{ task.severity }}">
+      <header><div><span class="admin-workbench-badge is-{{ task.category }}">{{ task.category_label }}</span><h3>{{ task.title }}</h3></div><span>Prioridad {{ task.severity_label|lower }}</span></header>
+      <p>{{ task.evidence }}</p><p><strong>Siguiente paso:</strong> {{ task.next_action }}</p>
+      {% if task.identity_conflict %}<p class="admin-workbench-warning">Identificador repetido: contrasta ambos registros antes de actuar. No se han fusionado automáticamente.</p>{% endif %}
+      <a href="{{ task.href }}">Abrir {{ task.tool_title }} →</a>
+      <details><summary>Preparar tarea y consultar evidencia</summary><p>Fuente: {{ task.source }} · {{ task.id }}</p><label for="{{ task.dom_id }}-brief">Texto de investigación, no orden de ejecución</label><textarea id="{{ task.dom_id }}-brief" readonly rows="7">{{ task.brief }}</textarea><button type="button" data-action="admin-copy-brief" hidden>Copiar tarea</button><p role="status" data-copy-result></p><small>La tarea se genera con esta lectura. Copiarla no la asigna a un trabajador ni marca la incidencia como resuelta.</small></details>
+    </article>{% else %}{% if workbench.state == 'READABLE' %}<p>Esta lectura no aporta pendientes. No certifica que toda la plataforma esté libre de errores.</p>{% endif %}{% endfor %}
+  </div><p data-admin-task-empty hidden>No hay tareas que coincidan con los filtros. Los demás pendientes siguen en la bandeja.</p>
+  <details class="admin-workbench-tools" open><summary>Accesos de trabajo</summary><label data-admin-tool-filter hidden>Encontrar herramienta<input type="search" data-tool-search placeholder="Usuarios, cuotas, soporte, Telegram…" maxlength="120"></label><div>{% for tool in workbench.tools %}<a data-admin-tool href="{{ tool.href }}"><strong>{{ tool.title }}</strong><small>{{ tool.description }}</small></a>{% endfor %}</div><p data-admin-tool-empty hidden>No hay accesos con ese nombre.</p></details>
+  <p class="admin-workbench-scope">Los accesos abren los paneles existentes; no ejecutan envíos, cobros, sincronizaciones ni reparaciones automáticamente.</p>
+</section>
