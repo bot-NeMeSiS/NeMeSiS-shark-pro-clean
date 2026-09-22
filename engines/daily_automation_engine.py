@@ -214,49 +214,70 @@ def _count(conn: sqlite3.Connection, table: str, where: str = "1=1", params: tup
 
 
 def reconcile_match_lifecycle(db_path: str, now: datetime | None = None) -> dict[str, Any]:
-    now = now or madrid_now()
-    updated = {"past_pending": 0, "future_upcoming": 0, "finalized": 0}
-    today = now.date().isoformat()
-    current_time = now.strftime("%H:%M")
-    with closing(sqlite3.connect(db_path)) as conn, conn:
-        conn.row_factory = sqlite3.Row
-        ensure_automation_schema_conn(conn)
-        if not _table_exists(conn, "matches"):
-            return {"ok": True, "skipped": True, "reason": "matches_table_missing", "updated": updated}
-        cur = conn.cursor()
-        cur.execute(
-            """UPDATE matches
-               SET status='Resultado pendiente', updated_at=?
-               WHERE COALESCE(score,'')='' AND COALESCE(home_score,'')='' AND COALESCE(away_score,'')=''
-                 AND (match_date < ? OR (match_date=? AND COALESCE(kickoff_time, match_time, '')!='' AND COALESCE(kickoff_time, match_time, '') < ?))
-                 AND lower(COALESCE(status,'')) NOT LIKE '%final%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%live%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%directo%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%pendiente%'""",
-            (now.isoformat(timespec="seconds"), today, today, current_time),
-        )
-        updated["past_pending"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        cur.execute(
-            """UPDATE matches
-               SET status='Proximo', updated_at=?
-               WHERE match_date >= ?
-                 AND COALESCE(score,'')='' AND COALESCE(home_score,'')='' AND COALESCE(away_score,'')=''
-                 AND lower(COALESCE(status,'')) IN ('', 'scheduled', 'programado', 'next', 'upcoming', 'proximo', 'próximo')""",
-            (now.isoformat(timespec="seconds"), today),
-        )
-        updated["future_upcoming"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        cur.execute(
-            """UPDATE matches
-               SET status='Finalizado', updated_at=?
-               WHERE (COALESCE(score,'')!='' OR COALESCE(home_score,'')!='' OR COALESCE(away_score,'')!='')
-                 AND lower(COALESCE(status,'')) NOT LIKE '%live%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%directo%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%final%'""",
-            (now.isoformat(timespec="seconds"),),
-        )
-        updated["finalized"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        conn.commit()
-    return {"ok": True, "updated": updated, "no_invented_results": True, "madrid_date": today}
+    """Audit the canonical derived lifecycle without overwriting provider evidence.
+
+    A time comparison or provisional score is not a provider result. Page/API
+    read models already derive lifecycle with match_status_truth. Persisting that
+    derivation back into status destroyed postponements and renewed updated_at.
+    Keep legacy mutation counters, truthfully zero, and report observations in
+    separate fields. This is a bounded audit, not historical data recovery.
+    """
+    from pathlib import Path
+    from engines.v935_launch_trust_engine import (
+        MATCH_LIFECYCLES, madrid_now as normalize_now, match_status_truth,
+    )
+
+    observed_at = normalize_now(now or madrid_now())
+    labels = {
+        "UPCOMING": "Proximo", "RESULT_PENDING": "Resultado pendiente",
+        "FINISHED": "Finalizado", "LIVE": "En directo", "HALFTIME": "Descanso",
+        "POSTPONED": "Aplazado", "SUSPENDED": "Suspendido", "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado", "ARCHIVED": "Archivado", "STALE": "Datos retrasados",
+        "INCOMPLETE": "Datos incompletos",
+    }
+    result: dict[str, Any] = {
+        "ok": True, "mode": "CANONICAL_READ_ONLY",
+        "updated": {"past_pending": 0, "future_upcoming": 0, "finalized": 0},
+        "lifecycle_counts": {state: 0 for state in MATCH_LIFECYCLES},
+        "assessed": 0, "status_conflicts": 0, "samples": [], "sample_limit": 200,
+        "truncated": False, "complete_database_audit": False,
+        "sample_order": "local_id_desc", "external_calls": 0,
+        "source_evidence_unchanged": True, "no_invented_results": True,
+        "madrid_date": observed_at.date().isoformat(),
+        "observed_at": observed_at.isoformat(timespec="seconds"),
+    }
+    try:
+        path = Path(db_path).expanduser().resolve()
+        if not path.is_file():
+            return {**result, "ok": False, "reason": "storage_unavailable"}
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=.5)) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
+            conn.execute("BEGIN")
+            if not _table_exists(conn, "matches"):
+                return {**result, "skipped": True, "reason": "matches_table_missing"}
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(matches)")}
+            if "id" not in columns:
+                return {**result, "skipped": True, "reason": "matches_identity_missing"}
+            # Stream bounded records; do not retain raw payloads in memory or audit logs.
+            for index, row in enumerate(conn.execute("SELECT * FROM matches ORDER BY id DESC LIMIT 201")):
+                if index == result["sample_limit"]:
+                    result["truncated"] = True
+                    break
+                truth = match_status_truth(dict(row), now=observed_at)
+                state = truth["lifecycle"]
+                result["lifecycle_counts"][state] += 1
+                result["assessed"] += 1
+                result["status_conflicts"] += int(bool(truth.get("status_conflict")))
+                if len(result["samples"]) < 20:
+                    result["samples"].append({
+                        "match_id": str(row["id"]), "lifecycle": state,
+                        "label": labels[state], "status_conflict": bool(truth.get("status_conflict")),
+                    })
+    except (OSError, sqlite3.Error):
+        # Do not disguise a failed or partial read as a successful empty catalogue.
+        return {**result, "ok": False, "reason": "storage_unavailable", "partial": bool(result["assessed"])}
+    return result
 
 
 def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
