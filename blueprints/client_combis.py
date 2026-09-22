@@ -54,14 +54,39 @@ def create_client_combi_blueprint(db_path):
         selected = list(dict.fromkeys(p for p in selected[:200] if isinstance(p, str) and 0 < len(p) <= 180)) if isinstance(selected, list) else []
         if not submitted and result:
             selected = [p['id'] for p in result['legs']]
+        entry_message = ''
+        target_ids = set()
         if not submitted and not result:
-            selected = [p['id'] for p in center['candidates'] if p['id'] == request.args.get('pick') or p['match_id'] == request.args.get('match_id')]
+            raw_pick = request.args.get('pick', '')
+            raw_match = request.args.get('match_id', '')
+            target_pick = raw_pick if len(raw_pick) <= 180 else ''
+            target_match = raw_match if len(raw_match) <= 180 else ''
+            if raw_pick:
+                targeted = [p for p in center['candidates'] if target_pick and p['id'] == target_pick]
+                selected = [p['id'] for p in targeted]
+                entry_message = ('Selección marcada para revisar; todavía no se ha guardado ninguna combinada.'
+                                 if targeted else 'La selección de este enlace no está disponible para combinar en esta lectura.')
+            elif raw_match:
+                targeted = [p for p in center['candidates'] if target_match and p['match_id'] == target_match]
+                selected = [targeted[0]['id']] if len(targeted) == 1 else []
+                entry_message = ('Este partido tiene varias selecciones disponibles. Elige solo una.' if len(targeted) > 1
+                                 else 'Selección marcada para revisar; todavía no se ha guardado ninguna combinada.' if targeted
+                                 else 'Este partido no tiene selecciones elegibles en esta lectura.')
+            else:
+                targeted = []
+            target_ids = {p['id'] for p in targeted}
+        # Keep the requested option visible. Never discard the other candidates or
+        # perform a new provider lookup just to populate this entry point.
+        first = set(selected) | target_ids
+        center['candidates'] = sorted(center['candidates'], key=lambda p: p['id'] not in first)
         known = {p['id'] for p in center['candidates']}
         state = {'selected': selected, 'stake': str(submitted.get('stake', (result or {}).get('stake', '0,10')))[:32],
                  'count': str(submitted.get('count', request.args.get('partidos', '3')))[:2],
                  'risk': str(submitted.get('risk', 'conservador'))[:20],
                  'date': str(submitted.get('date', ''))[:10],
-                 'unavailable': [pid for pid in selected if pid not in known]}
+                 'unavailable': [pid for pid in selected if pid not in known],
+                 'entry_message': entry_message,
+                 'expand_more': any(p['id'] in first for p in center['candidates'][6:])}
         return render_template('combis.html', data={}, center=center, preview=result, error=error,
                                form_state=state, review=review, request_id=uuid.uuid4().hex), status
 

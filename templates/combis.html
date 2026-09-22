@@ -2,12 +2,14 @@
 {% from 'components/v933_ui.html' import page_header, empty_state %}
 {% from 'components/combi_draft_review.html' import draft_review %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=private-drafts-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=private-drafts-2-navigation">
 <script src="{{ url_for('static', filename='combinadas.js') }}?v=private-drafts-1" defer></script>
 {% set cap = center.capabilities %}
 <div class="v933-page ns-combis" data-v933-template="combis" data-combi-contract="NEMESIS-COMBI-ADVICE-V1">
 {{ page_header('Combinadas SHARK', 'Selecciona, comprende y revisa. Un borrador no coloca una apuesta.', 'target') }}
-<nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/picks">Picks</a><a href="/calendar">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
+{% include 'components/picks_workspace_nav.html' %}
+<nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendar">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
+{% if form_state.entry_message %}<p class="ns-combi-warning" role="status">{{ form_state.entry_message }}</p>{% endif %}
 {% if error %}<p class="ns-combi-error" role="alert">{{ error }}</p>{% endif %}
 {% if request.args.get('guardado') == '1' %}<p role="status">Consulta tus borradores guardados abajo. No se ha colocado ninguna apuesta.</p>{% endif %}
 <section class="ns-combi-panel"><h2>Tu espacio de combinadas</h2>
@@ -39,7 +41,7 @@
 <div class="ns-combi-fields"><label>Importe simulado (€)<input name="stake" inputmode="decimal" value="{{ form_state.stake }}" maxlength="32" required></label></div>
 <fieldset><legend>Selecciona picks publicados</legend>
 {% if form_state.unavailable %}<p class="ns-combi-warning" role="status">Algunas selecciones elegidas ya no son utilizables en esta lectura. Se conservan marcadas para que puedas retirarlas tú; no se reemplazan automáticamente.</p>{% for pid in form_state.unavailable %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ pid }}" checked><span>Selección no disponible: desmárcala para retirarla de la revisión.</span></label>{% endfor %}{% endif %}
-{% for leg in center.candidates %}{% if loop.index == 7 %}<details><summary>Más selecciones disponibles ({{ center.candidates|length - 6 }})</summary>{% endif %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ leg.id }}"{% if leg.id in form_state.selected %} checked{% endif %}><span><strong>{{ leg.match }}</strong><span>{{ leg.selection_label }} · {{ leg.odds }} · {{ leg.bookmaker }}</span><small>{{ leg.kickoff|madrid_datetime_label }} · {{ leg.competition }}</small><small>Hora de la cuota {{ leg.observed_at|madrid_datetime_label }} · {{ leg.odds_source }}</small></span></label>{% if loop.last and loop.index > 6 %}</details>{% endif %}{% else %}<p>No hay selecciones que cumplan todas las condiciones en esta lectura. Puedes consultar los motivos más abajo.</p>{% endfor %}
+{% for leg in center.candidates %}{% if loop.index == 7 %}<details{% if form_state.expand_more %} open{% endif %}><summary>Más selecciones disponibles ({{ center.candidates|length - 6 }})</summary>{% endif %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ leg.id }}"{% if leg.id in form_state.selected %} checked{% endif %}><span><strong>{{ leg.match }}</strong><span>{{ leg.selection_label }} · {{ leg.odds }} · {{ leg.bookmaker }}</span><small>{{ leg.kickoff|madrid_datetime_label }} · {{ leg.competition }}</small><small>Hora de la cuota {{ leg.observed_at|madrid_datetime_label }} · {{ leg.odds_source }}</small></span></label>{% if loop.last and loop.index > 6 %}</details>{% endif %}{% else %}<p>No hay selecciones que cumplan todas las condiciones en esta lectura. Puedes consultar los motivos más abajo.</p>{% endfor %}
 </fieldset><button type="submit"{% if center.candidates|length < 2 %} disabled{% endif %}>Revisar combinada con SHARK</button></form>
 </section>
 {% endif %}
