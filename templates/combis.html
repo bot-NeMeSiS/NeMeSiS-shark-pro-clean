@@ -1,20 +1,21 @@
 {% extends 'base.html' %}
 {% from 'components/v933_ui.html' import page_header, empty_state %}
 {% from 'components/combi_draft_review.html' import draft_review %}
+{% from 'components/combi_match_catalogue.html' import match_catalogue %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=private-drafts-2-navigation">
-<script src="{{ url_for('static', filename='combinadas.js') }}?v=private-drafts-1" defer></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=fixtures-catalogue-1">
+<script src="{{ url_for('static', filename='combinadas.js') }}?v=fixtures-catalogue-1" defer></script>
 {% set cap = center.capabilities %}
 <div class="v933-page ns-combis" data-v933-template="combis" data-combi-contract="NEMESIS-COMBI-ADVICE-V1">
-{{ page_header('Combinadas SHARK', 'Selecciona, comprende y revisa. Un borrador no coloca una apuesta.', 'target') }}
+{{ page_header('Combinadas', 'Elige próximos partidos, consulta sus cuotas y revisa tu selección.', 'target') }}
 {% include 'components/picks_workspace_nav.html' %}
 <nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendar">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
 {% if form_state.entry_message %}<p class="ns-combi-warning" role="status">{{ form_state.entry_message }}</p>{% endif %}
 {% if error %}<p class="ns-combi-error" role="alert">{{ error }}</p>{% endif %}
 {% if request.args.get('guardado') == '1' %}<p role="status">Consulta tus borradores guardados abajo. No se ha colocado ninguna apuesta.</p>{% endif %}
-<section class="ns-combi-panel"><h2>Tu espacio de combinadas</h2>
-<p>{{ cap.plan }} · {{ center.candidates|length }} selecciones elegibles en una lectura de hasta {{ center.sample_limit }} picks publicados.</p>
-<p>Solo fútbol 1X2: local (1), empate (X) o visitante (2), partidos distintos y cuotas recientes de la misma casa. No se completa con selecciones de relleno.</p>
+<section class="ns-combi-panel ns-market-intro"><h2>Tu espacio de combinadas</h2>
+<p>{{ cap.plan }} · Selecciona próximos encuentros y consulta la información sin salir del constructor.</p>
+<details><summary>Cómo funciona y qué necesitas</summary><p>Fútbol 1X2: local (1), empate (X) o visitante (2), partidos distintos y cuotas recientes de la misma casa. No hace falta un pick editorial y no se completa con relleno.</p></details>
 {% if not center.signed_in %}<a href="/cliente-login">Iniciar sesión</a>
 {% elif not cap.can_build %}<p>La creación pertenece a PRO; la propuesta automática y hasta 15 selecciones, a ELITE. Las combinadas largas no se consideran seguras.</p><a href="/membresias">Consultar tu plan</a>{% endif %}
 </section>
@@ -39,17 +40,19 @@
 <form method="post" action="/combinadas" data-combi-form>
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="manual">
 <div class="ns-combi-fields"><label>Importe simulado (€)<input name="stake" inputmode="decimal" value="{{ form_state.stake }}" maxlength="32" required></label></div>
-<fieldset><legend>Selecciona picks publicados</legend>
+{{ match_catalogue(center.catalogue, form_state.selected) }}
+{% if form_state.market_retained %}<section class="ns-market-retained" aria-label="Selecciones conservadas"><h3>Tu selección en otros resultados</h3>{% for leg in form_state.market_retained %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ leg.id }}" checked><span>{{ leg.match }} · {{ leg.selection_label }} · {{ leg.odds }} · {{ leg.bookmaker }}</span></label>{% endfor %}</section>{% endif %}
+<section class="ns-editorial-options"><h3>También puedes elegir picks publicados ({{ center.candidates|length }})</h3><fieldset><legend>Selecciona picks publicados</legend>
 {% if form_state.unavailable %}<p class="ns-combi-warning" role="status">Algunas selecciones elegidas ya no son utilizables en esta lectura. Se conservan marcadas para que puedas retirarlas tú; no se reemplazan automáticamente.</p>{% for pid in form_state.unavailable %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ pid }}" checked><span>Selección no disponible: desmárcala para retirarla de la revisión.</span></label>{% endfor %}{% endif %}
 {% for leg in center.candidates %}{% if loop.index == 7 %}<details{% if form_state.expand_more %} open{% endif %}><summary>Más selecciones disponibles ({{ center.candidates|length - 6 }})</summary>{% endif %}<label class="ns-combi-option"><input type="checkbox" name="pick_ids" value="{{ leg.id }}"{% if leg.id in form_state.selected %} checked{% endif %}><span><strong>{{ leg.match }}</strong><span>{{ leg.selection_label }} · {{ leg.odds }} · {{ leg.bookmaker }}</span><small>{{ leg.kickoff|madrid_datetime_label }} · {{ leg.competition }}</small><small>Hora de la cuota {{ leg.observed_at|madrid_datetime_label }} · {{ leg.odds_source }}</small></span></label>{% if loop.last and loop.index > 6 %}</details>{% endif %}{% else %}<p>No hay selecciones que cumplan todas las condiciones en esta lectura. Puedes consultar los motivos más abajo.</p>{% endfor %}
-</fieldset><button type="submit"{% if center.candidates|length < 2 %} disabled{% endif %}>Revisar combinada con SHARK</button></form>
+</fieldset></section><div class="ns-market-review-bar"><p data-selection-count role="status">{{ form_state.selected|length }} selecciones marcadas</p><button type="submit">Revisar combinada</button><small>No coloca apuestas. Revisa cuotas y condiciones antes de decidir.</small></div></form>
 </section>
 {% endif %}
 {% if cap.can_suggest %}
-<section class="ns-combi-panel"><h2>Propuesta automática, sin apostar</h2><p>Ordenación de picks elegibles, no una predicción de acierto. Los perfiles no evitan la posibilidad de perder.</p>
+<details class="ns-combi-panel"><summary>Propuesta automática a partir de picks publicados</summary><h2>Propuesta automática, sin apostar</h2><p>Ordenación de picks elegibles, no una predicción de acierto. Los perfiles no evitan la posibilidad de perder.</p>
 <form method="post" action="/combinadas" data-combi-form><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="suggest">
 <div class="ns-combi-fields"><label>Partidos<select name="count">{% for n in range(2,16) %}<option value="{{ n }}"{% if n|string == form_state.count %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label><label>Perfil<select name="risk"><option value="conservador"{% if form_state.risk == 'conservador' %} selected{% endif %}>Conservador · menor cuota primero</option><option value="equilibrado"{% if form_state.risk == 'equilibrado' %} selected{% endif %}>Equilibrado · orden de inicio</option><option value="agresivo"{% if form_state.risk == 'agresivo' %} selected{% endif %}>Agresivo · mayor cuota primero</option></select></label><label>Fecha opcional<input type="date" name="date" value="{{ form_state.date }}"></label><label>Importe simulado (€)<input name="stake" value="{{ form_state.stake }}" inputmode="decimal" maxlength="32" required></label></div>
-<button type="submit"{% if center.candidates|length < 2 %} disabled{% endif %}>Preparar propuesta para revisar</button></form></section>
+<button type="submit"{% if center.candidates|length < 2 %} disabled{% endif %}>Preparar propuesta para revisar</button></form></details>
 {% endif %}
 {% if center.blocked %}<details class="ns-combi-panel"><summary>Por qué algunas selecciones no se pueden combinar ({{ center.blocked|length }})</summary>{% for leg in center.blocked[:20] %}<article><h3>{{ leg.match }}</h3>{% for reason in leg.reasons %}<p>{{ reason }}</p>{% endfor %}<a href="{{ leg.advice_url }}">Ver explicación de SHARK</a></article>{% endfor %}<p>Se muestran hasta 20 motivos; no es una auditoría de todas las ligas.</p></details>{% endif %}
 <section class="ns-combi-panel" id="combinadas-guardadas"><h2>Mis borradores</h2><p>Últimos 20 de hasta 100 borradores privados. No son apuestas realizadas ni resultados para el ROI.</p>
