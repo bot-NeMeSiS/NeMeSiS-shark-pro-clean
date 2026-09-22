@@ -14,7 +14,7 @@
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="official-ref-11" data-top100-improvement="8" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Picks SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
+  {{ page_header('Picks SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Combinadas','href':'/combinadas','icon':'target'},{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
 
   {% if picks %}<section class="v933-kpi-grid">
     {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}

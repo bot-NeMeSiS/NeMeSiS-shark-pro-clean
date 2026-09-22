@@ -41,7 +41,7 @@ MEMBERSHIP_LIMITS = {
     "ELITE": {
         "daily_picks": 50,
         "recommendations": 50,
-        "combi_matches": 8,
+        "combi_matches": 15,
         "shark_questions": 999,
         "telegram_level": "priority",
         "value_bets": "advanced",
@@ -50,7 +50,7 @@ MEMBERSHIP_LIMITS = {
     "ADMIN": {
         "daily_picks": 999,
         "recommendations": 999,
-        "combi_matches": 8,
+        "combi_matches": 15,
         "shark_questions": 999,
         "telegram_level": "admin",
         "value_bets": "advanced",

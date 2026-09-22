@@ -1,8 +1,8 @@
 """V608 - Architecture and Blueprint Migration Center.
 
-This blueprint is intentionally non-invasive: it adds architecture/route
-visibility without moving legacy routes yet. That lets NeMeSiS reduce risk while
-preparing app.py for a gradual Blueprint extraction.
+Adds architecture/route visibility and explicitly composes client combinadas.
+The combinadas adapter validates legacy dispatch identities at application setup;
+other legacy routes remain in app.py for gradual extraction.
 """
 from __future__ import annotations
 
@@ -61,4 +61,6 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
         out = write_route_map("ROUTE_MAP_V608.md", app_py="app.py")
         return jsonify({"ok": True, "version": app_version, "created": str(out)})
 
+    from blueprints.client_combis import create_client_combi_blueprint
+    bp.register_blueprint(create_client_combi_blueprint(db_path))
     return bp

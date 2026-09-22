@@ -1,0 +1,21 @@
+{% macro advice_card(advice) -%}
+<section class="v933-panel ns-combi-advice" data-combi-advice="NEMESIS-COMBI-ADVICE-V1">
+<h2>SHARK · antes de decidir</h2>
+{% if advice.get('error') %}<p role="status">{{ advice.error }}</p>
+{% else %}<h3>{{ advice.match }}</h3><p>{{ advice.advice }}</p>
+<p>Fuente del partido: {{ advice.source or 'No identificada' }}{% if advice.observed_at %} · Observación {{ advice.observed_at|madrid_datetime_label }}{% endif %}</p>
+{% if advice.pick %}<p>{{ advice.pick.selection_label }} · {{ advice.pick.bookmaker or 'Casa no identificada' }}{% if advice.pick.odds %} · Cuota registrada {{ advice.pick.odds }}{% endif %}</p>
+{% if advice.pick.observed_at %}<p>Hora de la cuota: {{ advice.pick.observed_at|madrid_datetime_label }}</p>{% endif %}
+{% if advice.pick.editorial_reason %}<details><summary>Explicación editorial guardada, no verificación independiente</summary><p>{{ advice.pick.editorial_reason }}</p></details>{% endif %}
+{% for reason in advice.pick.reasons %}<p>{{ reason }}</p>{% endfor %}
+{% if advice.pick.risk_note %}<p>{{ advice.pick.risk_note }}</p>{% endif %}
+{% endif %}
+{% if advice.get('team_form') %}
+<div class="v933-two-col">{% for side,form in advice.team_form.items() %}<section><h3>{{ form.team }} · forma registrada</h3>
+{% if form.sample_size %}<p>{{ form.sample_size }} partidos: {{ form.wins }} victorias, {{ form.draws }} empates y {{ form.losses }} derrotas. Goles {{ form.goals_for }} a favor / {{ form.goals_against }} en contra.</p><details><summary>Resultados que sustentan esta lectura</summary>{% for item in form['items'] %}<p><a href="{{ item.href }}">{{ item.label }}</a> {{ item.score }} · {{ item.outcome }}</p>{% endfor %}</details>{% else %}<p>Sin resultados finales suficientes en la lectura guardada.</p>{% endif %}
+<p>Muestra de hasta cinco encuentros de la misma fuente{% if form.sample_size < 5 %}; no sirve para dar por conocida la temporada completa{% endif %}. No implica una probabilidad de victoria.</p><small>{{ form.scope }}</small></section>{% endfor %}</div>
+{% endif %}
+<details><summary>Qué revisar y qué no podemos afirmar</summary>{% for item in advice.checklist %}<p>{{ item }}</p>{% endfor %}<p>No se deducen lesiones, alineaciones ni probabilidades de datos que no tenemos. Esta explicación utiliza reglas y datos guardados, sin una llamada generativa externa.</p></details>
+<a href="/match/{{ advice.match_id|urlencode }}">Volver a la ficha</a> · <a href="/combinadas?match_id={{ advice.match_id|urlencode }}">Revisar en combinadas</a>
+{% endif %}</section>
+{%- endmacro %}
