@@ -12,6 +12,7 @@ from flask import Blueprint, g, jsonify, redirect, render_template, request, ses
 from engines import client_combi_store as store
 from engines.combi_advisor_engine import CombiError, CONTRACT
 from engines.security_engine import validate_csrf
+from engines.combi_draft_review import review_draft
 
 
 def create_client_combi_blueprint(db_path):
@@ -39,29 +40,52 @@ def create_client_combi_blueprint(db_path):
     def read_center():
         return store.read_center(db_path, session.get('user_id',''))
 
-    def response_page(result=None, error='', status=200):
+    def response_page(result=None, error='', status=200, submitted=None, review=None):
         try:
             center = read_center()
         except CombiError as exc:
             error, status = str(exc), exc.status
             center = {'capabilities':{'plan':'FREE','can_build':False,'can_suggest':False,'max_legs':0},
                       'candidates':[], 'blocked':[], 'saved':[], 'sample_limit':200, 'signed_in':False}
+        submitted = submitted if isinstance(submitted, dict) else {}
+        selected = submitted.get('pick_ids') or []
+        if isinstance(selected, str):
+            selected = selected.split(',')
+        selected = list(dict.fromkeys(p for p in selected[:200] if isinstance(p, str) and 0 < len(p) <= 180)) if isinstance(selected, list) else []
+        if not submitted and result:
+            selected = [p['id'] for p in result['legs']]
+        if not submitted and not result:
+            selected = [p['id'] for p in center['candidates'] if p['id'] == request.args.get('pick') or p['match_id'] == request.args.get('match_id')]
+        known = {p['id'] for p in center['candidates']}
+        state = {'selected': selected, 'stake': str(submitted.get('stake', (result or {}).get('stake', '0,10')))[:32],
+                 'count': str(submitted.get('count', request.args.get('partidos', '3')))[:2],
+                 'risk': str(submitted.get('risk', 'conservador'))[:20],
+                 'date': str(submitted.get('date', ''))[:10],
+                 'unavailable': [pid for pid in selected if pid not in known]}
         return render_template('combis.html', data={}, center=center, preview=result, error=error,
-                               request_id=uuid.uuid4().hex), status
+                               form_state=state, review=review, request_id=uuid.uuid4().hex), status
 
     @bp.route('/combinadas', methods=['GET','POST'])
     def page():
         if request.method == 'GET':
+            if request.args.get('borrador'):
+                try:
+                    review = review_draft(db_path, session.get('user_id', ''), request.args['borrador'])
+                    submitted = {'pick_ids': [p['id'] for p in review['comparisons']], 'stake': review['stake']}
+                    return response_page(review['preview'], review=review, submitted=submitted)
+                except CombiError as exc:
+                    return response_page(error=exc.message, status=exc.status)
             return response_page()
+        data = {}
         try:
             data = values(); mutation_guard(data)
             if data.get('action') == 'save':
                 store.save_draft(db_path,session['user_id'],data)
                 return redirect('/combinadas?guardado=1#combinadas-guardadas',code=303)
             result = store.make_preview(db_path,session['user_id'],data)
-            return response_page(result)
+            return response_page(result, submitted=data)
         except CombiError as exc:
-            return response_page(error=exc.message,status=exc.status)
+            return response_page(error=exc.message,status=exc.status,submitted=data)
 
     @bp.get('/api/client/combinadas')
     def collection():
@@ -88,6 +112,14 @@ def create_client_combi_blueprint(db_path):
     @bp.post('/api/client/combinadas/save')
     def save_api():
         return mutation(save=True)
+
+    @bp.get('/api/client/combinadas/<draft_id>/review')
+    def review_api(draft_id):
+        try:
+            result = review_draft(db_path, session.get('user_id', ''), draft_id)
+            return jsonify({'ok': True, 'review': result})
+        except CombiError as exc:
+            return jsonify({'ok': False, 'error': exc.code, 'message': exc.message}), exc.status
 
     @bp.get('/api/shark/combi-advice')
     def advice_api():
