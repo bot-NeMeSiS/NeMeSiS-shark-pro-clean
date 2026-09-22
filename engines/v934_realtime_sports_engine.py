@@ -206,6 +206,13 @@ def normalize_match(item: dict[str, Any], now: datetime | None = None) -> dict[s
         "away_score": away_score if score_available else None,
         "source": source,
         "updated_at": updated_at,
+        # Preserve the original provider clock fields for downstream re-evaluation.
+        # updated_at is a compatibility/display alias, not freshness provenance.
+        # Keep invalid priority clocks too: a newer lower-priority timestamp must
+        # not turn rejected evidence into fresh LIVE on a second projection.
+        **{field: _text(item.get(field), 100)
+           for field in ("live_updated_at", "provider_updated_at", "last_synced_at")
+           if field in item},
         "age_seconds": age,
         "is_stale": stale,
         "status_truth": status["truth"],
