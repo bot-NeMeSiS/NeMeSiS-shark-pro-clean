@@ -8447,17 +8447,16 @@ def _cached_match_media(match, limit=6):
     """Classify cached highlight metadata without provider calls or GET writes."""
     if not match or not db_table_exists("sportsdb_match_highlights"):
         return video_highlights_snapshot([])
-    identifiers = [
-        str(value).strip()
-        for value in (match.get("id"), match.get("external_id"))
-        if str(value or "").strip()
-    ]
-    if not identifiers:
+    # match_id stores the canonical local match, never an unscoped provider ID.
+    # Legacy external associations must be reconciled during ingestion/review,
+    # not guessed while rendering a client's match page.
+    raw_local_id = match.get("id")
+    local_id = str(raw_local_id).strip() if raw_local_id is not None else ""
+    if not local_id:
         return video_highlights_snapshot([])
-    placeholders = ",".join(["?"] * len(identifiers))
     items = rows(
-        f"SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') IN ({placeholders}) ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
-        tuple(identifiers + [int(limit)]),
+        "SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') = ? ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
+        (local_id, int(limit)),
     )
     classified = [classify_stored_highlight(item) for item in items]
     return video_highlights_snapshot(classified, preclassified=True)
