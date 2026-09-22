@@ -61,6 +61,11 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
         out = write_route_map("ROUTE_MAP_V608.md", app_py="app.py")
         return jsonify({"ok": True, "version": app_version, "created": str(out)})
 
+    @bp.record_once
+    def configure_decorative_cache(state):
+        from engines.decorative_asset_cache import install_decorative_asset_cache
+        install_decorative_asset_cache(state.app)
+
     from blueprints.client_combis import create_client_combi_blueprint
     bp.register_blueprint(create_client_combi_blueprint(db_path))
     return bp
