@@ -70,7 +70,12 @@ def review_fingerprint(row) -> str:
     """Bind a human decision to the exact current URL and match association."""
     fields = ('id', 'sportsdb_event_id', 'match_id', 'video_url', 'embed_url', 'thumbnail_url',
               'home_team', 'away_team', 'event_date', 'league_id', 'rights_status',
-              'commercial_use_status', 'rights_verified_at', 'embed_policy', 'allowed_channels_json')
+              'commercial_use_status', 'rights_verified_at', 'embed_policy', 'allowed_channels_json',
+              'attribution', 'attribution_required', 'official_source_verified',
+              'geo_restriction_status', 'thumbnail_rights_status',
+              'thumbnail_commercial_use_status', 'thumbnail_attribution',
+              'rights_note', 'status', 'client_status', 'source', 'provider',
+              'updated_at', 'review_revision')
     import json
     value = {key: str(row.get(key) or '') for key in fields}
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()

@@ -23,6 +23,10 @@
      data-match-id="{{ match_context.get('match', {}).get('id') or '' }}"
      data-canonical-status="{{ match_context.get('match', {}).get('status_info', {}).get('key') or match_context.get('lifecycle', {}).get('key') or '' }}"
      data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
+  <nav class="v933-page-actions" aria-label="Revisar partido con SHARK">
+    <a class="v933-action" href="/shark?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Consejos de SHARK sobre este partido</a>
+    <a class="v933-action" href="/combinadas?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Revisar en combinadas</a>
+  </nav>
   <div class="v944-match-anchor">
     {{ match_header(match_context) }}
   </div>

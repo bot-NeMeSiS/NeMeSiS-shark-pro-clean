@@ -1,8 +1,8 @@
 """V608 - Architecture and Blueprint Migration Center.
 
-This blueprint is intentionally non-invasive: it adds architecture/route
-visibility without moving legacy routes yet. That lets NeMeSiS reduce risk while
-preparing app.py for a gradual Blueprint extraction.
+Adds architecture/route visibility and explicitly composes client combinadas.
+The combinadas adapter validates legacy dispatch identities at application setup;
+other legacy routes remain in app.py for gradual extraction.
 """
 from __future__ import annotations
 
@@ -60,6 +60,16 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
             return jsonify({"ok": False, "version": app_version, "error": "Acceso admin requerido."}), 403
         out = write_route_map("ROUTE_MAP_V608.md", app_py="app.py")
         return jsonify({"ok": True, "version": app_version, "created": str(out)})
+
+    @bp.record_once
+    def configure_decorative_cache(state):
+        from engines.decorative_asset_cache import install_decorative_asset_cache
+        install_decorative_asset_cache(state.app)
+
+    from blueprints.client_combis import create_client_combi_blueprint
+    bp.register_blueprint(create_client_combi_blueprint(db_path))
+    from blueprints.client_surfaces import create_client_surfaces_blueprint
+    bp.register_blueprint(create_client_surfaces_blueprint())
 
     # Explicit composition: media operations share the existing DB and admin guard.
     from blueprints.media_review import create_media_review_blueprint

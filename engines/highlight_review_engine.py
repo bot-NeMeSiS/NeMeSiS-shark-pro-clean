@@ -9,11 +9,32 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from engines.highlight_url_engine import public_https_url, safe_embed_url, review_fingerprint
-from engines.sportsdb_highlights_engine import classify_stored_highlight, ensure_sportsdb_highlights_schema
+from engines.sportsdb_highlights_engine import classify_stored_highlight
 
 
 class ReviewError(ValueError):
     pass
+
+
+def _review_revisions(conn, identifiers):
+    """Audit IDs invalidate a stale form even when two decisions share a clock tick.
+
+    One bounded query for the review page, not a query for every displayed item.
+    A missing ledger means no decisions yet; an unreadable ledger is an error.
+    """
+    if not identifiers or not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sportsdb_highlight_reviews'").fetchone():
+        return {}
+    marks = ','.join('?' for _ in identifiers)
+    rows = conn.execute('SELECT highlight_id, MAX(id) AS revision FROM sportsdb_highlight_reviews '
+                        'WHERE highlight_id IN (' + marks + ') GROUP BY highlight_id', identifiers)
+    result = {}
+    for row in rows:
+        revision = row['revision']
+        if type(revision) is not int or revision < 1:
+            raise ReviewError('El historial de revisión no se puede verificar.')
+        result[str(row['highlight_id'])] = revision
+    return result
 
 
 def review_snapshot(db_path, limit=40):
@@ -25,13 +46,16 @@ def review_snapshot(db_path, limit=40):
         with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True, timeout=2)) as conn:
             conn.row_factory = sqlite3.Row
             conn.execute('PRAGMA query_only=ON')
+            conn.execute('BEGIN')
             exists = conn.execute("SELECT 1 FROM sqlite_master WHERE name='sportsdb_match_highlights'").fetchone()
             if not exists:
                 return result
             result['counts']['stored'] = conn.execute('SELECT COUNT(*) FROM sportsdb_match_highlights').fetchone()[0]
             records = conn.execute('SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC, id LIMIT ?', (max(1, min(int(limit), 100)),)).fetchall()
+            revisions = _review_revisions(conn, [str(record['id']) for record in records])
             for record in records:
                 raw = dict(record)
+                raw['review_revision'] = revisions.get(str(raw['id']), 0)
                 item = classify_stored_highlight(raw)
                 result['items'].append({
                     'id': raw['id'], 'title': raw.get('title') or 'Resumen del partido',
@@ -50,6 +74,8 @@ def review_snapshot(db_path, limit=40):
     except (sqlite3.Error, OSError, ValueError):
         result['state'] = 'READ_UNAVAILABLE'
         result['items'] = []
+        result['runs'] = []
+        result['counts'] = {}
     return result
 
 
@@ -68,15 +94,21 @@ def decide_highlight(db_path, highlight_id, values, *, actor):
         raise ReviewError('La autorización exige evidencia, atribución, fundamento y confirmación expresa de uso comercial en la app.')
     if approval and rights not in {'OWNED', 'LICENSED', 'PROVIDER_ALLOWED', 'OPEN_LICENSE_ALLOWED', 'ATTRIBUTION_REQUIRED'}:
         raise ReviewError('Selecciona la base de derechos verificada.')
-    ensure_sportsdb_highlights_schema(db_path)
-    with closing(sqlite3.connect(db_path, timeout=3)) as conn:
+    path = Path(db_path).resolve()
+    if not path.is_file():
+        raise ReviewError('La base de medios no está disponible; no se crea desde una revisión.')
+    with closing(sqlite3.connect(path.as_uri() + '?mode=rw', uri=True, timeout=3)) as conn:
         conn.row_factory = sqlite3.Row
         try:
             conn.execute('BEGIN IMMEDIATE')
+            if not conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sportsdb_match_highlights'").fetchone():
+                raise ReviewError('No existe un catálogo de medios para revisar.')
             row = conn.execute('SELECT * FROM sportsdb_match_highlights WHERE id=?', (highlight_id,)).fetchone()
             if row is None:
                 raise ReviewError('El enlace ya no existe.')
             raw = dict(row)
+            raw['review_revision'] = _review_revisions(conn, [str(highlight_id)]).get(str(highlight_id), 0)
             if review_fingerprint(raw) != str(values.get('review_token') or ''):
                 raise ReviewError('El enlace o su revisión han cambiado. Recarga antes de decidir.')
             if approval and not public_https_url(raw.get('video_url')):
@@ -89,7 +121,14 @@ def decide_highlight(db_path, highlight_id, values, *, actor):
             embed = safe_embed_url(raw.get('video_url')) if action == 'EMBED' else ''
             if action == 'EMBED' and not embed:
                 raise ReviewError('Este enlace solo admite apertura externa; no hay reproductor compatible.')
-            now = datetime.now(ZoneInfo('Europe/Madrid')).isoformat(timespec='seconds')
+            # Migrate only the two review-owned legacy columns, after validating
+            # the exact record and token, in the same rollback-safe transaction.
+            columns = {column['name'] for column in conn.execute('PRAGMA table_info(sportsdb_match_highlights)')}
+            if 'embed_policy' not in columns:
+                conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN embed_policy TEXT DEFAULT 'LEGACY'")
+            if 'allowed_channels_json' not in columns:
+                conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN allowed_channels_json TEXT DEFAULT ''")
+            now = datetime.now(ZoneInfo('Europe/Madrid')).isoformat(timespec='microseconds')
             chosen_rights = rights if approval else action
             conn.execute('''CREATE TABLE IF NOT EXISTS sportsdb_highlight_reviews(
                 id INTEGER PRIMARY KEY AUTOINCREMENT, highlight_id TEXT NOT NULL,
