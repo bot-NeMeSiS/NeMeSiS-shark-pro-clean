@@ -162,7 +162,10 @@ def _quote(pick, match, observations):
 
 
 def candidates(conn, user, now, ids=None):
-    picks, matches, odds = _records(conn, ids)
+    from engines.combi_match_catalogue import is_market_id, resolve_choices
+    direct_ids = [i for i in (ids or []) if is_market_id(i)]
+    editorial_ids = [i for i in ids if not is_market_id(i)] if ids is not None else None
+    picks, matches, odds = _records(conn, editorial_ids)
     result = []
     by_event_book = {}
     for observation in odds:
@@ -173,6 +176,7 @@ def candidates(conn, user, now, ids=None):
         match = matches.get(str(pick.get('match_id')), {})
         observations = by_event_book.get((str(pick.get('match_id')), key(pick.get('bookmaker'))), [])
         result.append(assess_pick(pick, match, _quote(pick, match, observations), user, now=now))
+    result.extend(resolve_choices(conn,user,now,direct_ids))
     return result
 
 
@@ -217,12 +221,19 @@ def _saved(conn, user, limit=20):
     return output
 
 
-def read_center(path, user_id='', *, now=None):
+def read_center(path, user_id='', *, now=None, catalogue_filters=None, selected=None):
     now = clock(now) or datetime.now(timezone.utc)
     with connection(path) as conn:
         user = actor(conn,user_id,now)
         pool = candidates(conn,user,now)
-        return {'contract':CONTRACT, 'capabilities':capabilities(user), 'signed_in':bool(user['id']),
+        extra = {}
+        if catalogue_filters is not None:
+            from engines.combi_match_catalogue import read_catalogue
+            extra['catalogue'] = read_catalogue(conn,user,filters=catalogue_filters,now=now)
+            if selected:
+                current = {p['id'] for p in pool}
+                pool.extend(p for p in candidates(conn,user,now,selected) if p['id'] not in current)
+        return {**extra, 'contract':CONTRACT, 'capabilities':capabilities(user), 'signed_in':bool(user['id']),
                 'candidates':[p for p in pool if p['eligible']], 'blocked':[p for p in pool if not p['eligible']],
                 'saved':_saved(conn,user), 'sample_limit':200, 'as_of':now.isoformat(), 'external_calls':0}
 

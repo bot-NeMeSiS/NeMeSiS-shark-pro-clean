@@ -37,12 +37,19 @@ def create_client_combi_blueprint(db_path):
         if not validate_csrf(session, token):
             raise CombiError('CSRF_REQUIRED', 'La sesión ha cambiado. Recarga la página antes de continuar.', 403)
 
-    def read_center():
-        return store.read_center(db_path, session.get('user_id',''))
+    def read_center(filters=None, selected=None):
+        return store.read_center(db_path, session.get('user_id',''), catalogue_filters=filters, selected=selected)
 
     def response_page(result=None, error='', status=200, submitted=None, review=None):
+        submitted = submitted if isinstance(submitted, dict) else {}
+        raw_selected = submitted.get('pick_ids') or []
+        raw_selected = raw_selected.split(',') if isinstance(raw_selected,str) else raw_selected
+        raw_selected = [p for p in raw_selected[:200] if isinstance(p,str) and 0<len(p)<=180] if isinstance(raw_selected,list) else []
+        filters = {f: str(submitted.get(f, request.args.get(f,'')))[:160] for f in ('q','day','league','page')}
+        if not request.args.get('pick'):
+            filters['target'] = request.args.get('match_id','')[:180]
         try:
-            center = read_center()
+            center = read_center(filters, raw_selected)
         except CombiError as exc:
             error, status = str(exc), exc.status
             center = {'capabilities':{'plan':'FREE','can_build':False,'can_suggest':False,'max_legs':0},
@@ -75,6 +82,11 @@ def create_client_combi_blueprint(db_path):
             else:
                 targeted = []
             target_ids = {p['id'] for p in targeted}
+            if raw_match and not raw_pick and not targeted:
+                direct = next((m for m in (center.get('catalogue') or {}).get('matches',[]) if m['id'] == target_match), None)
+                if direct:
+                    usable = [p for group in direct['groups'] for p in group['choices'] if p['eligible']]
+                    entry_message = ('Este partido tiene cuotas disponibles. Elige solo una selección.' if usable else 'El partido aparece primero; no tiene cuotas verificables para añadirlo ahora.')
         # Keep the requested option visible. Never discard the other candidates or
         # perform a new provider lookup just to populate this entry point.
         first = set(selected) | target_ids
@@ -87,6 +99,11 @@ def create_client_combi_blueprint(db_path):
                  'unavailable': [pid for pid in selected if pid not in known],
                  'entry_message': entry_message,
                  'expand_more': any(p['id'] in first for p in center['candidates'][6:])}
+        catalogue = center.get('catalogue') or {'state':'READ_UNAVAILABLE','matches':[],'total':0,'page':1,'pages':1, **filters}
+        direct_visible = {leg['id'] for m in catalogue.get('matches',[]) for group in m['groups'] for leg in group['choices'] if leg['eligible']}
+        center['catalogue'] = catalogue
+        state['market_retained'] = [p for p in center['candidates'] if p['id'] in selected and p['id'].startswith('market:') and p['id'] not in direct_visible]
+        center['candidates'] = [p for p in center['candidates'] if not p['id'].startswith('market:')]
         return render_template('combis.html', data={}, center=center, preview=result, error=error,
                                form_state=state, review=review, request_id=uuid.uuid4().hex), status
 
@@ -104,6 +121,8 @@ def create_client_combi_blueprint(db_path):
         data = {}
         try:
             data = values(); mutation_guard(data)
+            if data.get('action') == 'browse' or 'page' in request.form:
+                return response_page(submitted=data)
             if data.get('action') == 'save':
                 store.save_draft(db_path,session['user_id'],data)
                 return redirect('/combinadas?guardado=1#combinadas-guardadas',code=303)

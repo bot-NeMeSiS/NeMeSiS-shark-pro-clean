@@ -20,3 +20,23 @@
     });
   });
 })();
+
+// Local selection feedback only. No prices are trusted or calculated in the browser.
+(() => {
+  'use strict';
+  document.querySelectorAll('form[data-combi-form]').forEach((form) => {
+    const status = form.querySelector('[data-selection-count]');
+    if (!status) return;
+    const update = (changed) => {
+      if (changed && changed.matches('[data-market-choice]') && changed.checked) {
+        form.querySelectorAll('[data-market-choice]').forEach((other) => {
+          if (other !== changed && other.dataset.marketEvent === changed.dataset.marketEvent) other.checked = false;
+        });
+      }
+      const count = form.querySelectorAll('input[name="pick_ids"]:checked:not(:disabled)').length;
+      status.textContent = count + (count === 1 ? ' selección marcada' : ' selecciones marcadas');
+    };
+    form.addEventListener('change', (event) => update(event.target));
+    update(null);
+  });
+})();

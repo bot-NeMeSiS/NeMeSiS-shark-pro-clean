@@ -97,7 +97,7 @@ def outcome(pick, match):
     return ''
 
 
-def assess_pick(pick, match, odds_record, user, *, now=None):
+def _assess_selection(pick, match, odds_record, user, *, now=None, editorial=True):
     """The caller supplies persisted records; client-submitted prices are never used."""
     now = clock(now) or datetime.now(timezone.utc)
     pid, mid = text(pick.get('id'), 180), text(match.get('id'), 180)
@@ -107,7 +107,7 @@ def assess_pick(pick, match, odds_record, user, *, now=None):
         issues.append('Registro de demostración: no se utiliza para una combinada real.')
     if not pid or not mid or text(pick.get('match_id'), 180) != mid:
         issues.append('Partido no asociado de forma inequívoca.')
-    if text(pick.get('status')).lower() not in {'published', 'publicado'} or key(pick.get('result_status')) not in {'', 'pending', 'pendiente'}:
+    if editorial and (text(pick.get('status')).lower() not in {'published', 'publicado'} or key(pick.get('result_status')) not in {'', 'pending', 'pendiente'}):
         issues.append('La selección no está publicada y pendiente de resultado.')
     sport = key(match.get('sport_key'))
     if not sport or not (sport.startswith('soccer') or sport in {'football', 'futbol', 'fútbol'}):
@@ -155,7 +155,8 @@ def assess_pick(pick, match, odds_record, user, *, now=None):
               'quote_clock_scope':text(quote_row.get('clock_scope') or 'RECORDED_QUOTE_TIME'),
               'membership_required': text(pick.get('membership_required') or 'FREE'),
               'match_url': '/match/' + quote(mid, safe=''),
-              'advice_url': '/shark?pick=' + quote(pid, safe=''),
+              'advice_url': ('/shark?pick=' + quote(pid, safe='')) if editorial else ('/shark?match_id=' + quote(mid, safe='')),
+              'selection_origin': 'editorial_pick' if editorial else 'customer_market_choice',
               'reasons': list(dict.fromkeys(issues)),
               'risk_note': text(pick.get('warning_reason'), 600),
               'editorial_reason': text(pick.get('reasoning'), 1000),
@@ -165,6 +166,19 @@ def assess_pick(pick, match, odds_record, user, *, now=None):
     # on the same ordered teams and Madrid day even with two local fixture IDs.
     answer['event_key'] = hashlib.sha256(json.dumps([key(home), key(away), answer['date']], ensure_ascii=False).encode()).hexdigest()
     return answer
+
+
+def assess_pick(pick, match, odds_record, user, *, now=None):
+    return _assess_selection(pick, match, odds_record, user, now=now, editorial=True)
+
+
+def assess_market_choice(choice, match, odds_record, user, *, now=None):
+    """A customer choice backed by saved odds, not a fabricated editorial pick."""
+    result = _assess_selection(choice, match, odds_record, user, now=now, editorial=False)
+    if key(match.get('source')) in {'','none','null','unknown','demo','fake'}:
+        result['eligible'] = False
+        result['reasons'].append('Falta una fuente identificable del encuentro.')
+    return result
 
 
 def preview(legs, stake, *, user, now=None):

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, icon %}
+{% from 'components/platform_faq.html' import platform_faq %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-help-1">
 <div class="v933-page v933-support-page" data-v933-template="support" data-top100-improvement="9,10">
   {{ page_header('Soporte', 'NeMeSiS SHARK PRO', 'support', [{'label':'Inicio','href':'/app','icon':'home'}]) }}
   {% if data.error %}<div class="premium-alert danger" role="alert">{{ ui(data.error) }}</div>{% endif %}
@@ -34,17 +36,12 @@
         </fieldset>
       </form>
     </section>
-    <aside class="v933-main-stack">
+    <aside class="v933-main-stack ns-support-help">
       <h2>{{ ui("Ayuda y privacidad") }}</h2>
       <p>{{ ui("No incluyas contraseñas, tarjetas ni datos sensibles en tu mensaje.") }}</p>
       <a class="v933-action" href="/profile">{{ icon('user') }}{{ ui("Mi cuenta") }}</a>
       <a class="v933-action" href="/shark">{{ icon('shark') }}{{ ui("Consultar SHARK") }}</a>
-      {% if data.support_tips %}
-      <details class="v933-home-more">
-        <summary>{{ ui("Preguntas frecuentes") }}</summary>
-        {% for tip in data.support_tips %}<section><h3>{{ ui(tip.title) }}</h3><p>{{ ui(tip.body) }}</p></section>{% endfor %}
-      </details>
-      {% endif %}
+      {{ platform_faq(true) }}
     </aside>
   </div>
 </div>

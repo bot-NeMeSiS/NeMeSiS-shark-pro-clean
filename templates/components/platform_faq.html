@@ -1,0 +1,26 @@
+{% macro platform_faq(compact=false) -%}
+{% set questions = [
+('cuotas','¿Por qué no veo una cuota o no puedo seleccionarla?', 'Un partido y su cuota pueden llegar de fuentes distintas. Sin un precio, una casa y una hora verificables, no se habilita la selección. Una cuota antigua no se convierte en actual al recargar la página.', '/combinadas','Revisar partidos y cuotas'),
+('combinadas','¿Cómo elijo partidos para una combinada?', 'En Combinadas puedes buscar próximos encuentros, consultar sus cuotas 1X2 y marcar una selección por partido. No hace falta un pick recomendado. Revisa la propuesta antes de guardar; los partidos sin cuota siguen disponibles para consultar, no para completar con un precio inventado.', '/combinadas','Abrir Combinadas'),
+('borradores','¿Guardar una combinada coloca una apuesta?', 'No. Guardas un borrador privado, no una apuesta ni un saldo. El producto de cuotas y el retorno son una ilustración condicionada; no confirman que una casa acepte esa combinación. En Mis borradores puedes revisar cambios antes de guardar otra copia.', '/combinadas#combinadas-guardadas','Mis borradores'),
+('directo','¿Por qué Directo puede estar vacío?', 'Directo necesita una señal en juego suficientemente reciente y sin contradicciones. Si no tenemos encuentros confirmados, no rellenamos la lista con próximos. Usa Calendario para la agenda y los resultados.', '/live','Ver Directo'),
+('estadisticas','¿Un dato ausente significa cero?', 'No. Un cero recibido es un valor; una raya o un dato pendiente significa que no disponemos de información verificable. Posesión, córners, alineaciones y eventos dependen de la cobertura y de la última recepción de cada encuentro.', '/calendar','Buscar un partido'),
+('shark','¿Qué puedo consultar a SHARK?', 'Puedes preguntar por la plataforma, partidos, resultados, contexto y riesgos. SHARK debe distinguir la evidencia disponible de lo que falta. Una explicación no garantiza un resultado y no debe inventar estadísticas o probabilidades.', '/shark','Preguntar a SHARK'),
+('telegram','¿Canal activo significa que mi cuenta está vinculada?', 'No. La disponibilidad del canal, la vinculación de tu cuenta y la recepción de un mensaje son estados distintos. Revisa los indicadores de Telegram. No compartas el código de vinculación ni lo incluyas en un mensaje de soporte.', '/telegram','Revisar mi conexión'),
+('historial','¿Por qué solo aparecen algunos resultados anteriores?', 'La forma reciente es una muestra de los resultados registrados y confirmados, no necesariamente toda la temporada. Un marcador provisional no es un resultado final. La cantidad y la fuente deben acompañar la explicación.', '/calendar','Consultar los encuentros'),
+('planes','¿Dónde veo mi plan y sus funciones?', 'Consulta tu cuenta y la comparativa de membresías. El acceso depende del plan vigente; ninguna membresía garantiza beneficios deportivos. Revisa precio, condiciones y estado del proceso antes de confirmar una contratación.', '/membresias','Consultar planes'),
+('horario','¿En qué zona horaria aparecen los partidos?', 'La plataforma presenta las horas del encuentro en la zona Europe/Madrid. Una fecha u hora sin confirmar debe indicarse como pendiente; no es una razón para presentar el partido como si ya hubiese empezado.', '/calendar','Abrir calendario'),
+('incidencias','¿Qué información ayuda a resolver un error?', 'Indica la pantalla, el partido o equipo, lo que esperabas y lo que ocurrió. Puedes mencionar la hora aproximada y tu dispositivo. No envíes contraseñas, códigos de acceso, tarjetas ni claves. Mensaje recibido significa guardado, no que ya se haya revisado.', '/support','Contactar con soporte'),
+('responsable','¿NeMeSiS garantiza beneficios o acepta apuestas?', 'No. NeMeSiS SHARK PRO es una plataforma de información y análisis. No acepta apuestas ni paga premios. No persigas pérdidas ni interpretes una combinada larga como segura. Consultar y decidir no apostar también son opciones.', '/juego-responsable','Juego responsable')
+] %}
+<section class="ns-platform-faq" aria-labelledby="platform-faq-title" data-platform-faq="client-help-v1">
+<h2 id="platform-faq-title">{{ ui('Preguntas frecuentes') }}</h2><p>Respuestas para utilizar NeMeSiS SHARK PRO y entender qué datos están disponibles.</p>
+<div class="ns-faq-grid">
+{% for id,title,body,href,label in questions[:6] if compact %}
+<details id="ayuda-{{ id }}" class="ns-faq-item"><summary>{{ title }}<span aria-hidden="true">＋</span></summary><div><p>{{ body }}</p><a href="{{ href }}">{{ label }} →</a></div></details>
+{% else %}{% if not compact %}{% for id,title,body,href,label in questions %}
+<details id="ayuda-{{ id }}" class="ns-faq-item"><summary>{{ title }}<span aria-hidden="true">＋</span></summary><div><p>{{ body }}</p><a href="{{ href }}">{{ label }} →</a></div></details>
+{% endfor %}{% endif %}{% endfor %}
+</div>{% if compact %}<a class="ns-faq-all" href="/faq">Ver todas las preguntas frecuentes →</a>{% endif %}
+</section>
+{%- endmacro %}
