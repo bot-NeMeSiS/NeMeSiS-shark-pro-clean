@@ -37,7 +37,7 @@
 {% endif %}
 {% if cap.can_build %}
 <section class="ns-combi-panel"><h2>Constructor 1X2</h2><p>Entre 2 y {{ cap.max_legs }} partidos. El importe es una simulación que eliges tú, no una recomendación de gasto.</p>
-<form method="post" action="/combinadas" data-combi-form>
+<form method="post" action="/combinadas" data-combi-form id="combi-manual-builder">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="manual">
 <div class="ns-combi-fields"><label>Importe simulado (€)<input name="stake" inputmode="decimal" value="{{ form_state.stake }}" maxlength="32" required></label></div>
 {{ match_catalogue(center.catalogue, form_state.selected) }}

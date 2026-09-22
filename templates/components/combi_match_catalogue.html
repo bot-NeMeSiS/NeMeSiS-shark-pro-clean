@@ -5,7 +5,7 @@
 <div class="ns-market-filters">
 <label>Buscar equipo o competición<input type="search" name="q" value="{{ catalogue.q }}" maxlength="100" placeholder="Equipo, partido o competición" autocomplete="off"></label>
 <label>Fecha opcional<input type="date" name="day" value="{{ catalogue.day }}"></label>
-<button type="submit" name="action" value="browse" formnovalidate>Buscar partidos</button>
+<button type="submit" form="combi-manual-builder" name="action" value="browse" formnovalidate>Buscar partidos</button>
 </div>
 <p role="status">{{ catalogue.total }} próximos en esta lectura{% if catalogue.q %} para «{{ catalogue.q }}»{% endif %}. Página {{ catalogue.page }} de {{ catalogue.pages }}.</p>
 {% if catalogue.truncated %}<p class="ns-combi-warning">La consulta alcanza su límite de {{ catalogue.scan_limit }} registros. Refina la búsqueda; este total no representa todo el catálogo.</p>{% endif %}
@@ -24,6 +24,6 @@
 </div>{% else %}<p class="ns-market-unavailable">Sin cuota recibida para este partido. Puedes consultar su información, pero todavía no añadirlo a una combinada.</p>{% endfor %}
 <details class="ns-market-info"><summary>Información del encuentro</summary><p>Fuente: {{ match.source }}.</p>{% if match.season %}<p>Temporada registrada: {{ match.season }}.</p>{% endif %}{% if match.round %}<p>Jornada o fase: {{ match.round }}.</p>{% endif %}{% if match.venue %}<p>Estadio: {{ match.venue }}.</p>{% endif %}{% if match.referee %}<p>Árbitro: {{ match.referee }}.</p>{% endif %}<p>Las estadísticas, alineaciones e historial dependen de lo recibido. No se completan con estimaciones.</p><a href="{{ match.match_url }}" target="_blank" rel="noopener noreferrer">Abrir ficha completa sin cerrar tu selección ↗</a></details>
 </article>{% else %}<p class="ns-market-unavailable">No encontramos próximos partidos con estos filtros en los datos disponibles. Cambia la búsqueda o la fecha; no se añaden ejemplos.</p>{% endfor %}
-{% if catalogue.pages > 1 %}<nav class="ns-market-pages" aria-label="Páginas de próximos partidos">{% if catalogue.page > 1 %}<button type="submit" name="page" value="{{ catalogue.page - 1 }}" formnovalidate>Anterior</button>{% endif %}{% if catalogue.page < catalogue.pages %}<button type="submit" name="page" value="{{ catalogue.page + 1 }}" formnovalidate>Siguiente</button>{% endif %}</nav>{% endif %}
+{% if catalogue.pages > 1 %}<nav class="ns-market-pages" aria-label="Páginas de próximos partidos">{% if catalogue.page > 1 %}<button type="submit" form="combi-manual-builder" name="page" value="{{ catalogue.page - 1 }}" formnovalidate>Anterior</button>{% endif %}{% if catalogue.page < catalogue.pages %}<button type="submit" form="combi-manual-builder" name="page" value="{{ catalogue.page + 1 }}" formnovalidate>Siguiente</button>{% endif %}</nav>{% endif %}
 </section>
 {%- endmacro %}
