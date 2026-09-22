@@ -56,12 +56,12 @@
       </section>
     </div>
     <section class="ns16-section ns16-featured-pick">
-      {{ section_header('Pick destacado', '', 'Ver todos', '/picks') }}
+      {{ section_header('Pick destacado', '', 'Combinadas', '/combinadas') }}
       {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
     {{ quick_action('Favoritos', 'Tu selección', '/favorites', 'star') }}
-    {{ quick_action('Combinadas', 'Constructor y borradores privados', '/combinadas', 'target', 'cyan') }}
+    {{ quick_action('Membresías', 'Planes', '/memberships', 'plan', 'gold') }}
     {{ quick_action('Soporte', 'Ayuda', '/support', 'support') }}
     </nav>
   </section>

@@ -183,8 +183,9 @@ def test_actual_home_account_and_picks_reach_one_combi_screen(client_pages,app_m
     home = Elements(client_pages['/app'])
     account = Elements(client_pages['/profile'])
     shortcuts = [e for e in home.find('a') if any('ns16-home-actions' in a.get('class','').split() for t,a in e.parents)]
-    assert any(e.attrs['href'] == '/combinadas' for e in shortcuts)
-    assert len(shortcuts) == 3
+    assert [e.attrs['href'] for e in shortcuts] == ['/favorites','/memberships','/support']
+    assert any(e.attrs['href'] == '/combinadas' and any('ns16-featured-pick' in a.get('class','').split()
+               for t,a in e.parents) for e in home.find('a'))
     assert account.find('a',href='/combinadas#combinadas-guardadas')
     assert account.find('a',href='/memberships')  # plan access is retained
     for route in ('/combis','/combinadas','/picks'):
