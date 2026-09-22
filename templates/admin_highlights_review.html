@@ -8,12 +8,13 @@
   </header>
   {% if review_error %}<p role="alert" class="ns-media-alert">{{ review_error }}</p>{% endif %}
   <section class="ns-media-overview"><h2>Detección y disponibilidad</h2>
-    <p>{{ review.counts.get('stored', 0) }} registros guardados. Esta vista revisa hasta {{ review.sample_limit }} enlaces recientes; no es una medición de toda la cobertura.</p>
+    {% if review.state in ['RECORDED','NO_LINKS_RECORDED'] %}<p>{{ review.counts.get('stored') }} registros guardados. Esta vista revisa hasta {{ review.sample_limit }} enlaces recientes; no es una medición de toda la cobertura.</p>{% else %}<p>Recuento no verificable: falta un catálogo inicializado o no se ha podido leer.</p>{% endif %}
+    <p><a href="/api/admin/highlights/readiness">Diagnóstico de catálogo y almacenamiento (solo lectura)</a></p>
     {% if review.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo leer el catálogo. No se ha interpretado el error como cero vídeos.</p>{% endif %}
     <form method="post" action="/admin/highlights-review/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <p>Consultar hoy y ayer: como máximo dos peticiones, dentro del presupuesto diario. No autoriza ni envía vídeos.</p>
       <button type="submit">Buscar resúmenes recientes</button></form>
-    {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found or 0 }} enlaces detectados · {{ run.linked_matches or 0 }} asociados</p>{% endfor %}
+    {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados</p>{% endfor %}
   </section>
   {% for item in review['items'] %}
   <article class="ns-media-review-card" data-highlight-review="{{ item.id }}">
@@ -36,6 +37,6 @@
       </form>
     </details>
   </article>
-  {% else %}<p class="ns-media-empty">No hay enlaces para revisar en esta lectura. Esto no garantiza que todos los partidos tengan un resumen.</p>{% endfor %}
+  {% else %}{% if review.state in ['RECORDED','NO_LINKS_RECORDED'] %}<p class="ns-media-empty">No hay enlaces para revisar en esta lectura. Esto no garantiza que todos los partidos tengan un resumen.</p>{% else %}<p class="ns-media-empty">No se ha podido establecer la lista de enlaces. Revisa el diagnóstico antes de interpretar su disponibilidad.</p>{% endif %}{% endfor %}
 </section>
 {% endblock %}

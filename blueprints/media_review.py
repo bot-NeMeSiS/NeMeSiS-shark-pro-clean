@@ -20,6 +20,18 @@ def create_media_review_blueprint(db_path, is_admin_callback):
         if request.method == 'POST' and not validate_csrf(session, request.form.get('csrf_token')):
             return jsonify({'ok': False, 'error': 'csrf_failed'}), 403
 
+    @bp.after_request
+    def private_review(response):
+        response.headers['Cache-Control'] = 'private, no-store'
+        response.vary.add('Cookie')
+        return response
+
+    @bp.get('/api/admin/highlights/readiness')
+    def readiness():
+        from engines.highlight_read_model import read_highlights_readiness
+        result = read_highlights_readiness(db_path)
+        return jsonify(result), (200 if result['ok'] else 503)
+
     @bp.get('/admin/highlights-review')
     def index():
         snapshot = review_snapshot(db_path)

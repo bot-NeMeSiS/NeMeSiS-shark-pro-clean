@@ -549,55 +549,12 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
 
 
 def sportsdb_highlights_for_match(db_path, match_id):
-    ensure_sportsdb_highlights_schema(db_path)
-    with _connect(db_path) as conn:
-        stored = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 8', (match_id,))
-        enrich = _one(conn, 'SELECT * FROM sportsdb_match_enrichment WHERE match_id=?', (match_id,)) or {}
-    classified, highlights = _visible_highlights(stored)
-    return {
-        'highlights': highlights,
-        'all_highlights': classified,
-        'rights_warnings': len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}]),
-        'enrichment': enrich,
-        'summary_text': enrich.get('summary_text') or '',
-    }
+    """Compatibility entry point: reads never prepare storage or call providers."""
+    from engines.highlight_read_model import read_highlights_for_match
+    return read_highlights_for_match(db_path, match_id)
 
 
 def sportsdb_highlights_summary(db_path):
-    ensure_sportsdb_highlights_schema(db_path)
-    with _connect(db_path) as conn:
-        total = (_one(conn, 'SELECT COUNT(*) AS total FROM sportsdb_match_highlights') or {}).get('total', 0)
-        linked = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(match_id,'')<>''") or {}).get('total', 0)
-        enriched = (_one(conn, 'SELECT COUNT(*) AS total FROM sportsdb_match_enrichment') or {}).get('total', 0)
-        with_video = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''") or {}).get('total', 0)
-        stored_latest = _rows(conn, 'SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC LIMIT 250')
-        runs = _rows(conn, 'SELECT * FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 6')
-        for run in runs:
-            if run.get('errors'):
-                run['errors'] = 'Error de sincronización registrado; revisar estado desde administración.'
-    classified, visible = _visible_highlights(stored_latest)
-    linked_visible = len({str(item.get('match_id')) for item in visible if str(item.get('match_id') or '').strip()})
-    rights_warnings = len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}])
-    readiness = 25
-    if _api_key(): readiness += 25
-    if total: readiness += 20
-    if linked: readiness += 20
-    if enriched: readiness += 10
-    return {
-        'status': 'ACTIVO' if _api_key() else 'FALTA KEY',
-        'key_present': bool(_api_key()),
-        'readiness_score': min(readiness, 100),
-        'highlights_total': len(visible),
-        'stored_media_total': total,
-        'with_video': len(visible),
-        'stored_with_video': with_video,
-        'linked_matches': linked_visible,
-        'stored_linked_matches': linked,
-        'authorized_highlights': len(visible),
-        'blocked_highlights': rights_warnings,
-        'rights_warnings': rights_warnings,
-        'enriched_matches': enriched,
-        'latest_highlights': visible[:8],
-        'recent_runs': runs,
-        'note': 'TheSportsDB aporta metadatos y enlaces de YouTube. Solo se muestran tras certificar derechos, uso comercial y atribución; los vídeos pueden estar geobloqueados.'
-    }
+    """Stored observations, not a readiness score or a live-playback certificate."""
+    from engines.highlight_read_model import read_highlights_summary
+    return read_highlights_summary(db_path)
