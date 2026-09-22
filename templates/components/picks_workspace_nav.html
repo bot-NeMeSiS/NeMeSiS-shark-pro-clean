@@ -1,0 +1,7 @@
+{# One navigation context for individual picks and private combinada drafts. #}
+{% set _combis_current = request.path in ['/combis', '/combinadas'] %}
+<nav class="v933-filter-tabs" data-picks-workspace-nav aria-label="Picks y combinadas">
+  <a href="/picks"{% if not _combis_current %} class="is-active" aria-current="page"{% endif %}>Picks</a>
+  <a href="/combinadas"{% if _combis_current %} class="is-active" aria-current="page"{% endif %}>Combinadas</a>
+  <a href="/combinadas#combinadas-guardadas">Mis borradores</a>
+</nav>

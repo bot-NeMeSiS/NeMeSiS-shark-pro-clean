@@ -1,0 +1,20 @@
+{% macro draft_review(review) -%}
+<section class="ns-combi-panel" id="revision-borrador" aria-labelledby="revision-borrador-titulo" data-combi-review="NEMESIS-COMBI-REVIEW-V1">
+<h2 id="revision-borrador-titulo">Tu borrador, revisado con los datos actuales</h2>
+<p>Guardado: {{ review.created_at|madrid_datetime_label }} · Revisión: {{ review.checked_at|madrid_datetime_label }}</p>
+<p>El original no cambia. Esta lectura consulta lo guardado en NeMeSiS, no una oferta nueva de la casa.</p>
+<p>{{ review.changed_count }} cuotas cambiadas · {{ review.blocked_count }} selecciones bloqueadas o no disponibles.</p>
+{% for leg in review.comparisons %}
+<article class="ns-combi-panel">
+<h3>{{ leg.match }}</h3><p>{{ leg.selection }} · {{ leg.bookmaker }}</p>
+<dl class="ns-combi-kpis">
+<div><dt>Cuota del borrador</dt><dd>{{ leg.previous_odds }}</dd><small>{{ leg.previous_at|madrid_datetime_label }}</small></div>
+<div><dt>{{ 'Cuota actual utilizable' if leg.current_is_eligible else 'Última cuota registrada, no utilizable' }}</dt><dd>{{ leg.current_odds if leg.current_odds is not none else 'No disponible' }}</dd>{% if leg.current_at %}<small>{{ leg.current_at|madrid_datetime_label }}</small>{% endif %}</div>
+</dl>
+{% if leg.state == 'PRICE_CHANGED' %}<p>La cuota ha cambiado. Comprueba el nuevo cálculo antes de guardar otra copia.</p>{% elif leg.state == 'UNCHANGED' %}<p>La selección y el precio coinciden en esta lectura. No garantiza su aceptación posterior.</p>{% endif %}
+{% for reason in leg.reasons %}<p class="ns-combi-warning">{{ reason }}</p>{% endfor %}
+</article>
+{% endfor %}
+{% if review.can_prepare %}<p>La vista previa siguiente utiliza las cuotas revisadas. Solo se guardará otro borrador si pulsas el botón correspondiente.</p>{% else %}<p class="ns-combi-warning">No se prepara una combinada válida con este borrador. {{ review.reason }} Revisa las selecciones; no se completa con sustituciones.</p>{% endif %}
+</section>
+{%- endmacro %}
