@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import time
+from contextlib import closing
 from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
@@ -81,7 +82,7 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
 
 
 def ensure_automation_schema(db_path: str) -> dict[str, Any]:
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         ensure_automation_schema_conn(conn)
         conn.commit()
     return {"ok": True, "schema": "v818_daily_automation_ready"}
@@ -213,53 +214,74 @@ def _count(conn: sqlite3.Connection, table: str, where: str = "1=1", params: tup
 
 
 def reconcile_match_lifecycle(db_path: str, now: datetime | None = None) -> dict[str, Any]:
-    now = now or madrid_now()
-    updated = {"past_pending": 0, "future_upcoming": 0, "finalized": 0}
-    today = now.date().isoformat()
-    current_time = now.strftime("%H:%M")
-    with sqlite3.connect(db_path) as conn:
-        conn.row_factory = sqlite3.Row
-        ensure_automation_schema_conn(conn)
-        if not _table_exists(conn, "matches"):
-            return {"ok": True, "skipped": True, "reason": "matches_table_missing", "updated": updated}
-        cur = conn.cursor()
-        cur.execute(
-            """UPDATE matches
-               SET status='Resultado pendiente', updated_at=?
-               WHERE COALESCE(score,'')='' AND COALESCE(home_score,'')='' AND COALESCE(away_score,'')=''
-                 AND (match_date < ? OR (match_date=? AND COALESCE(kickoff_time, match_time, '')!='' AND COALESCE(kickoff_time, match_time, '') < ?))
-                 AND lower(COALESCE(status,'')) NOT LIKE '%final%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%live%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%directo%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%pendiente%'""",
-            (now.isoformat(timespec="seconds"), today, today, current_time),
-        )
-        updated["past_pending"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        cur.execute(
-            """UPDATE matches
-               SET status='Proximo', updated_at=?
-               WHERE match_date >= ?
-                 AND COALESCE(score,'')='' AND COALESCE(home_score,'')='' AND COALESCE(away_score,'')=''
-                 AND lower(COALESCE(status,'')) IN ('', 'scheduled', 'programado', 'next', 'upcoming', 'proximo', 'próximo')""",
-            (now.isoformat(timespec="seconds"), today),
-        )
-        updated["future_upcoming"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        cur.execute(
-            """UPDATE matches
-               SET status='Finalizado', updated_at=?
-               WHERE (COALESCE(score,'')!='' OR COALESCE(home_score,'')!='' OR COALESCE(away_score,'')!='')
-                 AND lower(COALESCE(status,'')) NOT LIKE '%live%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%directo%'
-                 AND lower(COALESCE(status,'')) NOT LIKE '%final%'""",
-            (now.isoformat(timespec="seconds"),),
-        )
-        updated["finalized"] = cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
-        conn.commit()
-    return {"ok": True, "updated": updated, "no_invented_results": True, "madrid_date": today}
+    """Audit the canonical derived lifecycle without overwriting provider evidence.
+
+    A time comparison or provisional score is not a provider result. Page/API
+    read models already derive lifecycle with match_status_truth. Persisting that
+    derivation back into status destroyed postponements and renewed updated_at.
+    Keep legacy mutation counters, truthfully zero, and report observations in
+    separate fields. This is a bounded audit, not historical data recovery.
+    """
+    from pathlib import Path
+    from engines.v935_launch_trust_engine import (
+        MATCH_LIFECYCLES, madrid_now as normalize_now, match_status_truth,
+    )
+
+    observed_at = normalize_now(now or madrid_now())
+    labels = {
+        "UPCOMING": "Proximo", "RESULT_PENDING": "Resultado pendiente",
+        "FINISHED": "Finalizado", "LIVE": "En directo", "HALFTIME": "Descanso",
+        "POSTPONED": "Aplazado", "SUSPENDED": "Suspendido", "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado", "ARCHIVED": "Archivado", "STALE": "Datos retrasados",
+        "INCOMPLETE": "Datos incompletos",
+    }
+    result: dict[str, Any] = {
+        "ok": True, "mode": "CANONICAL_READ_ONLY",
+        "updated": {"past_pending": 0, "future_upcoming": 0, "finalized": 0},
+        "lifecycle_counts": {state: 0 for state in MATCH_LIFECYCLES},
+        "assessed": 0, "status_conflicts": 0, "samples": [], "sample_limit": 200,
+        "truncated": False, "complete_database_audit": False,
+        "sample_order": "local_id_desc", "external_calls": 0,
+        "source_evidence_unchanged": True, "no_invented_results": True,
+        "madrid_date": observed_at.date().isoformat(),
+        "observed_at": observed_at.isoformat(timespec="seconds"),
+    }
+    try:
+        path = Path(db_path).expanduser().resolve()
+        if not path.is_file():
+            return {**result, "ok": False, "reason": "storage_unavailable"}
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=.5)) as conn:
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
+            conn.execute("BEGIN")
+            if not _table_exists(conn, "matches"):
+                return {**result, "skipped": True, "reason": "matches_table_missing"}
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(matches)")}
+            if "id" not in columns:
+                return {**result, "skipped": True, "reason": "matches_identity_missing"}
+            # Stream bounded records; do not retain raw payloads in memory or audit logs.
+            for index, row in enumerate(conn.execute("SELECT * FROM matches ORDER BY id DESC LIMIT 201")):
+                if index == result["sample_limit"]:
+                    result["truncated"] = True
+                    break
+                truth = match_status_truth(dict(row), now=observed_at)
+                state = truth["lifecycle"]
+                result["lifecycle_counts"][state] += 1
+                result["assessed"] += 1
+                result["status_conflicts"] += int(bool(truth.get("status_conflict")))
+                if len(result["samples"]) < 20:
+                    result["samples"].append({
+                        "match_id": str(row["id"]), "lifecycle": state,
+                        "label": labels[state], "status_conflict": bool(truth.get("status_conflict")),
+                    })
+    except (OSError, sqlite3.Error):
+        # Do not disguise a failed or partial read as a successful empty catalogue.
+        return {**result, "ok": False, "reason": "storage_unavailable", "partial": bool(result["assessed"])}
+    return result
 
 
 def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     checks: dict[str, Any] = {
         "db_path": db_path,
         "db_accessible": False,
@@ -273,7 +295,7 @@ def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None 
     }
     warnings = []
     try:
-        with sqlite3.connect(db_path) as conn:
+        with closing(sqlite3.connect(db_path)) as conn, conn:
             conn.row_factory = sqlite3.Row
             ensure_automation_schema_conn(conn)
             checks["db_accessible"] = True
@@ -292,9 +314,9 @@ def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None 
 
 
 def automation_status(db_path: str, app_version: str, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     now = madrid_now()
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         conn.row_factory = sqlite3.Row
         ensure_automation_schema_conn(conn)
         states = [dict(row) for row in conn.execute("SELECT * FROM automation_jobs_state ORDER BY updated_at DESC LIMIT 30").fetchall()]
@@ -319,7 +341,7 @@ def automation_status(db_path: str, app_version: str, env: Mapping[str, str] | N
 
 
 def automation_runs(db_path: str, limit: int = 80) -> dict[str, Any]:
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn, conn:
         conn.row_factory = sqlite3.Row
         ensure_automation_schema_conn(conn)
         runs = [dict(row) for row in conn.execute("SELECT * FROM automation_job_runs ORDER BY started_at DESC LIMIT ?", (int(limit),)).fetchall()]
@@ -348,7 +370,7 @@ def run_master_tick(
     force: bool = False,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     now = madrid_now()
     due = jobs_due(now, force=force)
     jobs_run: list[dict[str, Any]] = []
@@ -357,52 +379,77 @@ def run_master_tick(
     telegram_sent = 0
     api_calls_estimated = 0
     warnings: list[str] = []
-    with sqlite3.connect(db_path) as conn:
+    with closing(sqlite3.connect(db_path)) as conn:
         conn.row_factory = sqlite3.Row
-        ensure_automation_schema_conn(conn)
-        _cleanup_dedupe(conn, now)
+        with conn:
+            ensure_automation_schema_conn(conn)
+            _cleanup_dedupe(conn, now)
         for job_key in due:
             started = madrid_now()
             daily_once = job_key in JOB_WINDOWS or job_key in {"system_health_daily_check"}
             dedupe_key = f"v818:{now.date().isoformat()}:{job_key}"
-            if daily_once and not force and not claim_dedupe(conn, job_key, dedupe_key, ttl_hours=36):
-                skipped = {"job_key": job_key, "reason": "dedupe_already_done", "dedupe_key": dedupe_key}
-                jobs_skipped.append(skipped)
-                _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
-                continue
             if dry_run:
-                skipped = {"job_key": job_key, "reason": "dry_run", "would_run": True}
+                # A simulation records its audit, never claims future real work.
+                claimed = daily_once and not force and conn.execute(
+                    "SELECT 1 FROM automation_dedupe WHERE dedupe_key=?", (dedupe_key,)
+                ).fetchone() is not None
+                skipped = {"job_key": job_key, "reason": "dedupe_already_done" if claimed else "dry_run", "would_run": not claimed}
                 jobs_skipped.append(skipped)
-                _record_run(conn, job_key, trigger_type, "DRY_RUN", started, skipped)
+                with conn:
+                    _record_run(conn, job_key, trigger_type, "DRY_RUN", started, skipped)
                 continue
+            if daily_once and not force:
+                # Commit the unique claim before external effects. An interruption
+                # cannot roll it back and cause an automatic duplicate delivery.
+                with conn:
+                    claimed = claim_dedupe(conn, job_key, dedupe_key, ttl_hours=36)
+                    if not claimed:
+                        skipped = {"job_key": job_key, "reason": "dedupe_already_done", "dedupe_key": dedupe_key}
+                        _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
+                if not claimed:
+                    jobs_skipped.append(skipped)
+                    continue
             provider_estimate = API_ESTIMATES.get(job_key)
             if provider_estimate:
                 provider, estimate = provider_estimate
+                # No master write lock is held while the guard opens its own DB.
                 guard = allow_api_job(db_path, provider, job_key, estimate, env=env)
                 api_calls_estimated += estimate if guard.get("ok") else 0
                 if not guard.get("ok"):
                     skipped = {"job_key": job_key, "reason": guard.get("reason"), "api_guard": guard}
                     jobs_skipped.append(skipped)
-                    _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
+                    with conn:
+                        _record_run(conn, job_key, trigger_type, "SKIPPED", started, skipped)
                     continue
+            callback_error = None
+            sent = 0
             try:
+                # Each callback owns its own I/O and transactions. Never hold a
+                # master write transaction while it runs or waits on a provider.
                 summary = _fallback_job(job_key, db_path, callbacks)
                 status = "OK" if summary.get("ok", True) else "FAILED"
+                error = "" if status == "OK" else str(summary.get("error") or summary.get("reason") or "job_failed")
                 if status == "OK":
-                    jobs_run.append({"job_key": job_key, "summary": summary})
-                    telegram_sent += int(summary.get("telegram_sent") or summary.get("sent") or summary.get("sent_count") or 0)
-                else:
-                    jobs_failed.append({"job_key": job_key, "error": summary.get("error") or summary.get("reason") or "job_failed", "summary": summary})
-                _record_run(conn, job_key, trigger_type, status, started, summary, "" if status == "OK" else str(summary.get("error") or summary.get("reason") or "job_failed"))
+                    sent = int(summary.get("telegram_sent") or summary.get("sent") or summary.get("sent_count") or 0)
             except Exception as exc:
                 error = str(exc)[:900]
-                failed = {"job_key": job_key, "error": error}
-                jobs_failed.append(failed)
-                conn.execute(
-                    "INSERT INTO automation_health_events(level, area, message, details_json, created_at) VALUES (?,?,?,?,?)",
-                    ("ERROR", job_key, "V818 job failed", _json(failed), madrid_now().isoformat(timespec="seconds")),
-                )
-                _record_run(conn, job_key, trigger_type, "FAILED", started, failed, error)
+                summary = {"job_key": job_key, "error": error}
+                status = "FAILED"
+                callback_error = summary
+            # Commit one audit record at a time. A later job cannot roll back an
+            # earlier completed job's evidence. Do not retry a callback on failure.
+            with conn:
+                if callback_error is not None:
+                    conn.execute(
+                        "INSERT INTO automation_health_events(level, area, message, details_json, created_at) VALUES (?,?,?,?,?)",
+                        ("ERROR", job_key, "V818 job failed", _json(callback_error), madrid_now().isoformat(timespec="seconds")),
+                    )
+                _record_run(conn, job_key, trigger_type, status, started, summary, error)
+            if status == "OK":
+                jobs_run.append({"job_key": job_key, "summary": summary})
+                telegram_sent += sent
+            else:
+                jobs_failed.append(callback_error if callback_error is not None else {"job_key": job_key, "error": error, "summary": summary})
         master_summary = {
             "due": due,
             "run": len(jobs_run),
@@ -410,8 +457,8 @@ def run_master_tick(
             "failed": len(jobs_failed),
             "telegram_sent": telegram_sent,
         }
-        _mark_job_state(conn, "master_tick", "OK" if not jobs_failed else "PARTIAL", 0, "")
-        conn.commit()
+        with conn:
+            _mark_job_state(conn, "master_tick", "OK" if not jobs_failed else "PARTIAL", 0, "")
     if not env.get("AUTOMATION_SECRET"):
         warnings.append("AUTOMATION_SECRET no configurado en entorno.")
     return {
