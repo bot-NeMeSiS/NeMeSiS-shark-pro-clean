@@ -12,6 +12,11 @@ from .telegram_message_formatter import (
     madrid_match_time_label, match_title, pick_result_label, score_label, status_label,
 )
 from .v935_launch_trust_engine import match_status_truth
+from .crest_engine import _fetch_one
+
+STATIC_ROOT = Path(__file__).resolve().parents[1] / "static"
+
+
 def resolve_cached_visual_payload(payload, connection=None):
     """Reuse exact URL-to-local-path mappings; no downloads or name matching."""
     source = dict(payload or {})
