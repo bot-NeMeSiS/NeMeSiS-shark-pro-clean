@@ -2,10 +2,14 @@
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon, sports_contract_attributes %}
 {% from "components/v936_product.html" import executive_focus %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-operations.css') }}?v=workbench-1">
+<script src="{{ url_for('static', filename='admin-operations.js') }}?v=workbench-2" defer></script>
+{% set workbench = admin_workbench(snapshot) %}
 {% set counts = snapshot.incident_counts or {} %}
 {% set readiness = snapshot.readiness or {} %}
 {% set scores = snapshot.scores or {} %}
 {% set monitoring = snapshot.monitoring or {} %}
+{% set dead_man = monitoring.get('dead_man') or {} %}
 {% set sports_metrics = snapshot.sports_metrics or {} %}
 {% set sections = snapshot.operations_sections or {} %}
 {% set release_gate = snapshot.release_1_gate or {} %}
@@ -13,9 +17,12 @@
 {% set commercial = snapshot.commercial_readiness or [] %}
 {% set section_order = ['platform_health','render','cron','telegram','stripe','sports_gateway','sports_core','database','cache','observability','security'] %}
 
-<div class="v933-page v933-admin-command-center operations-center-v1" data-v938-template="admin_operations_center" data-v938-read-only="true" {{ sports_contract_attributes(sports_metrics) }}>
+<div class="v933-page v933-admin-command-center operations-center-v1" data-v938-template="admin_operations_center" data-v938-read-only="true" data-operations-next-issue="{{ snapshot.next_issue_id or '' }}" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Centro de operaciones', 'Control interno de plataforma, evidencia y Release 1.0. No despliega, no envía Telegram, no cobra y no escribe en la DB de producto.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Developer','href':'/admin/developer-center','icon':'code'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
 
+  {% include 'components/admin_operations_workbench.html' %}
+
+  <details class="admin-detailed-diagnostics" id="operations-diagnostics"><summary>Diagnóstico completo, sistemas y preparación de lanzamiento</summary>
   {% if release_gate.status == 'BLOCKED' %}
     {{ executive_focus('Release 1.0 bloqueada por evidencias pendientes', (release_gate.missing_for_ready[0] if release_gate.missing_for_ready else snapshot.next_action), 'Ver incidencias', '#operations-incidents', 'Release Gate BLOCKED', 'danger', 'Abrir AutoPilot', '/admin/sentinel-autopilot') }}
   {% elif release_gate.status == 'PASS' %}
@@ -47,7 +54,7 @@
       </header>
       <p>{{ section.summary or 'Sin evidencia disponible.' }}</p>
       <dl class="operations-list">
-        {% for item in section['items'] or [] %}
+        {% for item in section.get('items') or [] %}
         <div>
           <dt>{{ item.label }}</dt>
           <dd>{{ item.value or 'No disponible' }}<small>{{ item.source or 'local' }} · {{ item.state or 'NO_CERTIFICADO' }}</small></dd>
@@ -96,51 +103,34 @@
         </div>
       </section>
 
-      <section class="v933-admin-panel" id="operations-incidents">
-        <header><div><h2>Incidencias y certificaciones</h2><p>Un NO_CERTIFICADO no se muestra como caída; solo como evidencia pendiente.</p></div><a class="v933-admin-link" href="/admin/sentinel-issues">Centro Sentinel {{ icon('arrow') }}</a></header>
-        <div class="v933-admin-panel-body">
-          {% if snapshot.incidents %}
-          {% call data_table(['Prioridad','Área','Clasificación','Evidencia','Acción']) %}
-          {% for issue in snapshot.incidents[:20] %}
-          <tr>
-            <td>{{ status_chip(issue.severity|upper, 'danger' if issue.severity in ['critical','high'] else 'warning') }}</td>
-            <td><strong>{{ issue.title }}</strong><br><small>{{ issue.issue_id }}</small></td>
-            <td>{{ status_chip(issue.evidence_state, 'success' if issue.evidence_state == 'CONFIRMADO' else 'neutral') }}</td>
-            <td>{{ issue.evidence }}</td>
-            <td>{{ issue.next_action }}</td>
-          </tr>
-          {% endfor %}
-          {% endcall %}
-          {% else %}
-            {{ empty_state('Sin hallazgos abiertos', 'El último scan no contiene incidencias ni certificaciones pendientes.', '', '', 'shield') }}
-          {% endif %}
-        </div>
-      </section>
+      <p><a href="#operations-incidents">Volver a la bandeja de tareas priorizadas ↑</a></p>
     </div>
 
     <aside class="v933-side-stack">
       <section class="v933-admin-panel" id="v938-safe-actions">
-        <header><div><h2>Acciónes seguras</h2><p>Solo lectura, diagnóstico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
+        <header><div><h2>Acciones de diagnóstico</h2><p>Solo lectura, diagnóstico local y enlaces internos. Sin deploy, push, Telegram, Stripe ni borrados.</p></div>{{ status_chip('SAFE_ONLY','success') }}</header>
         <div class="v933-admin-panel-body">
           <div class="operations-action-grid">
             {% for action in snapshot.safe_actions or [] %}
               {% if action.kind == 'post' %}
-                <button class="v933-action is-primary is-blue" type="button" data-v938-action="scan">{{ action.label }}</button>
+                <button class="v933-action is-primary is-blue" type="button" data-v938-action="scan" data-action="admin-operation">{{ action.label }}</button>
               {% else %}
                 <a class="v933-action is-blue" href="{{ action.href }}">{{ action.label }}</a>
               {% endif %}
             {% endfor %}
-            <button class="v933-action is-blue" type="button" data-v938-action="prompt"{% if not snapshot.next_issue_id %} disabled{% endif %}>Generar prompt</button>
+            <button class="v933-action is-blue" type="button" data-v938-action="prompt" data-action="admin-operation"{% if not snapshot.next_issue_id %} disabled{% endif %}>Generar prompt</button>
           </div>
           <output class="v904-safe-api-output v933-workforce-output" data-v938-output>Preparado. Las acciones externas están deshabilitadas en este centro.</output>
+          <a data-admin-refresh hidden href="/admin/operations-center#operations-incidents">Actualizar bandeja con una nueva lectura</a>
+          <noscript>Los filtros y el diagnóstico requieren JavaScript. Las tareas, textos para copiar y accesos siguen disponibles.</noscript>
         </div>
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>Dead-man externo</h2><p>Vigilancia independiente de la propia aplicación.</p></div>{{ status_chip(monitoring.dead_man.status or 'NOT_CERTIFIED', 'success' if monitoring.dead_man.status == 'READY' else 'warning') }}</header>
+        <header><div><h2>Dead-man externo</h2><p>Vigilancia independiente de la propia aplicación.</p></div>{{ status_chip(dead_man.status or 'NOT_CERTIFIED', 'success' if dead_man.status == 'READY' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
-          <p class="v933-safe-copy">{{ monitoring.dead_man.safe_message }}</p>
-          {% if monitoring.dead_man.external_checks_missing %}<div class="v933-chip-cloud">{% for item in monitoring.dead_man.external_checks_missing %}{{ status_chip(item,'neutral') }}{% endfor %}</div>{% endif %}
+          <p class="v933-safe-copy">{{ dead_man.safe_message or 'No hay una observación independiente disponible en esta lectura.' }}</p>
+          {% if dead_man.external_checks_missing %}<div class="v933-chip-cloud">{% for item in dead_man.external_checks_missing %}{{ status_chip(item,'neutral') }}{% endfor %}</div>{% endif %}
         </div>
       </section>
 
@@ -152,32 +142,7 @@
       {{ next_action('Siguiente acción real', snapshot.next_action, '/admin/sentinel-autopilot', 'Revisar con AutoPilot') }}
     </aside>
   </section>
+  </details>
 </div>
 
-<script>
-(function v938OperationsActions(){
-  const output=document.querySelector('[data-v938-output]');
-  const nextIssue={{ (snapshot.next_issue_id or '')|tojson }};
-  async function post(url, body){
-    const response=await fetch(url,{method:'POST',headers:window.nemesisJsonHeaders(),cache:'no-store',body:JSON.stringify(body||{})});
-    const payload=await response.json().catch(function(){return {ok:false,error:'invalid_json'};});
-    if(!response.ok) throw new Error(payload.safe_message||payload.error||('HTTP '+response.status));
-    return payload;
-  }
-  document.querySelectorAll('[data-v938-action]').forEach(function(button){
-    button.addEventListener('click',async function(){
-      button.disabled=true; button.setAttribute('aria-busy','true');
-      if(output) output.textContent='Comprobando evidencia local...';
-      try{
-        const kind=button.getAttribute('data-v938-action');
-        const payload=kind==='prompt'
-          ? await post('/api/admin/operations-center/generate-prompt',{issue_id:nextIssue})
-          : await post('/api/admin/operations-center/run-safe-scan',{});
-        if(output) output.textContent=kind==='prompt' ? (payload.prompt||'No hay prompt pendiente.') : ('Scan completado: '+((payload.snapshot||{}).incident_counts||{}).total+' elementos requieren atención o certificación.');
-      }catch(error){ if(output) output.textContent='No se completó la acción: '+error.message; }
-      finally{ button.disabled=false; button.removeAttribute('aria-busy'); }
-    });
-  });
-})();
-</script>
 {% endblock %}
