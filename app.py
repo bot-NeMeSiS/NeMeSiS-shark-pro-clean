@@ -20983,12 +20983,19 @@ def _v945_provider_safe_quota(value):
     )
     clean = {}
     for key in allowed:
-        if key not in value:
+        observed = value.get(key)
+        if isinstance(observed, bool) or not isinstance(observed, (int, float, str)):
+            continue
+        if isinstance(observed, float) and (not math.isfinite(observed) or not observed.is_integer()):
+            continue
+        if isinstance(observed, str) and not re.fullmatch(r"[0-9]+", observed.strip()):
             continue
         try:
-            clean[key] = max(0, int(value.get(key) or 0))
-        except (TypeError, ValueError):
+            number = int(observed)
+        except (TypeError, ValueError, OverflowError):
             continue
+        if number >= 0:
+            clean[key] = number
     return clean
 
 
@@ -21006,11 +21013,12 @@ def _v945_provider_direct_age_seconds(check):
 
 
 def _v945_provider_direct_snapshot(provider):
-    return automation_get_bounded(
+    observed = automation_get_bounded(
         _v945_provider_direct_state_key(provider),
         {},
         max_bytes=24 * 1024,
-    ) or {}
+    )
+    return observed if isinstance(observed, dict) else {}
 
 
 def v945_provider_direct_check(provider):
@@ -21134,7 +21142,7 @@ def v945_provider_health_snapshot():
     quota_values = quota.get("values") if isinstance(quota.get("values"), dict) else {}
     job = pipeline.get("job_execution") if isinstance(pipeline.get("job_execution"), dict) else {}
 
-    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
+    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
     sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
     odds_configured = env_present("THE_ODDS_API_KEY")
 
@@ -21156,16 +21164,16 @@ def v945_provider_health_snapshot():
             label_status = "Revisar acceso/plan"
             severity = "warning"
             action = "Revisar suscripción, plan y permisos del proveedor"
-        elif contributed or ok_value is True:
-            status = "OPERATIVA"
-            label_status = "Operativa"
-            severity = "success"
-            action = "Sin acción inmediata"
         elif "CACHE" in joined:
             status = "CACHE"
             label_status = "Usando caché"
             severity = "neutral"
             action = "Verificar en el próximo ciclo real"
+        elif contributed or ok_value is True:
+            status = "OPERATIVA"
+            label_status = "Operativa en el último ciclo"
+            severity = "success"
+            action = "Sin acción inmediata"
         else:
             status = "SIN_VERIFICACION_RECIENTE"
             label_status = "Sin verificación reciente"
@@ -21191,7 +21199,7 @@ def v945_provider_health_snapshot():
             "external_calls": as_int(observed.get("external_calls"), 0),
             "observed_at": str(observed_at or ""),
             "billing_status": billing_status,
-            "quota": quota_data or {},
+            "quota": _v945_provider_safe_quota(quota_data),
             "next_action": action,
         }
 
@@ -21209,9 +21217,9 @@ def v945_provider_health_snapshot():
         "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
         observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
     )
-    if sportsdb_card["data_contributed"] and not sportsdb_configured:
+    if sportsdb_card["status"] == "OPERATIVA" and sportsdb_card["data_contributed"] and not sportsdb_configured:
         sportsdb_card["status"] = "OPERATIVA_FALLBACK"
-        sportsdb_card["status_label"] = "Fallback operativo"
+        sportsdb_card["status_label"] = "Fallback operativo en el último ciclo"
         sportsdb_card["severity"] = "success"
         sportsdb_card["next_action"] = "Sin acción inmediata; revisar límites del servicio si aplica"
 

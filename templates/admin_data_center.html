@@ -22,7 +22,7 @@
     </header>
     <div class="v928-admin-panel-body">
       <div class="v928-truth-list">
-        <div><span>Fuente usada ahora</span><strong>{{ provider_health.get('selected_source') or 'Sin evidencia' }}</strong></div>
+        <div><span>Fuente del último ciclo</span><strong>{{ provider_health.get('selected_source') or 'Sin evidencia' }}</strong></div>
         <div><span>Último ciclo</span><strong>{{ provider_health.get('job_finished_at')|madrid_datetime_label if provider_health.get('job_finished_at') else 'Sin evidencia reciente' }}</strong></div>
         <div><span>Llamadas al abrir esta pantalla</span><strong>{{ provider_health.get('provider_calls_during_render', 0) }}</strong></div>
         <div><span>Origen del diagnóstico</span><strong>{{ provider_health.get('source') or 'Sin dato' }}</strong></div>
