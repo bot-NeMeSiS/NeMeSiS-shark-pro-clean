@@ -18196,7 +18196,7 @@ def highlight_detail_page(highlight_id):
             title="Resumen sin comprobar",
             resource_title="No se pudo comprobar este resumen",
             resource_message="El catálogo de vídeos no está verificable en esta lectura. No equivale a que el resumen no exista.",
-        ), 503
+        )
     if not data["highlight"]:
         return render_template(
             "resource_unavailable.html",

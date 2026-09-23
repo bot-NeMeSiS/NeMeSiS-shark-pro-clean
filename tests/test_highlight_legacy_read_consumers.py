@@ -138,3 +138,16 @@ def test_batch_reader_is_read_only(catalogue, monkeypatch):
     assert result["ok"] is True
     assert not any(s.lstrip().upper().startswith(("CREATE","INSERT","UPDATE","ALTER","DELETE","REPLACE")) for s in statements)
     assert catalogue.read_bytes() == before
+
+
+def test_unavailable_detail_page_is_safe_client_state_not_5xx(app_module, tmp_path, monkeypatch):
+    path = tmp_path / "absent.sqlite"
+    monkeypatch.setattr(app_module, "DB_PATH", str(path))
+    monkeypatch.setattr(app_module, "dashboard_data", lambda *a, **k: {})
+    client = app_module.app.test_client()
+    response = client.get("/highlight/missing-qa")
+    assert response.status_code == 200
+    text = response.get_data(as_text=True)
+    assert "No se pudo comprobar este resumen" in text
+    assert "no exista" in text
+    assert not path.exists()
