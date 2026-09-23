@@ -20,6 +20,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
+from engines.match_record_archive import record_observation, utc_stamp, archive_health
+
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TIMEZONE = "Europe/Madrid"
 LIVE_STATUS_SHORT = {"1H", "2H", "ET", "BT", "P", "LIVE", "HT"}
@@ -106,6 +108,8 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         errors = payload.get("errors") or []
+        if not isinstance(payload.get("response"), list):
+            errors = errors or {"response": "INVALID_RESPONSE_SHAPE"}
         return {
             "ok": not bool(errors),
             "response": payload.get("response") or [],
@@ -358,6 +362,7 @@ def _normalize_fixture(item: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _upsert_fixture(conn: sqlite3.Connection, item: Mapping[str, Any]) -> int:
+    received = utc_stamp()
     now = _now_iso()
     f = _normalize_fixture(item)
     if not f.get("fixture_id"):
@@ -397,6 +402,16 @@ def _upsert_fixture(conn: sqlite3.Connection, item: Mapping[str, Any]) -> int:
         ),
     )
     _upsert_match_row(conn, f, provider_observed_at=now)
+    record_observation(conn, f["fixture_id"], "fixture", dict(item), received_at=received,
+                       context={**f, "status_at_receipt": f.get("status_short"),
+                                "fixture_received_at": received})
+    # Some authorized fixture responses already carry these sections. Archive
+    # their presence without requesting extra endpoints or inferring missing ones.
+    for section in ("statistics", "events", "lineups", "players"):
+        if section in item:
+            record_observation(conn, f["fixture_id"], section, item[section], received_at=received,
+                               context={**f, "status_at_receipt": f.get("status_short"),
+                                        "fixture_received_at": received})
     return 1
 
 
@@ -478,6 +493,8 @@ def _time_from_iso(value: Any) -> str:
 
 
 def _upsert_events(conn: sqlite3.Connection, fixture_id: str, events: Iterable[Mapping[str, Any]]) -> int:
+    received = utc_stamp()
+    events = list(events or [])
     now = _now_iso()
     inserted = 0
     for item in events or []:
@@ -502,6 +519,7 @@ def _upsert_events(conn: sqlite3.Connection, fixture_id: str, events: Iterable[M
             ),
         )
         inserted += 1 if conn.total_changes > before else 0
+    record_observation(conn, fixture_id, "events", events, received_at=received)
     return inserted
 
 
@@ -515,6 +533,8 @@ def persist_api_football_events(
 
 
 def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload: Iterable[Mapping[str, Any]]) -> int:
+    received = utc_stamp()
+    stats_payload = list(stats_payload or [])
     now = _now_iso()
     inserted = 0
     for team_block in stats_payload or []:
@@ -543,6 +563,7 @@ def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload:
                 (row_id, fixture_id, team_id, team_name, stat_name, stat_value, _stat_numeric(stat_value_raw), _json(stat), now),
             )
             inserted += 1 if conn.total_changes > before else 0
+    record_observation(conn, fixture_id, "statistics", stats_payload, received_at=received)
     return inserted
 
 
@@ -646,9 +667,12 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
 
         deep_limit = deep_limit if deep_limit is not None else _as_int(os.getenv("API_FOOTBALL_LIVE_DEEP_LIMIT", "8"), 8)
         timezone_name = os.getenv("APP_TIMEZONE") or os.getenv("TZ") or DEFAULT_TIMEZONE
+        # Persist the previous received section before provider I/O.
+        conn.commit()
         live_payload = _api_get("fixtures", {"live": "all", "timezone": timezone_name})
         external_calls = 1
-        fixtures = live_payload.get("response") or []
+        # A rejected response is not new evidence, even if it contains rows.
+        fixtures = (live_payload.get("response") or []) if live_payload.get("ok") else []
         fixtures_count = events_count = stats_count = 0
         errors: list[str] = []
         provider_failure_categories: list[str] = []
@@ -663,6 +687,8 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             fixture_id = str(fixture.get("id") or "")
             if not fixture_id:
                 continue
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             ev_payload = _api_get("fixtures/events", {"fixture": fixture_id})
             external_calls += 1
             if ev_payload.get("ok"):
@@ -670,6 +696,8 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             else:
                 errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
                 provider_failure_categories.append(_safe_provider_state_label(ev_payload))
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
             external_calls += 1
             if st_payload.get("ok"):
@@ -708,6 +736,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "configured": True,
             "enabled": True,
             "status": status,
+            "archive": archive_health(conn),
             "fixtures_count": fixtures_count,
             "events_count": events_count,
             "stats_count": stats_count,
@@ -1277,6 +1306,8 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
         errors: list[str] = []
         if not existing:
             timezone_name = os.getenv("APP_TIMEZONE") or os.getenv("TZ") or DEFAULT_TIMEZONE
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             fixture_payload = _api_get("fixtures", {"id": fixture_id, "timezone": timezone_name})
             external_calls += 1
             if fixture_payload.get("ok"):
@@ -1284,6 +1315,8 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
                     fixtures_count += _upsert_fixture(conn, item)
             else:
                 errors.append(str(fixture_payload.get("error") or fixture_payload.get("errors") or "Fixture no disponible")[:180])
+        # Persist the previous received section before provider I/O.
+        conn.commit()
         ev_payload = _api_get("fixtures/events", {"fixture": fixture_id})
         external_calls += 1
         events_count = 0
@@ -1291,6 +1324,8 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
             events_count = _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
         else:
             errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
+        # Persist the previous received section before provider I/O.
+        conn.commit()
         st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
         external_calls += 1
         stats_count = 0
@@ -1316,11 +1351,12 @@ def sync_api_football_fixture_detail(db_path: str, match_id: str, force: bool = 
             "INSERT INTO api_football_live_sync_state(key, last_sync_at, status, fixtures_count, events_count, stats_count, external_calls, error, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(key) DO UPDATE SET last_sync_at=excluded.last_sync_at,status=excluded.status,fixtures_count=excluded.fixtures_count,events_count=excluded.events_count,stats_count=excluded.stats_count,external_calls=excluded.external_calls,error=excluded.error,payload_json=excluded.payload_json",
             (key, _now_iso(), state["status"], fixtures_count, events_count, stats_count, external_calls, "; ".join(errors[:3]), _json(state)),
         )
+        archive_state = archive_health(conn)
         conn.commit()
     finally:
         conn.close()
     tracker = live_tracker_for_match(db_path, text)
-    tracker.update({"ok": True, "status": "detail_synced", "external_calls": external_calls, "errors": errors[:6]})
+    tracker.update({"archive": archive_state, "ok": True, "status": "detail_synced", "external_calls": external_calls, "errors": errors[:6]})
     return tracker
 
 
@@ -1407,18 +1443,18 @@ def sync_api_football_match_window(
         provider_failure_categories = []
         all_fixtures = []
         for date_value in dates:
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             payload = _api_get("fixtures", {"date": date_value, "timezone": os.getenv("APP_TIMEZONE", DEFAULT_TIMEZONE)})
             calls += 1
             if not payload.get("ok"):
                 errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
                 provider_failure_categories.append(_safe_provider_state_label(payload))
                 continue
-            fixtures = [_normalize_fixture(item) for item in (payload.get("response") or [])]
-            all_fixtures.extend(fixtures)
-        fixtures_count = len(all_fixtures)
-        if all_fixtures:
-            fixtures_count = _upsert_snapshots(conn, all_fixtures)
-            _upsert_matches(conn, all_fixtures)
+            for item in payload.get("response") or []:
+                fixtures_count += _upsert_fixture(conn, item)
+                all_fixtures.append(_normalize_fixture(item))
+            conn.commit()
         # Deep data only for live/recent finished fixtures to avoid wasting calls.
         deep_limit = (
             _as_int(os.getenv("API_FOOTBALL_MATCH_WINDOW_DEEP_LIMIT", "10"), 10)
@@ -1435,14 +1471,24 @@ def sync_api_football_match_window(
             fixture_id = str(f.get("fixture_id") or "")
             if not fixture_id:
                 continue
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             ev_payload = _api_get("fixtures/events", {"fixture": fixture_id})
             calls += 1
             if ev_payload.get("ok"):
                 events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
+            else:
+                errors.append("Eventos no disponibles")
+                provider_failure_categories.append(_safe_provider_state_label(ev_payload))
+            # Persist the previous received section before provider I/O.
+            conn.commit()
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
             calls += 1
             if st_payload.get("ok"):
                 stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
+            else:
+                errors.append("Estadísticas no disponibles")
+                provider_failure_categories.append(_safe_provider_state_label(st_payload))
             deep_done += 1
         state = {
             "ok": not bool(errors),
@@ -1474,6 +1520,7 @@ def sync_api_football_match_window(
                     "PROVIDER_RESPONSE",
                 )
             ),
+            "archive": archive_health(conn),
             "fixtures_count": fixtures_count,
             "events_count": events_count,
             "stats_count": stats_count,
