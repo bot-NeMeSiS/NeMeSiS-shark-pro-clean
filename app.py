@@ -12233,9 +12233,9 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
                 body,
                 as_int(payload.get("priority"), 70),
                 serialize_telegram_queue_payload(payload),
-                json.dumps(payload, ensure_ascii=False)[:5000],
                 QUEUE_PENDING,
                 0,
+                max(1, as_int(max_attempts, 3)),
                 dedupe_key,
                 scheduled_at,
                 "",
@@ -13155,15 +13155,15 @@ def telegram_reply_markup_from_payload(payload):
         return {"inline_keyboard": keyboard} if keyboard else None
     buttons = []
     primary_url = public_link(telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or ""))
-    primary_url = telegram_absolute_url(payload.get("match_url") or payload.get("app_url") or "")
     if primary_url:
-    picks_url = public_link(telegram_absolute_url(payload.get("picks_url") or "/picks")) if payload.get("include_picks_button", True) else ""
         buttons.append({"text": str(payload.get("button_text") or "Abrir en NeMeSiS")[:60], "url": primary_url})
-    picks_url = telegram_absolute_url(payload.get("picks_url") or "/picks") if payload.get("include_picks_button", True) else ""
-    live_url = public_link(telegram_absolute_url(payload.get("live_url") or "/live")) if payload.get("include_live_button") else ""
+    picks_url = public_link(telegram_absolute_url(payload.get("picks_url") or "/picks")) if payload.get("include_picks_button", True) else ""
     if picks_url and picks_url != primary_url:
         buttons.append({"text": "Ver picks", "url": picks_url})
-    live_url = telegram_absolute_url(payload.get("live_url") or "/live") if payload.get("include_live_button") else ""
+    live_url = public_link(telegram_absolute_url(payload.get("live_url") or "/live")) if payload.get("include_live_button") else ""
+    if live_url and live_url not in {primary_url, picks_url}:
+        buttons.append({"text": "Directo SHARK", "url": live_url})
+    if not buttons:
         return None
     keyboard = []
     for index in range(0, min(len(buttons), 3), 2):
@@ -13425,9 +13425,9 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
             chat_id=dest.get("chat_id"),
             user_id=dest.get("user_id"),
             payload={"visual_card_type": "pick_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"pick": pick, "membership": dest.get("membership")}, "membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
-            payload={"membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
             dedupe_key=(item.get("dedupe") or {}).get("dedupe_key") or telegram_auto_pick_dedupe_key_for(pick, dest),
             force=force,
+        )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
         if result.get("queued"):
@@ -13459,9 +13459,9 @@ def enqueue_live_alerts(force=False):
                 chat_id=sub.get("chat_id"),
                 user_id=sub.get("user_id"),
                 payload={"visual_card_type": "live_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"match": match, "membership": sub.get("membership")}, "membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "job_type": "live_alert", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
-                payload={"membership": sub.get("membership"), "target_key": match.get("id"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"live_alert:{match.get('id') or today_iso()}", "job_type": "live_alert", "match_id": match.get("id"), "match_url": match.get("match_url"), "home_logo": match.get("home_logo"), "away_logo": match.get("away_logo"), "button_text": "Abrir live SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": False, "enable_link_preview": bool(match.get("home_logo") or match.get("away_logo"))},
                 dedupe_key=telegram_dedupe_key("live_alert", today_iso(), sub.get("chat_id"), match_id=match.get("id"), market=match.get("minute") or match.get("score"), source="automatic_cron"),
                 force=force,
+            )
             inserted += 1 if result.get("queued") else 0
             skipped += 1 if result.get("skipped") else 0
     return {"ok": True, "status": "QUEUED" if inserted else "NO_LIVE_ALERTS", "message": "Alertas live revisadas.", "processed": len(live_matches), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_LIVE_ALERTS"]}
@@ -13522,11 +13522,11 @@ def telegram_http_error_payload(exc):
         "category": category,
         "action": action,
         "error": action,
-        "error": str(description)[:700],
-        "telegram": {"ok": False, "error_code": getattr(exc, "code", None)},
         "http_status": getattr(exc, "code", None),
-        "telegram": parsed,
+        "telegram": {"ok": False, "error_code": getattr(exc, "code", None)},
     }
+
+
 def telegram_post_send_message(url, data):
     encoded = urllib.parse.urlencode(data).encode("utf-8")
     req = urllib.request.Request(url, data=encoded, method="POST")
@@ -13548,20 +13548,20 @@ def telegram_transport_result(response, photo=False):
 
 def telegram_delivery_uncertain():
     return {"ok": False, "sent": False, "status": "DELIVERY_UNCERTAIN", "category": "DELIVERY_UNCERTAIN", "delivery_uncertain": True, "error": "No se recibió una confirmación verificable de Telegram.", "action": "Revisar el destino antes de reenviar; no hay reintento automático."}
-    return {"ok": True, "sent": True, "status": "SENT", "category": "SENT", "telegram": response}
 
 
 def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=None):
     boundary = "----NemesisTelegramVisualCardBoundary"
     payload = payload or {}
     fields = {
-        "caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
         "chat_id": str(chat_id),
-        "caption": str(caption or "NeMeSiS SHARK PRO")[:1024],
-    reply_markup = telegram_reply_markup_from_payload(payload)
+        "caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
         "parse_mode": "HTML",
     }
-    reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
+    reply_markup = telegram_reply_markup_from_payload(payload)
+    if reply_markup:
+        fields["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    body = bytearray()
     for name, value in fields.items():
         body.extend(f"--{boundary}\r\n".encode("utf-8"))
         body.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8"))
@@ -13582,9 +13582,9 @@ def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=No
     with urllib.request.urlopen(req, timeout=18) as res:
         response = json.loads(res.read().decode("utf-8", errors="replace"))
     return telegram_transport_result(response, photo=True)
-    return {"ok": True, "sent": True, "status": "SENT_PHOTO", "category": "SENT", "telegram": response, "visual_card_sent": True}
 
 
+def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token or not chat_id:
         return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "category": "CONFIG_MISSING", "action": "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render.", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
@@ -13593,26 +13593,26 @@ def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=No
     text = limit_telegram_html(str(text or "").strip(), 3900)
     if not telegram_plain_text_from_html(text).strip():
         return {"ok": False, "sent": False, "status": "EMPTY_MESSAGE", "category": "EMPTY_MESSAGE", "error": "Mensaje vacío; no se envió."}
-    text = str(text or "").strip()
-    if len(text) > 3900:
-        text = text[:3860].rstrip() + "\n\n...mensaje recortado por seguridad."
     data = {
         "chat_id": chat_id,
         "text": text or "Mensaje NeMeSiS SHARK PRO",
-    reply_markup = telegram_reply_markup_from_payload(payload)
         "parse_mode": "HTML",
         "disable_web_page_preview": "false" if payload.get("enable_link_preview") else "true",
     }
+    reply_markup = telegram_reply_markup_from_payload(payload)
+    if reply_markup:
+        data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+    visual_card_type = str(payload.get("visual_card_type") or "").strip()
     photo_attempted = False
     visual_evidence = {"requested": bool(visual_card_type and payload.get("visual_card_enabled")), "generated": None, "type": visual_card_type}
-    reply_markup = payload.get("reply_markup") or telegram_reply_markup_from_payload(payload)
-    if reply_markup:
+    if visual_card_type and payload.get("visual_card_enabled"):
+        try:
             visual_payload = resolve_cached_visual_payload(payload.get("visual_card_payload") or payload, request_read_db())
             card_result = build_visual_card_for_message(visual_card_type, visual_payload)
             visual_evidence["generated"] = bool(card_result.get("ok") and card_result.get("png_bytes"))
-        data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
+            if card_result.get("ok") and card_result.get("png_bytes"):
                 photo_attempted = True
-    visual_card_type = str(payload.get("visual_card_type") or "").strip()
+                sent_photo = telegram_post_send_photo(token, chat_id, card_result.get("png_bytes"), text, payload)
                 sent_photo["visual_card"] = {**visual_evidence, "mode": card_result.get("mode"), "assets": card_result.get("asset_diagnostics", {})}
                 if sent_photo.get("sent") or sent_photo.get("delivery_uncertain"):
                     return sent_photo
@@ -13621,8 +13621,8 @@ def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=No
                 if sent_photo.get("category") == "BUTTON_REJECTED":
                     data.pop("reply_markup", None)
                 card_result["fallback_reason"] = "photo_rejected"
-    if visual_card_type and payload.get("visual_card_enabled"):
-        try:
+            payload["visual_card_fallback_reason"] = card_result.get("fallback_reason") or card_result.get("mode") or "not_available"
+        except urllib.error.HTTPError as exc:
             if photo_attempted and exc.code >= 500:
                 return {**telegram_delivery_uncertain(), "visual_card": {**visual_evidence, "mode": "png"}}
             if photo_attempted and exc.code != 400:
@@ -13654,7 +13654,7 @@ def telegram_send_text_with_fallback(url, data):
     first = attempt(data)
     category = first.get("category")
     if first.get("http_status") != 400 or category not in {"HTML_PARSE_ERROR", "BUTTON_REJECTED"}:
-            card_result = build_visual_card_for_message(visual_card_type, payload.get("visual_card_payload") or payload)
+        return first
     retry_data = dict(data)
     retry_data.pop("reply_markup", None)
     if category == "HTML_PARSE_ERROR":
@@ -13665,9 +13665,9 @@ def telegram_send_text_with_fallback(url, data):
     retry["retry_without_buttons"] = True
     retry["first_error"] = first
     return retry
-            if card_result.get("ok") and card_result.get("png_bytes"):
-                sent_photo = telegram_post_send_photo(token, chat_id, card_result.get("png_bytes"), text, payload)
-                sent_photo["visual_card"] = {"mode": card_result.get("mode"), "type": visual_card_type}
+
+
+def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
     cfg = telegram_pro_calibration()
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
@@ -13723,9 +13723,9 @@ def telegram_send_text_with_fallback(url, data):
         result = telegram_send_http(chat_id, item.get("body") or item.get("title") or "", message_type=item.get("message_type") or "queue", payload=item_payload)
         processed += 1
         new_status = QUEUE_SENT if result.get("sent") else "uncertain" if result.get("delivery_uncertain") else QUEUE_FAILED
-        new_status = QUEUE_SENT if result.get("sent") else QUEUE_FAILED
         error = result.get("error") or result.get("category") or result.get("status") or ""
         if result.get("action"):
+            error = f"{result.get('category') or result.get('status')}: {error} - Acción: {result.get('action')}"
         conn = db()
         sent_at_value = now_iso() if result.get("sent") else ""
         sent_at_madrid = datetime.now(TZ).isoformat(timespec="seconds") if result.get("sent") else ""
@@ -14033,9 +14033,9 @@ def v771_build_activity_plan():
 
 
 def v771_format_activity_candidate(candidate, membership=None):
-def v771_format_activity_candidate(candidate):
     payload = candidate.get("payload") or {}
     kind = candidate.get("kind") or ""
+    if kind == "daily_summary":
         return format_v771_daily_summary_message(payload.get("matches") or [], focus="Mundial FIFA" if any("mundial" in str((m or {}).get("competition_name") or "").lower() for m in (payload.get("matches") or [])) else "Agenda deportiva")
     if kind == "midday_update":
         return format_v771_midday_update_message(payload.get("matches") or [], payload.get("picks_count") or 0)
@@ -14091,9 +14091,9 @@ def v771_activity_payload(candidate, dest):
         "visual_card_type": visual_type,
         "visual_card_enabled": bool(visual_type and visual_cfg.get("visual_cards_enabled")),
         "visual_card_payload": {**payload, "membership": dest.get("membership")},
-        "visual_card_payload": payload,
         "visual_card_config": visual_cfg,
         "enable_link_preview": False,
+    }
 
 
 def enqueue_v771_telegram_activity(force=False, limit=6):
@@ -14135,20 +14135,20 @@ def enqueue_v771_telegram_activity(force=False, limit=6):
     queued = []
     for candidate in candidates:
         body = premium_text_html(v771_format_activity_candidate(candidate))
-        body = v771_format_activity_candidate(candidate)
         if not body:
             skipped += 1
             continue
         for dest in destinations:
-            destination_body = premium_text_html(v771_format_activity_candidate(candidate, membership=dest.get("membership")))
             kind = candidate.get("kind") or "activity"
+            destination_body = premium_text_html(v771_format_activity_candidate(candidate, membership=dest.get("membership")))
             dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
             result = enqueue_telegram_message(
                 kind,
-                destination_body,
                 candidate.get("title") or "Actividad SHARK",
-                body,
+                destination_body,
                 chat_id=dest.get("chat_id"),
+                user_id=dest.get("user_id"),
+                payload=v771_activity_payload(candidate, dest),
                 dedupe_key=dedupe_key,
                 force=force,
             )
@@ -23658,12 +23658,12 @@ def telegram_webhook():
         result = link_telegram_chat_by_code(code, chat_id, username=username, first_name=first_name)
         reply = "Telegram vinculado a tu cuenta NeMeSiS SHARK PRO." if result.get("ok") else f"Atención: {result.get('message') or 'No se pudo vincular Telegram.'}"
         telegram_send_http(chat_id, premium_text_html(format_system_message(reply)), message_type="link_reply")
-        telegram_send_http(chat_id, reply, message_type="link_reply")
         return jsonify({"ok": result.get("ok"), "version": APP_VERSION, "result": result})
-        telegram_send_http(chat_id, premium_text_html(format_system_message("Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", title="Bienvenido a SHARK")), message_type="start_reply", payload={"app_url": telegram_absolute_url("/telegram"), "button_text": "Conectar mi cuenta", "include_picks_button": False})
     if command == "/start":
-        telegram_send_http(chat_id, "Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", message_type="start_reply")
+        telegram_send_http(chat_id, premium_text_html(format_system_message("Entra en NeMeSiS > Telegram y envíame el comando /link CODIGO para vincular tu cuenta.", title="Bienvenido a SHARK")), message_type="start_reply", payload={"app_url": telegram_absolute_url("/telegram"), "button_text": "Conectar mi cuenta", "include_picks_button": False})
         return jsonify({"ok": True, "version": APP_VERSION, "message": "start_help"})
+    telegram_log("webhook", "received", "Mensaje Telegram recibido sin accion.", {"chat_id": chat_id, "text": text[:120]})
+    return jsonify({"ok": True, "version": APP_VERSION, "message": "ignored"})
 
 
 @app.route("/api/telegram/link-status")
@@ -31787,32 +31787,32 @@ def v810_telegram_preview_samples():
             "filename": card.get("filename", ""), "visual_label": visual_label,
             "source": "Payload registrado" if payload else "Sin muestra almacenada",
             "fallback_reason": reason, "assets": card.get("asset_diagnostics", {})})
-    """Admin-only preview data. These samples are visual examples and are never sent."""
+    return {
         **{item["kind"]: item["text"] for item in samples},
         "samples": samples, "deliveries": deliveries, "queue_available": queue_available,
         "delivery_evidence": delivery_evidence, "counts": counts,
         "config": telegram_activity_config(), "visual_config": telegram_visual_card_config(),
         "source_label": "Registro persistido de mensajes" if queue_available else "Registro no disponible",
         "note": "Solo lectura: no envía, no encola ni consulta proveedores. Sin muestra almacenada se muestran campos pendientes, no ejemplos inventados.",
-    sample_match = {
-        "competition_name": "UEFA Champions League",
-        "home_team": "Manchester City",
-        "away_team": "Real Madrid",
-        "home_score": 1,
-        "away_score": 1,
-        "status": "live",
-    data = {"telegram_pro_preview": v810_telegram_preview_samples()}
-        "possession": "54",
-        "shots_on_goal": "5-3",
-        "corners": "4-2",
-        "dangerous_attacks": "38-25",
-        "kickoff_iso": now_iso(),
     }
-    sample_pick = {
+
+
+@app.route("/admin/telegram/pro-preview")
+def admin_v810_telegram_pro_preview_page():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/telegram/pro-preview")
+    data = {"telegram_pro_preview": v810_telegram_preview_samples()}
+    return render_template("admin_telegram_pro_preview.html", data=data)
+
+
+@app.route("/api/admin/telegram/pro-preview")
+def api_admin_v810_telegram_pro_preview():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "preview": v810_telegram_preview_samples(), "send_executed": False})
-        **sample_match,
-        "status": "upcoming",
-        "selection": "Más de 1.5 goles",
+
+
+# ===================== V818 DAILY AUTOMATION OPERATING SYSTEM FINAL =====================
 
 def v818_callback_result(label, fn, *args, **kwargs):
     try:
