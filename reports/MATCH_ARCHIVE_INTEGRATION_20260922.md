@@ -54,5 +54,8 @@ observación dejara el disco por debajo de esa reserva, solo se omite ese append
 registra `DISK_RESERVE_REACHED`; la caché/ingesta normal sigue su contrato. La salud
 expone bytes libres, reserva y estado `OK/LOW/UNKNOWN`, nunca la ruta del filesystem.
 La medición es local al host y best-effort: `UNKNOWN` no se presenta como espacio
-suficiente. Esta protección no sustituye la monitorización del disco completo ni afirma
-que 64 MiB sean el tamaño físico máximo de SQLite, índices o WAL.
+suficiente **ni autoriza nuevos appends históricos**. Si no puede verificarse el espacio
+libre, se registra `DISK_SPACE_UNVERIFIABLE` y la ingesta/caché normal continúa sin
+escribir esa observación en el archivo. Esta protección no sustituye la monitorización
+del disco completo ni afirma que 64 MiB sean el tamaño físico máximo de SQLite, índices
+o WAL.

@@ -227,7 +227,9 @@ def record_observation(conn, fixture_id, section, payload, *, received_at=None, 
     zipped = zlib.compress(raw,6)
     size = len(zipped)+len(ctx_raw)
     disk_free = _disk_free_bytes(conn)
-    if disk_free is not None and disk_free - size < MIN_FREE_DISK_BYTES:
+    if disk_free is None:
+        return _gap(conn,fid,section,stamp,"DISK_SPACE_UNVERIFIABLE")
+    if disk_free - size < MIN_FREE_DISK_BYTES:
         return _gap(conn,fid,section,stamp,"DISK_RESERVE_REACHED")
     conn.execute("SAVEPOINT match_record_insert")
     try:

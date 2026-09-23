@@ -113,6 +113,19 @@ def test_low_disk_reserve_stops_only_new_archive_observation(db,monkeypatch):
                             ('DISK_RESERVE_REACHED',)).fetchone()==('DISK_RESERVE_REACHED',1)
 
 
+def test_unknown_disk_space_fails_closed_without_archiving(db,monkeypatch):
+    monkeypatch.setattr(archive,'_disk_free_bytes',lambda _conn:None)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        before=observations(conn)
+        budget=conn.execute('SELECT byte_count,row_count FROM match_record_archive_budget').fetchone()
+        result=archive.record_observation(conn,'123','statistics',[],received_at=STAMP)
+        assert result=={'stored':False,'reason':'DISK_SPACE_UNVERIFIABLE'}
+        assert observations(conn)==before
+        assert conn.execute('SELECT byte_count,row_count FROM match_record_archive_budget').fetchone()==budget
+        assert conn.execute('SELECT reason,count FROM match_record_archive_gaps WHERE reason=?',
+                            ('DISK_SPACE_UNVERIFIABLE',)).fetchone()==('DISK_SPACE_UNVERIFIABLE',1)
+
+
 def test_archive_health_reports_disk_guard_without_exposing_path(db,monkeypatch):
     monkeypatch.setattr(archive,'_disk_free_bytes',lambda _conn:archive.MIN_FREE_DISK_BYTES-1)
     with closing(sqlite3.connect(db)) as conn:
