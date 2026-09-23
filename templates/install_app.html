@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v933-page install-app-page" data-ns-pwa-page>
+  <div class="install-app-hero">
+    <img src="{{ url_for('static', filename='img/app-icons/app-icon-192.png', v=app_icon_version) }}" width="112" height="112" alt="NeMeSiS SHARK PRO">
+    <div><div class="kicker">NeMeSiS SHARK PRO</div><h1>Instala NeMeSiS como una app</h1><p>Comparte el enlace normal de la plataforma. En móvil o PC podrán añadirla a inicio y abrirla como una app, con el mismo icono oficial que Founder Control.</p></div>
+  </div>
+  <div class="install-app-actions">
+    <button class="btn primary" type="button" data-ns-pwa-page-primary>Instalar ahora</button>
+    <span data-ns-pwa-page-status aria-live="polite">Detectando instalación disponible…</span>
+  </div>
+  <section class="install-guide-grid">
+    <article class="card"><h2>iPhone / iPad</h2><ol><li>Abre NeMeSiS en Safari.</li><li>Pulsa Compartir.</li><li>Elige “Añadir a pantalla de inicio”.</li><li>Confirma “Añadir”.</li></ol></article>
+    <article class="card"><h2>Android</h2><ol><li>Abre el enlace en Chrome.</li><li>Pulsa “Instalar NeMeSiS” cuando aparezca.</li><li>Si no aparece: menú ⋮ → “Instalar aplicación” o “Añadir a pantalla de inicio”.</li></ol></article>
+    <article class="card"><h2>PC / Mac</h2><ol><li>Abre NeMeSiS en Chrome o Edge.</li><li>Usa “Instalar ahora” o el icono de instalación del navegador.</li><li>NeMeSiS quedará como aplicación independiente.</li></ol></article>
+  </section>
+  <p class="muted small">Identidad {{ icon_fingerprint or app_icon_version }} · la instalación no cambia cuenta, membresía ni datos.</p>
+</section>
+{% endblock %}

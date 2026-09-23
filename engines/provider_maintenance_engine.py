@@ -38,6 +38,19 @@ def _safe_text(value: Any, limit: int = 120) -> str:
     return text[:limit]
 
 
+def _age_seconds(value: Any) -> int | None:
+    text = _safe_text(value, 80)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return max(0, int((datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)).total_seconds()))
+    except (TypeError, ValueError):
+        return None
+
+
 def _json(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
@@ -104,6 +117,23 @@ def _latest_sync(conn: sqlite3.Connection | None, source_like: str) -> dict[str,
     return dict(row) if row else {}
 
 
+def _latest_manual_check(conn: sqlite3.Connection | None, provider: str) -> dict[str, Any]:
+    if not _table(conn, "provider_connection_checks"):
+        return {}
+    try:
+        row = conn.execute(
+            "SELECT * FROM provider_connection_checks WHERE provider=? ORDER BY checked_at DESC,id DESC LIMIT 1",
+            (provider,),
+        ).fetchone()
+    except sqlite3.Error:
+        return {}
+    if not row:
+        return {}
+    item = dict(row)
+    item["quota"] = _json(item.get("quota_json"))
+    return item
+
+
 def _api_football_evidence(conn: sqlite3.Connection | None) -> dict[str, Any]:
     sync = {}
     if _table(conn, "api_football_live_sync_state"):
@@ -135,34 +165,46 @@ def _api_football_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
     configured = _env_present("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY")
     enabled = configured and _env_bool("ENABLE_API_FOOTBALL_PROVIDER", True)
     evidence = _api_football_evidence(conn)
+    manual = _latest_manual_check(conn, "api_football")
     sync = evidence["sync"]
     account = evidence["account"]
-    plan = _safe_text(account.get("plan") or "")
-    active = account.get("active")
+    manual_ok = bool(manual.get("connected"))
+    plan = _safe_text(manual.get("plan") or account.get("plan") or "")
+    active = manual.get("plan_active") if manual_ok else account.get("active")
+    if isinstance(active, str):
+        active = active.lower() in {"1", "true", "yes", "on"} if active else None
     status = _safe_text(sync.get("status") or "")
+    plan_observed_at = _safe_text(manual.get("checked_at") or evidence["account_observed_at"] or "")
+    plan_age = _age_seconds(plan_observed_at)
+    plan_stale = bool(plan and not manual_ok and plan_age is not None and plan_age > 86400)
     if not configured:
         connection = "NOT_CONFIGURED"
     elif not enabled:
         connection = "DISABLED"
+    elif manual_ok:
+        connection = "DIRECT_VERIFIED"
     elif any(token in status.upper() for token in ("RESTRICTED", "FAILURE", "ERROR")):
         connection = "RESTRICTED"
     elif status:
         connection = "OBSERVED"
     else:
         connection = "NO_CURRENT_EVIDENCE"
-    if plan.lower() == "free":
+    if plan_stale:
+        billing = "PLAN_EVIDENCE_STALE"
+        billing_label = f"Evidencia de plan caducada: {plan} · probar conexión"
+    elif plan.lower() == "free":
         billing = "FREE_PLAN"
-        billing_label = "Plan gratuito/restringido confirmado"
+        billing_label = "Plan gratuito/restringido verificado" if manual_ok else "Plan gratuito/restringido observado"
     elif active is False:
         billing = "INACTIVE_PLAN"
         billing_label = f"Plan inactivo{': ' + plan if plan else ''}"
     elif plan and plan.upper() != "INACCESSIBLE":
         billing = "PLAN_REPORTED"
-        billing_label = f"Plan reportado por proveedor: {plan}"
+        billing_label = f"Plan verificado por proveedor: {plan}" if manual_ok else f"Plan observado: {plan}"
     else:
         billing = "UNVERIFIED"
         billing_label = "Plan/pago no verificado actualmente"
-    attention = (not configured) or connection in {"RESTRICTED", "DISABLED"} or billing in {"FREE_PLAN", "INACTIVE_PLAN"}
+    attention = (not configured) or connection in {"RESTRICTED", "DISABLED"} or billing in {"FREE_PLAN", "INACTIVE_PLAN", "PLAN_EVIDENCE_STALE"}
     return {
         "key": "api_football",
         "name": "API-Football / API-SPORTS",
@@ -175,8 +217,10 @@ def _api_football_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
         "plan": plan or "Sin evidencia actual",
         "plan_active": active if isinstance(active, bool) else None,
         "plan_end": _safe_text(account.get("end") or ""),
-        "quota": account.get("quota") if isinstance(account.get("quota"), dict) else {},
-        "last_observed_at": evidence["account_observed_at"] or _safe_text(sync.get("last_sync_at") or ""),
+        "quota": manual.get("quota") if manual_ok else account.get("quota") if isinstance(account.get("quota"), dict) else {},
+        "last_observed_at": plan_observed_at or _safe_text(sync.get("last_sync_at") or ""),
+        "evidence_age_seconds": plan_age,
+        "manual_check": manual_ok,
         "last_status": status or "Sin observación",
         "cached_items": int(sync.get("fixtures_count") or 0),
         "attention": attention,
@@ -188,13 +232,17 @@ def _api_football_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
 def _odds_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
     configured = _env_present("THE_ODDS_API_KEY", "ODDS_API_KEY")
     enabled = configured and _env_bool("ENABLE_ODDS_API", True)
-    state = _automation(conn, "odds_events_sync")
-    quota = state.get("quota") if isinstance(state.get("quota"), dict) else {}
+    state = _automation(conn, "odds_events_sync") or _automation(conn, "odds_last_sync")
+    manual = _latest_manual_check(conn, "the_odds_api")
+    manual_ok = bool(manual.get("connected"))
+    quota = manual.get("quota") if manual_ok else state.get("quota") if isinstance(state.get("quota"), dict) else {}
     status = _safe_text(state.get("status") or "")
     if not configured:
         connection = "NOT_CONFIGURED"
     elif not enabled:
         connection = "DISABLED"
+    elif manual_ok:
+        connection = "DIRECT_VERIFIED"
     elif status in {"OK", "CACHE_REUSED"} or state.get("ok") is True:
         connection = "OBSERVED"
     elif status:
@@ -220,7 +268,8 @@ def _odds_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
         "plan_active": None,
         "plan_end": "",
         "quota": quota,
-        "last_observed_at": _safe_text(state.get("last_sync") or state.get("time") or state.get("_updated_at") or ""),
+        "last_observed_at": _safe_text(manual.get("checked_at") or state.get("last_sync") or state.get("time") or state.get("_updated_at") or ""),
+        "manual_check": manual_ok,
         "last_status": status or "Sin observación",
         "cached_items": int(state.get("processed") or state.get("cached_processed") or 0),
         "attention": (not configured) or connection in {"DISABLED", "PROVIDER_ERROR"},
@@ -233,11 +282,15 @@ def _sportsdb_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
     configured = _env_present("THESPORTSDB_KEY", "THESPORTSDB_API_KEY")
     enabled = configured and _env_bool("ENABLE_THESPORTSDB_PROVIDER", True)
     sync = _latest_sync(conn, "sportsdb")
+    manual = _latest_manual_check(conn, "thesportsdb")
+    manual_ok = bool(manual.get("connected"))
     status = _safe_text(sync.get("status") or "")
     if not configured:
         connection = "NOT_CONFIGURED"
     elif not enabled:
         connection = "DISABLED"
+    elif manual_ok:
+        connection = "DIRECT_VERIFIED"
     elif status.upper() in {"OK", "PARTIAL"}:
         connection = "OBSERVED"
     elif status:
@@ -257,7 +310,8 @@ def _sportsdb_row(conn: sqlite3.Connection | None) -> dict[str, Any]:
         "plan_active": None,
         "plan_end": "",
         "quota": {},
-        "last_observed_at": _safe_text(sync.get("finished_at") or sync.get("started_at") or ""),
+        "last_observed_at": _safe_text(manual.get("checked_at") or sync.get("finished_at") or sync.get("started_at") or ""),
+        "manual_check": manual_ok,
         "last_status": status or "Sin observación",
         "cached_items": int(sync.get("total_items") or 0),
         "attention": not configured or connection in {"DISABLED", "PROVIDER_ERROR"},
@@ -296,7 +350,7 @@ def provider_maintenance_snapshot(db_path: str | None) -> dict[str, Any]:
             conn.close()
     attention = [item for item in providers if item.get("attention")]
     configured = sum(1 for item in providers if item.get("configured"))
-    observed = sum(1 for item in providers if item.get("connection_state") == "OBSERVED")
+    observed = sum(1 for item in providers if item.get("connection_state") in {"OBSERVED", "DIRECT_VERIFIED"})
     return {
         "ok": True,
         "generated_at": _now_iso(),
@@ -438,23 +492,76 @@ def _test_thesportsdb() -> dict[str, Any]:
     }
 
 
-def test_provider_connection(provider: str) -> dict[str, Any]:
+def _persist_manual_check(db_path: str | None, result: dict[str, Any]) -> bool:
+    if not db_path:
+        return False
+    try:
+        conn = sqlite3.connect(str(db_path), timeout=2)
+        try:
+            conn.execute("""CREATE TABLE IF NOT EXISTS provider_connection_checks(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider TEXT NOT NULL,
+                checked_at TEXT NOT NULL,
+                ok INTEGER NOT NULL,
+                connected INTEGER NOT NULL,
+                http_status INTEGER NOT NULL DEFAULT 0,
+                status TEXT NOT NULL DEFAULT '',
+                plan TEXT NOT NULL DEFAULT '',
+                plan_active TEXT NOT NULL DEFAULT '',
+                plan_end TEXT NOT NULL DEFAULT '',
+                billing_state TEXT NOT NULL DEFAULT '',
+                quota_json TEXT NOT NULL DEFAULT '{}',
+                external_calls INTEGER NOT NULL DEFAULT 0
+            )""")
+            conn.execute(
+                """INSERT INTO provider_connection_checks(
+                    provider,checked_at,ok,connected,http_status,status,plan,plan_active,plan_end,
+                    billing_state,quota_json,external_calls
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    _safe_text(result.get("provider"), 60),
+                    _safe_text(result.get("checked_at") or _now_iso(), 80),
+                    1 if result.get("ok") else 0,
+                    1 if result.get("connected") else 0,
+                    int(result.get("http_status") or 0),
+                    _safe_text(result.get("status"), 80),
+                    _safe_text(result.get("plan"), 80),
+                    _safe_text(result.get("plan_active"), 20),
+                    _safe_text(result.get("plan_end"), 80),
+                    _safe_text(result.get("billing_state"), 80),
+                    json.dumps(result.get("quota") or {}, ensure_ascii=False)[:4000],
+                    int(result.get("external_calls") or 0),
+                ),
+            )
+            conn.commit()
+            return True
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return False
+
+
+def test_provider_connection(provider: str, db_path: str | None = None) -> dict[str, Any]:
     """Exactly one explicit provider request, or zero when not configured."""
     key = str(provider or "").strip().lower()
     if key == "api_football":
-        return {"provider": key, **_test_api_football()}
-    if key == "the_odds_api":
-        return {"provider": key, **_test_the_odds_api()}
-    if key == "thesportsdb":
-        return {"provider": key, **_test_thesportsdb()}
-    return {
-        "provider": key,
-        "ok": False,
-        "connected": False,
-        "status": "UNSUPPORTED_PROVIDER",
-        "external_calls": 0,
-        "secret_exposed": False,
-    }
+        result = {"provider": key, **_test_api_football()}
+    elif key == "the_odds_api":
+        result = {"provider": key, **_test_the_odds_api()}
+    elif key == "thesportsdb":
+        result = {"provider": key, **_test_thesportsdb()}
+    else:
+        result = {
+            "provider": key,
+            "ok": False,
+            "connected": False,
+            "status": "UNSUPPORTED_PROVIDER",
+            "external_calls": 0,
+            "secret_exposed": False,
+            "checked_at": _now_iso(),
+        }
+    result["persisted"] = _persist_manual_check(db_path, result)
+    return result
 
 
 __all__ = ["PROVIDERS", "provider_maintenance_snapshot", "test_provider_connection"]

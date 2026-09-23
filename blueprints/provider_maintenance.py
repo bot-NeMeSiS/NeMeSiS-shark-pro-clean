@@ -47,7 +47,7 @@ def create_provider_maintenance_blueprint(app_version: str, db_path: str, is_adm
             return jsonify({"ok": False, "error": "admin_required"}), 403
         if provider not in PROVIDERS:
             return jsonify({"ok": False, "error": "unsupported_provider", "external_calls": 0}), 404
-        result = test_provider_connection(provider)
+        result = test_provider_connection(provider, db_path)
         return jsonify({"version": app_version, **result}), 200 if result.get("ok") else 422
 
     @bp.after_app_request

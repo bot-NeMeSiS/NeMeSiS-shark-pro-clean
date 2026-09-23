@@ -1,4 +1,4 @@
-<aside class="ns-pwa-install" data-ns-pwa-install hidden aria-label="Instalar NeMeSiS">
+<aside class="ns-pwa-install" data-ns-pwa-install data-icon-version="{{ app_icon_version }}" hidden aria-label="Instalar NeMeSiS">
   <div class="ns-pwa-install__row">
     <img class="ns-pwa-install__icon" src="{{ url_for('static', filename='img/app-icons/app-icon-96.png', v=app_icon_version) }}" alt="" width="52" height="52">
     <div class="ns-pwa-install__copy">
@@ -7,7 +7,8 @@
     </div>
   </div>
   <div class="ns-pwa-install__actions">
-    <button class="btn primary" type="button" data-ns-pwa-primary>Instalar NeMeSiS</button>
+    <button class="btn primary" type="button" data-ns-pwa-primary data-ns-pwa-install-action>Instalar NeMeSiS</button>
+    <a class="btn" href="/instalar">Ver guía</a>
     <button class="btn" type="button" data-ns-pwa-dismiss>Ahora no</button>
   </div>
   <div class="ns-pwa-install__help" data-ns-pwa-help hidden tabindex="-1">

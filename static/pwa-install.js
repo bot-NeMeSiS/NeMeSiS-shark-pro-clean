@@ -4,10 +4,13 @@
   if(!panel) return;
 
   const primary=panel.querySelector('[data-ns-pwa-primary]');
+  const actionButtons=[].slice.call(document.querySelectorAll('[data-ns-pwa-install-action],[data-ns-pwa-page-primary]'));
   const dismiss=panel.querySelector('[data-ns-pwa-dismiss]');
   const help=panel.querySelector('[data-ns-pwa-help]');
   const status=panel.querySelector('[data-ns-pwa-status]');
-  const DISMISS_KEY='nemesis-pwa-install-dismissed-v1';
+  const pageStatus=[].slice.call(document.querySelectorAll('[data-ns-pwa-page-status]'));
+  const iconVersion=panel.getAttribute('data-icon-version')||'current';
+  const DISMISS_KEY='nemesis-pwa-install-dismissed-'+iconVersion;
   const DISMISS_MS=7*24*60*60*1000;
   let deferredPrompt=null;
 
@@ -24,6 +27,10 @@
       return raw && (Date.now()-raw)<DISMISS_MS;
     }catch(_error){ return false; }
   }
+  function setStatus(value){
+    if(status) status.textContent=value;
+    pageStatus.forEach(function(node){node.textContent=value;});
+  }
   function show(mode){
     if(standalone() || recentlyDismissed()) return;
     panel.hidden=false;
@@ -31,11 +38,9 @@
     if(primary){
       primary.textContent=mode==='ios' ? 'Cómo añadir a inicio' : 'Instalar NeMeSiS';
     }
-    if(status){
-      status.textContent=mode==='ios'
-        ? 'En iPhone/iPad se instala desde Compartir → Añadir a pantalla de inicio.'
-        : 'Se abrirá el instalador del navegador. No se descarga ningún archivo externo.';
-    }
+    setStatus(mode==='ios'
+      ? 'En iPhone/iPad se instala desde Compartir → Añadir a pantalla de inicio.'
+      : 'Se abrirá el instalador del navegador. No se descarga ningún archivo externo.');
   }
   function hide(){
     panel.hidden=true;
@@ -57,36 +62,35 @@
     window.setTimeout(function(){ show('ios'); },900);
   }
 
-  if(primary){
-    primary.addEventListener('click',async function(){
-      if(deferredPrompt){
-        const prompt=deferredPrompt;
-        deferredPrompt=null;
-        try{
-          await prompt.prompt();
-          const choice=await prompt.userChoice;
-          if(choice && choice.outcome==='accepted'){
-            hide();
-            try{ localStorage.removeItem(DISMISS_KEY); }catch(_error){}
-          }else{
-            show('native');
-          }
-        }catch(_error){
-          if(status) status.textContent='Abre el menú del navegador y elige Instalar aplicación o Añadir a pantalla de inicio.';
+  async function runInstall(){
+    if(deferredPrompt){
+      const promptEvent=deferredPrompt;
+      deferredPrompt=null;
+      try{
+        await promptEvent.prompt();
+        const choice=await promptEvent.userChoice;
+        if(choice && choice.outcome==='accepted'){
+          hide();
+          setStatus('Instalación aceptada.');
+          try{ localStorage.removeItem(DISMISS_KEY); }catch(_error){}
+        }else{
+          show('native');
+          setStatus('Instalación cancelada; puedes intentarlo cuando quieras.');
         }
-        return;
+      }catch(_error){
+        setStatus('Abre el menú del navegador y elige Instalar aplicación o Añadir a pantalla de inicio.');
       }
-      if(help){
-        help.hidden=false;
-        help.focus && help.focus();
-      }
-      if(status){
-        status.textContent=ios()
-          ? 'Pulsa Compartir y después “Añadir a pantalla de inicio”.'
-          : 'Abre el menú del navegador y elige “Instalar aplicación” o “Añadir a pantalla de inicio”.';
-      }
-    });
+      return;
+    }
+    if(help){
+      help.hidden=false;
+      help.focus && help.focus();
+    }
+    setStatus(ios()
+      ? 'Pulsa Compartir y después “Añadir a pantalla de inicio”.'
+      : 'Abre el menú del navegador y elige “Instalar aplicación” o “Añadir a pantalla de inicio”.');
   }
+  actionButtons.forEach(function(button){button.addEventListener('click',runInstall);});
 
   if(dismiss){
     dismiss.addEventListener('click',function(){
@@ -97,6 +101,7 @@
 
   window.addEventListener('appinstalled',function(){
     hide();
+    setStatus('NeMeSiS instalada correctamente.');
     try{ localStorage.removeItem(DISMISS_KEY); }catch(_error){}
   });
 })();

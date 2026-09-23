@@ -28,7 +28,8 @@
   {% for _touch_size in (152, 167, 180) %}
   <link rel="apple-touch-icon" sizes="{{ _touch_size }}x{{ _touch_size }}" href="{{ url_for('static', filename='img/app-icons/app-icon-' ~ _touch_size ~ '.png', v=app_icon_version) }}">
   {% endfor %}
-  <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
+  <link rel="manifest" href="{{ url_for('founder_manifest_json', v=app_icon_version) if _founder_pwa else url_for('manifest_json', v=app_icon_version) }}">
+  <meta name="application-name" content="NeMeSiS SHARK PRO">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}-design-system-1-8" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
@@ -182,7 +183,7 @@
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>{{ ns_ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ns_ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>
-    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/support">{{ ns_ui("Soporte") }}</a></nav>
+    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/support">{{ ns_ui("Soporte") }}</a><a href="/instalar">{{ ns_ui("Instalar app") }}</a></nav>
   </footer>
 
   {% if show_mobile_bottom_nav %}{{ v933_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
