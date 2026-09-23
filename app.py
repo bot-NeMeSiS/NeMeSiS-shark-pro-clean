@@ -14822,6 +14822,18 @@ def service_worker():
     return response
 
 
+@app.route("/instalar")
+@app.route("/install-app")
+@app.route("/anadir-a-inicio")
+def pwa_install_guide_page():
+    return render_template(
+        "install_app.html",
+        title="Instalar NeMeSiS | NeMeSiS SHARK PRO",
+        meta_description="Añade NeMeSiS a la pantalla de inicio de iPhone, Android o PC.",
+        canonical_url=request.url_root.rstrip("/") + "/instalar",
+    )
+
+
 @app.route("/manifest.json")
 def manifest_json():
     response = jsonify({
