@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import os
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
@@ -11,8 +12,26 @@ from .telegram_message_formatter import (
     madrid_match_time_label, match_title, pick_result_label, score_label, status_label,
 )
 from .v935_launch_trust_engine import match_status_truth
-
-STATIC_ROOT = Path(__file__).resolve().parents[1] / "static"
+def resolve_cached_visual_payload(payload, connection=None):
+    """Reuse exact URL-to-local-path mappings; no downloads or name matching."""
+    source = dict(payload or {})
+    for key in ("pick", "match", "combi"):
+        if isinstance(source.get(key), dict):
+            source[key] = resolve_cached_visual_payload(source[key], connection)
+    for key in ("picks", "legs"):
+        if isinstance(source.get(key), list):
+            source[key] = [resolve_cached_visual_payload(leg, connection) for leg in source[key][:8] if isinstance(leg, dict)]
+    for side in ("home", "away"):
+        url = first_value(source, side + "_logo", side + "_crest", side + "_logo_url", side + "_crest_url")
+        if not url or connection is None:
+            continue
+        row = _fetch_one(connection, "SELECT local_path FROM team_logo_cache WHERE logo_url=? AND COALESCE(is_fallback,0)=0 AND local_path IS NOT NULL LIMIT 1", (url,))
+        local = str(row.get("local_path") or "")
+        if local.startswith("static/"):
+            local = "/" + local
+        if local.startswith("/static/") and _load_crest(local, 96)[0] is not None:
+            source[side + "_logo"] = local
+    return source
 
 
 def _env_bool(name, default=False):
@@ -35,6 +54,7 @@ def _base(item, kind, eyebrow):
     return {
         "kind": kind, "eyebrow": eyebrow, "title": match_title(item),
         "competition": competition_label(item), "datetime": madrid_match_time_label(item),
+        "competition_logo": first_value(item, "competition_logo", "league_logo", "competition_logo_url", "league_logo_url"),
         "left_label": _text(first_value(item, "home_team", "home"), "Local por confirmar"),
         "right_label": _text(first_value(item, "away_team", "away"), "Visitante por confirmar"),
         "left_crest": first_value(item, "home_logo", "home_crest", "home_logo_url", "home_crest_url"),
@@ -102,7 +122,7 @@ def build_live_visual_card_payload(match=None):
     live = match_status_truth(match)["is_live"]
     minute = first_value(match, "minute", "elapsed") if live else None
     return {**_base(match, "live", "EN DIRECTO" if live else "ESTADO POR CONFIRMAR"),
-        "center": score_label(match), "market": status_label(match),
+        "center": score_label(match) if live else "Marcador pendiente", "market": status_label(match),
         "metrics": [("Minuto confirmado", _text(minute, "Sin dato vigente")), ("Estado", status_label(match))],
         "reason": _text(first_value(match, "live_alert", "event_title") if live else None, "Sin evento confirmado disponible."),
         "warning": "El estado en directo requiere una observación vigente.",
@@ -130,9 +150,9 @@ def build_visual_card_for_message(kind, payload=None):
         card = build()
         card["membership"] = payload.get("membership") or card.get("membership")
         if card["membership"] == "FREE" and kind == "pick_alert":
-            card["metrics"] = [("Plan", "FREE"), ("Estado", card["status"])]
+            risk = next((metric for metric in card["metrics"] if metric[0] == "Riesgo"), ("Riesgo", "No especificado"))
+            card["metrics"] = [("Plan", "FREE"), ("Estado", card["status"]), risk]
             card["reason"] = "Lectura disponible. El detalle del análisis depende de tu plan."
-            card["warning"] = "Consulta las condiciones en la plataforma."
         png = build_telegram_visual_card_png(card)
         if not png:
             return {"ok": False, "mode": "text_fallback", "fallback_reason": "pillow_not_available"}
@@ -171,6 +191,16 @@ def _load_crest(value, size):
         return None, "unavailable_asset"
 
 
+@lru_cache(maxsize=32)
+def _card_font(size, bold=False):
+    from PIL import ImageFont
+    for name in ("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf", "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=size)
+
 def build_telegram_visual_card_png(card, width=960, height=1000):
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -180,17 +210,11 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
     image = Image.new("RGB", (960, 1000), "#09151f")
     draw = ImageDraw.Draw(image)
     accent = {"pick": "#65e4dc", "combi": "#ffd37d", "live": "#ff8f92", "result": "#a4e6b4", "highlight": "#8cbbff"}.get(card.get("kind"), "#65e4dc")
-
-    def font(size, bold=False):
-        for name in ("C:/Windows/Fonts/arialbd.ttf" if bold else "C:/Windows/Fonts/arial.ttf", "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"):
-            try:
-                return ImageFont.truetype(name, size)
-            except OSError:
-                continue
-        return ImageFont.load_default(size=size)
+    if card.get("kind") == "result":
+        accent = {"FALLADO": "#ff8f92", "NULO": "#c2cfd6", "PENDIENTE": "#ffd37d"}.get(card.get("market"), accent)
 
     def text(value, x, y, max_width, size=26, lines=1, color="#eef6fa", bold=False, center=False):
-        face = font(size, bold)
+        face = _card_font(size, bold)
         wrapped, current = [], ""
         for word in _text(value, "").split():
             if draw.textlength((current + " " + word).strip(), font=face) <= max_width:
@@ -213,18 +237,27 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
     text("NeMeSiS SHARK PRO", 48, 38, 570, 25, bold=True)
     plan = str(card.get("membership") or "").upper()
     text(plan if plan in {"FREE", "PRO", "ELITE"} else "SHARK", 740, 40, 172, 23, color=accent, bold=True)
-    text(card.get("eyebrow"), 48, 100, 864, 36, bold=True)
-    text(card.get("competition"), 48, 157, 864, 25, color="#b0c8d4")
+    text(card.get("eyebrow"), 48, 86, 864, 24, color=accent, bold=True)
+    league_logo, league_reason = _load_crest(card.get("competition_logo"), 46)
+    if league_logo is not None:
+        image.paste(league_logo, (48, 140), league_logo)
+    text(card.get("competition"), 110 if league_logo is not None else 48, 143, 802 if league_logo is not None else 864, 29, bold=True)
     draw.line((48, 206, 912, 206), fill="#2d4250", width=2)
-
     if card.get("kind") == "combi":
         legs = card.get("legs") or []
         text(card.get("title"), 48, 228, 864, 29, bold=True)
         for i, leg in enumerate(legs[:3]):
             y = 281 + i * 73
             text(f"{i + 1:02d}", 48, y, 48, 23, color=accent, bold=True)
-            text(match_title(leg), 108, y, 650, 25, bold=True)
-            text(_text(leg.get("selection")) + " · " + madrid_match_time_label(leg), 108, y + 33, 650, 21, color="#b0c8d4")
+            for side, x in (("home", 106), ("away", 146)):
+                crest, _ = _load_crest(first_value(leg, side + "_logo", side + "_crest", side + "_logo_url", side + "_crest_url"), 30)
+                if crest is not None:
+                    image.paste(crest, (x, y + 4), crest)
+                else:
+                    text(_text(leg.get(side + "_team"), "?")[0], x, y + 6, 30, 20, color=accent, center=True)
+            text(match_title(leg), 194, y, 574, 24, bold=True)
+            text(_text(leg.get("selection")) + " · " + madrid_match_time_label(leg), 108, y + 33, 660, 21, color="#b0c8d4")
+            text(_v889_odds_label(leg.get("odds")), 788, y, 124, 23, color=accent)
             text(_v889_odds_label(leg.get("odds")), 788, y, 124, 23, color=accent)
         if not legs:
             text("Sin selecciones publicadas", 48, 298, 864, 28, color="#b0c8d4")
@@ -233,7 +266,7 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
             label = "selección" if remaining == 1 else "selecciones"
             text(f"+ {remaining} {label} en el mensaje completo", 48, 503, 864, 21, color="#b0c8d4")
     else:
-        diagnostics = {}
+        diagnostics = {"competition": league_reason}
         for side, x in (("left", 48), ("right", 536)):
             label = card.get(f"{side}_label") or "Por confirmar"
             crest, reason = _load_crest(card.get(f"{side}_crest"), 96)
@@ -250,9 +283,10 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
         text(card.get("datetime"), 48, 465, 864, 25, color="#b0c8d4")
         text(card.get("status"), 48, 507, 864, 21, color=accent)
 
-    draw.rectangle((48, 554, 55, 651), fill=accent)
-    text(card.get("market"), 76, 555, 824, 22, color=accent)
-    text(card.get("center"), 76, 590, 824, 34, bold=True)
+    draw.rounded_rectangle((48, 554, 912, 651), radius=8, fill="#132632")
+    draw.rectangle((48, 562, 53, 643), fill=accent)
+    text(card.get("market"), 76, 568, 808, 22, color=accent)
+    text(card.get("center"), 76, 601, 808, 32, bold=True)
     metrics = (card.get("metrics") or [])[:4]
     col = 864 / max(1, len(metrics))
     for i, (label, value) in enumerate(metrics):

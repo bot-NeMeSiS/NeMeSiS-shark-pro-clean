@@ -58,6 +58,9 @@
   {% for item in p.delivery_evidence %}
   <details><summary>{{ item.status }} · {{ item.visual }}</summary>
     <p>{{ item.type }} · {{ item.sent_at }} · Destino {{ item.destination }}</p>
+    <p>Origen: {{ item.source }} · Dedupe {{ 'registrado' if item.dedupe else 'sin evidencia' }}</p>
+    <p>Visual solicitada: {{ 'Sí' if item.requested else 'No' if item.requested is sameas false else 'Sin evidencia' }} · Generada: {{ 'Sí' if item.generated else 'No' if item.generated is sameas false else 'Sin evidencia' }}</p>
+    {% if item.error %}<p>{{ item.error }}</p>{% endif %}
     <small>Delivery {{ item.id }}{% if item.reason %} · {{ item.reason }}{% endif %}</small>
   </details>
   {% endfor %}{% endif %}

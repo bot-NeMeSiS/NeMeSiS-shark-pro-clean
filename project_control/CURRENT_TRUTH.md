@@ -1,16 +1,42 @@
 # Current Truth
 
-## Verdad comprobada de higiene local - 2026-09-23
+## Punto operativo remoto y cierre Sentinel · 2026-09-23
 
-- GitHub `origin/main`: `706094630d337f9e329a8401fae217b316a9b49c`, comprobado mediante remoto y objetos Git.
-- Carpeta oficial: rama local `codex/repo-hygiene-20260923`, desde ese SHA. El ref local `main` permanece en `454c3ca1abb79af6a8525f65daecc57c0958c0c1`, dos commits por detras; no se ha modificado.
-- Produccion actual: NOT_OBSERVED en esta mision. Ninguna nota historica certifica el runtime actual.
-- PR72 conserva `792093308fa1ecf4a5d2ad1349e7bb973b479fb8` y dos reparaciones locales de cache en su propio worktree. No integradas aqui ni publicadas; ultimo Smoke fallo antes de esas reparaciones.
-- Design: 4401 cambios preservados; documental: 6131; no ejecutar ni reconstruir esos arboles incompletos. Candidato `7202c1886aec7fee03267b1a709313804360592a` conservado.
-- Cierre de esta mision y manifiestos: `GIT_RELEASE_CLEANUP_REPORT.md`. Una sola cola: `CODEX_QUEUE.md`, OPS-002/CX-002. Sin staging, commit, push, merge ni deploy.
-- Las secciones fechadas anteriores son HISTORY, no ordenes pendientes ni permisos actuales.
+- GitHub `main` vigente: `228369d42447f37f3023a7f09216205057e4655c` (PR #82).
+- Render Web `nemesissharkpro` y Cron `telegram-auto-tick` observados **LIVE**
+  en ese SHA. Auto Deploy desde `main` sigue siendo el mecanismo de publicación.
+- PR #78 entregó salud de proveedores de solo lectura: abrir Centro de datos hace
+  0 llamadas externas y separa configuración, evidencia de plan/pago y estado operativo.
+- PR #80 entregó instalación PWA visible sobre la PWA existente: prompt nativo,
+  guía iOS, ocultación standalone, iconos versionados y separación respecto a nav/SHARK.
+  Instalación física real en iPhone/Android/PC sigue **NO_VERIFICADA**.
+- PR #82 añadió comprobación directa de proveedor únicamente por acción explícita
+  del admin: sesión admin + CSRF, cooldown 300 s y evidencia saneada. En este cierre
+  no se ejecutó ninguna llamada real de proveedor; acceso/plan directo permanece
+  **NO_VERIFICADO** hasta que el fundador/admin decida pulsar el control.
+- El HEAD exacto de PR #82 `d445c380aa24482e4b30e0d5c7375444a838435c`
+  pasó QA, Preflight y Smoke completos, incluidos LOCAL SAFE y las fronteras Sentinel.
+- El guard post-merge de `main@228369d4` puede seguir con observaciones programadas;
+  no se convierte en PASS por esta documentación. Consultar el run actual antes de
+  cualquier merge posterior.
+- **OPS-001 Sentinel queda cerrado en alcance PASS_LOCAL_SAFE.** El executor durable
+  es deliberadamente local: `sentinel_job_context` exige admin identificado,
+  `local_safe_mode_enabled()`, `SENTINEL_JOBS_ENABLED` y una DB contenida en
+  `data/local_dev`. Producción debe responder indisponible para ese executor.
+- Cada Smoke ejecuta en procesos separados `test_project_control_http.py`,
+  `test_sentinel_jobs_http.py` y `test_sentinel_operational_browser.py`. Cubren
+  idempotencia, concurrencia, owner scope, CSRF, revisión de fuente, lifecycle
+  QUEUED→RUNNING→COMPLETED, fallo saneado/no-retry y guard fuera de LOCAL SAFE.
+- Esto **no** convierte Sentinel en servicio productivo, no recertifica los 12
+  `LOCAL_SAFE_BLOCKED` históricos ni los bloqueos ambientales conservados.
+- Directos y Design siguen siendo frentes preservados con sus propios gaps.
+  El candidato acumulado del 19/09 tampoco se declara publicado como una unidad.
+- El siguiente bloque interno pasa a **OPS-002 Hygiene / reconciliación remota**:
+  ordenar verdad actual, extraer trabajo único antes de cerrar PRs supersedidas y
+  no borrar ramas/worktrees/evidencia desconocida. ChatGPT dirige; Codex no se inicia
+  automáticamente.
 
-## Historico: punto operativo remoto y entrega cliente · 2026-09-21
+## Punto operativo remoto y entrega cliente · 2026-09-21
 
 - Base remota comprobada: `main@63cd3d9a1d70d839bd0f91d78fb4875931fa635e`.
 - PR #56 integrada tras QA, preflight y Smoke completos. Web y Cron fueron

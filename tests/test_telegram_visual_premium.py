@@ -1,5 +1,5 @@
 """Presentation and transport contracts. Transport is always intercepted locally."""
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html import unescape
 from html.parser import HTMLParser
 import io
@@ -236,6 +236,35 @@ def test_queue_dedup_and_uncertain_delivery_survive_reload(app_module, monkeypat
     assert len(calls) == count
 
 
+def test_queue_payload_is_bounded_structured_json(app_module):
+    import uuid
+    app = app_module
+    payload = {
+        "source": "manual_admin",
+        "membership": "ELITE",
+        "visual_card_type": "pick_alert",
+        "visual_card_enabled": True,
+        "visual_card_payload": {
+            "pick": {
+                "home_team": "QA Norte",
+                "away_team": "QA Sur",
+                "selection": "QA solamente",
+                "reason": "x" * 200000,
+            }
+        },
+    }
+    encoded = app.serialize_telegram_queue_payload(payload)
+    decoded = json.loads(encoded)
+    assert len(encoded.encode("utf-8")) <= app.TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES
+    assert decoded["_queue_payload_truncated"] is True
+    assert decoded["source"] == "manual_admin"
+    assert decoded["visual_card_type"] == "pick_alert"
+    assert decoded["visual_card_payload"]["pick"]["home_team"] == "QA Norte"
+    key = "qa-telegram-bounded-" + uuid.uuid4().hex
+    queued = app.enqueue_telegram_message("manual", "QA ONLY", "Mensaje QA", chat_id="qa", payload=payload, dedupe_key=key)
+    stored = queued["item"]["payload_json"]
+    assert len(stored.encode("utf-8")) <= app.TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES
+    assert json.loads(stored)["_queue_payload_truncated"] is True
 def test_free_card_does_not_reveal_premium_metrics(monkeypatch):
     result = cards.build_visual_card_for_message("pick_alert", {"membership": "FREE", "pick": {"odds": 1.85, "reason": "private premium analysis"}})
     assert result["ok"]
@@ -271,6 +300,171 @@ def test_existing_fixture_gallery_is_explicitly_qa(tmp_path):
         (tmp_path / f"qa-{kind}.png").write_bytes(cards.build_telegram_visual_card_png(card))
 
 
+@pytest.mark.parametrize("bad", [None, "null", "undefined", "N/A", {"private": "object"}, ["raw"], float("nan")])
+def test_optional_fields_do_not_leak_objects_or_technical_markers(bad):
+    item = {key: bad for key in ("home_team", "away_team", "competition_name", "selection", "reason", "risk", "stake", "confidence", "value")}
+    text = fmt.format_pick_message(item)
+    assert all(marker not in text for marker in ("None", "null", "undefined", "N/A", "private", "raw", "nan"))
+
+
+def test_free_never_hides_available_risk():
+    from engines.telegram_intelligence_engine import build_premium_message
+    pick = {"risk_level": "Alto", "warning": "Rotación pendiente de confirmar"}
+    assert "Rotación pendiente de confirmar" in fmt.format_membership_pick_message(pick, membership="FREE")
+    result = cards.build_visual_card_for_message("pick_alert", {"membership": "FREE", "pick": pick})
+    assert result["card"]["warning"] == pick["warning"]
+    assert ("Riesgo", "Alto") in result["card"]["metrics"]
+    assert "Rotación pendiente de confirmar" in build_premium_message(pick, "FREE")["preview"]
+
+
+@pytest.mark.parametrize("rights", [None, "REVIEW_REQUIRED", "UNKNOWN_RIGHTS", "BLOCKED"])
+def test_pending_highlight_rights_are_not_sent(rights):
+    highlight = {"url": "https://example.invalid/video", "rights_status": rights, "commercial_use_status": "ALLOWED"}
+    assert not fmt.highlight_link(highlight)
+    assert "https://" not in fmt.format_highlight_message({}, highlight)
+    assert not should_send_highlight_alert({}, highlight)
+
+
+def test_highlight_requires_channel_and_attribution():
+    approved = {"url": "https://example.invalid/video", "rights_status": "ATTRIBUTION_REQUIRED", "commercial_use_status": "ALLOWED", "allowed_channels": ["TELEGRAM"], "attribution": "Canal de pruebas SIMULATED_QA"}
+    assert fmt.highlight_link(approved) == approved["url"]
+    assert approved["attribution"] in fmt.format_highlight_message({}, approved)
+    assert not fmt.highlight_link({**approved, "attribution": ""})
+    assert not fmt.highlight_link({**approved, "allowed_channels": ["APP"]})
+
+
+def test_stale_live_never_presents_stale_score_or_stats():
+    match = {"status": "live", "live_updated_at": "2020-01-01T12:00:00Z", "score": "4-3", "minute": 89, "corners": 8}
+    text = fmt.format_live_alert_message(match)
+    assert "4–3" not in text and "córners 8" not in text and "89" not in text
+    assert cards.build_live_visual_card_payload(match)["center"] == "Marcador pendiente"
+
+
+@pytest.mark.parametrize("result,label", [("won", "ACERTADO"), ("lost", "FALLADO"), ("void", "NULO"), ("pending", "PENDIENTE")])
+def test_result_grading_and_historical_quote(result, label):
+    pick = {"result_status": result, "selection": "Local", "odds": 1.87}
+    match = {"status": "FT", "score": "2-1"}
+    text = fmt.format_result_message(match, pick)
+    assert label in text and "1.87" in text
+    assert cards.build_result_visual_card_payload(match, pick)["market"] == label
+
+
+def test_exact_cached_logo_reused_read_only(tmp_path, monkeypatch):
+    import sqlite3
+    from PIL import Image
+    monkeypatch.setattr(cards, "STATIC_ROOT", tmp_path)
+    Image.new("RGBA", (80, 50), (65, 170, 190, 255)).save(tmp_path / "simulated.png")
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE team_logo_cache(logo_url TEXT,local_path TEXT,is_fallback INTEGER)")
+    conn.execute("INSERT INTO team_logo_cache VALUES(?,?,0)", ("https://allowed.invalid/crest.png", "/static/simulated.png"))
+    conn.execute("PRAGMA query_only=ON")
+    source = {"pick": {"home_logo": "https://allowed.invalid/crest.png", "away_logo": "https://other.invalid/crest.png"}}
+    before = conn.total_changes
+    result = cards.resolve_cached_visual_payload(source, conn)
+    assert conn.total_changes == before
+    assert result["pick"]["home_logo"] == "/static/simulated.png"
+    assert result["pick"]["away_logo"] == source["pick"]["away_logo"]
+    assert source["pick"]["home_logo"].startswith("https:")
+    conn.close()
+
+
+@pytest.mark.parametrize("logos", [2, 1, 0, -1])
+def test_crest_population_and_competition_logo(tmp_path, monkeypatch, logos):
+    from PIL import Image
+    monkeypatch.setattr(cards, "STATIC_ROOT", tmp_path)
+    Image.new("RGBA", (150, 45), (65, 170, 190, 255)).save(tmp_path / "simulated.png")
+    (tmp_path / "broken.png").write_bytes(b"SIMULATED_QA invalid image")
+    item = {"home_logo": "/static/simulated.png" if logos > 0 else None,
+            "away_logo": "/static/simulated.png" if logos > 1 else "/static/broken.png" if logos < 0 else None,
+            "competition_logo": "/static/simulated.png"}
+    card = cards.build_visual_card_for_message("pick_alert", item)
+    assert card["ok"]
+    assets = card["asset_diagnostics"]
+    assert assets["competition"] == "local_crest"
+    assert (assets["left"] == "local_crest") == (logos > 0)
+    assert (assets["right"] == "local_crest") == (logos > 1)
+
+
+@pytest.mark.parametrize("error,uncertain", [(400, False), (500, True)])
+def test_button_rejection_retry_or_uncertainty(transport, monkeypatch, error, uncertain):
+    app, calls = transport
+    def send(url, data):
+        calls.append(data.copy())
+        if len(calls) == 1:
+            raise urllib.error.HTTPError("https://example.invalid/redacted", error, "Bad Request", {}, io.BytesIO(b'{"ok":false,"description":"BUTTON_URL_INVALID secret-do-not-log"}'))
+        return {"ok": True, "sent": True}
+    monkeypatch.setattr(app, "telegram_post_send_message", send)
+    result = app.telegram_send_http("qa", "Mensaje", payload={"app_url": "https://example.invalid/picks"})
+    assert bool(result.get("delivery_uncertain")) == uncertain
+    assert len(calls) == (1 if uncertain else 2)
+    if not uncertain:
+        assert "reply_markup" not in calls[1] and result["sent"]
+    assert "secret-do-not-log" not in str(result)
+
+
+def test_preview_recovers_actual_nested_delivery_evidence(app_module):
+    app = app_module
+    delivery_id = app.log_telegram_delivery("qa", "pick_alert", "SIMULATED_QA", "SENT", {
+        "sent": True, "source": "manual_admin", "dedupe_key": "qa-visual-only",
+        "sent_at_madrid": "2026-09-23T21:00:00+02:00", "visual_card": {"mode": "text_fallback", "reason": "visual_render_failed"}})
+    with app.app.test_request_context("/admin/telegram/pro-preview"):
+        result = app.v810_telegram_preview_samples()
+    evidence = next(item for item in result["delivery_evidence"] if item["id"] == delivery_id)
+    assert evidence["visual"] == "Fallback de texto"
+    assert evidence["source"] == "manual_admin" and evidence["dedupe"]
+    assert evidence["reason"] == "visual_render_failed"
+
+
+def test_simulated_qa_representative_gallery(tmp_path, monkeypatch):
+    from PIL import Image, ImageDraw
+    from time import perf_counter
+    from decimal import Decimal
+    monkeypatch.setattr(cards, "STATIC_ROOT", tmp_path)
+    for name, color in (("home", "#49b4d0"), ("away", "#e6ba64"), ("league", "#d7e8f0")):
+        badge = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(badge)
+        draw.rounded_rectangle((4, 4, 96, 96), 8, fill=color)
+        draw.text((22, 34), "QA", font=cards._card_font(32, True), fill="#09151f")
+        badge.save(tmp_path / (name + ".png"))
+    match = {"home_team": "Atlético QA Norte", "away_team": "Unión QA Sur", "competition_name": "Liga de pruebas · SIMULATED_QA",
+             "home_logo": "/static/home.png", "away_logo": "/static/away.png", "competition_logo": "/static/league.png",
+             "kickoff_iso": "2026-09-24T19:00:00Z", "status": "scheduled", "market": "Doble oportunidad", "selection": "Local o empate · 1X",
+             "odds": 1.78, "stake_units": 1, "confidence": "Media", "risk_level": "Moderado", "membership": "PRO",
+             "reason": "Contexto sintético para evaluar legibilidad. No es una recomendación real.", "warning": "SIMULATED_QA · Sin envío ni apuesta real."}
+    legs = [match, {**match, "home_team": "Deportivo QA Este", "away_team": "Club QA Oeste", "odds": 1.62}, {**match, "home_team": "Norte QA", "away_team": "Sur QA", "odds": 1.5}]
+    combi = {"picks": legs, "membership": "ELITE", "total_odds": str(Decimal('1.78') * Decimal('1.62') * Decimal('1.5')), "stake_units": 0.5, "risk_level": "Alto", "reason": "Tres selecciones sintéticas. Cada selección añade riesgo.", "title": "Combinada de pruebas"}
+    now = datetime.now(timezone.utc)
+    live = {**match, "kickoff_iso": (now - timedelta(minutes=63)).isoformat(), "status": "LIVE", "live_updated_at": now.isoformat(), "home_score": 1, "away_score": 0, "minute": 63, "event_title": "Gol local · evento sintético"}
+    final = {**match, "kickoff_iso": (now - timedelta(hours=3)).isoformat(), "status": "FT", "home_score": 2, "away_score": 1}
+    highlight = {"url": "https://example.invalid/resumen-qa", "rights_status": "OWNED", "commercial_use_status": "ALLOWED", "allowed_channels": ["TELEGRAM"]}
+    cases = {"pick": cards.build_pick_visual_card_payload(match), "combi": cards.build_combi_visual_card_payload(combi),
+             "live": cards.build_live_visual_card_payload(live), "result": cards.build_result_visual_card_payload(final, highlight={}),
+             "highlight": cards.build_highlight_visual_card_payload(final, highlight)}
+    copy = {"pick": fmt.format_pick_message(match), "combi": fmt.format_combi_message(combi), "live": fmt.format_live_alert_message(live),
+            "result": fmt.format_result_message(final, {**match, "result_status": "won"}), "highlight": fmt.format_highlight_message(final, highlight)}
+    assert "63" in copy["live"] and "1–0" in copy["live"] and "EN DIRECTO" in copy["live"]
+    assert Decimal("4.3254") == Decimal(combi["total_odds"])
+    measurements = []
+    for kind, card in cases.items():
+        card["eyebrow"] = "SIMULATED_QA · " + card["eyebrow"]
+        card["warning"] = "SIMULATED_QA · Datos y símbolos de prueba. No enviado."
+        t0 = perf_counter()
+        png = cards.build_telegram_visual_card_png(card)
+        measurements.append({"kind": kind, "ms": round((perf_counter() - t0) * 1000, 2), "bytes": len(png)})
+        (tmp_path / f"simulated-{kind}.png").write_bytes(png)
+        (tmp_path / f"simulated-{kind}.txt").write_text("SIMULATED_QA\n" + copy[kind], encoding="utf-8")
+    for count in (2, 3):
+        card = cards.build_combi_visual_card_payload({**combi, "picks": legs[:count]})
+        assert card["market"] == f"{count} selecciones"
+    long = {**match, "home_team": "Asociación Deportiva QA de Peñíscola y San Sebastián", "away_team": "Q" * 180, "competition_name": "Campeonato de fútbol sintético extraordinariamente largo " * 3, "odds": None, "home_logo": None, "away_logo": None}
+    long_card = cards.build_pick_visual_card_payload(long)
+    long_card["eyebrow"] = "SIMULATED_QA · NOMBRES LARGOS"
+    (tmp_path / "simulated-long.png").write_bytes(cards.build_telegram_visual_card_png(long_card))
+    for width, height in ((480, 500), (640, 900), (960, 1000)):
+        png = cards.build_telegram_visual_card_png(long_card, width, height)
+        with Image.open(io.BytesIO(png)) as image:
+            assert image.width <= width and image.height <= max(height, 540)
+    (tmp_path / "render-cost.json").write_text(json.dumps(measurements, indent=2), encoding="utf-8")
 def test_preview_permissions_and_read_only(app_module):
     import os
     visitor = app_module.app.test_client()
@@ -321,7 +515,8 @@ def test_real_browser_preview_and_command_center(app_module, tmp_path):
     observations = []
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(executable_path=str(Path(os.environ["LOCALAPPDATA"]) / "ms-playwright/chromium-1228/chrome-win64/chrome.exe"), headless=True)
+            browser_path = os.environ.get("NEMESIS_QA_CHROMIUM") or pw.chromium.executable_path
+            browser = pw.chromium.launch(executable_path=browser_path, headless=True)
             context = browser.new_context()
             context.route("**/*", lambda route: route.continue_() if route.request.url.startswith(base + "/") or route.request.url.startswith("data:") else route.abort())
             context.request.get(base + "/local-safe/login/admin", params={"token": os.environ["NEMESIS_LOCAL_ACCESS_TOKEN"]})

@@ -1,16 +1,32 @@
 # NeMeSiS - Master Control
 
-## Entrada vigente - 2026-09-23
+## Verdad operativa remota vigente · 2026-09-23
 
-Leer `CURRENT_TRUTH.md` para identidad comprobada, `ACTIVE_WORK.md` para alcance y
-`CODEX_QUEUE.md` para la unica cola. Mision OPS-002/CX-002: higiene LOCAL_ONLY;
-informe unico actualizado: `GIT_RELEASE_CLEANUP_REPORT.md` en la raiz.
-Main remoto comprobado `706094630d337f9e329a8401fae217b316a9b49c`; produccion no
-reobservada aqui. PR72/60/68 preservadas; no commit, push, merge ni deploy.
-Las declaraciones de las secciones anteriores por fecha son evidencia historica,
-no autoridad sobre Git o runtime actuales ni autorizacion para ejecutar trabajos.
+- Repositorio canónico: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.
+- GitHub `main`: `228369d42447f37f3023a7f09216205057e4655c`.
+- Render Web y Cron observados LIVE en ese SHA; Auto Deploy desde main permanece activo.
+- Centro de datos ya separa configuración, evidencia de plan/pago y operatividad sin
+  llamadas externas al renderizar. La comprobación directa existe solo como acción
+  admin+CSRF con cooldown 300 s; no fue ejecutada contra proveedores en este cierre.
+- La PWA existente ya dispone de instalación visible y segura; dispositivos físicos
+  reales siguen pendientes de verificación.
+- OPS-001 Sentinel está cerrado como PASS_LOCAL_SAFE. Su executor durable es loopback,
+  offline, contenido en `data/local_dev` y rechazado fuera de LOCAL SAFE. Esta
+  restricción es un contrato de seguridad, no un incidente.
+- El Smoke actual revalida Project Control, jobs Sentinel HTTP y lifecycle/browser en
+  procesos frescos. Los bloqueos ambientales históricos no cambian de clasificación.
+- Trabajo interno activo: OPS-002 Hygiene / reconciliación remota. No eliminar ni cerrar
+  material con valor único; extraer antes. ChatGPT dirige y Codex solo se usa por
+  autorización explícita del fundador.
+- PR #77 Telegram Ultra Pro y PR #60 vídeo-resúmenes permanecen separados y DRAFT.
+  No envío Telegram real, reproducción/licencia o activación implícita.
+- Directos y Design siguen preservados; el candidato 129 cambios del 19/09 no se declara
+  integrado como una unidad.
 
-## Historico: verdad operativa remota · 2026-09-20
+DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
+
+
+## Verdad operativa remota vigente · 2026-09-20
 
 Esta sección es la entrada autoritativa para continuar trabajo remoto. Las secciones
 locales del 2026-09-19 que siguen debajo se preservan como historia y evidencia; ya

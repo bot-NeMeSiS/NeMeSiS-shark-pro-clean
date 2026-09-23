@@ -6,9 +6,11 @@
   <meta name="theme-color" content="#020c18">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  {% set _founder_pwa = request.path.startswith('/admin/founder-os') or request.path.startswith('/admin/founder-control') or request.path.startswith('/admin/company-control-center') or request.path.startswith('/admin/founder-mobile') %}
+  {% set _founder_page = request.path.startswith('/admin/founder-os') or request.path.startswith('/admin/founder-control') or request.path.startswith('/admin/company-control-center') or request.path.startswith('/admin/founder-mobile') %}
+  {% set _founder_pwa = request.path == '/admin' or request.path.startswith('/admin/') or request.path == '/admin-login' %}
   <meta name="apple-mobile-web-app-title" content="{{ 'NeMeSiS Founder' if _founder_pwa else 'NeMeSiS' }}">
   <meta name="nemesis-version" content="{{ app_version }}">
+  <meta name="nemesis-app-icon-version" content="{{ app_icon_version }}">
   {% set _meta_title = title if title is defined and title else 'NeMeSiS SHARK PRO' %}
   {% set _meta_description = meta_description if meta_description is defined and meta_description else 'Deporte con contexto, evidencia y limites visibles.' %}
   {% set _canonical_url = canonical_url if canonical_url is defined and canonical_url else request.base_url %}
@@ -28,6 +30,7 @@
   <link rel="apple-touch-icon" sizes="{{ _touch_size }}x{{ _touch_size }}" href="{{ url_for('static', filename='img/app-icons/app-icon-' ~ _touch_size ~ '.png', v=app_icon_version) }}">
   {% endfor %}
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}-design-system-1-8" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
@@ -41,7 +44,7 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
-  {% if _founder_pwa %}
+  {% if _founder_page %}
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}">
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
   {% endif %}
@@ -174,12 +177,13 @@
   <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}" data-v934-shell="true">
     {% block content %}{% endblock %}
   </main>
+  {% block admin_page_navigation %}{% endblock %}
 
 
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>{{ ns_ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ns_ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>
-    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/support">{{ ns_ui("Soporte") }}</a></nav>
+    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/support">{{ ns_ui("Soporte") }}</a><a href="/instalar">Instalar app</a></nav>
   </footer>
 
   {% if show_mobile_bottom_nav %}{{ v933_mobile_bottom_nav(current_user and current_user.role != 'ADMIN') }}{% endif %}
@@ -542,6 +546,7 @@
     });
   })();
   </script>
+  <script src="{{ url_for('static', filename='pwa-install.js') }}?v={{ app_version }}-{{ app_icon_version }}" defer></script>
   <script src="{{ url_for('static', filename='v937-product-client.js') }}?v={{ app_version }}-crest-fallback-1" defer></script>
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>

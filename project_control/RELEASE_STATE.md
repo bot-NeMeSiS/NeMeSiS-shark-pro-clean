@@ -1,16 +1,18 @@
 # Release State
 
-## Estado comprobado - 2026-09-23
+## Estado remoto vigente · 2026-09-23
 
-GitHub main: `706094630d337f9e329a8401fae217b316a9b49c`. Ref local main:
-`454c3ca1abb79af6a8525f65daecc57c0958c0c1` (dos commits por detras, preservado).
-Checkout oficial: candidato de higiene desde main remoto, cambios locales sin commit.
-Produccion: NOT_OBSERVED en esta mision. El ZIP nuevo es evidencia de empaquetado
-LOCAL_ONLY, no una release publicada ni reemplazo del repositorio.
-PR72/60/68 siguen abiertas; PR72 conserva reparacion de cache sin commit en su worktree.
-La tabla operativa inferior fue reconciliada con Git; las notas de 20/09 son HISTORY.
+| ID | Tipo | SHA | Estado | Evidencia | Límite |
+|---|---|---|---|---|---|
+| MAIN_REMOTE | PRODUCTION | 228369d42447f37f3023a7f09216205057e4655c | LIVE_WEB_CRON | Render Web/Cron exact-SHA; PR #82 QA/Preflight/Smoke SUCCESS | Guard post-merge programado puede seguir en observación; consultar run actual |
+| PR78 | MERGED | 1e2b9d92bb4e61ffab39164f1f46b1fd3f756c01 | DELIVERED | Provider health read-only, 0 llamadas al render | Pago/acceso directo no inferidos |
+| PR80 | MERGED | 76e0ba1e53b10384c5af1bc32d19529e382adb00 | DELIVERED | PWA easy install, QA/Preflight/Smoke + Render exact-SHA | iPhone/Android/PC físico NO_VERIFICADO |
+| PR82 | MERGED | 228369d42447f37f3023a7f09216205057e4655c | LIVE | Direct check admin+CSRF, cooldown, evidencia saneada | Ninguna llamada real de proveedor ejecutada en esta entrega |
+| SENTINEL | INTERNAL_CONTROL | current main | PASS_LOCAL_SAFE | Fresh-process HTTP/browser boundary tests in every Smoke | Executor productivo deshabilitado por diseño; no REAL_PRODUCTION |
+| NEXT | ACTIVE_CONTROL | — | HYGIENE_RECONCILIATION | project_control/ACTIVE_WORK.md | No borrar evidencia/ramas; extraer trabajo único antes de cerrar PRs |
 
-## Historico: estado remoto · 2026-09-20
+El candidato acumulado del 19/09 sigue preservado como procedencia y no se considera
+publicado como unidad. Los bloques posteriores son integraciones selectivas contra main.
 
 | ID | Tipo | SHA | Estado | Evidencia | Límite |
 |---|---|---|---|---|---|

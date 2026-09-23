@@ -141,6 +141,7 @@ from engines.api_sports_provider_engine import (
 )
 from engines.api_exploitation_engine import (
     api_exploitation_summary,
+    probe_api_football_account,
     run_api_exploitation_if_due,
 )
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
@@ -277,6 +278,7 @@ from engines.telegram_message_formatter import (
 )
 from engines.telegram_visual_card_engine import (
     build_visual_card_for_message,
+    resolve_cached_visual_payload,
     telegram_visual_card_config,
 )
 from engines.route_health_engine import route_health_snapshot
@@ -3944,6 +3946,11 @@ def inject_security_context():
 
 @app.after_request
 def apply_security_headers_and_csrf(response):
+    if request.path == '/admin' or request.path == '/admin-login' or request.path.startswith(('/admin/', '/api/admin/')):
+        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
+        if 'no-store' not in current_cache_control:
+            response.headers['Cache-Control'] = 'private, no-store'
+        response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -12126,6 +12133,75 @@ def telegram_should_delay_message(message_type, force=False):
     return (not force) and telegram_message_is_automatic(message_type) and telegram_quiet_hours_active()
 
 
+TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES = 64 * 1024
+
+
+def serialize_telegram_queue_payload(payload, max_bytes=TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES):
+    """Serialize queue metadata as valid bounded JSON without clipping raw text."""
+    payload = payload if isinstance(payload, dict) else {}
+
+    def dump(value):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+    raw = dump(payload)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    def compact(value, depth=0, max_depth=6, string_limit=2000, list_limit=40, dict_limit=80):
+        if depth >= max_depth:
+            return None
+        if isinstance(value, dict):
+            result = {}
+            for index, (key, item) in enumerate(value.items()):
+                if index >= dict_limit:
+                    break
+                clean = compact(item, depth + 1, max_depth, string_limit, list_limit, dict_limit)
+                if clean is not None:
+                    result[str(key)[:120]] = clean
+            return result
+        if isinstance(value, (list, tuple)):
+            return [compact(item, depth + 1, max_depth, string_limit, list_limit, dict_limit) for item in list(value)[:list_limit]]
+        if isinstance(value, str):
+            return value[:string_limit]
+        if value is None or isinstance(value, (bool, int, float)):
+            return value
+        return str(value)[:500]
+
+    safe = compact(payload) or {}
+    safe["_queue_payload_truncated"] = True
+    raw = dump(safe)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    keep = (
+        "source", "trigger_type", "auto_job_key", "target_key", "target_kind", "membership", "priority",
+        "match_url", "app_url", "picks_url", "live_url", "button_text", "include_picks_button",
+        "include_live_button", "enable_link_preview", "reply_markup", "visual_card_type",
+        "visual_card_enabled", "visual_card_config", "visual_card_payload",
+    )
+    minimal = {}
+    for key in keep:
+        if key not in payload:
+            continue
+        clean = compact(payload[key], 0, 4, 1000, 12, 30)
+        if clean is not None:
+            minimal[key] = clean
+    minimal["_queue_payload_truncated"] = True
+    raw = dump(minimal)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    final = {"_queue_payload_truncated": True}
+    for key in (
+        "source", "trigger_type", "auto_job_key", "target_key", "target_kind", "membership", "priority",
+        "match_url", "app_url", "picks_url", "live_url", "button_text", "visual_card_type", "visual_card_enabled",
+    ):
+        if key not in payload or payload[key] is None:
+            continue
+        value = payload[key]
+        final[key] = value if isinstance(value, (bool, int, float)) else str(value)[:1000]
+    return dump(final)
+
 def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", payload=None, scheduled_at=None, dedupe_key="", force=False, max_attempts=3):
     seed_core()
     scheduled_at = scheduled_at or now_iso()
@@ -12156,7 +12232,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
                 title,
                 body,
                 as_int(payload.get("priority"), 70),
-                json.dumps(payload, ensure_ascii=False),
+                serialize_telegram_queue_payload(payload),
                 QUEUE_PENDING,
                 0,
                 max(1, as_int(max_attempts, 3)),
@@ -13415,6 +13491,8 @@ def telegram_error_category(description):
         return "HTML_PARSE_ERROR", "El mensaje tenía HTML inválido; la app reintenta automáticamente en texto plano."
     if "message is too long" in desc:
         return "MESSAGE_TOO_LONG", "El mensaje supera el límite de Telegram; reduce texto o picks por envío."
+    if any(marker in desc for marker in ("button_url_invalid", "button_type_invalid", "wrong http url", "inline keyboard")):
+        return "BUTTON_REJECTED", "Telegram rechazó un botón; se conserva el mensaje sin botones."
     if "too many requests" in desc or "retry after" in desc or "429" in desc:
         return "RATE_LIMITED", "Telegram ha limitado temporalmente los envíos; espera y reintenta."
     if "forbidden" in desc or "403" in desc:
@@ -13443,9 +13521,9 @@ def telegram_http_error_payload(exc):
         "status": category,
         "category": category,
         "action": action,
-        "error": str(description)[:700],
+        "error": action,
         "http_status": getattr(exc, "code", None),
-        "telegram": parsed,
+        "telegram": {"ok": False, "error_code": getattr(exc, "code", None)},
     }
 
 
@@ -13454,14 +13532,14 @@ def telegram_post_send_message(url, data):
     req = urllib.request.Request(url, data=encoded, method="POST")
     with urllib.request.urlopen(req, timeout=12) as res:
         response = json.loads(res.read().decode("utf-8", errors="replace"))
-    return telegram_transport_result(response)
-
-
 def telegram_transport_result(response, photo=False):
     if response.get("ok") is True and (response.get("result") or {}).get("message_id") is not None:
         return {"ok": True, "sent": True, "status": "SENT_PHOTO" if photo else "SENT", "category": "SENT", "telegram": response, "visual_card_sent": photo}
     if response.get("ok") is False:
-        return {"ok": False, "sent": False, "status": "API_REJECTED", "category": "API_REJECTED", "error": "Telegram rechazó el envío.", "http_status": response.get("error_code")}
+        category, action = telegram_error_category(response.get("description"))
+        if (response.get("error_code") or 0) >= 500:
+            return telegram_delivery_uncertain()
+        return {"ok": False, "sent": False, "status": category, "category": category, "error": action, "http_status": response.get("error_code")}
     return telegram_delivery_uncertain()
 
 
@@ -13474,7 +13552,7 @@ def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=No
     payload = payload or {}
     fields = {
         "chat_id": str(chat_id),
-        "caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
+"caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
         "parse_mode": "HTML",
     }
     reply_markup = telegram_reply_markup_from_payload(payload)
@@ -13523,58 +13601,67 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
         data["reply_markup"] = json.dumps(reply_markup, ensure_ascii=False)
     visual_card_type = str(payload.get("visual_card_type") or "").strip()
     photo_attempted = False
+    visual_evidence = {"requested": bool(visual_card_type and payload.get("visual_card_enabled")), "generated": None, "type": visual_card_type}
     if visual_card_type and payload.get("visual_card_enabled"):
         try:
-            card_result = build_visual_card_for_message(visual_card_type, payload.get("visual_card_payload") or payload)
+            visual_payload = resolve_cached_visual_payload(payload.get("visual_card_payload") or payload, request_read_db())
+            card_result = build_visual_card_for_message(visual_card_type, visual_payload)
+            visual_evidence["generated"] = bool(card_result.get("ok") and card_result.get("png_bytes"))
             if card_result.get("ok") and card_result.get("png_bytes"):
                 photo_attempted = True
                 sent_photo = telegram_post_send_photo(token, chat_id, card_result.get("png_bytes"), text, payload)
-                sent_photo["visual_card"] = {"mode": card_result.get("mode"), "type": visual_card_type, "assets": card_result.get("asset_diagnostics", {})}
+                sent_photo["visual_card"] = {**visual_evidence, "mode": card_result.get("mode"), "assets": card_result.get("asset_diagnostics", {})}
                 if sent_photo.get("sent") or sent_photo.get("delivery_uncertain"):
                     return sent_photo
                 if sent_photo.get("http_status") != 400:
                     return sent_photo
+                if sent_photo.get("category") == "BUTTON_REJECTED":
+                    data.pop("reply_markup", None)
                 card_result["fallback_reason"] = "photo_rejected"
             payload["visual_card_fallback_reason"] = card_result.get("fallback_reason") or card_result.get("mode") or "not_available"
         except urllib.error.HTTPError as exc:
             if photo_attempted and exc.code >= 500:
-                return telegram_delivery_uncertain()
+                return {**telegram_delivery_uncertain(), "visual_card": {**visual_evidence, "mode": "png"}}
             if photo_attempted and exc.code != 400:
                 return telegram_http_error_payload(exc)
-            payload["visual_card_fallback_reason"] = (telegram_http_error_payload(exc).get("category") or "photo_http_error")[:120]
+            failure = telegram_http_error_payload(exc)
+            if failure.get("category") == "BUTTON_REJECTED":
+                data.pop("reply_markup", None)
+            payload["visual_card_fallback_reason"] = failure.get("category") or "photo_http_error"
         except Exception:
             if photo_attempted:
-                return telegram_delivery_uncertain()
+                return {**telegram_delivery_uncertain(), "visual_card": {**visual_evidence, "mode": "png"}}
             payload["visual_card_fallback_reason"] = "visual_render_failed"
-    try:
-        sent_message = telegram_post_send_message(url, data)
-        if payload.get("visual_card_fallback_reason"):
-            sent_message["visual_card"] = {"mode": "text_fallback", "reason": payload.get("visual_card_fallback_reason"), "type": visual_card_type}
-        return sent_message
-    except urllib.error.HTTPError as exc:
-        if exc.code >= 500:
+    sent_message = telegram_send_text_with_fallback(url, data)
+    if payload.get("visual_card_fallback_reason"):
+        sent_message["visual_card"] = {**visual_evidence, "mode": "text_fallback", "reason": payload["visual_card_fallback_reason"]}
+    return sent_message
+
+
+def telegram_send_text_with_fallback(url, data):
+    """One conservative retry only after a definite format/button rejection."""
+    def attempt(body):
+        try:
+            return telegram_post_send_message(url, body)
+        except urllib.error.HTTPError as exc:
+            return telegram_delivery_uncertain() if exc.code >= 500 else telegram_http_error_payload(exc)
+        except Exception:
             return telegram_delivery_uncertain()
-        first = telegram_http_error_payload(exc)
-        if first.get("category") == "HTML_PARSE_ERROR":
-            plain = telegram_plain_text_from_html(text)
-            retry_data = dict(data)
-            retry_data.pop("parse_mode", None)
-            retry_data["text"] = plain[:3900] or "Mensaje NeMeSiS SHARK PRO"
-            try:
-                retry = telegram_post_send_message(url, retry_data)
-                retry["retry_plain"] = True
-                retry["first_error"] = first
-                return retry
-            except urllib.error.HTTPError as retry_exc:
-                second = telegram_http_error_payload(retry_exc)
-                second["first_error"] = first
-                second["retry_plain"] = True
-                return second
-            except Exception:
-                return {**telegram_delivery_uncertain(), "retry_plain": True}
+
+    first = attempt(data)
+    category = first.get("category")
+    if first.get("http_status") != 400 or category not in {"HTML_PARSE_ERROR", "BUTTON_REJECTED"}:
         return first
-    except Exception:
-        return telegram_delivery_uncertain()
+    retry_data = dict(data)
+    retry_data.pop("reply_markup", None)
+    if category == "HTML_PARSE_ERROR":
+        retry_data.pop("parse_mode", None)
+        retry_data["text"] = telegram_plain_text_from_html(data["text"])
+    retry = attempt(retry_data)
+    retry["retry_plain"] = category == "HTML_PARSE_ERROR"
+    retry["retry_without_buttons"] = True
+    retry["first_error"] = first
+    return retry
 
 
 def process_premium_telegram_queue(limit=5, force=False):
@@ -14054,7 +14141,7 @@ def enqueue_v771_telegram_activity(force=False, limit=6):
             dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
             result = enqueue_telegram_message(
                 kind,
-                candidate.get("title") or "Actividad SHARK",
+                candidate.get('title') or "Actividad SHARK",
                 destination_body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
@@ -14212,6 +14299,23 @@ def automation_get(key, default=None):
     try:
         return json.loads(item.get("value_json") or "null")
     except json.JSONDecodeError:
+        return default
+
+def automation_get_bounded(key, default=None, max_bytes=64 * 1024):
+    """Read small automation state safely for request-time admin summaries."""
+    try:
+        item = one(
+            "SELECT CASE WHEN length(CAST(value_json AS BLOB))<=? THEN value_json ELSE NULL END AS value_json, "
+            "length(CAST(value_json AS BLOB)) AS value_bytes FROM automation_state WHERE key=?",
+            (max(1024, int(max_bytes)), key),
+        )
+    except Exception:
+        return default
+    if not item or item.get("value_json") is None:
+        return default
+    try:
+        return json.loads(item.get("value_json") or "null")
+    except (json.JSONDecodeError, TypeError, ValueError):
         return default
 
 
@@ -14838,6 +14942,18 @@ def service_worker():
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Service-Worker-Allowed"] = "/"
     return response
+
+
+@app.route("/instalar")
+@app.route("/install-app")
+@app.route("/anadir-a-inicio")
+def pwa_install_guide_page():
+    return render_template(
+        "install_app.html",
+        title="Instalar NeMeSiS | NeMeSiS SHARK PRO",
+        meta_description="Añade NeMeSiS a la pantalla de inicio de iPhone, Android o PC.",
+        canonical_url=request.url_root.rstrip("/") + "/instalar",
+    )
 
 
 @app.route("/manifest.json")
@@ -20846,6 +20962,299 @@ def admin_picks_page():
     return render_template("admin_picks.html", data=data, message=message, result=result)
 
 
+
+V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS = 300
+V945_PROVIDER_DIRECT_CHECKS = ("api_football", "sportsdb", "the_odds")
+
+
+def _v945_provider_direct_state_key(provider):
+    return "v945_provider_direct_check:" + str(provider or "").strip().lower()
+
+
+def _v945_provider_safe_quota(value):
+    value = value if isinstance(value, dict) else {}
+    allowed = (
+        "daily_limit", "daily_used", "daily_remaining",
+        "minute_limit", "minute_remaining",
+        "requests_remaining", "requests_used", "requests_last",
+    )
+    clean = {}
+    for key in allowed:
+        if key not in value:
+            continue
+        try:
+            clean[key] = max(0, int(value.get(key) or 0))
+        except (TypeError, ValueError):
+            continue
+    return clean
+
+
+def _v945_provider_direct_age_seconds(check):
+    raw = str((check or {}).get("checked_at") or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        return max(0, int((datetime.now(TZ) - parsed.astimezone(TZ)).total_seconds()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _v945_provider_direct_snapshot(provider):
+    return automation_get_bounded(
+        _v945_provider_direct_state_key(provider),
+        {},
+        max_bytes=24 * 1024,
+    ) or {}
+
+
+def v945_provider_direct_check(provider):
+    """One explicit, bounded provider probe; never called while rendering a page."""
+    provider = str(provider or "").strip().lower()
+    if provider not in V945_PROVIDER_DIRECT_CHECKS:
+        return {
+            "ok": False, "provider": provider, "status": "INVALID_PROVIDER",
+            "external_calls": 0, "secrets_visible": False,
+        }, 400
+
+    previous = _v945_provider_direct_snapshot(provider)
+    age = _v945_provider_direct_age_seconds(previous)
+    if previous and age is not None and age < V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS:
+        reused = dict(previous)
+        reused.update({
+            "reused": True,
+            "external_calls": 0,
+            "cooldown_remaining_seconds": max(
+                0, V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS - age
+            ),
+        })
+        return reused, 200
+
+    if provider == "api_football":
+        configured = any(env_present(name) for name in (
+            "API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"
+        ))
+    elif provider == "the_odds":
+        configured = env_present("THE_ODDS_API_KEY")
+    else:
+        configured = bool(thesportsdb_key())
+
+    checked_at = now_iso()
+    if not configured:
+        result = {
+            "ok": False, "provider": provider, "status": "NOT_CONFIGURED",
+            "checked_at": checked_at, "http_status": 0, "external_calls": 0,
+            "quota": {}, "plan_state": "NOT_CONFIGURED",
+            "error_code": "MISSING_CONFIGURATION", "secrets_visible": False,
+        }
+        automation_set(_v945_provider_direct_state_key(provider), result)
+        return result, 200
+
+    result = {
+        "ok": False, "provider": provider, "status": "CONNECTION_FAILED",
+        "checked_at": checked_at, "http_status": 0, "external_calls": 1,
+        "quota": {}, "plan_state": "NOT_VERIFIED", "error_code": "",
+        "secrets_visible": False,
+    }
+    try:
+        if provider == "api_football":
+            raw = probe_api_football_account() or {}
+            plan = str(raw.get("plan") or "").strip()
+            active = raw.get("active") if isinstance(raw.get("active"), bool) else None
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "plan": plan[:80],
+                "active": active,
+                "subscription_end": str(raw.get("end") or "")[:80],
+                "quota": _v945_provider_safe_quota(raw.get("quota")),
+            })
+            plan_key = plan.casefold()
+            if result["ok"] and plan_key == "free":
+                result["plan_state"] = "FREE_PLAN_VERIFIED"
+            elif result["ok"] and plan and plan_key not in {"inaccessible", "unknown", "none"}:
+                result["plan_state"] = "PAID_PLAN_VERIFIED"
+            elif result["ok"]:
+                result["plan_state"] = "CONNECTION_VERIFIED_PLAN_UNKNOWN"
+        elif provider == "the_odds":
+            raw = odds_api_request("sports") or {}
+            payload = raw.get("payload")
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "quota": _v945_provider_safe_quota(raw.get("quota")),
+                "items_observed": len(payload) if isinstance(payload, list) else 0,
+                "plan_state": "KEY_AND_QUOTA_VERIFIED"
+                    if raw.get("ok") and _v945_provider_safe_quota(raw.get("quota"))
+                    else "KEY_VERIFIED_PLAN_UNKNOWN" if raw.get("ok") else "NOT_VERIFIED",
+            })
+        else:
+            payload = sportsdb_v1("all_leagues.php")
+            shape_ok = isinstance(payload, dict) and isinstance(payload.get("leagues"), list)
+            result.update({
+                "ok": shape_ok,
+                "status": "CONNECTED" if shape_ok else "PROVIDER_REJECTED",
+                "http_status": 200 if isinstance(payload, dict) else 0,
+                "items_observed": len(payload.get("leagues") or []) if shape_ok else 0,
+                "plan_state": "KEY_VERIFIED_PLAN_UNKNOWN" if shape_ok else "NOT_VERIFIED",
+            })
+    except Exception as exc:
+        result["status"] = "CONNECTION_FAILED"
+        result["error_code"] = type(exc).__name__[:80]
+
+    if not result.get("ok") and not result.get("error_code"):
+        result["error_code"] = (
+            f"HTTP_{result.get('http_status')}" if result.get("http_status")
+            else "PROVIDER_REJECTED"
+        )
+    automation_set(_v945_provider_direct_state_key(provider), result)
+    return result, 200
+
+def v945_provider_health_snapshot():
+    """Read-only provider health from persisted cron evidence; never calls a provider."""
+    detail = automation_get_bounded("telegram_tick_last_detail", {}, max_bytes=192 * 1024) or {}
+    compact = detail.get("compact") if isinstance(detail, dict) and isinstance(detail.get("compact"), dict) else {}
+    if not compact:
+        compact = automation_get_bounded("last_automation_result", {}, max_bytes=128 * 1024) or {}
+    pipeline = compact.get("sports_pipeline") if isinstance(compact, dict) and isinstance(compact.get("sports_pipeline"), dict) else {}
+    current = pipeline.get("current_sync") if isinstance(pipeline.get("current_sync"), dict) else {}
+    api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
+    sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
+    odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
+    access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
+    plan = pipeline.get("provider_plan_observation") if isinstance(pipeline.get("provider_plan_observation"), dict) else {}
+    quota = pipeline.get("quota_observation") if isinstance(pipeline.get("quota_observation"), dict) else {}
+    quota_values = quota.get("values") if isinstance(quota.get("values"), dict) else {}
+    job = pipeline.get("job_execution") if isinstance(pipeline.get("job_execution"), dict) else {}
+
+    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
+    sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
+    odds_configured = env_present("THE_ODDS_API_KEY")
+
+    def provider_card(key, label, configured, observed, *, plan_value=None, observed_at="", quota_data=None, billing_hint=""):
+        observed = observed if isinstance(observed, dict) else {}
+        state = str(observed.get("state") or observed.get("status") or "UNKNOWN").strip() or "UNKNOWN"
+        reason = str(observed.get("reason_code") or observed.get("failure_class") or "").strip()
+        joined = f"{state} {reason}".upper()
+        contributed = bool(observed.get("data_contributed")) or as_int(observed.get("processed"), 0) > 0 or as_int(observed.get("fixtures_count"), 0) > 0
+        ok_value = observed.get("ok") if isinstance(observed.get("ok"), bool) else None
+        restricted = any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
+        if not configured and key != "sportsdb":
+            status = "NO_CONFIGURADA"
+            label_status = "No configurada"
+            severity = "danger"
+            action = "Configurar credenciales en Render"
+        elif restricted:
+            status = "REVISAR_PLAN_ACCESO"
+            label_status = "Revisar acceso/plan"
+            severity = "warning"
+            action = "Revisar suscripción, plan y permisos del proveedor"
+        elif contributed or ok_value is True:
+            status = "OPERATIVA"
+            label_status = "Operativa"
+            severity = "success"
+            action = "Sin acción inmediata"
+        elif "CACHE" in joined:
+            status = "CACHE"
+            label_status = "Usando caché"
+            severity = "neutral"
+            action = "Verificar en el próximo ciclo real"
+        else:
+            status = "SIN_VERIFICACION_RECIENTE"
+            label_status = "Sin verificación reciente"
+            severity = "warning" if configured else "neutral"
+            action = "Revisar última sincronización"
+        billing_status = billing_hint or "No verificable automáticamente"
+        if plan_value:
+            billing_status = f"Plan observado: {plan_value}"
+        elif restricted:
+            billing_status = "Acceso limitado; revisar suscripción"
+        return {
+            "key": key,
+            "label": label,
+            "configured": bool(configured),
+            "status": status,
+            "status_label": label_status,
+            "severity": severity,
+            "state": state,
+            "reason_code": reason,
+            "data_contributed": contributed,
+            "ok": ok_value,
+            "processed": as_int(observed.get("processed") or observed.get("fixtures_count"), 0),
+            "external_calls": as_int(observed.get("external_calls"), 0),
+            "observed_at": str(observed_at or ""),
+            "billing_status": billing_status,
+            "quota": quota_data or {},
+            "next_action": action,
+        }
+
+    plan_value = plan.get("value") if str(plan.get("state") or "").upper() == "OBSERVED" else None
+    api_card = provider_card(
+        "api_football", "API-Football / API-Sports", api_football_configured, api_football,
+        plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
+    )
+    if access:
+        api_card["access_state"] = access.get("state") or "UNKNOWN"
+        api_card["authenticated"] = access.get("authenticated") if isinstance(access.get("authenticated"), bool) else None
+        api_card["access_freshness"] = access.get("freshness") or pipeline.get("provider_access_freshness") or "UNKNOWN"
+
+    sportsdb_card = provider_card(
+        "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
+        observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
+    )
+    if sportsdb_card["data_contributed"] and not sportsdb_configured:
+        sportsdb_card["status"] = "OPERATIVA_FALLBACK"
+        sportsdb_card["status_label"] = "Fallback operativo"
+        sportsdb_card["severity"] = "success"
+        sportsdb_card["next_action"] = "Sin acción inmediata; revisar límites del servicio si aplica"
+
+    odds_card = provider_card(
+        "the_odds", "The Odds API", odds_configured, odds,
+        observed_at=job.get("finished_at"), billing_hint="Pago no verificable desde la app; acceso inferido por el último ciclo",
+    )
+
+    providers = [api_card, sportsdb_card, odds_card]
+    for item in providers:
+        direct = _v945_provider_direct_snapshot(item["key"])
+        item["direct_check"] = direct
+        item["direct_check_supported"] = True
+        if direct.get("plan_state") == "PAID_PLAN_VERIFIED":
+            plan_label = str(direct.get("plan") or "Plan de pago").strip()[:80]
+            item["billing_status"] = f"Plan verificado directamente: {plan_label}"
+        elif direct.get("plan_state") == "FREE_PLAN_VERIFIED":
+            item["billing_status"] = "Plan FREE verificado directamente"
+        elif direct.get("ok"):
+            item["billing_status"] = (
+                item.get("billing_status") or "Conexión directa verificada; plan no expuesto"
+            )
+    alerts = [
+        {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
+        for item in providers if item["status"] in {"NO_CONFIGURADA", "REVISAR_PLAN_ACCESO"}
+    ]
+    selected_source = current.get("selected_source") or "NO_CONFIRMED_SOURCE"
+    return {
+        "ok": True,
+        "generated_at_madrid": datetime.now(MADRID_TZ).isoformat(timespec="seconds"),
+        "source": "PERSISTED_CRON_EVIDENCE",
+        "provider_calls_during_render": 0,
+        "selected_source": selected_source,
+        "sports_pipeline_status": pipeline.get("status") or "UNKNOWN",
+        "job_finished_at": job.get("finished_at") or "",
+        "providers": providers,
+        "alerts": alerts,
+        "has_alerts": bool(alerts),
+        "external_services": {
+            "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
+            "openai_configured": env_present("OPENAI_API_KEY"),
+            "stripe_configured": env_present("STRIPE_SECRET_KEY"),
+            "note": "Configurado no equivale a pagado u operativo; solo se afirma acceso cuando hay evidencia persistida.",
+        },
+    }
+
 @app.route("/admin/data-center", methods=["GET", "POST"])
 def admin_data_center_page():
     if not is_admin_session():
@@ -20884,7 +21293,35 @@ def admin_data_center_page():
         v932_admin_sports_diagnostics(sports),
     )
     data["v934_realtime"] = get_v934_realtime_context(_summary)
+    data["provider_health"] = v932_safe_context(
+        request.path, "admin", "provider_health", v945_provider_health_snapshot,
+        {"ok": False, "providers": [], "alerts": [], "source": "UNAVAILABLE", "provider_calls_during_render": 0},
+    )
     return render_template("admin_data_center.html", data=data, message=message, result=result)
+
+@app.route("/api/admin/provider-health")
+def api_admin_provider_health():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v945_provider_health_snapshot())
+
+
+@app.route("/api/admin/provider-health/check", methods=["POST"])
+def api_admin_provider_health_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    result, status = v945_provider_direct_check(payload.get("provider"))
+    return jsonify({"version": APP_VERSION, **result}), status
+
+
+@app.route("/admin/provider-health/check", methods=["POST"])
+def admin_provider_health_check():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-center")
+    result, _status = v945_provider_direct_check(request.form.get("provider"))
+    marker = urllib.parse.quote(str(result.get("status") or "CHECKED"), safe="")
+    return redirect(f"/admin/data-center?provider_check={marker}#provider-health")
 
 
 @app.route("/admin/api-sports")
@@ -29234,12 +29671,84 @@ def v566_intelligence_hub_page():
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
 
 
+def v928_telegram_overview_fast():
+    """Bounded, read-only Telegram health for request-time admin UI."""
+    token_present = env_present("TELEGRAM_BOT_TOKEN")
+    chat_present = env_present("TELEGRAM_CHAT_ID")
+    auto_env = bool(
+        env_bool("ENABLE_TELEGRAM_AUTOMATION", True)
+        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", True)
+        or env_bool("ENABLE_TELEGRAM_AUTO", False)
+        or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
+    )
+    try:
+        settings_row = one("SELECT enabled FROM telegram_settings ORDER BY id LIMIT 1") or {}
+    except Exception:
+        settings_row = {}
+    settings_enabled = bool(settings_row.get("enabled")) if settings_row else auto_env
+    last_cron = (
+        automation_get_bounded("last_cron_telegram_call", {})
+        or automation_get_bounded("cron_telegram_tick_last_call", {})
+        or {}
+    )
+    last_http = automation_get_bounded("last_cron_http_status", "")
+    last_result = automation_get_bounded("last_cron_result", "")
+    try:
+        latest = one(
+            "SELECT status,error_message,sent_at,sent_at_madrid,updated_at,created_at "
+            "FROM telegram_queue ORDER BY COALESCE(sent_at,updated_at,created_at) DESC LIMIT 1"
+        ) or {}
+    except Exception:
+        latest = {}
+    pending = safe_count("telegram_queue", "lower(coalesce(status,'')) IN ('pending','queued')")
+    failed = safe_count("telegram_queue", "lower(coalesce(status,''))='failed'")
+    if not (token_present and chat_present):
+        automatic_status = "Configuración pendiente"
+    elif not (auto_env and settings_enabled):
+        automatic_status = "Desactivado"
+    elif last_cron or str(last_http) == "200":
+        automatic_status = "Cron activo"
+    else:
+        automatic_status = "Esperando ciclo"
+    return {
+        "token_present": token_present,
+        "chat_id_present": chat_present,
+        "settings_enabled": settings_enabled,
+        "env_auto_enabled": auto_env,
+        "effective_enabled": bool(token_present and chat_present and auto_env and settings_enabled),
+        "automatic_status": automatic_status,
+        "pending": pending,
+        "failed_today": failed,
+        "last_error": str(latest.get("error_message") or "")[:240],
+        "last_cron_telegram_call": last_cron,
+        "last_cron_http_status": last_http,
+        "last_cron_result": last_result,
+        "last_sent_at": latest.get("sent_at_madrid") or latest.get("sent_at") or "",
+        "summary_mode": "BOUNDED_READ_ONLY",
+        "no_provider_call": True,
+    }
+
+
+def v928_automation_overview_fast():
+    """Automation summary without loading large diagnostic payloads."""
+    from engines.automation_orchestrator_engine import build_automation_center_summary
+    state = {
+        "last_cron_telegram_call": automation_get_bounded("last_cron_telegram_call", {}) or automation_get_bounded("cron_telegram_tick_last_call", {}) or {},
+        "last_cron_daily_call": automation_get_bounded("last_cron_daily_call", {}) or automation_get_bounded("cron_daily_run_last_call", {}) or {},
+        "last_cron_data_backup_call": automation_get_bounded("last_cron_data_backup_call", {}) or {},
+        "last_cron_highlights_sync": automation_get_bounded("last_cron_highlights_sync", {}) or automation_get_bounded("highlights_sync_last_call", {}) or {},
+    }
+    result = build_automation_center_summary(DB_PATH, APP_VERSION, env=dict(os.environ), state=state)
+    result["summary_mode"] = "BOUNDED_READ_ONLY"
+    result["no_provider_call"] = True
+    return result
+
 def v928_admin_overview(data=None):
     """Read-only command-center data. It never calls an external provider."""
     data = data or {}
     errors = latest_observability_errors(DB_PATH, limit=8)
-    telegram = telegram_diagnostics_safe()
-    automation = v773_automation_center_context()
+    telegram = v928_telegram_overview_fast()
+    automation = v928_automation_overview_fast()
     match_hub_data = data.get("match_hub") or {}
     counts = match_hub_data.get("counts") or {}
     try:
@@ -29289,7 +29798,7 @@ def v566_admin_dashboard_page():
 def api_admin_control_center():
     if not is_admin_session():
         return admin_json_forbidden()
-    telegram = telegram_diagnostics_safe()
+    telegram = v928_telegram_overview_fast()
     critical_routes = [
         "/", "/login", "/registro", "/dashboard", "/sports-hub", "/live", "/calendar", "/partidos",
         "/picks", "/shark-core", "/admin/control-center", "/admin/data-center", "/admin/matches-sync",
@@ -31210,13 +31719,21 @@ def v810_telegram_preview_samples():
                     meta = json.loads(row["meta_json"] or "{}")
                 except (ValueError, TypeError):
                     meta = {}
-                visual = meta.get("visual_card", {}) if isinstance(meta, dict) else {}
+                stored = meta.get("meta", meta) if isinstance(meta, dict) else {}
+                evidence = stored.get("response", stored) if isinstance(stored, dict) else {}
+                evidence = evidence if isinstance(evidence, dict) else {}
+                visual = evidence.get("visual_card", {})
                 mode = visual.get("mode") if isinstance(visual, dict) else None
                 reason = visual.get("reason") if isinstance(visual, dict) else None
-                delivery_evidence.append({"id": row["id"], "type": row["message_type"], "status": row["status"],
-                    "destination": row["destination_masked"] or "Sin dato", "sent_at": row["sent_at_madrid"] or "Sin envío confirmado",
+                delivery_evidence.append({"id": stored.get("delivery_id") or row["id"], "type": row["message_type"], "status": row["status"],
+                    "source": evidence.get("source") if evidence.get("source") in {"manual_admin", "automatic_cron"} else "Sin origen registrado",
+                    "dedupe": bool(evidence.get("dedupe_key")),
+                    "error": sanitize_runtime_error_value(evidence.get("error") or ""),
+                    "requested": visual.get("requested") if isinstance(visual, dict) else None,
+                    "generated": visual.get("generated") if isinstance(visual, dict) else None,
+                    "destination": row["destination_masked"] or "Sin dato", "sent_at": evidence.get("sent_at_madrid") or row["sent_at_madrid"] or "Sin envío confirmado",
                     "visual": {"png": "Tarjeta PNG", "text_fallback": "Fallback de texto"}.get(mode, "Sin evidencia visual registrada"),
-                    "reason": reason if reason in {"pillow_not_available", "visual_render_failed", "photo_rejected", "HTML_PARSE_ERROR", "visual_cards_disabled", "send_live_cards_disabled"} else ""})
+                    "reason": reason if reason in {"pillow_not_available", "visual_render_failed", "photo_rejected", "HTML_PARSE_ERROR", "BUTTON_REJECTED", "visual_cards_disabled", "send_live_cards_disabled"} else ""})
         except sqlite3.Error:
             pass
     available, deliveries = {}, []
@@ -31248,7 +31765,7 @@ def v810_telegram_preview_samples():
         text = v771_format_activity_candidate({"kind": kind, "payload": payload})
         if kind == "system_message":
             text = format_system_message("Conecta tu cuenta desde la sección Telegram de NeMeSiS.", title="Bienvenido a SHARK")
-        card = build_visual_card_for_message(kind, payload)
+        card = build_visual_card_for_message(kind, resolve_cached_visual_payload(payload, connection))
         png = card.get("png_bytes")
         caption = telegram_photo_caption(premium_text_html(text))
         reason = card.get("fallback_reason", "")
@@ -31665,12 +32182,25 @@ def api_admin_v938_operations_run_safe_scan():
 def api_admin_v938_operations_generate_prompt():
     if not is_admin_session():
         return admin_json_forbidden()
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("issue_id", ""), str):
+        return jsonify({"ok": False, "error": "operations_invalid_request"}), 400
+    issue_id = payload.get("issue_id", "").strip()
+    if len(issue_id) > 120 or any(ord(char) < 32 for char in issue_id):
+        return jsonify({"ok": False, "error": "operations_invalid_issue_id"}), 400
     snapshot = v938_operations_snapshot()
-    issue_id = str(payload.get("issue_id") or "").strip()
-    issue = next((item for item in snapshot.get("incidents") or [] if item.get("issue_id") == issue_id), {})
-    if not issue and snapshot.get("incidents"):
-        issue = snapshot["incidents"][0]
+    incidents = snapshot.get("incidents")
+    if not isinstance(incidents, list):
+        return jsonify({"ok": False, "error": "operations_snapshot_unavailable"}), 503
+    rows = [item for item in incidents if isinstance(item, dict) and item.get("issue_id")]
+    # Empty requests retain the legacy next-task contract; an explicit ID never falls back.
+    if not issue_id and rows:
+        issue_id = rows[0]["issue_id"]
+    matches = [item for item in rows if item.get("issue_id") == issue_id]
+    if len(matches) > 1:
+        return jsonify({"ok": False, "error": "operations_issue_identity_conflict"}), 409
+    from engines.admin_operations_workbench import safe_operations_issue
+    issue = safe_operations_issue(matches[0]) if matches else {}
     return jsonify({
         "ok": bool(issue),
         "version": APP_VERSION,
@@ -32648,7 +33178,7 @@ def admin_founder_os_page():
     return render_template(
         "admin_founder_os.html",
         data=dashboard_data(),
-        founder_os=founder_os_snapshot(DB_PATH),
+        founder_os=founder_os_snapshot(DB_PATH, read_only=True),
         title="NeMeSiS Founder OS",
     )
 
@@ -32657,7 +33187,9 @@ def admin_founder_os_page():
 def api_admin_founder_os():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "founder_os": founder_os_snapshot(DB_PATH)})
+    snapshot = founder_os_snapshot(DB_PATH, read_only=True)
+    available = snapshot.get('available', False)
+    return jsonify({"ok": available, "founder_os": snapshot}), 200 if available else 503
 
 
 @app.route("/admin/founder-os/obligations/save", methods=["POST"])
@@ -32695,7 +33227,14 @@ def admin_founder_os_mark_paid(obligation_id):
 def admin_founder_os_ack_alert(alert_id):
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    founder_acknowledge_alert(DB_PATH, alert_id)
+    result = founder_acknowledge_alert(DB_PATH, alert_id)
+    if not result.get('acknowledged'):
+        return render_template(
+            'admin_founder_os.html', data=dashboard_data(),
+            founder_os=founder_os_snapshot(DB_PATH, read_only=True),
+            action_error='No se confirmó el cambio. La alerta no existe o ya no está abierta.',
+            title='Founder Control',
+        ), 409
     return redirect("/admin/founder-os?alert=ack#inbox")
 
 

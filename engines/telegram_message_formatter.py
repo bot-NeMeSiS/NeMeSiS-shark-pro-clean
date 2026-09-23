@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 
 from .madrid_time_engine import format_telegram_match_time_madrid
 from .v935_launch_trust_engine import match_status_truth
+from .content_rights_engine import classify_media_asset
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -51,7 +52,7 @@ TRANSPARENCY_FOOTER = "Fuente: NeMeSiS · Evidencia: datos disponibles. Limitaci
 
 def first_value(item, *keys, default=None):
     """An observed zero is not a missing value."""
-    return next((item[key] for key in keys if item.get(key) is not None and str(item[key]).strip() not in {"", "None", "null", "undefined", "nan"}), default)
+    return next((item[key] for key in keys if _text(item.get(key), "")), default)
 
 
 def public_link(value):
@@ -140,9 +141,11 @@ def pick_result_label(pick):
 
 def highlight_link(highlight):
     # A URL is not evidence of playback or redistribution rights.
-    if highlight.get("blocked") or str(highlight.get("rights_status") or "").lower() in {"blocked", "denied"}:
+    if highlight.get("blocked"):
         return ""
-    return public_link(first_value(highlight, "safe_url", "detail_url", "url", "source_url", "video_url", "highlight_url"))
+    url = public_link(first_value(highlight, "safe_url", "detail_url", "url", "source_url", "video_url", "highlight_url"))
+    decision = classify_media_asset({**highlight, "url": url}, channel="TELEGRAM")
+    return url if decision["can_display"] else ""
 
 
 def _message_header(title, subtitle=""):
@@ -173,8 +176,10 @@ def _join_message(lines, limit=3900):
 
 
 def _text(value, fallback="Pendiente"):
+    if isinstance(value, (dict, list, tuple, set, bool)):
+        return fallback
     value = str(value if value is not None else "").strip()
-    return value if value and value.lower() not in {"none", "null", "undefined", "nan"} else fallback
+    return value if value and value.lower() not in {"none", "null", "undefined", "nan", "n/a", "inf", "-inf"} else fallback
 
 
 def _dt(value=None):
@@ -245,9 +250,7 @@ def status_label(item):
 
 
 def _clean_metric(value, suffix=""):
-    if value in (None, "", "None"):
-        return "—"
-    text = str(value).strip()
+    text = _text(value, "Sin dato")
     return f"{text}{suffix}" if suffix and not text.endswith(suffix) else text
 
 
@@ -259,7 +262,7 @@ def _pressure_line(item):
     attacks = first_value(item, "dangerous_attacks", "attacks")
     bits = []
     if possession not in (None, ""):
-        bits.append(f"posesión {_clean_metric(possession, '%') if str(possession).isdigit() else possession}")
+        bits.append(f"posesión {_clean_metric(possession, '%') if str(possession).isdigit() else _text(possession)}")
     if shots not in (None, ""):
         bits.append(f"tiros a puerta {_clean_metric(shots)}")
     if corners not in (None, ""):
@@ -270,9 +273,7 @@ def _pressure_line(item):
 
 
 def _confidence_label(value):
-    if value in (None, ""):
-        return "Pendiente"
-    text = str(value)
+    text = _text(value)
     return f"{text}/100" if text.isdigit() else text
 
 
@@ -320,7 +321,7 @@ def format_live_alert_message(match=None):
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(match)}",
         f"⚽ {match_title(match)}",
-        f"📊 {score_label(match)} · {status_label(match)}",
+        f"📊 {score_label(match) if live else 'Marcador pendiente'} · {status_label(match)}",
         f"🕒 {madrid_match_time_label(match)}",
     ]))
     minute = first_value(match, "minute", "elapsed")
@@ -329,7 +330,7 @@ def format_live_alert_message(match=None):
     event = first_value(match, "live_alert", "event_title")
     if live and event:
         lines.extend(_section("Evento", [_text(event)]))
-    lines.extend(_section("Lectura real", [_pressure_line(match)]))
+    lines.extend(_section("Lectura real", [_pressure_line(match) if live else "Esperando una observación vigente. No se publica contexto LIVE desactualizado."]))
     lines.extend(_section("Limitación", ["Si el proveedor no ofrece tracking avanzado, NeMeSiS no lo simula."]))
     lines.extend(_message_footer("Abrir directo · Ver partido"))
     return _join_message(lines, 3200)
@@ -367,7 +368,7 @@ def format_pick_message(pick=None):
     if bookmaker:
         bet_lines.append(f"Casa: {_text(bookmaker)}")
     if value not in (None, ""):
-        bet_lines.append(f"Value: {value}")
+        bet_lines.append(f"Value: {_text(value)}")
     lines.extend(_section("Entrada", bet_lines))
     lines.extend(_section("Contexto SHARK", [reason]))
     lines.extend(_section("Riesgo a vigilar", [caution]))
@@ -386,10 +387,7 @@ def _v889_odds_label(value):
 
 
 def _v889_value(value, fallback="Pendiente"):
-    text = str(value or "").strip()
-    if not text or text.lower() in {"none", "null", "undefined", "nan"}:
-        return fallback
-    return text
+    return _text(value, fallback)
 
 
 def format_premium_pick_message(pick=None, quality=None, membership="PRO"):
@@ -412,6 +410,10 @@ def format_membership_pick_message(pick=None, quality=None, membership="PRO"):
         lines = _message_header("🔎 Preview FREE", "Lectura disponible · detalle según tu plan")
         lines.extend(_section("Partido", [f"⚽ {home} vs {away}"]))
         lines.extend(_section("Lectura disponible", [selection]))
+        lines.extend(_section("Riesgo a vigilar", [
+            _text(first_value(pick, "risk_level", "risk"), "Riesgo no especificado"),
+            _text(first_value(pick, "caution", "warning", "risk_note"), "Comprueba cuota y condiciones antes de decidir."),
+        ]))
         lines.extend(_message_footer("Stake, motivo completo y lectura SHARK avanzada disponibles en PRO.", "Abrir app: mejorar plan"))
         return _join_message(lines, 2600)
     return format_premium_pick_message(pick, quality=quality, membership=membership)
@@ -491,7 +493,7 @@ def format_result_message(match=None, pick=None):
         f"{_text(match.get('home_team'), 'Local')} {score_label(match)} {_text(match.get('away_team'), 'Visitante')}",
         f"🕒 {madrid_match_time_label(match)}",
     ]))
-    lines.extend(_section("Pick relacionado", [_text(pick.get("selection"), "Sin selección publicada"), _text(pick.get("market"), "Mercado pendiente")]))
+    lines.extend(_section("Pick relacionado", [_text(pick.get("selection"), "Sin selección publicada"), _text(pick.get("market"), "Mercado pendiente"), f"Cuota histórica: {_v889_odds_label(pick.get('odds'))}"]))
     lines.extend(_section("Estado", [pick_state, "La liquidación del pick es independiente del estado del partido."]))
     if pick.get("track_record_updated") is True:
         lines.append("Track Record actualizado.")
@@ -510,6 +512,8 @@ def format_highlight_message(match=None, highlight=None):
         f"🕒 {madrid_match_time_label(match or highlight)} · {status_label(match or highlight)}",
     ]))
     lines.extend(_section("Acción", ["Consultar en la fuente. La reproducción depende de sus permisos y disponibilidad.", link] if link else ["No hay un enlace de resumen habilitado. Consulta el partido en la plataforma."]))
+    if link and highlight.get("attribution"):
+        lines.extend(_section("Fuente del resumen", [_text(highlight["attribution"])]))
     lines.extend(_message_footer("Ver resumen · Ver partido"))
     return _join_message(lines, 2600)
 

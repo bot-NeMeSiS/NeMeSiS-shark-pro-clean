@@ -1,22 +1,37 @@
 # Active Work
 
-## Mision local actual - 2026-09-23
+## Coordinación vigente · 2026-09-23
 
-Telegram Premium: cierre QA / LOCAL_ONLY de la orden mas reciente del fundador.
-186 pruebas focales PASS; preview aislada 127.0.0.1:54912. Sin envios reales ni publicacion.
-Alcance, archivos, evidencia exacta y limites: reports/TELEGRAM_PREMIUM_LOCAL_20260923.md.
-Los cambios previos de higiene se conservan separados. No continuar otro frente automaticamente.
+Base remota de este bloque: `main@228369d42447f37f3023a7f09216205057e4655c`.
+Web y Cron están LIVE en ese SHA. El guard post-merge puede seguir observando y no
+se interrumpe con otro merge.
 
-## Higiene previa preservada - 2026-09-23
+**Bloque interno actual: OPS-002 Hygiene / reconciliación remota controlada.**
 
-OPS-002/CX-002: higiene estructural en `codex/repo-hygiene-20260923`, base `706094630d337f9e329a8401fae217b316a9b49c`.
-Alcance: inventario, respaldo, retirada acotada de generados, reglas Git y paquete de distribucion, QA local y este registro.
-PR72 sigue separado, con dos archivos sin commit; PR60/68 y mejoras antiguas no se fusionan en higiene.
-Design y documental se preservan con cambios. `.pytest_cache` conserva un bloqueo de acceso; no cambiar ACL ni forzar su borrado.
-La autorizacion de publicacion del bloque historico siguiente NO se aplica a esta mision.
-Estado y siguientes acciones limitadas: `GIT_RELEASE_CLEANUP_REPORT.md`. No retomar automaticamente otro frente.
+- OPS-001 Sentinel se considera DONE solo como `PASS_LOCAL_SAFE`; no habilitar
+  `sentinel_jobs` en producción ni instalar scheduler productivo para ese executor.
+- Reconciliar esta carpeta con la verdad GitHub actual; los encabezados viejos quedan
+  como historia, no como autoridad.
+- No cerrar PRs antiguas hasta comprobar si contienen trabajo único. PR #75 conserva
+  una guía compartible `/instalar` que aún debe extraerse sobre main antes de marcarla
+  supersedida.
+- PR #77 Telegram Ultra Pro sigue DRAFT/NOT_DEPLOYED y separado; no hacer envío real
+  ni merge automático sin revisión de base vigente y autorización del fundador.
+- PR #60 vídeo-resúmenes sigue frente separado con activación/derechos/playback reales
+  pendientes. Directos y Design permanecen preservados; no se infieren cerrados.
+- PR #17 de Project Control queda conceptualmente supersedida por esta reconciliación,
+  pero se cerrará solo después de integrar este candidato.
+- El candidato de 129 cambios del 19/09 sigue siendo procedencia acumulada; las
+  integraciones selectivas posteriores no equivalen a publicar aquella unidad completa.
+- Modo operativo: ChatGPT dirige el proyecto. Codex solo se invoca si el fundador lo
+  autoriza expresamente para una intervención concreta.
 
-## Historico: frente de publicación autorizado · 2026-09-21
+Siguiente entrega de producto segura tras esta reconciliación: extraer la página
+compartible de instalación desde el trabajo preservado, reutilizando la PWA ya integrada
+y sin crear otra implementación paralela.
+
+
+## Frente de publicación autorizado · 2026-09-21
 
 El fundador ha autorizado subir e integrar las mejoras desde esta conversación.
 Trabajar por bloques verificables; no añadir funciones sin publicar lo validado.

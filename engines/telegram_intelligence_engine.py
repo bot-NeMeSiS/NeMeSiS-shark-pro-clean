@@ -17,6 +17,7 @@ from engines.telegram_message_formatter import (
     MESSAGE_SOFT_SEPARATOR,
     RESPONSIBLE_FOOTER,
     TRANSPARENCY_FOOTER,
+    _text,
 )
 
 
@@ -93,6 +94,8 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
         "competition": item.get("competition") or "",
         "match": " vs ".join(part for part in (str(item.get("home_team") or ""), str(item.get("away_team") or "")) if part),
         "responsible_note": "Análisis informativo. No garantiza resultados; stake orientativo.",
+        "risk": _text(_first(item, "risk", "risk_level"), "Riesgo no especificado"),
+        "counterargument": _text(_first(item, "risks", "warning", "risk_note"), "Revisa cuota y condiciones antes de decidir."),
     }
     if plan == "FREE":
         base.update({
@@ -108,9 +111,9 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
             "selection": item.get("selection") or "",
             "odds": item.get("odds"),
             "stake": item.get("stake"),
-            "risk": item.get("risk") or "",
-            "reason": item.get("reason") or "",
-            "counterargument": item.get("risks") or "",
+            "risk": base["risk"],
+            "reason": _text(item.get("reason"), "Sin motivo publicable"),
+            "counterargument": base["counterargument"],
             "premium_analysis_revealed": True,
         })
         if plan in {"ELITE", "ELITE+"}:
@@ -143,6 +146,7 @@ def build_premium_message(candidate: dict[str, Any], membership: str = "PRO") ->
         ))
     else:
         lines.extend(("", "Preview FREE", str(variant.get("summary") or "")))
+        lines.extend(("", "Riesgo a vigilar", variant["risk"], variant["counterargument"]))
     lines.extend((
         "",
         MESSAGE_SOFT_SEPARATOR,
