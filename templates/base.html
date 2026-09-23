@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#020c18">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  {% set _founder_pwa = request.path.startswith('/admin/founder-os') or request.path.startswith('/admin/founder-control') or request.path.startswith('/admin/company-control-center') or request.path.startswith('/admin/founder-mobile') %}
+  {% set _founder_page = request.path.startswith('/admin/founder-os') or request.path.startswith('/admin/founder-control') or request.path.startswith('/admin/company-control-center') or request.path.startswith('/admin/founder-mobile') %}
+  {% set _founder_pwa = request.path == '/admin' or request.path.startswith('/admin/') or request.path == '/admin-login' %}
   <meta name="apple-mobile-web-app-title" content="{{ 'NeMeSiS Founder' if _founder_pwa else 'NeMeSiS' }}">
   <meta name="nemesis-version" content="{{ app_version }}">
   {% set _meta_title = title if title is defined and title else 'NeMeSiS SHARK PRO' %}
@@ -41,7 +42,7 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
-  {% if _founder_pwa %}
+  {% if _founder_page %}
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}">
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
   {% endif %}
@@ -174,6 +175,7 @@
   <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}" data-v934-shell="true">
     {% block content %}{% endblock %}
   </main>
+  {% block admin_page_navigation %}{% endblock %}
 
 
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">

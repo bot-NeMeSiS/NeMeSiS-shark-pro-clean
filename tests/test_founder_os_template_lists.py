@@ -39,8 +39,8 @@ def test_empty_missing_and_null_collections_do_not_iterate_dict_methods(bucket, 
     elif variant == 'null':
         data[bucket]['items'] = None
     html = render_founder(data)
-    assert 'Company Control Center' in html
-    assert 'Sin alertas abiertas.' in html
+    assert 'Founder Control' in html
+    assert '0 alertas abiertas en el registro consultado.' in html
     assert 'Todavía no has registrado obligaciones.' in html
     assert html.count('data-founder-install') == 1
 
@@ -62,7 +62,7 @@ def test_all_three_real_collection_keys_render_and_escape_values():
     assert '<script>unsafe</script>' not in html
     assert '/admin/founder-os/alerts/a1/ack' in html
     assert '/admin/founder-os/obligations/o1/paid' in html
-    assert 'Sin alertas abiertas.' not in html
+    assert '0 alertas abiertas en el registro consultado.' not in html
 
 
 def test_inbox_preserves_twenty_item_limit():
