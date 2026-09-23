@@ -98,3 +98,26 @@ def test_health_never_claims_whole_database_reconciliation(db):
         health=archive.archive_health(conn)
         assert health['coverage_complete'] is False
         assert health['size_scope'] == 'ENCODED_PAYLOAD_AND_CONTEXT_NOT_SQLITE_FILE'
+
+
+def test_low_disk_reserve_stops_only_new_archive_observation(db,monkeypatch):
+    monkeypatch.setattr(archive,'_disk_free_bytes',lambda _conn:archive.MIN_FREE_DISK_BYTES)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        before=observations(conn)
+        budget=conn.execute('SELECT byte_count,row_count FROM match_record_archive_budget').fetchone()
+        result=archive.record_observation(conn,'123','statistics',[],received_at=STAMP)
+        assert result=={'stored':False,'reason':'DISK_RESERVE_REACHED'}
+        assert observations(conn)==before
+        assert conn.execute('SELECT byte_count,row_count FROM match_record_archive_budget').fetchone()==budget
+        assert conn.execute('SELECT reason,count FROM match_record_archive_gaps WHERE reason=?',
+                            ('DISK_RESERVE_REACHED',)).fetchone()==('DISK_RESERVE_REACHED',1)
+
+
+def test_archive_health_reports_disk_guard_without_exposing_path(db,monkeypatch):
+    monkeypatch.setattr(archive,'_disk_free_bytes',lambda _conn:archive.MIN_FREE_DISK_BYTES-1)
+    with closing(sqlite3.connect(db)) as conn:
+        health=archive.archive_health(conn)
+    assert health['disk_guard_state']=='LOW'
+    assert health['disk_free_bytes']==archive.MIN_FREE_DISK_BYTES-1
+    assert health['disk_reserve_bytes']==archive.MIN_FREE_DISK_BYTES
+    assert not any('path' in str(key).lower() for key in health)

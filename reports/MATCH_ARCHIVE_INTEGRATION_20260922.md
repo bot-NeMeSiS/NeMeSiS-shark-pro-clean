@@ -44,3 +44,15 @@ La fuente local procede de la distribución CI63 más parches publicados65/67/66
 Candidato para PR en borrador, NO desplegado al redactar este informe. Exigir QA, Preflight y Smoke completos, revisar capacidad disponible/licencia de retención y conservar la observación de producción activa PR64 `35718992463`. No cancelar esa observación, eludir controles ni realizar un deploy manual duplicado.
 
 Este bloque conserva datos recibidos; NO activa una nueva pestaña estadística ni corrige los lectores históricos de la ficha, ni garantiza última revisión visible. Faltan lectura autorizada de Match Center, recepción real/cobertura del proveedor y validación del circuito cliente completo. No se han forzado llamadas, limpiado caché productiva, cambiado claves/plan ni solicitado pagos. No se han colocado apuestas ni enviado Telegram. No presentar «archivo implementado» como «todas las estadísticas disponibles en producción».
+
+
+## Guardia física de disco añadida al refrescar sobre main actual
+
+Además del límite lógico de 64 MiB/100000 observaciones, el candidato conserva ahora una
+reserva mínima de 128 MiB libres en el filesystem que contiene SQLite. Si una nueva
+observación dejara el disco por debajo de esa reserva, solo se omite ese append y se
+registra `DISK_RESERVE_REACHED`; la caché/ingesta normal sigue su contrato. La salud
+expone bytes libres, reserva y estado `OK/LOW/UNKNOWN`, nunca la ruta del filesystem.
+La medición es local al host y best-effort: `UNKNOWN` no se presenta como espacio
+suficiente. Esta protección no sustituye la monitorización del disco completo ni afirma
+que 64 MiB sean el tamaño físico máximo de SQLite, índices o WAL.

@@ -10,7 +10,9 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import math
+from pathlib import Path
 import re
+import shutil
 import sqlite3
 import zlib
 
@@ -20,6 +22,7 @@ MAX_RAW_BYTES = 512 * 1024
 MAX_ARCHIVE_BYTES = 64 * 1024 * 1024  # Encoded payload+context budget, NOT SQLite disk size.
 MAX_OBSERVATIONS = 100_000
 MAX_GAP_KEYS = 1024
+MIN_FREE_DISK_BYTES = 128 * 1024 * 1024  # Preserve room for the live DB, WAL and normal app writes.
 CONTEXT_KEYS = ("match_id", "internal_match_id", "league_id", "league_name", "season",
                 "kickoff_iso", "home_team_id", "away_team_id", "home_team", "away_team",
                 "elapsed", "status_at_receipt", "fixture_received_at")
@@ -41,6 +44,17 @@ def utc_stamp(value=None):
 
 def _exists(conn, table):
     return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone())
+
+
+def _disk_free_bytes(conn):
+    """Best-effort free bytes for the filesystem holding SQLite main, never its path."""
+    try:
+        for _, name, filename in conn.execute("PRAGMA database_list").fetchall():
+            if name == "main" and filename:
+                return int(shutil.disk_usage(Path(filename).resolve().parent).free)
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        return None
+    return None
 
 
 def ensure_match_record_schema(conn):
@@ -212,6 +226,9 @@ def record_observation(conn, fixture_id, section, payload, *, received_at=None, 
         return _gap(conn,fid,section,stamp,"ARCHIVE_BUDGET_UNVERIFIABLE")
     zipped = zlib.compress(raw,6)
     size = len(zipped)+len(ctx_raw)
+    disk_free = _disk_free_bytes(conn)
+    if disk_free is not None and disk_free - size < MIN_FREE_DISK_BYTES:
+        return _gap(conn,fid,section,stamp,"DISK_RESERVE_REACHED")
     conn.execute("SAVEPOINT match_record_insert")
     try:
         changed = conn.execute('''UPDATE match_record_archive_budget
@@ -261,10 +278,15 @@ def archive_health(conn):
             return {"state":"NOT_INITIALIZED", "coverage_complete":False}
         budget = _validated_budget(conn)
         gaps = conn.execute("SELECT COALESCE(SUM(count),0) FROM match_record_archive_gaps").fetchone()[0]
+        disk_free = _disk_free_bytes(conn)
+        disk_guard_state = ("UNKNOWN" if disk_free is None else
+                            "LOW" if disk_free < MIN_FREE_DISK_BYTES else "OK")
         return {"state":"GAPS_RECORDED" if gaps else "OBSERVATIONS_STORED" if budget["row_count"] else "EMPTY",
                 "observations":budget["row_count"], "encoded_bytes":budget["byte_count"],
                 "encoded_byte_limit":MAX_ARCHIVE_BYTES, "row_limit":MAX_OBSERVATIONS,
                 "gap_count":gaps, "coverage_complete":False,
+                "disk_free_bytes":disk_free, "disk_reserve_bytes":MIN_FREE_DISK_BYTES,
+                "disk_guard_state":disk_guard_state,
                 "size_scope":"ENCODED_PAYLOAD_AND_CONTEXT_NOT_SQLITE_FILE"}
     except (sqlite3.Error, ArchiveStateError):
         return {"state":"READ_UNAVAILABLE", "coverage_complete":False}
