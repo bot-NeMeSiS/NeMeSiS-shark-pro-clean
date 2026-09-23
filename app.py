@@ -12132,6 +12132,75 @@ def telegram_should_delay_message(message_type, force=False):
     return (not force) and telegram_message_is_automatic(message_type) and telegram_quiet_hours_active()
 
 
+TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES = 64 * 1024
+
+
+def serialize_telegram_queue_payload(payload, max_bytes=TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES):
+    """Serialize queue metadata as valid bounded JSON without clipping raw text."""
+    payload = payload if isinstance(payload, dict) else {}
+
+    def dump(value):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+    raw = dump(payload)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    def compact(value, depth=0, max_depth=6, string_limit=2000, list_limit=40, dict_limit=80):
+        if depth >= max_depth:
+            return None
+        if isinstance(value, dict):
+            result = {}
+            for index, (key, item) in enumerate(value.items()):
+                if index >= dict_limit:
+                    break
+                clean = compact(item, depth + 1, max_depth, string_limit, list_limit, dict_limit)
+                if clean is not None:
+                    result[str(key)[:120]] = clean
+            return result
+        if isinstance(value, (list, tuple)):
+            return [compact(item, depth + 1, max_depth, string_limit, list_limit, dict_limit) for item in list(value)[:list_limit]]
+        if isinstance(value, str):
+            return value[:string_limit]
+        if value is None or isinstance(value, (bool, int, float)):
+            return value
+        return str(value)[:500]
+
+    safe = compact(payload) or {}
+    safe["_queue_payload_truncated"] = True
+    raw = dump(safe)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    keep = (
+        "source", "trigger_type", "auto_job_key", "target_key", "target_kind", "membership", "priority",
+        "match_url", "app_url", "picks_url", "live_url", "button_text", "include_picks_button",
+        "include_live_button", "enable_link_preview", "reply_markup", "visual_card_type",
+        "visual_card_enabled", "visual_card_config", "visual_card_payload",
+    )
+    minimal = {}
+    for key in keep:
+        if key not in payload:
+            continue
+        clean = compact(payload[key], 0, 4, 1000, 12, 30)
+        if clean is not None:
+            minimal[key] = clean
+    minimal["_queue_payload_truncated"] = True
+    raw = dump(minimal)
+    if len(raw.encode("utf-8")) <= max_bytes:
+        return raw
+
+    final = {"_queue_payload_truncated": True}
+    for key in (
+        "source", "trigger_type", "auto_job_key", "target_key", "target_kind", "membership", "priority",
+        "match_url", "app_url", "picks_url", "live_url", "button_text", "visual_card_type", "visual_card_enabled",
+    ):
+        if key not in payload or payload[key] is None:
+            continue
+        value = payload[key]
+        final[key] = value if isinstance(value, (bool, int, float)) else str(value)[:1000]
+    return dump(final)
+
 def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", payload=None, scheduled_at=None, dedupe_key="", force=False, max_attempts=3):
     seed_core()
     scheduled_at = scheduled_at or now_iso()
@@ -12162,7 +12231,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
                 title,
                 body,
                 as_int(payload.get("priority"), 70),
-                json.dumps(payload, ensure_ascii=False),
+                serialize_telegram_queue_payload(payload),
                 QUEUE_PENDING,
                 0,
                 max(1, as_int(max_attempts, 3)),
