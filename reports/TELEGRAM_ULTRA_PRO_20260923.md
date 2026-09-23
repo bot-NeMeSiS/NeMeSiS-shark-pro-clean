@@ -2,7 +2,7 @@
 
 Status: RECONCILED_CURRENT_MAIN / CI_PENDING / NOT_DEPLOYED. No real Telegram messages sent.
 Branch: codex/telegram-ultra-pro-20260923.
-Original Codex base: 706094630d337f9e329a8401fae217b316a9b49c. Current reconciliation base: main@228369d42447f37f3023a7f09216205057e4655c. The original 226-pass local evidence is preserved as historical component evidence; fresh remote CI is required for this reconciled HEAD.
+Original Codex base: 706094630d337f9e329a8401fae217b316a9b49c. Current reconciliation base: main@7eda8a341d3553e27f046968749cfdef14fd5303. The original 226-pass local evidence is preserved as historical component evidence; fresh remote CI is required for this reconciled HEAD.
 
 ## Isolation and continuity
 
@@ -104,8 +104,8 @@ not on this draft PR. No workflow or scheduler is activated manually here.
 
 ## Current-main reconciliation
 
-- Rebuilt from `main@228369d42447f37f3023a7f09216205057e4655c` rather than merging the old PR history.
+- Rebuilt from `main@7eda8a341d3553e27f046968749cfdef14fd5303` rather than merging the old PR history.
 - The 19 `app.py` hunks from reviewed PR #77 matched exactly once against current main before application.
-- Provider Health/direct-check and existing PWA changes remain present in the merged app bytes.
+- Provider Health/direct-check, `/instalar` PWA and the practical production guard remain present in the reconciled main/app context.
 - No Telegram transport was invoked during reconciliation; no provider, payment, DB or Render action was executed by this candidate.
 - Release remains blocked until exact-head QA + Preflight + full Smoke/LOCAL SAFE/Sentinel gates pass and the founder explicitly authorizes any real Telegram send or merge.
