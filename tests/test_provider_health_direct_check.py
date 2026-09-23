@@ -97,3 +97,33 @@ def test_health_snapshot_only_reads_persisted_direct_evidence(monkeypatch):
     assert snapshot["provider_calls_during_render"] == 0
     assert provider["direct_check"]["status"] == "CONNECTED"
     assert "Plan verificado directamente" in provider["billing_status"]
+
+
+def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch):
+    _state_store(monkeypatch)
+    monkeypatch.setattr(app_module, "env_present", lambda *_a, **_kw: False)
+    anonymous = app_module.app.test_client()
+    blocked = anonymous.post("/api/admin/provider-health/check", json={"provider": "the_odds"})
+    assert blocked.status_code == 403
+
+    admin = app_module.app.test_client()
+    with admin.session_transaction() as sess:
+        sess["user_role"] = "ADMIN"
+        valid = app_module.generate_csrf_token(sess)
+
+    bad = admin.post(
+        "/api/admin/provider-health/check",
+        json={"provider": "the_odds"},
+        headers={"X-CSRF-Token": "invalid"},
+    )
+    assert bad.status_code == 403
+
+    good = admin.post(
+        "/api/admin/provider-health/check",
+        json={"provider": "the_odds"},
+        headers={"X-CSRF-Token": valid},
+    )
+    assert good.status_code == 200
+    payload = good.get_json()
+    assert payload["status"] == "NOT_CONFIGURED"
+    assert payload["external_calls"] == 0
