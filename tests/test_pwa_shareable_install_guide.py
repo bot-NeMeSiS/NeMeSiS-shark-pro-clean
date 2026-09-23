@@ -41,3 +41,10 @@ def test_install_assets_keep_mobile_clearance():
     css = (ROOT / "static" / "pwa-install.css").read_text(encoding="utf-8")
     assert "bottom: calc(164px + env(safe-area-inset-bottom))" in css
     assert ".ns-install-guide__grid" in css
+
+
+def test_install_guide_is_discoverable_and_ios_action_is_explicit():
+    base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
+    guide = (ROOT / "templates" / "install_app.html").read_text(encoding="utf-8")
+    assert 'href="/instalar">Instalar app</a>' in base
+    assert 'En Safari: toca Compartir y después “Añadir a pantalla de inicio”.' in guide
