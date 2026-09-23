@@ -10,6 +10,7 @@
   {% set _founder_pwa = request.path == '/admin' or request.path.startswith('/admin/') or request.path == '/admin-login' %}
   <meta name="apple-mobile-web-app-title" content="{{ 'NeMeSiS Founder' if _founder_pwa else 'NeMeSiS' }}">
   <meta name="nemesis-version" content="{{ app_version }}">
+  <meta name="nemesis-app-icon-version" content="{{ app_icon_version }}">
   {% set _meta_title = title if title is defined and title else 'NeMeSiS SHARK PRO' %}
   {% set _meta_description = meta_description if meta_description is defined and meta_description else 'Deporte con contexto, evidencia y limites visibles.' %}
   {% set _canonical_url = canonical_url if canonical_url is defined and canonical_url else request.base_url %}
