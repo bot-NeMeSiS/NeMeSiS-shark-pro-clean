@@ -12,7 +12,7 @@
   {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
   {{ realtime_state_bar(realtime, 'all', true) }}
 
-  <section class="v928-admin-panel" data-provider-health="persisted">
+  <section class="v928-admin-panel" id="provider-health" data-provider-health="persisted">
     <header>
       <div>
         <h2>Salud de proveedores</h2>
@@ -29,7 +29,7 @@
       </div>
 
       {% if provider_health.get('providers') %}
-      {% call data_table(['Proveedor','Estado','Configuración','Plan / pago','Última evidencia','Uso observado','Siguiente acción']) %}
+      {% call data_table(['Proveedor','Estado','Configuración','Plan / pago','Última evidencia','Uso observado','Verificación directa','Siguiente acción']) %}
         {% for provider in provider_health.get('providers') %}
         <tr>
           <td><strong>{{ provider.get('label') }}</strong><br><small>{{ provider.get('state') or 'UNKNOWN' }}{% if provider.get('reason_code') %} · {{ provider.get('reason_code') }}{% endif %}</small></td>
@@ -38,6 +38,19 @@
           <td>{{ provider.get('billing_status') or 'No verificable automáticamente' }}</td>
           <td>{{ provider.get('observed_at')|madrid_datetime_label if provider.get('observed_at') else 'Sin observación reciente' }}</td>
           <td>{% if provider.get('quota') %}Restante diario: {{ provider.get('quota').get('daily_remaining', '—') }}{% elif provider.get('processed') %}{{ provider.get('processed') }} elementos{% elif provider.get('data_contributed') %}Datos aportados{% else %}Sin uso confirmado{% endif %}</td>
+          <td>
+            {% set direct = provider.get('direct_check') or {} %}
+            {% if direct.get('checked_at') %}
+              <strong>{{ direct.get('status') or 'Registrado' }}</strong><br>
+              <small>{{ direct.get('checked_at')|madrid_datetime_label }}{% if direct.get('reused') %} · reutilizado{% endif %}</small>
+            {% else %}
+              <small>No verificada manualmente</small>
+            {% endif %}
+            <form method="post" action="/admin/provider-health/check" style="margin-top:8px">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="v928-button" type="submit" name="provider" value="{{ provider.get('key') }}">Verificar ahora</button>
+            </form>
+          </td>
           <td>{{ provider.get('next_action') or 'Revisar' }}</td>
         </tr>
         {% endfor %}
