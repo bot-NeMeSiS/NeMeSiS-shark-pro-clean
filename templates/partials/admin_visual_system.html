@@ -34,13 +34,13 @@
       ('Automatización','/admin/automation-center','▣'),
       ('Lanzamiento real','/admin/real-launch','🚀'),
       ('Auditoría cliente','/admin/client-screen-audit','🛡'),
-      ('Sistema','/admin/system','⚙'),
+      ('Mantenimiento','/admin/system','⚙'),
       ('Mapa','/admin/control-center#v807-admin-map','⌘'),
       ('Salir','/logout','⏻')
     ] %}
     <nav>
       {% for label, href, icon in nav %}
-        <a class="{{ 'active' if active == label else '' }}" href="{{ href }}"><i>{{ icon }}</i><span>{{ label }}</span></a>
+        <a class="{{ 'active' if active == label or (label == 'Mantenimiento' and active == 'Sistema') else '' }}" href="{{ href }}"><i>{{ icon }}</i><span>{{ label }}</span></a>
       {% endfor %}
     </nav>
     <div class="v794-admin-system-card">

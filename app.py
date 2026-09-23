@@ -29134,7 +29134,7 @@ def v566_admin_items():
     return [
         {"group": "Centro", "title": "Control Center", "body": "Entrada principal del administrador y estado global.", "href": "/admin/control-center"},
         {"group": "Centro", "title": "Panel", "body": "Resumen visual del ecosistema.", "href": "/admin/dashboard"},
-        {"group": "Centro", "title": "Sistema", "body": "Diagnóstico interno, version y estado general.", "href": "/admin/system"},
+        {"group": "Centro", "title": "Mantenimiento", "body": "Runtime, APIs, conexiones, versión y estado general.", "href": "/admin/system"},
         {"group": "Centro", "title": "Salud de rutas", "body": "Comprueba accesos críticos y botones perdidos.", "href": "/admin/route-health"},
         {"group": "Centro", "title": "Observabilidad", "body": "Errores, logs y señales operativas.", "href": "/admin/observability"},
         {"group": "Centro", "title": "Errores", "body": "Vista directa de errores detectados.", "href": "/admin/observability/errors"},
