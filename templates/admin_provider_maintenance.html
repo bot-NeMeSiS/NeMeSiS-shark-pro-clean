@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, status_chip %}
+{% block content %}
+{% set pm = provider_maintenance or {} %}
+<section class="v933-page v933-admin-command-center v933-admin-data" data-provider-maintenance="NEMESIS-PROVIDER-MAINTENANCE-V1">
+  {{ page_header('Mantenimiento de plataforma', 'APIs, planes, conexión, cuota y servicios sin exponer claves ni gastar llamadas al abrir', 'settings', [{'label':'Sistema','href':'/admin/system'},{'label':'Centro de datos','href':'/admin/data-center','primary':true}]) }}
+
+  <section class="v933-kpi-grid is-four">
+    {{ kpi_card('APIs configuradas', pm.get('configured_count', 0), 'Clave/configuración presente', 'blue', 'database') }}
+    {{ kpi_card('Con evidencia', pm.get('observed_count', 0), 'Última conexión/sync guardada', 'success', 'live') }}
+    {{ kpi_card('Necesitan atención', pm.get('attention_count', 0), 'Plan, acceso o configuración', 'gold' if pm.get('attention_count') else 'success', 'shield') }}
+    {{ kpi_card('Llamadas al abrir', pm.get('network_calls', 0), 'Siempre 0', 'success', 'automation') }}
+  </section>
+
+  <section class="v928-admin-panel">
+    <header><div><h2>APIs deportivas</h2><p>“Configurada” no significa “pagada”. El contrato/plan solo se afirma cuando existe evidencia del proveedor.</p></div></header>
+    <div class="v928-admin-panel-body">
+      <div class="v928-stack">
+      {% for item in pm.get('providers', []) %}
+        <article class="v928-admin-panel" data-provider-row="{{ item.get('key') }}">
+          <header>
+            <div>
+              <h3>{{ item.get('name') }}</h3>
+              <p>{{ item.get('role') }}</p>
+            </div>
+            {{ status_chip('Atención' if item.get('attention') else 'Revisado', 'warning' if item.get('attention') else 'success') }}
+          </header>
+          <div class="v928-admin-panel-body">
+            <div class="v928-truth-list">
+              <div><span>Configuración</span><strong>{{ 'Configurada' if item.get('configured') else 'Falta clave/configuración' }}</strong></div>
+              <div><span>Habilitada</span><strong>{{ 'Sí' if item.get('enabled') else 'No' }}</strong></div>
+              <div><span>Conexión observada</span><strong>{{ item.get('connection_state') }}</strong></div>
+              <div><span>Plan / pago</span><strong>{{ item.get('billing_label') }}</strong></div>
+              <div><span>Plan reportado</span><strong>{{ item.get('plan') or 'Sin dato' }}</strong></div>
+              <div><span>Última evidencia</span><strong>{{ item.get('last_observed_at') or 'Sin evidencia guardada' }}</strong></div>
+              <div><span>Último estado</span><strong>{{ item.get('last_status') or 'Sin estado' }}</strong></div>
+              {% if item.get('quota') %}
+              <div><span>Cuota observada</span><strong>{{ item.get('quota')|tojson }}</strong></div>
+              {% endif %}
+            </div>
+            <div class="v928-command-grid">
+              <button
+                type="button"
+                class="v928-button"
+                data-provider-test="{{ item.get('key') }}"
+                data-provider-url="/api/admin/provider-maintenance/test/{{ item.get('key') }}"
+                {% if not item.get('configured') %}disabled{% endif %}
+              >Probar conexión · 1 llamada</button>
+              <span class="muted small">{{ item.get('test_cost_note') }}</span>
+            </div>
+            <div class="v928-inline-safe" data-provider-result="{{ item.get('key') }}" aria-live="polite">Sin prueba manual en esta vista.</div>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="v928-layout-wide-aside">
+    <section class="v928-admin-panel">
+      <header><div><h2>Servicios del ecosistema</h2><p>Presencia de configuración; no se ejecutan cobros, mensajes ni consultas al abrir.</p></div></header>
+      <div class="v928-admin-panel-body">
+        <div class="v928-truth-list">
+        {% for service in pm.get('services', []) %}
+          <div><span>{{ service.get('name') }}</span><strong>{{ service.get('note') }}</strong></div>
+        {% endfor %}
+        </div>
+      </div>
+    </section>
+    <aside class="v928-admin-panel">
+      <header><div><h2>Contrato de seguridad</h2></div></header>
+      <div class="v928-admin-panel-body">
+        <div class="v928-truth-list">
+          <div><span>Secretos visibles</span><strong>No</strong></div>
+          <div><span>Llamadas al renderizar</span><strong>0</strong></div>
+          <div><span>Prueba manual</span><strong>Máximo 1 llamada</strong></div>
+          <div><span>Configurada = pagada</span><strong>No</strong></div>
+          <div><span>Datos inventados</span><strong>No</strong></div>
+        </div>
+      </div>
+    </aside>
+  </section>
+</section>
+<script defer src="/static/provider-maintenance.js?v={{ version }}"></script>
+{% endblock %}
