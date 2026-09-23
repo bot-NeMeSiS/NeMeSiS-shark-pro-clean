@@ -14178,6 +14178,23 @@ def automation_get(key, default=None):
     except json.JSONDecodeError:
         return default
 
+def automation_get_bounded(key, default=None, max_bytes=64 * 1024):
+    """Read small automation state safely for request-time admin summaries."""
+    try:
+        item = one(
+            "SELECT CASE WHEN length(CAST(value_json AS BLOB))<=? THEN value_json ELSE NULL END AS value_json, "
+            "length(CAST(value_json AS BLOB)) AS value_bytes FROM automation_state WHERE key=?",
+            (max(1024, int(max_bytes)), key),
+        )
+    except Exception:
+        return default
+    if not item or item.get("value_json") is None:
+        return default
+    try:
+        return json.loads(item.get("value_json") or "null")
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return default
+
 
 def automation_set(key, value):
     conn = db()
@@ -29198,12 +29215,84 @@ def v566_intelligence_hub_page():
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
 
 
+def v928_telegram_overview_fast():
+    """Bounded, read-only Telegram health for request-time admin UI."""
+    token_present = env_present("TELEGRAM_BOT_TOKEN")
+    chat_present = env_present("TELEGRAM_CHAT_ID")
+    auto_env = bool(
+        env_bool("ENABLE_TELEGRAM_AUTOMATION", True)
+        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", True)
+        or env_bool("ENABLE_TELEGRAM_AUTO", False)
+        or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
+    )
+    try:
+        settings_row = one("SELECT enabled FROM telegram_settings ORDER BY id LIMIT 1") or {}
+    except Exception:
+        settings_row = {}
+    settings_enabled = bool(settings_row.get("enabled")) if settings_row else auto_env
+    last_cron = (
+        automation_get_bounded("last_cron_telegram_call", {})
+        or automation_get_bounded("cron_telegram_tick_last_call", {})
+        or {}
+    )
+    last_http = automation_get_bounded("last_cron_http_status", "")
+    last_result = automation_get_bounded("last_cron_result", "")
+    try:
+        latest = one(
+            "SELECT status,error_message,sent_at,sent_at_madrid,updated_at,created_at "
+            "FROM telegram_queue ORDER BY COALESCE(sent_at,updated_at,created_at) DESC LIMIT 1"
+        ) or {}
+    except Exception:
+        latest = {}
+    pending = safe_count("telegram_queue", "lower(coalesce(status,'')) IN ('pending','queued')")
+    failed = safe_count("telegram_queue", "lower(coalesce(status,''))='failed'")
+    if not (token_present and chat_present):
+        automatic_status = "Configuración pendiente"
+    elif not (auto_env and settings_enabled):
+        automatic_status = "Desactivado"
+    elif last_cron or str(last_http) == "200":
+        automatic_status = "Cron activo"
+    else:
+        automatic_status = "Esperando ciclo"
+    return {
+        "token_present": token_present,
+        "chat_id_present": chat_present,
+        "settings_enabled": settings_enabled,
+        "env_auto_enabled": auto_env,
+        "effective_enabled": bool(token_present and chat_present and auto_env and settings_enabled),
+        "automatic_status": automatic_status,
+        "pending": pending,
+        "failed_today": failed,
+        "last_error": str(latest.get("error_message") or "")[:240],
+        "last_cron_telegram_call": last_cron,
+        "last_cron_http_status": last_http,
+        "last_cron_result": last_result,
+        "last_sent_at": latest.get("sent_at_madrid") or latest.get("sent_at") or "",
+        "summary_mode": "BOUNDED_READ_ONLY",
+        "no_provider_call": True,
+    }
+
+
+def v928_automation_overview_fast():
+    """Automation summary without loading large diagnostic payloads."""
+    from engines.automation_orchestrator_engine import build_automation_center_summary
+    state = {
+        "last_cron_telegram_call": automation_get_bounded("last_cron_telegram_call", {}) or automation_get_bounded("cron_telegram_tick_last_call", {}) or {},
+        "last_cron_daily_call": automation_get_bounded("last_cron_daily_call", {}) or automation_get_bounded("cron_daily_run_last_call", {}) or {},
+        "last_cron_data_backup_call": automation_get_bounded("last_cron_data_backup_call", {}) or {},
+        "last_cron_highlights_sync": automation_get_bounded("last_cron_highlights_sync", {}) or automation_get_bounded("highlights_sync_last_call", {}) or {},
+    }
+    result = build_automation_center_summary(DB_PATH, APP_VERSION, env=dict(os.environ), state=state)
+    result["summary_mode"] = "BOUNDED_READ_ONLY"
+    result["no_provider_call"] = True
+    return result
+
 def v928_admin_overview(data=None):
     """Read-only command-center data. It never calls an external provider."""
     data = data or {}
     errors = latest_observability_errors(DB_PATH, limit=8)
-    telegram = telegram_diagnostics_safe()
-    automation = v773_automation_center_context()
+    telegram = v928_telegram_overview_fast()
+    automation = v928_automation_overview_fast()
     match_hub_data = data.get("match_hub") or {}
     counts = match_hub_data.get("counts") or {}
     try:
@@ -29253,7 +29342,7 @@ def v566_admin_dashboard_page():
 def api_admin_control_center():
     if not is_admin_session():
         return admin_json_forbidden()
-    telegram = telegram_diagnostics_safe()
+    telegram = v928_telegram_overview_fast()
     critical_routes = [
         "/", "/login", "/registro", "/dashboard", "/sports-hub", "/live", "/calendar", "/partidos",
         "/picks", "/shark-core", "/admin/control-center", "/admin/data-center", "/admin/matches-sync",
