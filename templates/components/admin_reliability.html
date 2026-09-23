@@ -1,0 +1,28 @@
+<section id="reliability" class="master-panel" aria-labelledby="reliability-title">
+  <header><div><h2 id="reliability-title">Fiabilidad</h2><p>Reparado no significa resuelto. Cada cierre necesita evidencia posterior.</p></div><a href="/admin/sentinel-issues">Memoria Sentinel →</a></header>
+  <p data-reliability-summary>{{ (master.get('reliability') or {}).get('state') or 'DESCONOCIDO' }} · Evidencia local; producción sin certificar.</p>
+  <h3>Risk Radar</h3>
+  <div data-reliability-radar class="master-recommendations"></div>
+  <details><summary>Identidad de producción</summary><dl data-reliability-identity class="master-runtime"></dl><p class="master-muted">La candidata puede diferir de main. Coincidir en versión no prueba igualdad de SHA. Un HTTP 200 no certifica un despliegue.</p></details>
+  <details><summary>Incidencias y recurrencias</summary><div data-reliability-incidents></div></details>
+  <details><summary>Historial y aprendizaje</summary><div data-reliability-timeline></div><div data-reliability-learning></div></details>
+  <details id="reliability-verification"><summary>Registrar verificación o preparar cierre</summary>
+    <p>Registra una comprobación que ya hayas realizado. No se ejecutan tests desde este formulario. El alcance y la referencia quedan en la memoria y en la auditoría.</p>
+    <form id="reliability-verification-form" class="master-settings-form">
+      <label>Incidencia Sentinel<input name="issue_id" required maxlength="80" placeholder="SENT-…"></label>
+      <label>Causa raíz confirmada<input name="root_cause" required maxlength="900"></label>
+      <label>Corrección aplicada<input name="corrective_action" required maxlength="900"></label>
+      <label>Prueba de regresión<input name="regression_test" required maxlength="900"></label>
+      <label>Prevención<input name="prevention" required maxlength="900"></label>
+      <label>Mecanismo de detección<input name="detection" required maxlength="900"></label>
+      <label>SHA verificado<input name="fix_sha" required pattern="[a-fA-F0-9]{40}" maxlength="40"></label>
+      <label>Referencia de evidencia<input name="evidence_ref" required maxlength="900" placeholder="Informe o ejecución CI"></label>
+      <label>Fecha de la comprobación (hora de este dispositivo)<input name="checked_at" type="datetime-local" required step="1"></label>
+      <label>Resultado<select name="result" required><option value="">Seleccionar</option><option value="PASS">Prueba aprobada</option><option value="FAIL">Prueba fallida</option></select></label>
+      <label>Alcance<select name="scope" required><option value="LOCAL_QA">QA local</option><option value="CI">CI</option><option value="PRODUCTION">Comprobación de producción ya realizada</option></select></label>
+      <button type="submit">Revisar registro de evidencia</button>
+    </form>
+    <form id="reliability-resolve-form"><label>Incidencia con verificación vigente<input name="issue_id" required maxlength="80"></label><button type="submit">Preparar cierre verificado</button></form>
+  </details>
+  <p><a href="/admin/sentinel-workflow">Improvement Workflow</a> · <a href="/admin/company-os">Company OS</a> · <a href="#master-audit-title">Auditoría de acciones</a></p>
+</section>

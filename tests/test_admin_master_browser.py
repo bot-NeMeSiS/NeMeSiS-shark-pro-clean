@@ -117,6 +117,30 @@ def test_layout_no_automatic_admin_api_calls_and_captures(browser,app_module,wid
         context.close()
 
 
+@pytest.mark.parametrize('width',[390,1440])
+def test_reliability_real_controls_prepare_only_and_preserve_unknown(browser,app_module,width):
+    data=snapshot()
+    data['reliability']={'state':'DESCONOCIDO','memory_available':False,'issues':[],
+        'radar':{'drift':{'state':'UNKNOWN'},'alerts':[{'state':'OBSERVAR','evidence':'SIMULATED_QA: 1, 2, 3, 4',
+        'reason':'Tres incrementos','impact':'Cola acumulada','href':'/admin/telegram/command-center'}]}}
+    responses={'/proposals':{'ok':True,'proposal':{'proposal_id':'qa-close','action_id':'sentinel.resolve',
+        'label':'Resolver incidencia verificada','risk_level':'MEDIUM','before':None,'after':None}}}
+    context,page,calls,errors,blocked=mount(browser,app_module,width=width,data=data,responses=responses)
+    try:
+        assert 'Memoria no disponible' in page.locator('[data-reliability-summary]').inner_text()
+        assert 'OBSERVAR' in page.locator('[data-reliability-radar]').inner_text()
+        assert not calls
+        page.locator('#reliability-verification > summary').click()
+        page.locator('#reliability-resolve-form input').fill('SENT-2026-AABBCCDD')
+        page.locator('#reliability-resolve-form button').click()
+        page.locator('#master-proposal-dialog').wait_for(state='visible')
+        assert len(calls)==1 and calls[0]['payload']=={'action_id':'sentinel.resolve','parameters':{'issue_id':'SENT-2026-AABBCCDD'}}
+        assert not any(c['path'].endswith('/execute') for c in calls)
+        assert not errors and not blocked
+    finally:
+        context.close()
+
+
 @pytest.mark.parametrize("width",[390,1440])
 def test_chat_proposal_requires_separate_approval(browser,app_module,width):
     proposal={"proposal_id":"qa-proposal","action_id":"settings.update","label":"Desactivar highlights",

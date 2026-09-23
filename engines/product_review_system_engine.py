@@ -1399,7 +1399,7 @@ def _ce_recommendations_from_board(board: dict[str, Any]) -> list[dict[str, Any]
         item["evidence"] = evidence
         item["problem"] = evidence or "Evidencia insuficiente para elevar este contexto a trabajo ejecutable."
         item["issue_status"] = item.get("issue_status") if item.get("issue_status") in {
-            "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE",
+            "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "VERIFIED", "VERIFICATION_FAILED", "RESOLVED", "FALSE_POSITIVE",
             "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE",
         } else "INSUFFICIENT_EVIDENCE"
         item["evidence_sufficient"] = bool(item.get("evidence_sufficient") and evidence)
@@ -1647,7 +1647,7 @@ def _ce_probable_files(candidate: dict[str, Any]) -> list[str]:
 def _ce_build_codex_inbox(board: dict[str, Any], snapshot_id: str, now_iso: str) -> dict[str, Any]:
     items = []
     for index, candidate in enumerate(_ce_unique_candidates(board.get("top_10_improvements") or []), start=1):
-        if candidate.get("issue_status") != "OPEN_REAL" or not candidate.get("evidence_sufficient"):
+        if candidate.get("issue_status") not in {"OPEN_REAL", "VERIFICATION_FAILED"} or not candidate.get("evidence_sufficient"):
             continue
         rec_id = candidate.get("recommendation_id") or _ce_recommendation_id(candidate)
         evidence = _ce_clean_text(candidate.get("evidence"), 620)

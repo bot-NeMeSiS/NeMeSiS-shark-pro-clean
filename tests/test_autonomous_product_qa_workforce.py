@@ -719,7 +719,7 @@ def test_canonical_ledger_rejects_synthetic_404_and_codex_noise():
     summary = build_sentinel_issues_summary("TEST", memory)
 
     assert ISSUE_STATUSES == [
-        "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE",
+        "OPEN_REAL", "FIXED_PENDING_VERIFICATION", "VERIFIED", "VERIFICATION_FAILED", "RESOLVED", "FALSE_POSITIVE",
         "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE",
     ]
     assert summary["counts"]["open"] == 0
@@ -728,7 +728,7 @@ def test_canonical_ledger_rejects_synthetic_404_and_codex_noise():
     assert summary["codex_ready_issues"] == []
 
 
-def test_founder_issue_gate_has_no_indefinite_pending_statuses(tmp_path: Path):
+def test_founder_issue_gate_requires_revision_bound_verification(tmp_path: Path):
     summary = reconcile_autonomous_workforce_evidence(
         tmp_path,
         latest_product_qa={"result": "PASS", "evidence_complete": True, "issues_detected": 0},
@@ -740,9 +740,9 @@ def test_founder_issue_gate_has_no_indefinite_pending_statuses(tmp_path: Path):
     assert by_key["founder-shark-identity"]["status"] == "OPEN_REAL"
     assert by_key["founder-ocean-background"]["status"] == "OPEN_REAL"
     assert by_key["founder-reference-mismatch"]["status"] == "OPEN_REAL"
-    assert by_key["founder-false-live-kpi"]["status"] == "RESOLVED"
-    assert by_key["founder-rectangle-fatigue"]["status"] == "RESOLVED"
-    assert not any(item["status"] == "FIXED_PENDING_VERIFICATION" for item in by_key.values())
+    assert by_key["founder-false-live-kpi"]["status"] == "FIXED_PENDING_VERIFICATION"
+    assert by_key["founder-rectangle-fatigue"]["status"] == "FIXED_PENDING_VERIFICATION"
+    assert not any(item["status"] == "RESOLVED" for item in by_key.values())
 
 def test_honest_empty_sports_state_is_not_an_issue_or_codex_work():
     context = " Consulta calendario, favoritos y próximos encuentros cuando haya datos reales."

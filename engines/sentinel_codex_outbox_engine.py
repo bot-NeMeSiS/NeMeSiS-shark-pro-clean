@@ -15,6 +15,7 @@ FALSE_POSITIVE_STATUSES = {
 ARCHIVED_STATUSES = {
     "RESOLVED",
     "FIXED_PENDING_VERIFICATION",
+    "VERIFIED",
     "EXTERNAL_BLOCKER",
     "INSUFFICIENT_EVIDENCE",
 }
@@ -71,7 +72,7 @@ def _status(issue: dict[str, Any]) -> str:
 
 def _codex_eligible(issue: dict[str, Any]) -> bool:
     return (
-        _status(issue) == "OPEN_REAL"
+        _status(issue) in {"OPEN_REAL", "VERIFICATION_FAILED"}
         and issue.get("evidence_sufficient") is True
         and bool(str(issue.get("evidence") or "").strip())
     )

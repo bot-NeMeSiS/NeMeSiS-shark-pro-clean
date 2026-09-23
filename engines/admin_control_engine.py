@@ -43,6 +43,8 @@ def _meta(label, description, category, risk, schema, reversible=False, phrase="
 
 
 ACTIONS = {
+    "sentinel.record_verification": _meta("Registrar verificacion", "Registra evidencia aportada por Admin, ligada al SHA y recurrencia. No ejecuta tests ni certifica produccion.", "sentinel", "MEDIUM", {"issue_id":"issue_id", "root_cause":"text", "corrective_action":"text", "regression_test":"text", "prevention":"text", "detection":"text", "fix_sha":"sha", "evidence_ref":"text", "checked_at":"datetime", "result":"result", "scope":"scope"}),
+    "sentinel.resolve": _meta("Resolver incidencia verificada", "Solo permite cerrar con evidencia vigente; conserva historial y auditoria.", "sentinel", "MEDIUM", {"issue_id":"issue_id"}),
     "settings.update": _meta("Cambiar configuración", "Actualiza un ajuste visible y reversible.", "settings", "LOW", {"key": "allowed_setting", "value": "setting_type"}, True),
     "settings.rollback": _meta("Revertir configuración", "Restaura el valor anterior si nadie lo ha cambiado después.", "settings", "LOW", {"audit_id": "positive_integer"}, True),
     "sports.sync": _meta("Sincronizar partidos", "Actualiza partidos, cuotas y revisa resultados de picks con los motores existentes; puede consumir solicitudes. No envía Telegram ni realiza pagos.", "sports", "MEDIUM", {}),
@@ -92,6 +94,15 @@ def validate_parameters(action_id, parameters):
         if not re.fullmatch(r"/[A-Za-z0-9_/-]*", route) or "//" in route or ".." in route:
             raise Rejected("invalid_route")
         return {"title": _text(parameters["title"], 160), "detail": _text(parameters["detail"], 1200), "route": route}
+    if action_id in ("sentinel.record_verification", "sentinel.resolve"):
+        output = {k:_text(v, 900) for k,v in parameters.items()}
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", output["issue_id"]):
+            raise Rejected("invalid_issue_id")
+        if action_id == "sentinel.record_verification":
+            from engines.reliability_engine import sha, stamp
+            if not sha(output["fix_sha"]) or not stamp(output["checked_at"]) or output["result"] not in ("PASS", "FAIL") or output["scope"] not in ("LOCAL_QA", "CI", "PRODUCTION"):
+                raise Rejected("invalid_verification")
+        return output
     return {}
 
 

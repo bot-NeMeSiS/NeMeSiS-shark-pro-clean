@@ -88,13 +88,17 @@ def master_snapshot(a):
     telegram = _safe_call(a.v928_telegram_overview_fast, {})
     automation = _safe_call(a.v928_automation_overview_fast, {})
     from engines.sentinel_issues_engine import load_sentinel_issues_memory, sentinel_issues_memory_path
+    from engines.reliability_engine import reliability_snapshot, LEARNING
+    memory = {"issues":[]}
+    memory_available = False
     sentinel = {"available":False,"open":None,"last_scan":None}
     try:
         if sentinel_issues_memory_path(a.BASE_DIR).is_file():
             memory = load_sentinel_issues_memory(a.BASE_DIR)
+            memory_available = memory.get("_storage_revision") != "unreadable"
             known = memory.get("issues")
             if type(known) is list and _safe_stamp(memory.get("last_scan_madrid")):
-                sentinel = {"available":True,"open":sum(1 for item in known if type(item) is dict and item.get("status")=="OPEN_REAL"),
+                sentinel = {"available":True,"open":sum(1 for item in known if type(item) is dict and item.get("status") in ("OPEN_REAL", "VERIFICATION_FAILED")),
                             "last_scan":_safe_stamp(memory.get("last_scan_madrid"))}
     except (OSError,ValueError,TypeError):
         pass
@@ -154,9 +158,41 @@ def master_snapshot(a):
                "github":"Estado GitHub no disponible desde este runtime.",
                "db":"Lectura disponible" if db_ok else "Sin verificación", "app_path":"app.py",
                "deployment":"Sin certificación de despliegue"}
+    # Read the existing Company Sentinel artifact. Missing/stale observations
+    # remain unknown; never probe GitHub/Render while opening the dashboard.
+    persisted_identity = {}
+    try:
+        identity_path = Path(a.BASE_DIR)/"data/runtime/autonomous_company_sentinel/render_alignment.json"
+        if identity_path.is_file() and identity_path.stat().st_size <= 65536:
+            saved = json.loads(identity_path.read_text(encoding="utf-8"))
+            persisted_identity = saved.get("identity", {}) if isinstance(saved, dict) else {}
+    except (OSError, ValueError):
+        pass
+    if not isinstance(persisted_identity, dict):
+        persisted_identity = {}
+    identity = {k:persisted_identity.get(k) for k in ("main_sha", "candidate_sha", "deployed_sha", "render_sha", "production_observed_at", "deployed_version")}
+    identity.update(runtime_version=a.APP_VERSION,
+        app_version=_safe_call(lambda:(a.BASE_DIR/"APP_VERSION").read_text().strip(), None),
+        version_file=runtime["version_file"])
+    # A Render environment SHA describes this process, not a remote API lookup.
+    runtime["render_reported_sha"] = runtime["commit"]
+    identity["runtime_sha"] = render_sha if re.fullmatch("[a-fA-F0-9]{40}", render_sha) else None
+    missing_tests = [r["test"] for r in LEARNING if not (a.BASE_DIR/r["test"]).is_file()]
+    from engines.navigation_integrity_engine import _NavigationHTMLParser
+    unbound = []
+    for name in ("admin_dashboard.html", "admin_users.html", "admin_picks.html"):
+        try:
+            parser = _NavigationHTMLParser("templates/"+name)
+            parser.feed((a.BASE_DIR/"templates"/name).read_text(encoding="utf-8"))
+            unbound.extend(name+":"+str(e.get("line")) for e in parser.entries if e["kind"]=="button" and not e.get("has_identifier"))
+        except (OSError, ValueError):
+            unbound.append(name+": lectura no disponible")
+    reliability = reliability_snapshot(memory, {"identity":identity, "memory_available":memory_available,
+        "jobs":jobs, "providers":providers, "sync_at":provider.get("job_finished_at"),
+        "queue_samples":memory.get("reliability_queue_samples", []), "missing_tests":missing_tests, "unbound_buttons":unbound})
     configured = a.env_present("OPENAI_API_KEY") and a.env_present("OPENAI_MODEL")
     return {"version":a.APP_VERSION,"generated_at":a.now_iso(),"areas":areas,"facts":facts,"providers":providers,
-            "recommendations":recommendations,"runtime":runtime,"settings":values,"settings_readable":settings_readable,"sentinel":sentinel,
+            "recommendations":recommendations,"runtime":runtime,"settings":values,"settings_readable":settings_readable,"sentinel":sentinel,"reliability":reliability,
             "audit":audit,"actions":[x for x in control_store(a).registry() if x["action_id"] != "telegram.retry_failed"],
             "ai":{"configured":configured,"privacy":"Solo tema y datos agregados; el mensaje original no se transmite al proveedor.","state":"IA avanzada disponible bajo demanda; conexión no verificada." if configured else "IA avanzada no configurada. Diagnóstico del sistema disponible."},
             "external_calls":0,"source":"LOCAL_PERSISTED_EVIDENCE",
@@ -278,7 +314,25 @@ def register_admin_master(a):
         result = a._v892_sentinel_issues_summary(save_memory=True,mode="quick",include_autopilot=False,include_visual=False)
         if type(result) is not dict or type(result.get("issues")) is not list:
             return {"ok":False,"status":"ERROR"}
+        # Explicit scan, never a GET: retain real observations for early warning.
+        from engines.sentinel_issues_engine import load_sentinel_issues_memory, save_sentinel_issues_memory
+        memory = load_sentinel_issues_memory(a.BASE_DIR)
+        failed = next((f["value"] for f in master_snapshot(a)["facts"] if f["label"]=="Telegram fallidos"), None)
+        if type(failed) is int:
+            memory["reliability_queue_samples"] = (memory.get("reliability_queue_samples", []) + [{"at":datetime.now(timezone.utc).isoformat(), "failed":failed}])[-20:]
+            save_sentinel_issues_memory(memory, a.BASE_DIR)
         return {**result,"ok":True,"status":"COMPLETED"}
+    def record_verification(params):
+        from engines.sentinel_issues_engine import record_issue_verification
+        return record_issue_verification(params["issue_id"], params, a.BASE_DIR)
+    def resolve_issue(params):
+        from engines.sentinel_issues_engine import update_issue_status
+        return update_issue_status(params["issue_id"], "RESOLVED", a.BASE_DIR, note="Admin Master Control: cierre con verificacion vigente")
+    def verify_issue_record(params, result):
+        from engines.sentinel_issues_engine import load_sentinel_issues_memory
+        saved = load_sentinel_issues_memory(a.BASE_DIR)
+        expected = "VERIFIED" if params.get("result")=="PASS" else "VERIFICATION_FAILED" if params.get("result")=="FAIL" else "RESOLVED"
+        return result.get("ok") is True and any(i.get("id")==params["issue_id"] and i.get("status")==expected for i in saved["issues"])
     def verify_sports(params,result):
         if type(result) is not dict or result.get("ok") is not True or not result.get("finished_at"):
             return False
@@ -300,6 +354,8 @@ def register_admin_master(a):
         return any(item.get("id") == result["issue_id"] for item in saved.get("issues",[]) if type(item) is dict)
     def handlers():
         return {
+            "sentinel.record_verification":record_verification,
+            "sentinel.resolve":resolve_issue,
             "sports.sync":lambda p:a.run_sports_sync_cycle(force=False,trigger_type="manual_admin"),
             "telegram.dry_run":lambda p:a.telegram_reliability_dry_run(),
             "sentinel.scan":scan_sentinel,
@@ -323,6 +379,8 @@ def register_admin_master(a):
         payload=body(("proposal_id","confirmation"))
         callbacks=handlers()
         verifiers={
+            "sentinel.record_verification":verify_issue_record,
+            "sentinel.resolve":verify_issue_record,
             "sports.sync":verify_sports,
             "telegram.dry_run":lambda p,r:type(r) is dict and r.get("sent") is False and r.get("trigger_type")=="dry_run" and type(r.get("message_preview")) is str,
             "sentinel.scan":verify_sentinel,

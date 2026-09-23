@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha1
 from typing import Any
+from engines.reliability_engine import verification_valid, scrub
 
 
 ISSUE_LIFECYCLE = [
@@ -19,6 +20,9 @@ ISSUE_LIFECYCLE = [
     "codex_prompt_ready",
     "in_progress",
     "safe_fixed",
+    "verification_pending",
+    "verified",
+    "verification_failed",
     "needs_deploy",
     "deployed_pending_validation",
     "resolved",
@@ -145,13 +149,14 @@ def _category(issue: dict[str, Any]) -> str:
 
 
 def normalize_issue(issue: dict[str, Any], version: str = "") -> dict[str, Any]:
+    issue = scrub(issue)
     category = _category(issue)
     severity = str(issue.get("severity") or "info").lower()
     affected_routes = [issue.get("route")] if issue.get("route") else []
     affected_profiles = [issue.get("profile")] if issue.get("profile") else []
     issue_id = issue.get("issue_id") or issue.get("id") or _stable_id("ISSUE", category, severity, issue.get("title"), affected_routes)
     priority = _severity_weight(severity) + min(25, int(issue.get("occurrence_count") or 1) * 5)
-    return {
+    normalized = {
         "issue_id": issue_id,
         "title": issue.get("title") or "Incidencia Sentinel",
         "description": issue.get("description") or issue.get("evidence") or "Incidencia detectada por Sentinel.",
@@ -174,6 +179,14 @@ def normalize_issue(issue: dict[str, Any], version: str = "") -> dict[str, Any]:
         "revalidation_notes": "Revalidar ruta/check tras aplicar mejora.",
         "version": version,
     }
+    mapping = {"OPEN_REAL":"open", "FIXED_PENDING_VERIFICATION":"verification_pending", "VERIFIED":"verified", "VERIFICATION_FAILED":"verification_failed", "RESOLVED":"resolved"}
+    normalized["status"] = mapping.get(issue.get("status"), normalized["status"])
+    for key in ("area","route","file","component","provider","job","exception_type","error_code","stable_key","root_cause","corrective_action","regression_test","prevention","detection","fix_sha","verification_record","seen_count"):
+        normalized[key] = issue.get(key)
+    normalized["occurrence_count"] = int(issue.get("seen_count") or issue.get("occurrence_count") or 1)
+    if normalized["status"] in ("resolved", "verified") and not verification_valid(normalized):
+        normalized["status"] = "verification_pending"
+    return normalized
 
 
 def group_issues(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -306,5 +319,9 @@ def build_workflow_summary(version: str = "", sentinel_result: dict[str, Any] | 
 def update_issue_state(issue: dict[str, Any], status: str) -> dict[str, Any]:
     normalized = normalize_issue(issue)
     normalized["status"] = status if status in ISSUE_LIFECYCLE else "acknowledged"
+    if normalized["status"] in ("resolved", "verified") and not verification_valid(normalized):
+        normalized["status"] = "verification_pending"
+    if normalized["status"] in ("open", "in_progress", "safe_fixed", "recurring", "verification_failed"):
+        normalized["verification_record"] = None
     normalized["revalidation_notes"] = "Estado actualizado en workflow admin; requiere revalidación posterior."
     return normalized

@@ -424,6 +424,24 @@ def admin_intent(message, previous=None):
 
 
 def admin_deterministic_answer(message, snapshot):
+    import unicodedata
+    normalized = unicodedata.normalize("NFKD", message).encode("ascii", "ignore").decode().lower()
+    if any(w in normalized for w in ("fiabilidad", "ocurrio", "recurrent", "incidencia", "aprendizaje", "risk radar", "sha")):
+        from engines.reliability_engine import related_incidents
+        reliability = snapshot.get("reliability") or {}
+        ident = re.search(r"\bSENT-\d{4}-[A-F0-9]{8}\b", message.upper())
+        query = {"id":ident.group(0)} if ident else {}
+        aliases = {"id":"id", "ruta":"route", "proveedor":"provider", "job":"job", "error":"error_code", "componente":"component", "archivo":"file"}
+        for key,value in re.findall(r"\b(id|ruta|proveedor|job|error|componente|archivo)=([A-Za-z0-9_./-]+)", message):
+            query[aliases[key]] = value
+        relation = related_incidents(query, reliability.get("issues") or [])
+        alerts = (reliability.get("radar") or {}).get("alerts") or []
+        answer = (relation["state"]+": "+str(relation["matches"]) if query else
+            "Fiabilidad: "+str(reliability.get("state") or "DESCONOCIDO")+". Alertas observadas: "+str(len(alerts))+". Para comparar un fallo, indica su identificador Sentinel; una palabra compartida no confirma recurrencia.")
+        if not reliability.get("memory_available"):
+            answer += " Memoria de incidencias no disponible; no equivale a cero incidentes."
+        return {"kind":"INFORMATION", "message":answer, "facts":[], "recommendations":[{"title":"Fiabilidad", "href":"/admin/dashboard#reliability", "evidence":"Memoria Sentinel y radar local; sin operaciones externas."}],
+                "source":"DETERMINISTIC", "executed":False, "local_only":True, "relation":relation}
     facts = snapshot.get("facts") or []
     recommendations = snapshot.get("recommendations") or []
     if "versi" in message.lower() or "desplegad" in message.lower():

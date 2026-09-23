@@ -22070,7 +22070,7 @@ def api_admin_sentinel_issue_resolve(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
     result = update_issue_status(issue_id, "RESOLVED", Path(__file__).resolve().parent, note="Marcada como resuelta desde Centro de Incidencias")
-    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 409 if result.get("error") == "verification_required" else 404)
 
 
 @app.route("/api/admin/sentinel/issues/<issue_id>/reopen", methods=["POST"])

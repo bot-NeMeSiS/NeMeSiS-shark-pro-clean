@@ -4,6 +4,7 @@ import socket
 import sqlite3
 from pathlib import Path
 import pytest
+from datetime import datetime, timedelta, timezone
 from engines.admin_control_engine import AdminControlStore
 
 @pytest.fixture
@@ -32,6 +33,42 @@ def test_anonymous_protected(admin,path):
     a,_,_=admin
     response=a.app.test_client().get(path)
     assert response.status_code == (403 if path.startswith("/api") else 302)
+
+
+def test_reliability_attestation_requires_proposal_and_independent_confirmation(admin, monkeypatch, tmp_path):
+    from engines import sentinel_issues_engine as ledger
+    a,c,h=admin
+    monkeypatch.setattr(ledger,'sentinel_issues_memory_path',lambda root=None:tmp_path/'issues.json')
+    issue=ledger.normalize_sentinel_issue({'title':'SIMULATED_QA incident','stable_key':'qa-http','area':'admin',
+        'evidence':'Confirmed QA reproduction only','last_seen':(datetime.now(timezone.utc)-timedelta(minutes=2)).isoformat()})
+    ledger.save_sentinel_issues_memory({'issues':[issue]})
+    # Existing legacy route must obey the same guard, not bypass the new action.
+    result=c.post('/api/admin/sentinel/issues/'+issue['id']+'/resolve',headers=h)
+    assert result.get_json()['ok'] is False
+    params=dict(issue_id=issue['id'],root_cause='QA confirmed cause',corrective_action='QA fix',
+        regression_test='tests/test_reliability.py',prevention='CI guard',detection='Sentinel rule',fix_sha='a'*40,
+        evidence_ref='SIMULATED_QA/report',checked_at=datetime.now(timezone.utc).isoformat(),result='PASS',scope='CI')
+    proposal=c.post('/api/admin/master-control/proposals',headers=h,json={'action_id':'sentinel.record_verification','parameters':params})
+    assert proposal.status_code==200,proposal.get_json()
+    assert ledger.load_sentinel_issues_memory()['issues'][0]['status']=='OPEN_REAL'
+    reply=c.post('/api/admin/master-control/execute',headers=h,json={'proposal_id':proposal.get_json()['proposal']['proposal_id'],'confirmation':True})
+    assert reply.get_json()['result']['verification']=='VERIFIED',reply.get_json()
+    assert ledger.load_sentinel_issues_memory()['issues'][0]['status']=='VERIFIED'
+    close=c.post('/api/admin/master-control/proposals',headers=h,json={'action_id':'sentinel.resolve','parameters':{'issue_id':issue['id']}})
+    assert close.status_code==200
+    reply=c.post('/api/admin/master-control/execute',headers=h,json={'proposal_id':close.get_json()['proposal']['proposal_id'],'confirmation':True})
+    assert reply.get_json()['result']['verification']=='VERIFIED'
+    assert ledger.load_sentinel_issues_memory()['issues'][0]['status']=='RESOLVED'
+    audit=AdminControlStore(a.DB_PATH,a.APP_VERSION).list_audit()
+    assert len(audit)==4  # Each external action keeps start and completion evidence.
+    assert {i['action_id'] for i in audit if i['verification']=='VERIFIED'}=={'sentinel.record_verification','sentinel.resolve'}
+    before=(tmp_path/'issues.json').read_bytes()
+    response=c.get('/api/admin/master-control').get_json()
+    assert response['reliability']['memory_available'] is True
+    assert response['reliability']['radar']['drift']['deployment_certified'] is False
+    assert (tmp_path/'issues.json').read_bytes()==before
+    answer=c.post('/api/admin/master-control/chat',headers=h,json={'message':'¿Esto ya ocurrió? '+issue['id']}).get_json()
+    assert answer['relation']['state']=='CONFIRMADO' and answer['source']=='DETERMINISTIC'
 
 @pytest.mark.parametrize("path",["chat","proposals","execute","rollback"])
 def test_writes_reject_get_and_missing_csrf(admin,path):

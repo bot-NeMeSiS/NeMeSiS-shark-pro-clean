@@ -141,9 +141,37 @@
     const runtime = $('[data-master-runtime]'); runtime.replaceChildren();
     Object.entries(snapshot.runtime || {}).forEach(([key, value]) => { const row = node('div'); row.append(node('dt', key.replaceAll('_', ' ')), node('dd', value)); runtime.append(row); });
     if (!runtime.childElementCount) { const row = node('div'); row.append(node('dt', 'Runtime'), node('dd', 'No disponible')); runtime.append(row); }
-    renderAudit(snapshot.audit); currentSetting();
+    renderReliability(snapshot.reliability); renderAudit(snapshot.audit); currentSetting();
     $$('[data-master-propose]').forEach((button) => { button.disabled = !actionList().some((action) => actionId(action) === button.dataset.masterPropose); });
     $('#master-settings-form button[type="submit"]').disabled = !actionList().some((action) => actionId(action) === 'settings.update');
+  }
+  function renderReliability(data) {
+    if (!$('[data-reliability-summary]')) return;
+    data = data || {};
+    $('[data-reliability-summary]').textContent = `${data.state || 'DESCONOCIDO'} · ${data.memory_available ? String(data.total_issues) + ' incidencias en memoria' : 'Memoria no disponible'} · Lectura local, no certifica producción.`;
+    const radar = $('[data-reliability-radar]'); radar.replaceChildren();
+    const overflow = node('details'); overflow.append(node('summary','Más señales del radar'));
+    for (const [index,item] of (data.radar?.alerts || []).entries()) {
+      const card = node('article'); card.append(node('strong', `${item.state} · ${item.evidence}`), node('p', item.reason), node('p', item.impact));
+      const href = safeAdminHref(item.href); if (href) { const a = node('a', item.action || 'Revisar'); a.href = href; card.append(a); } (index < 3 ? radar : overflow).append(card);
+    }
+    if (overflow.childElementCount > 1) radar.append(overflow);
+    if (!radar.childElementCount) radar.append(node('p', 'Sin alertas en esta lectura; no demuestra ausencia de fallos.'));
+    const identity = $('[data-reliability-identity]'); identity.replaceChildren();
+    const labels = {state:'Alineación',runtime_version:'Runtime version',app_version:'APP_VERSION',version_file:'VERSION.txt',main_sha:'Git main SHA',candidate_sha:'Release Candidate SHA',deployed_sha:'SHA desplegado',render_sha:'Render SHA',production_observed_at:'Fecha de evidencia de producción'};
+    for (const [key,label] of Object.entries(labels)) { const row = node('div'); row.append(node('dt',label),node('dd',data.radar?.drift?.[key] || 'Desconocido')); identity.append(row); }
+    const incidents = $('[data-reliability-incidents]'); incidents.replaceChildren();
+    for (const item of (data.issues || [])) {
+      const d = node('details'); d.append(node('summary',`${item.id} · ${item.title} · ${item.status}`));
+      d.append(node('p',`Primera: ${stamp(item.first_seen)} · Última: ${stamp(item.last_seen)} · Observaciones: ${item.seen_count ?? 'Desconocido'} · ${item.trend}`));
+      for (const [key,label] of Object.entries({root_cause:'Causa',corrective_action:'Corrección',fix_sha:'SHA',regression_test:'Regresión',prevention:'Prevención',detection:'Detección'})) d.append(node('p',`${label}: ${item[key] || 'Sin evidencia'}`));
+      const proof = item.verification_record; d.append(node('p',proof ? `Verificación aportada por Admin: ${proof.result} · ${proof.scope} · ${stamp(proof.checked_at)} · ${proof.evidence_ref}` : 'Verificación pendiente')); incidents.append(d);
+    }
+    if (!incidents.childElementCount) incidents.append(node('p',data.memory_available ? 'No hay incidencias guardadas en esta lectura.' : 'Sin evidencia de memoria disponible.'));
+    const timeline = $('[data-reliability-timeline]'); timeline.replaceChildren();
+    for (const item of (data.timeline || [])) timeline.append(node('p',`${stamp(item.at_madrid)} · ${item.issue_id} · ${item.event} ${item.result || ''}`));
+    const learning = $('[data-reliability-learning]'); learning.replaceChildren();
+    for (const item of (data.learning || [])) { const d = node('details'); d.append(node('summary',item.rule),node('p',item.detail),node('p',`Origen: ${item.origin} · Prueba: ${item.test}`)); learning.append(d); }
   }
   function renderAudit(events) {
     const target = $('[data-master-audit]'); target.replaceChildren();
@@ -275,7 +303,7 @@
     screens.filter(([label]) => normalize(label).includes(query)).forEach(([label, href]) => { const link = node('a'); link.href = href; link.append(node('span', label), node('small', 'Abrir pantalla')); target.append(link); });
     actionList().filter((action) => normalize(`${action.label} ${action.category || ''} ${action.description || ''}`).includes(query)).forEach((action) => {
       const button = node('button'), id = actionId(action); button.type = 'button'; button.append(node('span', action.label || id), node('small', 'Preparar · ' + text(action.risk_level || action.risk)));
-      button.addEventListener('click', () => { commandDialog.close(); if (id === 'settings.update') { $('#master-setting-key').focus(); $('#master-settings-form').scrollIntoView({ block: 'center' }); } else if (id === 'settings.rollback') { $('#master-audit-title').scrollIntoView({ block: 'start' }); } else if (id === 'sentinel.create_improvement') { $('#master-message').value = 'Prepara mejora para la pantalla '; $('#master-message').focus(); } else propose(id, {}, button); }); target.append(button);
+      button.addEventListener('click', () => { commandDialog.close(); if (id === 'settings.update') { $('#master-setting-key').focus(); $('#master-settings-form').scrollIntoView({ block: 'center' }); } else if (id === 'settings.rollback') { $('#master-audit-title').scrollIntoView({ block: 'start' }); } else if (id === 'sentinel.record_verification' || id === 'sentinel.resolve') { $('#reliability-verification').open = true; $('#reliability-verification').scrollIntoView({block:'center'}); } else if (id === 'sentinel.create_improvement') { $('#master-message').value = 'Prepara mejora para la pantalla '; $('#master-message').focus(); } else propose(id, {}, button); }); target.append(button);
     });
     if (!target.childElementCount) target.append(node('p', 'Sin coincidencias. Prueba con el nombre de un área o una acción.', 'master-empty'));
   }
@@ -292,6 +320,12 @@
     else if (button.hasAttribute('data-proposal-cancel')) cancelProposal();
   });
   $('#master-chat-form').addEventListener('submit', (event) => { event.preventDefault(); chat($('#master-message').value); });
+  $('#reliability-verification-form')?.addEventListener('submit', (event) => {
+    event.preventDefault(); const form = event.currentTarget, parameters = Object.fromEntries(new FormData(form));
+    parameters.checked_at = new Date(parameters.checked_at).toISOString();
+    propose('sentinel.record_verification', parameters, form.querySelector('button'));
+  });
+  $('#reliability-resolve-form')?.addEventListener('submit', (event) => { event.preventDefault(); propose('sentinel.resolve', Object.fromEntries(new FormData(event.currentTarget)), event.currentTarget.querySelector('button')); });
   $('#master-settings-form').addEventListener('submit', (event) => { event.preventDefault(); const key = $('#master-setting-key').value; const value = key === 'banner_text' ? $('[name="text_value"]').value : $('[name="boolean_value"]').value === 'true'; propose('settings.update', { key, value }, $('#master-settings-form button[type="submit"]')); });
   $('#master-setting-key').addEventListener('change', currentSetting);
   $$('[data-preview-page],[data-preview-plan],[data-preview-viewport]').forEach((control) => control.addEventListener('change', preview));

@@ -14,3 +14,6 @@
 body.ns-admin:has([data-admin-master-control]) .v933-admin-sidebar nav a:not(.is-active):not(:hover){border-color:transparent!important;background:transparent!important;box-shadow:none!important}
 
 #master-ai-title,#master-audit-title,#master-client-preview{scroll-margin-top:155px}
+
+/* Reliability stays inside the existing master control shell. */
+#reliability{scroll-margin-top:155px;min-width:0}#reliability details{margin:12px 0}#reliability summary{cursor:pointer;min-height:44px;padding:10px 0;overflow-wrap:anywhere}#reliability p,#reliability dd{overflow-wrap:anywhere}#reliability form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin:16px 0}#reliability label{display:grid;gap:6px;min-width:0}#reliability input,#reliability select,#reliability button{width:100%;min-width:0;min-height:44px;padding:9px;font:inherit;color:#eaf3ff;background:#0b1b2e;border:1px solid #476684;border-radius:8px}#reliability :focus-visible{outline:2px solid #67d8ff;outline-offset:3px}
