@@ -1,5 +1,36 @@
 # Active Work
 
+## Coordinación vigente · 2026-09-23
+
+Base remota de este bloque: `main@228369d42447f37f3023a7f09216205057e4655c`.
+Web y Cron están LIVE en ese SHA. El guard post-merge puede seguir observando y no
+se interrumpe con otro merge.
+
+**Bloque interno actual: OPS-002 Hygiene / reconciliación remota controlada.**
+
+- OPS-001 Sentinel se considera DONE solo como `PASS_LOCAL_SAFE`; no habilitar
+  `sentinel_jobs` en producción ni instalar scheduler productivo para ese executor.
+- Reconciliar esta carpeta con la verdad GitHub actual; los encabezados viejos quedan
+  como historia, no como autoridad.
+- No cerrar PRs antiguas hasta comprobar si contienen trabajo único. PR #75 conserva
+  una guía compartible `/instalar` que aún debe extraerse sobre main antes de marcarla
+  supersedida.
+- PR #77 Telegram Ultra Pro sigue DRAFT/NOT_DEPLOYED y separado; no hacer envío real
+  ni merge automático sin revisión de base vigente y autorización del fundador.
+- PR #60 vídeo-resúmenes sigue frente separado con activación/derechos/playback reales
+  pendientes. Directos y Design permanecen preservados; no se infieren cerrados.
+- PR #17 de Project Control queda conceptualmente supersedida por esta reconciliación,
+  pero se cerrará solo después de integrar este candidato.
+- El candidato de 129 cambios del 19/09 sigue siendo procedencia acumulada; las
+  integraciones selectivas posteriores no equivalen a publicar aquella unidad completa.
+- Modo operativo: ChatGPT dirige el proyecto. Codex solo se invoca si el fundador lo
+  autoriza expresamente para una intervención concreta.
+
+Siguiente entrega de producto segura tras esta reconciliación: extraer la página
+compartible de instalación desde el trabajo preservado, reutilizando la PWA ya integrada
+y sin crear otra implementación paralela.
+
+
 ## Frente de publicación autorizado · 2026-09-21
 
 El fundador ha autorizado subir e integrar las mejoras desde esta conversación.
