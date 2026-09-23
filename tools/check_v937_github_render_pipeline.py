@@ -48,7 +48,8 @@ def main() -> int:
             "network-free dry-run is missing", errors)
     require("--expected-sha" in workflow and "git_commit_hint" in certifier,
             "exact SHA verification is missing", errors)
-    require("0,120,300,900,3600" in workflow, "post-deploy observation windows are incomplete", errors)
+    require("0,60,180,300" in workflow, "routine post-deploy observation window is missing", errors)
+    require("0,120,300,900,3600" in workflow, "extended post-deploy observation window is missing", errors)
     require("public_stale_live" in certifier and "false_live" in certifier,
             "live evidence certification is missing", errors)
     require("POST" not in certifier and "DELETE" not in certifier,
@@ -98,7 +99,7 @@ def main() -> int:
             "--base-url", "https://bot-apuestas-crgf.onrender.com",
             "--expected-version", VERSION,
             "--expected-sha", "261213048fe3f92a58488b1119092922cdfc5db5",
-            "--check-offsets", "0,120,300,900,3600",
+            "--check-offsets", "0,60,180,300",
         ],
         cwd=ROOT,
         capture_output=True,
