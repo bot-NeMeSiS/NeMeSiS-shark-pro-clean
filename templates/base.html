@@ -28,7 +28,7 @@
   {% for _touch_size in (152, 167, 180) %}
   <link rel="apple-touch-icon" sizes="{{ _touch_size }}x{{ _touch_size }}" href="{{ url_for('static', filename='img/app-icons/app-icon-' ~ _touch_size ~ '.png', v=app_icon_version) }}">
   {% endfor %}
-  <link rel="manifest" href="{{ url_for('founder_manifest_json', v=app_icon_version) if _founder_pwa else url_for('manifest_json', v=app_icon_version) }}">
+  <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <meta name="application-name" content="NeMeSiS SHARK PRO">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}-design-system-1-8" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
