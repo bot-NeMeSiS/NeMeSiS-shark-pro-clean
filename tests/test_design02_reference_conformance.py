@@ -104,14 +104,18 @@ def test_team_without_confirmed_form_does_not_display_zero_statistics(app_module
 
 
 def test_compact_brand_reuses_certified_app_icon_without_second_geometry(app_module):
+    fingerprint = __import__('json').loads(
+        (ROOT / 'static/img/app-icons/icons.json').read_text(encoding='utf-8')
+    )['fingerprint']
     with app_module.app.test_request_context('/app'):
-        macro = app_module.app.jinja_env.get_template('partials/brand_logo.html').make_module()
+        macro = app_module.app.jinja_env.get_template('partials/brand_logo.html').make_module(
+            {'app_icon_version': fingerprint}
+        )
         dom = Structure(str(macro.nemesis_brand()))
     img, = [n for n in dom.nodes if n['tag'] == 'img']
-    assert img['attrs']['src'] == '/static/img/app-icons/app-icon-96.png?v=8d0ed4207e73'
+    assert img['attrs']['src'] == f'/static/img/app-icons/app-icon-96.png?v={fingerprint}'
     assert img['attrs']['data-brand-source'] == 'official-app-icon'
     assert (ROOT / img['attrs']['src'].split('?')[0].lstrip('/')).is_file()
-
 
 def test_admin_table_contract_keeps_actions_and_headers_unbroken():
     css = (ROOT / 'static/v933-product.css').read_text(encoding='utf-8')
