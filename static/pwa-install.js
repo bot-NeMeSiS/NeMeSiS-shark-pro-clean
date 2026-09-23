@@ -6,6 +6,7 @@
   var isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   isStandalone = isStandalone || window.navigator.standalone === true;
   var isAdminSurface = document.body && document.body.classList.contains('ns-admin');
+  var isInstallGuide = /^\/(instalar|install-app|anadir-a-inicio)\/?$/.test(window.location.pathname);
   if (isStandalone || isAdminSurface) return;
 
   var iconMeta = document.querySelector('meta[name="nemesis-app-icon-version"]');
@@ -93,7 +94,7 @@
 
   function show(mode) {
     ensureUi();
-    if (isDismissed()) return;
+    if (isDismissed() || isInstallGuide) return;
     root.hidden = false;
     var copy = panel.querySelector('[data-ns-pwa-copy]');
     var confirm = panel.querySelector('[data-ns-pwa-confirm]');
@@ -111,6 +112,7 @@
   async function triggerInstall() {
     if (!deferredPrompt) {
       if (isIos) {
+        if (isInstallGuide) return;
         ensureUi();
         panel.hidden = false;
         button.setAttribute('aria-expanded', 'true');
