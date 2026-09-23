@@ -29,8 +29,11 @@ def control_root(tmp_path):
 def test_single_queue_states_and_evidence(control_root):
     data = snapshot(control_root)
     ids = [row['ID'] for row in data['queue']]
-    assert len(ids) == len(set(ids)) == 23
-    assert data['counts']['qa'] == 6
+    assert len(ids) == len(set(ids)) == 24
+    assert data['counts']['qa'] == 7
+    telegram = next(row for row in data['queue'] if row['ID'] == 'TG-001')
+    assert telegram['Estado'] == 'QA'
+    assert telegram['Ambito'] == 'LOCAL_ONLY'
     ops1 = next(row for row in data['queue'] if row['ID'] == 'OPS-001')
     ops2 = next(row for row in data['queue'] if row['ID'] == 'OPS-002')
     assert ops1['Estado'] == 'DONE'
