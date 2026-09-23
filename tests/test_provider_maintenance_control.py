@@ -179,3 +179,16 @@ def test_api_football_subscription_active_and_end_are_visible_after_verified_che
     assert "Suscripción activa" in text
     assert "2026-12-31" in text
     assert "PRIVATE_QA_KEY" not in text
+
+
+def test_maintenance_surface_shows_direct_connection_state(app_module, monkeypatch):
+    state = stub_local_state(app_module, monkeypatch)
+    state["provider_maintenance_direct_check:api_football"] = {
+        "ok": False, "status": "PROVIDER_REJECTED", "checked_at": app_module.now_iso(),
+        "error_code": "HTTP_403", "quota": {},
+    }
+    client, _ = admin_client(app_module)
+    text = client.get("/admin/system").get_data(as_text=True)
+    assert "Conexión directa" in text
+    assert "PROVIDER_REJECTED" in text
+    assert "HTTP_403" in text

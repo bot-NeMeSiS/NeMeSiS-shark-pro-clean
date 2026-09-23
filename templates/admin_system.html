@@ -40,6 +40,8 @@
           <div class="route-list compact-list">
             <div class="route-row"><span>Servicio habilitado</span><strong>{{ 'Sí' if provider.get('enabled') else 'No' }}</strong></div>
             <div class="route-row"><span>Estado runtime</span><strong>{{ provider.get('runtime_state') or 'Sin evidencia' }}</strong></div>
+            <div class="route-row"><span>Conexión directa</span><strong>{{ provider.get('direct_status') or 'NO_VERIFICADO' }}</strong></div>
+            {% if (provider.get('last_check') or {}).get('error_code') %}<div class="route-row"><span>Último diagnóstico</span><strong>{{ (provider.get('last_check') or {}).get('error_code') }}</strong></div>{% endif %}
             <div class="route-row"><span>Plan / contrato</span><strong>{{ (provider.get('plan') or {}).get('label') or 'No verificado' }}</strong></div>
             {% if provider.get('subscription_active') is not none %}<div class="route-row"><span>Suscripción activa</span><strong>{{ 'Sí' if provider.get('subscription_active') else 'No' }}</strong></div>{% endif %}
             {% if provider.get('subscription_end') %}<div class="route-row"><span>Fin de suscripción</span><strong>{{ provider.get('subscription_end') }}</strong></div>{% endif %}
