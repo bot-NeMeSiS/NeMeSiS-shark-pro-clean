@@ -20,6 +20,7 @@ def test_prompt_skips_admin_and_uses_versioned_seven_day_dismissal():
     js = (ROOT / "static" / "pwa-install.js").read_text(encoding="utf-8")
     base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
     assert "isAdminSurface" in js
+    assert "isInstallGuide" in js
     assert "nemesis-pwa-install-dismissed-" in js
     assert "7 * 24 * 60 * 60 * 1000" in js
     assert "localStorage.setItem" in js
