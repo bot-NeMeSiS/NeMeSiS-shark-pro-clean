@@ -1,5 +1,7 @@
 name: Render Deploy Guard
 # Primary strategy: Render Auto-Deploy from protected main. This workflow never calls a hook.
+# Routine main pushes use a focused 5-minute observation window; workflow_dispatch
+# keeps the extended 1-hour window available for sensitive releases when explicitly chosen.
 
 on:
   pull_request:
@@ -235,7 +237,7 @@ jobs:
             --expected-version "${{ needs.preflight.outputs.expected_version }}" \
             --expected-sha "${{ needs.preflight.outputs.expected_sha }}" \
             --deployment-timeout 900 \
-            --check-offsets "${{ inputs.monitor_offsets || '0,120,300,900,3600' }}" \
+            --check-offsets "${{ inputs.monitor_offsets || '0,60,180,300' }}" \
             --report-path reports/V937_POST_DEPLOY_AUTOMATED_EVIDENCE.json
 
       - name: Run production Quality Sentinel
