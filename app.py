@@ -20827,6 +20827,134 @@ def admin_picks_page():
     return render_template("admin_picks.html", data=data, message=message, result=result)
 
 
+def v945_provider_health_snapshot():
+    """Read-only provider health from persisted cron evidence; never calls a provider."""
+    detail = automation_get_bounded("telegram_tick_last_detail", {}, max_bytes=192 * 1024) or {}
+    compact = detail.get("compact") if isinstance(detail, dict) and isinstance(detail.get("compact"), dict) else {}
+    if not compact:
+        compact = automation_get_bounded("last_automation_result", {}, max_bytes=128 * 1024) or {}
+    pipeline = compact.get("sports_pipeline") if isinstance(compact, dict) and isinstance(compact.get("sports_pipeline"), dict) else {}
+    current = pipeline.get("current_sync") if isinstance(pipeline.get("current_sync"), dict) else {}
+    api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
+    sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
+    odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
+    access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
+    plan = pipeline.get("provider_plan_observation") if isinstance(pipeline.get("provider_plan_observation"), dict) else {}
+    quota = pipeline.get("quota_observation") if isinstance(pipeline.get("quota_observation"), dict) else {}
+    quota_values = quota.get("values") if isinstance(quota.get("values"), dict) else {}
+    job = pipeline.get("job_execution") if isinstance(pipeline.get("job_execution"), dict) else {}
+
+    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
+    sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
+    odds_configured = env_present("THE_ODDS_API_KEY")
+
+    def provider_card(key, label, configured, observed, *, plan_value=None, observed_at="", quota_data=None, billing_hint=""):
+        observed = observed if isinstance(observed, dict) else {}
+        state = str(observed.get("state") or observed.get("status") or "UNKNOWN").strip() or "UNKNOWN"
+        reason = str(observed.get("reason_code") or observed.get("failure_class") or "").strip()
+        joined = f"{state} {reason}".upper()
+        contributed = bool(observed.get("data_contributed")) or as_int(observed.get("processed"), 0) > 0 or as_int(observed.get("fixtures_count"), 0) > 0
+        ok_value = observed.get("ok") if isinstance(observed.get("ok"), bool) else None
+        restricted = any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
+        if not configured and key != "sportsdb":
+            status = "NO_CONFIGURADA"
+            label_status = "No configurada"
+            severity = "danger"
+            action = "Configurar credenciales en Render"
+        elif restricted:
+            status = "REVISAR_PLAN_ACCESO"
+            label_status = "Revisar acceso/plan"
+            severity = "warning"
+            action = "Revisar suscripción, plan y permisos del proveedor"
+        elif contributed or ok_value is True:
+            status = "OPERATIVA"
+            label_status = "Operativa"
+            severity = "success"
+            action = "Sin acción inmediata"
+        elif "CACHE" in joined:
+            status = "CACHE"
+            label_status = "Usando caché"
+            severity = "neutral"
+            action = "Verificar en el próximo ciclo real"
+        else:
+            status = "SIN_VERIFICACION_RECIENTE"
+            label_status = "Sin verificación reciente"
+            severity = "warning" if configured else "neutral"
+            action = "Revisar última sincronización"
+        billing_status = billing_hint or "No verificable automáticamente"
+        if plan_value:
+            billing_status = f"Plan observado: {plan_value}"
+        elif restricted:
+            billing_status = "Acceso limitado; revisar suscripción"
+        return {
+            "key": key,
+            "label": label,
+            "configured": bool(configured),
+            "status": status,
+            "status_label": label_status,
+            "severity": severity,
+            "state": state,
+            "reason_code": reason,
+            "data_contributed": contributed,
+            "ok": ok_value,
+            "processed": as_int(observed.get("processed") or observed.get("fixtures_count"), 0),
+            "external_calls": as_int(observed.get("external_calls"), 0),
+            "observed_at": str(observed_at or ""),
+            "billing_status": billing_status,
+            "quota": quota_data or {},
+            "next_action": action,
+        }
+
+    plan_value = plan.get("value") if str(plan.get("state") or "").upper() == "OBSERVED" else None
+    api_card = provider_card(
+        "api_football", "API-Football / API-Sports", api_football_configured, api_football,
+        plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
+    )
+    if access:
+        api_card["access_state"] = access.get("state") or "UNKNOWN"
+        api_card["authenticated"] = access.get("authenticated") if isinstance(access.get("authenticated"), bool) else None
+        api_card["access_freshness"] = access.get("freshness") or pipeline.get("provider_access_freshness") or "UNKNOWN"
+
+    sportsdb_card = provider_card(
+        "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
+        observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
+    )
+    if sportsdb_card["data_contributed"] and not sportsdb_configured:
+        sportsdb_card["status"] = "OPERATIVA_FALLBACK"
+        sportsdb_card["status_label"] = "Fallback operativo"
+        sportsdb_card["severity"] = "success"
+        sportsdb_card["next_action"] = "Sin acción inmediata; revisar límites del servicio si aplica"
+
+    odds_card = provider_card(
+        "the_odds", "The Odds API", odds_configured, odds,
+        observed_at=job.get("finished_at"), billing_hint="Pago no verificable desde la app; acceso inferido por el último ciclo",
+    )
+
+    providers = [api_card, sportsdb_card, odds_card]
+    alerts = [
+        {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
+        for item in providers if item["status"] in {"NO_CONFIGURADA", "REVISAR_PLAN_ACCESO"}
+    ]
+    selected_source = current.get("selected_source") or "NO_CONFIRMED_SOURCE"
+    return {
+        "ok": True,
+        "generated_at_madrid": datetime.now(MADRID_TZ).isoformat(timespec="seconds"),
+        "source": "PERSISTED_CRON_EVIDENCE",
+        "provider_calls_during_render": 0,
+        "selected_source": selected_source,
+        "sports_pipeline_status": pipeline.get("status") or "UNKNOWN",
+        "job_finished_at": job.get("finished_at") or "",
+        "providers": providers,
+        "alerts": alerts,
+        "has_alerts": bool(alerts),
+        "external_services": {
+            "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
+            "openai_configured": env_present("OPENAI_API_KEY"),
+            "stripe_configured": env_present("STRIPE_SECRET_KEY"),
+            "note": "Configurado no equivale a pagado u operativo; solo se afirma acceso cuando hay evidencia persistida.",
+        },
+    }
+
 @app.route("/admin/data-center", methods=["GET", "POST"])
 def admin_data_center_page():
     if not is_admin_session():
@@ -20865,7 +20993,17 @@ def admin_data_center_page():
         v932_admin_sports_diagnostics(sports),
     )
     data["v934_realtime"] = get_v934_realtime_context(_summary)
+    data["provider_health"] = v932_safe_context(
+        request.path, "admin", "provider_health", v945_provider_health_snapshot,
+        {"ok": False, "providers": [], "alerts": [], "source": "UNAVAILABLE", "provider_calls_during_render": 0},
+    )
     return render_template("admin_data_center.html", data=data, message=message, result=result)
+
+@app.route("/api/admin/provider-health")
+def api_admin_provider_health():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify(v945_provider_health_snapshot())
 
 
 @app.route("/admin/api-sports")
