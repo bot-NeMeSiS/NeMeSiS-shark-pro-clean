@@ -3944,7 +3944,9 @@ def inject_security_context():
 @app.after_request
 def apply_security_headers_and_csrf(response):
     if request.path == '/admin' or request.path == '/admin-login' or request.path.startswith(('/admin/', '/api/admin/')):
-        response.headers['Cache-Control'] = 'private, no-store'
+        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
+        if 'no-store' not in current_cache_control:
+            response.headers['Cache-Control'] = 'private, no-store'
         response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
