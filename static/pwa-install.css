@@ -67,9 +67,10 @@
 }
 @media (max-width: 640px) {
   .ns-pwa-install {
-    left: 14px;
-    right: 14px;
-    width: auto;
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(164px + env(safe-area-inset-bottom));
+    width: min(300px, calc(100vw - 28px));
   }
   .ns-pwa-install__button { margin-left: auto; }
 }
