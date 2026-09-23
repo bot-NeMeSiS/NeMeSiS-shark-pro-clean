@@ -136,6 +136,72 @@ def read_highlights_for_match(db_path, match_id):
         return _match_unavailable('READ_UNAVAILABLE')
 
 
+
+def read_highlight_by_id(db_path, highlight_id):
+    """Read one stored highlight by canonical local media ID without writes."""
+    hid = str(highlight_id).strip()[:80] if highlight_id is not None else ''
+    if not hid:
+        return {'ok': False, 'read_state': 'HIGHLIGHT_ID_MISSING',
+                'highlight': {}, 'playback_verified': False}
+    try:
+        with _reader(db_path) as conn:
+            found = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE id=? LIMIT 1', (hid,))
+        return {'ok': True, 'read_state': 'VERIFIED',
+                'highlight': found[0] if found else {}, 'playback_verified': False}
+    except _Unavailable as exc:
+        return {'ok': False, 'read_state': exc.state,
+                'highlight': {}, 'playback_verified': False}
+    except (sqlite3.Error, OSError, ValueError, TypeError, KeyError):
+        return {'ok': False, 'read_state': 'READ_UNAVAILABLE',
+                'highlight': {}, 'playback_verified': False}
+
+
+def read_highlights_map(db_path, match_ids, limit_per_match=2):
+    """Read visible highlights for many canonical local match IDs in one snapshot."""
+    limit = max(1, min(int(limit_per_match or 2), MATCH_LIMIT))
+    ids, seen = [], set()
+    for raw in match_ids or []:
+        if raw is None:
+            continue
+        mid = str(raw).strip()
+        if not mid or mid in seen:
+            continue
+        seen.add(mid)
+        ids.append(mid)
+        if len(ids) >= 500:
+            break
+    if not ids:
+        return {'ok': True, 'read_state': 'VERIFIED', 'map': {},
+                'requested_matches': 0, 'sample_limit_per_match': limit,
+                'playback_verified': False}
+    try:
+        with _reader(db_path) as conn:
+            placeholders = ','.join('?' for _ in ids)
+            stored = _rows(conn, f'''SELECT * FROM sportsdb_match_highlights
+                WHERE match_id IN ({placeholders})
+                ORDER BY updated_at DESC,id''', tuple(ids))
+        _, visible = _classified(stored)
+        mapped = {}
+        for row in visible:
+            mid = str(row.get('match_id') or '').strip()
+            if not mid or mid not in seen:
+                continue
+            bucket = mapped.setdefault(mid, [])
+            if len(bucket) < limit:
+                bucket.append(row)
+        return {'ok': True, 'read_state': 'VERIFIED', 'map': mapped,
+                'requested_matches': len(ids), 'sample_limit_per_match': limit,
+                'playback_verified': False}
+    except _Unavailable as exc:
+        return {'ok': False, 'read_state': exc.state, 'map': {},
+                'requested_matches': len(ids), 'sample_limit_per_match': limit,
+                'playback_verified': False}
+    except (sqlite3.Error, OSError, ValueError, TypeError, KeyError):
+        return {'ok': False, 'read_state': 'READ_UNAVAILABLE', 'map': {},
+                'requested_matches': len(ids), 'sample_limit_per_match': limit,
+                'playback_verified': False}
+
+
 def read_highlights_readiness(db_path):
     """Admin diagnostic; excludes row payloads/URLs, filesystem paths and API keys.
 

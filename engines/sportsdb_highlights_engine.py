@@ -548,6 +548,18 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             'rights_auto_approved': 0, 'downloads_video': False}
 
 
+def sportsdb_highlight_by_id(db_path, highlight_id):
+    """Compatibility entry point for one stored row; never creates media schema."""
+    from engines.highlight_read_model import read_highlight_by_id
+    return read_highlight_by_id(db_path, highlight_id)
+
+
+def sportsdb_highlights_map(db_path, match_ids, limit_per_match=2):
+    """Compatibility entry point for batch badges; never creates media schema."""
+    from engines.highlight_read_model import read_highlights_map
+    return read_highlights_map(db_path, match_ids, limit_per_match=limit_per_match)
+
+
 def sportsdb_highlights_for_match(db_path, match_id):
     """Compatibility entry point: reads never prepare storage or call providers."""
     from engines.highlight_read_model import read_highlights_for_match
