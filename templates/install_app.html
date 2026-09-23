@@ -50,6 +50,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var status = document.querySelector('[data-ns-install-status]');
   if (!button) return;
   button.addEventListener('click', function () {
+    var ua = navigator.userAgent || '';
+    var isIos = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIos) {
+      if (status) status.textContent = 'En Safari: toca Compartir y después “Añadir a pantalla de inicio”.';
+      return;
+    }
     if (typeof window.nemesisInstallApp === 'function') {
       window.nemesisInstallApp();
       if (status) status.textContent = 'Sigue las indicaciones del navegador.';
