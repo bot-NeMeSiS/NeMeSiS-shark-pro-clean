@@ -6,9 +6,12 @@ Cron tick. It does not send messages by itself and does not call external APIs.
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from .v935_launch_trust_engine import match_status_truth
+from .telegram_message_formatter import highlight_link
 
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -96,13 +99,12 @@ def _status(item):
     return str((item or {}).get("status") or (item or {}).get("state") or "").strip().lower()
 
 
-def _is_live(item):
-    status = _status(item)
-    return status in {"live", "inplay", "en directo", "directo", "ht", "descanso"} or bool((item or {}).get("minute"))
+def _is_live(item, current=None):
+    return match_status_truth(item or {}, now=current)["is_live"]
 
 
 def _is_finished(item):
-    return _status(item) in {"ft", "final", "finished", "finalizado"}
+    return match_status_truth(item or {})["is_finished"]
 
 
 def _is_world_cup_or_top(item):
@@ -287,7 +289,7 @@ def should_send_midday_update(matches=None, picks=None, current=None):
 
 def should_send_live_alert(match=None, current=None):
     cfg = telegram_activity_config()
-    if not cfg["send_live_alerts"] or not _is_live(match):
+    if not cfg["send_live_alerts"] or not _is_live(match, current):
         return False
     if is_quiet_hours_blocked("live_alert", item=match, current=current):
         return False
@@ -307,7 +309,7 @@ def pick_has_real_value(pick=None):
         return False
     if not selection:
         return False
-    if odds <= 1.0:
+    if not math.isfinite(odds) or odds <= 1.0:
         return False
     if "alto" in risk or "high" in risk:
         score = int(pick.get("confidence") or pick.get("score") or pick.get("shark_score") or 0)
@@ -339,7 +341,7 @@ def should_send_combi_alert(combi=None, current=None):
     legs = combi.get("picks") or combi.get("legs") or []
     if not legs and not combi.get("legs_count"):
         return False
-    if odds <= 1.0:
+    if not math.isfinite(odds) or odds <= 1.0:
         return False
     if is_quiet_hours_blocked("combi_alert", pick=combi, current=current):
         return False
@@ -357,7 +359,7 @@ def should_send_highlight_alert(match=None, highlight=None, current=None):
     cfg = telegram_activity_config()
     if not cfg["send_highlight_alerts"]:
         return False
-    if not highlight or not (highlight.get("video_url") or highlight.get("safe_url") or highlight.get("detail_url")):
+    if not highlight or not highlight_link(highlight):
         return False
     return bool((match or {}).get("has_pick")) or _is_world_cup_or_top(match or highlight)
 
