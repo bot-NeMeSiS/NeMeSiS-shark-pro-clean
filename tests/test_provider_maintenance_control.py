@@ -159,7 +159,7 @@ def test_sportsdb_error_json_is_not_false_green(app_module, monkeypatch):
 
 
 def test_admin_navigation_names_existing_system_route_as_maintenance(app_module):
-    directory = app_module.v807_admin_directory()
+    directory = app_module.v566_admin_items()
     item = next(row for row in directory if row.get("href") == "/admin/system")
     assert item["title"] == "Mantenimiento"
     partial = (app_module.BASE_DIR / "templates" / "partials" / "admin_visual_system.html").read_text(encoding="utf-8")
