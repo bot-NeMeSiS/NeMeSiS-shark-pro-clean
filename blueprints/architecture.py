@@ -72,4 +72,6 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
     bp.register_blueprint(create_client_surfaces_blueprint())
     from blueprints.admin_productivity import create_admin_productivity_blueprint
     bp.register_blueprint(create_admin_productivity_blueprint(_admin_required))
+    from blueprints.pwa_install import create_pwa_install_blueprint
+    bp.register_blueprint(create_pwa_install_blueprint(app_version))
     return bp
