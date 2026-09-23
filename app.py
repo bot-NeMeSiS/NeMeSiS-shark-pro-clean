@@ -141,6 +141,7 @@ from engines.api_sports_provider_engine import (
 )
 from engines.api_exploitation_engine import (
     api_exploitation_summary,
+    probe_api_football_account,
     run_api_exploitation_if_due,
 )
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
@@ -20827,6 +20828,158 @@ def admin_picks_page():
     return render_template("admin_picks.html", data=data, message=message, result=result)
 
 
+
+V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS = 300
+V945_PROVIDER_DIRECT_CHECKS = ("api_football", "sportsdb", "the_odds")
+
+
+def _v945_provider_direct_state_key(provider):
+    return "v945_provider_direct_check:" + str(provider or "").strip().lower()
+
+
+def _v945_provider_safe_quota(value):
+    value = value if isinstance(value, dict) else {}
+    allowed = (
+        "daily_limit", "daily_used", "daily_remaining",
+        "minute_limit", "minute_remaining",
+        "requests_remaining", "requests_used", "requests_last",
+    )
+    clean = {}
+    for key in allowed:
+        if key not in value:
+            continue
+        try:
+            clean[key] = max(0, int(value.get(key) or 0))
+        except (TypeError, ValueError):
+            continue
+    return clean
+
+
+def _v945_provider_direct_age_seconds(check):
+    raw = str((check or {}).get("checked_at") or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        return max(0, int((datetime.now(TZ) - parsed.astimezone(TZ)).total_seconds()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _v945_provider_direct_snapshot(provider):
+    return automation_get_bounded(
+        _v945_provider_direct_state_key(provider),
+        {},
+        max_bytes=24 * 1024,
+    ) or {}
+
+
+def v945_provider_direct_check(provider):
+    """One explicit, bounded provider probe; never called while rendering a page."""
+    provider = str(provider or "").strip().lower()
+    if provider not in V945_PROVIDER_DIRECT_CHECKS:
+        return {
+            "ok": False, "provider": provider, "status": "INVALID_PROVIDER",
+            "external_calls": 0, "secrets_visible": False,
+        }, 400
+
+    previous = _v945_provider_direct_snapshot(provider)
+    age = _v945_provider_direct_age_seconds(previous)
+    if previous and age is not None and age < V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS:
+        reused = dict(previous)
+        reused.update({
+            "reused": True,
+            "external_calls": 0,
+            "cooldown_remaining_seconds": max(
+                0, V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS - age
+            ),
+        })
+        return reused, 200
+
+    if provider == "api_football":
+        configured = any(env_present(name) for name in (
+            "API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"
+        ))
+    elif provider == "the_odds":
+        configured = env_present("THE_ODDS_API_KEY")
+    else:
+        configured = bool(thesportsdb_key())
+
+    checked_at = now_iso()
+    if not configured:
+        result = {
+            "ok": False, "provider": provider, "status": "NOT_CONFIGURED",
+            "checked_at": checked_at, "http_status": 0, "external_calls": 0,
+            "quota": {}, "plan_state": "NOT_CONFIGURED",
+            "error_code": "MISSING_CONFIGURATION", "secrets_visible": False,
+        }
+        automation_set(_v945_provider_direct_state_key(provider), result)
+        return result, 200
+
+    result = {
+        "ok": False, "provider": provider, "status": "CONNECTION_FAILED",
+        "checked_at": checked_at, "http_status": 0, "external_calls": 1,
+        "quota": {}, "plan_state": "NOT_VERIFIED", "error_code": "",
+        "secrets_visible": False,
+    }
+    try:
+        if provider == "api_football":
+            raw = probe_api_football_account() or {}
+            plan = str(raw.get("plan") or "").strip()
+            active = raw.get("active") if isinstance(raw.get("active"), bool) else None
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "plan": plan[:80],
+                "active": active,
+                "subscription_end": str(raw.get("end") or "")[:80],
+                "quota": _v945_provider_safe_quota(raw.get("quota")),
+            })
+            plan_key = plan.casefold()
+            if result["ok"] and plan_key == "free":
+                result["plan_state"] = "FREE_PLAN_VERIFIED"
+            elif result["ok"] and plan and plan_key not in {"inaccessible", "unknown", "none"}:
+                result["plan_state"] = "PAID_PLAN_VERIFIED"
+            elif result["ok"]:
+                result["plan_state"] = "CONNECTION_VERIFIED_PLAN_UNKNOWN"
+        elif provider == "the_odds":
+            raw = odds_api_request("sports") or {}
+            payload = raw.get("payload")
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "quota": _v945_provider_safe_quota(raw.get("quota")),
+                "items_observed": len(payload) if isinstance(payload, list) else 0,
+                "plan_state": "KEY_AND_QUOTA_VERIFIED"
+                    if raw.get("ok") and _v945_provider_safe_quota(raw.get("quota"))
+                    else "KEY_VERIFIED_PLAN_UNKNOWN" if raw.get("ok") else "NOT_VERIFIED",
+            })
+        else:
+            payload = sportsdb_v1("all_leagues.php")
+            shape_ok = isinstance(payload, dict) and isinstance(payload.get("leagues"), list)
+            result.update({
+                "ok": shape_ok,
+                "status": "CONNECTED" if shape_ok else "PROVIDER_REJECTED",
+                "http_status": 200 if isinstance(payload, dict) else 0,
+                "items_observed": len(payload.get("leagues") or []) if shape_ok else 0,
+                "plan_state": "KEY_VERIFIED_PLAN_UNKNOWN" if shape_ok else "NOT_VERIFIED",
+            })
+    except Exception as exc:
+        result["status"] = "CONNECTION_FAILED"
+        result["error_code"] = type(exc).__name__[:80]
+
+    if not result.get("ok") and not result.get("error_code"):
+        result["error_code"] = (
+            f"HTTP_{result.get('http_status')}" if result.get("http_status")
+            else "PROVIDER_REJECTED"
+        )
+    automation_set(_v945_provider_direct_state_key(provider), result)
+    return result, 200
+
 def v945_provider_health_snapshot():
     """Read-only provider health from persisted cron evidence; never calls a provider."""
     detail = automation_get_bounded("telegram_tick_last_detail", {}, max_bytes=192 * 1024) or {}
@@ -20931,6 +21084,19 @@ def v945_provider_health_snapshot():
     )
 
     providers = [api_card, sportsdb_card, odds_card]
+    for item in providers:
+        direct = _v945_provider_direct_snapshot(item["key"])
+        item["direct_check"] = direct
+        item["direct_check_supported"] = True
+        if direct.get("plan_state") == "PAID_PLAN_VERIFIED":
+            plan_label = str(direct.get("plan") or "Plan de pago").strip()[:80]
+            item["billing_status"] = f"Plan verificado directamente: {plan_label}"
+        elif direct.get("plan_state") == "FREE_PLAN_VERIFIED":
+            item["billing_status"] = "Plan FREE verificado directamente"
+        elif direct.get("ok"):
+            item["billing_status"] = (
+                item.get("billing_status") or "Conexión directa verificada; plan no expuesto"
+            )
     alerts = [
         {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
         for item in providers if item["status"] in {"NO_CONFIGURADA", "REVISAR_PLAN_ACCESO"}
@@ -21004,6 +21170,24 @@ def api_admin_provider_health():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify(v945_provider_health_snapshot())
+
+
+@app.route("/api/admin/provider-health/check", methods=["POST"])
+def api_admin_provider_health_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    result, status = v945_provider_direct_check(payload.get("provider"))
+    return jsonify({"version": APP_VERSION, **result}), status
+
+
+@app.route("/admin/provider-health/check", methods=["POST"])
+def admin_provider_health_check():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/data-center")
+    result, _status = v945_provider_direct_check(request.form.get("provider"))
+    marker = urllib.parse.quote(str(result.get("status") or "CHECKED"), safe="")
+    return redirect(f"/admin/data-center?provider_check={marker}#provider-health")
 
 
 @app.route("/admin/api-sports")
