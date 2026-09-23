@@ -4,8 +4,10 @@
 {% set system = data.get('system') or {} %}
 {% set sportsdb = data.get('sportsdb') or {} %}
 {% set feed = system.get('sportsdb_feed') or {} %}
+{% set maintenance = data.get('provider_maintenance') or {} %}
+{% set providers = maintenance.get('providers') or [] %}
 <section class="v928-page v928-admin-command-center v930-page v930-admin-page v930-admin-system" data-v930-template="admin_system">
-  {{ page_header('Estado del sistema', 'Runtime, datos y servicios conectados sin exponer configuración sensible', 'settings', [{'label':'Rutas','href':'/admin/navigation-integrity'},{'label':'Centro de datos','href':'/admin/data-center','primary':true}]) }}
+  {{ page_header('Mantenimiento y estado del sistema', 'Runtime, APIs, datos y servicios conectados sin exponer configuración sensible', 'settings', [{'label':'Rutas','href':'/admin/navigation-integrity'},{'label':'Centro de datos','href':'/admin/data-center','primary':true}]) }}
   <section class="v928-kpi-grid">
     {{ kpi_card('Base de datos', system.get('sqlite') or 'Sin estado', 'Persistencia local del servicio', 'green' if system.get('sqlite') == 'OK' else 'gold', 'database') }}
     {{ kpi_card('Equipos', system.get('teams'), 'Registros reales', 'blue', 'users') }}
@@ -13,6 +15,59 @@
     {{ kpi_card('Picks', system.get('picks'), 'Registros reales', 'purple', 'target') }}
     {{ kpi_card('Usuarios', system.get('users_count'), 'Cuentas registradas', 'blue', 'users') }}
     {{ kpi_card('Telegram', system.get('telegram'), 'Estado enmascarado', 'green' if system.get('telegram') == 'Listo' else 'gold', 'telegram') }}
+  </section>
+
+  <section id="provider-connections" class="v928-admin-panel">
+    <header>
+      <div><h2>APIs y conexiones externas</h2><p>Configuración, contrato, última evidencia y test directo bajo demanda</p></div>
+      {{ status_chip((maintenance.get('connected_count', 0)|string) ~ ' conectadas', 'success' if maintenance.get('connected_count') else 'warning') }}
+    </header>
+    <div class="v928-admin-panel-body">
+      <div class="v928-kpi-grid">
+        {{ kpi_card('APIs configuradas', maintenance.get('configured_count', 0), 'de 3 proveedores deportivos', 'blue', 'database') }}
+        {{ kpi_card('Conexión verificada', maintenance.get('connected_count', 0), 'último test manual persistido', 'green' if maintenance.get('connected_count') else 'gold', 'shield') }}
+        {{ kpi_card('Planes de pago verificados', maintenance.get('paid_verified_count', 0), 'solo cuando el proveedor lo confirma', 'gold', 'odds') }}
+        {{ kpi_card('Llamadas al abrir', maintenance.get('external_calls_on_page_load', 0), 'esta vista usa estado local', 'green', 'automation') }}
+      </div>
+      <p class="muted small">“Configurada” no significa “pagada”. Un plan solo aparece como verificado cuando existe evidencia directa del proveedor. El test manual puede consumir una llamada; se reutiliza durante {{ maintenance.get('cooldown_seconds', 300) }} segundos.</p>
+      <div class="grid compact-grid">
+        {% for provider in providers %}
+        <article class="card">
+          <div class="screen-head">
+            <div><strong>{{ provider.get('name') }}</strong><div class="muted small">{{ provider.get('role') }}</div></div>
+            {{ status_chip('Configurada' if provider.get('configured') else 'Sin configurar', 'success' if provider.get('configured') else 'warning') }}
+          </div>
+          <div class="route-list compact-list">
+            <div class="route-row"><span>Servicio habilitado</span><strong>{{ 'Sí' if provider.get('enabled') else 'No' }}</strong></div>
+            <div class="route-row"><span>Estado runtime</span><strong>{{ provider.get('runtime_state') or 'Sin evidencia' }}</strong></div>
+            <div class="route-row"><span>Plan / contrato</span><strong>{{ (provider.get('plan') or {}).get('label') or 'No verificado' }}</strong></div>
+            <div class="route-row"><span>Último test directo</span><strong>{{ provider.get('checked_at')|madrid_datetime_label if provider.get('checked_at') else 'No realizado' }}</strong></div>
+            <div class="route-row"><span>Última sync</span><strong>{{ provider.get('last_sync')|madrid_datetime_label if provider.get('last_sync') else 'Sin dato' }}</strong></div>
+            <div class="route-row"><span>Caché / registros</span><strong>{{ provider.get('cache_items', 0) }}</strong></div>
+            <div class="route-row"><span>Fallback</span><strong>{{ provider.get('fallback') }}</strong></div>
+            <div class="route-row"><span>Protección de coste</span><strong>{{ provider.get('guard') }}</strong></div>
+            {% if provider.get('quota') %}
+            <div class="route-row"><span>Cuota observada</span><strong>{{ provider.get('quota') }}</strong></div>
+            {% endif %}
+          </div>
+          {% if provider.get('direct_check_supported') and provider.get('configured') %}
+          <form method="post" action="/admin/provider-maintenance/check">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="provider" value="{{ provider.get('key') }}">
+            <button class="btn" type="submit">Comprobar conexión directa</button>
+          </form>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      <h3>Otros servicios externos</h3>
+      <div class="route-list compact-list">
+        {% for service in maintenance.get('services') or [] %}
+        <div class="route-row"><span>{{ service.get('name') }}</span><strong class="{{ 'text-good' if service.get('configured') else 'text-warn' }}">{{ service.get('detail') }}</strong></div>
+        {% endfor %}
+      </div>
+      <p class="muted small">Nunca se muestran claves, tokens, payloads completos ni destinos. Los tests directos son admin + CSRF y no envían Telegram, no cobran y no publican picks.</p>
+    </div>
   </section>
   <section class="v928-layout-wide-aside">
     <div class="v928-stack">

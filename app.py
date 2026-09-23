@@ -141,6 +141,7 @@ from engines.api_sports_provider_engine import (
 )
 from engines.api_exploitation_engine import (
     api_exploitation_summary,
+    probe_api_football_account,
     run_api_exploitation_if_due,
 )
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
@@ -20848,6 +20849,7 @@ def admin_data_center_page():
         v932_admin_sports_diagnostics(sports),
     )
     data["v934_realtime"] = get_v934_realtime_context(_summary)
+    data["provider_maintenance"] = provider_maintenance_snapshot()
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 
@@ -21879,8 +21881,321 @@ def api_admin_visual_worker_tasks():
     return jsonify({"ok": True, "version": APP_VERSION, "tasks": result.get("suggested_tasks", []), "codex_prompts": result.get("codex_prompts", [])})
 
 
+
+PROVIDER_MAINTENANCE_COOLDOWN_SECONDS = 300
+PROVIDER_MAINTENANCE_KEYS = ("api_football", "the_odds_api", "thesportsdb")
+
+
+def _provider_maintenance_state_key(provider):
+    return "provider_maintenance_direct_check:" + str(provider or "").strip().lower()
+
+
+def _provider_maintenance_safe_text(value, limit=120):
+    return str(value or "").replace("\r", " ").replace("\n", " ").strip()[: int(limit)]
+
+
+def _provider_maintenance_safe_quota(value):
+    value = value if isinstance(value, dict) else {}
+    allowed = (
+        "daily_limit", "daily_used", "daily_remaining", "minute_limit", "minute_remaining",
+        "requests_remaining", "requests_used", "requests_last",
+    )
+    out = {}
+    for key in allowed:
+        if key not in value:
+            continue
+        try:
+            out[key] = max(0, int(value.get(key) or 0))
+        except (TypeError, ValueError):
+            continue
+    return out
+
+
+def _provider_maintenance_age_seconds(check):
+    raw = str((check or {}).get("checked_at") or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        return max(0, int((datetime.now(TZ) - parsed.astimezone(TZ)).total_seconds()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _provider_maintenance_plan(provider, configured, check):
+    check = check if isinstance(check, dict) else {}
+    if not configured:
+        return {"code": "NOT_CONFIGURED", "label": "No configurada"}
+    if not check.get("ok"):
+        return {"code": "NOT_VERIFIED", "label": "Plan no verificado"}
+    if provider == "api_football":
+        plan = _provider_maintenance_safe_text(check.get("plan"), 80)
+        clean = plan.casefold()
+        active = check.get("active")
+        if clean == "free":
+            return {"code": "FREE_PLAN_VERIFIED", "label": "FREE verificado"}
+        if plan and clean not in {"inaccessible", "unknown", "none"}:
+            if active is False:
+                return {"code": "PLAN_INACTIVE", "label": f"{plan} · inactivo"}
+            return {"code": "PAID_PLAN_VERIFIED", "label": f"{plan} · plan verificado"}
+        return {"code": "CONNECTION_VERIFIED_PLAN_UNKNOWN", "label": "Conexión verificada · plan no expuesto"}
+    if provider == "the_odds_api":
+        quota = _provider_maintenance_safe_quota(check.get("quota"))
+        return {
+            "code": "KEY_AND_QUOTA_VERIFIED" if quota else "KEY_VERIFIED_PLAN_UNKNOWN",
+            "label": "Credencial + cuota verificadas" if quota else "Credencial verificada · plan no expuesto",
+        }
+    return {"code": "KEY_VERIFIED_PLAN_UNKNOWN", "label": "Credencial verificada · plan no expuesto"}
+
+
+def provider_maintenance_snapshot():
+    try:
+        api_sports = get_api_sports_status(DB_PATH) or {}
+    except Exception:
+        api_sports = {}
+    try:
+        sportsdb = sportsdb_feed_status() or {}
+    except Exception:
+        sportsdb = {}
+    try:
+        odds_state = odds_last_sync() or {}
+    except Exception:
+        odds_state = {}
+
+    last_checks = {
+        provider: automation_get(_provider_maintenance_state_key(provider), {}) or {}
+        for provider in PROVIDER_MAINTENANCE_KEYS
+    }
+
+    api_configured = bool(
+        api_sports.get("api_sports_configured")
+        or env_present("API_FOOTBALL_KEY")
+        or env_present("API_FOOTBALL_API_KEY")
+        or env_present("API_SPORTS_KEY")
+        or env_present("APISPORTS_KEY")
+    )
+    api_enabled = bool(api_sports.get("api_sports_provider_available"))
+    api_cache = (
+        as_int(api_sports.get("fixtures_cached"), 0)
+        + as_int(api_sports.get("events_cached"), 0)
+        + as_int(api_sports.get("stats_cached"), 0)
+    )
+    api_runtime = (
+        "Degradada · fallback/caché"
+        if api_sports.get("last_error")
+        else "Activa con caché"
+        if api_cache
+        else "Configurada · sin caché visible"
+        if api_configured
+        else "No configurada"
+    )
+
+    odds_configured = env_present("THE_ODDS_API_KEY")
+    odds_enabled_now = odds_enabled()
+    odds_runtime = _provider_maintenance_safe_text(
+        odds_state.get("status") or odds_state.get("reason") or
+        ("Configurada" if odds_configured else "No configurada"),
+        90,
+    )
+    sportsdb_configured = bool(sportsdb.get("key_present") or thesportsdb_key())
+    sportsdb_runtime = (
+        "Activa con datos guardados"
+        if as_int(sportsdb.get("cached_matches"), 0)
+        else "Configurada · sin caché visible"
+        if sportsdb_configured
+        else "No configurada"
+    )
+
+    providers = [
+        {
+            "key": "api_football",
+            "name": "API-Football / API-Sports",
+            "role": "Live, eventos, estadísticas y profundidad",
+            "configured": api_configured,
+            "enabled": api_enabled,
+            "runtime_state": api_runtime,
+            "last_sync": api_sports.get("last_sync") or "",
+            "cache_items": api_cache,
+            "fallback": "TheSportsDB + caché canónica",
+            "guard": "Backoff, caché y presupuesto diario",
+            "quota": _provider_maintenance_safe_quota((last_checks["api_football"] or {}).get("quota")),
+            "last_check": last_checks["api_football"],
+            "direct_check_supported": True,
+        },
+        {
+            "key": "the_odds_api",
+            "name": "The Odds API",
+            "role": "Cuotas, mercados y bookmakers",
+            "configured": odds_configured,
+            "enabled": odds_enabled_now,
+            "runtime_state": odds_runtime,
+            "last_sync": odds_state.get("last_sync") or odds_state.get("time") or "",
+            "cache_items": as_int(odds_state.get("processed") or odds_state.get("cached_processed"), 0),
+            "fallback": "Últimas cuotas persistidas",
+            "guard": f"Caché {odds_cache_minutes()} min + parada tras error sistémico",
+            "quota": _provider_maintenance_safe_quota((last_checks["the_odds_api"] or {}).get("quota")),
+            "last_check": last_checks["the_odds_api"],
+            "direct_check_supported": True,
+        },
+        {
+            "key": "thesportsdb",
+            "name": "TheSportsDB",
+            "role": "Agenda, resultados, identidades, escudos y fallback",
+            "configured": sportsdb_configured,
+            "enabled": bool(sportsdb_live_enabled()) if sportsdb_configured else False,
+            "runtime_state": sportsdb_runtime,
+            "last_sync": ((sportsdb.get("last_sync") or {}).get("last_sync") if isinstance(sportsdb.get("last_sync"), dict) else "") or sportsdb.get("last_cached_update") or "",
+            "cache_items": as_int(sportsdb.get("cached_matches"), 0),
+            "fallback": "Fuente de continuidad deportiva",
+            "guard": "Sin llamada al abrir; test manual con cooldown",
+            "quota": {},
+            "last_check": last_checks["thesportsdb"],
+            "direct_check_supported": True,
+        },
+    ]
+
+    verified = connected = configured_count = paid_verified = 0
+    for item in providers:
+        item["plan"] = _provider_maintenance_plan(item["key"], item["configured"], item["last_check"])
+        item["checked_at"] = (item["last_check"] or {}).get("checked_at") or ""
+        item["direct_status"] = (item["last_check"] or {}).get("status") or "NO_VERIFICADO"
+        item["last_check_age_seconds"] = _provider_maintenance_age_seconds(item["last_check"])
+        configured_count += 1 if item["configured"] else 0
+        verified += 1 if item["last_check"] else 0
+        connected += 1 if (item["last_check"] or {}).get("ok") else 0
+        paid_verified += 1 if (item["plan"] or {}).get("code") == "PAID_PLAN_VERIFIED" else 0
+
+    telegram_ready = env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID")
+    services = [
+        {
+            "name": "Stripe",
+            "configured": env_present("STRIPE_SECRET_KEY"),
+            "detail": "Pagos configurados" if env_present("STRIPE_SECRET_KEY") else "Clave de pagos pendiente",
+        },
+        {
+            "name": "OpenAI",
+            "configured": env_present("OPENAI_API_KEY"),
+            "detail": "SHARK IA externo disponible" if env_present("OPENAI_API_KEY") else "IA externa opcional no configurada",
+        },
+        {
+            "name": "Telegram",
+            "configured": telegram_ready,
+            "detail": "Bot y destino configurados" if telegram_ready else "Configuración incompleta",
+        },
+    ]
+    return {
+        "providers": providers,
+        "services": services,
+        "configured_count": configured_count,
+        "verified_count": verified,
+        "connected_count": connected,
+        "paid_verified_count": paid_verified,
+        "cooldown_seconds": PROVIDER_MAINTENANCE_COOLDOWN_SECONDS,
+        "external_calls_on_page_load": 0,
+        "secrets_visible": False,
+        "checked_at_madrid": now_iso(),
+    }
+
+
+def provider_maintenance_direct_check(provider):
+    provider = str(provider or "").strip().lower()
+    if provider not in PROVIDER_MAINTENANCE_KEYS:
+        return {"ok": False, "status": "INVALID_PROVIDER", "provider": provider, "external_calls": 0}, 400
+
+    state_key = _provider_maintenance_state_key(provider)
+    previous = automation_get(state_key, {}) or {}
+    age = _provider_maintenance_age_seconds(previous)
+    if previous and age is not None and age < PROVIDER_MAINTENANCE_COOLDOWN_SECONDS:
+        reused = dict(previous)
+        reused.update({
+            "reused": True,
+            "external_calls": 0,
+            "cooldown_remaining_seconds": max(0, PROVIDER_MAINTENANCE_COOLDOWN_SECONDS - age),
+        })
+        return reused, 200
+
+    configured = (
+        bool(env_present("API_FOOTBALL_KEY") or env_present("API_FOOTBALL_API_KEY") or env_present("API_SPORTS_KEY") or env_present("APISPORTS_KEY"))
+        if provider == "api_football"
+        else env_present("THE_ODDS_API_KEY")
+        if provider == "the_odds_api"
+        else bool(thesportsdb_key())
+    )
+    checked_at = now_iso()
+    if not configured:
+        result = {
+            "ok": False,
+            "provider": provider,
+            "status": "NOT_CONFIGURED",
+            "checked_at": checked_at,
+            "http_status": 0,
+            "external_calls": 0,
+            "quota": {},
+            "error_code": "MISSING_CONFIGURATION",
+            "secrets_visible": False,
+        }
+        automation_set(state_key, result)
+        return result, 200
+
+    result = {
+        "ok": False,
+        "provider": provider,
+        "status": "CONNECTION_FAILED",
+        "checked_at": checked_at,
+        "http_status": 0,
+        "external_calls": 1,
+        "quota": {},
+        "error_code": "",
+        "secrets_visible": False,
+    }
+    try:
+        if provider == "api_football":
+            raw = probe_api_football_account() or {}
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "plan": _provider_maintenance_safe_text(raw.get("plan"), 80),
+                "active": raw.get("active") if isinstance(raw.get("active"), bool) else None,
+                "subscription_end": _provider_maintenance_safe_text(raw.get("end"), 80),
+                "quota": _provider_maintenance_safe_quota(raw.get("quota")),
+            })
+        elif provider == "the_odds_api":
+            raw = odds_api_request("sports") or {}
+            payload = raw.get("payload")
+            result.update({
+                "ok": bool(raw.get("ok")),
+                "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
+                "http_status": as_int(raw.get("http_status"), 0),
+                "quota": _provider_maintenance_safe_quota(raw.get("quota")),
+                "items_observed": len(payload) if isinstance(payload, list) else 0,
+            })
+        else:
+            payload = sportsdb_v1("all_leagues.php")
+            result.update({
+                "ok": isinstance(payload, dict),
+                "status": "CONNECTED" if isinstance(payload, dict) else "PROVIDER_REJECTED",
+                "http_status": 200 if isinstance(payload, dict) else 0,
+                "items_observed": len((payload or {}).get("leagues") or []) if isinstance(payload, dict) else 0,
+            })
+    except Exception as exc:
+        result["status"] = "CONNECTION_FAILED"
+        result["error_code"] = type(exc).__name__[:80]
+    if not result.get("ok") and not result.get("error_code"):
+        result["error_code"] = (
+            f"HTTP_{result.get('http_status')}" if result.get("http_status") else "PROVIDER_REJECTED"
+        )
+    result["plan_state"] = _provider_maintenance_plan(provider, configured, result)
+    automation_set(state_key, result)
+    return result, 200
+
+
 @app.route("/admin/settings")
 @app.route("/admin/system")
+@app.route("/admin/platform-maintenance")
+@app.route("/admin/mantenimiento-plataforma")
 def admin_system_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/system")
@@ -21896,7 +22211,33 @@ def admin_system_page():
         "users_count": (one("SELECT COUNT(*) AS total FROM users") or {}).get("total", 0),
         "sportsdb_feed": sportsdb_feed_status(),
     }
+    data["provider_maintenance"] = provider_maintenance_snapshot()
     return render_template("admin_system.html", data=data)
+
+
+@app.route("/api/admin/provider-maintenance/status")
+def api_admin_provider_maintenance_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "maintenance": provider_maintenance_snapshot()})
+
+
+@app.route("/api/admin/provider-maintenance/check", methods=["POST"])
+def api_admin_provider_maintenance_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) or {}
+    result, status = provider_maintenance_direct_check(payload.get("provider"))
+    return jsonify({"version": APP_VERSION, **result}), status
+
+
+@app.route("/admin/provider-maintenance/check", methods=["POST"])
+def admin_provider_maintenance_check():
+    if not is_admin_session():
+        return redirect("/admin-login?next=/admin/system")
+    result, _status = provider_maintenance_direct_check(request.form.get("provider"))
+    marker = urllib.parse.quote(str(result.get("status") or "CHECKED"), safe="")
+    return redirect(f"/admin/system?provider_check={marker}#provider-connections")
 
 
 def v929_navigation_integrity_path():
