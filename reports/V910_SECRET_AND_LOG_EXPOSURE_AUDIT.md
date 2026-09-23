@@ -1,0 +1,137 @@
+# V910 Secret And Log Exposure Audit
+
+- version: `V910_FULL_PROJECT_HIDDEN_AUDIT_ROUTE_NOT_FOUND_BROWSER_QA_READY_FINAL`
+- markers_detected_without_values: `285`
+- possible_raw_secret_assignments: `76`
+- env_like_files_detected: `27`
+- log_files_detected: `0`
+
+## Policy
+Runtime must expose only `***configured***`, `***missing***` or `***hidden***`. Reports must never include real token values.
+
+## Marker locations reviewed
+- `app.py` markers=`?secret=,API_KEY,AUTOMATION_SECRET,OPENAI_API_KEY,STRIPE_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,password=,secret=,token=`
+- `tools/audit_all_routes_links.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v730_route_health.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v735_go_live.py` markers=`TELEGRAM_BOT_TOKEN`
+- `tools/check_v742_telegram_destinations.py` markers=`TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID`
+- `tools/check_v742_telegram_message_format.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v744_render_runtime.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v744_telegram_certification.py` markers=`TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID`
+- `tools/check_v748_admin_client_telegram_security_production_hotfix.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v748_admin_client_telegram_security_route_hotfix.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v749b_render_cron_simple_runner.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v749_telegram_auto_delivery_madrid_time.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v752_telegram_full_auto_artillery.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v753_telegram_production_autopilot.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v754_telegram_auto_pick_candidate_window_delivery.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v755_telegram_candidate_normalization_schedule.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v757_global_app_experience.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v758_adaptive_desktop_mobile_experience.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v759_global_top_app_merged_quality.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v764_dynamic_competition_mode.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v766_calendar_results_highlights_order.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v768_final_commercial_certification.py` markers=`AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v771_telegram_activity_pro_format_schedule.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v772_telegram_visual_cards_app_global_polish.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v773_data_marketplace_automation_video_ux_quality.py` markers=`?secret=,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID,secret=`
+- `tools/check_v774_client_screen_reorganization_madrid_time.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v780_live_data_recovery_realtime_stability.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v787_legal_compliance_responsible_subscription.py` markers=`STRIPE_SECRET`
+- `tools/check_v799_reference_screen_visual_polish.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v800_reference_screen_app_fidelity.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v801_calendar_matches_flow.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v822_automation_runtime_safety.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v828_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v829_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v830_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v832_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v833_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v836_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v836_v818_to_current_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v837_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v837_v818_to_v836_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v838_ecosystem_routes.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v838_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v838_security_stability.py` markers=`API_KEY,AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v838_telegram_cron_automation.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v838_v818_to_v837_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v840_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v840_v818_to_v839_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v841_ecosystem_links.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v841_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v841_telegram_cron_admin.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v841_v818_to_v840_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v842_links_after_text_logo_review.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v842_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v842_v818_to_v841_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v843_routes_actions.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v843_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v844_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v847_v818_to_current_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v848_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v848_v818_to_v847_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v849_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v849_v818_to_v848_compatibility.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v850_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v851_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v852_runtime_visibility.py` markers=`AUTOMATION_SECRET`
+- `tools/check_v856_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v857_company_operating_system_product_perfection.py` markers=`API_KEY,OPENAI_API_KEY,TELEGRAM_BOT_TOKEN`
+- `tools/check_v857_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v858_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v859_company_wide_audit_board.py` markers=`API_KEY,OPENAI_API_KEY,TELEGRAM_BOT_TOKEN`
+- `tools/check_v859_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v861_self_improving_operations_os.py` markers=`API_KEY,AUTOMATION_SECRET,OPENAI_API_KEY,STRIPE_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v861_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v862_continuous_shark_sentinel_loop.py` markers=`API_KEY,AUTOMATION_SECRET,OPENAI_API_KEY,STRIPE_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v862_shark_sentinel_real_user_app_inspector.py` markers=`API_KEY,AUTOMATION_SECRET,OPENAI_API_KEY,STRIPE_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v862_smoke.py` markers=`?secret=,AUTOMATION_SECRET,secret=`
+- `tools/check_v863_real_world_certification.py` markers=`AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v864_pc_mobile_visual_reference_big_leap.py` markers=`AUTOMATION_SECRET,TELEGRAM_BOT_TOKEN`
+- `tools/check_v865_sentinel_issue_to_improvement_workflow.py` markers=`API_KEY,AUTOMATION_SECRET,OPENAI_API_KEY,STRIPE_SECRET,TELEGRAM_BOT_TOKEN`
+
+## Possible raw assignments
+- `tools/check_v744_render_runtime.py` marker=`secret` value=`***hidden***`
+- `tools/check_v748_admin_client_telegram_security_production_hotfix.py` marker=`secret` value=`***hidden***`
+- `tools/check_v748_admin_client_telegram_security_route_hotfix.py` marker=`secret` value=`***hidden***`
+- `tools/check_v749_telegram_auto_delivery_madrid_time.py` marker=`secret` value=`***hidden***`
+- `tools/check_v752_telegram_full_auto_artillery.py` marker=`secret` value=`***hidden***`
+- `tools/check_v753_telegram_production_autopilot.py` marker=`secret` value=`***hidden***`
+- `tools/check_v754_telegram_auto_pick_candidate_window_delivery.py` marker=`secret` value=`***hidden***`
+- `tools/check_v754_telegram_auto_pick_candidate_window_delivery.py` marker=`secret` value=`***hidden***`
+- `tools/check_v754_telegram_auto_pick_candidate_window_delivery.py` marker=`secret` value=`***hidden***`
+- `tools/check_v755_telegram_candidate_normalization_schedule.py` marker=`secret` value=`***hidden***`
+- `tools/check_v755_telegram_candidate_normalization_schedule.py` marker=`secret` value=`***hidden***`
+- `tools/check_v755_telegram_candidate_normalization_schedule.py` marker=`secret` value=`***hidden***`
+- `tools/check_v759_global_top_app_merged_quality.py` marker=`secret` value=`***hidden***`
+- `tools/check_v771_telegram_activity_pro_format_schedule.py` marker=`secret` value=`***hidden***`
+- `tools/check_v772_telegram_visual_cards_app_global_polish.py` marker=`secret` value=`***hidden***`
+- `tools/check_v773_data_marketplace_automation_video_ux_quality.py` marker=`secret` value=`***hidden***`
+- `tools/check_v836_v818_to_current_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v837_v818_to_v836_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v838_telegram_cron_automation.py` marker=`secret` value=`***hidden***`
+- `tools/check_v838_telegram_cron_automation.py` marker=`secret` value=`***hidden***`
+- `tools/check_v838_v818_to_v837_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v840_v818_to_v839_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v841_telegram_cron_admin.py` marker=`secret` value=`***hidden***`
+- `tools/check_v841_telegram_cron_admin.py` marker=`secret` value=`***hidden***`
+- `tools/check_v841_v818_to_v840_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v842_v818_to_v841_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v842_v818_to_v841_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v847_v818_to_current_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v848_v818_to_v847_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v848_v818_to_v847_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v849_v818_to_v848_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v849_v818_to_v848_compatibility.py` marker=`secret` value=`***hidden***`
+- `tools/check_v856_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v856_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v857_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v857_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v858_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v858_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v859_smoke.py` marker=`secret` value=`***hidden***`
+- `tools/check_v859_smoke.py` marker=`secret` value=`***hidden***`
+
+## Rotation note
+If any real `AUTOMATION_SECRET` was pasted outside Render in the past, rotate it in Render Web Service and Render Cron. No new secret was generated or written by V910.

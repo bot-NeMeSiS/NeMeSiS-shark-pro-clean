@@ -12,11 +12,6 @@ from .telegram_message_formatter import (
     madrid_match_time_label, match_title, pick_result_label, score_label, status_label,
 )
 from .v935_launch_trust_engine import match_status_truth
-from .crest_engine import _fetch_one
-
-STATIC_ROOT = Path(__file__).resolve().parents[1] / "static"
-
-
 def resolve_cached_visual_payload(payload, connection=None):
     """Reuse exact URL-to-local-path mappings; no downloads or name matching."""
     source = dict(payload or {})
@@ -206,7 +201,6 @@ def _card_font(size, bold=False):
             continue
     return ImageFont.load_default(size=size)
 
-
 def build_telegram_visual_card_png(card, width=960, height=1000):
     try:
         from PIL import Image, ImageDraw, ImageFont
@@ -249,7 +243,6 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
         image.paste(league_logo, (48, 140), league_logo)
     text(card.get("competition"), 110 if league_logo is not None else 48, 143, 802 if league_logo is not None else 864, 29, bold=True)
     draw.line((48, 206, 912, 206), fill="#2d4250", width=2)
-
     if card.get("kind") == "combi":
         legs = card.get("legs") or []
         text(card.get("title"), 48, 228, 864, 29, bold=True)
@@ -264,6 +257,7 @@ def build_telegram_visual_card_png(card, width=960, height=1000):
                     text(_text(leg.get(side + "_team"), "?")[0], x, y + 6, 30, 20, color=accent, center=True)
             text(match_title(leg), 194, y, 574, 24, bold=True)
             text(_text(leg.get("selection")) + " · " + madrid_match_time_label(leg), 108, y + 33, 660, 21, color="#b0c8d4")
+            text(_v889_odds_label(leg.get("odds")), 788, y, 124, 23, color=accent)
             text(_v889_odds_label(leg.get("odds")), 788, y, 124, 23, color=accent)
         if not legs:
             text("Sin selecciones publicadas", 48, 298, 864, 28, color="#b0c8d4")

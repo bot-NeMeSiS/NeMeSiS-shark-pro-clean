@@ -265,7 +265,6 @@ def test_queue_payload_is_bounded_structured_json(app_module):
     stored = queued["item"]["payload_json"]
     assert len(stored.encode("utf-8")) <= app.TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES
     assert json.loads(stored)["_queue_payload_truncated"] is True
-
 def test_free_card_does_not_reveal_premium_metrics(monkeypatch):
     result = cards.build_visual_card_for_message("pick_alert", {"membership": "FREE", "pick": {"odds": 1.85, "reason": "private premium analysis"}})
     assert result["ok"]
@@ -439,7 +438,7 @@ def test_simulated_qa_representative_gallery(tmp_path, monkeypatch):
     final = {**match, "kickoff_iso": (now - timedelta(hours=3)).isoformat(), "status": "FT", "home_score": 2, "away_score": 1}
     highlight = {"url": "https://example.invalid/resumen-qa", "rights_status": "OWNED", "commercial_use_status": "ALLOWED", "allowed_channels": ["TELEGRAM"]}
     cases = {"pick": cards.build_pick_visual_card_payload(match), "combi": cards.build_combi_visual_card_payload(combi),
-             "live": cards.build_live_visual_card_payload(live), "result": cards.build_result_visual_card_payload(final, {**match, "result_status": "won"}),
+             "live": cards.build_live_visual_card_payload(live), "result": cards.build_result_visual_card_payload(final, highlight={}),
              "highlight": cards.build_highlight_visual_card_payload(final, highlight)}
     copy = {"pick": fmt.format_pick_message(match), "combi": fmt.format_combi_message(combi), "live": fmt.format_live_alert_message(live),
             "result": fmt.format_result_message(final, {**match, "result_status": "won"}), "highlight": fmt.format_highlight_message(final, highlight)}
@@ -466,8 +465,6 @@ def test_simulated_qa_representative_gallery(tmp_path, monkeypatch):
         with Image.open(io.BytesIO(png)) as image:
             assert image.width <= width and image.height <= max(height, 540)
     (tmp_path / "render-cost.json").write_text(json.dumps(measurements, indent=2), encoding="utf-8")
-
-
 def test_preview_permissions_and_read_only(app_module):
     import os
     visitor = app_module.app.test_client()

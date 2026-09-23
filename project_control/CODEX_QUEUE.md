@@ -1,6 +1,6 @@
 # Codex Queue
 
-Unica cola. Actualizada 2026-09-19. Un ID por trabajo; aliases no crean otra tarea.
+Unica cola. Actualizada 2026-09-23 para Telegram Premium; OPS-002/CX-002 y los demas cierres conservan su fecha y alcance. Un ID por trabajo; aliases no crean otra tarea.
 Estados conservados: BACKLOG, READY, IN_PROGRESS, BLOCKED, QA, PRODUCTION_VALIDATION, DONE, WONT_DO.
 Responsable es un rol asignado, no prueba de worker activo. UNASSIGNED indica falta de asignacion.
 QA significa pendiente de revisar el candidato; DONE siempre conserva su alcance.
@@ -11,7 +11,7 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 | ID | Alias | Estado | Responsable | Ambito | Bloqueo | Evidencia | Siguiente |
 |---|---|---|---|---|---|---|---|
 | CX-001 | CX-SE-01 / COORD-8-SE-01 R1 | DONE | Codex / QA | PASS_LOCAL_SCOPE | ENV | reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md | Preservar SE-01 y sus doce positivos no certificados |
-| CX-002 | CX-ORG-01 | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CONVERSATION_INDEX.md | Revisar consolidacion e inventario; ninguna purga autorizada |
+| CX-002 | CX-ORG-01 | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CURRENT_TRUTH.md | Higiene 20260923 bajo OPS-002; respaldo verificado y limpieza acotada, UNKNOWN preservado |
 | CX-003 | CX-RESULTS-01 / COORD-8-RESULTS-01 R1 | QA | Codex / Datos | LOCAL_ONLY | EXTERNAL,PUBLISH | reports/LOCAL_CONTINUITY_20260919.md | Replay FINAL_OVERRIDES_STALE_LIVE_V1 10/10 y cinco superficies; feed/produccion/eventos/stats completos no certificados |
 | CX-004 | CX-DATA-01 | BLOCKED | Datos / Founder | NOT_TESTED | EXTERNAL | project_control/domains/DATA.md | Piloto real autorizado y cobertura; no otro proveedor |
 | CX-005 | CX-INTELLIGENCE-01 | QA | Codex / Sports UX | LOCAL_ONLY | EXTERNAL | reports/LOCAL_CONTINUITY_20260919.md | Match Context preserva descuento/periodo; comprobar datos reales solo bajo autorizacion |
@@ -32,6 +32,7 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 | OPS-001 | Sentinel / release gate | DONE | ChatGPT / QA | PASS_LOCAL_SAFE | PUBLISH | reports/LOCAL_CONTINUITY_20260919.md | Cierre 23/09 en reports/SENTINEL_OPERATIONAL_CLOSURE_20260923.md; preservar executor local y no habilitarlo en producción |
 | OPS-002 | Hygiene / organization | IN_PROGRESS | ChatGPT / Founder | REMOTE_RECONCILIATION | LEGACY | project_control/ACTIVE_WORK.md | Reconciliar GitHub actual y extraer trabajo único antes de cerrar supersedidos; conservar UNKNOWN y worktrees |
 | OPS-003 | Legacy retirement | BLOCKED | Arquitectura / Founder | NOT_CERTIFIED | LEGACY,MATERIAL | project_control/CONVERSATION_INDEX.md | Cero consumidores, alternativa, pruebas y rollback antes de retirada |
+| TG-001 | Telegram Ultra Pro Visual Messages | QA | Codex / Founder | LOCAL_ONLY | PUBLISH,EXTERNAL | project_control/ACTIVE_WORK.md | 186 pruebas PASS; revisar PNG y parche separado; escudos remotos sin cache y entrega real pendientes de autorizacion |
 | BIZ-001 | LRM-001 / FIRST10 | BACKLOG | Founder | NOT_TESTED | PUBLISH,COMMERCIAL | project_control/ROADMAP.md | No activar pagos, altas ni mensajes automaticamente |
 <!-- queue:end -->
 

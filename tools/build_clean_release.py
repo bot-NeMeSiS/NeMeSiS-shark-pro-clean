@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import zipfile
@@ -41,6 +42,8 @@ INCLUDE_TOP_LEVEL_DIRS = {
     "blueprints",
     "docs",
     "engines",
+    "localization",
+    "project_control",
     "services",
     "static",
     "templates",
@@ -307,7 +310,11 @@ def include(path: Path) -> bool:
         if "SECRET" in rel_posix.upper() and path.name not in SAFE_SENSITIVE_NAMES:
             return False
         return (
-            rel_posix == "reports/CODEX_DAILY_PROMPT_CURRENT.txt"
+            rel_posix in {
+                "reports/CODEX_DAILY_PROMPT_CURRENT.txt",
+                "reports/LOCAL_CONTINUITY_20260919.md",
+                "reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md",
+            }
             or rel_posix.startswith("reports/v810_telegram_previews/")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V759")
             or rel_posix.startswith("reports/RELEASE_ZIP_AUDIT_V760")
@@ -664,7 +671,27 @@ def include(path: Path) -> bool:
 
 
 def collect_files() -> list[Path]:
-    return sorted(p for p in ROOT.rglob("*") if p.is_file() and include(p))
+    def fail_on_unreadable(error: OSError) -> None:
+        raise error
+
+    files = []
+    # Prune before reading: ignored QA trees can contain other linked worktrees.
+    for directory, dirs, names in os.walk(ROOT, topdown=True, onerror=fail_on_unreadable, followlinks=False):
+        current = Path(directory)
+        rel = current.relative_to(ROOT)
+        dirs[:] = [
+            name for name in dirs
+            if name not in EXCLUDE_DIRS
+            and not ((current / name).lstat().st_file_attributes & 0x400
+                     if os.name == "nt" else (current / name).is_symlink())
+            and (current != ROOT or name in INCLUDE_TOP_LEVEL_DIRS or name == "data")
+            and (rel.as_posix() != "data" or name == "runtime")
+        ]
+        for name in names:
+            path = current / name
+            if not path.is_symlink() and include(path) and path.is_file():
+                files.append(path)
+    return sorted(files)
 
 
 def build_manifest(files: list[Path]) -> dict:

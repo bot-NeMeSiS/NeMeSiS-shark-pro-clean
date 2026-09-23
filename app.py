@@ -13532,9 +13532,6 @@ def telegram_post_send_message(url, data):
     req = urllib.request.Request(url, data=encoded, method="POST")
     with urllib.request.urlopen(req, timeout=12) as res:
         response = json.loads(res.read().decode("utf-8", errors="replace"))
-    return telegram_transport_result(response)
-
-
 def telegram_transport_result(response, photo=False):
     if response.get("ok") is True and (response.get("result") or {}).get("message_id") is not None:
         return {"ok": True, "sent": True, "status": "SENT_PHOTO" if photo else "SENT", "category": "SENT", "telegram": response, "visual_card_sent": photo}
@@ -13555,7 +13552,7 @@ def telegram_post_send_photo(token, chat_id, photo_bytes, caption="", payload=No
     payload = payload or {}
     fields = {
         "chat_id": str(chat_id),
-        "caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
+"caption": telegram_photo_caption(caption or "NeMeSiS SHARK PRO"),
         "parse_mode": "HTML",
     }
     reply_markup = telegram_reply_markup_from_payload(payload)
@@ -14144,7 +14141,7 @@ def enqueue_v771_telegram_activity(force=False, limit=6):
             dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
             result = enqueue_telegram_message(
                 kind,
-                candidate.get("title") or "Actividad SHARK",
+                candidate.get('title') or "Actividad SHARK",
                 destination_body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),

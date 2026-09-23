@@ -14,9 +14,6 @@
 El candidato acumulado del 19/09 sigue preservado como procedencia y no se considera
 publicado como unidad. Los bloques posteriores son integraciones selectivas contra main.
 
-
-## Estado remoto vigente · 2026-09-20
-
 | ID | Tipo | SHA | Estado | Evidencia | Límite |
 |---|---|---|---|---|---|
 | MAIN_REMOTE | PRODUCTION | c7237c4669f7f5c5e0ceefe4150fd71039b49507 | LIVE_WEB_CRON | Render exact-SHA + PR #52 QA/preflight/Smoke | La observación +3600s del guard puede seguir en curso |
@@ -39,8 +36,9 @@ Estado de candidato no es estado de la cola ni permiso de publicacion.
 <!-- releases:start -->
 | ID | Tipo | Rama | HEAD | Estado | Evidencia | Limite |
 |---|---|---|---|---|---|---|
-| MAIN | BASE_LOCAL | main | c4a81003de1b5ccdb3036831583e9c1eb65e4417 | CLEAN_OBSERVED | project_control/CURRENT_TRUTH.md | Coincide con origin/main local; runtime actual NOT_TESTED |
-| SENTINEL | CANDIDATE | codex/sentinel-operaciones-local | c4a81003de1b5ccdb3036831583e9c1eb65e4417 | LOCAL_UNCOMMITTED | reports/LOCAL_CONTINUITY_20260919.md | Huella 8e3475faa5665654...; 380 casos distintos verificados, 45 vistas; replay final local; no certificacion global/productiva |
+| MAIN | BASE_LOCAL | main | 454c3ca1abb79af6a8525f65daecc57c0958c0c1 | REF_PRESERVED | project_control/CURRENT_TRUTH.md | Dos commits detras de origin/main 7060946; runtime no observado |
+| SENTINEL | CANDIDATE | chatgpt/admin-operaciones-productividad-20260923 | 792093308fa1ecf4a5d2ad1349e7bb973b479fb8 | LOCAL_UNCOMMITTED | project_control/CURRENT_TRUTH.md | PR72 y dos archivos locales de cache; CI del arreglo pendiente, no incluido en higiene |
+| HYGIENE | CANDIDATE | codex/repo-hygiene-20260923 | 706094630d337f9e329a8401fae217b316a9b49c | LOCAL_UNCOMMITTED | project_control/CURRENT_TRUTH.md | Empaquetado e higiene; no produccion, sin commit ni publicacion |
 | DESIGN | PRESERVE | codex/cx-design-02 | 317ac8c37c3c74f39b736a207f55079c7d454856 | DIRTY_PRESERVED | reports/LOCAL_CONTINUITY_20260919.md | 4401 registros; no ejecutar app incompleta ni restaurar |
 | VISUAL | PRESERVE | codex/design-02-conformance | 7202c1886aec7fee03267b1a709313804360592a | COMMITTED_PRESERVED | project_control/CONVERSATION_INDEX.md | 23 rutas del candidato historico, no copia automatica |
 | DOCS | PRESERVE | docs/project-control-20260904 | ad297cf56b7ab302a86b16ae261634549c5a68a4 | DIRTY_PRESERVED | project_control/CONVERSATION_INDEX.md | 6131 registros; no cerrar PR7 ni retirar este worktree aqui |

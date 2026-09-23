@@ -36,7 +36,6 @@
   no borrar ramas/worktrees/evidencia desconocida. ChatGPT dirige; Codex no se inicia
   automáticamente.
 
-
 ## Punto operativo remoto y entrega cliente · 2026-09-21
 
 - Base remota comprobada: `main@63cd3d9a1d70d839bd0f91d78fb4875931fa635e`.
