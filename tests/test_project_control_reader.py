@@ -27,7 +27,13 @@ def test_single_queue_states_and_evidence(control_root):
     data = snapshot(control_root)
     ids = [row['ID'] for row in data['queue']]
     assert len(ids) == len(set(ids)) == 23
-    assert data['counts']['qa'] == 8
+    assert data['counts']['qa'] == 6
+    ops1 = next(row for row in data['queue'] if row['ID'] == 'OPS-001')
+    ops2 = next(row for row in data['queue'] if row['ID'] == 'OPS-002')
+    assert ops1['Estado'] == 'DONE'
+    assert ops1['Ambito'] == 'PASS_LOCAL_SAFE'
+    assert ops2['Estado'] == 'IN_PROGRESS'
+    assert ops2['Ambito'] == 'REMOTE_RECONCILIATION'
     assert data['counts']['unassigned'] == 0
     assert data['counts']['evidence_missing'] == 0
     assert data['identity']['working_tree'] == 'NOT_REVALIDATED_BY_PAGE_READ'

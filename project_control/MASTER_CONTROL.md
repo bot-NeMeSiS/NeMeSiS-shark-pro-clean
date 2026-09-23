@@ -1,5 +1,31 @@
 # NeMeSiS - Master Control
 
+## Verdad operativa remota vigente · 2026-09-23
+
+- Repositorio canónico: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.
+- GitHub `main`: `228369d42447f37f3023a7f09216205057e4655c`.
+- Render Web y Cron observados LIVE en ese SHA; Auto Deploy desde main permanece activo.
+- Centro de datos ya separa configuración, evidencia de plan/pago y operatividad sin
+  llamadas externas al renderizar. La comprobación directa existe solo como acción
+  admin+CSRF con cooldown 300 s; no fue ejecutada contra proveedores en este cierre.
+- La PWA existente ya dispone de instalación visible y segura; dispositivos físicos
+  reales siguen pendientes de verificación.
+- OPS-001 Sentinel está cerrado como PASS_LOCAL_SAFE. Su executor durable es loopback,
+  offline, contenido en `data/local_dev` y rechazado fuera de LOCAL SAFE. Esta
+  restricción es un contrato de seguridad, no un incidente.
+- El Smoke actual revalida Project Control, jobs Sentinel HTTP y lifecycle/browser en
+  procesos frescos. Los bloqueos ambientales históricos no cambian de clasificación.
+- Trabajo interno activo: OPS-002 Hygiene / reconciliación remota. No eliminar ni cerrar
+  material con valor único; extraer antes. ChatGPT dirige y Codex solo se usa por
+  autorización explícita del fundador.
+- PR #77 Telegram Ultra Pro y PR #60 vídeo-resúmenes permanecen separados y DRAFT.
+  No envío Telegram real, reproducción/licencia o activación implícita.
+- Directos y Design siguen preservados; el candidato 129 cambios del 19/09 no se declara
+  integrado como una unidad.
+
+DEPORTE PRIMERO -> SHARK DESPUES -> APUESTAS EN TERCER LUGAR.
+
+
 ## Verdad operativa remota vigente · 2026-09-20
 
 Esta sección es la entrada autoritativa para continuar trabajo remoto. Las secciones
