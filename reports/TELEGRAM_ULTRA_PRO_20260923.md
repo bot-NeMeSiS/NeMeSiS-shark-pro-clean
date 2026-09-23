@@ -101,3 +101,15 @@ needed, authorize a controlled send and inspect actual Telegram mobile/desktop c
 No claim that card fidelity or destination permissions have been verified in Telegram.
 PR workflow production certification runs only on main push/authorized dispatch,
 not on this draft PR. No workflow or scheduler is activated manually here.
+
+
+## Revalidación de integración · 23/09/2026
+
+- Main observado al refrescar esta revisión: `228369d42447f37f3023a7f09216205057e4655c`.
+- GitHub informa la PR como mergeable con el main actual, pero la rama conserva su historia
+  desde `b79cc8e...` y no se considera actualizada por esa sola condición.
+- Este commit documental fuerza CI nuevo del PR para validar el merge ref que GitHub
+  construye contra la base vigente; no cambia transportes, cola, mensajes ni cards.
+- Aunque el CI resulte verde, **NO autoriza merge ni envío real**. Sigue pendiente una
+  prueba Telegram controlada expresamente autorizada y revisión en cliente móvil/desktop.
+- No se toca Render, cron, secretos, proveedores, pagos, DB_PATH ni destinos Telegram.
