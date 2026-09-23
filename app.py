@@ -22174,11 +22174,12 @@ def provider_maintenance_direct_check(provider):
             })
         else:
             payload = sportsdb_v1("all_leagues.php")
+            expected_shape = isinstance(payload, dict) and isinstance(payload.get("leagues"), list)
             result.update({
-                "ok": isinstance(payload, dict),
-                "status": "CONNECTED" if isinstance(payload, dict) else "PROVIDER_REJECTED",
+                "ok": expected_shape,
+                "status": "CONNECTED" if expected_shape else "PROVIDER_REJECTED",
                 "http_status": 200 if isinstance(payload, dict) else 0,
-                "items_observed": len((payload or {}).get("leagues") or []) if isinstance(payload, dict) else 0,
+                "items_observed": len(payload.get("leagues") or []) if expected_shape else 0,
             })
     except Exception as exc:
         result["status"] = "CONNECTION_FAILED"

@@ -143,3 +143,16 @@ def test_direct_check_requires_admin_and_csrf(app_module, monkeypatch):
     assert client.post("/api/admin/provider-maintenance/check", json={"provider": "api_football"}, headers=headers).status_code == 403
     admin, _ = admin_client(app_module)
     assert admin.post("/api/admin/provider-maintenance/check", json={"provider": "api_football"}, headers={"X-CSRF-Token": "invalid"}).status_code == 403
+
+
+def test_sportsdb_error_json_is_not_false_green(app_module, monkeypatch):
+    stub_local_state(app_module, monkeypatch)
+    monkeypatch.setenv("THESPORTSDB_KEY", "PRIVATE_SPORTSDB_KEY")
+    monkeypatch.setattr(app_module, "sportsdb_v1", lambda *a, **k: {"error": "invalid key"})
+    client, headers = admin_client(app_module)
+    response = client.post("/api/admin/provider-maintenance/check", json={"provider": "thesportsdb"}, headers=headers)
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is False
+    assert payload["status"] == "PROVIDER_REJECTED"
+    assert payload["items_observed"] == 0
