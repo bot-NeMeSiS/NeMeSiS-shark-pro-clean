@@ -164,3 +164,18 @@ def test_admin_navigation_names_existing_system_route_as_maintenance(app_module)
     assert item["title"] == "Mantenimiento"
     partial = (app_module.BASE_DIR / "templates" / "partials" / "admin_visual_system.html").read_text(encoding="utf-8")
     assert "('Mantenimiento','/admin/system','⚙')" in partial
+
+
+def test_api_football_subscription_active_and_end_are_visible_after_verified_check(app_module, monkeypatch):
+    state = stub_local_state(app_module, monkeypatch)
+    monkeypatch.setenv("API_FOOTBALL_KEY", "PRIVATE_QA_KEY")
+    state["provider_maintenance_direct_check:api_football"] = {
+        "ok": True, "status": "CONNECTED", "checked_at": app_module.now_iso(),
+        "plan": "Pro", "active": True, "subscription_end": "2026-12-31",
+        "quota": {"daily_remaining": 980},
+    }
+    client, _ = admin_client(app_module)
+    text = client.get("/admin/system").get_data(as_text=True)
+    assert "Suscripción activa" in text
+    assert "2026-12-31" in text
+    assert "PRIVATE_QA_KEY" not in text

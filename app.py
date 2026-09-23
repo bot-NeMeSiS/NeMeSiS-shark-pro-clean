@@ -22061,6 +22061,8 @@ def provider_maintenance_snapshot():
         item["plan"] = _provider_maintenance_plan(item["key"], item["configured"], item["last_check"])
         item["checked_at"] = (item["last_check"] or {}).get("checked_at") or ""
         item["direct_status"] = (item["last_check"] or {}).get("status") or "NO_VERIFICADO"
+        item["subscription_active"] = (item["last_check"] or {}).get("active") if isinstance((item["last_check"] or {}).get("active"), bool) else None
+        item["subscription_end"] = _provider_maintenance_safe_text((item["last_check"] or {}).get("subscription_end"), 80)
         item["last_check_age_seconds"] = _provider_maintenance_age_seconds(item["last_check"])
         configured_count += 1 if item["configured"] else 0
         verified += 1 if item["last_check"] else 0
