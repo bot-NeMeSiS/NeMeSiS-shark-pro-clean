@@ -184,6 +184,11 @@ def _preview_links(html, plan, viewport="390"):
             super().__init__(convert_charrefs=False)
             self.parts=[]
         def handle_starttag(self,tag,attrs):
+            if tag in ("button", "input", "select", "textarea"):
+                safe = [(k,v) for k,v in attrs if k not in ("disabled", "formaction") and not k.startswith("on")]
+                safe.append(("disabled", None))
+                self.parts.append("<"+tag+"".join(" "+k+("=\""+escape(v,quote=True)+"\"" if v is not None else "") for k,v in safe)+">")
+                return
             if tag != "a":
                 self.parts.append(self.get_starttag_text());return
             data=dict(attrs); parsed=urlsplit(data.get("href") or "")
@@ -202,7 +207,7 @@ def _preview_links(html, plan, viewport="390"):
             else:
                 safe.extend((("aria-disabled","true"),("tabindex","-1")))
             self.parts.append("<a"+"".join(" "+k+("=\""+escape(v,quote=True)+"\"" if v is not None else "") for k,v in safe)+">")
-        def handle_startendtag(self,tag,attrs): self.parts.append(self.get_starttag_text())
+        def handle_startendtag(self,tag,attrs): self.handle_starttag(tag,attrs)
         def handle_endtag(self,tag): self.parts.append("</"+tag+">")
         def handle_data(self,data): self.parts.append(data)
         def handle_entityref(self,name): self.parts.append("&"+name+";")

@@ -133,3 +133,35 @@ def test_release_identity_fails_closed_on_missing_or_conflicting_evidence(tmp_pa
 def test_cache_identity_parses_actual_runtime_prefix(cache, expected):
     from tools.print_release_identity import service_worker_cache_from_source
     assert service_worker_cache_from_source("const NEMESIS_CACHE='NEMESIS_CACHE_" + cache + "';") == expected
+
+
+@pytest.mark.parametrize("template", ["admin_dashboard.html", "admin_users.html", "admin_picks.html"])
+def test_master_buttons_use_identifiable_delegated_action_contract(template):
+    from engines.navigation_integrity_engine import _NavigationHTMLParser
+    parser = _NavigationHTMLParser("templates/"+template)
+    parser.feed(read("templates/"+template))
+    assert not [item for item in parser.entries
+                if item["kind"] == "button" and not item.get("has_identifier")]
+    # The auditor must continue rejecting a genuinely inert, unbound control.
+    inert = _NavigationHTMLParser("unbound.html")
+    inert.feed('<button type="button">Unbound action</button>')
+    assert any(item["kind"] == "button" and not item.get("has_identifier") for item in inert.entries)
+
+
+@pytest.mark.parametrize("tag", ["button", "input", "select", "textarea"])
+@pytest.mark.parametrize("closing", [">", "/>"])
+def test_preview_controls_remain_read_only_with_session_context(tag, closing):
+    from blueprints.admin_master_control import _preview_links
+    from html.parser import HTMLParser
+    controls = []
+    class Parser(HTMLParser):
+        def handle_starttag(self, name, attrs):
+            controls.append((name, dict(attrs)))
+    source = '<'+tag+' class="fav-star" onclick="writeFavorite()" formaction="/checkout"'+closing
+    parser = Parser()
+    parser.feed(_preview_links(source, "PRO"))
+    assert len(controls) == 1
+    name, attrs = controls[0]
+    assert name == tag and "disabled" in attrs
+    assert "onclick" not in attrs and "formaction" not in attrs
+    assert attrs["class"] == "fav-star"

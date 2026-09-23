@@ -19,7 +19,7 @@
     }
     controls.hidden = false;
     search.addEventListener('input', filter); select.addEventListener('change', filter);
-    controls.querySelector('[data-admin-list-reset]').addEventListener('click', () => { search.value = ''; select.value = 'all'; filter(); });
+    controls.querySelector('[data-action="admin-list-reset"][data-admin-list-reset]').addEventListener('click', () => { search.value = ''; select.value = 'all'; filter(); });
     filter();
   });
   const root = document.querySelector('[data-admin-master-control]');
@@ -154,7 +154,7 @@
       const details = node('details'); details.append(node('summary', 'Ver evidencia'));
       const content = { audit_id: event.audit_id || event.id, action_id: event.action_id, parameters: event.parameters, before: event.before, after: event.after, result: event.result, verification: event.verification, origin: event.origin || event.source };
       details.append(node('pre', content)); detail.append(details);
-      if (event.reversible === true && (event.audit_id || event.id)) { const rollback = node('button', 'Preparar reversión'); rollback.type = 'button'; rollback.dataset.masterRollback = String(event.audit_id || event.id); detail.append(rollback); }
+      if (event.reversible === true && (event.audit_id || event.id)) { const rollback = node('button', 'Preparar reversión'); rollback.type = 'button'; rollback.dataset.action = 'master-control'; rollback.dataset.masterRollback = String(event.audit_id || event.id); detail.append(rollback); }
       tr.append(date, admin, action, result, detail); target.append(tr);
     });
     if (!target.childElementCount) { const tr = node('tr'), cell = node('td', 'No hay cambios registrados en esta lectura.'); cell.colSpan = 5; tr.append(cell); target.append(tr); }
@@ -281,7 +281,7 @@
   }
   function openCommand() { commandResults(); if (!commandDialog.open) commandDialog.showModal(); $('[data-command-search]').focus(); }
   root.addEventListener('click', (event) => {
-    const button = event.target.closest('button'); if (!button) return;
+    const button = event.target.closest('button[data-action="master-control"]'); if (!button) return;
     if (button.hasAttribute('data-master-refresh')) refresh();
     else if (button.hasAttribute('data-master-prompt')) chat(button.dataset.masterPrompt);
     else if (button.hasAttribute('data-master-propose')) propose(button.dataset.masterPropose, {}, button);

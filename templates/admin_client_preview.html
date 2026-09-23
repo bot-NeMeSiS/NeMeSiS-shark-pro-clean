@@ -1,4 +1,4 @@
-{% from "components/v933_ui.html" import match_card, pick_card, empty_state, status_chip, page_header, section_header, kpi_card, action_button, profile_card, plan_card, quick_action %}
+{% from "components/v933_ui.html" import match_card, pick_card, empty_state, status_chip, page_header, section_header, kpi_card, action_button, profile_card, plan_card, quick_action with context %}
 {% set membership = preview_membership|default({}) %}{% set limits = membership.get('limits') or {} %}
 {% set all_limits = preview_plan_limits|default({}) %}{% set prices = preview_prices|default({}) %}
 {% set preview_width = request.args.get('viewport','') if request.args.get('viewport','') in ['390','768','1440'] else '' %}

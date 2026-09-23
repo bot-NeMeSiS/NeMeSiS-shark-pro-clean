@@ -43,3 +43,16 @@ MERGE TO MAIN = POSSIBLE PRODUCTION DEPLOY (web y cron). Sin autorizacion final 
 
 ## Pendiente
 CI remoto del bloque V941; despues Reliability & Learning integrado, QA integral y ZIP de candidata completo. No crear PR adicional ni marcar Ready. No declarar este bloque como Release Candidate final.
+
+## Incidente CI de integracion V941 (a3c0dbe0)
+QA 35926318124 SUCCESS; Smoke 35926318133 FAILURE (2631 passed, 6 failed); Render 35926318160 FAILURE en navegacion. certify-production SKIPPED. Ningun verde anterior resuelve esta incidencia.
+ROOT CAUSE: botones JS de dashboard/filtros sin identificador reconocido por el auditor; import de match_card sin contexto; sustitucion de dashboard omitia el diagnostico realtime tecnico requerido por Sentinel. Los cinco fallos de producto comparten esta ultima causa.
+FIX: data-action enlazado con los manejadores reales, import with context y diagnostico deportivo Admin restaurado. Preview desactiva controles compartidos al recuperar el contexto de usuario; no cambia sesion ni favoritos reales.
+REGRESSION TEST: prueba de boton reproducida roja antes de reparar; cobertura dashboard/users/picks y control negativo de boton sin accion. Ocho casos de sanitizacion de controles y tres rutas con partidos sinteticos verifican favoritos desactivados. Suites existentes de audiencia, confianza y contexto nuevamente verdes.
+PREVENTION / DETECTION: auditor de navegacion y contratos Sentinel intactos; sin exclusiones ni rebaja de gates. No sustituir UI existente sin conservar contratos compartidos de audiencia, contexto y acciones.
+VERIFICATION local: 229 casos distintos vigentes pasan (se excluye el caso reemplazado por parametrizacion) en los XML indicados abajo, BOUNDARY_EVENTS vacio; navegador incluido. Matriz estatica: 1181 enlaces, 0 rotos, 0 botones sin accion, 280 avisos. No equivale a smoke HTTP completo. Scanner 1281 archivos: 0 secretos, 3 avisos de privacidad heredados.
+- data/local_dev/candidate-2e160c30652142069fba7caf2176522e/result.xml
+- data/local_dev/candidate-1e58ab4a30e94ef5b8bc3b1d7a34b00b/result.xml
+- data/local_dev/candidate-9c1cb1ff008e42e084fa625fcc77de53/result.xml
+VERIFICATION posterior: pendiente CI del siguiente HEAD publicado en PR92. REPARADO != RESUELTO hasta que QA, Smoke/LOCAL SAFE/Sentinel y Render preflight pasen para ese HEAD exacto.
+Aprendizaje Sentinel/SHARK documentado: contratos de UI compartida forman parte de la regresion funcional; contexto de preview siempre conserva barreras de solo lectura. Registro de aprendizaje automatico y Reliability Center siguen pendientes.

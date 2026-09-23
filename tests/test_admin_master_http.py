@@ -108,6 +108,27 @@ def test_unknown_preview_and_write_blocked(admin):
     assert c.get("/admin/client-preview/frame?plan=ADMIN").status_code==400
     assert c.post("/admin/client-preview/frame",headers=h).status_code==405
 
+
+@pytest.mark.parametrize("page", ["home", "matches", "live"])
+def test_preview_match_favorites_remain_disabled(admin, monkeypatch, page):
+    from html.parser import HTMLParser
+    a, c, _ = admin
+    match = {"id": "SIMULATED_QA_match", "home_team": "QA Home", "away_team": "QA Away", "sport": "football"}
+    monkeypatch.setattr(a, "get_public_home_sports_summary", lambda: {
+        "valid_matches_today": [match], "valid_upcoming_matches": [match], "valid_live_events": [match]})
+    response = c.get("/admin/client-preview/frame", query_string={"page": page, "plan": "PRO"})
+    assert response.status_code == 200
+    favorites = []
+    class Parser(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "button" and "fav-star" in attrs.get("class", ""):
+                favorites.append(attrs)
+    parser = Parser()
+    parser.feed(response.get_data(as_text=True))
+    assert favorites, "The shared card must retain its session-aware favorite control"
+    assert all("disabled" in attrs for attrs in favorites)
+
 def test_dashboard_and_health(admin):
     _,c,_=admin
     assert c.get("/admin/dashboard").status_code==200
