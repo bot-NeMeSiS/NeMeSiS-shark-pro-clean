@@ -29,8 +29,8 @@ Los bloqueos se definen una sola vez en BLOCKERS.md. Leer no concede permisos.
 | UX-003 | CX-DESIGN-02 / R8 / R9 | QA | Codex / Creative Director | LOCAL_ONLY | ART,PUBLISH | reports/LOCAL_CONTINUITY_20260919.md | R8 preservado; recomendaciones compactas, Calendario accesible, 45 vistas actuales; R9/H07/conformidad global pendientes |
 | QA-002 | CI / preflight / smoke | BACKLOG | Codex / Release | NOT_RUN_CURRENT_CANDIDATE | PUBLISH | project_control/RELEASE_STATE.md | Comprobar revision autorizada; no heredar fallos CI de septiembre 9 |
 | QA-001 | Environmental positive cases | BLOCKED | QA / Plataforma | NOT_CERTIFIED | ENV | reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md | Mantener bloqueos historicos; resolver causa sin skips ni expectativas rebajadas |
-| OPS-001 | Sentinel / release gate | QA | Codex / Founder | LOCAL_ONLY | PUBLISH | reports/LOCAL_CONTINUITY_20260919.md | Revision durable preservada; preview doble clic/start-stop y concurrencia 22/22; revisar candidato sin publicar |
-| OPS-002 | Hygiene / organization | QA | Codex | LOCAL_ONLY | LEGACY | project_control/CONVERSATION_INDEX.md | Revisar categorias y dependencias, conservar UNKNOWN |
+| OPS-001 | Sentinel / release gate | DONE | ChatGPT / QA | PASS_LOCAL_SAFE | — | reports/SENTINEL_OPERATIONAL_CLOSURE_20260923.md | Preservar executor local; cada Smoke revalida fronteras; no habilitar executor productivo |
+| OPS-002 | Hygiene / organization | IN_PROGRESS | ChatGPT / Founder | REMOTE_RECONCILIATION | LEGACY | project_control/ACTIVE_WORK.md | Reconciliar GitHub actual y extraer trabajo único antes de cerrar supersedidos; conservar UNKNOWN y worktrees |
 | OPS-003 | Legacy retirement | BLOCKED | Arquitectura / Founder | NOT_CERTIFIED | LEGACY,MATERIAL | project_control/CONVERSATION_INDEX.md | Cero consumidores, alternativa, pruebas y rollback antes de retirada |
 | BIZ-001 | LRM-001 / FIRST10 | BACKLOG | Founder | NOT_TESTED | PUBLISH,COMMERCIAL | project_control/ROADMAP.md | No activar pagos, altas ni mensajes automaticamente |
 <!-- queue:end -->
