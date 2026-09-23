@@ -27,6 +27,7 @@ def test_install_ui_is_compact_and_safe_area_aware():
     assert "env(safe-area-inset-bottom)" in css
     assert "@media (display-mode: standalone)" in css
     assert "position: fixed" in css
+    assert "bottom: calc(164px + env(safe-area-inset-bottom))" in css
 
 
 def test_manifest_and_service_worker_keep_single_icon_family():
