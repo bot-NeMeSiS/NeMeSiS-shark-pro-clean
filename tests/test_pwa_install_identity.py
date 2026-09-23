@@ -27,8 +27,8 @@ def test_header_admin_pwa_and_manifest_share_dynamic_version():
     js = (ROOT / "static/pwa-install.js").read_text(encoding="utf-8")
     assert "8d0ed4207e73" not in brand
     assert "app_icon_version" in brand
-    assert "manifest_json', v=app_icon_version" in base
-    assert "founder_manifest_json', v=app_icon_version" in base
+    assert "url_for('manifest_json')" in base
+    assert "url_for('founder_manifest_json')" in base
     assert 'href="/instalar"' in base
     assert 'data-icon-version="{{ app_icon_version }}"' in prompt
     assert "nemesis-pwa-install-dismissed-" in js
