@@ -22,6 +22,9 @@ ENV/
 # Local data / secrets
 .env
 .env.local
+.env.*
+!.env.example
+!.env.render.clean
 *.db
 *.sqlite
 *.sqlite3
@@ -65,8 +68,14 @@ reports/*video_evidence*/
 *.mkv
 *.png.tmp
 *.secret
-*secret*
-*token*
+secrets/
+credentials/
+secrets.json
+credentials.json
+*secret*.txt
+*secret*.json
+*token*.txt
+*token*.json
 !automation_workforce/security_secret_guard.py
 !reports/V915_SECURITY_SECRET_GUARD_REPORT.md
 !static/v933_design_tokens.css
@@ -75,7 +84,6 @@ id_rsa*
 # V839 clean project guardrails
 archive_legacy/
 reports/archive/
-!release_output/NeMeSiS_SHARK_PRO_*_RENDER_READY.zip
 *.webm
 *.sqlite-journal
 .env.production

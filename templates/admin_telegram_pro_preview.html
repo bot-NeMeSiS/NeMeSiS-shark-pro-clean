@@ -1,28 +1,65 @@
 {% extends "base.html" %}
 {% block content %}
-{% set d = data if data is defined and data.get is defined else {} %}
-{% set p = d.get('telegram_pro_preview') or {} %}
-<section class="v810-admin-pro-telegram">
-  <div class="v810-admin-pro-hero">
-    <div>
-      <span class="v810-eyebrow">Telegram PRO</span>
-      <h1>Robot profesional, sin ligas raras</h1>
-      <p>El canal queda enfocado en primeras ligas y campeonatos importantes. La app puede seguir mostrando más competiciones, pero Telegram solo publica señales TOP y picks reales.</p>
-      <div class="v810-hero-actions"><a class="primary" href="/admin/telegram/command-center">Centro de mando</a><a href="/api/admin/telegram/pro-preview">Vista previa API</a><a href="/admin/map">Mapa admin</a></div>
-    </div>
-    <aside><img src="/static/img/app-icons/app-icon-96.png?v={{ app_icon_version }}" alt="" width="96" height="96"><strong>SHARK Bot</strong><span>Modo canal profesional</span></aside>
+{% set p = (data or {}).get('telegram_pro_preview') or {} %}
+<style>
+.telegram-studio{max-width:1180px;margin:auto;padding:20px 0;color:var(--text,#e7eff5)}
+.telegram-studio header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.telegram-studio h1{font-size:24px;margin:0}.telegram-studio h2{font-size:19px;margin:0}
+.telegram-studio p{line-height:1.5}.telegram-studio nav{display:flex;gap:12px;flex-wrap:wrap}
+.telegram-studio a{min-height:44px;display:inline-flex;align-items:center}
+.telegram-studio .tg-status{padding:12px 0;border-bottom:1px solid #344755;color:#b8cbd7}
+.telegram-studio .tg-samples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:24px}
+.telegram-studio article{min-width:0;border:1px solid #344755;border-radius:8px;overflow:hidden}
+.telegram-studio article>header,.telegram-studio .tg-copy{padding:16px}
+.telegram-studio img{display:block;width:100%;height:auto;aspect-ratio:960/1000;object-fit:contain}
+.telegram-studio pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;font-size:14px;line-height:1.65;margin:0}
+.telegram-studio details{padding:12px 0;border-top:1px solid #344755;margin-top:12px}
+.telegram-studio summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+.telegram-studio small{color:#b8cbd7;overflow-wrap:anywhere}
+.telegram-studio .tg-tag{font-size:12px;color:#75e6d5}
+.telegram-studio table{width:100%;font-size:13px}.telegram-studio td{padding:8px;overflow-wrap:anywhere}
+@media(max-width:720px){.telegram-studio .tg-samples{grid-template-columns:1fr}.telegram-studio{padding:12px 0}.telegram-studio h1{font-size:21px}}
+</style>
+<section class="telegram-studio" aria-labelledby="telegram-title">
+  <header>
+    <div><span class="tg-tag">TELEGRAM · SOLO VISTA PREVIA</span><h1 id="telegram-title">Mensajes SHARK</h1></div>
+    <nav aria-label="Telegram"><a href="/admin/telegram/command-center">Centro de mando</a><a href="/admin/control-center">Volver a Administración</a></nav>
+  </header>
+  <p class="tg-status">{{ p.get('note') }}</p>
+  <p>{{ p.get('source_label') }} · Tarjetas: {{ 'activadas' if p.get('visual_config', {}).get('visual_cards_enabled') else 'desactivadas' }}. Esta vista previa no envía mensajes.</p>
+  {% if p.get('counts') is not none %}<p>Trabajos en el registro: {{ p.get('counts', {}).values() | sum }}{% for state, count in p.get('counts', {}).items() %} · {{ state }}: {{ count }}{% endfor %}</p>{% endif %}
+  {% if (p.get('counts') or {}).get('uncertain') %}<p role="status">Hay entregas por verificar. Revisa el destino antes de reenviar: no se reintentan automáticamente.</p>{% endif %}
+  <div class="tg-samples">
+  {% for sample in p.get('samples', []) %}
+    <article>
+      <header><h2>{{ sample.title }}</h2><span class="tg-tag">{{ sample.source }}</span></header>
+      {% if sample.image %}
+      <img src="{{ sample.image }}" alt="Tarjeta {{ sample.title }}" width="960" height="1000" loading="lazy">
+      {% endif %}
+      <div class="tg-copy">
+        <small>{{ sample.visual_label }}</small>
+        <details open><summary>Mensaje completo / fallback</summary><pre>{{ sample.text }}</pre></details>
+        {% if sample.image %}
+        <details><summary>Caption de la tarjeta</summary><pre>{{ sample.caption }}</pre></details>
+        <a href="{{ sample.image }}" download="{{ sample.filename }}">Descargar PNG</a>
+        {% endif %}
+      </div>
+    </article>
+  {% endfor %}
   </div>
-  <div class="v810-telegram-config-grid">
-    <article><span>Filtro</span><strong>{{ p.get('config', {}).get('professional_competitions_only') }}</strong><small>Solo competiciones TOP para Telegram</small></article>
-    <article><span>Máx. partidos</span><strong>{{ p.get('config', {}).get('top_match_limit') or '—' }}</strong><small>Evita saturar el canal</small></article>
-    <article><span>Máx. picks</span><strong>{{ p.get('config', {}).get('top_pick_limit') or '—' }}</strong><small>Solo picks con cuota real</small></article>
-    <article><span>Dedupe</span><strong>Activo</strong><small>No repite mensajes</small></article>
-  </div>
-  <div class="v810-telegram-preview-grid">
-    <article><header><b>Resumen diario</b><span>Ejemplo visual</span></header><pre>{{ p.get('daily_summary') }}</pre></article>
-    <article><header><b>Alerta live</b><span>Ejemplo visual</span></header><pre>{{ p.get('live_alert') }}</pre></article>
-    <article><header><b>Pick premium</b><span>Ejemplo visual</span></header><pre>{{ p.get('pick_alert') }}</pre></article>
-  </div>
-  <p class="v810-preview-note">{{ p.get('note') }}</p>
+  <h2 style="margin-top:24px">Últimos trabajos registrados</h2>
+  {% if p.get('deliveries') %}
+  <table><thead><tr><th>Trabajo</th><th>Estado</th><th>Destino</th></tr></thead><tbody>
+  {% for item in p.deliveries %}<tr><td>{{ item.id }}<br>{{ item.message_type }}</td><td>{{ item.status }}</td><td>{{ item.destination }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% else %}<p>{{ 'Sin trabajos registrados.' if p.get('queue_available') else 'Registro no disponible; no se interpreta como cero envíos.' }}</p>{% endif %}
+  {% if p.get('delivery_evidence') %}
+  <h2>Últimos resultados de entrega</h2>
+  {% for item in p.delivery_evidence %}
+  <details><summary>{{ item.status }} · {{ item.visual }}</summary>
+    <p>{{ item.type }} · {{ item.sent_at }} · Destino {{ item.destination }}</p>
+    <small>Delivery {{ item.id }}{% if item.reason %} · {{ item.reason }}{% endif %}</small>
+  </details>
+  {% endfor %}{% endif %}
 </section>
 {% endblock %}

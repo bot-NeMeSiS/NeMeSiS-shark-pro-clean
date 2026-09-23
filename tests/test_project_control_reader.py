@@ -3,7 +3,7 @@ import shutil
 
 import pytest
 
-from engines.project_control_reader import ControlUnavailable, SOURCES, evidence, git_identity, read_table, snapshot, QUEUE_COLUMNS
+from engines.project_control_reader import ControlUnavailable, SOURCES, evidence, git_identity, read_table, snapshot, QUEUE_COLUMNS, RELEASE_COLUMNS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -16,18 +16,23 @@ def control_root(tmp_path):
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source, target)
     (tmp_path / '.git/refs/heads').mkdir(parents=True)
-    (tmp_path / '.git/HEAD').write_text('ref: refs/heads/codex/sentinel-operaciones-local')
-    ref = tmp_path / '.git/refs/heads/codex/sentinel-operaciones-local'
-    ref.parent.mkdir()
-    ref.write_text('c4a81003de1b5ccdb3036831583e9c1eb65e4417')
+    # Exercise a matching declared candidate, independent of historical SHAs.
+    releases = read_table((tmp_path/SOURCES['release']).read_text(encoding='utf-8'), 'releases', RELEASE_COLUMNS)
+    candidate = next(row for row in releases if row['ID'] == 'SENTINEL')
+    (tmp_path / '.git/HEAD').write_text('ref: refs/heads/' + candidate['Rama'])
+    ref = tmp_path / '.git/refs/heads' / candidate['Rama']
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    ref.write_text(candidate['HEAD'])
     return tmp_path
 
 
 def test_single_queue_states_and_evidence(control_root):
     data = snapshot(control_root)
     ids = [row['ID'] for row in data['queue']]
-    assert len(ids) == len(set(ids)) == 23
-    assert data['counts']['qa'] == 8
+    assert len(ids) == len(set(ids)) == 24
+    assert 'TG-001' in ids
+    assert data['counts']['qa'] == 9
+    assert next(row for row in data['queue'] if row['ID'] == 'TG-001')['Estado'] == 'QA'
     assert data['counts']['unassigned'] == 0
     assert data['counts']['evidence_missing'] == 0
     assert data['identity']['working_tree'] == 'NOT_REVALIDATED_BY_PAGE_READ'
@@ -36,7 +41,8 @@ def test_single_queue_states_and_evidence(control_root):
 
 
 def test_git_contradiction_never_becomes_documentary_pass(control_root):
-    (control_root/'.git/refs/heads/codex/sentinel-operaciones-local').write_text('a'*40)
+    ref = (control_root/'.git/HEAD').read_text().removeprefix('ref: ')
+    (control_root/'.git'/ref).write_text('a'*40)
     data = snapshot(control_root)
     assert next(r for r in data['releases'] if r['ID']=='SENTINEL')['verification'] == 'CONFLICT_OR_UNVERIFIED'
 

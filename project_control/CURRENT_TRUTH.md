@@ -1,6 +1,16 @@
 # Current Truth
 
-## Punto operativo remoto y entrega cliente · 2026-09-21
+## Verdad comprobada de higiene local - 2026-09-23
+
+- GitHub `origin/main`: `706094630d337f9e329a8401fae217b316a9b49c`, comprobado mediante remoto y objetos Git.
+- Carpeta oficial: rama local `codex/repo-hygiene-20260923`, desde ese SHA. El ref local `main` permanece en `454c3ca1abb79af6a8525f65daecc57c0958c0c1`, dos commits por detras; no se ha modificado.
+- Produccion actual: NOT_OBSERVED en esta mision. Ninguna nota historica certifica el runtime actual.
+- PR72 conserva `792093308fa1ecf4a5d2ad1349e7bb973b479fb8` y dos reparaciones locales de cache en su propio worktree. No integradas aqui ni publicadas; ultimo Smoke fallo antes de esas reparaciones.
+- Design: 4401 cambios preservados; documental: 6131; no ejecutar ni reconstruir esos arboles incompletos. Candidato `7202c1886aec7fee03267b1a709313804360592a` conservado.
+- Cierre de esta mision y manifiestos: `GIT_RELEASE_CLEANUP_REPORT.md`. Una sola cola: `CODEX_QUEUE.md`, OPS-002/CX-002. Sin staging, commit, push, merge ni deploy.
+- Las secciones fechadas anteriores son HISTORY, no ordenes pendientes ni permisos actuales.
+
+## Historico: punto operativo remoto y entrega cliente · 2026-09-21
 
 - Base remota comprobada: `main@63cd3d9a1d70d839bd0f91d78fb4875931fa635e`.
 - PR #56 integrada tras QA, preflight y Smoke completos. Web y Cron fueron

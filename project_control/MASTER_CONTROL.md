@@ -1,6 +1,16 @@
 # NeMeSiS - Master Control
 
-## Verdad operativa remota vigente · 2026-09-20
+## Entrada vigente - 2026-09-23
+
+Leer `CURRENT_TRUTH.md` para identidad comprobada, `ACTIVE_WORK.md` para alcance y
+`CODEX_QUEUE.md` para la unica cola. Mision OPS-002/CX-002: higiene LOCAL_ONLY;
+informe unico actualizado: `GIT_RELEASE_CLEANUP_REPORT.md` en la raiz.
+Main remoto comprobado `706094630d337f9e329a8401fae217b316a9b49c`; produccion no
+reobservada aqui. PR72/60/68 preservadas; no commit, push, merge ni deploy.
+Las declaraciones de las secciones anteriores por fecha son evidencia historica,
+no autoridad sobre Git o runtime actuales ni autorizacion para ejecutar trabajos.
+
+## Historico: verdad operativa remota · 2026-09-20
 
 Esta sección es la entrada autoritativa para continuar trabajo remoto. Las secciones
 locales del 2026-09-19 que siguen debajo se preservan como historia y evidencia; ya

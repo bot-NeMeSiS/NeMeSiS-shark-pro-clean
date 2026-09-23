@@ -1,6 +1,22 @@
 # Active Work
 
-## Frente de publicación autorizado · 2026-09-21
+## Mision local actual - 2026-09-23
+
+Telegram Premium: cierre QA / LOCAL_ONLY de la orden mas reciente del fundador.
+186 pruebas focales PASS; preview aislada 127.0.0.1:54912. Sin envios reales ni publicacion.
+Alcance, archivos, evidencia exacta y limites: reports/TELEGRAM_PREMIUM_LOCAL_20260923.md.
+Los cambios previos de higiene se conservan separados. No continuar otro frente automaticamente.
+
+## Higiene previa preservada - 2026-09-23
+
+OPS-002/CX-002: higiene estructural en `codex/repo-hygiene-20260923`, base `706094630d337f9e329a8401fae217b316a9b49c`.
+Alcance: inventario, respaldo, retirada acotada de generados, reglas Git y paquete de distribucion, QA local y este registro.
+PR72 sigue separado, con dos archivos sin commit; PR60/68 y mejoras antiguas no se fusionan en higiene.
+Design y documental se preservan con cambios. `.pytest_cache` conserva un bloqueo de acceso; no cambiar ACL ni forzar su borrado.
+La autorizacion de publicacion del bloque historico siguiente NO se aplica a esta mision.
+Estado y siguientes acciones limitadas: `GIT_RELEASE_CLEANUP_REPORT.md`. No retomar automaticamente otro frente.
+
+## Historico: frente de publicación autorizado · 2026-09-21
 
 El fundador ha autorizado subir e integrar las mejoras desde esta conversación.
 Trabajar por bloques verificables; no añadir funciones sin publicar lo validado.
