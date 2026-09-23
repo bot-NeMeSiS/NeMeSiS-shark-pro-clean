@@ -1,0 +1,79 @@
+.ns-pwa-install {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 12px));
+  z-index: 1100;
+  width: min(340px, calc(100vw - 28px));
+  font: inherit;
+}
+.ns-pwa-install[hidden] { display: none !important; }
+.ns-pwa-install__button {
+  margin-left: auto;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 24px auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 8px;
+  padding: 9px 14px;
+  border: 1px solid rgba(101, 208, 255, .42);
+  border-radius: 15px;
+  background: rgba(3, 17, 33, .94);
+  color: #f5fbff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .28);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+}
+.ns-pwa-install__button > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(61, 190, 255, .14);
+  font-size: 20px;
+}
+.ns-pwa-install__button strong { font-size: 13px; line-height: 1.15; }
+.ns-pwa-install__button small { opacity: .72; font-size: 11px; }
+.ns-pwa-install__panel {
+  margin-top: 8px;
+  padding: 14px;
+  border: 1px solid rgba(101, 208, 255, .28);
+  border-radius: 16px;
+  background: rgba(3, 17, 33, .98);
+  color: #eaf7ff;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, .34);
+}
+.ns-pwa-install__panel[hidden] { display: none !important; }
+.ns-pwa-install__panel strong { display: block; margin-bottom: 6px; font-size: 14px; }
+.ns-pwa-install__panel p { margin: 0 0 12px; color: rgba(234, 247, 255, .76); font-size: 12px; line-height: 1.45; }
+.ns-pwa-install__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ns-pwa-install__actions button {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(101, 208, 255, .25);
+  background: rgba(61, 190, 255, .12);
+  color: inherit;
+  cursor: pointer;
+}
+.ns-pwa-install__live {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(1px, 1px, 1px, 1px) !important;
+}
+@media (max-width: 640px) {
+  .ns-pwa-install {
+    left: auto;
+    right: max(14px, env(safe-area-inset-right));
+    bottom: calc(164px + env(safe-area-inset-bottom));
+    width: min(300px, calc(100vw - 28px));
+  }
+  .ns-pwa-install__button { margin-left: auto; }
+}
+@media (display-mode: standalone) {
+  .ns-pwa-install { display: none !important; }
+}

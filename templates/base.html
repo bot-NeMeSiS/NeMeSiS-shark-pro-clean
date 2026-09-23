@@ -29,6 +29,7 @@
   <link rel="apple-touch-icon" sizes="{{ _touch_size }}x{{ _touch_size }}" href="{{ url_for('static', filename='img/app-icons/app-icon-' ~ _touch_size ~ '.png', v=app_icon_version) }}">
   {% endfor %}
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}?v={{ app_version }}-design-system-1-8" data-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v928-canonical.css') }}?v={{ app_version }}" data-v928-cache-version="{{ app_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='v930-canonical.css') }}?v={{ app_version }}" data-v930-cache-version="{{ app_version }}">
@@ -544,6 +545,7 @@
     });
   })();
   </script>
+  <script src="{{ url_for('static', filename='pwa-install.js') }}?v={{ app_version }}-{{ app_icon_version }}" defer></script>
   <script src="{{ url_for('static', filename='v937-product-client.js') }}?v={{ app_version }}-crest-fallback-1" defer></script>
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
