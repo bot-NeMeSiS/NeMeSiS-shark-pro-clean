@@ -3943,6 +3943,11 @@ def inject_security_context():
 
 @app.after_request
 def apply_security_headers_and_csrf(response):
+    if request.path == '/admin' or request.path == '/admin-login' or request.path.startswith(('/admin/', '/api/admin/')):
+        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
+        if 'no-store' not in current_cache_control:
+            response.headers['Cache-Control'] = 'private, no-store'
+        response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -31574,12 +31579,25 @@ def api_admin_v938_operations_run_safe_scan():
 def api_admin_v938_operations_generate_prompt():
     if not is_admin_session():
         return admin_json_forbidden()
-    payload = request.get_json(silent=True) or {}
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict) or not isinstance(payload.get("issue_id", ""), str):
+        return jsonify({"ok": False, "error": "operations_invalid_request"}), 400
+    issue_id = payload.get("issue_id", "").strip()
+    if len(issue_id) > 120 or any(ord(char) < 32 for char in issue_id):
+        return jsonify({"ok": False, "error": "operations_invalid_issue_id"}), 400
     snapshot = v938_operations_snapshot()
-    issue_id = str(payload.get("issue_id") or "").strip()
-    issue = next((item for item in snapshot.get("incidents") or [] if item.get("issue_id") == issue_id), {})
-    if not issue and snapshot.get("incidents"):
-        issue = snapshot["incidents"][0]
+    incidents = snapshot.get("incidents")
+    if not isinstance(incidents, list):
+        return jsonify({"ok": False, "error": "operations_snapshot_unavailable"}), 503
+    rows = [item for item in incidents if isinstance(item, dict) and item.get("issue_id")]
+    # Empty requests retain the legacy next-task contract; an explicit ID never falls back.
+    if not issue_id and rows:
+        issue_id = rows[0]["issue_id"]
+    matches = [item for item in rows if item.get("issue_id") == issue_id]
+    if len(matches) > 1:
+        return jsonify({"ok": False, "error": "operations_issue_identity_conflict"}), 409
+    from engines.admin_operations_workbench import safe_operations_issue
+    issue = safe_operations_issue(matches[0]) if matches else {}
     return jsonify({
         "ok": bool(issue),
         "version": APP_VERSION,
@@ -32557,7 +32575,7 @@ def admin_founder_os_page():
     return render_template(
         "admin_founder_os.html",
         data=dashboard_data(),
-        founder_os=founder_os_snapshot(DB_PATH),
+        founder_os=founder_os_snapshot(DB_PATH, read_only=True),
         title="NeMeSiS Founder OS",
     )
 
@@ -32566,7 +32584,9 @@ def admin_founder_os_page():
 def api_admin_founder_os():
     if not is_admin_session():
         return admin_json_forbidden()
-    return jsonify({"ok": True, "founder_os": founder_os_snapshot(DB_PATH)})
+    snapshot = founder_os_snapshot(DB_PATH, read_only=True)
+    available = snapshot.get('available', False)
+    return jsonify({"ok": available, "founder_os": snapshot}), 200 if available else 503
 
 
 @app.route("/admin/founder-os/obligations/save", methods=["POST"])
@@ -32604,7 +32624,14 @@ def admin_founder_os_mark_paid(obligation_id):
 def admin_founder_os_ack_alert(alert_id):
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    founder_acknowledge_alert(DB_PATH, alert_id)
+    result = founder_acknowledge_alert(DB_PATH, alert_id)
+    if not result.get('acknowledged'):
+        return render_template(
+            'admin_founder_os.html', data=dashboard_data(),
+            founder_os=founder_os_snapshot(DB_PATH, read_only=True),
+            action_error='No se confirmó el cambio. La alerta no existe o ya no está abierta.',
+            title='Founder Control',
+        ), 409
     return redirect("/admin/founder-os?alert=ack#inbox")
 
 

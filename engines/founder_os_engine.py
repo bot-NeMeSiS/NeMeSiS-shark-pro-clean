@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 import uuid
+from pathlib import Path
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Iterable
 
@@ -29,19 +30,32 @@ def _env_flag(name,default=False):
     if not name: return True
     raw=str(os.getenv(name) or "").strip().lower()
     return default if not raw else raw in {"1","true","yes","on","enabled"}
-def _connect(db_path):
-    conn=sqlite3.connect(db_path,timeout=30,check_same_thread=False); conn.row_factory=sqlite3.Row
+def _connect(db_path, read_only=False):
+    target = Path(db_path).resolve().as_uri() + '?mode=ro' if read_only else db_path
+    conn=sqlite3.connect(target,uri=read_only,timeout=30,check_same_thread=False); conn.row_factory=sqlite3.Row
+    if read_only:
+        conn.execute('PRAGMA query_only=ON')
+        return conn
     try:
         conn.execute("PRAGMA busy_timeout=30000"); conn.execute("PRAGMA journal_mode=WAL"); conn.execute("PRAGMA synchronous=NORMAL")
     except sqlite3.OperationalError: pass
     return conn
 def _rows(conn,query,params=()):
     try: return [dict(r) for r in conn.execute(query,tuple(params)).fetchall()]
-    except sqlite3.OperationalError: return []
+    except sqlite3.OperationalError:
+        if conn.execute('PRAGMA query_only').fetchone()[0]: raise
+        return []
 def _one(conn,query,params=()):
     try:
         row=conn.execute(query,tuple(params)).fetchone(); return dict(row) if row else {}
-    except sqlite3.OperationalError: return {}
+    except sqlite3.OperationalError:
+        if conn.execute('PRAGMA query_only').fetchone()[0]: raise
+        return {}
+
+def _snapshot_connection(db_path, read_only):
+    if not read_only:
+        ensure_founder_os_schema(db_path)
+    return _connect(db_path, read_only=read_only)
 def _table_exists(conn,table): return bool(_one(conn,"SELECT name FROM sqlite_master WHERE type='table' AND name=?",(table,)))
 def _parse_json(value):
     try: data=json.loads(str(value or "{}"))
@@ -140,8 +154,8 @@ def mark_obligation_paid(db_path,obligation_id,actor="admin"):
     conn.commit(); updated=_one(conn,"SELECT * FROM founder_obligations WHERE id=?",(row["id"],)); conn.close()
     return {"ok":True,"obligation":_public_obligation(updated),"actor":_safe(actor,80)}
 
-def obligations_snapshot(db_path):
-    ensure_founder_os_schema(db_path); conn=_connect(db_path)
+def obligations_snapshot(db_path, *, read_only=False):
+    conn=_snapshot_connection(db_path, read_only)
     items=[_public_obligation(r) for r in _rows(conn,"SELECT * FROM founder_obligations WHERE active=1 ORDER BY COALESCE(due_date,'9999-12-31'),label")]
     conn.close(); counts={k:0 for k in ("OVERDUE","DUE_NOW","DUE_SOON","UPCOMING","PENDING","PAID","UNKNOWN","WAIVED")}
     monthly=0.0
@@ -175,9 +189,9 @@ def _nonnegative_int(value):
     try: return max(0,int(value or 0))
     except (TypeError,ValueError): return 0
 
-def sports_data_freshness_snapshot(db_path):
+def sports_data_freshness_snapshot(db_path, *, read_only=False):
     """Read canonical sports freshness already persisted by the cron; never call providers."""
-    ensure_founder_os_schema(db_path); conn=_connect(db_path)
+    conn=_snapshot_connection(db_path, read_only)
     state_keys=("telegram_tick_last_detail","sports_sync_last_detail")
     for state_key in state_keys:
         detail=_automation_state(conn,state_key)
@@ -266,11 +280,11 @@ def _configured(spec):
     if any_names and not any(_env_present(x) for x in any_names): return False
     return bool(all_names or any_names) or spec.get("label")=="Render"
 
-def providers_snapshot(db_path,obligations=None):
-    ensure_founder_os_schema(db_path); obligations=obligations or obligations_snapshot(db_path)
+def providers_snapshot(db_path,obligations=None, *, read_only=False):
+    obligations=obligations if obligations is not None else obligations_snapshot(db_path, read_only=read_only)
     grouped={}
     for i in obligations.get("items") or []: grouped.setdefault(i.get("provider_key") or "other",[]).append(i)
-    conn=_connect(db_path); items=[]
+    conn=_snapshot_connection(db_path, read_only); items=[]
     for key,spec in PROVIDER_CATALOG.items():
         configured=_configured(spec); enabled=_env_flag(spec.get("enabled_env"),False) if spec.get("enabled_env") else None
         evidence=_provider_evidence(conn,key); obs=grouped.get(key,[]); states=[x.get("effective_state") for x in obs]
@@ -321,11 +335,20 @@ def sync_generated_alerts(db_path,obligations=None,providers=None,sports_freshne
         if row.get("fingerprint") not in desired: conn.execute("UPDATE founder_alerts SET status='RESOLVED',resolved_at=?,last_seen_at=? WHERE id=?",(utc_now(),utc_now(),row["id"]))
     conn.commit(); conn.close(); return {"ok":True,"active_generated":len(desired)}
 
-def alerts_snapshot(db_path):
-    ensure_founder_os_schema(db_path); conn=_connect(db_path)
+def alerts_snapshot(db_path, *, read_only=False):
+    conn=_snapshot_connection(db_path, read_only)
     rows=_rows(conn,"""SELECT * FROM founder_alerts WHERE status IN ('OPEN','ACK') ORDER BY CASE severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 WHEN 'WARNING' THEN 3 ELSE 4 END,last_seen_at DESC LIMIT 100"""); conn.close()
     items=[{"id":_safe(r.get("id"),80),"severity":_safe(r.get("severity"),20) or "INFO","category":_safe(r.get("category"),40),"title":_safe(r.get("title"),180),"message":_safe(r.get("message"),500),"entity_ref":_safe(r.get("entity_ref"),100),"due_at":_safe(r.get("due_at"),80),"status":_safe(r.get("status"),20),"push_eligible":bool(r.get("push_eligible")),"last_seen_at":_safe(r.get("last_seen_at"),80),"last_notified_at":_safe(r.get("last_notified_at"),80)} for r in rows]
     counts={s:sum(1 for i in items if i["severity"]==s and i["status"]=="OPEN") for s in ALERT_SEVERITIES}
+    # Destinations come from this closed registry, never from imported evidence.
+    destinations = {
+        'BILLING': ('/admin/founder-os#billing', 'Revisar obligación'),
+        'PROVIDER': ('/admin/founder-os#apis', 'Revisar proveedor'),
+        'SPORTS_DATA': ('/admin/data-center', 'Consultar datos deportivos'),
+    }
+    for item in items:
+        item['panel_url'], item['next_action'] = destinations.get(item['category'],
+            ('/admin/operations-center', 'Abrir Jornada operativa'))
     return {"items":items,"counts":counts,"open":sum(counts.values())}
 
 def acknowledge_alert(db_path,alert_id):
@@ -344,8 +367,8 @@ def save_push_subscription(db_path,subscription,user_id="admin",user_agent=""):
     conn.execute("""INSERT OR REPLACE INTO founder_push_subscriptions(endpoint_hash,endpoint,p256dh,auth,user_id,user_agent,enabled,created_at,updated_at,last_success_at,last_error_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",(hid,endpoint,p,auth,_safe(user_id,100),_safe(user_agent,300),1,old.get("created_at") or now,now,"",""))
     conn.commit(); conn.close(); return {"ok":True,"subscription_id":hid[:12]}
 
-def push_snapshot(db_path):
-    ensure_founder_os_schema(db_path); cfg=push_configuration(); conn=_connect(db_path)
+def push_snapshot(db_path, *, read_only=False):
+    cfg=push_configuration(); conn=_snapshot_connection(db_path, read_only)
     count=_one(conn,"SELECT COUNT(*) AS total FROM founder_push_subscriptions WHERE enabled=1").get("total") or 0
     last=_one(conn,"SELECT last_success_at,last_error_at FROM founder_push_subscriptions WHERE enabled=1 ORDER BY updated_at DESC LIMIT 1"); conn.close()
     return {**cfg,"subscriptions":int(count),"last_success_at":_safe(last.get("last_success_at"),80),"last_error_at":_safe(last.get("last_error_at"),80)}
@@ -385,10 +408,24 @@ def dispatch_pending_founder_push(db_path,limit=5):
             c=_connect(db_path); c.execute("UPDATE founder_alerts SET last_notified_at=? WHERE id=?",(utc_now(),a["id"])); c.commit(); c.close()
     return {"ok":True,"status":"SENT" if sent else "NO_DUE_DELIVERY","sent":sent,"failed":failed,"alerts_checked":checked}
 
-def founder_os_snapshot(db_path):
-    obligations=obligations_snapshot(db_path); providers=providers_snapshot(db_path,obligations); sports_freshness=sports_data_freshness_snapshot(db_path); sync_generated_alerts(db_path,obligations,providers,sports_freshness); alerts=alerts_snapshot(db_path); push=push_snapshot(db_path)
+def founder_os_snapshot(db_path, *, read_only=False):
+    try:
+        obligations=obligations_snapshot(db_path, read_only=read_only)
+        providers=providers_snapshot(db_path,obligations, read_only=read_only)
+        sports_freshness=sports_data_freshness_snapshot(db_path, read_only=read_only)
+        if not read_only:
+            sync_generated_alerts(db_path,obligations,providers,sports_freshness)
+        alerts=alerts_snapshot(db_path, read_only=read_only)
+        push=push_snapshot(db_path, read_only=read_only)
+    except (sqlite3.Error, ValueError, TypeError):
+        if not read_only: raise
+        return {'contract':'NEMESIS-FOUNDER-OS-V1', 'generated_at':utc_now(),
+                'available':False, 'health_state':'UNAVAILABLE', 'alerts':{},
+                'obligations':{}, 'providers':{}, 'sports_data_freshness':{}, 'push':{},
+                'safe_error':'No se pudo leer la evidencia persistida. No equivale a cero incidencias.'}
     health="CRITICAL" if alerts["counts"].get("CRITICAL") else "ATTENTION" if alerts["counts"].get("HIGH") or alerts["counts"].get("WARNING") else "HEALTHY"
-    return {"contract":"NEMESIS-FOUNDER-OS-V1","generated_at":utc_now(),"health_state":health,"alerts":alerts,"obligations":obligations,"providers":providers,"sports_data_freshness":sports_freshness,"push":push,
+    if read_only and health == 'HEALTHY': health = 'NO_OPEN_ALERTS'
+    return {"contract":"NEMESIS-FOUNDER-OS-V1","available":True,"generated_at":utc_now(),"health_state":health,"alerts":alerts,"obligations":obligations,"providers":providers,"sports_data_freshness":sports_freshness,"push":push,
             "safety":{"secrets_visible":False,"charges_executed":False,"memberships_modified":False,"dangerous_actions_one_tap":False}}
 
 def founder_alert_tick(db_path):

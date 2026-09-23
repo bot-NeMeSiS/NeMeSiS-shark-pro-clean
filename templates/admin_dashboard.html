@@ -8,7 +8,7 @@
 {% set realtime = data.get('v934_realtime') or {} %}
 
 <div class="v933-page v933-admin-command-center v933-admin-dashboard" data-v933-template="admin_dashboard" data-v933-reference="official-ref-01">
-  {{ page_header('Panel de control', 'Operación, producto y prioridades.', 'dashboard', [{'label':'Workforce','href':'/admin/automation-workforce','icon':'automation'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true,'icon':'shield'}]) }}
+  {{ page_header('Panel de control', 'Operación, producto y prioridades.', 'dashboard', [{'label':'Jornada operativa','href':'/admin/operations-center','icon':'dashboard'},{'label':'Workforce','href':'/admin/automation-workforce','icon':'automation'},{'label':'Revisar Sentinel','href':'/admin/autonomous-company-sentinel','primary':true,'icon':'shield'}]) }}
   <section class="ns16-admin-priority {{ 'is-danger' if errors else ('is-warning' if not overview.get('matches_today') and not overview.get('picks_active') else 'is-success') }}">
     {{ icon('shield' if errors else ('database' if not overview.get('matches_today') and not overview.get('picks_active') else 'rocket')) }}
     <div><span>Prioridad</span><strong>{{ 'Resolver incidencias' if errors else ('Certificar datos deportivos' if not overview.get('matches_today') and not overview.get('picks_active') else 'Certificar la jornada') }}</strong></div>
