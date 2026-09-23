@@ -236,6 +236,36 @@ def test_queue_dedup_and_uncertain_delivery_survive_reload(app_module, monkeypat
     assert len(calls) == count
 
 
+def test_queue_payload_is_bounded_structured_json(app_module):
+    import uuid
+    app = app_module
+    payload = {
+        "source": "manual_admin",
+        "membership": "ELITE",
+        "visual_card_type": "pick_alert",
+        "visual_card_enabled": True,
+        "visual_card_payload": {
+            "pick": {
+                "home_team": "QA Norte",
+                "away_team": "QA Sur",
+                "selection": "QA solamente",
+                "reason": "x" * 200000,
+            }
+        },
+    }
+    encoded = app.serialize_telegram_queue_payload(payload)
+    decoded = json.loads(encoded)
+    assert len(encoded.encode("utf-8")) <= app.TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES
+    assert decoded["_queue_payload_truncated"] is True
+    assert decoded["source"] == "manual_admin"
+    assert decoded["visual_card_type"] == "pick_alert"
+    assert decoded["visual_card_payload"]["pick"]["home_team"] == "QA Norte"
+    key = "qa-telegram-bounded-" + uuid.uuid4().hex
+    queued = app.enqueue_telegram_message("manual", "QA ONLY", "Mensaje QA", chat_id="qa", payload=payload, dedupe_key=key)
+    stored = queued["item"]["payload_json"]
+    assert len(stored.encode("utf-8")) <= app.TELEGRAM_QUEUE_PAYLOAD_MAX_BYTES
+    assert json.loads(stored)["_queue_payload_truncated"] is True
+
 def test_free_card_does_not_reveal_premium_metrics(monkeypatch):
     result = cards.build_visual_card_for_message("pick_alert", {"membership": "FREE", "pick": {"odds": 1.85, "reason": "private premium analysis"}})
     assert result["ok"]
