@@ -22,13 +22,10 @@
   <div class="scoreboard-kpis"><div><strong>{{ h.client_status }}</strong><span>Estado</span></div><div><strong>{{ h.provider or 'Video' }}</strong><span>Proveedor</span></div></div>
 </section>
 <section class="band compact-band v769-highlight-detail">
-  {% if h.can_embed %}
-  <div class="v769-video-frame xl"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
-  {% elif h.thumbnail_url %}
-  <a href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}"></a>
-  {% else %}
-  <div class="empty premium-empty">Este proveedor no permite incrustar el vídeo aquí. Usa el botón de fuente externa.</div>
-  {% endif %}
+  {% from "components/highlight_player.html" import highlight_player %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='highlights-experience.css') }}?v=media-review-1">
+  <script src="{{ url_for('static', filename='highlights-player.js') }}?v=media-review-1" defer></script>
+  {{ highlight_player(h) }}
   <p class="small">{{ h.rights_note }}</p>
 </section>
 {% endif %}

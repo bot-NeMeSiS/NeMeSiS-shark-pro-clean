@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
-{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
+{% from "components/highlight_player.html" import video_panel %}
 {% block content %}
 {% if not detail or not match_context %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">
@@ -64,6 +65,13 @@
       {% if head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
       {% if standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
       {% if media.get('visible_count') %}{{ video_panel(match_context) }}{% endif %}
+      {% if not media.get('visible_count') and match_context.get('lifecycle', {}).get('is_finished') %}
+      <details class="v944-coverage-details" id="match-section-video" data-highlight-availability="unavailable">
+        <summary>Vídeo-resumen · No disponible</summary>
+        <p>No hay un vídeo autorizado asociado a este partido en la lectura actual. Puede no existir, no estar enlazado o requerir revisión; no prometemos una fecha de publicación.</p>
+        <a href="/resumenes">Ver resúmenes disponibles</a>
+      </details>
+      {% endif %}
       {% if not (lineups.get('confirmed') and events.get('available') and statistics.get('available') and head_to_head.get('available') and standings.get('available')) %}
       <details class="v944-coverage-details">
         <summary>{{ ui("Cobertura pendiente") }}</summary>

@@ -70,4 +70,8 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
     bp.register_blueprint(create_client_combi_blueprint(db_path))
     from blueprints.client_surfaces import create_client_surfaces_blueprint
     bp.register_blueprint(create_client_surfaces_blueprint())
+
+    # Explicit composition: media operations share the existing DB and admin guard.
+    from blueprints.media_review import create_media_review_blueprint
+    bp.register_blueprint(create_media_review_blueprint(db_path, is_admin_callback))
     return bp
