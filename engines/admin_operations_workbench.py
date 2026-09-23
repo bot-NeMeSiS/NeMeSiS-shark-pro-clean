@@ -42,10 +42,20 @@ def _text(value, limit=600):
     if value.casefold() in {'none','null','undefined','nan'}:
         return ''
     # The workbench does not need tokens or URL credentials in investigation text.
-    value = re.sub(r'(?i)\b(password|secret|token|api[_-]?key|authorization)\s*[:=]\s*[^\s,;]+',
-                   lambda m:m.group(1)+'=[oculto]',value)
+    value = re.sub(
+        r'''(?ix)\b(password|secret|(?:access[_-]?|refresh[_-]?)?token|api[_-]?key|authorization)\b["']?\s*[:=]\s*
+            (?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:Bearer|Basic)\s+[^\s,;]+|[^\s,;]+)''',
+        lambda m: m.group(1) + '=[oculto]', value)
     value = re.sub(r'(?i)https?://[^\s/@]+:[^\s/@]+@', 'https://[oculto]@', value)
     return value[:limit]
+
+
+def safe_operations_issue(issue):
+    """Only investigation fields belong in the copyable admin API response."""
+    limits = {'issue_id':120, 'title':160, 'area':80, 'severity':40,
+              'evidence_state':80, 'status':80, 'evidence':1400,
+              'next_action':700, 'source':240}
+    return {key:_text(issue.get(key), limit) for key,limit in limits.items()}
 
 
 def _stamp(value):

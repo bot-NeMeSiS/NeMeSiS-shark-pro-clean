@@ -95,6 +95,12 @@ def test_successful_scan_invalidates_old_prompt_and_needs_fresh_reading(browser)
         p.wait_for_function("document.querySelector('[data-v938-output]').textContent.includes('Diagnóstico guardado')")
         assert 'lectura anterior' in p.locator('[data-v938-output]').inner_text()
         assert p.locator('[data-v938-action="prompt"]').is_disabled() and p.locator('[data-admin-refresh]').is_visible()
+        assert p.locator('[data-workbench-stale]').is_visible()
+        assert all(button.is_disabled() for button in p.locator('[data-action="admin-copy-brief"]').all())
+        assert all(field.is_disabled() for field in p.locator('textarea').all())
+        p.locator('[data-task-search]').fill('lectura')
+        assert p.locator('[data-admin-task]:visible').count()==1
+        assert p.locator('[data-admin-task]:visible a').get_attribute('href').startswith('/admin/')
     finally:c.close()
 
 
@@ -131,6 +137,8 @@ def test_in_flight_blocks_other_actions_and_never_retries(browser):
         p.evaluate("rejectRequest(new Error('network unavailable'))")
         p.wait_for_function("document.querySelector('[data-v938-output]').textContent.includes('No se pudo confirmar')")
         assert p.evaluate('calls.length')==1
+        assert p.locator('[data-workbench-stale]').is_visible()
+        assert p.locator('[data-action="admin-copy-brief"]').first.is_disabled()
     finally:c.close()
 
 
@@ -149,3 +157,29 @@ def test_confirmed_and_urgent_filters_can_be_selected(browser):
         assert p.locator('[data-admin-task]:visible').count()==1
         assert p.locator('[data-admin-task]:visible').get_attribute('data-category')=='confirmed'
     finally:c.close()
+
+
+@pytest.mark.parametrize('selector',['[data-admin-refresh]', '[data-workbench-stale] a'])
+def test_refresh_link_fetches_document_even_on_same_page_hash(browser,selector):
+    context=browser.new_context()
+    loads=[]
+    document=html().replace('</body>', '<script>'+(ROOT/'static/admin-operations.js').read_text(encoding='utf-8')+'</script></body>')
+    def serve(route):
+        loads.append(route.request.url)
+        route.fulfill(status=200,content_type='text/html; charset=utf-8',body=document)
+    context.route('**/*',lambda route:route.abort())
+    context.route('http://qa.invalid/admin/operations-center**',serve)
+    page=context.new_page()
+    try:
+        page.goto('http://qa.invalid/admin/operations-center')
+        assert page.evaluate('document.characterSet')=='UTF-8'
+        setup_response(page,{'ok':True,'snapshot':{'incidents':[]}})
+        page.locator('[data-v938-action="scan"]').click()
+        page.wait_for_function("document.querySelector('[data-v938-output]').textContent.includes('Diagnóstico guardado')")
+        with page.expect_response(lambda response:response.request.resource_type=='document'):
+            page.locator(selector).click()
+        page.wait_for_load_state('domcontentloaded')
+        assert len(loads)==2
+        assert page.locator('[data-action="admin-copy-brief"]').first.is_enabled()
+        assert not page.locator('[data-workbench-stale]').is_visible()
+    finally:context.close()

@@ -90,6 +90,83 @@ def test_sensitive_assignment_redacted_and_no_untrusted_link():
     assert 'synthetic-private' not in text and 'synthetic-password' not in text and 'u:p@' not in text
 
 
+@pytest.mark.parametrize('text',[
+    'Authorization: Bearer PRIVATE_QA_VALUE',
+    'authorization=Basic PRIVATE_QA_VALUE',
+    '"password": "PRIVATE_QA_VALUE with spaces"',
+    "'api_key': 'PRIVATE_QA_VALUE'",
+    'access_token=PRIVATE_QA_VALUE',
+    '"Authorization": "Bearer PRIVATE_QA_VALUE"',
+])
+def test_structured_credentials_are_not_copyable(text):
+    from engines.admin_operations_workbench import safe_operations_issue
+    data = issue(evidence=text, next_action='Revisar sin ejecutar')
+    assert 'PRIVATE_QA_VALUE' not in build_admin_workbench({'incidents':[data]})['tasks'][0]['brief']
+    clean = safe_operations_issue({**data, 'unexpected_secret':'PRIVATE_QA_VALUE'})
+    assert 'PRIVATE_QA_VALUE' not in str(clean)
+    assert clean['issue_id'] == data['issue_id']
+    assert clean['next_action'] == 'Revisar sin ejecutar'
+
+
+def admin_post_client(app_module, role='ADMIN'):
+    client = app_module.app.test_client()
+    with client.session_transaction() as sess:
+        if role:
+            sess.update(user_id='admin-http-qa', user_role=role, membership=role)
+        token = app_module.generate_csrf_token(sess)
+    return client, {'X-CSRF-Token':token}
+
+
+@pytest.mark.parametrize('payload,status,expected',[
+    ({'issue_id':'pending'},200,'pending'),
+    ({'issue_id':'unknown'},404,None),
+    ({},200,'pending'),
+    ({'issue_id':7},400,None),
+    ({'issue_id':None},400,None),
+    ([],400,None),
+    ({'issue_id':'x'*121},400,None),
+])
+def test_prompt_request_identity_is_not_substituted(app_module,monkeypatch,payload,status,expected):
+    monkeypatch.setattr(app_module,'v938_operations_snapshot',sample)
+    client,headers=admin_post_client(app_module)
+    response=client.post('/api/admin/operations-center/generate-prompt',json=payload,headers=headers)
+    assert response.status_code==status
+    data=response.get_json()
+    if expected:
+        assert data['issue']['issue_id']==expected and ('ID: '+expected) in data['prompt']
+    else:
+        assert data['ok'] is False and not data.get('prompt') and not data.get('issue')
+
+
+@pytest.mark.parametrize('snapshot,status',[
+    ({'incidents':[issue('duplicate'),issue('duplicate')]},409),
+    ({'incidents':None},503),
+])
+def test_unverifiable_prompt_fails_closed(app_module,monkeypatch,snapshot,status):
+    monkeypatch.setattr(app_module,'v938_operations_snapshot',lambda:snapshot)
+    client,headers=admin_post_client(app_module)
+    response=client.post('/api/admin/operations-center/generate-prompt',json={'issue_id':'duplicate'},headers=headers)
+    assert response.status_code==status and response.get_json()['ok'] is False
+
+
+def test_prompt_response_redacts_same_fields_as_workbench(app_module,monkeypatch):
+    data=issue('private',evidence='Authorization: Bearer PRIVATE_QA_VALUE',source='QA',password='PRIVATE_QA_VALUE')
+    monkeypatch.setattr(app_module,'v938_operations_snapshot',lambda:{'incidents':[data]})
+    client,headers=admin_post_client(app_module)
+    response=client.post('/api/admin/operations-center/generate-prompt',json={'issue_id':'private'},headers=headers)
+    assert response.status_code==200 and 'PRIVATE_QA_VALUE' not in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize('role,valid_csrf',[(None,True),('FREE',True),('ADMIN',False)])
+def test_prompt_auth_and_csrf_precede_snapshot(app_module,monkeypatch,role,valid_csrf):
+    def forbidden():pytest.fail('Rejected request reached snapshot')
+    monkeypatch.setattr(app_module,'v938_operations_snapshot',forbidden)
+    client,headers=admin_post_client(app_module,role)
+    if not valid_csrf:headers={'X-CSRF-Token':'invalid'}
+    response=client.post('/api/admin/operations-center/generate-prompt',json={'issue_id':'pending'},headers=headers)
+    assert response.status_code==403
+
+
 def test_display_is_deterministic_and_not_scheduled():
     assert build_admin_workbench(sample())==build_admin_workbench(sample())
     source=(ROOT/'engines/admin_operations_workbench.py').read_text()

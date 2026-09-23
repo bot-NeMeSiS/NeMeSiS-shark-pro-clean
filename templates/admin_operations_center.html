@@ -3,7 +3,7 @@
 {% from "components/v936_product.html" import executive_focus %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-operations.css') }}?v=workbench-1">
-<script src="{{ url_for('static', filename='admin-operations.js') }}?v=workbench-1" defer></script>
+<script src="{{ url_for('static', filename='admin-operations.js') }}?v=workbench-2" defer></script>
 {% set workbench = admin_workbench(snapshot) %}
 {% set counts = snapshot.incident_counts or {} %}
 {% set readiness = snapshot.readiness or {} %}

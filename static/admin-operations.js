@@ -5,6 +5,14 @@
   if (!root) return;
   const fold = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const bench = root.querySelector('[data-admin-workbench]');
+  const invalidateWorkbench = () => {
+    if (!bench) return;
+    bench.dataset.readingState = 'stale';
+    const notice = bench.querySelector('[data-workbench-stale]');
+    if (notice) notice.hidden = false;
+    bench.querySelectorAll('[data-action="admin-copy-brief"], textarea').forEach(el => { el.disabled = true; });
+    bench.querySelectorAll('[data-copy-result]').forEach(el => { el.textContent = 'Lectura anterior. Actualiza la bandeja antes de preparar una tarea.'; });
+  };
   if (bench) {
     const items = [...bench.querySelectorAll('[data-admin-task]')];
     const search = bench.querySelector('[data-task-search]');
@@ -38,6 +46,7 @@
     bench.querySelectorAll('[data-action="admin-copy-brief"]').forEach((button)=>{
       button.hidden=false;
       button.addEventListener('click',async()=>{
+        if (button.disabled || bench.dataset.readingState === 'stale') return;
         const box=button.closest('details'), field=box.querySelector('textarea'), status=box.querySelector('[data-copy-result]');
         try {
           if(!navigator.clipboard) throw new Error('clipboard_unavailable');
@@ -62,6 +71,16 @@
   const initial=new Map(buttons.map(b=>[b,b.disabled]));
   const output=root.querySelector('[data-v938-output]');
   const refresh=root.querySelector('[data-admin-refresh]');
+  root.querySelectorAll('[data-admin-refresh], [data-workbench-stale] a').forEach(link => {
+    link.addEventListener('click', event => {
+      const target = new URL(link.href, window.location.href);
+      if (target.pathname === window.location.pathname && target.search === window.location.search) {
+        event.preventDefault();
+        window.location.hash = target.hash;
+        window.location.reload();
+      }
+    });
+  });
   buttons.forEach(button=>button.addEventListener('click',async()=>{
     if(pending || invalidated || button.disabled)return;
     const kind=button.dataset.v938Action;
@@ -69,9 +88,11 @@
     const expected=root.dataset.operationsNextIssue || '';
     if(kind==='prompt'&&!expected)return;
     if(typeof window.nemesisJsonHeaders!=='function'){
+      invalidateWorkbench();
       output.textContent='La sesión no permite preparar la solicitud. Recarga la página.';refresh.hidden=false;return;
     }
     pending=true;buttons.forEach(b=>{b.disabled=true;b.setAttribute('aria-busy','true');});
+    if (kind === 'scan') invalidateWorkbench();
     output.textContent='Comprobando la lectura local. No se ejecutan operaciones externas.';
     const controller=new AbortController(), timer=setTimeout(()=>controller.abort(),20000);
     try {
@@ -92,6 +113,7 @@
       }
     } catch (_) {
       invalidated=true;
+      invalidateWorkbench();
       output.textContent='No se pudo confirmar el resultado. La operación podría haberse recibido. No se reintentó automáticamente: actualiza la bandeja y revisa antes de repetir.';
       refresh.hidden=false;
     } finally {
