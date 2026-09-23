@@ -6,7 +6,16 @@ short, Spanish and free of raw technical labels.
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
+from html.parser import HTMLParser
+import math
+import re
+from urllib.parse import unquote, urlsplit
 from zoneinfo import ZoneInfo
+
+from .madrid_time_engine import format_telegram_match_time_madrid
+from .v935_launch_trust_engine import match_status_truth
+from .content_rights_engine import classify_media_asset
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -38,7 +47,105 @@ BRAND_HEADER = "🦈 NeMeSiS SHARK PRO"
 MESSAGE_SEPARATOR = "━" * 18
 MESSAGE_SOFT_SEPARATOR = "─" * 14
 RESPONSIBLE_FOOTER = "Juego responsable: una lectura no garantiza resultados. Stake orientativo."
-TRANSPARENCY_FOOTER = "Fuente: NeMeSiS · Evidencia: datos reales disponibles · Calidad: según cobertura · Frescura: Hora Madrid · Limitaciones: lo no confirmado no se simula."
+TRANSPARENCY_FOOTER = "Fuente: NeMeSiS · Evidencia: datos disponibles. Limitaciones: lo no confirmado queda pendiente."
+
+
+def first_value(item, *keys, default=None):
+    """An observed zero is not a missing value."""
+    return next((item[key] for key in keys if _text(item.get(key), "")), default)
+
+
+def public_link(value):
+    try:
+        parsed = urlsplit(str(value or ""))
+        path = unquote(parsed.path).lower()
+        if (parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username
+                or parsed.password or any(part in path for part in ("/admin", "/api/", "/founder"))):
+            return ""
+        return parsed.geturl()
+    except ValueError:
+        return ""
+
+
+class _TelegramHTML(HTMLParser):
+    """Escape text and close formatting even when the UTF-16 budget is exhausted."""
+    def __init__(self, limit):
+        super().__init__(convert_charrefs=True)
+        self.remaining = max(0, limit - 1)
+        self.parts, self.stack = [], []
+        self.truncated = False
+
+    def handle_starttag(self, tag, attrs):
+        if self.truncated or tag not in {"b", "i", "u", "s", "code", "pre", "a"}:
+            return
+        if tag == "a":
+            href = public_link(dict(attrs).get("href"))
+            if not href:
+                return
+            self.parts.append(f'<a href="{escape(href, quote=True)}">')
+        else:
+            self.parts.append(f"<{tag}>")
+        self.stack.append(tag)
+
+    def handle_endtag(self, tag):
+        if tag in self.stack:
+            while self.stack:
+                closed = self.stack.pop()
+                self.parts.append(f"</{closed}>")
+                if closed == tag:
+                    break
+
+    def handle_data(self, data):
+        if self.truncated:
+            return
+        accepted = []
+        for char in data:
+            units = 2 if ord(char) > 0xFFFF else 1
+            if units > self.remaining:
+                self.truncated = True
+                break
+            accepted.append(char)
+            self.remaining -= units
+        self.parts.append(escape("".join(accepted), quote=False))
+
+    def result(self):
+        return "".join(self.parts) + ("…" if self.truncated else "") + "".join(f"</{tag}>" for tag in reversed(self.stack))
+
+
+def limit_telegram_html(text, limit=3900):
+    parser = _TelegramHTML(limit)
+    parser.feed(str(text or ""))
+    parser.close()
+    return parser.result()
+
+
+def premium_text_html(text, limit=3900):
+    headings = {"Partido", "Entrada", "Contexto SHARK", "Lectura SHARK", "Riesgo a vigilar", "Selecciones", "Resumen", "Estado", "Acción", "Resultado", "Partidos destacados", "Próximo paso"}
+    lines = []
+    for index, line in enumerate(str(text or "").splitlines()):
+        safe = escape(line, quote=False)
+        lines.append(f"<b>{safe}</b>" if index in {0, 2} or line in headings else safe)
+    return limit_telegram_html("\n".join(lines), limit)
+
+
+def telegram_photo_caption(html_text):
+    body = limit_telegram_html(html_text, 880)
+    if "Juego responsable" not in body:
+        body += "\n\n<i>Juego responsable. Sin garantías de resultado.</i>"
+    return limit_telegram_html(body, 1024)
+
+
+def pick_result_label(pick):
+    return {"won": "✅ ACERTADO", "lost": "❌ FALLADO", "void": "➖ NULO", "pending": "⏳ PENDIENTE"}.get(str(first_value(pick, "result_status", "pick_result", default="")).lower(), "⏳ PENDIENTE")
+
+
+def highlight_link(highlight):
+    # A URL is not evidence of playback or redistribution rights.
+    if highlight.get("blocked"):
+        return ""
+    url = public_link(first_value(highlight, "safe_url", "detail_url", "url", "source_url", "video_url", "highlight_url"))
+    decision = classify_media_asset({**highlight, "url": url}, channel="TELEGRAM")
+    return url if decision["can_display"] else ""
 
 
 def _message_header(title, subtitle=""):
@@ -69,8 +176,10 @@ def _join_message(lines, limit=3900):
 
 
 def _text(value, fallback="Pendiente"):
-    value = str(value or "").strip()
-    return value if value else fallback
+    if isinstance(value, (dict, list, tuple, set, bool)):
+        return fallback
+    value = str(value if value is not None else "").strip()
+    return value if value and value.lower() not in {"none", "null", "undefined", "nan", "n/a", "inf", "-inf"} else fallback
 
 
 def _dt(value=None):
@@ -98,16 +207,8 @@ def madrid_date_label(value=None, include_hour=False):
 
 
 def madrid_match_time_label(item):
-    item = item or {}
-    raw = (
-        item.get("kickoff_iso")
-        or item.get("kickoff_time")
-        or item.get("match_time")
-        or item.get("date_time")
-        or item.get("commence_time")
-        or ""
-    )
-    parsed = _dt(raw) if raw else None
+    info = format_telegram_match_time_madrid(item or {})
+    parsed = datetime.fromisoformat(info["iso_madrid"]) if info.get("iso_madrid") else None
     if not parsed:
         return "Hora pendiente"
     today = datetime.now(TZ).date()
@@ -134,45 +235,34 @@ def competition_label(item):
 
 def score_label(item):
     item = item or {}
-    score = str(item.get("score") or item.get("result") or "").strip()
-    if score:
-        return score
-    home_score = item.get("home_score")
-    away_score = item.get("away_score")
-    if home_score not in (None, "") and away_score not in (None, ""):
-        return f"{home_score}-{away_score}"
+    score = str(first_value(item, "score", "final_score", "result", default="")).strip()
+    if re.fullmatch(r"\d{1,2}\s*[-:–]\s*\d{1,2}", score):
+        return re.sub(r"\s*[-:–]\s*", "–", score)
+    home_score, away_score = item.get("home_score"), item.get("away_score")
+    if all(re.fullmatch(r"\d{1,2}", str(value)) for value in (home_score, away_score)):
+        return f"{home_score}–{away_score}"
     return "Marcador pendiente"
 
 
 def status_label(item):
-    raw = str((item or {}).get("status") or (item or {}).get("state") or "").strip().lower()
-    if raw in {"ft", "final", "finished", "finalizado"}:
-        return "Finalizado"
-    if raw in {"live", "inplay", "en directo", "directo"}:
-        return "En directo"
-    if raw in {"ht", "descanso"}:
-        return "Descanso"
-    if raw in {"upcoming", "scheduled", "not started", "proximo", "próximo"}:
-        return "Próximo"
-    return _text((item or {}).get("status") or (item or {}).get("state"), "Próximo")
+    truth = match_status_truth(item or {})
+    return {"FINISHED": "Finalizado", "ARCHIVED": "Finalizado", "LIVE": "En directo", "HALFTIME": "Descanso", "UPCOMING": "Próximo", "POSTPONED": "Aplazado", "SUSPENDED": "Suspendido", "CANCELLED": "Cancelado", "ABANDONED": "Abandonado", "STALE": "Actualización pendiente", "RESULT_PENDING": "Resultado pendiente"}.get(truth["lifecycle"], "Estado por confirmar")
 
 
 def _clean_metric(value, suffix=""):
-    if value in (None, "", "None"):
-        return "—"
-    text = str(value).strip()
+    text = _text(value, "Sin dato")
     return f"{text}{suffix}" if suffix and not text.endswith(suffix) else text
 
 
 def _pressure_line(item):
     item = item or {}
-    possession = item.get("possession") or item.get("ball_possession")
-    shots = item.get("shots_on_goal") or item.get("shots_on_target")
-    corners = item.get("corners") or item.get("corner_kicks")
-    attacks = item.get("dangerous_attacks") or item.get("attacks")
+    possession = first_value(item, "possession", "ball_possession")
+    shots = first_value(item, "shots_on_goal", "shots_on_target")
+    corners = first_value(item, "corners", "corner_kicks")
+    attacks = first_value(item, "dangerous_attacks", "attacks")
     bits = []
     if possession not in (None, ""):
-        bits.append(f"posesión {_clean_metric(possession, '%') if str(possession).isdigit() else possession}")
+        bits.append(f"posesión {_clean_metric(possession, '%') if str(possession).isdigit() else _text(possession)}")
     if shots not in (None, ""):
         bits.append(f"tiros a puerta {_clean_metric(shots)}")
     if corners not in (None, ""):
@@ -183,9 +273,7 @@ def _pressure_line(item):
 
 
 def _confidence_label(value):
-    if value in (None, ""):
-        return "Pendiente"
-    text = str(value)
+    text = _text(value)
     return f"{text}/100" if text.isdigit() else text
 
 
@@ -228,13 +316,21 @@ def format_midday_update_message(matches=None, picks_count=0):
 
 def format_live_alert_message(match=None):
     match = match or {}
-    lines = _message_header("🔴 ALERTA LIVE SHARK", "Seguimiento con datos reales disponibles")
+    live = match_status_truth(match)["is_live"]
+    lines = _message_header("🚨 EN DIRECTO · SHARK" if live else "📊 Estado del partido", status_label(match))
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(match)}",
         f"⚽ {match_title(match)}",
-        f"📊 {score_label(match)} · {status_label(match)}",
+        f"📊 {score_label(match) if live else 'Marcador pendiente'} · {status_label(match)}",
+        f"🕒 {madrid_match_time_label(match)}",
     ]))
-    lines.extend(_section("Lectura real", [_pressure_line(match)]))
+    minute = first_value(match, "minute", "elapsed")
+    if live and minute is not None:
+        lines.append(f"Minuto: {_text(minute)}")
+    event = first_value(match, "live_alert", "event_title")
+    if live and event:
+        lines.extend(_section("Evento", [_text(event)]))
+    lines.extend(_section("Lectura real", [_pressure_line(match) if live else "Esperando una observación vigente. No se publica contexto LIVE desactualizado."]))
     lines.extend(_section("Limitación", ["Si el proveedor no ofrece tracking avanzado, NeMeSiS no lo simula."]))
     lines.extend(_message_footer("Abrir directo · Ver partido"))
     return _join_message(lines, 3200)
@@ -245,30 +341,34 @@ def format_pick_message(pick=None):
     market = _text(pick.get("market") or pick.get("pick_type"), "Mercado pendiente")
     selection = _text(pick.get("selection") or pick.get("recommendation"), "Selección pendiente")
     odds = pick.get("odds")
-    confidence = pick.get("confidence") or pick.get("shark_score") or pick.get("score") or "Pendiente"
-    risk = _text(pick.get("risk_level") or pick.get("risk"), "Medio")
-    stake = pick.get("stake_units") or pick.get("stake") or "Pendiente"
+    confidence = first_value(pick, "confidence", "shark_score", default="Pendiente")
+    risk = _text(pick.get("risk_level") or pick.get("risk"), "No especificado")
+    stake = first_value(pick, "stake_units", "stake", default="Pendiente")
     value = pick.get("value") or pick.get("value_score") or pick.get("edge") or ""
     reason = _text(pick.get("reasoning") or pick.get("reason") or pick.get("main_reason"), "Lectura SHARK pendiente de contexto suficiente.")
     caution = _text(pick.get("caution") or pick.get("warning") or pick.get("precaution") or pick.get("warning_reason"), "No aumentar stake si cambia la cuota o falta confirmación de alineaciones.")
-    odds_label = odds if odds not in (None, "", 0, 0.0) else "No disponible"
+    odds_label = _v889_odds_label(odds)
     stake_label = f"{stake} uds" if str(stake) != "Pendiente" else "Pendiente"
-    lines = _message_header("🎯 PICK PREMIUM SHARK", "Lectura prepartido · datos reales")
+    plan = str(pick.get("membership") or "").upper()
+    lines = _message_header("🎯 PICK PREMIUM SHARK", f"Plan {plan}" if plan in {"FREE", "PRO", "ELITE"} else status_label(pick))
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(pick)}",
         f"⚽ {match_title(pick)}",
         f"🕘 {madrid_match_time_label(pick)}",
     ]))
     bet_lines = [
-        f"Selección: {selection}",
+        f"🎯 Selección: {selection}",
         f"Mercado: {market}",
-        f"Cuota: {odds_label}",
+        f"💸 Cuota: {odds_label}",
         f"Stake sugerido: {stake_label}",
         f"Confianza SHARK: {_confidence_label(confidence)}",
         f"Riesgo: {risk}",
     ]
+    bookmaker = first_value(pick, "bookmaker", "bookmaker_name")
+    if bookmaker:
+        bet_lines.append(f"Casa: {_text(bookmaker)}")
     if value not in (None, ""):
-        bet_lines.append(f"Value: {value}")
+        bet_lines.append(f"Value: {_text(value)}")
     lines.extend(_section("Entrada", bet_lines))
     lines.extend(_section("Contexto SHARK", [reason]))
     lines.extend(_section("Riesgo a vigilar", [caution]))
@@ -281,57 +381,21 @@ def _v889_odds_label(value):
         odds = float(str(value).replace(",", "."))
     except Exception:
         return "Cuota pendiente"
-    if odds <= 1.01:
+    if not math.isfinite(odds) or odds <= 1.01:
         return "Cuota pendiente"
     return f"{odds:.2f}".rstrip("0").rstrip(".")
 
 
 def _v889_value(value, fallback="Pendiente"):
-    text = str(value or "").strip()
-    if not text or text.lower() in {"none", "null", "undefined", "nan"}:
-        return fallback
-    return text
+    return _text(value, fallback)
 
 
 def format_premium_pick_message(pick=None, quality=None, membership="PRO"):
-    """V889 premium pick message: real data only, no filler."""
-    pick = pick or {}
-    quality = quality or {}
-    normalized = quality.get("pick") or pick
-    membership = str(membership or "PRO").upper()
-    home = _v889_value(normalized.get("home_team") or pick.get("home_team") or pick.get("home"), "Equipo local")
-    away = _v889_value(normalized.get("away_team") or pick.get("away_team") or pick.get("away"), "Equipo visitante")
-    competition = _v889_value(normalized.get("competition") or competition_label(pick), "Competición pendiente")
-    market = _v889_value(normalized.get("market") or pick.get("market"), "Mercado pendiente")
-    selection = _v889_value(normalized.get("selection") or pick.get("selection") or pick.get("recommendation"), "Selección pendiente")
-    odds = _v889_odds_label(normalized.get("odds") or pick.get("odds"))
-    bookmaker = _v889_value(normalized.get("bookmaker") or pick.get("bookmaker"), "")
-    stake = _v889_value(normalized.get("stake") or pick.get("stake_units") or pick.get("stake"), "Stake pendiente")
-    risk = _v889_value(normalized.get("risk") or pick.get("risk_level") or pick.get("risk"), "Riesgo pendiente")
-    confidence = _v889_value(normalized.get("confidence") or pick.get("confidence") or pick.get("shark_score"), "Confianza pendiente")
-    reason = _v889_value(normalized.get("reason") or pick.get("reason") or pick.get("reasoning"), "Motivo pendiente por datos reales insuficientes.")
-    counter = _v889_value(normalized.get("counterargument") or pick.get("caution") or pick.get("warning"), "Riesgo pendiente de confirmación.")
-    time_label = madrid_match_time_label({**pick, "kickoff_iso": normalized.get("kickoff_iso") or pick.get("kickoff_iso") or pick.get("kickoff_time")})
-    status = "En revisión" if not quality.get("sendable") else "Prepartido"
-    lines = _message_header(f"🎯 Pick Premium {membership}", "Lectura SHARK con cuota y riesgo visibles")
-    lines.extend(_section("Partido", [
-        f"⚽ {home} vs {away}",
-        f"🏆 {competition}",
-        f"🕘 {time_label}",
-    ]))
-    lines.extend(_section("Entrada", [
-        f"Mercado: {market}",
-        f"Selección: {selection}",
-        f"Cuota: {odds}" + (f" · {bookmaker}" if bookmaker else ""),
-        f"Stake recomendado: {stake}",
-        f"Riesgo: {risk}",
-        f"Confianza: {confidence}",
-    ]))
-    lines.extend(_section("Contexto SHARK", [reason]))
-    lines.extend(_section("Riesgo a vigilar", [counter]))
-    lines.extend(_section("Gestión", ["No sobreexponerse. Validar que la cuota no haya caído demasiado antes de entrar.", f"Estado: {status}"]))
-    lines.extend(_message_footer("Abrir app: Ver partido · Picks · SHARK"))
-    return _join_message(lines, 3900)
+    """All plan variants reuse the same canonical full-pick presentation."""
+    pick, quality = pick or {}, quality or {}
+    normalized = quality.get("pick") or {}
+    source = {**pick, **normalized, "membership": membership}
+    return format_pick_message(source)
 
 
 def format_membership_pick_message(pick=None, quality=None, membership="PRO"):
@@ -343,9 +407,13 @@ def format_membership_pick_message(pick=None, quality=None, membership="PRO"):
         home = _v889_value(normalized.get("home_team") or pick.get("home_team"), "Equipo local")
         away = _v889_value(normalized.get("away_team") or pick.get("away_team"), "Equipo visitante")
         selection = _v889_value(normalized.get("selection") or pick.get("selection"), "Lectura pendiente")
-        lines = _message_header("🔎 Preview FREE", "Valor detectado sin revelar el análisis premium completo")
+        lines = _message_header("🔎 Preview FREE", "Lectura disponible · detalle según tu plan")
         lines.extend(_section("Partido", [f"⚽ {home} vs {away}"]))
         lines.extend(_section("Lectura disponible", [selection]))
+        lines.extend(_section("Riesgo a vigilar", [
+            _text(first_value(pick, "risk_level", "risk"), "Riesgo no especificado"),
+            _text(first_value(pick, "caution", "warning", "risk_note"), "Comprueba cuota y condiciones antes de decidir."),
+        ]))
         lines.extend(_message_footer("Stake, motivo completo y lectura SHARK avanzada disponibles en PRO.", "Abrir app: mejorar plan"))
         return _join_message(lines, 2600)
     return format_premium_pick_message(pick, quality=quality, membership=membership)
@@ -357,8 +425,8 @@ def format_premium_combi_message(picks=None, quality=None, membership="ELITE"):
     lines = _message_header(f"🧩 Combi Premium {str(membership or 'ELITE').upper()}", "Solo si todas las selecciones tienen datos suficientes")
     lines.extend(_section("Estado", [
         f"Estado: {quality.get('status') or 'Combi en revisión'}",
-        f"Riesgo: {quality.get('risk') or 'Alto'}",
-        f"Stake: {quality.get('stake') or 'Bajo'}",
+        f"Riesgo: {quality.get('risk') or 'No especificado'}",
+        f"Stake: {_text(first_value(quality, 'stake'))}",
     ]))
     if not picks:
         lines.extend(_section("Selecciones", ["Combi no enviada por datos insuficientes."]))
@@ -392,15 +460,24 @@ def format_combi_message(combi=None):
     picks = combi.get("picks") or combi.get("legs") or []
     odds = combi.get("total_odds") or combi.get("odds") or "Pendiente"
     confidence = combi.get("confidence") or combi.get("shark_score") or "Pendiente"
-    risk = _text(combi.get("risk_level") or combi.get("risk"), "Medio")
-    reason = _text(combi.get("reason") or combi.get("main_reason"), "Combinada basada en picks válidos y partidos con datos suficientes.")
+    risk = _text(combi.get("risk_level") or combi.get("risk"), "No especificado")
+    reason = _text(combi.get("reason") or combi.get("main_reason"), "Análisis no publicado. Cada selección añade riesgo; no hay garantías de resultado.")
     lines = _message_header("🧩 COMBI SHARK", _text(combi.get("title") or combi.get("name"), "Combinada premium"))
     lines.extend(_section("Resumen", [
         f"Partidos: {len(picks) or combi.get('legs_count') or 'Pendiente'}",
-        f"Cuota total: {odds}",
+        f"💸 Cuota total registrada: {_v889_odds_label(odds)}",
+        f"Stake: {_text(first_value(combi, 'stake_units', 'stake'))}",
         f"Confianza SHARK: {_confidence_label(confidence)}",
         f"Riesgo: {risk}",
     ]))
+    for index, leg in enumerate(picks[:8], 1):
+        lines.extend(_section(f"{index}. {match_title(leg)}", [
+            f"🏆 {competition_label(leg)} · {madrid_match_time_label(leg)}",
+            f"🎯 {_text(leg.get('selection') or leg.get('recommendation'))}",
+            f"{_text(leg.get('market'), 'Mercado pendiente')} · Cuota: {_v889_odds_label(leg.get('odds'))}",
+        ]))
+    if len(picks) > 8:
+        lines.append(f"{len(picks) - 8} selecciones más en la plataforma.")
     lines.extend(_section("Lectura SHARK", [reason]))
     lines.extend(_message_footer("Ver combis · Ver picks"))
     return _join_message(lines, 3200)
@@ -409,22 +486,17 @@ def format_combi_message(combi=None):
 def format_result_message(match=None, pick=None):
     match = match or {}
     pick = pick or {}
-    result_status = str(pick.get("result_status") or "").lower()
-    if result_status == "won":
-        pick_state = "Ganado"
-    elif result_status == "lost":
-        pick_state = "Perdido"
-    elif result_status == "void":
-        pick_state = "Void"
-    else:
-        pick_state = "Pendiente de auditoría"
-    lines = _message_header("🏁 Resultado final SHARK", "Cierre solo con marcador real disponible")
+    pick_state = pick_result_label(pick)
+    lines = _message_header("🏁 Resultado SHARK", status_label(match))
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(match)}",
         f"{_text(match.get('home_team'), 'Local')} {score_label(match)} {_text(match.get('away_team'), 'Visitante')}",
+        f"🕒 {madrid_match_time_label(match)}",
     ]))
-    lines.extend(_section("Pick relacionado", [_text(pick.get("market") or pick.get("selection"), "Sin pick relacionado")]))
-    lines.extend(_section("Estado", [f"Resultado: {pick_state}", "Track Record actualizado si el resultado está auditado."]))
+    lines.extend(_section("Pick relacionado", [_text(pick.get("selection"), "Sin selección publicada"), _text(pick.get("market"), "Mercado pendiente"), f"Cuota histórica: {_v889_odds_label(pick.get('odds'))}"]))
+    lines.extend(_section("Estado", [pick_state, "La liquidación del pick es independiente del estado del partido."]))
+    if pick.get("track_record_updated") is True:
+        lines.append("Track Record actualizado.")
     lines.extend(_message_footer("Ver histórico · Ver resumen si existe"))
     return _join_message(lines, 3000)
 
@@ -432,26 +504,29 @@ def format_result_message(match=None, pick=None):
 def format_highlight_message(match=None, highlight=None):
     match = match or {}
     highlight = highlight or {}
-    lines = _message_header("🎬 Resumen disponible", "Partido finalizado · contenido listo si existe fuente")
+    link = highlight_link(highlight)
+    lines = _message_header("🎥 Resumen del partido", "Fuente externa disponible" if link else "Disponibilidad por confirmar")
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(match or highlight)}",
         f"⚽ {match_title(match or highlight)}",
-        "Estado: Finalizado · Hora Madrid",
+        f"🕒 {madrid_match_time_label(match or highlight)} · {status_label(match or highlight)}",
     ]))
-    lines.extend(_section("Acción", ["Ya puedes ver el resumen del partido."]))
+    lines.extend(_section("Acción", ["Consultar en la fuente. La reproducción depende de sus permisos y disponibilidad.", link] if link else ["No hay un enlace de resumen habilitado. Consulta el partido en la plataforma."]))
+    if link and highlight.get("attribution"):
+        lines.extend(_section("Fuente del resumen", [_text(highlight["attribution"])]))
     lines.extend(_message_footer("Ver resumen · Ver partido"))
     return _join_message(lines, 2600)
 
 
 def format_prematch_message(match=None):
     match = match or {}
-    lines = _message_header("⏳ Partido en 60 min", "Preparación prepartido")
+    lines = _message_header("🕒 Recordatorio prepartido", "Agenda Madrid")
     lines.extend(_section("Partido", [
         f"🏆 {competition_label(match)}",
         f"⚽ {match_title(match)}",
         f"🕘 {madrid_match_time_label(match)}",
     ]))
-    lines.extend(_section("SHARK", ["SHARK está monitorizando este partido con los datos disponibles."]))
+    lines.extend(_section("SHARK", ["Consulta los datos y picks disponibles antes de decidir."]))
     lines.extend(_message_footer("Ver partido · Ver picks"))
     return _join_message(lines, 2600)
 
@@ -459,12 +534,21 @@ def format_prematch_message(match=None):
 def format_evening_recap_message(summary=None):
     summary = summary or {}
     lines = _message_header("🌙 Cierre SHARK del día", madrid_date_label())
-    lines.extend(_section("Estado", [
-        "Resultados actualizados" if summary.get("results") else "Resultados pendientes",
-        "Track Record revisado" if summary.get("track_record") else "Track Record sin nuevos cierres",
-        "Resúmenes detectados" if summary.get("highlights") else "Sin resúmenes nuevos detectados",
-        "Picks premium publicados si hubo valor real",
-    ]))
-    lines.extend(_section("Próximo paso", ["Mañana SHARK volverá a monitorizar la agenda."]))
+    counts = []
+    for key, label in (("results", "Resultados"), ("track_record", "Cierres Track Record"), ("highlights", "Resúmenes"), ("picks", "Picks publicados")):
+        value = summary.get(key)
+        detail = ("Confirmado" if value else "Sin novedades confirmadas") if isinstance(value, bool) else _text(value, "Sin dato confirmado")
+        counts.append(f"{label}: {detail}")
+    lines.extend(_section("Estado", counts))
+    lines.extend(_section("Próximo paso", ["Consulta la próxima agenda en Calendario."]))
     lines.extend(_message_footer("Ver histórico · Ver partidos"))
     return _join_message(lines, 3000)
+
+
+def format_system_message(message, title="Cuenta y Telegram"):
+    return _join_message([
+        *_message_header(f"🦈 {title}"), "", _text(message, "Consulta el estado de tu cuenta en la plataforma."),
+        "", MESSAGE_SOFT_SEPARATOR,
+        "🔒 No compartas contraseñas ni códigos de vinculación.",
+        "Abrir plataforma · Telegram",
+    ], 2000)
