@@ -5,7 +5,23 @@
   var isIos = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   isStandalone = isStandalone || window.navigator.standalone === true;
-  if (isStandalone) return;
+  var isAdminSurface = document.body && document.body.classList.contains('ns-admin');
+  var isInstallGuide = /^\/(instalar|install-app|anadir-a-inicio)\/?$/.test(window.location.pathname);
+  if (isStandalone || isAdminSurface) return;
+
+  var iconMeta = document.querySelector('meta[name="nemesis-app-icon-version"]');
+  var iconVersion = iconMeta ? (iconMeta.getAttribute('content') || 'current') : 'current';
+  var dismissedKey = 'nemesis-pwa-install-dismissed-' + iconVersion;
+  var dismissForMs = 7 * 24 * 60 * 60 * 1000;
+
+  function isDismissed() {
+    try {
+      var stored = parseInt(localStorage.getItem(dismissedKey) || '0', 10);
+      return stored > 0 && (Date.now() - stored) < dismissForMs;
+    } catch (e) {
+      return false;
+    }
+  }
 
   var deferredPrompt = null;
   var root = null;
@@ -34,7 +50,8 @@
       '<p data-ns-pwa-copy>Instálala desde el navegador para abrirla desde tu pantalla de inicio.</p>' +
       '<div class="ns-pwa-install__actions">' +
       '<button type="button" data-ns-pwa-confirm>Instalar</button>' +
-      '<button type="button" data-ns-pwa-close>Cerrar</button>' +
+      '<a href="/instalar">Ver guía</a>' +
+      '<button type="button" data-ns-pwa-close>Ahora no</button>' +
       '</div>';
 
     live = document.createElement('span');
@@ -68,7 +85,7 @@
     panel.querySelector('[data-ns-pwa-close]').addEventListener('click', function () {
       panel.hidden = true;
       button.setAttribute('aria-expanded', 'false');
-      try { sessionStorage.setItem('nemesis-pwa-dismissed', '1'); } catch (e) {}
+      try { localStorage.setItem(dismissedKey, String(Date.now())); } catch (e) {}
       root.hidden = true;
     });
 
@@ -77,9 +94,7 @@
 
   function show(mode) {
     ensureUi();
-    var dismissed = false;
-    try { dismissed = sessionStorage.getItem('nemesis-pwa-dismissed') === '1'; } catch (e) {}
-    if (dismissed) return;
+    if (isDismissed() || isInstallGuide) return;
     root.hidden = false;
     var copy = panel.querySelector('[data-ns-pwa-copy]');
     var confirm = panel.querySelector('[data-ns-pwa-confirm]');
@@ -97,6 +112,7 @@
   async function triggerInstall() {
     if (!deferredPrompt) {
       if (isIos) {
+        if (isInstallGuide) return;
         ensureUi();
         panel.hidden = false;
         button.setAttribute('aria-expanded', 'true');
@@ -131,7 +147,7 @@
   window.addEventListener('appinstalled', function () {
     deferredPrompt = null;
     if (root) root.hidden = true;
-    try { sessionStorage.removeItem('nemesis-pwa-dismissed'); } catch (e) {}
+    try { localStorage.removeItem(dismissedKey); } catch (e) {}
   });
 
   document.addEventListener('DOMContentLoaded', function () {
