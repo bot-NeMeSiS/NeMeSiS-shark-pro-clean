@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v933-page ns-install-guide" data-ns-install-guide>
+  <article class="card ns-install-guide__hero">
+    <img src="{{ url_for('static', filename='img/app-icons/app-icon-192.png', v=app_icon_version) }}" width="112" height="112" alt="NeMeSiS SHARK PRO">
+    <div>
+      <div class="kicker">NeMeSiS SHARK PRO</div>
+      <h1>Instala NeMeSiS como una app</h1>
+      <p>Comparte este enlace o el enlace normal de la plataforma. Cada persona podrá añadir NeMeSiS a su móvil o PC con el mismo icono oficial que usa la plataforma.</p>
+      <div class="ns-install-guide__actions">
+        <button class="btn primary" type="button" data-ns-install-now>Instalar ahora</button>
+        <a class="btn" href="/">Abrir NeMeSiS</a>
+        <span class="muted small" data-ns-install-status aria-live="polite">El navegador indicará el método disponible.</span>
+      </div>
+    </div>
+  </article>
+
+  <div class="ns-install-guide__grid">
+    <article class="card">
+      <h2>iPhone / iPad</h2>
+      <ol>
+        <li>Abre NeMeSiS en Safari.</li>
+        <li>Pulsa <strong>Compartir</strong>.</li>
+        <li>Elige <strong>Añadir a pantalla de inicio</strong>.</li>
+        <li>Confirma <strong>Añadir</strong>.</li>
+      </ol>
+    </article>
+    <article class="card">
+      <h2>Android</h2>
+      <ol>
+        <li>Abre NeMeSiS en Chrome.</li>
+        <li>Pulsa <strong>Instalar app</strong> cuando aparezca.</li>
+        <li>Si no aparece, abre el menú ⋮ y elige instalar o añadir a inicio.</li>
+      </ol>
+    </article>
+    <article class="card">
+      <h2>PC / Mac</h2>
+      <ol>
+        <li>Abre NeMeSiS en Chrome o Edge.</li>
+        <li>Usa <strong>Instalar ahora</strong> o el icono de instalación del navegador.</li>
+        <li>Se abrirá como una aplicación independiente.</li>
+      </ol>
+    </article>
+  </div>
+  <p class="muted small">La instalación no cambia tu cuenta, membresía ni datos. Si ya la tienes instalada, abre NeMeSiS desde su icono.</p>
+</section>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var button = document.querySelector('[data-ns-install-now]');
+  var status = document.querySelector('[data-ns-install-status]');
+  if (!button) return;
+  button.addEventListener('click', function () {
+    if (typeof window.nemesisInstallApp === 'function') {
+      window.nemesisInstallApp();
+      if (status) status.textContent = 'Sigue las indicaciones del navegador.';
+    } else if (status) {
+      status.textContent = 'Si ya está instalada, ábrela desde su icono. Si no, usa el menú del navegador para añadirla a inicio.';
+    }
+  });
+});
+</script>
+{% endblock %}
