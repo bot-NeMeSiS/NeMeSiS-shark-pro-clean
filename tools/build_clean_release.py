@@ -311,6 +311,11 @@ def include(path: Path) -> bool:
             return False
         return (
             rel_posix in {
+                "reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md",
+                "reports/V941_ADMIN_AI_EXISTING_SYSTEM_INTEGRATION.md",
+                "reports/V941_ADMIN_AI_SECURITY_ACTION_MODEL_QA.md",
+                "reports/V941_ADMIN_MOBILE_PC_PARITY_QA.md",
+                "reports/V941_CLIENT_PREVIEW_QA.md",
                 "reports/CODEX_DAILY_PROMPT_CURRENT.txt",
                 "reports/LOCAL_CONTINUITY_20260919.md",
                 "reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md",

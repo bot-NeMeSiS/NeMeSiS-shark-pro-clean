@@ -36,4 +36,5 @@ def test_manifest_and_service_worker_keep_single_icon_family():
     assert 'img/app-icons/app-icon-{size}.png' in app
     assert 'img/app-icons/app-icon-maskable-{size}.png' in app
     assert 'app-icon-180.png' in app
-    assert "NEMESIS_CACHE_V940_ICON_" in app
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip().split("_", 1)[0]
+    assert f"NEMESIS_CACHE_{version}_ICON_" in app

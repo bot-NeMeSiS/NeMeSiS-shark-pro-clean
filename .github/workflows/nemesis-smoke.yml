@@ -59,6 +59,8 @@ jobs:
             --ignore=tests/test_local_betting_evidence.py
             --ignore=tests/test_local_client_continuity.py
             --ignore=tests/test_local_membership_preservation.py
+            --ignore=tests/test_admin_master_http.py
+            --ignore=tests/test_admin_master_browser.py
             --ignore=tests/test_telegram_visual_premium.py
             --ignore=tests/test_project_control_http.py
             --ignore=tests/test_sentinel_jobs_http.py
@@ -72,6 +74,8 @@ jobs:
             tests/test_local_betting_evidence.py \
             tests/test_local_client_continuity.py \
             tests/test_local_membership_preservation.py \
+            tests/test_admin_master_http.py \
+            tests/test_admin_master_browser.py \
             tests/test_telegram_visual_premium.py
           do
             python tools/check_local_candidate.py "$test_file"
