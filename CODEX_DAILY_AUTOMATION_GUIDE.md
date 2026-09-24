@@ -103,3 +103,18 @@ No subir nunca a Render:
 - secretos reales
 
 El ZIP se crea por lista blanca para evitar inclusiones accidentales. Desde V725 se intenta guardar fuera del proyecto en `../releases`; si el sistema no permite escribir fuera, se usa `release_output/`, que queda excluido del propio ZIP.
+
+## Contrato de fiabilidad para bugs importantes (addendum 2026-09-23)
+
+FIX != DONE. Esta guia exige ROOT CAUSE, FIX, REGRESSION TEST, PREVENTION, DETECTION y VERIFICATION antes de declarar RESOLVED. Una excepcion por no aplicabilidad debe tener motivo explicito; ausencia de evidencia no es PASS.
+
+- Separar causa confirmada de hipotesis. Asociar incidencia existente, PR, SHA, archivos y evidencia sanitizada.
+- Conservar reproduccion: prueba que falla antes y pasa despues, cuando sea tecnicamente reproducible. Los tests existentes sirven si protegen la misma condicion; no duplicarlos ni debilitar aserciones para obtener verde.
+- Convertir la clase de fallo en una regla general razonable: historical_success != current_availability; UNKNOWN_VALUE != ZERO_VALUE; health=200 != deployment_certified.
+- Asociar deteccion Sentinel y tests al incidente canonico. Reutilizar fingerprint/registro existente; similitud no confirma causa comun. Lecturas de pantalla no cuentan como nuevas ocurrencias.
+- Verificar la condicion original y registrar FIX APPLIED / VERIFICATION PASS o FAILED, SHA, fecha, entorno y alcance. Local, CI y produccion son verificaciones separadas; un PASS local no cierra una incidencia cuyo alcance requiere CI o produccion.
+- Si falta verificacion exigida, mantener FIXED_PENDING_VERIFICATION. RESOLVED exige evidencia aplicable. Si reaparece, conservar historial y registrar recurrencia.
+- No guardar secretos, payloads privados ni tracebacks crudos. No rellenar fechas, contadores, tendencias o causas desconocidas con datos inventados.
+- Acciones solo por el registro autorizado; aprobacion Admin para riesgo, limites/reintentos acotados y verificacion posterior. Procesar una cola puede producir envios irreversibles: no equivale a una accion reversible. Sin shell, SQL libre, codigo, despliegues, secretos, borrado de DB ni pagos.
+
+Estado de aplicacion: norma documental activa; su enforcement en runtime y UI queda pendiente de PR91 verde, reconciliacion PR90 y base estable. No implica que el backend actual ya impida todos los cierres sin evidencia. El arreglo local PR91 db3670e7 sigue pendiente de CI y no esta RESOLVED remotamente.

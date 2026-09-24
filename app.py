@@ -472,7 +472,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
+APP_VERSION = 'V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -6420,9 +6420,9 @@ def match_calendar_diagnostics():
         "latest_sync": latest_log,
         "active_data_source": active_source,
         "sportsdb_key_present": bool(thesportsdb_key()),
-        "sportsdb_key_masked": masked_key(thesportsdb_key()),
+        "sportsdb_configured": bool(thesportsdb_key()),
         "odds_key_present": bool(os.getenv("THE_ODDS_API_KEY")),
-        "odds_key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "enable_live_api": sportsdb_live_enabled(),
         "enable_odds_api": odds_enabled(),
         "sportsdb": sportsdb,
@@ -9916,6 +9916,8 @@ def user_public(row):
 
 
 def current_session_user():
+    if has_request_context() and hasattr(g, 'admin_preview_user'):
+        return dict(g.admin_preview_user)
     if not session.get("user_id"):
         return None
     cache_allowed = has_request_context() and request.method in {"GET", "HEAD"}
@@ -14931,7 +14933,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V940_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -17291,8 +17293,8 @@ def v932_admin_sports_diagnostics(sports):
         "active_data_source": "DB/cache" if sports.get("real_matches_available") else "Pendiente de sincronización",
         "latest_sync": {"started_at": last_sync} if last_sync else {},
         "errors_recent": [],
-        "sportsdb_key_masked": "***configured***" if sports.get("provider_configured") else "***missing***",
-        "odds_key_masked": "***hidden***",
+        "sportsdb_configured": bool(sports.get("provider_configured")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "incomplete_matches": int(sports.get("incomplete_matches_count") or 0),
         "storage_status": sports.get("storage_status") or "read_unavailable",
         "next_action": sports.get("admin_next_action") or "review_provider_configuration",
@@ -17995,6 +17997,9 @@ def v766_highlight_map(match_ids, limit_per_match=2):
 
 def v766_apply_match_highlight_badge(match, highlights=None):
     item = dict(match or {})
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="")
+        return item
     hs = highlights if highlights is not None else []
     if not hs and item.get("id"):
         try:
@@ -18018,6 +18023,8 @@ def v766_enrich_matches_with_highlights(matches):
 
 
 def v766_highlights_context(limit=12):
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        return {"version": APP_VERSION, "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentacion pausada por el administrador."}
     try:
         summary = sportsdb_highlights_summary(DB_PATH)
     except Exception as exc:
@@ -29791,6 +29798,8 @@ def v566_admin_dashboard_page():
     data["v934_realtime"] = get_v934_realtime_context(_summary)
     quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
     items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    from blueprints.admin_master_control import master_snapshot
+    data["admin_master"] = master_snapshot(__import__(__name__))
     return render_template("admin_dashboard.html", data=data, q=quality, items=items)
 
 
@@ -30072,7 +30081,7 @@ def v570_inteligencia_alias():
 def v570_admin_shark_center():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/shark-ai")
-    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v845_shark_admin_summary())
+    return redirect("/admin/dashboard#master-ai-title")
 
 
 @app.route("/api/shark/core-summary")
@@ -33423,6 +33432,31 @@ def admin_go_to_market_office_page():
     )
 
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
+
+# Extend the canonical dashboard; no second app or worker process.
+import sys as _admin_sys
+from blueprints.admin_master_control import register_admin_master, settings_values as _admin_settings_values
+register_admin_master(_admin_sys.modules[__name__])
+
+def admin_operational_settings():
+    # One bounded settings read per request, shared by cards and templates.
+    if not hasattr(g, "admin_operational_settings"):
+        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])
+    return g.admin_operational_settings
+
+@app.context_processor
+def admin_operational_settings_context():
+    return {"admin_operational_settings": admin_operational_settings()}
+
+@app.before_request
+def admin_client_content_visibility():
+    # Client-only presentation switch; never deletes content or stops ingestion.
+    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.path.startswith("/highlight/")) and not is_admin_session():
+        if not admin_operational_settings()["highlights_enabled"]:
+            if request.path.startswith("/api/"):
+                return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
+            return render_template("admin_content_paused.html", data={})
+
 
 if __name__ == "__main__":
     seed_core()

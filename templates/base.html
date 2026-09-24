@@ -175,6 +175,9 @@
   {% endif %}
 
   <main class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}" data-v934-shell="true">
+    {% if not is_admin_area and admin_operational_settings is defined and admin_operational_settings.get('banner_enabled') and admin_operational_settings.get('banner_text') %}
+    <aside class="v933-inline-notice" role="status">{{ admin_operational_settings.get('banner_text') }}</aside>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   {% block admin_page_navigation %}{% endblock %}

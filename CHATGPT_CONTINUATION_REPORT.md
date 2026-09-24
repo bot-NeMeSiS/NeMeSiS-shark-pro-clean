@@ -1,4 +1,26 @@
-﻿@"
+> ADDENDUM 2026-09-23: Reliability & Learning y auditoria PWA incorporados al alcance. Guia Codex/QA actualizada; reutilizacion, brechas y criterios en reports/V941_ADMIN_AI_EXISTING_SYSTEM_INTEGRATION.md. Implementacion pendiente de base reconciliada. No autoriza push ni sustituye CI de PR91.
+
+> ACTUALIZACION 2026-09-23: ENTREGA V941 PROVISIONAL, BASE PENDIENTE DE RECONCILIACION. PR91 Smoke esta rojo en GitHub. Reparacion aislada local db3670e7, pendiente push autorizado y CI. PR90 pendiente reconciliacion. El ZIP y los resultados descritos debajo son historicos; no certifican la base exigida ni produccion. Estado y evidencia actuales: reports/GIT_PREFLIGHT_PR90_PR91_20260923.md.
+
+# Estado actual · V941 · 23/09/2026
+
+Carpeta oficial: C:/Users/aloha/OneDrive/Escritorio/NeMeSiS shark pro.
+Base V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL @2b59d3fca4f2982652279004ecffc3ea56617807.
+Actual V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM, rama local codex/admin-pc-master-v941, cambios sin commit/push/deploy.
+
+Se integra el centro Admin existente con SHARK, registro de propuestas aprobables, tres ajustes reversibles, auditoría, Sentinel/Improvement Workflow y preview protegido. No crear otro dashboard, tracker, Company OS ni cliente OpenAI. Se reutilizan gestores existentes de partidos, picks, usuarios, Telegram, APIs y pagos.
+
+517 casos distintos aprobados;38 Chromium,214 Jinja,compileall1024,Madrid7. Evidencia y límites en reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md. Último flujo de mejora comprobado además de la regresión grande. QA Python3.12.14; producción3.11.9 no certificada.
+
+ZIP final: release_output/NeMeSiS_SHARK_PRO_V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM_RENDER_READY.zip.
+Auditoría final externa al ZIP: release_output/RELEASE_ZIP_AUDIT_V941.md y .json.
+
+Restricciones vigentes: no push ni deploy salvo nueva petición explícita; no Telegram/pagos reales, secretos o cambios de DB_PATH. Reintento real Telegram no enlazado a SHARK. OpenAI opcional, solo tema fijo+agregados, no mensaje original ni datos privados; sin llamada real durante QA. Preview solo lectura, no replica compras/chat interactivo. Producción requiere validación separada.
+
+---
+# Histórico anterior conservado
+
+@"
 # CHATGPT CONTINUATION REPORT - V844
 
 ## Estado base
