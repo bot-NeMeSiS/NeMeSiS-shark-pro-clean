@@ -114,7 +114,7 @@ def build_shark_context(user: Dict[str, Any] | None, match: Dict[str, Any] | Non
 def explain_match(match: Dict[str, Any] | None) -> str:
     match = match or {}
     if not match:
-        return "No hay un partido seleccionado. Puedo ayudarte a revisar partidos, directo o picks publicados."
+        return "No hay un partido seleccionado. Puedo ayudarte a revisar partidos, directo o pronósticos publicados."
     title = _match_title(match)
     comp = _competition(match)
     time = _time_label(match)
@@ -177,14 +177,14 @@ def explain_match_intelligence(
 def explain_pick(pick: Dict[str, Any] | None) -> str:
     pick = pick or {}
     if not pick:
-        return "No hay pick real seleccionado. Sin pick publicado, SHARK no crea una apuesta artificial."
+        return "No hay pronóstico real seleccionado. Sin pronóstico publicado, SHARK no crea una apuesta artificial."
     selection = _first(pick.get("client_selection_label"), pick.get("selection_display"), pick.get("selection"), default="Selección pendiente")
     market = _first(pick.get("market"), default="Mercado pendiente")
-    reason = _first(pick.get("analysis_summary"), pick.get("reasoning"), default="Motivo pendiente en los datos del pick.")
+    reason = _first(pick.get("analysis_summary"), pick.get("reasoning"), default="Motivo pendiente en los datos del pronóstico.")
     stake = _first(pick.get("stake_units"), pick.get("stake"), default="Stake pendiente")
     confidence = _first(pick.get("confidence"), pick.get("quality_score"), default="Confianza pendiente")
     return "\n".join([
-        f"Pick real: {_pick_title(pick)}",
+        f"Pronóstico real: {_pick_title(pick)}",
         f"Mercado: {market}",
         f"Selección: {selection}",
         f"Cuota: {_odds_label(pick)}",
@@ -226,7 +226,7 @@ def explain_no_bet_reason(match_or_pick: Dict[str, Any] | None) -> str:
 def suggest_next_actions(context: Dict[str, Any]) -> List[Dict[str, str]]:
     actions = [
         {"label": "Ver partidos", "url": "/partidos"},
-        {"label": "Ver picks", "url": "/picks"},
+        {"label": "Ver pronósticos", "url": "/picks"},
         {"label": "Abrir directo", "url": "/live"},
         {"label": "Conectar Telegram", "url": "/telegram"},
         {"label": "Soporte", "url": "/support"},
@@ -245,7 +245,7 @@ def build_shark_empty_state(context: Dict[str, Any]) -> Dict[str, str]:
     match = context.get("match") or {}
     return {
         "odds": "Cuotas pendientes" if _odds_label(pick or match) == "Cuotas pendientes" else "Cuotas disponibles",
-        "pick": "Sin picks activos" if not pick else "Pick real seleccionado",
+        "pick": "Sin pronósticos activos" if not pick else "Pronóstico real seleccionado",
         "provider": "Esperando proveedor" if not (match or pick) else "Datos reales disponibles parcialmente",
         "result": "Resultado pendiente" if not _first((match or {}).get("client_score_label"), (match or {}).get("score")) else "Resultado disponible",
     }
@@ -275,7 +275,7 @@ def enforce_no_invented_data(answer: str, context: Dict[str, Any]) -> str:
     if _odds_label(pick or match) == "Cuotas pendientes":
         guardrails.append("Cuotas pendientes")
     if not pick:
-        guardrails.append("Sin pick real publicado")
+        guardrails.append("Sin pronóstico real publicado")
     if not _first(match.get("client_score_label"), match.get("score")):
         guardrails.append("Resultado pendiente")
     if guardrails:
@@ -290,7 +290,7 @@ def _membership_note(membership: str) -> str:
     if membership == "ELITE" or membership == "ADMIN":
         return "Modo ELITE: lectura más profunda cuando existan datos reales, Telegram prioritario y explicación avanzada sin inventar métricas."
     if membership == "PRO":
-        return "Modo PRO: explicación completa de picks, riesgos y próximos pasos."
+        return "Modo PRO: explicación completa de pronósticos, riesgos y próximos pasos."
     return "Modo FREE: lectura básica y clara. Para señales premium, revisa PRO o ELITE sin presión comercial."
 
 
@@ -331,14 +331,14 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
             status = "apto" if tq.get("allowed") else "bloqueado"
             body_parts.append(f"Telegram V844 lo marcaría como {status}: {_first(tq.get('reason'), tq.get('code'), default='sin motivo técnico visible')}.")
         else:
-            body_parts.append("Telegram solo debe enviar contenido top: fútbol relevante, picks reales y sin relleno.")
+            body_parts.append("Telegram solo debe enviar contenido top: fútbol relevante, pronósticos reales y sin relleno.")
     elif intent == "match":
         body_parts.append(explain_match(match))
         intelligence_reading = explain_match_intelligence(match_intelligence)
         if intelligence_reading:
             body_parts.append(intelligence_reading)
         if pick:
-            body_parts.append("Pick relacionado:\n" + explain_pick(pick))
+            body_parts.append("Pronóstico relacionado:\n" + explain_pick(pick))
         else:
             body_parts.append(explain_no_bet_reason(match))
     elif intent == "membership":
@@ -347,21 +347,21 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
         briefing = context.get("briefing") or {}
         summary = briefing.get("summary") or {}
         body_parts.append(
-            "Resumen del producto: partidos reales, directo, picks publicados, Telegram y soporte están conectados para ayudarte a decidir con calma."
+            "Resumen del producto: partidos reales, directo, pronósticos publicados, Telegram y soporte están conectados para ayudarte a decidir con calma."
         )
         if summary:
             body_parts.append(
                 f"Hoy: {summary.get('matches_today', 0)} partidos, {summary.get('live_now', 0)} en directo y {summary.get('picks_ready', 0)} picks listos."
             )
         if pick:
-            body_parts.append("Pick principal:\n" + explain_pick(pick))
+            body_parts.append("Pronóstico principal:\n" + explain_pick(pick))
         elif match:
             body_parts.append("Partido seleccionado:\n" + explain_match(match))
             intelligence_reading = explain_match_intelligence(match_intelligence)
             if intelligence_reading:
                 body_parts.append(intelligence_reading)
         else:
-            body_parts.append("No hay contexto específico seleccionado. Puedes abrir un partido o un pick y pedirme una lectura concreta.")
+            body_parts.append("No hay contexto específico seleccionado. Puedes abrir un partido o un pronóstico y pedirme una lectura concreta.")
     body_parts.append(_membership_note(membership))
     answer = enforce_no_invented_data("\n\n".join(body_parts), context)
     return {
@@ -371,7 +371,7 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
         "context": context,
         "risk_note": "SHARK informa y ordena datos; no asegura resultados ni recomienda apostar sin control.",
         "actions": suggest_next_actions(context),
-        "next_action": "Revisa el partido, el pick o Telegram antes de decidir. Si faltan datos, espera.",
+        "next_action": "Revisa el partido, el pronóstico o Telegram antes de decidir. Si faltan datos, espera.",
         "next_url": (suggest_next_actions(context)[0] or {}).get("url", "/app"),
         "legal_policy": "NeMeSiS ofrece análisis deportivo responsable. No hay resultados asegurados.",
         "fallback_mode": bool(context.get("fallback_mode")),
@@ -481,7 +481,7 @@ def admin_openai_answer(message, snapshot, *, api_key, model, opener=None):
     if intent.get("kind") in ("BLOCKED", "CLARIFICATION") or intent.get("action_id"):
         return None
     fact_names = {"Usuarios", "PRO", "ELITE", "Partidos guardados", "Partidos hoy", "Directos confirmados",
-                  "Picks publicados", "Telegram pendiente", "Telegram fallidos", "Telegram enviados"}
+                  "Pronósticos publicados", "Telegram pendiente", "Telegram fallidos", "Telegram enviados"}
     area_keys = {"app", "db", "sports", "picks", "telegram", "jobs", "shark", "sentinel", "payments", "release",
                  "api_football", "api_sports", "sportsdb", "thesportsdb", "the_odds", "odds"}
     states = {"OK", "ATENCIÓN", "ERROR", "SIN DATOS"}
@@ -501,7 +501,7 @@ def admin_openai_answer(message, snapshot, *, api_key, model, opener=None):
     topics = (
         ("telegram", ("telegram",), "Describe el estado agregado de Telegram."),
         ("sports", ("partido", "deporte", "directo", "calendario"), "Describe los datos deportivos disponibles y sus limites."),
-        ("picks", ("pick",), "Describe el estado agregado de picks sin inventar rentabilidad."),
+        ("picks", ("pick",), "Describe el estado agregado de pronósticos sin inventar rentabilidad."),
         ("users", ("usuario", "membres"), "Describe los recuentos agregados de usuarios y planes."),
         ("release", ("version", "producci", "render", "release"), "Explica que puede verificarse sobre produccion con estos datos."),
         ("recommendations", ("mejor", "problema", "falla", "prioridad"), "Prioriza recomendaciones basadas en las evidencias agregadas."),

@@ -32,7 +32,7 @@
   const commandDialog = $('#master-command-dialog');
   const screens = [
     ['Centro de mando', '/admin/dashboard'], ['Partidos', '/admin/matches'],
-    ['Directo', '/admin/realtime-center'], ['Picks', '/admin/picks'],
+    ['Directo', '/admin/realtime-center'], ['Pronósticos', '/admin/picks'],
     ['Telegram', '/admin/telegram/command-center'], ['Usuarios', '/admin/users'],
     ['Membresías', '/admin/memberships'], ['Pagos', '/admin/payments'],
     ['SHARK AI', '/admin/shark-center'], ['Datos y APIs', '/admin/data-center'],

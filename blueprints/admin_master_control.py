@@ -11,7 +11,7 @@ from flask import Blueprint, abort, g, jsonify, make_response, redirect, render_
 from engines.admin_control_engine import AdminControlStore, Rejected, SECRET_PATTERN
 from engines.shark_ai_product_assistant_engine import admin_intent, admin_deterministic_answer, admin_openai_answer
 
-PAGES = {"home":"Inicio", "matches":"Partidos", "live":"Directo", "picks":"Picks",
+PAGES = {"home":"Inicio", "matches":"Partidos", "live":"Directo", "picks":"Pronósticos",
          "shark":"SHARK", "telegram":"Telegram", "profile":"Perfil", "memberships":"Membresías"}
 SAFE_ROUTES = {"/":"home", "/app":"home", "/sports-hub":"home", "/calendar":"matches",
                "/partidos":"matches", "/live":"live", "/picks":"picks", "/shark":"shark",
@@ -112,13 +112,13 @@ def master_snapshot(a):
     facts = [{"label":label,"value":value} for label,value in (
         ("Usuarios",counts.get("users")),("PRO",counts.get("pro")),("ELITE",counts.get("elite")),
         ("Partidos guardados",counts.get("matches")),("Partidos hoy",today),("Directos confirmados",live),
-        ("Picks publicados",counts.get("picks")),("Telegram pendiente",counts.get("pending")),
+        ("Pronósticos publicados",counts.get("picks")),("Telegram pendiente",counts.get("pending")),
         ("Telegram fallidos",counts.get("failed")),("Telegram enviados",counts.get("sent")))]
     areas = [
         {"key":"app","label":"Aplicación","state":"OK","detail":"Esta petición se ha atendido.","href":"/api/health"},
         {"key":"db","label":"Base de datos","state":"OK" if db_ok else "SIN DATOS","detail":"Lectura local disponible." if db_ok else "No se pudo verificar la lectura.","href":"/admin/data-vault"},
         {"key":"sports","label":"Datos deportivos","state":"OK" if today else "ATENCIÓN" if today == 0 else "SIN DATOS","detail": "Recuento de Sports Truth; no prueba cobertura completa.","href":"/admin/data-center"},
-        {"key":"picks","label":"Picks","state":"OK" if counts.get("picks") else "SIN DATOS","detail":"Solo publicaciones persistidas; no mide rentabilidad.","href":"/admin/picks"},
+        {"key":"picks","label":"Pronósticos","state":"OK" if counts.get("picks") else "SIN DATOS","detail":"Solo publicaciones persistidas; no mide rentabilidad.","href":"/admin/picks"},
         {"key":"telegram","label":"Telegram","state":"ATENCIÓN" if counts.get("failed") else "SIN DATOS","detail":"Cola local; configuración y entregas no certifican disponibilidad actual.","href":"/admin/telegram/command-center"},
         {"key":"jobs","label":"Automatizaciones","state":"ATENCIÓN" if job_failures else "SIN DATOS","detail":"Ejecuciones persistidas; próxima ejecución no confirmada.","href":"/admin/daily-automation"},
         {"key":"shark","label":"SHARK","state":"OK","detail":"Diagnóstico local disponible; IA externa bajo demanda.","href":"/admin/shark-ai"},

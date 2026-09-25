@@ -73,6 +73,7 @@ LEARNING = [
     {"rule": "FIX_APPLIED != VERIFIED", "origin": "Regresiones PR92", "test": "tests/test_reliability.py", "detail": "Requiere prueba posterior ligada a la revision y recurrencia."},
     {"rule": "INTERNAL_INTERFACE_CHANGE -> DEPENDENTS MUST BE CHECKED", "origin": "Incidente comunicado STATIC_ROOT", "test": "tests/test_telegram_visual_premium.py", "detail": "telegram_visual_card_engine.STATIC_ROOT fue un contrato interno roto. Consumidores y pruebas deben evolucionar juntos; no se inventan fecha ni commit del incidente."},
     {"rule": "check/sprint label != deployed runtime version", "origin": "PR92", "test": "tests/test_admin_master_release.py", "detail": "Runtime, sprint/check y Release Candidate son identidades distintas."},
+    {"rule": "PICK_INTERNAL -> PRONÓSTICO_UI_ES", "origin": "V941 terminology contract", "test": "tests/test_pronosticos_terminology.py", "detail": "El backend conserva pick/picks; toda etiqueta española de producto usa Pronóstico/Pronósticos."},
 ]
 
 
