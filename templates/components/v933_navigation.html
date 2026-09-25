@@ -3,7 +3,7 @@
 {% macro nav_icon(name) -%}<span class="v933-nav-icon v928-icon" data-v928-icon="{{ name }}" aria-hidden="true"></span>{%- endmacro %}
 
 {% macro v933_public_navigation() -%}
-{% set links = [('Inicio','/','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Pronósticos','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark')] %}
+{% set links = [('Inicio','/','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Pronósticos','/picks','target'),('Historial','/track-record','history'),('SHARK','/shark','shark')] %}
 <header class="v933-topbar v933-public-topbar" data-nav-zone="public-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/', 'topbar') }}
@@ -23,7 +23,7 @@
 {%- endmacro %}
 
 {% macro v933_client_navigation(plan='FREE') -%}
-{% set links = [('Inicio','/app','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Pronósticos','/picks','target'),('Histórico','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
+{% set links = [('Inicio','/app','home'),('Calendario','/calendar','calendar'),('Directo','/live','live'),('Pronósticos','/picks','target'),('Historial','/track-record','history'),('SHARK','/shark','shark'),('Telegram','/telegram','telegram'),('Cuenta','/profile','user')] %}
 <header class="v933-topbar v933-client-topbar" data-nav-zone="client-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/app', 'topbar') }}
@@ -50,15 +50,15 @@
   ('Pronósticos','/admin/picks','target'),
   ('Telegram','/admin/telegram/command-center','telegram'),
   ('Usuarios','/admin/users','users'),
-  ('Membresías','/admin/memberships','star'),
+  ('Planes y accesos','/admin/memberships','star'),
   ('Pagos','/admin/payments','payments'),
   ('SHARK AI','/admin/shark-center','shark'),
   ('Datos y APIs','/admin/data-center','database'),
   ('Automatizaciones','/admin/automation-center','automation'),
-  ('Sentinel / Calidad','/admin/sentinel-issues','shield'),
-  ('Apariencia / Contenido','/admin/highlights-center','star'),
+  ('Calidad / Sentinel','/admin/sentinel-issues','shield'),
+  ('Contenido / Apariencia','/admin/highlights-center','star'),
   ('Sistema','/admin/system','settings'),
-  ('Release / Producción','/admin/final-release','rocket'),
+  ('Versión / Producción','/admin/final-release','rocket'),
   ('Auditoría','/admin/dashboard#master-audit-title','history')
 ] %}
 <aside class="v933-admin-sidebar" data-nav-zone="admin-sidebar">
@@ -79,7 +79,7 @@
   <form action="/admin/dashboard" method="get" role="search"><label class="sr-only" for="v933-admin-search">{{ ui("Buscar en el panel") }}</label>{{ nav_icon('search') }}<input id="v933-admin-search" type="search" name="q" placeholder="Buscar en el panel..." autocomplete="off"><kbd>Ctrl K</kbd></form>
   <div class="v933-admin-tools">
     <a class="v933-admin-alerts" href="/admin/sentinel-issues">{{ nav_icon('shield') }}<span>{{ ui("Incidencias") }}</span></a>
-    <a class="v933-admin-identity" href="/admin/founder-os">{{ nav_icon('home') }}<span><strong>Founder Control</strong><small>{{ ui("Acceso protegido") }}</small></span></a>
+    <a class="v933-admin-identity" href="/admin/founder-os">{{ nav_icon('home') }}<span><strong>Control general</strong><small>{{ ui("Acceso protegido") }}</small></span></a>
   </div>
 </header>
 <header class="v933-mobile-header v933-admin-mobile-header" data-nav-zone="admin-mobile">

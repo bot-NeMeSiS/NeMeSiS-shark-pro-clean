@@ -13,15 +13,15 @@
 
 <div class="v933-page v933-sports-board v933-live-board ns16-live" data-v933-template="live" data-v934-directo="inplace-v1" data-v934-realtime="matches" data-v934-endpoint="/api/realtime/sports" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}" data-directo-lane="{{ lane }}" data-live-surface-contract="{{ surface.contract }}" data-directo-evaluated-at="{{ realtime.get('generated_at_madrid') or '' }}" data-v933-reference="official-ref-09" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="ns16-live-overview" aria-label="{{ ui("Resumen del directo") }}">
-    {{ page_header('Resultados' if surface.historical else 'Directo', 'Vista histórica; consulta Directo para los partidos en juego.' if surface.historical else 'Solo partidos en juego confirmados, incluido el descanso.', 'live', [{'label':'Partidos','href':'/calendar'},{'label':'Picks','href':'/picks','primary':true,'icon':'target'}]) }}
+    {{ page_header('Resultados' if surface.historical else 'Directo', 'Vista histórica; consulta Directo para los partidos en juego.' if surface.historical else 'Solo partidos en juego confirmados, incluido el descanso.', 'live', [{'label':'Calendario','href':'/calendar'},{'label':'Pronósticos','href':'/picks','primary':true,'icon':'target'}]) }}
     <nav class="v933-panel v933-filter-panel ns16-filter-strip">
-      {{ filter_tabs([{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'with_pick','label':'Directo con pick','href':'/live?f=with_pick'}], lane) }}
+      {{ filter_tabs([{'key':'live','label':'En directo','href':'/live?f=live'},{'key':'break','label':'Descanso','href':'/live?f=break'},{'key':'with_pick','label':'Directo con pronóstico','href':'/live?f=with_pick'}], lane) }}
     </nav>
     {% if ns.matches %}<section class="v933-kpi-grid ns16-kpi-strip">
       {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live?f=live') }}
       {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/live?f=break') }}
       {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'En calendario', 'blue', 'history', '/calendar?lane=results') }}
-      {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
+      {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
     </section>{% endif %}
   </section>
   <nav class="v933-page-actions" aria-label="Fuera de Directo"><a class="v933-action" href="/app">Destacados en Inicio</a><a class="v933-action" href="/calendar?lane=results">Resultados</a></nav>
@@ -30,7 +30,7 @@
   <a class="v933-action" href="{{ request.full_path.rstrip('?') }}" data-directo-refresh-list hidden>{{ ui('Actualizar lista manteniendo filtros') }}</a>
   {% if ns.matches %}
   <section class="ns16-section" id="v936-live-board">
-    {{ section_header(surface.title, '', '', '', 'RESULTADOS' if surface.historical else 'LIVE CENTER') }}
+    {{ section_header(surface.title, '', '', '', 'RESULTADOS' if surface.historical else 'CENTRO EN DIRECTO') }}
     <div class="ns16-live-feature">{{ live_card(ns.matches[0]) }}</div>
     {% if ns.matches|length > 1 %}<div class="ns16-match-row is-four">{% for match in ns.matches[1:] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
   </section>

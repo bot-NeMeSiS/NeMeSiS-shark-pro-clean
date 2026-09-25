@@ -41,13 +41,13 @@
             {{ action_button('Explicar con SHARK', '/shark?pick=' ~ (featured.get('id') or ''), false, 'cyan', false, 'shark') }}
           </div>
         {% else %}
-          {{ empty_state('Sin pick real publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}
+          {{ empty_state('Sin pronóstico publicable', 'No se publica ninguna selección hasta disponer de partido, mercado, selección y cuota reales.', 'Ver calendario', '/calendar', 'target') }}
         {% endif %}
       </section>
 
       <section class="v933-panel">
-        {{ section_header('Más picks activos', 'Selecciones completas y vigentes.') }}
-        {% if picks|length > 1 %}<div class="v933-pick-grid">{% for pick in picks[1:13] %}{{ pick_card(pick) }}{% endfor %}</div>{% elif not picks %}{{ empty_state('La lista está vacía', 'Los picks incompletos permanecen bloqueados y nunca se sustituyen por ejemplos.', '', '', 'target') }}{% else %}<div class="v933-safe-copy">{{ ui("No hay más selecciones completas disponibles ahora.") }}</div>{% endif %}
+        {{ section_header('Más pronósticos activos', 'Selecciones completas y vigentes.') }}
+        {% if picks|length > 1 %}<div class="v933-pick-grid">{% for pick in picks[1:13] %}{{ pick_card(pick) }}{% endfor %}</div>{% elif not picks %}{{ empty_state('La lista está vacía', 'Los pronósticos incompletos permanecen bloqueados y nunca se sustituyen por ejemplos.', '', '', 'target') }}{% else %}<div class="v933-safe-copy">{{ ui("No hay más selecciones completas disponibles ahora.") }}</div>{% endif %}
       </section>
     </div>
 
@@ -62,13 +62,13 @@
       </details>
       <section class="v933-panel">
         {{ section_header('Antes de decidir', 'Información y análisis, no garantías.') }}
-        <p class="v933-safe-copy">{{ ui("El stake es orientativo. NeMeSiS no promete beneficios: revisa contexto, riesgo y límite.") }}</p>
+        <p class="v933-safe-copy">{{ ui("Las unidades recomendadas son orientativas. NeMeSiS no promete beneficios: revisa contexto, riesgo y límite.") }}</p>
       </section>
     </aside>
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-picks-empty" data-empty-dashboard="resolved">
-    {{ empty_state('Todavía no hay picks publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', '', '', 'target') }}
+    {{ empty_state('Todavía no hay pronósticos publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', '', '', 'target') }}
   </section>
   <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Pronósticos">
     {{ quick_action('Explorar partidos', 'Encuentra el próximo partido.', '/calendar', 'matches', 'cyan') }}

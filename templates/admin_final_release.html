@@ -3,7 +3,7 @@
 {% set fr = data.final_release %}
 <section class="app-hero ns-final-release v738-final-hero shark-section">
   <div>
-    <div class="kicker">V738 · Release candidate comercial</div>
+    <div class="kicker">V738 · Candidata de publicación comercial</div>
     <h1>Versión final preparada para vender con control</h1>
     <p class="lead">Centro final para revisar que NeMeSiS SHARK PRO queda premium, coherente, segura y lista para validación real en Render antes de abrir beta pública controlada.</p>
     <div class="actions">
@@ -15,14 +15,14 @@
     </div>
   </div>
   <aside class="hero-panel v738-final-score">
-    <span class="pill">Estado final</span>
+    <span class="pill">Estado de la candidata</span>
     <strong>{{ fr.readiness_score }}%</strong>
     <p class="small">{{ fr.status }}</p>
   </aside>
 </section>
 
 <section class="band compact-band ns-final-strip">
-  <div class="section-head"><h2>Puertas finales</h2><span class="pill">{{ fr.overall }}% global</span></div>
+  <div class="section-head"><h2>Comprobaciones finales</h2><span class="pill">{{ fr.overall }}% global</span></div>
   <div class="grid v738-final-grid">
     {% for gate in fr.gates %}
     <article class="card v738-gate-card {{ 'is-critical' if gate.critical else '' }}">
@@ -78,7 +78,7 @@
 
 <section class="band compact-band">
   <div class="card">
-    <div class="section-head"><h2>Mensaje final</h2><span class="pill">Candidato comercial</span></div>
+    <div class="section-head"><h2>Mensaje final</h2><span class="pill">Candidata comercial</span></div>
     <p class="lead">{{ fr.final_message }}</p>
   </div>
 </section>

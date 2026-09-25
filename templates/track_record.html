@@ -10,13 +10,13 @@
 {% set has_history = recent or record.get('by_month') or (record.get('closed_count') or 0) > 0 or (record.get('graded_count') or 0) > 0 or roi is not none or winrate is not none %}
 
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="official-ref-13" data-top100-improvement="7">
-  {{ page_header('Histórico', 'Rendimiento real de picks cerrados.', 'history', [{'label':'Ver picks','href':'/picks','primary':true,'icon':'target'}]) }}
+  {{ page_header('Historial', 'Rendimiento real de pronósticos cerrados.', 'history', [{'label':'Ver pronósticos','href':'/picks','primary':true,'icon':'target'}]) }}
 
   {% if has_history %}<section class="v933-kpi-grid">
-    {{ kpi_card('ROI real', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre ' ~ (record.get('stake_total')|string) ~ ' u. evaluadas', 'success', 'history') }}
-    {{ kpi_card('Winrate', (winrate|string ~ '%') if winrate is not none else none, (record.get('decided_total')|string) ~ ' decisiones ganadas o perdidas', 'cyan', 'target') }}
-    {{ kpi_card('Picks cerrados', record.get('evaluable_total'), 'Total evaluable', 'blue', 'history') }}
-    {{ kpi_card('Pendientes', pending|length, 'Fuera del ROI', 'warning', 'pause') }}
+    {{ kpi_card('Rentabilidad (ROI)', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre ' ~ (record.get('stake_total')|string) ~ ' u. evaluadas', 'success', 'history') }}
+    {{ kpi_card('Acierto', (winrate|string ~ '%') if winrate is not none else none, (record.get('decided_total')|string) ~ ' decisiones ganadas o perdidas', 'cyan', 'target') }}
+    {{ kpi_card('Pronósticos cerrados', record.get('evaluable_total'), 'Total evaluable', 'blue', 'history') }}
+    {{ kpi_card('Pendientes', pending|length, 'No incluido en rentabilidad', 'warning', 'pause') }}
   </section>
 
   <section class="v933-panel v933-filter-panel">
@@ -28,17 +28,17 @@
       <section class="v933-panel" id="v936-track-results">
         {{ section_header('Evolución real', 'Serie por periodo construida con el historial disponible.') }}
         {% if record.get('by_month') %}
-          {% call data_table(['Periodo de evaluación','Picks evaluables','Resultado (u.)']) %}{% for item in record.get('by_month') %}<tr><td>{{ item.get('month') or item.get('label') or item.get('period') }}</td><td>{{ item.get('total') if item.get('total') is not none else ui('Sin dato') }}</td><td>{{ item.get('profit') if item.get('profit') is not none else ui('Sin dato') }}</td></tr>{% endfor %}{% endcall %}
-        {% else %}{{ empty_state('Sin muestra evaluable', 'No se dibuja una gráfica decorativa. La evolución aparecerá cuando existan picks cerrados suficientes.', '', '', 'history') }}{% endif %}
+          {% call data_table(['Periodo de evaluación','Pronósticos evaluables','Resultado (u.)']) %}{% for item in record.get('by_month') %}<tr><td>{{ item.get('month') or item.get('label') or item.get('period') }}</td><td>{{ item.get('total') if item.get('total') is not none else ui('Sin dato') }}</td><td>{{ item.get('profit') if item.get('profit') is not none else ui('Sin dato') }}</td></tr>{% endfor %}{% endcall %}
+        {% else %}{{ empty_state('Sin muestra evaluable', 'No se dibuja una gráfica decorativa. La evolución aparecerá cuando existan pronósticos cerrados suficientes.', '', '', 'history') }}{% endif %}
       </section>
 
       <section class="v933-panel ns16-track-recent">
-        {{ section_header('Picks cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en el grading.') }}
+        {{ section_header('Pronósticos cerrados recientes', 'Cuota, estado y rentabilidad solo cuando constan en la evaluación.') }}
         {% if recent %}
           {% call data_table(['Partido','Selección','Cuota','Estado','Aprendizaje','Calidad','Resultado (u.)']) %}
-          {% for pick in recent[:30] %}{% set result = (pick.get('result_status') or pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong><small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">{{ ui('Partido') }} · {{ ui_match_datetime(pick.get('event_datetime_iso'), true) if pick.get('event_datetime_iso') else ui_owned(pick.get('event_datetime_label') or 'Fecha no disponible') }}</time></small>{% if pick.get('pick_created_at_label') %}<small>{{ ui("Pick ·") }} {{ pick.get('pick_created_at_label') }}</small>{% endif %}</td><td>{{ pick.get('selection_display') or pick.get('selection') or ui('Sin selección registrada') }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else ui('Sin dato') }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else ui('Sin dato')) }}</td></tr>{% endfor %}
+          {% for pick in recent[:30] %}{% set result = (pick.get('result_status') or pick.get('result') or pick.get('status') or 'Cerrado') %}{% set result_lower = result|string|lower %}<tr><td{% if pick.get('match_id') %} data-match-id="{{ pick.get('match_id') }}"{% endif %}><strong>{{ pick.get('match_label') or pick.get('client_match_label') or ((pick.get('home_team') or 'Partido') ~ (' vs ' ~ pick.get('away_team') if pick.get('away_team') else '')) }}</strong><small><time{% if pick.get('event_datetime_iso') %} datetime="{{ pick.get('event_datetime_iso') }}"{% endif %} data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">{{ ui('Partido') }} · {{ ui_match_datetime(pick.get('event_datetime_iso'), true) if pick.get('event_datetime_iso') else ui_owned(pick.get('event_datetime_label') or 'Fecha no disponible') }}</time></small>{% if pick.get('pick_created_at_label') %}<small>{{ ui("Pronóstico ·") }} {{ pick.get('pick_created_at_label') }}</small>{% endif %}</td><td>{{ pick.get('selection_display') or pick.get('selection') or ui('Sin selección registrada') }}</td><td>{{ pick.get('odds') if pick.get('odds') is not none else ui('Sin dato') }}</td><td>{{ status_chip(result, 'success' if result_lower in ['won','ganado','win'] else ('danger' if result_lower in ['lost','perdido','loss'] else 'neutral')) }}</td><td>{{ learning_receipt(pick) }}</td><td>{{ data_confidence_badge(pick, 'pick') }}</td><td>{{ pick.get('profit') if pick.get('profit') is not none else (pick.get('profit_units') if pick.get('profit_units') is not none else ui('Sin dato')) }}</td></tr>{% endfor %}
           {% endcall %}
-          <div class="ns16-track-mobile-list" aria-label="Picks cerrados recientes">
+          <div class="ns16-track-mobile-list" aria-label="Pronósticos cerrados recientes">
           {% for pick in recent[:30] %}
           {% set result = (pick.get('result_status') or pick.get('result') or pick.get('status') or 'Cerrado') %}
           {% set result_lower = result|string|lower %}
@@ -59,7 +59,7 @@
           </article>
           {% endfor %}
           </div>
-        {% else %}{{ empty_state('Aún no hay picks cerrados', 'El rendimiento permanecerá vacío hasta que el motor de grading confirme resultados reales.', 'Ver picks activos', '/picks', 'history') }}{% endif %}
+        {% else %}{{ empty_state('Aún no hay pronósticos cerrados', 'El rendimiento permanecerá vacío hasta que el motor de grading confirme resultados reales.', 'Ver pronósticos activos', '/picks', 'history') }}{% endif %}
       </section>
     </div>
 
@@ -68,21 +68,21 @@
         {{ section_header('Metodología del histórico', 'Muestra suficiente y resultados evaluables.') }}
         <div class="v933-truth-list">
           <div>{{ icon('check') }}<span><strong>{{ ui("Entra en el cálculo") }}</strong><small>{{ ui("Resultado final obligatorio") }}</small></span>{{ status_chip('Validado','success') }}</div>
-          <div>{{ icon('odds') }}<span><strong>Stake</strong><small>{{ ui("Real y evaluable") }}</small></span>{{ status_chip('Validado','success') }}</div>
+          <div>{{ icon('odds') }}<span><strong>Unidades recomendadas</strong><small>{{ ui("Real y evaluable") }}</small></span>{{ status_chip('Validado','success') }}</div>
           <div>{{ icon('pause') }}<span><strong>{{ ui("Void") }}</strong><small>{{ ui("Sin beneficio ficticio") }}</small></span>{{ status_chip('Neutral','neutral') }}</div>
           <div>{{ icon('clock') }}<span><strong>{{ ui("Pendientes") }}</strong><small>{{ ui("Fuera del ROI") }}</small></span>{{ status_chip('Excluidos','warning') }}</div>
         </div>
-        <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con picks evaluables.' }}</p>
+        <p class="v933-safe-copy">{{ record.get('commercial_note') or 'Rendimiento calculado solo con pronósticos evaluables.' }}</p>
       </section>
       <section class="v933-panel">{{ section_header('Transparencia', 'Sin datos inventados.') }}<p class="v933-safe-copy">{{ ui("Cuando la muestra no es suficiente, NeMeSiS muestra “Sin muestra evaluable” en lugar de presentar un 0 % engañoso.") }}</p></section>
     </aside>
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-track-empty" data-empty-dashboard="resolved">
-    {{ empty_state('El histórico empieza con resultados reales', 'ROI, winrate y evolución aparecerán cuando existan picks cerrados y evaluables.', '', '', 'history') }}
+    {{ empty_state('El histórico empieza con resultados reales', 'Rentabilidad (ROI), porcentaje de acierto y evolución aparecerán cuando existan pronósticos cerrados y evaluables.', '', '', 'history') }}
   </section>
   <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Histórico">
-    {{ quick_action('Ver picks', 'Consulta selecciones publicadas.', '/picks', 'target', 'cyan') }}
+    {{ quick_action('Ver pronósticos', 'Consulta selecciones publicadas.', '/picks', 'target', 'cyan') }}
     {{ quick_action('Explorar partidos', 'Abre el catálogo deportivo.', '/calendar', 'matches', 'blue') }}
     {{ quick_action('Consultar SHARK', 'Revisa análisis disponibles.', '/shark', 'shark', 'green') }}
   </nav>
