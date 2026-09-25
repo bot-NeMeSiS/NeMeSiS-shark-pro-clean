@@ -31,7 +31,7 @@
   const proposalDialog = $('#master-proposal-dialog');
   const commandDialog = $('#master-command-dialog');
   const screens = [
-    ['Centro de mando', '/admin/dashboard'], ['Partidos', '/admin/matches'],
+    ['Centro de mando', '/admin/dashboard'], ['Calendario', '/admin/matches'],
     ['Directo', '/admin/realtime-center'], ['Pronósticos', '/admin/picks'],
     ['Telegram', '/admin/telegram/command-center'], ['Usuarios', '/admin/users'],
     ['Membresías', '/admin/memberships'], ['Pagos', '/admin/payments'],

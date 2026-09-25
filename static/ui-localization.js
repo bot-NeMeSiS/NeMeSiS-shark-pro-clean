@@ -5,6 +5,12 @@
   const preferredTerms = (value) => {
     const raw = String(value ?? '');
     if (!/^es(?:-|$)/i.test(document.documentElement.lang || 'es')) return raw;
+    const section = /^(\s*)partidos(\s*)$/i.exec(raw);
+    if (section) {
+      const token = raw.trim();
+      const replacement = token === token.toUpperCase() ? 'CALENDARIO' : token[0] === token[0].toUpperCase() ? 'Calendario' : 'calendario';
+      return section[1] + replacement + section[2];
+    }
     return raw.replace(/\bpick\(s\)/gi, 'pronóstico(s)').replace(/\bpicks?\b/gi, (token) => {
       const plural = token.toLowerCase().endsWith('s');
       let replacement = plural ? 'pronósticos' : 'pronóstico';

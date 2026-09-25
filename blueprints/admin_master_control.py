@@ -11,7 +11,7 @@ from flask import Blueprint, abort, g, jsonify, make_response, redirect, render_
 from engines.admin_control_engine import AdminControlStore, Rejected, SECRET_PATTERN
 from engines.shark_ai_product_assistant_engine import admin_intent, admin_deterministic_answer, admin_openai_answer
 
-PAGES = {"home":"Inicio", "matches":"Partidos", "live":"Directo", "picks":"Pronósticos",
+PAGES = {"home":"Inicio", "matches":"Calendario", "live":"Directo", "picks":"Pronósticos",
          "shark":"SHARK", "telegram":"Telegram", "profile":"Perfil", "memberships":"Membresías"}
 SAFE_ROUTES = {"/":"home", "/app":"home", "/sports-hub":"home", "/calendar":"matches",
                "/partidos":"matches", "/live":"live", "/picks":"picks", "/shark":"shark",

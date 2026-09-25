@@ -58,7 +58,7 @@
       <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
       <div class="v933-hero-actions">
         {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}
-        {{ action_button('Ver partidos', '/calendar', false, 'blue', false, 'calendar') }}
+        {{ action_button('Abrir calendario', '/calendar', false, 'blue', false, 'calendar') }}
         {{ action_button('Mis favoritos', '/favorites', false, 'gold', false, 'star') }}
       </div>
       {% else %}
@@ -67,7 +67,7 @@
       <div class="v933-hero-actions">
         {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
         {{ action_button('Directo', '/live', false, 'cyan', false, 'live') }}
-        {{ action_button('Partidos', '/calendar', false, 'blue', false, 'calendar') }}
+        {{ action_button('Calendario', '/calendar', false, 'blue', false, 'calendar') }}
       </div>
       {% endif %}
       <span class="sr-only" data-top100-improvement="17">Entiende NeMeSiS en 30 segundos. Primer valor en menos de un minuto. Estado de datos deportivos: sports-metrics-v1. Esperando sincronización. Continua sin buscar otra vez. Abrir calendario. Abrir briefing.</span>
@@ -79,7 +79,7 @@
       </div>
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
         <a href="/live"><strong>LIVE</strong><span>1 toque</span></a>
-        <a href="/calendar"><strong>{{ ui("HOY") }}</strong><span>{{ ui("Partidos") }}</span></a>
+        <a href="/calendar"><strong>{{ ui("HOY") }}</strong><span>{{ ui("Calendario") }}</span></a>
         <a href="/favorites"><strong>★</strong><span>{{ ui("Favoritos") }}</span></a>
         <a href="/picks"><strong>SHARK</strong><span>{{ ui("Picks") }}</span></a>
       </nav>
@@ -170,7 +170,7 @@
       <section class="v933-panel" data-sports-priority="quick-actions">
         {{ section_header('Acciones rápidas', '') }}
         <div class="v933-quick-actions is-tight">
-          {{ quick_action('Partidos', 'Catálogo completo', '/calendar', 'calendar') }}
+          {{ quick_action('Calendario', 'Catálogo completo', '/calendar', 'calendar') }}
           {{ quick_action('Directo', 'Live real', '/live', 'live', 'success') }}
           {{ quick_action('Picks', 'Capa SHARK', '/picks', 'target') }}
           {{ quick_action('Histórico', 'Resultados reales', '/track-record', 'history') }}
@@ -196,7 +196,7 @@
     </div>
     <div class="v933-launch-guide-grid is-compact">
       <a class="v933-launch-step" href="/live" data-launch-step="live">{{ icon('live') }}<span>{{ ui("Directo") }}</span><strong>Ver live</strong><small>1 toque.</small></a>
-      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Partidos") }}</span><strong>{{ ui("Explorar") }}</strong><small>Todo el catálogo.</small></a>
+      <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span><strong>{{ ui("Explorar") }}</strong><small>Todo el catálogo.</small></a>
       <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendar' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Match</span><strong>Detalle</strong><small>Contexto real.</small></a>
       <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>{{ ui("Evidencia") }}</strong><small>Sin promesas.</small></a>
       <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>
@@ -228,7 +228,7 @@
       <div><strong>{{ ui("Juego responsable") }}</strong><p>+18. No somos casa de apuestas.</p></div>
     </div>
   </section>
-  {{ evidence_receipt('Sports Relevance activo', 'Home ordena por directo, tier, favoritos, proximidad, frescura y datos completos. Picks son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Home, Directo y Partidos') }}
+  {{ evidence_receipt('Sports Relevance activo', 'Home ordena por directo, tier, favoritos, proximidad, frescura y datos completos. Picks son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Home, Directo y Calendario') }}
     </div>
   </details>
 </div>
