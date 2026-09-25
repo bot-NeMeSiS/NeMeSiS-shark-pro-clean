@@ -182,3 +182,38 @@ def test_opaque_personal_or_credential_text_never_reaches_provider():
         assert inner['topic']=='general'
         return Response(output('DATOS INSUFICIENTES'))
     assert admin_openai_answer('Estado '+canary+' personal@example.com',SNAPSHOT,api_key='local-test-key',model='test-model',opener=opener)=='DATOS INSUFICIENTES'
+
+
+def reliability_snapshot_for_questions():
+    return {
+        "facts": [],
+        "recommendations": [],
+        "runtime": {"app_version":"V941_TEST","version_file":"V941_TEST","commit":None},
+        "reliability": {
+            "state":"ATENCIÓN","memory_available":True,
+            "issues":[
+                {"id":"SENT-2026-AABBCCDD","status":"FIXED_PENDING_VERIFICATION","seen_count":2,"title":"QA recurrente","route":"/live","component":"sports","verification_record":None},
+                {"id":"SENT-2026-11223344","status":"RESOLVED","seen_count":1,"title":"QA resuelta","verification_record":{"result":"PASS"}},
+            ],
+            "timeline":[{"issue_id":"SENT-2026-AABBCCDD","event":"VERIFICATION_FAILED","result":"FAIL","at_madrid":"2026-09-25T20:00:00+02:00"}],
+            "radar":{
+                "alerts":[{"state":"RIESGO ALTO","evidence":"Sync retrasada","reason":"Supera el umbral","impact":"Calendario puede quedar antiguo","href":"/admin/data-center"}],
+                "drift":{"state":"UNKNOWN","main_sha":"a"*40,"candidate_sha":"b"*40,"deployed_sha":None,"render_sha":None,"mismatches":[]}
+            }
+        }
+    }
+
+
+@pytest.mark.parametrize("question,expected",[
+    ("¿Qué está mal?","DIAGNÓSTICO"),
+    ("¿Qué riesgo tenemos?","RIESGO"),
+    ("¿Qué falló recientemente?","último fallo"),
+    ("¿Qué está sin verificar?","requieren verificación"),
+    ("¿Producción está alineada?","SHA desplegado no confirmado"),
+    ("¿Qué debería vigilar?","Sync retrasada"),
+    ("¿Cómo está NeMeSiS?","estado de fiabilidad"),
+])
+def test_admin_reliability_questions_have_specific_local_answers(question,expected):
+    answer=admin_deterministic_answer(question,reliability_snapshot_for_questions())
+    assert expected.casefold() in answer["message"].casefold()
+    assert answer["source"]=="DETERMINISTIC" and answer["local_only"] is True and answer["executed"] is False

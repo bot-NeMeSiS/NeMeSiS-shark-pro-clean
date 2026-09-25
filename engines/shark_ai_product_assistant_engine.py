@@ -399,7 +399,7 @@ def admin_intent(message, previous=None):
     # Questions and negated instructions are not treated as affirmative commands.
     if re.match(r"^(?:no\b|que\b|por que\b|como\b|cuando\b)", text) or "?" in text:
         return {"kind": "INFORMATION"}
-    if "highlight" in text and re.match(r"^(?:por favor[,]?\s+)?(?:desactiva|activa)\b", text):
+    if any(word in text for word in ("highlight", "destacad")) and re.match(r"^(?:por favor[,]?\s+)?(?:desactiva|activa)\b", text):
         return {"action_id": "settings.update", "parameters": {"key": "highlights_enabled", "value": "desactiva" not in text}}
     if "banner" in text and re.match(r"^(?:por favor[,]?\s+)?(?:desactiva|activa)\b", text):
         return {"action_id": "settings.update", "parameters": {"key": "banner_enabled", "value": "desactiva" not in text}}
@@ -408,7 +408,7 @@ def admin_intent(message, previous=None):
         if not value:
             return {"kind": "CLARIFICATION", "message": "Escribe «Pon este aviso: texto». Después podrás activar el banner con otra propuesta."}
         return {"action_id": "settings.update", "parameters": {"key": "banner_text", "value": value}}
-    if re.match(r"^(?:por favor[,]?\s+)?sincroniza\b", text) and "partido" in text:
+    if re.match(r"^(?:por favor[,]?\s+)?sincroniza\b", text) and any(word in text for word in ("partido", "calendario")):
         return {"action_id": "sports.sync", "parameters": {}}
     if re.match(r"^(?:por favor[,]?\s+)?(?:reintenta|procesa)\b", text) and "telegram" in text:
         return {"action_id": "telegram.retry_failed", "parameters": {}}
@@ -417,7 +417,7 @@ def admin_intent(message, previous=None):
     if re.match(r"^(?:por favor[,]?\s+)?ejecuta\b", text) and "sentinel" in text:
         return {"action_id": "sentinel.scan", "parameters": {}}
     if any(w in text for w in ("mejora esta pantalla", "prepara mejora", "redisena", "cambia la logica")):
-        route = "/live" if "live" in text else "/picks" if "pick" in text else "/"
+        route = "/live" if any(word in text for word in ("live", "directo")) else "/picks" if any(word in text for word in ("pick", "pronost")) else "/"
         return {"action_id": "sentinel.create_improvement", "parameters": {
             "title": "Mejora solicitada desde SHARK Admin", "detail": message, "route": route}}
     return {"kind": "INFORMATION"}
@@ -426,39 +426,112 @@ def admin_intent(message, previous=None):
 def admin_deterministic_answer(message, snapshot):
     import unicodedata
     normalized = unicodedata.normalize("NFKD", message).encode("ascii", "ignore").decode().lower()
-    if any(w in normalized for w in ("fiabilidad", "ocurrio", "recurrent", "incidencia", "aprendizaje", "risk radar", "sha")):
+    reliability = snapshot.get("reliability") or {}
+    radar = reliability.get("radar") or {}
+    alerts = radar.get("alerts") or []
+    drift = radar.get("drift") or {}
+    issues = reliability.get("issues") or []
+    timeline = reliability.get("timeline") or []
+    facts = snapshot.get("facts") or []
+    recommendations = snapshot.get("recommendations") or []
+
+    def result(text, recs=None, relation=None, kind="INFORMATION"):
+        payload = {"kind":kind, "message":text, "facts":facts if kind != "DIAGNOSIS" else [], "recommendations":recs if recs is not None else recommendations,
+                   "source":"DETERMINISTIC", "executed":False, "local_only":True}
+        if relation is not None:
+            payload["relation"] = relation
+        return payload
+
+    if ("produccion" in normalized and any(word in normalized for word in ("alinead", "sha", "despleg"))) or "esta alineada" in normalized:
+        state = drift.get("state") or "UNKNOWN"
+        pieces = [f"HECHO: alineación de producción = {state}."]
+        if drift.get("main_sha"): pieces.append("Git main SHA: "+str(drift["main_sha"])+".")
+        if drift.get("deployed_sha"): pieces.append("SHA desplegado: "+str(drift["deployed_sha"])+".")
+        else: pieces.append("DATOS INSUFICIENTES: SHA desplegado no confirmado.")
+        if drift.get("mismatches"): pieces.append("DIAGNÓSTICO: "+", ".join(drift["mismatches"])+".")
+        pieces.append("RECOMENDACIÓN: no considerar producción certificada hasta disponer de evidencia fresca de SHA y verificación post-despliegue.")
+        return result(" ".join(pieces), [{"title":"Versión y producción","href":"/admin/final-release","evidence":"Production Drift Guard local."}])
+
+    if any(phrase in normalized for phrase in ("sin verificar", "pendiente de verificar", "falta verificar")):
+        pending=[i for i in issues if i.get("status") in ("FIXED_PENDING_VERIFICATION","VERIFICATION_FAILED","OPEN_REAL") or not i.get("verification_record")]
+        sample=", ".join(str(i.get("id") or "sin id") for i in pending[:5])
+        text=f"HECHO: {len(pending)} incidencias requieren verificación o siguen abiertas."
+        if sample: text += " Primeras: "+sample+"."
+        text += " RECOMENDACIÓN: registrar evidencia ligada al SHA y cerrar solo después de una comprobación válida."
+        return result(text,[{"title":"Verificaciones pendientes","href":"/admin/dashboard#reliability-verification","evidence":"Memoria Sentinel local."}])
+
+    if any(phrase in normalized for phrase in ("que esta mal", "que falla", "que esta fallando", "problemas ahora")):
+        actionable=[a for a in alerts if a.get("state") in ("ATENCIÓN","RIESGO ALTO","INCIDENTE")]
+        if not actionable:
+            text="HECHO: el radar no muestra alertas accionables en esta lectura. DATOS INSUFICIENTES: esto no certifica ausencia de fallos ni producción."
+        else:
+            top=actionable[:3]
+            text="DIAGNÓSTICO: "+str(len(actionable))+" señales accionables. "+ " ".join(str(a.get("state"))+": "+str(a.get("evidence"))+"." for a in top)
+            text+=" RECOMENDACIÓN: revisar primero la señal de mayor severidad."
+        return result(text,[{"title":"Fiabilidad","href":"/admin/dashboard#reliability","evidence":"Risk Radar determinista."}],"", "DIAGNOSIS")
+
+    if "riesgo" in normalized or "vigilar" in normalized:
+        ranks={"INCIDENTE":5,"RIESGO ALTO":4,"ATENCIÓN":3,"OBSERVAR":2,"DESCONOCIDO":1,"NORMAL":0}
+        ordered=sorted(alerts,key=lambda a:ranks.get(a.get("state"),0),reverse=True)
+        if ordered:
+            top=ordered[0]
+            text=f"RIESGO: {top.get('state')}. HECHO: {top.get('evidence')}. DIAGNÓSTICO: {top.get('reason')}. RECOMENDACIÓN: {top.get('impact')}"
+        else:
+            text="HECHO: no hay señales de riesgo registradas en esta lectura. DATOS INSUFICIENTES: no equivale a riesgo cero."
+        return result(text,[{"title":"Risk Radar","href":"/admin/dashboard#reliability","evidence":"Señales locales priorizadas sin probabilidades inventadas."}])
+
+    if any(phrase in normalized for phrase in ("fallo recientemente", "fallo reciente", "que fallo", "ha fallado")):
+        recent=[e for e in timeline if str(e.get("event") or "").upper() in ("VERIFICATION_FAILED","REOPENED","FAILED","ERROR") or str(e.get("result") or "").upper()=="FAIL"]
+        if recent:
+            first=recent[0]
+            text="HECHO: último fallo registrado: "+str(first.get("issue_id") or "sin id")+" · "+str(first.get("event") or first.get("result"))+"."
+        else:
+            text="HECHO: no hay un fallo reciente identificable en la timeline disponible. DATOS INSUFICIENTES: la memoria puede estar incompleta."
+        return result(text,[{"title":"Historial de incidencias","href":"/admin/sentinel-issues","evidence":"Timeline local de Reliability."}])
+
+    if "ocurrio" in normalized or "recurrent" in normalized or "incidencia" in normalized or "aprendizaje" in normalized or "risk radar" in normalized or "sha" in normalized or "fiabilidad" in normalized:
         from engines.reliability_engine import related_incidents
-        reliability = snapshot.get("reliability") or {}
         ident = re.search(r"\bSENT-\d{4}-[A-F0-9]{8}\b", message.upper())
         query = {"id":ident.group(0)} if ident else {}
         aliases = {"id":"id", "ruta":"route", "proveedor":"provider", "job":"job", "error":"error_code", "componente":"component", "archivo":"file"}
         for key,value in re.findall(r"\b(id|ruta|proveedor|job|error|componente|archivo)=([A-Za-z0-9_./-]+)", message):
             query[aliases[key]] = value
-        relation = related_incidents(query, reliability.get("issues") or [])
-        alerts = (reliability.get("radar") or {}).get("alerts") or []
-        answer = (relation["state"]+": "+str(relation["matches"]) if query else
-            "Fiabilidad: "+str(reliability.get("state") or "DESCONOCIDO")+". Alertas observadas: "+str(len(alerts))+". Para comparar un fallo, indica su identificador Sentinel; una palabra compartida no confirma recurrencia.")
+        relation = related_incidents(query, issues)
+        if query:
+            matches=relation.get("matches") or []
+            desc="; ".join(str(m.get("relation"))+" "+str(m.get("id")) for m in matches[:5]) or "sin coincidencias"
+            answer=relation["state"]+": "+desc+"."
+        else:
+            recurring=[i for i in issues if type(i.get("seen_count")) is int and i.get("seen_count")>1]
+            answer="HECHO: "+str(len(recurring))+" incidencias recurrentes en memoria. Para comparar un fallo concreto indica su ID o al menos dos señales (ruta, componente, proveedor, job o error)."
         if not reliability.get("memory_available"):
-            answer += " Memoria de incidencias no disponible; no equivale a cero incidentes."
-        return {"kind":"INFORMATION", "message":answer, "facts":[], "recommendations":[{"title":"Fiabilidad", "href":"/admin/dashboard#reliability", "evidence":"Memoria Sentinel y radar local; sin operaciones externas."}],
-                "source":"DETERMINISTIC", "executed":False, "local_only":True, "relation":relation}
-    facts = snapshot.get("facts") or []
-    recommendations = snapshot.get("recommendations") or []
-    if "versi" in message.lower() or "desplegad" in message.lower():
+            answer += " DATOS INSUFICIENTES: memoria de incidencias no disponible; no equivale a cero incidentes."
+        return result(answer,[{"title":"Fiabilidad","href":"/admin/dashboard#reliability","evidence":"Memoria Sentinel y radar local; sin operaciones externas."}],relation)
+
+    if "como esta todo" in normalized or "estado de hoy" in normalized or "como esta nemesis" in normalized:
+        state=reliability.get("state") or "DESCONOCIDO"
+        bad=[a for a in alerts if a.get("state") in ("ATENCIÓN","RIESGO ALTO","INCIDENTE")]
+        text=f"HECHO: estado de fiabilidad {state}; {len(bad)} señales accionables; {len(issues)} incidencias visibles en memoria."
+        if drift.get("state") != "ALIGNED_CONFIRMED":
+            text += " PRODUCCIÓN: "+str(drift.get("state") or "UNKNOWN")+"."
+        text += " RECOMENDACIÓN: revisar las señales accionables antes de asumir que todo está correcto."
+        return result(text,[{"title":"Estado de NeMeSiS","href":"/admin/dashboard#reliability","evidence":"Snapshot local de Reliability."}])
+
+    if "versi" in normalized or "desplegad" in normalized:
         runtime = snapshot.get("runtime") or {}
         current = runtime.get("app_version") or "Desconocida"
         expected = runtime.get("version_file") or "Desconocida"
-        answer = f"HECHO: runtime {current}; VERSION.txt {expected}. Commit Render: {runtime.get('commit') or 'Desconocido'}. DATOS INSUFICIENTES: el runtime no certifica por sí solo el estado remoto de GitHub o Render."
-    elif "usuario" in message.lower():
-        answer = "HECHOS: los recuentos de usuarios y planes son agregados de la base local. RECOMENDACIÓN: abre Usuarios y utiliza los filtros por plan; no se modifica ninguna cuenta desde esta consulta."
-        recommendations = [{"title":"Usuarios y membresías","href":"/admin/users","evidence":"Directorio existente con búsqueda y filtro FREE / PRO / ELITE."}]
-    elif "partid" in message.lower() and any(w in message.lower() for w in ("por qué", "por que", "no aparecen")):
-        answer = "HECHO: consulta los recuentos y el último ciclo adjuntos. DATOS INSUFICIENTES: esos datos no demuestran por sí solos una causa en proveedor o filtros. RECOMENDACIÓN: comparar el diagnóstico de APIs y el calendario antes de sincronizar."
+        answer = f"HECHO: entorno {current}; VERSION.txt {expected}. Commit Render: {runtime.get('commit') or 'Desconocido'}. DATOS INSUFICIENTES: la versión por sí sola no certifica el SHA remoto ni el despliegue."
+    elif "usuario" in normalized:
+        answer = "HECHO: los recuentos de usuarios y planes son agregados de la base local. RECOMENDACIÓN: abre Usuarios y filtra por FREE, PRO o ELITE; esta consulta no modifica cuentas."
+        recommendations = [{"title":"Usuarios y planes","href":"/admin/users","evidence":"Directorio existente con filtros por plan."}]
+    elif ("partid" in normalized or "calendario" in normalized) and any(w in normalized for w in ("por que", "no aparecen")):
+        answer = "HECHO: consulta los recuentos y el último ciclo adjuntos. DATOS INSUFICIENTES: esos datos no demuestran por sí solos una causa en proveedor o filtros. RECOMENDACIÓN: comparar APIs y Calendario antes de sincronizar."
     else:
-        answer = "HECHOS: resumen de datos locales adjunto. " + ("RECOMENDACIÓN: revisar las áreas señaladas." if recommendations else "DATOS INSUFICIENTES: ausencia de alertas no certifica producción ni servicios externos.")
+        answer = "HECHO: resumen de datos locales adjunto. " + ("RECOMENDACIÓN: revisar las áreas señaladas." if recommendations else "DATOS INSUFICIENTES: ausencia de alertas no certifica producción ni servicios externos.")
     return {"kind": "INFORMATION", "message": answer, "facts": facts, "recommendations": recommendations,
             "source": "DETERMINISTIC", "executed": False,
-            "local_only": any(word in message.lower() for word in ("versi", "desplegad", "usuario"))}
+            "local_only": any(word in normalized for word in ("versi", "desplegad", "usuario", "calendario"))}
 
 
 def admin_openai_answer(message, snapshot, *, api_key, model, opener=None):
@@ -501,7 +574,7 @@ def admin_openai_answer(message, snapshot, *, api_key, model, opener=None):
     topics = (
         ("telegram", ("telegram",), "Describe el estado agregado de Telegram."),
         ("sports", ("partido", "deporte", "directo", "calendario"), "Describe los datos deportivos disponibles y sus limites."),
-        ("picks", ("pick",), "Describe el estado agregado de pronósticos sin inventar rentabilidad."),
+        ("picks", ("pick", "pronost"), "Describe el estado agregado de pronósticos sin inventar rentabilidad."),
         ("users", ("usuario", "membres"), "Describe los recuentos agregados de usuarios y planes."),
         ("release", ("version", "producci", "render", "release"), "Explica que puede verificarse sobre produccion con estos datos."),
         ("recommendations", ("mejor", "problema", "falla", "prioridad"), "Prioriza recomendaciones basadas en las evidencias agregadas."),

@@ -30,17 +30,36 @@
   const state = { snapshot: {}, proposal: null, busy: false, chatBusy: false, executing: false, cancelling: false };
   const proposalDialog = $('#master-proposal-dialog');
   const commandDialog = $('#master-command-dialog');
+  const pwaInstallButton = $('[data-admin-pwa-install]');
+  const pwaInstallStatus = $('[data-admin-pwa-status]');
+  if (pwaInstallButton) {
+    const updatePwaStatus = (detail) => {
+      if (pwaInstallStatus && detail && detail.message) pwaInstallStatus.textContent = detail.message;
+      if (detail && detail.state === 'installed') { pwaInstallButton.disabled = true; pwaInstallButton.textContent = 'NeMeSiS ya está instalada'; }
+    };
+    window.addEventListener('nemesis:pwa-status', (event) => updatePwaStatus(event.detail || {}));
+    pwaInstallButton.addEventListener('click', async () => {
+      if (typeof window.nemesisInstallApp !== 'function') {
+        updatePwaStatus({state:'unavailable',message:'El instalador no está disponible. Abre /instalar para ver las instrucciones.'});
+        return;
+      }
+      pwaInstallButton.disabled = true;
+      try { updatePwaStatus(await window.nemesisInstallApp()); }
+      finally { if (!window.NemesisPwaInstall || window.NemesisPwaInstall.getState() !== 'installed') pwaInstallButton.disabled = false; }
+    });
+    if (window.NemesisPwaInstall && window.NemesisPwaInstall.getState() === 'installed') updatePwaStatus({state:'installed',message:'NeMeSiS ya está instalada en este dispositivo.'});
+  }
   const screens = [
     ['Centro de mando', '/admin/dashboard'], ['Calendario', '/admin/matches'],
     ['Directo', '/admin/realtime-center'], ['Pronósticos', '/admin/picks'],
     ['Telegram', '/admin/telegram/command-center'], ['Usuarios', '/admin/users'],
-    ['Membresías', '/admin/memberships'], ['Pagos', '/admin/payments'],
+    ['Planes y accesos', '/admin/memberships'], ['Pagos', '/admin/payments'],
     ['SHARK AI', '/admin/shark-center'], ['Datos y APIs', '/admin/data-center'],
-    ['Automatizaciones', '/admin/automation-center'], ['Sentinel / Calidad', '/admin/sentinel-issues'],
-    ['Apariencia y contenido', '/admin/highlights-center'], ['Sistema', '/admin/system'],
-    ['Release / Producción', '/admin/final-release'], ['Auditoría', '/admin/dashboard#master-audit-title'],
-    ['Founder Control', '/admin/founder-os'], ['Company OS', '/admin/company-os'],
-    ['AutoPilot', '/admin/sentinel-autopilot'], ['Jornada operativa', '/admin/operations-center'],
+    ['Automatizaciones', '/admin/automation-center'], ['Calidad / Sentinel', '/admin/sentinel-issues'],
+    ['Contenido / Apariencia', '/admin/highlights-center'], ['Sistema', '/admin/system'],
+    ['Versión / Producción', '/admin/final-release'], ['Auditoría', '/admin/dashboard#master-audit-title'],
+    ['Control general', '/admin/founder-os'], ['Sistema operativo', '/admin/company-os'],
+    ['Mejora automática', '/admin/sentinel-autopilot'], ['Jornada operativa', '/admin/operations-center'],
     ['Vista móvil PRO', '/admin/client-preview?page=home&plan=PRO&viewport=390'],
     ['Vista cliente PC', '/admin/client-preview?page=home&plan=FREE&viewport=1440'],
   ];

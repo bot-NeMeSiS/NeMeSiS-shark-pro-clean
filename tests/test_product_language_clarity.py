@@ -44,3 +44,13 @@ def test_internal_systems_lead_with_human_labels():
     assert "Versión / Producción" in nav
     assert "Sistema operativo de NeMeSiS SHARK PRO" in company
     assert "Candidata de publicación comercial" in release
+
+
+def test_admin_master_uses_clear_operational_language_and_exposes_install():
+    text=read("templates/admin_dashboard.html")
+    for forbidden in ("Gestionar picks","Telegram dry-run","Founder ·","Company OS","AutoPilot y workflow","Release y producción","<option value=\"matches\">Partidos</option>","<option value=\"picks\">Picks</option>"):
+        assert forbidden not in text
+    assert "Gestionar pronósticos" in text
+    assert "Simular Telegram" in text
+    assert "Instalar NeMeSiS en este dispositivo" in text
+    assert "data-admin-pwa-install" in text
