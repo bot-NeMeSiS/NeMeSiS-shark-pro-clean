@@ -584,7 +584,7 @@ def test_track_record_pending_only_does_not_render_evaluable_history_dashboard(a
         html = render_template("track_record.html", data=data)
 
     assert 'data-empty-dashboard="resolved"' in html
-    assert "El histórico empieza con resultados reales" in html
+    assert "El historial empieza con resultados reales" in html
     assert "ROI real" not in html
 
 

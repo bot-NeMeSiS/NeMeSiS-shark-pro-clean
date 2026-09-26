@@ -11,7 +11,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
     checks = {
         "templates/track_record.html": [
             'data-top100-improvement="7"',
-            "Metodología del histórico",
+            "Cómo calculamos el historial",
             "Entra en el cálculo",
             "Muestra suficiente",
         ],

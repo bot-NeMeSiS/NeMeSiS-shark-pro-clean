@@ -2502,7 +2502,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         result = {
             "ok": False,
             "error": "cron_execution_error",
-            "message": "El endpoint Cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa logs Render.",
+            "message": "El cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa Incidencias y el historial de automatización.",
             "detail": str(exc)[:500],
         }
     finished_at = now_iso()
