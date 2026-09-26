@@ -58,7 +58,7 @@
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Controles seguros</h2></div>
       <div class="v794-action-grid" style="grid-template-columns:1fr">
-        <a class="v794-action-card" href="/api/admin/daily-automation/dry-run"><i>D</i><span><b>Simulación</b><small>Calcula jobs sin enviar Telegram real</small></span><em>&gt;</em></a>
+        <form method="post" action="/api/admin/daily-automation/dry-run"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v794-action-card" type="submit"><i>D</i><span><b>Simulación</b><small>Calcula jobs sin enviar Telegram real</small></span><em>&gt;</em></button></form>
         <a class="v794-action-card" href="/api/admin/daily-automation/health"><i>H</i><span><b>Estado del sistema</b><small>DB, APIs, Telegram y secret</small></span><em>&gt;</em></a>
         <a class="v794-action-card" href="/admin/automation-center"><i>C</i><span><b>Centro actual</b><small>Programación real y mínima</small></span><em>&gt;</em></a>
       </div>
