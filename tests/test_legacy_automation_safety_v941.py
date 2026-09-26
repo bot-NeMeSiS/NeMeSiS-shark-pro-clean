@@ -43,15 +43,19 @@ def test_legacy_automation_defaults_are_off():
     ):
         assert expected in source
 
-def test_cron_endpoints_keep_automation_secret_compatibility(app_module):
+def test_active_automation_endpoints_are_post_only_and_secret_protected(app_module):
     for path in (
-        "/api/telegram/auto-run",
-        "/api/telegram/scheduler-tick",
         "/api/automation/telegram/tick",
+        "/api/automation/sports/sync",
+        "/api/automation/data-backup/run",
+        "/api/automation/highlights/sync",
+        "/api/automation/picks/grade",
+        "/api/automation/master-tick",
     ):
         methods=_methods(app_module,path)
-        assert "GET" in methods and "POST" in methods
-    assert app_module.csrf_exempt_path("/api/automation/telegram/tick") is True
+        assert methods >= {"POST"}
+        assert "GET" not in methods
+        assert app_module.csrf_exempt_path(path) is True
 
 def test_get_never_executes_manual_telegram_mutation(client):
     for path in ADMIN_MUTATIONS:

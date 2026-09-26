@@ -22,6 +22,20 @@ POST_ONLY_PATHS=(
     "/api/odds/sync-odds",
     "/api/picks/publish",
     "/api/picks/archive",
+    "/api/automation/highlights/sync",
+    "/api/automation/daily/run",
+    "/api/automation/sports/sync",
+    "/api/automation/telegram/tick",
+    "/api/automation/picks/grade",
+    "/api/automation/data-backup/run",
+    "/api/automation/master-tick",
+    "/api/automation/auto-improvement/run",
+    "/api/automation/shark-sentinel/run",
+    "/api/automation/continuous-sentinel/run",
+    "/api/automation/visual-worker/run",
+    "/api/automation/sentinel-autopilot/run",
+    "/api/automation/autonomous-sentinel/run",
+    "/api/automation/autonomous-company-sentinel/run",
 )
 
 def test_mutation_routes_are_post_only_in_flask_map():

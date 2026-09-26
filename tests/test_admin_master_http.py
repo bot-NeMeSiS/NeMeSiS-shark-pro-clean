@@ -174,7 +174,7 @@ def test_dashboard_and_health(admin):
 def test_master_tick_requires_secret(admin):
     a,_,_=admin
     c=a.app.test_client()
-    assert c.get("/api/automation/master-tick").status_code==403
+    assert c.post("/api/automation/master-tick",json={}).status_code==403
 
 
 def test_master_tick_test_secret_dry_run_never_calls_operations(admin, monkeypatch):
@@ -182,7 +182,7 @@ def test_master_tick_test_secret_dry_run_never_calls_operations(admin, monkeypat
     monkeypatch.setenv("AUTOMATION_SECRET","SIMULATED_QA_master_tick")
     calls=[]
     monkeypatch.setattr(a,"v818_master_callbacks",lambda:{"sports_sync":lambda:calls.append("sports"),"telegram_tick":lambda:calls.append("telegram")})
-    response=a.app.test_client().get("/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick")
+    response=a.app.test_client().post("/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick",json={})
     assert response.status_code==403,response.get_data(as_text=True)[:300]
     assert response.get_json()["status"]=="LOCAL_SAFE_BLOCKED"
     with a.app.test_request_context("/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick"):

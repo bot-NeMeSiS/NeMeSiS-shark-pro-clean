@@ -36,3 +36,10 @@ def test_active_runners_use_post_and_no_runner_query_parameter():
     assert '?runner=render_cron' not in standalone
     assert 'method="POST"' in standalone
     assert '"X-Automation-Secret": automation_secret' in standalone
+
+
+def test_standalone_manual_runners_also_use_post():
+    sports=(ROOT/"tools/render_cron_sports_sync.py").read_text(encoding="utf-8")
+    highlights=(ROOT/"tools/render_cron_highlights_sync.py").read_text(encoding="utf-8")
+    assert 'method="POST"' in sports and 'method="GET"' not in sports
+    assert 'method="POST"' in highlights and 'method="GET"' not in highlights

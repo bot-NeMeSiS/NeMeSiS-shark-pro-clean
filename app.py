@@ -18285,7 +18285,7 @@ def api_client_highlights():
     return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24), "content_center": v769_highlights_content_center(data, current_session_user(), limit=24)})
 
 
-@app.route("/api/automation/highlights/sync", methods=["POST", "GET"])
+@app.route("/api/automation/highlights/sync", methods=["POST"])
 def api_automation_highlights_sync():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -27716,7 +27716,7 @@ def api_telegram_scheduler_tick():
     return jsonify({"version": APP_VERSION, **telegram_scheduler_tick(force=force)})
 
 
-@app.route("/api/automation/daily/run", methods=["POST", "GET"])
+@app.route("/api/automation/daily/run", methods=["POST"])
 def api_automation_daily_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -27729,7 +27729,7 @@ def api_automation_daily_run():
     )
 
 
-@app.route("/api/automation/sports/sync", methods=["POST", "GET"])
+@app.route("/api/automation/sports/sync", methods=["POST"])
 def api_automation_sports_sync():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -27741,7 +27741,7 @@ def api_automation_sports_sync():
     )
 
 
-@app.route("/api/automation/telegram/tick", methods=["POST", "GET"])
+@app.route("/api/automation/telegram/tick", methods=["POST"])
 def api_automation_telegram_tick():
     if not automation_header_secret_status().get("ok"):
         return automation_header_json_forbidden()
@@ -28793,7 +28793,7 @@ def api_admin_track_record():
     return jsonify({"ok": True, "version": APP_VERSION, "track_record": v742_track_record_context()})
 
 
-@app.route("/api/automation/picks/grade", methods=["GET", "POST"])
+@app.route("/api/automation/picks/grade", methods=["POST"])
 def api_automation_picks_grade():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -30648,7 +30648,7 @@ def api_admin_data_vault_export():
     return jsonify({"version": APP_VERSION, **result})
 
 
-@app.route("/api/automation/data-backup/run", methods=["GET", "POST"])
+@app.route("/api/automation/data-backup/run", methods=["POST"])
 def api_automation_data_backup_run():
     if not automation_header_secret_status().get("ok"):
         return automation_header_json_forbidden()
@@ -32023,7 +32023,7 @@ def v818_daily_automation_context():
     }
 
 
-@app.route("/api/automation/master-tick", methods=["GET", "POST"])
+@app.route("/api/automation/master-tick", methods=["POST"])
 def api_v818_automation_master_tick():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32066,7 +32066,7 @@ def api_v818_automation_health_check():
     })
 
 
-@app.route("/api/automation/auto-improvement/run", methods=["GET", "POST"])
+@app.route("/api/automation/auto-improvement/run", methods=["POST"])
 def api_v861_auto_improvement_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32079,7 +32079,7 @@ def api_v861_auto_improvement_run():
     return jsonify(result)
 
 
-@app.route("/api/automation/shark-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/shark-sentinel/run", methods=["POST"])
 def api_v862_shark_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32092,7 +32092,7 @@ def api_v862_shark_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/continuous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/continuous-sentinel/run", methods=["POST"])
 def api_v862_continuous_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32102,7 +32102,7 @@ def api_v862_continuous_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/visual-worker/run", methods=["GET", "POST"])
+@app.route("/api/automation/visual-worker/run", methods=["POST"])
 def api_v883_visual_worker_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32112,7 +32112,7 @@ def api_v883_visual_worker_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/sentinel-autopilot/run", methods=["GET", "POST"])
+@app.route("/api/automation/sentinel-autopilot/run", methods=["POST"])
 def api_v888_sentinel_autopilot_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32121,7 +32121,7 @@ def api_v888_sentinel_autopilot_run():
     return jsonify({"ok": True, **scan, "cron": "sentinel_autopilot", "dry_run": True, "dangerous_actions_executed": False})
 
 
-@app.route("/api/automation/autonomous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/autonomous-sentinel/run", methods=["POST"])
 def api_v893_autonomous_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32132,7 +32132,7 @@ def api_v893_autonomous_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/autonomous-company-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/autonomous-company-sentinel/run", methods=["POST"])
 def api_v894_autonomous_company_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
