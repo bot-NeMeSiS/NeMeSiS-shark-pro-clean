@@ -140,3 +140,28 @@ def test_home_error_history_and_admin_tools_avoid_internal_jargon():
     assert "Planes y accesos" in users and "Membresías con fecha" not in users
     assert "Ingresos mensuales estimados (MRR)" in payments
     assert "Confirmación Stripe" in payments
+
+
+def test_data_center_distinguishes_legacy_scheduler_from_real_automation():
+    text=read("templates/admin_data_center.html")
+    assert "Programador interno de compatibilidad" in text
+    assert "No es el cron de producción" in text
+    assert "Centro de Automatización" in text
+    assert "<h2>Tareas automáticas</h2>" not in text
+
+
+def test_system_uses_canonical_admin_routes_and_plain_language():
+    text=read("templates/admin_system.html")
+    assert "Partidos guardados" in text
+    assert "Tareas recurrentes y bajo demanda" in text
+    assert "/admin/sentinel-issues" in text
+    assert "/admin/autonomous-company-sentinel" not in text
+
+
+def test_final_release_does_not_overclaim_or_show_stale_version_label():
+    text=read("templates/admin_final_release.html")
+    assert "{{ app_version }} · Candidata de publicación comercial" in text
+    assert "V738 · Candidata" not in text
+    assert "Candidata preparada para validación comercial" in text
+    assert "Versión final preparada para vender con control" not in text
+    assert "Revisar salida a producción" in text
