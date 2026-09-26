@@ -12008,14 +12008,15 @@ def link_telegram_chat_by_code(code, chat_id, username="", first_name=""):
 
 
 def telegram_user_state(user):
+    """Return Telegram-link state without mutating business data on reads."""
     if not user or not user.get("id"):
         return {"linked": False, "requires_login": True}
     full = one("SELECT * FROM users WHERE id=?", (user.get("id"),)) or dict(user)
     linked = bool(full.get("telegram_chat_id"))
-    code = ""
-    if not linked:
-        code = generate_telegram_link_code(full.get("id")) or ""
-        full = one("SELECT * FROM users WHERE id=?", (full.get("id"),)) or full
+    current_code = str(full.get("telegram_link_code") or "").strip()
+    current_expires = full.get("telegram_link_expires_at") or full.get("telegram_link_expires") or ""
+    code_valid = bool(current_code) and not telegram_code_expired(current_expires)
+    code = current_code if (not linked and code_valid) else ""
     bot = telegram_bot_username()
     deep_link = f"https://t.me/{bot}?start={code}" if bot and code else ""
     return {
@@ -12024,10 +12025,13 @@ def telegram_user_state(user):
         "username": full.get("telegram_username") or "",
         "linked_at": full.get("telegram_linked_at") or "",
         "code": code,
-        "expires_at": full.get("telegram_link_expires_at") or full.get("telegram_link_expires") or "",
+        "code_available": bool(code),
+        "code_expired": bool(current_code) and not code_valid,
+        "expires_at": current_expires if code else "",
         "bot_username": bot,
         "deep_link": deep_link,
         "command": f"/link {code}" if code else "",
+        "generation_requires_post": not linked and not code,
     }
 
 def ensure_default_telegram_subscriber():
@@ -23660,7 +23664,7 @@ def telegram_page():
     return render_template("telegram.html", data=data)
 
 
-@app.route("/telegram/regenerar-código", methods=["POST", "GET"])
+@app.route("/telegram/regenerar-código", methods=["POST"])
 def telegram_regenerate_code():
     user = current_session_user()
     if not user:
