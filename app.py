@@ -18323,7 +18323,7 @@ def api_automation_highlights_sync():
     return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
 
 
-@app.route("/api/admin/highlights/sync", methods=["POST", "GET"])
+@app.route("/api/admin/highlights/sync", methods=["POST"])
 def api_admin_highlights_sync():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21811,7 +21811,7 @@ def api_admin_autonomous_company_sentinel_render_alignment():
     return jsonify({"ok": True, "version": APP_VERSION, "render_alignment": data})
 
 
-@app.route("/api/admin/autonomous-company-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-company-sentinel/run", methods=["POST"])
 def api_admin_autonomous_company_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21830,7 +21830,7 @@ def api_admin_autonomous_company_sentinel_generate_codex_prompts():
     return jsonify({"ok": True, "version": APP_VERSION, "outbox": result.get("outbox"), "dangerous_actions_executed": False})
 
 
-@app.route("/api/admin/autonomous-company-sentinel/sync-issues", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-company-sentinel/sync-issues", methods=["POST"])
 def api_admin_autonomous_company_sentinel_sync_issues():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21871,7 +21871,7 @@ def api_admin_autonomous_sentinel_autofix_plan():
     return jsonify({"ok": True, "version": APP_VERSION, "autofix_plan": plan})
 
 
-@app.route("/api/admin/autonomous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-sentinel/run", methods=["POST"])
 def api_admin_autonomous_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21889,7 +21889,7 @@ def api_admin_autonomous_sentinel_generate_codex_prompts():
     return jsonify({"ok": True, "version": APP_VERSION, "outbox": result.get("outbox"), "dangerous_actions_executed": False})
 
 
-@app.route("/api/admin/autonomous-sentinel/sync-issues", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-sentinel/sync-issues", methods=["POST"])
 def api_admin_autonomous_sentinel_sync_issues():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22045,7 +22045,7 @@ def api_admin_sentinel_issues_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": summary})
 
 
-@app.route("/api/admin/sentinel/issues/scan", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/scan", methods=["POST"])
 def api_admin_sentinel_issues_scan():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22056,7 +22056,7 @@ def api_admin_sentinel_issues_scan():
     return jsonify({"ok": True, "dangerous_actions_executed": False, **summary})
 
 
-@app.route("/api/admin/sentinel/issues/sync-autopilot", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/sync-autopilot", methods=["POST"])
 def api_admin_sentinel_issues_sync_autopilot():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22066,7 +22066,7 @@ def api_admin_sentinel_issues_sync_autopilot():
     return jsonify({"ok": True, "source": "autopilot", "dangerous_actions_executed": False, **summary})
 
 
-@app.route("/api/admin/sentinel/issues/sync-visual-worker", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/sync-visual-worker", methods=["POST"])
 def api_admin_sentinel_issues_sync_visual_worker():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22143,7 +22143,7 @@ def api_admin_sentinel_autopilot_summary():
     return jsonify({"ok": True, **scan, "daily_report": build_autopilot_daily_report(scan)})
 
 
-@app.route("/api/admin/sentinel-autopilot/run", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel-autopilot/run", methods=["POST"])
 def api_admin_sentinel_autopilot_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22200,7 +22200,7 @@ def api_admin_shark_sentinel_summary():
     return jsonify({"ok": True, **build_static_sentinel_summary(APP_VERSION)})
 
 
-@app.route("/api/admin/shark-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/shark-sentinel/run", methods=["POST"])
 def api_admin_shark_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22279,7 +22279,7 @@ def v901_register_admin_api_issue(route, exc, mode="", dry_run=True):
         return False
 
 
-@app.route("/api/admin/continuous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/continuous-sentinel/run", methods=["POST"])
 def api_admin_continuous_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22371,7 +22371,7 @@ def api_admin_visual_worker_summary():
     return jsonify({"ok": True, **build_visual_company_worker_summary(APP_VERSION, mode="quick", dry_run=True)})
 
 
-@app.route("/api/admin/visual-worker/run", methods=["GET", "POST"])
+@app.route("/api/admin/visual-worker/run", methods=["POST"])
 def api_admin_visual_worker_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27755,8 +27755,8 @@ def api_telegram_send():
     return jsonify({"version": APP_VERSION, "queued": queued, **result})
 
 
-@app.route("/api/telegram/auto-run", methods=["POST", "GET"])
-@app.route("/api/v495/telegram-auto-run", methods=["POST", "GET"])
+@app.route("/api/telegram/auto-run", methods=["POST"])
+@app.route("/api/v495/telegram-auto-run", methods=["POST"])
 def api_telegram_auto_run():
     if not automation_access_allowed():
         return automation_json_forbidden()
@@ -27767,7 +27767,7 @@ def api_telegram_auto_run():
     return jsonify({"version": APP_VERSION, "telegram": cfg, **result})
 
 
-@app.route("/api/telegram/scheduler-tick", methods=["POST", "GET"])
+@app.route("/api/telegram/scheduler-tick", methods=["POST"])
 def api_telegram_scheduler_tick():
     if not automation_access_allowed():
         return automation_json_forbidden()
@@ -32249,7 +32249,7 @@ def api_admin_v818_daily_automation_runs():
     return jsonify({"ok": True, "version": APP_VERSION, **v818_automation_runs(DB_PATH, limit=as_int(request.args.get("limit"), 80))})
 
 
-@app.route("/api/admin/daily-automation/dry-run", methods=["GET", "POST"])
+@app.route("/api/admin/daily-automation/dry-run", methods=["POST"])
 def api_admin_v818_daily_automation_dry_run():
     if not is_admin_session():
         return admin_json_forbidden()
