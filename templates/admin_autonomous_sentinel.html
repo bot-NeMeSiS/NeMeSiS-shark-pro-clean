@@ -6,7 +6,7 @@
     <h1>Inspector autónomo permanente</h1>
     <p>Revisa cliente, admin, rutas, botones, datos reales, visual, Telegram, SHARK, pagos y release. Genera incidencias y prompts Codex sin deploy, push, Telegram real, pagos ni secretos.</p>
     <div class="ns-actions">
-      <a class="ns-button ns-button-primary" href="/api/admin/autonomous-sentinel/run?mode=safe_scan&dry_run=1" target="_blank">Ejecutar revisión ahora</a>
+      <form method="post" action="/api/admin/autonomous-sentinel/run?mode=safe_scan&dry_run=1" target="_blank" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ns-button ns-button-primary" type="submit">Ejecutar revisión ahora</button></form>
       <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-sentinel/outbox" target="_blank">Ver outbox Codex</a>
       <a class="ns-button ns-button-secondary" href="/api/admin/autonomous-sentinel/autofix-plan" target="_blank">Ver autofix plan</a>
       <a class="ns-button ns-button-ghost" href="/admin/sentinel-issues">Ver incidencias</a>
