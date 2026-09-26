@@ -47,7 +47,7 @@ def _job(name, label, endpoint, command, enabled, configured, last=None, cadence
 
 
 def build_automation_center_summary(db_path: str, app_version: str = "", env: dict | None = None, state: dict | None = None) -> dict:
-    """Canonical schedule: only jobs actually intended to exist in Render."""
+    """Canonical schedule: one Render cron owns every recurring production flow."""
     env = dict(env or os.environ)
     state = state or {}
     automation_secret = _present(env, "AUTOMATION_SECRET")
@@ -59,46 +59,36 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
     master = _job(
         "master_tick",
         "Cron maestro",
-        "/api/automation/telegram/tick + /api/automation/continuous-evolution/tick",
+        "/api/automation/telegram/tick + /api/automation/continuous-evolution/tick + backup diario",
         "python tools/render_cron_master_tick.py",
         True,
         automation_secret and public_base and db_ok,
         state.get("last_cron_telegram_call"),
         "cada 10 min",
     )
-    master["description"] = "Incluye sincronización deportiva, cuotas, evaluación de pronósticos, Telegram y revisión diaria segura."
-    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution"]
-    backup = _job(
-        "data_backup",
-        "Backup diario",
-        "/api/automation/data-backup/run",
-        "python tools/render_cron_data_backup.py",
-        backup_enabled,
-        automation_secret and public_base and db_ok,
-        state.get("last_cron_data_backup_call"),
-        "02:30 UTC · diario (03:30/04:30 Madrid)",
-    )
-    backup["description"] = "Copia diaria de la base persistente con retención del Data Vault."
+    master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
+    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution", "data_backup"]
+    master["backup_window"] = "02:30–04:30 UTC; el web service deduplica por día y bloquea solapes."
 
-    jobs = [master, backup]
+    jobs = [master]
     ready = len([job for job in jobs if job["status"] == "READY"])
     warnings = []
     if not automation_secret:
-        warnings.append("Falta AUTOMATION_SECRET: ningún cron protegido debe ejecutarse.")
+        warnings.append("Falta AUTOMATION_SECRET: el cron maestro protegido no debe ejecutarse.")
     if not public_base:
-        warnings.append("PUBLIC_BASE_URL no está configurada para los runners de Render.")
+        warnings.append("PUBLIC_BASE_URL no está configurada para el runner de Render.")
     if not telegram_ready:
         warnings.append("Telegram no está completamente configurado; el cron maestro puede sincronizar datos, pero no debe afirmar entrega Telegram.")
     if not backup_enabled:
-        warnings.append("Backup diario desactivado. DATA_BACKUP_ENABLED debe estar activo en producción.")
+        warnings.append("Backup diario desactivado en el web service. DATA_BACKUP_ENABLED debe estar activo.")
 
     return {
         "version": app_version,
         "generated_at_madrid": datetime.now(MADRID_TZ).isoformat(timespec="seconds"),
         "enabled": _bool_env(env, "AUTOMATION_CENTER_ENABLED", True),
-        "policy": "ONE_OPERATIONAL_MASTER_PLUS_DAILY_BACKUP",
-        "scheduled_job_count": len(jobs),
-        "readiness_score": min(100, 70 + ready * 12 + (6 if not warnings else 0)),
+        "policy": "ONE_OPERATIONAL_MASTER",
+        "scheduled_job_count": 1,
+        "readiness_score": min(100, 82 + ready * 12 + (6 if not warnings else 0)),
         "jobs_ready": ready,
         "jobs_total": len(jobs),
         "jobs": jobs,
@@ -108,9 +98,18 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
             "highlights sync",
             "standalone pick grading",
             "standalone sports sync",
+            "standalone backup runner",
             "Sentinel scans",
             "visual/browser QA workers",
         ],
+        "maintenance": {
+            "data_backup": {
+                "enabled": backup_enabled,
+                "owner": "master_tick",
+                "window": "02:30–04:30 UTC",
+                "last_run": (state.get("last_cron_data_backup_call") or {}).get("time") or "",
+            }
+        },
         "environment": {
             "automation_secret_configured": automation_secret,
             "public_base_url_configured": public_base,
@@ -125,8 +124,8 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         },
         "warnings": warnings,
         "next_actions": [
-            "Mantener un único cron operativo cada 10 minutos.",
-            "Mantener un único backup diario a las 02:30 UTC de Render (03:30/04:30 Madrid según horario).",
+            "Mantener un único servicio cron cada 10 minutos.",
+            "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
             "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
         ],
     }

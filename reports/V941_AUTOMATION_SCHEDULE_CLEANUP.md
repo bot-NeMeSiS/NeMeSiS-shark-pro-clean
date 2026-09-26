@@ -1,20 +1,17 @@
 # V941 Automation Schedule Cleanup
 
 ## Objetivo
-Un solo propietario para cada tarea recurrente. Evitar sincronizaciones dobles, gasto de API, Telegram duplicado y procesos heredados arrancando desde el web service.
+Un solo propietario para toda recurrencia de producción. Evitar sincronizaciones dobles, gasto de API, Telegram duplicado y procesos heredados arrancando desde el web service.
 
-## Tareas recurrentes que se mantienen
-1. **Cron maestro** — cada 10 minutos.
-   - Runner: `tools/render_cron_master_tick.py`
-   - Incluye sincronización deportiva, cuotas, evaluación de pronósticos, Telegram y evolución segura.
-   - El nombre Render `telegram-auto-tick` se conserva por compatibilidad para no crear accidentalmente un segundo servicio al renombrarlo.
+## Única tarea recurrente
+**Cron maestro — cada 10 minutos**
+- Servicio Render histórico: `telegram-auto-tick` (nombre conservado para evitar crear un segundo servicio al renombrar).
+- Runner: `tools/render_cron_master_tick.py`.
+- Incluye sincronización deportiva, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario.
+- Backup: ventana 02:30–04:30 UTC; el web service usa claim temporal atómico y memoria del último backup exitoso para crear como máximo una copia diaria.
+- El runner de backup independiente se conserva como herramienta manual/emergencia, pero no está programado en `render.yaml`.
 
-2. **Backup diario** — `30 2 * * *` en Render.
-   - Runner: `tools/render_cron_data_backup.py`
-   - Render interpreta el cron en UTC: 02:30 UTC = 03:30/04:30 Madrid según época.
-   - La copia se crea en el web service, que es quien tiene el disco persistente y `DB_PATH=/data/database.db`.
-
-## Capacidades que quedan manuales o incluidas
+## Capacidades manuales o incluidas
 - scheduler_engine heredado: manual/compatibilidad, OFF por defecto.
 - Daily Automation V818: manual/diagnóstico.
 - Sports sync separado: incluido en cron maestro.
@@ -25,12 +22,14 @@ Un solo propietario para cada tarea recurrente. Evitar sincronizaciones dobles, 
 - Workers históricos: herramientas internas, no crons de producción.
 
 ## Guardrails
-- `SCHEDULER_ENABLED=0`
-- `ENABLE_AUTO_SYNC=0`
-- `AUTO_SYNC_ON_STARTUP=0`
-- `DAILY_AUTOMATION_ENABLED=0`
+- `render.yaml` contiene exactamente un `type: cron`.
+- `SCHEDULER_ENABLED=0`.
+- `ENABLE_AUTO_SYNC=0`.
+- `AUTO_SYNC_ON_STARTUP=0`.
+- `DAILY_AUTOMATION_ENABLED=0`.
 - Default de `scheduler_env_enabled()`: OFF si faltan variables.
 - Arranque del scheduler heredado requiere además `RUN_STARTUP_SCHEDULER_NOW=1`.
+- `DATA_BACKUP_ENABLED=1` vive en el web service que posee `/data`.
 - Regla Reliability: `ONE_RECURRING_OWNER -> NO_DUPLICATE_SCHEDULERS`.
 
 ## Estado externo

@@ -386,6 +386,7 @@ from engines.client_screen_audit_engine import client_screen_audit_snapshot
 from engines.daily_automation_engine import (
     automation_runs as v818_automation_runs,
     automation_status as v818_automation_status,
+    claim_dedupe as v818_claim_dedupe,
     ensure_automation_schema_conn,
     run_master_tick as v818_run_master_tick,
     system_health as v818_system_health,
@@ -30586,13 +30587,31 @@ def api_admin_data_vault_export():
 def api_automation_data_backup_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
+    now_value = now_iso()
+    madrid_day = today_iso()
+    last_success = automation_get("last_successful_data_backup_call", {}) or {}
+    last_result = last_success.get("result") if isinstance(last_success.get("result"), dict) else {}
+    already_done = (
+        str(last_success.get("time") or "")[:10] == madrid_day
+        and last_result.get("ok") is not False
+        and last_result.get("backup_created") is True
+    )
     if not env_bool("DATA_BACKUP_ENABLED", False):
         result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no está activo."}
+    elif already_done:
+        result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_DONE", "message": "El backup diario ya fue creado y verificado para esta fecha Madrid."}
     else:
-        result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
-    automation_safe_set("last_cron_data_backup_call", {"time": now_iso(), "result": result})
+        with closing(sqlite3.connect(DB_PATH, timeout=2)) as conn:
+            ensure_automation_schema_conn(conn)
+            claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+        if not claimed:
+            result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING", "message": "Otro intento de backup posee el claim temporal."}
+        else:
+            result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
+            if result.get("ok") is not False and result.get("backup_created") is True:
+                automation_safe_set("last_successful_data_backup_call", {"time": now_value, "result": result})
+    automation_safe_set("last_cron_data_backup_call", {"time": now_value, "result": result})
     return jsonify({"version": APP_VERSION, **result})
-
 
 @app.route("/api/admin/production-readiness-v744")
 def api_admin_production_readiness_v744():

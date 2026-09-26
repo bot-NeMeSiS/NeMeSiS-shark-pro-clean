@@ -7,15 +7,13 @@ import os
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def test_render_yaml_has_only_master_and_daily_backup_crons():
+def test_render_yaml_has_only_one_master_cron():
     text=(ROOT/"render.yaml").read_text(encoding="utf-8")
-    assert text.count("  - type: cron") == 2
+    assert text.count("  - type: cron") == 1
     assert "name: telegram-auto-tick" in text
     assert 'schedule: "*/10 * * * *"' in text
     assert "startCommand: python tools/render_cron_master_tick.py" in text
-    assert "name: nemesis-data-backup" in text
-    assert 'schedule: "30 2 * * *"' in text
-    assert "startCommand: python tools/render_cron_data_backup.py" in text
+    assert "name: nemesis-data-backup" not in text
     for setting in ("SCHEDULER_ENABLED","ENABLE_AUTO_SYNC","AUTO_SYNC_ON_STARTUP","DAILY_AUTOMATION_ENABLED"):
         assert f"- key: {setting}" in text
     assert '- key: DATA_BACKUP_ENABLED' in text
@@ -32,11 +30,11 @@ def test_automation_center_lists_only_actual_recurring_jobs():
     from engines.automation_orchestrator_engine import build_automation_center_summary
     env={"AUTOMATION_SECRET":"synthetic","PUBLIC_BASE_URL":"https://example.invalid","DB_PATH":"/tmp/test.db","DATA_BACKUP_ENABLED":"1"}
     summary=build_automation_center_summary("/tmp/test.db","SIMULATED_QA",env=env,state={})
-    assert summary["policy"]=="ONE_OPERATIONAL_MASTER_PLUS_DAILY_BACKUP"
-    assert [j["name"] for j in summary["jobs"]]==["master_tick","data_backup"]
+    assert summary["policy"]=="ONE_OPERATIONAL_MASTER"
+    assert [j["name"] for j in summary["jobs"]]==["master_tick"]
     assert summary["jobs"][0]["cadence"]=="cada 10 min"
-    assert summary["jobs"][1]["cadence"]=="02:30 UTC · diario (03:30/04:30 Madrid)"
     assert "pick_grading" in summary["jobs"][0]["included_flows"]
+    assert "data_backup" in summary["jobs"][0]["included_flows"]
     assert "highlights sync" in summary["manual_only"]
 
 

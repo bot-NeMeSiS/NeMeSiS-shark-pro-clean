@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Stateless coordinator for the existing NeMeSiS Render Cron service.
 
-The runner performs two isolated HTTP calls and keeps no local state:
+The runner owns all production recurrence and keeps no local state:
 
-1. Telegram automation tick.
+1. Telegram/sports automation tick.
 2. Continuous Evolution tick on the persistent web service.
+3. Data Vault backup only inside the daily UTC maintenance window.
 
-It uses only PUBLIC_BASE_URL and AUTOMATION_SECRET, emits one sanitized JSON
+The web service owns backup dedupe and persistent storage. The runner uses only
+PUBLIC_BASE_URL and AUTOMATION_SECRET, emits one sanitized JSON
 record, and never puts the secret in a URL or response payload.
 """
 from __future__ import annotations
@@ -24,20 +26,35 @@ from zoneinfo import ZoneInfo
 RUNNER_NAME = "nemesis_master_tick"
 TELEGRAM_ENDPOINT = "/api/automation/telegram/tick?runner=render_cron"
 CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
+BACKUP_ENDPOINT = "/api/automation/data-backup/run"
 READINESS_ENDPOINT = "/api/runtime-version"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
+BACKUP_TIMEOUT_SECONDS = 90
+BACKUP_WINDOW_START_MINUTE_UTC = 2 * 60 + 30
+BACKUP_WINDOW_END_MINUTE_UTC = 4 * 60 + 30
 READINESS_TIMEOUT_SECONDS = 8
 READINESS_ATTEMPTS = 6
 READINESS_BACKOFF_SECONDS = 5
 TRANSIENT_READINESS_HTTP = {502, 503, 504}
 CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"}
+BACKUP_VALID_RESULTS = {"PASS", "OK", "SKIPPED_ALREADY_DONE", "SKIPPED_ALREADY_RUNNING"}
 
 
 def now_labels() -> tuple[str, str]:
     utc_now = datetime.now(timezone.utc)
     madrid_now = utc_now.astimezone(ZoneInfo("Europe/Madrid"))
     return utc_now.isoformat(timespec="seconds"), madrid_now.isoformat(timespec="seconds")
+
+
+def backup_due(utc_now: str) -> bool:
+    """Allow several cron attempts; the web service dedupes the successful day."""
+    try:
+        current = datetime.fromisoformat(str(utc_now).replace("Z", "+00:00")).astimezone(timezone.utc)
+    except (TypeError, ValueError):
+        return False
+    minute = current.hour * 60 + current.minute
+    return BACKUP_WINDOW_START_MINUTE_UTC <= minute < BACKUP_WINDOW_END_MINUTE_UTC
 
 
 def print_event(payload: dict) -> None:
@@ -440,16 +457,63 @@ def continuous_evolution_tick(base_url: str, secret: str) -> dict:
         return request_error_result("continuous", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
-def overall_status(telegram: dict, continuous: dict) -> str:
+def backup_tick(base_url: str, secret: str) -> dict:
+    started = time.perf_counter()
+    request = urllib.request.Request(
+        f"{base_url}{BACKUP_ENDPOINT}",
+        data=b"{}",
+        headers={
+            "User-Agent": "NeMeSiS-SHARK-PRO-Master-Cron/V1",
+            "X-NeMeSiS-Cron-Runner": "render-cron",
+            "X-Automation-Secret": secret,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=BACKUP_TIMEOUT_SECONDS) as response:
+            http_status = int(response.status)
+            payload = decode_json(response.read(30000))
+            if payload is None:
+                return request_error_result("backup", started, "INVALID_JSON_RESPONSE", http_status)
+            candidate = payload.get("status") or payload.get("result")
+            result = safe_label(candidate, secret, "PASS" if payload.get("ok") is not False else "FAIL")
+            ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
+            return {
+                "backup_http": http_status,
+                "backup_status": "PASS" if ok else "FAIL",
+                "backup_result": result,
+                "backup_created": bool(payload.get("backup_created")),
+                "backup_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
+            }
+    except urllib.error.HTTPError as exc:
+        return request_error_result("backup", started, f"HTTP_{int(exc.code)}", int(exc.code))
+    except Exception as exc:
+        reason = getattr(exc, "reason", None)
+        is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(reason, (TimeoutError, socket.timeout))
+        return request_error_result("backup", started, "TIMEOUT" if is_timeout else type(exc).__name__)
+
+
+def skipped_backup() -> dict:
+    return {
+        "backup_http": None,
+        "backup_status": "PASS",
+        "backup_result": "SKIPPED_NOT_DUE",
+        "backup_created": False,
+        "backup_duration_ms": 0,
+    }
+
+
+def overall_status(telegram: dict, continuous: dict, backup: dict) -> str:
     successful = sum(
         item.get(key) == "PASS"
         for item, key in ((telegram, "telegram_status"), (continuous, "continuous_status"))
     )
-    if successful == 2:
-        return "PASS"
-    if successful == 1:
+    base = "PASS" if successful == 2 else "PARTIAL" if successful == 1 else "FAIL"
+    if backup.get("backup_status") == "FAIL" and base == "PASS":
         return "PARTIAL"
-    return "FAIL"
+    return base
 
 
 def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
@@ -467,6 +531,7 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
         "web_readiness": readiness,
         "telegram_status": "NOT_EXECUTED",
         "continuous_evolution_status": "NOT_EXECUTED",
+        "backup_status": "NOT_EXECUTED",
         "telegram": {
             "telegram_http": None,
             "telegram_status": "NOT_EXECUTED",
@@ -478,6 +543,13 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
             "continuous_status": "NOT_EXECUTED",
             "continuous_result": reason,
             "continuous_duration_ms": 0,
+        },
+        "backup": {
+            "backup_http": None,
+            "backup_status": "NOT_EXECUTED",
+            "backup_result": reason,
+            "backup_created": False,
+            "backup_duration_ms": 0,
         },
         "overall": "FAIL",
         "timestamp_madrid": madrid_now,
@@ -502,6 +574,13 @@ def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
             "continuous_status": "NOT_EXECUTED",
             "continuous_result": error,
             "continuous_duration_ms": 0,
+        },
+        "backup": {
+            "backup_http": None,
+            "backup_status": "NOT_EXECUTED",
+            "backup_result": error,
+            "backup_created": False,
+            "backup_duration_ms": 0,
         },
         "overall": "FAIL",
         "timestamp_madrid": madrid_now,
@@ -543,14 +622,17 @@ def main() -> int:
 
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
-    overall = overall_status(telegram, continuous)
+    backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
+    overall = overall_status(telegram, continuous, backup)
     print_event({
         "runner": RUNNER_NAME,
         "web_readiness": readiness,
         "telegram_status": telegram.get("telegram_status"),
         "continuous_evolution_status": continuous.get("continuous_status"),
+        "backup_status": backup.get("backup_status"),
         "telegram": telegram,
         "continuous_evolution": continuous,
+        "backup": backup,
         "overall": overall,
         "timestamp_madrid": madrid_now,
         "timestamp_utc": utc_now,
