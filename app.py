@@ -851,6 +851,9 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/sports/sync",
         "/api/automation/data-backup/run",
         "/api/automation/highlights/sync",
+        "/api/telegram/auto-run",
+        "/api/telegram/scheduler-tick",
+        "/api/v495/telegram-auto-run",
         "/api/payments/stripe-webhook",
     }
     prefixes = (
@@ -861,11 +864,9 @@ def csrf_exempt_path(path: str) -> bool:
         return True
     if any(path.startswith(prefix) for prefix in prefixes):
         return True
-    # These legacy automation/import endpoints are already protected by admin session
-    # or automation secret. Keep CSRF strict for login/register/admin forms and
-    # normal client actions, but avoid breaking external cron/webhook style calls.
-    if path.startswith("/api/v495/telegram-auto-run"):
-        return True
+    # Legacy automation actions in the exact allow-list remain CSRF-exempt only
+    # because the endpoint itself requires the automation secret. Other browser
+    # and admin mutations still require normal CSRF protection.
     return False
 
 
