@@ -14,8 +14,18 @@ The 2026-09-26 section below remains historical evidence, not current Git state.
 - Reproduced the four newly uncovered cases locally: data/local_dev/pr92-b547d083889647dd9e1d0afc12cd194c/result.xml, 4 FAIL.
 - Fixed fixtures with the actual Flask security context and validated the emitted token; no production CSRF relaxation. GET and unauthorized POST are asserted separately.
 - Related suite: data/local_dev/pr92-ffce04f01a0d4137b2ecb46839b0a00a/result.xml, 117 PASS / 0 FAIL / 0 ERROR / 0 SKIP; zero external network attempts.
-- Final CI on the reconciled commit: PENDING. No historical result counts as current CI.
+- CI on reconciled 5c876fd6137a56a453f8287ab8cd996ed0de3649: QA PASS; standard suite 2802 PASS; LOCAL SAFE PASS. Smoke then exposed a separate Sentinel boundary failure: run 36275594352 / job 108497583554 / step 13, GET scan matched the dynamic issue-id route and returned 404 instead of action rejection. Deploy Guard still running. This is not all-green CI.
 - Previous local preview PID 6856 stopped after exact process identity verification; the old preview URL must not be advertised as current.
+
+### Follow-up: authenticated, plan-scoped SHARK reads
+
+- Reproduced anonymous SHARK context access, global legacy profile disclosure and a real INSERT into shark_context_snapshots on GET. Before evidence: pr92-d8fe46aeb63a4a0d94484f66e25ddbac (6 failures), pr92-49cf4440a9eb403aa88877bbc8833449 (1 write regression), pr92-088fd73b86b8472d92744073bec21987 (3 privacy failures before stopping). All paths are under data/local_dev and use disposable SQLite only.
+- Context and briefing now require authentication; both filter draft/premium data using the effective membership. Context no longer persists a snapshot. Explicit question POST retains persistence and usage controls.
+- Profile/membership APIs and briefing project the current user's name and effective plan, never the shared legacy profile. Public membership catalogue remains available without personal data. No legacy data was deleted.
+- Regression covers anonymous, FREE, PRO, ELITE, ADMIN and expired PRO; adversarial query parameters do not change entitlement. Both briefing collections include synthetic higher-tier and draft canaries. Read checks observe attempted DML as well as row snapshots, including SHARK snapshots/memory.
+- Related tests: data/local_dev/pr92-2f23b88e756a4f7ab963d667f95da2a5/result.xml: 142 PASS / 0 FAIL / 0 ERROR / 0 SKIP. A prior command used an incorrect test filename and collected no tests; it is not a product failure or PASS.
+- Local checks: data/local_dev/pr92-665829de66f4448199913f7467e2aabe/checks.json: compile PASS, 216 Jinja templates, Madrid winter/summer PASS, 1186 navigation links with zero broken/loops, 39 Sentinel routes with zero open findings. Secret Guard 1301 files / 0 findings; privacy 75 expected fixtures / 0 review or confirmed leaks. Zero external network attempts. These checks are not production certification.
+- Current scope is app.py and tests/test_get_business_readonly_v941.py plus this living report. Follow-up CI is required on the committed SHA.
 
 ## Historical local close - 2026-09-26
 

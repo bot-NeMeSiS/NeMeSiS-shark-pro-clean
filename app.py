@@ -11215,6 +11215,13 @@ def default_profile():
     return profile
 
 
+def client_profile_view(user):
+    """Client identity projection; never expose the shared legacy profile."""
+    user = user or {}
+    return {"name": user.get("name") or "",
+            "membership_plan": normalize_role(user.get("membership") or user.get("role") or "FREE")}
+
+
 def _shark_cached_live_state(sports_summary, sports_metrics):
     """Compact live state derived from the request snapshot without DB writes."""
     summary = sports_summary if isinstance(sports_summary, dict) else {}
@@ -11245,10 +11252,14 @@ def shark_briefing(sports_summary=None):
     sports_summary = dict(sports_summary or get_public_home_sports_summary())
     sports_metrics = build_sports_metrics_contract(sports_summary)
     today_matches = list(sports_summary.get("valid_matches_today") or [])
-    all_picks = list(sports_summary.get("all_picks") or [])
+    user = current_session_user() if has_request_context() else None
+    profile = client_profile_view(user)
+    def permitted(pick):
+        return (normalize_pick_status(pick.get("status")) in {"published", "won", "lost", "void"}
+                and membership_allows(profile["membership_plan"], pick.get("membership_required")))
+    all_picks = [p for p in (sports_summary.get("all_picks") or []) if permitted(p)]
     quality_groups = split_picks_by_quality(all_picks)
-    picks = list(sports_summary.get("valid_active_picks") or [])[:8]
-    profile = default_profile()
+    picks = [p for p in (sports_summary.get("valid_active_picks") or []) if permitted(p)][:8]
     imported_real = [m for m in today_matches if "seed" not in str(m.get("source") or "").lower()]
     explained = []
     for pick in picks:
@@ -27601,18 +27612,23 @@ def api_combis_build():
 
 @app.route("/api/profile")
 def api_profile():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
-    return jsonify({"ok": True, "version": APP_VERSION, "profile": default_profile(), "session_user": current_session_user()})
+    return jsonify({"ok": True, "version": APP_VERSION, "profile": client_profile_view(user), "session_user": user})
 
 
 @app.route("/api/membership")
 def api_membership():
-    return jsonify({"ok": True, "version": APP_VERSION, "plans": MEMBERSHIP_PLANS, "profile": default_profile()})
+    user = current_session_user()
+    return jsonify({"ok": True, "version": APP_VERSION, "plans": MEMBERSHIP_PLANS,
+                    "profile": client_profile_view(user) if user else None})
 
 
 @app.route("/api/shark/briefing")
 def api_shark_briefing():
+    if not current_session_user():
+        return jsonify({"ok": False, "error": "Inicia sesión para consultar SHARK.", "login_required": True}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "briefing": shark_briefing()})
 
 
@@ -27633,9 +27649,14 @@ def api_shark_ask():
 
 @app.route("/api/shark/context")
 def api_shark_context():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Inicia sesión para consultar SHARK.", "login_required": True}), 401
     match_id = request.args.get("match_id") or ""
     match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
-    picks = get_picks(limit=12)
+    if match_id and not match:
+        return jsonify({"ok": False, "error": "Partido no encontrado."}), 404
+    picks = published_picks_for_user(user, limit=12)
     match_intelligence = (
         cached_match_intelligence_for_consumer(match, picks) if match else {}
     )
@@ -27644,11 +27665,10 @@ def api_shark_context():
         league=(match or {}).get("competition_name") if match else request.args.get("league"),
         favorites=get_favorites(),
         picks=picks,
-        profile=default_profile(),
+        profile=client_profile_view(user),
         match_intelligence=match_intelligence,
     )
-    snapshot_id = save_shark_context("context", match_id or context.get("league") or "global", context)
-    return jsonify({"ok": True, "version": APP_VERSION, "snapshot_id": snapshot_id, "context": context})
+    return jsonify({"ok": True, "version": APP_VERSION, "snapshot_id": None, "read_only": True, "context": context})
 
 
 @app.route("/api/telegram/status")

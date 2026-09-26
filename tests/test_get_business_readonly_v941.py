@@ -8,6 +8,7 @@ BUSINESS_TABLES=(
     "subscription_accounts","stripe_subscriptions","revenue_daily_metrics",
     "client_profiles","payment_readiness_daily","settings",
     "telegram_subscribers","payment_webhook_events","subscription_events",
+    "shark_context_snapshots","shark_memory",
 )
 CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships")
 ADMIN_ROUTES=(
@@ -286,3 +287,100 @@ def test_autopilot_navigation_does_not_start_diagnostics(app_module,monkeypatch,
     before=snapshot(db)
     assert client.get(route).status_code == 200
     assert snapshot(db)==before
+
+
+@pytest.mark.parametrize('route', ['/api/shark/context', '/api/shark/briefing'])
+@pytest.mark.parametrize('plan', ['ANONYMOUS','FREE','PRO','ELITE','ADMIN','EXPIRED'])
+def test_shark_context_is_private_plan_scoped_and_read_only(app_module,monkeypatch,tmp_path,plan,route):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    effective='FREE' if plan in {'ANONYMOUS','EXPIRED'} else plan
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
+                     ('PRO' if plan=='EXPIRED' else effective,'PRO' if plan=='EXPIRED' else effective,
+                      '2020-01-01' if plan=='EXPIRED' else '2030-01-01','qa-read-client'))
+        for tier in ('FREE','PRO','ELITE'):
+            conn.execute("""INSERT INTO picks
+                (id,home_team,away_team,market,selection,reasoning,status,membership_required,odds,match_date,created_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                ('qa-context-'+tier,'QA Home','QA Away','1x2','QA_SELECTION_'+tier,
+                 'QA_ANALYSIS_'+tier,'published',tier,1.8,a.today_iso(),a.now_iso()))
+        conn.execute("INSERT INTO picks(id,selection,reasoning,status,membership_required) VALUES(?,?,?,?,?)",
+                     ('qa-context-draft','QA_DRAFT_SELECTION','QA_DRAFT_REASON','draft','FREE'))
+        conn.execute("INSERT OR REPLACE INTO client_profiles(id,name,membership_plan) VALUES(?,?,?)",
+                     ('default','QA_OTHER_PERSON_PROFILE','ELITE'))
+    # Both briefing collections deliberately contain all tiers and a draft.
+    # Only the upstream cache is substituted; authorization and SQL are real.
+    with sqlite3.connect(db) as conn:
+        conn.row_factory=sqlite3.Row
+        picks=[dict(row) for row in conn.execute("SELECT * FROM picks WHERE id LIKE 'qa-context-%'")]
+    monkeypatch.setattr(a,'get_public_home_sports_summary',lambda:{
+        'storage_status':'ok','valid_matches_today':[], 'valid_live_events':[],
+        'valid_upcoming_matches':[], 'all_picks':picks,'valid_active_picks':picks})
+    client=a.app.test_client()
+    if plan!='ANONYMOUS':
+        with client.session_transaction() as state:
+            state.update(user_id='qa-read-client',user_role='PRO' if plan=='EXPIRED' else effective,
+                         membership='PRO' if plan=='EXPIRED' else effective,user_name='QA')
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    for _ in range(2):
+        response=client.get(route+'?membership=ADMIN&user_id=other&admin=1')
+        assert response.status_code == (401 if plan=='ANONYMOUS' else 200)
+        body=response.get_data(as_text=True)
+        assert 'QA_OTHER_PERSON_PROFILE' not in body
+        assert 'QA_DRAFT_SELECTION' not in body and 'QA_DRAFT_REASON' not in body
+        allowed={'ANONYMOUS':(),'FREE':('FREE',),'EXPIRED':('FREE',),
+                 'PRO':('FREE','PRO'),'ELITE':('FREE','PRO','ELITE'),'ADMIN':('FREE','PRO','ELITE')}[plan]
+        for tier in ('FREE','PRO','ELITE'):
+            assert ('QA_ANALYSIS_'+tier in body) == (tier in allowed)
+        if plan!='ANONYMOUS':
+            result=response.get_json()
+            if route=='/api/shark/context':
+                assert result['snapshot_id'] is None
+                context=result['context']
+            else:
+                context=result['briefing']['context']
+            assert context['profile']['plan']==effective
+        assert snapshot(db)==before
+        assert not writes,writes
+
+
+def test_shark_context_get_does_not_append_snapshots(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id='qa-read-client',user_role='FREE',membership='FREE')
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    for _ in range(2):
+        assert client.get('/api/shark/context').status_code==200
+        assert not writes,writes
+        assert snapshot(db)==before
+
+
+@pytest.mark.parametrize('route', ['/api/profile','/api/membership','/api/shark/briefing'])
+@pytest.mark.parametrize('plan', ['ANONYMOUS','FREE','PRO','ELITE'])
+def test_client_read_apis_never_disclose_legacy_global_profile(app_module,monkeypatch,tmp_path,route,plan):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at='2030-01-01' WHERE id=?",
+                     (plan,plan,'qa-read-client'))
+        conn.execute("""INSERT OR REPLACE INTO client_profiles
+            (id,name,membership_plan,telegram_chat_id,preferences_json)
+            VALUES(?,?,?,?,?)""",('default','QA_LEGACY_PRIVATE_NAME','ELITE','QA_PRIVATE_CHAT','{"focus":"QA_PRIVATE_FOCUS"}'))
+    client=a.app.test_client()
+    if plan!='ANONYMOUS':
+        with client.session_transaction() as state:
+            state.update(user_id='qa-read-client',user_role=plan,membership=plan,user_name='QA')
+    before=snapshot(db)
+    for _ in range(2):
+        response=client.get(route)
+        expected=401 if plan=='ANONYMOUS' and route!='/api/membership' else 200
+        assert response.status_code==expected
+        body=response.get_data(as_text=True)
+        assert all(value not in body for value in ('QA_LEGACY_PRIVATE_NAME','QA_PRIVATE_CHAT','QA_PRIVATE_FOCUS'))
+        if expected==200 and plan!='ANONYMOUS':
+            payload=response.get_json()
+            profile=payload['briefing']['profile'] if route=='/api/shark/briefing' else payload['profile']
+            assert profile['membership_plan']==plan
+        assert snapshot(db)==before
