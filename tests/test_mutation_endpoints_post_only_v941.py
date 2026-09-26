@@ -22,6 +22,7 @@ POST_ONLY_PATHS=(
     "/api/odds/sync-odds",
     "/api/picks/publish",
     "/api/picks/archive",
+    "/api/shark/ask",
     "/api/automation/highlights/sync",
     "/api/automation/daily/run",
     "/api/automation/sports/sync",

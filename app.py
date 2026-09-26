@@ -22719,8 +22719,8 @@ def membership_page():
     return render_template("membership.html", data=data)
 
 
-@app.route("/shark-ai")
-@app.route("/shark")
+@app.route("/shark-ai", methods=["GET", "POST"])
+@app.route("/shark", methods=["GET", "POST"])
 def shark_page():
     phase_metrics = {}
 
@@ -22739,17 +22739,49 @@ def shark_page():
     session_user = current_session_user()
     user = session_user or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
-    requested_question = str(request.args.get("q") or "").strip()
-    usage = shark_question_usage(session_user) if session_user else {"allowed": False, "login_required": True, "membership": "FREE", "limit": get_membership_limits("FREE").get("shark_questions", 0), "used": 0, "remaining": 0, "limit_reached": False}
+
+    submitted_question = str(request.form.get("q") or "").strip()[:1000] if request.method == "POST" else ""
+    quick_raw = str(request.args.get("q") or "").strip()[:120] if request.method == "GET" else ""
+    quick_ascii = unicodedata.normalize("NFKD", quick_raw).encode("ascii", "ignore").decode().lower()
+    quick_key = re.sub(r"[^a-z0-9]+", " ", quick_ascii).strip()
+    quick_map = {
+        "directo": "directo",
+        "partidos": "partidos",
+        "calendario": "partidos",
+        "plan": "plan",
+        "mi plan": "plan",
+        "pick": "pick",
+        "pronostico": "pick",
+        "riesgo": "riesgo",
+        "telegram": "telegram",
+    }
+    quick_question = quick_map.get(quick_key, "")
+    requested_question = submitted_question or quick_question
+
+    usage = shark_question_usage(session_user) if session_user else {
+        "allowed": False,
+        "login_required": True,
+        "membership": "FREE",
+        "limit": get_membership_limits("FREE").get("shark_questions", 0),
+        "used": 0,
+        "remaining": 0,
+        "limit_reached": False,
+    }
     question_block = ""
     if requested_question:
         if not session_user:
             question_block = "LOGIN_REQUIRED"
-        else:
+        elif submitted_question:
             usage = consume_shark_question(session_user)
             if not usage.get("allowed"):
                 question_block = "LIMIT_REACHED"
+
     data["shark_usage"] = usage
+    data["shark_submitted_question"] = submitted_question
+    data["shark_quick_question"] = bool(quick_question)
+    data["shark_question_active"] = bool(requested_question or question_block)
+    data["shark_legacy_get_ignored"] = bool(quick_raw and not quick_question)
+
     briefing = timed_phase(
         "briefing",
         lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
@@ -22810,7 +22842,6 @@ def shark_page():
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     g.v937_shark_cache_status = str(summary.get("summary_cache_status") or "request_cache")
     return timed_phase("template", lambda: render_template("shark.html", data=data))
-
 
 
 def _shark_intelligence_anchor_match(summary):
@@ -27585,7 +27616,7 @@ def api_shark_briefing():
     return jsonify({"ok": True, "version": APP_VERSION, "briefing": shark_briefing()})
 
 
-@app.route("/api/shark/ask", methods=["GET", "POST"])
+@app.route("/api/shark/ask", methods=["POST"])
 def api_shark_ask():
     user = current_session_user()
     if not user:

@@ -23,9 +23,17 @@ def test_free_daily_limit_is_consumed_atomically(app_module,tmp_path,monkeypatch
     assert all("prompt_stored" in value and "qa-free-shark" not in value for value in payloads)
 
 
-def test_shark_api_requires_login(client,app_module,monkeypatch):
+def test_shark_api_rejects_get_without_consuming(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"consume_shark_question",lambda *_: (_ for _ in ()).throw(AssertionError("GET must never consume quota")))
+    assert client.get("/api/shark/ask?q=calendario").status_code==405
+
+
+def test_shark_api_requires_login_on_post(client,app_module,monkeypatch):
+    csrf="qa-anon-shark-csrf"
+    with client.session_transaction() as state:
+        state["csrf_token"]=csrf
     monkeypatch.setattr(app_module,"shark_answer",lambda *_: (_ for _ in ()).throw(AssertionError("must not answer anonymously")))
-    response=client.get("/api/shark/ask?q=calendario")
+    response=client.post("/api/shark/ask",json={"question":"calendario"},headers={"X-CSRF-Token":csrf})
     assert response.status_code==401
     assert response.get_json()["login_required"] is True
 
@@ -73,3 +81,31 @@ def test_shark_api_post_requires_csrf(client,app_module,monkeypatch):
     response=client.post("/api/shark/ask",json={"question":"estado"},headers={"X-CSRF-Token":"qa-shark-csrf-pro"})
     assert response.status_code==403
     assert response.get_json()["error"]=="csrf_required"
+
+
+def test_shark_page_get_never_consumes_free_form_quota(client,app_module,monkeypatch):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-shark-page",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    monkeypatch.setattr(app_module,"consume_shark_question",lambda *_: (_ for _ in ()).throw(AssertionError("GET page must not consume quota")))
+    response=client.get("/shark?q=consulta-personalizada-no-permitida")
+    assert response.status_code==200
+    assert "enlace antiguo no ejecutó una consulta" in response.get_data(as_text=True)
+
+
+def test_shark_quick_get_is_read_only(client,app_module,monkeypatch):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-shark-quick",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    monkeypatch.setattr(app_module,"consume_shark_question",lambda *_: (_ for _ in ()).throw(AssertionError("quick GET must not consume quota")))
+    assert client.get("/shark?q=directo").status_code==200
+
+
+def test_shark_forms_and_widget_have_no_get_fallback():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    shark=(root/"templates/shark.html").read_text(encoding="utf-8")
+    base=(root/"templates/base.html").read_text(encoding="utf-8")
+    core=(root/"templates/shark_core.html").read_text(encoding="utf-8")
+    assert '<form method="post" action="/shark">' in shark
+    assert 'id="sharkForm" class="shark-form" method="post" action="/shark"' in base
+    assert "/api/shark/ask?q=" not in base
+    assert 'method="post" action="/shark" class="chip-form"' in core

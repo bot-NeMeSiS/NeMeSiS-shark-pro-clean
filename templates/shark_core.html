@@ -15,14 +15,14 @@
 
 <section class="grid cards-3 v826-certified-screen" data-v826-template="shark_core">
   <article class="card">
-    <p class="eyebrow">Pick destacado</p>
+    <p class="eyebrow">Pronóstico destacado</p>
     {% if shark.top_pick %}
       <h3>{{ shark.top_pick.home_team or shark.top_pick.title }} vs {{ shark.top_pick.away_team or '' }}</h3>
-      <p>{{ shark.top_pick.selection or shark.top_pick.market or 'Pick publicado' }}</p>
-      <a class="btn" href="/picks">Ver picks</a>
+      <p>{{ shark.top_pick.selection or shark.top_pick.market or 'Pronóstico publicado' }}</p>
+      <a class="btn" href="/picks">Ver pronósticos</a>
     {% else %}
-      <h3>Sin pick publicado ahora</h3>
-      <p class="muted">SHARK mostrará picks cuando existan datos y picks publicados.</p>
+      <h3>Sin pronóstico publicado ahora</h3>
+      <p class="muted">SHARK mostrará pronósticos cuando existan datos y pronósticos publicados.</p>
       <a class="btn ghost" href="/auto-picks">Ver auto picks</a>
     {% endif %}
   </article>
@@ -40,9 +40,9 @@
   </article>
 
   <article class="card">
-    <p class="eyebrow">Live y favoritos</p>
+    <p class="eyebrow">Directo y favoritos</p>
     <h3>{{ shark.counts.live }} directo  {{ shark.counts.favorites }} favoritos</h3>
-    <p class="muted">SHARK cruza favoritos, live, picks y calendario para priorizar lo importante.</p>
+    <p class="muted">SHARK cruza favoritos, directo, pronósticos y calendario para priorizar lo importante.</p>
     <a class="btn ghost" href="/favorites">Mis favoritos</a>
   </article>
 </section>
@@ -56,7 +56,7 @@
   </div>
   <div class="quick-grid">
     {% for q in shark.quick_questions %}
-      <a class="chip" href="/shark?q={{ q.question|urlencode }}">{{ q.label }}  {{ q.question }}</a>
+      <form method="post" action="/shark" class="chip-form"><input type="hidden" name="q" value="{{ q.question }}"><button class="chip" type="submit">{{ q.label }}  {{ q.question }}</button></form>
     {% endfor %}
   </div>
 </section>
@@ -81,8 +81,8 @@
     <p class="muted">SHARK ya guarda actividad básica para personalizar favoritos, picks y recomendaciones futuras.</p>
     <ul class="clean-list">
       <li>Favoritos consultados</li>
-      <li>Picks y recomendaciones abiertas</li>
-      <li>Resumen diario y contexto live</li>
+      <li>Pronósticos y recomendaciones abiertas</li>
+      <li>Resumen diario y contexto en directo</li>
     </ul>
   </article>
 </section>
