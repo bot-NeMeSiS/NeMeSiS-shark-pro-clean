@@ -50,13 +50,13 @@ if __name__ == '__main__':
 '''
 
 
-def _get(port, path, *, token=None):
+def _get(port, path, *, token=None, method='GET'):
     # Fixed loopback host. Never accepts a production host or URL.
     conn = http.client.HTTPConnection('127.0.0.1', port, timeout=15)
     try:
         headers = {'X-Automation-Secret': token} if token else {}
         start = time.perf_counter()
-        conn.request('GET', path, headers=headers)
+        conn.request(method, path, headers=headers)
         response = conn.getresponse()
         body = response.read()
         return {'status': response.status, 'ms': round((time.perf_counter()-start)*1000,2), 'bytes':len(body)}
@@ -105,10 +105,12 @@ def test_ordinary_navigation_order_during_synthetic_sports_task(tmp_path, backen
                 if time.monotonic()>deadline: pytest.fail('Isolated server startup timed out')
                 time.sleep(.05)
             assert _get(port,'/live')['status']==200
-            assert _get(port,'/api/automation/sports/sync')['status']==403
+            assert _get(port,'/api/automation/sports/sync')['status']==405
+            assert _get(port,'/api/automation/sports/sync',token=token)['status']==405
+            assert _get(port,'/api/automation/sports/sync',method='POST')['status']==403
             assert not entered.exists()
             with ThreadPoolExecutor(max_workers=2) as pool:
-                slow=pool.submit(_get,port,'/api/automation/sports/sync',token=token)
+                slow=pool.submit(_get,port,'/api/automation/sports/sync',token=token,method='POST')
                 try:
                     deadline=time.monotonic()+5
                     while not entered.exists():

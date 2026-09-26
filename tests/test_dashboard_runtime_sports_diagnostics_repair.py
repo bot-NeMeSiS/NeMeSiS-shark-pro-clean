@@ -239,7 +239,8 @@ def test_same_plan_users_and_admin_never_share_session_cache(
         "expire_user_memberships_if_needed",
         lambda user_id: expiry_calls.append(user_id),
     )
-    monkeypatch.setattr(app_module, "get_user_by_id", lambda _user_id: None)
+    read_calls = []
+    monkeypatch.setattr(app_module, "get_user_by_id", lambda user_id: read_calls.append(user_id))
 
     def read_user(user_id, name, role="PRO"):
         with app_module.app.test_request_context("/app"):
@@ -269,7 +270,8 @@ def test_same_plan_users_and_admin_never_share_session_cache(
     assert user_b["name"] == "Usuario B"
     assert admin["id"] == "qa-admin"
     assert admin["role"] == "ADMIN"
-    assert expiry_calls == ["qa-same-plan-a", "qa-same-plan-b"]
+    assert read_calls == ["qa-same-plan-a", "qa-same-plan-b"]
+    assert expiry_calls == [], "Session reads must not persist membership expiry"
 
 
 def test_dashboard_composition_reuses_expensive_personal_context(

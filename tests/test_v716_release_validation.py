@@ -62,9 +62,12 @@ def test_cron_endpoints_require_secret_and_accept_valid_secret(client, monkeypat
     ]
     for path in protected:
         response = client.get(path)
+        assert response.status_code == 405
+        assert client.get(path, headers={"X-Automation-Secret": test_secret}).status_code == 405
+        response = client.post(path)
         assert response.status_code == 403
 
-        response = client.get(path, headers={"X-Automation-Secret": test_secret})
+        response = client.post(path, headers={"X-Automation-Secret": test_secret})
         assert response.status_code == 200
         payload = response.get_json()
         assert payload["cron"] is True
