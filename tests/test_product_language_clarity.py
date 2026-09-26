@@ -102,3 +102,10 @@ def test_membership_product_labels_use_current_vocabulary():
     assert "Track record" not in experience
     assert "Abrir command center" not in experience
     assert "Alertas live" not in stripe
+
+
+def test_shark_surface_uses_current_product_language():
+    text=read("templates/shark.html")
+    for forbidden in ("{'label':'Partidos'","{'label':'Ver picks'","Explorar partidos","Revisar picks","<strong>Pick</strong>","Sin pick real publicado"):
+        assert forbidden not in text
+    assert "Calendario" in text and "Ver pronósticos" in text

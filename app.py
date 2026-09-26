@@ -22726,15 +22726,27 @@ def shark_page():
         "sports_context",
         lambda: v932_safe_dashboard_data(request.path, compact=True),
     )
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
+    requested_question = str(request.args.get("q") or "").strip()
+    usage = shark_question_usage(session_user) if session_user else {"allowed": False, "login_required": True, "membership": "FREE", "limit": get_membership_limits("FREE").get("shark_questions", 0), "used": 0, "remaining": 0, "limit_reached": False}
+    question_block = ""
+    if requested_question:
+        if not session_user:
+            question_block = "LOGIN_REQUIRED"
+        else:
+            usage = consume_shark_question(session_user)
+            if not usage.get("allowed"):
+                question_block = "LIMIT_REACHED"
+    data["shark_usage"] = usage
     briefing = timed_phase(
         "briefing",
         lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
     )
     data["briefing"] = briefing
     openai_ready = v845_openai_configured()
-    question = request.args.get("q") or "resumen"
+    question = requested_question if requested_question and not question_block else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
     if not provider_status.get("api_sports_configured"):
         provider_label = "API-SPORTS no configurada"
@@ -22772,6 +22784,10 @@ def shark_page():
             {},
         ),
     )
+    if question_block == "LOGIN_REQUIRED":
+        answer = {"answer": "Inicia sesión para hacer consultas personalizadas a SHARK. Puedes seguir viendo el resumen y los datos públicos.", "focus": "membership"}
+    elif question_block == "LIMIT_REACHED":
+        answer = {"answer": "Has alcanzado el límite de consultas SHARK de hoy para tu plan. El resumen deportivo sigue disponible.", "focus": "membership"}
     data["shark_assistant"] = {
         "context": context,
         "answer": answer,
@@ -27561,10 +27577,17 @@ def api_shark_briefing():
 
 @app.route("/api/shark/ask", methods=["GET", "POST"])
 def api_shark_ask():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para preguntar a SHARK.", "login_required": True, "login_url": "/cliente-login?next=/shark"}), 401
+    usage = consume_shark_question(user)
+    if not usage.get("allowed"):
+        target = "ELITE" if usage.get("membership") == "PRO" else "PRO"
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/memberships?plan={target}"}), 429
     payload = request.get_json(silent=True) or dict(request.form or request.args or {})
     answer = shark_answer(payload.get("question") or payload.get("q") or "")
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
-    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer, "usage": usage})
 
 
 @app.route("/api/shark/context")
@@ -29237,15 +29260,15 @@ def v566_membership_ui(user=None):
     elif membership == "PRO":
         ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
-        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
+        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver pronósticos", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
-            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "PRO", "title": "Pronósticos y Telegram PRO", "body": "Desbloquea pronósticos PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Pronósticos automáticos y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
-            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "ELITE completo", "body": "Pronósticos automáticos, combinadas avanzadas, SHARK completo y valor avanzado.", "href": "/membresias?plan=ELITE"},
         ]
     else:
         ctx["upgrade_cards"] = []
@@ -29998,6 +30021,48 @@ def record_shark_memory(event_type, context=None, user_id=None):
         return True
     except Exception:
         return False
+
+
+def shark_question_usage(user=None):
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+    finally:
+        conn.close()
+    return {"allowed": used < limit, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+
+
+def consume_shark_question(user=None):
+    """Consume one plan query atomically without storing the prompt text."""
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+        if used >= limit:
+            conn.rollback()
+            return {"allowed": False, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": 0, "limit_reached": True}
+        conn.execute("INSERT INTO shark_memory(user_id,event_type,context_json,created_at) VALUES (?,?,?,?)", (user_id, "client_question", json.dumps({"membership": membership, "prompt_stored": False}, ensure_ascii=False), now_iso()))
+        conn.commit()
+        used += 1
+        return {"allowed": True, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+    finally:
+        conn.close()
 
 
 def v570_shark_core_summary():

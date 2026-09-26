@@ -78,6 +78,7 @@ LEARNING = [
     {"rule": "PRODUCT_LANGUAGE -> CLEAR_ES_CLIENT_ADMIN", "origin": "V941 terminology contract", "test": "tests/test_product_language_clarity.py", "detail": "Cliente y Admin priorizan español claro; términos técnicos solo se mantienen cuando aportan contexto y se explican."},
     {"rule": "ONE_RECURRING_OWNER -> NO_DUPLICATE_SCHEDULERS", "origin": "V941 automation cleanup", "test": "tests/test_automation_schedule_minimal.py", "detail": "Render programa solo cron maestro y backup diario; scheduler/daily/highlights/grading/Sentinel separados quedan manuales o incluidos en el maestro."},
     {"rule": "CANONICAL_BROWSER_MATRIX -> CLIENT_ADMIN_PC_MOBILE", "origin": "V941 release QA", "test": "tests/test_canonical_browser_matrix_v941.py", "detail": "Cliente real y Admin canónico se recorren en Chromium PC/móvil; FREE/PRO/ELITE se verifican además con preview aislado."},
+    {"rule": "SHARK_PLAN_LIMIT -> NO_DIRECT_API_BYPASS", "origin": "V941 membership value", "test": "tests/test_shark_membership_limits_v941.py", "detail": "Las consultas personalizadas requieren sesión y consumen el límite diario del plan; el prompt no se persiste en el contador."},
 ]
 
 
