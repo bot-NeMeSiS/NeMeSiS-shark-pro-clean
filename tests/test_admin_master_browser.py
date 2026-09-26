@@ -277,6 +277,9 @@ def test_real_client_preview_route_captures(browser,app_module,width,height,plan
         file=(ROOT/url.path.lstrip('/')).resolve()
         if url.path.startswith('/static/') and file.is_relative_to(ROOT/'static') and file.is_file():
             route.fulfill(status=200,content_type=mimetypes.guess_type(str(file))[0] or 'application/octet-stream',body=file.read_bytes());return
+        if url.path == '/team-crest.svg':
+            crest=client.get(url.path + (('?' + url.query) if url.query else ''))
+            route.fulfill(status=crest.status_code,content_type=crest.content_type or 'image/svg+xml',body=crest.data);return
         unexpected.append(route.request.url);route.fulfill(status=404,body='')
     page.route('**/*',serve);page.on('pageerror',lambda error:errors.append(str(error)))
     try:
