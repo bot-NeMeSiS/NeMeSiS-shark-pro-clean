@@ -41,7 +41,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         "templates/home.html": [
             'data-top100-improvement="17"',
             "Estado de datos deportivos",
-            "sports-metrics-v1",
+            "sports_contract_attributes(sports_metrics)",
             "Esperando sincronización",
         ],
         "templates/favorites.html": [
