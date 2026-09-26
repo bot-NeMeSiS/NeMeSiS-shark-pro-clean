@@ -95,3 +95,31 @@ def test_daily_master_is_membership_persistence_owner(app_module,monkeypatch):
     assert result["ok"] is True
     assert seen==["expiry"]
     assert result["membership_expiry"]["ok"] is True
+
+
+def test_telegram_state_read_is_pure_and_generation_is_explicit(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    user=a.get_user_by_id("qa-read-client")
+    before=snapshot(db)
+    state=a.telegram_user_state(user)
+    assert state["linked"] is False
+    assert state["code"]==""
+    assert state["generation_requires_post"] is True
+    assert snapshot(db)==before
+
+    code=a.generate_telegram_link_code("qa-read-client")
+    assert code and code.startswith("NS")
+    assert snapshot(db)!=before
+
+
+def test_telegram_regenerate_get_is_method_not_allowed_and_read_only(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-read-client",user_role="PRO",membership="PRO",user_membership="PRO",
+                     membership_expires_at="2030-01-01T00:00:00+00:00",user_name="QA")
+    before=snapshot(db)
+    response=client.get("/telegram/regenerar-código")
+    assert response.status_code==405
+    assert snapshot(db)==before
+
