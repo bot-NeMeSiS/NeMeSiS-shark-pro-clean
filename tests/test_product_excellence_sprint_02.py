@@ -42,7 +42,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
             'data-top100-improvement="17"',
             "Estado de datos deportivos",
             "sports_contract_attributes(sports_metrics)",
-            "Esperando sincronización",
+            "esperando sincronización",
         ],
         "templates/favorites.html": [
             'data-top100-improvement="18"',
