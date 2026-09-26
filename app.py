@@ -9901,6 +9901,8 @@ def enrich_user_membership_state(data):
     item["membership_expires_label"] = membership_expires_label(item.get("membership_expires_at"))
     item["membership_is_temporal"] = bool(item.get("membership_expires_at")) and item["membership"] not in {"FREE", "ADMIN"}
     item["membership_expired"] = user_membership_is_expired(item)
+    item["effective_membership"] = "FREE" if item["membership_expired"] else item["membership"]
+    item["effective_role"] = "FREE" if item["membership_expired"] and item["role"] != "ADMIN" else item["role"]
     return item
 
 
@@ -9915,8 +9917,10 @@ def user_public(row):
         "name": data.get("name") or username or "Cliente SHARK",
         "username": username,
         "email": email,
-        "role": normalize_role(data.get("role")),
-        "membership": normalize_role(data.get("membership")),
+        "role": normalize_role(data.get("effective_role") or data.get("role")),
+        "membership": normalize_role(data.get("effective_membership") or data.get("membership")),
+        "persisted_membership": normalize_role(data.get("membership")),
+        "membership_expired": bool(data.get("membership_expired")),
         "membership_source": data.get("membership_source") or "registro",
         "membership_started_at": data.get("membership_started_at") or "",
         "membership_expires_at": data.get("membership_expires_at") or "",
@@ -9963,7 +9967,6 @@ def current_session_user():
         if has_request_context() and request.environ.get("nemesis.v932.database_locked"):
             raise sqlite3.OperationalError("database is locked; using authenticated session snapshot")
         if normalize_role(session.get("user_role")) != "ADMIN":
-            expire_user_memberships_if_needed(session.get("user_id"))
             fresh = get_user_by_id(session.get("user_id"))
             if fresh:
                 public = user_public(fresh)
@@ -9974,7 +9977,7 @@ def current_session_user():
                 return remember(public)
     except Exception:
         pass
-    return remember({
+    fallback = {
         "id": session.get("user_id"),
         "name": session.get("user_name") or "Cliente SHARK",
         "username": session.get("username") or session.get("user_name") or "",
@@ -9983,7 +9986,8 @@ def current_session_user():
         "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
         "membership_expires_at": session.get("membership_expires_at") or "",
         "membership_expires_label": membership_expires_label(session.get("membership_expires_at")),
-    })
+    }
+    return remember(user_public(fallback) or fallback)
 
 
 def current_user_id():
@@ -11027,7 +11031,6 @@ def admin_json_forbidden():
 
 def list_users():
     seed_core()
-    expire_user_memberships_if_needed()
     users = rows(
         """SELECT id,name,username,email,role,membership,created_at,last_login,
                   membership_source,membership_started_at,membership_expires_at,
@@ -11069,19 +11072,28 @@ def update_user_membership(user_id, membership, days=0, note="", source="admin_m
 
 
 def membership_admin_summary():
-    expire_user_memberships_if_needed()
+    """Read-only membership status; persistence belongs to the master cron."""
     active_temporal = 0
     expiring_soon = 0
+    expired_pending = 0
     expired_today = 0
+    current = now_iso()
     soon_limit = (datetime.now(TZ) + timedelta(days=7)).isoformat(timespec="seconds")
     try:
         active_temporal = (one("""SELECT COUNT(*) AS total FROM users
             WHERE COALESCE(membership_expires_at,'')!=''
-              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""") or {}).get("total", 0)
+              AND membership_expires_at>?
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (current,)) or {}).get("total", 0)
         expiring_soon = (one("""SELECT COUNT(*) AS total FROM users
             WHERE COALESCE(membership_expires_at,'')!=''
+              AND membership_expires_at>?
               AND membership_expires_at<=?
-              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (soon_limit,)) or {}).get("total", 0)
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (current, soon_limit)) or {}).get("total", 0)
+        expired_pending = (one("""SELECT COUNT(*) AS total FROM users
+            WHERE COALESCE(membership_expires_at,'')!=''
+              AND membership_expires_at<=?
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')
+              AND upper(COALESCE(role,'FREE'))!='ADMIN'""", (current,)) or {}).get("total", 0)
         expired_today = (one("""SELECT COUNT(*) AS total FROM users
             WHERE membership_source='expirada' AND COALESCE(membership_updated_at,'') LIKE ?""", (today_iso()+"%",)) or {}).get("total", 0)
     except Exception:
@@ -11089,9 +11101,11 @@ def membership_admin_summary():
     return {
         "active_temporal": active_temporal or 0,
         "expiring_soon": expiring_soon or 0,
+        "expired_pending_persistence": expired_pending or 0,
         "expired_today": expired_today or 0,
         "quick_days": [1, 3, 7, 15, 30, 60, 90, 180, 365],
-        "note": "Las membresías temporales se degradan a FREE automáticamente al caducar.",
+        "note": "El acceso caducado se trata como FREE inmediatamente; el cron maestro persiste la caducidad en el cierre diario.",
+        "read_only": True,
     }
 
 
@@ -31973,11 +31987,13 @@ def v818_callback_result(label, fn, *args, **kwargs):
 def v818_daily_close_previous_day():
     lifecycle = v818_callback_result("lifecycle", ensure_client_match_lifecycle_fresh, True)
     grading = v818_callback_result("pick_grading", run_pick_grading, DB_PATH, limit=500, apply=True)
+    membership_expiry = v818_callback_result("membership_expiry", expire_user_memberships_if_needed)
     track = v818_callback_result("track_record", v742_track_record_context)
     return {
-        "ok": not any(item.get("ok") is False for item in [lifecycle, grading]),
+        "ok": not any(item.get("ok") is False for item in [lifecycle, grading, membership_expiry]),
         "lifecycle": lifecycle,
         "pick_grading": grading,
+        "membership_expiry": membership_expiry,
         "track_record_ready": bool(track.get("ok", True)),
         "no_invented_results": True,
     }
