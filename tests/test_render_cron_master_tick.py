@@ -242,8 +242,10 @@ def test_secret_is_header_only_and_never_appears_in_output(monkeypatch, capsys):
     assert len(calls) == 2
     assert all(call["request"].headers["X-automation-secret"] == secret for call in calls)
     assert all(secret not in call["request"].full_url for call in calls)
-    assert calls[0]["request"].get_method() == "GET"
-    assert calls[0]["request"].full_url.endswith("/api/automation/telegram/tick?runner=render_cron")
+    assert calls[0]["request"].get_method() == "POST"
+    assert calls[0]["request"].full_url.endswith("/api/automation/telegram/tick")
+    assert calls[0]["request"].data == b"{}"
+    assert calls[0]["request"].headers["Content-type"] == "application/json"
     assert calls[1]["request"].get_method() == "POST"
     assert calls[1]["request"].full_url.endswith("/api/automation/continuous-evolution/tick")
     assert calls[0]["timeout"] == master.TELEGRAM_TIMEOUT_SECONDS

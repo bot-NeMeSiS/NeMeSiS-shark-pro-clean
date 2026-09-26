@@ -27743,8 +27743,8 @@ def api_automation_sports_sync():
 
 @app.route("/api/automation/telegram/tick", methods=["POST", "GET"])
 def api_automation_telegram_tick():
-    if not automation_cron_access_allowed():
-        return automation_json_forbidden()
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
     force = cron_force_requested()
     runner_header = str(request.headers.get("X-NeMeSiS-Cron-Runner") or "").lower()
     runner_query = str(request.args.get("runner") or "").lower()
@@ -30650,8 +30650,8 @@ def api_admin_data_vault_export():
 
 @app.route("/api/automation/data-backup/run", methods=["GET", "POST"])
 def api_automation_data_backup_run():
-    if not automation_cron_access_allowed():
-        return automation_json_forbidden()
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
     now_value = now_iso()
     madrid_day = today_iso()
     last_success = automation_get("last_successful_data_backup_call", {}) or {}

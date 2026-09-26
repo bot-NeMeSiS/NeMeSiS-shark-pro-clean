@@ -19,6 +19,7 @@ def test_smoke_runs_known_regressions_before_browser_install():
         "test_privacy_classification_v941.py",
         "test_mutation_endpoints_post_only_v941.py",
         "test_legacy_automation_safety_v941.py",
+        "test_active_cron_header_transport_v941.py",
         "test_pronosticos_terminology.py",
         "test_calendar_terminology.py",
         "test_pwa_easy_install.py",

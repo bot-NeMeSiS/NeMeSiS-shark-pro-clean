@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 RUNNER_NAME = "nemesis_master_tick"
-TELEGRAM_ENDPOINT = "/api/automation/telegram/tick?runner=render_cron"
+TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"
 CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
 BACKUP_ENDPOINT = "/api/automation/data-backup/run"
 READINESS_ENDPOINT = "/api/runtime-version"
@@ -386,13 +386,15 @@ def telegram_tick(base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     request = urllib.request.Request(
         f"{base_url}{TELEGRAM_ENDPOINT}",
+        data=b"{}",
         headers={
             "User-Agent": "NeMeSiS-SHARK-PRO-Master-Cron/V1",
             "X-NeMeSiS-Cron-Runner": "render-cron",
             "X-Automation-Secret": secret,
             "Accept": "application/json",
+            "Content-Type": "application/json",
         },
-        method="GET",
+        method="POST",
     )
     try:
         with urllib.request.urlopen(request, timeout=TELEGRAM_TIMEOUT_SECONDS) as response:
