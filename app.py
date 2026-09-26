@@ -817,7 +817,9 @@ def telegram_env_auto_enabled():
 
 
 def scheduler_env_enabled():
-    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", True))
+    # Legacy in-process scheduler is opt-in only. Production recurrence belongs
+    # to the Render master cron; missing env vars must never start a second owner.
+    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", False))
 
 
 def security_client_ip():
@@ -17837,7 +17839,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         primary_action,
         {"label": "Hoy", "href": "/calendar?lane=today"},
         {"label": "Directo", "href": "/live?f=live"},
-        {"label": "Picks", "href": "/picks"},
+        {"label": "Pronósticos", "href": "/picks"},
         {"label": "Histórico", "href": "/track-record"},
     ]
     return {
@@ -27936,7 +27938,7 @@ def client_safe_404(error):
         {"label": "Entrar", "href": "/cliente-login"},
         {"label": "Crear cuenta", "href": "/registro"},
         {"label": "Mi app", "href": "/app"},
-        {"label": "Partidos", "href": "/calendar"},
+        {"label": "Calendario", "href": "/calendar"},
         {"label": "Directo", "href": "/live"},
         {"label": "Picks", "href": "/picks"},
         {"label": "Soporte", "href": "/support"},

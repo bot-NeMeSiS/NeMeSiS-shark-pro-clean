@@ -45,3 +45,21 @@ def test_legacy_admin_page_does_not_claim_old_jobs_are_render_scheduled():
     assert "Manual / compatibilidad" in text
     assert "Frecuencia real</td><td>Cada 10 minutos" in text
     assert "Cron anterior conservado" not in text
+
+
+def test_app_level_legacy_scheduler_default_is_off():
+    import app
+    previous_scheduler=app.os.environ.pop("SCHEDULER_ENABLED", None)
+    previous_sync=app.os.environ.pop("ENABLE_AUTO_SYNC", None)
+    try:
+        assert app.scheduler_env_enabled() is False
+    finally:
+        if previous_scheduler is not None:
+            app.os.environ["SCHEDULER_ENABLED"]=previous_scheduler
+        if previous_sync is not None:
+            app.os.environ["ENABLE_AUTO_SYNC"]=previous_sync
+
+def test_startup_scheduler_requires_explicit_startup_flag():
+    source=(ROOT/"app.py").read_text(encoding="utf-8")
+    assert 'RUN_STARTUP_SCHEDULER_NOW' in source
+    assert 'env_bool("ENABLE_AUTO_SYNC", False)' in source
