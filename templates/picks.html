@@ -15,7 +15,7 @@
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="official-ref-11" data-top100-improvement="8" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Pronósticos SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Histórico','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
+  {{ page_header('Pronósticos SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Historial','href':'/track-record','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
 
   {% include 'components/picks_workspace_nav.html' %}
 
@@ -23,7 +23,7 @@
     {{ kpi_card('Pronósticos completos', sports_metrics.get('picks_ready', 0), 'Partido, mercado, selección y cuota', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Bloqueados', safe.get('blocked_count', 0), 'Datos insuficientes o revisión', 'warning', 'shield', '/picks?filter=blocked') }}
     {{ kpi_card('Cuota media', odds_state.get('average_odds') if odds_state.get('has_real_data') else none, 'Solo muestra real evaluable', 'blue', 'odds', '/picks') }}
-    {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Histórico real', 'success', 'history', '/track-record') }}
+    {{ kpi_card('Cerrados', stats.get('closed') or stats.get('graded'), 'Historial real', 'success', 'history', '/track-record') }}
   </section>
 
   <section class="v933-panel v933-filter-panel">
@@ -73,7 +73,7 @@
   <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Pronósticos">
     {{ quick_action('Explorar partidos', 'Encuentra el próximo partido.', '/calendar', 'matches', 'cyan') }}
     {{ quick_action('Consultar SHARK', 'Abre el análisis deportivo.', '/shark', 'shark', 'blue') }}
-    {{ quick_action('Ver histórico', 'Consulta resultados evaluables.', '/track-record', 'history', 'green') }}
+    {{ quick_action('Ver historial', 'Consulta resultados evaluables.', '/track-record', 'history', 'green') }}
   </nav>
   {% endif %}
 </div>
