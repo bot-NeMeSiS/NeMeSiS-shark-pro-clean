@@ -1,5 +1,24 @@
 # V941 / PR92 - read-only GET and Smoke repair
 
+## Continuation 2026-09-27 - current active block
+
+The owner now authorizes coherent commits and normal pushes within existing PR92
+to recover CI, without merge, deployment, main changes or production actions.
+The 2026-09-26 section below remains historical evidence, not current Git state.
+
+- Actual remote base: 7fa66517f0970b91e375fc1be4bf2b20bea8d605, 19 commits newer than the previous block; PR92 OPEN / DRAFT / mergeable, origin/main unchanged.
+- Current Smoke run 36274802578, job 108495355528, step 11 "Run standard full suite": 13 failures / 2772 passes. The fast regression gate and smoke script passed.
+- New failures: three raw-Jinja fixtures omit the real CSRF context required by the new POST form; a legacy internal API test expects GET 403 instead of POST-only 405 plus POST 403. Other failures are the read/POST contract cases already corrected locally in the previous block.
+- Preserved the previous 20-file source set and report in local commits, pinned by codex/pr92-readonly-preserved-20260927. Continued in the SAME worktree from the actual PR HEAD; no new clone or reconstruction.
+- Reconciled commits: 55a26635 (read-only), 31d085b9 (contract coverage), 12b65b13 (PWA/browser). Kept remote Telegram state fields and all remote POST-only endpoints/forms; combined both sets of read-only regressions.
+- Reproduced the four newly uncovered cases locally: data/local_dev/pr92-b547d083889647dd9e1d0afc12cd194c/result.xml, 4 FAIL.
+- Fixed fixtures with the actual Flask security context and validated the emitted token; no production CSRF relaxation. GET and unauthorized POST are asserted separately.
+- Related suite: data/local_dev/pr92-ffce04f01a0d4137b2ecb46839b0a00a/result.xml, 117 PASS / 0 FAIL / 0 ERROR / 0 SKIP; zero external network attempts.
+- Final CI on the reconciled commit: PENDING. No historical result counts as current CI.
+- Previous local preview PID 6856 stopped after exact process identity verification; the old preview URL must not be advertised as current.
+
+## Historical local close - 2026-09-26
+
 Date: 2026-09-26 (Europe/Madrid)
 Status: PARTIAL / LOCAL_ONLY / NOT_READY_TO_PUSH
 

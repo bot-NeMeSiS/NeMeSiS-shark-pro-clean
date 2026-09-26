@@ -177,7 +177,7 @@ def test_ambiguous_approved_estimates_do_not_grant_more_credit(db,bad):
         assert conn.execute('SELECT COUNT(*) FROM api_usage_guard').fetchone()[0]==1
 
 @pytest.mark.parametrize('state',['READY','NOT_INITIALIZED','READ_UNAVAILABLE'])
-def test_admin_displays_unknown_without_technical_null_or_full_balance(state):
+def test_admin_displays_unknown_without_technical_null_or_full_balance(state,app_module):
     from jinja2 import Environment,ChoiceLoader,DictLoader,FileSystemLoader,select_autoescape
     root=Path(__file__).resolve().parents[1]
     env=Environment(loader=ChoiceLoader([DictLoader({
@@ -191,7 +191,13 @@ def test_admin_displays_unknown_without_technical_null_or_full_balance(state):
     usage={'ok':ready,'state':state,'remaining_estimated':{'api_football':0 if ready else None,'odds_api':3 if ready else None}}
     status={'api_usage':usage,'ok':True,'madrid_now':'22/09/2026 12:00','telegram_sent_today':0,
             'jobs_failed':[],'results_pending':0,'next_jobs':[]}
-    html=env.get_template('admin_daily_automation.html').render(data={'daily_automation_os':{'status':status,'runs':[],'telegram_policy':{}}})
+    with app_module.app.test_request_context('/admin/daily-automation'):
+        security=app_module.inject_security_context()
+        html=env.get_template('admin_daily_automation.html').render(
+            data={'daily_automation_os':{'status':status,'runs':[],'telegram_policy':{}}},**security)
+        assert 'method="post" action="/api/admin/daily-automation/dry-run"' in html
+        assert f'name="csrf_token" value="{security["csrf_token_value"]}"' in html
+        assert app_module.validate_csrf(app_module.session,security['csrf_token_value'])
     assert '>None<' not in html and '>null<' not in html
     if ready:
         assert '<b>API Football</b><strong>0</strong>' in html

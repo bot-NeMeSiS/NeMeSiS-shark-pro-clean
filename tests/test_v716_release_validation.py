@@ -92,6 +92,9 @@ def test_internal_api_endpoints_are_protected_without_secret(client, app_module)
 
     for path in checked:
         response = client.get(path)
+        if path == "/api/telegram/auto-run":
+            assert response.status_code == 405
+            response = client.post(path)
         assert response.status_code == 403, f"{path} debería estar protegido sin secret"
 
 
