@@ -31,11 +31,12 @@ def test_shark_api_requires_login(client,app_module,monkeypatch):
 
 
 def test_shark_api_blocks_exhausted_plan_before_answer(client,app_module,monkeypatch):
+    csrf="qa-shark-limit-csrf"
     with client.session_transaction() as state:
-        state.update(user_id="qa-shark-limit",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA")
+        state.update(user_id="qa-shark-limit",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA",csrf_token=csrf)
     monkeypatch.setattr(app_module,"consume_shark_question",lambda user: {"allowed":False,"login_required":False,"membership":"FREE","limit":3,"used":3,"remaining":0,"limit_reached":True})
     monkeypatch.setattr(app_module,"shark_answer",lambda *_: (_ for _ in ()).throw(AssertionError("must not bypass limit")))
-    response=client.post("/api/shark/ask",json={"question":"¿Qué pronóstico hay?"})
+    response=client.post("/api/shark/ask",json={"question":"¿Qué pronóstico hay?"},headers={"X-CSRF-Token":csrf})
     assert response.status_code==429
     payload=response.get_json()
     assert payload["usage"]["limit_reached"] is True
@@ -43,12 +44,13 @@ def test_shark_api_blocks_exhausted_plan_before_answer(client,app_module,monkeyp
 
 
 def test_shark_api_returns_usage_when_allowed(client,app_module,monkeypatch):
+    csrf="qa-shark-pro-csrf"
     with client.session_transaction() as state:
-        state.update(user_id="qa-shark-pro",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+        state.update(user_id="qa-shark-pro",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA",csrf_token=csrf)
     monkeypatch.setattr(app_module,"consume_shark_question",lambda user: {"allowed":True,"login_required":False,"membership":"PRO","limit":20,"used":1,"remaining":19,"limit_reached":False})
     monkeypatch.setattr(app_module,"shark_answer",lambda q: {"answer":"QA","focus":"summary","context":{}})
     monkeypatch.setattr(app_module,"save_shark_context",lambda *_a,**_k: "qa")
-    response=client.post("/api/shark/ask",json={"question":"estado"})
+    response=client.post("/api/shark/ask",json={"question":"estado"},headers={"X-CSRF-Token":csrf})
     assert response.status_code==200
     payload=response.get_json()
     assert payload["usage"]["remaining"]==19
@@ -62,3 +64,12 @@ def test_shark_template_exposes_login_or_quota_state():
     assert "Consultas SHARK hoy" in text
     assert "Inicia sesión" in text
     assert "shark_usage" in text
+
+
+def test_shark_api_post_requires_csrf(client,app_module,monkeypatch):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-shark-csrf",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    monkeypatch.setattr(app_module,"consume_shark_question",lambda _user: (_ for _ in ()).throw(AssertionError("quota must not be consumed before CSRF")))
+    response=client.post("/api/shark/ask",json={"question":"estado"})
+    assert response.status_code==403
+    assert response.get_json()["error"]=="csrf_required"

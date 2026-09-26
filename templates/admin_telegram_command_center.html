@@ -40,7 +40,7 @@
 
       <section class="v933-admin-panel">
         <header><div><h2>Pronósticos elegibles</h2><p>Vista previa sin envío real.</p></div>{{ status_chip('Simulación · sin envío','success') }}</header>
-        <div class="v933-admin-panel-body">{% if snapshot.get('candidates') %}{% call data_table(['Partido','Selección','Cuota','Confianza','Duplicado']) %}{% for item in snapshot.get('candidates')[:20] %}<tr><td>{{ item.get('partido') }}</td><td>{{ item.get('selection') }}</td><td>{{ item.get('odds') }}</td><td>{{ item.get('confidence') if item.get('confidence') is not none else 'Sin dato' }}</td><td>{{ status_chip(item.get('dedupe_status') or 'Nuevo','success') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin candidatos enviables', 'No se crea contenido de relleno. Los pronósticos incompletos permanecen descartados.', '', '', 'telegram') }}{% endif %}</div>
+        <div class="v933-admin-panel-body">{% if snapshot.get('candidates') %}{% call data_table(['Partido','Selección','Cuota','Confianza','Duplicado']) %}{% for item in snapshot.get('candidates')[:20] %}<tr><td>{{ item.get('partido') }}</td><td>{{ item.get('selection') }}</td><td>{{ item.get('odds') }}</td><td>{{ item.get('confidence') if item.get('confidence') is not none else 'Sin dato' }}</td><td>{{ status_chip(item.get('duplicate_status') or 'Nuevo','success') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin candidatos enviables', 'No se crea contenido de relleno. Los pronósticos incompletos permanecen descartados.', '', '', 'telegram') }}{% endif %}</div>
       </section>
 
       <section class="v933-admin-panel">

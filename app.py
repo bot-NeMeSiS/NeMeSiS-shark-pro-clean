@@ -13010,7 +13010,7 @@ def telegram_reliability_snapshot(limit=60):
                 "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
                 "odds": pick.get("odds"),
                 "confidence": pick.get("confidence") or pick.get("shark_score"),
-                "dedupe_status": (existing or {}).get("status") or "",
+                "duplicate_status": (existing or {}).get("status") or "",
             })
             if not preview_pick:
                 preview_pick = pick
@@ -30666,9 +30666,14 @@ def api_automation_data_backup_run():
     elif already_done:
         result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_DONE", "message": "El backup diario ya fue creado y verificado para esta fecha Madrid."}
     else:
-        with closing(sqlite3.connect(DB_PATH, timeout=2)) as conn:
+        conn = sqlite3.connect(DB_PATH, timeout=2)
+        try:
             ensure_automation_schema_conn(conn)
             claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+        finally:
+            close_conn = getattr(conn, "close", None)
+            if callable(close_conn):
+                close_conn()
         if not claimed:
             result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING", "message": "Otro intento de backup posee el claim temporal."}
         else:

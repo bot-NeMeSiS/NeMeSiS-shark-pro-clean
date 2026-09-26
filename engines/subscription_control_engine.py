@@ -254,7 +254,11 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
     by_source: Dict[str, int] = {}
     manual_by_tier = {"PRO": 0, "ELITE": 0}
     soft_blocked = 0
+    accounted_access_users = set()
     for sub in subs:
+        user_id = str(sub.get("user_id") or "")
+        if user_id:
+            accounted_access_users.add(user_id)
         tier = normalize_tier(sub.get("tier"))
         status = str(sub.get("status") or "active").lower()
         source = str(sub.get("source") or "unknown").lower()
@@ -265,6 +269,19 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
             manual_by_tier[tier] += 1
         if source == "stripe" and as_int(sub.get("soft_block"), 0):
             soft_blocked += 1
+
+    # Read-only summaries still report access truth when the subscription mirror
+    # has not been synchronized. This inspection performs no writes.
+    for user in rows(conn, "SELECT * FROM users"):
+        user_id = str(user.get("id") or "")
+        if not user_id or user_id in accounted_access_users:
+            continue
+        tier = normalize_tier(user.get("membership") or user.get("role"))
+        raw_source = str(user.get("membership_source") or "").strip().lower()
+        stripe_subscription_id = str(user.get("stripe_subscription_id") or "").strip()
+        is_stripe = raw_source == "stripe" and bool(stripe_subscription_id)
+        if tier in {"PRO","ELITE"} and not is_stripe:
+            manual_by_tier[tier] += 1
 
     # Billing truth comes from Stripe subscription records, not from access grants.
     stripe_rows = rows(
@@ -278,6 +295,20 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
         user_id = str(item.get("user_id") or "")
         if user_id and user_id not in latest_by_user:
             latest_by_user[user_id] = item
+
+    # Legacy/read-only compatibility: a source=stripe subscription_account
+    # is billing evidence only when no newer Stripe subscription row exists.
+    for sub in subs:
+        user_id = str(sub.get("user_id") or "")
+        if user_id and user_id not in latest_by_user and str(sub.get("source") or "").lower() == "stripe":
+            latest_by_user[user_id] = {
+                "user_id": user_id,
+                "plan": sub.get("tier"),
+                "status": sub.get("status"),
+                "current_period_end": sub.get("current_period_end"),
+                "cancel_at_period_end": sub.get("cancel_at_period_end") or 0,
+                "last_event_at": sub.get("updated_at") or sub.get("created_at") or "",
+            }
 
     active_paid = trialing = past_due = churn_risk = 0
     paid_by_tier = {"PRO": 0, "ELITE": 0}

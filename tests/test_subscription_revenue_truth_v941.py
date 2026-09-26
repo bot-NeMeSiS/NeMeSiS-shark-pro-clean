@@ -77,3 +77,14 @@ def test_catalog_prices_match_stripe_visible_catalog(monkeypatch):
     monkeypatch.setenv("STRIPE_PRICE_ELITE_LABEL","29,90 €/mes")
     assert revenue.product_plan_prices()["PRO"]==12.50
     assert revenue.product_plan_prices()["ELITE"]==29.90
+
+
+def test_readonly_summary_does_not_need_access_sync_to_report_manual_grants(tmp_path):
+    path=make_db(tmp_path)
+    con=sqlite3.connect(path)
+    con.execute("DELETE FROM subscription_accounts")
+    con.commit(); con.close()
+    result=revenue.subscription_summary(path,apply_rules=False,persist_metrics=False)
+    assert result["manual_access"]==1
+    assert result["manual_by_tier"]=={"PRO":1,"ELITE":0}
+    assert result["active_paid"]==1
