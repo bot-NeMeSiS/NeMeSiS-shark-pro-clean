@@ -26847,7 +26847,7 @@ def api_data_center_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": data_center_summary()})
 
 
-@app.route("/api/data-center/warmup", methods=["POST", "GET"])
+@app.route("/api/data-center/warmup", methods=["POST"])
 def api_data_center_warmup():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26863,14 +26863,14 @@ def api_scheduler_status():
     return jsonify({"ok": True, "version": APP_VERSION, "scheduler": scheduler_status()})
 
 
-@app.route("/api/scheduler/run-now", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-now", methods=["POST"])
 def api_scheduler_run_now():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"version": APP_VERSION, **run_due_scheduler_tasks(force=True)})
 
 
-@app.route("/api/scheduler/run-calendar", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-calendar", methods=["POST"])
 def api_scheduler_run_calendar():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26878,7 +26878,7 @@ def api_scheduler_run_calendar():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("calendar", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-crests", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-crests", methods=["POST"])
 def api_scheduler_run_crests():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26886,7 +26886,7 @@ def api_scheduler_run_crests():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("crests", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-odds", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-odds", methods=["POST"])
 def api_scheduler_run_odds():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26894,7 +26894,7 @@ def api_scheduler_run_odds():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("odds", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-live", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-live", methods=["POST"])
 def api_scheduler_run_live():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27219,7 +27219,7 @@ def api_admin_data_memory():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": data_memory_summary(DB_PATH)})
 
 
-@app.route("/api/admin/data-memory/cleanup", methods=["POST", "GET"])
+@app.route("/api/admin/data-memory/cleanup", methods=["POST"])
 def api_admin_data_memory_cleanup():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27344,7 +27344,7 @@ def api_thesportsdb_diagnostics():
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": thesportsdb_diagnostics(team)})
 
 
-@app.route("/api/sportsdb/sync-crests", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-crests", methods=["POST"])
 def api_sportsdb_sync_crests():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27354,14 +27354,14 @@ def api_sportsdb_sync_crests():
     return jsonify({"version": APP_VERSION, **result})
 
 
-@app.route("/api/sportsdb/sync-competitions", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-competitions", methods=["POST"])
 def api_sportsdb_sync_competitions():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"version": APP_VERSION, **sync_sportsdb_competitions()})
 
 
-@app.route("/api/sportsdb/sync-teams", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-teams", methods=["POST"])
 def api_sportsdb_sync_teams():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27369,9 +27369,9 @@ def api_sportsdb_sync_teams():
     return jsonify({"version": APP_VERSION, **sync_sportsdb_teams(limit=limit)})
 
 
-@app.route("/api/sportsdb/sync-feed", methods=["POST", "GET"])
-@app.route("/api/sportsdb/sync-matches", methods=["POST", "GET"])
-@app.route("/api/sportsdb/sync-calendar", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-feed", methods=["POST"])
+@app.route("/api/sportsdb/sync-matches", methods=["POST"])
+@app.route("/api/sportsdb/sync-calendar", methods=["POST"])
 def api_sportsdb_sync_feed():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27380,7 +27380,7 @@ def api_sportsdb_sync_feed():
     return jsonify({"version": APP_VERSION, **result, "status": sportsdb_feed_status()})
 
 
-@app.route("/api/sportsdb/sync-results", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-results", methods=["POST"])
 def api_sportsdb_sync_results():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27388,7 +27388,7 @@ def api_sportsdb_sync_results():
     return jsonify({"version": APP_VERSION, **sync_sportsdb_results(limit=limit)})
 
 
-@app.route("/api/matches/sync-now", methods=["POST", "GET"])
+@app.route("/api/matches/sync-now", methods=["POST"])
 def api_matches_sync_now():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27398,8 +27398,8 @@ def api_matches_sync_now():
     return jsonify({"ok": True, "version": APP_VERSION, "sportsdb": sportsdb_result, "odds": odds_result, "diagnostics": match_calendar_diagnostics()})
 
 
-@app.route("/api/odds/sync-events", methods=["POST", "GET"])
-@app.route("/api/odds/sync-odds", methods=["POST", "GET"])
+@app.route("/api/odds/sync-events", methods=["POST"])
+@app.route("/api/odds/sync-odds", methods=["POST"])
 def api_odds_sync_events():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27499,7 +27499,7 @@ def api_picks_update():
     return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
 
 
-@app.route("/api/picks/publish", methods=["POST", "GET"])
+@app.route("/api/picks/publish", methods=["POST"])
 def api_picks_publish():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27508,7 +27508,7 @@ def api_picks_publish():
     return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick})
 
 
-@app.route("/api/picks/archive", methods=["POST", "GET"])
+@app.route("/api/picks/archive", methods=["POST"])
 def api_picks_archive():
     if not is_admin_session():
         return admin_json_forbidden()
