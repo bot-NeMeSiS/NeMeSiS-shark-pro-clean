@@ -5,7 +5,7 @@
   <div>
     <p class="eyebrow">Admin · SHARK AI</p>
     <h1>Centro de inteligencia SHARK</h1>
-    <p class="muted">Supervisa el asistente, la memoria, el modo interno de respaldo, las reglas de no inventar y la conexión con Telegram V844.</p>
+    <p class="muted">Supervisa el asistente, la memoria, el modo interno de respaldo, las reglas de no inventar y la conexión con Telegram.</p>
   </div>
   <div class="score-card">
     <span class="score-number">{{ shark.score }}</span>
@@ -23,7 +23,7 @@
 
 <section class="grid cards-2">
   <article class="card v845-admin-card">
-    <h2>Reglas V845</h2>
+    <h2>Reglas de seguridad de SHARK</h2>
     <div class="stack">
       {% for rule in v845.get('rules') or [] %}
         <div class="notice">{{ rule }}</div>
@@ -36,7 +36,7 @@
     <div class="quick-grid">
       <a class="chip" href="/api/admin/shark-center">API estado SHARK</a>
       <a class="chip" href="/api/shark/ask?q=estado">API pregunta</a>
-      <a class="chip" href="/admin/telegram/command-center">Telegram V844</a>
+      <a class="chip" href="/admin/telegram/command-center">Telegram</a>
       <a class="chip" href="/app">Vista cliente</a>
     </div>
   </article>

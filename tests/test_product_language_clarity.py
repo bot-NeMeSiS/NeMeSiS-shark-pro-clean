@@ -165,3 +165,19 @@ def test_final_release_does_not_overclaim_or_show_stale_version_label():
     assert "Candidata preparada para validación comercial" in text
     assert "Versión final preparada para vender con control" not in text
     assert "Revisar salida a producción" in text
+
+
+def test_canonical_admin_surfaces_hide_historical_version_labels_and_runtime_jargon():
+    shark=read("templates/admin_shark_center.html")
+    realtime=read("templates/admin_realtime_center.html")
+    dashboard=read("templates/admin_dashboard.html")
+    automation=read("templates/admin_automation_center.html")
+    for token in ("Reglas V845","Telegram V844"):
+        assert token not in shark
+    assert "Reglas de seguridad de SHARK" in shark
+    assert "durante el render" not in realtime
+    assert "base de datos y caché" in realtime
+    assert "desde este runtime" not in dashboard
+    assert "desde este entorno" in dashboard
+    assert "Tareas recurrentes reales" in automation
+    assert "Procesos internos" in automation
