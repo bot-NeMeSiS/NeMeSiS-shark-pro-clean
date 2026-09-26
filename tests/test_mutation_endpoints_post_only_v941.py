@@ -71,6 +71,24 @@ def test_mutation_route_contract_is_documented_in_source():
         assert f'@app.route("{path}", methods=["POST"])' in source
 
 
+def test_sentinel_action_names_cannot_be_read_as_issue_ids(app_module, monkeypatch):
+    import pytest
+    monkeypatch.setattr(app_module, "NEMESIS_LOCAL_SAFE_MODE", False)
+    monkeypatch.setenv("NEMESIS_LOCAL_SAFE_MODE", "0")
+    def forbidden(*args, **kwargs):
+        pytest.fail("Reading an action must not execute it or load an issue")
+    monkeypatch.setattr(app_module, "get_sentinel_issue", forbidden)
+    monkeypatch.setattr(app_module, "_v892_sentinel_issues_summary", forbidden)
+    client = app_module.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-only-admin", user_role="ADMIN", membership="ADMIN")
+    for action in ("scan", "sync-autopilot", "sync-visual-worker"):
+        for method in ("GET", "HEAD"):
+            response = client.open("/api/admin/sentinel/issues/"+action, method=method)
+            assert response.status_code == 405
+            assert response.headers["Allow"] == "POST"
+
+
 def test_admin_run_ui_uses_post_or_explicit_post_fetch():
     templates = {
         "admin_highlights_center.html": "/api/admin/highlights/sync",

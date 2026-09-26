@@ -22074,6 +22074,9 @@ def api_admin_sentinel_issues_sync_visual_worker():
 def api_admin_sentinel_issue_detail(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
+    # Werkzeug can match a POST-only action as a GET issue identifier.
+    if issue_id in {"scan", "sync-autopilot", "sync-visual-worker"}:
+        return jsonify(ok=False, error="post_required", next_action="use_sentinel_jobs_panel"), 405, {"Allow": "POST"}
     issue = get_sentinel_issue(issue_id, Path(__file__).resolve().parent)
     if not issue:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "issue_not_found"}), 404

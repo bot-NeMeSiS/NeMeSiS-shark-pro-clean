@@ -27,6 +27,13 @@ The 2026-09-26 section below remains historical evidence, not current Git state.
 - Local checks: data/local_dev/pr92-665829de66f4448199913f7467e2aabe/checks.json: compile PASS, 216 Jinja templates, Madrid winter/summer PASS, 1186 navigation links with zero broken/loops, 39 Sentinel routes with zero open findings. Secret Guard 1301 files / 0 findings; privacy 75 expected fixtures / 0 review or confirmed leaks. Zero external network attempts. These checks are not production certification.
 - Current scope is app.py and tests/test_get_business_readonly_v941.py plus this living report. Follow-up CI is required on the committed SHA.
 
+### Follow-up: current Smoke Sentinel route collision
+
+- Reproduced locally in data/local_dev/pr92-4059973bb8404dfa91f0640b38b275d0/result.xml: GET /api/admin/sentinel/issues/scan returned 404 because Werkzeug selected /issues/<issue_id> when the concrete action was POST-only.
+- The issue reader now rejects reserved action names with 405 and Allow: POST before reading issue storage. Existing POST decorators, admin guard, CSRF and LOCAL SAFE are unchanged.
+- Tests assert GET/HEAD do not scan or read an action as an issue; existing IDs still read, unknown IDs remain 404, visitors/clients remain 403. LOCAL SAFE sync guards retain their separate 403 contract; the normal HTTP test asserts 405 for all three actions. No test was disabled or broadened to accept 404.
+- data/local_dev/pr92-951abd7083ed4707ac799a5133c78a6e/result.xml: 14 PASS / 0 FAIL / 0 ERROR / 0 SKIP, zero external-network attempts. Exact-SHA CI remains required after push.
+
 ## Historical local close - 2026-09-26
 
 Date: 2026-09-26 (Europe/Madrid)

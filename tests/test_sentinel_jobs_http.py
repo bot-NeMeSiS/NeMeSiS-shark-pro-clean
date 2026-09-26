@@ -73,17 +73,47 @@ def test_bad_csrf_and_closed_parameters(runtime):
     assert client.post("/api/admin/sentinel/jobs", json=[], headers={"X-CSRF-Token":token}).status_code == 400
 
 
-def test_get_has_no_operational_writes_and_legacy_gets_do_not_scan(runtime):
+def test_get_has_no_operational_writes_and_legacy_gets_do_not_scan(runtime, monkeypatch):
     module, store, _ = runtime
     client = login(module)
     with store.connection() as con:
         before = con.execute("SELECT count(*) FROM sentinel_jobs").fetchone()[0]
     assert client.get("/admin/sentinel-issues").status_code == 200
     assert client.get("/api/admin/sentinel/jobs").status_code == 200
+    def forbidden(*args, **kwargs):
+        pytest.fail("Action GET must not scan or read an issue with the action name")
+    monkeypatch.setattr(module, "_v892_sentinel_issues_summary", forbidden)
+    monkeypatch.setattr(module, "get_sentinel_issue", forbidden)
     for action in ("scan", "sync-autopilot", "sync-visual-worker"):
-        assert client.get("/api/admin/sentinel/issues/"+action).status_code in (403,405)
+        for method in ("GET", "HEAD"):
+            response = client.open("/api/admin/sentinel/issues/"+action, method=method)
+            # LOCAL SAFE blocks sync actions before Flask dispatch. Scan reaches
+            # the router, which must reject the action rather than read an ID.
+            assert response.status_code == (405 if action == "scan" else 403)
+            if action == "scan":
+                assert response.headers["Allow"] == "POST"
+            elif method == "GET":
+                assert response.json["status"] == "LOCAL_SAFE_BLOCKED"
     with store.connection() as con:
         assert con.execute("SELECT count(*) FROM sentinel_jobs").fetchone()[0] == before
+
+
+def test_issue_reader_still_reads_ids_and_checks_admin(runtime, monkeypatch):
+    module, _, _ = runtime
+    calls = []
+    def read(issue_id, root):
+        calls.append(issue_id)
+        return {"id": issue_id, "status": "OPEN"} if issue_id == "qa-issue" else None
+    monkeypatch.setattr(module, "get_sentinel_issue", read)
+    client = login(module)
+    assert client.get("/api/admin/sentinel/issues/qa-issue").json["issue"]["id"] == "qa-issue"
+    assert client.get("/api/admin/sentinel/issues/qa-missing").status_code == 404
+    before = list(calls)
+    for role in (None, "FREE", "PRO", "ELITE"):
+        client = module.app.test_client() if role is None else login(module, role=role)
+        for issue_id in ("qa-issue", "scan", "sync-autopilot", "sync-visual-worker"):
+            assert client.get("/api/admin/sentinel/issues/"+issue_id).status_code == 403
+    assert calls == before
 
 
 def test_no_executor_means_unavailable_not_queued(runtime):
