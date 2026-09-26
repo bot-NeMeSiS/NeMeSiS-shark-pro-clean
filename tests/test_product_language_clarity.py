@@ -32,9 +32,9 @@ def test_admin_data_and_telegram_remove_unexplained_jargon():
     telegram=read("templates/admin_telegram_command_center.html")
     for forbidden in ("Scheduler","Última sync","Errores scheduler","Warmup seguro"):
         assert forbidden not in data
-    for forbidden in ("Dry-run · sin envío","Dedupe","Quiet hours","Auto picks/día","Picks elegibles","Data Trust"):
+    for forbidden in ("Dry-run · sin envío",">Dedupe<","Quiet hours","Auto picks/día","Picks elegibles","Data Trust"):
         assert forbidden not in telegram
-    assert "Simulación · sin envío" in telegram and "Horas de silencio" in telegram
+    assert "Simulación · sin envío" in telegram and "Horas de silencio" in telegram and "Duplicado" in telegram
 
 def test_internal_systems_lead_with_human_labels():
     nav=read("templates/components/v933_navigation.html")

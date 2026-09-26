@@ -29,6 +29,7 @@ def test_backup_endpoint_uses_atomic_claim_before_copy(monkeypatch):
     class DummyConn:
         def __enter__(self): return self
         def __exit__(self,*_): return False
+        def close(self): return None
     monkeypatch.setattr(app.sqlite3,"connect",lambda *_a,**_k: DummyConn())
     response=client.post("/api/automation/data-backup/run",headers={"X-Automation-Secret":"backup-test-secret"})
     payload=response.get_json()

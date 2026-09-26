@@ -70,6 +70,6 @@ def test_shark_api_post_requires_csrf(client,app_module,monkeypatch):
     with client.session_transaction() as state:
         state.update(user_id="qa-shark-csrf",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
     monkeypatch.setattr(app_module,"consume_shark_question",lambda _user: (_ for _ in ()).throw(AssertionError("quota must not be consumed before CSRF")))
-    response=client.post("/api/shark/ask",json={"question":"estado"})
+    response=client.post("/api/shark/ask",json={"question":"estado"},headers={"X-CSRF-Token":"qa-shark-csrf-pro"})
     assert response.status_code==403
     assert response.get_json()["error"]=="csrf_required"
