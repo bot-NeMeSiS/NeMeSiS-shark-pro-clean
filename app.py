@@ -23755,7 +23755,7 @@ def admin_time_diagnostics_page():
     )
 
 
-@app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])
+@app.route("/api/telegram/repair-automatic", methods=["POST"])
 def api_telegram_repair_automatic():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27633,7 +27633,7 @@ def api_telegram_settings():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": get_telegram_settings()})
 
 
-@app.route("/api/telegram/settings/update", methods=["POST", "GET"])
+@app.route("/api/telegram/settings/update", methods=["POST"])
 def api_telegram_settings_update():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27641,7 +27641,7 @@ def api_telegram_settings_update():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": update_telegram_settings(payload)})
 
 
-@app.route("/api/telegram/send-test", methods=["POST", "GET"])
+@app.route("/api/telegram/send-test", methods=["POST"])
 def api_telegram_send_test():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27659,7 +27659,7 @@ def api_telegram_send_test():
     return jsonify({"ok": processed.get("failed", 0) == 0, "version": APP_VERSION, "message": "Test Telegram procesado.", "queued": queued, **processed})
 
 
-@app.route("/api/telegram/enqueue-daily-matches", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-matches", methods=["POST"])
 def api_telegram_enqueue_daily_matches():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27667,7 +27667,7 @@ def api_telegram_enqueue_daily_matches():
     return jsonify({"version": APP_VERSION, **enqueue_daily_matches(force=force, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/enqueue-daily-picks", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-picks", methods=["POST"])
 def api_telegram_enqueue_daily_picks():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27676,7 +27676,7 @@ def api_telegram_enqueue_daily_picks():
     return jsonify({"version": APP_VERSION, **enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/process-queue", methods=["POST", "GET"])
+@app.route("/api/telegram/process-queue", methods=["POST"])
 def api_telegram_process_queue():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27828,7 +27828,7 @@ def api_telegram_queue():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": queue_summary(queue), "queue": queue})
 
 
-@app.route("/api/telegram/scheduler-manager", methods=["GET", "POST"])
+@app.route("/api/telegram/scheduler-manager", methods=["POST"])
 def api_telegram_scheduler_manager():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -29717,8 +29717,8 @@ def v928_telegram_overview_fast():
     token_present = env_present("TELEGRAM_BOT_TOKEN")
     chat_present = env_present("TELEGRAM_CHAT_ID")
     auto_env = bool(
-        env_bool("ENABLE_TELEGRAM_AUTOMATION", True)
-        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", True)
+        env_bool("ENABLE_TELEGRAM_AUTOMATION", False)
+        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", False)
         or env_bool("ENABLE_TELEGRAM_AUTO", False)
         or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
     )
@@ -31560,7 +31560,7 @@ def api_v808_betting_convert_to_pick():
     return jsonify({"ok": True, "version": APP_VERSION, "published": publish, "result": result})
 
 
-@app.route("/api/telegram/enqueue-recommendations")
+@app.route("/api/telegram/enqueue-recommendations", methods=["POST"])
 def api_v808_telegram_enqueue_recommendations():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -31969,7 +31969,7 @@ def v818_telegram_daily_top_agenda():
 
 
 def v818_live_tracker_smart_sync():
-    if not env_bool("ENABLE_AUTO_LIVE_SYNC", True):
+    if not env_bool("ENABLE_AUTO_LIVE_SYNC", False):
         return {"ok": True, "skipped": True, "reason": "ENABLE_AUTO_LIVE_SYNC=false"}
     return v818_callback_result("api_football_live_tracker", sync_api_football_live_tracker, DB_PATH, force=False)
 
@@ -31983,7 +31983,7 @@ def v818_results_sync_and_top_results():
 def v818_evening_recap():
     status = v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))
     sent = 0
-    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", True) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
+    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", False) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
         # The existing scheduler owns quiet hours, dedupe and delivery limits.
         telegram = v818_callback_result("telegram_scheduler_tick", telegram_scheduler_tick, force=False)
         sent = as_int(telegram.get("sent") or telegram.get("sent_count"), 0)

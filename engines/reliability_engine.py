@@ -79,6 +79,8 @@ LEARNING = [
     {"rule": "ONE_RECURRING_OWNER -> NO_DUPLICATE_SCHEDULERS", "origin": "V941 automation cleanup", "test": "tests/test_automation_schedule_minimal.py", "detail": "Render programa solo cron maestro y backup diario; scheduler/daily/highlights/grading/Sentinel separados quedan manuales o incluidos en el maestro."},
     {"rule": "CANONICAL_BROWSER_MATRIX -> CLIENT_ADMIN_PC_MOBILE", "origin": "V941 release QA", "test": "tests/test_canonical_browser_matrix_v941.py", "detail": "Cliente real y Admin canónico se recorren en Chromium PC/móvil; FREE/PRO/ELITE se verifican además con preview aislado."},
     {"rule": "SHARK_PLAN_LIMIT -> NO_DIRECT_API_BYPASS", "origin": "V941 membership value", "test": "tests/test_shark_membership_limits_v941.py", "detail": "Las consultas personalizadas requieren sesión y consumen el límite diario del plan; el prompt no se persiste en el contador."},
+    {"rule": "ADMIN_MUTATION_API -> POST_PLUS_CSRF", "origin": "V941 security hardening", "test": "tests/test_legacy_automation_safety_v941.py", "detail": "Las acciones manuales con sesión Admin no mutan por GET; los endpoints cron conservan su secreto de automatización."},
+    {"rule": "AUTOMATION_DEFAULTS -> EXPLICIT_OPT_IN", "origin": "V941 automation hardening", "test": "tests/test_legacy_automation_safety_v941.py", "detail": "Banderas legacy ausentes nunca activan Live, Telegram o scheduler por defecto."},
 ]
 
 
