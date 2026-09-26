@@ -135,6 +135,9 @@ jobs:
           python tools/check_v929_navigation_integrity.py
           python automation_workforce/navigation_integrity_worker.py --dry-run
 
+      - name: Canonical client and admin browser matrix
+        run: python tools/run_v929_click_navigation_qa.py --timeout 15000
+
       - name: Continuous Sentinel
         run: python tools/run_continuous_sentinel_static.py
 

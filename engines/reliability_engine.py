@@ -77,6 +77,7 @@ LEARNING = [
     {"rule": "MATCHES_SECTION_INTERNAL -> CALENDARIO_UI_ES", "origin": "V941 terminology contract", "test": "tests/test_calendar_terminology.py", "detail": "La sección visible se llama Calendario; partido/partidos se conserva al hablar de encuentros concretos."},
     {"rule": "PRODUCT_LANGUAGE -> CLEAR_ES_CLIENT_ADMIN", "origin": "V941 terminology contract", "test": "tests/test_product_language_clarity.py", "detail": "Cliente y Admin priorizan español claro; términos técnicos solo se mantienen cuando aportan contexto y se explican."},
     {"rule": "ONE_RECURRING_OWNER -> NO_DUPLICATE_SCHEDULERS", "origin": "V941 automation cleanup", "test": "tests/test_automation_schedule_minimal.py", "detail": "Render programa solo cron maestro y backup diario; scheduler/daily/highlights/grading/Sentinel separados quedan manuales o incluidos en el maestro."},
+    {"rule": "CANONICAL_BROWSER_MATRIX -> CLIENT_ADMIN_PC_MOBILE", "origin": "V941 release QA", "test": "tests/test_canonical_browser_matrix_v941.py", "detail": "Cliente real y Admin canónico se recorren en Chromium PC/móvil; FREE/PRO/ELITE se verifican además con preview aislado."},
 ]
 
 

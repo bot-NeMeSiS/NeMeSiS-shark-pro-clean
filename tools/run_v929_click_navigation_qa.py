@@ -31,12 +31,13 @@ CLIENT_ORIGINS = [
     "/app", "/calendar", "/live", "/picks", "/track-record",
     "/shark", "/telegram", "/profile", "/memberships",
 ]
-MOBILE_ORIGINS = ["/app", "/calendar", "/live", "/picks", "/profile"]
+MOBILE_ORIGINS = list(CLIENT_ORIGINS)
 ADMIN_ORIGINS = [
-    "/admin/dashboard", "/admin/telegram/command-center", "/admin/users",
-    "/admin/payments", "/admin/picks", "/admin/data-center",
-    "/admin/automation-workforce", "/admin/autonomous-company-sentinel",
-    "/admin/navigation-integrity",
+    "/admin/dashboard", "/admin/matches", "/admin/realtime-center", "/admin/picks",
+    "/admin/telegram/command-center", "/admin/users", "/admin/memberships",
+    "/admin/payments", "/admin/shark-center", "/admin/data-center",
+    "/admin/automation-center", "/admin/sentinel-issues", "/admin/highlights-center",
+    "/admin/system", "/admin/final-release",
 ]
 
 DANGEROUS_PARTS = (
@@ -183,8 +184,8 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
 
 def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport: dict, origins: list[str], timeout: int) -> list[dict]:
     context = browser.new_context(viewport=viewport, service_workers="block")
-    if profile in {"client_desktop", "client_mobile", "admin_desktop"}:
-        role = "admin" if profile.startswith("admin") else "client"
+    if profile.startswith(("client_", "admin_")):
+        role = "admin" if profile.startswith("admin_") else "client"
         context.add_cookies([{
             "name": sessions["cookie_name"],
             "value": sessions[role],
@@ -194,18 +195,73 @@ def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport:
     page = context.new_page()
     results: list[dict] = []
     tested_targets: set[str] = set()
+    console_errors: list[str] = []
+    page_errors: list[str] = []
+    page.on("console", lambda msg: console_errors.append(msg.text[:500]) if msg.type == "error" else None)
+    page.on("pageerror", lambda exc: page_errors.append(str(exc)[:500]))
     try:
         for origin in origins:
+            console_before = len(console_errors)
+            errors_before = len(page_errors)
             response = page.goto(base_url + origin, wait_until="domcontentloaded", timeout=timeout)
-            if not response or response.status >= 500:
-                results.append({
-                    "profile": profile, "origin": origin, "visible_text": "Abrir pantalla",
-                    "target": origin, "selector": "direct_origin_check",
-                    "status": response.status if response else 0,
-                    "result": "ORIGIN_500", "final_path": urlsplit(page.url).path,
-                    "screenshot": "",
-                })
+            page.wait_for_timeout(120)
+            status = int(response.status) if response else 0
+            final_path = urlsplit(page.url).path or "/"
+            try:
+                body = page.locator("body").inner_text(timeout=3000)[:4000]
+            except Exception:
+                body = ""
+            try:
+                layout = page.evaluate("""() => ({
+                    overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
+                    scrollWidth: document.documentElement.scrollWidth,
+                    viewportWidth: window.innerWidth
+                })""")
+            except Exception:
+                layout = {"overflow": False, "scrollWidth": 0, "viewportWidth": viewport.get("width", 0)}
+            new_page_errors = page_errors[errors_before:]
+            new_console_errors = [
+                item for item in console_errors[console_before:]
+                if "Failed to load resource" not in item and "favicon" not in item.lower()
+            ]
+            direct = {
+                "profile": profile,
+                "origin": origin,
+                "visible_text": "Abrir pantalla",
+                "target": origin,
+                "selector": "direct_origin_check",
+                "status": status,
+                "result": "OK",
+                "final_path": final_path,
+                "screenshot": "",
+                "overflow": bool(layout.get("overflow")),
+                "scroll_width": int(layout.get("scrollWidth") or 0),
+                "viewport_width": int(layout.get("viewportWidth") or viewport.get("width") or 0),
+                "page_errors": list(new_page_errors),
+                "console_errors": list(new_console_errors),
+            }
+            if not response or status >= 500 or "Error interno" in body or "Internal Server Error" in body:
+                direct["result"] = "ORIGIN_500"
+            elif status == 404 or "Ruta no encontrada" in body:
+                direct["result"] = "ORIGIN_404"
+            elif new_page_errors:
+                direct["result"] = "JS_ERROR"
+            elif layout.get("overflow"):
+                direct["result"] = "HORIZONTAL_OVERFLOW"
+            if direct["result"] != "OK":
+                failure_dir = OUTPUT_DIR / "failures"
+                failure_dir.mkdir(parents=True, exist_ok=True)
+                safe_name = f"{profile}__{origin.strip('/').replace('/', '_') or 'home'}__origin.png"
+                shot = failure_dir / safe_name
+                try:
+                    page.screenshot(path=str(shot), full_page=True)
+                    direct["screenshot"] = str(shot.relative_to(ROOT).as_posix())
+                except Exception:
+                    pass
+            results.append(direct)
+            if direct["result"] != "OK":
                 continue
+
             actions = [
                 action for action in _visible_internal_actions(page)
                 if action.get("target") not in tested_targets
@@ -251,6 +307,7 @@ def run(timeout: int = 15000) -> dict:
                     ("client_desktop", {"width": 1440, "height": 900}, CLIENT_ORIGINS),
                     ("client_mobile", {"width": 390, "height": 844}, MOBILE_ORIGINS),
                     ("admin_desktop", {"width": 1440, "height": 900}, ADMIN_ORIGINS),
+                    ("admin_mobile", {"width": 390, "height": 844}, ADMIN_ORIGINS),
                 ]
                 for profile, viewport, origins in profiles:
                     results.extend(_run_profile(browser, base_url, sessions, profile, viewport, origins, timeout))
@@ -284,8 +341,10 @@ def run(timeout: int = 15000) -> dict:
         },
         "profiles": {
             profile: len([item for item in results if item.get("profile") == profile])
-            for profile in ("public_desktop", "client_desktop", "client_mobile", "admin_desktop")
+            for profile in ("public_desktop", "client_desktop", "client_mobile", "admin_desktop", "admin_mobile")
         },
+        "canonical_admin_routes": list(ADMIN_ORIGINS),
+        "canonical_client_routes": list(CLIENT_ORIGINS),
         "results": results,
         "failures": failures,
         "next_required_action": "fix_click_failures" if failures else "deploy_v929_and_verify_runtime",
