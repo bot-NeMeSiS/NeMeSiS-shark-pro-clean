@@ -316,3 +316,32 @@ def test_preview_links_cannot_escape_simulated_plan(app_module,plan,screen):
         target=urlsplit(href)
         assert not target.netloc and target.path in {'/admin/client-preview','/admin/client-preview/frame'},href
         assert parse_qs(target.query).get('plan')==[plan],href
+
+
+@pytest.mark.parametrize('outcome',['accepted','dismissed','async_error'])
+def test_admin_install_states_do_not_confuse_acceptance_with_installation(browser,app_module,outcome):
+    """Real JS with simulated browser events, not a native installation claim."""
+    context,page,calls,errors,blocked=mount(browser,app_module)
+    try:
+        page.add_script_tag(path=str(ROOT/'static/pwa-install.js'))
+        assert page.evaluate('window.NemesisPwaInstall.getState()') != 'installed'
+        page.locator('[data-admin-pwa-install]').click()
+        assert page.evaluate('window.NemesisPwaInstall.getState()') == 'unavailable'
+        page.evaluate('''outcome => {
+          const event = new Event('beforeinstallprompt', {cancelable:true});
+          event.prompt = () => outcome === 'async_error' ? Promise.reject(new Error('SIMULATED_QA')) : Promise.resolve();
+          event.userChoice = Promise.resolve({outcome});
+          window.dispatchEvent(event);
+        }''',outcome)
+        assert page.evaluate('window.NemesisPwaInstall.getState()') == 'available'
+        assert page.locator('[data-ns-pwa-install]').count()==0
+        page.locator('[data-admin-pwa-install]').click()
+        expected={'accepted':'accepted','dismissed':'cancelled','async_error':'error'}[outcome]
+        page.wait_for_function('state => window.NemesisPwaInstall.getState() === state',arg=expected)
+        assert page.locator('[data-admin-pwa-install]').is_enabled()
+        page.evaluate("window.dispatchEvent(new Event('appinstalled'))")
+        assert page.evaluate('window.NemesisPwaInstall.getState()') == 'installed'
+        assert page.locator('[data-admin-pwa-install]').is_disabled()
+        assert not errors and not blocked and not calls
+    finally:
+        context.close()

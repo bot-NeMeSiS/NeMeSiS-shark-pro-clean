@@ -28,6 +28,13 @@ def test_decorations_reused_after_navigation_changes_session_cookie(tmp_path,ena
     def security_and_count():
         session.setdefault('csrf',secrets.token_urlsafe(16))
         if request.endpoint=='static':seen[request.path]+=1
+    @app.after_request
+    def synthetic_image_types(response):
+        # The Windows MIME registry may label WebP as octet-stream. These known
+        # Pillow fixtures must advertise their actual format, independently of OS.
+        if request.endpoint=='static' and (request.view_args or {}).get('filename') in DECORATIVE_FILES:
+            response.mimetype='image/webp' if request.path.endswith('.webp') else 'image/png'
+        return response
     @app.get('/')
     def page():
         session['navigation']=session.get('navigation',0)+1
@@ -47,6 +54,15 @@ def test_decorations_reused_after_navigation_changes_session_cookie(tmp_path,ena
             try:
                 context=browser.new_context(service_workers='block')
                 tab=context.new_page();base='http://127.0.0.1:'+str(server.server_port)
+                headers=[]
+                def record(response):
+                    if '/static/' in response.url:
+                        values=response.all_headers()
+                        headers.append({'asset':response.url.split('/static/')[-1],
+                            'status':response.status,'cache':values.get('cache-control'),
+                            'vary':values.get('vary'),'type':values.get('content-type'),
+                            'sets_cookie':'set-cookie' in values})
+                tab.on('response',record)
                 tab.goto(base+'/?page=1',wait_until='networkidle')
                 assert tab.locator('img').evaluate_all('(els)=>els.every(el=>el.complete&&el.naturalWidth===24)')
                 first_cookie=context.cookies()[0]['value']
@@ -56,7 +72,7 @@ def test_decorations_reused_after_navigation_changes_session_cookie(tmp_path,ena
                 assert tab.locator('img').evaluate_all('(els)=>els.every(el=>el.complete&&el.naturalWidth===24)')
                 assert context.cookies()[0]['value']!=first_cookie
                 expected=1 if enabled else 2
-                assert all(seen['/static/'+name]==expected for name in DECORATIVE_FILES),dict(seen)
+                assert all(seen['/static/'+name]==expected for name in DECORATIVE_FILES),(dict(seen),headers)
                 assert 'Public image cache' in tab.locator('h1').inner_text()
             finally:browser.close()
     finally:

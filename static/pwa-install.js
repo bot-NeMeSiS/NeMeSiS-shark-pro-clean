@@ -113,7 +113,7 @@
     var promptEvent = deferredPrompt;
     deferredPrompt = null;
     try {
-      promptEvent.prompt();
+      await promptEvent.prompt();
       var choice = await promptEvent.userChoice;
       if (choice && choice.outcome === 'accepted') {
         return emit('accepted', 'Solicitud aceptada. La instalación se confirmará cuando el navegador termine.');

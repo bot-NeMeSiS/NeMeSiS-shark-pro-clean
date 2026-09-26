@@ -92,7 +92,7 @@ def _prepare_local_app():
 
 def _signed_sessions(flask_app) -> dict[str, str]:
     serializer = flask_app.session_interface.get_signing_serializer(flask_app)
-    return {
+    sessions = {
         "cookie_name": flask_app.config.get("SESSION_COOKIE_NAME", "session"),
         "client": serializer.dumps({
             "user_id": "v929-click-client",
@@ -113,6 +113,12 @@ def _signed_sessions(flask_app) -> dict[str, str]:
             "user_membership": "ADMIN",
         }),
     }
+    for plan in ("FREE", "PRO", "ELITE"):
+        sessions["client_" + plan.lower()] = serializer.dumps({
+            "user_id": "v941-click-" + plan.lower(), "user_name": "Cliente QA",
+            "user_role": plan, "membership": plan, "user_membership": plan,
+        })
+    return sessions
 
 
 def _visible_internal_actions(page) -> list[dict]:
@@ -185,7 +191,9 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
 def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport: dict, origins: list[str], timeout: int) -> list[dict]:
     context = browser.new_context(viewport=viewport, service_workers="block")
     if profile.startswith(("client_", "admin_")):
-        role = "admin" if profile.startswith("admin_") else "client"
+        role = "admin" if profile.startswith("admin_") else "_".join(profile.split("_")[:2])
+        if role not in sessions:
+            role = "client"
         context.add_cookies([{
             "name": sessions["cookie_name"],
             "value": sessions[role],
@@ -193,6 +201,10 @@ def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport:
             "httpOnly": True,
         }])
     page = context.new_page()
+    # No providers, remote logos, fonts or analytics in isolated browser QA.
+    context.route("**/*", lambda route: route.continue_()
+                  if urlsplit(route.request.url).netloc == urlsplit(base_url).netloc
+                  else route.abort())
     results: list[dict] = []
     tested_targets: set[str] = set()
     console_errors: list[str] = []
@@ -246,6 +258,8 @@ def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport:
                 direct["result"] = "ORIGIN_404"
             elif new_page_errors:
                 direct["result"] = "JS_ERROR"
+            elif new_console_errors:
+                direct["result"] = "CONSOLE_ERROR"
             elif layout.get("overflow"):
                 direct["result"] = "HORIZONTAL_OVERFLOW"
             if direct["result"] != "OK":
@@ -261,6 +275,12 @@ def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport:
             results.append(direct)
             if direct["result"] != "OK":
                 continue
+            if profile in {"client_free_desktop", "client_free_mobile", "admin_desktop", "admin_mobile"} and origin in {"/app", "/telegram", "/profile", "/admin/dashboard", "/admin/payments"}:
+                capture_dir = OUTPUT_DIR / "verified"
+                capture_dir.mkdir(parents=True, exist_ok=True)
+                shot = capture_dir / f"{profile}__{origin.strip('/').replace('/', '_')}.png"
+                page.screenshot(path=str(shot), full_page=True)
+                direct["screenshot"] = shot.relative_to(ROOT).as_posix()
 
             actions = [
                 action for action in _visible_internal_actions(page)
@@ -300,17 +320,19 @@ def run(timeout: int = 15000) -> dict:
     results: list[dict] = []
     try:
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch()
+            browser = playwright.chromium.launch(executable_path=os.getenv("NEMESIS_QA_CHROMIUM") or playwright.chromium.executable_path)
             try:
                 profiles = [
                     ("public_desktop", {"width": 1440, "height": 900}, PUBLIC_ORIGINS),
-                    ("client_desktop", {"width": 1440, "height": 900}, CLIENT_ORIGINS),
-                    ("client_mobile", {"width": 390, "height": 844}, MOBILE_ORIGINS),
+                    *[(f"client_{plan}_{device}", viewport, CLIENT_ORIGINS)
+                      for plan in ("free", "pro", "elite")
+                      for device, viewport in (("desktop", {"width":1440,"height":900}), ("mobile", {"width":390,"height":844}))],
                     ("admin_desktop", {"width": 1440, "height": 900}, ADMIN_ORIGINS),
                     ("admin_mobile", {"width": 390, "height": 844}, ADMIN_ORIGINS),
                 ]
                 for profile, viewport, origins in profiles:
                     results.extend(_run_profile(browser, base_url, sessions, profile, viewport, origins, timeout))
+                    print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
             finally:
                 browser.close()
     finally:
@@ -341,7 +363,7 @@ def run(timeout: int = 15000) -> dict:
         },
         "profiles": {
             profile: len([item for item in results if item.get("profile") == profile])
-            for profile in ("public_desktop", "client_desktop", "client_mobile", "admin_desktop", "admin_mobile")
+            for profile, _viewport, _origins in profiles
         },
         "canonical_admin_routes": list(ADMIN_ORIGINS),
         "canonical_client_routes": list(CLIENT_ORIGINS),
