@@ -23,6 +23,8 @@ POST_ONLY_PATHS=(
     "/api/picks/publish",
     "/api/picks/archive",
     "/api/shark/ask",
+    "/telegram/regenerar-código",
+    "/telegram/desvincular",
     "/api/automation/highlights/sync",
     "/api/automation/daily/run",
     "/api/automation/sports/sync",
