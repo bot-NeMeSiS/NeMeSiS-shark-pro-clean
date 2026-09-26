@@ -54,3 +54,4 @@ def test_admin_master_uses_clear_operational_language_and_exposes_install():
     assert "Simular Telegram" in text
     assert "Instalar NeMeSiS en este dispositivo" in text
     assert "data-admin-pwa-install" in text
+    assert 'data-action="pwa-install"' in text
