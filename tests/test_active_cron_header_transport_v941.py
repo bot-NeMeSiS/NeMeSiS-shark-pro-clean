@@ -43,3 +43,32 @@ def test_standalone_manual_runners_also_use_post():
     highlights=(ROOT/"tools/render_cron_highlights_sync.py").read_text(encoding="utf-8")
     assert 'method="POST"' in sports and 'method="GET"' not in sports
     assert 'method="POST"' in highlights and 'method="GET"' not in highlights
+
+
+def test_legacy_telegram_automation_posts_accept_header_secret_without_browser_csrf(client,app_module,monkeypatch):
+    monkeypatch.setenv("AUTOMATION_SECRET","qa-legacy-telegram-secret")
+    monkeypatch.setattr(app_module,"telegram_config",lambda: {"enabled":True})
+    monkeypatch.setattr(app_module,"telegram_scheduler_delivery",lambda force=False: {"ok":True,"status":"QA_LEGACY_AUTO","force":bool(force)})
+    monkeypatch.setattr(app_module,"telegram_scheduler_tick",lambda force=False: {"ok":True,"status":"QA_LEGACY_TICK","force":bool(force)})
+
+    headers={"X-Automation-Secret":"qa-legacy-telegram-secret"}
+    for path,expected in (
+        ("/api/telegram/auto-run","QA_LEGACY_AUTO"),
+        ("/api/v495/telegram-auto-run","QA_LEGACY_AUTO"),
+        ("/api/telegram/scheduler-tick","QA_LEGACY_TICK"),
+    ):
+        response=client.post(path,json={},headers=headers)
+        assert response.status_code==200,(path,response.status_code,response.get_data(as_text=True))
+        assert response.get_json()["status"]==expected
+
+
+def test_legacy_telegram_automation_gets_cannot_execute(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"telegram_scheduler_delivery",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("GET must never deliver")))
+    monkeypatch.setattr(app_module,"telegram_scheduler_tick",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("GET must never tick")))
+    for path in (
+        "/api/telegram/auto-run",
+        "/api/v495/telegram-auto-run",
+        "/api/telegram/scheduler-tick",
+    ):
+        assert client.get(path).status_code==405,path
+
