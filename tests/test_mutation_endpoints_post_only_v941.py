@@ -25,6 +25,22 @@ POST_ONLY_PATHS=(
     "/api/shark/ask",
     "/telegram/regenerar-código",
     "/telegram/desvincular",
+    "/api/admin/highlights/sync",
+    "/api/admin/autonomous-company-sentinel/run",
+    "/api/admin/autonomous-company-sentinel/sync-issues",
+    "/api/admin/autonomous-sentinel/run",
+    "/api/admin/autonomous-sentinel/sync-issues",
+    "/api/admin/sentinel/issues/scan",
+    "/api/admin/sentinel/issues/sync-autopilot",
+    "/api/admin/sentinel/issues/sync-visual-worker",
+    "/api/admin/sentinel-autopilot/run",
+    "/api/admin/shark-sentinel/run",
+    "/api/admin/continuous-sentinel/run",
+    "/api/admin/visual-worker/run",
+    "/api/admin/daily-automation/dry-run",
+    "/api/telegram/auto-run",
+    "/api/v495/telegram-auto-run",
+    "/api/telegram/scheduler-tick",
     "/api/automation/highlights/sync",
     "/api/automation/daily/run",
     "/api/automation/sports/sync",
@@ -53,3 +69,27 @@ def test_mutation_route_contract_is_documented_in_source():
     source=(ROOT/"app.py").read_text(encoding="utf-8")
     for path in POST_ONLY_PATHS:
         assert f'@app.route("{path}", methods=["POST"])' in source
+
+
+def test_admin_run_ui_uses_post_or_explicit_post_fetch():
+    templates = {
+        "admin_highlights_center.html": "/api/admin/highlights/sync",
+        "admin_sentinel_autopilot.html": "/api/admin/sentinel-autopilot/run",
+        "admin_autonomous_sentinel.html": "/api/admin/autonomous-sentinel/run",
+        "admin_visual_worker.html": "/api/admin/visual-worker/run",
+        "admin_daily_automation.html": "/api/admin/daily-automation/dry-run",
+    }
+    for name, endpoint in templates.items():
+        text=(ROOT/"templates"/name).read_text(encoding="utf-8")
+        assert endpoint in text
+        assert f'href="{endpoint}' not in text
+        assert 'method="post"' in text
+
+    company=(ROOT/"templates"/"admin_autonomous_company_sentinel.html").read_text(encoding="utf-8")
+    assert 'data-v904-method="POST"' in company
+    assert company.count('data-v904-method="POST"') >= 4
+
+    base=(ROOT/"templates"/"base.html").read_text(encoding="utf-8")
+    assert "X-CSRF-Token" in base
+    assert "data-v904-method" in base
+
