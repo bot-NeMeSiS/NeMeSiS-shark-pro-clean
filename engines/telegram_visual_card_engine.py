@@ -12,6 +12,11 @@ from .telegram_message_formatter import (
     madrid_match_time_label, match_title, pick_result_label, score_label, status_label,
 )
 from .v935_launch_trust_engine import match_status_truth
+from .crest_engine import _fetch_one
+
+STATIC_ROOT = Path(__file__).resolve().parents[1] / "static"
+
+
 def resolve_cached_visual_payload(payload, connection=None):
     """Reuse exact URL-to-local-path mappings; no downloads or name matching."""
     source = dict(payload or {})
@@ -65,7 +70,7 @@ def _base(item, kind, eyebrow):
 
 def build_pick_visual_card_payload(pick=None):
     pick = pick or {}
-    return {**_base(pick, "pick", "PICK PREMIUM"),
+    return {**_base(pick, "pick", "PRONÓSTICO PREMIUM"),
         "center": _text(first_value(pick, "selection", "recommendation"), "Selección pendiente"),
         "market": _text(first_value(pick, "market", "pick_type"), "Mercado pendiente"),
         "metrics": [("Cuota registrada", _v889_odds_label(pick.get("odds"))),
@@ -97,11 +102,11 @@ def build_result_visual_card_payload(match=None, pick=None):
     match, pick = match or {}, pick or {}
     return {**_base(match, "result", "RESULTADO / SEGUIMIENTO"),
         "center": score_label(match), "market": pick_result_label(pick).split(" ", 1)[-1],
-        "metrics": [("Selección", _text(pick.get("selection"), "Sin pick publicado")),
+        "metrics": [("Selección", _text(pick.get("selection"), "Sin pronóstico publicado")),
                     ("Mercado", _text(pick.get("market"))),
                     ("Cuota registrada", _v889_odds_label(pick.get("odds")))],
-        "reason": "Track Record actualizado." if pick.get("track_record_updated") is True else "Consulta la liquidación del pick. No se deduce del marcador.",
-        "warning": "Resultado del partido y liquidación del pick son estados distintos.",
+        "reason": "Track Record actualizado." if pick.get("track_record_updated") is True else "Consulta la liquidación del pronóstico. No se deduce del marcador.",
+        "warning": "Resultado del partido y liquidación del pronóstico son estados distintos.",
     }
 
 

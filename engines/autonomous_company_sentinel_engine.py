@@ -341,7 +341,7 @@ def run_autonomous_company_sentinel(
     open_issues = issues_summary.get("open_issues") or []
     archived_issues = [
         issue for issue in all_issues
-        if issue.get("status") in {"FIXED_PENDING_VERIFICATION", "RESOLVED", "FALSE_POSITIVE", "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE"}
+        if issue.get("status") in {"FIXED_PENDING_VERIFICATION", "VERIFIED", "RESOLVED", "FALSE_POSITIVE", "STALE", "DUPLICATE", "EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE"}
     ]
     outbox = write_codex_outbox(root, open_issues, archived_issues=archived_issues)
     autofix = build_safe_autofix_plan(open_issues)

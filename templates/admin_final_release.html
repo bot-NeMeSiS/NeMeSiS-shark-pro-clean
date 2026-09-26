@@ -3,26 +3,26 @@
 {% set fr = data.final_release %}
 <section class="app-hero ns-final-release v738-final-hero shark-section">
   <div>
-    <div class="kicker">V738 · Release candidate comercial</div>
-    <h1>Versión final preparada para vender con control</h1>
-    <p class="lead">Centro final para revisar que NeMeSiS SHARK PRO queda premium, coherente, segura y lista para validación real en Render antes de abrir beta pública controlada.</p>
+    <div class="kicker">{{ app_version }} · Candidata de publicación comercial</div>
+    <h1>Candidata preparada para validación comercial</h1>
+    <p class="lead">Centro final para revisar la evidencia local de NeMeSiS SHARK PRO antes de cualquier validación real en Render o apertura pública.</p>
     <div class="actions">
-      <a class="btn primary" href="/admin/go-live">Salida a producción</a>
+      <a class="btn primary" href="/admin/go-live">Revisar salida a producción</a>
       <a class="btn" href="/admin/telegram/command-center">Telegram</a>
-      <a class="btn" href="/admin/production-readiness">Producción</a>
+      <a class="btn" href="/admin/production-readiness">Preparación de producción</a>
       <a class="btn" href="/admin/visual-experience">Visual</a>
       <a class="btn" href="/sports-hub">Ver cliente</a>
     </div>
   </div>
   <aside class="hero-panel v738-final-score">
-    <span class="pill">Estado final</span>
+    <span class="pill">Estado de la candidata</span>
     <strong>{{ fr.readiness_score }}%</strong>
     <p class="small">{{ fr.status }}</p>
   </aside>
 </section>
 
 <section class="band compact-band ns-final-strip">
-  <div class="section-head"><h2>Puertas finales</h2><span class="pill">{{ fr.overall }}% global</span></div>
+  <div class="section-head"><h2>Comprobaciones finales</h2><span class="pill">{{ fr.overall }}% global</span></div>
   <div class="grid v738-final-grid">
     {% for gate in fr.gates %}
     <article class="card v738-gate-card {{ 'is-critical' if gate.critical else '' }}">
@@ -78,7 +78,7 @@
 
 <section class="band compact-band">
   <div class="card">
-    <div class="section-head"><h2>Mensaje final</h2><span class="pill">Candidato comercial</span></div>
+    <div class="section-head"><h2>Mensaje final</h2><span class="pill">Candidata comercial</span></div>
     <p class="lead">{{ fr.final_message }}</p>
   </div>
 </section>

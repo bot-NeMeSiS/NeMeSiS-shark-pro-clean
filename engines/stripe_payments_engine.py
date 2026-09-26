@@ -167,7 +167,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
             "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "9,99 €/mes"),
             "price_id": plan_price_id("PRO"),
             "configured": bool(plan_price_id("PRO")),
-            "features": ["Picks PRO", "Combis", "Telegram premium", "Más lectura SHARK"],
+            "features": ["Pronósticos PRO", "Combinadas", "Telegram premium", "Más lectura SHARK"],
         },
         "ELITE": {
             "plan": "ELITE",
@@ -175,7 +175,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
             "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "24,99 €/mes"),
             "price_id": plan_price_id("ELITE"),
             "configured": bool(plan_price_id("ELITE")),
-            "features": ["Picks ELITE", "Alertas live", "Prioridad Telegram", "SHARK contextual"],
+            "features": ["Pronósticos ELITE", "Alertas en directo", "Prioridad Telegram", "SHARK contextual"],
         },
     }
 

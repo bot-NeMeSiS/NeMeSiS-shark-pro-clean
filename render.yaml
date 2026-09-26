@@ -22,6 +22,16 @@ services:
         value: /data/continuous_evolution_os
       - key: AUTOMATION_SECRET
         sync: false
+      - key: SCHEDULER_ENABLED
+        value: "0"
+      - key: ENABLE_AUTO_SYNC
+        value: "0"
+      - key: AUTO_SYNC_ON_STARTUP
+        value: "0"
+      - key: DAILY_AUTOMATION_ENABLED
+        value: "0"
+      - key: DATA_BACKUP_ENABLED
+        value: "1"
 
   - type: cron
     name: telegram-auto-tick
@@ -30,7 +40,7 @@ services:
     plan: starter
     branch: main
     autoDeployTrigger: commit
-    schedule: "*/5 * * * *"
+    schedule: "*/10 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python tools/render_cron_master_tick.py
     envVars:

@@ -4,11 +4,11 @@
 <section class="v857-company-os v858-visual-lock v860-admin-board">
   <header class="v857-company-hero">
     <span>Empresa OS · Visual Lock V860</span>
-    <h1>NeMeSiS SHARK PRO Operating System</h1>
-    <p>Workers internos para revisar producto, datos reales, SHARK, Telegram, membresías, rutas, admin, cliente y release sin tocar secretos ni llamar proveedores.</p>
+    <h1>Sistema operativo de NeMeSiS SHARK PRO</h1>
+    <p>Procesos internos para revisar producto, datos reales, SHARK, Telegram, planes, rutas, administración, cliente y publicación sin tocar secretos ni llamar proveedores.</p>
     <div class="v857-company-actions">
       {{ action_button('Panel', '/admin/dashboard', 'neutral') }}
-      {{ action_button('Product Board', '/admin/company-audit', 'brand') }}
+      {{ action_button('Revisión de producto', '/admin/company-audit', 'brand') }}
       {{ action_button('Mejora continua', '/admin/auto-improvement', 'brand') }}
       {{ action_button('Centro de datos', '/admin/data-center', 'neutral') }}
       {{ action_button('Telegram', '/admin/telegram/command-center', 'neutral') }}
@@ -19,12 +19,12 @@
 
   <section class="v857-company-summary v860-kpi-row">
     {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Modo seguro: ' ~ ('activo' if summary.safe_mode else 'revisar'), 'brand') }}
-    {{ stat_card('Workers', summary.workers|length, 'Sin llamadas externas desde este panel', 'info') }}
+    {{ stat_card('Procesos', summary.workers|length, 'Sin llamadas externas desde este panel', 'info') }}
     {{ stat_card('Datos', 'No inventar' if not summary.data_invention_allowed else 'Revisar', 'Estados premium si falta proveedor', 'warning') }}
     {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Diagnóstico administrativo protegido', 'success') }}
   </section>
 
-  <section class="v857-workers-grid" aria-label="Workers internos">
+  <section class="v857-workers-grid" aria-label="Procesos internos">
     {% for worker in summary.workers %}
     <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
       <div>
@@ -41,7 +41,7 @@
       <a href="{{ worker.href }}">Abrir área</a>
     </article>
     {% else %}
-    {{ empty_state('Sin workers visibles', 'No hay workers listados en este resumen.', '', '', 'muted') }}
+    {{ empty_state('Sin procesos visibles', 'No hay procesos listados en este resumen.', '', '', 'muted') }}
     {% endfor %}
   </section>
 

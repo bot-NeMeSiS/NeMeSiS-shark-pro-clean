@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import re
 from datetime import datetime
@@ -21,8 +22,35 @@ def app_version_from_source(app_py: str) -> str:
 
 
 def service_worker_cache_from_source(app_py: str) -> str:
-    match = re.search(r"const\s+NEMESIS_CACHE=['\"]NEMESIS_CACHE_(V[0-9]+[A-Z]?)['\"]", app_py)
+    match = re.search(r"const\s+NEMESIS_CACHE=['\"]NEMESIS_CACHE_(V[0-9]+[A-Z]?)(?:_ICON_|['\"])", app_py)
     return match.group(1) if match else "unknown"
+
+
+def runtime_identity(root: Path) -> dict:
+    """Check runtime authorities without importing app or inferring deployment."""
+    versions = {}
+    errors = []
+    for name in ("VERSION.txt", "APP_VERSION"):
+        try:
+            versions[name] = (root / name).read_text(encoding="utf-8-sig").strip()
+        except OSError:
+            versions[name] = ""
+    try:
+        tree = ast.parse((root / "app.py").read_text(encoding="utf-8-sig"))
+        values = [node.value.value for node in tree.body
+                  if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+                  and any(isinstance(t, ast.Name) and t.id == "APP_VERSION" for t in node.targets)]
+        versions["app.py"] = values[0] if len(values) == 1 else ""
+    except (OSError, SyntaxError, ValueError):
+        versions["app.py"] = ""
+    version = versions["VERSION.txt"]
+    if not re.fullmatch(r"V[0-9]+[A-Z]?(?:_[A-Z0-9]+)+", version):
+        errors.append("missing_or_invalid_runtime_version")
+    if any(value != version for value in versions.values()):
+        errors.append("runtime_authorities_disagree")
+    return {"ok": not errors, "runtime_version": version or None,
+            "authorities": versions, "errors": errors,
+            "deployment_certified": False}
 
 
 def git_remote_hint() -> str:
@@ -41,8 +69,10 @@ def git_branch_hint() -> str:
 def main() -> int:
     app_py = read("app.py")
     base = read("templates/base.html")
+    identity = runtime_identity(ROOT)
     payload = {
-        "ok": True,
+        "ok": identity["ok"],
+        "runtime_identity": identity,
         "root": str(ROOT),
         "generated_at_madrid": datetime.now(ZoneInfo("Europe/Madrid")).isoformat(timespec="seconds"),
         "version_txt": read("VERSION.txt").strip().lstrip("\ufeff"),
@@ -65,7 +95,7 @@ def main() -> int:
         "secret_policy": "safe_placeholders_only",
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True))
-    return 0
+    return 0 if identity["ok"] else 1
 
 
 if __name__ == "__main__":

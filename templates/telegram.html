@@ -8,7 +8,7 @@
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver picks','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
+  {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver pronósticos','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
 
 
   <section class="v933-kpi-grid ns-video-status-rail">
@@ -35,9 +35,9 @@
       <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
         {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
         <div class="v933-four-col v933-feature-grid">
-          <article>{{ icon('target') }}<strong>{{ ui("Picks premium") }}</strong><p>{{ ui("Mercado, selección, cuota y riesgo completos.") }}</p></article>
+          <article>{{ icon('target') }}<strong>{{ ui("Pronósticos premium") }}</strong><p>{{ ui("Mercado, selección, cuota y riesgo completos.") }}</p></article>
           <article>{{ icon('live') }}<strong>{{ ui("Alertas en directo") }}</strong><p>{{ ui("Solo cuando existe una señal real.") }}</p></article>
-          <article>{{ icon('history') }}<strong>{{ ui("Resultados") }}</strong><p>{{ ui("Cierre confirmado de picks publicados.") }}</p></article>
+          <article>{{ icon('history') }}<strong>{{ ui("Resultados") }}</strong><p>{{ ui("Cierre confirmado de pronósticos publicados.") }}</p></article>
           <article>{{ icon('data') }}<strong>{{ ui("Resúmenes") }}</strong><p>{{ ui("Calidad antes que frecuencia.") }}</p></article>
         </div>
       </section>

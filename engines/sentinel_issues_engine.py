@@ -8,13 +8,16 @@ payments/users, calling paid APIs or inventing sports data.
 from __future__ import annotations
 
 from datetime import datetime
-from hashlib import sha1
+from hashlib import sha256
+from contextlib import contextmanager
+import tempfile
 import json
 import os
 import re
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
+from engines.reliability_engine import fingerprint, scrub, verification_valid, stamp, sha
 
 
 MADRID_TZ = ZoneInfo("Europe/Madrid")
@@ -24,6 +27,8 @@ SENTINEL_ISSUES_VERSION = "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_
 ISSUE_STATUSES = [
     "OPEN_REAL",
     "FIXED_PENDING_VERIFICATION",
+    "VERIFIED",
+    "VERIFICATION_FAILED",
     "RESOLVED",
     "FALSE_POSITIVE",
     "STALE",
@@ -33,7 +38,7 @@ ISSUE_STATUSES = [
 ]
 
 STATUS_CONTRACT = "NEMESIS_ISSUE_LEDGER_V2"
-ACTIVE_ISSUE_STATUSES = {"OPEN_REAL"}
+ACTIVE_ISSUE_STATUSES = {"OPEN_REAL", "VERIFICATION_FAILED"}
 TERMINAL_ISSUE_STATUSES = {"RESOLVED", "FALSE_POSITIVE", "DUPLICATE"}
 LEGACY_STATUS_MAP = {
     "OPEN": "OPEN_REAL",
@@ -103,11 +108,12 @@ def _safe_list(value: Any) -> list[Any]:
 def _load_json(path: Path, default: dict[str, Any]) -> dict[str, Any]:
     try:
         if not path.exists():
-            return dict(default)
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else dict(default)
+            return {**default, "_storage_revision":None}
+        raw = path.read_bytes()
+        data = json.loads(raw.decode("utf-8"))
+        return {**data, "_storage_revision":sha256(raw).hexdigest()} if isinstance(data, dict) else {**default, "_storage_revision":"unreadable"}
     except Exception:
-        return dict(default)
+        return {**default, "_storage_revision":"unreadable"}
 
 
 def _canonical_status(value: Any) -> str:
@@ -156,7 +162,7 @@ def issue_has_sufficient_evidence(issue: dict[str, Any]) -> bool:
 
 
 def _canonicalize_existing_issue(raw: dict[str, Any]) -> dict[str, Any]:
-    issue = dict(raw)
+    issue = scrub(dict(raw))
     legacy_status = str(issue.get("status") or "OPEN_REAL").upper()
     status = _canonical_status(legacy_status)
     if _is_synthetic_404(issue):
@@ -186,11 +192,16 @@ def _canonicalize_existing_issue(raw: dict[str, Any]) -> dict[str, Any]:
     issue["fix_sha"] = issue.get("fix_sha") or ""
     issue["verification"] = issue.get("verification") or ""
     issue["founder_feedback"] = _safe_list(issue.get("founder_feedback"))
-    issue["first_seen"] = issue.get("first_seen") or issue.get("detected_at_madrid") or _now()
+    issue["first_seen"] = issue.get("first_seen") or issue.get("detected_at_madrid") or None
     issue["last_seen"] = issue.get("last_seen") or issue.get("last_seen_madrid") or issue["first_seen"]
     issue["seen_count"] = int(issue.get("seen_count") or issue.get("occurrences") or 1)
+    issue["fingerprint"] = fingerprint(issue)
+    if status in ("RESOLVED", "VERIFIED") and not verification_valid(issue):
+        issue["status"] = status = "FIXED_PENDING_VERIFICATION"
+        issue["resolved_at_madrid"] = None
+        issue["verification_required"] = True
     issue["evidence_sufficient"] = issue_has_sufficient_evidence(issue)
-    issue["codex_eligible"] = status == "OPEN_REAL" and issue["evidence_sufficient"]
+    issue["codex_eligible"] = status in ACTIVE_ISSUE_STATUSES and issue["evidence_sufficient"]
     return issue
 
 
@@ -219,6 +230,27 @@ def load_sentinel_issues_memory(root: str | Path | None = None) -> dict[str, Any
     return canonicalize_sentinel_memory(memory)
 
 
+@contextmanager
+def _memory_write_lock(path):
+    with (path.parent / (path.name+".lock")).open("a+b") as handle:
+        if os.name == "nt":
+            import msvcrt
+            if handle.tell() == 0:
+                handle.write(b"0"); handle.flush()
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            yield
+        finally:
+            if os.name == "nt":
+                handle.seek(0); msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
 def save_sentinel_issues_memory(memory: dict[str, Any], root: str | Path | None = None) -> None:
     path = sentinel_issues_memory_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -226,23 +258,26 @@ def save_sentinel_issues_memory(memory: dict[str, Any], root: str | Path | None 
     memory["version"] = SENTINEL_ISSUES_VERSION
     memory["status_contract"] = STATUS_CONTRACT
     memory["updated_at_madrid"] = _now()
-    path.write_text(json.dumps(memory, ensure_ascii=False, indent=2), encoding="utf-8")
+    with _memory_write_lock(path):
+        current = sha256(path.read_bytes()).hexdigest() if path.exists() else None
+        if "_storage_revision" in memory and memory["_storage_revision"] != current:
+            raise OSError("sentinel_memory_changed_reload_required")
+        saved = {k:v for k,v in memory.items() if k != "_storage_revision"}
+        raw = json.dumps(saved, ensure_ascii=False, indent=2).encode("utf-8")
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=path.parent, prefix="sentinel-write-", suffix=".tmp", delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(raw); handle.flush(); os.fsync(handle.fileno())
+            os.replace(temporary, path)
+        finally:
+            if temporary and temporary.exists():
+                temporary.unlink()
+        memory["_storage_revision"] = sha256(raw).hexdigest()
 
 
 def issue_fingerprint(issue: dict[str, Any]) -> str:
-    stable_key = _safe_text(issue.get("stable_key"), 500)
-    if stable_key:
-        return sha1(stable_key.lower().encode("utf-8", errors="ignore")).hexdigest()[:16]
-    raw = "|".join(
-        [
-            _safe_text(issue.get("area"), 80),
-            _safe_text(issue.get("route"), 160),
-            _safe_text(issue.get("file"), 180),
-            _safe_text(issue.get("title"), 180),
-            _safe_text(issue.get("evidence"), 220),
-        ]
-    ).lower()
-    return sha1(raw.encode("utf-8", errors="ignore")).hexdigest()[:16]
+    return fingerprint(issue)
 
 
 def _issue_id(fingerprint: str) -> str:
@@ -367,6 +402,9 @@ def normalize_sentinel_issue(raw: dict[str, Any], source: str = "sentinel") -> d
         "founder_feedback": _safe_list(raw.get("founder_feedback")),
         "stable_key": _safe_text(raw.get("stable_key"), 500),
     }
+    for key in ("provider", "job", "exception_type", "error_code", "root_cause", "hypothesis", "pr", "corrective_action", "regression_test", "prevention", "detection"):
+        issue[key] = _safe_text(raw.get(key), 900)
+    issue["verification_record"] = scrub(raw.get("verification_record"))
     issue["severity"] = classify_sentinel_issue(issue)
     issue["priority"] = issue["priority"] or _priority_for_severity(issue["severity"])
     issue["fingerprint"] = issue_fingerprint(issue)
@@ -374,7 +412,7 @@ def normalize_sentinel_issue(raw: dict[str, Any], source: str = "sentinel") -> d
     issue["issue_id"] = issue["id"]
     issue["worker_sources"] = issue["worker_sources"] or [item for item in (issue.get("worker"), issue.get("source")) if item]
     issue["evidence_sufficient"] = bool(raw.get("evidence_sufficient")) or issue_has_sufficient_evidence(issue)
-    issue["codex_eligible"] = issue["status"] == "OPEN_REAL" and issue["evidence_sufficient"]
+    issue["codex_eligible"] = issue["status"] in ACTIVE_ISSUE_STATUSES and issue["evidence_sufficient"]
     issue["codex_prompt"] = (
         _safe_text(raw.get("codex_prompt"), 4000) or generate_issue_prompt(issue)
         if issue["codex_eligible"]
@@ -385,9 +423,10 @@ def normalize_sentinel_issue(raw: dict[str, Any], source: str = "sentinel") -> d
 
 
 def upsert_sentinel_issues(existing: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    by_fp = {str(item.get("fingerprint") or issue_fingerprint(item)): dict(item) for item in existing if isinstance(item, dict)}
+    by_fp = {issue_fingerprint(item): _canonicalize_existing_issue(item) for item in existing if isinstance(item, dict)}
     for candidate in candidates:
-        fp = candidate["fingerprint"]
+        candidate = _canonicalize_existing_issue(candidate)
+        fp = issue_fingerprint(candidate)
         previous = by_fp.get(fp)
         if previous:
             history = _safe_list(previous.get("history"))
@@ -417,14 +456,18 @@ def upsert_sentinel_issues(existing: list[dict[str, Any]], candidates: list[dict
                 "confidence": candidate.get("confidence") or previous.get("confidence"),
                 "history": history[-20:],
             })
-            if candidate.get("status") == "OPEN_REAL" and previous.get("status") in TERMINAL_ISSUE_STATUSES:
+            if candidate.get("status") == "OPEN_REAL" and previous.get("status") in TERMINAL_ISSUE_STATUSES | {"FIXED_PENDING_VERIFICATION", "VERIFIED", "VERIFICATION_FAILED"}:
                 previous["status"] = "OPEN_REAL"
                 previous["resolved_at_madrid"] = None
+                previous["reopened_count"] = int(previous.get("reopened_count") or 0) + 1
+                previous["verification_record"] = None
                 history.append({"at_madrid": _now(), "event": "reopened_by_current_evidence"})
             elif candidate.get("status") in ISSUE_STATUSES:
                 previous["status"] = candidate.get("status")
             previous["history"] = history[-20:]
         else:
+            if any(item.get("id") == candidate.get("id") for item in by_fp.values()):
+                candidate["id"] = candidate["issue_id"] = _issue_id(fp)
             by_fp[fp] = candidate
     severity_rank = {name: idx for idx, name in enumerate(SEVERITIES)}
     return sorted(by_fp.values(), key=lambda item: (severity_rank.get(str(item.get("severity")), 9), str(item.get("updated_at_madrid") or "")), reverse=False)
@@ -436,12 +479,12 @@ def reconcile_sentinel_issues(existing: list[dict[str, Any]], candidates: list[d
     Missing evidence never closes an issue automatically. It moves to human or
     deterministic verification while the full history remains available.
     """
-    seen = {candidate.get("fingerprint") for candidate in candidates if candidate.get("fingerprint")}
+    seen = {issue_fingerprint(candidate) for candidate in candidates}
     inactive_statuses = TERMINAL_ISSUE_STATUSES | {"EXTERNAL_BLOCKER", "INSUFFICIENT_EVIDENCE"}
     for issue in existing:
         if not isinstance(issue, dict):
             continue
-        fp = issue.get("fingerprint") or issue_fingerprint(issue)
+        fp = issue_fingerprint(issue)
         issue["fingerprint"] = fp
         if fp in seen:
             issue["missed_scans"] = 0
@@ -475,6 +518,10 @@ def update_issue_status(issue_id: str, status: str, root: str | Path | None = No
     memory = load_sentinel_issues_memory(root)
     for issue in memory.get("issues", []):
         if issue.get("id") == issue_id:
+            if status in ("RESOLVED", "VERIFIED") and not verification_valid(issue):
+                return {"ok": False, "error": "verification_required", "status": issue["status"]}
+            if status in ("FIXED_PENDING_VERIFICATION", "OPEN_REAL", "VERIFICATION_FAILED"):
+                issue["verification_record"] = None
             issue["status"] = status
             issue["updated_at_madrid"] = _now()
             if status == "RESOLVED":
@@ -487,6 +534,36 @@ def update_issue_status(issue_id: str, status: str, root: str | Path | None = No
             save_sentinel_issues_memory(memory, root)
             return {"ok": True, "issue": issue}
     return {"ok": False, "error": "issue_not_found"}
+
+
+def record_issue_verification(issue_id, record, root=None):
+    """Record an explicit Admin attestation, never infer PASS from a status edit."""
+    memory = load_sentinel_issues_memory(root)
+    for issue in memory["issues"]:
+        if issue.get("id") != issue_id:
+            continue
+        checked = stamp(record.get("checked_at"))
+        last = stamp(issue.get("last_seen"))
+        if not checked or not last or not last <= checked <= datetime.now(MADRID_TZ) or not sha(record.get("fix_sha")):
+            return {"ok":False, "error":"invalid_or_stale_verification"}
+        if record.get("result") not in ("PASS", "FAIL") or record.get("scope") not in ("LOCAL_QA", "CI", "PRODUCTION"):
+            return {"ok":False, "error":"invalid_verification_result"}
+        fields = ("root_cause", "corrective_action", "regression_test", "prevention", "detection", "evidence_ref")
+        cleaned = scrub(record)
+        if any(not cleaned.get(k) or cleaned[k] == "[redacted]" for k in fields):
+            return {"ok":False, "error":"incomplete_verification"}
+        for k in fields[:-1]:
+            issue[k] = cleaned[k]
+        issue["fix_sha"] = sha(record["fix_sha"])
+        issue["verification_record"] = {"sha":issue["fix_sha"], "checked_at":checked.isoformat(), "result":record["result"],
+            "scope":record["scope"], "evidence_ref":cleaned["evidence_ref"], "seen_count":issue["seen_count"],
+            "fingerprint":fingerprint(issue), "source":"ADMIN_ATTESTED_EVIDENCE"}
+        issue["status"] = "VERIFIED" if record["result"] == "PASS" else "VERIFICATION_FAILED"
+        issue["resolved_at_madrid"] = None
+        issue["history"] = (issue.get("history", []) + [{"at_madrid":_now(), "event":"verification_recorded", "result":record["result"], "scope":record["scope"]}])[-20:]
+        save_sentinel_issues_memory(memory, root)
+        return {"ok":True, "status":issue["status"], "issue_id":issue_id}
+    return {"ok":False, "error":"issue_not_found"}
 
 
 def _issues_from_autopilot_memory(root: str | Path | None = None) -> list[dict[str, Any]]:
@@ -677,6 +754,8 @@ def get_sentinel_issue(issue_id: str, root: str | Path | None = None) -> dict[st
 
 def _record_reconciliation_status(issue: dict[str, Any], status: str, note: str) -> None:
     status = _canonical_status(status)
+    if status in ("RESOLVED", "VERIFIED") and not verification_valid(issue):
+        status = "FIXED_PENDING_VERIFICATION"
     if issue.get("status") == status and issue.get("verification") == note:
         return
     before = issue.get("status")
@@ -694,7 +773,7 @@ def _record_reconciliation_status(issue: dict[str, Any], status: str, note: str)
     if status == "RESOLVED":
         issue["resolved_at_madrid"] = issue.get("resolved_at_madrid") or _now()
     issue["evidence_sufficient"] = issue_has_sufficient_evidence(issue)
-    issue["codex_eligible"] = status == "OPEN_REAL" and issue["evidence_sufficient"]
+    issue["codex_eligible"] = status in ACTIVE_ISSUE_STATUSES and issue["evidence_sufficient"]
     if not issue["codex_eligible"]:
         issue["codex_prompt"] = ""
 
@@ -799,13 +878,9 @@ def reconcile_autonomous_workforce_evidence(
         }, "FOUNDER_QA_OVERRIDE"))
     issues = upsert_sentinel_issues(issues, candidates)
 
-    canonical_by_key: dict[tuple[str, str, str], dict[str, Any]] = {}
+    canonical_by_key: dict[str, dict[str, Any]] = {}
     for issue in issues:
-        key = (
-            str(issue.get("title") or "").strip().lower(),
-            str(issue.get("route") or "").strip().lower(),
-            str(issue.get("component") or issue.get("area") or "").strip().lower(),
-        )
+        key = issue_fingerprint(issue)
         previous = canonical_by_key.get(key)
         if previous and issue.get("id") != previous.get("id") and issue.get("status") not in {"FALSE_POSITIVE", "RESOLVED"}:
             issue["related_issue_ids"] = list(dict.fromkeys([*(issue.get("related_issue_ids") or []), previous.get("id")]))

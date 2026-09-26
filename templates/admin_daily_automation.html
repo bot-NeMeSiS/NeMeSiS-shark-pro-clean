@@ -5,7 +5,7 @@
 {% set status = os.status %}
 {% set api_usage = status.api_usage or {} %}
 {% set usage_ready = api_usage.get("ok") is sameas true %}
-{% call admin_ui.shell('Automation OS', 'Daily Automation OS', 'V818 master tick, jobs, Telegram y salud') %}
+{% call admin_ui.shell('Compatibilidad de automatización', 'Automatización V818 (manual)', 'Herramientas heredadas para diagnóstico; no son el cron activo de Render') %}
 <div class="v933-page v933-admin-command-center v933-admin-daily-automation v928-admin-command-center v930-page v930-admin-page v930-admin-daily-automation" data-v933-template="admin_daily_automation" data-v933-reference="canonical-admin-automation" data-v928-template="admin_daily_automation" data-v930-template="admin_daily_automation">
 <section class="v794-admin-kpi-grid v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="admin_daily_automation" data-v828-template="admin_daily_automation" data-v829-template="admin_daily_automation" data-v830-template="admin_daily_automation" data-v832-template="admin_daily_automation" data-v833-template="admin_daily_automation" data-v836-template="admin_daily_automation" data-v837-template="admin_daily_automation" data-v826-template="admin_daily_automation">
   {{ admin_ui.kpi('Estado general', 'OK' if status.ok and usage_ready else 'Revisar', status.madrid_now, 'A', 'green' if status.ok and usage_ready else 'red') }}
@@ -28,12 +28,12 @@
 <section class="v794-admin-grid sidebar v826-certified-screen" data-v826-template="admin_daily_automation">
   <div class="v794-admin-grid">
     <article class="v794-admin-panel">
-      <div class="v794-panel-head"><h2>Próximos jobs</h2><span>{{ admin_ui.status('Madrid Time','ok') }}</span></div>
+      <div class="v794-panel-head"><h2>Tareas internas heredadas</h2><span>{{ admin_ui.status('Madrid Time','ok') }}</span></div>
       <table class="v794-admin-table">
         <thead><tr><th>Job</th><th>Ventana</th><th>Estado</th></tr></thead>
         <tbody>
         {% for job in status.next_jobs %}
-          <tr><td><strong>{{ job.name }}</strong><br><small>{{ job.job_key }}</small></td><td>{{ job.window }}</td><td>{{ admin_ui.status('Programado','info') }}</td></tr>
+          <tr><td><strong>{{ job.name }}</strong><br><small>{{ job.job_key }}</small></td><td>{{ job.window }}</td><td>{{ admin_ui.status('Manual / compatibilidad','info') }}</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -58,9 +58,9 @@
     <article class="v794-admin-panel">
       <div class="v794-panel-head"><h2>Controles seguros</h2></div>
       <div class="v794-action-grid" style="grid-template-columns:1fr">
-        <a class="v794-action-card" href="/api/admin/daily-automation/dry-run"><i>D</i><span><b>Dry-run</b><small>Calcula jobs sin enviar Telegram real</small></span><em>&gt;</em></a>
-        <a class="v794-action-card" href="/api/admin/daily-automation/health"><i>H</i><span><b>Health</b><small>DB, APIs, Telegram y secret</small></span><em>&gt;</em></a>
-        <a class="v794-action-card" href="/admin/automation-center"><i>C</i><span><b>Centro legacy</b><small>Cron anterior conservado</small></span><em>&gt;</em></a>
+        <a class="v794-action-card" href="/api/admin/daily-automation/dry-run"><i>D</i><span><b>Simulación</b><small>Calcula jobs sin enviar Telegram real</small></span><em>&gt;</em></a>
+        <a class="v794-action-card" href="/api/admin/daily-automation/health"><i>H</i><span><b>Estado del sistema</b><small>DB, APIs, Telegram y secret</small></span><em>&gt;</em></a>
+        <a class="v794-action-card" href="/admin/automation-center"><i>C</i><span><b>Centro actual</b><small>Programación real y mínima</small></span><em>&gt;</em></a>
       </div>
     </article>
 
@@ -68,9 +68,9 @@
       <div class="v794-panel-head"><h2>Render Cron</h2></div>
       <table class="v794-admin-table">
         <tbody>
-          <tr><td>Endpoint master</td><td><code>{{ os.master_endpoint }}</code></td></tr>
-          <tr><td>Health</td><td><code>{{ os.health_endpoint }}</code></td></tr>
-          <tr><td>Frecuencia</td><td>Cada 15 minutos</td></tr>
+          <tr><td>Runner activo</td><td><code>tools/render_cron_master_tick.py</code></td></tr>
+          <tr><td>Compatibilidad</td><td><code>{{ os.master_endpoint }}</code> disponible solo bajo demanda</td></tr>
+          <tr><td>Frecuencia real</td><td>Cada 10 minutos</td></tr>
         </tbody>
       </table>
     </article>

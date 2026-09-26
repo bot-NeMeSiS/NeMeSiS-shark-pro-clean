@@ -15,11 +15,11 @@
     <article class="v933-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}">
       <header><div><span>{{ ui("Plan") }}</span><h3>FREE</h3></div>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
       <strong class="v933-plan-price">0 €<small>{{ ui("/mes") }}</small></strong><p>{{ ui("Base segura para empezar.") }}</p>
-      <details class="ns-plan-benefits"><summary>{{ ui("Ver prestaciones") }}</summary><ul><li>{{ icon('check') }}<span>{{ ui("Calendario y estados deportivos") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Directo con datos reales disponibles") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Picks públicos según disponibilidad") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Acceso al contenido informativo") }}</span></li></ul></details>
+      <details class="ns-plan-benefits"><summary>{{ ui("Ver prestaciones") }}</summary><ul><li>{{ icon('check') }}<span>{{ ui("Calendario y estados deportivos") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Directo con datos reales disponibles") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Pronósticos públicos según disponibilidad") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Acceso al contenido informativo") }}</span></li></ul></details>
       {{ action_button('Plan actual' if current_plan == 'FREE' else 'Crear cuenta', '/app' if current_user else '/registro', current_plan != 'FREE', 'blue', current_plan == 'FREE') }}
     </article>
 
-    {% for key, tone, description, benefits in [('PRO','cyan','Experiencia completa',['Picks completos según datos reales','Alertas Telegram','SHARK con contexto disponible','Histórico cuando exista']),('ELITE','gold','Prioridad y acceso avanzado',['Todo lo incluido en PRO','Alertas prioritarias','Soporte según disponibilidad','Acceso anticipado a funciones'])] %}
+    {% for key, tone, description, benefits in [('PRO','cyan','Experiencia completa',['Pronósticos completos según datos reales','Alertas Telegram','SHARK con contexto disponible','Historial cuando exista']),('ELITE','gold','Prioridad y acceso avanzado',['Todo lo incluido en PRO','Alertas prioritarias','Soporte según disponibilidad','Acceso anticipado a funciones'])] %}
     {% set plan = plans.get(key) or {} %}{% set price_label = plan.get('price_label') or '' %}
     <article class="v933-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}">
       <header><div><span>{{ ui("Plan") }}</span><h3>{{ key }}</h3></div>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% endif %}</header>

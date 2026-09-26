@@ -33,7 +33,7 @@ class MockResponse:
         return False
 
 
-def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret"):
+def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret", backup_is_due: bool = False):
     calls = []
 
     def fake_urlopen(request, timeout):
@@ -47,6 +47,7 @@ def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secre
 
     monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
     monkeypatch.setenv("AUTOMATION_SECRET", secret)
+    monkeypatch.setattr(master, "backup_due", lambda _utc_now: backup_is_due)
     monkeypatch.setattr(master.urllib.request, "urlopen", fake_urlopen)
     return_code = master.main()
     output = capsys.readouterr().out.strip()
@@ -59,6 +60,34 @@ def telegram_ok(status: str = "QUEUE_EMPTY") -> MockResponse:
 
 def evolution_ok(result: str = "PASS") -> MockResponse:
     return MockResponse({"ok": True, "result": result, "safe_mode": "PASS", "storage": "PASS"})
+
+
+def backup_ok(status: str = "PASS", created: bool = True) -> MockResponse:
+    return MockResponse({"ok": True, "status": status, "backup_created": created})
+
+
+def test_backup_window_is_utc_and_bounded():
+    assert master.backup_due("2026-09-26T02:30:00+00:00") is True
+    assert master.backup_due("2026-09-26T04:29:59+00:00") is True
+    assert master.backup_due("2026-09-26T02:29:59+00:00") is False
+    assert master.backup_due("2026-09-26T04:30:00+00:00") is False
+
+
+def test_master_calls_backup_only_when_due(monkeypatch, capsys):
+    return_code, payload, calls, _output = run_master(
+        monkeypatch,
+        capsys,
+        [telegram_ok(), evolution_ok(), backup_ok()],
+        backup_is_due=True,
+    )
+    assert return_code == 0
+    assert payload["overall"] == "PASS"
+    assert payload["backup_status"] == "PASS"
+    assert payload["backup"]["backup_created"] is True
+    assert len(calls) == 3
+    assert calls[2]["request"].get_method() == "POST"
+    assert calls[2]["request"].full_url.endswith(master.BACKUP_ENDPOINT)
+    assert calls[2]["request"].headers["X-automation-secret"] == "pytest-master-secret"
 
 
 @pytest.mark.parametrize("evolution_result", ["PASS", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"])

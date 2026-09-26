@@ -386,6 +386,7 @@ from engines.client_screen_audit_engine import client_screen_audit_snapshot
 from engines.daily_automation_engine import (
     automation_runs as v818_automation_runs,
     automation_status as v818_automation_status,
+    claim_dedupe as v818_claim_dedupe,
     ensure_automation_schema_conn,
     run_master_tick as v818_run_master_tick,
     system_health as v818_system_health,
@@ -472,7 +473,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
+APP_VERSION = 'V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -817,7 +818,9 @@ def telegram_env_auto_enabled():
 
 
 def scheduler_env_enabled():
-    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", True))
+    # Legacy in-process scheduler is opt-in only. Production recurrence belongs
+    # to the Render master cron; missing env vars must never start a second owner.
+    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", False))
 
 
 def security_client_ip():
@@ -2499,7 +2502,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         result = {
             "ok": False,
             "error": "cron_execution_error",
-            "message": "El endpoint Cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa logs Render.",
+            "message": "El cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa Incidencias y el historial de automatización.",
             "detail": str(exc)[:500],
         }
     finished_at = now_iso()
@@ -6420,9 +6423,9 @@ def match_calendar_diagnostics():
         "latest_sync": latest_log,
         "active_data_source": active_source,
         "sportsdb_key_present": bool(thesportsdb_key()),
-        "sportsdb_key_masked": masked_key(thesportsdb_key()),
+        "sportsdb_configured": bool(thesportsdb_key()),
         "odds_key_present": bool(os.getenv("THE_ODDS_API_KEY")),
-        "odds_key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "enable_live_api": sportsdb_live_enabled(),
         "enable_odds_api": odds_enabled(),
         "sportsdb": sportsdb,
@@ -9916,6 +9919,8 @@ def user_public(row):
 
 
 def current_session_user():
+    if has_request_context() and hasattr(g, 'admin_preview_user'):
+        return dict(g.admin_preview_user)
     if not session.get("user_id"):
         return None
     cache_allowed = has_request_context() and request.method in {"GET", "HEAD"}
@@ -13005,7 +13010,7 @@ def telegram_reliability_snapshot(limit=60):
                 "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
                 "odds": pick.get("odds"),
                 "confidence": pick.get("confidence") or pick.get("shark_score"),
-                "dedupe_status": (existing or {}).get("status") or "",
+                "duplicate_status": (existing or {}).get("status") or "",
             })
             if not preview_pick:
                 preview_pick = pick
@@ -14931,7 +14936,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V940_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -17291,8 +17296,8 @@ def v932_admin_sports_diagnostics(sports):
         "active_data_source": "DB/cache" if sports.get("real_matches_available") else "Pendiente de sincronización",
         "latest_sync": {"started_at": last_sync} if last_sync else {},
         "errors_recent": [],
-        "sportsdb_key_masked": "***configured***" if sports.get("provider_configured") else "***missing***",
-        "odds_key_masked": "***hidden***",
+        "sportsdb_configured": bool(sports.get("provider_configured")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "incomplete_matches": int(sports.get("incomplete_matches_count") or 0),
         "storage_status": sports.get("storage_status") or "read_unavailable",
         "next_action": sports.get("admin_next_action") or "review_provider_configuration",
@@ -17835,7 +17840,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         primary_action,
         {"label": "Hoy", "href": "/calendar?lane=today"},
         {"label": "Directo", "href": "/live?f=live"},
-        {"label": "Picks", "href": "/picks"},
+        {"label": "Pronósticos", "href": "/picks"},
         {"label": "Histórico", "href": "/track-record"},
     ]
     return {
@@ -17995,6 +18000,9 @@ def v766_highlight_map(match_ids, limit_per_match=2):
 
 def v766_apply_match_highlight_badge(match, highlights=None):
     item = dict(match or {})
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="")
+        return item
     hs = highlights if highlights is not None else []
     if not hs and item.get("id"):
         try:
@@ -18018,6 +18026,8 @@ def v766_enrich_matches_with_highlights(matches):
 
 
 def v766_highlights_context(limit=12):
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        return {"version": APP_VERSION, "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentacion pausada por el administrador."}
     try:
         summary = sportsdb_highlights_summary(DB_PATH)
     except Exception as exc:
@@ -20980,12 +20990,19 @@ def _v945_provider_safe_quota(value):
     )
     clean = {}
     for key in allowed:
-        if key not in value:
+        observed = value.get(key)
+        if isinstance(observed, bool) or not isinstance(observed, (int, float, str)):
+            continue
+        if isinstance(observed, float) and (not math.isfinite(observed) or not observed.is_integer()):
+            continue
+        if isinstance(observed, str) and not re.fullmatch(r"[0-9]+", observed.strip()):
             continue
         try:
-            clean[key] = max(0, int(value.get(key) or 0))
-        except (TypeError, ValueError):
+            number = int(observed)
+        except (TypeError, ValueError, OverflowError):
             continue
+        if number >= 0:
+            clean[key] = number
     return clean
 
 
@@ -21003,11 +21020,12 @@ def _v945_provider_direct_age_seconds(check):
 
 
 def _v945_provider_direct_snapshot(provider):
-    return automation_get_bounded(
+    observed = automation_get_bounded(
         _v945_provider_direct_state_key(provider),
         {},
         max_bytes=24 * 1024,
-    ) or {}
+    )
+    return observed if isinstance(observed, dict) else {}
 
 
 def v945_provider_direct_check(provider):
@@ -21131,7 +21149,7 @@ def v945_provider_health_snapshot():
     quota_values = quota.get("values") if isinstance(quota.get("values"), dict) else {}
     job = pipeline.get("job_execution") if isinstance(pipeline.get("job_execution"), dict) else {}
 
-    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
+    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
     sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
     odds_configured = env_present("THE_ODDS_API_KEY")
 
@@ -21153,16 +21171,16 @@ def v945_provider_health_snapshot():
             label_status = "Revisar acceso/plan"
             severity = "warning"
             action = "Revisar suscripción, plan y permisos del proveedor"
-        elif contributed or ok_value is True:
-            status = "OPERATIVA"
-            label_status = "Operativa"
-            severity = "success"
-            action = "Sin acción inmediata"
         elif "CACHE" in joined:
             status = "CACHE"
             label_status = "Usando caché"
             severity = "neutral"
             action = "Verificar en el próximo ciclo real"
+        elif contributed or ok_value is True:
+            status = "OPERATIVA"
+            label_status = "Operativa en el último ciclo"
+            severity = "success"
+            action = "Sin acción inmediata"
         else:
             status = "SIN_VERIFICACION_RECIENTE"
             label_status = "Sin verificación reciente"
@@ -21188,7 +21206,7 @@ def v945_provider_health_snapshot():
             "external_calls": as_int(observed.get("external_calls"), 0),
             "observed_at": str(observed_at or ""),
             "billing_status": billing_status,
-            "quota": quota_data or {},
+            "quota": _v945_provider_safe_quota(quota_data),
             "next_action": action,
         }
 
@@ -21206,9 +21224,9 @@ def v945_provider_health_snapshot():
         "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
         observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
     )
-    if sportsdb_card["data_contributed"] and not sportsdb_configured:
+    if sportsdb_card["status"] == "OPERATIVA" and sportsdb_card["data_contributed"] and not sportsdb_configured:
         sportsdb_card["status"] = "OPERATIVA_FALLBACK"
-        sportsdb_card["status_label"] = "Fallback operativo"
+        sportsdb_card["status_label"] = "Fallback operativo en el último ciclo"
         sportsdb_card["severity"] = "success"
         sportsdb_card["next_action"] = "Sin acción inmediata; revisar límites del servicio si aplica"
 
@@ -22055,7 +22073,7 @@ def api_admin_sentinel_issue_resolve(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
     result = update_issue_status(issue_id, "RESOLVED", Path(__file__).resolve().parent, note="Marcada como resuelta desde Centro de Incidencias")
-    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 409 if result.get("error") == "verification_required" else 404)
 
 
 @app.route("/api/admin/sentinel/issues/<issue_id>/reopen", methods=["POST"])
@@ -22708,15 +22726,27 @@ def shark_page():
         "sports_context",
         lambda: v932_safe_dashboard_data(request.path, compact=True),
     )
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
+    requested_question = str(request.args.get("q") or "").strip()
+    usage = shark_question_usage(session_user) if session_user else {"allowed": False, "login_required": True, "membership": "FREE", "limit": get_membership_limits("FREE").get("shark_questions", 0), "used": 0, "remaining": 0, "limit_reached": False}
+    question_block = ""
+    if requested_question:
+        if not session_user:
+            question_block = "LOGIN_REQUIRED"
+        else:
+            usage = consume_shark_question(session_user)
+            if not usage.get("allowed"):
+                question_block = "LIMIT_REACHED"
+    data["shark_usage"] = usage
     briefing = timed_phase(
         "briefing",
         lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
     )
     data["briefing"] = briefing
     openai_ready = v845_openai_configured()
-    question = request.args.get("q") or "resumen"
+    question = requested_question if requested_question and not question_block else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
     if not provider_status.get("api_sports_configured"):
         provider_label = "API-SPORTS no configurada"
@@ -22754,6 +22784,10 @@ def shark_page():
             {},
         ),
     )
+    if question_block == "LOGIN_REQUIRED":
+        answer = {"answer": "Inicia sesión para hacer consultas personalizadas a SHARK. Puedes seguir viendo el resumen y los datos públicos.", "focus": "membership"}
+    elif question_block == "LIMIT_REACHED":
+        answer = {"answer": "Has alcanzado el límite de consultas SHARK de hoy para tu plan. El resumen deportivo sigue disponible.", "focus": "membership"}
     data["shark_assistant"] = {
         "context": context,
         "answer": answer,
@@ -23721,7 +23755,7 @@ def admin_time_diagnostics_page():
     )
 
 
-@app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])
+@app.route("/api/telegram/repair-automatic", methods=["POST"])
 def api_telegram_repair_automatic():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27543,10 +27577,17 @@ def api_shark_briefing():
 
 @app.route("/api/shark/ask", methods=["GET", "POST"])
 def api_shark_ask():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para preguntar a SHARK.", "login_required": True, "login_url": "/cliente-login?next=/shark"}), 401
+    usage = consume_shark_question(user)
+    if not usage.get("allowed"):
+        target = "ELITE" if usage.get("membership") == "PRO" else "PRO"
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/memberships?plan={target}"}), 429
     payload = request.get_json(silent=True) or dict(request.form or request.args or {})
     answer = shark_answer(payload.get("question") or payload.get("q") or "")
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
-    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer, "usage": usage})
 
 
 @app.route("/api/shark/context")
@@ -27592,7 +27633,7 @@ def api_telegram_settings():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": get_telegram_settings()})
 
 
-@app.route("/api/telegram/settings/update", methods=["POST", "GET"])
+@app.route("/api/telegram/settings/update", methods=["POST"])
 def api_telegram_settings_update():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27600,7 +27641,7 @@ def api_telegram_settings_update():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": update_telegram_settings(payload)})
 
 
-@app.route("/api/telegram/send-test", methods=["POST", "GET"])
+@app.route("/api/telegram/send-test", methods=["POST"])
 def api_telegram_send_test():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27618,7 +27659,7 @@ def api_telegram_send_test():
     return jsonify({"ok": processed.get("failed", 0) == 0, "version": APP_VERSION, "message": "Test Telegram procesado.", "queued": queued, **processed})
 
 
-@app.route("/api/telegram/enqueue-daily-matches", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-matches", methods=["POST"])
 def api_telegram_enqueue_daily_matches():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27626,7 +27667,7 @@ def api_telegram_enqueue_daily_matches():
     return jsonify({"version": APP_VERSION, **enqueue_daily_matches(force=force, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/enqueue-daily-picks", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-picks", methods=["POST"])
 def api_telegram_enqueue_daily_picks():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27635,7 +27676,7 @@ def api_telegram_enqueue_daily_picks():
     return jsonify({"version": APP_VERSION, **enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/process-queue", methods=["POST", "GET"])
+@app.route("/api/telegram/process-queue", methods=["POST"])
 def api_telegram_process_queue():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27787,7 +27828,7 @@ def api_telegram_queue():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": queue_summary(queue), "queue": queue})
 
 
-@app.route("/api/telegram/scheduler-manager", methods=["GET", "POST"])
+@app.route("/api/telegram/scheduler-manager", methods=["POST"])
 def api_telegram_scheduler_manager():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27921,9 +27962,9 @@ def client_safe_404(error):
         {"label": "Entrar", "href": "/cliente-login"},
         {"label": "Crear cuenta", "href": "/registro"},
         {"label": "Mi app", "href": "/app"},
-        {"label": "Partidos", "href": "/calendar"},
+        {"label": "Calendario", "href": "/calendar"},
         {"label": "Directo", "href": "/live"},
-        {"label": "Picks", "href": "/picks"},
+        {"label": "Pronósticos", "href": "/picks"},
         {"label": "Soporte", "href": "/support"},
     ]
     if is_admin_path:
@@ -28011,7 +28052,7 @@ def client_safe_500(error):
             client_issue_created=client_issue_created,
         ), 500
     except Exception:
-        return "Error temporal controlado. Revisa logs Render.", 500
+        return "Error temporal controlado. Vuelve a Inicio o, si eres administrador, revisa Incidencias.", 500
 
 
 @app.route("/api/deep-route-check")
@@ -28034,7 +28075,7 @@ def api_client_experience_check():
         "public_routes": public_routes,
         "client_routes": client_routes,
         "admin_routes": admin_routes,
-        "focus": "V535: UX compacta, picks visibles, live vivo, favoritos inteligentes, SHARK contextual, cliente limpio y admin separado",
+        "focus": "UX compacta: pronósticos visibles, directo claro, favoritos inteligentes, SHARK contextual, cliente limpio y administración separada.",
     })
 
 
@@ -29219,15 +29260,15 @@ def v566_membership_ui(user=None):
     elif membership == "PRO":
         ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
-        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
+        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver pronósticos", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
-            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "PRO", "title": "Pronósticos y Telegram PRO", "body": "Desbloquea pronósticos PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Pronósticos automáticos y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
-            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "ELITE completo", "body": "Pronósticos automáticos, combinadas avanzadas, SHARK completo y valor avanzado.", "href": "/membresias?plan=ELITE"},
         ]
     else:
         ctx["upgrade_cards"] = []
@@ -29676,8 +29717,8 @@ def v928_telegram_overview_fast():
     token_present = env_present("TELEGRAM_BOT_TOKEN")
     chat_present = env_present("TELEGRAM_CHAT_ID")
     auto_env = bool(
-        env_bool("ENABLE_TELEGRAM_AUTOMATION", True)
-        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", True)
+        env_bool("ENABLE_TELEGRAM_AUTOMATION", False)
+        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", False)
         or env_bool("ENABLE_TELEGRAM_AUTO", False)
         or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
     )
@@ -29791,6 +29832,8 @@ def v566_admin_dashboard_page():
     data["v934_realtime"] = get_v934_realtime_context(_summary)
     quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
     items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    from blueprints.admin_master_control import master_snapshot
+    data["admin_master"] = master_snapshot(__import__(__name__))
     return render_template("admin_dashboard.html", data=data, q=quality, items=items)
 
 
@@ -29980,6 +30023,48 @@ def record_shark_memory(event_type, context=None, user_id=None):
         return False
 
 
+def shark_question_usage(user=None):
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+    finally:
+        conn.close()
+    return {"allowed": used < limit, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+
+
+def consume_shark_question(user=None):
+    """Consume one plan query atomically without storing the prompt text."""
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+        if used >= limit:
+            conn.rollback()
+            return {"allowed": False, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": 0, "limit_reached": True}
+        conn.execute("INSERT INTO shark_memory(user_id,event_type,context_json,created_at) VALUES (?,?,?,?)", (user_id, "client_question", json.dumps({"membership": membership, "prompt_stored": False}, ensure_ascii=False), now_iso()))
+        conn.commit()
+        used += 1
+        return {"allowed": True, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+    finally:
+        conn.close()
+
+
 def v570_shark_core_summary():
     user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     membership = (user.get("membership") or user.get("role") or "FREE").upper()
@@ -30072,7 +30157,7 @@ def v570_inteligencia_alias():
 def v570_admin_shark_center():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/shark-ai")
-    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v845_shark_admin_summary())
+    return redirect("/admin/dashboard#master-ai-title")
 
 
 @app.route("/api/shark/core-summary")
@@ -30567,13 +30652,36 @@ def api_admin_data_vault_export():
 def api_automation_data_backup_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
+    now_value = now_iso()
+    madrid_day = today_iso()
+    last_success = automation_get("last_successful_data_backup_call", {}) or {}
+    last_result = last_success.get("result") if isinstance(last_success.get("result"), dict) else {}
+    already_done = (
+        str(last_success.get("time") or "")[:10] == madrid_day
+        and last_result.get("ok") is not False
+        and last_result.get("backup_created") is True
+    )
     if not env_bool("DATA_BACKUP_ENABLED", False):
         result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no está activo."}
+    elif already_done:
+        result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_DONE", "message": "El backup diario ya fue creado y verificado para esta fecha Madrid."}
     else:
-        result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
-    automation_safe_set("last_cron_data_backup_call", {"time": now_iso(), "result": result})
+        conn = sqlite3.connect(DB_PATH, timeout=2)
+        try:
+            ensure_automation_schema_conn(conn)
+            claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+        finally:
+            close_conn = getattr(conn, "close", None)
+            if callable(close_conn):
+                close_conn()
+        if not claimed:
+            result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING", "message": "Otro intento de backup posee el claim temporal."}
+        else:
+            result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
+            if result.get("ok") is not False and result.get("backup_created") is True:
+                automation_safe_set("last_successful_data_backup_call", {"time": now_value, "result": result})
+    automation_safe_set("last_cron_data_backup_call", {"time": now_value, "result": result})
     return jsonify({"version": APP_VERSION, **result})
-
 
 @app.route("/api/admin/production-readiness-v744")
 def api_admin_production_readiness_v744():
@@ -31452,7 +31560,7 @@ def api_v808_betting_convert_to_pick():
     return jsonify({"ok": True, "version": APP_VERSION, "published": publish, "result": result})
 
 
-@app.route("/api/telegram/enqueue-recommendations")
+@app.route("/api/telegram/enqueue-recommendations", methods=["POST"])
 def api_v808_telegram_enqueue_recommendations():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -31861,7 +31969,7 @@ def v818_telegram_daily_top_agenda():
 
 
 def v818_live_tracker_smart_sync():
-    if not env_bool("ENABLE_AUTO_LIVE_SYNC", True):
+    if not env_bool("ENABLE_AUTO_LIVE_SYNC", False):
         return {"ok": True, "skipped": True, "reason": "ENABLE_AUTO_LIVE_SYNC=false"}
     return v818_callback_result("api_football_live_tracker", sync_api_football_live_tracker, DB_PATH, force=False)
 
@@ -31875,7 +31983,7 @@ def v818_results_sync_and_top_results():
 def v818_evening_recap():
     status = v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))
     sent = 0
-    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", True) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
+    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", False) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
         # The existing scheduler owns quiet hours, dedupe and delivery limits.
         telegram = v818_callback_result("telegram_scheduler_tick", telegram_scheduler_tick, force=False)
         sent = as_int(telegram.get("sent") or telegram.get("sent_count"), 0)
@@ -33423,6 +33531,31 @@ def admin_go_to_market_office_page():
     )
 
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
+
+# Extend the canonical dashboard; no second app or worker process.
+import sys as _admin_sys
+from blueprints.admin_master_control import register_admin_master, settings_values as _admin_settings_values
+register_admin_master(_admin_sys.modules[__name__])
+
+def admin_operational_settings():
+    # One bounded settings read per request, shared by cards and templates.
+    if not hasattr(g, "admin_operational_settings"):
+        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])
+    return g.admin_operational_settings
+
+@app.context_processor
+def admin_operational_settings_context():
+    return {"admin_operational_settings": admin_operational_settings()}
+
+@app.before_request
+def admin_client_content_visibility():
+    # Client-only presentation switch; never deletes content or stops ingestion.
+    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.path.startswith("/highlight/")) and not is_admin_session():
+        if not admin_operational_settings()["highlights_enabled"]:
+            if request.path.startswith("/api/"):
+                return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
+            return render_template("admin_content_paused.html", data={})
+
 
 if __name__ == "__main__":
     seed_core()
