@@ -36,8 +36,8 @@
         </table>
       </div>
       <div class="v883-actions">
-        <a class="ns-button ns-button-primary" href="/api/admin/visual-worker/run?mode=visual-worker&dry_run=1">Ejecutar visual</a>
-        <a class="ns-button ns-button-secondary" href="/api/admin/visual-worker/run?mode=full-company-qa&dry_run=1">QA integral de empresa</a>
+        <form method="post" action="/api/admin/visual-worker/run?mode=visual-worker&dry_run=1" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ns-button ns-button-primary" type="submit">Ejecutar visual</button></form>
+        <form method="post" action="/api/admin/visual-worker/run?mode=full-company-qa&dry_run=1" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ns-button ns-button-secondary" type="submit">QA integral de empresa</button></form>
         <a class="ns-button ns-button-ghost" href="/admin/sentinel-issues">Enviar hallazgos a Incidencias</a>
       </div>
     </article>
