@@ -524,7 +524,14 @@
         if(!url || !window.fetch){ if(out){ out.textContent='Acción pendiente: navegador sin fetch disponible.'; } return; }
         btn.setAttribute('aria-busy','true');
         if(out){ out.textContent='Ejecutando dry-run seguro...'; }
-        fetch(url,{headers:{'Accept':'application/json'},cache:'no-store'})
+        var method=(btn.getAttribute('data-v904-method')||'GET').toUpperCase();
+        var options={method:method,headers:{'Accept':'application/json'},cache:'no-store',credentials:'same-origin'};
+        if(method==='POST'){
+          options.headers['Content-Type']='application/json';
+          options.headers['X-CSRF-Token']=window.nemesisCsrfToken ? window.nemesisCsrfToken() : '';
+          options.body=JSON.stringify({dry_run:true});
+        }
+        fetch(url,options)
           .then(function(res){ return res.text().then(function(text){ return {status:res.status,text:text}; }); })
           .then(function(payload){
             var preview=payload.text ? payload.text.slice(0,220) : 'Sin contenido';
