@@ -109,3 +109,26 @@ def test_shark_surface_uses_current_product_language():
     for forbidden in ("{'label':'Partidos'","{'label':'Ver picks'","Explorar partidos","Revisar picks","<strong>Pick</strong>","Sin pick real publicado"):
         assert forbidden not in text
     assert "Calendario" in text and "Ver pronósticos" in text
+
+
+def test_home_error_history_and_admin_tools_avoid_internal_jargon():
+    home=read("templates/home.html")
+    history=read("templates/track_record.html")
+    not_found=read("templates/404.html")
+    app_source=read("app.py")
+    automation=read("templates/admin_automation_center.html")
+    automation_engine=read("engines/automation_orchestrator_engine.py")
+    users=read("templates/admin_users.html")
+    payments=read("templates/admin_payments.html")
+    for token in ("Smart Home","Briefing","Recap","Live real","Match Center","Sports Relevance","Intelligence"):
+        assert token not in home
+    assert "Cómo calculamos el historial" in history
+    assert "El histórico empieza" not in history
+    assert "app/PWA" not in not_found
+    assert '{"label": "Picks", "href": "/picks"}' not in app_source
+    assert "Revisa logs Render" not in app_source
+    for token in ("scheduler_engine legacy tasks","highlights sync","standalone pick grading","visual/browser QA workers","Browser QA","Data Vault y retención"):
+        assert token not in automation + automation_engine
+    assert "Planes y accesos" in users and "Membresías con fecha" not in users
+    assert "Ingresos mensuales estimados (MRR)" in payments
+    assert "Confirmación Stripe" in payments

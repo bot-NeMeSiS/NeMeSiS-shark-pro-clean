@@ -42,7 +42,7 @@ def _job(name, label, endpoint, command, enabled, configured, last=None, cadence
         "status": status,
         "last_run": last.get("time") or last.get("created_at") or last.get("madrid_time") or "",
         "last_result": (last.get("result") or {}).get("status") if isinstance(last.get("result"), dict) else last.get("status") or "",
-        "safe_note": "Protegido por AUTOMATION_SECRET" if endpoint and "secret" in endpoint else "Admin only",
+        "safe_note": "Protegido por clave de automatización" if endpoint and "secret" in endpoint else "Solo Admin",
     }
 
 
@@ -93,14 +93,14 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "jobs_total": len(jobs),
         "jobs": jobs,
         "manual_only": [
-            "scheduler_engine legacy tasks",
-            "daily_run V818",
-            "highlights sync",
-            "standalone pick grading",
-            "standalone sports sync",
-            "standalone backup runner",
-            "Sentinel scans",
-            "visual/browser QA workers",
+            "Programador heredado (manual)",
+            "Automatización diaria V818 (compatibilidad)",
+            "Sincronización de destacados",
+            "Evaluación independiente de pronósticos",
+            "Sincronización deportiva independiente",
+            "Copia de seguridad independiente",
+            "Revisiones de calidad / Sentinel",
+            "Revisión visual y de navegador",
         ],
         "maintenance": {
             "data_backup": {

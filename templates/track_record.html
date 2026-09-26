@@ -65,7 +65,7 @@
 
     <aside class="v933-side-stack">
       <section class="v933-panel">
-        {{ section_header('Metodología del histórico', 'Muestra suficiente y resultados evaluables.') }}
+        {{ section_header('Cómo calculamos el historial', 'Muestra suficiente y resultados evaluables.') }}
         <div class="v933-truth-list">
           <div>{{ icon('check') }}<span><strong>{{ ui("Entra en el cálculo") }}</strong><small>{{ ui("Resultado final obligatorio") }}</small></span>{{ status_chip('Validado','success') }}</div>
           <div>{{ icon('odds') }}<span><strong>Unidades recomendadas</strong><small>{{ ui("Real y evaluable") }}</small></span>{{ status_chip('Validado','success') }}</div>
@@ -79,11 +79,11 @@
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-track-empty" data-empty-dashboard="resolved">
-    {{ empty_state('El histórico empieza con resultados reales', 'Rentabilidad (ROI), porcentaje de acierto y evolución aparecerán cuando existan pronósticos cerrados y evaluables.', '', '', 'history') }}
+    {{ empty_state('El historial empieza con resultados reales', 'Rentabilidad (ROI), porcentaje de acierto y evolución aparecerán cuando existan pronósticos cerrados y evaluables.', '', '', 'history') }}
   </section>
-  <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Histórico">
+  <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Historial">
     {{ quick_action('Ver pronósticos', 'Consulta selecciones publicadas.', '/picks', 'target', 'cyan') }}
-    {{ quick_action('Explorar partidos', 'Abre el catálogo deportivo.', '/calendar', 'matches', 'blue') }}
+    {{ quick_action('Abrir calendario', 'Consulta el catálogo deportivo.', '/calendar', 'matches', 'blue') }}
     {{ quick_action('Consultar SHARK', 'Revisa análisis disponibles.', '/shark', 'shark', 'green') }}
   </nav>
   {% endif %}

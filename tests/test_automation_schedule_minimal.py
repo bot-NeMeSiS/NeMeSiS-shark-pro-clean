@@ -35,7 +35,7 @@ def test_automation_center_lists_only_actual_recurring_jobs():
     assert summary["jobs"][0]["cadence"]=="cada 10 min"
     assert "pick_grading" in summary["jobs"][0]["included_flows"]
     assert "data_backup" in summary["jobs"][0]["included_flows"]
-    assert "highlights sync" in summary["manual_only"]
+    assert "Sincronización de destacados" in summary["manual_only"]
 
 
 def test_legacy_admin_page_does_not_claim_old_jobs_are_render_scheduled():

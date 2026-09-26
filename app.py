@@ -27964,7 +27964,7 @@ def client_safe_404(error):
         {"label": "Mi app", "href": "/app"},
         {"label": "Calendario", "href": "/calendar"},
         {"label": "Directo", "href": "/live"},
-        {"label": "Picks", "href": "/picks"},
+        {"label": "Pronósticos", "href": "/picks"},
         {"label": "Soporte", "href": "/support"},
     ]
     if is_admin_path:
@@ -28052,7 +28052,7 @@ def client_safe_500(error):
             client_issue_created=client_issue_created,
         ), 500
     except Exception:
-        return "Error temporal controlado. Revisa logs Render.", 500
+        return "Error temporal controlado. Vuelve a Inicio o, si eres administrador, revisa Incidencias.", 500
 
 
 @app.route("/api/deep-route-check")
@@ -28075,7 +28075,7 @@ def api_client_experience_check():
         "public_routes": public_routes,
         "client_routes": client_routes,
         "admin_routes": admin_routes,
-        "focus": "V535: UX compacta, picks visibles, live vivo, favoritos inteligentes, SHARK contextual, cliente limpio y admin separado",
+        "focus": "UX compacta: pronósticos visibles, directo claro, favoritos inteligentes, SHARK contextual, cliente limpio y administración separada.",
     })
 
 

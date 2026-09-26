@@ -7,7 +7,7 @@
     <h1>Esta pantalla no existe o pertenece a una versión anterior.</h1>
     <p>
       Te llevamos de vuelta a una zona segura de NeMeSiS SHARK PRO. Si has llegado desde un acceso directo,
-      una PWA instalada o un enlace antiguo, puedes entrar de nuevo desde aquí.
+      la app instalada o un enlace antiguo, puedes entrar de nuevo desde aquí.
     </p>
     <p class="ns-muted ns-not-found-path">Ruta solicitada: <code>{{ path }}</code></p>
     {% if is_admin_path %}
@@ -20,7 +20,7 @@
       {% for item in safe_links %}
         <a class="ns-button {% if loop.first %}ns-button-primary{% else %}ns-button-secondary{% endif %}" href="{{ item.href }}">{{ item.label }}</a>
       {% endfor %}
-      <button class="ns-button ns-button-ghost" type="button" id="resetPwaButton">Restablecer app/PWA</button>
+      <button class="ns-button ns-button-ghost" type="button" id="resetPwaButton">Restablecer app instalada</button>
     </div>
   </section>
 </main>

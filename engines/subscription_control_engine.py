@@ -42,9 +42,9 @@ def product_plan_prices() -> Dict[str, float]:
 
 
 FEATURES = {
-    "FREE": ["calendario", "live básico", "favoritos", "picks limitados"],
-    "PRO": ["picks PRO", "SHARK recomendado", "Telegram PRO", "banca", "riesgo/value básico"],
-    "ELITE": ["SHARK completo", "auto picks", "combinadas", "top picks", "prioridad Telegram"],
+    "FREE": ["calendario", "directo básico", "favoritos", "pronósticos limitados"],
+    "PRO": ["pronósticos PRO", "SHARK recomendado", "Telegram PRO", "banca", "riesgo/valor básico"],
+    "ELITE": ["SHARK completo", "pronósticos automáticos", "combinadas", "pronósticos destacados", "prioridad Telegram"],
 }
 
 
