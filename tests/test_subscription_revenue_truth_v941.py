@@ -81,6 +81,7 @@ def test_catalog_prices_match_stripe_visible_catalog(monkeypatch):
 
 def test_readonly_summary_does_not_need_access_sync_to_report_manual_grants(tmp_path):
     path=make_db(tmp_path)
+    revenue.ensure_subscription_schema(path)
     con=sqlite3.connect(path)
     con.execute("DELETE FROM subscription_accounts")
     con.commit(); con.close()
