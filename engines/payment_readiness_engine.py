@@ -12,6 +12,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable
 
 
@@ -28,7 +29,12 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def connect(db_path: str) -> sqlite3.Connection:
+def connect(db_path: str, *, read_only: bool = False) -> sqlite3.Connection:
+    if read_only:
+        conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True, timeout=1)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA query_only=ON")
+        return conn
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -118,8 +124,9 @@ def provider_flags() -> Dict[str, bool]:
     }
 
 
-def payment_readiness_snapshot(db_path: str) -> Dict[str, Any]:
-    ensure_payment_schema(db_path)
+def payment_readiness_snapshot(db_path: str, *, persist: bool = False) -> Dict[str, Any]:
+    if persist:
+        ensure_payment_schema(db_path)
     flags = provider_flags()
     checkout_ready = bool(flags["stripe_secret_key"] and flags["stripe_price_pro"] and flags["stripe_price_elite"] and flags["public_url"])
     webhooks_ready = bool(flags["stripe_webhook_secret"])
@@ -135,7 +142,7 @@ def payment_readiness_snapshot(db_path: str) -> Dict[str, Any]:
     for key, ok in flags.items():
         if not ok:
             blockers.append({"key": key, "message": labels[key], "priority": 90 if key in {"stripe_secret_key", "stripe_webhook_secret"} else 75})
-    conn = connect(db_path)
+    conn = connect(db_path, read_only=not persist)
     events_total = scalar(conn, "SELECT COUNT(*) FROM payment_webhook_events", default=0)
     events_recent = rows(conn, "SELECT provider,event_type,verified,processed,status,plan,amount,currency,received_at FROM payment_webhook_events ORDER BY received_at DESC LIMIT 12")
     score = 25
@@ -146,13 +153,14 @@ def payment_readiness_snapshot(db_path: str) -> Dict[str, Any]:
     score += 10 if flags["public_url"] else 0
     score = max(0, min(100, score))
     today = utc_now()[:10]
-    conn.execute(
-        """INSERT OR REPLACE INTO payment_readiness_daily
-           (metric_date,readiness_score,provider,configured,webhooks_ready,checkout_ready,blockers_json,updated_at)
-           VALUES (?,?,?,?,?,?,?,?)""",
-        (today, score, "stripe", int(configured), int(webhooks_ready), int(checkout_ready), safe_json(blockers), utc_now()),
-    )
-    conn.commit()
+    if persist:
+        conn.execute(
+            """INSERT OR REPLACE INTO payment_readiness_daily
+               (metric_date,readiness_score,provider,configured,webhooks_ready,checkout_ready,blockers_json,updated_at)
+               VALUES (?,?,?,?,?,?,?,?)""",
+            (today, score, "stripe", int(configured), int(webhooks_ready), int(checkout_ready), safe_json(blockers), utc_now()),
+        )
+        conn.commit()
     conn.close()
     return {
         "ok": True,

@@ -13,6 +13,7 @@ import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 MADRID_OFFSET_FALLBACK = "+01:00"
@@ -218,8 +219,9 @@ def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
     summary = {}
     if db_path:
         try:
-            ensure_stripe_schema(db_path)
-            conn = connect(db_path)
+            conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True, timeout=1)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
             summary = {
                 "events_total": scalar(conn, "SELECT COUNT(*) FROM payment_webhook_events", default=0),
                 "subscriptions_total": scalar(conn, "SELECT COUNT(*) FROM stripe_subscriptions", default=0),

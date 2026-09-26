@@ -188,6 +188,7 @@ from engines.sentinel_autopilot_engine import (
     build_autopilot_snapshot,
     generate_codex_prompt_for_issue,
     load_autopilot_memory,
+    read_autopilot_summary,
     mark_autopilot_issue_resolved,
     run_autopilot_scan,
     save_autopilot_memory,
@@ -11206,27 +11207,8 @@ def default_profile():
     seed_core()
     profile = one("SELECT * FROM client_profiles WHERE id='default'")
     if not profile:
-        conn = db()
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO client_profiles
-               (id,name,membership_plan,favorite_teams_json,favorite_competitions_json,telegram_chat_id,preferences_json,created_at,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (
-                "default",
-                "Cliente SHARK",
-                "pro",
-                json.dumps(["Real Madrid", "Sevilla FC", "Real Betis"]),
-                json.dumps(["UEFA Champions League", "LaLiga EA Sports", "Andalucia Regional Football"]),
-                os.getenv("TELEGRAM_CHAT_ID", ""),
-                json.dumps({"tone": "premium", "focus": "global+spain+andalucia"}),
-                now_iso(),
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
-        profile = one("SELECT * FROM client_profiles WHERE id='default'")
+        # A missing legacy profile is not a saved plan or personal preference.
+        profile = {"id": "default", "name": "Cliente SHARK", "membership_plan": "free"}
     profile["favorite_teams"] = json.loads(profile.get("favorite_teams_json") or "[]")
     profile["favorite_competitions"] = json.loads(profile.get("favorite_competitions_json") or "[]")
     profile["preferences"] = json.loads(profile.get("preferences_json") or "{}")
@@ -22131,16 +22113,15 @@ def api_admin_sentinel_issue_codex_prompt(issue_id):
 def admin_sentinel_autopilot_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/sentinel-autopilot")
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
-    memory = load_autopilot_memory(Path(__file__).resolve().parent)
-    return render_template("admin_sentinel_autopilot.html", data=dashboard_data(), summary=scan, memory=memory)
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
+    return render_template("admin_sentinel_autopilot.html", data=dashboard_data(), summary=scan)
 
 
 @app.route("/api/admin/sentinel-autopilot/summary")
 def api_admin_sentinel_autopilot_summary():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode="quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, **scan, "daily_report": build_autopilot_daily_report(scan)})
 
 
@@ -22157,7 +22138,7 @@ def api_admin_sentinel_autopilot_run():
 def api_admin_sentinel_autopilot_issues():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, "version": APP_VERSION, "issues": scan.get("issues", []), "priority_matrix": scan.get("priority_matrix", {})})
 
 
@@ -22165,7 +22146,7 @@ def api_admin_sentinel_autopilot_issues():
 def api_admin_sentinel_autopilot_tasks():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, "version": APP_VERSION, "tasks": scan.get("tasks", []), "safe_actions": scan.get("safe_actions", []), "approval_required_actions": scan.get("approval_required_actions", [])})
 
 
@@ -22174,7 +22155,7 @@ def api_admin_sentinel_autopilot_generate_prompt():
     if not is_admin_session():
         return admin_json_forbidden()
     payload = request.get_json(silent=True) or {}
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     issues = scan.get("issues", [])
     issue_id = str(payload.get("issue_id") or request.args.get("issue_id") or "")
     issue = next((item for item in issues if item.get("issue_id") == issue_id), issues[0] if issues else {})
@@ -28900,7 +28881,7 @@ def admin_payments_page():
         if action == "rules":
             result = apply_subscription_rules(DB_PATH)
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
-    data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH), {})
+    data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH, persist=request.method == "POST"), {})
     data["stripe"] = v932_safe_context(request.path, "admin", "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
     data["subscriptions"] = v932_safe_context(
         request.path,
@@ -28922,7 +28903,7 @@ def api_admin_payments():
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
-        "payments": payment_readiness_snapshot(DB_PATH),
+        "payments": payment_readiness_snapshot(DB_PATH, persist=is_write),
         "stripe": stripe_runtime_status(DB_PATH),
         "subscriptions": subscription_summary(
             DB_PATH,

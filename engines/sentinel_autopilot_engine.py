@@ -3125,6 +3125,28 @@ def load_autopilot_memory(root: str | Path | None = None) -> dict[str, Any]:
         return {"ok": False, "path": str(path), "issues": [], "tasks": [], "error": repr(exc)}
 
 
+def read_autopilot_summary(root: str | Path | None = None) -> dict[str, Any]:
+    """Read stored evidence, never run a scan or certify the current revision."""
+    memory = load_autopilot_memory(root)
+    last = memory.get("last_scan") or {}
+    available = bool(memory.get("ok") and last)
+    issues = [item for item in memory.get("issues", [])
+              if isinstance(item, dict) and item.get("status") != "resolved"]
+    tasks = [item for item in memory.get("tasks", []) if isinstance(item, dict)]
+    return {
+        "read_only": True, "evidence_available": available,
+        "status": "STORED_DIAGNOSTIC" if available else "NOT_EVALUATED",
+        "recorded_at_madrid": memory.get("updated_at_madrid"),
+        "version": last.get("version"), "score": last.get("score") if available else None,
+        "issues": issues, "tasks": tasks, "priority_matrix": build_priority_matrix(issues),
+        "next_best_actions": build_next_best_actions(issues) if issues else [],
+        "safe_actions": [t for t in tasks if t.get("safe_fix_plan", {}).get("requires_approval") is False],
+        "approval_required_actions": [t for t in tasks if t.get("safe_fix_plan", {}).get("requires_approval") is True],
+        "codex_prompts": [t["codex_prompt"] for t in tasks if t.get("codex_prompt")],
+        "render_local_aligned": None, "dangerous_actions_executed": False,
+    }
+
+
 def mark_autopilot_issue_resolved(issue_id: str, root: str | Path | None = None) -> dict[str, Any]:
     memory = load_autopilot_memory(root)
     resolved = False

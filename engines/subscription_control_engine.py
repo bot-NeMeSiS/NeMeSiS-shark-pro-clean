@@ -12,6 +12,7 @@ import os
 import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List
 
 PLAN_PRICES = {
@@ -52,7 +53,12 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def connect(db_path: str) -> sqlite3.Connection:
+def connect(db_path: str, *, read_only: bool = False) -> sqlite3.Connection:
+    if read_only:
+        conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True, timeout=1)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA query_only=ON")
+        return conn
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -244,10 +250,12 @@ def apply_subscription_rules(db_path: str) -> Dict[str, Any]:
 
 
 def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics: bool = True) -> Dict[str, Any]:
-    ensure_subscription_schema(db_path)
+    read_only = not apply_rules and not persist_metrics
+    if not read_only:
+        ensure_subscription_schema(db_path)
     if apply_rules:
         apply_subscription_rules(db_path)
-    conn = connect(db_path)
+    conn = connect(db_path, read_only=read_only)
     subs = rows(conn, "SELECT * FROM subscription_accounts")
     by_tier = {"FREE": 0, "PRO": 0, "ELITE": 0, "ADMIN": 0}
     by_status: Dict[str, int] = {}

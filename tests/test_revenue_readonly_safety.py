@@ -84,7 +84,7 @@ def test_admin_payments_get_does_not_apply_subscription_rules(app_module, monkey
     seen = {}
 
     monkeypatch.setattr(app_module, "is_admin_session", lambda: True)
-    monkeypatch.setattr(app_module, "payment_readiness_snapshot", lambda _db: {"ok": True})
+    monkeypatch.setattr(app_module, "payment_readiness_snapshot", lambda _db, **kwargs: {"ok": True})
     monkeypatch.setattr(app_module, "stripe_runtime_status", lambda _db="": {"ok": True})
 
     def fail_rules(_db):
@@ -118,3 +118,30 @@ def test_public_payment_status_paths_do_not_request_db_backed_stripe_summary():
     assert 'stripe_runtime_status("")' in membership
     assert "stripe_runtime_status(DB_PATH)" in admin
     assert "persist_metrics=False" in admin
+
+
+def test_readonly_payment_views_do_not_create_schema(tmp_path):
+    from engines.payment_readiness_engine import payment_readiness_snapshot
+    from engines.stripe_payments_engine import stripe_runtime_status
+    path=tmp_path/"cold-payments.sqlite"
+    with sqlite3.connect(path) as conn:
+        conn.execute("CREATE TABLE users(id TEXT PRIMARY KEY)")
+    payment_readiness_snapshot(str(path))
+    subscriptions.subscription_summary(str(path),apply_rules=False,persist_metrics=False)
+    stripe_runtime_status(str(path))
+    with sqlite3.connect(path) as conn:
+        tables=conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    assert tables == [("users",)]
+
+
+def test_readiness_persistence_is_explicit_and_reads_preserve_it(tmp_path):
+    from engines.payment_readiness_engine import payment_readiness_snapshot
+    path=_revenue_db(tmp_path)
+    result=payment_readiness_snapshot(str(path),persist=True)
+    with sqlite3.connect(path) as conn:
+        before=conn.execute("SELECT * FROM payment_readiness_daily").fetchall()
+    assert len(before)==1
+    assert result["readiness_score"] == before[0][1]
+    payment_readiness_snapshot(str(path))
+    with sqlite3.connect(path) as conn:
+        assert conn.execute("SELECT * FROM payment_readiness_daily").fetchall()==before
