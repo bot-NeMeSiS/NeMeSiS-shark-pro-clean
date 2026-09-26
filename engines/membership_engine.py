@@ -66,10 +66,10 @@ PLAN_BADGES = {
 }
 
 FEATURE_LABELS = {
-    "picks_pro": "Picks PRO",
-    "picks_elite": "Picks ELITE",
+    "picks_pro": "Pronósticos PRO",
+    "picks_elite": "Pronósticos ELITE",
     "recommendations_pro": "Recomendaciones SHARK",
-    "auto_picks": "Auto Picks completo",
+    "auto_picks": "Pronósticos automáticos",
     "combis_basic": "Combinadas básicas",
     "combis_advanced": "Combinadas automáticas avanzadas",
     "shark_pro": "SHARK PRO",

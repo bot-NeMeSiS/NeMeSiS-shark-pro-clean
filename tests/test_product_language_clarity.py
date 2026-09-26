@@ -81,3 +81,24 @@ def test_admin_plan_language_is_clear():
     users=read("templates/admin_users.html")
     assert "Planes temporales" in memberships
     assert "Guardar plan" in users
+
+
+def test_plan_and_payment_surfaces_separate_access_from_revenue():
+    payments=read("templates/admin_payments.html")
+    plans=read("templates/admin_memberships.html")
+    assert "Pagos y suscripciones" in payments
+    assert "Accesos manuales" in payments
+    assert "Los planes manuales o regalados no se suman a MRR ni conversión." in payments
+    assert "Solo Stripe activo" in payments
+    assert "Planes y accesos" in plans
+
+def test_membership_product_labels_use_current_vocabulary():
+    membership=read("engines/membership_engine.py")
+    experience=read("engines/membership_experience_engine.py")
+    stripe=read("engines/stripe_payments_engine.py")
+    for forbidden in ("Picks PRO","Picks ELITE","Auto Picks completo"):
+        assert forbidden not in membership
+    assert "Pronósticos PRO" in membership and "Pronósticos ELITE" in membership
+    assert "Track record" not in experience
+    assert "Abrir command center" not in experience
+    assert "Alertas live" not in stripe
