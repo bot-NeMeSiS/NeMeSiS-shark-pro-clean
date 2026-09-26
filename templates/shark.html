@@ -56,7 +56,7 @@
     <a class="v933-quick-action is-cyan" href="{{ focus_pick.get('client_match_url') or ('/match/' ~ focus_pick.get('match_id') if focus_pick.get('match_id') else '/picks') }}"{% if focus_pick.get('match_id') %} data-match-id="{{ focus_pick.get('match_id') }}"{% endif %}>{{ icon('calendar') }}<span><strong>{{ focus_pick.get('client_match_label') or ui('Partido analizado') }}</strong><small>{{ focus_pick.get('client_competition') or ui('Competición') }} · <time{% if focus_pick.get('madrid_dt_iso') %} datetime="{{ focus_pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ focus_pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ ui_match_datetime(focus_pick) }}</time></small></span>{{ icon('arrow') }}</a>
   <section class="v933-kpi-grid">
     {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendar') }}
-    {{ kpi_card('Picks completos', sports_metrics.get('picks_ready', 0), 'Contexto publicable', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Pronósticos completos', sports_metrics.get('picks_ready', 0), 'Contexto publicable', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Evidencia', ui('Disponible' if picks else 'Pendiente'), 'Sin datos inventados', 'success' if picks else 'warning', 'shark') }}
     {{ kpi_card('Garantía de resultado', ui('No'), 'Herramienta informativa', 'gold', 'shield') }}
   </section>
@@ -65,7 +65,7 @@
     <div class="v933-main-stack">
       <section class="v933-panel v933-shark-analysis">
         {{ section_header('Análisis actual', 'Selección, riesgo y evidencia disponible.') }}
-        {% if picks %}{{ pick_card(picks[0], true) }}{% elif answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Sin análisis publicable', 'SHARK espera un partido y evidencia suficientes.', 'Abrir partidos', '/calendar', 'shark') }}{% endif %}
+        {% if picks %}{{ pick_card(picks[0], true) }}{% elif answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Sin análisis publicable', 'SHARK espera un partido y evidencia suficientes.', 'Abrir calendario', '/calendar', 'shark') }}{% endif %}
       </section>
 
       <details class="v933-home-more ns16-shark-more" id="v936-shark-questions">
@@ -75,7 +75,7 @@
           {{ quick_action('¿Hay un pronóstico completo?', 'Mercado, selección y cuota', '/shark?q=pick', 'target') }}
           {{ quick_action('¿Qué riesgo existe?', 'Explicación sin garantías', '/shark?q=riesgo', 'shield') }}
           {{ quick_action('¿Qué está en directo?', 'Solo estados confirmados', '/shark?q=directo', 'live', 'success') }}
-          {{ quick_action('¿Es apto para Telegram?', 'Calidad y dedupe', '/shark?q=telegram', 'telegram', 'cyan') }}
+          {{ quick_action('¿Es apto para Telegram?', 'Calidad y duplicados', '/shark?q=telegram', 'telegram', 'cyan') }}
           {{ quick_action('¿Qué ofrece mi plan?', 'Beneficios configurados', '/shark?q=plan', 'plan', 'gold') }}
         </div>
       </details>

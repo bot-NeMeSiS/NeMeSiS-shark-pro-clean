@@ -106,9 +106,17 @@ def test_membership_product_labels_use_current_vocabulary():
 
 def test_shark_surface_uses_current_product_language():
     text=read("templates/shark.html")
-    for forbidden in ("{'label':'Partidos'","{'label':'Ver picks'","Explorar partidos","Revisar picks","<strong>Pick</strong>","Sin pick real publicado"):
+    for forbidden in ("{'label':'Partidos'","{'label':'Ver picks'","Explorar partidos","Revisar picks","<strong>Pick</strong>","Sin pick real publicado","Picks completos","Abrir partidos","Calidad y dedupe"):
         assert forbidden not in text
     assert "Calendario" in text and "Ver pronósticos" in text
+    assert "Pronósticos completos" in text and "Abrir calendario" in text and "Calidad y duplicados" in text
+
+
+def test_admin_primary_actions_use_canonical_product_names():
+    dashboard=read("templates/admin_dashboard.html")
+    picks=read("templates/admin_picks.html")
+    assert "Sincronizar calendario" in dashboard and "Sincronizar partidos" not in dashboard
+    assert "Abrir historial" in picks and "Abrir histórico" not in picks
 
 
 def test_home_error_history_and_admin_tools_avoid_internal_jargon():
