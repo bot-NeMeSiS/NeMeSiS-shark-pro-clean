@@ -7970,7 +7970,8 @@ def favorite_feed(limit=80, user_id=None):
 
 
 def related_picks_for_match(match, limit=8):
-    all_picks = get_picks(limit=100)
+    user = current_session_user() if has_request_context() else {"membership": "FREE"}
+    all_picks = published_picks_for_user(user, limit=100)
     match_id = str(match.get("id") or "").lower()
     home = str(match.get("home_team") or "").lower()
     away = str(match.get("away_team") or "").lower()
@@ -27098,7 +27099,7 @@ def api_match_detail(match_id):
         league=detail["match"].get("competition_name"),
         favorites=get_favorites(),
         picks=detail["related_picks"],
-        profile=default_profile(),
+        profile=client_profile_view(current_session_user()),
         match_intelligence=match_intelligence,
     )
     return jsonify({

@@ -384,3 +384,48 @@ def test_client_read_apis_never_disclose_legacy_global_profile(app_module,monkey
             profile=payload['briefing']['profile'] if route=='/api/shark/briefing' else payload['profile']
             assert profile['membership_plan']==plan
         assert snapshot(db)==before
+
+
+@pytest.mark.parametrize('surface', ['detail','depth','html'])
+@pytest.mark.parametrize('plan', ['ANONYMOUS','FREE','PRO','ELITE','ADMIN','EXPIRED'])
+def test_match_read_surfaces_never_bypass_pick_entitlements(app_module,monkeypatch,tmp_path,surface,plan):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    effective='FREE' if plan in {'ANONYMOUS','EXPIRED'} else plan
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
+                     ('PRO' if plan=='EXPIRED' else effective,'PRO' if plan=='EXPIRED' else effective,
+                      '2020-01-01' if plan=='EXPIRED' else '2030-01-01','qa-read-client'))
+        conn.execute("""INSERT INTO matches(id,home_team,away_team,competition_name,match_date,
+            kickoff_time,status,source) VALUES(?,?,?,?,?,?,?,?)""",
+                     ('qa-entitlement-match','QA Norte','QA Sur','QA Competition',a.today_iso(),'20:00','NS','SIMULATED_QA'))
+        for tier in ('FREE','PRO','ELITE'):
+            conn.execute("""INSERT INTO picks(id,match_id,home_team,away_team,selection,reasoning,
+                status,membership_required,market,odds,match_date,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                ('qa-entitlement-'+tier,'qa-entitlement-match','QA Norte','QA Sur','QA_PICK_'+tier,
+                 'QA_REASON_'+tier,'published',tier,'1x2',1.8,a.today_iso(),a.now_iso()))
+        conn.execute("INSERT INTO picks(id,match_id,selection,reasoning,status,membership_required) VALUES(?,?,?,?,?,?)",
+                     ('qa-entitlement-draft','qa-entitlement-match','QA_DRAFT_PRIVATE','QA_DRAFT_REASON','draft','FREE'))
+        conn.execute("INSERT OR REPLACE INTO client_profiles(id,name,membership_plan) VALUES(?,?,?)",
+                     ('default','QA_UNRELATED_PROFILE','ELITE'))
+    client=a.app.test_client()
+    if plan!='ANONYMOUS':
+        with client.session_transaction() as state:
+            state.update(user_id='qa-read-client',user_role='PRO' if plan=='EXPIRED' else effective,
+                         membership='PRO' if plan=='EXPIRED' else effective)
+    route='/match/qa-entitlement-match' if surface=='html' else '/api/matches/qa-entitlement-match/'+surface
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    response=client.get(route+'?membership=ADMIN&include_admin=true')
+    assert response.status_code==200
+    body=response.get_data(as_text=True)
+    assert 'QA_DRAFT_PRIVATE' not in body and 'QA_DRAFT_REASON' not in body
+    assert 'QA_UNRELATED_PROFILE' not in body
+    allowed={'FREE':('FREE',),'PRO':('FREE','PRO'),'ELITE':('FREE','PRO','ELITE'),
+             'ADMIN':('FREE','PRO','ELITE')}[effective]
+    for tier in ('FREE','PRO','ELITE'):
+        if tier not in allowed:
+            assert 'QA_PICK_'+tier not in body and 'QA_REASON_'+tier not in body
+        elif surface!='html':
+            assert 'QA_PICK_'+tier in body
+    assert snapshot(db)==before
+    assert not writes,writes

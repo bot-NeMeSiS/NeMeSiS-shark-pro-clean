@@ -34,6 +34,16 @@ The 2026-09-26 section below remains historical evidence, not current Git state.
 - Tests assert GET/HEAD do not scan or read an action as an issue; existing IDs still read, unknown IDs remain 404, visitors/clients remain 403. LOCAL SAFE sync guards retain their separate 403 contract; the normal HTTP test asserts 405 for all three actions. No test was disabled or broadened to accept 404.
 - data/local_dev/pr92-951abd7083ed4707ac799a5133c78a6e/result.xml: 14 PASS / 0 FAIL / 0 ERROR / 0 SKIP, zero external-network attempts. Exact-SHA CI remains required after push.
 
+### Follow-up: Match Center entitlement boundary
+
+- Reproduced public/ FREE exposure of draft picks in both /api/matches/<id>/detail and /depth (data/local_dev/pr92-8ea5c3678c364e6597e5c9d27a4ee977/result.xml: 3 failures, stopped at maxfail; unexecuted cases are NOT_RUN).
+- related_picks_for_match now uses the existing published-picks/effective-plan selector before building detail, depth and nested analysis. The detail API also projects the current user's profile instead of shared legacy data. Public match facts remain public; authorized picks remain present; admin editing routes are unchanged.
+- data/local_dev/pr92-bffc1f2c989442fe89e0a6c0bd264c06/result.xml: 18 PASS across detail JSON, depth JSON and HTML; anonymous/FREE/PRO/ELITE/ADMIN/expired memberships; no draft/foreign-profile leaks or business-table writes.
+- data/local_dev/pr92-d76815591994441f9eeaa483f1433f9b/result.xml: 119 related sports/Match Center/SHARK regressions PASS, no skips/errors/failures; zero external-network attempts. Focal groups overlap earlier checks and are not summed as a global total.
+- Automation/backup/navigation/privacy/language regressions are recorded in data/local_dev/pr92-e2f92360bed44e9fb1b7df2c4db54672/result.xml. No scheduler/cron settings were changed.
+- The official checkout and admin-master-integration retain their original HEAD/status and all 26 preexisting file hashes. Local main and origin/main remain unchanged. Generated QA files are not staged or published.
+- Full browser matrix on this source tree: data/local_dev/pr92-5d00da49db504115b6ce7209bdacda51/browser.json (running at commit time). Exact final-SHA CI and this browser result must be checked before declaring the block validated. The prior 5c876 Deploy Guard completed its browser matrix but was cancelled by the subsequent push during Sentinel; it is not a completed PASS.
+
 ## Historical local close - 2026-09-26
 
 Date: 2026-09-26 (Europe/Madrid)
