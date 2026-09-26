@@ -141,6 +141,9 @@ jobs:
       - name: Secret Guard
         run: python automation_workforce/security_secret_guard.py --dry-run
 
+      - name: Privacy classification
+        run: python tools/check_repository_privacy_and_secrets.py --no-report
+
       - name: Route and link audit
         run: |
           python tools/verify_imports_and_routes.py

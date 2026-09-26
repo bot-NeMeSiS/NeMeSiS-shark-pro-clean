@@ -12,9 +12,9 @@ from engines.admin_control_engine import AdminControlStore, Rejected, SECRET_PAT
 from engines.shark_ai_product_assistant_engine import admin_intent, admin_deterministic_answer, admin_openai_answer
 
 PAGES = {"home":"Inicio", "matches":"Calendario", "live":"Directo", "picks":"Pronósticos",
-         "shark":"SHARK", "telegram":"Telegram", "profile":"Perfil", "memberships":"Membresías"}
+         "history":"Historial", "shark":"SHARK", "telegram":"Telegram", "profile":"Perfil", "memberships":"Planes"}
 SAFE_ROUTES = {"/":"home", "/app":"home", "/sports-hub":"home", "/calendar":"matches",
-               "/partidos":"matches", "/live":"live", "/picks":"picks", "/shark":"shark",
+               "/partidos":"matches", "/live":"live", "/picks":"picks", "/track-record":"history", "/historico":"history", "/seguimiento":"history", "/shark":"shark",
                "/shark-core":"shark", "/telegram":"telegram", "/profile":"profile", "/plans":"memberships",
                "/membership":"memberships"}
 ROUTE_FILES = {"/live":"templates/live.html", "/picks":"templates/picks.html", "/":"templates/home.html"}
@@ -467,10 +467,12 @@ def register_admin_master(a):
                 item["highlight_url"] = ""
                 item["highlights_url"] = ""
         from engines.membership_engine import membership_context, get_membership_limits
+        track_record = _safe_call(a.v742_track_record_context, {}) if page == "history" else {}
         html=render_template("admin_client_preview.html",page=page,preview_title=PAGES[page],plan=plan,
                              matches=matches[:12],picks=picks,pages=PAGES,current_user=g.admin_preview_user,
                              settings=preview_settings,preview_membership=membership_context({"membership":plan}),
-                             preview_plan_limits={tier:get_membership_limits(tier) for tier in ("FREE","PRO","ELITE")})
+                             preview_plan_limits={tier:get_membership_limits(tier) for tier in ("FREE","PRO","ELITE")},
+                             track_record=track_record)
         html = _preview_links(html, plan, request.args.get("viewport","390"))
         response=make_response(html)
         response.headers["Cache-Control"]="private, no-store"

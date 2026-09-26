@@ -250,7 +250,7 @@ def test_failed_nested_result_cannot_become_verified_success(browser,app_module)
 
 @pytest.mark.parametrize('width,height',[(390,844),(1440,900)])
 @pytest.mark.parametrize('plan',['FREE','PRO','ELITE'])
-@pytest.mark.parametrize('screen',['shark','telegram','profile','memberships'])
+@pytest.mark.parametrize('screen',['home','matches','live','picks','history','shark','telegram','profile','memberships'])
 def test_real_client_preview_route_captures(browser,app_module,width,height,plan,screen):
     """Actual protected Flask preview response; local seeded DB and no API mocks."""
     client=app_module.app.test_client()
@@ -293,7 +293,7 @@ def test_real_client_preview_route_captures(browser,app_module,width,height,plan
 
 
 @pytest.mark.parametrize('plan',['FREE','PRO','ELITE'])
-@pytest.mark.parametrize('screen',['shark','telegram','profile','memberships'])
+@pytest.mark.parametrize('screen',['home','matches','live','picks','history','shark','telegram','profile','memberships'])
 def test_preview_links_cannot_escape_simulated_plan(app_module,plan,screen):
     from html.parser import HTMLParser
     class Links(HTMLParser):

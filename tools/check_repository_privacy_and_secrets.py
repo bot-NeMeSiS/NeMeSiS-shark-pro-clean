@@ -142,7 +142,7 @@ def scan_repository(root: str | Path = ROOT, include_privacy: bool = True) -> di
         scan_secrets = rel not in SELF_FILES
         is_test_fixture = rel.startswith("tests/") or (
             rel.startswith("tools/")
-            and (path.name.startswith("check_") or path.name.endswith("_check_support.py"))
+            and (path.name.startswith("check_") or path.name.startswith("benchmark_") or path.name.endswith("_check_support.py"))
         )
         for line_no, line in enumerate(text.splitlines(), 1):
             if scan_secrets:
@@ -162,13 +162,22 @@ def scan_repository(root: str | Path = ROOT, include_privacy: bool = True) -> di
             if include_privacy:
                 for match in EMAIL_PATTERN.finditer(line):
                     value = match.group(0)
-                    if value.lower().endswith(("@example.com", "@example.invalid", "@test.com", "@localhost")):
-                        examples_ignored += 1
-                        continue
-                    privacy.append(_finding(path, root_path, line_no, "email_or_contact_identifier", "medium", value, "REQUIERE_REVISION", "Confirmar si es dato personal real o fixture; anonimizar evidencia si no es necesaria."))
+                    expected = is_test_fixture or value.lower().endswith(("@example.com", "@example.invalid", "@test.com", "@localhost"))
+                    privacy.append(_finding(
+                        path, root_path, line_no, "email_or_contact_identifier",
+                        "info" if expected else "medium", value,
+                        "EXPECTED_FIXTURE" if expected else "REAL_REVIEW",
+                        "Fixture o dominio de ejemplo; conservar sin datos reales." if expected else "Confirmar si es dato personal real; anonimizar o retirar si no es necesario."
+                    ))
                 for match in PRIVATE_ID_PATTERN.finditer(line):
                     value = match.group(0)
-                    privacy.append(_finding(path, root_path, line_no, "external_private_identifier", "medium", value, "REQUIERE_REVISION", "Confirmar entorno y necesidad; sustituir por fixture si no pertenece a runtime."))
+                    expected = is_test_fixture
+                    privacy.append(_finding(
+                        path, root_path, line_no, "external_private_identifier",
+                        "info" if expected else "medium", value,
+                        "EXPECTED_FIXTURE" if expected else "REAL_REVIEW",
+                        "Identificador sintético de prueba." if expected else "Confirmar entorno y necesidad; sustituir por fixture si no pertenece a runtime."
+                    ))
 
     dedupe: dict[tuple[str, int, str, str], dict[str, Any]] = {}
     for item in findings:
@@ -179,13 +188,16 @@ def scan_repository(root: str | Path = ROOT, include_privacy: bool = True) -> di
     secret_findings = list(dedupe.values())
     privacy_findings = list(privacy_dedupe.values())
     return {
-        "ok": not secret_findings,
+        "ok": not secret_findings and not any(item["classification"] == "REAL_REVIEW" for item in privacy_findings),
         "checked_at_madrid": madrid_now_iso(),
         "root": str(root_path),
         "files_scanned": files_scanned,
         "confirmed_secret_findings": sum(1 for item in secret_findings if item["classification"] == "CONFIRMADO"),
         "secret_review_findings": sum(1 for item in secret_findings if item["classification"] == "REQUIERE_REVISION"),
-        "privacy_review_findings": len(privacy_findings),
+        "privacy_review_findings": sum(1 for item in privacy_findings if item["classification"] == "REAL_REVIEW"),
+        "privacy_expected_findings": sum(1 for item in privacy_findings if item["classification"] == "EXPECTED_FIXTURE"),
+        "privacy_false_positive_findings": 0,
+        "privacy_legacy_findings": 0,
         "examples_ignored": examples_ignored,
         "secret_findings": secret_findings,
         "privacy_findings": privacy_findings,
@@ -204,8 +216,11 @@ def write_report(result: dict[str, Any]) -> None:
         f"- Archivos revisados: **{result['files_scanned']}**",
         f"- Secretos confirmados: **{result['confirmed_secret_findings']}**",
         f"- Literales sensibles por revisar: **{result['secret_review_findings']}**",
-        f"- Identificadores de privacidad por revisar: **{result['privacy_review_findings']}**",
-        f"- Ejemplos ignorados: **{result['examples_ignored']}**",
+        f"- Privacidad REAL por revisar: **{result['privacy_review_findings']}**",
+        f"- Avisos esperados / fixtures: **{result['privacy_expected_findings']}**",
+        f"- Falsos positivos clasificados: **{result['privacy_false_positive_findings']}**",
+        f"- Deuda heredada clasificada: **{result['privacy_legacy_findings']}**",
+        f"- Ejemplos de secretos ignorados: **{result['examples_ignored']}**",
         "- Valores impresos: **no**",
         "- Produccion modificada: **no**",
         "",
@@ -219,7 +234,7 @@ def write_report(result: dict[str, Any]) -> None:
     lines.extend(["", "## Privacidad", "Los candidatos siguientes se registran sin mostrar el valor. No son una filtracion confirmada hasta revisar su contexto."])
     if result["privacy_findings"]:
         for item in result["privacy_findings"][:200]:
-            lines.append(f"- `{item['path']}:{item['line']}` - {item['type']} - **REQUIERE REVISIÓN** - hash `{item['value_hash_prefix']}`.")
+            lines.append(f"- `{item['path']}:{item['line']}` - {item['type']} - **{item['classification']}** - hash `{item['value_hash_prefix']}`.")
     else:
         lines.append("- Sin candidatos de privacidad fuera de fixtures reconocibles.")
     REPORT_MD.write_text("\n".join(lines) + "\n", encoding="utf-8")

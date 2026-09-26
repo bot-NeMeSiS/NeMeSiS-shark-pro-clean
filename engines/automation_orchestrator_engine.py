@@ -76,7 +76,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         backup_enabled,
         automation_secret and public_base and db_ok,
         state.get("last_cron_data_backup_call"),
-        "02:30 Madrid · diario",
+        "02:30 UTC · diario (03:30/04:30 Madrid)",
     )
     backup["description"] = "Copia diaria de la base persistente con retención del Data Vault."
 
@@ -126,7 +126,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "warnings": warnings,
         "next_actions": [
             "Mantener un único cron operativo cada 10 minutos.",
-            "Mantener un único backup diario a las 02:30 Madrid.",
+            "Mantener un único backup diario a las 02:30 UTC de Render (03:30/04:30 Madrid según horario).",
             "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
         ],
     }

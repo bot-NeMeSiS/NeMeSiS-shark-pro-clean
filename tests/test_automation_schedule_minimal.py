@@ -35,6 +35,7 @@ def test_automation_center_lists_only_actual_recurring_jobs():
     assert summary["policy"]=="ONE_OPERATIONAL_MASTER_PLUS_DAILY_BACKUP"
     assert [j["name"] for j in summary["jobs"]]==["master_tick","data_backup"]
     assert summary["jobs"][0]["cadence"]=="cada 10 min"
+    assert summary["jobs"][1]["cadence"]=="02:30 UTC · diario (03:30/04:30 Madrid)"
     assert "pick_grading" in summary["jobs"][0]["included_flows"]
     assert "highlights sync" in summary["manual_only"]
 
