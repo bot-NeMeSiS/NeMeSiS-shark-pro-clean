@@ -181,3 +181,9 @@ def test_canonical_admin_surfaces_hide_historical_version_labels_and_runtime_jar
     assert "desde este entorno" in dashboard
     assert "Tareas recurrentes reales" in automation
     assert "Procesos internos" in automation
+
+
+def test_client_section_ctas_use_canonical_section_names():
+    picks=read("templates/picks.html")
+    assert "quick_action('Abrir calendario'" in picks
+    assert "quick_action('Explorar partidos'" not in picks
