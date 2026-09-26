@@ -76,6 +76,7 @@ LEARNING = [
     {"rule": "PICK_INTERNAL -> PRONÓSTICO_UI_ES", "origin": "V941 terminology contract", "test": "tests/test_pronosticos_terminology.py", "detail": "El backend conserva pick/picks; toda etiqueta española de producto usa Pronóstico/Pronósticos."},
     {"rule": "MATCHES_SECTION_INTERNAL -> CALENDARIO_UI_ES", "origin": "V941 terminology contract", "test": "tests/test_calendar_terminology.py", "detail": "La sección visible se llama Calendario; partido/partidos se conserva al hablar de encuentros concretos."},
     {"rule": "PRODUCT_LANGUAGE -> CLEAR_ES_CLIENT_ADMIN", "origin": "V941 terminology contract", "test": "tests/test_product_language_clarity.py", "detail": "Cliente y Admin priorizan español claro; términos técnicos solo se mantienen cuando aportan contexto y se explican."},
+    {"rule": "ONE_RECURRING_OWNER -> NO_DUPLICATE_SCHEDULERS", "origin": "V941 automation cleanup", "test": "tests/test_automation_schedule_minimal.py", "detail": "Render programa solo cron maestro y backup diario; scheduler/daily/highlights/grading/Sentinel separados quedan manuales o incluidos en el maestro."},
 ]
 
 
