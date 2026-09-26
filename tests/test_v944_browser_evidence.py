@@ -30,7 +30,9 @@ def test_browser_runner_passes_unchanged_secret_guard(tmp_path):
     (target / source.name).write_bytes(source.read_bytes())
     result = scan_repository(tmp_path)
     assert result["ok"] and result["files_scanned"] == 1
-    assert result["privacy_findings"] == []
+    assert result["privacy_review_findings"] == 0
+    assert all(item["classification"] == "EXPECTED_FIXTURE" for item in result["privacy_findings"])
+    assert all(item["value_redacted"] is True for item in result["privacy_findings"])
     # A new hardcoded session secret must still fail; no scanner exceptions.
     (target / "bad_runner.py").write_text("SECRET_KEY = 'unapproved-static-session-value'\n", encoding="utf-8")
     result = scan_repository(tmp_path)
