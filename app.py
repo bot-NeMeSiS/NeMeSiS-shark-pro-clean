@@ -22621,8 +22621,9 @@ def alerts_page():
 def activity_page():
     if not current_session_user():
         return redirect("/cliente-login")
+    # El historial es una superficie de lectura: consultarlo no debe crear
+    # una nueva fila de actividad ni mutar estado de negocio.
     data = dashboard_data()
-    record_user_activity("view", "activity", "client-activity", {"count": len(data.get("client_activity") or [])})
     return render_template("activity.html", data=data)
 
 
