@@ -123,6 +123,19 @@ def test_secondary_client_surfaces_finish_spanish_first_vocabulary():
         assert required in combined
 
 
+def test_remaining_secondary_surfaces_use_spanish_client_labels():
+    live_depth=(ROOT / "templates/live_depth.html").read_text(encoding="utf-8")
+    local_safe=(ROOT / "templates/local_safe_portal.html").read_text(encoding="utf-8")
+    player=(ROOT / "templates/player_detail.html").read_text(encoding="utf-8")
+    assert "Live premium" not in live_depth and "Directo premium" in live_depth
+    for forbidden in ("('Picks','/picks')", "('Track Record','/track-record')", "('Memberships','/membresias')", "('Profile','/profile')", ">Picks locales<"):
+        assert forbidden not in local_safe
+    for required in ("('Pronósticos','/picks')", "('Historial','/track-record')", "('Membresías','/membresias')", "('Mi cuenta','/mi-cuenta')", ">Pronósticos locales<"):
+        assert required in local_safe
+    assert 'ui("Picks")' not in player
+    assert 'ui("Pronósticos")' in player
+
+
 def test_confirmed_orphan_legacy_templates_stay_purged():
     for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html", "client_overview.html", "smart_dashboard.html"):
         assert not (ROOT / "templates" / name).exists()
