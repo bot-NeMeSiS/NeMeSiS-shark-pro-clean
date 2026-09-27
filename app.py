@@ -11325,78 +11325,6 @@ def save_shark_context(context_type, target_key, payload):
     return snapshot_id
 
 
-def _shark_line_match(match):
-    match = apply_match_localization(dict(match or {}))
-    home = match.get("home_team") or match.get("safe_home") or "Equipo local"
-    away = match.get("away_team") or match.get("safe_away") or "Equipo visitante"
-    comp = spanish_competition_name(match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición")
-    time = client_match_display_context(match).get("client_full_datetime_label") or match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
-    live_depth = match.get("live_depth") or {}
-    status = live_depth.get("label") or match.get("status") or "Próximo"
-    score = live_depth.get("score") or match.get("score") or ""
-    suffix = f" - {score}" if score else ""
-    return f"{time} - {home} vs {away} - {comp} - {status}{suffix}"
-
-
-def _shark_pick_parts(pick):
-    pick = normalize_pick_row(dict(pick or {}))
-    home = pick.get("home_team") or "Equipo local"
-    away = pick.get("away_team") or "Equipo visitante"
-    comp = spanish_competition_name(pick.get("competition_name") or pick.get("league_name") or "Competición")
-    selection = pick.get("selection_display") or spanish_pick_selection_name(pick.get("selection") or pick.get("_raw_selection"), home, away, pick.get("market")) or "Selección pendiente"
-    market = spanish_market_name(pick.get("market") or "Ganador del partido")
-    odds = as_float(pick.get("odds"), 0)
-    odds_txt = f"{odds:.2f}" if odds > 1 else "pendiente"
-    stake = as_float(pick.get("stake_units"), 1)
-    confidence = as_int(pick.get("confidence") or pick.get("quality_score"), 50)
-    qscore = as_int(pick.get("quality_score"), confidence)
-    risk = pick.get("risk_level") or "MEDIO"
-    reason = pick.get("reasoning") or "SHARK detecta mercado claro, cuota real y señal suficiente para revisarlo como pick premium."
-    caution = pick.get("warning_reason") or "Revisa alineaciones antes de entrar y no subas stake si la cuota baja demasiado."
-    return {
-        "home": home,
-        "away": away,
-        "competition": comp,
-        "selection": selection,
-        "market": market,
-        "odds": odds,
-        "odds_txt": odds_txt,
-        "stake": stake,
-        "confidence": confidence,
-        "quality_score": qscore,
-        "risk": risk,
-        "reason": reason,
-        "caution": caution,
-        "label": pick.get("quality_label") or "Pick premium",
-    }
-
-
-def _shark_line_pick(pick):
-    p = _shark_pick_parts(pick)
-    return (
-        f"{p['home']} vs {p['away']}: {p['selection']} ({p['market']}) - "
-        f"cuota {p['odds_txt']} - stake {p['stake']:g}/10 - confianza {p['confidence']}/100 - riesgo {p['risk']}"
-    )
-
-
-def _shark_card_pick(pick, title="Mi mejor opción ahora mismo"):
-    p = _shark_pick_parts(pick)
-    return (
-        f"{title}:\n\n"
-        f"{p['home']} vs {p['away']}\n"
-        f"Competición: {p['competition']}\n\n"
-        f"Pick: {p['selection']}\n"
-        f"Mercado: {p['market']}\n"
-        f"Cuota: {p['odds_txt']}\n"
-        f"Stake: {p['stake']:g}/10\n"
-        f"Confianza SHARK: {p['confidence']}/100\n"
-        f"Calidad: {p['quality_score']}/100 - {p['label']}\n"
-        f"Riesgo: {p['risk']}\n\n"
-        f"Motivo:\n{p['reason']}\n\n"
-        f"Precaución:\n{p['caution']}"
-    )
-
-
 def _shark_visible_picks(user, limit=8, premium_only=True, min_score=70):
     picks = published_picks_for_user(user, limit=max(limit * 4, 18))
     clean = []
@@ -11445,25 +11373,6 @@ def _shark_recommendation_lines(limit=4):
         if len(lines) >= limit:
             break
     return lines
-
-
-def _shark_count_requested(q_norm):
-    numbers = [as_int(n, 0) for n in re.findall(r"\d+", q_norm or "")]
-    if numbers:
-        return combi_leg_count(max(numbers), 3)
-    if "max" in q_norm or "quince" in q_norm or "15" in q_norm:
-        return COMBI_MAX_LEGS
-    if "segura" in q_norm or "conservadora" in q_norm:
-        return 3
-    return 5
-
-
-def _shark_actions(*items):
-    actions = []
-    for label, url in items:
-        if label and url:
-            actions.append({"label": label, "url": url})
-    return actions
 
 
 def v845_openai_configured():
@@ -11591,155 +11500,6 @@ def shark_answer(question):
     answer = v845_answer_shark_question(q, context)
     save_shark_context("v845_ask", answer.get("focus"), answer.get("context") or {})
     return answer
-    q_norm = normalized_label(q)
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    briefing = shark_briefing()
-    hub = match_hub(today_iso())
-    focus = "resumen"
-    next_url = "/sports-hub"
-    actions = _shark_actions(("Inicio deportivo", "/sports-hub"), ("Ver picks", "/picks"))
-
-    no_tocar = any(word in q_norm for word in ["no tocar", "evitar", "descartar", "peligro", "arriesgado"])
-    safe_intent = any(word in q_norm for word in ["seguro", "segura", "conservador", "conservadora", "bajo riesgo"])
-    value_intent = any(word in q_norm for word in ["value", "valor", "oportunidad", "oportunidades"])
-
-    if no_tocar:
-        focus = "riesgo"
-        study = (briefing.get("quality_groups") or {}).get("study", [])[:5]
-        lines = []
-        for p in study:
-            p = normalize_pick_row(p)
-            lines.append(f"{p.get('home_team')} vs {p.get('away_team')} - {p.get('selection_display') or p.get('selection')} - motivo: falta calidad/cuota/riesgo suficiente")
-        body = (
-            "Lectura SHARK de riesgo:\n\n"
-            "Ahora mismo evitaría entrar fuerte en cualquier selección sin cuota real, mercado claro o motivo completo.\n"
-            "También evitaría combinadas largas si no hay al menos 9 picks premium limpios.\n\n"
-            "Señales que dejaría en estudio:\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
-        )
-        next_url = "/picks"
-        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combinada responsable", "/combinadas?tipo=responsable&partidos=3"))
-
-    elif any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
-        focus = "combis"
-        requested = _shark_count_requested(q_norm)
-        if safe_intent:
-            requested = min(requested, 4)
-        picks = _shark_visible_picks(user, limit=COMBI_MAX_LEGS, min_score=72)
-        usable = picks[:requested]
-        if len(usable) >= 2:
-            total = 1.0
-            for pick in usable:
-                total *= max(1.0, as_float(pick.get("odds"), 1.0))
-            risk = combi_risk(usable)
-            title = "Combi responsable SHARK" if requested <= 4 else ("Combi media SHARK" if requested <= 8 else "Combi larga SHARK")
-            warning = "Stake bajo obligatorio: las combinadas largas no son seguras." if requested >= 9 else "Mantén stake bajo y no fuerces si una cuota baja demasiado."
-            body = (
-                f"{title}\n\n"
-                f"Selecciones: {len(usable)}\n"
-                f"Cuota total aproximada: {total:.2f}\n"
-                f"Riesgo: {risk}\n"
-                f"Recomendación: {warning}\n\n"
-                + "\n".join(f"{i+1}. {_shark_line_pick(p)}" for i, p in enumerate(usable))
-            )
-        else:
-            candidates = build_combi_candidates_from_matches(requested).get("matches", [])
-            lines = [_shark_line_match(m) for m in candidates[:requested]]
-            body = (
-                f"No cierro una combinada real de {requested} partidos porque faltan picks premium con cuota suficiente.\n"
-                "Prefiero esperar antes que inventar selecciones. Base de partidos para revisar:\n\n"
-                + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay base suficiente todavía.")
-            )
-        next_url = f"/combinadas?partidos={requested}"
-        actions = _shark_actions(("Abrir combinadas", next_url), ("Ver picks premium", "/picks"))
-
-    elif any(word in q_norm for word in ["pick", "apuesta", "pronostico", "pronosticos", "mejor"]):
-        focus = "picks"
-        min_score = 76 if safe_intent else 70
-        picks = _shark_visible_picks(user, limit=5, min_score=min_score)
-        if picks:
-            best = picks[0]
-            body = _shark_card_pick(best, "Mi mejor opción ahora mismo")
-            if len(picks) > 1:
-                body += "\n\nOtras opciones revisables:\n" + "\n".join(f"{i+2}. {_shark_line_pick(p)}" for i, p in enumerate(picks[1:4]))
-            body += "\n\nRegla SHARK: si la cuota baja demasiado o falta alineación, no fuerces la entrada."
-        else:
-            rec_lines = _shark_recommendation_lines(limit=4)
-            body = (
-                "No tengo suficientes cuotas reales para darte un pick premium cerrado ahora mismo.\n"
-                "Puedo revisar partidos de hoy, directo o preparar una combi prudente con los datos disponibles.\n\n"
-                + ("Oportunidades en estudio:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
-            )
-        next_url = "/picks"
-        actions = _shark_actions(("Ver picks", "/picks"), ("Combinada responsable", "/combinadas?tipo=responsable&partidos=3"))
-
-    elif value_intent:
-        focus = "oportunidades"
-        rec_lines = _shark_recommendation_lines(limit=5)
-        body = (
-            "Radar SHARK de value:\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay señales de valor suficientes ahora mismo.")
-            + "\n\nValue no significa pick seguro: si la cuota está pendiente o el mercado cambia, se queda en estudio."
-        )
-        next_url = "/recommendations"
-        actions = _shark_actions(("Ver oportunidades", "/recommendations"), ("Ver picks", "/picks"))
-
-    elif any(word in q_norm for word in ["live", "directo", "marcador", "minuto"]):
-        focus = "live"
-        live_matches = hub.get("live", []) or get_matches(today_iso(), "live")
-        lines = [_shark_line_match(m) for m in live_matches[:6]]
-        body = (
-            f"Directo SHARK:\n{hub['counts'].get('live', len(live_matches))} partidos en directo y {hub['counts'].get('upcoming', 0)} próximos.\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Sin directos reales ahora mismo. En cuanto entren minuto y marcador, los priorizo aquí.")
-            + "\n\nEn live solo entraría con señal fuerte y stake mínimo."
-        )
-        next_url = "/live"
-        actions = _shark_actions(("Abrir directo", "/live"), ("Ver calendario", "/calendar"))
-
-    elif any(word in q_norm for word in ["favor", "favorito", "favoritos"]):
-        focus = "favoritos"
-        fav = favorite_insights()
-        lines = [_shark_line_match(m) for m in fav.get("matches", [])[:6]]
-        body = (
-            f"Favoritos SHARK:\n{fav.get('summary')}.\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Todavía no hay partidos activos/próximos cruzados con tus favoritos. Marca equipos, ligas o partidos con la estrella para personalizar esto.")
-        )
-        next_url = "/favorites"
-        actions = _shark_actions(("Abrir favoritos", "/favorites"), ("Partidos de hoy", "/sports-hub"))
-
-    else:
-        focus = "resumen"
-        best_pick = _shark_visible_picks(user, limit=1, min_score=70)
-        rec_lines = _shark_recommendation_lines(limit=2)
-        body = (
-            f"Resumen SHARK PRO:\n\n"
-            f"Partidos hoy: {briefing['summary']['matches_today']}\n"
-            f"En directo: {briefing['summary']['live_now']}\n"
-            f"Picks premium listos: {briefing['summary']['picks_ready']}\n"
-            f"En estudio: {briefing['summary'].get('picks_study', 0)}\n"
-            f"Riesgo general: {briefing['risk']['level']}\n\n"
-        )
-        if best_pick:
-            body += _shark_card_pick(best_pick[0], "Pick más claro")
-        elif rec_lines:
-            body += "Oportunidades a revisar:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines))
-        else:
-            body += "No fuerzo apuestas sin datos suficientes. Mejor esperar a nuevas cuotas o revisar directo."
-        next_url = "/sports-hub"
-        actions = _shark_actions(("Partidos", "/sports-hub"), ("Picks", "/picks"), ("Telegram", "/telegram"))
-
-    return {
-        "question": q,
-        "focus": focus,
-        "answer": body,
-        "context": briefing.get("context"),
-        "risk_note": briefing["risk"]["note"],
-        "actions": actions,
-        "next_action": "Revisar la pantalla recomendada antes de decidir. SHARK no garantiza resultados.",
-        "next_url": next_url,
-        "legal_policy": briefing["legal_policy"],
-    }
-
 def telegram_config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -29614,18 +29374,6 @@ def v566_template_recommendations(limit=20):
 @app.route("/dashboard")
 def v566_dashboard_page():
     return redirect("/app")
-    user = current_session_user()
-    data = dashboard_data()
-    summary = v566_dashboard_summary(user)
-    upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
-    picks = published_picks_for_user(user, limit=8)
-    return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
-
-
-@app.route("/menu")
-@app.route("/mapa")
-@app.route("/navegacion")
-@app.route("/todo")
 def v566_client_menu_page():
     if not current_session_user():
         return redirect("/cliente-login")
