@@ -843,7 +843,7 @@ def build_v940_calendar_experience_contract_snapshot(
             "data-v940-calendar-collection",
             "data-v940-calendar-filters-active",
             'name="date"',
-            "Limpiar capas",
+            "data-v940-reset-filters",
         )
     )
     canonical_card_contract = (
