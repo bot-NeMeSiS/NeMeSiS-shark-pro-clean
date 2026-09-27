@@ -12,7 +12,7 @@ BUSINESS_TABLES=(
     "telegram_settings","telegram_logs","telegram_deliveries","auto_alerts",
     "pick_grading_results","pick_grading_runs",
 )
-CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/actividad")
+CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/actividad","/combis","/alertas","/mi-dia","/briefing","/experiencia","/modo-app","/adaptive","/adaptativo")
 ADMIN_ROUTES=(
     "/admin/dashboard","/admin/matches","/admin/realtime-center","/admin/picks",
     "/admin/telegram/command-center","/admin/users","/admin/memberships","/admin/payments",
