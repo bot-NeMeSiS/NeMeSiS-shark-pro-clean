@@ -7521,23 +7521,23 @@ def build_client_alerts(limit=12, user_id=None):
             "title": "Partidos en directo ahora",
             "body": f"Hay {hub['counts']['live']} partido(s) en directo. Revisa marcador, estado y favoritos.",
             "href": "/live",
-            "badge": "LIVE",
+            "badge": "DIRECTO",
         })
     if picks:
         alerts.append({
             "type": "picks",
             "priority": 90,
-            "title": "Picks publicados disponibles",
-            "body": f"Tienes {len(picks)} pick(s) visibles según tu membresía.",
+            "title": "Pronósticos publicados disponibles",
+            "body": f"Pronósticos visibles según tu plan: {len(picks)}.",
             "href": "/picks",
-            "badge": "PICKS",
+            "badge": "PRONÓSTICOS",
         })
     elif upcoming:
         alerts.append({
             "type": "analysis",
             "priority": 74,
             "title": "Partidos próximos listos para análisis",
-            "body": "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "body": "Aún no hay pronósticos publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
             "href": "/picks",
             "badge": "ANÁLISIS",
         })
@@ -7564,7 +7564,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "telegram",
             "priority": 52,
             "title": "Telegram pendiente de configurar",
-            "body": "Cuando está conectado podrás recibir partidos del día, picks y alertas premium.",
+            "body": "Cuando está conectado podrás recibir partidos del día, pronósticos y alertas premium.",
             "href": "/telegram",
             "badge": "TELEGRAM",
         })
@@ -7640,7 +7640,7 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     if hub.get("counts", {}).get("live", 0):
         priorities.append({"label": "Directos activos", "value": hub["counts"]["live"], "href": "/live", "tone": "live"})
     if picks:
-        priorities.append({"label": "Picks visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
+        priorities.append({"label": "Pronósticos visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
     if favs:
         priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
     if upcoming:
@@ -7692,7 +7692,7 @@ def client_command_center_data(user=None, briefing=None):
         "recommended_tabs": [
             {"label": "Mi día", "href": "/mi-dia", "text": "Briefing personalizado"},
             {"label": "Partidos", "href": "/match-hub", "text": "Calendario por ligas"},
-            {"label": "Picks", "href": "/picks", "text": "Apuestas publicadas o candidatos"},
+            {"label": "Pronósticos", "href": "/picks", "text": "Pronósticos publicados o candidatos"},
             {"label": "Combinadas", "href": "/combinadas", "text": "Constructor con próximos partidos"},
         ],
     }
@@ -17354,7 +17354,7 @@ def build_v763_world_cup_launch_context(data=None, user=None):
         "quick_actions": [
             {"label": "Mundial", "href": "/mundial", "badge": "Foco"},
             {"label": "Partidos de hoy", "href": "/calendar?lane=today", "badge": "Hoy"},
-            {"label": "Directo", "href": "/live?f=live", "badge": "Live"},
+            {"label": "Directo", "href": "/live?f=live", "badge": "Directo"},
             {"label": "Pronósticos", "href": "/picks", "badge": "SHARK"},
             {"label": "Historial", "href": "/track-record", "badge": "Real"},
         ],
@@ -17569,7 +17569,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         {"label": "Hoy", "href": "/calendar?lane=today"},
         {"label": "Directo", "href": "/live?f=live"},
         {"label": "Pronósticos", "href": "/picks"},
-        {"label": "Histórico", "href": "/track-record"},
+        {"label": "Historial", "href": "/track-record"},
     ]
     return {
         "version": APP_VERSION,
@@ -19291,7 +19291,7 @@ def sports_hub_page():
             {"key": "live", "label": "Directo", "href": "/sports-hub?tab=live"},
             {"key": "tomorrow", "label": "Mañana", "href": "/sports-hub?tab=tomorrow"},
             {"key": "week", "label": "Semana", "href": "/sports-hub?tab=week"},
-            {"key": "picks", "label": "Picks", "href": "/picks"},
+            {"key": "picks", "label": "Pronósticos", "href": "/picks"},
             {"key": "favorites", "label": "Favoritos", "href": "/sports-hub?tab=favorites"},
             {"key": "combis", "label": "Combinadas", "href": "/combinadas"},
         ],
@@ -29163,7 +29163,7 @@ def v566_client_menu_items():
         {"group": "02 - Pronósticos", "title": "Combinadas", "body": "Constructor y borradores privados con selecciones disponibles.", "href": "/combinadas", "intent": "bet"},
         {"group": "02 - Pronósticos", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
         {"group": "03 - Resultados", "title": "Resultados y resúmenes", "body": "Finalizados, highlights externos y contexto postpartido.", "href": "/highlights", "intent": "results"},
-        {"group": "03 - Resultados", "title": "Histórico / ROI real", "body": "Historial con pronósticos cerrados y datos evaluables.", "href": "/track-record", "intent": "trust"},
+        {"group": "03 - Resultados", "title": "Historial / ROI real", "body": "Historial con pronósticos cerrados y datos evaluables.", "href": "/track-record", "intent": "trust"},
         {"group": "03 - Resultados", "title": "Mundial / foco grande", "body": "Pantalla especial cuando haya partidos internacionales importantes.", "href": "/mundial", "intent": "focus"},
         {"group": "04 - Asistente", "title": "SHARK", "body": "Pregunta por pronósticos, riesgo, directo o qué evitar.", "href": "/shark", "intent": "shark"},
         {"group": "04 - Asistente", "title": "Modo automático", "body": "La app prioriza directo, pronósticos, resultados, Mundial o agenda según el momento.", "href": "/modo-dinamico", "intent": "auto"},
@@ -29582,7 +29582,7 @@ def v724_contact_alias_page():
                     subject=request.form.get('subject'), message=request.form.get('message'),
                     category=request.form.get('category'), priority=request.form.get('priority'))
                 session['support_receipt'] = receipt
-                return redirect('/support', code=303)
+                return redirect('/soporte', code=303)
             except SupportRejected as exc:
                 messages = {'length':'El asunto debe tener entre 3 y 120 caracteres y el mensaje entre 10 y 4000.',
                             'sensitive':'No envíes contraseñas, claves ni tokens. Retíralos del mensaje.',
@@ -29602,7 +29602,7 @@ def v724_contact_alias_page():
             "support_request_id": session['support_request_id'],
             "support_tips": [
                 {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
-                {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},
+                {"title": "Pronósticos", "body": "Cuéntanos qué selección o cuota quieres revisar."},
                 {"title": "Telegram", "body": "Describe si el problema es vinculación, canal o mensaje privado."},
             ],
         }
@@ -31007,16 +31007,16 @@ def v777_client_product_context(data=None, user=None):
     if counts["live"]:
         next_action = {"label": "Hay directo", "body": "Empieza por marcador, minuto y estado real.", "href": "/live", "cta": "Ver directo"}
     elif counts["picks"]:
-        next_action = {"label": "Hay picks", "body": "Lee mercado, cuota, stake y riesgo antes de entrar.", "href": "/picks", "cta": "Ver picks"}
+        next_action = {"label": "Hay pronósticos", "body": "Lee mercado, cuota, unidades y riesgo antes de entrar.", "href": "/picks", "cta": "Ver pronósticos"}
     elif counts["today"]:
         next_action = {"label": "Hay agenda", "body": "Revisa partidos de hoy y marca favoritos.", "href": "/calendar?lane=today", "cta": "Ver partidos"}
     else:
         next_action = {"label": "Sin señal real", "body": "La app no inventa. Revisa resultados, guía o Telegram.", "href": "/menu", "cta": "Ver mapa"}
     intents = [
         {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "Partidos"},
-        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "Live"},
-        {"key": "bet", "title": "Analizar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "Picks"},
-        {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "Histórico"},
+        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "Directo"},
+        {"key": "bet", "title": "Analizar con criterio", "body": "Pronósticos, combinadas y mercados explicados.", "href": "/picks", "icon": "Pronósticos"},
+        {"key": "results", "title": "Ver resultados", "body": "Historial, resúmenes y ROI real.", "href": "/track-record", "icon": "Historial"},
         {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué ver, qué evitar y por qué.", "href": "/shark", "icon": "SHARK"},
         {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "Cuenta"},
     ]
@@ -31120,20 +31120,20 @@ def v778_client_product_organization_context(data=None, user=None):
     primary_flow = [
         {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de España.", "href": "/calendar?lane=today"},
         {"step": 2, "label": "Directo", "title": "Seguir en vivo", "body": "Solo marcador/minuto real si la API lo aporta; si no, queda pendiente.", "href": "/live"},
-        {"step": 3, "label": "Picks", "title": "Qué recomienda SHARK", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de decidir.", "href": "/picks"},
+        {"step": 3, "label": "Pronósticos", "title": "Qué recomienda SHARK", "body": "Selección, mercado, cuota, unidades, riesgo y motivo antes de decidir.", "href": "/picks"},
         {"step": 4, "label": "SHARK", "title": "Resolver dudas", "body": "Explica picks, mercados, partidos y qué evitar sin inventar datos.", "href": "/shark"},
-        {"step": 5, "label": "Histórico", "title": "Comprobar resultados", "body": "ROI y Track Record solo con picks cerrados y resultados reales.", "href": "/track-record"},
+        {"step": 5, "label": "Historial", "title": "Comprobar resultados", "body": "ROI e historial solo con pronósticos cerrados y resultados reales.", "href": "/track-record"},
     ]
     sections = [
         {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
-        {"key": "picks", "title": "Pronósticos", "body": "Picks, mercados básicos y combinadas responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combinadas", "Riesgo"]},
-        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
+        {"key": "picks", "title": "Pronósticos", "body": "Pronósticos, mercados básicos y combinadas responsables.", "href": "/picks", "items": ["Pronósticos", "Mercados", "Combinadas", "Riesgo"]},
+        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e historial real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Evaluación"]},
         {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
     ]
     if counts.get("live"):
         next_action = {"label": "Prioridad: Directo", "body": "Hay partidos en vivo. Revisa marcador/minuto antes de mirar picks.", "href": "/live", "cta": "Abrir directo"}
     elif counts.get("picks"):
-        next_action = {"label": "Prioridad: Picks", "body": "Hay picks cargados. Lee mercado, cuota, stake y riesgo.", "href": "/picks", "cta": "Ver picks"}
+        next_action = {"label": "Prioridad: Pronósticos", "body": "Hay pronósticos cargados. Lee mercado, cuota, unidades y riesgo.", "href": "/picks", "cta": "Ver pronósticos"}
     elif counts.get("today"):
         next_action = {"label": "Prioridad: Hoy", "body": "Empieza por la agenda y marca favoritos si quieres seguimiento.", "href": "/calendar?lane=today", "cta": "Ver hoy"}
     else:
@@ -31509,7 +31509,7 @@ def v809_client_navigation_items():
     return [
         {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, pronósticos y SHARK.","href":"/app","icon":"Inicio"},
         {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"Partidos"},
-        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/live","icon":"Live"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/live","icon":"Directo"},
         {"group":"Inicio y uso diario","title":"Pronósticos","body":"Pronósticos publicados con cuota, unidades, riesgo y explicación.","href":"/picks","icon":"Pronósticos"},
         {"group":"SHARK y análisis","title":"SHARK","body":"Preguntar por partido, pronóstico, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
         {"group":"SHARK y análisis","title":"SHARK Core","body":"Resumen basado en datos disponibles, sin convertir indicadores en garantías.","href":"/shark-core","icon":"SHARK Core"},

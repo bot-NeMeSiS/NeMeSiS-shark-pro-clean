@@ -52,3 +52,33 @@ def test_secondary_client_copy_uses_current_spanish_vocabulary():
 def test_confirmed_orphan_legacy_templates_stay_purged():
     for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html"):
         assert not (ROOT / "templates" / name).exists()
+
+
+def _app_function_source(name):
+    source=(ROOT / "app.py").read_text(encoding="utf-8")
+    start=source.index(f"def {name}(")
+    end=source.find("\ndef ", start + 5)
+    return source[start:] if end < 0 else source[start:end]
+
+
+def test_client_python_projections_use_current_spanish_vocabulary():
+    checks = {
+        "build_client_alerts": ("Picks publicados", "pick(s)", "picks publicados", '"PICKS"', '"LIVE"'),
+        "build_daily_briefing": ('"Picks visibles"',),
+        "client_command_center_data": ('"label": "Picks"', "Apuestas publicadas"),
+        "sports_hub_page": ('"label": "Picks"',),
+        "v566_client_menu_items": ("Histórico / ROI real",),
+        "build_v763_world_cup_launch_context": ('"badge": "Live"',),
+        "build_v764_dynamic_competition_mode": ('"label": "Histórico"',),
+        "v777_client_product_context": ("Hay picks", "stake", '"icon": "Live"', '"icon": "Picks"', "Histórico"),
+        "v778_client_product_organization_context": ('"label": "Picks"', "stake", "Track Record", '"Picks"', "histórico real", "Grading", "Prioridad: Picks"),
+        "v809_client_navigation_items": ('"icon":"Live"',),
+        "v724_contact_alias_page": ("'/support'", '"title": "Picks"'),
+    }
+    for name, forbidden in checks.items():
+        source=_app_function_source(name)
+        for token in forbidden:
+            assert token not in source, (name, token)
+    assert "Pronósticos publicados disponibles" in _app_function_source("build_client_alerts")
+    assert "Prioridad: Pronósticos" in _app_function_source("v778_client_product_organization_context")
+    assert "return redirect('/soporte', code=303)" in _app_function_source("v724_contact_alias_page")
