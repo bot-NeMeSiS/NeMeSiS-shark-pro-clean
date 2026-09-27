@@ -380,3 +380,31 @@ def test_remaining_visible_client_surfaces_use_spanish_canonical_navigation_and_
     assert "Resumen nocturno" in action and "Abrir resumen" in action
     assert "briefing o plan" not in intelligence
     assert "resumen diario o plan" in intelligence
+
+def test_remaining_direct_surfaces_use_canonical_spanish_routes():
+    paths = (
+        "templates/live.html",
+        "templates/dynamic_mode.html",
+        "templates/match_hub.html",
+        "templates/shark_core.html",
+        "templates/unified_intelligence_hub.html",
+        "templates/world_cup_launch.html",
+    )
+    sources={name:(ROOT / name).read_text(encoding="utf-8") for name in paths}
+    assert "'href':'/calendar'" not in sources["templates/live.html"]
+    assert "'href':'/calendario'" in sources["templates/live.html"]
+    assert "/live?f=" not in sources["templates/live.html"]
+    assert "/directo?f=" in sources["templates/live.html"]
+    assert "'Abrir calendario', '/calendar'" not in sources["templates/live.html"]
+    assert "'Abrir calendario', '/calendario'" in sources["templates/live.html"]
+    for name in ("templates/dynamic_mode.html","templates/world_cup_launch.html"):
+        assert 'href="/live?f=live"' not in sources[name]
+        assert 'href="/directo?f=live"' in sources[name]
+    assert 'href="/live">Ver directo' not in sources["templates/match_hub.html"]
+    assert 'href="/directo">Ver directo' in sources["templates/match_hub.html"]
+    assert "Con picks" not in sources["templates/match_hub.html"]
+    assert "Con pronóstico" in sources["templates/match_hub.html"]
+    assert "'live', '/live')" not in sources["templates/shark_core.html"]
+    assert "'live', '/directo')" in sources["templates/shark_core.html"]
+    assert 'href="/live">Directo' not in sources["templates/unified_intelligence_hub.html"]
+    assert 'href="/directo">Directo' in sources["templates/unified_intelligence_hub.html"]
