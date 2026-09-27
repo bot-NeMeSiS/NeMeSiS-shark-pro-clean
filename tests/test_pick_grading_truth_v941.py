@@ -91,6 +91,7 @@ def test_valid_recorded_amounts_keep_expected_profit():
 
 @pytest.mark.parametrize("latest,profit,closed", [("lost",-1,1),("pending",None,0)])
 def test_history_counts_only_latest_evaluation_without_deleting_audit(grading_db,latest,profit,closed):
+    add_pick(grading_db,"same-pick")
     with sqlite3.connect(grading_db) as conn:
         conn.executemany("""INSERT INTO pick_grading_results
             (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
@@ -110,6 +111,7 @@ def test_history_counts_only_latest_evaluation_without_deleting_audit(grading_db
 
 
 def test_latest_evaluation_tie_uses_last_stored_row(grading_db):
+    add_pick(grading_db,"same-pick")
     with sqlite3.connect(grading_db) as conn:
         for identifier,result in (("z-old","won"),("a-new","lost")):
             conn.execute("""INSERT INTO pick_grading_results
@@ -122,6 +124,8 @@ def test_latest_evaluation_tie_uses_last_stored_row(grading_db):
 
 def test_track_record_months_and_pending_use_same_latest_evaluations(app_module,monkeypatch,grading_db):
     monkeypatch.setattr(app_module,"DB_PATH",grading_db)
+    add_pick(grading_db,"one")
+    add_pick(grading_db,"two")
     with sqlite3.connect(grading_db) as conn:
         conn.executemany("""INSERT INTO pick_grading_results
             (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
@@ -134,3 +138,52 @@ def test_track_record_months_and_pending_use_same_latest_evaluations(app_module,
     assert record["roi"]==-100.0
     assert record["winrate"]==0.0
     assert [r["pick_id"] for r in record["pending_results"]]==["two"]
+
+
+@pytest.mark.parametrize("market,selection", [
+    ("Córners totales", "Over 8.5"),
+    ("Total goles primera parte", "Over 0.5"),
+    ("Total local", "QA Home over 1.5"),
+    ("Hándicap asiático", "QA Home -1.5"),
+    ("Resultado exacto", "2-0"),
+    ("Goleador", "QA Player marca"),
+])
+def test_unsupported_markets_never_use_full_time_team_score(market,selection):
+    grade=grading.grade_pick({
+        "match_status":"FT","score":"3-1","home_score":3,"away_score":1,
+        "pick_type":market,"selection":selection,"odds":2.0,"stake_units":1,
+        "home_team":"QA Home","away_team":"QA Away",
+    })
+    assert grade["result_status"]=="pending"
+    assert grade["auto_validated"]==0
+    assert "no soportado" in grade["reason"].lower() or "necesita" in grade["reason"].lower() or "no derivable" in grade["reason"].lower()
+
+
+@pytest.mark.parametrize("selection,expected", [("Over 2.0","void"),("Under 2.0","void"),("Over 2.25","pending"),("Under 2.75","pending")])
+def test_goal_lines_do_not_turn_push_or_quarter_lines_into_losses(selection,expected):
+    grade=grading.grade_pick({
+        "match_status":"FT","score":"1-1","home_score":1,"away_score":1,
+        "pick_type":"Total goles","selection":selection,"odds":1.9,"stake_units":1,
+    })
+    assert grade["result_status"]==expected
+    assert grade["auto_validated"]==(1 if expected=="void" else 0)
+
+
+def test_history_excludes_orphan_and_draft_evaluations_from_real_metrics(grading_db):
+    add_pick(grading_db,"eligible",status="published")
+    add_pick(grading_db,"draft-evaluation",status="draft")
+    with sqlite3.connect(grading_db) as conn:
+        conn.executemany("""INSERT INTO pick_grading_results
+            (id,pick_id,result_status,odds,stake,profit,graded_at,auto_validated)
+            VALUES(?,?,?,?,?,?,?,?)""",[
+            ("g-eligible","eligible","won",2,1,1,"2026-09-01",1),
+            ("g-draft","draft-evaluation","won",2,1,1,"2026-09-01",1),
+            ("g-orphan","missing-pick","lost",2,1,-1,"2026-09-01",1),
+        ])
+    summary=grading.pick_grading_summary(grading_db)
+    assert summary["graded_total"]==1
+    assert summary["evaluable_total"]==1
+    assert summary["won"]==1 and summary["lost"]==0
+    assert summary["stake_total"]==1
+    assert summary["profit"]==1
+    assert [row["pick_id"] for row in summary["recent_results"]]==["eligible"]
