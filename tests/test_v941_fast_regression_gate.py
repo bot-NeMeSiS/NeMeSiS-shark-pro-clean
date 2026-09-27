@@ -17,6 +17,7 @@ def test_smoke_runs_known_regressions_before_browser_install():
         "test_shark_membership_limits_v941.py",
         "test_automation_schedule_minimal.py",
         "test_privacy_classification_v941.py",
+        "test_public_api_scope_v941.py",
         "test_navigation_classification_v941.py",
         "test_mutation_endpoints_post_only_v941.py",
         "test_legacy_automation_safety_v941.py",
