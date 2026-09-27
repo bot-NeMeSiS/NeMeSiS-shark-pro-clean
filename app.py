@@ -30199,7 +30199,7 @@ def v570_shark_core_summary():
     membership = (user.get("membership") or user.get("role") or "FREE").upper()
     favorites = get_favorites(user_id=user.get("id")) if user.get("id") else []
     try:
-        recommendations = v566_template_recommendations(limit=12)
+        _plan, recommendations = _recommendations_for_current_membership(v566_template_recommendations(limit=12))
     except Exception:
         recommendations = []
     try:
@@ -30222,7 +30222,7 @@ def v570_shark_core_summary():
         upcoming=upcoming,
         membership=membership,
     )
-    briefing["user"] = user
+    briefing["user"] = {"name": user.get("name") or "", "membership": membership}
     briefing["sections"] = {
         "favorites": favorites[:8],
         "recommendations": recommendations[:8],
@@ -30271,7 +30271,6 @@ def v570_shark_admin_summary():
 def v570_shark_core_page():
     if not current_session_user():
         return redirect("/cliente-login?next=/shark-core")
-    record_shark_memory("open_shark_core", {"route": "/shark-core"})
     return render_template("shark_core.html", data=dashboard_data(), shark=v570_shark_core_summary())
 
 
@@ -30291,10 +30290,9 @@ def v570_admin_shark_center():
 
 @app.route("/api/shark/core-summary")
 def api_v570_shark_core_summary():
-    if not current_session_user() and request.args.get("public") != "1":
+    if not current_session_user():
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
     summary = v570_shark_core_summary()
-    record_shark_memory("api_core_summary", {"score": summary.get("score")})
     return jsonify({"ok": True, "version": APP_VERSION, "shark": summary})
 
 

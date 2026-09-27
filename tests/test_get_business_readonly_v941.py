@@ -142,6 +142,51 @@ def test_cold_telegram_settings_read_does_not_create_schema(app_module,monkeypat
     assert a.get_telegram_settings()["enabled"] is False
     assert not a.db_table_exists("telegram_settings")
 
+
+@pytest.mark.parametrize("plan", ["ANONYMOUS","FREE","PRO","ELITE","ADMIN","EXPIRED"])
+def test_legacy_shark_summary_is_private_plan_scoped_and_readonly(app_module,monkeypatch,tmp_path,plan):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    effective="FREE" if plan in {"ANONYMOUS","EXPIRED"} else plan
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
+                     (effective,effective,"2020-01-01" if plan=="EXPIRED" else "2030-01-01","qa-read-client"))
+    recommendations=[{"id":"qa-rec-"+tier,"membership_required":tier,"selection":"QA_CORE_SECRET_"+tier}
+                     for tier in ("FREE","PRO","ELITE")]
+    monkeypatch.setattr(a,"v566_template_recommendations",lambda **kw:recommendations)
+    client=a.app.test_client()
+    if plan!="ANONYMOUS":
+        with client.session_transaction() as state:
+            state.update(user_id="qa-read-client",user_role=effective,membership=effective,user_membership=effective)
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    for method in ("GET","HEAD","GET"):
+        response=client.open("/api/shark/core-summary?public=1&membership=ADMIN&user_id=other",method=method)
+        assert response.status_code==(401 if plan=="ANONYMOUS" else 200)
+        assert snapshot(db)==before
+        assert not writes,writes
+    if plan=="ANONYMOUS":
+        assert "QA_CORE_SECRET" not in response.get_data(as_text=True)
+        return
+    data=response.get_json()["shark"]
+    body=response.get_data(as_text=True)
+    for tier in ("FREE","PRO","ELITE"):
+        assert ("QA_CORE_SECRET_"+tier in body)==a.membership_allows(effective,tier)
+    assert set(data["user"]) <= {"name","membership"}
+
+
+@pytest.mark.parametrize("path", ["/shark-core","/inteligencia"])
+def test_legacy_shark_pages_do_not_record_business_memory(app_module,monkeypatch,tmp_path,path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-read-client",user_role="FREE",membership="FREE")
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    response=client.get(path)
+    assert response.status_code==200
+    assert snapshot(db)==before
+    assert not writes,writes
+
 def test_expired_membership_is_effective_free_without_persisting(app_module,monkeypatch,tmp_path):
     a,db=isolated(app_module,monkeypatch,tmp_path)
     before=snapshot(db)
