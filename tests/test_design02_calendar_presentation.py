@@ -114,10 +114,10 @@ def test_mobile_primary_navigation_keeps_shark_and_calendar(app_module, authenti
         client_header = str(module.v933_client_navigation('PRO')) if authenticated else ''
     dom = Structure(html)
     links = [n['attrs']['href'] for n in dom.nodes if n['tag'] == 'a']
-    assert links == ['/app' if authenticated else '/', '/calendar', '/live', '/picks', '/shark' if authenticated else '/cliente-login']
+    assert links == ['/app' if authenticated else '/', '/calendario', '/directo', '/picks', '/shark' if authenticated else '/cliente-login']
     assert '<span>Calendario</span>' in html
     if authenticated:
-        assert 'href="/profile"' in client_header
+        assert 'href="/mi-cuenta"' in client_header
     else:
         assert '/shark' not in links
 
@@ -149,7 +149,7 @@ def test_calendar_aliases_share_visible_navigation_state(app_module, route, surf
         dom = Structure(str(getattr(module, surface)()))
     selected = [n for n in dom.nodes if n['tag'] == 'a' and n['attrs'].get('aria-current') == 'page']
     assert selected
-    assert all(n['attrs'].get('href') == '/calendar' for n in selected)
+    assert all(n['attrs'].get('href') == '/calendario' for n in selected)
 
 
 def test_client_copy_reduction_does_not_hide_temporal_container():
