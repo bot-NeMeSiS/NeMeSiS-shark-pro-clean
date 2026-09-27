@@ -136,6 +136,18 @@ def test_remaining_secondary_surfaces_use_spanish_client_labels():
     assert 'ui("Pronósticos")' in player
 
 
+def test_team_and_user_intelligence_surfaces_use_canonical_spanish_labels():
+    team=(ROOT / "templates/team_detail.html").read_text(encoding="utf-8")
+    user_intelligence=(ROOT / "templates/user_intelligence_center.html").read_text(encoding="utf-8")
+    assert 'ui("Picks")' not in team
+    assert 'ui("Picks relacionados")' not in team
+    assert 'ui("Pronósticos")' in team
+    assert 'ui("Pronósticos relacionados")' in team
+    assert 'href="/profile"' not in user_intelligence
+    assert 'href="/mi-cuenta"' in user_intelligence
+    assert 'ui("Mi cuenta")' in user_intelligence
+
+
 def test_confirmed_orphan_legacy_templates_stay_purged():
     for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html", "client_overview.html", "smart_dashboard.html"):
         assert not (ROOT / "templates" / name).exists()
