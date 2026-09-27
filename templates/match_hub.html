@@ -5,7 +5,7 @@
   <div class="kicker">Partidos</div>
   <h1>Centro de partidos</h1>
   <p class="lead">Calendario premium ordenado por día, competición y hora. Más claro, más rápido y preparado para datos reales.</p>
-  <div class="actions"><a class="btn primary" href="/live">Ver directo</a><a class="btn" href="/favoritos">Mis favoritos</a></div>
+  <div class="actions"><a class="btn primary" href="/directo">Ver directo</a><a class="btn" href="/favoritos">Mis favoritos</a></div>
 </section>
 
 <section class="filters calendar-filters">
@@ -103,7 +103,7 @@
   </div>
 </section>
 
-{% for title, items in [('En directo', data.match_hub.live), ('Resultados recientes', data.match_hub.finished), ('Con cuotas', data.match_hub.with_odds), ('Favoritos', data.match_hub.favorites), ('Con picks', data.match_hub.with_picks)] %}
+{% for title, items in [('En directo', data.match_hub.live), ('Resultados recientes', data.match_hub.finished), ('Con cuotas', data.match_hub.with_odds), ('Favoritos', data.match_hub.favorites), ('Con pronóstico', data.match_hub.with_picks)] %}
 <section class="band">
   <div class="section-head"><h2>{{ title }}</h2><span class="pill">{{ items|length }}</span></div>
   {% if items %}
