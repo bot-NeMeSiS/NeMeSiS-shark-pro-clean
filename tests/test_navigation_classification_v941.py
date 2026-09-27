@@ -44,6 +44,15 @@ def test_normal_route_remains_ok():
     assert label == "OK"
 
 
+def test_navigation_auth_classification_matches_current_account_and_public_plan_routes():
+    from engines.navigation_integrity_engine import _route_authentication
+    assert _route_authentication("/mi-cuenta") == "client"
+    assert _route_authentication("/profile") == "client"
+    assert _route_authentication("/favoritos") == "client"
+    assert _route_authentication("/membresias") == "public"
+    assert _route_authentication("/memberships") == "public"
+
+
 def test_client_menu_groups_follow_runtime_data_and_hide_internal_copy():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]

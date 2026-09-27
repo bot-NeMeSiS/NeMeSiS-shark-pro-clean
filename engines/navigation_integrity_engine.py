@@ -41,10 +41,10 @@ CLIENT_AUTH_PREFIXES = (
     "/app",
     "/profile",
     "/perfil",
+    "/mi-cuenta",
     "/telegram",
     "/favorites",
     "/favoritos",
-    "/memberships",
 )
 
 EXTERNAL_SCHEMES = ("http://", "https://", "mailto:", "tel:", "data:", "blob:")
