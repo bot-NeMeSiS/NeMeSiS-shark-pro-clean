@@ -33,7 +33,7 @@
 
   {% if live_matches %}
   <section class="ns16-section ns16-live-priority" data-sports-priority="live-now">
-    {{ section_header('En directo', '', 'Abrir Directo', '/directo', 'LIVE') }}
+    {{ section_header('En directo', '', 'Abrir Directo', '/directo', 'DIRECTO') }}
     <div class="ns16-match-row">{% for match in live_matches[:3] %}{{ live_card(match) }}{% endfor %}</div>
   </section>
   {% endif %}
