@@ -132,3 +132,35 @@ def test_shark_intelligence_filters_detail_picks_before_match_context(app_module
         app_module.session.update(user_id="qa-free-intelligence",user_role="FREE",membership="FREE",user_membership="FREE")
         app_module.build_shark_intelligence_page_context()
     assert [x["id"] for x in captured["picks"]]==["free"]
+
+
+def test_internal_diagnostic_apis_require_admin(client):
+    paths=(
+        "/api/deep-route-check",
+        "/api/client-experience-check",
+        "/api/route-check",
+        "/api/v565/sports-data-picks-check",
+        "/api/v566/product-polish-check",
+        "/api/autonomous-picks/status",
+        "/api/system/v570-check",
+    )
+    for path in paths:
+        response=client.get(path)
+        assert response.status_code==403,(path,response.status_code)
+
+
+def test_public_timezone_check_does_not_expose_match_samples(client):
+    response=client.get("/api/timezone-check")
+    assert response.status_code==200
+    payload=response.get_json()
+    assert payload["timezone"]=="Europe/Madrid"
+    assert "sample_matches" not in payload
+
+
+def test_admin_can_still_access_internal_diagnostics(client):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-admin-diagnostics",user_role="ADMIN",membership="ADMIN",user_membership="ADMIN",user_name="QA Admin")
+    response=client.get("/api/route-check")
+    assert response.status_code==200
+    assert response.get_json()["ok"] is True
+
