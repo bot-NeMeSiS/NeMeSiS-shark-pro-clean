@@ -555,7 +555,18 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
         }
     evaluable_where = "result_status IN ('won','lost','void') AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0"
     has_picks = bool(scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='picks'", default=0))
-    grading_cte = LATEST_ELIGIBLE_GRADING_CTE if has_picks else ""
+    pick_columns = {str(row.get("name") or "") for row in rows(conn, "PRAGMA table_info(picks)")} if has_picks else set()
+    if has_picks and "status" in pick_columns:
+        grading_cte = LATEST_ELIGIBLE_GRADING_CTE
+    elif has_picks:
+        # Older/minimal schemas still prove pick existence even when they predate
+        # the status column. Keep orphan rows out without inventing a status.
+        grading_cte = LATEST_GRADING_CTE + """, eligible_grades AS (
+            SELECT g.* FROM latest_grades g
+            JOIN picks p ON p.id = g.pick_id
+        ) """
+    else:
+        grading_cte = ""
     grade_source = "eligible_grades"
     total = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source}", default=0) if grading_cte else 0
     evaluable = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE {evaluable_where}", default=0) if grading_cte else 0
@@ -569,7 +580,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     avg_score = (scalar(conn, grading_cte + f"SELECT ROUND(AVG(grading_score),1) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
     recent_rows = rows(
         conn,
-        LATEST_ELIGIBLE_GRADING_CTE + """SELECT r.*,
+        grading_cte + """SELECT r.*,
                   COALESCE(m.match_date, p.match_date) AS event_match_date,
                   m.kickoff_time AS event_kickoff_time,
                   m.kickoff_iso AS event_kickoff_iso,
@@ -591,7 +602,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
             LIMIT 10""",
     )
     if not recent_rows:
-        recent_rows = rows(conn, LATEST_ELIGIBLE_GRADING_CTE + f"SELECT * FROM eligible_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10") if has_picks else []
+        recent_rows = rows(conn, grading_cte + f"SELECT * FROM eligible_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10") if grading_cte else []
     recent = [_enrich_recent_result(r) for r in recent_rows]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]
