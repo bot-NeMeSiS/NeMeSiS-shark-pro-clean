@@ -6098,17 +6098,9 @@ def create_database_backup(reason="manual"):
 
 
 def restore_database_backup(name):
-    path = backup_file_path(name)
-    if not path:
-        return {"ok": False, "error": "backup_not_found"}
-    safety = create_database_backup(reason=f"pre_restore_{os.path.basename(name)}")
-    if not safety.get("ok"):
-        return {"ok": False, "error": "safety_backup_failed", "safety": safety}
-    tmp = os.path.abspath(DB_PATH) + ".restore_tmp"
-    with open(path, "rb") as src, open(tmp, "wb") as dst:
-        dst.write(src.read())
-    os.replace(tmp, os.path.abspath(DB_PATH))
-    return {"ok": True, "restored": os.path.basename(name), "safety_backup": safety.get("name")}
+    from engines.data_vault_engine import restore_sqlite_backup
+    return restore_sqlite_backup(DB_PATH, BASE_DIR, str(name or ""), APP_VERSION,
+                                 directory=backup_dir(), max_files=BACKUP_RETENTION_MAX)
 
 
 def daily_automation_summary():

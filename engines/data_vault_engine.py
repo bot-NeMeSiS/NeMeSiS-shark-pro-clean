@@ -5,8 +5,10 @@ import csv
 import hashlib
 import json
 import os
+import shutil
 import sqlite3
 import tempfile
+import time
 import uuid
 from contextlib import closing
 from datetime import datetime, timezone
@@ -288,6 +290,52 @@ def apply_backup_retention(root: str | Path, *, directory: str | Path | None = N
         except OSError as exc:
             errors.append({"name": item["name"], "error": str(exc)[:200]})
     return {"ok": not errors, "removed": removed, "kept": len(list_backups(root, directory=directory)), "errors": errors}
+
+
+def restore_sqlite_backup(db_path: str | Path, root: str | Path, backup_name: str, app_version: str,
+                          *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
+    """Explicit admin restore through SQLite, with verified staging and recovery copy."""
+    target = Path(db_path)
+    if not target.is_file():
+        return {"ok": False, "error": "database_missing"}
+    staged = None
+    safety = {}
+    try:
+        selected = next((item for item in list_backups(root, directory=directory) if item["name"] == backup_name), None)
+        if selected is None:
+            return {"ok": False, "error": "backup_not_found"}
+        if not validate_backup(root, backup_name, directory=directory)["ok"]:
+            return {"ok": False, "error": "backup_validation_failed"}
+        folder = Path(selected["path"]).parent
+        handle, temporary_name = tempfile.mkstemp(prefix=".restore-", suffix=".partial", dir=folder)
+        os.close(handle)
+        staged = Path(temporary_name)
+        shutil.copyfile(selected["path"], staged)
+        # Recheck copied bytes; subsequent retention may remove the selected original.
+        if sha256_file(staged) != selected["sha256"]:
+            return {"ok": False, "error": "backup_validation_failed"}
+        with closing(connect_readonly(staged)) as source:
+            if [row[0] for row in source.execute("PRAGMA integrity_check")] != ["ok"]:
+                return {"ok": False, "error": "backup_validation_failed"}
+            safety = create_sqlite_backup(target, root, app_version, backup_type="pre_restore_" + backup_name,
+                                           directory=folder, max_files=max_files)
+            if not safety.get("ok"):
+                return {"ok": False, "error": "safety_backup_failed", "safety": safety}
+            # File replacement bypasses SQLite's WAL/locking protocol. The backup API
+            # applies a transaction to the live database and existing connections.
+            deadline = time.monotonic() + 15
+            def progress(status, remaining, total):
+                if status in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED) and time.monotonic() >= deadline:
+                    raise sqlite3.OperationalError("restore_database_busy")
+            with closing(sqlite3.connect(str(target), timeout=15)) as destination:
+                source.backup(destination, pages=256, progress=progress, sleep=0.05)
+        return {"ok": True, "restored": backup_name, "safety_backup": safety["backup_file"]}
+    except (OSError, sqlite3.Error) as exc:
+        return {"ok": False, "error": "backup_restore_failed", "detail": str(exc)[:300],
+                "safety_backup": safety.get("backup_file")}
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
 
 
 def export_table_csv(db_path: str | Path, root: str | Path, table: str) -> dict:

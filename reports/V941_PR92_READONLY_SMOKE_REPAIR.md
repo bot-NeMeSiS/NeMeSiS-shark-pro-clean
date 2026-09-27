@@ -1,5 +1,42 @@
 # V941 / PR92 - read-only GET and Smoke repair
 
+## Autonomous continuation 2026-09-27 — current evidence
+
+This section supersedes the Git/CI status in the historical sections below.
+Started from actual PR HEAD `b06b99943e6cd3b309f9835de73cd76c25d1c745`, whose three workflows were green. Preserved the intervening UI work and later upstream commits `e035c73b` / `ad7b112d` (activity history reads). Main remained `2b59d3fca4f2982652279004ecffc3ea56617807`; PR OPEN/DRAFT. No merge, deployment, production DB, external paid API, real payment or Telegram delivery was used.
+
+### Confirmed defects and corrections
+
+- Telegram settings GET seeded/re-enabled stored configuration; auto-post preview GET overwrote stored delivery state. Settings now normalize reads only, and preview explicitly uses `persist=False`. Live diagnostics rejects refresh-on-GET and retains the existing explicit admin POST.
+- Legacy SHARK core summary accepted anonymous `public=1`, exposed unfiltered recommendations/profile fields, and recorded memory while rendering. Session, effective plan, safe user projection and read-only contracts now apply.
+- Grading included drafts/review rows, fabricated amounts from missing stake and accepted invalid scores as zero. Only eligible picks and recorded valid amounts/scores are settled; explicit recorded results are respected.
+- Repeated grading audit rows inflated history. A latest-evaluation projection now drives history counters/months while retaining the full audit.
+- Public history exposed internal/premium result payloads; result tabs did not filter. HTML/API project allowed plan content and safe fields; won/lost/void navigation now changes the displayed results, including truthful empty states.
+- Backup files were discoverable before completion, same-second copies collided, manifests described the later live DB, and retention could remove the last verified copy. Publication is atomic with unique names, snapshot-based manifests, checksums/integrity, explicit failures and preservation of a verified recovery copy.
+- Legacy Admin/daily backups bypassed the repaired engine. They now reuse it with their existing configured directory and response fields. Listing no longer creates directories.
+- Restore replaced the live SQLite file outside its WAL/locking protocol, accepted unchecked files and could prune the selected source during safety backup. It now verifies/stages the source first, requires a successful recovery copy and restores through SQLite. Unverified legacy files remain downloadable but cannot be restored automatically.
+
+### Validation and limitations
+
+All local evidence below lives in ignored `data/local_dev/` and uses disposable storage with external network blocked. Synthetic QA content is not business data.
+
+| Block | Evidence | Result |
+|---|---|---|
+| Telegram/live GET contracts | `pr92-0954c4d9b90d4f8cb3522049a9dd6106`, `pr92-de21afaeb5fc4a029407ddd51a36d96d` | 102 + 2 passed; four expected failures reproduced first |
+| Legacy SHARK boundaries | `pr92-58997bc2d57c4512976f0660aa7ef361` | 113 passed; eight failures reproduced first |
+| Settlement contracts | `pr92-8a58f8f7d43f472e98fad1c394a436ef` | 121 passed; invalid/draft cases reproduced first |
+| Latest evaluation/history | `pr92-ebce9b7a923a414599dc4ef4924daea5` | 28 passed |
+| Public history HTML/API | `pr92-e966ee3486b64be6b3b9accd06f16752` | Six plan contexts passed |
+| History browser | `pr92-962c7e909d53405a83a64363de6aa251` | FREE/PRO/ELITE × PC/mobile: six passed, real filter clicks, no JS errors/overflow or DB writes |
+| Combined product regressions | `pr92-81d82196b256448fa41e7e424e5dbb98` | 233 passed |
+| Backup/restore and GET integration | `pr92-460a31e164814a67b1e8d21c49ceec79` | 118 passed, including corrupt source, open WAL connection, safety-copy failure and retention boundary |
+
+Local checks `pr92-bef46db8c8ac4298bd157cd111acef53`: Python compiled; 216 Jinja templates parsed; Madrid checks passed; 1,186 links, zero broken links/loops/inert buttons. Classification: 811 OK, 262 expected, one false positive, 112 inherited debt (16 represented as warnings). Privacy: 75 expected fixtures, zero review findings; secret guard: 1,305 files, zero findings. Sentinel: 39 routes, zero open findings, diagnostic only. These results do not certify production.
+
+CI on `ad29e4b2`: QA and Smoke succeeded. Deploy Guard run `36313509217`, preflight job `108603843252`, step `Generate isolated V944 browser evidence` failed because mobile/partial inspected two pending crest loads as broken despite HTTP 200. The fix waits for image completion while still rejecting failed decodes; browser regression explicitly confirms a 404 remains a failure. Strict Windows process-audit compatibility was also repaired without permitting unrelated launches. Local V944 runner: six rendered observations passed; related evidence tests: 39 passed. Commit `0639b186` passed that exact remote step; its remaining Guard run was cancelled by subsequent upstream pushes, not considered a full PASS.
+
+The backup/restore follow-up requires CI on its newly pushed exact SHA. No RC or production-readiness claim. Known remaining investigation includes historic draft/orphan evaluations in aggregate metrics, unsupported grading markets/periods, legacy SHARK copy and remaining inherited navigation debt. Restoration has only been exercised against disposable databases, never production.
+
 ## Continuation 2026-09-27 - current active block
 
 The owner now authorizes coherent commits and normal pushes within existing PR92

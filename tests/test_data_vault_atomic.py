@@ -218,3 +218,81 @@ def test_backup_includes_committed_wal_data_but_not_uncommitted_transaction(back
     finally:
         writer.rollback()
         writer.close()
+
+
+@pytest.fixture
+def legacy_restore_source(backup_source, app_module, monkeypatch):
+    source, root = backup_source
+    monkeypatch.setenv("BACKUP_DIR", str(vault.backup_dir(root)))
+    monkeypatch.setattr(app_module, "DB_PATH", str(source))
+    return app_module, source, root
+
+
+def test_restore_rejects_corrupt_backup_before_touching_live_database(legacy_restore_source):
+    app, source, root = legacy_restore_source
+    saved = app.create_database_backup()
+    Path(saved["path"]).write_bytes(b"SIMULATED_QA_CORRUPTION")
+    unchanged = source.read_bytes()
+    result = app.restore_database_backup(saved["name"])
+    assert result["ok"] is False
+    assert result["error"] == "backup_validation_failed"
+    assert source.read_bytes() == unchanged
+    assert len(vault.list_backups(root)) == 1
+
+
+def test_restore_updates_sqlite_with_existing_wal_connection(legacy_restore_source):
+    app, source, root = legacy_restore_source
+    saved = app.create_database_backup()
+    connection = sqlite3.connect(source)
+    try:
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("UPDATE users SET name='Live change'")
+        connection.commit()
+        result = app.restore_database_backup(saved["name"])
+        assert result["ok"], result
+        assert connection.execute("SELECT name FROM users").fetchone()[0] == "QA"
+        with sqlite3.connect(source) as fresh:
+            assert fresh.execute("SELECT name FROM users").fetchone()[0] == "QA"
+        safety = next(item for item in app.list_backups() if item["name"] == result["safety_backup"])
+        with sqlite3.connect(safety["path"]) as recovery:
+            assert recovery.execute("SELECT name FROM users").fetchone()[0] == "Live change"
+        assert vault.validate_backup(root, result["safety_backup"])["ok"]
+    finally:
+        connection.close()
+
+
+def test_restore_stages_selected_backup_before_safety_retention(legacy_restore_source, monkeypatch):
+    app, source, root = legacy_restore_source
+    saved = app.create_database_backup()
+    with sqlite3.connect(source) as connection:
+        connection.execute("UPDATE users SET name='Live change'")
+    monkeypatch.setattr(app, "BACKUP_RETENTION_MAX", 1)
+    result = app.restore_database_backup(saved["name"])
+    assert result["ok"], result
+    with sqlite3.connect(source) as connection:
+        assert connection.execute("SELECT name FROM users").fetchone()[0] == "QA"
+    assert vault.validate_backup(root, result["safety_backup"])["ok"]
+    assert not list(vault.backup_dir(root).glob("*.partial"))
+
+
+def test_restore_refuses_unverified_legacy_file(legacy_restore_source):
+    app, source, root = legacy_restore_source
+    saved = app.create_database_backup()
+    Path(saved["path"]).with_suffix(".json").unlink()
+    unchanged = source.read_bytes()
+    result = app.restore_database_backup(saved["name"])
+    assert result == {"ok": False, "error": "backup_validation_failed"}
+    assert source.read_bytes() == unchanged
+
+
+def test_restore_aborts_if_recovery_copy_cannot_be_created(legacy_restore_source, monkeypatch):
+    app, source, root = legacy_restore_source
+    saved = app.create_database_backup()
+    with sqlite3.connect(source) as connection:
+        connection.execute("UPDATE users SET name='Keep current data'")
+    monkeypatch.setattr(vault, "create_sqlite_backup", lambda *args, **kwargs: {"ok": False, "error": "SIMULATED_QA_FAILURE"})
+    result = app.restore_database_backup(saved["name"])
+    assert not result["ok"] and result["error"] == "safety_backup_failed"
+    with sqlite3.connect(source) as connection:
+        assert connection.execute("SELECT name FROM users").fetchone()[0] == "Keep current data"
+    assert not list(vault.backup_dir(root).glob("*.partial"))
