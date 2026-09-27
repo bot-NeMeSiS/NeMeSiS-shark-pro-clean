@@ -222,3 +222,10 @@ def test_pick_cards_present_analysis_score_as_index_not_probability():
     assert 'ui("Pronósticos")' in components
     assert "status_chip('Controlado','success')" not in picks
     assert "status_chip('Revisado','blue')" in picks
+
+
+def test_membership_page_does_not_present_unconfigured_price_as_purchasable():
+    text=read("templates/membership.html")
+    assert "Precio pendiente" in text
+    assert "plan.get('configured')" in text
+    assert "Configuración pendiente" in text
