@@ -7505,7 +7505,7 @@ def client_activity_feed(limit=20, user_id=None, include_internal=False):
 
 def build_client_alerts(limit=12, user_id=None):
     """Alertas visuales para cliente sin inventar datos reales.
-    Mezcla favoritos, partidos próximos, live, picks publicados y estado Telegram.
+    Mezcla favoritos, partidos próximos, directo, pronósticos publicados y estado Telegram.
     """
     user_id = user_id or current_user_id()
     hub = match_hub(today_iso())
