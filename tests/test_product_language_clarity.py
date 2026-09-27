@@ -23,14 +23,16 @@ def test_canonical_navigation_uses_spanish_plan_route_and_page_state():
     assert 'aria-current="page"' in nav
 
 
-def test_legacy_navigation_layers_match_current_language():
+def test_canonical_navigation_contract_matches_current_language_and_legacy_layers_stay_purged():
     contract=read("templates/components/navigation_contracts.html")
+    canonical=read("templates/components/v933_navigation.html")
     assert "Calendario" in contract and "Pronósticos" in contract and "Historial" in contract
     assert "('Partidos'," not in contract and "('Picks'," not in contract
-    for path in ("templates/components/v928_navigation.html","templates/components/v930_navigation.html"):
-        text=read(path)
-        assert 'navigation_contracts.html' in text
-        assert "nav_contracts.CLIENT_LINKS" in text
+    assert 'navigation_contracts.html' in canonical
+    assert "nav_contracts.CLIENT_LINKS" in canonical
+    assert "nav_contracts.ADMIN_LINKS" in canonical
+    for legacy in ("v928_navigation.html","v930_navigation.html"):
+        assert not (ROOT/"templates/components"/legacy).exists()
 
 def test_admin_pronosticos_use_clear_editorial_language():
     text=read("templates/admin_picks.html")
