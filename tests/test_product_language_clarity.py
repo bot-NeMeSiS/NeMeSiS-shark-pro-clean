@@ -75,6 +75,22 @@ def test_launch_and_quality_admin_copy_is_spanish_first():
     assert "Resumen de revisión de producto" in review
 
 
+def test_sale_and_client_experience_admin_copy_is_spanish_first():
+    client=(ROOT / "templates/admin_client_experience.html").read_text(encoding="utf-8")
+    sale=(ROOT / "templates/admin_sale_ready.html").read_text(encoding="utf-8")
+    gtm=(ROOT / "templates/admin_go_to_market_office.html").read_text(encoding="utf-8")
+    assert "Home, Directo, Calendario, Picks, Combis, SHARK, Telegram y Match Detail" not in client
+    assert "Inicio, Directo, Calendario, Pronósticos, Combinadas, SHARK, Telegram y detalle de partido" in client
+    for forbidden in ("Live QA", "Track Record", "<h3>Live</h3>", "<h3>Picks</h3>", "picks decididos", "picks registrados.", "Abrir picks"):
+        assert forbidden not in sale
+    for required in ("QA de Directo", "Historial", "<h3>Directo</h3>", "<h3>Pronósticos</h3>", "pronósticos decididos", "pronósticos registrados.", "Abrir pronósticos"):
+        assert required in sale
+    assert "Release Readiness" not in gtm
+    assert "Top 20 acciones antes de Release 1.0" not in gtm
+    assert "Preparación de publicación" in gtm
+    assert "Top 20 acciones antes de la publicación 1.0" in gtm
+
+
 def test_internal_systems_lead_with_human_labels():
     nav=read("templates/components/navigation_contracts.html")
     company=read("templates/admin_company_os.html")
