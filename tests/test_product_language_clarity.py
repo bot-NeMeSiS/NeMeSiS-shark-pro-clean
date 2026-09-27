@@ -373,3 +373,10 @@ def test_secondary_client_surfaces_use_current_spanish_vocabulary():
     assert ">Pronósticos</a>" in dynamic
     assert ">Picks</a>" not in briefing and "<h2>Picks y análisis</h2>" not in briefing
     assert ">Pronósticos</a>" in briefing and "<h2>Pronósticos y análisis</h2>" in briefing
+
+def test_import_center_telegram_copy_is_plain_spanish():
+    text=read("templates/import_center.html")
+    assert "Scheduler Telegram" not in text
+    assert "Command Center" not in text
+    assert "Programador de Telegram" in text
+    assert "Centro de control" in text
