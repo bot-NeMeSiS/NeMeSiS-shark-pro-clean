@@ -122,13 +122,18 @@ def test_public_payment_status_paths_do_not_request_db_backed_stripe_summary():
 
 def test_readonly_payment_views_do_not_create_schema(tmp_path):
     from engines.payment_readiness_engine import payment_readiness_snapshot
-    from engines.stripe_payments_engine import stripe_runtime_status
+    from engines.stripe_payments_engine import client_payments_context, stripe_runtime_status
     path=tmp_path/"cold-payments.sqlite"
     with sqlite3.connect(path) as conn:
         conn.execute("CREATE TABLE users(id TEXT PRIMARY KEY)")
+        conn.execute("INSERT INTO users(id) VALUES('qa-cold')")
     payment_readiness_snapshot(str(path))
     subscriptions.subscription_summary(str(path),apply_rules=False,persist_metrics=False)
     stripe_runtime_status(str(path))
+    client=client_payments_context(str(path),{"id":"qa-cold","membership":"FREE","role":"FREE"})
+    assert client["read_only"] is True
+    assert client["current_plan"]=="FREE"
+    assert client["subscriptions"]==[]
     with sqlite3.connect(path) as conn:
         tables=conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
     assert tables == [("users",)]
