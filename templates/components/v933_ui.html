@@ -38,7 +38,7 @@
 <aside class="v935-customer-trust" aria-label="{{ ui("Confianza de datos") }}">
   <div class="v935-customer-trust-main">{{ icon('shield') }}<span><strong>{{ ui(trust.get('source_label') or 'Datos deportivos trazables') }}</strong><small>{{ ui(trust.get('freshness_label') or 'Sin sincronización confirmada') }}</small></span></div>
   <p>{{ ui(trust.get('safe_message') or 'Solo se muestran datos reales o un estado seguro.') }}</p>
-  <div class="v935-customer-trust-rules"><span>{{ icon('target') }} {{ ui("Picks completos") }}</span><span>{{ icon('history') }} {{ ui("Histórico evaluable") }}</span><span>{{ icon('shield') }} {{ ui("Sin beneficio garantizado") }}</span></div>
+  <div class="v935-customer-trust-rules"><span>{{ icon('target') }} {{ ui("Pronósticos completos") }}</span><span>{{ icon('history') }} {{ ui("Histórico evaluable") }}</span><span>{{ icon('shield') }} {{ ui("Sin beneficio garantizado") }}</span></div>
 </aside>
 {%- endmacro %}
 
