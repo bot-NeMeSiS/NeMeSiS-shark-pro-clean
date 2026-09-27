@@ -21,6 +21,8 @@ PURGED = {
     "templates/admin_live_depth.html",
     "templates/betting_recommendations.html",
     "templates/components/v832_design_system.html",
+    "templates/components/v928_navigation.html",
+    "templates/components/v930_navigation.html",
     "templates/data_depth.html",
     "templates/discovery.html",
     "templates/error_controlled.html",
