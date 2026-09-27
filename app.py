@@ -28232,6 +28232,8 @@ def api_route_check():
 
 @app.route("/api/product-experience-check")
 def api_product_experience_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     board = smart_pick_board(user, limit=12)
     hub = match_hub(today_iso())
@@ -28540,6 +28542,8 @@ def api_quality_center_summary():
 
 @app.route("/api/client/app-pulse")
 def api_client_app_pulse():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     """Pulso comercial seguro para cliente: no muestra detalles técnicos ni secretos."""
     q = quality_center_summary()
     return jsonify({
@@ -28666,6 +28670,8 @@ def admin_memberships_page():
 
 @app.route("/api/client/onboarding-check")
 def api_client_onboarding_check():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     return jsonify({"ok": True, "version": APP_VERSION, "onboarding": onboarding_status(user)})
 
