@@ -187,3 +187,24 @@ def test_client_section_ctas_use_canonical_section_names():
     picks=read("templates/picks.html")
     assert "quick_action('Abrir calendario'" in picks
     assert "quick_action('Explorar partidos'" not in picks
+
+
+def test_client_home_account_and_plan_copy_avoid_legacy_pick_jargon_and_overclaims():
+    home=read("templates/client_app_center.html")
+    account=read("templates/account_center.html")
+    app_source=read("app.py")
+    for token in ("Picks activos","Pick destacado","Todavía no hay picks publicados"):
+        assert token not in home
+    assert "Pronósticos activos" in home and "Pronóstico destacado" in home
+    assert "Alertas, picks y resúmenes" not in account
+    assert "Partidos, equipos o picks guardados" not in account
+    for token in (
+        "Pronósticos automáticos y SHARK completo",
+        "combinadas automáticas, value avanzado, top picks",
+        "Pronósticos automáticos, combinadas avanzadas",
+        '"Picks y señales"',
+        '"Insight SHARK"',
+    ):
+        assert token not in app_source
+    assert "Acceso ELITE y SHARK ampliado" in app_source
+    assert '"Pronósticos y contexto"' in app_source
