@@ -98,6 +98,31 @@ def test_secondary_client_copy_uses_current_spanish_vocabulary():
     assert "Pronósticos publicados" in recommendations
 
 
+def test_secondary_client_surfaces_finish_spanish_first_vocabulary():
+    names = (
+        "templates/action_platform.html",
+        "templates/alerts.html",
+        "templates/auto_picks.html",
+        "templates/autonomous_ecosystem.html",
+        "templates/ecosystem.html",
+        "templates/highlight_detail.html",
+    )
+    combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in names)
+    for forbidden in (
+        "Picks sin grading", "datos stale", "Auto Picks", "Picks publicados",
+        "Picks candidatos", "Live, Telegram, picks", ">Track Record<",
+        'href="/perfil"',
+    ):
+        assert forbidden not in combined
+    for required in (
+        "Pronósticos sin resultado evaluado", "datos desactualizados",
+        "Pronósticos automáticos", "Pronósticos publicados",
+        "Pronósticos candidatos", "Directo, Telegram, pronósticos",
+        ">Historial<", 'href="/mi-cuenta"',
+    ):
+        assert required in combined
+
+
 def test_confirmed_orphan_legacy_templates_stay_purged():
     for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html", "client_overview.html", "smart_dashboard.html"):
         assert not (ROOT / "templates" / name).exists()
