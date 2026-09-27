@@ -8000,8 +8000,9 @@ def favorite_feed_full(limit=80, user_id=None):
     teams = {str(m.get("home_team") or "").lower() for m in matches} | {str(m.get("away_team") or "").lower() for m in matches}
     comps = {str(m.get("competition_key") or "").lower() for m in matches}
     live_related = [m for m in matches if (m.get("live_depth") or {}).get("state") in {"LIVE", "HT"}]
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     picks_related = []
-    for pick in get_picks(limit=100):
+    for pick in published_picks_for_user(user, limit=100):
         if (
             str(pick.get("match_id") or "").lower() in match_ids
             or str(pick.get("home_team") or "").lower() in teams
@@ -9766,10 +9767,11 @@ def real_time_global_state(date=None, refresh=False):
 
 def live_data_flow(date=None):
     date = date or today_iso()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(date)
     favs = get_favorites()
-    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in get_picks(limit=30)])
-    profile = default_profile()
+    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in published_picks_for_user(user, limit=30)])
+    profile = client_profile_view(user)
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favs, picks=picks, profile=profile)
     flow.update(
