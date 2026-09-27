@@ -42,6 +42,7 @@ def release_includes():
     "reports/V915_QA/.codex/config.toml",
     "reports/V915_QA/Thumbs.db",
     "reports/V915_QA/access_token.txt",
+    "reports/V915_QA/summary.json",
     ".tmp_pytest_owned/result.json",
     ".nemesis_test_owned/result.json",
     ".tmp_reference_review/private/manifest.json",
@@ -74,7 +75,6 @@ def test_existing_source_and_explicit_report_contracts_stay_included(relative, r
 
 @pytest.mark.parametrize("relative", [
     "reports/V915_SECURITY_SECRET_GUARD_REPORT.md",
-    "reports/V915_QA/summary.json",
     "reports/V939_PICK_QUALITY_THRESHOLDS.md",
 ])
 def test_historical_report_paths_stay_out_of_release(relative, release_includes):
