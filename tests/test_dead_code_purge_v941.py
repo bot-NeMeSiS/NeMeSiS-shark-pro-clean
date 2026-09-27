@@ -61,3 +61,18 @@ def test_dashboard_compatibility_route_is_redirect_only():
     assert 'redirect("/app")' in source
     assert "dashboard_data()" not in source
     assert "render_template(" not in source
+
+
+def test_client_menu_aliases_survive_dashboard_dead_code_purge():
+    fn = _function("v566_client_menu_page")
+    routes = {
+        decorator.args[0].value
+        for decorator in fn.decorator_list
+        if isinstance(decorator, ast.Call)
+        and isinstance(decorator.func, ast.Attribute)
+        and decorator.func.attr == "route"
+        and decorator.args
+        and isinstance(decorator.args[0], ast.Constant)
+        and isinstance(decorator.args[0].value, str)
+    }
+    assert routes == {"/menu", "/mapa", "/navegacion", "/todo"}

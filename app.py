@@ -29374,6 +29374,12 @@ def v566_template_recommendations(limit=20):
 @app.route("/dashboard")
 def v566_dashboard_page():
     return redirect("/app")
+
+
+@app.route("/menu")
+@app.route("/mapa")
+@app.route("/navegacion")
+@app.route("/todo")
 def v566_client_menu_page():
     if not current_session_user():
         return redirect("/cliente-login")
