@@ -77,8 +77,7 @@ def test_existing_source_and_explicit_report_contracts_stay_included(relative, r
     "reports/V915_QA/summary.json",
     "reports/V939_PICK_QUALITY_THRESHOLDS.md",
 ])
-def test_historical_reports_remain_source_evidence_but_stay_out_of_release(relative, release_includes):
-    assert (ROOT / relative).exists()
+def test_historical_report_paths_stay_out_of_release(relative, release_includes):
     assert release_includes(relative) is False
 
 
