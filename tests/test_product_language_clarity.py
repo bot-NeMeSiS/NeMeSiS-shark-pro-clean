@@ -394,3 +394,31 @@ def test_final_spanish_first_admin_and_faq_copy():
         assert token not in founder
     for token in ("Conflictos de directo", "Desactualizados", "Sistema de diseño", "Sistema de crecimiento e ingresos", "Resumen de ingresos", "Consejo ejecutivo"):
         assert token in founder
+
+def test_final_visible_client_copy_avoids_residual_english_product_jargon():
+    action=read("templates/action_platform.html")
+    ecosystem=read("templates/autonomous_ecosystem.html")
+    alerts=read("templates/alerts.html")
+    beta=read("templates/beta.html")
+    company=read("templates/company_platform.html")
+    daily=read("templates/daily_briefing.html")
+    imports=read("templates/import_center.html")
+    membership=read("templates/membership.html")
+    onboarding=read("templates/onboarding.html")
+    assert "else 'Smart Home'" not in action and "else 'Inicio inteligente'" in action
+    assert ">Score ecosistema</small>" not in ecosystem and ">Puntuación del ecosistema</small>" in ecosystem
+    assert "personalizar tu feed" not in alerts and "personalizar tu panel" in alerts
+    for token in (">Enviar feedback</a>", "<span>Feedback</span>", "Feedback recibido.", "Feedback general", "<h2>Feedback estructurado</h2>", ">Enviar feedback beta</button>"):
+        assert token not in beta
+    assert "Enviar comentarios" in beta and "Comentarios estructurados" in beta
+    assert "status_chip('Preparacion','neutral')" not in company
+    assert "status_chip('Preparación','neutral')" in company
+    assert "soporte, feedback y valor percibido" not in company
+    assert "soporte, comentarios y valor percibido" in company
+    assert "Abrir recap nocturno" not in daily and "El recap solo resume" not in daily
+    assert "Abrir resumen nocturno" in daily and "El resumen solo muestra" in daily
+    assert "apareceran aqui automaticamente" not in daily and "aparecerán aquí automáticamente" in daily
+    assert "Enviar briefing" not in imports and "Command Center" not in imports
+    assert "Enviar resumen" in imports and "Centro de control" in imports
+    assert "antes de cualquier checkout" not in membership and "antes de cualquier pago" in membership
+    assert "<span>Onboarding</span>" not in onboarding and "<span>Primeros pasos</span>" in onboarding
