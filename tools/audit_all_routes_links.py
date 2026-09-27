@@ -21,7 +21,7 @@ def rel(path: Path) -> str:
 
 def _form_attributes(tag: str) -> dict[str, str]:
     attrs = {}
-    for match in re.finditer(r'\\b([:\\w-]+)\\s*=\\s*(["\\\'])(.*?)\\2', tag, re.IGNORECASE | re.DOTALL):
+    for match in re.finditer(r'\b([:\w-]+)\s*=\s*(["\'])(.*?)\2', tag, re.IGNORECASE | re.DOTALL):
         attrs[match.group(1).lower()] = match.group(3)
     return attrs
 
@@ -42,8 +42,8 @@ def _js_submit_bound(form_id: str, javascript: str) -> bool:
 
 
 def scan_template_links() -> dict:
-    href_re = re.compile(r"""href\\s*=\\s*["']([^"']+)["']""", re.IGNORECASE)
-    form_re = re.compile(r"""<form\\b[^>]*>""", re.IGNORECASE | re.DOTALL)
+    href_re = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
+    form_re = re.compile(r"""<form\b[^>]*>""", re.IGNORECASE | re.DOTALL)
     direct_api_hrefs: list[dict] = []
     empty_links: list[dict] = []
     js_void_links: list[dict] = []
