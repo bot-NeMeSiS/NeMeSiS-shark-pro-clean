@@ -34,6 +34,16 @@ def test_client_templates_use_spanish_canonical_support_and_plan_routes():
     assert "'/soporte'" in combined
 
 
+def test_support_surface_uses_canonical_spanish_routes_and_copy():
+    source=(ROOT / "templates/support.html").read_text(encoding="utf-8")
+    assert "next=/support" not in source
+    assert 'href="/profile"' not in source
+    assert "Picks / combinadas" not in source
+    assert "next=/soporte" in source
+    assert 'href="/mi-cuenta"' in source
+    assert "Pronósticos / combinadas" in source
+
+
 def test_core_client_favorites_navigation_uses_spanish_canonical_route():
     names = (
         "templates/home.html",

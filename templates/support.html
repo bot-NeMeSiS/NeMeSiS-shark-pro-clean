@@ -10,7 +10,7 @@
   <div class="v933-two-col is-balanced">
     <section class="v933-main-stack" aria-labelledby="support-form-title">
       <h2 id="support-form-title">{{ ui("Contactar con soporte") }}</h2>
-      {% if not data.support_available %}<a class="v933-action" href="/cliente-login?next=/support">{{ ui('Inicia sesión para contactar con soporte.') }}</a>{% endif %}
+      {% if not data.support_available %}<a class="v933-action" href="/cliente-login?next=/soporte">{{ ui('Inicia sesión para contactar con soporte.') }}</a>{% endif %}
       <form method="post" class="v933-support-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input type="hidden" name="request_id" value="{{ data.support_request_id }}">
@@ -19,7 +19,7 @@
           <select name="category">
             <option value="partidos">{{ ui("Partidos / calendario") }}</option>
             <option value="live">{{ ui("Directo / resultados") }}</option>
-            <option value="picks">{{ ui("Picks / combinadas") }}</option>
+            <option value="picks">{{ ui("Pronósticos / combinadas") }}</option>
             <option value="telegram">Telegram</option>
             <option value="cuenta">{{ ui("Cuenta / membresía") }}</option>
             <option value="cancelacion">{{ ui("Cancelación / cambio de plan") }}</option>
@@ -39,7 +39,7 @@
     <aside class="v933-main-stack ns-support-help">
       <h2>{{ ui("Ayuda y privacidad") }}</h2>
       <p>{{ ui("No incluyas contraseñas, tarjetas ni datos sensibles en tu mensaje.") }}</p>
-      <a class="v933-action" href="/profile">{{ icon('user') }}{{ ui("Mi cuenta") }}</a>
+      <a class="v933-action" href="/mi-cuenta">{{ icon('user') }}{{ ui("Mi cuenta") }}</a>
       <a class="v933-action" href="/shark">{{ icon('shark') }}{{ ui("Consultar SHARK") }}</a>
       {{ platform_faq(true) }}
     </aside>
