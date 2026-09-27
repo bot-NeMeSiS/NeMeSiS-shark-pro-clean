@@ -146,7 +146,7 @@ def test_desktop_marks_same_section_without_extra_primary_items(app_module,path,
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
 
 
-@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendar'),('/shark','/shark'),('/app','/app')])
+@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario'),('/shark','/shark'),('/app','/app')])
 def test_other_primary_destinations_keep_their_current_page(app_module,path,href):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
@@ -159,9 +159,9 @@ def test_mobile_header_keeps_account_access_when_bottom_nav_prioritizes_shark(ap
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
         shell = Elements(macro.v933_client_navigation('PRO'))
         bottom = Elements(macro.v933_mobile_bottom_nav(True))
-    assert shell.find('a',href='/profile')
+    assert shell.find('a',href='/mi-cuenta')
     assert bottom.find('a',href='/shark')
-    assert not bottom.find('a',href='/profile')
+    assert not bottom.find('a',href='/mi-cuenta')
 
 
 @pytest.fixture
