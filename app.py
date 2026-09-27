@@ -28593,6 +28593,12 @@ def account_center_page():
         "activity": len(data.get("client_activity") or []),
     }
     data["payments_client"] = client_payments_context(DB_PATH, user)
+    data["telegram_state"] = v931_safe_context(
+        request.path,
+        "telegram_state",
+        lambda: telegram_user_state(user),
+        {"linked": False, "username": "", "code": "", "deep_link": ""},
+    )
     data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("account_center.html", data=data)
 
