@@ -222,6 +222,92 @@ def test_shark_intelligence_visible_copy_stays_spanish_first():
         assert token in source
 
 
+
+def test_client_visible_copy_stays_spanish_after_final_polish():
+    names = (
+        "templates/alerts.html",
+        "templates/auto_picks.html",
+        "templates/autonomous_ecosystem.html",
+        "templates/ecosystem.html",
+        "templates/global.html",
+        "templates/legal_trust.html",
+        "templates/onboarding.html",
+        "templates/resource_unavailable.html",
+        "templates/responsible_betting.html",
+        "templates/combis.html",
+        "templates/components/combi_match_catalogue.html",
+        "templates/components/platform_faq.html",
+        "templates/base.html",
+        "templates/client_app_center.html",
+        "templates/register.html",
+        "templates/components/v933_ui.html",
+        "templates/components/v936_product.html",
+        "templates/components/v937_sports_lifecycle.html",
+        "templates/local_safe_portal.html",
+        "templates/import_center.html",
+        "templates/partials/ui_components.html",
+        "templates/opportunities.html",
+        "templates/team_detail.html",
+    )
+    combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in names)
+    for forbidden in (
+        "live, picks, favoritos",
+        ">picks visibles<",
+        "picks candidatos",
+        ">Ver picks<",
+        "picks reales.",
+        "Un pick o recomendación",
+        "favoritos, picks y alertas",
+        "Stake máximo por pick",
+        "No hace falta un pick editorial",
+        "También puedes elegir picks publicados",
+        "Selecciona picks publicados",
+        "Propuesta automática a partir de picks publicados",
+        "Ordenación de picks elegibles",
+        "un pick recomendado",
+        'ns_ui("Value")',
+        "con value y aviso",
+        "favoritos, live, picks",
+        'ui("Picks completos")',
+        "Picks completos, SHARK",
+        'ui("Picks publicables")',
+        'ui("Expediente profesional del pick")',
+        "jugadores y picks de esta seccion",
+        "Partidos y live",
+        "Importar picks",
+        "Solo picks propios",
+        "Pick cargado por administrador",
+        "status='Pick en revisión'",
+        "Score datos/picks",
+        'ui("Aún no hay picks publicados para este equipo.")',
+    ):
+        assert forbidden not in combined, forbidden
+
+    for required in (
+        "directo, pronósticos, favoritos",
+        ">pronósticos visibles<",
+        "pronósticos candidatos",
+        ">Ver pronósticos<",
+        "pronósticos reales.",
+        "Un pronóstico o una recomendación",
+        "favoritos, pronósticos y alertas",
+        "Importe máximo por pronóstico",
+        "pronósticos publicados",
+        "pronóstico recomendado",
+        'ns_ui("Valor")',
+        "favoritos, directo, pronósticos",
+        'ui("Pronósticos completos")',
+        "Pronósticos completos, SHARK",
+        'ui("Pronósticos publicables")',
+        'ui("Expediente profesional del pronóstico")',
+        "Partidos y directo",
+        "Importar pronósticos",
+        "Pronóstico en revisión",
+        "Calidad datos/pronósticos",
+        'ui("Aún no hay pronósticos publicados para este equipo.")',
+    ):
+        assert required in combined, required
+
 def test_v728_qa_uses_current_client_guard():
     from tools.check_v728_client_experience import scan_templates
     report = scan_templates()
