@@ -22,6 +22,11 @@ PURGED_HEAVY_REPORT_DUMPS = {
     "reports/V913_reference_scan_validation_output.txt",
     "reports/NEMESIS_PRODUCT_NORTH_STAR_AND_ECOSYSTEM_ORCHESTRATION.html",
     "reports/PURGE_PROJECT_SAFE_LAST.json",
+    "reports/V726_PROJECT_TREE_AUDIT.md",
+    "reports/V726_PURGE_REPORT.json",
+    "reports/V726_PURGE_REPORT.md",
+    "reports/IMPORTS_ROUTES_VERIFY_V723.json",
+    "reports/PROJECT_TREE_AUDIT_V723.md",
 }
 
 
