@@ -123,3 +123,35 @@ def test_core_client_templates_use_canonical_spanish_routes():
     assert "'/mi-cuenta'" in telegram and "'/membresias'" in telegram
     assert "'/profile'" not in membership and "'/memberships?plan='" not in membership
     assert "'/mi-cuenta'" in membership and "'/membresias?plan='" in membership
+
+
+def test_navigation_renderers_share_canonical_contract_source():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    contract=(root/"templates/components/navigation_contracts.html").read_text(encoding="utf-8")
+    assert "CLIENT_LINKS" in contract and "ADMIN_LINKS" in contract
+    assert "/calendario-global" in contract and "/partidos/calendario" in contract
+    assert "/combis" in contract and "/combinadas" in contract
+    for name in ("v928_navigation.html","v930_navigation.html","v933_navigation.html"):
+        source=(root/"templates/components"/name).read_text(encoding="utf-8")
+        assert 'navigation_contracts.html' in source
+        assert "nav_contracts.CLIENT_LINKS" in source
+        assert "nav_contracts.ADMIN_LINKS" in source
+    legacy=(root/"templates/components/v930_navigation.html").read_text(encoding="utf-8")
+    assert "/memberships" not in legacy
+    assert "/admin/navigation-integrity" not in legacy
+    assert "/admin/automation-workforce" not in legacy
+
+
+def test_navigation_contract_aliases_have_one_active_rule(app_module):
+    template=app_module.app.jinja_env.from_string(
+        "{% import 'components/navigation_contracts.html' as nav %}"
+        "{{ nav.is_active('/calendar', path, 'client') }}|"
+        "{{ nav.is_active('/picks', path, 'client') }}|"
+        "{{ nav.is_active('/admin/matches', path, 'admin') }}"
+    )
+    assert template.render(path="/calendario-global")=="1||"
+    assert template.render(path="/partidos/calendario")=="1||"
+    assert template.render(path="/combinadas")=="|1|"
+    assert template.render(path="/combis")=="|1|"
+    assert template.render(path="/admin/matches-sync")=="||1"
