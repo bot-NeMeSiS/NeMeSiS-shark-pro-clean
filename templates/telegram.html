@@ -5,6 +5,7 @@
 {% set state = data.get('telegram_state') or {} %}
 {% set plan = (data.get('membership') or {}).get('name') or (current_user.membership if current_user else 'FREE') %}
 {% set channel_enabled = config.get('enabled') or config.get('legacy_enabled') %}
+{% set telegram_ready = state.get('linked') and channel_enabled %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
@@ -14,7 +15,7 @@
   <section class="v933-kpi-grid ns-video-status-rail">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
     {{ kpi_card('Canal activo', ui('Sí' if channel_enabled else 'En pausa'), 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
-    {{ kpi_card('Último envío', ui_match_datetime(config.get('last_sent_at')) if config.get('last_sent_at') else none, 'Hora Madrid', 'blue', 'history') }}
+    {{ kpi_card('Última actividad', ui_match_datetime(config.get('last_sent_at')) if config.get('last_sent_at') else none, 'Registro del canal · hora Madrid', 'blue', 'history') }}
     {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/memberships') }}
   </section>
 
@@ -33,10 +34,10 @@
         {% endif %}
       </section>
       <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
-        {{ section_header('Lo que recibirás en tu canal', 'Contenido de calidad, sin mensajes de relleno.') }}
+        {{ section_header('Contenido previsto para tu plan', 'Solo se envía cuando el canal está listo y existe información suficiente.') }}
         <div class="v933-four-col v933-feature-grid">
-          <article>{{ icon('target') }}<strong>{{ ui("Pronósticos premium") }}</strong><p>{{ ui("Mercado, selección, cuota y riesgo completos.") }}</p></article>
-          <article>{{ icon('live') }}<strong>{{ ui("Alertas en directo") }}</strong><p>{{ ui("Solo cuando existe una señal real.") }}</p></article>
+          <article>{{ icon('target') }}<strong>{{ ui("Pronósticos disponibles") }}</strong><p>{{ ui("Mercado, selección, cuota y riesgo completos.") }}</p></article>
+          <article>{{ icon('live') }}<strong>{{ ui("Alertas en directo") }}</strong><p>{{ ui("Solo con estado confirmado y automatización habilitada.") }}</p></article>
           <article>{{ icon('history') }}<strong>{{ ui("Resultados") }}</strong><p>{{ ui("Cierre confirmado de pronósticos publicados.") }}</p></article>
           <article>{{ icon('data') }}<strong>{{ ui("Resúmenes") }}</strong><p>{{ ui("Calidad antes que frecuencia.") }}</p></article>
         </div>
@@ -56,6 +57,6 @@
     </aside>
   </section>
 
-  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>{{ ui("Calidad protegida") }}</strong><small>{{ ui("Las alertas llevan al partido real y esta pantalla nunca envía mensajes por sí sola.") }}</small></span>{{ status_chip('Activo','success') }}</aside>
+  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>{{ ui("Estado de entrega") }}</strong><small>{{ ui("Esta pantalla no envía mensajes por sí sola. Los envíos dependen de vinculación, automatización y contenido elegible.") }}</small></span>{{ status_chip('Listo' if telegram_ready else 'En espera','success' if telegram_ready else 'warning') }}</aside>
 </div>
 {% endblock %}
