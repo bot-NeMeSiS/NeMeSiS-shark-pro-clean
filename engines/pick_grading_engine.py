@@ -24,6 +24,18 @@ from engines.madrid_time_engine import (
     to_madrid_time,
 )
 
+
+# Keep every audit row while projecting one current evaluation per pick.
+LATEST_GRADING_CTE = """WITH latest_grades AS (
+    SELECT * FROM (
+        SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY COALESCE(NULLIF(r.pick_id,''),r.id)
+            ORDER BY COALESCE(r.graded_at,'') DESC, r.rowid DESC
+        ) AS evaluation_rank
+        FROM pick_grading_results r
+    ) WHERE evaluation_rank=1
+) """
+
 try:
     from engines.team_identity_engine import identity_payload
 except Exception:  # pragma: no cover - keeps grading standalone in minimal environments
@@ -480,19 +492,19 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
             "recent_runs": [], "read_only": True,
         }
     evaluable_where = "result_status IN ('won','lost','void') AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0"
-    total = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results", default=0)
-    evaluable = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE {evaluable_where}", default=0)
-    auto_validated = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE auto_validated=1 AND {evaluable_where}", default=0)
-    pending = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='pending'", default=0)
-    won = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='won' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    lost = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='lost' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    voids = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='void' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    stake_total = scalar(conn, f"SELECT ROUND(SUM(stake),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
-    profit = scalar(conn, f"SELECT ROUND(SUM(profit),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
-    avg_score = scalar(conn, f"SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
+    total = scalar(conn, LATEST_GRADING_CTE + "SELECT COUNT(*) FROM latest_grades", default=0)
+    evaluable = scalar(conn, LATEST_GRADING_CTE + f"SELECT COUNT(*) FROM latest_grades WHERE {evaluable_where}", default=0)
+    auto_validated = scalar(conn, LATEST_GRADING_CTE + f"SELECT COUNT(*) FROM latest_grades WHERE auto_validated=1 AND {evaluable_where}", default=0)
+    pending = scalar(conn, LATEST_GRADING_CTE + "SELECT COUNT(*) FROM latest_grades WHERE result_status='pending'", default=0)
+    won = scalar(conn, LATEST_GRADING_CTE + "SELECT COUNT(*) FROM latest_grades WHERE result_status='won' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    lost = scalar(conn, LATEST_GRADING_CTE + "SELECT COUNT(*) FROM latest_grades WHERE result_status='lost' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    voids = scalar(conn, LATEST_GRADING_CTE + "SELECT COUNT(*) FROM latest_grades WHERE result_status='void' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
+    stake_total = scalar(conn, LATEST_GRADING_CTE + f"SELECT ROUND(SUM(stake),2) FROM latest_grades WHERE {evaluable_where}", default=0) or 0
+    profit = scalar(conn, LATEST_GRADING_CTE + f"SELECT ROUND(SUM(profit),2) FROM latest_grades WHERE {evaluable_where}", default=0) or 0
+    avg_score = scalar(conn, LATEST_GRADING_CTE + f"SELECT ROUND(AVG(grading_score),1) FROM latest_grades WHERE {evaluable_where}", default=0) or 0
     recent_rows = rows(
         conn,
-        """SELECT r.*,
+        LATEST_GRADING_CTE + """SELECT r.*,
                   COALESCE(m.match_date, p.match_date) AS event_match_date,
                   m.kickoff_time AS event_kickoff_time,
                   m.kickoff_iso AS event_kickoff_iso,
@@ -504,7 +516,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
                   COALESCE(m.home_team, p.home_team) AS home_team,
                   COALESCE(m.away_team, p.away_team) AS away_team,
                   COALESCE(m.competition_name, p.competition_name) AS competition_name
-             FROM pick_grading_results r
+             FROM latest_grades r
              LEFT JOIN picks p ON p.id = r.pick_id
              LEFT JOIN matches m ON m.id = COALESCE(r.match_id, p.match_id)
             WHERE r.result_status IN ('won','lost','void')
@@ -514,7 +526,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
             LIMIT 10""",
     )
     if not recent_rows:
-        recent_rows = rows(conn, f"SELECT * FROM pick_grading_results WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")
+        recent_rows = rows(conn, LATEST_GRADING_CTE + f"SELECT * FROM latest_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")
     recent = [_enrich_recent_result(r) for r in recent_rows]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]

@@ -335,7 +335,7 @@ from engines.stripe_payments_engine import (
     process_stripe_webhook,
     stripe_runtime_status,
 )
-from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
+from engines.pick_grading_engine import LATEST_GRADING_CTE, pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
@@ -28783,15 +28783,15 @@ def v742_track_record_context():
     by_plan = []
     pending_results = []
     if db_table_exists("pick_grading_results"):
-        by_month = rows("""SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
-                           FROM pick_grading_results
+        by_month = rows(LATEST_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
+                           FROM latest_grades
                            WHERE COALESCE(graded_at,'')!=''
                              AND result_status IN ('won','lost','void')
                              AND COALESCE(odds,0)>1
                              AND COALESCE(stake,0)>0
                            GROUP BY substr(graded_at,1,7)
                            ORDER BY label DESC LIMIT 12""")
-        pending_results = rows("""SELECT * FROM pick_grading_results
+        pending_results = rows(LATEST_GRADING_CTE + """SELECT * FROM latest_grades
                                   WHERE result_status='pending'
                                   ORDER BY graded_at DESC LIMIT 12""")
     if db_table_exists("picks"):

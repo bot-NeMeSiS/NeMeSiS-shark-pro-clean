@@ -87,3 +87,50 @@ def test_valid_recorded_amounts_keep_expected_profit():
         assert grade["stake"]==2
         assert grade["odds"]==2.5
         assert grade["profit"]==expected
+
+
+@pytest.mark.parametrize("latest,profit,closed", [("lost",-1,1),("pending",None,0)])
+def test_history_counts_only_latest_evaluation_without_deleting_audit(grading_db,latest,profit,closed):
+    with sqlite3.connect(grading_db) as conn:
+        conn.executemany("""INSERT INTO pick_grading_results
+            (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
+            [("old","same-pick","won",2,1,1,"2026-08-01T12:00:00+00:00"),
+             ("new","same-pick",latest,2,1,profit,"2026-09-01T12:00:00+00:00")])
+        before=conn.execute("SELECT * FROM pick_grading_results ORDER BY id").fetchall()
+    summary=grading.pick_grading_summary(grading_db)
+    assert summary["graded_total"]==1
+    assert summary["evaluable_total"]==closed
+    assert summary["won"]==0
+    assert summary["lost"]==closed
+    assert summary["pending_review"]==1-closed
+    assert summary["profit"]==(profit or 0)
+    assert [row["id"] for row in summary["recent_results"]]==(["new"] if closed else [])
+    with sqlite3.connect(grading_db) as conn:
+        assert conn.execute("SELECT * FROM pick_grading_results ORDER BY id").fetchall()==before
+
+
+def test_latest_evaluation_tie_uses_last_stored_row(grading_db):
+    with sqlite3.connect(grading_db) as conn:
+        for identifier,result in (("z-old","won"),("a-new","lost")):
+            conn.execute("""INSERT INTO pick_grading_results
+                (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
+                (identifier,"same-pick",result,2,1,1 if result=="won" else -1,"2026-09-01"))
+    summary=grading.pick_grading_summary(grading_db)
+    assert summary["won"]==0 and summary["lost"]==1
+    assert summary["stake_total"]==1
+
+
+def test_track_record_months_and_pending_use_same_latest_evaluations(app_module,monkeypatch,grading_db):
+    monkeypatch.setattr(app_module,"DB_PATH",grading_db)
+    with sqlite3.connect(grading_db) as conn:
+        conn.executemany("""INSERT INTO pick_grading_results
+            (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
+            [("a","one","pending",2,1,None,"2026-08-01"),
+             ("b","one","won",2,1,1,"2026-08-02"),
+             ("c","one","lost",2,1,-1,"2026-09-01"),
+             ("d","two","pending",2,1,None,"2026-09-01")])
+    record=app_module.v742_track_record_context()
+    assert record["by_month"]==[{"label":"2026-09","total":1,"profit":-1.0}]
+    assert record["roi"]==-100.0
+    assert record["winrate"]==0.0
+    assert [r["pick_id"] for r in record["pending_results"]]==["two"]
