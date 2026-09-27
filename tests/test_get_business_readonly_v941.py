@@ -645,3 +645,31 @@ def test_account_center_reflects_existing_telegram_link_without_generating_code(
     assert "Vinculado" in body
     assert "@qa_user" in body
     assert snapshot(db)==before
+
+
+@pytest.mark.parametrize("plan,source,granted,stripe_status,expected",[
+    ("FREE","free_signup",0,"","Plan gratuito"),
+    ("PRO","admin_manual",1,"","Acceso concedido"),
+    ("ELITE","stripe",0,"active","Suscripción Stripe: Activa"),
+])
+def test_account_center_explains_real_plan_origin(app_module,monkeypatch,tmp_path,plan,source,granted,stripe_status,expected):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.execute("""UPDATE users
+                       SET role=?,membership=?,membership_source=?,membership_admin_granted=?,
+                           membership_expires_at='2030-01-01T00:00:00+00:00',
+                           stripe_customer_id=?,stripe_subscription_status=?,
+                           stripe_current_period_end=?
+                       WHERE id='qa-read-client'""",
+                    (plan,plan,source,granted,
+                     "cus_qa" if stripe_status else "",
+                     stripe_status,
+                     "2030-01-01T00:00:00+00:00" if stripe_status else ""))
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-read-client",user_role=plan,membership=plan,user_membership=plan,user_name="QA")
+    before=snapshot(db)
+    response=client.get("/mi-cuenta")
+    assert response.status_code==200
+    assert expected in response.get_data(as_text=True)
+    assert snapshot(db)==before
