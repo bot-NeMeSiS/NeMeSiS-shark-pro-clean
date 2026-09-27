@@ -7,6 +7,7 @@ from engines.beta_program_engine import (
     BETA_METRICS_CONTRACT,
     BETA_PROGRAM_CONTRACT,
     FEEDBACK_PLATFORM_CONTRACT,
+    FIRST_10_BETA_CONTRACT,
     build_beta_program_snapshot,
     sanitize_beta_feedback_payload,
 )
@@ -30,6 +31,13 @@ def test_beta_snapshot_contracts_and_metric_transparency():
     assert snapshot["contract"] == BETA_PROGRAM_CONTRACT
     assert snapshot["feedback_contract"] == FEEDBACK_PLATFORM_CONTRACT
     assert snapshot["metrics_contract"] == BETA_METRICS_CONTRACT
+    assert snapshot["first_10"]["contract"] == FIRST_10_BETA_CONTRACT
+    assert snapshot["first_10"]["campaign_id"] == "FIRST_10_USERS"
+    assert snapshot["first_10"]["target_users"] == 10
+    assert "first10-founder" in snapshot["first_10"]["invite_path"]
+    assert snapshot["first_10"]["automatic_send"] is False
+    assert snapshot["first_10"]["paid_ads"] is False
+    assert len(snapshot["first_10"]["onboarding"]) == 4
     assert snapshot["privacy_controls"]["stores_sensitive_information"] is False
     assert snapshot["privacy_controls"]["metrics_can_be_disabled_per_submission"] is True
     assert snapshot["privacy_controls"]["external_calls"] == 0
@@ -99,6 +107,14 @@ def test_beta_public_page_renders_without_sensitive_inputs(client):
 
     assert response.status_code == 200
     assert "data-beta-program-contract" in html
+    assert "data-first10-contract" in html
+    assert "FIRST 10" in html
+    assert "data-first10-share-root" in html
+    assert "data-first10-share" in html
+    assert "data-first10-copy" in html
+    assert "FIRST_10_USERS" in html
+    assert "first10-founder" in html
+    assert "NeMeSiS no manda invitaciones automáticamente" in html
     assert "name=\"email\"" not in html.lower()
     assert "name=\"phone\"" not in html.lower()
     assert "allow_beta_metrics" in html
@@ -160,3 +176,17 @@ def test_admin_beta_center_is_protected_and_renders_for_admin(client):
     assert response.status_code == 200
     assert "data-beta-program-contract" in html
     assert "Beta Metrics" in html
+
+
+def test_first10_account_and_founder_surfaces_make_inviting_easy_without_auto_send():
+    account = (__import__("pathlib").Path(__file__).resolve().parents[1] / "templates" / "account_center.html").read_text(encoding="utf-8")
+    founder = (__import__("pathlib").Path(__file__).resolve().parents[1] / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
+
+    assert 'data-first10-account-invite' in account
+    assert 'href="/beta#first10-share"' in account
+    assert "Invitar a alguien" in account
+
+    assert 'data-first10-founder-actions' in founder
+    assert "Copiar invitación FIRST 10" in founder
+    assert "Invitación manual y medible" in founder
+    assert "no envía mensajes" in founder
