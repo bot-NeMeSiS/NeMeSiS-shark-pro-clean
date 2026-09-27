@@ -229,3 +229,14 @@ def test_membership_page_does_not_present_unconfigured_price_as_purchasable():
     assert "Precio pendiente" in text
     assert "plan.get('configured')" in text
     assert "Configuración pendiente" in text
+
+
+def test_client_telegram_never_promises_delivery_when_channel_is_not_ready():
+    text=read("templates/telegram.html")
+    assert "telegram_ready = state.get('linked') and channel_enabled" in text
+    assert "Lo que recibirás en tu canal" not in text
+    assert "Contenido previsto para tu plan" in text
+    assert "Pronósticos premium" not in text
+    assert "Pronósticos disponibles" in text
+    assert "Esta pantalla no envía mensajes por sí sola" in text
+    assert "status_chip('Listo' if telegram_ready else 'En espera'" in text
