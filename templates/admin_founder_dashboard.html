@@ -369,6 +369,14 @@
         {{ kpi_card('Experimentos', gr_experiments|length, 'READY, nunca autoejecutados', 'warning', 'chart') }}
         {{ kpi_card('SEO', gr_seo.status or 'PARTIAL', 'Sin páginas masivas ni llamadas externas', 'neutral', 'arrow') }}
       </div>
+      {% if gr_campaign.get('landing') %}
+      <div class="v933-page-actions" data-first10-founder-actions>
+        <button class="v933-action is-blue" type="button" data-copy="{{ gr_campaign.get('landing')|e }}">{{ icon('copy') }}<span>Copiar invitación FIRST 10</span></button>
+        <a class="v933-action is-blue" href="{{ gr_campaign.get('landing') }}" target="_blank" rel="noopener noreferrer">{{ icon('arrow') }}<span>Abrir invitación</span></a>
+        <a class="v933-action is-blue" href="/beta#first10-share">{{ icon('users') }}<span>Ver Beta privada</span></a>
+      </div>
+      <p class="v933-safe-copy">Invitación manual y medible. No publica, no envía mensajes y no gasta dinero automáticamente.</p>
+      {% endif %}
       {% if gr_channels %}
       {% call data_table(['Canal','Registros atribuidos','Evidencia']) %}
       {% for item in gr_channels %}<tr><td>{{ item.channel }}</td><td>{{ item.registered }}</td><td>{{ evidence_chip(item.evidence_state) }}</td></tr>{% endfor %}
