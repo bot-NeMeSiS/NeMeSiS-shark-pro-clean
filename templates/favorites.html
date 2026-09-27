@@ -1,20 +1,15 @@
 {% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
-{% from "components/v933_ui.html" import match_card with context %}
+{% from "components/v933_ui.html" import page_header, kpi_card, match_card with context %}
 {% block content %}
-<section class="scoreboard-hero v701-scoreboard v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="favorites" data-v828-template="favorites" data-v829-template="favorites" data-v830-template="favorites" data-v832-template="favorites" data-v833-template="favorites" data-v836-template="favorites" data-v837-template="favorites" data-v826-template="favorites">
-  <div>
-    <div class="kicker">{{ ui("Favoritos") }}</div>
-    <h1>{{ ui("Tus favoritos") }}</h1>
-    <p class="lead">{{ ui("Equipos, competiciones y partidos guardados.") }}</p>
-  </div>
-  <div class="scoreboard-kpis">
-    <div><strong>{{ data.favorite_insights.by_kind.team|length }}</strong><span>{{ ui("Equipos") }}</span></div>
-    <div><strong>{{ data.favorite_insights.by_kind.league|length }}</strong><span>{{ ui("Ligas") }}</span></div>
-    <div><strong>{{ data.favorite_insights.by_kind.match|length }}</strong><span>{{ ui("Partidos") }}</span></div>
-    <div><strong>{{ data.favorite_feed|length }}</strong><span>{{ ui("Feed") }}</span></div>
-  </div>
-</section>
+<div class="v933-page v933-favorites-page" data-v933-template="favorites">
+  {{ page_header('Favoritos', 'Equipos, competiciones y partidos guardados.', 'star') }}
+  <section class="v933-kpi-grid" aria-label="{{ ui("Resumen de favoritos") }}">
+    {{ kpi_card('Equipos', data.favorite_insights.by_kind.team|length, 'Guardados', 'blue', 'star') }}
+    {{ kpi_card('Ligas', data.favorite_insights.by_kind.league|length, 'Guardadas', 'cyan', 'calendar') }}
+    {{ kpi_card('Partidos', data.favorite_insights.by_kind.match|length, 'Guardados', 'success', 'matches') }}
+    {{ kpi_card('Relacionados', data.favorite_feed|length, 'En tu radar', 'gold', 'target') }}
+  </section>
 
 
 <details class="ns-favorites-help"{% if not (data.favorite_insights.by_kind.team or data.favorite_insights.by_kind.league or data.favorite_insights.by_kind.match) %} open{% endif %}>
@@ -109,6 +104,7 @@
     </form>
   </details>
 </section>
+</div>
 {% endblock %}
 
 

@@ -29,7 +29,7 @@ OUTPUT_DIR = ROOT / "reports" / "V929_browser_qa_navigation"
 PUBLIC_ORIGINS = ["/", "/cliente-login", "/registro"]
 CLIENT_ORIGINS = [
     "/app", "/calendar", "/live", "/picks", "/track-record",
-    "/shark", "/telegram", "/profile", "/memberships",
+    "/shark", "/telegram", "/profile", "/memberships", "/favorites",
 ]
 MOBILE_ORIGINS = list(CLIENT_ORIGINS)
 ADMIN_ORIGINS = [

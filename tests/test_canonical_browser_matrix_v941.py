@@ -12,11 +12,17 @@ EXPECTED_ADMIN={
     "/admin/shark-center","/admin/data-center","/admin/automation-center","/admin/sentinel-issues",
     "/admin/highlights-center","/admin/system","/admin/final-release",
 }
-EXPECTED_CLIENT={"/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships"}
+EXPECTED_CLIENT={"/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/favorites"}
 
 def test_client_real_browser_matrix_covers_all_core_routes_on_mobile_and_desktop():
     assert set(matrix.CLIENT_ORIGINS)==EXPECTED_CLIENT
     assert set(matrix.MOBILE_ORIGINS)==EXPECTED_CLIENT
+
+def test_favorites_uses_canonical_compact_overview():
+    html=(ROOT/"templates/favorites.html").read_text(encoding="utf-8")
+    assert 'v933-favorites-page' in html
+    assert 'v933-kpi-grid' in html
+    assert 'scoreboard-hero' not in html
 
 def test_admin_real_browser_matrix_covers_15_canonical_routes():
     assert set(matrix.ADMIN_ORIGINS)==EXPECTED_ADMIN
