@@ -15,6 +15,14 @@ def test_client_navigation_and_history_use_clear_spanish():
     assert "grading" not in history
     assert "Winrate" not in history
 
+def test_canonical_navigation_uses_spanish_plan_route_and_page_state():
+    nav=read("templates/components/v933_navigation.html")
+    assert 'href="/memberships"' not in nav
+    assert 'href="/membresias"' in nav
+    assert 'aria-current="true"' not in nav
+    assert 'aria-current="page"' in nav
+
+
 def test_legacy_navigation_layers_match_current_language():
     for path in ("templates/components/v928_navigation.html","templates/components/v930_navigation.html"):
         text=read(path)
