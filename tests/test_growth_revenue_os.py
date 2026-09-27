@@ -115,7 +115,7 @@ def test_founder_dashboard_template_contains_controlled_non_publishing_growth_re
     template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
     assert 'id="growth-revenue"' in template
     growth_slice = template.split('id="growth-revenue"', 1)[1].split('id="beta-control"', 1)[0]
-    assert "Growth & Revenue OS" in growth_slice
+    assert "Sistema de crecimiento e ingresos" in growth_slice
     assert "INSUFFICIENT_REAL_DATA" in growth_slice
     assert "/admin/founder-dashboard/growth-content-review" in growth_slice
     assert 'value="APPROVE"' in growth_slice
