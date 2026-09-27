@@ -7687,7 +7687,7 @@ def client_command_center_data(user=None, briefing=None):
             {"label": "Mi día", "href": "/mi-dia", "text": "Briefing personalizado"},
             {"label": "Partidos", "href": "/match-hub", "text": "Calendario por ligas"},
             {"label": "Picks", "href": "/picks", "text": "Apuestas publicadas o candidatos"},
-            {"label": "Combis", "href": "/combis", "text": "Constructor con próximos partidos"},
+            {"label": "Combinadas", "href": "/combinadas", "text": "Constructor con próximos partidos"},
         ],
     }
 
@@ -11612,7 +11612,7 @@ def shark_answer(question):
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
         )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi responsable", "/combis?tipo=responsable&partidos=3"))
+        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combinada responsable", "/combinadas?tipo=responsable&partidos=3"))
 
     elif any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
         focus = "combis"
@@ -11644,8 +11644,8 @@ def shark_answer(question):
                 "Prefiero esperar antes que inventar selecciones. Base de partidos para revisar:\n\n"
                 + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay base suficiente todavía.")
             )
-        next_url = f"/combisípartidos={requested}"
-        actions = _shark_actions(("Abrir combis", next_url), ("Ver picks premium", "/picks"))
+        next_url = f"/combinadas?partidos={requested}"
+        actions = _shark_actions(("Abrir combinadas", next_url), ("Ver picks premium", "/picks"))
 
     elif any(word in q_norm for word in ["pick", "apuesta", "pronostico", "pronosticos", "mejor"]):
         focus = "picks"
@@ -11665,7 +11665,7 @@ def shark_answer(question):
                 + ("Oportunidades en estudio:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
             )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks", "/picks"), ("Combi responsable", "/combis?tipo=responsable&partidos=3"))
+        actions = _shark_actions(("Ver picks", "/picks"), ("Combinada responsable", "/combinadas?tipo=responsable&partidos=3"))
 
     elif value_intent:
         focus = "oportunidades"
@@ -17884,7 +17884,7 @@ def v765_markets_context(data=None, user=None):
         {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
         {"label": "Goles", "href": "/mercados?tipo=goles", "text": "Más/Menos 1.5 y 2.5"},
         {"label": "Doble oportunidad", "href": "/mercados?tipo=doble", "text": "1X, X2 o 12"},
-        {"label": "Combis", "href": "/combis?tipo=mixta&partidos=3", "text": "Combinadas responsables"},
+        {"label": "Combinadas", "href": "/combinadas?tipo=mixta&partidos=3", "text": "Combinadas responsables"},
     ]
     return snapshot
 
@@ -19527,7 +19527,7 @@ def sports_hub_page():
             {"key": "week", "label": "Semana", "href": "/sports-hub?tab=week"},
             {"key": "picks", "label": "Picks", "href": "/picks"},
             {"key": "favorites", "label": "Favoritos", "href": "/sports-hub?tab=favorites"},
-            {"key": "combis", "label": "Combis", "href": "/combis"},
+            {"key": "combis", "label": "Combinadas", "href": "/combinadas"},
         ],
         "selected": selected_matches[:160],
         "selected_groups": sports_hub_groups(selected_matches),
@@ -31124,7 +31124,7 @@ def v776_client_information_architecture_snapshot():
         ("Hoy", "/calendar?lane=today", "partidos de hoy"),
         ("Directo", "/live", "marcador y estado"),
         ("Picks", "/picks", "selección recomendada"),
-        ("Combis", "/combis", "combinadas"),
+        ("Combinadas", "/combinadas", "combinadas"),
         ("Mercados", "/mercados", "mercados básicos"),
         ("Resúmenes", "/highlights", "resultados y vídeos"),
         ("Histórico", "/track-record", "ROI real"),
