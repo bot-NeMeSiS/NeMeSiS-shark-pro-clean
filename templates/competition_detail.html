@@ -38,7 +38,7 @@
       <div><span>{{ ui("Temporada") }}</span><strong>{{ competition.season or ui('No disponible') }}</strong></div>
       <div><span>{{ ui("Jornada") }}</span><strong>{{ ui_owned(competition.stage or calendar.current_round or 'No disponible') }}</strong></div>
       <nav class="competition-center-actions" aria-label="Acciones rapidas">
-        <a href="{{ links.calendar or '/calendar' }}">{{ ui("Calendario") }}</a>
+        <a href="{{ links.calendar or '/calendario' }}">{{ ui("Calendario") }}</a>
         {% if links.match_center %}<a href="{{ links.match_center }}">{{ ui("Partido relacionado") }}</a>{% endif %}
         {% if links.team_center %}<a href="{{ links.team_center }}">{{ ui("Equipo relacionado") }}</a>{% endif %}
       </nav>
