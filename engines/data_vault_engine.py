@@ -6,6 +6,9 @@ import hashlib
 import json
 import os
 import sqlite3
+import tempfile
+import uuid
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -164,7 +167,7 @@ def list_backups(root: str | Path) -> list[dict]:
             "size_bytes": db_file.stat().st_size,
             "created_at": datetime.fromtimestamp(db_file.stat().st_mtime).isoformat(timespec="seconds"),
             "sha256": data.get("sha256") or "",
-            "valid": data.get("valid", True),
+            "valid": bool(data.get("valid") and data.get("sha256")),
             "manifest": manifest.name if manifest.exists() else "",
             "type": data.get("type") or "",
         })
@@ -177,22 +180,32 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
-    stamp = now_stamp()
+    stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
+    manifest_path = out.with_suffix(".json")
+    temporary = None
+    manifest_temporary = None
+    manifest_published = False
+    published = False
     try:
-        source = sqlite3.connect(str(src), timeout=15)
-        dest = sqlite3.connect(str(out), timeout=15)
-        with dest:
+        handle, temporary_name = tempfile.mkstemp(prefix=".backup-", suffix=".partial", dir=bdir)
+        os.close(handle)
+        temporary = Path(temporary_name)
+        with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
             source.backup(dest)
-        source.close()
-        dest.close()
-        digest = sha256_file(out)
-        status = db_vault_status(src, root, app_version)
+            if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+                raise sqlite3.DatabaseError("backup_integrity_check_failed")
+        with temporary.open("rb+") as handle:
+            os.fsync(handle.fileno())
+        digest = sha256_file(temporary)
+        status = db_vault_status(temporary, root, app_version)
+        if not status.get("ok"):
+            raise sqlite3.DatabaseError("backup_snapshot_unreadable")
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
             "db_path_source": str(src),
-            "size_bytes": out.stat().st_size,
+            "size_bytes": temporary.stat().st_size,
             "sha256": digest,
             "tables_included": status.get("tables", []),
             "records_summary": status.get("counts", {}),
@@ -202,12 +215,33 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             "valid": True,
             "notes": "Backup SQLite creado con API sqlite backup. No incluir en ZIP.",
         }
-        manifest_path = out.with_suffix(".json")
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        handle, manifest_name = tempfile.mkstemp(prefix=".backup-", suffix=".json.partial", dir=bdir)
+        os.close(handle)
+        manifest_temporary = Path(manifest_name)
+        manifest_temporary.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        with manifest_temporary.open("rb+") as handle:
+            os.fsync(handle.fileno())
+        # Publish the manifest first; readers only discover the final DB name.
+        os.replace(manifest_temporary, manifest_path)
+        manifest_published = True
+        os.replace(temporary, out)
+        published = True
+        if os.name != "nt":
+            directory_fd = os.open(bdir, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
         retention = apply_backup_retention(root)
-        return {"ok": True, "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention}
+        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention}
     except Exception as exc:
-        return {"ok": False, "backup_created": False, "error": str(exc)[:300]}
+        return {"ok": False, "backup_created": published, "error": str(exc)[:300]}
+    finally:
+        for temporary_path in (temporary, manifest_temporary):
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+        if manifest_published and not published:
+            manifest_path.unlink(missing_ok=True)
 
 
 def validate_backup(root: str | Path, backup_name: str = "") -> dict:
@@ -219,7 +253,14 @@ def validate_backup(root: str | Path, backup_name: str = "") -> dict:
         path = Path(item["path"])
         expected = item.get("sha256")
         actual = sha256_file(path) if path.exists() else ""
-        results.append({"name": item["name"], "ok": bool(actual and (not expected or expected == actual)), "expected": expected, "actual": actual})
+        integrity = False
+        if actual and item.get("valid") and expected == actual:
+            try:
+                with closing(connect_readonly(path)) as conn:
+                    integrity = [row[0] for row in conn.execute("PRAGMA integrity_check")] == ["ok"]
+            except sqlite3.Error:
+                integrity = False
+        results.append({"name": item["name"], "ok": integrity, "expected": expected, "actual": actual})
     return {"ok": all(r["ok"] for r in results) if results else False, "validated": len(results), "results": results}
 
 
@@ -229,16 +270,21 @@ def apply_backup_retention(root: str | Path) -> dict:
     removed = []
     if len(backups) <= max_files or max_files < 1:
         return {"ok": True, "removed": removed, "kept": len(backups)}
-    # Never remove the newest valid backup.
-    for item in backups[max_files:]:
+    # A newer incomplete file must never displace the newest verified copy.
+    verified = next((item for item in backups if item["valid"] and validate_backup(root, item["name"])["ok"]), None)
+    if verified is None:
+        return {"ok": False, "removed": [], "kept": len(backups), "error": "no_verified_backup_to_preserve"}
+    ordered = [verified] + [item for item in backups if item["name"] != verified["name"]]
+    errors = []
+    for item in ordered[max_files:]:
         try:
             Path(item["path"]).unlink(missing_ok=True)
             manifest = Path(item["path"]).with_suffix(".json")
             manifest.unlink(missing_ok=True)
             removed.append(item["name"])
-        except Exception:
-            pass
-    return {"ok": True, "removed": removed, "kept": min(len(backups), max_files)}
+        except OSError as exc:
+            errors.append({"name": item["name"], "error": str(exc)[:200]})
+    return {"ok": not errors, "removed": removed, "kept": len(list_backups(root)), "errors": errors}
 
 
 def export_table_csv(db_path: str | Path, root: str | Path, table: str) -> dict:
