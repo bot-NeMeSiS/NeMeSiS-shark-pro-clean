@@ -42,7 +42,7 @@
     {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
     {{ kpi_card('Pronósticos activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favorites') }}
+    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favoritos') }}
   </section>
 
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">
@@ -60,7 +60,7 @@
       {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay pronósticos publicados', 'SHARK espera evidencia completa.', '', '', 'shark') }}{% endif %}
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
-    {{ quick_action('Favoritos', 'Tu selección', '/favorites', 'star') }}
+    {{ quick_action('Favoritos', 'Tu selección', '/favoritos', 'star') }}
     {{ quick_action('Membresías', 'Planes', '/membresias', 'plan', 'gold') }}
     {{ quick_action('Soporte', 'Ayuda', '/soporte', 'support') }}
     </nav>
@@ -75,9 +75,9 @@
           {% if upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Esperando próximos partidos', 'Sin calendario inventado.', '', '', 'calendar') }}{% endif %}
         </article>
         <article class="v933-panel">
-          {{ section_header('Favoritos y resultados', '', 'Abrir favoritos', '/favorites') }}
+          {{ section_header('Favoritos y resultados', '', 'Abrir favoritos', '/favoritos') }}
           {% set personal_matches = favorite_matches or recent_results %}
-          {% if personal_matches %}<div class="ns16-match-row is-two">{% for match in personal_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Sin actividad reciente', 'Guarda un partido para verlo aquí.', 'Elegir favoritos', '/favorites', 'star') }}{% endif %}
+          {% if personal_matches %}<div class="ns16-match-row is-two">{% for match in personal_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Sin actividad reciente', 'Guarda un partido para verlo aquí.', 'Elegir favoritos', '/favoritos', 'star') }}{% endif %}
         </article>
       </section>
     </div>

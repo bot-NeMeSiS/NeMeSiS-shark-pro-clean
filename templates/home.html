@@ -59,7 +59,7 @@
       <div class="v933-hero-actions">
         {{ action_button('Abrir directo', '/live', true, 'cyan', false, 'live') }}
         {{ action_button('Abrir calendario', '/calendar', false, 'blue', false, 'calendar') }}
-        {{ action_button('Mis favoritos', '/favorites', false, 'gold', false, 'star') }}
+        {{ action_button('Mis favoritos', '/favoritos', false, 'gold', false, 'star') }}
       </div>
       {% else %}
       <h1>{{ hero_title }}<span>.</span></h1>
@@ -80,7 +80,7 @@
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
         <a href="/live"><strong>DIRECTO</strong><span>1 toque</span></a>
         <a href="/calendar"><strong>{{ ui("HOY") }}</strong><span>{{ ui("Calendario") }}</span></a>
-        <a href="/favorites"><strong>★</strong><span>{{ ui("Favoritos") }}</span></a>
+        <a href="/favoritos"><strong>★</strong><span>{{ ui("Favoritos") }}</span></a>
         <a href="/picks"><strong>SHARK</strong><span>{{ ui("Pronósticos") }}</span></a>
       </nav>
     </div>
@@ -124,13 +124,13 @@
       </section>
 
       <section class="v933-panel sports-priority-section" data-sports-priority="favorites">
-        {{ section_header('Favoritos', '', 'Abrir favoritos', '/favorites', 'Personal') }}
+        {{ section_header('Favoritos', '', 'Abrir favoritos', '/favoritos', 'Personal') }}
         {% if favorite_matches %}
           <div class="v933-match-grid sports-priority-grid">
             {% for match in favorite_matches[:4] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
         {% else %}
-          {{ empty_state('Sin favoritos todavía', 'Guarda equipos, ligas o partidos para subirlos en tu experiencia sin ocultar el catálogo completo.', 'Elegir favoritos', '/favorites', 'star') }}
+          {{ empty_state('Sin favoritos todavía', 'Guarda equipos, ligas o partidos para subirlos en tu experiencia sin ocultar el catálogo completo.', 'Elegir favoritos', '/favoritos', 'star') }}
         {% endif %}
       </section>
 
@@ -199,7 +199,7 @@
       <a class="v933-launch-step" href="/calendar" data-launch-step="match">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span><strong>{{ ui("Explorar") }}</strong><small>Todo el catálogo.</small></a>
       <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendar' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Partido</span><strong>Detalle</strong><small>Contexto real.</small></a>
       <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>{{ ui("Evidencia") }}</strong><small>Sin promesas.</small></a>
-      <a class="v933-launch-step" href="/favorites" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>
+      <a class="v933-launch-step" href="/favoritos" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>
       <a class="v933-launch-step" href="/membresias" data-launch-step="pro">{{ icon('star') }}<span>PRO</span><strong>{{ ui("Planes") }}</strong><small>Sin letra pequeña.</small></a>
     </div>
   </section>

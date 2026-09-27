@@ -78,7 +78,7 @@
         <strong>{{ f.label or f.value }}</strong>
         <div class="small">{{ f.value }}</div>
       </div>
-      <form method="post" action="/favorites">
+      <form method="post" action="/favoritos">
         <input type="hidden" name="action" value="remove">
         <input type="hidden" name="kind" value="{{ f.kind }}">
         <input type="hidden" name="value" value="{{ f.value }}">
@@ -95,7 +95,7 @@
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <details class="card" id="add-favorite-manual">
     <summary><strong>{{ ui("Añadir favorito manualmente") }}</strong></summary>
-    <form method="post" action="/favorites" style="margin-top:12px">
+    <form method="post" action="/favoritos" style="margin-top:12px">
       <input type="hidden" name="action" value="add">
       <div class="field"><label>{{ ui("Tipo") }}</label><select name="kind"><option value="team">{{ ui("Equipo") }}</option><option value="league">{{ ui("Liga / competición") }}</option><option value="match">{{ ui("Partido") }}</option></select></div>
       <div class="field"><label>{{ ui("Nombre o ID") }}</label><input name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>

@@ -7547,7 +7547,7 @@ def build_client_alerts(limit=12, user_id=None):
             "priority": 82,
             "title": "Feed de favoritos activo",
             "body": f"Tus {len(favs)} favorito(s) alimentan partidos, equipos, ligas y alertas futuras.",
-            "href": "/favorites",
+            "href": "/favoritos",
             "badge": "FAV",
         })
     else:
@@ -7556,7 +7556,7 @@ def build_client_alerts(limit=12, user_id=None):
             "priority": 58,
             "title": "Personaliza tu experiencia",
             "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.",
-            "href": "/favorites",
+            "href": "/favoritos",
             "badge": "PERSONALIZA",
         })
     if not telegram_config().get("configured"):
@@ -7642,7 +7642,7 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     if picks:
         priorities.append({"label": "Pronósticos visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
     if favs:
-        priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
+        priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favoritos", "tone": "favorites"})
     if upcoming:
         priorities.append({"label": "Próximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
     if not priorities:
@@ -14999,7 +14999,7 @@ def v896_route_map_items():
             "methods": sorted(method for method in rule.methods if method not in {"HEAD", "OPTIONS"}),
             "category": category,
             "requires_admin": route.startswith("/admin") or route.startswith("/api/admin"),
-            "requires_login": route in {"/app", "/profile", "/telegram", "/favorites"},
+            "requires_login": route in {"/app", "/profile", "/telegram", "/favorites", "/favoritos"},
             "alias_target": V896_ROUTE_ALIASES.get(route, ""),
         })
     return items
@@ -19514,7 +19514,7 @@ def favorites_page():
         else:
             add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
             _growth_maybe_activate_user(reason="favorite_saved")
-        return redirect("/favorites")
+        return redirect("/favoritos")
     data, _summary = v932_safe_dashboard_data(request.path, scope="client")
     return render_template("favorites.html", data=data)
 
@@ -23108,15 +23108,15 @@ def build_action_platform_snapshot(user=None):
     smart_home_cards = [
         _action_wrap_item("Partidos hoy", "Agenda real disponible en calendario.", "/calendar", "HOY", _action_meta("sports-metrics-v1", ["today_matches", counts.get("today")], observed, "VERIFIED" if counts.get("today") else "INSUFFICIENT_DATA"), counts.get("today", 0)),
         _action_wrap_item("Directos", "Solo directos con evidencia suficiente.", "/live", "LIVE", _action_meta("sports-metrics-v1", ["live_confirmed", sports_metrics.get("live_confirmed")], observed, "VERIFIED" if sports_metrics.get("live_confirmed") else "INSUFFICIENT_DATA"), sports_metrics.get("live_confirmed", 0)),
-        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favorites", "FAV", _action_meta("Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
+        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favoritos", "FAV", _action_meta("Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
         _action_wrap_item("Alertas", "Avisos existentes, no spam ni envíos externos.", "/alert-center", "ALERT", _action_meta("Client Alert Center", ["alerts", len(alerts_raw)], observed, "PARTIALLY_VERIFIED"), len(alerts_raw)),
     ]
 
     by_kind = favorite_summary.get("by_kind") or {"team": [], "league": [], "match": []}
     smart_favorites = [
-        _action_wrap_item("Equipos", "Equipos guardados explicitamente.", "/favorites", "TEAM", _action_meta("favorites", ["team", len(by_kind.get("team") or [])], observed, "VERIFIED" if by_kind.get("team") else "INSUFFICIENT_DATA"), len(by_kind.get("team") or [])),
-        _action_wrap_item("Competiciones", "Ligas o competiciones guardadas.", "/favorites", "COMP", _action_meta("favorites", ["league", len(by_kind.get("league") or [])], observed, "VERIFIED" if by_kind.get("league") else "INSUFFICIENT_DATA"), len(by_kind.get("league") or [])),
-        _action_wrap_item("Partidos", "Partidos guardados para seguimiento.", "/favorites", "MATCH", _action_meta("favorites", ["match", len(by_kind.get("match") or [])], observed, "VERIFIED" if by_kind.get("match") else "INSUFFICIENT_DATA"), len(by_kind.get("match") or [])),
+        _action_wrap_item("Equipos", "Equipos guardados explicitamente.", "/favoritos", "TEAM", _action_meta("favorites", ["team", len(by_kind.get("team") or [])], observed, "VERIFIED" if by_kind.get("team") else "INSUFFICIENT_DATA"), len(by_kind.get("team") or [])),
+        _action_wrap_item("Competiciones", "Ligas o competiciones guardadas.", "/favoritos", "COMP", _action_meta("favorites", ["league", len(by_kind.get("league") or [])], observed, "VERIFIED" if by_kind.get("league") else "INSUFFICIENT_DATA"), len(by_kind.get("league") or [])),
+        _action_wrap_item("Partidos", "Partidos guardados para seguimiento.", "/favoritos", "MATCH", _action_meta("favorites", ["match", len(by_kind.get("match") or [])], observed, "VERIFIED" if by_kind.get("match") else "INSUFFICIENT_DATA"), len(by_kind.get("match") or [])),
     ]
 
     watch_matches = list(favorite_bundle.get("priority") or []) or list((briefing.get("upcoming") or [])[:8])
@@ -28296,7 +28296,7 @@ def onboarding_status(user=None):
         telegram_linked = False
     steps = [
         {"key": "account", "label": "Cuenta creada", "done": bool(uid), "href": "/mi-cuenta"},
-        {"key": "favorites", "label": "Añadir un favorito", "done": fav_count > 0, "href": "/favorites"},
+        {"key": "favorites", "label": "Añadir un favorito", "done": fav_count > 0, "href": "/favoritos"},
         {"key": "first_value", "label": "Revisar contenido deportivo", "done": first_value_count > 0, "href": "/calendar"},
         {"key": "telegram", "label": "Vincular Telegram", "done": telegram_linked, "href": "/telegram"},
         {"key": "shark", "label": "Preguntar a SHARK", "done": shark_questions > 0, "href": "/shark"},
@@ -29167,7 +29167,7 @@ def v566_client_menu_items():
         {"group": "03 - Resultados", "title": "Mundial / foco grande", "body": "Pantalla especial cuando haya partidos internacionales importantes.", "href": "/mundial", "intent": "focus"},
         {"group": "04 - Asistente", "title": "SHARK", "body": "Pregunta por pronósticos, riesgo, directo o qué evitar.", "href": "/shark", "intent": "shark"},
         {"group": "04 - Asistente", "title": "Modo automático", "body": "La app prioriza directo, pronósticos, resultados, Mundial o agenda según el momento.", "href": "/modo-dinamico", "intent": "auto"},
-        {"group": "04 - Asistente", "title": "Favoritos", "body": "Partidos/equipos vigilados para no perder el seguimiento.", "href": "/favorites", "intent": "personal"},
+        {"group": "04 - Asistente", "title": "Favoritos", "body": "Partidos/equipos vigilados para no perder el seguimiento.", "href": "/favoritos", "intent": "personal"},
         {"group": "05 - Cuenta", "title": "Telegram", "body": "Conexión al bot, estado y alertas por membresía.", "href": "/telegram", "intent": "telegram"},
         {"group": "05 - Cuenta", "title": "Mi cuenta", "body": "Plan, perfil, favoritos, actividad y accesos personales.", "href": "/mi-cuenta", "intent": "account"},
         {"group": "05 - Cuenta", "title": "Membresías", "body": "FREE, PRO y ELITE con beneficios claros.", "href": "/membresias", "intent": "billing"},

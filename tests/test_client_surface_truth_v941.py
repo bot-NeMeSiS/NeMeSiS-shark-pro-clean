@@ -34,6 +34,25 @@ def test_client_templates_use_spanish_canonical_support_and_plan_routes():
     assert "'/soporte'" in combined
 
 
+def test_core_client_favorites_navigation_uses_spanish_canonical_route():
+    names = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/favorites.html",
+        "templates/account_center.html",
+    )
+    combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in names)
+    assert '"/favorites"' not in combined
+    assert "'/favorites'" not in combined
+    assert "/favoritos" in combined
+
+    source=(ROOT / "app.py").read_text(encoding="utf-8")
+    assert 'return redirect("/favoritos")' in source
+    assert '"href": "/favorites"' not in source
+    assert '@app.route("/favorites", methods=["GET", "POST"])' in source
+    assert '@app.route("/api/favorites", methods=["GET", "POST", "DELETE"])' in source
+
+
 def test_secondary_client_copy_uses_current_spanish_vocabulary():
     sports=(ROOT / "templates/sports_hub.html").read_text(encoding="utf-8")
     favorites=(ROOT / "templates/favorites.html").read_text(encoding="utf-8")
