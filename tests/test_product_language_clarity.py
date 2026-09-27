@@ -208,3 +208,17 @@ def test_client_home_account_and_plan_copy_avoid_legacy_pick_jargon_and_overclai
         assert token not in app_source
     assert "Acceso ELITE y SHARK ampliado" in app_source
     assert '"Pronósticos y contexto"' in app_source
+
+
+def test_pick_cards_present_analysis_score_as_index_not_probability():
+    components=read("templates/components/v933_ui.html")
+    picks=read("templates/picks.html")
+    assert "Confianza del análisis" not in components
+    assert "Índice del análisis" in components
+    assert "no es probabilidad de acierto" in components
+    assert "/100" in components
+    assert ">Stake <" not in components
+    assert "Unidades orientativas" in components
+    assert 'ui("Pronósticos")' in components
+    assert "status_chip('Controlado','success')" not in picks
+    assert "status_chip('Revisado','blue')" in picks
