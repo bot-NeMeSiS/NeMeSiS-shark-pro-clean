@@ -6071,43 +6071,30 @@ def backup_file_path(name):
 
 
 def list_backups():
-    folder = ensure_backup_dir()
-    items = []
-    for path in sorted([p for p in os.listdir(folder) if p.startswith("database_") and p.endswith(".db")], reverse=True):
-        full = os.path.join(folder, path)
-        try:
-            stat = os.stat(full)
-            items.append({"name": path, "path": full, "created_at": datetime.fromtimestamp(stat.st_mtime, TZ).isoformat(timespec="seconds"), "size": stat.st_size, "size_mb": round(stat.st_size / (1024 * 1024), 2)})
-        except OSError:
-            pass
-    return items
+    items = data_vault_list_backups(BASE_DIR, directory=backup_dir())
+    return [{**item, "size": item["size_bytes"], "size_mb": round(item["size_bytes"] / (1024 * 1024), 2),
+             "created_at": datetime.fromtimestamp(os.path.getmtime(item["path"]), TZ).isoformat(timespec="seconds")}
+            for item in items if item["name"].startswith("database_") and item["name"].endswith(".db")]
 
 
 def prune_old_backups(max_backups=BACKUP_RETENTION_MAX):
-    removed = []
-    for item in list_backups()[int(max_backups):]:
-        try:
-            os.remove(item["path"])
-            removed.append(item["name"])
-        except OSError:
-            pass
-    return removed
+    from engines.data_vault_engine import apply_backup_retention
+    return apply_backup_retention(BASE_DIR, directory=backup_dir(), max_files=max_backups)["removed"]
 
 
 def create_database_backup(reason="manual"):
     source = os.path.abspath(DB_PATH)
     if not os.path.exists(source):
         return {"ok": False, "error": "database_missing", "message": "No existe base de datos que copiar."}
-    target = os.path.join(ensure_backup_dir(), f"database_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.db")
-    src = sqlite3.connect(source)
-    dst = sqlite3.connect(target)
-    try:
-        src.backup(dst)
-    finally:
-        dst.close()
-        src.close()
-    removed = prune_old_backups()
-    return {"ok": True, "name": os.path.basename(target), "path": target, "size": os.path.getsize(target), "reason": reason, "removed": removed}
+    result = create_sqlite_backup(source, BASE_DIR, APP_VERSION, backup_type=reason,
+                                  directory=backup_dir(), max_files=BACKUP_RETENTION_MAX)
+    if not result.get("backup_created"):
+        return {**result, "reason": reason}
+    result.update(name=result["backup_file"], size=os.path.getsize(result["path"]), reason=reason,
+                  removed=(result.get("retention") or {}).get("removed", []))
+    if not result.get("ok") and not result.get("error"):
+        result["error"] = "backup_retention_failed"
+    return result
 
 
 def restore_database_backup(name):

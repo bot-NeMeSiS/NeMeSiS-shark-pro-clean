@@ -147,8 +147,8 @@ def db_vault_status(db_path: str | Path, root: str | Path, app_version: str = ""
     }
 
 
-def list_backups(root: str | Path) -> list[dict]:
-    bdir = backup_dir(root)
+def list_backups(root: str | Path, *, directory: str | Path | None = None) -> list[dict]:
+    bdir = Path(directory) if directory is not None else backup_dir(root)
     if not bdir.exists():
         return []
     items = []
@@ -174,11 +174,11 @@ def list_backups(root: str | Path) -> list[dict]:
     return items
 
 
-def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin") -> dict:
+def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
-    bdir = backup_dir(root)
+    bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
     stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
@@ -232,10 +232,13 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        retention = apply_backup_retention(root)
+        retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
         return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention}
     except Exception as exc:
-        return {"ok": False, "backup_created": published, "error": str(exc)[:300]}
+        result = {"ok": False, "backup_created": published, "error": str(exc)[:300]}
+        if published:
+            result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
+        return result
     finally:
         for temporary_path in (temporary, manifest_temporary):
             if temporary_path is not None:
@@ -244,8 +247,8 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             manifest_path.unlink(missing_ok=True)
 
 
-def validate_backup(root: str | Path, backup_name: str = "") -> dict:
-    backups = list_backups(root)
+def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:
+    backups = list_backups(root, directory=directory)
     if backup_name:
         backups = [b for b in backups if b["name"] == backup_name]
     results = []
@@ -264,14 +267,14 @@ def validate_backup(root: str | Path, backup_name: str = "") -> dict:
     return {"ok": all(r["ok"] for r in results) if results else False, "validated": len(results), "results": results}
 
 
-def apply_backup_retention(root: str | Path) -> dict:
-    max_files = int(os.getenv("DATA_BACKUP_MAX_FILES", "30") or 30)
-    backups = list_backups(root)
+def apply_backup_retention(root: str | Path, *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
+    max_files = int(os.getenv("DATA_BACKUP_MAX_FILES", "30") or 30) if max_files is None else int(max_files)
+    backups = list_backups(root, directory=directory)
     removed = []
     if len(backups) <= max_files or max_files < 1:
         return {"ok": True, "removed": removed, "kept": len(backups)}
     # A newer incomplete file must never displace the newest verified copy.
-    verified = next((item for item in backups if item["valid"] and validate_backup(root, item["name"])["ok"]), None)
+    verified = next((item for item in backups if item["valid"] and validate_backup(root, item["name"], directory=directory)["ok"]), None)
     if verified is None:
         return {"ok": False, "removed": [], "kept": len(backups), "error": "no_verified_backup_to_preserve"}
     ordered = [verified] + [item for item in backups if item["name"] != verified["name"]]
@@ -284,7 +287,7 @@ def apply_backup_retention(root: str | Path) -> dict:
             removed.append(item["name"])
         except OSError as exc:
             errors.append({"name": item["name"], "error": str(exc)[:200]})
-    return {"ok": not errors, "removed": removed, "kept": len(list_backups(root)), "errors": errors}
+    return {"ok": not errors, "removed": removed, "kept": len(list_backups(root, directory=directory)), "errors": errors}
 
 
 def export_table_csv(db_path: str | Path, root: str | Path, table: str) -> dict:

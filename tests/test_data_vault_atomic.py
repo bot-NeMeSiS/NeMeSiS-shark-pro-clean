@@ -143,3 +143,78 @@ def test_retention_failure_is_reported_without_losing_completed_backup(backup_so
     assert second["retention"]["ok"] is False
     assert second["retention"]["kept"]==2
     assert Path(first["path"]).exists() and Path(second["path"]).exists()
+
+
+def test_legacy_admin_backup_uses_verified_unique_copies_in_its_configured_directory(backup_source, app_module, monkeypatch):
+    source, root = backup_source
+    folder = root / "legacy-backups"
+    monkeypatch.setenv("BACKUP_DIR", str(folder))
+    monkeypatch.setattr(app_module, "DB_PATH", str(source))
+    first = app_module.create_database_backup("admin_manual")
+    second = app_module.create_database_backup("daily_autonomous_system")
+    assert first["ok"] and second["ok"]
+    assert first["path"] != second["path"]
+    assert Path(first["path"]).parent == folder
+    assert first["reason"] == "admin_manual"
+    assert first["size"] > 0 and first["removed"] == []
+    manifest = json.loads(Path(first["path"]).with_suffix(".json").read_text())
+    assert manifest["valid"] and manifest["sha256"] == vault.sha256_file(first["path"])
+    assert {item["name"] for item in app_module.list_backups()} == {first["name"], second["name"]}
+    assert not vault.backup_dir(root).exists()
+
+
+def test_legacy_backup_manifest_failure_does_not_publish_or_prune(backup_source, app_module, monkeypatch):
+    source, root = backup_source
+    folder = root / "legacy-backups"
+    monkeypatch.setenv("BACKUP_DIR", str(folder))
+    monkeypatch.setattr(app_module, "DB_PATH", str(source))
+    original = Path.write_text
+    def fail_manifest(path, *args, **kwargs):
+        if "json" in path.name:
+            raise OSError("SIMULATED_QA_MANIFEST_FAILURE")
+        return original(path, *args, **kwargs)
+    monkeypatch.setattr(Path, "write_text", fail_manifest)
+    result = app_module.create_database_backup("admin_manual")
+    assert result["ok"] is False and not result["backup_created"]
+    assert list(folder.iterdir()) == []
+
+
+def test_legacy_backup_listing_is_readonly(backup_source, app_module, monkeypatch):
+    _, root = backup_source
+    folder = root / "not-created-by-a-read"
+    monkeypatch.setenv("BACKUP_DIR", str(folder))
+    assert app_module.list_backups() == []
+    assert not folder.exists()
+
+
+def test_legacy_backup_reports_post_publication_failure_without_losing_copy(backup_source, app_module, monkeypatch):
+    source, root = backup_source
+    monkeypatch.setenv("BACKUP_DIR", str(root / "legacy-backups"))
+    monkeypatch.setattr(app_module, "DB_PATH", str(source))
+    def fail_retention(*args, **kwargs):
+        raise OSError("SIMULATED_QA_RETENTION_FAILURE")
+    monkeypatch.setattr(vault, "apply_backup_retention", fail_retention)
+    result = app_module.create_database_backup("admin_manual")
+    assert not result["ok"] and result["backup_created"]
+    assert Path(result["path"]).is_file()
+    assert result["name"] and result["size"] > 0
+    assert result["error"] == "SIMULATED_QA_RETENTION_FAILURE"
+
+
+def test_backup_includes_committed_wal_data_but_not_uncommitted_transaction(backup_source):
+    source, root = backup_source
+    writer = sqlite3.connect(source)
+    try:
+        writer.execute("PRAGMA journal_mode=WAL")
+        writer.execute("INSERT INTO users VALUES('qa-committed','Committed')")
+        writer.commit()
+        writer.execute("INSERT INTO users VALUES('qa-uncommitted','Uncommitted')")
+        result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+        assert result["ok"], result
+        with sqlite3.connect(result["path"]) as copied:
+            assert {row[0] for row in copied.execute("SELECT id FROM users")} == {"qa-user", "qa-committed"}
+        assert result["records_summary"]["users"] == 2
+        assert vault.validate_backup(root, result["backup_file"])["ok"]
+    finally:
+        writer.rollback()
+        writer.close()
