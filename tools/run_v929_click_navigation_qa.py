@@ -358,7 +358,9 @@ def run(timeout: int = 15000, workers: int = 3) -> dict:
         ("admin_desktop", {"width": 1440, "height": 900}, ADMIN_ORIGINS),
         ("admin_mobile", {"width": 390, "height": 844}, ADMIN_ORIGINS),
     ]
-    worker_count = max(1, min(int(workers), len(profiles)))
+    parallel_profiles = [item for item in profiles if not item[0].startswith("admin_")]
+    serial_profiles = [item for item in profiles if item[0].startswith("admin_")]
+    worker_count = max(1, min(int(workers), len(parallel_profiles)))
     profile_results: dict[str, list[dict]] = {}
     try:
         if worker_count == 1:
@@ -368,6 +370,10 @@ def run(timeout: int = 15000, workers: int = 3) -> dict:
                 )
                 print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
         else:
+            # Public/client profiles are read-only and isolated enough to run in
+            # parallel. Admin pages share heavier operational reads against the
+            # same temporary Flask/SQLite process, so keep them serial to avoid
+            # actionability/navigation timeouts caused by test-only contention.
             with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="v929-browser") as executor:
                 futures = {
                     executor.submit(
@@ -379,12 +385,17 @@ def run(timeout: int = 15000, workers: int = 3) -> dict:
                         origins,
                         timeout,
                     ): profile
-                    for profile, viewport, origins in profiles
+                    for profile, viewport, origins in parallel_profiles
                 }
                 for future in as_completed(futures):
                     profile = futures[future]
                     profile_results[profile] = future.result()
                     print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
+            for profile, viewport, origins in serial_profiles:
+                profile_results[profile] = _run_profile_isolated(
+                    base_url, sessions, profile, viewport, origins, timeout
+                )
+                print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
         for profile, _viewport, _origins in profiles:
             results.extend(profile_results[profile])
     finally:

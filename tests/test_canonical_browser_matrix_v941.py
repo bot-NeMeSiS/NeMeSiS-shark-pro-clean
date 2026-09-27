@@ -42,6 +42,9 @@ def test_browser_matrix_parallelizes_isolated_profiles_without_dropping_coverage
     assert 'default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "2"))' in source
     assert "for profile, _viewport, _origins in profiles:" in source
     assert "results.extend(profile_results[profile])" in source
+    assert 'parallel_profiles = [item for item in profiles if not item[0].startswith("admin_")]' in source
+    assert 'serial_profiles = [item for item in profiles if item[0].startswith("admin_")]' in source
+    assert "for profile, viewport, origins in serial_profiles:" in source
     assert '"retry_count": 0' in source
     assert 'exc.__class__.__name__ == "TimeoutError"' in source
     assert "for attempt in range(2):" in source
