@@ -17,7 +17,7 @@ BUSINESS_TABLES=(
 # byte-for-byte unchanged. This generic fixture swaps DB_PATH after blueprint
 # registration, so including that captured-path adapter here would test the fixture,
 # not request-time mutation safety.
-CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/actividad","/alertas","/mi-dia","/briefing","/experiencia","/modo-app","/adaptive","/adaptativo")
+CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/mi-cuenta","/actividad","/alertas","/mi-dia","/briefing","/experiencia","/modo-app","/adaptive","/adaptativo")
 ADMIN_ROUTES=(
     "/admin/dashboard","/admin/matches","/admin/realtime-center","/admin/picks",
     "/admin/telegram/command-center","/admin/users","/admin/memberships","/admin/payments",
@@ -626,3 +626,22 @@ def test_activity_templates_state_navigation_is_not_logged():
     assert "La navegación normal no se registra en este historial" in activity
     assert "Abrir páginas o consultar pronósticos no añade un registro de navegación" in account
     assert "item.target_type or item.activity_type" not in account
+
+
+def test_account_center_reflects_existing_telegram_link_without_generating_code(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.execute("""UPDATE users
+                       SET telegram_chat_id='qa-chat',telegram_username='qa_user',
+                           telegram_link_code='',telegram_link_expires_at=''
+                       WHERE id='qa-read-client'""")
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-read-client",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    before=snapshot(db)
+    response=client.get("/mi-cuenta")
+    assert response.status_code==200
+    body=response.get_data(as_text=True)
+    assert "Vinculado" in body
+    assert "@qa_user" in body
+    assert snapshot(db)==before
