@@ -428,6 +428,29 @@ def _main_opportunity(funnel: list[dict[str, Any]], paid_evidence: dict[str, Any
 
 
 
+def build_first10_invite_link(base_url: str = "") -> dict[str, Any]:
+    """Return the canonical FIRST_10_USERS invite without PII or automatic sending."""
+
+    root = str(base_url or "").strip().rstrip("/")
+    params = {
+        "utm_source": "referral",
+        "utm_medium": "manual",
+        "utm_campaign": "FIRST_10_USERS",
+        "ref": "first10-founder",
+    }
+    path = "/landing?" + urlencode(params)
+    return {
+        "path": path,
+        "url": f"{root}{path}" if root else path,
+        "campaign_id": "FIRST_10_USERS",
+        "referral_code": "first10-founder",
+        "contains_pii": False,
+        "automatic_send": False,
+        "paid_ads": False,
+        "state": "READY_TO_COPY" if root else "RELATIVE_LINK_READY",
+    }
+
+
 def build_first100_attribution_links(base_url: str = "") -> list[dict[str, Any]]:
     """Build copy-ready FIRST100 links without identifiers or personal data."""
 
@@ -470,15 +493,16 @@ def _link_for_channel(links: list[dict[str, Any]], channel: str) -> str:
     return next((str(item.get("url") or item.get("path") or "") for item in links if item.get("channel") == channel), "/landing")
 
 
-def build_first_10_launch_kit(links: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    common_feedback = "Tras abrir tu primer partido: que entendiste, que falto y si volverias manana."
+def build_first_10_launch_kit(links: list[dict[str, Any]], first10_link: str = "") -> list[dict[str, Any]]:
+    invite_link = str(first10_link or build_first10_invite_link().get("url") or build_first10_invite_link().get("path") or "/landing")
+    common_feedback = "Tras abrir tu primer partido: qué entendiste, qué faltó y si volverías mañana."
     return [
         {
             "path_id": "DIRECT_CONTACT",
             "label": "Contacto directo",
             "message": "Estoy abriendo la beta de NeMeSiS para un grupo pequeno. Organiza partidos, equipos y contexto SHARK con evidencia y limites visibles. Puedes probarla gratis y decirme si entiendes el valor al abrir tu primer partido.",
             "cta": "Abrir NeMeSiS",
-            "link": _link_for_channel(links, "REFERRAL"),
+            "link": invite_link,
             "onboarding": "Registro -> calendario -> partido real -> feedback breve.",
             "feedback": common_feedback,
             "follow_up": "Un unico seguimiento 24-48 horas despues, solo si acepto probarla.",
@@ -502,7 +526,7 @@ def build_first_10_launch_kit(links: list[dict[str, Any]]) -> list[dict[str, Any
             "label": "Comunidades con promocion permitida",
             "message": "Con permiso de moderacion: estoy validando NeMeSiS, una plataforma para entender partidos con datos reales, contexto y limites visibles. Busco feedback honesto de personas adultas; el acceso inicial es gratuito.",
             "cta": "Probar y dar feedback",
-            "link": _link_for_channel(links, "REFERRAL"),
+            "link": invite_link,
             "onboarding": "Leer reglas -> publicar una vez -> responder dudas -> retirar si lo solicita moderacion.",
             "feedback": common_feedback,
             "follow_up": "Compartir resultados agregados solo si existen y sin identificar usuarios.",
@@ -790,8 +814,10 @@ def build_growth_revenue_os_snapshot(
     content_reviews = _mapping(content_review_snapshot)
     review_items = _mapping(content_reviews.get("items"))
     attribution_links = build_first100_attribution_links(public_base_url)
+    first_10_invite = build_first10_invite_link(public_base_url)
     first_10_campaign = _first_10_campaign()
-    first_10_campaign["landing"] = _link_for_channel(attribution_links, "REFERRAL")
+    first_10_campaign["landing"] = first_10_invite["url"]
+    first_10_campaign["invite"] = first_10_invite
     content_package = _content_package()
     weekly_content = apply_content_review_state(build_first_7_day_organic_schedule(attribution_links), review_items)
     approved_content = len([item for item in weekly_content if item.get("status") == "APPROVED"])
@@ -812,7 +838,7 @@ def build_growth_revenue_os_snapshot(
     }
     launch_controls = {
         "nine_attribution_paths": len(attribution_links) == 9,
-        "first_10_kit_ready": len(build_first_10_launch_kit(attribution_links)) == 3,
+        "first_10_kit_ready": len(build_first_10_launch_kit(attribution_links, first_10_invite["url"])) == 3,
         "seven_day_plan_ready": len(weekly_content) == 7,
         "content_approval_is_non_publishing": all(item.get("publication_state") == "NOT_PUBLISHED" for item in weekly_content),
         "real_and_simulated_separated": "simulated_stages" in measured,
@@ -930,7 +956,7 @@ def build_growth_revenue_os_snapshot(
         },
         "founder_revenue_brief": revenue_brief,
         "first_10_campaign": first_10_campaign,
-        "first_10_launch_kit": build_first_10_launch_kit(attribution_links),
+        "first_10_launch_kit": build_first_10_launch_kit(attribution_links, first_10_invite["url"]),
         "first_7_days_organic": weekly_content,
         "social_launch_kit": build_social_launch_kit(attribution_links),
         "first_user_observability": {
