@@ -140,6 +140,9 @@ def test_navigation_renderers_share_canonical_contract_source():
     assert "('SHARK','/shark','shark')" in mobile_contract
     assert "('Cuenta','/profile','user')" not in mobile_contract
     assert "('Cuenta','/mi-cuenta','user')" in contract
+    assert "('Calendario','/calendario','calendar')" in contract
+    assert "('Directo','/directo','live')" in contract
+    assert "('Historial','/historico','history')" in contract
     source=(root/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
     assert 'navigation_contracts.html' in source
     assert 'href="/mi-cuenta"' in source
@@ -164,12 +167,25 @@ def test_runtime_navigation_compatibility_flag_tracks_canonical_v933(app_module)
 def test_navigation_contract_aliases_have_one_active_rule(app_module):
     template=app_module.app.jinja_env.from_string(
         "{% import 'components/navigation_contracts.html' as nav %}"
-        "{{ nav.is_active('/calendar', path, 'client') }}|"
+        "{{ nav.is_active('/calendario', path, 'client') }}|"
         "{{ nav.is_active('/picks', path, 'client') }}|"
         "{{ nav.is_active('/admin/matches', path, 'admin') }}"
     )
+    assert template.render(path="/calendar")=="1||"
     assert template.render(path="/calendario-global")=="1||"
     assert template.render(path="/partidos/calendario")=="1||"
+    direct=app_module.app.jinja_env.from_string(
+        "{% import 'components/navigation_contracts.html' as nav %}"
+        "{{ nav.is_active('/directo', path, 'client') }}"
+    )
+    assert direct.render(path="/directo")=="1"
+    assert direct.render(path="/live")=="1"
+    history=app_module.app.jinja_env.from_string(
+        "{% import 'components/navigation_contracts.html' as nav %}"
+        "{{ nav.is_active('/historico', path, 'client') }}"
+    )
+    assert history.render(path="/historico")=="1"
+    assert history.render(path="/track-record")=="1"
     assert template.render(path="/combinadas")=="|1|"
     assert template.render(path="/combis")=="|1|"
     assert template.render(path="/admin/matches-sync")=="||1"

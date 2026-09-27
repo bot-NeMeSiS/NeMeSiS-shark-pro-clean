@@ -3,19 +3,19 @@
 
 {% set PUBLIC_LINKS = [
   ('Inicio','/','home'),
-  ('Calendario','/calendar','calendar'),
-  ('Directo','/live','live'),
+  ('Calendario','/calendario','calendar'),
+  ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
-  ('Historial','/track-record','history'),
+  ('Historial','/historico','history'),
   ('SHARK','/shark','shark')
 ] %}
 
 {% set CLIENT_LINKS = [
   ('Inicio','/app','home'),
-  ('Calendario','/calendar','calendar'),
-  ('Directo','/live','live'),
+  ('Calendario','/calendario','calendar'),
+  ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
-  ('Historial','/track-record','history'),
+  ('Historial','/historico','history'),
   ('SHARK','/shark','shark'),
   ('Telegram','/telegram','telegram'),
   ('Cuenta','/mi-cuenta','user')
@@ -50,16 +50,16 @@
 
 {% set CLIENT_MOBILE_LINKS = [
   ('Inicio','/app','home'),
-  ('Calendario','/calendar','calendar'),
-  ('Directo','/live','live'),
+  ('Calendario','/calendario','calendar'),
+  ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('SHARK','/shark','shark')
 ] %}
 
 {% set PUBLIC_MOBILE_LINKS = [
   ('Inicio','/','home'),
-  ('Calendario','/calendar','calendar'),
-  ('Directo','/live','live'),
+  ('Calendario','/calendario','calendar'),
+  ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('Entrar','/cliente-login','user')
 ] %}
@@ -67,12 +67,16 @@
 {% macro is_active(href, path, scope='client') -%}
 {%- set contextual = '#' in href or '?' in href -%}
 {%- set clean_href = href.split('#')[0].split('?')[0] -%}
-{%- set calendar_aliases = ['/calendario','/calendario-global','/partidos','/partidos/calendario'] -%}
+{%- set calendar_aliases = ['/calendar','/calendario-global','/partidos','/partidos/calendario'] -%}
+{%- set live_aliases = ['/live'] -%}
+{%- set history_aliases = ['/track-record'] -%}
 {%- set picks_aliases = ['/combis','/combinadas'] -%}
 {%- set account_aliases = ['/profile','/perfil'] -%}
 {%- if not contextual and (
        path == clean_href
-       or (clean_href == '/calendar' and path in calendar_aliases)
+       or (clean_href == '/calendario' and path in calendar_aliases)
+       or (clean_href == '/directo' and path in live_aliases)
+       or (clean_href == '/historico' and path in history_aliases)
        or (clean_href == '/picks' and path in picks_aliases)
        or (clean_href == '/mi-cuenta' and path in account_aliases)
        or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
