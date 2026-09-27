@@ -154,6 +154,7 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
         "result": "BROKEN",
         "final_path": "",
         "screenshot": "",
+        "retry_count": 0,
     }
     response = page.goto(base_url + origin, wait_until="domcontentloaded", timeout=timeout)
     if response and response.status >= 500:
@@ -161,31 +162,48 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
         return item
 
     target = item["target"]
-    if action.get("tag") == "a":
-        locator = page.locator(f'a[href="{target}"]:visible').first
-    else:
-        locator = page.locator(f'button[data-q="{target}"]:visible').first
-    if locator.count() == 0:
-        item["result"] = "SELECTOR_NOT_VISIBLE"
-        return item
-    try:
-        with page.expect_navigation(wait_until="domcontentloaded", timeout=timeout) as nav:
-            locator.click(timeout=timeout)
-        click_response = nav.value
-        page.wait_for_timeout(150)
-        status = int(click_response.status) if click_response else 200
-        final_path = urlsplit(page.url).path or "/"
-        body = page.locator("body").inner_text(timeout=3000)[:4000]
-        route_not_found = "Ruta no encontrada" in body
-        server_error = "Error interno" in body or "Internal Server Error" in body
-        result = "OK"
-        if status >= 500 or server_error:
-            result = "ROTA_500"
-        elif status == 404 or route_not_found:
-            result = "ROTA_404"
-        item.update(status=status, result=result, final_path=final_path)
-    except Exception as exc:
-        item.update(result="CLICK_ERROR", error=f"{exc.__class__.__name__}: {str(exc)[:240]}")
+    for attempt in range(2):
+        if attempt:
+            item["retry_count"] = attempt
+            try:
+                response = page.goto(base_url + origin, wait_until="domcontentloaded", timeout=timeout)
+                if response and response.status >= 500:
+                    item.update(status=response.status, result="ORIGIN_500", final_path=urlsplit(page.url).path)
+                    return item
+            except Exception as exc:
+                item.update(result="CLICK_ERROR", error=f"{exc.__class__.__name__}: {str(exc)[:240]}")
+                return item
+
+        if action.get("tag") == "a":
+            locator = page.locator(f'a[href="{target}"]:visible').first
+        else:
+            locator = page.locator(f'button[data-q="{target}"]:visible').first
+        if locator.count() == 0:
+            item["result"] = "SELECTOR_NOT_VISIBLE"
+            return item
+
+        try:
+            with page.expect_navigation(wait_until="domcontentloaded", timeout=timeout) as nav:
+                locator.click(timeout=timeout)
+            click_response = nav.value
+            page.wait_for_timeout(150)
+            status = int(click_response.status) if click_response else 200
+            final_path = urlsplit(page.url).path or "/"
+            body = page.locator("body").inner_text(timeout=3000)[:4000]
+            route_not_found = "Ruta no encontrada" in body
+            server_error = "Error interno" in body or "Internal Server Error" in body
+            result = "OK"
+            if status >= 500 or server_error:
+                result = "ROTA_500"
+            elif status == 404 or route_not_found:
+                result = "ROTA_404"
+            item.update(status=status, result=result, final_path=final_path)
+            return item
+        except Exception as exc:
+            if attempt == 0 and exc.__class__.__name__ == "TimeoutError":
+                continue
+            item.update(result="CLICK_ERROR", error=f"{exc.__class__.__name__}: {str(exc)[:240]}")
+            return item
     return item
 
 
@@ -416,8 +434,8 @@ def main() -> int:
     parser.add_argument(
         "--workers",
         type=int,
-        default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "3")),
-        help="Parallel isolated browser profiles. Default: 3.",
+        default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "2")),
+        help="Parallel isolated browser profiles. Default: 2.",
     )
     args = parser.parse_args()
     payload = run(

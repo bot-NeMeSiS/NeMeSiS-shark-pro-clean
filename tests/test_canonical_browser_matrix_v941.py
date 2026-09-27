@@ -39,6 +39,9 @@ def test_browser_matrix_parallelizes_isolated_profiles_without_dropping_coverage
     assert "ThreadPoolExecutor" in source
     assert "def _run_profile_isolated" in source
     assert 'NEMESIS_BROWSER_QA_WORKERS' in source
-    assert 'default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "3"))' in source
+    assert 'default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "2"))' in source
     assert "for profile, _viewport, _origins in profiles:" in source
     assert "results.extend(profile_results[profile])" in source
+    assert '"retry_count": 0' in source
+    assert 'exc.__class__.__name__ == "TimeoutError"' in source
+    assert "for attempt in range(2):" in source
