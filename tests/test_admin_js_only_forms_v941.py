@@ -15,7 +15,9 @@ EXPECTED = {
 def test_admin_js_only_forms_are_explicit_and_bound():
     scan = scan_template_links()
     assert scan["scan_incomplete"] is False
-    assert scan["templates_scanned"] > 200
+    template_count = sum(1 for _ in (ROOT / "templates").rglob("*.html"))
+    assert scan["templates_scanned"] == template_count
+    assert scan["templates_scanned"] > 150
     assert scan["hrefs_seen"] > 100
     assert scan["forms_seen"] > 10
     assert scan["forms_without_action"] == []
