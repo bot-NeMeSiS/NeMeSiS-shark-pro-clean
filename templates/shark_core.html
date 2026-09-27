@@ -16,7 +16,7 @@
       'shark',
       [
         {'label':'Preguntar a SHARK','href':'/shark','primary':true,'icon':'shark'},
-        {'label':'Calendario','href':'/calendar','icon':'calendar'},
+        {'label':'Calendario','href':'/calendario','icon':'calendar'},
         {'label':'Pronósticos','href':'/picks','icon':'target'}
       ]
   ) }}
@@ -48,7 +48,7 @@
             {{ quick_action('Preguntar a SHARK', 'Pedir una explicación del contexto disponible', '/shark?q=pick', 'shark') }}
           </div>
         {% else %}
-          {{ empty_state('Sin pronóstico publicado', 'SHARK no crea una selección si todavía no existe un pronóstico publicable.', 'Abrir calendario', '/calendar', 'shark') }}
+          {{ empty_state('Sin pronóstico publicado', 'SHARK no crea una selección si todavía no existe un pronóstico publicable.', 'Abrir calendario', '/calendario', 'shark') }}
         {% endif %}
       </section>
 
@@ -67,7 +67,7 @@
             {% endfor %}
           </div>
         {% else %}
-          {{ empty_state('Sin próximos partidos guardados', 'El calendario mostrará los eventos cuando exista información disponible.', 'Abrir calendario', '/calendar', 'calendar') }}
+          {{ empty_state('Sin próximos partidos guardados', 'El calendario mostrará los eventos cuando exista información disponible.', 'Abrir calendario', '/calendario', 'calendar') }}
         {% endif %}
       </section>
 
