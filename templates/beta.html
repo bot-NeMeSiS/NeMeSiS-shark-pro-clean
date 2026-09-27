@@ -6,14 +6,14 @@
     <h1>Ayuda a preparar NeMeSiS para usuarios reales</h1>
     <p class="lead">Comparte errores, ideas y valoraciones sin enviar datos sensibles. Cada señal queda estructurada para que podamos reproducirla, priorizarla y mejorar el producto con evidencia.</p>
     <div class="hero-actions">
-      <a class="btn primary" href="#beta-feedback-form">Enviar feedback</a>
+      <a class="btn primary" href="#beta-feedback-form">Enviar comentarios</a>
       <a class="btn ghost" href="/smart-home">Ver mi experiencia</a>
     </div>
   </div>
   <aside class="hero-panel">
     <div class="live-strip">
       <div><span>Estado</span><strong>Beta local</strong></div>
-      <div><span>Feedback</span><strong>{{ beta.counts.feedback_total }}</strong></div>
+      <div><span>Comentarios</span><strong>{{ beta.counts.feedback_total }}</strong></div>
       <div><span>Métricas</span><strong>Opcionales</strong></div>
     </div>
     <p class="small muted">No guardamos correo, teléfono, tarjetas, contraseñas, tokens ni claves. Las métricas agregadas pueden desactivarse en cada envío.</p>
@@ -22,12 +22,12 @@
 
 {% if data.sent %}
 <section class="band compact-band beta-public-v1">
-  <div class="card beta-alert success"><strong>Feedback recibido.</strong><span>Gracias. Queda pendiente de revisión humana antes de convertirse en mejora.</span></div>
+  <div class="card beta-alert success"><strong>Comentarios recibidos.</strong><span>Gracias. Queda pendiente de revisión humana antes de convertirse en mejora.</span></div>
 </section>
 {% endif %}
 {% if data.error %}
 <section class="band compact-band beta-public-v1">
-  <div class="card beta-alert danger"><strong>No hemos podido guardar el feedback.</strong><span>{{ data.error }}</span></div>
+  <div class="card beta-alert danger"><strong>No hemos podido guardar los comentarios.</strong><span>{{ data.error }}</span></div>
 </section>
 {% endif %}
 
@@ -37,7 +37,7 @@
     {% for section in beta.feedback_sections %}
     <article class="card beta-section-card">
       <span class="badge">{{ loop.index }}</span>
-      <h3>{% if section.key == 'bug' %}Reporte de error{% elif section.key == 'feature_request' %}Solicitud de mejora{% elif section.key == 'satisfaction' %}Satisfacción{% else %}Feedback general{% endif %}</h3>
+      <h3>{% if section.key == 'bug' %}Reporte de error{% elif section.key == 'feature_request' %}Solicitud de mejora{% elif section.key == 'satisfaction' %}Satisfacción{% else %}Comentarios generales{% endif %}</h3>
       <p class="small">{{ section.purpose }}</p>
     </article>
     {% endfor %}
@@ -45,7 +45,7 @@
 </section>
 
 <section class="band compact-band beta-public-v1" id="beta-feedback-form">
-  <div class="section-head"><h2>Feedback estructurado</h2><span class="pill">Sin datos sensibles</span></div>
+  <div class="section-head"><h2>Comentarios estructurados</h2><span class="pill">Sin datos sensibles</span></div>
   <form class="card form-card beta-feedback-form" method="post" action="/beta/feedback" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="grid cards-3 beta-form-grid">
@@ -118,7 +118,7 @@
       <span>Permitir que este envío cuente en métricas agregadas de beta.</span>
     </label>
     <p class="small muted">No incluyas correos, teléfonos, tarjetas, contraseñas, tokens, claves ni capturas con datos sensibles. Las sugerencias no se aprueban automáticamente.</p>
-    <button class="btn primary" type="submit">Enviar feedback beta</button>
+    <button class="btn primary" type="submit">Enviar comentarios beta</button>
   </form>
 </section>
 
