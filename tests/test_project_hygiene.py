@@ -27,6 +27,10 @@ def test_heavy_historical_machine_dumps_stay_purged():
     assert all(not (ROOT / path).exists() for path in PURGED_HEAVY_REPORT_DUMPS)
 
 
+def test_historical_release_zip_audits_stay_out_of_source_reports():
+    assert list((ROOT / "reports").glob("RELEASE_ZIP_AUDIT_V*")) == []
+
+
 @pytest.fixture(scope="module")
 def release_includes():
     tree = ast.parse((ROOT / "tools/build_clean_release.py").read_text(encoding="utf-8-sig"))
