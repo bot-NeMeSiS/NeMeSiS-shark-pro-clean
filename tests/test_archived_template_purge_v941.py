@@ -9,6 +9,7 @@ import ast
 ROOT = Path(__file__).resolve().parents[1]
 
 PURGED = {
+    "templates/admin_shark_center.html",
     "templates/admin_autonomous_sentinel.html",
     "templates/admin_command_center.html",
     "templates/admin_commercial_readiness.html",

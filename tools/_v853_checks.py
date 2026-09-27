@@ -90,7 +90,6 @@ def check_admin_page_headers():
         "templates/admin_dashboard.html",
         "templates/admin_data_center.html",
         "templates/admin_telegram_command_center.html",
-        "templates/admin_shark_center.html",
         "templates/admin_daily_automation.html",
     ]:
         text = read_text(path)
@@ -121,9 +120,9 @@ def check_admin_telegram_command_center():
 
 def check_admin_shark_center():
     app_py = read_text("app.py")
-    template = read_text("templates/admin_shark_center.html")
-    assert_contains(app_py, ["/admin/shark-ai", "v845_shark_admin_summary"], "shark admin route")
-    assert_contains(template, ["SHARK", "IA"], "shark admin template")
+    dashboard = read_text("templates/admin_dashboard.html")
+    assert_contains(app_py, ["/admin/shark-ai", "v845_shark_admin_summary", 'redirect("/admin/dashboard#master-ai-title")'], "shark admin route")
+    assert_contains(dashboard, ["SHARK Admin AI", 'id="master-ai-title"', "data-master-ai-state"], "master SHARK admin panel")
     assert (ROOT / "engines/shark_ai_product_assistant_engine.py").exists()
 
 
@@ -152,7 +151,7 @@ def check_admin_pc_visual_reference():
 
 def check_admin_text_orthography():
     bad_terms = ["diagnsticos", "Segn", "ESPAÃ", "Ã", "Â", "", "undefined"]
-    for path in ["templates/base.html", "templates/admin_dashboard.html", "templates/admin_data_center.html", "templates/admin_telegram_command_center.html", "templates/admin_shark_center.html"]:
+    for path in ["templates/base.html", "templates/admin_dashboard.html", "templates/admin_data_center.html", "templates/admin_telegram_command_center.html"]:
         text = read_text(path)
         for bad in bad_terms:
             assert bad not in text, f"{bad} in {path}"

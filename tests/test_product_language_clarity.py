@@ -73,7 +73,7 @@ def test_canonical_surfaces_remove_legacy_product_words():
         "templates/home.html": ["<strong>LIVE</strong>", 'ui("Picks")', "quick_action('Picks'", "quick_action('Histórico'", "Sports first"],
         "templates/picks.html": ["'Histórico real'", "quick_action('Ver histórico'"],
         "templates/admin_realtime_center.html": ["Picks y cuotas", "Abrir picks", "Sin picks completos", "<strong>Con live</strong>", "Última sync"],
-        "templates/admin_shark_center.html": ["<p class=\"eyebrow\">Picks</p>", "Respuesta dry-run segura"],
+        "templates/admin_dashboard.html": ["<p class=\"eyebrow\">Picks</p>", "Respuesta dry-run segura"],
         "templates/admin_system.html": ["kpi_card('Picks'", "quick_action('Partidos'", "cache y jobs", "Identidad del runtime"],
         "templates/admin_telegram_command_center.html": ["command center", "dedupe", "<h2>Dry-run</h2>", "Sin preview generado.", "<strong>Auto send</strong>"],
     }
@@ -191,13 +191,13 @@ def test_final_release_does_not_overclaim_or_show_stale_version_label():
 
 
 def test_canonical_admin_surfaces_hide_historical_version_labels_and_runtime_jargon():
-    shark=read("templates/admin_shark_center.html")
     realtime=read("templates/admin_realtime_center.html")
     dashboard=read("templates/admin_dashboard.html")
     automation=read("templates/admin_automation_center.html")
     for token in ("Reglas V845","Telegram V844"):
-        assert token not in shark
-    assert "Reglas de seguridad de SHARK" in shark
+        assert token not in dashboard
+    assert "SHARK Admin AI" in dashboard
+    assert "Las propuestas no se ejecutan hasta que las apruebas." in dashboard
     assert "durante el render" not in realtime
     assert "base de datos y caché" in realtime
     assert "desde este runtime" not in dashboard
