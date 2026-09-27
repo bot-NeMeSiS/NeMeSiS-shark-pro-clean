@@ -22873,13 +22873,17 @@ def _shark_intelligence_anchor_match(summary):
     return {}
 
 
-def _shark_intelligence_pick_subset(summary, match_id):
+def _shark_intelligence_pick_subset(summary, match_id, user=None):
     match_key = str(match_id or "").strip()
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     picks = []
     for item in summary.get("valid_active_picks") or summary.get("all_picks") or []:
         if not isinstance(item, dict):
             continue
         if match_key and str(item.get("match_id") or "") != match_key:
+            continue
+        if not membership_allows(membership, item.get("membership_required") or "FREE"):
             continue
         picks.append(dict(item))
         if len(picks) >= 8:
@@ -22889,11 +22893,13 @@ def _shark_intelligence_pick_subset(summary, match_id):
 
 def build_shark_intelligence_page_context():
     """Build Inteligencia SHARK Center from existing local Modelo deportivo facts."""
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     summary = get_public_home_sports_summary()
     metrics = get_sports_metrics_contract(summary)
     anchor = _shark_intelligence_anchor_match(summary)
     match_id = str(anchor.get("id") or anchor.get("match_id") or "").strip()
-    related_picks = _shark_intelligence_pick_subset(summary, match_id)
+    related_picks = _shark_intelligence_pick_subset(summary, match_id, user=user)
     match_context = {}
     team_center = {}
     competition_center = {}
@@ -22909,7 +22915,10 @@ def build_shark_intelligence_page_context():
             "timeline": anchor.get("timeline") or [],
             "related_picks": related_picks,
         }
-        detail["related_picks"] = detail.get("related_picks") or related_picks
+        detail["related_picks"] = [
+            item for item in (detail.get("related_picks") or related_picks)
+            if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+        ]
         live_context = v931_safe_context(
             "/shark-intelligence",
             "live_tracker",
@@ -26835,6 +26844,15 @@ def api_runtime_version():
 
 @app.route("/api/startup-check")
 def api_startup_check():
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "app": APP_NAME,
+            "version": APP_VERSION,
+            "time": now_iso(),
+            "initialized": bool(APP_INITIALIZED),
+            "diagnostics": "admin_required",
+        })
     payload = {
         "ok": True,
         "app": APP_NAME,
@@ -27298,11 +27316,23 @@ def api_admin_team_identity():
     return jsonify({"ok": True, "version": APP_VERSION, "identity": team_identity_diagnostics(limit=50)})
 
 
-@app.route("/api/team/resolve")
+@app.route("/api/team/resolve", methods=["GET", "POST"])
 def api_team_resolve():
-    team = request.args.get("team") or request.args.get("name") or ""
-    refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=refresh)})
+    team = str(request.values.get("team") or request.values.get("name") or "").strip()[:120]
+    refresh_requested = str(request.values.get("refresh") or "").strip().lower() in {"1", "true", "yes", "on"}
+    if request.method == "GET":
+        if refresh_requested:
+            return jsonify({
+                "ok": False,
+                "version": APP_VERSION,
+                "error": "refresh_requires_admin_post",
+                "external_calls": 0,
+                "database_writes": 0,
+            }), 405
+        return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=False), "external_calls": 0})
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=True if refresh_requested or request.method == "POST" else False)})
 
 
 @app.route("/api/teams")
@@ -27371,6 +27401,14 @@ def api_import_competitions():
 
 @app.route("/api/crest-diagnostics")
 def api_crest_diagnostics():
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "provider": "TheSportsDB",
+            "diagnostics": "admin_required",
+            "fallback_available": True,
+        })
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     with_logo = [t for t in teams if t.get("logo_url")]
@@ -27396,7 +27434,18 @@ def api_crest_diagnostics():
 
 @app.route("/api/thesportsdb/diagnostics")
 def api_thesportsdb_diagnostics():
-    team = request.args.get("team") or "Real Madrid"
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "diagnostics": {
+                "provider": "TheSportsDB",
+                "configured": bool(thesportsdb_key()),
+                "direct_check": "admin_required",
+                "external_calls": 0,
+            },
+        })
+    team = str(request.args.get("team") or "Real Madrid").strip()[:120]
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": thesportsdb_diagnostics(team)})
 
 
@@ -27921,6 +27970,8 @@ def api_cache_status():
 
 @app.route("/api/imports")
 def api_imports():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "imports": rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 50")})
 
 
@@ -29245,9 +29296,21 @@ def api_v565_sports_data_picks_check():
     return jsonify({"ok": True, "version": APP_VERSION, "health": v565_data_picks_health()})
 
 
+def _recommendations_for_current_membership(items):
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    visible = [
+        dict(item) for item in (items or [])
+        if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+    ]
+    return membership, visible
+
+
 @app.route("/api/v565/recommendations")
 def api_v565_recommendations():
-    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v565_recommendation_pool(limit=50)})
+    limit = max(1, min(100, as_int(request.args.get("limit"), 50)))
+    membership, recommendations = _recommendations_for_current_membership(v565_recommendation_pool(limit=limit))
+    return jsonify({"ok": True, "version": APP_VERSION, "membership": membership, "recommendations": recommendations})
 
 
 @app.route("/api/v565/convert-recommendation", methods=["POST"])
@@ -30034,7 +30097,9 @@ def api_v566_product_polish_check():
 
 @app.route("/api/recommendations")
 def api_v566_recommendations():
-    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v566_template_recommendations(limit=as_int(request.args.get("limit"), 40))})
+    limit = max(1, min(100, as_int(request.args.get("limit"), 40)))
+    membership, recommendations = _recommendations_for_current_membership(v566_template_recommendations(limit=limit))
+    return jsonify({"ok": True, "version": APP_VERSION, "membership": membership, "recommendations": recommendations})
 
 
 @app.route("/api/autonomous-picks/status")
