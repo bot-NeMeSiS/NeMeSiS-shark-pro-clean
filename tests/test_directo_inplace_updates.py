@@ -256,6 +256,25 @@ def test_new_fixture_does_not_replace_identity_or_invent_a_card(screen):
     assert page.locator('main').get_attribute('data-directo-visible-live-count')=='1'
 
 
+@pytest.mark.parametrize('width', [390, 1440])
+def test_product_styles_preserve_realtime_notice_visibility(screen, width):
+    page, transport = screen
+    page.set_viewport_size({'width': width, 'height': 900})
+    page.locator('main').evaluate("el => el.classList.add('ns16-live')")
+    page.locator('[data-directo-notice]').evaluate("el => el.classList.add('v934-realtime-meta')")
+    refresh = page.locator('[data-directo-refresh-list]')
+    refresh.evaluate("el => el.classList.add('v933-action')")
+    page.add_style_tag(content=(ROOT/'static/v933-product.css').read_text(encoding='utf-8'))
+    assert refresh.is_hidden()
+    assert page.locator('[data-directo-notice]').is_hidden()
+    instant = NOW + timedelta(seconds=45)
+    deliver(page, transport, rows=[row(instant), row(instant, id='new-qa', match_id='new-qa')])
+    assert refresh.is_visible()
+    assert page.locator('[data-directo-notice]').is_visible()
+    assert refresh.get_attribute('href') == '/live?f=live&q=Local'
+    assert page.locator('[data-realtime-consumer]').count() == 1
+
+
 @pytest.mark.parametrize('field,value', [('contract','OTHER'),('competition_id','other-league'),('provider','other-source')])
 def test_invalid_or_conflicting_identity_cannot_silently_update_the_match(screen,field,value):
     page,t=screen;new=snapshot(NOW+timedelta(seconds=45));new['matches'][0]['realtime_state'][field]=value

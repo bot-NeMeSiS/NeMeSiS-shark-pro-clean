@@ -23,8 +23,8 @@
       {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'En calendario', 'blue', 'history', '/calendar?lane=results') }}
       {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/live?f=with_pick') }}
     </section>{% endif %}
+    <nav class="v933-page-actions" aria-label="Fuera de Directo"><a class="v933-action" href="/app">Destacados en Inicio</a><a class="v933-action" href="/calendar?lane=results">Resultados</a></nav>
   </section>
-  <nav class="v933-page-actions" aria-label="Fuera de Directo"><a class="v933-action" href="/app">Destacados en Inicio</a><a class="v933-action" href="/calendar?lane=results">Resultados</a></nav>
 
   <p class="v934-realtime-meta" role="status" aria-live="polite" aria-atomic="true" data-directo-notice hidden></p>
   <a class="v933-action" href="{{ request.full_path.rstrip('?') }}" data-directo-refresh-list hidden>{{ ui('Actualizar lista manteniendo filtros') }}</a>

@@ -5463,6 +5463,12 @@ body.ns-app .ns16-featured-pick .v933-empty-state { grid-template-columns: 32px 
 .ns16-live-overview > .v933-page-header { grid-column: 1 / -1; }
 .ns16-live-overview > .ns16-filter-strip { margin: 0; align-self: stretch; display: flex; align-items: center; }
 .ns16-live-overview > .ns16-kpi-strip { align-self: stretch; }
+.ns16-live-overview > .v933-page-actions { grid-column: 1 / -1; }
+/* Honor the existing realtime controller's visibility state. */
+.ns16-live :is([data-directo-notice],[data-directo-refresh-list])[hidden] { display: none !important; }
+@media (min-width: 1101px) {
+  .ns16-live-overview:not(:has(.ns16-kpi-strip)) > .v933-page-actions { grid-column: 2; grid-row: 2; align-self: center; }
+}
 
 /* Partidos follows the reference as a dense catalogue, not a sequence of explainers. */
 body.ns-app .v933-calendar-board { gap: 9px; }
