@@ -80,6 +80,15 @@ def _app_function_source(name):
     return source[start:] if end < 0 else source[start:end]
 
 
+def test_python_generated_client_links_use_canonical_spanish_support_route():
+    source=(ROOT / "app.py").read_text(encoding="utf-8")
+    assert '"href": "/support"' not in source
+    assert '"Customer Success", "/support")' not in source
+    assert '{"label": "Soporte", "href": "/soporte"}' in source
+    assert '@app.route("/support", methods=["GET", "POST"])' in source
+    assert '@app.route("/soporte", methods=["GET", "POST"])' in source
+
+
 def test_client_python_projections_use_current_spanish_vocabulary():
     checks = {
         "build_client_alerts": ("Picks publicados", "pick(s)", "picks publicados", '"PICKS"', '"LIVE"'),

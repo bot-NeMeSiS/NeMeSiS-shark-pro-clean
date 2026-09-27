@@ -27803,7 +27803,7 @@ def client_safe_404(error):
         {"label": "Calendario", "href": "/calendar"},
         {"label": "Directo", "href": "/live"},
         {"label": "Pronósticos", "href": "/picks"},
-        {"label": "Soporte", "href": "/support"},
+        {"label": "Soporte", "href": "/soporte"},
     ]
     if is_admin_path:
         safe_links.append({"label": "Admin", "href": "/admin-login"})
@@ -33107,7 +33107,7 @@ def go_to_market_office_snapshot():
         _gtm_check_item("master_tick", "Master Tick", "PARTIAL", "Master Tick permanece como gate operacional separado.", "No se dispara ningúna tarea.", "Operaciones", "/admin/daily-automation"),
         _gtm_check_item("security", "Seguridad", "PASS" if _gtm_file_exists("tools/check_repository_privacy_and_secrets.py") else "PARTIAL", "Secret/Privacy Guard disponibles en herramientas locales.", "Debe ejecutarse en cierre de release.", "Seguridad", "/admin/developer-center"),
         _gtm_check_item("privacy", "Privacidad", "PASS" if (beta.get("privacy_controls") or {}).get("stores_sensitive_information") is False else "PARTIAL", "Beta y User Intelligence minimizan datos y permiten control.", "Requiere revision legal humana.", "Privacidad", "/privacidad"),
-        _gtm_check_item("support", "Soporte", "PASS" if _gtm_file_exists("templates/support.html") else "PARTIAL", "Soporte y Beta Feedback reutilizados.", "Canales humanos deben confirmarse antes de beta.", "Customer Success", "/support"),
+        _gtm_check_item("support", "Soporte", "PASS" if _gtm_file_exists("templates/support.html") else "PARTIAL", "Soporte y Beta Feedback reutilizados.", "Canales humanos deben confirmarse antes de beta.", "Customer Success", "/soporte"),
         _gtm_check_item("documentation", "Documentacion", "PASS" if reports else "PARTIAL", "Reportes de lanzamiento y plataforma disponibles localmente.", "No sustituye aprobacion humana.", "Producto", "/admin/developer-center"),
         _gtm_check_item("landing", "Landing", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "Landing oficial usa Company Platform.", "Contenido final necesita revision humana.", "Marketing", "/landing"),
         _gtm_check_item("faq", "FAQ", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "FAQ publica preparada sin promesas falsas.", "Debe mantenerse actualizada con soporte real.", "Customer Success", "/faq"),
@@ -33181,7 +33181,7 @@ def go_to_market_office_snapshot():
             {"area": "Centro de ayuda", "state": "PASS", "href": "/help-center"},
             {"area": "FAQ", "state": "PASS", "href": "/faq"},
             {"area": "Primeros pasos", "state": "PASS", "href": "/landing"},
-            {"area": "Recuperacion de cuenta", "state": "PARTIAL", "href": "/support"},
+            {"area": "Recuperacion de cuenta", "state": "PARTIAL", "href": "/soporte"},
             {"area": "Contacto", "state": "PASS", "href": "/contact"},
             {"area": "Incidencias", "state": "PASS", "href": "/beta"},
             {"area": "Guias", "state": "PARTIAL", "href": "/knowledge-base"},
