@@ -9778,9 +9778,9 @@ def live_data_flow(date=None):
 
 
 MEMBERSHIP_PLANS = [
-    {"key": "free", "name": "Free", "price": "0 EUR", "features": ["Calendario global", "Live basico", "Escudos persistentes"]},
-    {"key": "pro", "name": "PRO", "price": "Premium", "features": ["Picks premium", "Combis", "Perfil favorito", "Alertas Telegram"]},
-    {"key": "elite", "name": "ELITE", "price": "Top", "features": ["IA SHARK", "Briefings", "Prioridad live", "Control avanzado"]},
+    {"key": "free", "name": "FREE", "price": "0 €", "features": ["Calendario", "Directo con datos disponibles", "Resultados", "SHARK base"]},
+    {"key": "pro", "name": "PRO", "price": "Precio según configuración", "features": ["Pronósticos PRO publicados", "Combinadas", "Opciones de Telegram", "SHARK con más contexto"]},
+    {"key": "elite", "name": "ELITE", "price": "Precio según configuración", "features": ["Pronósticos ELITE publicados", "Combinadas ELITE", "Funciones de Telegram del plan", "SHARK con contexto ampliado"]},
 ]
 
 
@@ -27655,7 +27655,7 @@ def api_shark_ask():
     usage = consume_shark_question(user)
     if not usage.get("allowed"):
         target = "ELITE" if usage.get("membership") == "PRO" else "PRO"
-        return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/memberships?plan={target}"}), 429
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/membresias?plan={target}"}), 429
     payload = request.get_json(silent=True) or dict(request.form or request.args or {})
     answer = shark_answer(payload.get("question") or payload.get("q") or "")
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
