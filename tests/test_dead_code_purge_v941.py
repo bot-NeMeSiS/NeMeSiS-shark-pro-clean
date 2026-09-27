@@ -76,3 +76,8 @@ def test_client_menu_aliases_survive_dashboard_dead_code_purge():
         and isinstance(decorator.args[0].value, str)
     }
     assert routes == {"/menu", "/mapa", "/navegacion", "/todo"}
+
+
+def test_base_shell_drops_historical_activation_comments():
+    source = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
+    assert "<!-- NEMESIS V" not in source
