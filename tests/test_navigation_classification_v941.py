@@ -42,3 +42,27 @@ def test_orphan_surface_is_legacy_debt():
 def test_normal_route_remains_ok():
     label, _ = classify("OK")
     assert label == "OK"
+
+
+def test_client_menu_groups_follow_runtime_data_and_hide_internal_copy():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    menu=(root/"templates/client_menu.html").read_text(encoding="utf-8")
+    nav=(root/"templates/client_navigation_map.html").read_text(encoding="utf-8")
+    assert "all_items|groupby('group')" in menu
+    assert "01 · Empezar" not in menu
+    assert "super app completa" not in menu
+    assert "/mapa, /navegacion y /todo" not in menu
+    assert "PC usa la barra superior" not in menu
+    assert "Mapa cliente · experiencia final" not in nav
+    assert "para no perder botones" not in nav
+
+
+def test_client_menu_runtime_groups_match_template_contract(app_module):
+    groups={item["group"] for item in app_module.v566_client_menu_items()}
+    assert groups=={
+        "01 - Empezar","02 - Picks","03 - Resultados",
+        "04 - Asistente","05 - Cuenta","06 - Ayuda",
+    }
+    template=(__import__("pathlib").Path(__file__).resolve().parents[1]/"templates/client_menu.html").read_text(encoding="utf-8")
+    assert "group_items in all_items|groupby('group')" in template
