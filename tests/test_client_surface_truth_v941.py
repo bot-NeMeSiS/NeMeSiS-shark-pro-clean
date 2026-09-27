@@ -361,3 +361,22 @@ def test_track_record_uses_spanish_void_copy_without_changing_filter_key():
     assert "'label':'Anulados'" in source
     assert 'ui("Anulados")' in source
     assert "'key':'void'" in source
+
+def test_remaining_visible_client_surfaces_use_spanish_canonical_navigation_and_copy():
+    resource=(ROOT / "templates/resource_unavailable.html").read_text(encoding="utf-8")
+    live_depth=(ROOT / "templates/live_depth.html").read_text(encoding="utf-8")
+    ecosystem=(ROOT / "templates/ecosystem.html").read_text(encoding="utf-8")
+    company=(ROOT / "templates/company_platform.html").read_text(encoding="utf-8")
+    action=(ROOT / "templates/action_platform.html").read_text(encoding="utf-8")
+    intelligence=(ROOT / "templates/user_intelligence_center.html").read_text(encoding="utf-8")
+
+    assert 'href="/calendar"' not in resource and 'href="/calendario"' in resource
+    assert 'href="/live"' not in live_depth and 'href="/directo"' in live_depth
+    assert 'href="/dashboard"' not in ecosystem and 'href="/app"' in ecosystem
+    for token in ("Match Center", "Team Center", "Competition Center", "Player Center"):
+        assert token not in company
+    assert "Los centros de partidos, equipos, competiciones y jugadores" in company
+    assert "Recap nocturno" not in action and "Abrir recap" not in action
+    assert "Resumen nocturno" in action and "Abrir resumen" in action
+    assert "briefing o plan" not in intelligence
+    assert "resumen diario o plan" in intelligence
