@@ -70,7 +70,8 @@ def test_telegram_supporting_content_stays_flat_after_the_rail():
     assert "Telegram extiende la app; no la sustituye" not in template
     assert "Calidad del canal" not in template
     assert 'class="v933-two-col is-balanced"' not in template
-    assert "Calidad protegida" in template[safety_note:]
+    assert "Estado de entrega" in template[safety_note:]
+    assert "Calidad protegida" not in template[safety_note:]
 
 
 def test_bounded_rail_css_contract_has_desktop_reclaim_and_mobile_collapse():
