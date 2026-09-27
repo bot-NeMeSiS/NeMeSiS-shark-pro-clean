@@ -1,34 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
 {% set all_items = items or [] %}
-{% set groups = ['01 · Empezar','02 · Picks','03 · Resultados','04 · Asistente','05 · Cuenta','06 · Ayuda'] %}
 <section class="v778-home-hero v778-menu-hero">
   <div class="v778-hero-main">
-    <div class="kicker">Mapa final · todo visible</div>
-    <h1>Todo visible, nada escondido y ordenado por intención</h1>
-    <p class="lead">Aquí está la super app completa sin esconder funciones: /mapa, /navegacion y /todo llevan al mismo sitio. Primero lo básico; después lo avanzado.</p>
-    <div class="v778-primary-actions"><a class="btn primary" href="/app">Inicio</a><a class="btn" href="/calendar?lane=today">Hoy</a><a class="btn" href="/picks">Picks</a><a class="btn" href="/shark">SHARK</a></div>
+    <div class="kicker">Explorar NeMeSiS</div>
+    <h1>Todo lo importante, ordenado por lo que quieres hacer</h1>
+    <p class="lead">Encuentra partidos, pronósticos, SHARK, resultados, alertas y tu cuenta desde un único punto, sin perderte entre pantallas.</p>
+    <div class="v778-primary-actions">
+      <a class="btn primary" href="/app">Inicio</a>
+      <a class="btn" href="/calendar?lane=today">Partidos de hoy</a>
+      <a class="btn" href="/picks">Pronósticos</a>
+      <a class="btn" href="/shark">SHARK</a>
+    </div>
   </div>
-  <aside class="v778-priority-card"><span class="v774-status ready">Mapa limpio</span><p>PC usa la barra superior. Móvil usa la barra inferior. Esta pantalla guarda todo lo demás sin duplicar barras.</p></aside>
+  <aside class="v778-priority-card">
+    <span class="v774-status ready">Accesos organizados</span>
+    <p>Empieza por los partidos del día y abre el resto de herramientas cuando las necesites.</p>
+  </aside>
 </section>
-<section class="v778-section-grid">
-  <a class="v778-section-card" href="/calendar?lane=today"><strong>Calendario</strong><span>Hoy, directo y calendario.</span><small>Lo primero que mira el cliente.</small></a>
-  <a class="v778-section-card" href="/picks"><strong>Picks</strong><span>Selecciones individuales y mercados.</span><small>Cuota, stake, riesgo y motivo.</small></a>
-  <a class="v778-section-card" href="/combinadas"><strong>Combinadas</strong><span>Constructor y borradores privados.</span><small>Revisar datos actuales antes de guardar.</small></a>
-  <a class="v778-section-card" href="/track-record"><strong>Resultados</strong><span>Histórico, ROI y resúmenes.</span><small>Solo datos reales cerrados.</small></a>
-  <a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram, cuenta y ayuda.</span><small>Seguimiento sin entrar cada minuto.</small></a>
+
+<section class="v778-section-grid" aria-label="Accesos principales">
+  <a class="v778-section-card" href="/calendar?lane=today"><strong>Partidos</strong><span>Hoy, próximos y en directo.</span><small>Busca por fecha, competición o equipo.</small></a>
+  <a class="v778-section-card" href="/picks"><strong>Pronósticos</strong><span>Selecciones publicadas y su contexto.</span><small>Cuota, stake, riesgo y explicación cuando estén disponibles.</small></a>
+  <a class="v778-section-card" href="/combinadas"><strong>Combinadas</strong><span>Constructor y borradores privados.</span><small>Revisa las selecciones y las cuotas antes de guardar.</small></a>
+  <a class="v778-section-card" href="/track-record"><strong>Histórico</strong><span>Resultados y rendimiento cerrado.</span><small>Solo datos evaluables y resultados registrados.</small></a>
+  <a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram y seguimiento de tu cuenta.</span><small>Consulta el estado de conexión y tus opciones.</small></a>
 </section>
+
 <section class="v778-menu-sections">
-  {% for group in groups %}
+  {% for group, group_items in all_items|groupby('group') %}
   <article class="v778-panel">
-    <div class="section-head"><div><h2>{{ group.split('·')[-1].strip() }}</h2><p class="small">Bloque {{ group.split('·')[0].strip() }} de la experiencia cliente.</p></div></div>
+    <div class="section-head">
+      <div>
+        <h2>{{ group[5:] if group[:5].endswith(' - ') else group }}</h2>
+        <p class="small">{{ group_items|list|length }} acceso{% if group_items|list|length != 1 %}s{% endif %} disponible{% if group_items|list|length != 1 %}s{% endif %}.</p>
+      </div>
+    </div>
     <div class="v778-menu-grid">
-      {% for item in all_items if item.group == group %}
+      {% for item in group_items %}
       <a href="{{ item.href }}"><b>{{ item.title }}</b><small>{{ item.body }}</small></a>
       {% endfor %}
     </div>
   </article>
   {% endfor %}
 </section>
-<section class="v774-responsible-note v778-final-note"><strong>Ruta ideal</strong><span>Inicio → Hoy → Directo → Picks → SHARK → Histórico. Telegram avisa cuando haya información útil.</span></section>
+
+<section class="v774-responsible-note v778-final-note">
+  <strong>Una forma sencilla de empezar</strong>
+  <span>Partidos → Pronósticos → SHARK → Histórico. Telegram puede ayudarte con el seguimiento cuando esté configurado.</span>
+</section>
 {% endblock %}
