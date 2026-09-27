@@ -15,17 +15,7 @@
 {% set focus_labels = {'summary':'Resumen', 'pick':'Pronóstico', 'risk':'Riesgo', 'telegram':'Telegram', 'match':'Partido', 'membership':'Plan'} %}
 
 <div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="official-ref-12" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('SHARK', 'Análisis, evidencia y riesgo.', 'shark', [{'label':'Calendario','href':'/calendar','icon':'calendar'},{'label':'Ver pronósticos','href':'/picks','primary':true,'icon':'target'}]) }}
-
-  <section class="v933-shark-hero">
-    <div>
-      <span class="v933-eyebrow">{{ ui("Inteligencia deportiva") }}</span>
-      <h2>{{ ui('Análisis ampliado' if openai_ready else 'Análisis con evidencia') }}</h2>
-      <p>{{ ui("Partidos, selecciones y riesgos explicados solo con los datos disponibles.") }}</p>
-      <div class="v933-hero-actions">{{ action_button('Abrir calendario','/calendar',true,'cyan',false,'calendar') }}{{ action_button('Ver directo','/live',false,'blue',false,'live') }}{{ action_button('Revisar pronósticos','/picks',false,'blue',false,'target') }}</div>
-    </div>
-    <img src="/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1" alt="" aria-hidden="true">
-  </section>
+  {{ page_header('SHARK', 'Análisis ampliado' if openai_ready else 'Análisis con evidencia', 'shark', [{'label':'Calendario','href':'/calendar','icon':'calendar'},{'label':'Ver directo','href':'/live','icon':'live'},{'label':'Ver pronósticos','href':'/picks','primary':true,'icon':'target'}]) }}
 
   <section class="ns-shark-conversation" aria-labelledby="shark-question-title" data-shark-question-entry="existing-answer-v1">
     <h2 id="shark-question-title">Pregunta a SHARK</h2>
