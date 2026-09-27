@@ -335,7 +335,7 @@ from engines.stripe_payments_engine import (
     process_stripe_webhook,
     stripe_runtime_status,
 )
-from engines.pick_grading_engine import LATEST_GRADING_CTE, pick_grading_summary, run_pick_grading
+from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE, pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
@@ -28759,34 +28759,38 @@ def v742_track_record_context():
     by_league = []
     by_plan = []
     pending_results = []
-    if db_table_exists("pick_grading_results"):
-        by_month = rows(LATEST_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
-                           FROM latest_grades
+    eligible_pick_statuses = "('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')"
+    if db_table_exists("pick_grading_results") and db_table_exists("picks"):
+        by_month = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
+                           FROM eligible_grades
                            WHERE COALESCE(graded_at,'')!=''
                              AND result_status IN ('won','lost','void')
                              AND COALESCE(odds,0)>1
                              AND COALESCE(stake,0)>0
                            GROUP BY substr(graded_at,1,7)
                            ORDER BY label DESC LIMIT 12""")
-        pending_results = rows(LATEST_GRADING_CTE + """SELECT * FROM latest_grades
+        pending_results = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT * FROM eligible_grades
                                   WHERE result_status='pending'
                                   ORDER BY graded_at DESC LIMIT 12""")
     if db_table_exists("picks"):
         try:
-            by_market = rows("""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
+            by_market = rows(f"""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_market = []
         try:
-            by_league = rows("""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
+            by_league = rows(f"""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_league = []
         try:
-            by_plan = rows("""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
-                              FROM picks GROUP BY COALESCE(membership_required, 'FREE')
+            by_plan = rows(f"""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
+                              FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                              GROUP BY COALESCE(membership_required, 'FREE')
                               ORDER BY total DESC""")
         except Exception:
             by_plan = []
