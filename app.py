@@ -28545,24 +28545,33 @@ def onboarding_status(user=None):
 
 
 def membership_revenue_summary():
+    """Separa distribución de acceso de ingresos Stripe reales."""
     distribution = membership_distribution()
-    # Valores orientativos internos, no cobran ni activan Stripe todavía.
-    estimated_prices = {"FREE": 0, "PRO": 19, "ELITE": 49, "ADMIN": 0}
-    estimated_mrr = sum(distribution.get(plan, 0) * estimated_prices.get(plan, 0) for plan in distribution)
     total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
-    paid_clients = distribution.get("PRO", 0) + distribution.get("ELITE", 0)
-    conversion = round((paid_clients / total_clients * 100), 1) if total_clients else 0
+    try:
+        billing = subscription_summary(DB_PATH, apply_rules=False, persist_metrics=False) or {}
+    except Exception:
+        billing = {}
+    paid_clients = as_int(billing.get("active_paid"), 0)
+    manual_access = as_int(billing.get("manual_access"), 0)
+    conversion = as_float(billing.get("conversion_rate"), 0.0)
+    estimated_mrr = as_float(billing.get("estimated_mrr"), 0.0)
     return {
         "distribution": distribution,
-        "estimated_mrr": estimated_mrr,
         "total_clients": total_clients,
         "paid_clients": paid_clients,
-        "conversion": conversion,
+        "manual_access": manual_access,
+        "paid_by_tier": billing.get("paid_by_tier") or {"PRO": 0, "ELITE": 0},
+        "manual_by_tier": billing.get("manual_by_tier") or {"PRO": 0, "ELITE": 0},
+        "estimated_mrr": round(estimated_mrr, 2),
+        "estimated_mrr_verified_by_provider": bool(billing.get("estimated_mrr_verified_by_provider", False)),
+        "conversion": round(conversion, 1),
+        "revenue_scope": billing.get("revenue_scope") or "active_stripe_subscriptions_only",
         "plans": MEMBERSHIP_PLANS,
         "recommendations": [
-            "Mantener FREE como puerta de entrada con calendario, favoritos y SHARK base.",
-            "Empujar PRO con picks, combinadas y Telegram premium.",
-            "Reservar ELITE para SHARK contextual, alertas live y prioridad de análisis.",
+            "FREE es la puerta de entrada; PRO y ELITE pueden existir como acceso manual o como suscripción.",
+            "La conversión y el MRR solo cuentan suscripciones Stripe activas.",
+            "Los accesos regalados o asignados por administración se muestran aparte y no inflan ingresos.",
         ],
     }
 
