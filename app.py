@@ -7464,24 +7464,30 @@ def parse_payload_json(value, default=None):
         return default if default is not None else {}
 
 
-def client_activity_feed(limit=20, user_id=None):
+def client_activity_feed(limit=20, user_id=None, include_internal=False):
     user_id = user_id or current_user_id()
     if not user_id:
         return []
+    where = "user_id=?"
+    params = [user_id]
+    if not include_internal:
+        # Los eventos del funnel son analítica interna, no historial de navegación.
+        # Las superficies normales de cliente solo muestran acciones explícitas.
+        where += " AND COALESCE(target_type,'')!='growth_funnel' AND COALESCE(activity_type,'') NOT LIKE 'growth_%'"
+    params.append(int(limit))
     data = rows(
-        """SELECT * FROM user_activity
-           WHERE user_id=?
+        f"""SELECT * FROM user_activity
+           WHERE {where}
            ORDER BY created_at DESC
            LIMIT ?""",
-        (user_id, int(limit)),
+        tuple(params),
     )
     for item in data:
         item["payload"] = parse_payload_json(item.get("payload_json"), {})
         item["label"] = activity_label(item)
     return data
 
-
-def activity_label(item):
+def activity_label(item):
     kind = str(item.get("activity_type") or "").lower()
     target = str(item.get("target_type") or "").lower()
     if kind == "view" and target == "picks":
@@ -23003,7 +23009,7 @@ def _user_intelligence_export_payload(user):
     user = dict(user or {})
     user_id = user.get("id") or ""
     favorites = get_favorites(user_id=user_id) if user_id else []
-    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id, include_internal=True) if user_id else []
     preferences = _load_user_intelligence_preferences(user_id)
     shark_context = build_shark_intelligence_page_context()
     snapshot = build_user_intelligence_platform_snapshot(
@@ -23042,7 +23048,7 @@ def build_user_intelligence_page_context(user=None):
     user = user or current_session_user() or {}
     user_id = user.get("id") or ""
     favorites = get_favorites(user_id=user_id) if user_id else []
-    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id, include_internal=True) if user_id else []
     preferences = _load_user_intelligence_preferences(user_id)
     shark_context = build_shark_intelligence_page_context()
     return build_user_intelligence_platform_snapshot(
