@@ -51,5 +51,6 @@ jobs:
         with:
           name: nemesis-ci-artifacts
           path: |
-            reports/
-            release_output/
+            reports/V941_*
+            release_output/*_RENDER_READY.zip
+            release_output/RELEASE_ZIP_AUDIT_V941.*

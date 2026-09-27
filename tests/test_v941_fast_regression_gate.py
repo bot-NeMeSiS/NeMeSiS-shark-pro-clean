@@ -51,3 +51,13 @@ def test_clean_release_packages_current_reports_not_historical_report_families()
     ):
         assert legacy not in build
 
+def test_ci_artifact_upload_avoids_historical_reports_and_duplicate_deploy_tree():
+    workflow=(ROOT/".github/workflows/nemesis-ci.yml").read_text(encoding="utf-8")
+    upload=workflow.split("- name: Upload reports and release output", 1)[1]
+    assert "reports/V941_*" in upload
+    assert "release_output/*_RENDER_READY.zip" in upload
+    assert "release_output/RELEASE_ZIP_AUDIT_V941.*" in upload
+    assert "\n            reports/\n" not in upload
+    assert "\n            release_output/\n" not in upload
+    assert "V941_DEPLOY_ROOT_CONTENTS" not in upload
+
