@@ -98,7 +98,6 @@ def test_admin_run_ui_uses_post_or_explicit_post_fetch():
     templates = {
         "admin_highlights_center.html": "/api/admin/highlights/sync",
         "admin_sentinel_autopilot.html": "/api/admin/sentinel-autopilot/run",
-        "admin_autonomous_sentinel.html": "/api/admin/autonomous-sentinel/run",
         "admin_visual_worker.html": "/api/admin/visual-worker/run",
         "admin_daily_automation.html": "/api/admin/daily-automation/dry-run",
     }
@@ -109,6 +108,8 @@ def test_admin_run_ui_uses_post_or_explicit_post_fetch():
         assert 'method="post"' in text
 
     company=(ROOT/"templates"/"admin_autonomous_company_sentinel.html").read_text(encoding="utf-8")
+    assert "/api/admin/autonomous-company-sentinel/run" in company
+    assert 'href="/api/admin/autonomous-company-sentinel/run' not in company
     assert 'data-v904-method="POST"' in company
     assert company.count('data-v904-method="POST"') >= 4
 
