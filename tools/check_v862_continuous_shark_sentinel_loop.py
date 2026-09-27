@@ -114,7 +114,6 @@ def main() -> None:
     visible = "\n".join(read(path) for path in [
         "templates/base.html",
         "templates/admin_continuous_sentinel.html",
-        "templates/admin_shark_sentinel.html",
     ])
     for bad in ["Ãƒ", "Ã‚", "ï¿½", "navegaciÃƒ", "acciÃƒ"]:
         ok(bad not in visible, f"sin mojibake {bad}", failures)

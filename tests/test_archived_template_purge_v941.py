@@ -9,6 +9,7 @@ import ast
 ROOT = Path(__file__).resolve().parents[1]
 
 PURGED = {
+    "templates/admin_shark_sentinel.html",
     "templates/admin_shark_center.html",
     "templates/admin_autonomous_sentinel.html",
     "templates/admin_command_center.html",
@@ -58,3 +59,11 @@ def test_runtime_does_not_render_purged_templates():
                 if Path(arg.value).name in names:
                     found.append((str(path.relative_to(ROOT)), node.lineno, arg.value))
     assert found == []
+
+
+def test_shark_sentinel_alias_uses_continuous_ui():
+    source = (ROOT / "app.py").read_text(encoding="utf-8", errors="replace")
+    alias = source.index('@app.route("/admin/shark-sentinel")')
+    function = source.index("def admin_continuous_sentinel_page()", alias)
+    rendered = source.index('render_template("admin_continuous_sentinel.html"', function)
+    assert alias < function < rendered

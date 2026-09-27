@@ -157,7 +157,6 @@ def main() -> int:
     unsafe_templates = "\n".join((ROOT / rel).read_text(encoding="utf-8", errors="replace") for rel in [
         "templates/admin_continuous_sentinel.html",
         "templates/admin_sentinel_workflow.html",
-        "templates/admin_shark_sentinel.html",
     ] if (ROOT / rel).exists())
     require('href="/api/admin/continuous-sentinel/run' not in unsafe_templates, "direct API href remains in admin Sentinel templates", failures)
     require('href="#"' not in unsafe_templates and "javascript:void(0)" not in unsafe_templates, "dead admin links remain", failures)

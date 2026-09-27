@@ -65,7 +65,7 @@ def assert_no_raw_secrets(failures: list[str]) -> None:
         ROOT / "templates" / "base.html",
         ROOT / "templates" / "home.html",
         ROOT / "templates" / "admin_autonomous_company_sentinel.html",
-        ROOT / "templates" / "admin_shark_sentinel.html",
+        ROOT / "templates" / "admin_continuous_sentinel.html",
         ROOT / "templates" / "admin_sentinel_codex_outbox.html",
         ROOT / "static" / "app.css",
     ]
@@ -183,7 +183,7 @@ def main() -> int:
     api_404 = client.get("/api/ruta-inventada-v912")
     require(api_404.status_code == 404 and api_404.is_json, "API 404 JSON missing", failures)
 
-    for rel in ["templates/admin_autonomous_company_sentinel.html", "templates/admin_shark_sentinel.html", "templates/admin_sentinel_codex_outbox.html"]:
+    for rel in ["templates/admin_autonomous_company_sentinel.html", "templates/admin_continuous_sentinel.html", "templates/admin_sentinel_codex_outbox.html"]:
         text = read(rel)
         require('href="#"' not in text, f"{rel} has href #", failures)
         require("javascript:void(0)" not in text, f"{rel} has javascript:void(0)", failures)
