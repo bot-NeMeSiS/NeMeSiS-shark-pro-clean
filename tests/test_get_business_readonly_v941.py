@@ -6,13 +6,13 @@ import pytest
 BUSINESS_TABLES=(
     "users","matches","picks","favorites","telegram_queue",
     "subscription_accounts","stripe_subscriptions","revenue_daily_metrics",
-    "client_profiles","payment_readiness_daily","settings",
+    "client_profiles","payment_readiness_daily","settings","user_activity",
     "telegram_subscribers","payment_webhook_events","subscription_events",
     "shark_context_snapshots","shark_memory",
     "telegram_settings","telegram_logs","telegram_deliveries","auto_alerts",
     "pick_grading_results","pick_grading_runs",
 )
-CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships")
+CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/actividad")
 ADMIN_ROUTES=(
     "/admin/dashboard","/admin/matches","/admin/realtime-center","/admin/picks",
     "/admin/telegram/command-center","/admin/users","/admin/memberships","/admin/payments",
