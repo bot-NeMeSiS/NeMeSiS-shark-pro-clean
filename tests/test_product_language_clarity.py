@@ -250,3 +250,22 @@ def test_membership_benefits_are_conditional_and_payment_copy_is_plain_spanish()
     assert "Funciones ELITE cuando estén habilitadas" in text
     assert "Pago seguro" in text
     assert "Pago pendiente de configuración" in text
+
+
+def test_legacy_membership_catalog_matches_current_product_truth():
+    app_source=read("app.py")
+    for token in (
+        '"price": "Premium"',
+        '"price": "Top"',
+        '"Picks premium"',
+        '"Combis"',
+        '"IA SHARK"',
+        '"Briefings"',
+        '"Prioridad live"',
+        'f"/memberships?plan={target}"',
+    ):
+        assert token not in app_source
+    assert '"price": "Precio según configuración"' in app_source
+    assert '"Pronósticos PRO publicados"' in app_source
+    assert '"Pronósticos ELITE publicados"' in app_source
+    assert 'f"/membresias?plan={target}"' in app_source
