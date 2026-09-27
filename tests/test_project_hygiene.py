@@ -45,6 +45,15 @@ def test_historical_release_zip_audits_stay_out_of_source_reports():
     assert list((ROOT / "reports").glob("RELEASE_ZIP_AUDIT_V*")) == []
 
 
+def test_generated_sentinel_histories_stay_out_of_source_tree():
+    for relative in (
+        "data/runtime/autonomous_company_sentinel/history",
+        "data/runtime/autonomous_sentinel/history",
+    ):
+        path = ROOT / relative
+        assert not path.exists() or list(path.iterdir()) == []
+
+
 @pytest.fixture(scope="module")
 def release_includes():
     tree = ast.parse((ROOT / "tools/build_clean_release.py").read_text(encoding="utf-8-sig"))
@@ -138,6 +147,8 @@ def test_every_project_control_http_source_is_shipped(release_includes):
     ("tools/__pycache__/check.cpython-311.pyc", True),
     ("data/local_dev/qa.sqlite", True),
     ("data/qa_tmp/result.xml", True),
+    ("data/runtime/autonomous_company_sentinel/history/ACS-qa.json", True),
+    ("data/runtime/autonomous_sentinel/history/ASW-qa.json", True),
     ("release_output/candidate.zip", True),
     ("logs/local.log", True),
 ])

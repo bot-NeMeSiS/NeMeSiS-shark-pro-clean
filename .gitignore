@@ -145,3 +145,6 @@ reports/master_finalization/master_finalization_audit.json
 *.sqlite3-wal
 *.sqlite3-shm
 *.sqlite3-journal
+# Regenerable Sentinel execution history (runtime-owned, never source)
+data/runtime/autonomous_company_sentinel/history/
+data/runtime/autonomous_sentinel/history/
