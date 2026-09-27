@@ -55,6 +55,7 @@ POST_ONLY_PATHS=(
     "/api/automation/sentinel-autopilot/run",
     "/api/automation/autonomous-sentinel/run",
     "/api/automation/autonomous-company-sentinel/run",
+    "/api/v608/write-route-map",
 )
 
 def test_mutation_routes_are_post_only_in_flask_map():
@@ -67,8 +68,12 @@ def test_mutation_routes_are_post_only_in_flask_map():
 
 def test_mutation_route_contract_is_documented_in_source():
     source=(ROOT/"app.py").read_text(encoding="utf-8")
+    architecture=(ROOT/"blueprints"/"architecture.py").read_text(encoding="utf-8")
     for path in POST_ONLY_PATHS:
-        assert f'@app.route("{path}", methods=["POST"])' in source
+        if path == "/api/v608/write-route-map":
+            assert '@bp.post("/api/v608/write-route-map")' in architecture
+        else:
+            assert f'@app.route("{path}", methods=["POST"])' in source
 
 
 def test_sentinel_action_names_cannot_be_read_as_issue_ids(app_module, monkeypatch):
