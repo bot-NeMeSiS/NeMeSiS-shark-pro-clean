@@ -50,7 +50,7 @@ def test_secondary_client_copy_uses_current_spanish_vocabulary():
 
 
 def test_confirmed_orphan_legacy_templates_stay_purged():
-    for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html"):
+    for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html", "client_overview.html", "smart_dashboard.html"):
         assert not (ROOT / "templates" / name).exists()
 
 
@@ -112,3 +112,14 @@ def test_shark_intelligence_visible_copy_stays_spanish_first():
         assert token not in source
     for token in ("Inteligencia SHARK", ">Pronósticos</a>", ">Grafo<", ">Afirmaciones<", ">Módulos<"):
         assert token in source
+
+
+def test_v728_qa_uses_current_client_guard():
+    from tools.check_v728_client_experience import scan_templates
+    report = scan_templates()
+    assert report["ok"] is True
+    assert report["score"] == 100
+    assert report["status"] == "OK"
+    assert report["hard_errors"] == []
+    routes = {item["route"] for item in report["critical_screens"]}
+    assert "/app" in routes and "/dashboard" not in routes
