@@ -9,7 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-PURGED_HEAVY_REPORT_DUMPS = {
+PURGED_HISTORICAL_REPORT_ARTIFACTS = {
     "reports/CODEX_DAILY_REPORT_20260612_1550.json",
     "reports/CODEX_DAILY_REPORT_20260612_1551.json",
     "reports/CODEX_DAILY_REPORT_20260612_1556.json",
@@ -27,11 +27,18 @@ PURGED_HEAVY_REPORT_DUMPS = {
     "reports/V726_PURGE_REPORT.md",
     "reports/IMPORTS_ROUTES_VERIFY_V723.json",
     "reports/PROJECT_TREE_AUDIT_V723.md",
+    "reports/PURGE_PROJECT_SAFE_LAST.md",
+    "reports/IMPORTS_ROUTES_VERIFY_V723.md",
+    "reports/git_precheck_operations_center/20260729T114247+0200/changed_files_manifest.json",
+    "reports/git_precheck_operations_center/20260729T114247+0200/git_precheck_report.md",
+    "reports/git_precheck_operations_center/20260729T114247+0200/new_files_manifest.txt",
+    "reports/git_precheck_operations_center/20260729T114247+0200/sha256_manifest.txt",
+    "reports/git_precheck_operations_center/20260729T114247+0200/working_tree.patch",
 }
 
 
-def test_heavy_historical_machine_dumps_stay_purged():
-    assert all(not (ROOT / path).exists() for path in PURGED_HEAVY_REPORT_DUMPS)
+def test_historical_report_artifacts_stay_purged():
+    assert all(not (ROOT / path).exists() for path in PURGED_HISTORICAL_REPORT_ARTIFACTS)
 
 
 def test_historical_release_zip_audits_stay_out_of_source_reports():
