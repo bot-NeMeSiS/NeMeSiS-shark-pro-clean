@@ -64,7 +64,7 @@
       {% set away_identity = m.away_identity|default({}) %}
       <a class="list-row v740-home-match" href="/match/{{ m.id }}"><span class="v740-home-teams"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><span class="v740-home-team-text"><strong>{{ m.safe_home or m.home_team }}</strong><em>vs</em><strong>{{ m.safe_away or m.away_team }}</strong><small>{{ (m.safe_competition or m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span></span><strong>{{ m|match_time_short }}</strong></a>
       {% else %}
-      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, apareceran aqui automaticamente.</p></div>
+      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, aparecerán aquí automáticamente.</p></div>
       {% endfor %}
     </div>
   </div>
@@ -82,9 +82,9 @@
 
 
 <section class="band compact-band" data-top100-improvement="20">
-  <div class="section-head"><h2>Después de la jornada</h2><a class="pill" href="/evening-recap">Abrir recap nocturno</a></div>
+  <div class="section-head"><h2>Después de la jornada</h2><a class="pill" href="/evening-recap">Abrir resumen nocturno</a></div>
   <div class="grid dense-grid">
-    <article class="card"><strong>Resultados disponibles</strong><p class="small">El recap solo resume partidos y pronósticos que tengan evidencia real.</p></article>
+    <article class="card"><strong>Resultados disponibles</strong><p class="small">El resumen solo muestra partidos y pronósticos que tengan evidencia real.</p></article>
     <article class="card"><strong>Pendientes honestos</strong><p class="small">Lo que no esté cerrado se muestra como pendiente, no como fallo ni éxito.</p></article>
     <article class="card"><strong>Siguiente día</strong><p class="small">Favoritos y actividad ayudan a preparar mañana sin generar recomendaciones de apuesta.</p></article>
   </div>
