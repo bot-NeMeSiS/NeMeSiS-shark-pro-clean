@@ -59,7 +59,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         "templates/daily_briefing.html": [
             'data-top100-improvement="20"',
             "Después de la jornada",
-            "Abrir recap nocturno",
+            "Abrir resumen nocturno",
         ],
     }
     for file_name, snippets in checks.items():
