@@ -130,15 +130,12 @@ def test_navigation_renderers_share_canonical_contract_source():
     mobile_contract=contract.split("{% set CLIENT_MOBILE_LINKS = [",1)[1].split("] %}",1)[0]
     assert "('SHARK','/shark','shark')" in mobile_contract
     assert "('Cuenta','/profile','user')" not in mobile_contract
-    for name in ("v928_navigation.html","v930_navigation.html","v933_navigation.html"):
-        source=(root/"templates/components"/name).read_text(encoding="utf-8")
-        assert 'navigation_contracts.html' in source
-        assert "nav_contracts.CLIENT_LINKS" in source
-        assert "nav_contracts.ADMIN_LINKS" in source
-    legacy=(root/"templates/components/v930_navigation.html").read_text(encoding="utf-8")
-    assert "/memberships" not in legacy
-    assert "/admin/navigation-integrity" not in legacy
-    assert "/admin/automation-workforce" not in legacy
+    source=(root/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
+    assert 'navigation_contracts.html' in source
+    assert "nav_contracts.CLIENT_LINKS" in source
+    assert "nav_contracts.ADMIN_LINKS" in source
+    for name in ("v928_navigation.html","v930_navigation.html"):
+        assert not (root/"templates/components"/name).exists()
 
 
 def test_navigation_contract_aliases_have_one_active_rule(app_module):
@@ -161,19 +158,21 @@ def test_navigation_contract_aliases_have_one_active_rule(app_module):
     assert contextual.render()=="|"
 
 
-def test_live_templates_do_not_reactivate_legacy_navigation_renderers():
+def test_legacy_navigation_renderers_stay_purged_and_v933_is_canonical():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]
     templates=root/"templates"
     legacy_names={"v928_navigation.html","v930_navigation.html"}
+    for name in legacy_names:
+        assert not (templates/"components"/name).exists()
+
     offenders=[]
     for path in templates.rglob("*.html"):
-        if path.name in legacy_names:
-            continue
         source=path.read_text(encoding="utf-8")
         if "components/v928_navigation.html" in source or "components/v930_navigation.html" in source:
             offenders.append(str(path.relative_to(root)))
     assert offenders==[]
+
     base=(templates/"base.html").read_text(encoding="utf-8")
     assert 'components/v933_navigation.html' in base
     assert 'components/v928_navigation.html' not in base
