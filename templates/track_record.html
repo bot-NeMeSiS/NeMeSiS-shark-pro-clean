@@ -20,7 +20,7 @@
   </section>
 
   <section class="v933-panel v933-filter-panel">
-    {{ filter_tabs([{'key':'all','label':'Todos','href':'/track-record'},{'key':'won','label':'Ganados','href':'/track-record?result=won'},{'key':'lost','label':'Perdidos','href':'/track-record?result=lost'},{'key':'void','label':'Void','href':'/track-record?result=void'}], request.args.get('result') or 'all') }}
+    {{ filter_tabs([{'key':'all','label':'Todos','href':'/historico'},{'key':'won','label':'Ganados','href':'/historico?result=won'},{'key':'lost','label':'Perdidos','href':'/historico?result=lost'},{'key':'void','label':'Void','href':'/historico?result=void'}], request.args.get('result') or 'all') }}
   </section>
 
   <section class="v933-two-col">
@@ -59,7 +59,7 @@
           </article>
           {% endfor %}
           </div>
-        {% elif request.args.get('result') in ['won','lost','void'] %}{{ empty_state('Sin resultados para este filtro', 'No hay pronósticos de este resultado disponibles para tu plan en la muestra reciente.', 'Ver todos los resultados', '/track-record', 'history') }}
+        {% elif request.args.get('result') in ['won','lost','void'] %}{{ empty_state('Sin resultados para este filtro', 'No hay pronósticos de este resultado disponibles para tu plan en la muestra reciente.', 'Ver todos los resultados', '/historico', 'history') }}
         {% else %}{{ empty_state('Sin resultados disponibles para tu plan', 'Aquí aparecerán los pronósticos cerrados a los que tengas acceso. Las cifras generales corresponden al historial evaluable de la plataforma.', 'Ver pronósticos activos', '/picks', 'history') }}{% endif %}
       </section>
     </div>
@@ -84,7 +84,7 @@
   </section>
   <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Historial">
     {{ quick_action('Ver pronósticos', 'Consulta selecciones publicadas.', '/picks', 'target', 'cyan') }}
-    {{ quick_action('Abrir calendario', 'Consulta el catálogo deportivo.', '/calendar', 'matches', 'blue') }}
+    {{ quick_action('Abrir calendario', 'Consulta el catálogo deportivo.', '/calendario', 'matches', 'blue') }}
     {{ quick_action('Consultar SHARK', 'Revisa análisis disponibles.', '/shark', 'shark', 'green') }}
   </nav>
   {% endif %}

@@ -231,3 +231,21 @@ def test_v728_qa_uses_current_client_guard():
     assert report["hard_errors"] == []
     routes = {item["route"] for item in report["critical_screens"]}
     assert "/app" in routes and "/dashboard" not in routes
+
+
+def test_primary_client_surfaces_use_canonical_spanish_navigation_routes():
+    names = (
+        "templates/home.html",
+        "templates/client_app_center.html",
+        "templates/shark.html",
+        "templates/sports_hub.html",
+        "templates/recommendations.html",
+        "templates/favorites.html",
+        "templates/track_record.html",
+        "templates/client_menu.html",
+    )
+    combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in names)
+    legacy_route = __import__("re").compile(r"/(?:calendar|live|track-record)(?=(?:\\?|['\"\\s<>{}\\)]|$))")
+    assert legacy_route.search(combined) is None
+    for required in ("/calendario", "/directo", "/historico"):
+        assert required in combined
