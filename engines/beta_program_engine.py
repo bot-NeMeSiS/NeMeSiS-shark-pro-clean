@@ -17,12 +17,13 @@ MADRID = ZoneInfo("Europe/Madrid")
 BETA_PROGRAM_CONTRACT = "NEMESIS-BETA-PROGRAM-V1"
 FEEDBACK_PLATFORM_CONTRACT = "NEMESIS-FEEDBACK-PLATFORM-V1"
 BETA_METRICS_CONTRACT = "NEMESIS-BETA-METRICS-V1"
+FIRST_10_BETA_CONTRACT = "NEMESIS-FIRST-10-BETA-V1"
 
 FEEDBACK_TYPES = {
     "bug": "Bug reproducible",
     "feature_request": "Solicitud de mejora",
     "satisfaction": "Satisfacción",
-    "general": "Feedback general",
+    "general": "Comentarios generales",
 }
 
 FEEDBACK_CATEGORIES = {
@@ -35,7 +36,7 @@ FEEDBACK_CATEGORIES = {
     "shark": "SHARK",
     "telegram": "Telegram",
     "memberships": "Membresías",
-    "action_platform": "Action Platform",
+    "action_platform": "Plataforma de acciones",
     "user_intelligence": "Inteligencia de usuario",
     "mobile": "Móvil",
     "account": "Cuenta",
@@ -51,7 +52,7 @@ SEVERITIES = {
 }
 
 DEVICES = {
-    "desktop": "Desktop",
+    "desktop": "Escritorio",
     "tablet": "Tablet",
     "mobile": "Móvil",
     "unknown": "No indicado",
@@ -226,19 +227,38 @@ def build_beta_program_snapshot(
             "No mide éxito comercial ni satisfacción real si no existen respuestas suficientes.",
         ],
         "metrics": [
-            metric_definition("feedback_total", "Feedback recibido", feedback_total, "beta_feedback", "Total de envíos explicitos realizados desde el Beta Center.", "No incluye conversaciones externas ni mensajes no registrados."),
-            metric_definition("bug_total", "Bugs reportados", bug_total, "beta_feedback", "Envios clasificados como bug con estructura reproducible.", "Un bug reportado no equivale a bug confirmado hasta revisión humana."),
-            metric_definition("feature_total", "Solicitudes", feature_total, "beta_feedback", "Envios clasificados como solicitud de mejora.", "No implica aprobación de roadmap."),
-            metric_definition("satisfaction_average", "Satisfacción media", satisfaction_average if satisfaction_average is not None else "No certificada", "beta_feedback", "Media de puntuaciónes 1-5 enviadas voluntariamente.", "No se interpreta con muestras pequeñas."),
-            metric_definition("metrics_enabled", "Métricas aceptadas", metrics_enabled, "beta_feedback", "Envios donde el usuario permite usar el feedback para métricas agregadas.", "El usuario puede desactivar esta medici?n en cada envio."),
-            metric_definition("metrics_disabled", "Métricas desactivadas", metrics_disabled, "beta_feedback", "Envios donde el usuario no permite uso agregado para métricas.", "El feedback se conserva para soporte si se envio, pero no se usa en métricas agregadas."),
+            metric_definition("feedback_total", "Comentarios recibidos", feedback_total, "beta_feedback", "Total de envíos explícitos realizados desde el Centro Beta.", "No incluye conversaciones externas ni mensajes no registrados."),
+            metric_definition("bug_total", "Errores reportados", bug_total, "beta_feedback", "Envíos clasificados como error con estructura reproducible.", "Un error reportado no equivale a error confirmado hasta revisión humana."),
+            metric_definition("feature_total", "Solicitudes", feature_total, "beta_feedback", "Envíos clasificados como solicitud de mejora.", "No implica aprobación de roadmap."),
+            metric_definition("satisfaction_average", "Satisfacción media", satisfaction_average if satisfaction_average is not None else "No certificada", "beta_feedback", "Media de puntuaciones 1-5 enviadas voluntariamente.", "No se interpreta con muestras pequeñas."),
+            metric_definition("metrics_enabled", "Métricas aceptadas", metrics_enabled, "beta_feedback", "Envíos donde el usuario permite usar los comentarios para métricas agregadas.", "El usuario puede desactivar esta medición en cada envío."),
+            metric_definition("metrics_disabled", "Métricas desactivadas", metrics_disabled, "beta_feedback", "Envíos donde el usuario no permite uso agregado para métricas.", "Los comentarios se conservan para soporte si se envían, pero no se usan en métricas agregadas."),
         ],
         "feedback_sections": [
-            {"key": "bug", "title": "Bug Reporter", "purpose": "Registrar errores reproducibles con pasos, resultado esperado y resultado real."},
-            {"key": "feature_request", "title": "Feature Requests", "purpose": "Estructurar sugerencias sin convertirlas automáticamente en roadmap."},
-            {"key": "satisfaction", "title": "Satisfaction", "purpose": "Medir percepción voluntaria y agregada con posibilidad de desactivar métrica."},
-            {"key": "general", "title": "Feedback Center", "purpose": "Recoger claridad, fricción, valor percibido y problemas no técnicos."},
+            {"key": "bug", "title": "Reporte de error", "purpose": "Registrar errores reproducibles con pasos, resultado esperado y resultado real."},
+            {"key": "feature_request", "title": "Solicitud de mejora", "purpose": "Estructurar sugerencias sin convertirlas automáticamente en roadmap."},
+            {"key": "satisfaction", "title": "Satisfacción", "purpose": "Medir percepción voluntaria y agregada con posibilidad de desactivar la métrica."},
+            {"key": "general", "title": "Comentarios generales", "purpose": "Recoger claridad, fricción, valor percibido y problemas no técnicos."},
         ],
+        "first_10": {
+            "contract": FIRST_10_BETA_CONTRACT,
+            "campaign_id": "FIRST_10_USERS",
+            "status": "READY_FOR_PRIVATE_INVITES",
+            "target_users": 10,
+            "invite_path": "/landing?utm_source=referral&utm_medium=manual&utm_campaign=FIRST_10_USERS&ref=first10-founder",
+            "share_title": "NeMeSiS SHARK PRO · Beta privada",
+            "share_text": "Estoy probando NeMeSiS SHARK PRO con un grupo pequeño. Si te gusta seguir fútbol y quieres ayudarnos a mejorarla, puedes probarla gratis y contarme qué te resulta útil.",
+            "onboarding": [
+                {"step": 1, "title": "Crea tu cuenta", "body": "Entra con FREE; no necesitas comprar nada para probar la beta."},
+                {"step": 2, "title": "Abre el calendario", "body": "Elige un partido real y entra en su contexto."},
+                {"step": 3, "title": "Prueba SHARK", "body": "Revisa qué sabemos, qué falta y qué merece atención."},
+                {"step": 4, "title": "Cuéntanos qué mejorar", "body": "Después de usarla, deja una opinión breve desde esta misma página."},
+            ],
+            "success_definition": "Aprender si diez personas reales alcanzan primer valor, vuelven y entienden por qué NeMeSiS les resulta útil.",
+            "guardrails": ["Sin spam", "Sin gasto publicitario", "Sin promesas de beneficio", "Solo adultos", "Sin envío automático"],
+            "automatic_send": False,
+            "paid_ads": False,
+        },
         "privacy_controls": {
             "stores_sensitive_information": False,
             "stores_email": False,
@@ -260,7 +280,7 @@ def build_beta_program_snapshot(
         "recent_feedback": recent_feedback[:12],
         "counts": counts,
         "source_contracts": source_contracts,
-        "next_action": "Invitar un grupo pequeno de usuarios beta, recoger feedback estructurado y revisar el dashboard antes de decidir nuevas mejoras.",
+        "next_action": "Invitar un grupo pequeño de usuarios beta, recoger comentarios estructurados y revisar el embudo antes de decidir nuevas mejoras.",
         "production_modified": False,
         "deploy_executed": False,
         "push_executed": False,
@@ -270,6 +290,7 @@ def build_beta_program_snapshot(
 __all__ = [
     "BETA_METRICS_CONTRACT",
     "BETA_PROGRAM_CONTRACT",
+    "FIRST_10_BETA_CONTRACT",
     "FEEDBACK_PLATFORM_CONTRACT",
     "FEEDBACK_CATEGORIES",
     "FEEDBACK_TYPES",
