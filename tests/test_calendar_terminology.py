@@ -4,10 +4,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 def test_canonical_navigation_uses_calendario_and_keeps_internal_routes():
-    nav=(ROOT/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
+    nav=(ROOT/"templates/components/navigation_contracts.html").read_text(encoding="utf-8")
     assert "Calendario" in nav
     assert "/calendar" in nav
     assert "/partidos" in nav
+    renderer=(ROOT/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
+    assert "nav_contracts.CLIENT_LINKS" in renderer
 
 def test_home_entry_points_name_the_section_calendario():
     home=(ROOT/"templates/home.html").read_text(encoding="utf-8")
