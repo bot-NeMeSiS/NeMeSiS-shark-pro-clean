@@ -20,10 +20,10 @@
     {% if ns.matches %}<section class="v933-kpi-grid ns16-kpi-strip">
       {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/directo?f=live') }}
       {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/directo?f=break') }}
-      {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'En calendario', 'blue', 'history', '/calendar?lane=results') }}
+      {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'En calendario', 'blue', 'history', '/calendario?lane=results') }}
       {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/directo?f=with_pick') }}
     </section>{% endif %}
-    <nav class="v933-page-actions" aria-label="Fuera de Directo"><a class="v933-action" href="/app">Destacados en Inicio</a><a class="v933-action" href="/calendar?lane=results">Resultados</a></nav>
+    <nav class="v933-page-actions" aria-label="Fuera de Directo"><a class="v933-action" href="/app">Destacados en Inicio</a><a class="v933-action" href="/calendario?lane=results">Resultados</a></nav>
   </section>
 
   <p class="v934-realtime-meta" role="status" aria-live="polite" aria-atomic="true" data-directo-notice hidden></p>
