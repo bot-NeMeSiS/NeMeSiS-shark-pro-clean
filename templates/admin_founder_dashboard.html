@@ -55,7 +55,7 @@
 {% set issue_health = issue_ledger.health or {} %}
 <div class="v933-page v933-admin-command-center" data-founder-command-center="true" data-founder-contract="{{ founder.contract }}" data-founder-mode="read-only">
   {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
-    {'label':'Founder OS','href':'/admin/founder-os','primary':true,'icon':'dashboard'},
+    {'label':'Sistema fundador','href':'/admin/founder-os','primary':true,'icon':'dashboard'},
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
     {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},
@@ -236,7 +236,7 @@
       </div>
       <div class="v933-truth-list">
         <div>{{ icon('history') }}<span><strong>Desde la ultima revision</strong><small>{{ ce_comparison.summary or 'Sin historial suficiente todavia.' }}</small></span>{{ status_chip(ce_today.get('state') or 'INSUFFICIENT_HISTORY', 'warning') }}</div>
-        <div>{{ icon('shield') }}<span><strong>Scheduler</strong><small>{% if ce_control.get('paused') %}Pausado por administracion.{% else %}Preparado para ejecucion local segura; Render Cron no se modifica aqui.{% endif %}</small></span>{{ status_chip('PAUSADO' if ce_control.get('paused') else 'LOCAL','warning' if ce_control.get('paused') else 'neutral') }}</div>
+        <div>{{ icon('shield') }}<span><strong>Programador</strong><small>{% if ce_control.get('paused') %}Pausado por administracion.{% else %}Preparado para ejecucion local segura; Render Cron no se modifica aqui.{% endif %}</small></span>{{ status_chip('PAUSADO' if ce_control.get('paused') else 'LOCAL','warning' if ce_control.get('paused') else 'neutral') }}</div>
         <div>{{ icon('code') }}<span><strong>Preparado para Codex</strong><small>{% if ce_items %}{{ ce_items[0].title }}{% else %}Aun no hay brief generado.{% endif %}</small></span>{{ status_chip('APROBACION HUMANA','warning') }}</div>
       </div>
       {% if ce_brief.text %}
@@ -246,7 +246,7 @@
           {% endfor %}
         </div>
       {% else %}
-        {{ empty_state('Sin brief todavia', 'Ejecuta una revision controlada para generar snapshot, comparacion, Founder Brief y bandeja Codex.', '', '', 'history') }}
+        {{ empty_state('Sin brief todavia', 'Ejecuta una revision controlada para generar snapshot, comparacion, resumen del fundador y bandeja Codex.', '', '', 'history') }}
       {% endif %}
       <details class="v933-safe-copy">
         <summary>Ver detalles tecnicos</summary>
@@ -264,7 +264,7 @@
         {% else %}
           <button class="v933-action is-blue" type="submit" formaction="/admin/founder-dashboard/continuous-evolution/pause">{{ icon('pause') }}<span>Pausar evolucion</span></button>
         {% endif %}
-        <a class="v933-action is-blue" href="/admin/product-review-center">{{ icon('arrow') }}<span>Product Review</span></a>
+        <a class="v933-action is-blue" href="/admin/product-review-center">{{ icon('arrow') }}<span>Revisión de producto</span></a>
         <a class="v933-action is-blue" href="/admin/executive-board">{{ icon('arrow') }}<span>Executive Board</span></a>
       </form>
     </div>
@@ -484,7 +484,7 @@
       </section>
 
       <section class="v933-admin-panel" id="release-readiness">
-        <header><div><h2>Release Readiness</h2><p>Estado comercial y operativo para beta/release, sin certificar producción desde esta pantalla.</p></div>{{ status_chip(release.status or 'PARTIAL', 'success' if release.status == 'PASS' else 'danger' if release.status == 'BLOCKED' else 'warning') }}</header>
+        <header><div><h2>Preparación de publicación</h2><p>Estado comercial y operativo para beta/release, sin certificar producción desde esta pantalla.</p></div>{{ status_chip(release.status or 'PARTIAL', 'success' if release.status == 'PASS' else 'danger' if release.status == 'BLOCKED' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
             {{ kpi_card('Score release', release.score, 'Procede de Centro de operaciones', 'blue', 'target') }}
@@ -501,7 +501,7 @@
       </section>
 
       <section class="v933-admin-panel" id="customer-overview">
-        <header><div><h2>Customer Overview</h2><p>Visión agregada y respetuosa con privacidad. No se muestran emails, tokens ni datos personales.</p></div>{{ evidence_chip(customer.privacy_state) }}</header>
+        <header><div><h2>Resumen de clientes</h2><p>Visión agregada y respetuosa con privacidad. No se muestran emails, tokens ni datos personales.</p></div>{{ evidence_chip(customer.privacy_state) }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
             {{ kpi_card('Registrados', customer.registered, 'Usuarios agregados', 'blue', 'users') }}
