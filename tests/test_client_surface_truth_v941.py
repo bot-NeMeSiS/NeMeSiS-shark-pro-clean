@@ -336,3 +336,12 @@ def test_primary_client_surfaces_use_canonical_spanish_navigation_routes():
             assert route + suffix not in combined
     for required in ("/calendario", "/directo", "/historico"):
         assert required in combined
+
+
+def test_track_record_uses_spanish_void_copy_without_changing_filter_key():
+    source = (ROOT / "templates/track_record.html").read_text(encoding="utf-8")
+    assert "'label':'Void'" not in source
+    assert 'ui("Void")' not in source
+    assert "'label':'Anulados'" in source
+    assert 'ui("Anulados")' in source
+    assert "'key':'void'" in source
