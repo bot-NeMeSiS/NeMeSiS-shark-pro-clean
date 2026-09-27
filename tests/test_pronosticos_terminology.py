@@ -9,8 +9,10 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_spanish_ui_uses_pronostico_but_internal_route_stays_picks():
     assert preferred_terms("Pick · Picks · pick(s)", "es") == "Pronóstico · Pronósticos · pronóstico(s)"
     assert translate("Picks", "es") == "Pronósticos"
-    nav=(ROOT/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
+    nav=(ROOT/"templates/components/navigation_contracts.html").read_text(encoding="utf-8")
     assert "Pronósticos" in nav and "/picks" in nav
+    renderer=(ROOT/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
+    assert "nav_contracts.CLIENT_LINKS" in renderer
 
 def test_browser_guard_is_text_only():
     js=(ROOT/"static/ui-localization.js").read_text(encoding="utf-8")
