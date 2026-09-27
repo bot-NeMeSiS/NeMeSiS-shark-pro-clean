@@ -79,11 +79,24 @@ def test_market_and_combi_query_links_use_real_query_separator():
     root=Path(__file__).resolve().parents[1]
     app=(root/"app.py").read_text(encoding="utf-8")
     assert "ítipo" not in app
+    assert "/combisí" not in app
     for href in (
         "/mercados?tipo=1x2",
         "/mercados?tipo=goles",
         "/mercados?tipo=doble",
-        "/combis?tipo=mixta&partidos=3",
-        "/combis?tipo=responsable&partidos=3",
+        "/combinadas?tipo=mixta&partidos=3",
+        "/combinadas?tipo=responsable&partidos=3",
     ):
         assert href in app
+
+
+def test_client_facing_combi_navigation_prefers_canonical_route(app_module):
+    recommended=app_module.client_command_center_data({"id":"qa","membership":"PRO","role":"PRO"}, briefing={
+        "counts":{"favorites":0,"upcoming":0,"picks":0},
+    })["recommended_tabs"]
+    combinadas=[item for item in recommended if item["label"]=="Combinadas"]
+    assert len(combinadas)==1 and combinadas[0]["href"]=="/combinadas"
+
+    architecture=app_module.v776_client_information_architecture_snapshot()["routes"]
+    canonical=[item for item in architecture if item["label"]=="Combinadas"]
+    assert len(canonical)==1 and canonical[0]["href"]=="/combinadas"
