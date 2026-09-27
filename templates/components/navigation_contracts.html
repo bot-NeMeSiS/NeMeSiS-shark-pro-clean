@@ -65,12 +65,15 @@
 ] %}
 
 {% macro is_active(href, path, scope='client') -%}
+{%- set contextual = '#' in href or '?' in href -%}
 {%- set clean_href = href.split('#')[0].split('?')[0] -%}
 {%- set calendar_aliases = ['/calendario','/calendario-global','/partidos','/partidos/calendario'] -%}
 {%- set picks_aliases = ['/combis','/combinadas'] -%}
-{%- if path == clean_href
-    or (clean_href == '/calendar' and path in calendar_aliases)
-    or (clean_href == '/picks' and path in picks_aliases)
-    or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
-    or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/')) -%}1{%- endif -%}
+{%- if not contextual and (
+       path == clean_href
+       or (clean_href == '/calendar' and path in calendar_aliases)
+       or (clean_href == '/picks' and path in picks_aliases)
+       or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
+       or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/'))
+    ) -%}1{%- endif -%}
 {%- endmacro %}
