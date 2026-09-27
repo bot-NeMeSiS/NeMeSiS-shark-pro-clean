@@ -19,7 +19,7 @@
       {{ action_button('Plan actual' if current_plan == 'FREE' else 'Crear cuenta', '/app' if current_user else '/registro', current_plan != 'FREE', 'blue', current_plan == 'FREE') }}
     </article>
 
-    {% for key, tone, description, benefits in [('PRO','cyan','Experiencia completa',['Pronósticos completos según datos reales','Alertas Telegram','SHARK con contexto disponible','Historial cuando exista']),('ELITE','gold','Prioridad y acceso avanzado',['Todo lo incluido en PRO','Alertas prioritarias','Soporte según disponibilidad','Acceso anticipado a funciones'])] %}
+    {% for key, tone, description, benefits in [('PRO','cyan','Más contexto y funciones del plan',['Pronósticos PRO cuando estén publicados','Opciones de Telegram del plan','SHARK con contexto disponible','Historial evaluable']),('ELITE','gold','Acceso ampliado',['Todo lo disponible en PRO','Pronósticos y combinadas ELITE','SHARK con contexto ampliado','Funciones ELITE cuando estén habilitadas'])] %}
     {% set plan = plans.get(key) or {} %}{% set price_label = plan.get('price_label') or '' %}
     <article class="v933-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}">
       <header><div><span>{{ ui("Plan") }}</span><h3>{{ key }}</h3></div>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
@@ -39,7 +39,7 @@
       <article>{{ icon('shield') }}<strong>+18</strong><p>{{ ui("Solo para mayores de edad.") }}</p></article>
       <article>{{ icon('check') }}<strong>{{ ui("Juego responsable") }}</strong><p>{{ ui("Sin beneficios garantizados.") }}</p></article>
       <article>{{ icon('data') }}<strong>{{ ui("Plataforma informativa") }}</strong><p>{{ ui("No somos casa de apuestas.") }}</p></article>
-      <article>{{ icon('payments') }}<strong>{{ ui("Checkout") }}</strong><p>{{ ui('Stripe configurado' if pay.get('checkout_ready') else 'Configuración pendiente') }}.</p></article>
+      <article>{{ icon('payments') }}<strong>{{ ui("Pago seguro") }}</strong><p>{{ ui('Stripe disponible' if pay.get('checkout_ready') else 'Pago pendiente de configuración') }}.</p></article>
     </div>
   </section>
 </div>
