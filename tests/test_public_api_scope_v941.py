@@ -264,3 +264,14 @@ def test_user_specific_client_feeds_require_login(client):
         assert response.status_code==401,(path,response.status_code)
         assert response.get_json()["error"]=="login_required"
 
+
+def test_product_experience_check_is_admin_only(client):
+    assert client.get("/api/product-experience-check").status_code==403
+
+
+def test_account_pulse_and_onboarding_require_login(client):
+    for path in ("/api/client/app-pulse","/api/client/onboarding-check"):
+        response=client.get(path)
+        assert response.status_code==401,(path,response.status_code)
+        assert response.get_json()["error"]=="login_required"
+
