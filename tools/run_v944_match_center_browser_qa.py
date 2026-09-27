@@ -276,7 +276,7 @@ def main() -> int:
                 launch_options["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
             browser = pw.chromium.launch(**launch_options)
             for profile, (width, height) in PROFILES.items():
-                context = browser.new_context(viewport={"width": width, "height": height}, service_workers="block")
+                context = browser.new_context(viewport={"width": width, "height": height}, service_workers="block", locale="es-ES", timezone_id="Europe/Madrid")
                 external = []
 
                 def route_guard(route):

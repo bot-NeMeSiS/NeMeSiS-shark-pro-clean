@@ -189,7 +189,7 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
 
 
 def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport: dict, origins: list[str], timeout: int) -> list[dict]:
-    context = browser.new_context(viewport=viewport, service_workers="block")
+    context = browser.new_context(viewport=viewport, service_workers="block", locale="es-ES", timezone_id="Europe/Madrid")
     if profile.startswith(("client_", "admin_")):
         role = "admin" if profile.startswith("admin_") else "_".join(profile.split("_")[:2])
         if role not in sessions:

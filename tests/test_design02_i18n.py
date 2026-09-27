@@ -152,3 +152,26 @@ def test_summary_locale_preserves_canonical_state_and_unknown_score(language, ki
     if kind == 'POSTPONED_SUMMARY':
         assert ('postponed' in rendered if language == 'en' else 'reporté' in rendered)
         assert '0-0' not in rendered
+
+
+def test_current_home_vocabulary_has_complete_en_fr_translations():
+    for source in (
+        "Pronósticos activos",
+        "Pronóstico destacado",
+        "Todavía no hay pronósticos publicados",
+        "Combinadas",
+    ):
+        for language in ("en", "fr"):
+            assert translate(source, language) != source
+
+
+def test_visual_qa_defaults_to_spanish_madrid_context():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    for path in (
+        root / "tools/run_v929_click_navigation_qa.py",
+        root / "tools/run_v944_match_center_browser_qa.py",
+    ):
+        source = path.read_text(encoding="utf-8")
+        assert 'locale="es-ES"' in source
+        assert 'timezone_id="Europe/Madrid"' in source
