@@ -22565,7 +22565,6 @@ def combis_page():
     data["v765_markets"] = v765_markets_context(data, user)
     data["v765_combis"] = v765_combi_context(data, user, requested_count)
     data["requested_combi_count"] = requested_count
-    record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
 
 
@@ -22592,7 +22591,6 @@ def alerts_page():
     if not current_session_user():
         return redirect("/cliente-login")
     data = dashboard_data()
-    record_user_activity("view", "alerts", "client-alerts", {"count": len(data.get("client_alerts") or [])})
     return render_template("alerts.html", data=data)
 
 
@@ -22614,7 +22612,6 @@ def daily_briefing_page():
     data = dashboard_data()
     data["briefing"] = build_daily_briefing(current_session_user())
     data["client_command"] = client_command_center_data(current_session_user())
-    record_user_activity("view", "briefing", "daily-briefing", {"score": data["briefing"].get("score")})
     return render_template("daily_briefing.html", data=data)
 
 
@@ -30964,10 +30961,6 @@ def v758_adaptive_experience_page():
     data["client_premium"] = build_client_app_premium_context(data, user)
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v758_adaptive"] = v758_adaptive_context(data, user, "adaptive")
-    try:
-        record_user_activity("view", "adaptive_experience", "v758-adaptive", {"mode": data["v758_adaptive"].get("mode_label")})
-    except Exception:
-        pass
     return render_template("adaptive_experience.html", data=data)
 
 
