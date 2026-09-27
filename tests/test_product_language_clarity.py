@@ -11,7 +11,7 @@ def test_client_navigation_and_history_use_clear_spanish():
     assert "Historial" in nav and "Histórico" not in nav
     assert "Rentabilidad (ROI)" in history
     assert "Acierto" in history
-    assert "Unidades recomendadas" in history
+    assert "Unidades registradas" in history
     assert "grading" not in history
     assert "Winrate" not in history
 
@@ -240,3 +240,13 @@ def test_client_telegram_never_promises_delivery_when_channel_is_not_ready():
     assert "Pronósticos disponibles" in text
     assert "Esta pantalla no envía mensajes por sí sola" in text
     assert "status_chip('Listo' if telegram_ready else 'En espera'" in text
+
+
+def test_membership_benefits_are_conditional_and_payment_copy_is_plain_spanish():
+    text=read("templates/membership.html")
+    for token in ("Experiencia completa","Prioridad y acceso avanzado","Alertas prioritarias","Acceso anticipado a funciones",">Checkout<"):
+        assert token not in text
+    assert "Pronósticos PRO cuando estén publicados" in text
+    assert "Funciones ELITE cuando estén habilitadas" in text
+    assert "Pago seguro" in text
+    assert "Pago pendiente de configuración" in text
