@@ -132,6 +132,9 @@ def test_navigation_renderers_share_canonical_contract_source():
     assert "CLIENT_LINKS" in contract and "ADMIN_LINKS" in contract
     assert "/calendario-global" in contract and "/partidos/calendario" in contract
     assert "/combis" in contract and "/combinadas" in contract
+    mobile_contract=contract.split("{% set CLIENT_MOBILE_LINKS = [",1)[1].split("] %}",1)[0]
+    assert "('SHARK','/shark','shark')" in mobile_contract
+    assert "('Cuenta','/profile','user')" not in mobile_contract
     for name in ("v928_navigation.html","v930_navigation.html","v933_navigation.html"):
         source=(root/"templates/components"/name).read_text(encoding="utf-8")
         assert 'navigation_contracts.html' in source
