@@ -171,7 +171,7 @@ jobs:
           echo "Preflight authorized for event=$GITHUB_EVENT_NAME ref=$GITHUB_REF sha=$GITHUB_SHA"
 
       - name: Upload preflight evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: render-preflight-${{ github.run_id }}
@@ -256,7 +256,7 @@ jobs:
             --output-dir reports/production_quality_sentinel
 
       - name: Upload post-deploy evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: render-post-deploy-${{ github.run_id }}
