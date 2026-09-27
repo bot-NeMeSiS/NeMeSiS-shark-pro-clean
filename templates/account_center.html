@@ -33,7 +33,7 @@
         <article class="v799-card"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong><p>Partidos, equipos o picks guardados.</p><a class="v799-button" href="/favorites">Abrir favoritos</a></article>
       </section>
 
-      <article class="v799-card"><div class="v799-section-head"><div><span>Actividad real</span><h2>Últimos movimientos</h2></div><a href="/actividad">Ver todo →</a></div><div class="v799-activity-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ item.label or 'Actividad registrada' }}</strong><em>{{ item.target_type or item.activity_type or 'Cuenta' }}</em></div>{% else %}<div class="v799-empty">Todavía no hay actividad suficiente. Cuando abras partidos, picks o favoritos aparecerá aquí.</div>{% endfor %}</div></article>
+      <article class="v799-card"><div class="v799-section-head"><div><span>Actividad de cuenta</span><h2>Últimas acciones guardadas</h2></div><a href="/actividad">Ver todo →</a></div><div class="v799-activity-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ item.label or 'Actividad registrada' }}</strong></div>{% else %}<div class="v799-empty">No hay acciones guardadas todavía. Abrir páginas o consultar pronósticos no añade un registro de navegación.</div>{% endfor %}</div></article>
     </div>
 
     <aside class="v799-context-panel">
