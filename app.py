@@ -12637,6 +12637,15 @@ def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
         for dest in destinations:
             if dest.get("target_kind") == "private" and not membership_allows(dest.get("membership"), required):
                 continue
+            preference_allowed, preference_reason = telegram_destination_allows_message(dest, "auto_pick", pick)
+            if not preference_allowed:
+                dedupe_details.append({
+                    "blocked": True,
+                    "reason": preference_reason,
+                    "destination": masked_key(dest.get("chat_id") or dest.get("user_id") or "global"),
+                    "target_kind": dest.get("target_kind"),
+                })
+                continue
             dedupe = telegram_auto_pick_dedupe_status(pick, dest)
             dedupe_details.append({**dedupe, "destination": masked_key(dest.get("chat_id") or dest.get("user_id") or "global"), "target_kind": dest.get("target_kind")})
             if dedupe.get("blocked"):
@@ -13223,9 +13232,10 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
         if dest.get("target_kind") == "private" and not membership_allows(dest.get("membership"), required):
             blocked += 1
             continue
-        if not force and telegram_sent_today(dest.get("chat_id"), "auto_pick") >= cfg["max_auto_picks_per_day"]:
+        effective_daily_limit = min(cfg["max_auto_picks_per_day"], telegram_destination_daily_limit(dest))
+        if not force and telegram_sent_today(dest.get("chat_id")) >= effective_daily_limit:
             blocked += 1
-            telegram_log("[QUEUE]", "skipped", "Auto pick omitido por límite diario PRO.", {"chat_id": masked_key(dest.get("chat_id")), "limit": cfg["max_auto_picks_per_day"]})
+            telegram_log("[QUEUE]", "skipped", "Auto pick omitido por límite diario del destino.", {"chat_id": masked_key(dest.get("chat_id")), "limit": effective_daily_limit})
             continue
         result = enqueue_telegram_message(
             "auto_pick",
@@ -13252,7 +13262,7 @@ def enqueue_live_alerts(force=False):
     if not settings.get("auto_live_alerts") and not force:
         return {"ok": True, "status": "NO_LIVE_ALERTS", "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_LIVE_ALERTS"]}
     live_matches = match_hub(today_iso(), "live").get("live") or []
-    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"ELITE", "ADMIN"}]
+    subscribers = telegram_auto_destinations("ELITE", include_global=False)
     inserted = skipped = 0
     for match in live_matches[:8]:
         match = telegram_enrich_match_for_message(match)
@@ -13261,6 +13271,13 @@ def enqueue_live_alerts(force=False):
             continue
         body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
         for sub in subscribers:
+            allowed, _reason = telegram_destination_allows_message(sub, "live_alert", match)
+            if not allowed:
+                skipped += 1
+                continue
+            if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+                skipped += 1
+                continue
             result = enqueue_telegram_message(
                 "live_alert",
                 "Alerta live",
@@ -13497,6 +13514,34 @@ def process_premium_telegram_queue(limit=5, force=False):
     for item in pending:
         chat_id = item.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
         message_type = item.get("message_type") or "queue"
+        try:
+            item_payload = json.loads(item.get("payload_json") or "{}")
+        except Exception:
+            item_payload = {}
+        item_user_id = item.get("user_id") or item_payload.get("user_id") or ""
+        global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+        target_kind = item_payload.get("target_kind") or ("channel" if global_chat_id and str(chat_id) == global_chat_id else "private")
+        destination = {
+            "chat_id": chat_id,
+            "user_id": item_user_id,
+            "membership": item_payload.get("membership") or "FREE",
+            "target_kind": target_kind,
+            "telegram_preferences": telegram_destination_preferences_for(item_user_id, item_payload.get("membership") or "FREE") if target_kind == "private" and item_user_id else {},
+        }
+        preference_item = {}
+        visual_payload = item_payload.get("visual_card_payload")
+        if isinstance(visual_payload, dict):
+            preference_item = visual_payload.get("pick") or visual_payload.get("match") or visual_payload.get("highlight") or {}
+        allowed, preference_reason = telegram_destination_allows_message(destination, message_type, preference_item if isinstance(preference_item, dict) else {})
+        if telegram_message_is_automatic(message_type) and not allowed and not force:
+            conn = db()
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, preference_reason or "telegram_preference_blocked", now_iso(), item.get("id")))
+            conn.commit()
+            conn.close()
+            skipped += 1
+            skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": preference_reason or "PREFERENCE_BLOCKED", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
+            continue
+
         if telegram_should_delay_message(message_type, force=force):
             skipped += 1
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "OUTSIDE_PRO_WINDOW", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
@@ -13508,14 +13553,15 @@ def process_premium_telegram_queue(limit=5, force=False):
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "HOURLY_LIMIT", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
             telegram_log("[QUEUE_DELAY]", "skipped", "Mensaje retenido por límite horario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": hourly_limit})
             continue
-        if telegram_message_is_automatic(message_type) and telegram_sent_today(chat_id) >= cfg["max_messages_per_day"] and not force:
+        destination_limit = min(cfg["max_messages_per_day"], telegram_destination_daily_limit(destination))
+        if telegram_message_is_automatic(message_type) and telegram_sent_today(chat_id) >= destination_limit and not force:
             conn = db()
-            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_dia_pro", now_iso(), item.get("id")))
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_dia_destino", now_iso(), item.get("id")))
             conn.commit()
             conn.close()
             skipped += 1
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "DAILY_LIMIT", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
-            telegram_log("[QUEUE_SKIP_LIMIT]", "skipped", "Mensaje omitido por límite diario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": cfg["max_messages_per_day"]})
+            telegram_log("[QUEUE_SKIP_LIMIT]", "skipped", "Mensaje omitido por límite diario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": destination_limit})
             continue
         telegram_log("[QUEUE_PROCESS]", "sending", "Procesando item de cola Telegram.", {"queue_id": item.get("id"), "message_type": message_type, "chat_id": masked_key(chat_id)})
         conn = db()
@@ -13945,16 +13991,29 @@ def enqueue_v771_telegram_activity(force=False, limit=6):
             skipped += 1
             continue
         for dest in destinations:
-            kind = candidate.get("kind") or "activity"
-            destination_body = premium_text_html(v771_format_activity_candidate(candidate, membership=dest.get("membership")))
-            dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
+            filtered_candidate, _preference_reason = telegram_filter_candidate_for_destination(candidate, dest)
+            if not filtered_candidate:
+                skipped += 1
+                continue
+            if not force and telegram_sent_today(dest.get("chat_id")) >= telegram_destination_daily_limit(dest):
+                skipped += 1
+                continue
+            kind = filtered_candidate.get("kind") or "activity"
+            destination_body = premium_text_html(v771_format_activity_candidate(filtered_candidate, membership=dest.get("membership")))
+            if not destination_body:
+                skipped += 1
+                continue
+            dedupe_key = f"{filtered_candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
             result = enqueue_telegram_message(
                 kind,
-                candidate.get('title') or "Actividad SHARK",
+                filtered_candidate.get('title') or "Actividad SHARK",
                 destination_body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
-                payload=v771_activity_payload(candidate, dest),
+                payload=v771_activity_payload(filtered_candidate, dest) | {
+                    "telegram_preferences_contract": (dest.get("telegram_preferences") or {}).get("contract"),
+                    "preference_filter": "applied",
+                },
                 dedupe_key=dedupe_key,
                 force=force,
             )
