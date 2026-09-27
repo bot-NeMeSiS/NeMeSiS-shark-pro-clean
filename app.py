@@ -27318,8 +27318,10 @@ def api_admin_team_identity():
 
 @app.route("/api/team/resolve", methods=["GET", "POST"])
 def api_team_resolve():
-    team = str(request.values.get("team") or request.values.get("name") or "").strip()[:120]
-    refresh_requested = str(request.values.get("refresh") or "").strip().lower() in {"1", "true", "yes", "on"}
+    payload = request.get_json(silent=True) if request.is_json else {}
+    payload = payload if isinstance(payload, dict) else {}
+    team = str(request.args.get("team") or request.form.get("team") or payload.get("team") or request.args.get("name") or request.form.get("name") or payload.get("name") or "").strip()[:120]
+    refresh_requested = str(request.args.get("refresh") or request.form.get("refresh") or payload.get("refresh") or "").strip().lower() in {"1", "true", "yes", "on"}
     if request.method == "GET":
         if refresh_requested:
             return jsonify({
