@@ -393,6 +393,8 @@ def test_remaining_direct_surfaces_use_canonical_spanish_routes():
     sources={name:(ROOT / name).read_text(encoding="utf-8") for name in paths}
     assert "'href':'/calendar'" not in sources["templates/live.html"]
     assert "'href':'/calendario'" in sources["templates/live.html"]
+    assert "/calendar?" not in sources["templates/live.html"]
+    assert "/calendario?lane=results" in sources["templates/live.html"]
     assert "/live?f=" not in sources["templates/live.html"]
     assert "/directo?f=" in sources["templates/live.html"]
     assert "'Abrir calendario', '/calendar'" not in sources["templates/live.html"]
