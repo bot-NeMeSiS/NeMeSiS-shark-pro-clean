@@ -1,94 +1,128 @@
 {% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, icon %}
 {% block content %}
-<section class="hero compact-hero v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v845-template="shark_core" data-v827-template="shark_core" data-v828-template="shark_core" data-v829-template="shark_core" data-v830-template="shark_core" data-v832-template="shark_core" data-v833-template="shark_core" data-v836-template="shark_core" data-v837-template="shark_core" data-v826-template="shark_core">
-  <div>
-    <p class="eyebrow">Inteligencia SHARK Core</p>
-    <h1>Tu cerebro deportivo del día</h1>
-    <p class="muted">{{ shark.main_message }}</p>
-  </div>
-  <div class="score-card">
-    <span class="score-number">{{ shark.score }}</span>
-    <span class="muted">Score SHARK</span>
-    <strong>{{ shark.priority }}</strong>
-  </div>
-</section>
+{% set counts = shark.get('counts') or {} %}
+{% set sections = shark.get('sections') or {} %}
+{% set top_pick = shark.get('top_pick') %}
+{% set top_recommendation = shark.get('top_recommendation') %}
+{% set upcoming = sections.get('upcoming') or [] %}
+{% set published_picks = sections.get('picks') or [] %}
+{% set user = shark.get('user') or {} %}
 
-<section class="grid cards-3 v826-certified-screen" data-v826-template="shark_core">
-  <article class="card">
-    <p class="eyebrow">Pronóstico destacado</p>
-    {% if shark.top_pick %}
-      <h3>{{ shark.top_pick.home_team or shark.top_pick.title }} vs {{ shark.top_pick.away_team or '' }}</h3>
-      <p>{{ shark.top_pick.selection or shark.top_pick.market or 'Pronóstico publicado' }}</p>
-      <a class="btn" href="/picks">Ver pronósticos</a>
-    {% else %}
-      <h3>Sin pronóstico publicado ahora</h3>
-      <p class="muted">SHARK mostrará pronósticos cuando existan datos y pronósticos publicados.</p>
-      <a class="btn ghost" href="/auto-picks">Ver auto picks</a>
-    {% endif %}
-  </article>
+<div class="v933-page v933-shark-page v933-shark-core-page" data-v933-template="shark-core" data-shark-core-contract="evidence-first">
+  {{ page_header(
+      'SHARK Core',
+      'Resumen deportivo basado en datos disponibles',
+      'shark',
+      [
+        {'label':'Preguntar a SHARK','href':'/shark','primary':true,'icon':'shark'},
+        {'label':'Calendario','href':'/calendar','icon':'calendar'},
+        {'label':'Pronósticos','href':'/picks','icon':'target'}
+      ]
+  ) }}
 
-  <article class="card">
-    <p class="eyebrow">Mejor oportunidad</p>
-    {% if shark.top_recommendation %}
-      <h3>{{ shark.top_recommendation.home_team }} vs {{ shark.top_recommendation.away_team }}</h3>
-      <p>Score {{ shark.top_recommendation.shark_score or shark.top_recommendation.score or '-' }}  Riesgo {{ shark.top_recommendation.risk_level or shark.top_recommendation.risk or 'MEDIO' }}</p>
-      <a class="btn" href="/recomendaciones">Ver recomendaciones</a>
-    {% else %}
-      <h3>Analizando próximos partidos</h3>
-      <p class="muted">No se inventan recomendaciones si faltan datos reales.</p>
-    {% endif %}
-  </article>
+  <section class="v933-kpi-grid" aria-label="Estado SHARK Core">
+    {{ kpi_card('Índice de contexto', shark.get('score') if shark.get('score') is not none else '—', 'Indicador interno; no es probabilidad de acierto', 'cyan', 'shark') }}
+    {{ kpi_card('En directo', counts.get('live') if counts.get('live') is not none else '—', 'Solo partidos con estado disponible', 'success', 'live', '/live') }}
+    {{ kpi_card('Pronósticos publicados', published_picks|length, 'Contenido visible para tu plan', 'blue', 'target', '/picks') }}
+    {{ kpi_card('Favoritos', counts.get('favorites') if counts.get('favorites') is not none else '—', 'Contexto personal disponible', 'gold', 'star', '/favorites') }}
+  </section>
 
-  <article class="card">
-    <p class="eyebrow">Directo y favoritos</p>
-    <h3>{{ shark.counts.live }} directo  {{ shark.counts.favorites }} favoritos</h3>
-    <p class="muted">SHARK cruza favoritos, directo, pronósticos y calendario para priorizar lo importante.</p>
-    <a class="btn ghost" href="/favorites">Mis favoritos</a>
-  </article>
-</section>
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Lectura principal', 'Prioridad informativa, sin promesas de resultado.') }}
+        {% if top_pick %}
+          <div class="v933-truth-list">
+            <div>
+              {{ icon('target') }}
+              <span>
+                <strong>{{ top_pick.get('home_team') or top_pick.get('title') or 'Partido' }}{% if top_pick.get('away_team') %} vs {{ top_pick.get('away_team') }}{% endif %}</strong>
+                <small>{{ top_pick.get('selection') or top_pick.get('market') or 'Pronóstico publicado' }}</small>
+              </span>
+              {{ status_chip('Publicado','success') }}
+            </div>
+          </div>
+          <div class="v933-quick-actions">
+            {{ quick_action('Abrir pronósticos', 'Revisar selección, cuota, riesgo y contexto', '/picks', 'target', 'cyan') }}
+            {{ quick_action('Preguntar a SHARK', 'Pedir una explicación del contexto disponible', '/shark?q=pick', 'shark') }}
+          </div>
+        {% else %}
+          {{ empty_state('Sin pronóstico publicado', 'SHARK no crea una selección si todavía no existe un pronóstico publicable.', 'Abrir calendario', '/calendar', 'shark') }}
+        {% endif %}
+      </section>
 
-<section class="card v826-certified-screen" data-v826-template="shark_core">
-  <div class="section-head">
-    <div>
-      <p class="eyebrow">Preguntas rápidas</p>
-      <h2>Qué puedes pedirle a SHARK</h2>
-    </div>
-  </div>
-  <div class="quick-grid">
-    {% for q in shark.quick_questions %}
-      <form method="post" action="/shark" class="chip-form"><input type="hidden" name="q" value="{{ q.question }}"><button class="chip" type="submit">{{ q.label }}  {{ q.question }}</button></form>
-    {% endfor %}
-  </div>
-</section>
+      <section class="v933-panel">
+        {{ section_header('Próximos partidos', 'Agenda guardada y ordenada sin inventar disponibilidad.') }}
+        {% if upcoming %}
+          <div class="v933-truth-list">
+            {% for match in upcoming[:6] %}
+              <div>
+                {{ icon('calendar') }}
+                <span>
+                  <strong>{{ match.get('safe_home') or match.get('home_team') or 'Local' }} vs {{ match.get('safe_away') or match.get('away_team') or 'Visitante' }}</strong>
+                  <small>{{ (match.get('safe_competition') or match.get('competition_name') or match.get('league_name') or 'Competición')|competition_es }} · {{ match|match_time_label }}</small>
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          {{ empty_state('Sin próximos partidos guardados', 'El calendario mostrará los eventos cuando exista información disponible.', 'Abrir calendario', '/calendar', 'calendar') }}
+        {% endif %}
+      </section>
 
-<section class="grid cards-2 v826-certified-screen" data-v826-template="shark_core">
-  <article class="card">
-    <h2>Próximos importantes</h2>
-    {% if shark.sections.upcoming %}
-      {% for m in shark.sections.upcoming[:6] %}
-        <div class="mini-row">
-          <span>{{ m.safe_home or m.home_team }} vs {{ m.safe_away or m.away_team }}</span>
-          <small>{{ (m.safe_competition or m.competition_name or m.league_name)|competition_es }}  {{ m|match_time_label }}</small>
+      <section class="v933-panel">
+        {{ section_header('Preguntas rápidas', 'Cada consulta se envía explícitamente por POST y cuenta según tu plan.') }}
+        <div class="v933-quick-actions">
+          {% for q in shark.get('quick_questions') or [] %}
+            <form method="post" action="/shark" class="chip-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="q" value="{{ q.get('question') or '' }}">
+              <button class="v933-quick-action" type="submit">
+                {{ icon('shark') }}
+                <span><strong>{{ q.get('label') or 'Consultar' }}</strong><small>{{ q.get('question') or 'Abrir consulta SHARK' }}</small></span>
+                {{ icon('arrow') }}
+              </button>
+            </form>
+          {% endfor %}
         </div>
-      {% endfor %}
-    {% else %}
-      <p class="muted">No hay próximos partidos cacheados todavía.</p>
-    {% endif %}
-  </article>
+      </section>
+    </div>
 
-  <article class="card">
-    <h2>Memoria preparada</h2>
-    <p class="muted">SHARK ya guarda actividad básica para personalizar favoritos, picks y recomendaciones futuras.</p>
-    <ul class="clean-list">
-      <li>Favoritos consultados</li>
-      <li>Pronósticos y recomendaciones abiertas</li>
-      <li>Resumen diario y contexto en directo</li>
-    </ul>
-  </article>
-</section>
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Recomendación disponible', 'Contexto adicional, no una apuesta garantizada.') }}
+        {% if top_recommendation %}
+          <div class="v933-truth-list">
+            <div>
+              {{ icon('shark') }}
+              <span>
+                <strong>{{ top_recommendation.get('home_team') or 'Local' }} vs {{ top_recommendation.get('away_team') or 'Visitante' }}</strong>
+                <small>
+                  {% if top_recommendation.get('risk_level') or top_recommendation.get('risk') %}Riesgo: {{ top_recommendation.get('risk_level') or top_recommendation.get('risk') }}{% else %}Riesgo pendiente{% endif %}
+                  {% if top_recommendation.get('shark_score') or top_recommendation.get('score') %} · Indicador {{ top_recommendation.get('shark_score') or top_recommendation.get('score') }}{% endif %}
+                </small>
+              </span>
+            </div>
+          </div>
+          {{ quick_action('Ver recomendaciones', 'Abrir el contexto completo disponible', '/recomendaciones', 'target') }}
+        {% else %}
+          <p class="v933-safe-copy">No hay una recomendación publicable en este momento. SHARK mantiene el estado pendiente en lugar de rellenarlo.</p>
+        {% endif %}
+      </section>
+
+      <section class="v933-panel">
+        {{ section_header('Qué usa esta vista', 'Contexto real asociado a tu sesión.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('plan') }}<span><strong>Plan</strong><small>{{ user.get('membership') or 'FREE' }}</small></span></div>
+          <div>{{ icon('target') }}<span><strong>Pronósticos</strong><small>{{ published_picks|length }} visibles en este resumen</small></span></div>
+          <div>{{ icon('live') }}<span><strong>Directo</strong><small>{{ counts.get('live') if counts.get('live') is not none else 'Pendiente' }}</small></span></div>
+          <div>{{ icon('shield') }}<span><strong>Límite</strong><small>Los datos ausentes se muestran como pendientes.</small></span></div>
+        </div>
+      </section>
+
+      <p class="v933-safe-copy">SHARK organiza información deportiva y explica el contexto disponible. No garantiza resultados ni convierte un indicador interno en probabilidad de acierto.</p>
+    </aside>
+  </section>
+</div>
 {% endblock %}
-
-
-
-
-
