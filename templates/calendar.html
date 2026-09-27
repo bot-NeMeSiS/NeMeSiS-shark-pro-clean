@@ -44,7 +44,7 @@
       <div>
         <span class="v933-eyebrow">{{ ui("Prioridad deportiva") }}</span>
         <h2>{{ ui(selected.get('title') or 'Calendario') }}</h2>
-        <p>{{ ui(calendar.get('source_summary') or 'Agenda deportiva confirmada.') }}</p>
+        <p>{{ ui(calendar.get('source_summary') or 'Estado de la agenda deportiva.') }}</p>
       </div>
       <div class="v940-calendar-result-summary" aria-label="{{ ui("Resultados visibles") }}">
         <strong>{{ counts.get('visible', 0) }}</strong>
@@ -228,7 +228,7 @@
         {% if safe.get('provider_status') == 'temporarily_unavailable' %}
         <div data-calendar-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', request.full_path, 'calendar') }}</div>
         {% elif active_filters %}
-        <div data-calendar-empty="FILTER_EMPTY">{{ empty_state('No hay partidos que coincidan', 'Prueba otra fecha o ajusta los filtros.', 'Limpiar capas', calendar.get('reset_href') or '/calendar', 'calendar') }}</div>
+        <div data-calendar-empty="FILTER_EMPTY">{{ empty_state('No hay partidos que coincidan', 'Prueba otra fecha o ajusta los filtros.', 'Limpiar filtros', calendar.get('reset_href') or '/calendar', 'calendar') }}</div>
         {% elif safe.get('has_real_data') %}
         <div data-calendar-empty="REAL_EMPTY">{{ empty_state('No hay partidos para esta fecha', 'Consulta otra fecha de la agenda disponible.', 'Semana completa', '/calendar?lane=week', 'calendar') }}</div>
         {% else %}
