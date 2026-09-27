@@ -202,7 +202,7 @@ def test_product_review_center_renders_read_only_panel(client, app_module, monke
     response = client.get("/admin/product-review-center")
 
     assert response.status_code == 200
-    assert b"Product Review Center" in response.data
+    assert "Centro de revisión de producto".encode("utf-8") in response.data
     assert b"data-product-review-mode=\"read-only\"" in response.data
     assert b"Estado del equipo de revision" in response.data
     assert b"Candidatos de roadmap" in response.data
