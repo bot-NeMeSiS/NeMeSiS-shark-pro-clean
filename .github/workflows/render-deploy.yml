@@ -176,7 +176,21 @@ jobs:
         with:
           name: render-preflight-${{ github.run_id }}
           path: |
-            reports/
+            reports/V941_*
+            reports/V929_FULL_NAVIGATION_ROUTE_MATRIX.*
+            reports/V929_CLICK_NAVIGATION_MATRIX.json
+            reports/V929_NAVIGATION_INTEGRITY_WORKER_REPORT.md
+            reports/V929_browser_qa_navigation/
+            reports/IMPORTS_ROUTES_VERIFY_V723.*
+            reports/V915_AUTOMATED_COMPANY_WORKFORCE_REPORT.md
+            reports/V915_RUNTIME_VERIFICATION_REPORT.md
+            reports/V915_POST_DEPLOY_SENTINEL_REPORT.md
+            reports/V915_BROWSER_QA_ORCHESTRATOR_REPORT.md
+            reports/V915_VISUAL_QUEUE_MANAGER_REPORT.md
+            reports/V915_TELEGRAM_DRY_RUN_WATCHER_REPORT.md
+            reports/V915_SECURITY_SECRET_GUARD_REPORT.md
+            reports/V937_PRODUCT_UPDATE_CLIENT_01.md
+            reports/V940_CALENDAR_SPORTS_EXPERIENCE_TECHNICAL_SPECIFICATION.md
             browser_qa/V944_MATCH_CENTER_FOUNDATION/*.json
             browser_qa/V944_MATCH_CENTER_FOUNDATION/*.png
           if-no-files-found: warn

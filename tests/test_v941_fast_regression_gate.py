@@ -62,3 +62,17 @@ def test_ci_artifact_upload_avoids_historical_reports_and_duplicate_deploy_tree(
     assert "\n            release_output/\n" not in upload
     assert "V941_DEPLOY_ROOT_CONTENTS" not in upload
 
+
+def test_render_preflight_artifact_keeps_current_evidence_without_full_report_tree():
+    workflow=(ROOT/".github/workflows/render-deploy.yml").read_text(encoding="utf-8")
+    upload=workflow.split("- name: Upload preflight evidence", 1)[1].split("  dry-run:", 1)[0]
+    assert "reports/V941_*" in upload
+    assert "reports/V929_FULL_NAVIGATION_ROUTE_MATRIX.*" in upload
+    assert "reports/V929_CLICK_NAVIGATION_MATRIX.json" in upload
+    assert "reports/V929_browser_qa_navigation/" in upload
+    assert "reports/IMPORTS_ROUTES_VERIFY_V723.*" in upload
+    assert "browser_qa/V944_MATCH_CENTER_FOUNDATION/*.json" in upload
+    assert "browser_qa/V944_MATCH_CENTER_FOUNDATION/*.png" in upload
+    assert "\n            reports/\n" not in upload
+    assert "CODEX_DAILY_REPORT_" not in upload
+
