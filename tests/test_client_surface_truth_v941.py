@@ -410,3 +410,16 @@ def test_remaining_direct_surfaces_use_canonical_spanish_routes():
     assert "'live', '/directo')" in sources["templates/shark_core.html"]
     assert 'href="/live">Directo' not in sources["templates/unified_intelligence_hub.html"]
     assert 'href="/directo">Directo' in sources["templates/unified_intelligence_hub.html"]
+
+def test_top_level_client_templates_never_emit_legacy_navigation_aliases():
+    import re
+    legacy=re.compile(r"""(?:href|action)=["']/(?:calendar|live|track-record|memberships|support|profile|dashboard|combis)(?=[?/"'])|["']/(?:calendar|live|track-record|memberships|support|profile|dashboard|combis)(?=[?/"'])""")
+    offenders=[]
+    for path in sorted((ROOT / "templates").glob("*.html")):
+        if path.name.startswith("admin_") or path.name == "local_safe_portal.html":
+            continue
+        source=path.read_text(encoding="utf-8")
+        for match in legacy.finditer(source):
+            line=source.count("\n",0,match.start())+1
+            offenders.append((path.name,line,match.group(0)))
+    assert offenders == []
