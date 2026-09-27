@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
-{% block title %}Go To Market Office | NeMeSiS SHARK PRO{% endblock %}
+{% block title %}Oficina de lanzamiento | NeMeSiS SHARK PRO{% endblock %}
 {% block content %}
 <!-- NEMESIS-GO-TO-MARKET-OFFICE-V1 -->
 {% set beta = gtm.beta_management or {} %}
 {% set commercial = gtm.commercial_readiness or {} %}
 <div class="v933-page v933-admin-command-center go-to-market-office-v1" data-go-to-market-office="{{ gtm.contract }}" data-go-to-market-mode="read-only">
-  {{ page_header('Go To Market Office', 'Centro interno de lanzamiento: beta, marketing, soporte, operaciones, checklist y prioridades sin campanas, pagos ni acciones externas.', 'target', [
+  {{ page_header('Oficina de lanzamiento', 'Centro interno de lanzamiento: beta, marketing, soporte, operaciones, lista de control y prioridades sin campañas, pagos ni acciones externas.', 'target', [
     {'label':'Beta Center','href':'/admin/beta-center','icon':'users'},
-    {'label':'Company Platform','href':'/landing','icon':'navigation'},
+    {'label':'Plataforma','href':'/landing','icon':'navigation'},
     {'label':'Executive Board','href':'/admin/executive-board','icon':'chart'},
     {'label':'Operaciones','href':'/admin/operations-center','primary':true,'icon':'shield'}
   ]) }}
 
-  <section class="v933-kpi-grid is-six" aria-label="Resumen Go To Market">
+  <section class="v933-kpi-grid is-six" aria-label="Resumen de lanzamiento">
     {{ kpi_card('Estado', gtm.status, 'Preparacion local, no produccion', 'warning', 'target') }}
     {{ kpi_card('Checklist', gtm.checklist|length, 'Controles de lanzamiento', 'blue', 'list') }}
     {{ kpi_card('Beta score', beta.score, beta.status or 'Sin beta real', 'cyan', 'users') }}
@@ -62,10 +62,10 @@
       </section>
 
       <section class="v933-admin-panel" id="beta-management">
-        <header><div><h2>Beta Management</h2><p>Infraestructura para invitaciones, progreso, feedback, bugs, satisfaccion, abandono y cierre beta sin registrar usuarios reales desde este sprint.</p></div>{{ status_chip(beta.status or 'PARTIAL','warning') }}</header>
+        <header><div><h2>Gestión de beta</h2><p>Infraestructura para invitaciones, progreso, feedback, bugs, satisfaccion, abandono y cierre beta sin registrar usuarios reales desde este sprint.</p></div>{{ status_chip(beta.status or 'PARTIAL','warning') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-kpi-grid">
-            {{ kpi_card('Feedback', beta.feedback_total or 0, 'Recibido en Beta Center', 'blue', 'message') }}
+            {{ kpi_card('Comentarios', beta.feedback_total or 0, 'Recibidos en Centro beta', 'blue', 'message') }}
             {{ kpi_card('Bugs', beta.bugs or 0, 'Reportes reproducibles', 'warning', 'alert') }}
             {{ kpi_card('Solicitudes', beta.requests or 0, 'Feature requests', 'cyan', 'list') }}
             {{ kpi_card('Satisfaccion', beta.satisfaction, 'No se interpreta con muestra pequena', 'neutral', 'heart') }}
@@ -129,7 +129,7 @@
       </section>
 
       <section class="v933-admin-panel" id="customer-success">
-        <header><div><h2>Customer Success</h2><p>Ayuda y soporte reutilizan Company Platform y Beta Program.</p></div>{{ status_chip('PRE-BETA','blue') }}</header>
+        <header><div><h2>Experiencia y soporte al cliente</h2><p>Ayuda y soporte reutilizan la plataforma de empresa y el programa beta.</p></div>{{ status_chip('PRE-BETA','blue') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             {% for item in gtm.customer_success %}
@@ -151,7 +151,7 @@
       </section>
 
       <section class="v933-admin-panel" id="gtm-reports">
-        <header><div><h2>Reportes</h2><p>Documentacion final del sprint Go To Market.</p></div>{{ status_chip('EXPORTABLE','neutral') }}</header>
+        <header><div><h2>Reportes</h2><p>Documentación final de la fase de lanzamiento.</p></div>{{ status_chip('EXPORTABLE','neutral') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
             {% for report in gtm.reports %}
