@@ -6,7 +6,7 @@ def read(path):
     return (ROOT/path).read_text(encoding="utf-8")
 
 def test_client_navigation_and_history_use_clear_spanish():
-    nav=read("templates/components/v933_navigation.html")
+    nav=read("templates/components/navigation_contracts.html")
     history=read("templates/track_record.html")
     assert "Historial" in nav and "Histórico" not in nav
     assert "Rentabilidad (ROI)" in history
@@ -24,10 +24,13 @@ def test_canonical_navigation_uses_spanish_plan_route_and_page_state():
 
 
 def test_legacy_navigation_layers_match_current_language():
+    contract=read("templates/components/navigation_contracts.html")
+    assert "Calendario" in contract and "Pronósticos" in contract and "Historial" in contract
+    assert "('Partidos'," not in contract and "('Picks'," not in contract
     for path in ("templates/components/v928_navigation.html","templates/components/v930_navigation.html"):
         text=read(path)
-        assert "Calendario" in text and "Pronósticos" in text and "Historial" in text
-        assert ">Partidos<" not in text and ">Picks<" not in text
+        assert 'navigation_contracts.html' in text
+        assert "nav_contracts.CLIENT_LINKS" in text
 
 def test_admin_pronosticos_use_clear_editorial_language():
     text=read("templates/admin_picks.html")
@@ -45,7 +48,7 @@ def test_admin_data_and_telegram_remove_unexplained_jargon():
     assert "Simulación · sin envío" in telegram and "Horas de silencio" in telegram and "Duplicado" in telegram
 
 def test_internal_systems_lead_with_human_labels():
-    nav=read("templates/components/v933_navigation.html")
+    nav=read("templates/components/navigation_contracts.html")
     company=read("templates/admin_company_os.html")
     release=read("templates/admin_final_release.html")
     assert "Calidad / Sentinel" in nav
