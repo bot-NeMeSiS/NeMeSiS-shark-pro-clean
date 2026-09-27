@@ -43,7 +43,7 @@ def test_quick_actions_remain_unique_with_same_destinations(app_module):
     dom=Structure(render_home(app_module,{}))
     nav,=[n for n in dom.nodes if 'ns16-home-actions' in n['attrs'].get('class','')]
     assert any('ns16-home-command' in p['attrs'].get('class','') for p in nav['parents'])
-    assert [n['attrs']['href'] for n in dom.nodes if n['tag']=='a' and nav in n['parents']]==['/favorites','/memberships','/support']
+    assert [n['attrs']['href'] for n in dom.nodes if n['tag']=='a' and nav in n['parents']]==['/favorites','/membresias','/soporte']
     css=(Path(__file__).resolve().parents[1]/'static/v933-product.css').read_text(encoding='utf-8')
     assert 'grid-template-areas: "sports pick" "actions pick"' in css
     assert 'grid-template-areas: none' in css and 'grid-auto-columns: 86%' in css
