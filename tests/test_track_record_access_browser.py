@@ -52,18 +52,18 @@ def test_history_filters_preserve_plan_boundary_and_mobile_layout(app_module,mon
                       headers={k:v for k,v in response.headers.items() if k.lower() not in {"content-length","set-cookie"}})
     page.route("**/*",serve)
     try:
-        page.goto("http://localhost/track-record",wait_until="load")
+        page.goto("http://localhost/historico",wait_until="load")
         panel=page.locator(".ns16-track-recent")
         assert "QA_SELECTION_FREE_won" in panel.inner_text()
         assert ("QA_SELECTION_PRO_won" in panel.inner_text())==(plan in {"PRO","ELITE"})
         assert ("QA_SELECTION_ELITE_void" in panel.inner_text())==(plan=="ELITE")
         page.get_by_role("link",name="Perdidos",exact=True).click()
-        page.wait_for_url("**/track-record?result=lost")
+        page.wait_for_url("**/historico?result=lost")
         assert "QA_SELECTION_FREE_lost" in panel.inner_text()
         assert "QA_SELECTION_FREE_won" not in panel.inner_text()
         assert "QA_SELECTION_PRO_won" not in page.content()
-        page.get_by_role("link",name="Void",exact=True).click()
-        page.wait_for_url("**/track-record?result=void")
+        page.get_by_role("link",name="Anulados",exact=True).click()
+        page.wait_for_url("**/historico?result=void")
         if plan=="ELITE":
             assert "QA_SELECTION_ELITE_void" in panel.inner_text()
         else:
