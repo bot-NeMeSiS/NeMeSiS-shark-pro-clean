@@ -422,3 +422,9 @@ def test_final_visible_client_copy_avoids_residual_english_product_jargon():
     assert "Enviar resumen" in imports and "Centro de control" in imports
     assert "antes de cualquier checkout" not in membership and "antes de cualquier pago" in membership
     assert "<span>Onboarding</span>" not in onboarding and "<span>Primeros pasos</span>" in onboarding
+
+def test_founder_header_and_data_copy_stay_plain_spanish():
+    founder=read("templates/admin_founder_dashboard.html")
+    assert "Company Board" not in founder and "Consejo de empresa" in founder
+    assert "Lectura de DB y caché" not in founder and "Lectura de base de datos y caché" in founder
+    assert "Degradadas en Home" not in founder and "Degradadas en Inicio" in founder
