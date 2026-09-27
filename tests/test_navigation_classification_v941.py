@@ -164,3 +164,22 @@ def test_navigation_contract_aliases_have_one_active_rule(app_module):
         "{{ nav.is_active('/admin/dashboard?commands=1', '/admin/dashboard', 'admin') }}"
     )
     assert contextual.render()=="|"
+
+
+def test_live_templates_do_not_reactivate_legacy_navigation_renderers():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    templates=root/"templates"
+    legacy_names={"v928_navigation.html","v930_navigation.html"}
+    offenders=[]
+    for path in templates.rglob("*.html"):
+        if path.name in legacy_names:
+            continue
+        source=path.read_text(encoding="utf-8")
+        if "components/v928_navigation.html" in source or "components/v930_navigation.html" in source:
+            offenders.append(str(path.relative_to(root)))
+    assert offenders==[]
+    base=(templates/"base.html").read_text(encoding="utf-8")
+    assert 'components/v933_navigation.html' in base
+    assert 'components/v928_navigation.html' not in base
+    assert 'components/v930_navigation.html' not in base
