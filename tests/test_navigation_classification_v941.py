@@ -61,7 +61,7 @@ def test_client_menu_groups_follow_runtime_data_and_hide_internal_copy():
 def test_client_menu_runtime_groups_match_template_contract(app_module):
     groups={item["group"] for item in app_module.v566_client_menu_items()}
     assert groups=={
-        "01 - Empezar","02 - Picks","03 - Resultados",
+        "01 - Empezar","02 - Pronósticos","03 - Resultados",
         "04 - Asistente","05 - Cuenta","06 - Ayuda",
     }
     template=(__import__("pathlib").Path(__file__).resolve().parents[1]/"templates/client_menu.html").read_text(encoding="utf-8")
@@ -72,6 +72,14 @@ def test_client_menu_runtime_groups_match_template_contract(app_module):
     shark_core=[item for item in app_module.v809_client_navigation_items() if item["title"]=="SHARK Core"]
     assert len(shark_core)==1
     assert "sin convertir indicadores en garantías" in shark_core[0]["body"]
+    menu_items=app_module.v566_client_menu_items()
+    assert any(item["title"]=="Pronósticos SHARK" for item in menu_items)
+    assert all(item["title"]!="Picks SHARK" for item in menu_items)
+    assert all("stake" not in item["body"].lower() and "value" not in item["body"].lower() for item in menu_items)
+    nav_items=app_module.v809_client_navigation_items()
+    assert any(item["title"]=="Pronósticos" for item in nav_items)
+    assert any(item["title"]=="Historial" for item in nav_items)
+    assert all(item["title"] not in {"Picks","SHARK IA","Histórico"} for item in nav_items)
 
 
 def test_market_and_combi_query_links_use_real_query_separator():
@@ -90,7 +98,8 @@ def test_market_and_combi_query_links_use_real_query_separator():
         assert href in app
 
 
-def test_client_facing_combi_navigation_prefers_canonical_route(app_module):
+def test_client_facing_combi_navigation_prefers_canonical_route(app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"telegram_config",lambda: {"configured":False})
     recommended=app_module.client_command_center_data({"id":"qa","membership":"PRO","role":"PRO"}, briefing={
         "counts":{"favorites":0,"upcoming":0,"picks":0},
     })["recommended_tabs"]
