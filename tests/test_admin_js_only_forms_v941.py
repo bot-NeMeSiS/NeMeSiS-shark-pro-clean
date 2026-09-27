@@ -14,6 +14,10 @@ EXPECTED = {
 
 def test_admin_js_only_forms_are_explicit_and_bound():
     scan = scan_template_links()
+    assert scan["scan_incomplete"] is False
+    assert scan["templates_scanned"] > 200
+    assert scan["hrefs_seen"] > 100
+    assert scan["forms_seen"] > 10
     assert scan["forms_without_action"] == []
     assert scan["js_only_forms_unbound"] == []
     assert {item["id"] for item in scan["js_only_forms"]} == EXPECTED

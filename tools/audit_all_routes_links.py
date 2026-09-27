@@ -51,12 +51,15 @@ def scan_template_links() -> dict:
     js_only_forms: list[dict] = []
     js_only_forms_unbound: list[dict] = []
     templates_scanned = 0
+    hrefs_seen = 0
+    forms_seen = 0
     master_js_path = ROOT / "static" / "admin-master-control.js"
     master_js = master_js_path.read_text(encoding="utf-8", errors="replace") if master_js_path.exists() else ""
     for path in sorted((ROOT / "templates").rglob("*.html")):
         templates_scanned += 1
         text = path.read_text(encoding="utf-8", errors="replace")
         for match in href_re.finditer(text):
+            hrefs_seen += 1
             href = match.group(1).strip()
             entry = {"file": rel(path), "href": href}
             if href == "#":
@@ -66,6 +69,7 @@ def scan_template_links() -> dict:
             if href.startswith("/api/admin/") or href.startswith("/api/automation/"):
                 direct_api_hrefs.append(entry)
         for match in form_re.finditer(text):
+            forms_seen += 1
             attrs = _form_attributes(match.group(0))
             action = (attrs.get("action") or "").strip()
             method = (attrs.get("method") or "").strip().lower()
@@ -86,6 +90,9 @@ def scan_template_links() -> dict:
         "forms_without_action": forms_without_action,
         "js_only_forms": js_only_forms,
         "js_only_forms_unbound": js_only_forms_unbound,
+        "hrefs_seen": hrefs_seen,
+        "forms_seen": forms_seen,
+        "scan_incomplete": templates_scanned == 0 or hrefs_seen == 0 or forms_seen == 0,
     }
 
 
@@ -157,6 +164,9 @@ def write_report(payload: dict) -> None:
         f"- forms_without_method_or_safe_action: `{len(payload['links']['forms_without_action'])}`",
         f"- js_only_forms_explicit: `{len(payload['links']['js_only_forms'])}`",
         f"- js_only_forms_unbound: `{len(payload['links']['js_only_forms_unbound'])}`",
+        f"- hrefs_seen: `{payload['links']['hrefs_seen']}`",
+        f"- forms_seen: `{payload['links']['forms_seen']}`",
+        f"- scan_incomplete: `{str(payload['links']['scan_incomplete']).lower()}`",
         f"- unsafe_smoke_count: `{len(payload['smoke']['unsafe_smoke'])}`",
         "",
         "## Smoke",
@@ -190,8 +200,11 @@ def main() -> int:
         "unsafe_smoke_count": len(payload["smoke"]["unsafe_smoke"]),
         "direct_api_hrefs": len(payload["links"]["direct_api_hrefs"]),
         "js_only_forms_unbound": len(payload["links"]["js_only_forms_unbound"]),
+        "hrefs_seen": payload["links"]["hrefs_seen"],
+        "forms_seen": payload["links"]["forms_seen"],
+        "scan_incomplete": payload["links"]["scan_incomplete"],
     }, ensure_ascii=False, indent=2))
-    return 0 if not payload["smoke"]["unsafe_smoke"] and not payload["links"]["js_only_forms_unbound"] else 1
+    return 0 if not payload["smoke"]["unsafe_smoke"] and not payload["links"]["js_only_forms_unbound"] and not payload["links"]["scan_incomplete"] else 1
 
 
 if __name__ == "__main__":
