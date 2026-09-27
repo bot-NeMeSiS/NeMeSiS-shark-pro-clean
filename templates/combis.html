@@ -9,7 +9,7 @@
 <div class="v933-page ns-combis" data-v933-template="combis" data-combi-contract="NEMESIS-COMBI-ADVICE-V1">
 {{ page_header('Combinadas', 'Elige próximos partidos, consulta sus cuotas y revisa tu selección.', 'target') }}
 {% include 'components/picks_workspace_nav.html' %}
-<nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendar">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
+<nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendario">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
 {% if form_state.entry_message %}<p class="ns-combi-warning" role="status">{{ form_state.entry_message }}</p>{% endif %}
 {% if error %}<p class="ns-combi-error" role="alert">{{ error }}</p>{% endif %}
 {% if request.args.get('guardado') == '1' %}<p role="status">Consulta tus borradores guardados abajo. No se ha colocado ninguna apuesta.</p>{% endif %}
