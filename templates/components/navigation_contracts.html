@@ -18,7 +18,7 @@
   ('Historial','/track-record','history'),
   ('SHARK','/shark','shark'),
   ('Telegram','/telegram','telegram'),
-  ('Cuenta','/profile','user')
+  ('Cuenta','/mi-cuenta','user')
 ] %}
 
 {% set ADMIN_LINKS = [
@@ -69,10 +69,12 @@
 {%- set clean_href = href.split('#')[0].split('?')[0] -%}
 {%- set calendar_aliases = ['/calendario','/calendario-global','/partidos','/partidos/calendario'] -%}
 {%- set picks_aliases = ['/combis','/combinadas'] -%}
+{%- set account_aliases = ['/profile','/perfil'] -%}
 {%- if not contextual and (
        path == clean_href
        or (clean_href == '/calendar' and path in calendar_aliases)
        or (clean_href == '/picks' and path in picks_aliases)
+       or (clean_href == '/mi-cuenta' and path in account_aliases)
        or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
        or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/'))
     ) -%}1{%- endif -%}

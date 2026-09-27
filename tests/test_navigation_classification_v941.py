@@ -139,8 +139,11 @@ def test_navigation_renderers_share_canonical_contract_source():
     mobile_contract=contract.split("{% set CLIENT_MOBILE_LINKS = [",1)[1].split("] %}",1)[0]
     assert "('SHARK','/shark','shark')" in mobile_contract
     assert "('Cuenta','/profile','user')" not in mobile_contract
+    assert "('Cuenta','/mi-cuenta','user')" in contract
     source=(root/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
     assert 'navigation_contracts.html' in source
+    assert 'href="/mi-cuenta"' in source
+    assert 'href="/profile"' not in source
     assert "nav_contracts.CLIENT_LINKS" in source
     assert "nav_contracts.ADMIN_LINKS" in source
     for name in ("v928_navigation.html","v930_navigation.html"):
@@ -170,6 +173,13 @@ def test_navigation_contract_aliases_have_one_active_rule(app_module):
     assert template.render(path="/combinadas")=="|1|"
     assert template.render(path="/combis")=="|1|"
     assert template.render(path="/admin/matches-sync")=="||1"
+    account=app_module.app.jinja_env.from_string(
+        "{% import 'components/navigation_contracts.html' as nav %}"
+        "{{ nav.is_active('/mi-cuenta', path, 'client') }}"
+    )
+    assert account.render(path="/mi-cuenta")=="1"
+    assert account.render(path="/profile")=="1"
+    assert account.render(path="/perfil")=="1"
     contextual=app_module.app.jinja_env.from_string(
         "{% import 'components/navigation_contracts.html' as nav %}"
         "{{ nav.is_active('/admin/dashboard#master-audit-title', '/admin/dashboard', 'admin') }}|"
