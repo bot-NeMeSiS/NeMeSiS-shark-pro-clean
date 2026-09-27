@@ -62,6 +62,19 @@ def test_founder_admin_copy_is_spanish_first():
         assert required in os
 
 
+def test_launch_and_quality_admin_copy_is_spanish_first():
+    go_live=(ROOT / "templates/admin_go_live.html").read_text(encoding="utf-8")
+    quality=(ROOT / "templates/admin_quality_center.html").read_text(encoding="utf-8")
+    review=(ROOT / "templates/admin_product_review_center.html").read_text(encoding="utf-8")
+    assert "Track Record" not in go_live and "Historial" in go_live
+    assert "Live / finalizados" not in quality and "Directo / finalizados" in quality
+    assert "Picks publicados" not in quality and "Pronósticos publicados" in quality
+    assert "Total picks:" not in quality and "Total pronósticos:" in quality
+    assert "Product Review Center" not in review
+    assert "Centro de revisión de producto" in review
+    assert "Resumen de revisión de producto" in review
+
+
 def test_internal_systems_lead_with_human_labels():
     nav=read("templates/components/navigation_contracts.html")
     company=read("templates/admin_company_os.html")
