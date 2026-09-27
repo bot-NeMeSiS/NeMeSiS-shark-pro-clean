@@ -175,7 +175,7 @@
           {{ quick_action('Pronósticos', 'Capa SHARK', '/picks', 'target') }}
           {{ quick_action('Historial', 'Resultados reales', '/track-record', 'history') }}
           {{ quick_action('Telegram', 'Alertas controladas', '/telegram', 'telegram', 'cyan') }}
-          {{ quick_action('Planes', 'FREE / PRO / ELITE', '/memberships', 'star', 'gold') }}
+          {{ quick_action('Planes', 'FREE / PRO / ELITE', '/membresias', 'star', 'gold') }}
         </div>
       </section>
 
@@ -217,7 +217,7 @@
   {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
 
   <section class="v933-panel">
-    {{ section_header('Planes', '', 'Comparar', '/memberships') }}
+    {{ section_header('Planes', '', 'Comparar', '/membresias') }}
     {{ value_ladder(current_user.membership if current_user else 'FREE') }}
   </section>
 

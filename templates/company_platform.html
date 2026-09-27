@@ -20,11 +20,11 @@
           {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
           {{ action_button('Preguntas frecuentes', '/faq', false, 'cyan', false, 'arrow') }}
         {% elif page_key in ['faq','help','knowledge'] %}
-          {{ action_button('Contactar soporte', '/support', true, 'blue', false, 'arrow') }}
+          {{ action_button('Contactar soporte', '/soporte', true, 'blue', false, 'arrow') }}
           {{ action_button('Ver privacidad', '/privacidad', false, 'cyan', false, 'shield') }}
         {% elif page_key == 'status' %}
           {{ action_button('Health local', '/api/health', true, 'blue', false, 'history') }}
-          {{ action_button('Soporte', '/support', false, 'cyan', false, 'arrow') }}
+          {{ action_button('Soporte', '/soporte', false, 'cyan', false, 'arrow') }}
         {% else %}
           {{ action_button('Ver roadmap', '/roadmap', true, 'blue', false, 'arrow') }}
           {{ action_button('Contactar', '/contact', false, 'cyan', false, 'arrow') }}

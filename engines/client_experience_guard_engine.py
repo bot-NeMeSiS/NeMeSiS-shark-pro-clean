@@ -14,17 +14,17 @@ from typing import Iterable
 
 CLIENT_TEMPLATE_NAMES = {
     "home.html",
-    "client_overview.html",
-    "dashboard.html",
+    "client_app_center.html",
     "sports_hub.html",
     "live.html",
     "calendar.html",
     "picks.html",
     "combis.html",
+    "track_record.html",
     "shark.html",
     "telegram.html",
     "favorites.html",
-    "perfil.html",
+    "profile.html",
     "membership.html",
     "match_detail.html",
     "match_hub.html",
@@ -35,18 +35,19 @@ CLIENT_TEMPLATE_NAMES = {
 }
 
 CRITICAL_SCREENS = [
-    {"route": "/", "template": "home.html", "label": "Home pública", "priority": "alta"},
-    {"route": "/dashboard", "template": "client_overview.html", "label": "Dashboard cliente", "priority": "alta"},
-    {"route": "/sports-hub", "template": "sports_hub.html", "label": "Sports Hub / Partidos", "priority": "alta"},
+    {"route": "/", "template": "home.html", "label": "Inicio", "priority": "alta"},
+    {"route": "/app", "template": "client_app_center.html", "label": "Inicio cliente", "priority": "alta"},
+    {"route": "/sports-hub", "template": "sports_hub.html", "label": "Partidos", "priority": "alta"},
     {"route": "/live", "template": "live.html", "label": "Directo", "priority": "alta"},
     {"route": "/calendar", "template": "calendar.html", "label": "Calendario", "priority": "alta"},
-    {"route": "/picks", "template": "picks.html", "label": "Picks", "priority": "alta"},
-    {"route": "/combis", "template": "combis.html", "label": "Combis", "priority": "alta"},
+    {"route": "/picks", "template": "picks.html", "label": "Pronósticos", "priority": "alta", "needs_time_filter": False},
+    {"route": "/combis", "template": "combis.html", "label": "Combinadas", "priority": "alta"},
+    {"route": "/track-record", "template": "track_record.html", "label": "Historial", "priority": "alta"},
     {"route": "/shark", "template": "shark.html", "label": "SHARK", "priority": "media", "needs_time_filter": False},
-    {"route": "/telegram", "template": "telegram.html", "label": "Telegram cliente", "priority": "alta", "needs_time_filter": False},
-    {"route": "/favorites", "template": "favorites.html", "label": "Favoritos", "priority": "media"},
-    {"route": "/perfil", "template": "profile.html", "label": "Perfil", "priority": "media", "needs_time_filter": False},
-    {"route": "/membership", "template": "membership.html", "label": "Membresías", "priority": "media", "needs_time_filter": False},
+    {"route": "/telegram", "template": "telegram.html", "label": "Telegram", "priority": "alta", "needs_time_filter": False},
+    {"route": "/favorites", "template": "favorites.html", "label": "Favoritos", "priority": "media", "needs_time_filter": False},
+    {"route": "/profile", "template": "profile.html", "label": "Cuenta", "priority": "media", "needs_time_filter": False},
+    {"route": "/membresias", "template": "membership.html", "label": "Planes", "priority": "media", "needs_time_filter": False},
     {"route": "/match/<id>", "template": "match_detail.html", "label": "Detalle partido", "priority": "alta"},
 ]
 
@@ -67,6 +68,11 @@ SAFE_TIME_FILTERS = (
     "match_date_label",
     "madrid_time",
     "safe_time",
+    "match_madrid_context",
+    "madrid_datetime_label",
+    "sync_madrid_label",
+    "ui_match_datetime",
+    "match_card",
 )
 TECHNICAL_CLIENT_PATTERNS = (
     "runtime-version",

@@ -8,7 +8,7 @@
 {% set favorites = data.get('favorites') or [] %}
 
 <div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16" data-first-use-contract="Primer uso real" data-habit-contract="Hábito sin invasión">
-  {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/memberships','primary':true,'icon':'plan'}]) }}
+  {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/membresias','primary':true,'icon':'plan'}]) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
   {% include 'partials/language_selector.html' %}
 
@@ -17,13 +17,13 @@
       <section class="v933-panel">
         {{ section_header('Cuenta y servicios', '') }}
         <div class="v933-quick-actions ns16-account-actions">
-          {{ quick_action('Plan y facturación', plan, '/memberships', 'plan', 'gold') }}
+          {{ quick_action('Plan y facturación', plan, '/membresias', 'plan', 'gold') }}
           {{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram', 'cyan') }}
           {{ quick_action('Favoritos', 'Equipos y partidos', '/favorites', 'star') }}
           {{ quick_action('Mis combinadas', 'Borradores privados y revisión', '/combinadas#combinadas-guardadas', 'target', 'cyan') }}
           {{ quick_action('Notificaciones', 'Preferencias', '/alertas', 'alert') }}
           {{ quick_action('Privacidad y medición de uso', 'Tus datos', '/user-intelligence', 'lock') }}
-          {{ quick_action('Soporte', 'Ayuda', '/support', 'support') }}
+          {{ quick_action('Soporte', 'Ayuda', '/soporte', 'support') }}
         </div>
       </section>
 

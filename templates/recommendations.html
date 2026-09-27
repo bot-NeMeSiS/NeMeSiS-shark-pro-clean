@@ -7,7 +7,7 @@
 <section class="v933-main-stack">
   <header class="v933-section-header">
     <h2>{{ ui('Partidos en revisión') }} · {{ data.recommendation_stats.total }}</h2>
-    <a href="/picks">{{ ui('Picks publicados') }}</a>
+    <a href="/picks">{{ ui('Pronósticos publicados') }}</a>
   </header>
   {% if data.recommendations %}
   <div class="v933-match-grid">
@@ -28,7 +28,7 @@
 
 {% if data.locked_recommendations %}
 <section class="v933-main-stack">
-  {{ section_header('Premium bloqueado', '', 'Ver planes', '/memberships') }}
+  {{ section_header('Premium bloqueado', '', 'Ver planes', '/membresias') }}
   <div class="v933-match-grid">
   {% for item in data.locked_recommendations %}
     <article class="v933-match-card">{{ status_chip(item.required) }}<div class="v933-main-stack"><h3>{{ ui(item.label) }}</h3><p class="small">{{ ui(item.message) }}</p></div></article>
