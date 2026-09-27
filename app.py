@@ -126,6 +126,7 @@ from engines.crest_logo_experience_engine import (
 )
 from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
+    live_tracker_matches,
     live_tracker_quality_summary,
     live_tracker_status,
     sync_api_football_fixture_detail,
@@ -5117,12 +5118,9 @@ def ensure_client_live_fresh(force=False):
 
 
 def live_matches_from_live_table(limit=120):
-    """Return recent live rows joined with matches as a safety net.
-
-    Previous versions could have live_matches populated while /live only read the
-    match hub cache. V780 makes the live table a first-class fallback source.
-    """
-    seed_core()
+    """Return recent persisted live rows without creating or migrating schema."""
+    if not db_table_exists("live_matches"):
+        return []
     cutoff = (datetime.now(TZ) - timedelta(hours=6)).isoformat(timespec="seconds")
     data = []
     sql = """
@@ -27014,12 +27012,14 @@ def api_calendar():
 @app.route("/api/live")
 def api_live():
     date = request.args.get("date") or today_iso()
-    force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    refresh = ensure_client_live_fresh(force=force_refresh)
-    api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=force_refresh)
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_requires_scheduled_or_admin_action", "external_calls": 0, "database_writes": 0}), 405
+    refresh = ensure_client_live_fresh(force=False)
+    cached_tracker_matches = live_tracker_matches(DB_PATH, limit=100)
+    api_live_tracker = {"ok": True, "status": "cache_only", "matches": cached_tracker_matches, "external_calls": 0, "read_only": True}
     api_live_quality = live_tracker_quality_summary(DB_PATH)
     matches = []
-    matches.extend(api_live_tracker.get("matches") or [])
+    matches.extend(cached_tracker_matches)
     matches.extend(live_matches_any_date(limit=180))
     matches.extend(live_matches_from_live_table(limit=180))
     matches.extend(get_matches(date, "today"))
@@ -27031,16 +27031,19 @@ def api_live():
 def api_live_tracker():
     if not current_session_user():
         return jsonify({"ok": False, "error": "login_required"}), 401
-    force = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify(sync_api_football_live_tracker(DB_PATH, force=force))
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_not_allowed_on_read", "external_calls": 0, "database_writes": 0}), 405
+    return jsonify({"ok": True, "status": live_tracker_status(DB_PATH), "quality": live_tracker_quality_summary(DB_PATH), "matches": live_tracker_matches(DB_PATH, limit=100), "external_calls": 0, "read_only": True})
 
 
 @app.route("/api/live-tracker/match/<match_id>")
 def api_live_tracker_match(match_id):
     if not current_session_user():
         return jsonify({"ok": False, "error": "login_required"}), 401
-    force = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify(sync_api_football_fixture_detail(DB_PATH, match_id, force=force))
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_not_allowed_on_read", "external_calls": 0, "database_writes": 0}), 405
+    tracker = live_tracker_for_match(DB_PATH, match_id)
+    return jsonify({"ok": True, "tracker": tracker, "external_calls": 0, "read_only": True})
 
 
 @app.route("/api/live-tracker/status")
@@ -27077,8 +27080,9 @@ def api_live_flow():
 @app.route("/api/live/state")
 def api_real_time_state():
     date = request.args.get("date") or today_iso()
-    refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=refresh)})
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_not_allowed_on_read", "database_writes": 0}), 405
+    return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=False)})
 
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
@@ -27346,8 +27350,7 @@ def api_team_resolve():
 
 @app.route("/api/teams")
 def api_teams():
-    seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = rows("SELECT * FROM teams ORDER BY name") if db_table_exists("teams") else []
     for team in teams:
         team.update(professionalize_identity(team, team.get("name"), team.get("logo_url"), team.get("country"), team.get("source") or "teams"))
     return jsonify({"ok": True, "version": APP_VERSION, "teams": teams})
