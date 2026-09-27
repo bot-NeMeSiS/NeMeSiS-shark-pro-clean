@@ -164,3 +164,32 @@ def test_admin_can_still_access_internal_diagnostics(client):
     assert response.status_code==200
     assert response.get_json()["ok"] is True
 
+
+def test_api_cache_headers_are_session_safe(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"v566_template_recommendations",lambda limit=40:_recommendations())
+
+    public_response=client.get("/api/recommendations")
+    assert public_response.status_code==200
+    assert "Cookie" in public_response.headers.get("Vary","")
+
+    with client.session_transaction() as state:
+        state.update(user_id="qa-cache-scope",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    private_response=client.get("/api/recommendations")
+    assert private_response.status_code==200
+    cache_control=private_response.headers.get("Cache-Control","").lower()
+    assert "private" in cache_control
+    assert "no-store" in cache_control
+    assert "Cookie" in private_response.headers.get("Vary","")
+
+
+def test_authenticated_html_cache_is_private(client):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-cache-html",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    response=client.get("/profile")
+    assert response.status_code in (200,302)
+    if response.status_code==200:
+        cache_control=response.headers.get("Cache-Control","").lower()
+        assert "private" in cache_control
+        assert "no-store" in cache_control
+        assert "Cookie" in response.headers.get("Vary","")
+
