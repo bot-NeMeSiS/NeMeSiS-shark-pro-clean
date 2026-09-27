@@ -597,3 +597,32 @@ def test_match_read_surfaces_never_bypass_pick_entitlements(app_module,monkeypat
             assert 'QA_PICK_'+tier in body
     assert snapshot(db)==before
     assert not writes,writes
+
+
+def test_client_activity_hides_internal_growth_funnel_without_mutating(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.executemany("""INSERT INTO user_activity
+            (id,user_id,activity_type,target_type,target_id,payload_json,created_at)
+            VALUES(?,?,?,?,?,?,?)""",[
+            ("qa-growth","qa-read-client","growth_first_value","growth_funnel","match-1","{}","2026-09-27T10:00:00+00:00"),
+            ("qa-visible","qa-read-client","favorite","favorite","team:qa","{}","2026-09-27T11:00:00+00:00"),
+        ])
+    before=snapshot(db)
+    visible=a.client_activity_feed(limit=20,user_id="qa-read-client")
+    assert [item["id"] for item in visible]==["qa-visible"]
+    assert visible[0]["label"]=="Favorito actualizado."
+    internal=a.client_activity_feed(limit=20,user_id="qa-read-client",include_internal=True)
+    assert [item["id"] for item in internal]==["qa-visible","qa-growth"]
+    assert snapshot(db)==before
+
+
+def test_activity_templates_state_navigation_is_not_logged():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    activity=(root/"templates/activity.html").read_text(encoding="utf-8")
+    account=(root/"templates/account_center.html").read_text(encoding="utf-8")
+    assert "Abrir una pantalla no crea un registro de navegación" in activity
+    assert "La navegación normal no se registra en este historial" in activity
+    assert "Abrir páginas o consultar pronósticos no añade un registro de navegación" in account
+    assert "item.target_type or item.activity_type" not in account
