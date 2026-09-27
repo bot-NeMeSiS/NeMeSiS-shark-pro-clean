@@ -1,0 +1,76 @@
+{# Canonical navigation data shared by current and compatibility renderers.
+   Keep route labels/icons here so V928/V930 cannot drift from V933. #}
+
+{% set PUBLIC_LINKS = [
+  ('Inicio','/','home'),
+  ('Calendario','/calendar','calendar'),
+  ('Directo','/live','live'),
+  ('Pronósticos','/picks','target'),
+  ('Historial','/track-record','history'),
+  ('SHARK','/shark','shark')
+] %}
+
+{% set CLIENT_LINKS = [
+  ('Inicio','/app','home'),
+  ('Calendario','/calendar','calendar'),
+  ('Directo','/live','live'),
+  ('Pronósticos','/picks','target'),
+  ('Historial','/track-record','history'),
+  ('SHARK','/shark','shark'),
+  ('Telegram','/telegram','telegram'),
+  ('Cuenta','/profile','user')
+] %}
+
+{% set ADMIN_LINKS = [
+  ('Centro de mando','/admin/dashboard','dashboard'),
+  ('Calendario','/admin/matches','matches'),
+  ('Directo','/admin/realtime-center','live'),
+  ('Pronósticos','/admin/picks','target'),
+  ('Telegram','/admin/telegram/command-center','telegram'),
+  ('Usuarios','/admin/users','users'),
+  ('Planes y accesos','/admin/memberships','star'),
+  ('Pagos','/admin/payments','payments'),
+  ('SHARK AI','/admin/shark-center','shark'),
+  ('Datos y APIs','/admin/data-center','database'),
+  ('Automatizaciones','/admin/automation-center','automation'),
+  ('Calidad / Sentinel','/admin/sentinel-issues','shield'),
+  ('Contenido / Apariencia','/admin/highlights-center','star'),
+  ('Sistema','/admin/system','settings'),
+  ('Versión / Producción','/admin/final-release','rocket'),
+  ('Auditoría','/admin/dashboard#master-audit-title','history')
+] %}
+
+{% set ADMIN_MOBILE_LINKS = [
+  ('Panel','/admin/dashboard','dashboard'),
+  ('Telegram','/admin/telegram/command-center','telegram'),
+  ('Usuarios','/admin/users','users'),
+  ('Pronósticos','/admin/picks','target'),
+  ('Más','/admin/dashboard?commands=1','routes')
+] %}
+
+{% set CLIENT_MOBILE_LINKS = [
+  ('Inicio','/app','home'),
+  ('Calendario','/calendar','calendar'),
+  ('Directo','/live','live'),
+  ('Pronósticos','/picks','target'),
+  ('Cuenta','/profile','user')
+] %}
+
+{% set PUBLIC_MOBILE_LINKS = [
+  ('Inicio','/','home'),
+  ('Calendario','/calendar','calendar'),
+  ('Directo','/live','live'),
+  ('Pronósticos','/picks','target'),
+  ('Entrar','/cliente-login','user')
+] %}
+
+{% macro is_active(href, path, scope='client') -%}
+{%- set clean_href = href.split('#')[0].split('?')[0] -%}
+{%- set calendar_aliases = ['/calendario','/calendario-global','/partidos','/partidos/calendario'] -%}
+{%- set picks_aliases = ['/combis','/combinadas'] -%}
+{%- if path == clean_href
+    or (clean_href == '/calendar' and path in calendar_aliases)
+    or (clean_href == '/picks' and path in picks_aliases)
+    or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
+    or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/')) -%}1{%- endif -%}
+{%- endmacro %}
