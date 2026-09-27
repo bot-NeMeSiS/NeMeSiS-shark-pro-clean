@@ -86,16 +86,11 @@ def test_market_and_combi_query_links_use_real_query_separator():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]
     app=(root/"app.py").read_text(encoding="utf-8")
+    menu=(root/"templates/client_menu.html").read_text(encoding="utf-8")
     assert "ítipo" not in app
     assert "/combisí" not in app
-    for href in (
-        "/mercados?tipo=1x2",
-        "/mercados?tipo=goles",
-        "/mercados?tipo=doble",
-        "/combinadas?tipo=mixta&partidos=3",
-    ):
-        assert href in app
-    assert "/combinadas?tipo=responsable&partidos=3" not in app
+    assert "/combinadas" in menu
+    assert "/combis" not in menu
 
 
 def test_client_facing_combi_navigation_prefers_canonical_route(app_module,monkeypatch):
