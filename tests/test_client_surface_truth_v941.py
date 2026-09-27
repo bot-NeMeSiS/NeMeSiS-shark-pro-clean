@@ -81,6 +81,9 @@ def test_secondary_client_copy_uses_current_spanish_vocabulary():
         assert forbidden not in favorites
     assert "Centro deportivo, Directo, Calendario" in favorites
     assert "Pronósticos relacionados" in favorites
+    assert "picks relacionados" not in favorites.lower()
+    assert "ver picks" not in favorites.lower()
+    assert "recap" not in favorites.lower()
     assert "Picks publicados" not in recommendations
     assert "Pronósticos publicados" in recommendations
 

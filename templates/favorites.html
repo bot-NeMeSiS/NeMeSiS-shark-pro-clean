@@ -19,7 +19,7 @@
   <div class="grid dense-grid">
     <article class="card"><span class="badge">1</span><strong>{{ ui("Elige un equipo, liga o partido") }}</strong><p class="small">{{ ui("Empieza por lo que más revisas. Un favorito basta para ordenar la jornada.") }}</p></article>
     <article class="card"><span class="badge">2</span><strong>{{ ui("Usa una estrella o el alta manual") }}</strong><p class="small">{{ ui('Cuando exista ID seguro, NeMeSiS lo reutiliza; si no, guarda una etiqueta honesta.') }}</p></article>
-    <article class="card"><span class="badge">3</span><strong>{{ ui("Vuelve al radar") }}</strong><p class="small">{{ ui("Favoritos alimenta calendario, directo, picks relacionados y recap sin inventar datos.") }}</p></article>
+    <article class="card"><span class="badge">3</span><strong>{{ ui("Vuelve al radar") }}</strong><p class="small">{{ ui("Favoritos alimenta calendario, directo, pronósticos relacionados y resumen sin inventar datos.") }}</p></article>
   </div>
   <div class="actions"><a class="btn primary" href="/calendar">{{ ui("Buscar partido") }}</a><a class="btn" href="#add-favorite-manual">{{ ui("Añadir manualmente") }}</a></div>
 </section>
@@ -36,7 +36,7 @@
   <div class="empty premium-empty">
     <strong>{{ ui("Aún no hay partidos relacionados con tus favoritos.") }}</strong>
     <p>{{ ui("Marca estrellas desde el Centro deportivo, Directo, Calendario o el detalle de partido para construir tu radar.") }}</p>
-    <div class="actions"><a class="btn primary" href="/sports-hub">{{ ui("Ver partidos") }}</a><a class="btn" href="/picks">{{ ui("Ver picks") }}</a></div>
+    <div class="actions"><a class="btn primary" href="/sports-hub">{{ ui("Ver partidos") }}</a><a class="btn" href="/picks">{{ ui("Ver pronósticos") }}</a></div>
   </div>
   {% endif %}
 </section>
@@ -61,7 +61,7 @@
       {% for p in data.favorite_bundle.picks %}
       <a class="list-row" href="/picks"><span>{{ p.selection_display or p.selection or 'Pronóstico SHARK' }}<small>{{ p.home_team }} vs {{ p.away_team }}  {{ p.analysis_badge or 'Análisis' }}</small></span><strong>{{ p.confidence or 0 }}%</strong></a>
       {% else %}
-      <div class="empty premium-empty">{{ ui("Sin picks conectados a tus favoritos todavía.") }}</div>
+      <div class="empty premium-empty">{{ ui("Sin pronósticos conectados a tus favoritos todavía.") }}</div>
       {% endfor %}
     </div>
   </div>
