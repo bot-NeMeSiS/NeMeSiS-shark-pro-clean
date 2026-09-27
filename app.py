@@ -11612,7 +11612,7 @@ def shark_answer(question):
             + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
         )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi responsable", "/combisítipo=responsable&partidos=3"))
+        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi responsable", "/combis?tipo=responsable&partidos=3"))
 
     elif any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
         focus = "combis"
@@ -11665,7 +11665,7 @@ def shark_answer(question):
                 + ("Oportunidades en estudio:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
             )
         next_url = "/picks"
-        actions = _shark_actions(("Ver picks", "/picks"), ("Combi responsable", "/combisítipo=responsable&partidos=3"))
+        actions = _shark_actions(("Ver picks", "/picks"), ("Combi responsable", "/combis?tipo=responsable&partidos=3"))
 
     elif value_intent:
         focus = "oportunidades"
@@ -17881,10 +17881,10 @@ def v765_markets_context(data=None, user=None):
     snapshot = build_betting_markets_snapshot(picks=picks, matches=matches, plan=plan)
     snapshot["plan"] = plan
     snapshot["quick_actions"] = [
-        {"label": "1X2", "href": "/mercadosítipo=1x2", "text": "Ganador, empate o visitante"},
-        {"label": "Goles", "href": "/mercadosítipo=goles", "text": "Más/Menos 1.5 y 2.5"},
-        {"label": "Doble oportunidad", "href": "/mercadosítipo=doble", "text": "1X, X2 o 12"},
-        {"label": "Combis", "href": "/combisítipo=mixta&partidos=3", "text": "Combinadas responsables"},
+        {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
+        {"label": "Goles", "href": "/mercados?tipo=goles", "text": "Más/Menos 1.5 y 2.5"},
+        {"label": "Doble oportunidad", "href": "/mercados?tipo=doble", "text": "1X, X2 o 12"},
+        {"label": "Combis", "href": "/combis?tipo=mixta&partidos=3", "text": "Combinadas responsables"},
     ]
     return snapshot
 
