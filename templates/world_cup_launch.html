@@ -7,10 +7,10 @@
     <h1>Mundial en NeMeSiS SHARK PRO</h1>
     <p class="lead">Partidos clave, directos, pronósticos y resultados ordenados para el cliente. Sin mensajes de admin, sin datos inventados y con enlace claro al detalle.</p>
     <div class="v760-primary-actions">
-      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
+      <a class="btn primary" href="/calendario?lane=today">Hoy</a>
       <a class="btn" href="/directo?f=live">Directo</a>
       <a class="btn" href="/picks">Pronósticos</a>
-      <a class="btn" href="/track-record">Historial</a>
+      <a class="btn" href="/historico">Historial</a>
     </div>
   </div>
   <div class="scoreboard-kpis">
@@ -29,7 +29,7 @@
     <span><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
     <span><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
     <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Pronósticos</small></span>
-    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
+    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendario') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
   </div>
 </section>
 {% endif %}
