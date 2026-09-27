@@ -41,16 +41,20 @@ ELIGIBLE_PICK_STATUSES = (
     "publicado", "pendiente", "ganado", "perdido", "nulo",
 )
 _ELIGIBLE_PICK_STATUS_SQL = ",".join("'" + status + "'" for status in ELIGIBLE_PICK_STATUSES)
-LATEST_ELIGIBLE_GRADING_CTE = LATEST_GRADING_CTE.replace(
-    ") ",
-    """), eligible_grades AS (
+LATEST_ELIGIBLE_GRADING_CTE = """WITH latest_grades AS (
+    SELECT * FROM (
+        SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY COALESCE(NULLIF(r.pick_id,''),r.id)
+            ORDER BY COALESCE(r.graded_at,'') DESC, r.rowid DESC
+        ) AS evaluation_rank
+        FROM pick_grading_results r
+    ) WHERE evaluation_rank=1
+), eligible_grades AS (
     SELECT g.*
       FROM latest_grades g
       JOIN picks p ON p.id = g.pick_id
      WHERE lower(trim(COALESCE(p.status,''))) IN (""" + _ELIGIBLE_PICK_STATUS_SQL + """)
-) """,
-    1,
-)
+) """
 
 try:
     from engines.team_identity_engine import identity_payload
