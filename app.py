@@ -23860,21 +23860,29 @@ def crests_page():
 
 @app.route("/api/client/alerts")
 def api_client_alerts():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "alerts": build_client_alerts(limit=12), "summary": client_retention_summary()})
 
 
 @app.route("/api/client/activity")
 def api_client_activity():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "activity": client_activity_feed(limit=30)})
 
 
 @app.route("/api/client/daily-briefing")
 def api_client_daily_briefing():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "briefing": build_daily_briefing(user), "command": client_command_center_data(user)})
 
 @app.route("/api/client/command-center")
 def api_client_command_center():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "command": client_command_center_data(user)})
 
@@ -27103,6 +27111,8 @@ def api_favorites():
 
 @app.route("/api/favorites/feed")
 def api_favorites_feed():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full()})
 
 
