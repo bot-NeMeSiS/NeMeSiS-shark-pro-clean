@@ -8,7 +8,7 @@
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
 
 <div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="official-ref-14" data-growth-stage="PREMIUM_INTENT" data-growth-target="memberships">
-  {{ page_header('Elige tu plan', 'Elige por lo que quieres resolver.', 'plan', [{'label':'Comparar ELITE','href':'#v936-plan-comparison','icon':'plan'},{'label':'Mi cuenta','href':'/profile','icon':'user'}]) }}
+  {{ page_header('Elige tu plan', 'Elige por lo que quieres resolver.', 'plan', [{'label':'Comparar ELITE','href':'#v936-plan-comparison','icon':'plan'},{'label':'Mi cuenta','href':'/mi-cuenta','icon':'user'}]) }}
   {% if payment_error or data.get('payment_error') %}<div class="v933-safe-copy">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
 
   <section class="v933-plan-grid" id="v936-plan-comparison" data-top100-improvement="5,6">
@@ -28,7 +28,7 @@
       {% if current_user and pay.get('checkout_ready') and plan.get('configured') and current_plan != key %}
       <form class="v933-checkout-form" method="post" action="/pagos/checkout/{{ key }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in legal_checks %}<label><input type="checkbox" name="{{ item.key }}" value="1" required><span>{{ item.label }}</span></label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v933-action is-primary {{ 'is-gold' if key == 'ELITE' else 'is-blue' }}" data-ns-no-loading="1" type="submit">{{ ui("Elegir") }} {{ key }}</button></form>
       {% elif current_plan == key %}{{ action_button('Plan actual','/profile',false,'blue',true) }}
-      {% else %}{{ action_button('Configuración pendiente' if not plan.get('configured') else 'Elegir ' ~ key, '/memberships?plan=' ~ key if current_user else '/comprar/' ~ key, plan.get('configured'), 'gold' if key == 'ELITE' else 'blue', not plan.get('configured')) }}{% endif %}
+      {% else %}{{ action_button('Configuración pendiente' if not plan.get('configured') else 'Elegir ' ~ key, '/membresias?plan=' ~ key if current_user else '/comprar/' ~ key, plan.get('configured'), 'gold' if key == 'ELITE' else 'blue', not plan.get('configured')) }}{% endif %}
     </article>
     {% endfor %}
   </section>
