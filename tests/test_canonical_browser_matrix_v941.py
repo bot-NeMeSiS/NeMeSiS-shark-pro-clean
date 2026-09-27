@@ -32,3 +32,13 @@ def test_preflight_runs_real_canonical_browser_matrix():
     workflow=(ROOT/".github/workflows/render-deploy.yml").read_text(encoding="utf-8")
     assert "Canonical client and admin browser matrix" in workflow
     assert "python tools/run_v929_click_navigation_qa.py --timeout 15000" in workflow
+
+
+def test_browser_matrix_parallelizes_isolated_profiles_without_dropping_coverage():
+    source=(ROOT/"tools/run_v929_click_navigation_qa.py").read_text(encoding="utf-8")
+    assert "ThreadPoolExecutor" in source
+    assert "def _run_profile_isolated" in source
+    assert 'NEMESIS_BROWSER_QA_WORKERS' in source
+    assert 'default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "3"))' in source
+    assert "for profile, _viewport, _origins in profiles:" in source
+    assert "results.extend(profile_results[profile])" in source

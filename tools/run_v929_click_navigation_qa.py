@@ -13,6 +13,7 @@ import socket
 import sys
 import tempfile
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -305,10 +306,23 @@ def _run_profile(browser, base_url: str, sessions: dict, profile: str, viewport:
     return results
 
 
-def run(timeout: int = 15000) -> dict:
+def _run_profile_isolated(base_url: str, sessions: dict, profile: str, viewport: dict, origins: list[str], timeout: int) -> list[dict]:
+    """Run one browser profile with its own Playwright driver and Chromium process."""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(
+            executable_path=os.getenv("NEMESIS_QA_CHROMIUM") or playwright.chromium.executable_path
+        )
+        try:
+            return _run_profile(browser, base_url, sessions, profile, viewport, origins, timeout)
+        finally:
+            browser.close()
+
+
+def run(timeout: int = 15000, workers: int = 3) -> dict:
     app_module = _prepare_local_app()
     from werkzeug.serving import make_server
-    from playwright.sync_api import sync_playwright
 
     port = _free_port()
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
@@ -318,23 +332,43 @@ def run(timeout: int = 15000) -> dict:
     base_url = f"http://127.0.0.1:{port}"
     sessions = _signed_sessions(app_module.app)
     results: list[dict] = []
+    profiles = [
+        ("public_desktop", {"width": 1440, "height": 900}, PUBLIC_ORIGINS),
+        *[(f"client_{plan}_{device}", viewport, CLIENT_ORIGINS)
+          for plan in ("free", "pro", "elite")
+          for device, viewport in (("desktop", {"width":1440,"height":900}), ("mobile", {"width":390,"height":844}))],
+        ("admin_desktop", {"width": 1440, "height": 900}, ADMIN_ORIGINS),
+        ("admin_mobile", {"width": 390, "height": 844}, ADMIN_ORIGINS),
+    ]
+    worker_count = max(1, min(int(workers), len(profiles)))
+    profile_results: dict[str, list[dict]] = {}
     try:
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(executable_path=os.getenv("NEMESIS_QA_CHROMIUM") or playwright.chromium.executable_path)
-            try:
-                profiles = [
-                    ("public_desktop", {"width": 1440, "height": 900}, PUBLIC_ORIGINS),
-                    *[(f"client_{plan}_{device}", viewport, CLIENT_ORIGINS)
-                      for plan in ("free", "pro", "elite")
-                      for device, viewport in (("desktop", {"width":1440,"height":900}), ("mobile", {"width":390,"height":844}))],
-                    ("admin_desktop", {"width": 1440, "height": 900}, ADMIN_ORIGINS),
-                    ("admin_mobile", {"width": 390, "height": 844}, ADMIN_ORIGINS),
-                ]
-                for profile, viewport, origins in profiles:
-                    results.extend(_run_profile(browser, base_url, sessions, profile, viewport, origins, timeout))
+        if worker_count == 1:
+            for profile, viewport, origins in profiles:
+                profile_results[profile] = _run_profile_isolated(
+                    base_url, sessions, profile, viewport, origins, timeout
+                )
+                print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
+        else:
+            with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="v929-browser") as executor:
+                futures = {
+                    executor.submit(
+                        _run_profile_isolated,
+                        base_url,
+                        sessions,
+                        profile,
+                        viewport,
+                        origins,
+                        timeout,
+                    ): profile
+                    for profile, viewport, origins in profiles
+                }
+                for future in as_completed(futures):
+                    profile = futures[future]
+                    profile_results[profile] = future.result()
                     print(f"BROWSER_PROFILE_COMPLETE {profile}", flush=True)
-            finally:
-                browser.close()
+        for profile, _viewport, _origins in profiles:
+            results.extend(profile_results[profile])
     finally:
         server.shutdown()
         server.server_close()
@@ -379,8 +413,17 @@ def run(timeout: int = 15000) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--timeout", type=int, default=15000)
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=int(os.getenv("NEMESIS_BROWSER_QA_WORKERS", "3")),
+        help="Parallel isolated browser profiles. Default: 3.",
+    )
     args = parser.parse_args()
-    payload = run(timeout=max(3000, int(args.timeout)))
+    payload = run(
+        timeout=max(3000, int(args.timeout)),
+        workers=max(1, int(args.workers)),
+    )
     print(json.dumps({
         "version": payload["version"],
         "clicks_tested": payload["clicks_tested"],
