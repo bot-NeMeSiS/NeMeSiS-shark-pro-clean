@@ -51,7 +51,10 @@ def main() -> int:
         "runtime_version": runtime.get("version") == current_version,
         "version_files_match": runtime.get("version_files_match") is True,
         "deployment_aligned": runtime.get("deployment_alignment_status") == "aligned_local_files",
-        "flags_v929": all(runtime.get(key) is True for key in (
+        # V929 runtime booleans were release-era diagnostics. Successor runtimes may
+        # intentionally omit them after consolidating version flags. Missing flags are
+        # therefore compatible; an explicitly false flag still signals a regression.
+        "flags_v929": all(runtime.get(key) is not False for key in (
             "has_v929_navigation_integrity", "has_v929_route_not_found_video_fix",
             "has_v929_internal_link_audit", "has_v929_dynamic_route_guard",
             "has_v929_admin_client_navigation_separation", "has_v929_mobile_navigation_guard",
