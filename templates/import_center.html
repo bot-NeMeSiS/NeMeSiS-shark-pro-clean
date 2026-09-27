@@ -32,7 +32,7 @@ LaLiga,Sevilla FC,Real Betis,2026-05-20,21:00,Spain,FINALIZADO,1,1</textarea></d
 </section>
 <section class="band form-grid">
   <form class="card" method="post" action="/api/import-matches">
-    <h2>Partidos y live</h2>
+    <h2>Partidos y directo</h2>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual autorizado"></div>
     <div class="field"><label>URL o referencia legal</label><input name="source_url" placeholder="https://... o referencia interna"></div>
     <div class="field"><label>Nota legal</label><input name="legal_note" value="Carga autorizada por administrador"></div>
@@ -73,12 +73,12 @@ LaLiga EA Sports,Real Madrid,FC Barcelona,2026-05-30,21:00,Spain,PROGRAMADO</tex
 </section>
 <section class="band form-grid">
   <form class="card" method="post" action="/api/import-picks">
-    <h2>Importar picks</h2>
-    <p class="small">Solo picks propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
+    <h2>Importar pronósticos</h2>
+    <p class="small">Solo pronósticos propios, editoriales o de fuente autorizada. No se inventan cuotas.</p>
     <div class="field"><label>Fuente</label><input name="source_name" value="manual picks autorizado"></div>
-    <div class="field"><label>Nota legal</label><input name="legal_note" value="Pick cargado por administrador desde fuente autorizada"></div>
+    <div class="field"><label>Nota legal</label><input name="legal_note" value="Pronóstico cargado por administrador desde fuente autorizada"></div>
     <div class="field"><label>Datos CSV o JSON autorizados</label><textarea name="payload">match_date,competition_key,competition_name,home_team,away_team,selection,odds,confidence,stake_units,reasoning</textarea></div>
-    <button type="submit">Importar picks</button>
+    <button type="submit">Importar pronósticos</button>
   </form>
   <aside class="card">
     <h2>Telegram</h2>
