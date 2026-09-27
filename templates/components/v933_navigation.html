@@ -10,7 +10,7 @@
     <nav aria-label="{{ ui("Navegación pública") }}">
       {% for label, href, icon_name in links %}
       {% set active = request.path == href or (href == '/calendar' and request.path in ['/calendario','/calendario-global','/partidos','/partidos/calendario']) or (href != '/' and request.path.startswith(href ~ '/')) or (href == '/picks' and request.path in ['/combis','/combinadas']) %}
-      <a href="{{ href }}"{% if active %} class="is-active" aria-current="{{ 'true' if request.path in ['/combis','/combinadas'] else 'page' }}"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+      <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
     <div class="v933-topbar-actions"><a class="v933-button is-secondary" href="/cliente-login">{{ ui("Entrar") }}</a><a class="v933-button is-primary" href="/registro">{{ ui("Crear cuenta") }}</a></div>
@@ -30,10 +30,10 @@
     <nav aria-label="{{ ui("Navegación cliente") }}">
       {% for label, href, icon_name in links %}
       {% set active = request.path == href or (href == '/calendar' and request.path in ['/calendario','/calendario-global','/partidos','/partidos/calendario']) or (href != '/app' and request.path.startswith(href ~ '/')) or (href == '/picks' and request.path in ['/combis','/combinadas']) %}
-      <a href="{{ href }}"{% if active %} class="is-active" aria-current="{{ 'true' if request.path in ['/combis','/combinadas'] else 'page' }}"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+      <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
-    <a class="v933-plan-chip is-{{ plan|lower }}" href="/memberships"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
+    <a class="v933-plan-chip is-{{ plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
   </div>
 </header>
 <header class="v933-mobile-header v933-client-mobile-header" data-nav-zone="client-mobile">
@@ -91,7 +91,7 @@
 </script>
 <nav class="v933-admin-mobile-nav" aria-label="Navegación admin móvil">
   {% for label, href, icon_name in [('Panel','/admin/dashboard','dashboard'),('Telegram','/admin/telegram/command-center','telegram'),('Usuarios','/admin/users','users'),('Pronósticos','/admin/picks','target'),('Más','/admin/dashboard?commands=1','routes')] %}
-  <a href="{{ href }}"{% if request.path == href or request.path.startswith(href ~ '/') %} class="is-active" aria-current="{{ 'true' if request.path in ['/combis','/combinadas'] else 'page' }}"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+  <a href="{{ href }}"{% if request.path == href or request.path.startswith(href ~ '/') %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
   {% endfor %}
 </nav>
 {%- endmacro %}
@@ -101,7 +101,7 @@
 <nav class="v933-mobile-bottom-nav" aria-label="{{ ui("Navegación móvil") }}" data-nav-zone="client-bottom">
   {% for label, href, icon_name in links %}
   {% set active = request.path == href or (href == '/calendar' and request.path in ['/calendario','/calendario-global','/partidos','/partidos/calendario']) or (href == '/picks' and request.path in ['/combis','/combinadas']) %}
-  <a href="{{ href }}"{% if active %} class="is-active" aria-current="{{ 'true' if request.path in ['/combis','/combinadas'] else 'page' }}"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+  <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
   {% endfor %}
 </nav>
 {%- endmacro %}
