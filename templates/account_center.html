@@ -5,6 +5,10 @@
 {% set pay = data.payments_client or {} %}
 {% set user_name = data.session_user.name or data.session_user.username or 'Cliente' %}
 {% set activity = data.get('client_activity') or [] %}
+{% set membership_source = (data.session_user.membership_source or '')|lower %}
+{% set admin_granted = data.session_user.membership_admin_granted %}
+{% set stripe_status = pay.stripe_subscription_status or '' %}
+{% set stripe_label = {'active':'Activa','trialing':'En prueba','past_due':'Pago pendiente','canceled':'Cancelada','cancelled':'Cancelada','unpaid':'Impagada'}.get(stripe_status, stripe_status|replace('_',' ')|title if stripe_status else '') %}
 <section class="v799-screen v799-account-screen">
   <div class="v799-appbar">
     <div><span class="v799-kicker">Perfil cliente · sesión segura</span><h1>Mi cuenta</h1><p>Plan, Telegram, favoritos, pagos y salida de sesión en una pantalla clara.</p></div>
@@ -29,7 +33,7 @@
       <section class="v799-account-grid">
         <article class="v799-card"><span>Plan actual</span><strong>{{ plan }}</strong><p>{{ membership.get('headline') or 'Acceso activo a tu plan.' }}</p><a class="v799-button" href="/membresias">Gestionar plan</a></article>
         <article class="v799-card"><span>Telegram</span><strong>@{{ data.telegram_state.username if data.telegram_state and data.telegram_state.username else 'pendiente' }}</strong><p>Alertas, pronósticos y resúmenes según tu plan.</p><a class="v799-button" href="/telegram">Configurar</a></article>
-        <article class="v799-card"><span>Renovación</span><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Sin fecha' }}</strong><p>Estado Stripe: {{ pay.stripe_subscription_status or 'Sin suscripción Stripe' }}</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v799-button" type="submit">Ver pagos</button></form>{% else %}<a class="v799-button" href="/membresias">Ver pagos</a>{% endif %}</article>
+        <article class="v799-card">{% if plan == 'FREE' %}<span>Facturación</span><strong>Plan gratuito</strong><p>No hay renovación de pago activa.</p><a class="v799-button" href="/membresias">Comparar planes</a>{% elif admin_granted or membership_source == 'admin_manual' %}<span>Origen del plan</span><strong>Acceso concedido</strong><p>Este plan fue asignado por administración y no implica una renovación Stripe.</p><a class="v799-button" href="/membresias">Ver prestaciones</a>{% elif stripe_status %}<span>Renovación</span><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Fecha pendiente' }}</strong><p>Suscripción Stripe: {{ stripe_label }}.</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v799-button" type="submit">Gestionar suscripción</button></form>{% else %}<a class="v799-button" href="/membresias">Gestionar plan</a>{% endif %}{% else %}<span>Facturación</span><strong>Sin renovación automática</strong><p>No hay una suscripción Stripe activa asociada a esta cuenta.</p><a class="v799-button" href="/membresias">Gestionar plan</a>{% endif %}</article>
         <article class="v799-card"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong><p>Partidos, equipos o selecciones guardadas.</p><a class="v799-button" href="/favorites">Abrir favoritos</a></article>
       </section>
 
