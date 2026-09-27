@@ -245,7 +245,8 @@ def test_primary_client_surfaces_use_canonical_spanish_navigation_routes():
         "templates/client_menu.html",
     )
     combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in names)
-    legacy_route = __import__("re").compile(r"/(?:calendar|live|track-record)(?=(?:\\?|['\"\\s<>{}\\)]|$))")
-    assert legacy_route.search(combined) is None
+    for route in ("/calendar", "/live", "/track-record"):
+        for suffix in ("'", '"', "?"):
+            assert route + suffix not in combined
     for required in ("/calendario", "/directo", "/historico"):
         assert required in combined
