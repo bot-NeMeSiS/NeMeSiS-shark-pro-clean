@@ -29398,12 +29398,12 @@ def v566_membership_ui(user=None):
         ctx.update({"headline": "Plan completo activo", "next_cta": "Ver pronósticos", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
-            {"plan": "PRO", "title": "Pronósticos y Telegram PRO", "body": "Desbloquea pronósticos PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Pronósticos automáticos y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "PRO", "title": "Pronósticos y Telegram PRO", "body": "Accede a pronósticos PRO publicados, contexto SHARK, riesgo visible y opciones de Telegram del plan.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Acceso ELITE y SHARK ampliado", "body": "Incluye pronósticos y combinadas disponibles para ELITE, más contexto SHARK y funciones del plan cuando estén habilitadas.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
-            {"plan": "ELITE", "title": "ELITE completo", "body": "Pronósticos automáticos, combinadas avanzadas, SHARK completo y valor avanzado.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "Acceso ELITE", "body": "Amplía el acceso a pronósticos, combinadas y contexto SHARK según las funciones habilitadas para ELITE.", "href": "/membresias?plan=ELITE"},
         ]
     else:
         ctx["upgrade_cards"] = []
@@ -29424,9 +29424,9 @@ def v566_dashboard_summary(user=None):
         "favorites": {"total": len(favs)},
         "membership": membership,
         "focus": [
-            {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
-            {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
-            {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, directo y oportunidades de hoy.", "href": "/shark"},
+            {"type": "LIVE", "title": "Directo claro", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
+            {"type": "PICKS", "title": "Pronósticos y contexto", "body": "Pronósticos publicados y recomendaciones sin inventar datos.", "href": "/picks"},
+            {"type": "SHARK", "title": "SHARK", "body": "Pregunta por favoritos, directo, pronósticos y riesgo.", "href": "/shark"},
         ],
     }
 
