@@ -124,7 +124,12 @@ def test_real_flask_browser_final_replay_all_surfaces(replay, tmp_path, width):
             page = context.new_page()
             page.on('pageerror',lambda error:report['errors'].append(str(error)))
             page.clock.install(time=clock[0])
-            page.goto(base+'/live',wait_until='networkidle')
+            # PWA background requests need not become idle for Directo to be
+            # ready. Require the real HTTP document and its initialized updater;
+            # keep the service worker and all score/lifecycle assertions active.
+            response = page.goto(base+'/live',wait_until='domcontentloaded')
+            assert response.status == 200
+            expect(page.locator('[data-v934-directo]')).to_have_attribute('data-v934-started','true')
             card = page.locator(f'[data-v934-match-id="{MATCH_ID}"]')
             expect(card).to_have_count(1)
             expect(card.locator('[data-v934-score]')).to_have_text('1 - 0')
@@ -150,7 +155,7 @@ def test_real_flask_browser_final_replay_all_surfaces(replay, tmp_path, width):
             page.screenshot(path=str(tmp_path/f't3-final-inplace-{width}.png'))
             report['in_place_and_old_t2_rejected'] = True
             for route in ('/app','/live?f=finished','/calendar','/partidos','/match/'+MATCH_ID):
-                response = page.goto(base+route,wait_until='networkidle')
+                response = page.goto(base+route,wait_until='domcontentloaded')
                 assert response.status == 200
                 if route.startswith('/match/'):
                     expect(page.locator('[data-match-component="ScoreWidget"] strong')).to_have_text('5-0')
