@@ -9,6 +9,23 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PURGED_HEAVY_REPORT_DUMPS = {
+    "reports/CODEX_DAILY_REPORT_20260612_1550.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1551.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1556.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1939.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1941.json",
+    "reports/CODEX_DAILY_REPORT_20260612_2015.json",
+    "reports/CODEX_DAILY_REPORT_20260612_2036.json",
+    "reports/PROJECT_TREE_AUDIT_V723.json",
+    "reports/V726_PROJECT_TREE_AUDIT.json",
+    "reports/V913_reference_scan_validation_output.txt",
+}
+
+
+def test_heavy_historical_machine_dumps_stay_purged():
+    assert all(not (ROOT / path).exists() for path in PURGED_HEAVY_REPORT_DUMPS)
+
 
 @pytest.fixture(scope="module")
 def release_includes():
