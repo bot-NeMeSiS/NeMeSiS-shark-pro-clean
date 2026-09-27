@@ -193,3 +193,61 @@ def test_authenticated_html_cache_is_private(client):
         assert "no-store" in cache_control
         assert "Cookie" in response.headers.get("Vary","")
 
+
+def test_public_live_get_is_cache_only(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"sync_api_football_live_tracker",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("GET must not sync API-Football")))
+    monkeypatch.setattr(app_module,"live_tracker_matches",lambda *_a,**_k: [])
+    monkeypatch.setattr(app_module,"live_tracker_quality_summary",lambda *_a,**_k: {"ok":True,"external_calls":0,"read_only":True})
+    monkeypatch.setattr(app_module,"live_matches_any_date",lambda *_a,**_k: [])
+    monkeypatch.setattr(app_module,"live_matches_from_live_table",lambda *_a,**_k: [])
+    monkeypatch.setattr(app_module,"get_matches",lambda *_a,**_k: [])
+    response=client.get("/api/live")
+    assert response.status_code==200
+    payload=response.get_json()
+    assert payload["api_football_live_tracker"]["external_calls"]==0
+    assert payload["api_football_live_tracker"]["read_only"] is True
+
+
+def test_live_get_refresh_flags_are_rejected_before_work(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"sync_api_football_live_tracker",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("refresh GET must not sync")))
+    monkeypatch.setattr(app_module,"real_time_global_state",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("refresh GET must not mutate cache")))
+    assert client.get("/api/live?refresh=1").status_code==405
+    assert client.get("/api/realtime/state?refresh=1").status_code==405
+    assert client.get("/api/live/state?refresh=1").status_code==405
+
+
+def test_authenticated_live_tracker_gets_never_sync_provider(client,app_module,monkeypatch):
+    with client.session_transaction() as state:
+        state.update(user_id="qa-live-reader",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
+    monkeypatch.setattr(app_module,"sync_api_football_live_tracker",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("tracker GET must not sync")))
+    monkeypatch.setattr(app_module,"sync_api_football_fixture_detail",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("detail GET must not sync")))
+    monkeypatch.setattr(app_module,"live_tracker_matches",lambda *_a,**_k: [])
+    monkeypatch.setattr(app_module,"live_tracker_status",lambda *_a,**_k: {"ok":True,"read_only":True})
+    monkeypatch.setattr(app_module,"live_tracker_quality_summary",lambda *_a,**_k: {"ok":True,"read_only":True})
+    monkeypatch.setattr(app_module,"live_tracker_for_match",lambda *_a,**_k: {"available":False,"read_only":True})
+
+    listing=client.get("/api/live-tracker")
+    detail=client.get("/api/live-tracker/match/qa-fixture")
+    assert listing.status_code==200 and listing.get_json()["read_only"] is True
+    assert detail.status_code==200 and detail.get_json()["read_only"] is True
+    assert client.get("/api/live-tracker?refresh=1").status_code==405
+    assert client.get("/api/live-tracker/match/qa-fixture?refresh=1").status_code==405
+
+
+def test_live_tracker_readers_do_not_create_missing_database(tmp_path):
+    from engines import api_football_live_tracker_engine as tracker
+    path=tmp_path/"missing-live-cache.sqlite"
+    assert not path.exists()
+    assert tracker.live_tracker_matches(str(path))==[]
+    assert tracker.live_tracker_status(str(path))["read_only"] is True
+    assert tracker.live_tracker_quality_summary(str(path))["read_only"] is True
+    assert not path.exists()
+
+
+def test_teams_get_does_not_seed_schema(client,app_module,monkeypatch):
+    monkeypatch.setattr(app_module,"seed_core",lambda: (_ for _ in ()).throw(AssertionError("teams GET must not seed schema")))
+    monkeypatch.setattr(app_module,"db_table_exists",lambda table:False)
+    response=client.get("/api/teams")
+    assert response.status_code==200
+    assert response.get_json()["teams"]==[]
+
