@@ -41,7 +41,7 @@
   <section class="v933-kpi-grid ns16-kpi-strip" aria-label="{{ ui("Resumen de la jornada") }}">
     {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendar') }}
     {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
-    {{ kpi_card('Picks activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Pronósticos activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favorites') }}
   </section>
 
@@ -56,8 +56,8 @@
       </section>
     </div>
     <section class="ns16-section ns16-featured-pick">
-      {{ section_header('Pick destacado', '', 'Combinadas', '/combinadas') }}
-      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay picks publicados', 'SHARK espera evidencia completa.', '', '', 'shark') }}{% endif %}
+      {{ section_header('Pronóstico destacado', '', 'Combinadas', '/combinadas') }}
+      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay pronósticos publicados', 'SHARK espera evidencia completa.', '', '', 'shark') }}{% endif %}
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
     {{ quick_action('Favoritos', 'Tu selección', '/favorites', 'star') }}
