@@ -155,3 +155,9 @@ def test_navigation_contract_aliases_have_one_active_rule(app_module):
     assert template.render(path="/combinadas")=="|1|"
     assert template.render(path="/combis")=="|1|"
     assert template.render(path="/admin/matches-sync")=="||1"
+    contextual=app_module.app.jinja_env.from_string(
+        "{% import 'components/navigation_contracts.html' as nav %}"
+        "{{ nav.is_active('/admin/dashboard#master-audit-title', '/admin/dashboard', 'admin') }}|"
+        "{{ nav.is_active('/admin/dashboard?commands=1', '/admin/dashboard', 'admin') }}"
+    )
+    assert contextual.render()=="|"
