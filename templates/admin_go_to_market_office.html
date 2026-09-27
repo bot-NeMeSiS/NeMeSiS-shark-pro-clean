@@ -46,7 +46,7 @@
 
       <section class="v933-admin-panel" id="release-readiness">
         <header>
-          <div><h2>Release Readiness</h2><p>Puntuaciones derivadas de controles PASS/PARTIAL/BLOCKED, no de opinion.</p></div>
+          <div><h2>Preparación de publicación</h2><p>Puntuaciones derivadas de controles PASS/PARTIAL/BLOCKED, no de opinion.</p></div>
           {{ status_chip('CALCULO EXPLICADO','blue') }}
         </header>
         <div class="v933-admin-panel-body go-to-market-readiness-grid">
@@ -94,7 +94,7 @@
       </section>
 
       <section class="v933-admin-panel" id="top20-release-actions">
-        <header><div><h2>Top 20 acciones antes de Release 1.0</h2><p>Seleccionadas desde TOP 100 por orden y prioridad. No se ejecutan automaticamente.</p></div>{{ status_chip('PRIORIZADO','warning') }}</header>
+        <header><div><h2>Top 20 acciones antes de la publicación 1.0</h2><p>Seleccionadas desde TOP 100 por orden y prioridad. No se ejecutan automaticamente.</p></div>{{ status_chip('PRIORIZADO','warning') }}</header>
         <div class="v933-admin-panel-body">
           {% if gtm.top20_release_actions %}
           {% call data_table(['ID','Prioridad','Accion','Impacto','Esfuerzo/Riesgo','Dependencias']) %}
