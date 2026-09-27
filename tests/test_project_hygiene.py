@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def release_includes():
     tree = ast.parse((ROOT / "tools/build_clean_release.py").read_text(encoding="utf-8-sig"))
     namespace = {"ROOT": ROOT, "Path": Path}
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    namespace["VERSION_PREFIX"] = version.split("_", 1)[0]
     for node in tree.body:
         if isinstance(node, ast.Assign):
             try:
@@ -60,13 +62,24 @@ def test_regenerable_or_private_artifact_cannot_reenter_release(relative, releas
     "project_control/CODEX_QUEUE.md",
     "reports/LOCAL_CONTINUITY_20260919.md",
     "reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md",
-    "reports/V915_SECURITY_SECRET_GUARD_REPORT.md",
-    "reports/V915_QA/summary.json",
+    "reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md",
+    "reports/V941_RELIABILITY_LEARNING_REPORT.md",
     "data/runtime/automation_workforce/latest_run.json",
     "data/runtime/automation_workforce/v935_workers/navigation.json",
 ])
 def test_existing_source_and_explicit_report_contracts_stay_included(relative, release_includes):
     assert release_includes(relative) is True
+
+
+
+@pytest.mark.parametrize("relative", [
+    "reports/V915_SECURITY_SECRET_GUARD_REPORT.md",
+    "reports/V915_QA/summary.json",
+    "reports/V939_PICK_QUALITY_THRESHOLDS.md",
+])
+def test_historical_reports_remain_source_evidence_but_stay_out_of_release(relative, release_includes):
+    assert (ROOT / relative).exists()
+    assert release_includes(relative) is False
 
 
 def test_every_project_control_http_source_is_shipped(release_includes):
