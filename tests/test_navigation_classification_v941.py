@@ -66,3 +66,9 @@ def test_client_menu_runtime_groups_match_template_contract(app_module):
     }
     template=(__import__("pathlib").Path(__file__).resolve().parents[1]/"templates/client_menu.html").read_text(encoding="utf-8")
     assert "group_items in all_items|groupby('group')" in template
+
+    combinadas=[item for item in app_module.v566_client_menu_items() if item["title"]=="Combinadas"]
+    assert len(combinadas)==1 and combinadas[0]["href"]=="/combinadas"
+    shark_core=[item for item in app_module.v809_client_navigation_items() if item["title"]=="SHARK Core"]
+    assert len(shark_core)==1
+    assert "sin convertir indicadores en garantías" in shark_core[0]["body"]
