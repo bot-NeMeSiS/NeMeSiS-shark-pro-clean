@@ -57,14 +57,14 @@
   {{ page_header('Panel fundador', 'Producto, clientes y operaciones en una sola vista.', 'dashboard', [
     {'label':'Sistema fundador','href':'/admin/founder-os','primary':true,'icon':'dashboard'},
     {'label':'Centro de operaciones','href':'/admin/operations-center','icon':'shield'},
-    {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
+    {'label':'Consejo de empresa','href':'/admin/company-board','icon':'chart'},
     {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},
     {'label':'Revisión continua','href':'#continuous-evolution','primary':true,'icon':'history'}
   ]) }}
 
   <section class="v933-admin-panel v933-founder-sports-quality" id="founder-sports-quality" aria-label="Calidad deportiva">
     <header>
-      <div><h2>Calidad deportiva</h2><p>Lectura de DB y caché, sin llamadas adicionales al proveedor.</p></div>
+      <div><h2>Calidad deportiva</h2><p>Lectura de base de datos y caché, sin llamadas adicionales al proveedor.</p></div>
       {{ status_chip(sports_quality.state or 'NOT_CERTIFIED', 'success' if sports_quality.state == 'PASS' else 'warning') }}
     </header>
     <div class="v933-admin-panel-body">
@@ -73,7 +73,7 @@
         {{ kpi_card('Directo real', sports_quality.live_real, 'Estado canónico', 'cyan', 'live') }}
         {{ kpi_card('Conflictos de directo', sports_quality.live_conflicts, 'El estado final prevalece sobre directo', 'success' if sports_quality.live_conflicts == 0 else 'danger', 'shield') }}
         {{ kpi_card('Tier S/A', sports_quality.tier_sa_surfaced ~ ' / ' ~ sports_quality.tier_sa_available, 'Mostrados / disponibles', 'blue', 'target') }}
-        {{ kpi_card('Sin mapear', sports_quality.unknown, 'Degradadas en Home', 'warning', 'data') }}
+        {{ kpi_card('Sin mapear', sports_quality.unknown, 'Degradadas en Inicio', 'warning', 'data') }}
         {{ kpi_card('Desactualizados', sports_quality.stale, 'No se muestran como directo', 'success' if sports_quality.stale == 0 else 'warning', 'history') }}
       </div>
       <div class="v933-founder-sports-foot">
