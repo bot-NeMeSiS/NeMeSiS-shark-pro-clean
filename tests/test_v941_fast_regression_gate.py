@@ -37,3 +37,17 @@ def test_fast_gate_uses_isolated_database_and_blocks_auto_actions():
     assert "DB_PATH: /tmp/nemesis_fast_regression.db" in workflow
     assert "AUTO_GENERATE_PICKS: 'false'" in workflow
     assert "AUTO_SEND_TELEGRAM_PICKS: 'false'" in workflow
+
+def test_clean_release_packages_current_reports_not_historical_report_families():
+    build=(ROOT/"tools/build_clean_release.py").read_text(encoding="utf-8")
+    assert 'rel_posix.startswith(f"reports/{VERSION_PREFIX}_")' in build
+    assert 'rel_posix.startswith(f"reports/RELEASE_ZIP_AUDIT_{VERSION_PREFIX}")' in build
+    assert '"reports/CODEX_DAILY_PROMPT_CURRENT.txt"' in build
+    assert '"reports/LOCAL_CONTINUITY_20260919.md"' in build
+    assert '"reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md"' in build
+    for legacy in (
+        'reports/V748_', 'reports/V860_', 'reports/V939_',
+        'reports/RELEASE_ZIP_AUDIT_V759', 'reports/RELEASE_ZIP_AUDIT_V939',
+    ):
+        assert legacy not in build
+
