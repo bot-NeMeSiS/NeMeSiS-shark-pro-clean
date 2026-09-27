@@ -148,6 +148,22 @@ def test_team_and_user_intelligence_surfaces_use_canonical_spanish_labels():
     assert 'ui("Mi cuenta")' in user_intelligence
 
 
+def test_calendar_and_live_client_links_use_spanish_canonical_routes():
+    action=(ROOT / "templates/action_platform.html").read_text(encoding="utf-8")
+    adaptive=(ROOT / "templates/adaptive_experience.html").read_text(encoding="utf-8")
+    calendar=(ROOT / "templates/calendar.html").read_text(encoding="utf-8")
+    assert 'href="/calendar"' not in action
+    assert 'href="/calendario"' in action
+    assert 'href="/calendar"' not in adaptive
+    assert 'href="/live"' not in adaptive
+    assert 'href="/calendario"' in adaptive
+    assert 'href="/directo"' in adaptive
+    for forbidden in ("'/calendar?lane=", "'/live'", 'action="/calendar"', "or '/calendar'"):
+        assert forbidden not in calendar
+    for required in ("'/calendario?lane=", "'/directo'", 'action="/calendario"', "or '/calendario'"):
+        assert required in calendar
+
+
 def test_confirmed_orphan_legacy_templates_stay_purged():
     for name in ("client_progress.html", "product_audit.html", "admin_autonomous_ecosystem.html", "client_overview.html", "smart_dashboard.html"):
         assert not (ROOT / "templates" / name).exists()
