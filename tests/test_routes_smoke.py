@@ -29,13 +29,16 @@ def test_shark_route_guard_does_not_emit_invalid_javascript_regex():
 def test_canonical_shell_keeps_navigation_clickable_and_admin_isolated():
     base_text = (ROOT / "templates" / "base.html").read_text(encoding="utf-8", errors="replace")
     navigation = (ROOT / "templates" / "components" / "v933_navigation.html").read_text(encoding="utf-8")
+    navigation_contracts = (ROOT / "templates" / "components" / "navigation_contracts.html").read_text(encoding="utf-8")
     css = (ROOT / "static" / "v933-product.css").read_text(encoding="utf-8")
     client_js = (ROOT / "static" / "v937-product-client.js").read_text(encoding="utf-8")
     shark = (ROOT / "static" / "img" / "nemesis-shark-official.svg").read_text(encoding="utf-8")
 
     assert "{% if false %}" not in base_text
     assert "document.querySelectorAll('.nav a,.bottom-nav a,.ns-client-sidebar a')" not in base_text
-    assert "{% set links = [('Inicio','/','home')" in navigation
+    assert 'navigation_contracts.html' in navigation
+    assert "nav_contracts.PUBLIC_LINKS" in navigation
+    assert "('Inicio','/','home')" in navigation_contracts
     assert "body.ns-app .v933-shell-chrome {" in css
     assert "position: static;" in css
     assert "body.ns-app .v933-shell-chrome :is(a,button,input,select,textarea,summary) { pointer-events: auto; }" in css
