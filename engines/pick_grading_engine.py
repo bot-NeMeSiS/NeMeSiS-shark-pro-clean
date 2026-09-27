@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -105,14 +107,13 @@ def normalize_status(value: Any) -> str:
 
 
 def parse_score(value: Any, home_score: Any = None, away_score: Any = None) -> tuple[int | None, int | None]:
-    if home_score not in (None, "") and away_score not in (None, ""):
-        return as_int(home_score), as_int(away_score)
-    text = str(value or "")
-    for sep in ["-", ":", "–"]:
-        if sep in text:
-            left, right = text.split(sep, 1)
-            return as_int(left), as_int(right)
-    return None, None
+    def goal(raw):
+        text = str(raw).strip()
+        return int(text) if re.fullmatch(r"[0-9]+", text) else None
+    if home_score not in (None, "") or away_score not in (None, ""):
+        return goal(home_score), goal(away_score)
+    match = re.fullmatch(r"\s*([0-9]+)\s*[-:–]\s*([0-9]+)\s*", str(value or ""))
+    return (int(match[1]), int(match[2])) if match else (None, None)
 
 
 def ensure_pick_grading_schema(db_path: str) -> Dict[str, Any]:
@@ -165,19 +166,23 @@ def ensure_pick_grading_schema(db_path: str) -> Dict[str, Any]:
 
 def _load_candidates(conn: sqlite3.Connection, limit: int) -> list[Dict[str, Any]]:
     query = """SELECT p.id AS pick_id, p.match_id, p.match_date, p.competition_name, p.home_team, p.away_team,
-                      p.pick_type, p.selection, p.odds, p.confidence, p.stake_units, p.status AS pick_status,
+                      p.pick_type, p.market, p.selection, p.odds, p.confidence, p.stake_units,
+                      p.status AS pick_status, p.result_status,
                       m.status AS match_status, m.score, m.home_score, m.away_score, m.updated_at AS match_updated_at
                FROM picks p
                LEFT JOIN matches m ON m.id = p.match_id
+               WHERE lower(trim(p.status)) IN ('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')
                ORDER BY COALESCE(p.updated_at,p.created_at,p.match_date,'') DESC
                LIMIT ?"""
     items = rows(conn, query, (int(limit),))
-    if items:
+    if items or scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='picks'"):
         return items
     return rows(conn, """SELECT pick_id, match_id, league_name AS competition_name, home_team, away_team,
                               market AS pick_type, selection, odds, confidence, stake AS stake_units,
                               status AS pick_status, result_status, snapshot_at AS match_updated_at
-                       FROM warehouse_pick_facts ORDER BY COALESCE(updated_at,snapshot_at,'') DESC LIMIT ?""", (int(limit),))
+                       FROM warehouse_pick_facts
+                       WHERE lower(trim(status)) IN ('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')
+                       ORDER BY COALESCE(updated_at,snapshot_at,'') DESC LIMIT ?""", (int(limit),))
 
 
 def _settle_1x2(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
@@ -300,10 +305,22 @@ def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
     return "pending", "Marcador final detectado, pero el mercado necesita revisión manual.", 55
 
 
-def profit_for(result_status: str, odds: Any, stake: Any) -> float:
-    stake_f = as_float(stake, 1.0)
-    odds_f = as_float(odds, 0.0)
-    if result_status == "won" and odds_f > 1:
+def _recorded_amount(value: Any, minimum: float) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        amount = float(str(value).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    return amount if math.isfinite(amount) and amount > minimum else None
+
+
+def profit_for(result_status: str, odds: Any, stake: Any) -> float | None:
+    stake_f = _recorded_amount(stake, 0)
+    odds_f = _recorded_amount(odds, 1)
+    if stake_f is None or odds_f is None or result_status not in {"won", "lost", "void"}:
+        return None
+    if result_status == "won":
         return round((odds_f - 1) * stake_f, 2)
     if result_status == "lost":
         return round(-stake_f, 2)
@@ -313,8 +330,8 @@ def profit_for(result_status: str, odds: Any, stake: Any) -> float:
 def grade_pick(pick: Dict[str, Any]) -> Dict[str, Any]:
     result, reason, evidence_score = infer_result(pick)
     confidence = as_int(pick.get("confidence"), 50)
-    odds = as_float(pick.get("odds"), 0.0)
-    stake = as_float(pick.get("stake_units"), 1.0)
+    odds = _recorded_amount(pick.get("odds"), 1)
+    stake = _recorded_amount(pick.get("stake_units"), 0)
     profit = profit_for(result, odds, stake)
     if result == "won":
         after = min(100, confidence + 4)
@@ -360,7 +377,7 @@ def run_pick_grading(db_path: str, limit: int = 500, apply: bool = False) -> Dic
         else:
             stats[result] += 1
         stats["auto_validated"] += int(grade["auto_validated"])
-        stats["profit"] += grade["profit"]
+        stats["profit"] += grade["profit"] or 0.0
         gid = stable_id("pgr", p.get("pick_id"), result, p.get("match_updated_at"), grade["evidence_score"])
         cur.execute("""INSERT OR REPLACE INTO pick_grading_results
             (id,pick_id,match_id,grading_status,result_status,confidence_before,confidence_after,odds,stake,profit,grading_score,auto_validated,reason,payload_json,graded_at)
