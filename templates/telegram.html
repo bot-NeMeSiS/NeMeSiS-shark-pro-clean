@@ -7,6 +7,11 @@
 {% set channel_enabled = config.get('enabled') or config.get('legacy_enabled') %}
 {% set telegram_ready = state.get('linked') and channel_enabled %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set prefs = data.get('telegram_preferences') or {} %}
+{% set pref_options = data.get('telegram_preference_options') or {} %}
+{% set selected_leagues = prefs.get('selected_leagues') or [] %}
+{% set selected_types = prefs.get('message_types') or [] %}
+{% set plan_upper = plan|upper %}
 
 <div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver pronósticos','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/mi-cuenta','primary':true,'icon':'user'}]) }}
@@ -33,6 +38,83 @@
         <div class="v933-page-actions v933-inline-actions">{% if state.get('deep_link') %}<a class="v933-action is-primary is-cyan" href="{{ state.get('deep_link') }}" target="_blank" rel="noopener">{{ icon('telegram') }}<span>{{ ui("Conectar Telegram") }}</span></a>{% endif %}<form method="post" action="/telegram/regenerar-código"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-blue" type="submit">{{ ui("Nuevo código" if state.get("code") else "Generar código") }}</button></form></div>
         {% endif %}
       </section>
+      {% if request.args.get('preferences') == 'saved' %}
+      <p class="v933-safe-copy"><strong>Preferencias guardadas.</strong> Los próximos mensajes privados automáticos respetarán tu selección.</p>
+      {% elif request.args.get('preferences') == 'error' %}
+      <p class="v933-safe-copy"><strong>No se pudieron guardar las preferencias.</strong> Inténtalo de nuevo.</p>
+      {% endif %}
+
+      <section class="v933-panel" id="preferencias-telegram" data-telegram-preferences-contract="{{ prefs.get('contract') or pref_options.get('contract') }}">
+        {{ section_header('Tu Telegram, no un bombardeo', 'Elige cuánto quieres recibir. Pagar más da más control, no más spam.') }}
+        <form method="post" action="/telegram/preferencias" class="v933-main-stack" data-telegram-preferences-form>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <div class="v933-two-col is-balanced">
+            <label class="v933-card">
+              <strong>Intensidad</strong>
+              <small>El límite diario manda siempre.</small>
+              <select name="intensity">
+                {% for item in pref_options.get('intensities', []) %}
+                <option value="{{ item.key }}"{% if prefs.get('intensity') == item.key %} selected{% endif %}>{{ item.label }} · {{ item.hint }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="v933-card">
+              <strong>Máximo al día</strong>
+              <small>Tope duro para avisos privados automáticos.</small>
+              <select name="daily_limit">
+                {% for value in pref_options.get('daily_limits', []) %}
+                <option value="{{ value }}"{% if prefs.get('daily_limit') == value %} selected{% endif %}>{{ value }} mensaje{% if value != 1 %}s{% endif %}</option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <strong>Qué quieres recibir</strong>
+            <p class="small muted">Desmarca lo que no te aporte valor.</p>
+            <div class="v933-feature-grid">
+              {% for item in pref_options.get('message_types', []) %}
+              <label class="v933-card">
+                <input type="checkbox" name="message_types" value="{{ item.key }}"{% if item.key in selected_types %} checked{% endif %}>
+                <strong>{{ item.label }}</strong>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% if pref_options.get('custom_leagues') %}
+          <div>
+            <strong>Ligas que quieres seguir</strong>
+            <p class="small muted">Puedes elegir hasta {{ pref_options.get('league_limit') }}. Si no marcas ninguna, recibirás solo el catálogo curado dentro de tu límite diario.</p>
+            <div class="v933-feature-grid" data-telegram-league-selector>
+              {% for item in pref_options.get('leagues', []) %}
+              <label class="v933-card">
+                <input type="checkbox" name="selected_leagues" value="{{ item.key }}"{% if item.key in selected_leagues %} checked{% endif %}>
+                <strong>{{ item.label }}</strong>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% else %}
+          <div class="v933-safe-copy">
+            <strong>FREE recibe lo esencial.</strong> Máximo {{ prefs.get('daily_limit') or 2 }} mensajes privados automáticos al día. PRO y ELITE permiten focalizar por ligas y tipos de aviso.
+          </div>
+          {% endif %}
+
+          <label class="v933-safe-copy">
+            <input type="checkbox" name="pause_all" value="1"{% if prefs.get('pause_all') %} checked{% endif %}>
+            <strong>Pausar todos los avisos privados automáticos</strong>
+            <small>Puedes seguir usando NeMeSiS y volver a activarlos cuando quieras.</small>
+          </label>
+
+          <div class="v933-page-actions">
+            <button class="v933-action is-primary is-cyan" type="submit">{{ icon('check') }}<span>Guardar preferencias</span></button>
+          </div>
+          <p class="small muted">El canal global también queda limitado a resúmenes/destacados. Alertas de directo, recordatorios y eventos individuales no se replican allí automáticamente.</p>
+        </form>
+      </section>
+
       <section class="v933-panel ns-video-flat-panel" id="v936-telegram-value">
         {{ section_header('Contenido previsto para tu plan', 'Solo se envía cuando el canal está listo y existe información suficiente.') }}
         <div class="v933-four-col v933-feature-grid">
