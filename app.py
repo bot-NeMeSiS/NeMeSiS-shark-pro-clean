@@ -3966,6 +3966,13 @@ def apply_security_headers_and_csrf(response):
         if 'no-store' not in current_cache_control:
             response.headers['Cache-Control'] = 'private, no-store'
         response.vary.add('Cookie')
+    if request.path.startswith('/api/'):
+        response.vary.add('Cookie')
+    if session.get('user_id') and (request.path.startswith('/api/') or response.mimetype == 'text/html'):
+        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
+        if 'no-store' not in current_cache_control:
+            response.headers['Cache-Control'] = 'private, no-store'
+        response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -28175,6 +28182,8 @@ def client_safe_500(error):
 
 @app.route("/api/deep-route-check")
 def api_deep_route_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     checks = []
     for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/api/health", "/api/client-experience-check"]:
         checks.append({"path": path, "status": "registered"})
@@ -28183,6 +28192,8 @@ def api_deep_route_check():
 
 @app.route("/api/client-experience-check")
 def api_client_experience_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     """Chequeo de experiencia cliente: rutas públicas, cliente y admin separadas."""
     public_routes = ["/", "/membresias", "/cliente-login", "/registro"]
     client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/highlights", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
@@ -28199,6 +28210,8 @@ def api_client_experience_check():
 
 @app.route("/api/route-check")
 def api_route_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
     routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/membresias"]
     return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
@@ -29295,6 +29308,8 @@ def v565_admin_sports_data_picks_page():
 
 @app.route("/api/v565/sports-data-picks-check")
 def api_v565_sports_data_picks_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "health": v565_data_picks_health()})
 
 
@@ -30094,6 +30109,8 @@ def api_v566_full_audit_report():
 
 @app.route("/api/v566/product-polish-check")
 def api_v566_product_polish_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "report": v566_product_polish_report()})
 
 
@@ -30106,13 +30123,17 @@ def api_v566_recommendations():
 
 @app.route("/api/autonomous-picks/status")
 def api_v566_autonomous_picks_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "status": v565_data_picks_health()})
 
 
 @app.route("/api/timezone-check")
 def api_v566_timezone_check():
-    sample = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
-    return jsonify({"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso(), "sample_matches": sample})
+    payload = {"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso()}
+    if is_admin_session():
+        payload["sample_matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
+    return jsonify(payload)
 
 
 
@@ -30310,6 +30331,8 @@ def api_v570_admin_shark_center():
 
 @app.route("/api/system/v570-check")
 def api_v570_system_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
