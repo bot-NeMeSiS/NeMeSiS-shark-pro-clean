@@ -16,7 +16,7 @@
     {{ kpi_card('Rentabilidad (ROI)', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre ' ~ (record.get('stake_total')|string) ~ ' u. evaluadas', 'success', 'history') }}
     {{ kpi_card('Acierto', (winrate|string ~ '%') if winrate is not none else none, (record.get('decided_total')|string) ~ ' decisiones ganadas o perdidas', 'cyan', 'target') }}
     {{ kpi_card('Pronósticos cerrados', record.get('evaluable_total'), 'Total evaluable', 'blue', 'history') }}
-    {{ kpi_card('Pendientes', pending|length, 'No incluido en rentabilidad', 'warning', 'pause') }}
+    {{ kpi_card('Pendientes', record.get('pending'), 'No incluido en rentabilidad', 'warning', 'pause') }}
   </section>
 
   <section class="v933-panel v933-filter-panel">
@@ -59,7 +59,8 @@
           </article>
           {% endfor %}
           </div>
-        {% else %}{{ empty_state('Aún no hay pronósticos cerrados', 'El rendimiento permanecerá vacío hasta que el motor de evaluación confirme resultados reales.', 'Ver pronósticos activos', '/picks', 'history') }}{% endif %}
+        {% elif request.args.get('result') in ['won','lost','void'] %}{{ empty_state('Sin resultados para este filtro', 'No hay pronósticos de este resultado disponibles para tu plan en la muestra reciente.', 'Ver todos los resultados', '/track-record', 'history') }}
+        {% else %}{{ empty_state('Sin resultados disponibles para tu plan', 'Aquí aparecerán los pronósticos cerrados a los que tengas acceso. Las cifras generales corresponden al historial evaluable de la plataforma.', 'Ver pronósticos activos', '/picks', 'history') }}{% endif %}
       </section>
     </div>
 

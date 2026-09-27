@@ -28829,6 +28829,33 @@ def v742_track_record_context():
     summary["by_plan"] = by_plan
     summary["pending_results"] = pending_results
     summary["commercial_note"] = "Pendiente de resultados reales" if decided == 0 else "Rendimiento calculado solo con picks evaluables."
+    if has_request_context() and not is_admin_session():
+        user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+        recent = summary.get("recent_results") or []
+        identifiers = [str(item.get("pick_id")) for item in recent if item.get("pick_id")]
+        known = {}
+        if identifiers and db_table_exists("picks"):
+            placeholders = ",".join("?" for _ in identifiers)
+            known = {str(item["id"]): item for item in rows(
+                f"SELECT id,status,membership_required FROM picks WHERE id IN ({placeholders})", identifiers)}
+        fields = {
+            "pick_id", "match_id", "result_status", "odds", "stake", "profit",
+            "home_team", "away_team", "competition_name", "selection", "pick_type",
+            "event_datetime_iso", "event_datetime_label", "pick_created_at_label", "temporal_contract",
+        }
+        summary["recent_results"] = [
+            {key: value for key, value in item.items() if key in fields}
+            for item in recent
+            if str(item.get("pick_id")) in known
+            and normalize_pick_status(known[str(item["pick_id"])].get("status")) in {"published", "won", "lost", "void"}
+            and membership_allows(get_user_membership(user), known[str(item["pick_id"])].get("membership_required"))
+        ]
+        summary["pending_results"] = []
+        summary["recent_runs"] = []
+        summary["note"] = summary["commercial_note"]
+        result_filter = request.args.get("result")
+        if result_filter in {"won", "lost", "void"}:
+            summary["recent_results"] = [item for item in summary["recent_results"] if item.get("result_status") == result_filter]
     return summary
 
 

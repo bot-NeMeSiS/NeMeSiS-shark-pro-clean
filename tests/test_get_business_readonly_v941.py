@@ -10,6 +10,7 @@ BUSINESS_TABLES=(
     "telegram_subscribers","payment_webhook_events","subscription_events",
     "shark_context_snapshots","shark_memory",
     "telegram_settings","telegram_logs","telegram_deliveries","auto_alerts",
+    "pick_grading_results","pick_grading_runs",
 )
 CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships")
 ADMIN_ROUTES=(
@@ -186,6 +187,44 @@ def test_legacy_shark_pages_do_not_record_business_memory(app_module,monkeypatch
     assert response.status_code==200
     assert snapshot(db)==before
     assert not writes,writes
+
+
+@pytest.mark.parametrize("plan", ["ANONYMOUS","FREE","PRO","ELITE","ADMIN","EXPIRED"])
+def test_track_record_does_not_disclose_pending_payloads_or_locked_selections(app_module,monkeypatch,tmp_path,plan):
+    import json
+    from engines.pick_grading_engine import ensure_pick_grading_schema
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    ensure_pick_grading_schema(db)
+    effective="FREE" if plan in {"ANONYMOUS","EXPIRED"} else plan
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
+                     (effective,effective,"2020-01-01" if plan=="EXPIRED" else "2030-01-01","qa-read-client"))
+        for tier in ("FREE","PRO","ELITE","DRAFT"):
+            identifier="qa-track-"+tier
+            conn.execute("""INSERT INTO picks(id,home_team,away_team,selection,status,membership_required)
+                VALUES(?,?,?,?,?,?)""",(identifier,"QA Home","QA Away","QA_TRACK_SELECTION_"+tier,
+                    "draft" if tier=="DRAFT" else "won","FREE" if tier=="DRAFT" else tier))
+            conn.execute("""INSERT INTO pick_grading_results
+                (id,pick_id,result_status,odds,stake,profit,payload_json,graded_at)
+                VALUES(?,?,?,?,?,?,?,?)""",(identifier,identifier,"won",2,1,1,
+                    json.dumps({"pick":{"selection":"QA_TRACK_SELECTION_"+tier,"reasoning":"QA_INTERNAL_PAYLOAD"}}),"2026-09-01"))
+        conn.execute("""INSERT INTO pick_grading_results(id,pick_id,result_status,payload_json,graded_at)
+            VALUES('pending','qa-pending','pending','QA_PENDING_PRIVATE','2026-09-01')""")
+    client=a.app.test_client()
+    if plan!="ANONYMOUS":
+        with client.session_transaction() as state:
+            state.update(user_id="qa-read-client",user_role=effective,membership=effective)
+    before=snapshot(db)
+    for route in ("/api/track-record?membership=ADMIN","/track-record"):
+        response=client.get(route)
+        assert response.status_code==200
+        body=response.get_data(as_text=True)
+        if plan!="ADMIN":
+            for marker in ("QA_PENDING_PRIVATE","QA_INTERNAL_PAYLOAD","QA_TRACK_SELECTION_DRAFT"):
+                assert marker not in body
+            for tier in ("FREE","PRO","ELITE"):
+                assert ("QA_TRACK_SELECTION_"+tier in body)==a.membership_allows(effective,tier)
+        assert snapshot(db)==before
 
 def test_expired_membership_is_effective_free_without_persisting(app_module,monkeypatch,tmp_path):
     a,db=isolated(app_module,monkeypatch,tmp_path)
