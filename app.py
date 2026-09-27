@@ -28516,17 +28516,30 @@ def membership_distribution():
 
 def onboarding_status(user=None):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
-    fav_count = len(get_favorites(user_id=user.get("id") or "")) if user.get("id") else 0
-    activity_count = safe_count("user_activity", "user_id=?", (user.get("id") or "",)) if user.get("id") else 0
+    uid = str(user.get("id") or "")
+    fav_count = len(get_favorites(user_id=uid)) if uid else 0
+    first_value_count = safe_count(
+        "user_activity",
+        "user_id=? AND activity_type='growth_first_value' AND target_type='growth_funnel'",
+        (uid,),
+    ) if uid else 0
+    shark_questions = safe_count(
+        "shark_memory",
+        "user_id=? AND event_type='client_question'",
+        (uid,),
+    ) if uid else 0
     picks_visible = len(published_picks_for_user(user, limit=12))
     alerts_ready = len(build_client_alerts(limit=5))
+    try:
+        telegram_linked = bool(telegram_user_state(user).get("linked")) if uid else False
+    except Exception:
+        telegram_linked = False
     steps = [
-        {"key": "account", "label": "Cuenta creada", "done": bool(user.get("id")), "href": "/perfil"},
-        {"key": "favorites", "label": "Añadir favoritos", "done": fav_count > 0, "href": "/favorites"},
-        {"key": "matches", "label": "Revisar partidos", "done": safe_count("matches") > 0, "href": "/match-hub"},
-        {"key": "picks", "label": "Ver picks", "done": picks_visible > 0, "href": "/picks"},
-        {"key": "telegram", "label": "Preparar Telegram", "done": bool((telegram_config() or {}).get("configured")), "href": "/telegram"},
-        {"key": "shark", "label": "Preguntar a SHARK", "done": activity_count > 0, "href": "/shark"},
+        {"key": "account", "label": "Cuenta creada", "done": bool(uid), "href": "/mi-cuenta"},
+        {"key": "favorites", "label": "Añadir un favorito", "done": fav_count > 0, "href": "/favorites"},
+        {"key": "first_value", "label": "Revisar contenido deportivo", "done": first_value_count > 0, "href": "/calendar"},
+        {"key": "telegram", "label": "Vincular Telegram", "done": telegram_linked, "href": "/telegram"},
+        {"key": "shark", "label": "Preguntar a SHARK", "done": shark_questions > 0, "href": "/shark"},
     ]
     done = sum(1 for step in steps if step["done"])
     score = round(done / len(steps) * 100)
@@ -28540,6 +28553,9 @@ def onboarding_status(user=None):
         "favorites_count": fav_count,
         "picks_visible": picks_visible,
         "alerts_ready": alerts_ready,
+        "first_value_count": first_value_count,
+        "shark_questions": shark_questions,
+        "telegram_linked": telegram_linked,
         "membership": normalize_role(user.get("membership") or user.get("role")),
     }
 
