@@ -168,9 +168,9 @@
       <div class="team-center-section-head"><span>{{ ui("Pronósticos relacionados") }}</span><strong>{{ t.picks|length }}</strong></div>
       <div class="team-center-list">
         {% for pick in t.picks[:6] %}
-        <a href="/picks"><span>{{ pick.selection_display or pick.selection or 'Seleccion pendiente' }}</span><strong>{{ pick.odds or ui('No disponible') }}</strong></a>
+        <a href="/picks"><span>{{ pick.selection_display or pick.selection or 'Selección pendiente' }}</span><strong>{{ pick.odds or ui('No disponible') }}</strong></a>
         {% else %}
-        <p class="team-center-empty">{{ ui("Aún no hay picks publicados para este equipo.") }}</p>
+        <p class="team-center-empty">{{ ui("Aún no hay pronósticos publicados para este equipo.") }}</p>
         {% endfor %}
       </div>
     </section>
