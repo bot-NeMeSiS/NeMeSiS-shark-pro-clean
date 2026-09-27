@@ -8,7 +8,7 @@
   <details><summary>Historial y aprendizaje</summary><div data-reliability-timeline></div><div data-reliability-learning></div></details>
   <details id="reliability-verification"><summary>Registrar verificación o preparar cierre</summary>
     <p>Registra una comprobación que ya hayas realizado. No se ejecutan tests desde este formulario. El alcance y la referencia quedan en la memoria y en la auditoría.</p>
-    <form id="reliability-verification-form" class="master-settings-form">
+    <form id="reliability-verification-form" class="master-settings-form" data-js-only-form="true">
       <label>Incidencia Sentinel<input name="issue_id" required maxlength="80" placeholder="SENT-…"></label>
       <label>Causa raíz confirmada<input name="root_cause" required maxlength="900"></label>
       <label>Corrección aplicada<input name="corrective_action" required maxlength="900"></label>
@@ -22,7 +22,7 @@
       <label>Alcance<select name="scope" required><option value="LOCAL_QA">QA local</option><option value="CI">CI</option><option value="PRODUCTION">Comprobación de producción ya realizada</option></select></label>
       <button type="submit">Revisar registro de evidencia</button>
     </form>
-    <form id="reliability-resolve-form"><label>Incidencia con verificación vigente<input name="issue_id" required maxlength="80"></label><button type="submit">Preparar cierre verificado</button></form>
+    <form id="reliability-resolve-form" data-js-only-form="true"><label>Incidencia con verificación vigente<input name="issue_id" required maxlength="80"></label><button type="submit">Preparar cierre verificado</button></form>
   </details>
   <p><a href="/admin/sentinel-workflow">Improvement Workflow</a> · <a href="/admin/company-os">Company OS</a> · <a href="#master-audit-title">Auditoría de acciones</a></p>
 </section>

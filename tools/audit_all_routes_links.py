@@ -19,14 +19,40 @@ def rel(path: Path) -> str:
     return path.relative_to(ROOT).as_posix()
 
 
+def _form_attributes(tag: str) -> dict[str, str]:
+    attrs = {}
+    for match in re.finditer(r'\\b([:\\w-]+)\\s*=\\s*(["\\\'])(.*?)\\2', tag, re.IGNORECASE | re.DOTALL):
+        attrs[match.group(1).lower()] = match.group(3)
+    return attrs
+
+
+def _js_submit_bound(form_id: str, javascript: str) -> bool:
+    if not form_id:
+        return False
+    needles = (
+        f"$('#{form_id}').addEventListener('submit'",
+        f"$('#{form_id}')?.addEventListener('submit'",
+        f'document.getElementById("{form_id}").addEventListener("submit"',
+        f"document.getElementById('{form_id}').addEventListener('submit'",
+        f"document.getElementById('{form_id}')?.addEventListener('submit'",
+        f"document.querySelector('#{form_id}').addEventListener('submit'",
+        f"document.querySelector('#{form_id}')?.addEventListener('submit'",
+    )
+    return any(needle in javascript for needle in needles)
+
+
 def scan_template_links() -> dict:
-    href_re = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.IGNORECASE)
-    action_re = re.compile(r"""<form\b[^>]*?(?:action\s*=\s*["']([^"']*)["'])?[^>]*?>""", re.IGNORECASE | re.DOTALL)
+    href_re = re.compile(r"""href\\s*=\\s*["']([^"']+)["']""", re.IGNORECASE)
+    form_re = re.compile(r"""<form\\b[^>]*>""", re.IGNORECASE | re.DOTALL)
     direct_api_hrefs: list[dict] = []
     empty_links: list[dict] = []
     js_void_links: list[dict] = []
     forms_without_action: list[dict] = []
+    js_only_forms: list[dict] = []
+    js_only_forms_unbound: list[dict] = []
     templates_scanned = 0
+    master_js_path = ROOT / "static" / "admin-master-control.js"
+    master_js = master_js_path.read_text(encoding="utf-8", errors="replace") if master_js_path.exists() else ""
     for path in sorted((ROOT / "templates").rglob("*.html")):
         templates_scanned += 1
         text = path.read_text(encoding="utf-8", errors="replace")
@@ -39,17 +65,27 @@ def scan_template_links() -> dict:
                 js_void_links.append(entry)
             if href.startswith("/api/admin/") or href.startswith("/api/automation/"):
                 direct_api_hrefs.append(entry)
-        for match in action_re.finditer(text):
-            action = (match.group(1) or "").strip()
-            form_text = match.group(0).lower()
-            if "method=" not in form_text or action == "#":
-                forms_without_action.append({"file": rel(path), "action": action or "missing", "has_method": "method=" in form_text})
+        for match in form_re.finditer(text):
+            attrs = _form_attributes(match.group(0))
+            action = (attrs.get("action") or "").strip()
+            method = (attrs.get("method") or "").strip().lower()
+            if (attrs.get("data-js-only-form") or "").strip().lower() == "true":
+                form_id = (attrs.get("id") or "").strip()
+                entry = {"file": rel(path), "id": form_id or "missing", "handler_bound": _js_submit_bound(form_id, master_js)}
+                js_only_forms.append(entry)
+                if not entry["handler_bound"]:
+                    js_only_forms_unbound.append(entry)
+                continue
+            if not method or action == "#":
+                forms_without_action.append({"file": rel(path), "action": action or "missing", "has_method": bool(method)})
     return {
         "templates_scanned": templates_scanned,
         "direct_api_hrefs": direct_api_hrefs,
         "empty_links": empty_links,
         "js_void_links": js_void_links,
         "forms_without_action": forms_without_action,
+        "js_only_forms": js_only_forms,
+        "js_only_forms_unbound": js_only_forms_unbound,
     }
 
 
@@ -119,6 +155,8 @@ def write_report(payload: dict) -> None:
         f"- empty_hash_links: `{len(payload['links']['empty_links'])}`",
         f"- javascript_void_links: `{len(payload['links']['js_void_links'])}`",
         f"- forms_without_method_or_safe_action: `{len(payload['links']['forms_without_action'])}`",
+        f"- js_only_forms_explicit: `{len(payload['links']['js_only_forms'])}`",
+        f"- js_only_forms_unbound: `{len(payload['links']['js_only_forms_unbound'])}`",
         f"- unsafe_smoke_count: `{len(payload['smoke']['unsafe_smoke'])}`",
         "",
         "## Smoke",
@@ -132,6 +170,7 @@ def write_report(payload: dict) -> None:
         "- API 404 is expected to return safe JSON.",
         "- HTML 404 is expected to render the premium not-found template.",
         "- Direct admin/automation API hrefs should be replaced with buttons/fetch in future UI passes if any remain.",
+        "- JS-only forms are intentional only when explicitly marked and bound to a submit handler.",
     ])
     REPORT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     JSON_REPORT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -150,8 +189,9 @@ def main() -> int:
         "routes_registered": payload["smoke"]["routes_registered"],
         "unsafe_smoke_count": len(payload["smoke"]["unsafe_smoke"]),
         "direct_api_hrefs": len(payload["links"]["direct_api_hrefs"]),
+        "js_only_forms_unbound": len(payload["links"]["js_only_forms_unbound"]),
     }, ensure_ascii=False, indent=2))
-    return 0 if not payload["smoke"]["unsafe_smoke"] else 1
+    return 0 if not payload["smoke"]["unsafe_smoke"] and not payload["links"]["js_only_forms_unbound"] else 1
 
 
 if __name__ == "__main__":
