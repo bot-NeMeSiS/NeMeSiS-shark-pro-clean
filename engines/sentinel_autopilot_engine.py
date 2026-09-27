@@ -510,7 +510,7 @@ def build_customer_trust_icon_contract_snapshot(
                 return count
             macro_contract = all(
                 paired_icon_count(icon, label) == 1
-                for icon, label in (("target", "Picks completos"), ("history", "Histórico evaluable"),
+                for icon, label in (("target", "Pronósticos completos"), ("history", "Histórico evaluable"),
                                     ("shield", "Sin beneficio garantizado"))
             )
     except TemplateSyntaxError:
@@ -531,7 +531,7 @@ def build_customer_trust_icon_contract_snapshot(
         "issue_id": "PQV939-005",
         "version": app_version,
         "component": "customer_trust_panel",
-        "affected_routes": ["/app", "/picks", "/shark", "/track-record", "/partido/<id>"],
+        "affected_routes": ["/app", "/picks", "/shark", "/historico", "/partido/<id>"],
         "cause": "A descendant span selector applied chip padding, border and background to the nested icon span.",
         "solution": "Scope chip styles to direct children and preserve the dedicated icon rule.",
         "evidence": {
