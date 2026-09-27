@@ -138,6 +138,17 @@ def test_navigation_renderers_share_canonical_contract_source():
         assert not (root/"templates/components"/name).exists()
 
 
+def test_runtime_navigation_compatibility_flag_tracks_canonical_v933(app_module):
+    response=app_module.app.test_client().get("/api/runtime-version")
+    assert response.status_code==200
+    runtime=response.get_json() or {}
+    assert runtime.get("has_v929_mobile_navigation_guard") is True
+    source=(__import__("pathlib").Path(__file__).resolve().parents[1]/"app.py").read_text(encoding="utf-8")
+    flag_block=source.split('"has_v929_mobile_navigation_guard": (',1)[1].split("),",1)[0]
+    assert "v933_navigation.html" in flag_block
+    assert "v928_navigation.html" not in flag_block
+
+
 def test_navigation_contract_aliases_have_one_active_rule(app_module):
     template=app_module.app.jinja_env.from_string(
         "{% import 'components/navigation_contracts.html' as nav %}"

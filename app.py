@@ -26321,8 +26321,8 @@ def api_runtime_version():
         "has_v929_dynamic_route_guard": "resolve_safe_internal_route" in app_py_text,
         "has_v929_admin_client_navigation_separation": "V929 navigation integrity route recovery" in base_template,
         "has_v929_mobile_navigation_guard": (
-            (BASE_DIR / "templates" / "components" / "v928_navigation.html").exists()
-            and "v928-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v928_navigation.html").read_text(encoding="utf-8", errors="replace")
+            (BASE_DIR / "templates" / "components" / "v933_navigation.html").exists()
+            and "v933-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v933_navigation.html").read_text(encoding="utf-8", errors="replace")
         ),
         "has_v929_navigation_worker": (BASE_DIR / "automation_workforce" / "navigation_integrity_worker.py").exists(),
         "has_v929_click_browser_qa": (BASE_DIR / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json").exists(),
