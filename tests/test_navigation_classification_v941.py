@@ -109,3 +109,17 @@ def test_client_facing_combi_navigation_prefers_canonical_route(app_module,monke
     architecture=app_module.v776_client_information_architecture_snapshot()["routes"]
     canonical=[item for item in architecture if item["label"]=="Combinadas"]
     assert len(canonical)==1 and canonical[0]["href"]=="/combinadas"
+
+
+def test_core_client_templates_use_canonical_spanish_routes():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    home=(root/"templates/client_app_center.html").read_text(encoding="utf-8")
+    telegram=(root/"templates/telegram.html").read_text(encoding="utf-8")
+    membership=(root/"templates/membership.html").read_text(encoding="utf-8")
+    assert "'/memberships'" not in home and "'/support'" not in home
+    assert "'/membresias'" in home and "'/soporte'" in home
+    assert "'/profile'" not in telegram and "'/memberships'" not in telegram
+    assert "'/mi-cuenta'" in telegram and "'/membresias'" in telegram
+    assert "'/profile'" not in membership and "'/memberships?plan='" not in membership
+    assert "'/mi-cuenta'" in membership and "'/membresias?plan='" in membership
