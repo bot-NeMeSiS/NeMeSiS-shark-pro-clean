@@ -71,6 +71,18 @@ def test_canonical_surfaces_remove_legacy_product_words():
         for token in forbidden:
             assert token not in text, (path,token)
 
+def test_legacy_client_maps_use_canonical_plain_language():
+    menu=read("templates/client_menu.html")
+    nav_map=read("templates/client_navigation_map.html")
+    assert "Cuota, stake" not in menu
+    assert "<strong>Histórico</strong>" not in menu
+    assert "→ Histórico" not in menu
+    assert "Cuota, unidades" in menu and "<strong>Historial</strong>" in menu
+    assert "<span>Pick</span>" not in nav_map
+    assert "<span>Partido</span>" not in nav_map
+    assert "<span>Pronóstico</span>" in nav_map and "<span>Calendario</span>" in nav_map
+
+
 def test_calendar_uses_pronostico_for_pick_filter_label():
     text=read("templates/calendar.html")
     assert "kpi_card('Con pronóstico'" in text
