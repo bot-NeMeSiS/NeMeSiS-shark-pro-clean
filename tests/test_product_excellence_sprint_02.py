@@ -52,7 +52,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         ],
         "templates/action_platform.html": [
             'data-top100-improvement="20"',
-            "Recap nocturno",
+            "Resumen nocturno",
             "Siguiente acción útil",
             "esta sección",
         ],
