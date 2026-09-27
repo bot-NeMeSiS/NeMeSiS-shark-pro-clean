@@ -93,9 +93,9 @@ def test_market_and_combi_query_links_use_real_query_separator():
         "/mercados?tipo=goles",
         "/mercados?tipo=doble",
         "/combinadas?tipo=mixta&partidos=3",
-        "/combinadas?tipo=responsable&partidos=3",
     ):
         assert href in app
+    assert "/combinadas?tipo=responsable&partidos=3" not in app
 
 
 def test_client_facing_combi_navigation_prefers_canonical_route(app_module,monkeypatch):
