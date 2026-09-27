@@ -229,6 +229,16 @@ from engines.telegram_sport_filter_engine import (
     telegram_sport_filter_reason,
     telegram_sport_mode_summary,
 )
+from engines.telegram_user_preferences_engine import (
+    TELEGRAM_USER_PREFERENCES_CONTRACT,
+    destination_allows_message as telegram_destination_allows_message,
+    destination_daily_limit as telegram_destination_daily_limit,
+    filter_candidate_for_destination as telegram_filter_candidate_for_destination,
+    filter_items_for_preferences as telegram_filter_items_for_preferences,
+    sanitize_telegram_user_preferences,
+    telegram_preference_options,
+    telegram_preferences_from_profile,
+)
 from engines.telegram_quality_filter_engine import (
     explain_telegram_filter_decision,
     filter_telegram_candidates,
@@ -11732,6 +11742,26 @@ def telegram_user_state(user):
         "generation_requires_post": not linked and not code,
     }
 
+def telegram_user_preferences_for(user):
+    user = dict(user or {})
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    user_id = user.get("id") or ""
+    profile_preferences = {}
+    if user_id and "_load_user_intelligence_preferences" in globals():
+        try:
+            profile_preferences = _load_user_intelligence_preferences(user_id)
+        except Exception:
+            profile_preferences = {}
+    return telegram_preferences_from_profile(profile_preferences, membership)
+
+
+def telegram_destination_preferences_for(user_id, membership):
+    user_id = str(user_id or "").strip()
+    user = one("SELECT id,role,membership FROM users WHERE id=?", (user_id,)) if user_id else None
+    safe_user = user or {"id": user_id, "membership": membership or "FREE", "role": membership or "FREE"}
+    return telegram_user_preferences_for(safe_user)
+
+
 def ensure_default_telegram_subscriber():
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if not chat_id:
@@ -11769,7 +11799,16 @@ def telegram_auto_destinations(required_membership="FREE", include_global=True):
     seen = set()
     global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if include_global and global_chat_id:
-        destinations.append({"chat_id": global_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "target_key": "auto_channel", "label": "Canal global"})
+        destinations.append({
+            "chat_id": global_chat_id,
+            "user_id": "",
+            "membership": "ADMIN",
+            "target_kind": "channel",
+            "target_key": "auto_channel",
+            "label": "Canal global",
+            "telegram_preferences": {},
+            "daily_limit": 4,
+        })
         seen.add(global_chat_id)
     for sub in telegram_subscribers():
         chat_id = str(sub.get("chat_id") or "").strip()
@@ -11778,7 +11817,17 @@ def telegram_auto_destinations(required_membership="FREE", include_global=True):
         membership = normalize_role(sub.get("membership") or "FREE")
         if membership_allows(membership, required_membership):
             user_id = sub.get("user_id") or ""
-            destinations.append({"chat_id": chat_id, "user_id": user_id, "membership": membership, "target_kind": "private", "target_key": f"auto_private_user_{user_id or chat_id}", "label": sub.get("first_name") or sub.get("username") or "Usuario Telegram"})
+            preferences = telegram_destination_preferences_for(user_id, membership)
+            destinations.append({
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "membership": membership,
+                "target_kind": "private",
+                "target_key": f"auto_private_user_{user_id or chat_id}",
+                "label": sub.get("first_name") or sub.get("username") or "Usuario Telegram",
+                "telegram_preferences": preferences,
+                "daily_limit": telegram_destination_daily_limit({"target_kind": "private", "telegram_preferences": preferences}),
+            })
             seen.add(chat_id)
     return destinations
 
@@ -12902,25 +12951,38 @@ def telegram_reply_markup_from_payload(payload):
     return {"inline_keyboard": keyboard}
 
 
-def build_daily_matches_message():
+def telegram_daily_match_items():
     matches = match_hub(today_iso(), "today").get("today") or get_matches(today_iso(), "today")
     if not matches:
         matches = get_upcoming_matches(today_iso(), days=2, limit=10)
     matches = [telegram_enrich_match_for_message(match) for match in matches]
-    matches = filter_telegram_candidates(filter_telegram_football_items(matches), limit=5)
+    return filter_telegram_candidates(filter_telegram_football_items(matches), limit=5)
+
+
+def build_daily_matches_message(matches=None, preferences=None):
+    matches = telegram_daily_match_items() if matches is None else list(matches or [])
+    if preferences:
+        matches = telegram_filter_items_for_preferences(matches, preferences)
     if not matches:
         automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_top_matches", "created_at": now_iso(), "source": "daily_matches"})
         return ""
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
-def build_daily_picks_message(force_empty=False):
+def telegram_daily_pick_items():
     raw_picks = get_picks(limit=16, status=["published"], membership="ELITE")
     picks = []
     for raw in raw_picks:
         pick = telegram_enrich_pick_for_message(raw)
         if telegram_pick_sendability(pick).get("sendable"):
             picks.append(pick)
+    return picks
+
+
+def build_daily_picks_message(force_empty=False, picks=None, preferences=None):
+    picks = telegram_daily_pick_items() if picks is None else list(picks or [])
+    if preferences:
+        picks = telegram_filter_items_for_preferences(picks, preferences)
     if not picks and not force_empty:
         automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_real_pick", "created_at": now_iso(), "source": "daily_picks"})
         return ""
@@ -13043,58 +13105,74 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_summary_start"], cfg["daily_summary_end"]):
         return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Resumen diario fuera de ventana PRO; se mantiene pendiente para horario profesional.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_resumen", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
-    subscribers = telegram_subscribers()
+    subscribers = telegram_auto_destinations("FREE", include_global=True)
     if forced_chat_id and not subscribers:
-        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "telegram_preferences": {}}]
     if not subscribers:
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
-    body = build_daily_matches_message()
-    if not body:
-        return {"ok": True, "status": "SKIPPED_NO_TOP_MATCHES", "message": "No se envió nada: no había partidos top suficientes para Telegram.", "processed": 0, "inserted": 0, "updated": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["SKIPPED_NO_TOP_MATCHES"]}
+    base_matches = telegram_daily_match_items()
     inserted = skipped = 0
     for sub in subscribers:
+        allowed, _reason = telegram_destination_allows_message(sub, "daily_matches")
+        if not allowed:
+            skipped += 1
+            continue
+        if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+            skipped += 1
+            continue
+        preferences = sub.get("telegram_preferences") if sub.get("target_kind") == "private" else None
+        body = build_daily_matches_message(matches=base_matches, preferences=preferences)
+        if not body:
+            skipped += 1
+            continue
         result = enqueue_telegram_message(
-            "daily_matches",
-            "Partidos del día",
-            body,
-            chat_id=sub.get("chat_id"),
-            user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            "daily_matches", "Partidos del día", body,
+            chat_id=sub.get("chat_id"), user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "target_kind": sub.get("target_kind"), "telegram_preferences_contract": (sub.get("telegram_preferences") or {}).get("contract"), "app_url": telegram_absolute_url("/sports-hub"), "button_text": "Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Resumen de partidos encolado.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
+    return {"ok": True, "status": "QUEUED" if inserted else "NO_ELIGIBLE_DESTINATIONS", "message": "Resumen de partidos revisado por preferencias.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_ELIGIBLE_DESTINATIONS"]}
 
 
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_picks_start"], cfg["daily_picks_end"]):
         return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Picks diarios fuera de ventana PRO; no se fuerza envío.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
-    body = build_daily_picks_message(force_empty=force_empty)
-    if not body:
+    base_picks = telegram_daily_pick_items()
+    if not base_picks and not force_empty:
         return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks premium activos ahora mismo. SHARK está esperando valor real.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_ELIGIBLE_PICKS"]}
     subscribers = telegram_auto_destinations("PRO", include_global=True)
     if forced_chat_id and not subscribers:
-        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "telegram_preferences": {}}]
     if not subscribers:
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay canal global ni suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     inserted = skipped = 0
     for sub in subscribers:
+        allowed, _reason = telegram_destination_allows_message(sub, "daily_picks")
+        if not allowed:
+            skipped += 1
+            continue
+        if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+            skipped += 1
+            continue
+        preferences = sub.get("telegram_preferences") if sub.get("target_kind") == "private" else None
+        body = build_daily_picks_message(force_empty=force_empty, picks=base_picks, preferences=preferences)
+        if not body:
+            skipped += 1
+            continue
         result = enqueue_telegram_message(
-            "daily_picks",
-            "Picks destacados",
-            body,
-            chat_id=sub.get("chat_id"),
-            user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "app_url": telegram_absolute_url("/picks"), "button_text": "Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            "daily_picks", "Picks destacados", body,
+            chat_id=sub.get("chat_id"), user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "target_kind": sub.get("target_kind"), "telegram_preferences_contract": (sub.get("telegram_preferences") or {}).get("contract"), "app_url": telegram_absolute_url("/picks"), "button_text": "Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
+    return {"ok": True, "status": "QUEUED" if inserted else "NO_ELIGIBLE_DESTINATIONS", "message": "Picks destacados revisados por preferencias.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_ELIGIBLE_DESTINATIONS"]}
 
 
 def enqueue_auto_pick_alerts(force=False, limit=4):
@@ -23361,9 +23439,13 @@ def telegram_page():
         return redirect("/cliente-login?next=/telegram")
     state = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
     sports_summary = get_public_home_sports_summary()
+    membership_name = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    telegram_preferences = telegram_user_preferences_for(user)
     data = {
         "telegram": v931_safe_context(request.path, "telegram_config", telegram_config, {"enabled": False, "legacy_enabled": False}),
         "telegram_state": state,
+        "telegram_preferences": telegram_preferences,
+        "telegram_preference_options": telegram_preference_options(membership_name),
         "membership": v566_membership_ui(user),
         "session_user": user,
         "v932_sports_value": get_v932_real_sports_value_context(sports_summary),
@@ -23371,6 +23453,39 @@ def telegram_page():
         "sports_metrics": get_sports_metrics_contract(sports_summary),
     }
     return render_template("telegram.html", data=data)
+
+
+@app.route("/telegram/preferencias", methods=["POST"])
+def telegram_preferences_save():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/telegram")
+    if not validate_csrf(session, request_csrf_token()):
+        abort(403)
+    membership_name = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    profile_preferences = _load_user_intelligence_preferences(user.get("id"))
+    current_telegram = profile_preferences.get("telegram") if isinstance(profile_preferences.get("telegram"), dict) else {}
+    updates = {
+        "intensity": request.form.get("intensity") or current_telegram.get("intensity"),
+        "selected_leagues": request.form.getlist("selected_leagues"),
+        "message_types": request.form.getlist("message_types"),
+        "daily_limit": request.form.get("daily_limit") or current_telegram.get("daily_limit"),
+        "pause_all": request.form.get("pause_all") or "",
+    }
+    telegram_preferences = sanitize_telegram_user_preferences(current_telegram, updates, membership_name)
+    profile_preferences["telegram"] = telegram_preferences
+    saved = _save_user_intelligence_preferences(user, profile_preferences, action="telegram_preferences")
+    if not saved.get("ok"):
+        return redirect("/telegram?preferences=error", code=303)
+    telegram_log("preferences", "saved", "Preferencias privadas de Telegram actualizadas.", {
+        "user_id": user.get("id"),
+        "membership": membership_name,
+        "league_count": len(telegram_preferences.get("selected_leagues") or []),
+        "message_type_count": len(telegram_preferences.get("message_types") or []),
+        "daily_limit": telegram_preferences.get("daily_limit"),
+        "paused": bool(telegram_preferences.get("pause_all")),
+    })
+    return redirect("/telegram?preferences=saved", code=303)
 
 
 @app.route("/telegram/regenerar-código", methods=["POST"])
