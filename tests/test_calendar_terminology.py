@@ -26,3 +26,11 @@ def test_match_specific_language_is_not_globally_replaced():
     calendar=(ROOT/"templates/calendar.html").read_text(encoding="utf-8")
     assert "Encontrar partidos" in calendar
     assert "Partidos encontrados" in calendar
+
+
+def test_calendar_does_not_claim_confirmation_without_source_and_uses_filter_language():
+    calendar=(ROOT/"templates/calendar.html").read_text(encoding="utf-8")
+    assert "Agenda deportiva confirmada." not in calendar
+    assert "Estado de la agenda deportiva." in calendar
+    assert "Limpiar capas" not in calendar
+    assert "Limpiar filtros" in calendar
