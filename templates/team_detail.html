@@ -33,7 +33,7 @@
     </div>
     <aside class="team-center-status-card" aria-label="{{ ui("Seguimiento del equipo") }}">
       <div><span>{{ ui("Seguimiento") }}</span><strong>{{ ui_owned('Activo' if t.is_favorite else 'Disponible') }}</strong></div>
-      <form method="post" action="/favorites">
+      <form method="post" action="/favoritos">
         <input type="hidden" name="action" value="{{ 'remove' if t.is_favorite else 'add' }}">
         <input type="hidden" name="kind" value="team">
         <input type="hidden" name="value" value="{{ t.name }}">

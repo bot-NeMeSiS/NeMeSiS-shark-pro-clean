@@ -53,6 +53,23 @@ def test_core_client_favorites_navigation_uses_spanish_canonical_route():
     assert '@app.route("/api/favorites", methods=["GET", "POST", "DELETE"])' in source
 
 
+def test_top_level_client_templates_do_not_reintroduce_legacy_english_aliases():
+    legacy_tokens = (
+        '"/favorites"', "'/favorites'",
+        '"/support"', "'/support'",
+        '"/memberships"', "'/memberships'",
+    )
+    offenders=[]
+    for path in sorted((ROOT / "templates").glob("*.html")):
+        if path.name.startswith("admin_"):
+            continue
+        source=path.read_text(encoding="utf-8")
+        for token in legacy_tokens:
+            if token in source:
+                offenders.append((path.name, token))
+    assert offenders == []
+
+
 def test_secondary_client_copy_uses_current_spanish_vocabulary():
     sports=(ROOT / "templates/sports_hub.html").read_text(encoding="utf-8")
     favorites=(ROOT / "templates/favorites.html").read_text(encoding="utf-8")

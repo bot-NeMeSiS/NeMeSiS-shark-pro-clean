@@ -25,7 +25,7 @@
     {{ kpi_card('Índice de contexto', shark.get('score') if shark.get('score') is not none else '—', 'Indicador interno; no es probabilidad de acierto', 'cyan', 'shark') }}
     {{ kpi_card('En directo', counts.get('live') if counts.get('live') is not none else '—', 'Solo partidos con estado disponible', 'success', 'live', '/live') }}
     {{ kpi_card('Pronósticos publicados', published_picks|length, 'Contenido visible para tu plan', 'blue', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', counts.get('favorites') if counts.get('favorites') is not none else '—', 'Contexto personal disponible', 'gold', 'star', '/favorites') }}
+    {{ kpi_card('Favoritos', counts.get('favorites') if counts.get('favorites') is not none else '—', 'Contexto personal disponible', 'gold', 'star', '/favoritos') }}
   </section>
 
   <section class="v933-two-col">
