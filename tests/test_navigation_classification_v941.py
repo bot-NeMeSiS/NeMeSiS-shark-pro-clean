@@ -72,3 +72,18 @@ def test_client_menu_runtime_groups_match_template_contract(app_module):
     shark_core=[item for item in app_module.v809_client_navigation_items() if item["title"]=="SHARK Core"]
     assert len(shark_core)==1
     assert "sin convertir indicadores en garantías" in shark_core[0]["body"]
+
+
+def test_market_and_combi_query_links_use_real_query_separator():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    app=(root/"app.py").read_text(encoding="utf-8")
+    assert "ítipo" not in app
+    for href in (
+        "/mercados?tipo=1x2",
+        "/mercados?tipo=goles",
+        "/mercados?tipo=doble",
+        "/combis?tipo=mixta&partidos=3",
+        "/combis?tipo=responsable&partidos=3",
+    ):
+        assert href in app
