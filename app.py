@@ -17268,7 +17268,7 @@ def v758_adaptive_context(data=None, user=None, page_key=""):
             "quick_actions": [
                 {"label": "Inicio", "href": "/app", "badge": "App"},
                 {"label": "Partidos", "href": "/calendar", "badge": "Hoy"},
-                {"label": "Picks", "href": "/picks", "badge": "SHARK"},
+                {"label": "Pronósticos", "href": "/picks", "badge": "SHARK"},
             ],
         }
 
@@ -17355,8 +17355,8 @@ def build_v763_world_cup_launch_context(data=None, user=None):
             {"label": "Mundial", "href": "/mundial", "badge": "Foco"},
             {"label": "Partidos de hoy", "href": "/calendar?lane=today", "badge": "Hoy"},
             {"label": "Directo", "href": "/live?f=live", "badge": "Live"},
-            {"label": "Picks", "href": "/picks", "badge": "SHARK"},
-            {"label": "Histórico", "href": "/track-record", "badge": "Real"},
+            {"label": "Pronósticos", "href": "/picks", "badge": "SHARK"},
+            {"label": "Historial", "href": "/track-record", "badge": "Real"},
         ],
     }
 
@@ -17590,7 +17590,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         "picks": picks[:8],
         "primary_action": primary_action,
         "quick_actions": quick_actions,
-        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Picks, Resultados o Liga según el momento.",
+        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Pronósticos, Resultados o Liga según el momento.",
     }
 
 
@@ -29619,14 +29619,14 @@ def v566_intelligence_hub_page():
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=8)
     hub = {
         "score": v566_dashboard_summary(user)["score"],
-        "shark_message": "SHARK prioriza live, picks, favoritos y próximos importantes.",
+        "shark_message": "SHARK prioriza directo, pronósticos, favoritos y próximos importantes.",
         "favorites": len(get_favorites(user_id=(user or {}).get("id") or "")),
         "results_total": len(get_results_matches(today_iso(), days_back=7, limit=40)),
         "telegram_pending": "OK" if can_access_feature(user, "telegram_premium") else "PRO",
         "lanes": [
-            {"key": "live", "title": "Live", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
-            {"key": "picks", "title": "Picks", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
-            {"key": "auto", "title": "Auto Picks", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
+            {"key": "live", "title": "Directo", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
+            {"key": "picks", "title": "Pronósticos", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
+            {"key": "auto", "title": "Pronósticos automáticos", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
         ],
     }
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
@@ -31034,7 +31034,7 @@ def v777_client_product_context(data=None, user=None):
         "intents": intents,
         "plan": plan,
         "principles": [
-            "Lo importante primero: Hoy, Directo, Picks, SHARK y Resultados.",
+            "Lo importante primero: Hoy, Directo, Pronósticos, SHARK y Resultados.",
             "Sin datos inventados: si falta partido, cuota, resultado o ROI se marca pendiente.",
             "Móvil y PC comparten el mismo mapa de producto.",
         ],
@@ -31126,7 +31126,7 @@ def v778_client_product_organization_context(data=None, user=None):
     ]
     sections = [
         {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
-        {"key": "picks", "title": "Picks", "body": "Picks, mercados básicos y combinadas responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combinadas", "Riesgo"]},
+        {"key": "picks", "title": "Pronósticos", "body": "Picks, mercados básicos y combinadas responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combinadas", "Riesgo"]},
         {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
         {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
     ]
@@ -31137,7 +31137,7 @@ def v778_client_product_organization_context(data=None, user=None):
     elif counts.get("today"):
         next_action = {"label": "Prioridad: Hoy", "body": "Empieza por la agenda y marca favoritos si quieres seguimiento.", "href": "/calendar?lane=today", "cta": "Ver hoy"}
     else:
-        next_action = {"label": "Sin datos críticos", "body": "No se inventa información. Usa el mapa, Telegram o SHARK hasta la siguiente sincronización.", "href": "/menu", "cta": "Ver mapa"}
+        next_action = {"label": "Sin datos críticos", "body": "No se inventa información. Usa el inicio, Telegram o SHARK hasta la siguiente sincronización.", "href": "/app", "cta": "Ver inicio"}
     return {
         "version": APP_VERSION,
         "status": "V778_PRODUCT_ORDER_STABLE",

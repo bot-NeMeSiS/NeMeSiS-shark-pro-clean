@@ -307,3 +307,25 @@ def test_visible_surfaces_use_canonical_spanish_routes():
     for text in (base,error_500,company):
         assert 'href="/support"' not in text
         assert 'href="/soporte"' in text
+
+
+def test_secondary_client_surfaces_use_current_spanish_vocabulary():
+    hub=read("templates/unified_intelligence_hub.html")
+    markets=read("templates/betting_markets.html")
+    world=read("templates/world_cup_launch.html")
+    dynamic=read("templates/dynamic_mode.html")
+    briefing=read("templates/daily_briefing.html")
+    for token in ("Intelligence Hub","Score personal","Zero click",">Picks</a>","Combis","Builder"):
+        assert token not in hub
+    assert "Centro de inteligencia" in hub and "Pronósticos visibles" in hub and 'href="/combinadas"' in hub
+    for token in ("ver un pick",">Ver picks</a>","Combis","Partidos con pick","sobre picks reales"):
+        assert token not in markets
+    assert "Ver pronósticos" in markets and "Combinadas recomendadas" in markets and 'href="/combinadas"' in markets
+    for token in ("directos, picks",">Picks</a>",">Histórico</a>","<span>Picks</span>","Picks vinculados","No hay picks Mundial"):
+        assert token not in world
+    assert "Pronósticos vinculados" in world and ">Historial</a>" in world
+    for token in ("directo, picks",">Picks</a>","<span>Picks</span>","competición, picks","directo o picks"):
+        assert token not in dynamic
+    assert ">Pronósticos</a>" in dynamic
+    assert ">Picks</a>" not in briefing and "<h2>Picks y análisis</h2>" not in briefing
+    assert ">Pronósticos</a>" in briefing and "<h2>Pronósticos y análisis</h2>" in briefing
