@@ -23,7 +23,7 @@
     {% set plan = plans.get(key) or {} %}{% set price_label = plan.get('price_label') or '' %}
     <article class="v933-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}">
       <header><div><span>{{ ui("Plan") }}</span><h3>{{ key }}</h3></div>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
-      <strong class="v933-plan-price">{{ ui_price_label(price_label) }}{% if price_label and '/mes' not in price_label|lower %}<small>{{ ui("/mes") }}</small>{% endif %}</strong><p>{{ ui(description) }}</p>
+      <strong class="v933-plan-price">{% if plan.get('configured') %}{{ ui_price_label(price_label) }}{% if price_label and '/mes' not in price_label|lower %}<small>{{ ui("/mes") }}</small>{% endif %}{% else %}{{ ui("Precio pendiente") }}{% endif %}</strong><p>{{ ui(description) }}</p>
       <details class="ns-plan-benefits"><summary>{{ ui("Ver prestaciones") }}</summary><ul>{% for benefit in benefits %}<li>{{ icon('check') }}<span>{{ ui(benefit) }}</span></li>{% endfor %}</ul></details>
       {% if current_user and pay.get('checkout_ready') and plan.get('configured') and current_plan != key %}
       <form class="v933-checkout-form" method="post" action="/pagos/checkout/{{ key }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in legal_checks %}<label><input type="checkbox" name="{{ item.key }}" value="1" required><span>{{ item.label }}</span></label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v933-action is-primary {{ 'is-gold' if key == 'ELITE' else 'is-blue' }}" data-ns-no-loading="1" type="submit">{{ ui("Elegir") }} {{ key }}</button></form>
