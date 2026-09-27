@@ -89,3 +89,34 @@ def test_readonly_summary_does_not_need_access_sync_to_report_manual_grants(tmp_
     assert result["manual_access"]==1
     assert result["manual_by_tier"]=={"PRO":1,"ELITE":0}
     assert result["active_paid"]==1
+
+
+def test_admin_membership_summary_counts_only_active_stripe_as_paid(app_module,monkeypatch,tmp_path):
+    path=make_db(tmp_path)
+    monkeypatch.setattr(app_module,"DB_PATH",path)
+    monkeypatch.setenv("STRIPE_PRICE_PRO_LABEL","9,99 €/mes")
+    monkeypatch.setenv("STRIPE_PRICE_ELITE_LABEL","24,99 €/mes")
+    result=app_module.membership_revenue_summary()
+    assert result["distribution"]=={"FREE":1,"PRO":1,"ELITE":1,"ADMIN":0}
+    assert result["total_clients"]==3
+    assert result["paid_clients"]==1
+    assert result["manual_access"]==1
+    assert result["paid_by_tier"]=={"PRO":0,"ELITE":1}
+    assert result["manual_by_tier"]=={"PRO":1,"ELITE":0}
+    assert result["estimated_mrr"]==24.99
+    assert result["estimated_mrr_verified_by_provider"] is False
+    assert result["conversion"]==round(100/3,1)
+    assert result["revenue_scope"]=="active_stripe_subscriptions_only"
+
+
+def test_admin_memberships_template_separates_access_and_revenue():
+    from pathlib import Path
+    text=(Path(__file__).resolve().parents[1]/"templates/admin_memberships.html").read_text(encoding="utf-8")
+    assert "Stripe activas" in text
+    assert "Accesos manuales" in text
+    assert "No cuentan como ingresos" in text
+    assert "Conversión Stripe" in text
+    assert "Solo suscripciones activas" in text
+    assert "Catálogo × Stripe activo; no verificado por proveedor" in text
+    assert "Distribución de acceso" in text
+    assert "Según cuentas actuales" not in text
