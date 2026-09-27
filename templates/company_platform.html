@@ -90,8 +90,8 @@
     {{ section_header('Comparativa responsable', 'Ningun plan garantiza beneficios. NeMeSiS ofrece organizacion, contexto y controles de calidad.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Acceso inicial para entender jornada, calendario y bases de confianza.</p><a class="v933-action is-blue" href="/registro">{{ icon('arrow') }}<span>Empezar gratis</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
     </div>
   </section>
   <section class="v933-panel company-platform-section">
@@ -109,7 +109,7 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Canales de ayuda', 'Cada ruta explica que información aportar y que datos no debes compartir.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Soporte</h3><p>Envio de incidencias y sugerencias con asunto, categoria y mensaje.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Soporte</h3><p>Envio de incidencias y sugerencias con asunto, categoria y mensaje.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Guia de uso</h3><p>Ruta de ayuda existente para orientar primer uso y dudas frecuentes.</p><a class="v933-action is-blue" href="/guia">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Visible','neutral') }}</header><h3>Juego responsable</h3><p>Limites, advertencias y posicionamiento de NeMeSiS como información deportiva.</p><a class="v933-action is-blue" href="/juego-responsable">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
@@ -141,7 +141,7 @@
     {{ section_header('Sistemas visibles', 'Clasificacion honesta; no se convierte falta de evidencia en PASS.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip('LOCAL_ONLY','neutral') }}</header><h3>Aplicacion web</h3><p>Rutas publicas y cliente disponibles en entorno local de QA.</p><a class="v933-action is-blue" href="/">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('NO CERTIFICADO','neutral') }}</header><h3>Render</h3><p>No certificado desde esta página. Requiere evidencia read-only de producción.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Soporte</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('NO CERTIFICADO','neutral') }}</header><h3>Render</h3><p>No certificado desde esta página. Requiere evidencia read-only de producción.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Soporte</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('NO CONECTADO AQUI','neutral') }}</header><h3>Pagos</h3><p>La plataforma comercial no inicia pagos ni abre procesos de compra.</p><a class="v933-action is-blue" href="/precios">{{ icon('arrow') }}<span>Precios</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('SIN ENVIO','neutral') }}</header><h3>Telegram</h3><p>Integracion existente; esta página no envia mensajes ni modifica destinos.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>

@@ -292,3 +292,18 @@ def test_legacy_membership_catalog_matches_current_product_truth():
     assert '"Pronósticos PRO publicados"' in app_source
     assert '"Pronósticos ELITE publicados"' in app_source
     assert 'f"/membresias?plan={target}"' in app_source
+
+
+def test_visible_surfaces_use_canonical_spanish_routes():
+    hub=read("templates/unified_intelligence_hub.html")
+    home=read("templates/home.html")
+    base=read("templates/base.html")
+    error_500=read("templates/500.html")
+    company=read("templates/company_platform.html")
+    assert 'href="/menu"' not in hub
+    assert 'href="/app"' in hub
+    assert 'href="/memberships"' not in home
+    assert 'href="/membresias"' in home
+    for text in (base,error_500,company):
+        assert 'href="/support"' not in text
+        assert 'href="/soporte"' in text
