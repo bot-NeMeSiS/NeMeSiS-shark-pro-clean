@@ -82,3 +82,33 @@ def test_client_python_projections_use_current_spanish_vocabulary():
     assert "Pronósticos publicados disponibles" in _app_function_source("build_client_alerts")
     assert "Prioridad: Pronósticos" in _app_function_source("v778_client_product_organization_context")
     assert "return redirect('/soporte', code=303)" in _app_function_source("v724_contact_alias_page")
+
+
+def test_secondary_current_client_surfaces_drop_legacy_pick_combi_jargon():
+    files = (
+        "templates/adaptive_experience.html",
+        "templates/client_success.html",
+        "templates/shark_intelligence_center.html",
+        "templates/components/picks_workspace_nav.html",
+        "templates/partials/client_flow_bar.html",
+        "engines/client_success_engine.py",
+    )
+    combined = "\n".join((ROOT / name).read_text(encoding="utf-8") for name in files)
+    for token in (
+        ">Picks</a>", "<h3>Picks</h3>", "<strong>Picks</strong>",
+        "Picks premium", "Combis inteligentes", "SHARK AI Advisor",
+        "stake responsable", "interpretar picks, value", "sin compartir secrets",
+    ):
+        assert token not in combined
+    assert "Pronósticos" in combined
+    assert "Combinadas" in combined
+    assert "Asistente SHARK" in combined
+    assert "/combinadas" in combined
+
+
+def test_shark_intelligence_visible_copy_stays_spanish_first():
+    source=(ROOT / "templates/shark_intelligence_center.html").read_text(encoding="utf-8")
+    for token in ("SHARK Platform", ">Picks</a>", ">Graph<", ">Claims<", ">Modulos<"):
+        assert token not in source
+    for token in ("Inteligencia SHARK", ">Pronósticos</a>", ">Grafo<", ">Afirmaciones<", ">Módulos<"):
+        assert token in source

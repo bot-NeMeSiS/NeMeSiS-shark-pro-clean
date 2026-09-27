@@ -2,7 +2,7 @@
 
 Read-only helpers used by V733. They do not send Telegram, do not write to the
 DB and do not require Flask. The goal is to make the client journey clear:
-partidos, directo, picks, combis, SHARK, Telegram, soporte and responsible play.
+partidos, directo, pronósticos, combinadas, SHARK, Telegram, soporte y juego responsable.
 """
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
             "status": "OK" if upcoming_count > 0 else "PREPARANDO",
             "value": upcoming_count,
             "label": "próximos detectados",
-            "body": "Calendario en hora Madrid con filtros Hoy, Mañana, Semana, Favoritos y Con pick.",
+            "body": "Calendario en hora Madrid con filtros Hoy, Mañana, Semana, Favoritos y Con pronóstico.",
             "href": "/calendar",
             "cta": "Ver calendario",
         },
@@ -98,31 +98,31 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
         },
         {
             "key": "picks",
-            "title": "Picks premium",
+            "title": "Pronósticos",
             "status": "OK" if picks_visible > 0 else "EN ESTUDIO",
             "value": picks_visible,
-            "label": "picks visibles",
-            "body": "Solo se muestran como premium señales con selección clara y cuota real.",
+            "label": "pronósticos visibles",
+            "body": "Solo se muestran pronósticos con selección clara y cuota real cuando existe evidencia suficiente.",
             "href": "/picks",
-            "cta": "Ver picks",
+            "cta": "Ver pronósticos",
         },
         {
             "key": "combis",
-            "title": "Combis inteligentes",
+            "title": "Combinadas",
             "status": "LISTO",
             "value": 15,
             "label": "máximo selecciones",
-            "body": "Combi prudente, media y larga con aviso de riesgo y stake responsable.",
-            "href": "/combis",
-            "cta": "Crear combi",
+            "body": "Combinada breve, media o larga con aviso de riesgo y unidades orientativas.",
+            "href": "/combinadas",
+            "cta": "Crear combinada",
         },
         {
             "key": "shark",
-            "title": "SHARK AI Advisor",
+            "title": "Asistente SHARK",
             "status": "LISTO",
             "value": "PRO",
             "label": "asesor activo",
-            "body": "Preguntas rápidas para interpretar picks, value, directo, favoritos y qué no tocar.",
+            "body": "Preguntas rápidas para interpretar pronósticos, valor, directo, favoritos y qué no tocar.",
             "href": "/shark",
             "cta": "Preguntar",
         },
@@ -132,7 +132,7 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
             "status": "CONFIGURADO" if telegram_configured else "POR CONECTAR",
             "value": "Fútbol" if telegram_football_only else "Mixto",
             "label": "modo activo",
-            "body": "Alertas de fútbol, resumen diario y picks sin cuotas pendientes ni ruido técnico.",
+            "body": "Alertas de fútbol, resumen diario y pronósticos sin cuotas pendientes ni ruido técnico.",
             "href": "/telegram",
             "cta": "Conectar Telegram",
         },
@@ -144,13 +144,13 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
     if upcoming_count <= 0:
         next_actions.append({"priority": "alta", "title": "Revisar partidos de hoy", "href": "/sports-hub"})
     if picks_visible <= 0:
-        next_actions.append({"priority": "media", "title": "Consultar picks en estudio", "href": "/picks"})
+        next_actions.append({"priority": "media", "title": "Consultar pronósticos en estudio", "href": "/picks"})
     if favorites_count <= 0:
         next_actions.append({"priority": "media", "title": "Añadir favoritos", "href": "/favorites"})
     if not telegram_configured:
         next_actions.append({"priority": "alta", "title": "Conectar Telegram", "href": "/telegram"})
     if not next_actions:
-        next_actions.append({"priority": "ok", "title": "Revisar el directo y picks de hoy", "href": "/sports-hub"})
+        next_actions.append({"priority": "ok", "title": "Revisar el directo y los pronósticos de hoy", "href": "/sports-hub"})
 
     static = _static_success_checks(project)
     static_score = sum(1 for ok in static["templates"].values() if ok) + sum(1 for ok in static["css"].values() if ok)
@@ -187,9 +187,9 @@ def client_success_snapshot(stats: dict | None = None, root: str | Path | None =
         "static_checks": static,
         "support_channels": [
             {"title": "Partidos o calendario", "body": "Indica equipo, competición y hora visible en la app."},
-            {"title": "Telegram", "body": "Indica última hora recibida, canal o mensaje privado, sin compartir secrets."},
-            {"title": "Picks y combis", "body": "Indica partido, selección, cuota y si aparece en premium o estudio."},
+            {"title": "Telegram", "body": "Indica última hora recibida, canal o mensaje privado, sin compartir claves."},
+            {"title": "Pronósticos y combinadas", "body": "Indica partido, selección, cuota y si aparece publicado o en estudio."},
             {"title": "Cuenta", "body": "Indica plan actual, acceso y pantalla donde se produce el problema."},
         ],
-        "responsible_note": "NeMeSiS SHARK PRO ofrece análisis deportivo y señales de valor; no garantiza resultados.",
+        "responsible_note": "NeMeSiS SHARK PRO ofrece información y análisis deportivo; no acepta apuestas ni garantiza resultados.",
     }
