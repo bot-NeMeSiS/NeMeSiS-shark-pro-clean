@@ -1,22 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="app-hero compact-hero beta-public-v1" data-beta-program-contract="{{ beta.contract }}" data-feedback-platform-contract="{{ beta.feedback_contract }}" data-beta-metrics-contract="{{ beta.metrics_contract }}">
+{% set first10 = beta.get("first_10") or {} %}
+{% set invite_path = first10.get("invite_path") or "/landing?utm_source=referral&utm_medium=manual&utm_campaign=FIRST_10_USERS&ref=first10-founder" %}
+<section class="app-hero compact-hero beta-public-v1" data-beta-program-contract="{{ beta.contract }}" data-feedback-platform-contract="{{ beta.feedback_contract }}" data-beta-metrics-contract="{{ beta.metrics_contract }}" data-first10-contract="{{ first10.get('contract') or '' }}">
   <div>
-    <div class="kicker">Beta cerrada</div>
-    <h1>Ayuda a preparar NeMeSiS para usuarios reales</h1>
-    <p class="lead">Comparte errores, ideas y valoraciones sin enviar datos sensibles. Cada señal queda estructurada para que podamos reproducirla, priorizarla y mejorar el producto con evidencia.</p>
+    <div class="kicker">FIRST 10 · Beta privada</div>
+    <h1>Ayúdanos a construir una NeMeSiS que quieras volver a usar</h1>
+    <p class="lead">Estamos abriendo NeMeSiS SHARK PRO a un grupo pequeño de personas adultas. Pruébala gratis, abre un partido real, usa SHARK y cuéntanos qué te resulta útil, qué no entiendes y qué mejorarías.</p>
     <div class="hero-actions">
-      <a class="btn primary" href="#beta-feedback-form">Enviar comentarios</a>
-      <a class="btn ghost" href="/smart-home">Ver mi experiencia</a>
+      <a class="btn primary" href="{{ invite_path }}">Probar NeMeSiS</a>
+      <a class="btn" href="#first10-share">Invitar a alguien</a>
+      <a class="btn ghost" href="#beta-feedback-form">Dar mi opinión</a>
+      <a class="btn ghost" href="/app">Volver a mi experiencia</a>
     </div>
   </div>
   <aside class="hero-panel">
     <div class="live-strip">
-      <div><span>Estado</span><strong>Beta local</strong></div>
+      <div><span>Objetivo</span><strong>{{ first10.get('target_users') or 10 }} personas</strong></div>
       <div><span>Comentarios</span><strong>{{ beta.counts.feedback_total }}</strong></div>
-      <div><span>Métricas</span><strong>Opcionales</strong></div>
+      <div><span>Medición</span><strong>Privacidad primero</strong></div>
     </div>
-    <p class="small muted">No guardamos correo, teléfono, tarjetas, contraseñas, tokens ni claves. Las métricas agregadas pueden desactivarse en cada envío.</p>
+    <p class="small muted">No tienes que comprar nada para ayudarnos. No guardamos correo, teléfono, tarjetas, contraseñas, tokens ni claves en los comentarios de beta. Las métricas agregadas pueden desactivarse en cada envío.</p>
   </aside>
 </section>
 
@@ -30,6 +34,31 @@
   <div class="card beta-alert danger"><strong>No hemos podido guardar los comentarios.</strong><span>{{ data.error }}</span></div>
 </section>
 {% endif %}
+
+<section class="band compact-band beta-public-v1" id="first10-share" data-first10-share-root data-invite-path="{{ invite_path }}" data-share-title="{{ first10.get('share_title') or 'NeMeSiS SHARK PRO · Beta privada' }}" data-share-text="{{ first10.get('share_text') or 'Estoy probando NeMeSiS SHARK PRO con un grupo pequeño. Si te apetece, puedes probarla gratis y ayudarnos a mejorarla.' }}">
+  <div class="section-head"><div><h2>FIRST 10 · Pruébala y compártela fácil</h2><p class="small">No necesitas hacer publicidad. Si conoces a una persona adulta a la que pueda gustarle, comparte una invitación privada con un toque.</p></div><span class="pill">Sin spam · sin gasto</span></div>
+  <div class="grid cards-4 beta-section-grid">
+    {% for item in first10.get('onboarding', []) %}
+    <article class="card beta-section-card">
+      <span class="badge">{{ item.step }}</span>
+      <h3>{{ item.title }}</h3>
+      <p class="small">{{ item.body }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  <div class="card form-card">
+    <h3>Invitar a otra persona</h3>
+    <p class="small">{{ first10.get('share_text') }}</p>
+    <div class="hero-actions">
+      <button class="btn primary" type="button" data-first10-share>Compartir invitación</button>
+      <button class="btn" type="button" data-first10-copy>Copiar enlace</button>
+      <a class="btn ghost" href="#" target="_blank" rel="noopener noreferrer" data-first10-whatsapp>WhatsApp</a>
+      <a class="btn ghost" href="#" target="_blank" rel="noopener noreferrer" data-first10-telegram>Telegram</a>
+    </div>
+    <p class="small muted" data-first10-status role="status" aria-live="polite">Tú decides a quién se lo envías. NeMeSiS no manda invitaciones automáticamente.</p>
+  </div>
+  <p class="small muted">+18 · Información y análisis deportivo · Sin promesas de beneficio · Juego responsable.</p>
+</section>
 
 <section class="band compact-band beta-public-v1">
   <div class="section-head"><h2>Qué puedes enviar</h2><span class="pill">Privacidad primero</span></div>
@@ -136,4 +165,45 @@
     {% endfor %}
   </div>
 </section>
+<script>
+(function () {
+  const root = document.querySelector('[data-first10-share-root]');
+  if (!root) return;
+  const invitePath = root.dataset.invitePath || '/landing?utm_source=referral&utm_medium=manual&utm_campaign=FIRST_10_USERS&ref=first10-founder';
+  const inviteUrl = new URL(invitePath, window.location.origin).toString();
+  const shareTitle = root.dataset.shareTitle || 'NeMeSiS SHARK PRO · Beta privada';
+  const shareText = root.dataset.shareText || 'Estoy probando NeMeSiS SHARK PRO con un grupo pequeño. Si te apetece, puedes probarla gratis y ayudarnos a mejorarla.';
+  const status = root.querySelector('[data-first10-status]');
+  const shareButton = root.querySelector('[data-first10-share]');
+  const copyButton = root.querySelector('[data-first10-copy]');
+  const whatsapp = root.querySelector('[data-first10-whatsapp]');
+  const telegram = root.querySelector('[data-first10-telegram]');
+
+  if (whatsapp) whatsapp.href = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + inviteUrl);
+  if (telegram) telegram.href = 'https://t.me/share/url?url=' + encodeURIComponent(inviteUrl) + '&text=' + encodeURIComponent(shareText);
+
+  async function copyInvite() {
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      if (status) status.textContent = 'Enlace copiado. Compártelo solo con quien quieras invitar.';
+    } catch (error) {
+      window.prompt('Copia este enlace de invitación:', inviteUrl);
+    }
+  }
+
+  if (copyButton) copyButton.addEventListener('click', copyInvite);
+  if (shareButton) shareButton.addEventListener('click', async function () {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: shareTitle, text: shareText, url: inviteUrl });
+        if (status) status.textContent = 'Invitación preparada desde tu dispositivo.';
+        return;
+      } catch (error) {
+        if (error && error.name === 'AbortError') return;
+      }
+    }
+    await copyInvite();
+  });
+})();
+</script>
 {% endblock %}
