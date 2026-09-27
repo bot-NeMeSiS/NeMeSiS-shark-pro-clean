@@ -9,6 +9,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PURGED_LEGACY_RUNTIME_DUMPS = {
+    "data/runtime/v902_autonomous_reference_scan_final.json",
+    "data/runtime/v902_autonomous_reference_scan.json",
+    "data/runtime/v902_autonomous_safe_scan.json",
+}
+
 PURGED_HISTORICAL_REPORT_ARTIFACTS = {
     "reports/CODEX_DAILY_REPORT_20260612_1550.json",
     "reports/CODEX_DAILY_REPORT_20260612_1551.json",
@@ -43,6 +49,10 @@ def test_historical_report_artifacts_stay_purged():
 
 def test_historical_release_zip_audits_stay_out_of_source_reports():
     assert list((ROOT / "reports").glob("RELEASE_ZIP_AUDIT_V*")) == []
+
+
+def test_obsolete_v902_runtime_scan_dumps_stay_purged():
+    assert all(not (ROOT / path).exists() for path in PURGED_LEGACY_RUNTIME_DUMPS)
 
 
 def test_generated_sentinel_histories_stay_out_of_source_tree():
@@ -148,6 +158,9 @@ def test_every_project_control_http_source_is_shipped(release_includes):
     ("data/local_dev/qa.sqlite", True),
     ("data/qa_tmp/result.xml", True),
     ("data/runtime/autonomous_company_sentinel/history/ACS-qa.json", True),
+    ("data/runtime/v902_autonomous_reference_scan_final.json", True),
+    ("data/runtime/v902_autonomous_reference_scan.json", True),
+    ("data/runtime/v902_autonomous_safe_scan.json", True),
     ("data/runtime/autonomous_sentinel/history/ASW-qa.json", True),
     ("release_output/candidate.zip", True),
     ("logs/local.log", True),

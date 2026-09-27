@@ -148,3 +148,7 @@ reports/master_finalization/master_finalization_audit.json
 # Regenerable Sentinel execution history (runtime-owned, never source)
 data/runtime/autonomous_company_sentinel/history/
 data/runtime/autonomous_sentinel/history/
+# Obsolete V902 one-off scan dumps
+data/runtime/v902_autonomous_reference_scan_final.json
+data/runtime/v902_autonomous_reference_scan.json
+data/runtime/v902_autonomous_safe_scan.json
