@@ -49,6 +49,19 @@ def test_admin_data_and_telegram_remove_unexplained_jargon():
         assert forbidden not in telegram
     assert "Simulación · sin envío" in telegram and "Horas de silencio" in telegram and "Duplicado" in telegram
 
+def test_founder_admin_copy_is_spanish_first():
+    founder=(ROOT / "templates/admin_founder_dashboard.html").read_text(encoding="utf-8")
+    os=(ROOT / "templates/admin_founder_os.html").read_text(encoding="utf-8")
+    for forbidden in ("<strong>Scheduler</strong>", ">Product Review<", "<h2>Release Readiness</h2>", "<h2>Customer Overview</h2>"):
+        assert forbidden not in founder
+    for required in ("<strong>Programador</strong>", ">Revisión de producto<", "<h2>Preparación de publicación</h2>", "<h2>Resumen de clientes</h2>"):
+        assert required in founder
+    for forbidden in ("<h1>Founder Control</h1>", "Founder Inbox", "<h2>Founder Push</h2>", ">Company OS<", ">Inbox<"):
+        assert forbidden not in os
+    for required in ("<h1>Control fundador</h1>", "Bandeja del fundador", "<h2>Notificaciones del fundador</h2>", ">Sistema de empresa<", ">Bandeja<"):
+        assert required in os
+
+
 def test_internal_systems_lead_with_human_labels():
     nav=read("templates/components/navigation_contracts.html")
     company=read("templates/admin_company_os.html")
