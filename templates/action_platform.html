@@ -69,7 +69,7 @@
   <main class="action-platform-layout">
     <section class="action-platform-panel action-platform-wide" data-action-platform-active-section="{{ active }}">
       <div class="action-platform-section-head">
-        <span>{{ nav[active].title if active in nav else 'Smart Home' }}</span>
+        <span>{{ nav[active].title if active in nav else 'Inicio inteligente' }}</span>
         <strong>{{ current['items']|length if current and current['items'] else 0 }}</strong>
       </div>
       <p class="action-platform-section-intro">{{ nav[active].goal if active in nav else 'Organizar información real disponible.' }}</p>
