@@ -275,3 +275,39 @@ def test_account_pulse_and_onboarding_require_login(client):
         assert response.status_code==401,(path,response.status_code)
         assert response.get_json()["error"]=="login_required"
 
+
+def test_live_flow_uses_session_profile_and_membership_filtered_picks(app_module,monkeypatch):
+    captured={}
+    monkeypatch.setattr(app_module,"match_hub",lambda *_a,**_k: {"live":[],"counts":{}})
+    monkeypatch.setattr(app_module,"get_favorites",lambda *_a,**_k: [])
+    monkeypatch.setattr(app_module,"published_picks_for_user",lambda user,limit=30: [
+        {"id":"free","membership_required":"FREE","status":"published"}
+    ])
+    monkeypatch.setattr(app_module,"enrich_pick_client_context",lambda item:dict(item))
+    monkeypatch.setattr(app_module,"sort_picks_by_quality",lambda items:list(items))
+    monkeypatch.setattr(app_module,"favorite_feed_full",lambda *_a,**_k: {"matches":[],"live":[],"picks":[]})
+    monkeypatch.setattr(app_module,"build_live_flow",lambda hub,**kwargs: captured.update(kwargs) or {})
+    monkeypatch.setattr(app_module,"default_profile",lambda: (_ for _ in ()).throw(AssertionError("shared legacy profile must not be used")))
+
+    with app_module.app.test_request_context("/api/live-flow"):
+        app_module.session.update(user_id="qa-live-free",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA")
+        result=app_module.live_data_flow("2026-09-27")
+    assert result["profile"]["membership_plan"]=="FREE"
+    assert [item["id"] for item in result["recent_picks"]]==["free"]
+    assert captured["profile"]["membership_plan"]=="FREE"
+
+
+def test_favorite_feed_uses_membership_filtered_picks(app_module,monkeypatch):
+    matches=[{"id":"m1","home_team":"Local","away_team":"Visitante","competition_key":"liga","live_depth":{}}]
+    monkeypatch.setattr(app_module,"favorite_feed",lambda *_a,**_k:list(matches))
+    monkeypatch.setattr(app_module,"dedupe_matches_list",lambda items:list(items))
+    monkeypatch.setattr(app_module,"published_picks_for_user",lambda user,limit=100:[
+        {"id":"free","match_id":"m1","membership_required":"FREE"}
+    ])
+    monkeypatch.setattr(app_module,"get_picks",lambda *_a,**_k: (_ for _ in ()).throw(AssertionError("unfiltered picks must not be read")))
+
+    with app_module.app.test_request_context("/api/favorites/feed"):
+        app_module.session.update(user_id="qa-fav-free",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA")
+        result=app_module.favorite_feed_full()
+    assert [item["id"] for item in result["picks"]]==["free"]
+
