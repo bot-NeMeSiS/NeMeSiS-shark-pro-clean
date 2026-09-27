@@ -3,7 +3,7 @@
 <section class="product-hero compact-band">
   <div class="kicker">{{ ui("Tu historial") }}</div>
   <h1>{{ ui("Actividad reciente") }}</h1>
-  <p class="lead">{{ ui("Lo que vas consultando ayuda a SHARK a preparar una experiencia más personalizada con favoritos, picks y partidos.") }}</p>
+  <p class="lead">{{ ui("Aquí se muestran acciones guardadas explícitamente en tu cuenta. Abrir una pantalla no crea un registro de navegación.") }}</p>
   <div class="actions"><a class="btn primary" href="/perfil">{{ ui("Mi perfil") }}</a><a class="btn" href="/alertas">{{ ui("Alertas") }}</a></div>
 </section>
 <section class="band compact-band">
@@ -15,7 +15,7 @@
       <p class="muted"><time datetime="{{ act.created_at }}">{{ ui_match_datetime(act.created_at, true) }}</time></p>
     </div>
     {% else %}
-    <div class="empty premium-empty"><strong>{{ ui("Sin actividad aún") }}</strong><p>{{ ui("Cuando consultes partidos, picks, combinadas o favoritos, quedará registrado para mejorar tu experiencia.") }}</p></div>
+    <div class="empty premium-empty"><strong>{{ ui("Sin actividad aún") }}</strong><p>{{ ui("No hay acciones guardadas todavía. La navegación normal no se registra en este historial.") }}</p></div>
     {% endfor %}
   </div>
 </section>
