@@ -12,6 +12,7 @@ def test_smoke_runs_known_regressions_before_browser_install():
         "test_product_excellence_sprint_02.py",
         "test_data_backup_master_dedupe.py",
         "test_product_language_clarity.py",
+        "test_project_hygiene.py",
         "test_revenue_readonly_safety.py",
         "test_subscription_revenue_truth_v941.py",
         "test_shark_membership_limits_v941.py",
