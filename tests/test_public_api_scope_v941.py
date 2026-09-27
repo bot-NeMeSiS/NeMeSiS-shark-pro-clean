@@ -251,3 +251,16 @@ def test_teams_get_does_not_seed_schema(client,app_module,monkeypatch):
     assert response.status_code==200
     assert response.get_json()["teams"]==[]
 
+
+def test_user_specific_client_feeds_require_login(client):
+    for path in (
+        "/api/client/alerts",
+        "/api/client/activity",
+        "/api/client/daily-briefing",
+        "/api/client/command-center",
+        "/api/favorites/feed",
+    ):
+        response=client.get(path)
+        assert response.status_code==401,(path,response.status_code)
+        assert response.get_json()["error"]=="login_required"
+
