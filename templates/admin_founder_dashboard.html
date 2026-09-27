@@ -522,14 +522,14 @@
 
     <aside class="v933-side-stack">
       <section class="v933-admin-panel">
-        <header><div><h2>Roadmap</h2><p>Ruta del producto desde Company Board.</p></div>{{ status_chip(roadmap.current_sprint or 'Sin sprint', 'blue') }}</header>
+        <header><div><h2>Roadmap</h2><p>Ruta del producto desde el Consejo de empresa.</p></div>{{ status_chip(roadmap.current_sprint or 'Sin sprint', 'blue') }}</header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list">
             <div>{{ icon('check') }}<span><strong>Completados</strong><small>{{ (roadmap.completed or [])|length }} modulos</small></span></div>
             <div>{{ icon('history') }}<span><strong>Actual</strong><small>{{ roadmap.current_sprint or 'No disponible' }}</small></span></div>
             <div>{{ icon('arrow') }}<span><strong>Siguiente</strong><small>{{ roadmap.next_sprint or 'No disponible' }}</small></span></div>
           </div>
-          <a class="v933-action is-blue" href="/admin/company-board">{{ icon('chart') }}<span>Abrir Company Board</span></a>
+          <a class="v933-action is-blue" href="/admin/company-board">{{ icon('chart') }}<span>Abrir Consejo de empresa</span></a>
         </div>
       </section>
 
