@@ -6165,3 +6165,105 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
 .sentinel-ops :is(p,dd,li,button,h3) { overflow-wrap: anywhere; letter-spacing: 0; }
 .sentinel-ops [data-job-message]:empty { display: none; }
 @media(max-width: 650px) { .sentinel-ops-layout { grid-template-columns: minmax(0,1fr); } .sentinel-ops { padding: 12px; } }
+
+
+/* PR92 density pass: reclaim overview rows on Picks, Track Record and Telegram. */
+@media (min-width: 1101px) {
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) {
+    grid-template-columns: minmax(410px,.8fr) minmax(0,1.2fr);
+    column-gap: 14px;
+    row-gap: 9px;
+    align-items: start;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-page-header {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 70px !important;
+    margin: 0;
+    padding-block: 7px !important;
+    align-self: stretch;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 6px;
+    align-self: stretch;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi {
+    min-height: 70px;
+    grid-template-columns: 30px minmax(0,1fr);
+    gap: 7px;
+    padding: 7px 9px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi > .v933-icon {
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi span {
+    font-size: .62rem;
+    line-height: 1.25;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi strong {
+    margin-top: 2px;
+    font-size: 1.02rem;
+    line-height: 1.15;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi small {
+    margin-top: 2px;
+    font-size: .55rem;
+    line-height: 1.2;
+  }
+
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > [data-picks-workspace-nav] {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: stretch;
+  }
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > .v933-filter-panel {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: stretch;
+    padding: 5px 8px !important;
+  }
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body.ns-app .v933-track-record:has(> .v933-kpi-grid) > .v933-filter-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding: 5px 8px !important;
+  }
+  body.ns-app .v933-track-record:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body.ns-app .v933-telegram-page:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  body.ns-app .v933-telegram-page:has(> .v933-kpi-grid) > .ns-video-safety-note {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 760px) {
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page) {
+    gap: 9px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page) > .v933-page-header {
+    min-height: 58px !important;
+    margin-bottom: 0;
+    padding: 7px 9px !important;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page) > .v933-page-header p {
+    display: none;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record) > .v933-filter-panel {
+    padding: 5px 7px !important;
+  }
+}
