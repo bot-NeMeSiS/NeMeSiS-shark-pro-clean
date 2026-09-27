@@ -109,3 +109,15 @@ def test_shark_forms_and_widget_have_no_get_fallback():
     assert 'id="sharkForm" class="shark-form" method="post" action="/shark"' in base
     assert "/api/shark/ask?q=" not in base
     assert 'method="post" action="/shark" class="chip-form"' in core
+
+
+def test_shark_core_uses_canonical_evidence_first_copy_and_explicit_csrf():
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    core=(root/"templates/shark_core.html").read_text(encoding="utf-8")
+    for legacy in ("Tu cerebro deportivo del día","Mejor oportunidad","Memoria preparada"):
+        assert legacy not in core
+    assert 'data-shark-core-contract="evidence-first"' in core
+    assert 'name="csrf_token" value="{{ csrf_token() }}"' in core
+    assert "no es probabilidad de acierto" in core
+    assert "No garantiza resultados" in core
