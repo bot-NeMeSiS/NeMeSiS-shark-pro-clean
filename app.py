@@ -11775,58 +11775,9 @@ def telegram_config():
 
 
 def get_telegram_settings():
-    seed_core()
-    env_enable = telegram_env_should_enable()
-    row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    if not row:
-        conn = db()
-        conn.execute(
-            """INSERT OR IGNORE INTO telegram_settings
-               (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (
-                "default",
-                1,
-                1 if env_enable or env_bool("AUTO_SEND_TELEGRAM_PICKS", False) else 0,
-                0,
-                "09:00",
-                "11:00",
-                10,
-                1 if env_enable else 0,
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
-        row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    settings = normalize_settings(row)
-    if env_enable and (not settings.get("enabled") or not settings.get("auto_daily_picks")):
-        conn = db()
-        conn.execute(
-            """UPDATE telegram_settings
-               SET enabled=1,
-                   auto_daily_matches=1,
-                   auto_daily_picks=1,
-                   updated_at=?
-               WHERE id='default'""",
-            (now_iso(),),
-        )
-        conn.commit()
-        conn.close()
-        row = one("SELECT * FROM telegram_settings WHERE id='default'")
-        settings = normalize_settings(row)
-        try:
-            telegram_log("settings", "healed", "Telegram automatico activado desde variables Render.", {
-                "ENABLE_TELEGRAM_AUTO": os.getenv("ENABLE_TELEGRAM_AUTO", ""),
-                "AUTO_SEND_TELEGRAM_PICKS": os.getenv("AUTO_SEND_TELEGRAM_PICKS", ""),
-                "token_present": env_present("TELEGRAM_BOT_TOKEN"),
-                "chat_id_present": env_present("TELEGRAM_CHAT_ID"),
-            })
-        except Exception:
-            pass
-    return settings
-
-
+    """Read persisted settings; startup and explicit admin actions own writes."""
+    row = one("SELECT * FROM telegram_settings WHERE id='default'") if db_table_exists("telegram_settings") else None
+    return normalize_settings(row)
 
 
 def _telegram_sync_env_on_startup():
@@ -14448,7 +14399,7 @@ def process_telegram_queue(force=False):
     return {"enqueue": enqueue, "processed": processed, "pending_after": telegram_queue(limit=20)}
 
 
-def prepare_auto_posts():
+def prepare_auto_posts(*, persist=True):
     hub = match_hub(today_iso())
     posts = []
     for match in hub.get("live", [])[:5]:
@@ -14457,6 +14408,8 @@ def prepare_auto_posts():
         posts.append({"type": "pick_alert", "target_key": match.get("id"), "title": f"Pick relacionado: {match.get('competition_name')}", "status": "READY"})
     for match in hub.get("popular", [])[:5]:
         posts.append({"type": "featured_match", "target_key": match.get("id"), "title": f"Destacado: {match.get('home_team')} vs {match.get('away_team')}", "status": "READY"})
+    if not persist:
+        return posts
     conn = db()
     cur = conn.cursor()
     for post in posts:
@@ -26995,7 +26948,9 @@ def api_scheduler_run_live():
 def api_live_diagnostics():
     if not is_admin_session():
         return admin_json_forbidden()
-    refresh = ensure_client_live_fresh(force=request.args.get("refresh") in {"1", "true", "yes"})
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_requires_admin_post", "external_calls": 0, "database_writes": 0}), 405
+    refresh = ensure_client_live_fresh(force=False)
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
@@ -27979,9 +27934,9 @@ def api_telegram_scheduler_manager():
 def api_telegram_auto_posts():
     if not is_admin_session():
         return admin_json_forbidden()
-    posts = prepare_auto_posts()
+    posts = prepare_auto_posts(persist=False)
     saved = rows("SELECT * FROM auto_alerts ORDER BY updated_at DESC LIMIT 50")
-    return jsonify({"ok": True, "version": APP_VERSION, "prepared": posts, "saved": saved})
+    return jsonify({"ok": True, "version": APP_VERSION, "prepared": posts, "saved": saved, "read_only": True})
 
 
 @app.route("/api/cache/status")

@@ -9,6 +9,7 @@ BUSINESS_TABLES=(
     "client_profiles","payment_readiness_daily","settings",
     "telegram_subscribers","payment_webhook_events","subscription_events",
     "shark_context_snapshots","shark_memory",
+    "telegram_settings","telegram_logs","telegram_deliveries","auto_alerts",
 )
 CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships")
 ADMIN_ROUTES=(
@@ -62,6 +63,84 @@ def observe_business_writes(monkeypatch):
         return conn
     monkeypatch.setattr(sqlite3,"connect",connect)
     return writes
+
+
+@pytest.mark.parametrize("stored", [False, True])
+def test_telegram_settings_get_does_not_initialize_or_reenable(app_module,monkeypatch,tmp_path,stored):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        if stored:
+            conn.execute("UPDATE telegram_settings SET enabled=0,auto_daily_picks=0 WHERE id='default'")
+        else:
+            conn.execute("DELETE FROM telegram_settings")
+    monkeypatch.setattr(a,"telegram_env_should_enable",lambda: True)
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-admin-read",user_role="ADMIN",membership="ADMIN")
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    for method in ("GET","HEAD","GET"):
+        response=client.open("/api/telegram/settings",method=method)
+        assert response.status_code==200
+        assert snapshot(db)==before
+        assert not writes,writes
+    assert response.get_json()["settings"]["enabled"] is False
+
+
+def test_telegram_auto_posts_get_previews_without_replacing_saved_alerts(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    monkeypatch.setattr(a,"match_hub",lambda *_a,**_k:{
+        "live":[],"with_picks":[{"id":"qa-alert-match","competition_name":"QA League"}],"popular":[]})
+    # Seed through the real explicit preparation flow, then simulate a delivered alert.
+    a.prepare_auto_posts()
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE auto_alerts SET status='SENT',created_at='2026-01-01',updated_at='2026-01-02'")
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-admin-read",user_role="ADMIN",membership="ADMIN")
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    for method in ("GET","HEAD","GET"):
+        response=client.open("/api/telegram/auto-posts",method=method)
+        assert response.status_code==200
+        assert snapshot(db)==before
+        assert not writes,writes
+    payload=response.get_json()
+    assert payload["prepared"][0]["target_key"]=="qa-alert-match"
+    assert payload["saved"][0]["status"]=="SENT"
+
+
+def test_live_diagnostic_get_cannot_force_provider_sync(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    calls=[]
+    monkeypatch.setattr(a,"ensure_client_live_fresh",lambda **kw:calls.append(kw) or {})
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-admin-read",user_role="ADMIN",membership="ADMIN")
+    for value in ("1","true","yes","on"):
+        assert client.get("/api/live/diagnostics?refresh="+value).status_code==405
+    assert calls==[]
+    assert client.get("/api/live/diagnostics").status_code==200
+    assert calls==[{"force":False}]
+
+
+def test_telegram_writes_remain_explicit_and_reads_preserve_admin_choice(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    monkeypatch.setattr(a,"telegram_env_should_enable",lambda: True)
+    assert a._telegram_sync_env_on_startup()["settings"]["enabled"] is True
+    updated=a.update_telegram_settings({"enabled":False,"auto_daily_picks":False})
+    assert updated["enabled"] is False and updated["auto_daily_picks"] is False
+    before=snapshot(db)
+    assert a.get_telegram_settings()==updated
+    assert snapshot(db)==before
+
+
+def test_cold_telegram_settings_read_does_not_create_schema(app_module,monkeypatch,tmp_path):
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    with sqlite3.connect(db) as conn:
+        conn.execute("DROP TABLE telegram_settings")
+    assert a.get_telegram_settings()["enabled"] is False
+    assert not a.db_table_exists("telegram_settings")
 
 def test_expired_membership_is_effective_free_without_persisting(app_module,monkeypatch,tmp_path):
     a,db=isolated(app_module,monkeypatch,tmp_path)
