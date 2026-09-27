@@ -9,14 +9,14 @@
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 
 <div class="v933-page v933-telegram-page" data-v933-template="telegram" data-v933-reference="official-ref-16" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver pronósticos','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/profile','primary':true,'icon':'user'}]) }}
+  {{ page_header('Telegram', 'Alertas y resúmenes según tu plan.', 'telegram', [{'label':'Ver pronósticos','href':'/picks','icon':'target'},{'label':'Mi cuenta','href':'/mi-cuenta','primary':true,'icon':'user'}]) }}
 
 
   <section class="v933-kpi-grid ns-video-status-rail">
     {{ kpi_card('Telegram conectado', 'Sí' if state.get('linked') else 'No', 'Vinculación de tu cuenta', 'success' if state.get('linked') else 'warning', 'telegram') }}
     {{ kpi_card('Canal activo', ui('Sí' if channel_enabled else 'En pausa'), 'Preferencias del canal', 'success' if channel_enabled else 'warning', 'live') }}
     {{ kpi_card('Última actividad', ui_match_datetime(config.get('last_sent_at')) if config.get('last_sent_at') else none, 'Registro del canal · hora Madrid', 'blue', 'history') }}
-    {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/memberships') }}
+    {{ kpi_card('Plan', plan|upper, 'Contenido según membresía', 'gold', 'plan', '/membresias') }}
   </section>
 
   <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
@@ -51,7 +51,7 @@
         <div class="v933-main-stack">
           {{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram', 'cyan') }}
           {{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'alert') }}
-          {{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/memberships', 'plan', 'gold') }}
+          {{ quick_action('3. Elige tu plan', 'Contenido según membresía', '/membresias', 'plan', 'gold') }}
         </div>
       </section>
     </aside>
