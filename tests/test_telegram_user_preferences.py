@@ -1,3 +1,7 @@
+import re
+import sqlite3
+import uuid
+
 from engines.telegram_user_preferences_engine import (
     TELEGRAM_USER_PREFERENCES_CONTRACT,
     default_telegram_user_preferences,
@@ -152,3 +156,135 @@ def test_defaults_are_low_volume_by_plan():
     assert default_telegram_user_preferences("FREE")["daily_limit"] == 2
     assert default_telegram_user_preferences("PRO")["daily_limit"] == 6
     assert default_telegram_user_preferences("ELITE")["daily_limit"] == 10
+
+
+def _insert_test_user(app_module, membership="PRO"):
+    user_id = "qa-telegram-focus-" + uuid.uuid4().hex[:12]
+    email = user_id + "@example.invalid"
+    with sqlite3.connect(app_module.DB_PATH) as conn:
+        conn.execute(
+            "INSERT INTO users(id,email,password_hash,role,membership,created_at) VALUES(?,?,?,?,?,?)",
+            (user_id, email, "unusable-test-hash", membership, membership, app_module.now_iso()),
+        )
+    return user_id
+
+
+def _cleanup_test_user(app_module, user_id):
+    profile_id = app_module._user_intelligence_profile_id(user_id)
+    with sqlite3.connect(app_module.DB_PATH) as conn:
+        conn.execute("DELETE FROM client_profiles WHERE id=?", (profile_id,))
+        conn.execute("DELETE FROM telegram_subscribers WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+
+
+def test_pro_telegram_page_persists_focus_preferences(app_module, client):
+    user_id = _insert_test_user(app_module, "PRO")
+    try:
+        with client.session_transaction() as session:
+            session["user_id"] = user_id
+            session["user_role"] = "PRO"
+            session["membership"] = "PRO"
+
+        page = client.get("/telegram")
+        html = page.get_data(as_text=True)
+        assert page.status_code == 200
+        assert "Tu Telegram, no un bombardeo" in html
+        assert "data-telegram-preferences-form" in html
+        assert "data-telegram-league-selector" in html
+        assert "Más plan = más control, no más spam" in html
+
+        token_match = re.search(r'name="csrf_token" value="([^"]+)"', html)
+        assert token_match
+        response = client.post(
+            "/telegram/preferencias",
+            data={
+                "csrf_token": token_match.group(1),
+                "intensity": "focus",
+                "daily_limit": "4",
+                "selected_leagues": ["laliga", "champions"],
+                "message_types": ["summaries", "picks", "results"],
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers["Location"].endswith("/telegram?preferences=saved")
+
+        saved = app_module._load_user_intelligence_preferences(user_id)["telegram"]
+        assert saved["selected_leagues"] == ["laliga", "champions"]
+        assert saved["message_types"] == ["summaries", "picks", "results"]
+        assert saved["daily_limit"] == 4
+        assert saved["intensity"] == "focus"
+    finally:
+        _cleanup_test_user(app_module, user_id)
+
+
+def test_free_telegram_page_is_low_volume_without_league_selector(app_module, client):
+    user_id = _insert_test_user(app_module, "FREE")
+    try:
+        with client.session_transaction() as session:
+            session["user_id"] = user_id
+            session["user_role"] = "FREE"
+            session["membership"] = "FREE"
+        response = client.get("/telegram")
+        html = response.get_data(as_text=True)
+        assert response.status_code == 200
+        assert "FREE recibe lo esencial" in html
+        assert "data-telegram-league-selector" not in html
+        assert "Máximo diario" in html
+    finally:
+        _cleanup_test_user(app_module, user_id)
+
+
+def test_telegram_preferences_post_requires_csrf(app_module, client):
+    user_id = _insert_test_user(app_module, "PRO")
+    try:
+        with client.session_transaction() as session:
+            session["user_id"] = user_id
+            session["user_role"] = "PRO"
+            session["membership"] = "PRO"
+        response = client.post(
+            "/telegram/preferencias",
+            data={"daily_limit": "4", "selected_leagues": ["laliga"]},
+        )
+        assert response.status_code == 403
+    finally:
+        _cleanup_test_user(app_module, user_id)
+
+
+def test_queue_send_guard_blocks_legacy_live_alert_to_global_channel(app_module, monkeypatch):
+    sent = []
+
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "-1009999999999")
+    monkeypatch.setattr(app_module, "get_telegram_settings", lambda: {"enabled": True, "max_messages_per_hour": 1})
+    monkeypatch.setattr(app_module, "telegram_env_should_enable", lambda: True)
+    monkeypatch.setattr(app_module, "telegram_should_delay_message", lambda *args, **kwargs: False)
+    monkeypatch.setattr(app_module, "telegram_log", lambda *args, **kwargs: None)
+    monkeypatch.setattr(app_module, "telegram_send_http", lambda *args, **kwargs: sent.append(args) or {"sent": True})
+
+    real_rows = app_module.rows
+    queue_item = {
+        "id": "qa-global-live-backlog",
+        "chat_id": "-1009999999999",
+        "user_id": "",
+        "message_type": "live_alert",
+        "title": "Legacy live",
+        "body": "No debe salir",
+        "payload_json": '{"source":"automatic_cron","target_kind":"channel"}',
+        "source": "automatic_cron",
+        "status": "pending",
+        "attempts": 0,
+        "max_attempts": 3,
+        "dedupe_key": "qa-global-live-backlog",
+    }
+
+    def controlled_rows(query, params=()):
+        if "FROM telegram_queue" in query and "lower(status)" in query and "attempts" in query:
+            return [queue_item]
+        return real_rows(query, params)
+
+    monkeypatch.setattr(app_module, "rows", controlled_rows)
+    result = app_module.process_premium_telegram_queue(limit=1, force=False)
+    assert sent == []
+    assert result["sent"] == 0
+    assert result["skipped"] == 1
+    assert result["skipped_items"][0]["reason"] == "canal_global_solo_resumenes"
