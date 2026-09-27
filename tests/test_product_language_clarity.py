@@ -380,3 +380,17 @@ def test_import_center_telegram_copy_is_plain_spanish():
     assert "Command Center" not in text
     assert "Programador de Telegram" in text
     assert "Centro de control" in text
+
+def test_final_spanish_first_admin_and_faq_copy():
+    faq=read("templates/components/platform_faq.html")
+    go_live=read("templates/admin_go_live.html")
+    gtm=read("templates/admin_go_to_market_office.html")
+    founder=read("templates/admin_founder_dashboard.html")
+    assert "'/live','Ver Directo'" not in faq and "'/directo','Ver Directo'" in faq
+    assert "track record" not in go_live and "historial" in go_live
+    for token in ("Go To Market Office", "Company Platform", "Beta Management", "Customer Success", "Beta Program"):
+        assert token not in gtm
+    for token in ("Conflictos LIVE", "Stale", "Design System", "Growth & Revenue OS", "Brief revenue", "Executive Board"):
+        assert token not in founder
+    for token in ("Conflictos de directo", "Desactualizados", "Sistema de diseño", "Sistema de crecimiento e ingresos", "Resumen de ingresos", "Consejo ejecutivo"):
+        assert token in founder
