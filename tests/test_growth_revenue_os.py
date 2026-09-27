@@ -76,8 +76,17 @@ def test_growth_revenue_os_is_evidence_first_and_founder_controlled():
     assert snapshot["content_package"]["blocked_by_source_count"] == 3
     assert len(snapshot["experiments"]["items"]) == 10
     assert snapshot["first_10_campaign"]["automatic_send"] is False
+    assert snapshot["first_10_campaign"]["invite"]["campaign_id"] == "FIRST_10_USERS"
+    assert snapshot["first_10_campaign"]["invite"]["referral_code"] == "first10-founder"
+    assert "utm_campaign=FIRST_10_USERS" in snapshot["first_10_campaign"]["landing"]
+    assert "ref=first10-founder" in snapshot["first_10_campaign"]["landing"]
+    assert "FIRST100_ORGANIC" not in snapshot["first_10_campaign"]["landing"]
     assert len(snapshot["attribution"]["links"]) == 9
     assert len(snapshot["first_10_launch_kit"]) == 3
+    direct_invite = next(item for item in snapshot["first_10_launch_kit"] if item["path_id"] == "DIRECT_CONTACT")
+    community_invite = next(item for item in snapshot["first_10_launch_kit"] if item["path_id"] == "PERMITTED_COMMUNITIES")
+    assert direct_invite["link"] == snapshot["first_10_campaign"]["landing"]
+    assert community_invite["link"] == snapshot["first_10_campaign"]["landing"]
     assert len(snapshot["first_7_days_organic"]) == 7
     assert snapshot["first_paid_customer_path"]["state"] == "BLOCKED_UNTIL_CERTIFIED"
     assert snapshot["first_paid_customer_path"]["charging_allowed"] is False
