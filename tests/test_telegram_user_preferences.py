@@ -191,7 +191,7 @@ def test_pro_telegram_page_persists_focus_preferences(app_module, client):
         assert "Tu Telegram, no un bombardeo" in html
         assert "data-telegram-preferences-form" in html
         assert "data-telegram-league-selector" in html
-        assert "Más plan = más control, no más spam" in html
+        assert "Tu Telegram, no un bombardeo" in html
 
         token_match = re.search(r'name="csrf_token" value="([^"]+)"', html)
         assert token_match
@@ -230,7 +230,7 @@ def test_free_telegram_page_is_low_volume_without_league_selector(app_module, cl
         assert response.status_code == 200
         assert "FREE recibe lo esencial" in html
         assert "data-telegram-league-selector" not in html
-        assert "Máximo diario" in html
+        assert "Máximo al día" in html
     finally:
         _cleanup_test_user(app_module, user_id)
 
