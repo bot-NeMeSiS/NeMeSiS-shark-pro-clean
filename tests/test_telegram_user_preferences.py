@@ -218,6 +218,15 @@ def test_pro_telegram_page_persists_focus_preferences(app_module, client):
         _cleanup_test_user(app_module, user_id)
 
 
+def test_telegram_linking_copy_does_not_require_phone_number():
+    root = __import__("pathlib").Path(__file__).resolve().parents[1]
+    template = (root / "templates" / "telegram.html").read_text(encoding="utf-8")
+    assert "Opcional." in template
+    assert "código temporal" in template
+    assert "no necesita pedir tu número de teléfono" in template
+    assert 'name="phone"' not in template.lower()
+
+
 def test_free_telegram_page_is_low_volume_without_league_selector(app_module, client):
     user_id = _insert_test_user(app_module, "FREE")
     try:
