@@ -157,3 +157,16 @@ def test_growth_brief_is_part_of_continuous_evolution_without_mutating_actions()
     assert "Revenue:" in source
     assert "build_growth_revenue_os_snapshot" in source
     assert "automatic_publication" not in source
+
+def test_founder_surfaces_first10_next_action_before_deep_growth_detail():
+    founder_template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
+    assert 'data-first10-founder-today="true"' in founder_template
+    assert "FIRST 10 · Tu siguiente acción" in founder_template
+    assert "Registrados reales" in founder_template
+    assert "Primer valor" in founder_template
+    assert "Activados" in founder_template
+    assert "Han vuelto" in founder_template
+    assert "Invita a una sola persona adecuada." in founder_template
+    assert "No invites a otra persona todavía." in founder_template
+    assert "Pausa las invitaciones." in founder_template
+    assert "SIMULATED_QA no incrementa estos contadores" in founder_template
