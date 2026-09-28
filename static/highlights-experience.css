@@ -1,0 +1,23 @@
+/* Scoped media UI; the existing client/admin shell remains authoritative. */
+.ns-highlights-review { max-width: 1060px; margin: 0 auto; min-width: 0; }
+.ns-highlights-review header,.ns-media-overview,.ns-media-review-card,.ns-highlight-player,.ns-media-empty { padding: 16px; margin-bottom: 12px; border: 1px solid var(--ns-border,#304054); border-radius: 14px; background: var(--ns-panel,#101c2c); color: var(--ns-text,#edf4fc); overflow-wrap: anywhere; }
+.ns-highlights-review :is(h1,h2,p) { margin: 0 0 10px; }
+.ns-highlights-review h1 { font-size: clamp(22px,4vw,30px); }
+.ns-highlights-review h2 { font-size: 18px; }
+.ns-highlights-review :is(a,summary,button),.ns-highlight-player :is(a,button) { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 10px; color: var(--v933-cyan,#75d8f2); }
+.ns-highlights-review summary { cursor: pointer; width: 100%; }
+.ns-highlights-review form { display: grid; gap: 12px; }
+.ns-highlights-review label { display: grid; gap: 6px; min-width: 0; }
+.ns-highlights-review :is(input:not([type=checkbox]),select,textarea) { width: 100%; min-height: 44px; min-width: 0; max-width: 100%; font: inherit; font-size: 16px; color: var(--ns-text,#edf4fc); background: #0b1523; border: 1px solid #52667b; border-radius: 8px; padding: 8px; box-sizing: border-box; }
+.ns-highlights-review .ns-media-check { display: flex; align-items: flex-start; }
+.ns-media-check input { flex: 0 0 22px; width: 22px; height: 22px; }
+.ns-highlights-review button,.ns-highlight-player button { border: 1px solid #527b93; border-radius: 10px; background: #13283b; cursor: pointer; font: inherit; }
+.ns-highlights-review :focus-visible,.ns-highlight-player :focus-visible { outline: 2px solid #8bdfff; outline-offset: 3px; }
+.ns-media-alert { border-left: 4px solid #f2bb63; padding: 12px; }
+.ns-highlight-player [hidden] { display: none !important; }
+.ns-highlight-frame { width: 100%; aspect-ratio: 16/9; min-height: 200px; margin: 12px 0; }
+.ns-highlight-frame iframe { width: 100%; height: 100%; min-height: 200px; border: 0; display: block; }
+.ns-highlight-player small { display: block; line-height: 1.5; }
+@media (max-width: 430px) { .ns-highlights-review header,.ns-media-overview,.ns-media-review-card,.ns-highlight-player { padding: 12px; } }
+
+.ns-media-review-card details[open] > summary { margin-bottom: 12px; }

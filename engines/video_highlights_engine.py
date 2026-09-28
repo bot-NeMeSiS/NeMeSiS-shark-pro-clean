@@ -8,7 +8,7 @@ def classify_match_video(item: dict | None = None) -> dict:
     item = dict(item or {})
     item.setdefault("content_type", "video")
     legacy = classify_external_content(item)
-    media = classify_media_asset(item, channel="APP")
+    media = classify_media_asset(item, channel=str(item.get("channel") or "APP"))
     can_embed = bool(media["can_display"] and legacy.get("can_embed"))
     can_link = bool(media["can_display"] and legacy.get("can_link"))
     rights_status = str(media.get("rights_status") or "UNKNOWN_RIGHTS")
