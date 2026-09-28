@@ -47,7 +47,7 @@
     <a class="card step-card {% if step.done %}done{% endif %}" href="{{ step.href }}" data-onboarding-step="{{ step.key }}">
       <span class="badge">{% if step.done %}OK{% elif step.optional %}Opcional{% else %}Esencial{% endif %}</span>
       <h3>{{ step.label }}</h3>
-      <p class="small">{{ step.body }}</p>
+      <p class="small">{{ step.body }}{% if step.key == 'telegram' %} NeMeSiS no te pide tu número de teléfono para vincularlo: la conexión usa un código temporal al abrir el bot.{% endif %}</p>
     </a>
     {% endfor %}
   </div>
