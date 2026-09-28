@@ -7356,7 +7356,9 @@ def growth_first10_cohort_snapshot(limit=10):
             "campaign_id": "FIRST_10_USERS",
             "items": [],
             "count": 0,
+            "stage_counts": {stage: 0 for stage in FIRST10_COHORT_STAGE_ORDER},
             "feedback_users": 0,
+            "premium_access_users": 0,
             "privacy": {"pii_exposed": False, "display_alias_only": True},
             "evidence_origin": "REAL_USER_ONLY",
         }
@@ -7460,7 +7462,12 @@ def growth_first10_cohort_snapshot(limit=10):
         "campaign_id": "FIRST_10_USERS",
         "items": items,
         "count": len(items),
+        "stage_counts": {
+            stage: sum(1 for item in items if stage in item["stages"])
+            for stage in FIRST10_COHORT_STAGE_ORDER
+        },
         "feedback_users": sum(1 for item in items if item["feedback_count"] > 0),
+        "premium_access_users": sum(1 for item in items if item["membership"] in {"PRO", "ELITE"}),
         "privacy": {
             "pii_exposed": False,
             "display_alias_only": True,
