@@ -163,7 +163,9 @@ def sanitize_telegram_user_preferences(
     updates = dict(updates or {})
 
     intensity = str(updates.get("intensity") or base.get("intensity") or policy["intensity"]).strip().lower()
-    if intensity not in {"essential", "balanced", "focus", "paused"}:
+    if intensity == "focus":
+        intensity = "balanced"
+    if intensity not in {"essential", "balanced", "paused"}:
         intensity = policy["intensity"]
 
     allowed_leagues = {item["key"] for item in LEAGUE_OPTIONS}
@@ -173,17 +175,21 @@ def sanitize_telegram_user_preferences(
     requested_leagues = requested_leagues[: int(policy["league_limit"])]
 
     allowed_types = {item["key"] for item in MESSAGE_TYPE_OPTIONS}
-    requested_types = [item for item in _list(updates.get("message_types", base.get("message_types"))) if item in allowed_types]
     plan_types = set(policy["categories"])
-    requested_types = [item for item in requested_types if item in plan_types]
-    if not requested_types:
-        requested_types = list(policy["categories"])
+    if "message_types" in updates:
+        requested_types = [item for item in _list(updates.get("message_types")) if item in allowed_types and item in plan_types]
+    else:
+        requested_types = [item for item in _list(base.get("message_types")) if item in allowed_types and item in plan_types]
+        if not requested_types:
+            requested_types = list(policy["categories"])
 
     try:
         daily_limit = int(updates.get("daily_limit", base.get("daily_limit") or policy["daily_limit"]))
     except (TypeError, ValueError):
         daily_limit = int(policy["daily_limit"])
     daily_limit = max(1, min(daily_limit, int(policy["daily_limit_max"])))
+    if intensity == "essential":
+        daily_limit = min(daily_limit, 2)
 
     pause_all = _bool(updates.get("pause_all")) if "pause_all" in updates else bool(base.get("pause_all"))
     if intensity == "paused":
@@ -219,9 +225,8 @@ def telegram_preference_options(membership: Any) -> dict[str, Any]:
         "leagues": [dict(item) for item in LEAGUE_OPTIONS],
         "message_types": [dict(item) for item in MESSAGE_TYPE_OPTIONS if item["key"] in set(policy["categories"])],
         "intensities": [
-            {"key": "essential", "label": "Esencial", "hint": "Muy pocos mensajes; solo lo más importante."},
-            {"key": "balanced", "label": "Equilibrado", "hint": "Resúmenes y alertas seleccionadas sin saturar."},
-            {"key": "focus", "label": "Foco", "hint": "Prioriza únicamente tus ligas y tipos elegidos."},
+            {"key": "essential", "label": "Esencial", "hint": "Máximo 2 mensajes al día; solo tus tipos elegidos."},
+            {"key": "balanced", "label": "Equilibrado", "hint": "Usa tu límite diario, ligas y tipos elegidos."},
             {"key": "paused", "label": "Pausado", "hint": "No recibir avisos automáticos privados."},
         ],
         "custom_leagues": bool(policy["custom_leagues"]),
