@@ -19,7 +19,7 @@
       {{ action_button('Plan actual' if current_plan == 'FREE' else 'Crear cuenta', '/app' if current_user else '/registro', current_plan != 'FREE', 'blue', current_plan == 'FREE') }}
     </article>
 
-    {% for key, tone, description, benefits in [('PRO','cyan','Más contexto y funciones del plan',['Pronósticos PRO cuando estén publicados','Opciones de Telegram del plan','SHARK con contexto disponible','Historial evaluable']),('ELITE','gold','Acceso ampliado',['Todo lo disponible en PRO','Pronósticos y combinadas ELITE','SHARK con contexto ampliado','Funciones ELITE cuando estén habilitadas'])] %}
+    {% for key, tone, description, benefits in [('PRO','cyan','Más contexto y funciones del plan',['Pronósticos PRO cuando estén publicados','Telegram personalizable por ligas y tipos de aviso','SHARK con contexto disponible','Historial evaluable']),('ELITE','gold','Acceso ampliado',['Todo lo disponible en PRO','Telegram avanzado con directo, prepartido y más ligas','Pronósticos y combinadas ELITE','SHARK con contexto ampliado'])] %}
     {% set plan = plans.get(key) or {} %}{% set price_label = plan.get('price_label') or '' %}
     <article class="v933-plan-card is-{{ tone }}{% if current_plan == key %} is-current{% endif %}">
       <header><div><span>{{ ui("Plan") }}</span><h3>{{ key }}</h3></div>{% if current_plan == key %}{{ status_chip('Plan actual','success') }}{% endif %}</header>
