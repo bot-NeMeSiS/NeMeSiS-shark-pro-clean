@@ -44,11 +44,12 @@ def live_store(app_module, monkeypatch, tmp_path):
     monkeypatch.setattr(socket, 'create_connection', local_create)
 
     def put(**changes):
+        observed_now = datetime.now(ZoneInfo('Europe/Madrid'))
         row = dict(id='directo-http-qa', match_id='directo-http-qa',
             home_team='Local QA', away_team='Visitante QA', competition_name='Liga QA',
-            match_date=now.date().isoformat(), kickoff_time=(now-timedelta(minutes=65)).strftime('%H:%M'),
+            match_date=observed_now.date().isoformat(), kickoff_time=(observed_now-timedelta(minutes=65)).strftime('%H:%M'),
             source='persisted-provider-cache', status='LIVE', minute=67, home_score=1, away_score=0,
-            last_synced_at=(now-timedelta(seconds=30)).isoformat(),
+            last_synced_at=(observed_now-timedelta(seconds=30)).isoformat(),
             client_status_label='Etiqueta heredada que no debe prevalecer')
         row.update(changes)
         with sqlite3.connect(path) as conn:
