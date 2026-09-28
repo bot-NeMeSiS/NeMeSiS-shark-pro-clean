@@ -62,12 +62,12 @@ def main() -> int:
     url = target_url(base_url)
     safe = safe_url(base_url)
     print_event({"ok": True, "event": "HIGHLIGHTS_SYNC_START", "target": safe, "utc_now": utc_now, "madrid_now": madrid_now})
-    req = urllib.request.Request(url, headers={
+    req = urllib.request.Request(url, data=b"{}", headers={
         "User-Agent": "NeMeSiS-SHARK-PRO-Highlights-Cron/769",
         "X-NeMeSiS-Cron-Runner": "render-cron-highlights",
         "X-Automation-Secret": secret,
         "Accept": "application/json,text/plain,*/*",
-    }, method="GET")
+    }, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=60) as res:
             body = res.read(24000).decode("utf-8", errors="replace")

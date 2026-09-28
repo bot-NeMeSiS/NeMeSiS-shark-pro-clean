@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from .madrid_time_engine import format_telegram_match_time_madrid
 from .v935_launch_trust_engine import match_status_truth
 from .content_rights_engine import classify_media_asset
+from .ui_localization_engine import preferred_terms
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -169,7 +170,7 @@ def _message_footer(*extra):
 
 
 def _join_message(lines, limit=3900):
-    text = "\n".join(str(line) for line in lines if line is not None).strip()
+    text = preferred_terms("\n".join(str(line) for line in lines if line is not None).strip(), "es")
     if len(text) <= limit:
         return text
     return text[: limit - 82].rstrip() + "\n\nMensaje recortado para Telegram. Abre la app para ver todo."

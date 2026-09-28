@@ -13,7 +13,7 @@ def test_launch_excellence_home_guidance_is_present():
         'data-launch-excellence="home-start"',
         'data-launch-onboarding="first-run"',
         'Entiende NeMeSiS en 30 segundos',
-        'Continua sin buscar otra vez',
+        'Continúa sin buscar otra vez',
         'data-launch-continue="last-route"',
         'data-launch-last-match="true"',
         '/daily-briefing',

@@ -126,6 +126,7 @@ from engines.crest_logo_experience_engine import (
 )
 from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
+    live_tracker_matches,
     live_tracker_quality_summary,
     live_tracker_status,
     sync_api_football_fixture_detail,
@@ -188,6 +189,7 @@ from engines.sentinel_autopilot_engine import (
     build_autopilot_snapshot,
     generate_codex_prompt_for_issue,
     load_autopilot_memory,
+    read_autopilot_summary,
     mark_autopilot_issue_resolved,
     run_autopilot_scan,
     save_autopilot_memory,
@@ -226,6 +228,16 @@ from engines.telegram_sport_filter_engine import (
     is_telegram_football_item,
     telegram_sport_filter_reason,
     telegram_sport_mode_summary,
+)
+from engines.telegram_user_preferences_engine import (
+    TELEGRAM_USER_PREFERENCES_CONTRACT,
+    destination_allows_message as telegram_destination_allows_message,
+    destination_daily_limit as telegram_destination_daily_limit,
+    filter_candidate_for_destination as telegram_filter_candidate_for_destination,
+    filter_items_for_preferences as telegram_filter_items_for_preferences,
+    sanitize_telegram_user_preferences,
+    telegram_preference_options,
+    telegram_preferences_from_profile,
 )
 from engines.telegram_quality_filter_engine import (
     explain_telegram_filter_decision,
@@ -333,7 +345,7 @@ from engines.stripe_payments_engine import (
     process_stripe_webhook,
     stripe_runtime_status,
 )
-from engines.pick_grading_engine import pick_grading_summary, run_pick_grading
+from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE, pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
@@ -386,6 +398,7 @@ from engines.client_screen_audit_engine import client_screen_audit_snapshot
 from engines.daily_automation_engine import (
     automation_runs as v818_automation_runs,
     automation_status as v818_automation_status,
+    claim_dedupe as v818_claim_dedupe,
     ensure_automation_schema_conn,
     run_master_tick as v818_run_master_tick,
     system_health as v818_system_health,
@@ -453,6 +466,7 @@ from engines.beta_program_engine import (
     FEEDBACK_TYPES,
     SEVERITIES,
     build_beta_program_snapshot,
+    pseudonymized_user_ref,
     sanitize_beta_feedback_payload,
 )
 
@@ -472,7 +486,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V940_NEMESIS_SPORTS_EXPERIENCE_PHASE_1_FOUNDATION_FINAL'
+APP_VERSION = 'V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -817,7 +831,9 @@ def telegram_env_auto_enabled():
 
 
 def scheduler_env_enabled():
-    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", True))
+    # Legacy in-process scheduler is opt-in only. Production recurrence belongs
+    # to the Render master cron; missing env vars must never start a second owner.
+    return env_bool("SCHEDULER_ENABLED", env_bool("ENABLE_AUTO_SYNC", False))
 
 
 def security_client_ip():
@@ -836,8 +852,21 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/continuous-evolution/tick",
         "/api/automation/telegram/tick",
         "/api/automation/daily/run",
+        "/api/automation/autonomous-company-sentinel/run",
+        "/api/automation/autonomous-sentinel/run",
+        "/api/automation/sentinel-autopilot/run",
+        "/api/automation/visual-worker/run",
+        "/api/automation/continuous-sentinel/run",
+        "/api/automation/shark-sentinel/run",
+        "/api/automation/auto-improvement/run",
+        "/api/automation/master-tick",
+        "/api/automation/picks/grade",
+        "/api/automation/sports/sync",
         "/api/automation/data-backup/run",
         "/api/automation/highlights/sync",
+        "/api/telegram/auto-run",
+        "/api/telegram/scheduler-tick",
+        "/api/v495/telegram-auto-run",
         "/api/payments/stripe-webhook",
     }
     prefixes = (
@@ -848,11 +877,9 @@ def csrf_exempt_path(path: str) -> bool:
         return True
     if any(path.startswith(prefix) for prefix in prefixes):
         return True
-    # These legacy automation/import endpoints are already protected by admin session
-    # or automation secret. Keep CSRF strict for login/register/admin forms and
-    # normal client actions, but avoid breaking external cron/webhook style calls.
-    if path.startswith("/api/v495/telegram-auto-run"):
-        return True
+    # Legacy automation actions in the exact allow-list remain CSRF-exempt only
+    # because the endpoint itself requires the automation secret. Other browser
+    # and admin mutations still require normal CSRF protection.
     return False
 
 
@@ -2499,7 +2526,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         result = {
             "ok": False,
             "error": "cron_execution_error",
-            "message": "El endpoint Cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa logs Render.",
+            "message": "El cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa Incidencias y el historial de automatización.",
             "detail": str(exc)[:500],
         }
     finished_at = now_iso()
@@ -3951,6 +3978,13 @@ def apply_security_headers_and_csrf(response):
         if 'no-store' not in current_cache_control:
             response.headers['Cache-Control'] = 'private, no-store'
         response.vary.add('Cookie')
+    if request.path.startswith('/api/'):
+        response.vary.add('Cookie')
+    if session.get('user_id') and (request.path.startswith('/api/') or response.mimetype == 'text/html'):
+        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
+        if 'no-store' not in current_cache_control:
+            response.headers['Cache-Control'] = 'private, no-store'
+        response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -5095,12 +5129,9 @@ def ensure_client_live_fresh(force=False):
 
 
 def live_matches_from_live_table(limit=120):
-    """Return recent live rows joined with matches as a safety net.
-
-    Previous versions could have live_matches populated while /live only read the
-    match hub cache. V780 makes the live table a first-class fallback source.
-    """
-    seed_core()
+    """Return recent persisted live rows without creating or migrating schema."""
+    if not db_table_exists("live_matches"):
+        return []
     cutoff = (datetime.now(TZ) - timedelta(hours=6)).isoformat(timespec="seconds")
     data = []
     sql = """
@@ -6051,57 +6082,36 @@ def backup_file_path(name):
 
 
 def list_backups():
-    folder = ensure_backup_dir()
-    items = []
-    for path in sorted([p for p in os.listdir(folder) if p.startswith("database_") and p.endswith(".db")], reverse=True):
-        full = os.path.join(folder, path)
-        try:
-            stat = os.stat(full)
-            items.append({"name": path, "path": full, "created_at": datetime.fromtimestamp(stat.st_mtime, TZ).isoformat(timespec="seconds"), "size": stat.st_size, "size_mb": round(stat.st_size / (1024 * 1024), 2)})
-        except OSError:
-            pass
-    return items
+    items = data_vault_list_backups(BASE_DIR, directory=backup_dir())
+    return [{**item, "size": item["size_bytes"], "size_mb": round(item["size_bytes"] / (1024 * 1024), 2),
+             "created_at": datetime.fromtimestamp(os.path.getmtime(item["path"]), TZ).isoformat(timespec="seconds")}
+            for item in items if item["name"].startswith("database_") and item["name"].endswith(".db")]
 
 
 def prune_old_backups(max_backups=BACKUP_RETENTION_MAX):
-    removed = []
-    for item in list_backups()[int(max_backups):]:
-        try:
-            os.remove(item["path"])
-            removed.append(item["name"])
-        except OSError:
-            pass
-    return removed
+    from engines.data_vault_engine import apply_backup_retention
+    return apply_backup_retention(BASE_DIR, directory=backup_dir(), max_files=max_backups)["removed"]
 
 
 def create_database_backup(reason="manual"):
     source = os.path.abspath(DB_PATH)
     if not os.path.exists(source):
         return {"ok": False, "error": "database_missing", "message": "No existe base de datos que copiar."}
-    target = os.path.join(ensure_backup_dir(), f"database_{datetime.now(TZ).strftime('%Y%m%d_%H%M%S')}.db")
-    src = sqlite3.connect(source)
-    dst = sqlite3.connect(target)
-    try:
-        src.backup(dst)
-    finally:
-        dst.close()
-        src.close()
-    removed = prune_old_backups()
-    return {"ok": True, "name": os.path.basename(target), "path": target, "size": os.path.getsize(target), "reason": reason, "removed": removed}
+    result = create_sqlite_backup(source, BASE_DIR, APP_VERSION, backup_type=reason,
+                                  directory=backup_dir(), max_files=BACKUP_RETENTION_MAX)
+    if not result.get("backup_created"):
+        return {**result, "reason": reason}
+    result.update(name=result["backup_file"], size=os.path.getsize(result["path"]), reason=reason,
+                  removed=(result.get("retention") or {}).get("removed", []))
+    if not result.get("ok") and not result.get("error"):
+        result["error"] = "backup_retention_failed"
+    return result
 
 
 def restore_database_backup(name):
-    path = backup_file_path(name)
-    if not path:
-        return {"ok": False, "error": "backup_not_found"}
-    safety = create_database_backup(reason=f"pre_restore_{os.path.basename(name)}")
-    if not safety.get("ok"):
-        return {"ok": False, "error": "safety_backup_failed", "safety": safety}
-    tmp = os.path.abspath(DB_PATH) + ".restore_tmp"
-    with open(path, "rb") as src, open(tmp, "wb") as dst:
-        dst.write(src.read())
-    os.replace(tmp, os.path.abspath(DB_PATH))
-    return {"ok": True, "restored": os.path.basename(name), "safety_backup": safety.get("name")}
+    from engines.data_vault_engine import restore_sqlite_backup
+    return restore_sqlite_backup(DB_PATH, BASE_DIR, str(name or ""), APP_VERSION,
+                                 directory=backup_dir(), max_files=BACKUP_RETENTION_MAX)
 
 
 def daily_automation_summary():
@@ -6420,9 +6430,9 @@ def match_calendar_diagnostics():
         "latest_sync": latest_log,
         "active_data_source": active_source,
         "sportsdb_key_present": bool(thesportsdb_key()),
-        "sportsdb_key_masked": masked_key(thesportsdb_key()),
+        "sportsdb_configured": bool(thesportsdb_key()),
         "odds_key_present": bool(os.getenv("THE_ODDS_API_KEY")),
-        "odds_key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "enable_live_api": sportsdb_live_enabled(),
         "enable_odds_api": odds_enabled(),
         "sportsdb": sportsdb,
@@ -7137,6 +7147,11 @@ def growth_attribution_from_session():
     return value if isinstance(value, dict) else normalize_growth_attribution({})
 
 
+def growth_is_first10_attribution(value=None):
+    attribution = value if isinstance(value, dict) else growth_attribution_from_session()
+    return str(attribution.get("campaign_id") or "").upper().startswith("FIRST_10_USERS")
+
+
 def capture_growth_attribution_from_request():
     if not has_request_context():
         return normalize_growth_attribution({})
@@ -7292,6 +7307,177 @@ def growth_funnel_analytics_snapshot():
             "Los eventos legacy sin evidence_origin permanecen UNKNOWN y no elevan hitos reales.",
         ],
     }
+
+
+FIRST10_COHORT_STAGE_ORDER = (
+    "REGISTRATION",
+    "FIRST_VALUE",
+    "ACTIVATED",
+    "RETURNING",
+    "PREMIUM_INTENT",
+    "RETAINED",
+    "REFERRAL",
+)
+
+
+def growth_first10_cohort_snapshot(limit=10):
+    """Read-only, privacy-minimal founder view of the FIRST_10_USERS cohort."""
+    limit = max(1, min(int(limit or 10), 10))
+    try:
+        activity = rows(
+            "SELECT user_id,activity_type,target_id,payload_json,created_at "
+            "FROM user_activity WHERE target_type='growth_funnel' ORDER BY created_at ASC"
+        )
+    except Exception:
+        activity = []
+
+    reverse = {value: key for key, value in GROWTH_STAGE_ACTIVITY.items()}
+    cohort_ids = []
+    event_rows = []
+    for item in activity:
+        uid = str(item.get("user_id") or "").strip()
+        stage = reverse.get(str(item.get("activity_type") or ""))
+        if not uid or not stage:
+            continue
+        try:
+            payload = json.loads(item.get("payload_json") or "{}")
+        except (TypeError, ValueError):
+            payload = {}
+        if str(payload.get("evidence_origin") or "").upper() != "REAL_USER":
+            continue
+        event_rows.append((uid, stage, payload, str(item.get("created_at") or "")))
+        if stage == "REGISTRATION" and str(payload.get("campaign_id") or "").upper().startswith("FIRST_10_USERS"):
+            if uid not in cohort_ids and len(cohort_ids) < limit:
+                cohort_ids.append(uid)
+
+    if not cohort_ids:
+        return {
+            "contract": "NEMESIS-FIRST10-FOUNDER-COHORT-V1",
+            "campaign_id": "FIRST_10_USERS",
+            "items": [],
+            "count": 0,
+            "stage_counts": {stage: 0 for stage in FIRST10_COHORT_STAGE_ORDER},
+            "feedback_users": 0,
+            "premium_access_users": 0,
+            "privacy": {"pii_exposed": False, "display_alias_only": True},
+            "evidence_origin": "REAL_USER_ONLY",
+        }
+
+    by_user = {uid: {"stages": set(), "first_seen_at": "", "last_seen_at": ""} for uid in cohort_ids}
+    for uid, stage, _payload, created_at in event_rows:
+        if uid not in by_user:
+            continue
+        by_user[uid]["stages"].add(stage)
+        if not by_user[uid]["first_seen_at"] or created_at < by_user[uid]["first_seen_at"]:
+            by_user[uid]["first_seen_at"] = created_at
+        if not by_user[uid]["last_seen_at"] or created_at > by_user[uid]["last_seen_at"]:
+            by_user[uid]["last_seen_at"] = created_at
+
+    memberships = {}
+    placeholders = ",".join("?" for _ in cohort_ids)
+    try:
+        for item in rows(
+            f"SELECT id,role,membership FROM users WHERE id IN ({placeholders})",
+            tuple(cohort_ids),
+        ):
+            memberships[str(item.get("id") or "")] = normalize_role(
+                item.get("membership") or item.get("role") or "FREE"
+            )
+    except Exception:
+        memberships = {}
+
+    feedback_by_ref = {}
+    if db_table_exists("beta_feedback"):
+        try:
+            feedback_rows = rows(
+                "SELECT user_ref,feedback_type,category,severity,satisfaction_score,status,created_at_madrid "
+                "FROM beta_feedback WHERE user_ref!='' AND user_ref!='anonimo' ORDER BY id ASC"
+            )
+        except Exception:
+            feedback_rows = []
+        for item in feedback_rows:
+            ref = str(item.get("user_ref") or "")
+            if not ref:
+                continue
+            bucket = feedback_by_ref.setdefault(ref, {
+                "count": 0,
+                "latest_type": "",
+                "latest_category": "",
+                "latest_severity": "",
+                "latest_at": "",
+                "satisfaction_score": None,
+            })
+            bucket["count"] += 1
+            bucket["latest_type"] = str(item.get("feedback_type") or "")
+            bucket["latest_category"] = str(item.get("category") or "")
+            bucket["latest_severity"] = str(item.get("severity") or "")
+            bucket["latest_at"] = str(item.get("created_at_madrid") or "")
+            if item.get("satisfaction_score") is not None:
+                bucket["satisfaction_score"] = item.get("satisfaction_score")
+
+    items = []
+    for index, uid in enumerate(cohort_ids, start=1):
+        stages = by_user[uid]["stages"]
+        stage = "REGISTRATION"
+        for candidate in FIRST10_COHORT_STAGE_ORDER:
+            if candidate in stages:
+                stage = candidate
+        user_ref = pseudonymized_user_ref({"id": uid})
+        feedback = dict(feedback_by_ref.get(user_ref) or {})
+        if "FIRST_VALUE" not in stages:
+            next_action = "Comprobar si encuentra un partido y alcanza primer valor."
+            action_state = "FIRST_VALUE"
+        elif "ACTIVATED" not in stages:
+            next_action = "Observar una segunda acción útil: otro partido, favorito, SHARK o Telegram."
+            action_state = "ACTIVATE"
+        elif "RETURNING" not in stages:
+            next_action = "No empujar: comprobar si vuelve por iniciativa propia."
+            action_state = "RETURN"
+        elif not feedback.get("count"):
+            next_action = "Pedir una opinión breve después del valor, sin presión."
+            action_state = "FEEDBACK"
+        else:
+            next_action = "Aprendizaje recogido; revisar comentarios antes de ampliar cohorte."
+            action_state = "LEARN"
+
+        items.append({
+            "alias": f"Beta {index:02d}",
+            "stage": stage,
+            "stages": [value for value in FIRST10_COHORT_STAGE_ORDER if value in stages],
+            "membership": memberships.get(uid, "FREE"),
+            "feedback_count": int(feedback.get("count") or 0),
+            "feedback_type": feedback.get("latest_type") or "",
+            "feedback_category": feedback.get("latest_category") or "",
+            "feedback_severity": feedback.get("latest_severity") or "",
+            "satisfaction_score": feedback.get("satisfaction_score"),
+            "first_seen_at": by_user[uid]["first_seen_at"],
+            "last_seen_at": by_user[uid]["last_seen_at"],
+            "next_action": next_action,
+            "action_state": action_state,
+            "user_ref": user_ref,
+        })
+
+    return {
+        "contract": "NEMESIS-FIRST10-FOUNDER-COHORT-V1",
+        "campaign_id": "FIRST_10_USERS",
+        "items": items,
+        "count": len(items),
+        "stage_counts": {
+            stage: sum(1 for item in items if stage in item["stages"])
+            for stage in FIRST10_COHORT_STAGE_ORDER
+        },
+        "feedback_users": sum(1 for item in items if item["feedback_count"] > 0),
+        "premium_access_users": sum(1 for item in items if item["membership"] in {"PRO", "ELITE"}),
+        "privacy": {
+            "pii_exposed": False,
+            "display_alias_only": True,
+            "email_included": False,
+            "name_included": False,
+            "ip_included": False,
+        },
+        "evidence_origin": "REAL_USER_ONLY",
+    }
+
 
 def growth_instrumentation_snapshot():
     return {"event_contract": GROWTH_FUNNEL_EVENT_CONTRACT, "safe_attribution": True, "anonymous_persistence_consent_gated": True, "landing_cro": True, "first_value": "canonical_match_center", "activated": "first_value_plus_favorite_or_second_match", "external_calls": 0, "fingerprinting": False, "pii_in_event_payload": False}
@@ -7465,24 +7651,30 @@ def parse_payload_json(value, default=None):
         return default if default is not None else {}
 
 
-def client_activity_feed(limit=20, user_id=None):
+def client_activity_feed(limit=20, user_id=None, include_internal=False):
     user_id = user_id or current_user_id()
     if not user_id:
         return []
+    where = "user_id=?"
+    params = [user_id]
+    if not include_internal:
+        # Los eventos del funnel son analítica interna, no historial de navegación.
+        # Las superficies normales de cliente solo muestran acciones explícitas.
+        where += " AND COALESCE(target_type,'')!='growth_funnel' AND COALESCE(activity_type,'') NOT LIKE 'growth_%'"
+    params.append(int(limit))
     data = rows(
-        """SELECT * FROM user_activity
-           WHERE user_id=?
+        f"""SELECT * FROM user_activity
+           WHERE {where}
            ORDER BY created_at DESC
            LIMIT ?""",
-        (user_id, int(limit)),
+        tuple(params),
     )
     for item in data:
         item["payload"] = parse_payload_json(item.get("payload_json"), {})
         item["label"] = activity_label(item)
     return data
 
-
-def activity_label(item):
+def activity_label(item):
     kind = str(item.get("activity_type") or "").lower()
     target = str(item.get("target_type") or "").lower()
     if kind == "view" and target == "picks":
@@ -7500,7 +7692,7 @@ def activity_label(item):
 
 def build_client_alerts(limit=12, user_id=None):
     """Alertas visuales para cliente sin inventar datos reales.
-    Mezcla favoritos, partidos próximos, live, picks publicados y estado Telegram.
+    Mezcla favoritos, partidos próximos, directo, pronósticos publicados y estado Telegram.
     """
     user_id = user_id or current_user_id()
     hub = match_hub(today_iso())
@@ -7516,23 +7708,23 @@ def build_client_alerts(limit=12, user_id=None):
             "title": "Partidos en directo ahora",
             "body": f"Hay {hub['counts']['live']} partido(s) en directo. Revisa marcador, estado y favoritos.",
             "href": "/live",
-            "badge": "LIVE",
+            "badge": "DIRECTO",
         })
     if picks:
         alerts.append({
             "type": "picks",
             "priority": 90,
-            "title": "Picks publicados disponibles",
-            "body": f"Tienes {len(picks)} pick(s) visibles según tu membresía.",
+            "title": "Pronósticos publicados disponibles",
+            "body": f"Pronósticos visibles según tu plan: {len(picks)}.",
             "href": "/picks",
-            "badge": "PICKS",
+            "badge": "PRONÓSTICOS",
         })
     elif upcoming:
         alerts.append({
             "type": "analysis",
             "priority": 74,
             "title": "Partidos próximos listos para análisis",
-            "body": "Aún no hay picks publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "body": "Aún no hay pronósticos publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
             "href": "/picks",
             "badge": "ANÁLISIS",
         })
@@ -7542,7 +7734,7 @@ def build_client_alerts(limit=12, user_id=None):
             "priority": 82,
             "title": "Feed de favoritos activo",
             "body": f"Tus {len(favs)} favorito(s) alimentan partidos, equipos, ligas y alertas futuras.",
-            "href": "/favorites",
+            "href": "/favoritos",
             "badge": "FAV",
         })
     else:
@@ -7551,7 +7743,7 @@ def build_client_alerts(limit=12, user_id=None):
             "priority": 58,
             "title": "Personaliza tu experiencia",
             "body": "Guarda equipos, ligas o partidos para que tu inicio, SHARK y Telegram sean más útiles.",
-            "href": "/favorites",
+            "href": "/favoritos",
             "badge": "PERSONALIZA",
         })
     if not telegram_config().get("configured"):
@@ -7559,7 +7751,7 @@ def build_client_alerts(limit=12, user_id=None):
             "type": "telegram",
             "priority": 52,
             "title": "Telegram pendiente de configurar",
-            "body": "Cuando está conectado podrás recibir partidos del día, picks y alertas premium.",
+            "body": "Cuando está conectado podrás recibir partidos del día, pronósticos y alertas premium.",
             "href": "/telegram",
             "badge": "TELEGRAM",
         })
@@ -7635,9 +7827,9 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
     if hub.get("counts", {}).get("live", 0):
         priorities.append({"label": "Directos activos", "value": hub["counts"]["live"], "href": "/live", "tone": "live"})
     if picks:
-        priorities.append({"label": "Picks visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
+        priorities.append({"label": "Pronósticos visibles", "value": len(picks), "href": "/picks", "tone": "picks"})
     if favs:
-        priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favorites", "tone": "favorites"})
+        priorities.append({"label": "Favoritos", "value": len(favs), "href": "/favoritos", "tone": "favorites"})
     if upcoming:
         priorities.append({"label": "Próximos 7 días", "value": len(upcoming), "href": "/match-hub", "tone": "matches"})
     if not priorities:
@@ -7687,8 +7879,8 @@ def client_command_center_data(user=None, briefing=None):
         "recommended_tabs": [
             {"label": "Mi día", "href": "/mi-dia", "text": "Briefing personalizado"},
             {"label": "Partidos", "href": "/match-hub", "text": "Calendario por ligas"},
-            {"label": "Picks", "href": "/picks", "text": "Apuestas publicadas o candidatos"},
-            {"label": "Combis", "href": "/combis", "text": "Constructor con próximos partidos"},
+            {"label": "Pronósticos", "href": "/picks", "text": "Pronósticos publicados o candidatos"},
+            {"label": "Combinadas", "href": "/combinadas", "text": "Constructor con próximos partidos"},
         ],
     }
 
@@ -7955,7 +8147,8 @@ def favorite_feed(limit=80, user_id=None):
 
 
 def related_picks_for_match(match, limit=8):
-    all_picks = get_picks(limit=100)
+    user = current_session_user() if has_request_context() else {"membership": "FREE"}
+    all_picks = published_picks_for_user(user, limit=100)
     match_id = str(match.get("id") or "").lower()
     home = str(match.get("home_team") or "").lower()
     away = str(match.get("away_team") or "").lower()
@@ -7979,8 +8172,9 @@ def favorite_feed_full(limit=80, user_id=None):
     teams = {str(m.get("home_team") or "").lower() for m in matches} | {str(m.get("away_team") or "").lower() for m in matches}
     comps = {str(m.get("competition_key") or "").lower() for m in matches}
     live_related = [m for m in matches if (m.get("live_depth") or {}).get("state") in {"LIVE", "HT"}]
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     picks_related = []
-    for pick in get_picks(limit=100):
+    for pick in published_picks_for_user(user, limit=100):
         if (
             str(pick.get("match_id") or "").lower() in match_ids
             or str(pick.get("home_team") or "").lower() in teams
@@ -9745,10 +9939,11 @@ def real_time_global_state(date=None, refresh=False):
 
 def live_data_flow(date=None):
     date = date or today_iso()
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(date)
     favs = get_favorites()
-    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in get_picks(limit=30)])
-    profile = default_profile()
+    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in published_picks_for_user(user, limit=30)])
+    profile = client_profile_view(user)
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favs, picks=picks, profile=profile)
     flow.update(
@@ -9770,9 +9965,9 @@ def live_data_flow(date=None):
 
 
 MEMBERSHIP_PLANS = [
-    {"key": "free", "name": "Free", "price": "0 EUR", "features": ["Calendario global", "Live basico", "Escudos persistentes"]},
-    {"key": "pro", "name": "PRO", "price": "Premium", "features": ["Picks premium", "Combis", "Perfil favorito", "Alertas Telegram"]},
-    {"key": "elite", "name": "ELITE", "price": "Top", "features": ["IA SHARK", "Briefings", "Prioridad live", "Control avanzado"]},
+    {"key": "free", "name": "FREE", "price": "0 €", "features": ["Calendario", "Directo con datos disponibles", "Resultados", "SHARK base"]},
+    {"key": "pro", "name": "PRO", "price": "Precio según configuración", "features": ["Pronósticos PRO publicados", "Combinadas", "Opciones de Telegram", "SHARK con más contexto"]},
+    {"key": "elite", "name": "ELITE", "price": "Precio según configuración", "features": ["Pronósticos ELITE publicados", "Combinadas ELITE", "Funciones de Telegram del plan", "SHARK con contexto ampliado"]},
 ]
 
 
@@ -9888,6 +10083,8 @@ def enrich_user_membership_state(data):
     item["membership_expires_label"] = membership_expires_label(item.get("membership_expires_at"))
     item["membership_is_temporal"] = bool(item.get("membership_expires_at")) and item["membership"] not in {"FREE", "ADMIN"}
     item["membership_expired"] = user_membership_is_expired(item)
+    item["effective_membership"] = "FREE" if item["membership_expired"] else item["membership"]
+    item["effective_role"] = "FREE" if item["membership_expired"] and item["role"] != "ADMIN" else item["role"]
     return item
 
 
@@ -9902,8 +10099,10 @@ def user_public(row):
         "name": data.get("name") or username or "Cliente SHARK",
         "username": username,
         "email": email,
-        "role": normalize_role(data.get("role")),
-        "membership": normalize_role(data.get("membership")),
+        "role": normalize_role(data.get("effective_role") or data.get("role")),
+        "membership": normalize_role(data.get("effective_membership") or data.get("membership")),
+        "persisted_membership": normalize_role(data.get("membership")),
+        "membership_expired": bool(data.get("membership_expired")),
         "membership_source": data.get("membership_source") or "registro",
         "membership_started_at": data.get("membership_started_at") or "",
         "membership_expires_at": data.get("membership_expires_at") or "",
@@ -9916,6 +10115,8 @@ def user_public(row):
 
 
 def current_session_user():
+    if has_request_context() and hasattr(g, 'admin_preview_user'):
+        return dict(g.admin_preview_user)
     if not session.get("user_id"):
         return None
     cache_allowed = has_request_context() and request.method in {"GET", "HEAD"}
@@ -9948,7 +10149,6 @@ def current_session_user():
         if has_request_context() and request.environ.get("nemesis.v932.database_locked"):
             raise sqlite3.OperationalError("database is locked; using authenticated session snapshot")
         if normalize_role(session.get("user_role")) != "ADMIN":
-            expire_user_memberships_if_needed(session.get("user_id"))
             fresh = get_user_by_id(session.get("user_id"))
             if fresh:
                 public = user_public(fresh)
@@ -9959,7 +10159,7 @@ def current_session_user():
                 return remember(public)
     except Exception:
         pass
-    return remember({
+    fallback = {
         "id": session.get("user_id"),
         "name": session.get("user_name") or "Cliente SHARK",
         "username": session.get("username") or session.get("user_name") or "",
@@ -9968,7 +10168,8 @@ def current_session_user():
         "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
         "membership_expires_at": session.get("membership_expires_at") or "",
         "membership_expires_label": membership_expires_label(session.get("membership_expires_at")),
-    })
+    }
+    return remember(user_public(fallback) or fallback)
 
 
 def current_user_id():
@@ -11012,7 +11213,6 @@ def admin_json_forbidden():
 
 def list_users():
     seed_core()
-    expire_user_memberships_if_needed()
     users = rows(
         """SELECT id,name,username,email,role,membership,created_at,last_login,
                   membership_source,membership_started_at,membership_expires_at,
@@ -11054,19 +11254,28 @@ def update_user_membership(user_id, membership, days=0, note="", source="admin_m
 
 
 def membership_admin_summary():
-    expire_user_memberships_if_needed()
+    """Read-only membership status; persistence belongs to the master cron."""
     active_temporal = 0
     expiring_soon = 0
+    expired_pending = 0
     expired_today = 0
+    current = now_iso()
     soon_limit = (datetime.now(TZ) + timedelta(days=7)).isoformat(timespec="seconds")
     try:
         active_temporal = (one("""SELECT COUNT(*) AS total FROM users
             WHERE COALESCE(membership_expires_at,'')!=''
-              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""") or {}).get("total", 0)
+              AND membership_expires_at>?
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (current,)) or {}).get("total", 0)
         expiring_soon = (one("""SELECT COUNT(*) AS total FROM users
             WHERE COALESCE(membership_expires_at,'')!=''
+              AND membership_expires_at>?
               AND membership_expires_at<=?
-              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (soon_limit,)) or {}).get("total", 0)
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')""", (current, soon_limit)) or {}).get("total", 0)
+        expired_pending = (one("""SELECT COUNT(*) AS total FROM users
+            WHERE COALESCE(membership_expires_at,'')!=''
+              AND membership_expires_at<=?
+              AND upper(COALESCE(membership,'FREE')) IN ('PRO','ELITE')
+              AND upper(COALESCE(role,'FREE'))!='ADMIN'""", (current,)) or {}).get("total", 0)
         expired_today = (one("""SELECT COUNT(*) AS total FROM users
             WHERE membership_source='expirada' AND COALESCE(membership_updated_at,'') LIKE ?""", (today_iso()+"%",)) or {}).get("total", 0)
     except Exception:
@@ -11074,9 +11283,11 @@ def membership_admin_summary():
     return {
         "active_temporal": active_temporal or 0,
         "expiring_soon": expiring_soon or 0,
+        "expired_pending_persistence": expired_pending or 0,
         "expired_today": expired_today or 0,
         "quick_days": [1, 3, 7, 15, 30, 60, 90, 180, 365],
-        "note": "Las membresías temporales se degradan a FREE automáticamente al caducar.",
+        "note": "El acceso caducado se trata como FREE inmediatamente; el cron maestro persiste la caducidad en el cierre diario.",
+        "read_only": True,
     }
 
 
@@ -11176,31 +11387,19 @@ def default_profile():
     seed_core()
     profile = one("SELECT * FROM client_profiles WHERE id='default'")
     if not profile:
-        conn = db()
-        cur = conn.cursor()
-        cur.execute(
-            """INSERT INTO client_profiles
-               (id,name,membership_plan,favorite_teams_json,favorite_competitions_json,telegram_chat_id,preferences_json,created_at,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (
-                "default",
-                "Cliente SHARK",
-                "pro",
-                json.dumps(["Real Madrid", "Sevilla FC", "Real Betis"]),
-                json.dumps(["UEFA Champions League", "LaLiga EA Sports", "Andalucia Regional Football"]),
-                os.getenv("TELEGRAM_CHAT_ID", ""),
-                json.dumps({"tone": "premium", "focus": "global+spain+andalucia"}),
-                now_iso(),
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
-        profile = one("SELECT * FROM client_profiles WHERE id='default'")
+        # A missing legacy profile is not a saved plan or personal preference.
+        profile = {"id": "default", "name": "Cliente SHARK", "membership_plan": "free"}
     profile["favorite_teams"] = json.loads(profile.get("favorite_teams_json") or "[]")
     profile["favorite_competitions"] = json.loads(profile.get("favorite_competitions_json") or "[]")
     profile["preferences"] = json.loads(profile.get("preferences_json") or "{}")
     return profile
+
+
+def client_profile_view(user):
+    """Client identity projection; never expose the shared legacy profile."""
+    user = user or {}
+    return {"name": user.get("name") or "",
+            "membership_plan": normalize_role(user.get("membership") or user.get("role") or "FREE")}
 
 
 def _shark_cached_live_state(sports_summary, sports_metrics):
@@ -11233,10 +11432,14 @@ def shark_briefing(sports_summary=None):
     sports_summary = dict(sports_summary or get_public_home_sports_summary())
     sports_metrics = build_sports_metrics_contract(sports_summary)
     today_matches = list(sports_summary.get("valid_matches_today") or [])
-    all_picks = list(sports_summary.get("all_picks") or [])
+    user = current_session_user() if has_request_context() else None
+    profile = client_profile_view(user)
+    def permitted(pick):
+        return (normalize_pick_status(pick.get("status")) in {"published", "won", "lost", "void"}
+                and membership_allows(profile["membership_plan"], pick.get("membership_required")))
+    all_picks = [p for p in (sports_summary.get("all_picks") or []) if permitted(p)]
     quality_groups = split_picks_by_quality(all_picks)
-    picks = list(sports_summary.get("valid_active_picks") or [])[:8]
-    profile = default_profile()
+    picks = [p for p in (sports_summary.get("valid_active_picks") or []) if permitted(p)][:8]
     imported_real = [m for m in today_matches if "seed" not in str(m.get("source") or "").lower()]
     explained = []
     for pick in picks:
@@ -11309,78 +11512,6 @@ def save_shark_context(context_type, target_key, payload):
     return snapshot_id
 
 
-def _shark_line_match(match):
-    match = apply_match_localization(dict(match or {}))
-    home = match.get("home_team") or match.get("safe_home") or "Equipo local"
-    away = match.get("away_team") or match.get("safe_away") or "Equipo visitante"
-    comp = spanish_competition_name(match.get("competition_name") or match.get("league_name") or match.get("safe_competition") or "Competición")
-    time = client_match_display_context(match).get("client_full_datetime_label") or match.get("display_datetime") or spanish_datetime_label(match.get("kickoff_iso") or "", match.get("match_date"), match.get("kickoff_time") or match.get("match_time"))
-    live_depth = match.get("live_depth") or {}
-    status = live_depth.get("label") or match.get("status") or "Próximo"
-    score = live_depth.get("score") or match.get("score") or ""
-    suffix = f" - {score}" if score else ""
-    return f"{time} - {home} vs {away} - {comp} - {status}{suffix}"
-
-
-def _shark_pick_parts(pick):
-    pick = normalize_pick_row(dict(pick or {}))
-    home = pick.get("home_team") or "Equipo local"
-    away = pick.get("away_team") or "Equipo visitante"
-    comp = spanish_competition_name(pick.get("competition_name") or pick.get("league_name") or "Competición")
-    selection = pick.get("selection_display") or spanish_pick_selection_name(pick.get("selection") or pick.get("_raw_selection"), home, away, pick.get("market")) or "Selección pendiente"
-    market = spanish_market_name(pick.get("market") or "Ganador del partido")
-    odds = as_float(pick.get("odds"), 0)
-    odds_txt = f"{odds:.2f}" if odds > 1 else "pendiente"
-    stake = as_float(pick.get("stake_units"), 1)
-    confidence = as_int(pick.get("confidence") or pick.get("quality_score"), 50)
-    qscore = as_int(pick.get("quality_score"), confidence)
-    risk = pick.get("risk_level") or "MEDIO"
-    reason = pick.get("reasoning") or "SHARK detecta mercado claro, cuota real y señal suficiente para revisarlo como pick premium."
-    caution = pick.get("warning_reason") or "Revisa alineaciones antes de entrar y no subas stake si la cuota baja demasiado."
-    return {
-        "home": home,
-        "away": away,
-        "competition": comp,
-        "selection": selection,
-        "market": market,
-        "odds": odds,
-        "odds_txt": odds_txt,
-        "stake": stake,
-        "confidence": confidence,
-        "quality_score": qscore,
-        "risk": risk,
-        "reason": reason,
-        "caution": caution,
-        "label": pick.get("quality_label") or "Pick premium",
-    }
-
-
-def _shark_line_pick(pick):
-    p = _shark_pick_parts(pick)
-    return (
-        f"{p['home']} vs {p['away']}: {p['selection']} ({p['market']}) - "
-        f"cuota {p['odds_txt']} - stake {p['stake']:g}/10 - confianza {p['confidence']}/100 - riesgo {p['risk']}"
-    )
-
-
-def _shark_card_pick(pick, title="Mi mejor opción ahora mismo"):
-    p = _shark_pick_parts(pick)
-    return (
-        f"{title}:\n\n"
-        f"{p['home']} vs {p['away']}\n"
-        f"Competición: {p['competition']}\n\n"
-        f"Pick: {p['selection']}\n"
-        f"Mercado: {p['market']}\n"
-        f"Cuota: {p['odds_txt']}\n"
-        f"Stake: {p['stake']:g}/10\n"
-        f"Confianza SHARK: {p['confidence']}/100\n"
-        f"Calidad: {p['quality_score']}/100 - {p['label']}\n"
-        f"Riesgo: {p['risk']}\n\n"
-        f"Motivo:\n{p['reason']}\n\n"
-        f"Precaución:\n{p['caution']}"
-    )
-
-
 def _shark_visible_picks(user, limit=8, premium_only=True, min_score=70):
     picks = published_picks_for_user(user, limit=max(limit * 4, 18))
     clean = []
@@ -11429,25 +11560,6 @@ def _shark_recommendation_lines(limit=4):
         if len(lines) >= limit:
             break
     return lines
-
-
-def _shark_count_requested(q_norm):
-    numbers = [as_int(n, 0) for n in re.findall(r"\d+", q_norm or "")]
-    if numbers:
-        return combi_leg_count(max(numbers), 3)
-    if "max" in q_norm or "quince" in q_norm or "15" in q_norm:
-        return COMBI_MAX_LEGS
-    if "segura" in q_norm or "conservadora" in q_norm:
-        return 3
-    return 5
-
-
-def _shark_actions(*items):
-    actions = []
-    for label, url in items:
-        if label and url:
-            actions.append({"label": label, "url": url})
-    return actions
 
 
 def v845_openai_configured():
@@ -11575,155 +11687,6 @@ def shark_answer(question):
     answer = v845_answer_shark_question(q, context)
     save_shark_context("v845_ask", answer.get("focus"), answer.get("context") or {})
     return answer
-    q_norm = normalized_label(q)
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    briefing = shark_briefing()
-    hub = match_hub(today_iso())
-    focus = "resumen"
-    next_url = "/sports-hub"
-    actions = _shark_actions(("Inicio deportivo", "/sports-hub"), ("Ver picks", "/picks"))
-
-    no_tocar = any(word in q_norm for word in ["no tocar", "evitar", "descartar", "peligro", "arriesgado"])
-    safe_intent = any(word in q_norm for word in ["seguro", "segura", "conservador", "conservadora", "bajo riesgo"])
-    value_intent = any(word in q_norm for word in ["value", "valor", "oportunidad", "oportunidades"])
-
-    if no_tocar:
-        focus = "riesgo"
-        study = (briefing.get("quality_groups") or {}).get("study", [])[:5]
-        lines = []
-        for p in study:
-            p = normalize_pick_row(p)
-            lines.append(f"{p.get('home_team')} vs {p.get('away_team')} - {p.get('selection_display') or p.get('selection')} - motivo: falta calidad/cuota/riesgo suficiente")
-        body = (
-            "Lectura SHARK de riesgo:\n\n"
-            "Ahora mismo evitaría entrar fuerte en cualquier selección sin cuota real, mercado claro o motivo completo.\n"
-            "También evitaría combinadas largas si no hay al menos 9 picks premium limpios.\n\n"
-            "Señales que dejaría en estudio:\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay descartes relevantes visibles ahora mismo.")
-        )
-        next_url = "/picks"
-        actions = _shark_actions(("Ver picks filtrados", "/picks"), ("Crear combi responsable", "/combisítipo=responsable&partidos=3"))
-
-    elif any(word in q_norm for word in ["combi", "combinada", "combinadas"]):
-        focus = "combis"
-        requested = _shark_count_requested(q_norm)
-        if safe_intent:
-            requested = min(requested, 4)
-        picks = _shark_visible_picks(user, limit=COMBI_MAX_LEGS, min_score=72)
-        usable = picks[:requested]
-        if len(usable) >= 2:
-            total = 1.0
-            for pick in usable:
-                total *= max(1.0, as_float(pick.get("odds"), 1.0))
-            risk = combi_risk(usable)
-            title = "Combi responsable SHARK" if requested <= 4 else ("Combi media SHARK" if requested <= 8 else "Combi larga SHARK")
-            warning = "Stake bajo obligatorio: las combinadas largas no son seguras." if requested >= 9 else "Mantén stake bajo y no fuerces si una cuota baja demasiado."
-            body = (
-                f"{title}\n\n"
-                f"Selecciones: {len(usable)}\n"
-                f"Cuota total aproximada: {total:.2f}\n"
-                f"Riesgo: {risk}\n"
-                f"Recomendación: {warning}\n\n"
-                + "\n".join(f"{i+1}. {_shark_line_pick(p)}" for i, p in enumerate(usable))
-            )
-        else:
-            candidates = build_combi_candidates_from_matches(requested).get("matches", [])
-            lines = [_shark_line_match(m) for m in candidates[:requested]]
-            body = (
-                f"No cierro una combinada real de {requested} partidos porque faltan picks premium con cuota suficiente.\n"
-                "Prefiero esperar antes que inventar selecciones. Base de partidos para revisar:\n\n"
-                + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "No hay base suficiente todavía.")
-            )
-        next_url = f"/combisípartidos={requested}"
-        actions = _shark_actions(("Abrir combis", next_url), ("Ver picks premium", "/picks"))
-
-    elif any(word in q_norm for word in ["pick", "apuesta", "pronostico", "pronosticos", "mejor"]):
-        focus = "picks"
-        min_score = 76 if safe_intent else 70
-        picks = _shark_visible_picks(user, limit=5, min_score=min_score)
-        if picks:
-            best = picks[0]
-            body = _shark_card_pick(best, "Mi mejor opción ahora mismo")
-            if len(picks) > 1:
-                body += "\n\nOtras opciones revisables:\n" + "\n".join(f"{i+2}. {_shark_line_pick(p)}" for i, p in enumerate(picks[1:4]))
-            body += "\n\nRegla SHARK: si la cuota baja demasiado o falta alineación, no fuerces la entrada."
-        else:
-            rec_lines = _shark_recommendation_lines(limit=4)
-            body = (
-                "No tengo suficientes cuotas reales para darte un pick premium cerrado ahora mismo.\n"
-                "Puedo revisar partidos de hoy, directo o preparar una combi prudente con los datos disponibles.\n\n"
-                + ("Oportunidades en estudio:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay oportunidades claras con datos suficientes todavía.")
-            )
-        next_url = "/picks"
-        actions = _shark_actions(("Ver picks", "/picks"), ("Combi responsable", "/combisítipo=responsable&partidos=3"))
-
-    elif value_intent:
-        focus = "oportunidades"
-        rec_lines = _shark_recommendation_lines(limit=5)
-        body = (
-            "Radar SHARK de value:\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines)) if rec_lines else "No hay señales de valor suficientes ahora mismo.")
-            + "\n\nValue no significa pick seguro: si la cuota está pendiente o el mercado cambia, se queda en estudio."
-        )
-        next_url = "/recommendations"
-        actions = _shark_actions(("Ver oportunidades", "/recommendations"), ("Ver picks", "/picks"))
-
-    elif any(word in q_norm for word in ["live", "directo", "marcador", "minuto"]):
-        focus = "live"
-        live_matches = hub.get("live", []) or get_matches(today_iso(), "live")
-        lines = [_shark_line_match(m) for m in live_matches[:6]]
-        body = (
-            f"Directo SHARK:\n{hub['counts'].get('live', len(live_matches))} partidos en directo y {hub['counts'].get('upcoming', 0)} próximos.\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Sin directos reales ahora mismo. En cuanto entren minuto y marcador, los priorizo aquí.")
-            + "\n\nEn live solo entraría con señal fuerte y stake mínimo."
-        )
-        next_url = "/live"
-        actions = _shark_actions(("Abrir directo", "/live"), ("Ver calendario", "/calendar"))
-
-    elif any(word in q_norm for word in ["favor", "favorito", "favoritos"]):
-        focus = "favoritos"
-        fav = favorite_insights()
-        lines = [_shark_line_match(m) for m in fav.get("matches", [])[:6]]
-        body = (
-            f"Favoritos SHARK:\n{fav.get('summary')}.\n\n"
-            + ("\n".join(f"{i+1}. {line}" for i, line in enumerate(lines)) if lines else "Todavía no hay partidos activos/próximos cruzados con tus favoritos. Marca equipos, ligas o partidos con la estrella para personalizar esto.")
-        )
-        next_url = "/favorites"
-        actions = _shark_actions(("Abrir favoritos", "/favorites"), ("Partidos de hoy", "/sports-hub"))
-
-    else:
-        focus = "resumen"
-        best_pick = _shark_visible_picks(user, limit=1, min_score=70)
-        rec_lines = _shark_recommendation_lines(limit=2)
-        body = (
-            f"Resumen SHARK PRO:\n\n"
-            f"Partidos hoy: {briefing['summary']['matches_today']}\n"
-            f"En directo: {briefing['summary']['live_now']}\n"
-            f"Picks premium listos: {briefing['summary']['picks_ready']}\n"
-            f"En estudio: {briefing['summary'].get('picks_study', 0)}\n"
-            f"Riesgo general: {briefing['risk']['level']}\n\n"
-        )
-        if best_pick:
-            body += _shark_card_pick(best_pick[0], "Pick más claro")
-        elif rec_lines:
-            body += "Oportunidades a revisar:\n" + "\n".join(f"{i+1}. {line}" for i, line in enumerate(rec_lines))
-        else:
-            body += "No fuerzo apuestas sin datos suficientes. Mejor esperar a nuevas cuotas o revisar directo."
-        next_url = "/sports-hub"
-        actions = _shark_actions(("Partidos", "/sports-hub"), ("Picks", "/picks"), ("Telegram", "/telegram"))
-
-    return {
-        "question": q,
-        "focus": focus,
-        "answer": body,
-        "context": briefing.get("context"),
-        "risk_note": briefing["risk"]["note"],
-        "actions": actions,
-        "next_action": "Revisar la pantalla recomendada antes de decidir. SHARK no garantiza resultados.",
-        "next_url": next_url,
-        "legal_policy": briefing["legal_policy"],
-    }
-
 def telegram_config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -11744,58 +11707,9 @@ def telegram_config():
 
 
 def get_telegram_settings():
-    seed_core()
-    env_enable = telegram_env_should_enable()
-    row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    if not row:
-        conn = db()
-        conn.execute(
-            """INSERT OR IGNORE INTO telegram_settings
-               (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (
-                "default",
-                1,
-                1 if env_enable or env_bool("AUTO_SEND_TELEGRAM_PICKS", False) else 0,
-                0,
-                "09:00",
-                "11:00",
-                10,
-                1 if env_enable else 0,
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        conn.close()
-        row = one("SELECT * FROM telegram_settings WHERE id='default'")
-    settings = normalize_settings(row)
-    if env_enable and (not settings.get("enabled") or not settings.get("auto_daily_picks")):
-        conn = db()
-        conn.execute(
-            """UPDATE telegram_settings
-               SET enabled=1,
-                   auto_daily_matches=1,
-                   auto_daily_picks=1,
-                   updated_at=?
-               WHERE id='default'""",
-            (now_iso(),),
-        )
-        conn.commit()
-        conn.close()
-        row = one("SELECT * FROM telegram_settings WHERE id='default'")
-        settings = normalize_settings(row)
-        try:
-            telegram_log("settings", "healed", "Telegram automatico activado desde variables Render.", {
-                "ENABLE_TELEGRAM_AUTO": os.getenv("ENABLE_TELEGRAM_AUTO", ""),
-                "AUTO_SEND_TELEGRAM_PICKS": os.getenv("AUTO_SEND_TELEGRAM_PICKS", ""),
-                "token_present": env_present("TELEGRAM_BOT_TOKEN"),
-                "chat_id_present": env_present("TELEGRAM_CHAT_ID"),
-            })
-        except Exception:
-            pass
-    return settings
-
-
+    """Read persisted settings; startup and explicit admin actions own writes."""
+    row = one("SELECT * FROM telegram_settings WHERE id='default'") if db_table_exists("telegram_settings") else None
+    return normalize_settings(row)
 
 
 def _telegram_sync_env_on_startup():
@@ -11979,14 +11893,15 @@ def link_telegram_chat_by_code(code, chat_id, username="", first_name=""):
 
 
 def telegram_user_state(user):
+    """Return Telegram-link state without mutating business data on reads."""
     if not user or not user.get("id"):
         return {"linked": False, "requires_login": True}
     full = one("SELECT * FROM users WHERE id=?", (user.get("id"),)) or dict(user)
     linked = bool(full.get("telegram_chat_id"))
-    code = ""
-    if not linked:
-        code = generate_telegram_link_code(full.get("id")) or ""
-        full = one("SELECT * FROM users WHERE id=?", (full.get("id"),)) or full
+    current_code = str(full.get("telegram_link_code") or "").strip()
+    current_expires = full.get("telegram_link_expires_at") or full.get("telegram_link_expires") or ""
+    code_valid = bool(current_code) and not telegram_code_expired(current_expires)
+    code = current_code if (not linked and code_valid) else ""
     bot = telegram_bot_username()
     deep_link = f"https://t.me/{bot}?start={code}" if bot and code else ""
     return {
@@ -11995,11 +11910,34 @@ def telegram_user_state(user):
         "username": full.get("telegram_username") or "",
         "linked_at": full.get("telegram_linked_at") or "",
         "code": code,
-        "expires_at": full.get("telegram_link_expires_at") or full.get("telegram_link_expires") or "",
+        "code_available": bool(code),
+        "code_expired": bool(current_code) and not code_valid,
+        "expires_at": current_expires if code else "",
         "bot_username": bot,
         "deep_link": deep_link,
         "command": f"/link {code}" if code else "",
+        "generation_requires_post": not linked and not code,
     }
+
+def telegram_user_preferences_for(user):
+    user = dict(user or {})
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    user_id = user.get("id") or ""
+    profile_preferences = {}
+    if user_id and "_load_user_intelligence_preferences" in globals():
+        try:
+            profile_preferences = _load_user_intelligence_preferences(user_id)
+        except Exception:
+            profile_preferences = {}
+    return telegram_preferences_from_profile(profile_preferences, membership)
+
+
+def telegram_destination_preferences_for(user_id, membership):
+    user_id = str(user_id or "").strip()
+    user = one("SELECT id,role,membership FROM users WHERE id=?", (user_id,)) if user_id else None
+    safe_user = user or {"id": user_id, "membership": membership or "FREE", "role": membership or "FREE"}
+    return telegram_user_preferences_for(safe_user)
+
 
 def ensure_default_telegram_subscriber():
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
@@ -12038,7 +11976,16 @@ def telegram_auto_destinations(required_membership="FREE", include_global=True):
     seen = set()
     global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
     if include_global and global_chat_id:
-        destinations.append({"chat_id": global_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "target_key": "auto_channel", "label": "Canal global"})
+        destinations.append({
+            "chat_id": global_chat_id,
+            "user_id": "",
+            "membership": "ADMIN",
+            "target_kind": "channel",
+            "target_key": "auto_channel",
+            "label": "Canal global",
+            "telegram_preferences": {},
+            "daily_limit": 4,
+        })
         seen.add(global_chat_id)
     for sub in telegram_subscribers():
         chat_id = str(sub.get("chat_id") or "").strip()
@@ -12047,7 +11994,17 @@ def telegram_auto_destinations(required_membership="FREE", include_global=True):
         membership = normalize_role(sub.get("membership") or "FREE")
         if membership_allows(membership, required_membership):
             user_id = sub.get("user_id") or ""
-            destinations.append({"chat_id": chat_id, "user_id": user_id, "membership": membership, "target_kind": "private", "target_key": f"auto_private_user_{user_id or chat_id}", "label": sub.get("first_name") or sub.get("username") or "Usuario Telegram"})
+            preferences = telegram_destination_preferences_for(user_id, membership)
+            destinations.append({
+                "chat_id": chat_id,
+                "user_id": user_id,
+                "membership": membership,
+                "target_kind": "private",
+                "target_key": f"auto_private_user_{user_id or chat_id}",
+                "label": sub.get("first_name") or sub.get("username") or "Usuario Telegram",
+                "telegram_preferences": preferences,
+                "daily_limit": telegram_destination_daily_limit({"target_kind": "private", "telegram_preferences": preferences}),
+            })
             seen.add(chat_id)
     return destinations
 
@@ -12857,6 +12814,15 @@ def find_auto_telegram_pick_candidates(limit=40, destination_membership="PRO"):
         for dest in destinations:
             if dest.get("target_kind") == "private" and not membership_allows(dest.get("membership"), required):
                 continue
+            preference_allowed, preference_reason = telegram_destination_allows_message(dest, "auto_pick", pick)
+            if not preference_allowed:
+                dedupe_details.append({
+                    "blocked": True,
+                    "reason": preference_reason,
+                    "destination": masked_key(dest.get("chat_id") or dest.get("user_id") or "global"),
+                    "target_kind": dest.get("target_kind"),
+                })
+                continue
             dedupe = telegram_auto_pick_dedupe_status(pick, dest)
             dedupe_details.append({**dedupe, "destination": masked_key(dest.get("chat_id") or dest.get("user_id") or "global"), "target_kind": dest.get("target_kind")})
             if dedupe.get("blocked"):
@@ -13005,7 +12971,7 @@ def telegram_reliability_snapshot(limit=60):
                 "selection": pick.get("selection") or pick.get("pick") or pick.get("recommendation") or "",
                 "odds": pick.get("odds"),
                 "confidence": pick.get("confidence") or pick.get("shark_score"),
-                "dedupe_status": (existing or {}).get("status") or "",
+                "duplicate_status": (existing or {}).get("status") or "",
             })
             if not preview_pick:
                 preview_pick = pick
@@ -13171,25 +13137,38 @@ def telegram_reply_markup_from_payload(payload):
     return {"inline_keyboard": keyboard}
 
 
-def build_daily_matches_message():
+def telegram_daily_match_items():
     matches = match_hub(today_iso(), "today").get("today") or get_matches(today_iso(), "today")
     if not matches:
         matches = get_upcoming_matches(today_iso(), days=2, limit=10)
     matches = [telegram_enrich_match_for_message(match) for match in matches]
-    matches = filter_telegram_candidates(filter_telegram_football_items(matches), limit=5)
+    return filter_telegram_candidates(filter_telegram_football_items(matches), limit=5)
+
+
+def build_daily_matches_message(matches=None, preferences=None):
+    matches = telegram_daily_match_items() if matches is None else list(matches or [])
+    if preferences:
+        matches = telegram_filter_items_for_preferences(matches, preferences)
     if not matches:
         automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_top_matches", "created_at": now_iso(), "source": "daily_matches"})
         return ""
     return format_daily_matches_message(matches, today_iso(), APP_NAME)
 
 
-def build_daily_picks_message(force_empty=False):
+def telegram_daily_pick_items():
     raw_picks = get_picks(limit=16, status=["published"], membership="ELITE")
     picks = []
     for raw in raw_picks:
         pick = telegram_enrich_pick_for_message(raw)
         if telegram_pick_sendability(pick).get("sendable"):
             picks.append(pick)
+    return picks
+
+
+def build_daily_picks_message(force_empty=False, picks=None, preferences=None):
+    picks = telegram_daily_pick_items() if picks is None else list(picks or [])
+    if preferences:
+        picks = telegram_filter_items_for_preferences(picks, preferences)
     if not picks and not force_empty:
         automation_safe_set("telegram_v844_last_no_filler", {"status": "skipped_no_real_pick", "created_at": now_iso(), "source": "daily_picks"})
         return ""
@@ -13301,7 +13280,7 @@ def build_live_alert_message(match=None):
     if not match:
         return ""
     match = telegram_enrich_match_for_message(match)
-    return format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
+    return format_live_alert_message(match, internal_url=telegram_absolute_url("/directo") or "/live")
 
 
 def build_system_test_message():
@@ -13312,58 +13291,74 @@ def enqueue_daily_matches(force=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_summary_start"], cfg["daily_summary_end"]):
         return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Resumen diario fuera de ventana PRO; se mantiene pendiente para horario profesional.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_resumen", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
-    subscribers = telegram_subscribers()
+    subscribers = telegram_auto_destinations("FREE", include_global=True)
     if forced_chat_id and not subscribers:
-        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "telegram_preferences": {}}]
     if not subscribers:
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay chat_id ni suscriptores activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
-    body = build_daily_matches_message()
-    if not body:
-        return {"ok": True, "status": "SKIPPED_NO_TOP_MATCHES", "message": "No se envió nada: no había partidos top suficientes para Telegram.", "processed": 0, "inserted": 0, "updated": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["SKIPPED_NO_TOP_MATCHES"]}
+    base_matches = telegram_daily_match_items()
     inserted = skipped = 0
     for sub in subscribers:
+        allowed, _reason = telegram_destination_allows_message(sub, "daily_matches")
+        if not allowed:
+            skipped += 1
+            continue
+        if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+            skipped += 1
+            continue
+        preferences = sub.get("telegram_preferences") if sub.get("target_kind") == "private" else None
+        body = build_daily_matches_message(matches=base_matches, preferences=preferences)
+        if not body:
+            skipped += 1
+            continue
         result = enqueue_telegram_message(
-            "daily_matches",
-            "Partidos del día",
-            body,
-            chat_id=sub.get("chat_id"),
-            user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "app_url": telegram_absolute_url("/sports-hub"), "button_text": "Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            "daily_matches", "Partidos del día", body,
+            chat_id=sub.get("chat_id"), user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_matches:{today_iso()}", "job_type": "daily_matches", "target_kind": sub.get("target_kind"), "telegram_preferences_contract": (sub.get("telegram_preferences") or {}).get("contract"), "app_url": telegram_absolute_url("/sports-hub"), "button_text": "Ver partidos", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_matches", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Resumen de partidos encolado.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
+    return {"ok": True, "status": "QUEUED" if inserted else "NO_ELIGIBLE_DESTINATIONS", "message": "Resumen de partidos revisado por preferencias.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_ELIGIBLE_DESTINATIONS"]}
 
 
 def enqueue_daily_picks(force=False, force_empty=False, forced_chat_id=""):
     cfg = telegram_pro_calibration()
     if not force and not telegram_time_window_active(cfg["daily_picks_start"], cfg["daily_picks_end"]):
         return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Picks diarios fuera de ventana PRO; no se fuerza envío.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "fuera_ventana_picks", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
-    body = build_daily_picks_message(force_empty=force_empty)
-    if not body:
+    base_picks = telegram_daily_pick_items()
+    if not base_picks and not force_empty:
         return {"ok": True, "status": "NO_ELIGIBLE_PICKS", "message": "No hay picks premium activos ahora mismo. SHARK está esperando valor real.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_ELIGIBLE_PICKS"]}
     subscribers = telegram_auto_destinations("PRO", include_global=True)
     if forced_chat_id and not subscribers:
-        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN"}]
+        subscribers = [{"chat_id": forced_chat_id, "user_id": "", "membership": "ADMIN", "target_kind": "channel", "telegram_preferences": {}}]
     if not subscribers:
         return {"ok": False, "status": "NO_DESTINATION", "message": "No hay canal global ni suscriptores PRO/ELITE activos.", "processed": 0, "sent": 0, "failed": 0, "skipped": 0, "errors": ["sin_destinatarios"], "discard_reasons": ["NO_DESTINATION"]}
     inserted = skipped = 0
     for sub in subscribers:
+        allowed, _reason = telegram_destination_allows_message(sub, "daily_picks")
+        if not allowed:
+            skipped += 1
+            continue
+        if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+            skipped += 1
+            continue
+        preferences = sub.get("telegram_preferences") if sub.get("target_kind") == "private" else None
+        body = build_daily_picks_message(force_empty=force_empty, picks=base_picks, preferences=preferences)
+        if not body:
+            skipped += 1
+            continue
         result = enqueue_telegram_message(
-            "daily_picks",
-            "Picks destacados",
-            body,
-            chat_id=sub.get("chat_id"),
-            user_id=sub.get("user_id"),
-            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "app_url": telegram_absolute_url("/picks"), "button_text": "Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": False},
+            "daily_picks", "Picks destacados", body,
+            chat_id=sub.get("chat_id"), user_id=sub.get("user_id"),
+            payload={"membership": sub.get("membership"), "target_key": today_iso(), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"daily_picks:{today_iso()}", "job_type": "daily_picks", "target_kind": sub.get("target_kind"), "telegram_preferences_contract": (sub.get("telegram_preferences") or {}).get("contract"), "app_url": telegram_absolute_url("/picks"), "button_text": "Abrir picks SHARK", "include_picks_button": False, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": False},
             dedupe_key=telegram_dedupe_key("daily_picks", today_iso(), sub.get("chat_id"), source="automatic_cron"),
             force=force,
         )
         inserted += 1 if result.get("queued") else 0
         skipped += 1 if result.get("skipped") else 0
-    return {"ok": True, "status": "QUEUED" if inserted else "DUPLICATE_ALREADY_SENT", "message": "Picks destacados encolados.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["DUPLICATE_ALREADY_SENT"]}
+    return {"ok": True, "status": "QUEUED" if inserted else "NO_ELIGIBLE_DESTINATIONS", "message": "Picks destacados revisados por preferencias.", "processed": len(subscribers), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped, "errors": [], "discard_reasons": [] if inserted else ["NO_ELIGIBLE_DESTINATIONS"]}
 
 
 def enqueue_auto_pick_alerts(force=False, limit=4):
@@ -13414,9 +13409,10 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
         if dest.get("target_kind") == "private" and not membership_allows(dest.get("membership"), required):
             blocked += 1
             continue
-        if not force and telegram_sent_today(dest.get("chat_id"), "auto_pick") >= cfg["max_auto_picks_per_day"]:
+        effective_daily_limit = min(cfg["max_auto_picks_per_day"], telegram_destination_daily_limit(dest))
+        if not force and telegram_sent_today(dest.get("chat_id")) >= effective_daily_limit:
             blocked += 1
-            telegram_log("[QUEUE]", "skipped", "Auto pick omitido por límite diario PRO.", {"chat_id": masked_key(dest.get("chat_id")), "limit": cfg["max_auto_picks_per_day"]})
+            telegram_log("[QUEUE]", "skipped", "Auto pick omitido por límite diario del destino.", {"chat_id": masked_key(dest.get("chat_id")), "limit": effective_daily_limit})
             continue
         result = enqueue_telegram_message(
             "auto_pick",
@@ -13424,7 +13420,7 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
             body,
             chat_id=dest.get("chat_id"),
             user_id=dest.get("user_id"),
-            payload={"visual_card_type": "pick_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"pick": pick, "membership": dest.get("membership")}, "membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
+            payload={"visual_card_type": "pick_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"pick": pick, "membership": dest.get("membership")}, "membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
             dedupe_key=(item.get("dedupe") or {}).get("dedupe_key") or telegram_auto_pick_dedupe_key_for(pick, dest),
             force=force,
         )
@@ -13443,15 +13439,22 @@ def enqueue_live_alerts(force=False):
     if not settings.get("auto_live_alerts") and not force:
         return {"ok": True, "status": "NO_LIVE_ALERTS", "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_LIVE_ALERTS"]}
     live_matches = match_hub(today_iso(), "live").get("live") or []
-    subscribers = [s for s in telegram_subscribers() if str(s.get("membership") or "FREE").upper() in {"ELITE", "ADMIN"}]
+    subscribers = telegram_auto_destinations("ELITE", include_global=False)
     inserted = skipped = 0
     for match in live_matches[:8]:
         match = telegram_enrich_match_for_message(match)
         if not is_telegram_football_item(match) or not is_top_football_match(match):
             skipped += 1
             continue
-        body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
+        body = format_live_alert_message(match, internal_url=telegram_absolute_url("/directo") or "/live")
         for sub in subscribers:
+            allowed, _reason = telegram_destination_allows_message(sub, "live_alert", match)
+            if not allowed:
+                skipped += 1
+                continue
+            if not force and telegram_sent_today(sub.get("chat_id")) >= telegram_destination_daily_limit(sub):
+                skipped += 1
+                continue
             result = enqueue_telegram_message(
                 "live_alert",
                 "Alerta live",
@@ -13688,6 +13691,34 @@ def process_premium_telegram_queue(limit=5, force=False):
     for item in pending:
         chat_id = item.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
         message_type = item.get("message_type") or "queue"
+        try:
+            item_payload = json.loads(item.get("payload_json") or "{}")
+        except Exception:
+            item_payload = {}
+        item_user_id = item.get("user_id") or item_payload.get("user_id") or ""
+        global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+        target_kind = item_payload.get("target_kind") or ("channel" if global_chat_id and str(chat_id) == global_chat_id else "private")
+        destination = {
+            "chat_id": chat_id,
+            "user_id": item_user_id,
+            "membership": item_payload.get("membership") or "FREE",
+            "target_kind": target_kind,
+            "telegram_preferences": telegram_destination_preferences_for(item_user_id, item_payload.get("membership") or "FREE") if target_kind == "private" and item_user_id else {},
+        }
+        preference_item = {}
+        visual_payload = item_payload.get("visual_card_payload")
+        if isinstance(visual_payload, dict):
+            preference_item = visual_payload.get("pick") or visual_payload.get("match") or visual_payload.get("highlight") or {}
+        allowed, preference_reason = telegram_destination_allows_message(destination, message_type, preference_item if isinstance(preference_item, dict) else {})
+        if telegram_message_is_automatic(message_type) and not allowed and not force:
+            conn = db()
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, preference_reason or "telegram_preference_blocked", now_iso(), item.get("id")))
+            conn.commit()
+            conn.close()
+            skipped += 1
+            skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": preference_reason or "PREFERENCE_BLOCKED", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
+            continue
+
         if telegram_should_delay_message(message_type, force=force):
             skipped += 1
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "OUTSIDE_PRO_WINDOW", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
@@ -13699,14 +13730,15 @@ def process_premium_telegram_queue(limit=5, force=False):
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "HOURLY_LIMIT", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
             telegram_log("[QUEUE_DELAY]", "skipped", "Mensaje retenido por límite horario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": hourly_limit})
             continue
-        if telegram_message_is_automatic(message_type) and telegram_sent_today(chat_id) >= cfg["max_messages_per_day"] and not force:
+        destination_limit = min(cfg["max_messages_per_day"], telegram_destination_daily_limit(destination))
+        if telegram_message_is_automatic(message_type) and telegram_sent_today(chat_id) >= destination_limit and not force:
             conn = db()
-            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_dia_pro", now_iso(), item.get("id")))
+            conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "limite_dia_destino", now_iso(), item.get("id")))
             conn.commit()
             conn.close()
             skipped += 1
             skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "DAILY_LIMIT", "source": item.get("source") or "", "dedupe_key": item.get("dedupe_key") or ""})
-            telegram_log("[QUEUE_SKIP_LIMIT]", "skipped", "Mensaje omitido por límite diario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": cfg["max_messages_per_day"]})
+            telegram_log("[QUEUE_SKIP_LIMIT]", "skipped", "Mensaje omitido por límite diario PRO.", {"queue_id": item.get("id"), "chat_id": masked_key(chat_id), "limit": destination_limit})
             continue
         telegram_log("[QUEUE_PROCESS]", "sending", "Procesando item de cola Telegram.", {"queue_id": item.get("id"), "message_type": message_type, "chat_id": masked_key(chat_id)})
         conn = db()
@@ -14081,8 +14113,8 @@ def v771_activity_payload(candidate, dest):
         "button_text": "Abrir NeMeSiS",
         "app_url": telegram_absolute_url("/app") or telegram_absolute_url("/"),
         "picks_url": telegram_absolute_url("/picks"),
-        "live_url": telegram_absolute_url("/live"),
-        "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendar"),
+        "live_url": telegram_absolute_url("/directo"),
+        "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendario"),
         "include_picks_button": kind in {"daily_summary", "live_alert", "pick_alert", "prematch_reminder"},
         "include_live_button": kind in {"daily_summary", "live_alert"},
         "visual_card_type": visual_type,
@@ -14136,16 +14168,29 @@ def enqueue_v771_telegram_activity(force=False, limit=6):
             skipped += 1
             continue
         for dest in destinations:
-            kind = candidate.get("kind") or "activity"
-            destination_body = premium_text_html(v771_format_activity_candidate(candidate, membership=dest.get("membership")))
-            dedupe_key = f"{candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
+            filtered_candidate, _preference_reason = telegram_filter_candidate_for_destination(candidate, dest)
+            if not filtered_candidate:
+                skipped += 1
+                continue
+            if not force and telegram_sent_today(dest.get("chat_id")) >= telegram_destination_daily_limit(dest):
+                skipped += 1
+                continue
+            kind = filtered_candidate.get("kind") or "activity"
+            destination_body = premium_text_html(v771_format_activity_candidate(filtered_candidate, membership=dest.get("membership")))
+            if not destination_body:
+                skipped += 1
+                continue
+            dedupe_key = f"{filtered_candidate.get('dedupe_key')}:{dest.get('target_key') or dest.get('chat_id')}"
             result = enqueue_telegram_message(
                 kind,
-                candidate.get('title') or "Actividad SHARK",
+                filtered_candidate.get('title') or "Actividad SHARK",
                 destination_body,
                 chat_id=dest.get("chat_id"),
                 user_id=dest.get("user_id"),
-                payload=v771_activity_payload(candidate, dest),
+                payload=v771_activity_payload(filtered_candidate, dest) | {
+                    "telegram_preferences_contract": (dest.get("telegram_preferences") or {}).get("contract"),
+                    "preference_filter": "applied",
+                },
                 dedupe_key=dedupe_key,
                 force=force,
             )
@@ -14413,7 +14458,7 @@ def process_telegram_queue(force=False):
     return {"enqueue": enqueue, "processed": processed, "pending_after": telegram_queue(limit=20)}
 
 
-def prepare_auto_posts():
+def prepare_auto_posts(*, persist=True):
     hub = match_hub(today_iso())
     posts = []
     for match in hub.get("live", [])[:5]:
@@ -14422,6 +14467,8 @@ def prepare_auto_posts():
         posts.append({"type": "pick_alert", "target_key": match.get("id"), "title": f"Pick relacionado: {match.get('competition_name')}", "status": "READY"})
     for match in hub.get("popular", [])[:5]:
         posts.append({"type": "featured_match", "target_key": match.get("id"), "title": f"Destacado: {match.get('home_team')} vs {match.get('away_team')}", "status": "READY"})
+    if not persist:
+        return posts
     conn = db()
     cur = conn.cursor()
     for post in posts:
@@ -14931,7 +14978,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V940_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -15266,7 +15313,7 @@ def v896_route_map_items():
             "methods": sorted(method for method in rule.methods if method not in {"HEAD", "OPTIONS"}),
             "category": category,
             "requires_admin": route.startswith("/admin") or route.startswith("/api/admin"),
-            "requires_login": route in {"/app", "/profile", "/telegram", "/favorites"},
+            "requires_login": route in {"/app", "/profile", "/telegram", "/favorites", "/favoritos"},
             "alias_target": V896_ROUTE_ALIASES.get(route, ""),
         })
     return items
@@ -17291,8 +17338,8 @@ def v932_admin_sports_diagnostics(sports):
         "active_data_source": "DB/cache" if sports.get("real_matches_available") else "Pendiente de sincronización",
         "latest_sync": {"started_at": last_sync} if last_sync else {},
         "errors_recent": [],
-        "sportsdb_key_masked": "***configured***" if sports.get("provider_configured") else "***missing***",
-        "odds_key_masked": "***hidden***",
+        "sportsdb_configured": bool(sports.get("provider_configured")),
+        "odds_configured": env_present("THE_ODDS_API_KEY"),
         "incomplete_matches": int(sports.get("incomplete_matches_count") or 0),
         "storage_status": sports.get("storage_status") or "read_unavailable",
         "next_action": sports.get("admin_next_action") or "review_provider_configuration",
@@ -17535,7 +17582,7 @@ def v758_adaptive_context(data=None, user=None, page_key=""):
             "quick_actions": [
                 {"label": "Inicio", "href": "/app", "badge": "App"},
                 {"label": "Partidos", "href": "/calendar", "badge": "Hoy"},
-                {"label": "Picks", "href": "/picks", "badge": "SHARK"},
+                {"label": "Pronósticos", "href": "/picks", "badge": "SHARK"},
             ],
         }
 
@@ -17621,9 +17668,9 @@ def build_v763_world_cup_launch_context(data=None, user=None):
         "quick_actions": [
             {"label": "Mundial", "href": "/mundial", "badge": "Foco"},
             {"label": "Partidos de hoy", "href": "/calendar?lane=today", "badge": "Hoy"},
-            {"label": "Directo", "href": "/live?f=live", "badge": "Live"},
-            {"label": "Picks", "href": "/picks", "badge": "SHARK"},
-            {"label": "Histórico", "href": "/track-record", "badge": "Real"},
+            {"label": "Directo", "href": "/live?f=live", "badge": "Directo"},
+            {"label": "Pronósticos", "href": "/picks", "badge": "SHARK"},
+            {"label": "Historial", "href": "/track-record", "badge": "Real"},
         ],
     }
 
@@ -17835,8 +17882,8 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         primary_action,
         {"label": "Hoy", "href": "/calendar?lane=today"},
         {"label": "Directo", "href": "/live?f=live"},
-        {"label": "Picks", "href": "/picks"},
-        {"label": "Histórico", "href": "/track-record"},
+        {"label": "Pronósticos", "href": "/picks"},
+        {"label": "Historial", "href": "/track-record"},
     ]
     return {
         "version": APP_VERSION,
@@ -17857,7 +17904,7 @@ def build_v764_dynamic_competition_mode(data=None, user=None, surface="home"):
         "picks": picks[:8],
         "primary_action": primary_action,
         "quick_actions": quick_actions,
-        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Picks, Resultados o Liga según el momento.",
+        "empty_message": "Cuando haya datos reales sincronizados, NeMeSiS activará automáticamente Mundial, Directo, Pronósticos, Resultados o Liga según el momento.",
     }
 
 
@@ -17914,10 +17961,10 @@ def v765_markets_context(data=None, user=None):
     snapshot = build_betting_markets_snapshot(picks=picks, matches=matches, plan=plan)
     snapshot["plan"] = plan
     snapshot["quick_actions"] = [
-        {"label": "1X2", "href": "/mercadosítipo=1x2", "text": "Ganador, empate o visitante"},
-        {"label": "Goles", "href": "/mercadosítipo=goles", "text": "Más/Menos 1.5 y 2.5"},
-        {"label": "Doble oportunidad", "href": "/mercadosítipo=doble", "text": "1X, X2 o 12"},
-        {"label": "Combis", "href": "/combisítipo=mixta&partidos=3", "text": "Combinadas responsables"},
+        {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
+        {"label": "Goles", "href": "/mercados?tipo=goles", "text": "Más/Menos 1.5 y 2.5"},
+        {"label": "Doble oportunidad", "href": "/mercados?tipo=doble", "text": "1X, X2 o 12"},
+        {"label": "Combinadas", "href": "/combinadas?tipo=mixta&partidos=3", "text": "Combinadas responsables"},
     ]
     return snapshot
 
@@ -17995,6 +18042,9 @@ def v766_highlight_map(match_ids, limit_per_match=2):
 
 def v766_apply_match_highlight_badge(match, highlights=None):
     item = dict(match or {})
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="")
+        return item
     hs = highlights if highlights is not None else []
     if not hs and item.get("id"):
         try:
@@ -18018,6 +18068,8 @@ def v766_enrich_matches_with_highlights(matches):
 
 
 def v766_highlights_context(limit=12):
+    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+        return {"version": APP_VERSION, "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentacion pausada por el administrador."}
     try:
         summary = sportsdb_highlights_summary(DB_PATH)
     except Exception as exc:
@@ -18275,7 +18327,7 @@ def api_client_highlights():
     return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24), "content_center": v769_highlights_content_center(data, current_session_user(), limit=24)})
 
 
-@app.route("/api/automation/highlights/sync", methods=["POST", "GET"])
+@app.route("/api/automation/highlights/sync", methods=["POST"])
 def api_automation_highlights_sync():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -18285,7 +18337,7 @@ def api_automation_highlights_sync():
     return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
 
 
-@app.route("/api/admin/highlights/sync", methods=["POST", "GET"])
+@app.route("/api/admin/highlights/sync", methods=["POST"])
 def api_admin_highlights_sync():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -19553,9 +19605,9 @@ def sports_hub_page():
             {"key": "live", "label": "Directo", "href": "/sports-hub?tab=live"},
             {"key": "tomorrow", "label": "Mañana", "href": "/sports-hub?tab=tomorrow"},
             {"key": "week", "label": "Semana", "href": "/sports-hub?tab=week"},
-            {"key": "picks", "label": "Picks", "href": "/picks"},
+            {"key": "picks", "label": "Pronósticos", "href": "/picks"},
             {"key": "favorites", "label": "Favoritos", "href": "/sports-hub?tab=favorites"},
-            {"key": "combis", "label": "Combis", "href": "/combis"},
+            {"key": "combis", "label": "Combinadas", "href": "/combinadas"},
         ],
         "selected": selected_matches[:160],
         "selected_groups": sports_hub_groups(selected_matches),
@@ -19776,7 +19828,7 @@ def favorites_page():
         else:
             add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
             _growth_maybe_activate_user(reason="favorite_saved")
-        return redirect("/favorites")
+        return redirect("/favoritos")
     data, _summary = v932_safe_dashboard_data(request.path, scope="client")
     return render_template("favorites.html", data=data)
 
@@ -19950,13 +20002,15 @@ def register_page():
             set_login_session(user)
             session["growth_attribution"] = growth_attribution
             _growth_record_registration_journey(user.get("id"), growth_journey, growth_attribution)
-            return _post_auth_redirect("/app")
+            registration_default = "/onboarding" if growth_is_first10_attribution(growth_attribution) and not selected_plan else "/app"
+            return _post_auth_redirect(registration_default)
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
     auth_data = home_light_data()
     auth_data["selected_plan"] = selected_plan
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
+    registration_default = "/onboarding" if growth_is_first10_attribution() and not selected_plan else "/app"
+    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), registration_default)
     return render_template("register.html", data=auth_data, error=error)
 
 
@@ -20980,12 +21034,19 @@ def _v945_provider_safe_quota(value):
     )
     clean = {}
     for key in allowed:
-        if key not in value:
+        observed = value.get(key)
+        if isinstance(observed, bool) or not isinstance(observed, (int, float, str)):
+            continue
+        if isinstance(observed, float) and (not math.isfinite(observed) or not observed.is_integer()):
+            continue
+        if isinstance(observed, str) and not re.fullmatch(r"[0-9]+", observed.strip()):
             continue
         try:
-            clean[key] = max(0, int(value.get(key) or 0))
-        except (TypeError, ValueError):
+            number = int(observed)
+        except (TypeError, ValueError, OverflowError):
             continue
+        if number >= 0:
+            clean[key] = number
     return clean
 
 
@@ -21003,11 +21064,12 @@ def _v945_provider_direct_age_seconds(check):
 
 
 def _v945_provider_direct_snapshot(provider):
-    return automation_get_bounded(
+    observed = automation_get_bounded(
         _v945_provider_direct_state_key(provider),
         {},
         max_bytes=24 * 1024,
-    ) or {}
+    )
+    return observed if isinstance(observed, dict) else {}
 
 
 def v945_provider_direct_check(provider):
@@ -21131,7 +21193,7 @@ def v945_provider_health_snapshot():
     quota_values = quota.get("values") if isinstance(quota.get("values"), dict) else {}
     job = pipeline.get("job_execution") if isinstance(pipeline.get("job_execution"), dict) else {}
 
-    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
+    api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
     sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
     odds_configured = env_present("THE_ODDS_API_KEY")
 
@@ -21153,16 +21215,16 @@ def v945_provider_health_snapshot():
             label_status = "Revisar acceso/plan"
             severity = "warning"
             action = "Revisar suscripción, plan y permisos del proveedor"
-        elif contributed or ok_value is True:
-            status = "OPERATIVA"
-            label_status = "Operativa"
-            severity = "success"
-            action = "Sin acción inmediata"
         elif "CACHE" in joined:
             status = "CACHE"
             label_status = "Usando caché"
             severity = "neutral"
             action = "Verificar en el próximo ciclo real"
+        elif contributed or ok_value is True:
+            status = "OPERATIVA"
+            label_status = "Operativa en el último ciclo"
+            severity = "success"
+            action = "Sin acción inmediata"
         else:
             status = "SIN_VERIFICACION_RECIENTE"
             label_status = "Sin verificación reciente"
@@ -21188,7 +21250,7 @@ def v945_provider_health_snapshot():
             "external_calls": as_int(observed.get("external_calls"), 0),
             "observed_at": str(observed_at or ""),
             "billing_status": billing_status,
-            "quota": quota_data or {},
+            "quota": _v945_provider_safe_quota(quota_data),
             "next_action": action,
         }
 
@@ -21206,9 +21268,9 @@ def v945_provider_health_snapshot():
         "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
         observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
     )
-    if sportsdb_card["data_contributed"] and not sportsdb_configured:
+    if sportsdb_card["status"] == "OPERATIVA" and sportsdb_card["data_contributed"] and not sportsdb_configured:
         sportsdb_card["status"] = "OPERATIVA_FALLBACK"
-        sportsdb_card["status_label"] = "Fallback operativo"
+        sportsdb_card["status_label"] = "Fallback operativo en el último ciclo"
         sportsdb_card["severity"] = "success"
         sportsdb_card["next_action"] = "Sin acción inmediata; revisar límites del servicio si aplica"
 
@@ -21765,7 +21827,7 @@ def api_admin_autonomous_company_sentinel_render_alignment():
     return jsonify({"ok": True, "version": APP_VERSION, "render_alignment": data})
 
 
-@app.route("/api/admin/autonomous-company-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-company-sentinel/run", methods=["POST"])
 def api_admin_autonomous_company_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21784,7 +21846,7 @@ def api_admin_autonomous_company_sentinel_generate_codex_prompts():
     return jsonify({"ok": True, "version": APP_VERSION, "outbox": result.get("outbox"), "dangerous_actions_executed": False})
 
 
-@app.route("/api/admin/autonomous-company-sentinel/sync-issues", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-company-sentinel/sync-issues", methods=["POST"])
 def api_admin_autonomous_company_sentinel_sync_issues():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21825,7 +21887,7 @@ def api_admin_autonomous_sentinel_autofix_plan():
     return jsonify({"ok": True, "version": APP_VERSION, "autofix_plan": plan})
 
 
-@app.route("/api/admin/autonomous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-sentinel/run", methods=["POST"])
 def api_admin_autonomous_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21843,7 +21905,7 @@ def api_admin_autonomous_sentinel_generate_codex_prompts():
     return jsonify({"ok": True, "version": APP_VERSION, "outbox": result.get("outbox"), "dangerous_actions_executed": False})
 
 
-@app.route("/api/admin/autonomous-sentinel/sync-issues", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-sentinel/sync-issues", methods=["POST"])
 def api_admin_autonomous_sentinel_sync_issues():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -21999,7 +22061,7 @@ def api_admin_sentinel_issues_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": summary})
 
 
-@app.route("/api/admin/sentinel/issues/scan", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/scan", methods=["POST"])
 def api_admin_sentinel_issues_scan():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22010,7 +22072,7 @@ def api_admin_sentinel_issues_scan():
     return jsonify({"ok": True, "dangerous_actions_executed": False, **summary})
 
 
-@app.route("/api/admin/sentinel/issues/sync-autopilot", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/sync-autopilot", methods=["POST"])
 def api_admin_sentinel_issues_sync_autopilot():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22020,7 +22082,7 @@ def api_admin_sentinel_issues_sync_autopilot():
     return jsonify({"ok": True, "source": "autopilot", "dangerous_actions_executed": False, **summary})
 
 
-@app.route("/api/admin/sentinel/issues/sync-visual-worker", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel/issues/sync-visual-worker", methods=["POST"])
 def api_admin_sentinel_issues_sync_visual_worker():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22034,6 +22096,9 @@ def api_admin_sentinel_issues_sync_visual_worker():
 def api_admin_sentinel_issue_detail(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
+    # Werkzeug can match a POST-only action as a GET issue identifier.
+    if issue_id in {"scan", "sync-autopilot", "sync-visual-worker"}:
+        return jsonify(ok=False, error="post_required", next_action="use_sentinel_jobs_panel"), 405, {"Allow": "POST"}
     issue = get_sentinel_issue(issue_id, Path(__file__).resolve().parent)
     if not issue:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "issue_not_found"}), 404
@@ -22055,7 +22120,7 @@ def api_admin_sentinel_issue_resolve(issue_id):
     if not is_admin_session():
         return admin_json_forbidden()
     result = update_issue_status(issue_id, "RESOLVED", Path(__file__).resolve().parent, note="Marcada como resuelta desde Centro de Incidencias")
-    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 404)
+    return jsonify({"version": APP_VERSION, "dangerous_actions_executed": False, **result}), (200 if result.get("ok") else 409 if result.get("error") == "verification_required" else 404)
 
 
 @app.route("/api/admin/sentinel/issues/<issue_id>/reopen", methods=["POST"])
@@ -22084,20 +22149,19 @@ def api_admin_sentinel_issue_codex_prompt(issue_id):
 def admin_sentinel_autopilot_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/sentinel-autopilot")
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
-    memory = load_autopilot_memory(Path(__file__).resolve().parent)
-    return render_template("admin_sentinel_autopilot.html", data=dashboard_data(), summary=scan, memory=memory)
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
+    return render_template("admin_sentinel_autopilot.html", data=dashboard_data(), summary=scan)
 
 
 @app.route("/api/admin/sentinel-autopilot/summary")
 def api_admin_sentinel_autopilot_summary():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode="quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, **scan, "daily_report": build_autopilot_daily_report(scan)})
 
 
-@app.route("/api/admin/sentinel-autopilot/run", methods=["GET", "POST"])
+@app.route("/api/admin/sentinel-autopilot/run", methods=["POST"])
 def api_admin_sentinel_autopilot_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22110,7 +22174,7 @@ def api_admin_sentinel_autopilot_run():
 def api_admin_sentinel_autopilot_issues():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, "version": APP_VERSION, "issues": scan.get("issues", []), "priority_matrix": scan.get("priority_matrix", {})})
 
 
@@ -22118,7 +22182,7 @@ def api_admin_sentinel_autopilot_issues():
 def api_admin_sentinel_autopilot_tasks():
     if not is_admin_session():
         return admin_json_forbidden()
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     return jsonify({"ok": True, "version": APP_VERSION, "tasks": scan.get("tasks", []), "safe_actions": scan.get("safe_actions", []), "approval_required_actions": scan.get("approval_required_actions", [])})
 
 
@@ -22127,7 +22191,7 @@ def api_admin_sentinel_autopilot_generate_prompt():
     if not is_admin_session():
         return admin_json_forbidden()
     payload = request.get_json(silent=True) or {}
-    scan = _v888_build_autopilot_scan(save_memory=False, mode=request.args.get("mode") or "quick")
+    scan = read_autopilot_summary(Path(__file__).resolve().parent)
     issues = scan.get("issues", [])
     issue_id = str(payload.get("issue_id") or request.args.get("issue_id") or "")
     issue = next((item for item in issues if item.get("issue_id") == issue_id), issues[0] if issues else {})
@@ -22154,7 +22218,7 @@ def api_admin_shark_sentinel_summary():
     return jsonify({"ok": True, **build_static_sentinel_summary(APP_VERSION)})
 
 
-@app.route("/api/admin/shark-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/shark-sentinel/run", methods=["POST"])
 def api_admin_shark_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22233,7 +22297,7 @@ def v901_register_admin_api_issue(route, exc, mode="", dry_run=True):
         return False
 
 
-@app.route("/api/admin/continuous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/admin/continuous-sentinel/run", methods=["POST"])
 def api_admin_continuous_sentinel_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22325,7 +22389,7 @@ def api_admin_visual_worker_summary():
     return jsonify({"ok": True, **build_visual_company_worker_summary(APP_VERSION, mode="quick", dry_run=True)})
 
 
-@app.route("/api/admin/visual-worker/run", methods=["GET", "POST"])
+@app.route("/api/admin/visual-worker/run", methods=["POST"])
 def api_admin_visual_worker_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -22583,7 +22647,6 @@ def combis_page():
     data["v765_markets"] = v765_markets_context(data, user)
     data["v765_combis"] = v765_combi_context(data, user, requested_count)
     data["requested_combi_count"] = requested_count
-    record_user_activity("view", "combis", "combis-page", {"picks_available": len(data["picks"])})
     return render_template("combis.html", data=data)
 
 
@@ -22610,7 +22673,6 @@ def alerts_page():
     if not current_session_user():
         return redirect("/cliente-login")
     data = dashboard_data()
-    record_user_activity("view", "alerts", "client-alerts", {"count": len(data.get("client_alerts") or [])})
     return render_template("alerts.html", data=data)
 
 
@@ -22618,8 +22680,9 @@ def alerts_page():
 def activity_page():
     if not current_session_user():
         return redirect("/cliente-login")
+    # El historial es una superficie de lectura: consultarlo no debe crear
+    # una nueva fila de actividad ni mutar estado de negocio.
     data = dashboard_data()
-    record_user_activity("view", "activity", "client-activity", {"count": len(data.get("client_activity") or [])})
     return render_template("activity.html", data=data)
 
 
@@ -22631,7 +22694,6 @@ def daily_briefing_page():
     data = dashboard_data()
     data["briefing"] = build_daily_briefing(current_session_user())
     data["client_command"] = client_command_center_data(current_session_user())
-    record_user_activity("view", "briefing", "daily-briefing", {"score": data["briefing"].get("score")})
     return render_template("daily_briefing.html", data=data)
 
 
@@ -22691,8 +22753,8 @@ def membership_page():
     return render_template("membership.html", data=data)
 
 
-@app.route("/shark-ai")
-@app.route("/shark")
+@app.route("/shark-ai", methods=["GET", "POST"])
+@app.route("/shark", methods=["GET", "POST"])
 def shark_page():
     phase_metrics = {}
 
@@ -22708,15 +22770,59 @@ def shark_page():
         "sports_context",
         lambda: v932_safe_dashboard_data(request.path, compact=True),
     )
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
+
+    submitted_question = str(request.form.get("q") or "").strip()[:1000] if request.method == "POST" else ""
+    quick_raw = str(request.args.get("q") or "").strip()[:120] if request.method == "GET" else ""
+    quick_ascii = unicodedata.normalize("NFKD", quick_raw).encode("ascii", "ignore").decode().lower()
+    quick_key = re.sub(r"[^a-z0-9]+", " ", quick_ascii).strip()
+    quick_map = {
+        "directo": "directo",
+        "partidos": "partidos",
+        "calendario": "partidos",
+        "plan": "plan",
+        "mi plan": "plan",
+        "pick": "pick",
+        "pronostico": "pick",
+        "riesgo": "riesgo",
+        "telegram": "telegram",
+    }
+    quick_question = quick_map.get(quick_key, "")
+    requested_question = submitted_question or quick_question
+
+    usage = shark_question_usage(session_user) if session_user else {
+        "allowed": False,
+        "login_required": True,
+        "membership": "FREE",
+        "limit": get_membership_limits("FREE").get("shark_questions", 0),
+        "used": 0,
+        "remaining": 0,
+        "limit_reached": False,
+    }
+    question_block = ""
+    if requested_question:
+        if not session_user:
+            question_block = "LOGIN_REQUIRED"
+        elif submitted_question:
+            usage = consume_shark_question(session_user)
+            if not usage.get("allowed"):
+                question_block = "LIMIT_REACHED"
+
+    data["shark_usage"] = usage
+    data["shark_submitted_question"] = submitted_question
+    data["shark_quick_question"] = bool(quick_question)
+    data["shark_question_active"] = bool(requested_question or question_block)
+    data["shark_legacy_get_ignored"] = bool(quick_raw and not quick_question)
+
     briefing = timed_phase(
         "briefing",
         lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
     )
     data["briefing"] = briefing
     openai_ready = v845_openai_configured()
-    question = request.args.get("q") or "resumen"
+    question = requested_question if requested_question and not question_block else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
     if not provider_status.get("api_sports_configured"):
         provider_label = "API-SPORTS no configurada"
@@ -22754,6 +22860,10 @@ def shark_page():
             {},
         ),
     )
+    if question_block == "LOGIN_REQUIRED":
+        answer = {"answer": "Inicia sesión para hacer consultas personalizadas a SHARK. Puedes seguir viendo el resumen y los datos públicos.", "focus": "membership"}
+    elif question_block == "LIMIT_REACHED":
+        answer = {"answer": "Has alcanzado el límite de consultas SHARK de hoy para tu plan. El resumen deportivo sigue disponible.", "focus": "membership"}
     data["shark_assistant"] = {
         "context": context,
         "answer": answer,
@@ -22766,7 +22876,6 @@ def shark_page():
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     g.v937_shark_cache_status = str(summary.get("summary_cache_status") or "request_cache")
     return timed_phase("template", lambda: render_template("shark.html", data=data))
-
 
 
 def _shark_intelligence_anchor_match(summary):
@@ -22783,13 +22892,17 @@ def _shark_intelligence_anchor_match(summary):
     return {}
 
 
-def _shark_intelligence_pick_subset(summary, match_id):
+def _shark_intelligence_pick_subset(summary, match_id, user=None):
     match_key = str(match_id or "").strip()
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     picks = []
     for item in summary.get("valid_active_picks") or summary.get("all_picks") or []:
         if not isinstance(item, dict):
             continue
         if match_key and str(item.get("match_id") or "") != match_key:
+            continue
+        if not membership_allows(membership, item.get("membership_required") or "FREE"):
             continue
         picks.append(dict(item))
         if len(picks) >= 8:
@@ -22799,11 +22912,13 @@ def _shark_intelligence_pick_subset(summary, match_id):
 
 def build_shark_intelligence_page_context():
     """Build Inteligencia SHARK Center from existing local Modelo deportivo facts."""
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     summary = get_public_home_sports_summary()
     metrics = get_sports_metrics_contract(summary)
     anchor = _shark_intelligence_anchor_match(summary)
     match_id = str(anchor.get("id") or anchor.get("match_id") or "").strip()
-    related_picks = _shark_intelligence_pick_subset(summary, match_id)
+    related_picks = _shark_intelligence_pick_subset(summary, match_id, user=user)
     match_context = {}
     team_center = {}
     competition_center = {}
@@ -22819,7 +22934,10 @@ def build_shark_intelligence_page_context():
             "timeline": anchor.get("timeline") or [],
             "related_picks": related_picks,
         }
-        detail["related_picks"] = detail.get("related_picks") or related_picks
+        detail["related_picks"] = [
+            item for item in (detail.get("related_picks") or related_picks)
+            if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+        ]
         live_context = v931_safe_context(
             "/shark-intelligence",
             "live_tracker",
@@ -22967,7 +23085,7 @@ def _user_intelligence_export_payload(user):
     user = dict(user or {})
     user_id = user.get("id") or ""
     favorites = get_favorites(user_id=user_id) if user_id else []
-    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id, include_internal=True) if user_id else []
     preferences = _load_user_intelligence_preferences(user_id)
     shark_context = build_shark_intelligence_page_context()
     snapshot = build_user_intelligence_platform_snapshot(
@@ -23006,7 +23124,7 @@ def build_user_intelligence_page_context(user=None):
     user = user or current_session_user() or {}
     user_id = user.get("id") or ""
     favorites = get_favorites(user_id=user_id) if user_id else []
-    activity = client_activity_feed(limit=200, user_id=user_id) if user_id else []
+    activity = client_activity_feed(limit=200, user_id=user_id, include_internal=True) if user_id else []
     preferences = _load_user_intelligence_preferences(user_id)
     shark_context = build_shark_intelligence_page_context()
     return build_user_intelligence_platform_snapshot(
@@ -23306,15 +23424,15 @@ def build_action_platform_snapshot(user=None):
     smart_home_cards = [
         _action_wrap_item("Partidos hoy", "Agenda real disponible en calendario.", "/calendar", "HOY", _action_meta("sports-metrics-v1", ["today_matches", counts.get("today")], observed, "VERIFIED" if counts.get("today") else "INSUFFICIENT_DATA"), counts.get("today", 0)),
         _action_wrap_item("Directos", "Solo directos con evidencia suficiente.", "/live", "LIVE", _action_meta("sports-metrics-v1", ["live_confirmed", sports_metrics.get("live_confirmed")], observed, "VERIFIED" if sports_metrics.get("live_confirmed") else "INSUFFICIENT_DATA"), sports_metrics.get("live_confirmed", 0)),
-        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favorites", "FAV", _action_meta("Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
+        _action_wrap_item("Favoritos", "Entidades guardadas por el usuario.", "/favoritos", "FAV", _action_meta("Inteligencia de usuario", ["favorites", len(favorites)], observed, "VERIFIED" if favorites else "INSUFFICIENT_DATA"), len(favorites)),
         _action_wrap_item("Alertas", "Avisos existentes, no spam ni envíos externos.", "/alert-center", "ALERT", _action_meta("Client Alert Center", ["alerts", len(alerts_raw)], observed, "PARTIALLY_VERIFIED"), len(alerts_raw)),
     ]
 
     by_kind = favorite_summary.get("by_kind") or {"team": [], "league": [], "match": []}
     smart_favorites = [
-        _action_wrap_item("Equipos", "Equipos guardados explicitamente.", "/favorites", "TEAM", _action_meta("favorites", ["team", len(by_kind.get("team") or [])], observed, "VERIFIED" if by_kind.get("team") else "INSUFFICIENT_DATA"), len(by_kind.get("team") or [])),
-        _action_wrap_item("Competiciones", "Ligas o competiciones guardadas.", "/favorites", "COMP", _action_meta("favorites", ["league", len(by_kind.get("league") or [])], observed, "VERIFIED" if by_kind.get("league") else "INSUFFICIENT_DATA"), len(by_kind.get("league") or [])),
-        _action_wrap_item("Partidos", "Partidos guardados para seguimiento.", "/favorites", "MATCH", _action_meta("favorites", ["match", len(by_kind.get("match") or [])], observed, "VERIFIED" if by_kind.get("match") else "INSUFFICIENT_DATA"), len(by_kind.get("match") or [])),
+        _action_wrap_item("Equipos", "Equipos guardados explicitamente.", "/favoritos", "TEAM", _action_meta("favorites", ["team", len(by_kind.get("team") or [])], observed, "VERIFIED" if by_kind.get("team") else "INSUFFICIENT_DATA"), len(by_kind.get("team") or [])),
+        _action_wrap_item("Competiciones", "Ligas o competiciones guardadas.", "/favoritos", "COMP", _action_meta("favorites", ["league", len(by_kind.get("league") or [])], observed, "VERIFIED" if by_kind.get("league") else "INSUFFICIENT_DATA"), len(by_kind.get("league") or [])),
+        _action_wrap_item("Partidos", "Partidos guardados para seguimiento.", "/favoritos", "MATCH", _action_meta("favorites", ["match", len(by_kind.get("match") or [])], observed, "VERIFIED" if by_kind.get("match") else "INSUFFICIENT_DATA"), len(by_kind.get("match") or [])),
     ]
 
     watch_matches = list(favorite_bundle.get("priority") or []) or list((briefing.get("upcoming") or [])[:8])
@@ -23559,9 +23677,13 @@ def telegram_page():
         return redirect("/cliente-login?next=/telegram")
     state = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
     sports_summary = get_public_home_sports_summary()
+    membership_name = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    telegram_preferences = telegram_user_preferences_for(user)
     data = {
         "telegram": v931_safe_context(request.path, "telegram_config", telegram_config, {"enabled": False, "legacy_enabled": False}),
         "telegram_state": state,
+        "telegram_preferences": telegram_preferences,
+        "telegram_preference_options": telegram_preference_options(membership_name),
         "membership": v566_membership_ui(user),
         "session_user": user,
         "v932_sports_value": get_v932_real_sports_value_context(sports_summary),
@@ -23571,7 +23693,40 @@ def telegram_page():
     return render_template("telegram.html", data=data)
 
 
-@app.route("/telegram/regenerar-código", methods=["POST", "GET"])
+@app.route("/telegram/preferencias", methods=["POST"])
+def telegram_preferences_save():
+    user = current_session_user()
+    if not user:
+        return redirect("/cliente-login?next=/telegram")
+    if not validate_csrf(session, request_csrf_token()):
+        abort(403)
+    membership_name = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    profile_preferences = _load_user_intelligence_preferences(user.get("id"))
+    current_telegram = profile_preferences.get("telegram") if isinstance(profile_preferences.get("telegram"), dict) else {}
+    updates = {
+        "intensity": request.form.get("intensity") or current_telegram.get("intensity"),
+        "selected_leagues": request.form.getlist("selected_leagues"),
+        "message_types": request.form.getlist("message_types"),
+        "daily_limit": request.form.get("daily_limit") or current_telegram.get("daily_limit"),
+        "pause_all": request.form.get("pause_all") or "",
+    }
+    telegram_preferences = sanitize_telegram_user_preferences(current_telegram, updates, membership_name)
+    profile_preferences["telegram"] = telegram_preferences
+    saved = _save_user_intelligence_preferences(user, profile_preferences, action="telegram_preferences")
+    if not saved.get("ok"):
+        return redirect("/telegram?preferences=error", code=303)
+    telegram_log("preferences", "saved", "Preferencias privadas de Telegram actualizadas.", {
+        "user_id": user.get("id"),
+        "membership": membership_name,
+        "league_count": len(telegram_preferences.get("selected_leagues") or []),
+        "message_type_count": len(telegram_preferences.get("message_types") or []),
+        "daily_limit": telegram_preferences.get("daily_limit"),
+        "paused": bool(telegram_preferences.get("pause_all")),
+    })
+    return redirect("/telegram?preferences=saved", code=303)
+
+
+@app.route("/telegram/regenerar-código", methods=["POST"])
 def telegram_regenerate_code():
     user = current_session_user()
     if not user:
@@ -23721,7 +23876,7 @@ def admin_time_diagnostics_page():
     )
 
 
-@app.route("/api/telegram/repair-automatic", methods=["POST", "GET"])
+@app.route("/api/telegram/repair-automatic", methods=["POST"])
 def api_telegram_repair_automatic():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -23756,21 +23911,29 @@ def crests_page():
 
 @app.route("/api/client/alerts")
 def api_client_alerts():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "alerts": build_client_alerts(limit=12), "summary": client_retention_summary()})
 
 
 @app.route("/api/client/activity")
 def api_client_activity():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "activity": client_activity_feed(limit=30)})
 
 
 @app.route("/api/client/daily-briefing")
 def api_client_daily_briefing():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "briefing": build_daily_briefing(user), "command": client_command_center_data(user)})
 
 @app.route("/api/client/command-center")
 def api_client_command_center():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     return jsonify({"ok": True, "version": APP_VERSION, "command": client_command_center_data(user)})
 
@@ -26511,8 +26674,8 @@ def api_runtime_version():
         "has_v929_dynamic_route_guard": "resolve_safe_internal_route" in app_py_text,
         "has_v929_admin_client_navigation_separation": "V929 navigation integrity route recovery" in base_template,
         "has_v929_mobile_navigation_guard": (
-            (BASE_DIR / "templates" / "components" / "v928_navigation.html").exists()
-            and "v928-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v928_navigation.html").read_text(encoding="utf-8", errors="replace")
+            (BASE_DIR / "templates" / "components" / "v933_navigation.html").exists()
+            and "v933-mobile-bottom-nav" in (BASE_DIR / "templates" / "components" / "v933_navigation.html").read_text(encoding="utf-8", errors="replace")
         ),
         "has_v929_navigation_worker": (BASE_DIR / "automation_workforce" / "navigation_integrity_worker.py").exists(),
         "has_v929_click_browser_qa": (BASE_DIR / "reports" / "V929_CLICK_NAVIGATION_MATRIX.json").exists(),
@@ -26745,6 +26908,15 @@ def api_runtime_version():
 
 @app.route("/api/startup-check")
 def api_startup_check():
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "app": APP_NAME,
+            "version": APP_VERSION,
+            "time": now_iso(),
+            "initialized": bool(APP_INITIALIZED),
+            "diagnostics": "admin_required",
+        })
     payload = {
         "ok": True,
         "app": APP_NAME,
@@ -26813,7 +26985,7 @@ def api_data_center_summary():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": data_center_summary()})
 
 
-@app.route("/api/data-center/warmup", methods=["POST", "GET"])
+@app.route("/api/data-center/warmup", methods=["POST"])
 def api_data_center_warmup():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26829,14 +27001,14 @@ def api_scheduler_status():
     return jsonify({"ok": True, "version": APP_VERSION, "scheduler": scheduler_status()})
 
 
-@app.route("/api/scheduler/run-now", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-now", methods=["POST"])
 def api_scheduler_run_now():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"version": APP_VERSION, **run_due_scheduler_tasks(force=True)})
 
 
-@app.route("/api/scheduler/run-calendar", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-calendar", methods=["POST"])
 def api_scheduler_run_calendar():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26844,7 +27016,7 @@ def api_scheduler_run_calendar():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("calendar", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-crests", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-crests", methods=["POST"])
 def api_scheduler_run_crests():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26852,7 +27024,7 @@ def api_scheduler_run_crests():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("crests", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-odds", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-odds", methods=["POST"])
 def api_scheduler_run_odds():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26860,7 +27032,7 @@ def api_scheduler_run_odds():
     return jsonify({"version": APP_VERSION, **run_scheduler_task("odds", force=True, limit=limit)})
 
 
-@app.route("/api/scheduler/run-live", methods=["POST", "GET"])
+@app.route("/api/scheduler/run-live", methods=["POST"])
 def api_scheduler_run_live():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -26872,7 +27044,9 @@ def api_scheduler_run_live():
 def api_live_diagnostics():
     if not is_admin_session():
         return admin_json_forbidden()
-    refresh = ensure_client_live_fresh(force=request.args.get("refresh") in {"1", "true", "yes"})
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_requires_admin_post", "external_calls": 0, "database_writes": 0}), 405
+    refresh = ensure_client_live_fresh(force=False)
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
@@ -26899,12 +27073,14 @@ def api_calendar():
 @app.route("/api/live")
 def api_live():
     date = request.args.get("date") or today_iso()
-    force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    refresh = ensure_client_live_fresh(force=force_refresh)
-    api_live_tracker = sync_api_football_live_tracker(DB_PATH, force=force_refresh)
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_requires_scheduled_or_admin_action", "external_calls": 0, "database_writes": 0}), 405
+    refresh = ensure_client_live_fresh(force=False)
+    cached_tracker_matches = live_tracker_matches(DB_PATH, limit=100)
+    api_live_tracker = {"ok": True, "status": "cache_only", "matches": cached_tracker_matches, "external_calls": 0, "read_only": True}
     api_live_quality = live_tracker_quality_summary(DB_PATH)
     matches = []
-    matches.extend(api_live_tracker.get("matches") or [])
+    matches.extend(cached_tracker_matches)
     matches.extend(live_matches_any_date(limit=180))
     matches.extend(live_matches_from_live_table(limit=180))
     matches.extend(get_matches(date, "today"))
@@ -26916,16 +27092,19 @@ def api_live():
 def api_live_tracker():
     if not current_session_user():
         return jsonify({"ok": False, "error": "login_required"}), 401
-    force = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify(sync_api_football_live_tracker(DB_PATH, force=force))
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_not_allowed_on_read", "external_calls": 0, "database_writes": 0}), 405
+    return jsonify({"ok": True, "status": live_tracker_status(DB_PATH), "quality": live_tracker_quality_summary(DB_PATH), "matches": live_tracker_matches(DB_PATH, limit=100), "external_calls": 0, "read_only": True})
 
 
 @app.route("/api/live-tracker/match/<match_id>")
 def api_live_tracker_match(match_id):
     if not current_session_user():
         return jsonify({"ok": False, "error": "login_required"}), 401
-    force = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify(sync_api_football_fixture_detail(DB_PATH, match_id, force=force))
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "error": "refresh_not_allowed_on_read", "external_calls": 0, "database_writes": 0}), 405
+    tracker = live_tracker_for_match(DB_PATH, match_id)
+    return jsonify({"ok": True, "tracker": tracker, "external_calls": 0, "read_only": True})
 
 
 @app.route("/api/live-tracker/status")
@@ -26962,8 +27141,9 @@ def api_live_flow():
 @app.route("/api/live/state")
 def api_real_time_state():
     date = request.args.get("date") or today_iso()
-    refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=refresh)})
+    if request.args.get("refresh") in {"1", "true", "yes", "on"}:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_not_allowed_on_read", "database_writes": 0}), 405
+    return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=False)})
 
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
@@ -26984,6 +27164,8 @@ def api_favorites():
 
 @app.route("/api/favorites/feed")
 def api_favorites_feed():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full()})
 
 
@@ -27009,7 +27191,7 @@ def api_match_detail(match_id):
         league=detail["match"].get("competition_name"),
         favorites=get_favorites(),
         picks=detail["related_picks"],
-        profile=default_profile(),
+        profile=client_profile_view(current_session_user()),
         match_intelligence=match_intelligence,
     )
     return jsonify({
@@ -27185,7 +27367,7 @@ def api_admin_data_memory():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": data_memory_summary(DB_PATH)})
 
 
-@app.route("/api/admin/data-memory/cleanup", methods=["POST", "GET"])
+@app.route("/api/admin/data-memory/cleanup", methods=["POST"])
 def api_admin_data_memory_cleanup():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27208,17 +27390,30 @@ def api_admin_team_identity():
     return jsonify({"ok": True, "version": APP_VERSION, "identity": team_identity_diagnostics(limit=50)})
 
 
-@app.route("/api/team/resolve")
+@app.route("/api/team/resolve", methods=["GET", "POST"])
 def api_team_resolve():
-    team = request.args.get("team") or request.args.get("name") or ""
-    refresh = request.args.get("refresh") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=refresh)})
+    payload = request.get_json(silent=True) if request.is_json else {}
+    payload = payload if isinstance(payload, dict) else {}
+    team = str(request.args.get("team") or request.form.get("team") or payload.get("team") or request.args.get("name") or request.form.get("name") or payload.get("name") or "").strip()[:120]
+    refresh_requested = str(request.args.get("refresh") or request.form.get("refresh") or payload.get("refresh") or "").strip().lower() in {"1", "true", "yes", "on"}
+    if request.method == "GET":
+        if refresh_requested:
+            return jsonify({
+                "ok": False,
+                "version": APP_VERSION,
+                "error": "refresh_requires_admin_post",
+                "external_calls": 0,
+                "database_writes": 0,
+            }), 405
+        return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=False), "external_calls": 0})
+    if not is_admin_session():
+        return admin_json_forbidden()
+    return jsonify({"ok": True, "version": APP_VERSION, "team": resolve_team(team, refresh=True if refresh_requested or request.method == "POST" else False)})
 
 
 @app.route("/api/teams")
 def api_teams():
-    seed_core()
-    teams = rows("SELECT * FROM teams ORDER BY name")
+    teams = rows("SELECT * FROM teams ORDER BY name") if db_table_exists("teams") else []
     for team in teams:
         team.update(professionalize_identity(team, team.get("name"), team.get("logo_url"), team.get("country"), team.get("source") or "teams"))
     return jsonify({"ok": True, "version": APP_VERSION, "teams": teams})
@@ -27281,6 +27476,14 @@ def api_import_competitions():
 
 @app.route("/api/crest-diagnostics")
 def api_crest_diagnostics():
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "provider": "TheSportsDB",
+            "diagnostics": "admin_required",
+            "fallback_available": True,
+        })
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     with_logo = [t for t in teams if t.get("logo_url")]
@@ -27306,11 +27509,22 @@ def api_crest_diagnostics():
 
 @app.route("/api/thesportsdb/diagnostics")
 def api_thesportsdb_diagnostics():
-    team = request.args.get("team") or "Real Madrid"
+    if not is_admin_session():
+        return jsonify({
+            "ok": True,
+            "version": APP_VERSION,
+            "diagnostics": {
+                "provider": "TheSportsDB",
+                "configured": bool(thesportsdb_key()),
+                "direct_check": "admin_required",
+                "external_calls": 0,
+            },
+        })
+    team = str(request.args.get("team") or "Real Madrid").strip()[:120]
     return jsonify({"ok": True, "version": APP_VERSION, "diagnostics": thesportsdb_diagnostics(team)})
 
 
-@app.route("/api/sportsdb/sync-crests", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-crests", methods=["POST"])
 def api_sportsdb_sync_crests():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27320,14 +27534,14 @@ def api_sportsdb_sync_crests():
     return jsonify({"version": APP_VERSION, **result})
 
 
-@app.route("/api/sportsdb/sync-competitions", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-competitions", methods=["POST"])
 def api_sportsdb_sync_competitions():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"version": APP_VERSION, **sync_sportsdb_competitions()})
 
 
-@app.route("/api/sportsdb/sync-teams", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-teams", methods=["POST"])
 def api_sportsdb_sync_teams():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27335,9 +27549,9 @@ def api_sportsdb_sync_teams():
     return jsonify({"version": APP_VERSION, **sync_sportsdb_teams(limit=limit)})
 
 
-@app.route("/api/sportsdb/sync-feed", methods=["POST", "GET"])
-@app.route("/api/sportsdb/sync-matches", methods=["POST", "GET"])
-@app.route("/api/sportsdb/sync-calendar", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-feed", methods=["POST"])
+@app.route("/api/sportsdb/sync-matches", methods=["POST"])
+@app.route("/api/sportsdb/sync-calendar", methods=["POST"])
 def api_sportsdb_sync_feed():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27346,7 +27560,7 @@ def api_sportsdb_sync_feed():
     return jsonify({"version": APP_VERSION, **result, "status": sportsdb_feed_status()})
 
 
-@app.route("/api/sportsdb/sync-results", methods=["POST", "GET"])
+@app.route("/api/sportsdb/sync-results", methods=["POST"])
 def api_sportsdb_sync_results():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27354,7 +27568,7 @@ def api_sportsdb_sync_results():
     return jsonify({"version": APP_VERSION, **sync_sportsdb_results(limit=limit)})
 
 
-@app.route("/api/matches/sync-now", methods=["POST", "GET"])
+@app.route("/api/matches/sync-now", methods=["POST"])
 def api_matches_sync_now():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27364,8 +27578,8 @@ def api_matches_sync_now():
     return jsonify({"ok": True, "version": APP_VERSION, "sportsdb": sportsdb_result, "odds": odds_result, "diagnostics": match_calendar_diagnostics()})
 
 
-@app.route("/api/odds/sync-events", methods=["POST", "GET"])
-@app.route("/api/odds/sync-odds", methods=["POST", "GET"])
+@app.route("/api/odds/sync-events", methods=["POST"])
+@app.route("/api/odds/sync-odds", methods=["POST"])
 def api_odds_sync_events():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27465,7 +27679,7 @@ def api_picks_update():
     return jsonify({"ok": True, "version": APP_VERSION, "pick": pick})
 
 
-@app.route("/api/picks/publish", methods=["POST", "GET"])
+@app.route("/api/picks/publish", methods=["POST"])
 def api_picks_publish():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27474,7 +27688,7 @@ def api_picks_publish():
     return jsonify({"ok": bool(pick), "version": APP_VERSION, "pick": pick})
 
 
-@app.route("/api/picks/archive", methods=["POST", "GET"])
+@app.route("/api/picks/archive", methods=["POST"])
 def api_picks_archive():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27526,34 +27740,51 @@ def api_combis_build():
 
 @app.route("/api/profile")
 def api_profile():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
-    return jsonify({"ok": True, "version": APP_VERSION, "profile": default_profile(), "session_user": current_session_user()})
+    return jsonify({"ok": True, "version": APP_VERSION, "profile": client_profile_view(user), "session_user": user})
 
 
 @app.route("/api/membership")
 def api_membership():
-    return jsonify({"ok": True, "version": APP_VERSION, "plans": MEMBERSHIP_PLANS, "profile": default_profile()})
+    user = current_session_user()
+    return jsonify({"ok": True, "version": APP_VERSION, "plans": MEMBERSHIP_PLANS,
+                    "profile": client_profile_view(user) if user else None})
 
 
 @app.route("/api/shark/briefing")
 def api_shark_briefing():
+    if not current_session_user():
+        return jsonify({"ok": False, "error": "Inicia sesión para consultar SHARK.", "login_required": True}), 401
     return jsonify({"ok": True, "version": APP_VERSION, "briefing": shark_briefing()})
 
 
-@app.route("/api/shark/ask", methods=["GET", "POST"])
+@app.route("/api/shark/ask", methods=["POST"])
 def api_shark_ask():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para preguntar a SHARK.", "login_required": True, "login_url": "/cliente-login?next=/shark"}), 401
+    usage = consume_shark_question(user)
+    if not usage.get("allowed"):
+        target = "ELITE" if usage.get("membership") == "PRO" else "PRO"
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/membresias?plan={target}"}), 429
     payload = request.get_json(silent=True) or dict(request.form or request.args or {})
     answer = shark_answer(payload.get("question") or payload.get("q") or "")
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
-    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer})
+    return jsonify({"ok": True, "version": APP_VERSION, "shark": answer, "usage": usage})
 
 
 @app.route("/api/shark/context")
 def api_shark_context():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "error": "Inicia sesión para consultar SHARK.", "login_required": True}), 401
     match_id = request.args.get("match_id") or ""
     match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
-    picks = get_picks(limit=12)
+    if match_id and not match:
+        return jsonify({"ok": False, "error": "Partido no encontrado."}), 404
+    picks = published_picks_for_user(user, limit=12)
     match_intelligence = (
         cached_match_intelligence_for_consumer(match, picks) if match else {}
     )
@@ -27562,11 +27793,10 @@ def api_shark_context():
         league=(match or {}).get("competition_name") if match else request.args.get("league"),
         favorites=get_favorites(),
         picks=picks,
-        profile=default_profile(),
+        profile=client_profile_view(user),
         match_intelligence=match_intelligence,
     )
-    snapshot_id = save_shark_context("context", match_id or context.get("league") or "global", context)
-    return jsonify({"ok": True, "version": APP_VERSION, "snapshot_id": snapshot_id, "context": context})
+    return jsonify({"ok": True, "version": APP_VERSION, "snapshot_id": None, "read_only": True, "context": context})
 
 
 @app.route("/api/telegram/status")
@@ -27592,7 +27822,7 @@ def api_telegram_settings():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": get_telegram_settings()})
 
 
-@app.route("/api/telegram/settings/update", methods=["POST", "GET"])
+@app.route("/api/telegram/settings/update", methods=["POST"])
 def api_telegram_settings_update():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27600,7 +27830,7 @@ def api_telegram_settings_update():
     return jsonify({"ok": True, "version": APP_VERSION, "settings": update_telegram_settings(payload)})
 
 
-@app.route("/api/telegram/send-test", methods=["POST", "GET"])
+@app.route("/api/telegram/send-test", methods=["POST"])
 def api_telegram_send_test():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27618,7 +27848,7 @@ def api_telegram_send_test():
     return jsonify({"ok": processed.get("failed", 0) == 0, "version": APP_VERSION, "message": "Test Telegram procesado.", "queued": queued, **processed})
 
 
-@app.route("/api/telegram/enqueue-daily-matches", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-matches", methods=["POST"])
 def api_telegram_enqueue_daily_matches():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27626,7 +27856,7 @@ def api_telegram_enqueue_daily_matches():
     return jsonify({"version": APP_VERSION, **enqueue_daily_matches(force=force, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/enqueue-daily-picks", methods=["POST", "GET"])
+@app.route("/api/telegram/enqueue-daily-picks", methods=["POST"])
 def api_telegram_enqueue_daily_picks():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27635,7 +27865,7 @@ def api_telegram_enqueue_daily_picks():
     return jsonify({"version": APP_VERSION, **enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
 
-@app.route("/api/telegram/process-queue", methods=["POST", "GET"])
+@app.route("/api/telegram/process-queue", methods=["POST"])
 def api_telegram_process_queue():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27655,8 +27885,8 @@ def api_telegram_send():
     return jsonify({"version": APP_VERSION, "queued": queued, **result})
 
 
-@app.route("/api/telegram/auto-run", methods=["POST", "GET"])
-@app.route("/api/v495/telegram-auto-run", methods=["POST", "GET"])
+@app.route("/api/telegram/auto-run", methods=["POST"])
+@app.route("/api/v495/telegram-auto-run", methods=["POST"])
 def api_telegram_auto_run():
     if not automation_access_allowed():
         return automation_json_forbidden()
@@ -27667,7 +27897,7 @@ def api_telegram_auto_run():
     return jsonify({"version": APP_VERSION, "telegram": cfg, **result})
 
 
-@app.route("/api/telegram/scheduler-tick", methods=["POST", "GET"])
+@app.route("/api/telegram/scheduler-tick", methods=["POST"])
 def api_telegram_scheduler_tick():
     if not automation_access_allowed():
         return automation_json_forbidden()
@@ -27675,7 +27905,7 @@ def api_telegram_scheduler_tick():
     return jsonify({"version": APP_VERSION, **telegram_scheduler_tick(force=force)})
 
 
-@app.route("/api/automation/daily/run", methods=["POST", "GET"])
+@app.route("/api/automation/daily/run", methods=["POST"])
 def api_automation_daily_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -27688,7 +27918,7 @@ def api_automation_daily_run():
     )
 
 
-@app.route("/api/automation/sports/sync", methods=["POST", "GET"])
+@app.route("/api/automation/sports/sync", methods=["POST"])
 def api_automation_sports_sync():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -27700,10 +27930,10 @@ def api_automation_sports_sync():
     )
 
 
-@app.route("/api/automation/telegram/tick", methods=["POST", "GET"])
+@app.route("/api/automation/telegram/tick", methods=["POST"])
 def api_automation_telegram_tick():
-    if not automation_cron_access_allowed():
-        return automation_json_forbidden()
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
     force = cron_force_requested()
     runner_header = str(request.headers.get("X-NeMeSiS-Cron-Runner") or "").lower()
     runner_query = str(request.args.get("runner") or "").lower()
@@ -27787,7 +28017,7 @@ def api_telegram_queue():
     return jsonify({"ok": True, "version": APP_VERSION, "summary": queue_summary(queue), "queue": queue})
 
 
-@app.route("/api/telegram/scheduler-manager", methods=["GET", "POST"])
+@app.route("/api/telegram/scheduler-manager", methods=["POST"])
 def api_telegram_scheduler_manager():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -27800,9 +28030,9 @@ def api_telegram_scheduler_manager():
 def api_telegram_auto_posts():
     if not is_admin_session():
         return admin_json_forbidden()
-    posts = prepare_auto_posts()
+    posts = prepare_auto_posts(persist=False)
     saved = rows("SELECT * FROM auto_alerts ORDER BY updated_at DESC LIMIT 50")
-    return jsonify({"ok": True, "version": APP_VERSION, "prepared": posts, "saved": saved})
+    return jsonify({"ok": True, "version": APP_VERSION, "prepared": posts, "saved": saved, "read_only": True})
 
 
 @app.route("/api/cache/status")
@@ -27815,6 +28045,8 @@ def api_cache_status():
 
 @app.route("/api/imports")
 def api_imports():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "imports": rows("SELECT * FROM imports ORDER BY created_at DESC LIMIT 50")})
 
 
@@ -27921,10 +28153,10 @@ def client_safe_404(error):
         {"label": "Entrar", "href": "/cliente-login"},
         {"label": "Crear cuenta", "href": "/registro"},
         {"label": "Mi app", "href": "/app"},
-        {"label": "Partidos", "href": "/calendar"},
+        {"label": "Calendario", "href": "/calendar"},
         {"label": "Directo", "href": "/live"},
-        {"label": "Picks", "href": "/picks"},
-        {"label": "Soporte", "href": "/support"},
+        {"label": "Pronósticos", "href": "/picks"},
+        {"label": "Soporte", "href": "/soporte"},
     ]
     if is_admin_path:
         safe_links.append({"label": "Admin", "href": "/admin-login"})
@@ -28011,11 +28243,13 @@ def client_safe_500(error):
             client_issue_created=client_issue_created,
         ), 500
     except Exception:
-        return "Error temporal controlado. Revisa logs Render.", 500
+        return "Error temporal controlado. Vuelve a Inicio o, si eres administrador, revisa Incidencias.", 500
 
 
 @app.route("/api/deep-route-check")
 def api_deep_route_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     checks = []
     for path in ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/api/health", "/api/client-experience-check"]:
         checks.append({"path": path, "status": "registered"})
@@ -28024,6 +28258,8 @@ def api_deep_route_check():
 
 @app.route("/api/client-experience-check")
 def api_client_experience_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     """Chequeo de experiencia cliente: rutas públicas, cliente y admin separadas."""
     public_routes = ["/", "/membresias", "/cliente-login", "/registro"]
     client_routes = ["/perfil", "/match-hub", "/live", "/resultados", "/highlights", "/picks", "/combis", "/favorites", "/shark", "/telegram"]
@@ -28034,12 +28270,14 @@ def api_client_experience_check():
         "public_routes": public_routes,
         "client_routes": client_routes,
         "admin_routes": admin_routes,
-        "focus": "V535: UX compacta, picks visibles, live vivo, favoritos inteligentes, SHARK contextual, cliente limpio y admin separado",
+        "focus": "UX compacta: pronósticos visibles, directo claro, favoritos inteligentes, SHARK contextual, cliente limpio y administración separada.",
     })
 
 
 @app.route("/api/route-check")
 def api_route_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     """Chequeo ligero de rutas clave para evitar botones rotos en despliegues."""
     routes = ["/", "/cliente-login", "/registro", "/perfil", "/match-hub", "/live", "/picks", "/combis", "/favorites", "/alertas", "/actividad", "/shark", "/telegram", "/resultados", "/membresias"]
     return jsonify({"ok": True, "version": APP_VERSION, "routes": routes, "policy": "cliente limpio, admin separado, botones principales verificados"})
@@ -28047,6 +28285,8 @@ def api_route_check():
 
 @app.route("/api/product-experience-check")
 def api_product_experience_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     board = smart_pick_board(user, limit=12)
     hub = match_hub(today_iso())
@@ -28355,6 +28595,8 @@ def api_quality_center_summary():
 
 @app.route("/api/client/app-pulse")
 def api_client_app_pulse():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     """Pulso comercial seguro para cliente: no muestra detalles técnicos ni secretos."""
     q = quality_center_summary()
     return jsonify({
@@ -28387,53 +28629,125 @@ def membership_distribution():
 
 def onboarding_status(user=None):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
-    fav_count = len(get_favorites(user_id=user.get("id") or "")) if user.get("id") else 0
-    activity_count = safe_count("user_activity", "user_id=?", (user.get("id") or "",)) if user.get("id") else 0
+    uid = str(user.get("id") or "")
+    fav_count = len(get_favorites(user_id=uid)) if uid else 0
+    first_value_count = safe_count(
+        "user_activity",
+        "user_id=? AND activity_type='growth_first_value' AND target_type='growth_funnel'",
+        (uid,),
+    ) if uid else 0
+    shark_questions = safe_count(
+        "shark_memory",
+        "user_id=? AND event_type='client_question'",
+        (uid,),
+    ) if uid else 0
     picks_visible = len(published_picks_for_user(user, limit=12))
     alerts_ready = len(build_client_alerts(limit=5))
+    try:
+        telegram_linked = bool(telegram_user_state(user).get("linked")) if uid else False
+    except Exception:
+        telegram_linked = False
+
     steps = [
-        {"key": "account", "label": "Cuenta creada", "done": bool(user.get("id")), "href": "/perfil"},
-        {"key": "favorites", "label": "Añadir favoritos", "done": fav_count > 0, "href": "/favorites"},
-        {"key": "matches", "label": "Revisar partidos", "done": safe_count("matches") > 0, "href": "/match-hub"},
-        {"key": "picks", "label": "Ver picks", "done": picks_visible > 0, "href": "/picks"},
-        {"key": "telegram", "label": "Preparar Telegram", "done": bool((telegram_config() or {}).get("configured")), "href": "/telegram"},
-        {"key": "shark", "label": "Preguntar a SHARK", "done": activity_count > 0, "href": "/shark"},
+        {
+            "key": "account",
+            "label": "Cuenta creada",
+            "done": bool(uid),
+            "href": "/mi-cuenta",
+            "optional": False,
+            "body": "Tu acceso ya está preparado.",
+        },
+        {
+            "key": "first_value",
+            "label": "Abre un partido real",
+            "done": first_value_count > 0,
+            "href": "/calendario",
+            "optional": False,
+            "body": "Elige un partido que te interese y entra en su contexto. Este es el primer valor que queremos comprobar.",
+        },
+        {
+            "key": "shark",
+            "label": "Prueba SHARK",
+            "done": shark_questions > 0,
+            "href": "/shark",
+            "optional": True,
+            "body": "Úsalo solo si quieres entender mejor un partido, riesgo o pronóstico.",
+        },
+        {
+            "key": "favorites",
+            "label": "Guarda un favorito",
+            "done": fav_count > 0,
+            "href": "/favoritos",
+            "optional": True,
+            "body": "Personaliza la experiencia cuando ya hayas encontrado algo útil.",
+        },
+        {
+            "key": "telegram",
+            "label": "Configura Telegram si quieres alertas",
+            "done": telegram_linked,
+            "href": "/telegram",
+            "optional": True,
+            "body": "Es opcional. Puedes elegir ligas, tipos de aviso y un límite diario para evitar ruido.",
+        },
     ]
     done = sum(1 for step in steps if step["done"])
     score = round(done / len(steps) * 100)
-    next_step = next((step for step in steps if not step["done"]), steps[-1])
+    core_steps = [step for step in steps if not step["optional"]]
+    core_done = sum(1 for step in core_steps if step["done"])
+    core_score = round(core_done / len(core_steps) * 100)
+    next_step = next((step for step in core_steps if not step["done"]), None)
+    if next_step is None:
+        next_step = next((step for step in steps if not step["done"]), {"key": "home", "label": "Ir a Inicio", "href": "/app", "done": True, "optional": True})
+    first10_beta = growth_is_first10_attribution() if has_request_context() else False
     return {
         "score": score,
         "done": done,
         "total": len(steps),
+        "core_score": core_score,
+        "core_done": core_done,
+        "core_total": len(core_steps),
+        "first_value_ready": first_value_count > 0,
+        "first10_beta": first10_beta,
         "steps": steps,
         "next_step": next_step,
         "favorites_count": fav_count,
         "picks_visible": picks_visible,
         "alerts_ready": alerts_ready,
+        "first_value_count": first_value_count,
+        "shark_questions": shark_questions,
+        "telegram_linked": telegram_linked,
         "membership": normalize_role(user.get("membership") or user.get("role")),
     }
 
 
 def membership_revenue_summary():
+    """Separa distribución de acceso de ingresos Stripe reales."""
     distribution = membership_distribution()
-    # Valores orientativos internos, no cobran ni activan Stripe todavía.
-    estimated_prices = {"FREE": 0, "PRO": 19, "ELITE": 49, "ADMIN": 0}
-    estimated_mrr = sum(distribution.get(plan, 0) * estimated_prices.get(plan, 0) for plan in distribution)
     total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
-    paid_clients = distribution.get("PRO", 0) + distribution.get("ELITE", 0)
-    conversion = round((paid_clients / total_clients * 100), 1) if total_clients else 0
+    try:
+        billing = subscription_summary(DB_PATH, apply_rules=False, persist_metrics=False) or {}
+    except Exception:
+        billing = {}
+    paid_clients = as_int(billing.get("active_paid"), 0)
+    manual_access = as_int(billing.get("manual_access"), 0)
+    conversion = as_float(billing.get("conversion_rate"), 0.0)
+    estimated_mrr = as_float(billing.get("estimated_mrr"), 0.0)
     return {
         "distribution": distribution,
-        "estimated_mrr": estimated_mrr,
         "total_clients": total_clients,
         "paid_clients": paid_clients,
-        "conversion": conversion,
+        "manual_access": manual_access,
+        "paid_by_tier": billing.get("paid_by_tier") or {"PRO": 0, "ELITE": 0},
+        "manual_by_tier": billing.get("manual_by_tier") or {"PRO": 0, "ELITE": 0},
+        "estimated_mrr": round(estimated_mrr, 2),
+        "estimated_mrr_verified_by_provider": bool(billing.get("estimated_mrr_verified_by_provider", False)),
+        "conversion": round(conversion, 1),
+        "revenue_scope": billing.get("revenue_scope") or "active_stripe_subscriptions_only",
         "plans": MEMBERSHIP_PLANS,
         "recommendations": [
-            "Mantener FREE como puerta de entrada con calendario, favoritos y SHARK base.",
-            "Empujar PRO con picks, combinadas y Telegram premium.",
-            "Reservar ELITE para SHARK contextual, alertas live y prioridad de análisis.",
+            "FREE es la puerta de entrada; PRO y ELITE pueden existir como acceso manual o como suscripción.",
+            "La conversión y el MRR solo cuentan suscripciones Stripe activas.",
+            "Los accesos regalados o asignados por administración se muestran aparte y no inflan ingresos.",
         ],
     }
 
@@ -28464,6 +28778,12 @@ def account_center_page():
         "activity": len(data.get("client_activity") or []),
     }
     data["payments_client"] = client_payments_context(DB_PATH, user)
+    data["telegram_state"] = v931_safe_context(
+        request.path,
+        "telegram_state",
+        lambda: telegram_user_state(user),
+        {"linked": False, "username": "", "code": "", "deep_link": ""},
+    )
     data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("account_center.html", data=data)
 
@@ -28481,6 +28801,8 @@ def admin_memberships_page():
 
 @app.route("/api/client/onboarding-check")
 def api_client_onboarding_check():
+    if not current_session_user():
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
     user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     return jsonify({"ok": True, "version": APP_VERSION, "onboarding": onboarding_status(user)})
 
@@ -28634,34 +28956,38 @@ def v742_track_record_context():
     by_league = []
     by_plan = []
     pending_results = []
-    if db_table_exists("pick_grading_results"):
-        by_month = rows("""SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
-                           FROM pick_grading_results
+    eligible_pick_statuses = "('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')"
+    if db_table_exists("pick_grading_results") and db_table_exists("picks"):
+        by_month = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
+                           FROM eligible_grades
                            WHERE COALESCE(graded_at,'')!=''
                              AND result_status IN ('won','lost','void')
                              AND COALESCE(odds,0)>1
                              AND COALESCE(stake,0)>0
                            GROUP BY substr(graded_at,1,7)
                            ORDER BY label DESC LIMIT 12""")
-        pending_results = rows("""SELECT * FROM pick_grading_results
+        pending_results = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT * FROM eligible_grades
                                   WHERE result_status='pending'
                                   ORDER BY graded_at DESC LIMIT 12""")
     if db_table_exists("picks"):
         try:
-            by_market = rows("""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
+            by_market = rows(f"""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_market = []
         try:
-            by_league = rows("""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
+            by_league = rows(f"""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
+                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_league = []
         try:
-            by_plan = rows("""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
-                              FROM picks GROUP BY COALESCE(membership_required, 'FREE')
+            by_plan = rows(f"""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
+                              FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                              GROUP BY COALESCE(membership_required, 'FREE')
                               ORDER BY total DESC""")
         except Exception:
             by_plan = []
@@ -28681,6 +29007,33 @@ def v742_track_record_context():
     summary["by_plan"] = by_plan
     summary["pending_results"] = pending_results
     summary["commercial_note"] = "Pendiente de resultados reales" if decided == 0 else "Rendimiento calculado solo con picks evaluables."
+    if has_request_context() and not is_admin_session():
+        user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+        recent = summary.get("recent_results") or []
+        identifiers = [str(item.get("pick_id")) for item in recent if item.get("pick_id")]
+        known = {}
+        if identifiers and db_table_exists("picks"):
+            placeholders = ",".join("?" for _ in identifiers)
+            known = {str(item["id"]): item for item in rows(
+                f"SELECT id,status,membership_required FROM picks WHERE id IN ({placeholders})", identifiers)}
+        fields = {
+            "pick_id", "match_id", "result_status", "odds", "stake", "profit",
+            "home_team", "away_team", "competition_name", "selection", "pick_type",
+            "event_datetime_iso", "event_datetime_label", "pick_created_at_label", "temporal_contract",
+        }
+        summary["recent_results"] = [
+            {key: value for key, value in item.items() if key in fields}
+            for item in recent
+            if str(item.get("pick_id")) in known
+            and normalize_pick_status(known[str(item["pick_id"])].get("status")) in {"published", "won", "lost", "void"}
+            and membership_allows(get_user_membership(user), known[str(item["pick_id"])].get("membership_required"))
+        ]
+        summary["pending_results"] = []
+        summary["recent_runs"] = []
+        summary["note"] = summary["commercial_note"]
+        result_filter = request.args.get("result")
+        if result_filter in {"won", "lost", "void"}:
+            summary["recent_results"] = [item for item in summary["recent_results"] if item.get("result_status") == result_filter]
     return summary
 
 
@@ -28752,7 +29105,7 @@ def api_admin_track_record():
     return jsonify({"ok": True, "version": APP_VERSION, "track_record": v742_track_record_context()})
 
 
-@app.route("/api/automation/picks/grade", methods=["GET", "POST"])
+@app.route("/api/automation/picks/grade", methods=["POST"])
 def api_automation_picks_grade():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -28799,7 +29152,7 @@ def admin_payments_page():
         if action == "rules":
             result = apply_subscription_rules(DB_PATH)
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
-    data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH), {})
+    data["payments"] = v932_safe_context(request.path, "admin", "payments_readiness", lambda: payment_readiness_snapshot(DB_PATH, persist=request.method == "POST"), {})
     data["stripe"] = v932_safe_context(request.path, "admin", "stripe_status", lambda: stripe_runtime_status(DB_PATH), {})
     data["subscriptions"] = v932_safe_context(
         request.path,
@@ -28821,7 +29174,7 @@ def api_admin_payments():
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
-        "payments": payment_readiness_snapshot(DB_PATH),
+        "payments": payment_readiness_snapshot(DB_PATH, persist=is_write),
         "stripe": stripe_runtime_status(DB_PATH),
         "subscriptions": subscription_summary(
             DB_PATH,
@@ -29136,12 +29489,26 @@ def v565_admin_sports_data_picks_page():
 
 @app.route("/api/v565/sports-data-picks-check")
 def api_v565_sports_data_picks_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "health": v565_data_picks_health()})
+
+
+def _recommendations_for_current_membership(items):
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    visible = [
+        dict(item) for item in (items or [])
+        if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+    ]
+    return membership, visible
 
 
 @app.route("/api/v565/recommendations")
 def api_v565_recommendations():
-    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v565_recommendation_pool(limit=50)})
+    limit = max(1, min(100, as_int(request.args.get("limit"), 50)))
+    membership, recommendations = _recommendations_for_current_membership(v565_recommendation_pool(limit=limit))
+    return jsonify({"ok": True, "version": APP_VERSION, "membership": membership, "recommendations": recommendations})
 
 
 @app.route("/api/v565/convert-recommendation", methods=["POST"])
@@ -29189,23 +29556,23 @@ def api_v565_convert_recommendation():
 def v566_client_menu_items():
     # V777: mapa cliente final por intención. No esconder funciones clave ni mezclar páginas sueltas.
     return [
-        {"group": "01 - Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, picks, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
+        {"group": "01 - Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, pronósticos, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
         {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
         {"group": "01 - Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/live", "intent": "live"},
-        {"group": "02 - Picks", "title": "Picks SHARK", "body": "Selección recomendada, mercado, cuota, stake, riesgo y motivo.", "href": "/picks", "intent": "bet"},
-        {"group": "02 - Picks", "title": "Combis responsables", "body": "Combinadas explicadas, sin rellenar por rellenar.", "href": "/combis", "intent": "bet"},
-        {"group": "02 - Picks", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
+        {"group": "02 - Pronósticos", "title": "Pronósticos SHARK", "body": "Selección publicada, mercado, cuota, unidades, riesgo y motivo.", "href": "/picks", "intent": "bet"},
+        {"group": "02 - Pronósticos", "title": "Combinadas", "body": "Constructor y borradores privados con selecciones disponibles.", "href": "/combinadas", "intent": "bet"},
+        {"group": "02 - Pronósticos", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
         {"group": "03 - Resultados", "title": "Resultados y resúmenes", "body": "Finalizados, highlights externos y contexto postpartido.", "href": "/highlights", "intent": "results"},
-        {"group": "03 - Resultados", "title": "Histórico / ROI real", "body": "Track Record con picks cerrados y datos no inventados.", "href": "/track-record", "intent": "trust"},
+        {"group": "03 - Resultados", "title": "Historial / ROI real", "body": "Historial con pronósticos cerrados y datos evaluables.", "href": "/track-record", "intent": "trust"},
         {"group": "03 - Resultados", "title": "Mundial / foco grande", "body": "Pantalla especial cuando haya partidos internacionales importantes.", "href": "/mundial", "intent": "focus"},
-        {"group": "04 - Asistente", "title": "SHARK IA", "body": "Pregunta por picks, riesgo, value, directo o qué evitar.", "href": "/shark", "intent": "shark"},
-        {"group": "04 - Asistente", "title": "Modo automático", "body": "La app prioriza directo, picks, resultados, Mundial o agenda según el momento.", "href": "/modo-dinamico", "intent": "auto"},
-        {"group": "04 - Asistente", "title": "Favoritos", "body": "Partidos/equipos vigilados para no perder el seguimiento.", "href": "/favorites", "intent": "personal"},
+        {"group": "04 - Asistente", "title": "SHARK", "body": "Pregunta por pronósticos, riesgo, directo o qué evitar.", "href": "/shark", "intent": "shark"},
+        {"group": "04 - Asistente", "title": "Modo automático", "body": "La app prioriza directo, pronósticos, resultados, Mundial o agenda según el momento.", "href": "/modo-dinamico", "intent": "auto"},
+        {"group": "04 - Asistente", "title": "Favoritos", "body": "Partidos/equipos vigilados para no perder el seguimiento.", "href": "/favoritos", "intent": "personal"},
         {"group": "05 - Cuenta", "title": "Telegram", "body": "Conexión al bot, estado y alertas por membresía.", "href": "/telegram", "intent": "telegram"},
         {"group": "05 - Cuenta", "title": "Mi cuenta", "body": "Plan, perfil, favoritos, actividad y accesos personales.", "href": "/mi-cuenta", "intent": "account"},
         {"group": "05 - Cuenta", "title": "Membresías", "body": "FREE, PRO y ELITE con beneficios claros.", "href": "/membresias", "intent": "billing"},
-        {"group": "06 - Ayuda", "title": "Guía rápida", "body": "Primeros pasos: partidos, picks, riesgo, Telegram y SHARK.", "href": "/guia", "intent": "help"},
-        {"group": "06 - Ayuda", "title": "Soporte", "body": "Ayuda con cuenta, Telegram, picks o navegación.", "href": "/ayuda", "intent": "help"},
+        {"group": "06 - Ayuda", "title": "Guía rápida", "body": "Primeros pasos: partidos, pronósticos, riesgo, Telegram y SHARK.", "href": "/guia", "intent": "help"},
+        {"group": "06 - Ayuda", "title": "Soporte", "body": "Ayuda con cuenta, Telegram, pronósticos o navegación.", "href": "/ayuda", "intent": "help"},
         {"group": "06 - Ayuda", "title": "Juego responsable", "body": "Control, límites y recordatorio honesto de riesgo.", "href": "/juego-responsable", "intent": "safe"},
         {"group": "06 - Ayuda", "title": "Legal y confianza", "body": "Privacidad, transparencia y reglas del producto.", "href": "/legal", "intent": "trust"},
     ]
@@ -29219,15 +29586,15 @@ def v566_membership_ui(user=None):
     elif membership == "PRO":
         ctx.update({"headline": "Estás en PRO", "next_cta": "Mejorar a ELITE", "next_href": "/membresias?plan=ELITE"})
     else:
-        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver picks", "next_href": "/picks"})
+        ctx.update({"headline": "Plan completo activo", "next_cta": "Ver pronósticos", "next_href": "/picks"})
     if membership == "FREE":
         ctx["upgrade_cards"] = [
-            {"plan": "PRO", "title": "Picks y Telegram PRO", "body": "Desbloquea picks PRO, recomendaciones SHARK, riesgo, confianza y Telegram PRO.", "href": "/membresias?plan=PRO"},
-            {"plan": "ELITE", "title": "Auto Picks y SHARK completo", "body": "Accede a combinadas automáticas, value avanzado, top picks y prioridad Telegram.", "href": "/membresias?plan=ELITE"},
+            {"plan": "PRO", "title": "Pronósticos y Telegram PRO", "body": "Accede a pronósticos PRO publicados, contexto SHARK, riesgo visible y opciones de Telegram del plan.", "href": "/membresias?plan=PRO"},
+            {"plan": "ELITE", "title": "Acceso ELITE y SHARK ampliado", "body": "Incluye pronósticos y combinadas disponibles para ELITE, más contexto SHARK y funciones del plan cuando estén habilitadas.", "href": "/membresias?plan=ELITE"},
         ]
     elif membership == "PRO":
         ctx["upgrade_cards"] = [
-            {"plan": "ELITE", "title": "ELITE completo", "body": "Auto Picks completo, combinadas avanzadas, SHARK completo y value avanzado.", "href": "/membresias?plan=ELITE"},
+            {"plan": "ELITE", "title": "Acceso ELITE", "body": "Amplía el acceso a pronósticos, combinadas y contexto SHARK según las funciones habilitadas para ELITE.", "href": "/membresias?plan=ELITE"},
         ]
     else:
         ctx["upgrade_cards"] = []
@@ -29248,9 +29615,9 @@ def v566_dashboard_summary(user=None):
         "favorites": {"total": len(favs)},
         "membership": membership,
         "focus": [
-            {"type": "LIVE", "title": "Live limpio", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
-            {"type": "PICKS", "title": "Picks y señales", "body": "Picks publicados y recomendaciones sin inventar datos.", "href": "/picks"},
-            {"type": "SHARK", "title": "Insight SHARK", "body": "Pregunta por favoritos, directo y oportunidades de hoy.", "href": "/shark"},
+            {"type": "LIVE", "title": "Directo claro", "body": "Estados Próximo, En directo, Descanso y Finalizado.", "href": "/live"},
+            {"type": "PICKS", "title": "Pronósticos y contexto", "body": "Pronósticos publicados y recomendaciones sin inventar datos.", "href": "/picks"},
+            {"type": "SHARK", "title": "SHARK", "body": "Pregunta por favoritos, directo, pronósticos y riesgo.", "href": "/shark"},
         ],
     }
 
@@ -29407,12 +29774,6 @@ def v566_template_recommendations(limit=20):
 @app.route("/dashboard")
 def v566_dashboard_page():
     return redirect("/app")
-    user = current_session_user()
-    data = dashboard_data()
-    summary = v566_dashboard_summary(user)
-    upcoming = get_upcoming_matches(today_iso(), days=7, limit=10)
-    picks = published_picks_for_user(user, limit=8)
-    return render_template("client_overview.html", data=data, summary=summary, upcoming=upcoming, picks=picks)
 
 
 @app.route("/menu")
@@ -29621,7 +29982,7 @@ def v724_contact_alias_page():
                     subject=request.form.get('subject'), message=request.form.get('message'),
                     category=request.form.get('category'), priority=request.form.get('priority'))
                 session['support_receipt'] = receipt
-                return redirect('/support', code=303)
+                return redirect('/soporte', code=303)
             except SupportRejected as exc:
                 messages = {'length':'El asunto debe tener entre 3 y 120 caracteres y el mensaje entre 10 y 4000.',
                             'sensitive':'No envíes contraseñas, claves ni tokens. Retíralos del mensaje.',
@@ -29641,7 +30002,7 @@ def v724_contact_alias_page():
             "support_request_id": session['support_request_id'],
             "support_tips": [
                 {"title": "Partidos", "body": "Indica equipo, competición y hora si ves un dato raro."},
-                {"title": "Picks", "body": "Cuéntanos qué selección o cuota quieres revisar."},
+                {"title": "Pronósticos", "body": "Cuéntanos qué selección o cuota quieres revisar."},
                 {"title": "Telegram", "body": "Describe si el problema es vinculación, canal o mensaje privado."},
             ],
         }
@@ -29658,14 +30019,14 @@ def v566_intelligence_hub_page():
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=8)
     hub = {
         "score": v566_dashboard_summary(user)["score"],
-        "shark_message": "SHARK prioriza live, picks, favoritos y próximos importantes.",
+        "shark_message": "SHARK prioriza directo, pronósticos, favoritos y próximos importantes.",
         "favorites": len(get_favorites(user_id=(user or {}).get("id") or "")),
         "results_total": len(get_results_matches(today_iso(), days_back=7, limit=40)),
         "telegram_pending": "OK" if can_access_feature(user, "telegram_premium") else "PRO",
         "lanes": [
-            {"key": "live", "title": "Live", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
-            {"key": "picks", "title": "Picks", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
-            {"key": "auto", "title": "Auto Picks", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
+            {"key": "live", "title": "Directo", "value": data.get("match_hub", {}).get("counts", {}).get("live", 0), "body": "Directos reales sin estados falsos.", "href": "/live"},
+            {"key": "picks", "title": "Pronósticos", "value": len(picks), "body": "Publicados según membresía.", "href": "/picks"},
+            {"key": "auto", "title": "Pronósticos automáticos", "value": len(v565_recommendation_pool(limit=20)), "body": "Recomendaciones generadas desde próximos reales.", "href": "/auto-picks"},
         ],
     }
     return render_template("unified_intelligence_hub.html", data=data, hub=hub, upcoming=upcoming, picks=picks)
@@ -29676,8 +30037,8 @@ def v928_telegram_overview_fast():
     token_present = env_present("TELEGRAM_BOT_TOKEN")
     chat_present = env_present("TELEGRAM_CHAT_ID")
     auto_env = bool(
-        env_bool("ENABLE_TELEGRAM_AUTOMATION", True)
-        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", True)
+        env_bool("ENABLE_TELEGRAM_AUTOMATION", False)
+        or env_bool("TELEGRAM_AUTO_SEND_ENABLED", False)
         or env_bool("ENABLE_TELEGRAM_AUTO", False)
         or env_bool("AUTO_SEND_TELEGRAM_PICKS", False)
     )
@@ -29791,6 +30152,8 @@ def v566_admin_dashboard_page():
     data["v934_realtime"] = get_v934_realtime_context(_summary)
     quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
     items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    from blueprints.admin_master_control import master_snapshot
+    data["admin_master"] = master_snapshot(__import__(__name__))
     return render_template("admin_dashboard.html", data=data, q=quality, items=items)
 
 
@@ -29921,23 +30284,31 @@ def api_v566_full_audit_report():
 
 @app.route("/api/v566/product-polish-check")
 def api_v566_product_polish_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "report": v566_product_polish_report()})
 
 
 @app.route("/api/recommendations")
 def api_v566_recommendations():
-    return jsonify({"ok": True, "version": APP_VERSION, "recommendations": v566_template_recommendations(limit=as_int(request.args.get("limit"), 40))})
+    limit = max(1, min(100, as_int(request.args.get("limit"), 40)))
+    membership, recommendations = _recommendations_for_current_membership(v566_template_recommendations(limit=limit))
+    return jsonify({"ok": True, "version": APP_VERSION, "membership": membership, "recommendations": recommendations})
 
 
 @app.route("/api/autonomous-picks/status")
 def api_v566_autonomous_picks_status():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, "status": v565_data_picks_health()})
 
 
 @app.route("/api/timezone-check")
 def api_v566_timezone_check():
-    sample = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
-    return jsonify({"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso(), "sample_matches": sample})
+    payload = {"ok": True, "version": APP_VERSION, "timezone": "Europe/Madrid", "server_now": now_iso(), "today_spain": today_iso()}
+    if is_admin_session():
+        payload["sample_matches"] = [annotate_match(m) for m in get_upcoming_matches(today_iso(), days=3, limit=10)]
+    return jsonify(payload)
 
 
 
@@ -29980,12 +30351,54 @@ def record_shark_memory(event_type, context=None, user_id=None):
         return False
 
 
+def shark_question_usage(user=None):
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+    finally:
+        conn.close()
+    return {"allowed": used < limit, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+
+
+def consume_shark_question(user=None):
+    """Consume one plan query atomically without storing the prompt text."""
+    user = user or current_session_user() or {}
+    user_id = str(user.get("id") or "").strip() if isinstance(user, dict) else ""
+    membership = get_user_membership(user)
+    limit = max(0, as_int(get_membership_limits(membership).get("shark_questions"), 0))
+    if not user_id:
+        return {"allowed": False, "login_required": True, "membership": membership, "limit": limit, "used": 0, "remaining": 0, "limit_reached": False}
+    ensure_shark_memory_table()
+    conn = db()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute("SELECT COUNT(*) FROM shark_memory WHERE user_id=? AND event_type='client_question' AND substr(created_at,1,10)=?", (user_id, today_iso())).fetchone()
+        used = as_int(row[0] if row else 0, 0)
+        if used >= limit:
+            conn.rollback()
+            return {"allowed": False, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": 0, "limit_reached": True}
+        conn.execute("INSERT INTO shark_memory(user_id,event_type,context_json,created_at) VALUES (?,?,?,?)", (user_id, "client_question", json.dumps({"membership": membership, "prompt_stored": False}, ensure_ascii=False), now_iso()))
+        conn.commit()
+        used += 1
+        return {"allowed": True, "login_required": False, "membership": membership, "limit": limit, "used": used, "remaining": max(0, limit-used), "limit_reached": used >= limit}
+    finally:
+        conn.close()
+
+
 def v570_shark_core_summary():
     user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     membership = (user.get("membership") or user.get("role") or "FREE").upper()
     favorites = get_favorites(user_id=user.get("id")) if user.get("id") else []
     try:
-        recommendations = v566_template_recommendations(limit=12)
+        _plan, recommendations = _recommendations_for_current_membership(v566_template_recommendations(limit=12))
     except Exception:
         recommendations = []
     try:
@@ -30008,7 +30421,7 @@ def v570_shark_core_summary():
         upcoming=upcoming,
         membership=membership,
     )
-    briefing["user"] = user
+    briefing["user"] = {"name": user.get("name") or "", "membership": membership}
     briefing["sections"] = {
         "favorites": favorites[:8],
         "recommendations": recommendations[:8],
@@ -30057,7 +30470,6 @@ def v570_shark_admin_summary():
 def v570_shark_core_page():
     if not current_session_user():
         return redirect("/cliente-login?next=/shark-core")
-    record_shark_memory("open_shark_core", {"route": "/shark-core"})
     return render_template("shark_core.html", data=dashboard_data(), shark=v570_shark_core_summary())
 
 
@@ -30072,15 +30484,14 @@ def v570_inteligencia_alias():
 def v570_admin_shark_center():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/shark-ai")
-    return render_template("admin_shark_center.html", data=dashboard_data(), shark=v845_shark_admin_summary())
+    return redirect("/admin/dashboard#master-ai-title")
 
 
 @app.route("/api/shark/core-summary")
 def api_v570_shark_core_summary():
-    if not current_session_user() and request.args.get("public") != "1":
+    if not current_session_user():
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido."}), 401
     summary = v570_shark_core_summary()
-    record_shark_memory("api_core_summary", {"score": summary.get("score")})
     return jsonify({"ok": True, "version": APP_VERSION, "shark": summary})
 
 
@@ -30093,6 +30504,8 @@ def api_v570_admin_shark_center():
 
 @app.route("/api/system/v570-check")
 def api_v570_system_check():
+    if not is_admin_session():
+        return admin_json_forbidden()
     return jsonify({
         "ok": True,
         "version": APP_VERSION,
@@ -30563,17 +30976,40 @@ def api_admin_data_vault_export():
     return jsonify({"version": APP_VERSION, **result})
 
 
-@app.route("/api/automation/data-backup/run", methods=["GET", "POST"])
+@app.route("/api/automation/data-backup/run", methods=["POST"])
 def api_automation_data_backup_run():
-    if not automation_cron_access_allowed():
-        return automation_json_forbidden()
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
+    now_value = now_iso()
+    madrid_day = today_iso()
+    last_success = automation_get("last_successful_data_backup_call", {}) or {}
+    last_result = last_success.get("result") if isinstance(last_success.get("result"), dict) else {}
+    already_done = (
+        str(last_success.get("time") or "")[:10] == madrid_day
+        and last_result.get("ok") is not False
+        and last_result.get("backup_created") is True
+    )
     if not env_bool("DATA_BACKUP_ENABLED", False):
         result = {"ok": True, "backup_created": False, "status": "DISABLED", "message": "DATA_BACKUP_ENABLED no está activo."}
+    elif already_done:
+        result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_DONE", "message": "El backup diario ya fue creado y verificado para esta fecha Madrid."}
     else:
-        result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
-    automation_safe_set("last_cron_data_backup_call", {"time": now_iso(), "result": result})
+        conn = sqlite3.connect(DB_PATH, timeout=2)
+        try:
+            ensure_automation_schema_conn(conn)
+            claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+        finally:
+            close_conn = getattr(conn, "close", None)
+            if callable(close_conn):
+                close_conn()
+        if not claimed:
+            result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING", "message": "Otro intento de backup posee el claim temporal."}
+        else:
+            result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
+            if result.get("ok") is not False and result.get("backup_created") is True:
+                automation_safe_set("last_successful_data_backup_call", {"time": now_value, "result": result})
+    automation_safe_set("last_cron_data_backup_call", {"time": now_value, "result": result})
     return jsonify({"version": APP_VERSION, **result})
-
 
 @app.route("/api/admin/production-readiness-v744")
 def api_admin_production_readiness_v744():
@@ -30720,10 +31156,6 @@ def v758_adaptive_experience_page():
     data["client_premium"] = build_client_app_premium_context(data, user)
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     data["v758_adaptive"] = v758_adaptive_context(data, user, "adaptive")
-    try:
-        record_user_activity("view", "adaptive_experience", "v758-adaptive", {"mode": data["v758_adaptive"].get("mode_label")})
-    except Exception:
-        pass
     return render_template("adaptive_experience.html", data=data)
 
 
@@ -30883,7 +31315,7 @@ def v776_client_information_architecture_snapshot():
         ("Hoy", "/calendar?lane=today", "partidos de hoy"),
         ("Directo", "/live", "marcador y estado"),
         ("Picks", "/picks", "selección recomendada"),
-        ("Combis", "/combis", "combinadas"),
+        ("Combinadas", "/combinadas", "combinadas"),
         ("Mercados", "/mercados", "mercados básicos"),
         ("Resúmenes", "/highlights", "resultados y vídeos"),
         ("Histórico", "/track-record", "ROI real"),
@@ -30975,16 +31407,16 @@ def v777_client_product_context(data=None, user=None):
     if counts["live"]:
         next_action = {"label": "Hay directo", "body": "Empieza por marcador, minuto y estado real.", "href": "/live", "cta": "Ver directo"}
     elif counts["picks"]:
-        next_action = {"label": "Hay picks", "body": "Lee mercado, cuota, stake y riesgo antes de entrar.", "href": "/picks", "cta": "Ver picks"}
+        next_action = {"label": "Hay pronósticos", "body": "Lee mercado, cuota, unidades y riesgo antes de entrar.", "href": "/picks", "cta": "Ver pronósticos"}
     elif counts["today"]:
         next_action = {"label": "Hay agenda", "body": "Revisa partidos de hoy y marca favoritos.", "href": "/calendar?lane=today", "cta": "Ver partidos"}
     else:
         next_action = {"label": "Sin señal real", "body": "La app no inventa. Revisa resultados, guía o Telegram.", "href": "/menu", "cta": "Ver mapa"}
     intents = [
         {"key": "matches", "title": "Ver partidos", "body": "Hoy, semana, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "icon": "Partidos"},
-        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "Live"},
-        {"key": "bet", "title": "Analizar con criterio", "body": "Picks, combis y mercados explicados.", "href": "/picks", "icon": "Picks"},
-        {"key": "results", "title": "Ver resultados", "body": "Histórico, resúmenes y ROI real.", "href": "/track-record", "icon": "Histórico"},
+        {"key": "live", "title": "Seguir directo", "body": "Marcador/minuto si la API lo aporta.", "href": "/live", "icon": "Directo"},
+        {"key": "bet", "title": "Analizar con criterio", "body": "Pronósticos, combinadas y mercados explicados.", "href": "/picks", "icon": "Pronósticos"},
+        {"key": "results", "title": "Ver resultados", "body": "Historial, resúmenes y ROI real.", "href": "/track-record", "icon": "Historial"},
         {"key": "shark", "title": "Preguntar a SHARK", "body": "Qué ver, qué evitar y por qué.", "href": "/shark", "icon": "SHARK"},
         {"key": "account", "title": "Configurar cuenta", "body": "Telegram, plan, ayuda y favoritos.", "href": "/mi-cuenta", "icon": "Cuenta"},
     ]
@@ -31002,7 +31434,7 @@ def v777_client_product_context(data=None, user=None):
         "intents": intents,
         "plan": plan,
         "principles": [
-            "Lo importante primero: Hoy, Directo, Picks, SHARK y Resultados.",
+            "Lo importante primero: Hoy, Directo, Pronósticos, SHARK y Resultados.",
             "Sin datos inventados: si falta partido, cuota, resultado o ROI se marca pendiente.",
             "Móvil y PC comparten el mismo mapa de producto.",
         ],
@@ -31088,24 +31520,24 @@ def v778_client_product_organization_context(data=None, user=None):
     primary_flow = [
         {"step": 1, "label": "Hoy", "title": "Partidos de hoy", "body": "Agenda clara con día, estado, liga y hora oficial de España.", "href": "/calendar?lane=today"},
         {"step": 2, "label": "Directo", "title": "Seguir en vivo", "body": "Solo marcador/minuto real si la API lo aporta; si no, queda pendiente.", "href": "/live"},
-        {"step": 3, "label": "Picks", "title": "Qué recomienda SHARK", "body": "Selección, mercado, cuota, stake, riesgo y motivo antes de decidir.", "href": "/picks"},
+        {"step": 3, "label": "Pronósticos", "title": "Qué recomienda SHARK", "body": "Selección, mercado, cuota, unidades, riesgo y motivo antes de decidir.", "href": "/picks"},
         {"step": 4, "label": "SHARK", "title": "Resolver dudas", "body": "Explica picks, mercados, partidos y qué evitar sin inventar datos.", "href": "/shark"},
-        {"step": 5, "label": "Histórico", "title": "Comprobar resultados", "body": "ROI y Track Record solo con picks cerrados y resultados reales.", "href": "/track-record"},
+        {"step": 5, "label": "Historial", "title": "Comprobar resultados", "body": "ROI e historial solo con pronósticos cerrados y resultados reales.", "href": "/track-record"},
     ]
     sections = [
         {"key": "ver", "title": "Ver partidos", "body": "Hoy, calendario, directo y detalle de partido.", "href": "/calendar?lane=today", "items": ["Partidos de hoy", "Directo", "Calendario", "Detalle"]},
-        {"key": "picks", "title": "Picks", "body": "Picks, mercados básicos y combis responsables.", "href": "/picks", "items": ["Picks", "Mercados", "Combis", "Riesgo"]},
-        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e histórico real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Grading"]},
+        {"key": "picks", "title": "Pronósticos", "body": "Pronósticos, mercados básicos y combinadas responsables.", "href": "/picks", "items": ["Pronósticos", "Mercados", "Combinadas", "Riesgo"]},
+        {"key": "resultados", "title": "Resultados", "body": "Finalizados, resúmenes externos e historial real.", "href": "/track-record", "items": ["Resultados", "Resúmenes", "ROI", "Evaluación"]},
         {"key": "asistente", "title": "Asistente", "body": "SHARK y Telegram como guía, no como ruido.", "href": "/shark", "items": ["SHARK", "Telegram", "Alertas", "Ayuda"]},
     ]
     if counts.get("live"):
         next_action = {"label": "Prioridad: Directo", "body": "Hay partidos en vivo. Revisa marcador/minuto antes de mirar picks.", "href": "/live", "cta": "Abrir directo"}
     elif counts.get("picks"):
-        next_action = {"label": "Prioridad: Picks", "body": "Hay picks cargados. Lee mercado, cuota, stake y riesgo.", "href": "/picks", "cta": "Ver picks"}
+        next_action = {"label": "Prioridad: Pronósticos", "body": "Hay pronósticos cargados. Lee mercado, cuota, unidades y riesgo.", "href": "/picks", "cta": "Ver pronósticos"}
     elif counts.get("today"):
         next_action = {"label": "Prioridad: Hoy", "body": "Empieza por la agenda y marca favoritos si quieres seguimiento.", "href": "/calendar?lane=today", "cta": "Ver hoy"}
     else:
-        next_action = {"label": "Sin datos críticos", "body": "No se inventa información. Usa el mapa, Telegram o SHARK hasta la siguiente sincronización.", "href": "/menu", "cta": "Ver mapa"}
+        next_action = {"label": "Sin datos críticos", "body": "No se inventa información. Usa el inicio, Telegram o SHARK hasta la siguiente sincronización.", "href": "/app", "cta": "Ver inicio"}
     return {
         "version": APP_VERSION,
         "status": "V778_PRODUCT_ORDER_STABLE",
@@ -31452,7 +31884,7 @@ def api_v808_betting_convert_to_pick():
     return jsonify({"ok": True, "version": APP_VERSION, "published": publish, "result": result})
 
 
-@app.route("/api/telegram/enqueue-recommendations")
+@app.route("/api/telegram/enqueue-recommendations", methods=["POST"])
 def api_v808_telegram_enqueue_recommendations():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -31475,13 +31907,13 @@ def api_v808_telegram_enqueue_recommendations():
 
 def v809_client_navigation_items():
     return [
-        {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, picks y SHARK.","href":"/app","icon":"Inicio"},
+        {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, pronósticos y SHARK.","href":"/app","icon":"Inicio"},
         {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"Partidos"},
-        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador live, minuto, presión y tracker si API-Football lo aporta.","href":"/live","icon":"Live"},
-        {"group":"Inicio y uso diario","title":"Picks","body":"Picks publicados con cuota, stake, riesgo y explicación.","href":"/picks","icon":"Picks"},
-        {"group":"SHARK y análisis","title":"SHARK IA","body":"Preguntar por partido, pick, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
-        {"group":"SHARK y análisis","title":"SHARK Core","body":"Centro avanzado de lectura SHARK cuando tu plan lo permita.","href":"/shark-core","icon":"SHARK Core"},
-        {"group":"Seguimiento","title":"Histórico","body":"Track record y resultados solo cuando están cerrados con datos reales.","href":"/track-record","icon":"Histórico"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/live","icon":"Directo"},
+        {"group":"Inicio y uso diario","title":"Pronósticos","body":"Pronósticos publicados con cuota, unidades, riesgo y explicación.","href":"/picks","icon":"Pronósticos"},
+        {"group":"SHARK y análisis","title":"SHARK","body":"Preguntar por partido, pronóstico, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
+        {"group":"SHARK y análisis","title":"SHARK Core","body":"Resumen basado en datos disponibles, sin convertir indicadores en garantías.","href":"/shark-core","icon":"SHARK Core"},
+        {"group":"Seguimiento","title":"Historial","body":"Resultados y rendimiento solo cuando están cerrados con datos reales.","href":"/track-record","icon":"Historial"},
         {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"Favoritos"},
         {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"Telegram"},
         {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"Cuenta"},
@@ -31824,11 +32256,13 @@ def v818_callback_result(label, fn, *args, **kwargs):
 def v818_daily_close_previous_day():
     lifecycle = v818_callback_result("lifecycle", ensure_client_match_lifecycle_fresh, True)
     grading = v818_callback_result("pick_grading", run_pick_grading, DB_PATH, limit=500, apply=True)
+    membership_expiry = v818_callback_result("membership_expiry", expire_user_memberships_if_needed)
     track = v818_callback_result("track_record", v742_track_record_context)
     return {
-        "ok": not any(item.get("ok") is False for item in [lifecycle, grading]),
+        "ok": not any(item.get("ok") is False for item in [lifecycle, grading, membership_expiry]),
         "lifecycle": lifecycle,
         "pick_grading": grading,
+        "membership_expiry": membership_expiry,
         "track_record_ready": bool(track.get("ok", True)),
         "no_invented_results": True,
     }
@@ -31861,7 +32295,7 @@ def v818_telegram_daily_top_agenda():
 
 
 def v818_live_tracker_smart_sync():
-    if not env_bool("ENABLE_AUTO_LIVE_SYNC", True):
+    if not env_bool("ENABLE_AUTO_LIVE_SYNC", False):
         return {"ok": True, "skipped": True, "reason": "ENABLE_AUTO_LIVE_SYNC=false"}
     return v818_callback_result("api_football_live_tracker", sync_api_football_live_tracker, DB_PATH, force=False)
 
@@ -31875,7 +32309,7 @@ def v818_results_sync_and_top_results():
 def v818_evening_recap():
     status = v818_automation_status(DB_PATH, APP_VERSION, env=dict(os.environ))
     sent = 0
-    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", True) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
+    if env_bool("ENABLE_AUTO_TELEGRAM_PRO", False) and not env_bool("DAILY_AUTOMATION_DRY_RUN", False):
         # The existing scheduler owns quiet hours, dedupe and delivery limits.
         telegram = v818_callback_result("telegram_scheduler_tick", telegram_scheduler_tick, force=False)
         sent = as_int(telegram.get("sent") or telegram.get("sent_count"), 0)
@@ -31915,7 +32349,7 @@ def v818_daily_automation_context():
     }
 
 
-@app.route("/api/automation/master-tick", methods=["GET", "POST"])
+@app.route("/api/automation/master-tick", methods=["POST"])
 def api_v818_automation_master_tick():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -31958,7 +32392,7 @@ def api_v818_automation_health_check():
     })
 
 
-@app.route("/api/automation/auto-improvement/run", methods=["GET", "POST"])
+@app.route("/api/automation/auto-improvement/run", methods=["POST"])
 def api_v861_auto_improvement_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -31971,7 +32405,7 @@ def api_v861_auto_improvement_run():
     return jsonify(result)
 
 
-@app.route("/api/automation/shark-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/shark-sentinel/run", methods=["POST"])
 def api_v862_shark_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -31984,7 +32418,7 @@ def api_v862_shark_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/continuous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/continuous-sentinel/run", methods=["POST"])
 def api_v862_continuous_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -31994,7 +32428,7 @@ def api_v862_continuous_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/visual-worker/run", methods=["GET", "POST"])
+@app.route("/api/automation/visual-worker/run", methods=["POST"])
 def api_v883_visual_worker_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32004,7 +32438,7 @@ def api_v883_visual_worker_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/sentinel-autopilot/run", methods=["GET", "POST"])
+@app.route("/api/automation/sentinel-autopilot/run", methods=["POST"])
 def api_v888_sentinel_autopilot_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32013,7 +32447,7 @@ def api_v888_sentinel_autopilot_run():
     return jsonify({"ok": True, **scan, "cron": "sentinel_autopilot", "dry_run": True, "dangerous_actions_executed": False})
 
 
-@app.route("/api/automation/autonomous-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/autonomous-sentinel/run", methods=["POST"])
 def api_v893_autonomous_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32024,7 +32458,7 @@ def api_v893_autonomous_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/automation/autonomous-company-sentinel/run", methods=["GET", "POST"])
+@app.route("/api/automation/autonomous-company-sentinel/run", methods=["POST"])
 def api_v894_autonomous_company_sentinel_run():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
@@ -32080,7 +32514,7 @@ def api_admin_v818_daily_automation_runs():
     return jsonify({"ok": True, "version": APP_VERSION, **v818_automation_runs(DB_PATH, limit=as_int(request.args.get("limit"), 80))})
 
 
-@app.route("/api/admin/daily-automation/dry-run", methods=["GET", "POST"])
+@app.route("/api/admin/daily-automation/dry-run", methods=["POST"])
 def api_admin_v818_daily_automation_dry_run():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -32848,6 +33282,7 @@ def founder_command_center_snapshot():
             "export": True,
         },
     }
+    first10_cohort = growth_first10_cohort_snapshot(limit=10)
     growth_product = dict(product)
     growth_product["growth_funnel"] = growth_funnel_analytics_snapshot()
     growth_product["growth_instrumentation"] = growth_instrumentation_snapshot()
@@ -32879,6 +33314,7 @@ def founder_command_center_snapshot():
         "business_kpis": business_kpis,
         "customer_overview": customer_overview,
         "growth_revenue": growth_revenue,
+        "first10_cohort": first10_cohort,
         "beta_control": beta_control,
         "operations_summary": operations_summary,
         "sports_quality": {
@@ -33073,7 +33509,7 @@ def go_to_market_office_snapshot():
         _gtm_check_item("master_tick", "Master Tick", "PARTIAL", "Master Tick permanece como gate operacional separado.", "No se dispara ningúna tarea.", "Operaciones", "/admin/daily-automation"),
         _gtm_check_item("security", "Seguridad", "PASS" if _gtm_file_exists("tools/check_repository_privacy_and_secrets.py") else "PARTIAL", "Secret/Privacy Guard disponibles en herramientas locales.", "Debe ejecutarse en cierre de release.", "Seguridad", "/admin/developer-center"),
         _gtm_check_item("privacy", "Privacidad", "PASS" if (beta.get("privacy_controls") or {}).get("stores_sensitive_information") is False else "PARTIAL", "Beta y User Intelligence minimizan datos y permiten control.", "Requiere revision legal humana.", "Privacidad", "/privacidad"),
-        _gtm_check_item("support", "Soporte", "PASS" if _gtm_file_exists("templates/support.html") else "PARTIAL", "Soporte y Beta Feedback reutilizados.", "Canales humanos deben confirmarse antes de beta.", "Customer Success", "/support"),
+        _gtm_check_item("support", "Soporte", "PASS" if _gtm_file_exists("templates/support.html") else "PARTIAL", "Soporte y Beta Feedback reutilizados.", "Canales humanos deben confirmarse antes de beta.", "Customer Success", "/soporte"),
         _gtm_check_item("documentation", "Documentacion", "PASS" if reports else "PARTIAL", "Reportes de lanzamiento y plataforma disponibles localmente.", "No sustituye aprobacion humana.", "Producto", "/admin/developer-center"),
         _gtm_check_item("landing", "Landing", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "Landing oficial usa Company Platform.", "Contenido final necesita revision humana.", "Marketing", "/landing"),
         _gtm_check_item("faq", "FAQ", "PASS" if _gtm_file_exists("templates/company_platform.html") else "BLOCKED", "FAQ publica preparada sin promesas falsas.", "Debe mantenerse actualizada con soporte real.", "Customer Success", "/faq"),
@@ -33147,7 +33583,7 @@ def go_to_market_office_snapshot():
             {"area": "Centro de ayuda", "state": "PASS", "href": "/help-center"},
             {"area": "FAQ", "state": "PASS", "href": "/faq"},
             {"area": "Primeros pasos", "state": "PASS", "href": "/landing"},
-            {"area": "Recuperacion de cuenta", "state": "PARTIAL", "href": "/support"},
+            {"area": "Recuperacion de cuenta", "state": "PARTIAL", "href": "/soporte"},
             {"area": "Contacto", "state": "PASS", "href": "/contact"},
             {"area": "Incidencias", "state": "PASS", "href": "/beta"},
             {"area": "Guias", "state": "PARTIAL", "href": "/knowledge-base"},
@@ -33423,6 +33859,31 @@ def admin_go_to_market_office_page():
     )
 
 V897_ALIAS_REGISTRATION = register_v897_safe_aliases()
+
+# Extend the canonical dashboard; no second app or worker process.
+import sys as _admin_sys
+from blueprints.admin_master_control import register_admin_master, settings_values as _admin_settings_values
+register_admin_master(_admin_sys.modules[__name__])
+
+def admin_operational_settings():
+    # One bounded settings read per request, shared by cards and templates.
+    if not hasattr(g, "admin_operational_settings"):
+        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])
+    return g.admin_operational_settings
+
+@app.context_processor
+def admin_operational_settings_context():
+    return {"admin_operational_settings": admin_operational_settings()}
+
+@app.before_request
+def admin_client_content_visibility():
+    # Client-only presentation switch; never deletes content or stops ingestion.
+    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.path.startswith("/highlight/")) and not is_admin_session():
+        if not admin_operational_settings()["highlights_enabled"]:
+            if request.path.startswith("/api/"):
+                return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
+            return render_template("admin_content_paused.html", data={})
+
 
 if __name__ == "__main__":
     seed_core()

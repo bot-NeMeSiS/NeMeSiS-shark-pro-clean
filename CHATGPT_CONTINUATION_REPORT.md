@@ -1,3 +1,14 @@
+# Estado de candidata PR92
+
+Rama integration/admin-master-control-v941. Base PR91+PR90 146d08a51d7c19f8f5b10d35d9ef652d6b8bb6d9 certificada por QA/Smoke/Render preflight; main 2b59d3f sin cambios. PR92 DRAFT, nunca Ready/merge sin permiso.
+V941 reconciliada localmente; resultados y limites en reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md. Nuevos checks de este bloque pendientes. No heredar CI de la base. Runtime candidato V941; sprint/check V944 mantiene base historica V940. No afirmar version de produccion.
+Original V941 provisional conservado aparte. No copiar su app.py o ZIP sobre la candidata. PR90/PR91 remotas se conservan sin cierre ni merge. Render YAML/workflow productivo sin alterar; merge a main puede desplegar web/cron.
+Siguiente: CI V941, Reliability & Learning/PWA, QA integral, ZIP limpio, autorizacion final. No Telegram/pagos reales ni secretos. Produccion UNKNOWN/NOT_CERTIFIED.
+
+---
+
+## Historial anterior (no sustituye el estado de candidata anterior)
+
 ﻿@"
 # CHATGPT CONTINUATION REPORT - V844
 

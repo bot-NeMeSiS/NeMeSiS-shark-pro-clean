@@ -33,8 +33,8 @@
       <div><span>{{ ui("Preparadas") }}</span><strong>{{ metrics.recommendations_prepared or 0 }}</strong></div>
       <nav class="user-intelligence-actions" aria-label="{{ ui("Acciones de privacidad") }}">
         <a href="/api/user-intelligence/export">{{ ui("Exportar") }}</a>
-        <a href="/favorites">{{ ui("Favoritos") }}</a>
-        <a href="/profile">{{ ui("Perfil") }}</a>
+        <a href="/favoritos">{{ ui("Favoritos") }}</a>
+        <a href="/mi-cuenta">{{ ui("Mi cuenta") }}</a>
       </nav>
     </aside>
   </header>
@@ -50,7 +50,7 @@
   <section class="user-intelligence-panel user-intelligence-wide" data-top100-improvement="14,15,16" data-user-intelligence-section="measurement-contract">
     <div class="user-intelligence-section-head"><span>{{ ui("Qué se mide y qué no") }}</span><strong>{{ ui("Transparente") }}</strong></div>
     <div class="user-intelligence-signal-grid">
-      <article><header><span>{{ ui("Activación") }}</span><strong>{{ metrics.activity_events or 0 }}</strong></header><p>{{ ui("Eventos propios: abrir calendario, partido, SHARK, favorito, briefing o plan. Si no existe muestra, no se calcula conversión.") }}</p></article>
+      <article><header><span>{{ ui("Activación") }}</span><strong>{{ metrics.activity_events or 0 }}</strong></header><p>{{ ui("Eventos propios: abrir calendario, partido, SHARK, favorito, resumen diario o plan. Si no existe muestra, no se calcula conversión.") }}</p></article>
       <article><header><span>{{ ui("Retención") }}</span><strong>{{ metrics.modules_observed or 0 }}</strong></header><p>{{ ui("Pantallas usadas y favoritos ayudan a entender si vuelves por valor real. No se infieren gustos sensibles.") }}</p></article>
       <article><header><span>{{ ui("Control") }}</span><strong>{{ ui('Activo' if privacy.personalization_enabled else 'Pausado') }}</strong></header><p>{{ ui("El usuario puede exportar, resetear, desactivar o borrar el perfil. La Home no cambia automáticamente.") }}</p></article>
       <article><header><span>{{ ui("No almacenado") }}</span><strong>{{ ui("Datos sensibles") }}</strong></header><p>{{ ui("No se guardan tokens, tarjetas, contraseñas, contenido privado externo ni datos para vender a terceros.") }}</p></article>

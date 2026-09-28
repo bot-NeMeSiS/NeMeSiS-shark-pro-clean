@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import subprocess
 import sys
 from urllib.parse import urlparse
 from urllib.request import url2pathname
@@ -101,6 +102,11 @@ def observation_failures(row: dict) -> list[str]:
     return errors
 
 
+def wait_for_rendered_images(page, timeout=15000):
+    """Wait for completion; the existing inspector still rejects failed decodes."""
+    page.wait_for_function("() => [...document.images].every(image => image.complete)", timeout=timeout)
+
+
 def screenshot_failures(output: Path, row: dict) -> list[str]:
     from PIL import Image
     image = output / row.get("screenshot", "")
@@ -158,7 +164,12 @@ def install_boundary(temp: Path, output: Path, database: Path, driver_command: l
             blocked.append("NETWORK")
             raise PermissionError("V944_QA_NETWORK_BLOCKED")
         if event == "subprocess.Popen":
-            if (driver_command and list(args[1]) == driver_command) or any(list(args[1]) == command for command in additional_commands):
+            # Windows audits a serialized command line; POSIX supplies argv.
+            # Check the executable too: matching argv cannot authorize another binary.
+            allowed = [driver_command, *additional_commands]
+            if any(command and (args[0] is None or os.fsdecode(args[0]) == command[0]) and
+                   (args[1] == subprocess.list2cmdline(command) if isinstance(args[1], str)
+                    else list(args[1]) == command) for command in allowed):
                 return
             blocked.append("PROCESS")
             raise PermissionError("V944_QA_PROCESS_BLOCKED")
@@ -260,9 +271,12 @@ def main() -> int:
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as pw:
-            browser = pw.chromium.launch()
+            launch_options = {}
+            if os.environ.get("NEMESIS_QA_CHROMIUM"):
+                launch_options["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
+            browser = pw.chromium.launch(**launch_options)
             for profile, (width, height) in PROFILES.items():
-                context = browser.new_context(viewport={"width": width, "height": height}, service_workers="block")
+                context = browser.new_context(viewport={"width": width, "height": height}, service_workers="block", locale="es-ES", timezone_id="Europe/Madrid")
                 external = []
 
                 def route_guard(route):
@@ -288,6 +302,7 @@ def main() -> int:
                     response = page.goto(base_url + path, wait_until="domcontentloaded")
                     page.locator("[data-match-component='MatchHeader']").wait_for(state="visible")
                     page.evaluate("() => document.fonts.ready")
+                    wait_for_rendered_images(page)
                     screenshot = output / (scenario + "-" + profile + ".png")
                     page.screenshot(path=str(screenshot), full_page=True, animations="disabled")
                     row = page.evaluate(INSPECT_JS)
@@ -310,7 +325,9 @@ def main() -> int:
         thread.join(timeout=10)
         server.server_close()
         result = write_result(output, captures, fingerprint, guards, "Playwright Chromium")
-    print(json.dumps({"status": result["status"], "screenshots": len(captures), "origin": "SIMULATED_QA"}))
+    print(json.dumps({"status": result["status"], "screenshots": len(captures), "origin": "SIMULATED_QA",
+        "failures": [{"profile": row.get("profile"), "scenario": row.get("scenario"), "checks": observation_failures(row)}
+                     for row in captures if observation_failures(row)]}))
     return 0 if result["status"] == "PASS" else 1
 
 

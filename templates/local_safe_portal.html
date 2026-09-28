@@ -74,8 +74,8 @@
       {% set review_screens = [
         ('Landing','/'), ('Home','/app'), ('Partidos','/calendar'), ('Directo','/live'),
         ('Match','/match/local-match-1'), ('Team','/team/club-local-qa'), ('Competition','/competition/liga-local-qa'), ('Player','/player/local-player-101'),
-        ('Picks','/picks'), ('SHARK','/shark'), ('Track Record','/track-record'), ('Memberships','/membresias'),
-        ('Profile','/profile'), ('Telegram','/telegram'), ('Founder OS','/admin/founder-os'), ('Founder','/admin/founder-dashboard'), ('Growth','/admin/founder-dashboard#growth-revenue')
+        ('Pronósticos','/picks'), ('SHARK','/shark'), ('Historial','/track-record'), ('Membresías','/membresias'),
+        ('Mi cuenta','/mi-cuenta'), ('Telegram','/telegram'), ('Founder OS','/admin/founder-os'), ('Founder','/admin/founder-dashboard'), ('Growth','/admin/founder-dashboard#growth-revenue')
       ] %}
       {% for label, href in review_screens %}
       <article class="local-safe-review-card" data-review-screen="{{ label }}">
@@ -94,7 +94,7 @@
     <div>
       <span class="eyebrow">Experiencia disponible</span>
       <h2 id="local-experience-title">Datos seguros de QA local</h2>
-      <p>Los partidos, equipos, jugadores y picks de esta seccion estan identificados como <strong>SIMULATED_QA</strong>. Nunca cuentan como usuarios o negocio real.</p>
+      <p>Los partidos, equipos, jugadores y pronósticos de esta sección estan identificados como <strong>SIMULATED_QA</strong>. Nunca cuentan como usuarios o negocio real.</p>
     </div>
     <nav class="local-safe-link-grid" aria-label="Modulos locales">
       <a href="{{ local_routes.match }}">Match Center local</a>
@@ -102,7 +102,7 @@
       <a href="{{ local_routes.competition }}">Competition Center local</a>
       <a href="{{ local_routes.player }}">Player Center local</a>
       <a href="{{ local_routes.shark }}">SHARK local</a>
-      <a href="{{ local_routes.picks }}">Picks locales</a>
+      <a href="{{ local_routes.picks }}">Pronósticos locales</a>
       <a href="/membresias">Membresias</a>
       <a href="{{ local_routes.company }}">Company Platform</a>
     </nav>

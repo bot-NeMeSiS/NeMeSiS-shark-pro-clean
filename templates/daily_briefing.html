@@ -10,8 +10,8 @@
     <div class="actions">
       <a class="btn primary" href="{{ briefing.next_action.href }}">{{ briefing.next_action.title }}</a>
       <a class="btn" href="/match-hub">Partidos</a>
-      <a class="btn" href="/picks">Picks</a>
-      <a class="btn" href="/favorites">Favoritos</a>
+      <a class="btn" href="/picks">Pronósticos</a>
+      <a class="btn" href="/favoritos">Favoritos</a>
     </div>
   </div>
   <aside class="hero-panel command-score">
@@ -48,8 +48,8 @@
     <div class="section-head"><h2>Estado rápido</h2><span class="pill">Cliente</span></div>
     <div class="grid compact-grid">
       <div class="card metric-card"><div class="metric">{{ briefing.counts.today }}</div><div class="muted">hoy</div></div>
-      <div class="card metric-card"><div class="metric">{{ briefing.counts.live }}</div><div class="muted">live</div></div>
-      <div class="card metric-card"><div class="metric">{{ briefing.counts.picks }}</div><div class="muted">picks</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.live }}</div><div class="muted">directo</div></div>
+      <div class="card metric-card"><div class="metric">{{ briefing.counts.picks }}</div><div class="muted">pronósticos</div></div>
       <div class="card metric-card"><div class="metric">{{ briefing.counts.favorites }}</div><div class="muted">favoritos</div></div>
     </div>
   </div>
@@ -64,17 +64,17 @@
       {% set away_identity = m.away_identity|default({}) %}
       <a class="list-row v740-home-match" href="/match/{{ m.id }}"><span class="v740-home-teams"><span class="crest compact-crest {{ home_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ home_identity.get('crest_url','') }}" alt="{{ m.home_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ home_identity.get('flag_emoji') or home_identity.get('initials', (m.home_team or 'L')[:1]) }}'"></span><span class="v740-home-team-text"><strong>{{ m.safe_home or m.home_team }}</strong><em>vs</em><strong>{{ m.safe_away or m.away_team }}</strong><small>{{ (m.safe_competition or m.competition_name or m.league_name or 'Competición')|competition_es }}</small></span><span class="crest compact-crest {{ away_identity.get('ui_class','crest-fallback') }}"><img loading="lazy" src="{{ away_identity.get('crest_url','') }}" alt="{{ m.away_team }}" onerror="this.style.display='none';this.parentElement.textContent='{{ away_identity.get('flag_emoji') or away_identity.get('initials', (m.away_team or 'V')[:1]) }}'"></span></span><strong>{{ m|match_time_short }}</strong></a>
       {% else %}
-      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, apareceran aqui automaticamente.</p></div>
+      <div class="empty premium-empty"><strong>Sin partidos sincronizados</strong><p>Cuando haya datos suficientes, aparecerán aquí automáticamente.</p></div>
       {% endfor %}
     </div>
   </div>
   <div>
-    <div class="section-head"><h2>Picks y análisis</h2><a class="pill" href="/picks">Abrir</a></div>
+    <div class="section-head"><h2>Pronósticos y análisis</h2><a class="pill" href="/picks">Abrir</a></div>
     <div class="stack">
       {% for p in briefing.picks[:5] %}
       <a class="list-row" href="/picks"><span>{{ p.home_team }} vs {{ p.away_team }}<small>{{ p.selection_display or p.selection }}</small></span><strong>{{ p.confidence }}%</strong></a>
       {% else %}
-      <div class="empty premium-empty"><strong>No hay picks publicados</strong><p>Te mostraremos candidatos reales en Picks sin inventar señales.</p></div>
+      <div class="empty premium-empty"><strong>No hay pronósticos publicados</strong><p>Te mostraremos candidatos reales en Pronósticos sin inventar señales.</p></div>
       {% endfor %}
     </div>
   </div>
@@ -82,9 +82,9 @@
 
 
 <section class="band compact-band" data-top100-improvement="20">
-  <div class="section-head"><h2>Después de la jornada</h2><a class="pill" href="/evening-recap">Abrir recap nocturno</a></div>
+  <div class="section-head"><h2>Después de la jornada</h2><a class="pill" href="/evening-recap">Abrir resumen nocturno</a></div>
   <div class="grid dense-grid">
-    <article class="card"><strong>Resultados disponibles</strong><p class="small">El recap solo resume partidos y picks que tengan evidencia real.</p></article>
+    <article class="card"><strong>Resultados disponibles</strong><p class="small">El resumen solo muestra partidos y pronósticos que tengan evidencia real.</p></article>
     <article class="card"><strong>Pendientes honestos</strong><p class="small">Lo que no esté cerrado se muestra como pendiente, no como fallo ni éxito.</p></article>
     <article class="card"><strong>Siguiente día</strong><p class="small">Favoritos y actividad ayudan a preparar mañana sin generar recomendaciones de apuesta.</p></article>
   </div>
@@ -96,7 +96,7 @@
     {% for a in briefing.activity[:6] %}
     <div class="list-row"><span>{{ a.label }}</span><strong>{{ a.created_at|madrid_datetime_label }}</strong></div>
     {% else %}
-    <div class="empty">Tu actividad aparecerá al revisar partidos, picks, combinadas y favoritos.</div>
+    <div class="empty">Tu actividad aparecerá al revisar partidos, pronósticos, combinadas y favoritos.</div>
     {% endfor %}
   </div>
 </section>

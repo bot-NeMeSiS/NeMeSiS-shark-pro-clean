@@ -1,48 +1,52 @@
 #!/usr/bin/env python3
-"""Static QA checks for V728 client experience, Madrid time and release cleanliness."""
+"""Current client experience + Madrid-time QA using the canonical client guard."""
 from __future__ import annotations
 
 import json
-import re
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TEMPLATES = ROOT / "templates"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from engines.client_experience_guard_engine import client_experience_snapshot
+
 REPORTS = ROOT / "reports"
-CLIENT_TEMPLATES = {
-    "home.html", "client_overview.html", "sports_hub.html", "live.html", "calendar.html",
-    "picks.html", "combis.html", "shark.html", "telegram.html", "favorites.html",
-    "profile.html", "match_detail.html", "match_hub.html", "team_detail.html", "smart_dashboard.html",
-    "unified_intelligence_hub.html", "daily_briefing.html",
-}
-RAW_TIME_PATTERNS = [
-    r"kickoff_time\s*\}\}", r"match_time\s*\}\}", r"kickoff_iso\s*\}\}",
-    r"commence_time\s*\}\}", r"\+00:00", r"\bUTC\b", r"undefined", r"\bnull\b",
-]
-REQUIRED_FILTER_FILES = {"sports_hub.html", "live.html", "calendar.html", "match_detail.html", "picks.html", "combis.html"}
 
 
 def scan_templates() -> dict:
+    snapshot = client_experience_snapshot(ROOT)
     findings = []
     filter_coverage = {}
-    for name in sorted(CLIENT_TEMPLATES):
-        path = TEMPLATES / name
-        if not path.exists():
-            findings.append({"file": name, "severity": "warning", "issue": "template_missing"})
-            continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
+    for screen in snapshot.get("critical_screens", []):
+        name = str(screen.get("template") or "")
         filter_coverage[name] = {
-            "match_time_short": "match_time_short" in text,
-            "match_time_label": "match_time_label" in text,
-            "match_date_label": "match_date_label" in text,
+            "uses_madrid_filters": bool(screen.get("uses_madrid_filters")),
+            "needs_time_filter": bool(screen.get("needs_time_filter")),
+            "time_status_ok": bool(screen.get("time_status_ok")),
         }
-        for pattern in RAW_TIME_PATTERNS:
-            if re.search(pattern, text, flags=re.I):
-                findings.append({"file": name, "severity": "review", "issue": "possible_raw_time_or_placeholder", "pattern": pattern})
-    missing_required_filters = [name for name in REQUIRED_FILTER_FILES if not any(filter_coverage.get(name, {}).values())]
-    for name in missing_required_filters:
-        findings.append({"file": name, "severity": "error", "issue": "missing_madrid_time_filter"})
-    return {"findings": findings, "filter_coverage": filter_coverage, "missing_required_filters": missing_required_filters}
+        if not screen.get("exists"):
+            findings.append({"file": name, "severity": "error", "issue": "template_missing"})
+        elif screen.get("needs_time_filter") and not screen.get("time_status_ok"):
+            findings.append({"file": name, "severity": "error", "issue": "missing_madrid_time_filter"})
+    for item in snapshot.get("findings", []):
+        findings.append({
+            "file": item.get("template"),
+            "severity": "warning" if item.get("severity") == "WARN" else "info",
+            "issue": item.get("category") or "review",
+            "pattern": item.get("pattern") or "",
+        })
+    hard_errors = [item for item in findings if item["severity"] == "error"]
+    return {
+        "ok": not hard_errors and snapshot.get("status") == "OK",
+        "score": snapshot.get("score"),
+        "status": snapshot.get("status"),
+        "findings": findings,
+        "hard_errors": hard_errors,
+        "filter_coverage": filter_coverage,
+        "critical_screens": snapshot.get("critical_screens", []),
+    }
 
 
 def render_markdown(report: dict) -> str:
@@ -50,31 +54,47 @@ def render_markdown(report: dict) -> str:
         "# V728 Visual + Madrid Time QA",
         "",
         f"- Resultado: {'OK' if report['ok'] else 'REVISAR'}",
-        f"- Templates cliente revisados: {len(CLIENT_TEMPLATES)}",
-        f"- Hallazgos: {len(report['findings'])}",
+        f"- Guard cliente: `{report.get('score')}/100 · {report.get('status')}`",
+        f"- Pantallas críticas revisadas: `{len(report.get('critical_screens') or [])}`",
+        f"- Hallazgos: `{len(report.get('findings') or [])}`",
+        f"- Errores: `{len(report.get('hard_errors') or [])}`",
         "",
-        "## Cobertura filtros Madrid",
+        "## Cobertura Madrid",
     ]
-    for name, coverage in sorted(report["filter_coverage"].items()):
-        used = ", ".join(k for k, v in coverage.items() if v) or "sin filtro directo"
-        lines.append(f"- `{name}`: {used}")
-    if report["findings"]:
-        lines.extend(["", "## Hallazgos a revisar"])
-        for item in report["findings"][:80]:
-            lines.append(f"- `{item['file']}` · {item['severity']} · {item['issue']} {item.get('pattern','')}")
+    for item in report.get("critical_screens", []):
+        lines.append(
+            f"- `{item.get('route')}` → `{item.get('template')}` · "
+            f"exists=`{str(bool(item.get('exists'))).lower()}` · "
+            f"time_ok=`{str(bool(item.get('time_status_ok'))).lower()}`"
+        )
+    informational = [item for item in report.get("findings", []) if item.get("severity") != "error"]
+    if informational:
+        lines.extend(["", "## Hallazgos informativos"])
+        for item in informational[:80]:
+            lines.append(
+                f"- `{item.get('file')}` · {item.get('severity')} · "
+                f"{item.get('issue')} {item.get('pattern','')}"
+            )
     return "\n".join(lines) + "\n"
 
 
 def main() -> int:
-    template_report = scan_templates()
-    hard_errors = [f for f in template_report["findings"] if f["severity"] == "error"]
-    report = {"ok": not hard_errors, **template_report}
+    report = scan_templates()
     REPORTS.mkdir(exist_ok=True)
-    (REPORTS / "V728_VISUAL_TIME_QA_REPORT.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (REPORTS / "V728_VISUAL_TIME_QA_REPORT.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     markdown = render_markdown(report)
     (REPORTS / "V728_VISUAL_TIME_QA_REPORT.md").write_text(markdown, encoding="utf-8")
     (ROOT / "V728_VISUAL_TIME_QA_REPORT.md").write_text(markdown, encoding="utf-8")
-    print(json.dumps({"ok": report["ok"], "findings": len(report["findings"]), "hard_errors": len(hard_errors)}, ensure_ascii=False, indent=2))
+    print(json.dumps({
+        "ok": report["ok"],
+        "score": report["score"],
+        "status": report["status"],
+        "findings": len(report["findings"]),
+        "hard_errors": len(report["hard_errors"]),
+    }, ensure_ascii=False, indent=2))
     return 0 if report["ok"] else 1
 
 

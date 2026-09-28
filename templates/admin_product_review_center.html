@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, evidence_chip, data_table, empty_state, next_action, icon %}
-{% block title %}Product Review Center | NeMeSiS SHARK PRO{% endblock %}
+{% block title %}Centro de revisión de producto | NeMeSiS SHARK PRO{% endblock %}
 {% block content %}
 {% set summary = review.findings_summary or {} %}
 <div class="v933-page v933-admin-command-center" data-product-review-center="{{ review.center_contract }}" data-product-review-contract="{{ review.contract }}" data-product-review-mode="read-only">
-  {{ page_header('Product Review Center', 'Departamento interno de calidad: 12 revisores, evidencia obligatoria y cero ejecucion automatica.', 'target', [
+  {{ page_header('Centro de revisión de producto', 'Departamento interno de calidad: 12 revisores, evidencia obligatoria y cero ejecucion automatica.', 'target', [
     {'label':'Company Board','href':'/admin/company-board','icon':'chart'},
     {'label':'Developer','href':'/admin/developer-center','icon':'code'},
     {'label':'Operaciones','href':'/admin/operations-center','icon':'shield'},
     {'label':'API JSON','href':'/api/admin/product-review-center/summary','primary':true,'icon':'data'}
   ]) }}
 
-  <section class="v933-kpi-grid is-six" aria-label="Resumen Product Review">
+  <section class="v933-kpi-grid is-six" aria-label="Resumen de revisión de producto">
     {{ kpi_card('Revisores', review.reviewer_count, 'Equipo digital especializado', 'blue', 'users') }}
     {{ kpi_card('Score producto', review.score, 'Media de los 12 revisores con penalizaciones P0/P1/P2/P3', 'cyan', 'target') }}
     {{ kpi_card('Hallazgos', summary.total, 'Observaciones con evidencia', 'warning' if summary.total else 'success', 'list') }}

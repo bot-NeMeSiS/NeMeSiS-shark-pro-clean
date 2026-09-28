@@ -43,6 +43,12 @@ def main() -> int:
                 ):
                     zip_clean = False
                     break
+    base_template = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
+    canonical_navigation = (ROOT / "templates" / "components" / "v933_navigation.html").read_text(encoding="utf-8")
+    legacy_navigation_absent = all(
+        not (ROOT / "templates" / "components" / name).exists()
+        for name in ("v928_navigation.html", "v930_navigation.html")
+    )
     checks = {
         "version_v929_or_successor": bool(re.match(r"^V(\d+)", current_version) and int(re.match(r"^V(\d+)", current_version).group(1)) >= 929),
         "version_without_bom": not version_raw.startswith(b"\xef\xbb\xbf"),
@@ -51,12 +57,13 @@ def main() -> int:
         "runtime_version": runtime.get("version") == current_version,
         "version_files_match": runtime.get("version_files_match") is True,
         "deployment_aligned": runtime.get("deployment_alignment_status") == "aligned_local_files",
-        "flags_v929": all(runtime.get(key) is True for key in (
-            "has_v929_navigation_integrity", "has_v929_route_not_found_video_fix",
-            "has_v929_internal_link_audit", "has_v929_dynamic_route_guard",
-            "has_v929_admin_client_navigation_separation", "has_v929_mobile_navigation_guard",
-            "has_v929_navigation_worker", "has_v929_click_browser_qa",
-        )),
+        "canonical_navigation_contract": (
+            'components/v933_navigation.html' in base_template
+            and 'navigation_contracts.html' in canonical_navigation
+            and "nav_contracts.CLIENT_LINKS" in canonical_navigation
+            and "nav_contracts.ADMIN_LINKS" in canonical_navigation
+            and legacy_navigation_absent
+        ),
         "video_route_fixed": client.get("/clientes", follow_redirects=False).status_code in {301, 302, 303, 307, 308},
         "matrix_clean": int(matrix.get("broken_links") or 0) == 0,
         "click_matrix_clean": int(click.get("failures_count") or 0) == 0 and int(click.get("clicks_tested") or 0) > 0,

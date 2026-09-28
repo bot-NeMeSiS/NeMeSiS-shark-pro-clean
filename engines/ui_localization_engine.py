@@ -18,6 +18,23 @@ def valid_language(value):
     return value if isinstance(value, str) and value in LANGUAGES else None
 
 
+def preferred_terms(value, language='es'):
+    """Canonical product vocabulary for app-owned copy only."""
+    text = str(value or '')
+    if (valid_language(language) or 'es') != 'es' or not text:
+        return text
+    text = re.sub(r'\bpick\(s\)', 'pronóstico(s)', text, flags=re.IGNORECASE)
+    def repl(match):
+        token = match.group(0)
+        replacement = 'pronósticos' if token.lower().endswith('s') else 'pronóstico'
+        if token.isupper():
+            return replacement.upper()
+        if token[:1].isupper():
+            return replacement[:1].upper() + replacement[1:]
+        return replacement
+    return re.sub(r'\bpicks?\b', repl, text, flags=re.IGNORECASE)
+
+
 @lru_cache(maxsize=1)
 def catalogue():
     groups = json.loads(CATALOG_PATH.read_text(encoding='utf-8'))
@@ -42,10 +59,12 @@ def translate(source, language='es', **values):
         # Never log a dynamic value: it could be a name, message or other PII.
         LOG.debug('UI translation fallback: locale=%s', language)
         translated = source
+    translated = preferred_terms(translated, language)
+    fallback = preferred_terms(source, language)
     try:
         return translated.format_map(values) if values else translated
     except (KeyError, ValueError):
-        return source.format_map(values) if values else source
+        return fallback.format_map(values) if values else fallback
 
 
 def catalogue_issues():

@@ -103,3 +103,13 @@ No subir nunca a Render:
 - secretos reales
 
 El ZIP se crea por lista blanca para evitar inclusiones accidentales. Desde V725 se intenta guardar fuera del proyecto en `../releases`; si el sistema no permite escribir fuera, se usa `release_output/`, que queda excluido del propio ZIP.
+
+## Contrato de fiabilidad y despliegue (integracion PR92)
+
+REPARADO != RESUELTO. Para fallos importantes documentar ROOT CAUSE (separada de hipotesis), FIX, REGRESSION TEST rojo antes/verde despues cuando reproducible, PREVENTION, DETECTION y VERIFICATION del SHA/entorno pertinente. Reutilizar incidente Sentinel y evidencia canonica; no cerrar alcance CI/produccion por un PASS local.
+
+check/sprint label != deployed runtime version. Distinguir runtime leido de VERSION.txt/APP_VERSION/app.py, etiqueta historica de sprint/check y version candidata. Una etiqueta V944 con BASE_RUNTIME V940 no demuestra runtime V944. Autoridades ausentes o contradictorias fallan; health200 no acredita despliegue.
+
+MERGE TO MAIN = POSSIBLE PRODUCTION DEPLOY si branch: main + autoDeployTrigger: commit constan en configuracion conocida. Advertir que afecta a web y cron. Separar GIT CHANGE, RELEASE CANDIDATE, MERGE TO MAIN, PRODUCTION DEPLOY y POST-DEPLOY VERIFICATION. No sortear prohibiciones alterando render.yaml o Render. PRs de integracion permanecen DRAFT sin merge ni despliegue hasta autorizacion explicita.
+
+Runtime Reliability, fingerprints ampliados y radar siguen pendientes de implementacion; esta guia no afirma que sus mecanismos ya existan.

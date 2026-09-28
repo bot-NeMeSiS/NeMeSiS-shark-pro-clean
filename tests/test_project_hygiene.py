@@ -9,11 +9,67 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+PURGED_LEGACY_RUNTIME_DUMPS = {
+    "data/runtime/v902_autonomous_reference_scan_final.json",
+    "data/runtime/v902_autonomous_reference_scan.json",
+    "data/runtime/v902_autonomous_safe_scan.json",
+}
+
+PURGED_HISTORICAL_REPORT_ARTIFACTS = {
+    "reports/CODEX_DAILY_REPORT_20260612_1550.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1551.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1556.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1939.json",
+    "reports/CODEX_DAILY_REPORT_20260612_1941.json",
+    "reports/CODEX_DAILY_REPORT_20260612_2015.json",
+    "reports/CODEX_DAILY_REPORT_20260612_2036.json",
+    "reports/PROJECT_TREE_AUDIT_V723.json",
+    "reports/V726_PROJECT_TREE_AUDIT.json",
+    "reports/V913_reference_scan_validation_output.txt",
+    "reports/NEMESIS_PRODUCT_NORTH_STAR_AND_ECOSYSTEM_ORCHESTRATION.html",
+    "reports/PURGE_PROJECT_SAFE_LAST.json",
+    "reports/V726_PROJECT_TREE_AUDIT.md",
+    "reports/V726_PURGE_REPORT.json",
+    "reports/V726_PURGE_REPORT.md",
+    "reports/IMPORTS_ROUTES_VERIFY_V723.json",
+    "reports/PROJECT_TREE_AUDIT_V723.md",
+    "reports/PURGE_PROJECT_SAFE_LAST.md",
+    "reports/IMPORTS_ROUTES_VERIFY_V723.md",
+    "reports/git_precheck_operations_center/20260729T114247+0200/changed_files_manifest.json",
+    "reports/git_precheck_operations_center/20260729T114247+0200/git_precheck_report.md",
+    "reports/git_precheck_operations_center/20260729T114247+0200/new_files_manifest.txt",
+    "reports/git_precheck_operations_center/20260729T114247+0200/sha256_manifest.txt",
+    "reports/git_precheck_operations_center/20260729T114247+0200/working_tree.patch",
+}
+
+
+def test_historical_report_artifacts_stay_purged():
+    assert all(not (ROOT / path).exists() for path in PURGED_HISTORICAL_REPORT_ARTIFACTS)
+
+
+def test_historical_release_zip_audits_stay_out_of_source_reports():
+    assert list((ROOT / "reports").glob("RELEASE_ZIP_AUDIT_V*")) == []
+
+
+def test_obsolete_v902_runtime_scan_dumps_stay_purged():
+    assert all(not (ROOT / path).exists() for path in PURGED_LEGACY_RUNTIME_DUMPS)
+
+
+def test_generated_sentinel_histories_stay_out_of_source_tree():
+    for relative in (
+        "data/runtime/autonomous_company_sentinel/history",
+        "data/runtime/autonomous_sentinel/history",
+    ):
+        path = ROOT / relative
+        assert not path.exists() or list(path.iterdir()) == []
+
 
 @pytest.fixture(scope="module")
 def release_includes():
     tree = ast.parse((ROOT / "tools/build_clean_release.py").read_text(encoding="utf-8-sig"))
     namespace = {"ROOT": ROOT, "Path": Path}
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    namespace["VERSION_PREFIX"] = version.split("_", 1)[0]
     for node in tree.body:
         if isinstance(node, ast.Assign):
             try:
@@ -40,6 +96,7 @@ def release_includes():
     "reports/V915_QA/.codex/config.toml",
     "reports/V915_QA/Thumbs.db",
     "reports/V915_QA/access_token.txt",
+    "reports/V915_QA/summary.json",
     ".tmp_pytest_owned/result.json",
     ".nemesis_test_owned/result.json",
     ".tmp_reference_review/private/manifest.json",
@@ -60,13 +117,22 @@ def test_regenerable_or_private_artifact_cannot_reenter_release(relative, releas
     "project_control/CODEX_QUEUE.md",
     "reports/LOCAL_CONTINUITY_20260919.md",
     "reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md",
-    "reports/V915_SECURITY_SECRET_GUARD_REPORT.md",
-    "reports/V915_QA/summary.json",
+    "reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md",
+    "reports/V941_RELIABILITY_LEARNING_REPORT.md",
     "data/runtime/automation_workforce/latest_run.json",
     "data/runtime/automation_workforce/v935_workers/navigation.json",
 ])
 def test_existing_source_and_explicit_report_contracts_stay_included(relative, release_includes):
     assert release_includes(relative) is True
+
+
+
+@pytest.mark.parametrize("relative", [
+    "reports/V915_SECURITY_SECRET_GUARD_REPORT.md",
+    "reports/V939_PICK_QUALITY_THRESHOLDS.md",
+])
+def test_historical_report_paths_stay_out_of_release(relative, release_includes):
+    assert release_includes(relative) is False
 
 
 def test_every_project_control_http_source_is_shipped(release_includes):
@@ -91,6 +157,11 @@ def test_every_project_control_http_source_is_shipped(release_includes):
     ("tools/__pycache__/check.cpython-311.pyc", True),
     ("data/local_dev/qa.sqlite", True),
     ("data/qa_tmp/result.xml", True),
+    ("data/runtime/autonomous_company_sentinel/history/ACS-qa.json", True),
+    ("data/runtime/v902_autonomous_reference_scan_final.json", True),
+    ("data/runtime/v902_autonomous_reference_scan.json", True),
+    ("data/runtime/v902_autonomous_safe_scan.json", True),
+    ("data/runtime/autonomous_sentinel/history/ASW-qa.json", True),
     ("release_output/candidate.zip", True),
     ("logs/local.log", True),
 ])

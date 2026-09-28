@@ -130,7 +130,7 @@ def test_local_admin_banner_keeps_desktop_heading_clearance():
 def test_team_calendar_action_targets_canonical_hub_without_removing_legacy_route():
     template = (ROOT / 'templates/team_detail.html').read_text(encoding='utf-8')
     app_source = (ROOT / 'app.py').read_text(encoding='utf-8')
-    assert 'href="/calendar?team={{ t.name|urlencode }}">{{ ui("Calendario") }}</a>' in template
+    assert 'href="/calendario?team={{ t.name|urlencode }}">{{ ui("Calendario") }}</a>' in template
     assert '@app.route("/match-hub")' in app_source
 
 

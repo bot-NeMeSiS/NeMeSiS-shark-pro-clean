@@ -7,18 +7,18 @@
     <span class="ns-chip">Calidad de producto</span>
     <h1>Centro de incidencias</h1>
     <p>Qué sigue abierto, qué necesita verificación y qué puede prepararse para Codex.</p>
-    <div class="ns-actions"><a class="ns-button ns-button-secondary" href="/admin/sentinel-autopilot">AutoPilot</a><a class="ns-button ns-button-secondary" href="/admin/visual-worker">Visual Worker</a></div>
+    <div class="ns-actions"><a class="ns-button ns-button-secondary" href="/admin/sentinel-autopilot">Mejora automática</a><a class="ns-button ns-button-secondary" href="/admin/visual-worker">Revisión visual</a></div>
     <details class="v933-safe-copy"><summary>Ver detalles técnicos</summary><button class="ns-button ns-button-ghost" type="button" data-v904-fetch="/api/admin/sentinel/issues/summary">Consultar resumen protegido</button><output class="v904-safe-api-output" data-v904-output></output></details>
   </div>
 
   <section class="sentinel-ops" data-sentinel-jobs data-csrf="{{ csrf_token() }}" aria-labelledby="sentinel-jobs-title">
-    <header><div><h2 id="sentinel-jobs-title">Revisiones internas</h2><p>LOCAL ONLY · Plantillas cliente · Sin proveedores ni datos de negocio</p></div>
+    <header><div><h2 id="sentinel-jobs-title">Revisiones internas</h2><p>Solo local · Plantillas cliente · Sin proveedores ni datos de negocio</p></div>
       <button type="button" class="ns-button ns-button-primary" data-request-review disabled>{{ icon('shield') }} Revisar plantillas</button>
     </header>
     <p data-executor-state>Comprobando ejecutor</p>
     <p role="status" aria-live="polite" data-job-message></p>
     <div class="sentinel-ops-layout"><nav aria-label="Trabajos de revisión" data-job-list></nav><div data-job-detail aria-live="polite"></div></div>
-    <p class="v933-safe-copy">Una revisión terminada no cierra incidencias ni certifica producción. AutoPilot y Visual Worker: ejecutor no conectado a este flujo.</p>
+    <p class="v933-safe-copy">Una revisión terminada no cierra incidencias ni certifica producción. Mejora automática y revisión visual: ejecución no conectada a este flujo.</p>
   </section>
 
   {% include 'components/sentinel_project_control.html' %}
@@ -225,7 +225,7 @@
     rows.forEach(function(row){
       var matchText=!q || (row.getAttribute('data-search') || row.textContent || '').toLowerCase().indexOf(q) >= 0;
       var text=(row.getAttribute('data-search') || row.textContent || '').toLowerCase();
-      var matchKind=kind==='all' || !kind || (kind==='critical' && row.dataset.severity==='critical') || (kind==='open' && row.dataset.status==='OPEN_REAL') || (kind==='codex' && row.dataset.codex==='true') || (kind==='reference' && text.indexOf('reference')>=0) || (kind==='browser' && text.indexOf('browser')>=0) || (kind==='mobile' && text.indexOf('mobile')>=0) || (kind==='desktop' && text.indexOf('desktop')>=0) || (kind==='admin' && text.indexOf('admin')>=0) || (kind==='client' && text.indexOf('client')>=0);
+      var matchKind=kind==='all' || !kind || (kind==='critical' && row.dataset.severity==='critical') || (kind==='open' && ['OPEN_REAL','VERIFICATION_FAILED'].includes(row.dataset.status)) || (kind==='codex' && row.dataset.codex==='true') || (kind==='reference' && text.indexOf('reference')>=0) || (kind==='browser' && text.indexOf('browser')>=0) || (kind==='mobile' && text.indexOf('mobile')>=0) || (kind==='desktop' && text.indexOf('desktop')>=0) || (kind==='admin' && text.indexOf('admin')>=0) || (kind==='client' && text.indexOf('client')>=0);
       row.style.display=(matchText && matchKind) ? '' : 'none';
     });
   }

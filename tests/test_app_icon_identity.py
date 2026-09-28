@@ -134,7 +134,8 @@ def test_service_worker_versions_identity_without_offline_private_cache(client):
     response = client.get('/service-worker.js')
     assert response.status_code == 200
     body = response.get_data(as_text=True)
-    assert 'NEMESIS_CACHE_V940_ICON_' + metadata()['fingerprint'] in body
+    runtime_prefix = (ROOT / 'VERSION.txt').read_text(encoding='utf-8-sig').strip().split('_', 1)[0]
+    assert 'NEMESIS_CACHE_' + runtime_prefix + '_ICON_' + metadata()['fingerprint'] in body
     assert '/static/img/app-icons/' in body and "cache:'reload'" in body
     assert "req.mode==='navigate'" in body and "cache:'no-store'" in body
     assert 'cache.put' not in body and 'cache.add' not in body

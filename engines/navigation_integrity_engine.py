@@ -41,10 +41,10 @@ CLIENT_AUTH_PREFIXES = (
     "/app",
     "/profile",
     "/perfil",
+    "/mi-cuenta",
     "/telegram",
     "/favorites",
     "/favoritos",
-    "/memberships",
 )
 
 EXTERNAL_SCHEMES = ("http://", "https://", "mailto:", "tel:", "data:", "blob:")
@@ -406,6 +406,33 @@ def _entry_payload(app: Any, item: dict[str, Any], aliases: dict[str, str]) -> d
     ).payload()
 
 
+NAVIGATION_CLASSIFICATIONS = ("FALLO_REAL", "AVISO_ESPERADO", "FALSO_POSITIVO", "DEUDA_HEREDADA", "OK")
+
+
+def classify_navigation_finding(item: dict[str, Any], orphan_origins: set[str] | None = None) -> tuple[str, str]:
+    """Classify static navigation evidence without hiding the raw scanner result."""
+    orphan_origins = orphan_origins or set()
+    result = str(item.get("result") or "")
+    origin = str(item.get("origin_screen") or "")
+    source_kind = str(item.get("source_kind") or "")
+    target = str(item.get("generated_url") or "")
+
+    if result in BROKEN_RESULTS:
+        return "FALLO_REAL", "Destino o acción roto según el mapa Flask/contrato estático."
+    if origin in orphan_origins or result == "RUTA_SIN_ACCESO_UI":
+        return "DEUDA_HEREDADA", "Superficie histórica sin acceso UI activo; conservar visible como deuda hasta archivar o reactivar."
+    if result == "RUTA_INTERNA_NO_DEBE_SER_VISIBLE":
+        return "FALSO_POSITIVO", "El scanner observó un elemento no interactivo; no existe navegación que ejecutar."
+    if result == "WARNING":
+        if source_kind in {"link", "form", "javascript_or_data_url"} and (
+            "{{" in target or "{%" in target or item.get("flask_endpoint") == "dynamic_template"
+        ):
+            return "AVISO_ESPERADO", "Destino dinámico Jinja/JavaScript: requiere validación renderizada o Browser QA, no es un enlace roto por sí mismo."
+        if source_kind == "button" and not target:
+            return "AVISO_ESPERADO", "Control identificado para JavaScript sin URL literal; requiere Browser QA."
+        return "AVISO_ESPERADO", "El análisis estático no dispone de evidencia suficiente para convertir el aviso en fallo."
+    return "OK", "Ruta o estado coherente con el contrato estático."
+
 def _follow_redirects_safely(client: Any, path: str, limit: int = 8) -> dict[str, Any]:
     visited: list[str] = []
     current = path
@@ -535,6 +562,14 @@ def build_navigation_integrity_snapshot(
         template_text = (root / "templates" / path).read_text(encoding="utf-8-sig", errors="replace")
         if "data-v928-template" in template_text or "v928-" in template_text:
             important_orphans.append(path)
+    for item in matrix:
+        classification, classification_reason = classify_navigation_finding(item, orphan_origins)
+        item["classification"] = classification
+        item["classification_reason"] = classification_reason
+    classification_counts = {
+        key: sum(1 for item in matrix if item.get("classification") == key)
+        for key in NAVIGATION_CLASSIFICATIONS
+    }
     broken = [item for item in matrix if item.get("result") in BROKEN_RESULTS]
     warnings = [item for item in matrix if item.get("result") == "WARNING"]
     buttons_without_action = [item for item in matrix if item.get("result") == "BOTÓN_SIN_ACCIÓN"]
@@ -554,6 +589,12 @@ def build_navigation_integrity_snapshot(
         "orphan_templates": len(important_orphans),
         "archived_orphan_templates": len(orphans),
         "warnings_count": len(warnings),
+        "warning_classification": {
+            key: sum(1 for item in warnings if item.get("classification") == key)
+            for key in NAVIGATION_CLASSIFICATIONS
+        },
+        "classification_counts": classification_counts,
+        "actionable_navigation_failures": classification_counts.get("FALLO_REAL", 0),
         "video_route": {
             "path": "/clientes",
             "fixed": any(str(rule.rule).rstrip("/") == "/clientes" for rule in app.url_map.iter_rules()),
@@ -579,9 +620,10 @@ def matrix_markdown(snapshot: dict[str, Any]) -> str:
         f"- Loops: `{snapshot.get('redirect_loops', 0)}`",
         f"- Botones sin acción: `{snapshot.get('buttons_without_action', 0)}`",
         f"- Templates huérfanos detectados: `{snapshot.get('orphan_templates', 0)}`",
+        f"- Clasificación: `{snapshot.get('classification_counts', {})}`",
         "",
-        "| Origen | Texto | URL | Endpoint | Auth | Resultado | Corrección |",
-        "|---|---|---|---|---|---|---|",
+        "| Origen | Texto | URL | Endpoint | Auth | Resultado | Clasificación | Corrección |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for item in snapshot.get("matrix", []):
         values = [
@@ -591,6 +633,7 @@ def matrix_markdown(snapshot: dict[str, Any]) -> str:
             item.get("flask_endpoint"),
             item.get("authentication"),
             item.get("result"),
+            item.get("classification"),
             item.get("correction"),
         ]
         values = [str(value or "—").replace("|", "\\|").replace("\n", " ") for value in values]

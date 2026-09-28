@@ -3,16 +3,16 @@
 <section class="hero compact-hero">
   <p class="eyebrow">Ecosistema automático</p>
   <h1>NeMeSiS trabaja solo. Tú decides mejor.</h1>
-  <p class="muted">Datos, recomendaciones, picks candidatos, memoria SHARK y Telegram preparados para que tengas señales claras sin ruido técnico.</p>
+  <p class="muted">Datos, recomendaciones, pronósticos candidatos, memoria SHARK y Telegram preparados para que tengas señales claras sin ruido técnico.</p>
   <div class="hero-actions">
-    <a class="btn primary" href="/auto-picks">Ver Auto Picks</a>
+    <a class="btn primary" href="/auto-picks">Ver pronósticos automáticos</a>
     <a class="btn ghost" href="/recomendaciones">Recomendaciones</a>
-    <a class="btn ghost" href="/picks">Picks publicados</a>
+    <a class="btn ghost" href="/picks">Pronósticos publicados</a>
   </div>
 </section>
 
 <section class="grid cards-4">
-  <article class="card metric-card"><span class="metric">{{ data.global_score }}%</span><small>Score ecosistema</small></article>
+  <article class="card metric-card"><span class="metric">{{ data.global_score }}%</span><small>Puntuación del ecosistema</small></article>
   <article class="card metric-card"><span class="metric">{{ data.upcoming_matches }}</span><small>Partidos próximos priorizados</small></article>
   <article class="card metric-card"><span class="metric">{{ data.recommendations }}</span><small>Recomendaciones SHARK</small></article>
   <article class="card metric-card"><span class="metric">{{ data.recommendations_with_odds }}</span><small>Con cuota disponible</small></article>
@@ -42,7 +42,7 @@
   <div class="section-head"><h2>Memoria deportiva</h2><p>Base para análisis futuro, favoritos, Telegram y SHARK contextual.</p></div>
   <div class="grid cards-3">
     <article class="card metric-card"><span class="metric">{{ data.memory_items }}</span><small>Memorias guardadas</small></article>
-    <article class="card metric-card"><span class="metric">{{ data.candidate_picks }}</span><small>Picks candidatos</small></article>
+    <article class="card metric-card"><span class="metric">{{ data.candidate_picks }}</span><small>Pronósticos candidatos</small></article>
     <article class="card metric-card"><span class="metric">{{ data.automation_score }}%</span><small>Automatización</small></article>
   </div>
 </section>

@@ -54,7 +54,7 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
             "architecture": summary,
         })
 
-    @bp.route("/api/v608/write-route-map", methods=["GET", "POST"])
+    @bp.post("/api/v608/write-route-map")
     def api_v608_write_route_map():
         if not _admin_required():
             return jsonify({"ok": False, "version": app_version, "error": "Acceso admin requerido."}), 403

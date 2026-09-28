@@ -25,7 +25,7 @@ def main() -> int:
     app_version_file = read("APP_VERSION").strip().lstrip("\ufeff")
     app_py = read("app.py")
     css = read("static/app.css")
-    template = read("templates/admin_autonomous_sentinel.html")
+    template = read("templates/admin_autonomous_company_sentinel.html")
     engine = read("engines/autonomous_sentinel_worker_engine.py")
 
     require(version_txt.startswith(VERSION_PREFIXES), "VERSION.txt is not V891/V893/V894/V895/V896 autonomous worker lineage", failures)
@@ -42,8 +42,9 @@ def main() -> int:
     require("No auto deploy." in engine, "safe no deploy note missing", failures)
     require("No Telegram real." in engine, "safe no Telegram note missing", failures)
     require("dangerous_actions_executed" in engine, "dangerous action guard missing", failures)
-    require("v893-autonomous-sentinel" in template, "admin autonomous template marker missing", failures)
-    require("AUTONOMOUS_SENTINEL_AUTOFIX=0" in template, "safe autofix copy missing", failures)
+    require('data-v933-template="admin_autonomous_company_sentinel"' in template, "canonical autonomous company Sentinel marker missing", failures)
+    require('data-v904-method="POST"' in template and template.count('data-v904-method="POST"') >= 4, "safe explicit POST action contract missing", failures)
+    require("No auto deploy" in template and "No Telegram real" in template, "safe action copy missing", failures)
     require("V893 AUTONOMOUS SENTINEL USER ADMIN REFERENCE QA WORKER" in css, "V893 CSS marker missing", failures)
 
     for path in [
@@ -51,7 +52,7 @@ def main() -> int:
         "engines/sentinel_reference_qa_engine.py",
         "engines/sentinel_autofix_planner_engine.py",
         "engines/autonomous_sentinel_worker_engine.py",
-        "templates/admin_autonomous_sentinel.html",
+        "templates/admin_autonomous_company_sentinel.html",
     ]:
         require((ROOT / path).exists(), f"missing file: {path}", failures)
 

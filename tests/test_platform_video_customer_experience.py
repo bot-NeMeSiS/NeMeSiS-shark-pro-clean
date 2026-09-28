@@ -80,16 +80,21 @@ def test_support_and_faq_use_same_questions(app_module):
 
 
 def test_shark_question_and_answer_exist_without_picks(app_module):
-    with app_module.app.test_request_context('/shark?q=Donde%20esta%20mi%20cuenta'):
-        html=render_template('shark.html',data={'shark_assistant':{'answer':{'answer':'Respuesta de prueba sobre tu cuenta.'}},'v925_picks':{'picks':[]}})
+    with app_module.app.test_request_context('/shark',method='POST',data={'q':'Donde esta mi cuenta'}):
+        html=render_template('shark.html',data={'shark_question_active':True,
+            'shark_submitted_question':'Donde esta mi cuenta',
+            'shark_assistant':{'answer':{'answer':'Respuesta de prueba sobre tu cuenta.'}},'v925_picks':{'picks':[]}})
     assert 'name="q"' in html and 'Respuesta de prueba sobre tu cuenta.' in html
     assert 'Combinadas y decisiones con evidencia' not in html
-    assert '<form method="get" action="/shark">' in html
+    assert '<form method="post" action="/shark">' in html
+    assert '<form method="get" action="/shark">' not in html
 
 
 def test_shark_escapes_question_and_answer(app_module):
-    with app_module.app.test_request_context('/shark?q=%3Cscript%3Ealert(1)%3C/script%3E'):
-        html=render_template('shark.html',data={'shark_assistant':{'answer':{'answer':'<img src=x onerror=alert(1)>'}}})
+    question='<script>alert(1)</script>'
+    with app_module.app.test_request_context('/shark',method='POST',data={'q':question}):
+        html=render_template('shark.html',data={'shark_question_active':True,'shark_submitted_question':question,
+            'shark_assistant':{'answer':{'answer':'<img src=x onerror=alert(1)>'}}})
     assert '<img src=x onerror=alert(1)>' not in html
     assert '&lt;script&gt;' in html and '&lt;img' in html
 

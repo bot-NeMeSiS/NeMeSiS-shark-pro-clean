@@ -104,7 +104,7 @@ def test_founder_dashboard_renders_read_only_center(client, app_module, monkeypa
     assert b"Beta Control" in response.data
     assert "Resumen operativo".encode("utf-8") in response.data
     assert "Calidad deportiva".encode("utf-8") in response.data
-    assert b"Conflictos LIVE" in response.data
+    assert "Conflictos de directo".encode("utf-8") in response.data
     assert "Exportación de informes".encode("utf-8") in response.data
     assert b"data-founder-mode=\"read-only\"" in response.data
 

@@ -139,12 +139,13 @@ def main() -> int:
 
     for route in [
         "/api/admin/sentinel-autopilot/summary",
-        "/api/admin/sentinel-autopilot/run",
         "/api/admin/sentinel-autopilot/issues",
         "/api/admin/sentinel-autopilot/tasks",
         "/api/admin/sentinel-autopilot/generate-prompt",
     ]:
         require(client.get(route).status_code == 403, f"admin API without session not 403: {route}", failures)
+    require(client.get("/api/admin/sentinel-autopilot/run").status_code == 405, "AutoPilot run must reject GET", failures)
+    require(client.post("/api/admin/sentinel-autopilot/run").status_code == 403, "AutoPilot POST without session not 403", failures)
     require(client.post("/api/admin/sentinel-autopilot/mark-resolved", json={"issue_id": "AP-TEST"}).status_code == 403, "admin API without session not 403: mark-resolved", failures)
 
     require(client.get("/api/automation/sentinel-autopilot/run").status_code == 403, "AutoPilot cron without secret not 403", failures)

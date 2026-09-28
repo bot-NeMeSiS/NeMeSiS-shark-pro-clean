@@ -100,7 +100,7 @@ def test_provider_health_surfaces_restricted_primary_and_real_fallback(monkeypat
 
     odds = providers["the_odds"]
     assert odds["configured"] is True
-    assert odds["status"] == "OPERATIVA"
+    assert odds["status"] == "CACHE"
     assert "no verificable" in odds["billing_status"].lower()
 
 

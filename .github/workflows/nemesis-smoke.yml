@@ -10,8 +10,8 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Install dependencies
@@ -20,6 +20,18 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
           pip install -r browser_qa/playwright_requirements.txt
+      - name: V941 known regression gate
+        env:
+          SECRET_KEY: test-secret-key-for-ci
+          ADMIN_EMAIL: admin@example.com
+          ADMIN_PASSWORD: admin-password
+          BACKGROUND_JOBS_ENABLED: 'false'
+          AUTO_GENERATE_PICKS: 'false'
+          AUTO_SEND_TELEGRAM_PICKS: 'false'
+          DB_PATH: /tmp/nemesis_fast_regression.db
+        run: |
+          pytest -q -p no:cacheprovider             tests/test_product_excellence_sprint_02.py             tests/test_data_backup_master_dedupe.py             tests/test_product_language_clarity.py             tests/test_project_hygiene.py             tests/test_revenue_readonly_safety.py             tests/test_subscription_revenue_truth_v941.py             tests/test_shark_membership_limits_v941.py             tests/test_automation_schedule_minimal.py             tests/test_privacy_classification_v941.py             tests/test_public_api_scope_v941.py             tests/test_navigation_classification_v941.py             tests/test_dead_code_purge_v941.py             tests/test_client_surface_truth_v941.py             tests/test_mutation_endpoints_post_only_v941.py             tests/test_legacy_automation_safety_v941.py             tests/test_active_cron_header_transport_v941.py             tests/test_get_business_readonly_v941.py             tests/test_pronosticos_terminology.py             tests/test_calendar_terminology.py             tests/test_pwa_easy_install.py             tests/test_pwa_shareable_install_guide.py             tests/test_admin_shark_ai.py             tests/test_admin_js_only_forms_v941.py
+
       - name: Install test browser
         run: python -m playwright install --with-deps chromium
       - name: Crest fallback browser regression (offline)
@@ -59,6 +71,8 @@ jobs:
             --ignore=tests/test_local_betting_evidence.py
             --ignore=tests/test_local_client_continuity.py
             --ignore=tests/test_local_membership_preservation.py
+            --ignore=tests/test_admin_master_http.py
+            --ignore=tests/test_admin_master_browser.py
             --ignore=tests/test_telegram_visual_premium.py
             --ignore=tests/test_project_control_http.py
             --ignore=tests/test_sentinel_jobs_http.py
@@ -72,6 +86,8 @@ jobs:
             tests/test_local_betting_evidence.py \
             tests/test_local_client_continuity.py \
             tests/test_local_membership_preservation.py \
+            tests/test_admin_master_http.py \
+            tests/test_admin_master_browser.py \
             tests/test_telegram_visual_premium.py
           do
             python tools/check_local_candidate.py "$test_file"

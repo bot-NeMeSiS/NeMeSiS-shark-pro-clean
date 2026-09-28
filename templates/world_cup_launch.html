@@ -5,19 +5,19 @@
   <div>
     <div class="kicker">Modo Mundial · hora Madrid</div>
     <h1>Mundial en NeMeSiS SHARK PRO</h1>
-    <p class="lead">Partidos clave, directos, picks y resultados ordenados para el cliente. Sin mensajes de admin, sin datos inventados y con enlace claro al detalle.</p>
+    <p class="lead">Partidos clave, directos, pronósticos y resultados ordenados para el cliente. Sin mensajes de admin, sin datos inventados y con enlace claro al detalle.</p>
     <div class="v760-primary-actions">
-      <a class="btn primary" href="/calendar?lane=today">Hoy</a>
-      <a class="btn" href="/live?f=live">Directo</a>
-      <a class="btn" href="/picks">Picks</a>
-      <a class="btn" href="/track-record">Histórico</a>
+      <a class="btn primary" href="/calendario?lane=today">Hoy</a>
+      <a class="btn" href="/directo?f=live">Directo</a>
+      <a class="btn" href="/picks">Pronósticos</a>
+      <a class="btn" href="/historico">Historial</a>
     </div>
   </div>
   <div class="scoreboard-kpis">
     <div><strong>{{ (wc.counts or {}).get('matches', 0) }}</strong><span>Partidos foco</span></div>
     <div><strong>{{ (wc.counts or {}).get('live', 0) }}</strong><span>En directo</span></div>
     <div><strong>{{ (wc.counts or {}).get('upcoming', 0) }}</strong><span>Próximos</span></div>
-    <div><strong>{{ (wc.counts or {}).get('picks', 0) }}</strong><span>Picks</span></div>
+    <div><strong>{{ (wc.counts or {}).get('picks', 0) }}</strong><span>Pronósticos</span></div>
   </div>
 </section>
 
@@ -28,8 +28,8 @@
   <div class="v764-mode-mini">
     <span><strong>{{ (dm.counts or {}).get('live', 0) }}</strong><small>Directo</small></span>
     <span><strong>{{ (dm.counts or {}).get('upcoming', 0) }}</strong><small>Próximos</small></span>
-    <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Picks</small></span>
-    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendar') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
+    <span><strong>{{ (dm.counts or {}).get('picks', 0) }}</strong><small>Pronósticos</small></span>
+    <a class="btn primary" href="{{ (dm.primary_action or {}).get('href','/calendario') }}">{{ (dm.primary_action or {}).get('label','Ver calendario') }}</a>
   </div>
 </section>
 {% endif %}
@@ -44,13 +44,13 @@
       <em class="v762-chip">Ver partido</em>
     </a>
     {% else %}
-    <div class="empty premium-empty"><strong>{{ wc.empty_message }}</strong><p>Mientras tanto puedes revisar Calendario, Directo o Picks.</p></div>
+    <div class="empty premium-empty"><strong>{{ wc.empty_message }}</strong><p>Mientras tanto puedes revisar Calendario, Directo o Pronósticos.</p></div>
     {% endfor %}
   </div>
 </section>
 
 <section class="band compact-band v763-world-panel">
-  <div class="section-head"><div><h2>Picks vinculados</h2><p class="small">Cada pick debe verse con partido, hora Madrid, mercado, selección, cuota y riesgo.</p></div><a class="pill" href="/picks">Ver picks</a></div>
+  <div class="section-head"><div><h2>Pronósticos vinculados</h2><p class="small">Cada pronóstico debe verse con partido, hora Madrid, mercado, selección, cuota y riesgo.</p></div><a class="pill" href="/picks">Ver pronósticos</a></div>
   <div class="v762-client-list">
     {% for p in wc.picks[:6] %}
     <a class="v762-pick-row" href="{{ p.client_match_url or ('/match/' ~ (p.match_id or p.id)) }}">
@@ -58,13 +58,13 @@
       <span class="v762-pick-info"><strong>{{ p.client_selection_label or p.selection or 'Selección pendiente' }}</strong><small>{{ p.client_market_label or p.market or 'Mercado pendiente' }} · {{ p.client_odds_label or 'Cuota no disponible' }} · Riesgo {{ p.risk_level or 'Medio' }}</small></span>
     </a>
     {% else %}
-    <div class="empty premium-empty"><strong>No hay picks Mundial activos ahora mismo.</strong><p>SHARK espera valor real antes de publicar señales.</p></div>
+    <div class="empty premium-empty"><strong>No hay pronósticos del Mundial activos ahora mismo.</strong><p>SHARK espera valor real antes de publicar señales.</p></div>
     {% endfor %}
   </div>
 </section>
 
 <section class="card responsible-note v763-launch-note">
   <h2>Modo venta listo para Mundial</h2>
-  <p>La prioridad es claridad: qué partido es, cuándo se juega, qué pick hay, qué riesgo tiene y qué resultado real aparece después. NeMeSiS no inventa datos ni promete ganancias.</p>
+  <p>La prioridad es claridad: qué partido es, cuándo se juega, qué pronóstico hay, qué riesgo tiene y qué resultado real aparece después. NeMeSiS no inventa datos ni promete ganancias.</p>
 </section>
 {% endblock %}

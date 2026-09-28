@@ -39,7 +39,7 @@ def test_empty_missing_and_null_collections_do_not_iterate_dict_methods(bucket, 
     elif variant == 'null':
         data[bucket]['items'] = None
     html = render_founder(data)
-    assert 'Founder Control' in html
+    assert 'Control fundador' in html
     assert '0 alertas abiertas en el registro consultado.' in html
     assert 'Todavía no has registrado obligaciones.' in html
     assert html.count('data-founder-install') == 1

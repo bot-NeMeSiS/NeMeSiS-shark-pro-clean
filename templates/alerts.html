@@ -3,8 +3,8 @@
 <section class="product-hero compact-band">
   <div class="kicker">{{ ui("Centro cliente") }}</div>
   <h1>{{ ui("Alertas inteligentes") }}</h1>
-  <p class="lead">{{ ui("Resumen claro de lo importante para ti: live, picks, favoritos, próximos partidos y Telegram. Sin textos técnicos.") }}</p>
-  <div class="actions"><a class="btn primary" href="/perfil">{{ ui("Volver al perfil") }}</a><a class="btn" href="/match-hub">{{ ui("Partidos") }}</a><a class="btn" href="/picks">{{ ui("Picks") }}</a></div>
+  <p class="lead">{{ ui("Resumen claro de lo importante para ti: directo, pronósticos, favoritos, próximos partidos y Telegram. Sin textos técnicos.") }}</p>
+  <div class="actions"><a class="btn primary" href="/mi-cuenta">{{ ui("Volver al perfil") }}</a><a class="btn" href="/match-hub">{{ ui("Partidos") }}</a><a class="btn" href="/picks">{{ ui("Pronósticos") }}</a></div>
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>{{ ui("Prioridad de hoy") }}</h2><span class="pill">{{ data.date }}</span></div>
@@ -16,7 +16,7 @@
       <p class="small">{{ ui_owned(alert.body) }}</p>
     </a>
     {% else %}
-    <div class="empty premium-empty"><strong>{{ ui("Todo tranquilo") }}</strong><p>{{ ui("No hay alertas activas. Guarda favoritos o revisa partidos para personalizar tu feed.") }}</p></div>
+    <div class="empty premium-empty"><strong>{{ ui("Todo tranquilo") }}</strong><p>{{ ui("No hay alertas activas. Guarda favoritos o revisa partidos para personalizar tu panel.") }}</p></div>
     {% endfor %}
   </div>
 </section>

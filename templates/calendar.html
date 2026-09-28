@@ -31,10 +31,10 @@
 
 
   <section class="v933-kpi-grid" aria-label="{{ ui("Resumen deportivo") }}">
-    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendar?lane=today') }}
-    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendar?lane=week') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/live') }}
-    {{ kpi_card('Con pick', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendar?lane=with_pick') }}
+    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendario?lane=today') }}
+    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendario?lane=week') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/directo') }}
+    {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendario?lane=with_pick') }}
   </section>
 
   <section class="v933-panel v933-filter-panel v940-calendar-command"
@@ -44,7 +44,7 @@
       <div>
         <span class="v933-eyebrow">{{ ui("Prioridad deportiva") }}</span>
         <h2>{{ ui(selected.get('title') or 'Calendario') }}</h2>
-        <p>{{ ui(calendar.get('source_summary') or 'Agenda deportiva confirmada.') }}</p>
+        <p>{{ ui(calendar.get('source_summary') or 'Estado de la agenda deportiva.') }}</p>
       </div>
       <div class="v940-calendar-result-summary" aria-label="{{ ui("Resultados visibles") }}">
         <strong>{{ counts.get('visible', 0) }}</strong>
@@ -53,7 +53,7 @@
       </div>
     </header>
 
-    <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendar"
+    <form class="v933-filter-form v940-calendar-filter-form" method="get" action="/calendario"
           role="search" aria-label="{{ ui('Buscar partido') }}" data-v940-discovery-form>
       <input type="hidden" name="lane" value="{{ lane }}">
       <input type="hidden" name="date" value="{{ filters.get('date') or '' }}">
@@ -123,7 +123,7 @@
         {{ filter_tabs(date_navigation.shortcuts, filters.get('date')) }}
         <details class="v933-calendar-date-picker">
         <summary class="v933-icon-button" title="{{ ui('Fecha del calendario') }}">{{ icon('calendar') }}<span class="sr-only">{{ ui('Fecha del calendario') }}</span></summary>
-        <form method="get" action="/calendar" class="v933-calendar-date-form">
+        <form method="get" action="/calendario" class="v933-calendar-date-form">
           <a class="v933-icon-button v933-calendar-panel-arrow v933-calendar-previous" href="{{ date_navigation.previous }}" aria-label="{{ ui('Día anterior') }}">{{ icon('arrow') }}</a>
           <input type="hidden" name="lane" value="today">
           {% for key in ['q','league','country','team','status','sort','with_pick'] %}{% if filters.get(key) %}<input type="hidden" name="{{ key }}" value="{{ filters.get(key) }}">{% endif %}{% endfor %}
@@ -153,7 +153,7 @@
           <em>{{ ui("Quitar") }}</em>
         </a>
         {% endfor %}
-        <a class="v940-calendar-reset" data-v940-reset-filters href="{{ calendar.get('reset_href') or '/calendar' }}">{{ ui("Limpiar capas") }}</a>
+        <a class="v940-calendar-reset" data-v940-reset-filters href="{{ calendar.get('reset_href') or '/calendario' }}">{{ ui("Limpiar filtros") }}</a>
       </nav>
     </div>{% endif %}
   </section>
@@ -228,9 +228,9 @@
         {% if safe.get('provider_status') == 'temporarily_unavailable' %}
         <div data-calendar-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', request.full_path, 'calendar') }}</div>
         {% elif active_filters %}
-        <div data-calendar-empty="FILTER_EMPTY">{{ empty_state('No hay partidos que coincidan', 'Prueba otra fecha o ajusta los filtros.', 'Limpiar capas', calendar.get('reset_href') or '/calendar', 'calendar') }}</div>
+        <div data-calendar-empty="FILTER_EMPTY">{{ empty_state('No hay partidos que coincidan', 'Prueba otra fecha o ajusta los filtros.', 'Limpiar filtros', calendar.get('reset_href') or '/calendario', 'calendar') }}</div>
         {% elif safe.get('has_real_data') %}
-        <div data-calendar-empty="REAL_EMPTY">{{ empty_state('No hay partidos para esta fecha', 'Consulta otra fecha de la agenda disponible.', 'Semana completa', '/calendar?lane=week', 'calendar') }}</div>
+        <div data-calendar-empty="REAL_EMPTY">{{ empty_state('No hay partidos para esta fecha', 'Consulta otra fecha de la agenda disponible.', 'Semana completa', '/calendario?lane=week', 'calendar') }}</div>
         {% else %}
         <div data-calendar-empty="DATA_NOT_AVAILABLE">{{ empty_state('Agenda pendiente de actualización', 'Todavía no hay encuentros completos disponibles.', 'Reintentar', request.full_path, 'calendar') }}</div>
         {% endif %}

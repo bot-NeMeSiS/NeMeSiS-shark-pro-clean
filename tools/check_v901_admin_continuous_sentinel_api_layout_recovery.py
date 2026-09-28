@@ -44,7 +44,6 @@ def main() -> int:
     admin_login_tpl = read("templates/admin_login.html")
     continuous_tpl = read("templates/admin_continuous_sentinel.html")
     workflow_tpl = read("templates/admin_sentinel_workflow.html")
-    shark_tpl = read("templates/admin_shark_sentinel.html")
 
     require(read("VERSION.txt").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "VERSION.txt is not an allowed V901+ release", failures)
     require(read("APP_VERSION").strip().lstrip("\ufeff") in CURRENT_ALLOWED, "APP_VERSION is not an allowed V901+ release", failures)
@@ -64,12 +63,12 @@ def main() -> int:
     require("bottom-nav" not in admin_login_tpl and "shark-widget" not in admin_login_tpl, "admin-login template contains client nav/floating shark", failures)
     require("Ã" not in admin_login_tpl and "�" not in admin_login_tpl, "admin-login mojibake visible", failures)
 
-    combined_admin = "\n".join([continuous_tpl, workflow_tpl, shark_tpl])
+    combined_admin = "\n".join([continuous_tpl, workflow_tpl])
     require('href="/api/admin/continuous-sentinel/run' not in combined_admin, "continuous sentinel action still links directly to API", failures)
     require("data-sentinel-run" in continuous_tpl and "fetch(`/api/admin/continuous-sentinel/run" in continuous_tpl, "continuous sentinel fetch buttons missing", failures)
     require("v901-sentinel-status" in continuous_tpl, "continuous sentinel result panel missing", failures)
-    require('href="/api/admin/shark-sentinel/run' not in shark_tpl, "shark sentinel action still links directly to API", failures)
-    require("data-shark-sentinel-run" in shark_tpl and 'fetch("/api/admin/shark-sentinel/run"' in shark_tpl, "shark sentinel fetch button missing", failures)
+    require('@app.route("/admin/shark-sentinel")' in app_py, "SHARK Sentinel alias route missing", failures)
+    require('render_template("admin_continuous_sentinel.html"' in app_py, "SHARK Sentinel alias no longer uses canonical Continuous Sentinel UI", failures)
     for bad in ["javascript:void", 'href="#"', "Internal Server Error"]:
         require(bad not in combined_admin, f"bad admin UI token present: {bad}", failures)
     for bad in ["Ã", "Â", "�"]:

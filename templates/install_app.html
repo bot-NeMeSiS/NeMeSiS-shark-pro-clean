@@ -57,8 +57,9 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     if (typeof window.nemesisInstallApp === 'function') {
-      window.nemesisInstallApp();
-      if (status) status.textContent = 'Sigue las indicaciones del navegador.';
+      Promise.resolve(window.nemesisInstallApp()).then(function (result) {
+        if (status) status.textContent = (result && result.message) || 'Consulta las indicaciones del navegador.';
+      });
     } else if (status) {
       status.textContent = 'Si ya está instalada, ábrela desde su icono. Si no, usa el menú del navegador para añadirla a inicio.';
     }

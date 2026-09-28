@@ -958,6 +958,10 @@
       "en": "View all",
       "fr": "Tout voir"
     },
+    "Combinadas": {
+      "en": "Accumulators",
+      "fr": "Combinés"
+    },
     "Plan": {
       "en": "Plan",
       "fr": "Offre"
@@ -1194,6 +1198,10 @@
       "en": "Active picks",
       "fr": "Picks actifs"
     },
+    "Pronósticos activos": {
+      "en": "Active predictions",
+      "fr": "Pronostics actifs"
+    },
     "Tu radar": {
       "en": "Your watchlist",
       "fr": "Votre sélection"
@@ -1226,9 +1234,17 @@
       "en": "Featured pick",
       "fr": "Pick à la une"
     },
+    "Pronóstico destacado": {
+      "en": "Featured prediction",
+      "fr": "Pronostic à la une"
+    },
     "Todavía no hay picks publicados": {
       "en": "No picks published yet",
       "fr": "Aucun pick publié pour le moment"
+    },
+    "Todavía no hay pronósticos publicados": {
+      "en": "No predictions published yet",
+      "fr": "Aucun pronostic publié pour le moment"
     },
     "SHARK espera evidencia completa.": {
       "en": "SHARK is waiting for complete evidence.",

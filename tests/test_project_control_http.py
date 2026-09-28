@@ -28,7 +28,10 @@ def test_real_page_and_read_only_sources(runtime):
     before=store.list('organization-admin')
     response=client.get('/api/admin/sentinel/project-control')
     assert response.status_code==200
-    assert len(response.json['queue'])==23
+    assert len(response.json['queue'])==24
+    telegram = next(row for row in response.json['queue'] if row['ID'] == 'TG-001')
+    assert telegram['Estado'] == 'QA'
+    assert telegram['Ambito'] == 'LOCAL_ONLY'
     assert response.headers['Cache-Control']=='no-store'
     assert client.get('/api/admin/sentinel/project-control/sources/conversations').status_code==200
     assert client.get('/api/admin/sentinel/project-control/sources/.env').status_code==404

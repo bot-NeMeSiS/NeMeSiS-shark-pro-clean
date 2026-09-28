@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from pathlib import Path
 
 from engines.growth_revenue_os_engine import (
@@ -157,3 +158,200 @@ def test_growth_brief_is_part_of_continuous_evolution_without_mutating_actions()
     assert "Revenue:" in source
     assert "build_growth_revenue_os_snapshot" in source
     assert "automatic_publication" not in source
+
+def test_founder_surfaces_first10_next_action_before_deep_growth_detail():
+    founder_template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
+    assert 'data-first10-founder-today="true"' in founder_template
+    assert "FIRST 10 · Tu siguiente acción" in founder_template
+    assert "Registrados reales" in founder_template
+    assert "Primer valor" in founder_template
+    assert "Activados" in founder_template
+    assert "Han vuelto" in founder_template
+    assert "Invita a una sola persona adecuada." in founder_template
+    assert "No invites a otra persona todavía." in founder_template
+    assert "Pausa las invitaciones." in founder_template
+    assert "SIMULATED_QA no incrementa estos contadores" in founder_template
+
+
+def test_first10_cohort_is_real_campaign_only_and_links_pseudonymous_feedback(app_module):
+    real_uid = "first10-real-" + uuid.uuid4().hex[:10]
+    other_uid = "first10-other-" + uuid.uuid4().hex[:10]
+    qa_uid = "first10-qa-" + uuid.uuid4().hex[:10]
+    user_ids = (real_uid, other_uid, qa_uid)
+
+    def record(uid, stage, *, campaign="", origin="REAL_USER"):
+        payload = {
+            "evidence_origin": origin,
+            "campaign_id": campaign,
+            "channel": "REFERRAL",
+            "privacy": {"pii_stored": False},
+        }
+        app_module.record_user_activity(
+            app_module.GROWTH_STAGE_ACTIVITY[stage],
+            "growth_funnel",
+            stage.lower(),
+            payload,
+            user_id=uid,
+        )
+
+    try:
+        record(real_uid, "REGISTRATION", campaign="FIRST_10_USERS")
+        record(real_uid, "FIRST_VALUE")
+        record(real_uid, "ACTIVATED")
+        record(real_uid, "RETURNING")
+
+        record(other_uid, "REGISTRATION", campaign="OTHER_CAMPAIGN")
+        record(other_uid, "FIRST_VALUE")
+
+        record(qa_uid, "REGISTRATION", campaign="FIRST_10_USERS", origin="SIMULATED_QA")
+        record(qa_uid, "FIRST_VALUE", origin="SIMULATED_QA")
+
+        app_module.ensure_beta_feedback_schema()
+        payload, errors = app_module.sanitize_beta_feedback_payload(
+            {
+                "feedback_type": "satisfaction",
+                "category": "shark",
+                "severity": "low",
+                "device_context": "mobile",
+                "title": "Primer uso",
+                "message": "La experiencia fue clara.",
+                "satisfaction_score": "5",
+                "allow_beta_metrics": "1",
+            },
+            {"id": real_uid},
+        )
+        assert errors == []
+        app_module.save_beta_feedback(payload)
+
+        snapshot = app_module.growth_first10_cohort_snapshot(limit=10)
+        assert snapshot["campaign_id"] == "FIRST_10_USERS"
+        assert snapshot["evidence_origin"] == "REAL_USER_ONLY"
+        assert snapshot["count"] == 1
+        assert snapshot["feedback_users"] == 1
+        assert snapshot["stage_counts"]["REGISTRATION"] == 1
+        assert snapshot["stage_counts"]["FIRST_VALUE"] == 1
+        assert snapshot["stage_counts"]["ACTIVATED"] == 1
+        assert snapshot["stage_counts"]["RETURNING"] == 1
+        assert snapshot["premium_access_users"] == 0
+        assert snapshot["privacy"]["pii_exposed"] is False
+
+        item = snapshot["items"][0]
+        assert item["alias"] == "Beta 01"
+        assert item["stage"] == "RETURNING"
+        assert item["feedback_count"] == 1
+        assert item["satisfaction_score"] == 5
+        assert item["action_state"] == "LEARN"
+        assert item["user_ref"].startswith("usr_")
+
+        serialized = json.dumps(snapshot, ensure_ascii=False)
+        assert real_uid not in serialized
+        assert other_uid not in serialized
+        assert qa_uid not in serialized
+    finally:
+        user_ref = app_module.pseudonymized_user_ref({"id": real_uid})
+        conn = app_module.db()
+        conn.execute(
+            "DELETE FROM user_activity WHERE user_id IN (?,?,?) AND target_type='growth_funnel'",
+            user_ids,
+        )
+        if app_module.db_table_exists("beta_feedback"):
+            conn.execute("DELETE FROM beta_feedback WHERE user_ref=?", (user_ref,))
+        conn.commit()
+        conn.close()
+
+
+def test_first10_founder_template_exposes_cohort_without_pii_columns():
+    template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
+    assert 'data-first10-cohort="true"' in template
+    assert "Cohorte FIRST 10 · seguimiento sin PII" in template
+    assert "Usuario beta" in template
+    assert "Siguiente acción" in template
+    assert "email" not in template[template.index('data-first10-cohort="true"'):template.index('data-first10-cohort="true"') + 3000].lower()
+
+
+def test_first10_registration_form_defaults_to_onboarding_but_paid_checkout_wins(client):
+    response = client.get(
+        "/registro?utm_source=referral&utm_medium=manual&utm_campaign=FIRST_10_USERS&ref=first10-founder"
+    )
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'name="next" value="/onboarding"' in html
+
+    paid = client.get(
+        "/registro?plan=PRO&utm_source=referral&utm_medium=manual&utm_campaign=FIRST_10_USERS&ref=first10-founder"
+    )
+    paid_html = paid.get_data(as_text=True)
+    assert paid.status_code == 200
+    assert 'name="plan" value="PRO"' in paid_html
+    assert "/membresias?plan=PRO" in paid_html
+    assert "continuar_pago=1" in paid_html
+
+
+def test_onboarding_prioritizes_first_value_before_personalization(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "get_favorites", lambda user_id="": [])
+    monkeypatch.setattr(app_module, "published_picks_for_user", lambda user, limit=12: [])
+    monkeypatch.setattr(app_module, "build_client_alerts", lambda limit=5: [])
+    monkeypatch.setattr(app_module, "telegram_user_state", lambda user: {"linked": False})
+
+    def safe_count_before_value(table, where="", params=()):
+        if table == "user_activity":
+            return 0
+        if table == "shark_memory":
+            return 0
+        return 0
+
+    monkeypatch.setattr(app_module, "safe_count", safe_count_before_value)
+    with app_module.app.test_request_context("/onboarding"):
+        app_module.session["growth_attribution"] = {
+            "campaign_id": "FIRST_10_USERS",
+            "channel": "REFERRAL",
+        }
+        status = app_module.onboarding_status({"id": "real-first10-user", "membership": "FREE", "role": "FREE"})
+
+    assert [step["key"] for step in status["steps"]] == ["account", "first_value", "shark", "favorites", "telegram"]
+    assert status["next_step"]["key"] == "first_value"
+    assert status["next_step"]["href"] == "/calendario"
+    assert status["core_done"] == 1
+    assert status["core_total"] == 2
+    assert status["core_score"] == 50
+    assert status["first10_beta"] is True
+    assert next(step for step in status["steps"] if step["key"] == "telegram")["optional"] is True
+
+
+def test_onboarding_after_first_value_moves_to_optional_value_and_feedback(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "get_favorites", lambda user_id="": [])
+    monkeypatch.setattr(app_module, "published_picks_for_user", lambda user, limit=12: [])
+    monkeypatch.setattr(app_module, "build_client_alerts", lambda limit=5: [])
+    monkeypatch.setattr(app_module, "telegram_user_state", lambda user: {"linked": False})
+
+    def safe_count_after_value(table, where="", params=()):
+        if table == "user_activity":
+            return 1
+        if table == "shark_memory":
+            return 0
+        return 0
+
+    monkeypatch.setattr(app_module, "safe_count", safe_count_after_value)
+    with app_module.app.test_request_context("/onboarding"):
+        app_module.session["growth_attribution"] = {"campaign_id": "FIRST_10_USERS"}
+        status = app_module.onboarding_status({"id": "real-first10-user", "membership": "FREE", "role": "FREE"})
+
+    assert status["first_value_ready"] is True
+    assert status["core_score"] == 100
+    assert status["next_step"]["key"] == "shark"
+
+    template = (ROOT / "templates" / "onboarding.html").read_text(encoding="utf-8")
+    assert 'data-first-value-onboarding="true"' in template
+    assert 'data-first10-feedback-prompt="true"' in template
+    assert 'href="/beta#beta-feedback-form"' in template
+    assert "No configures cinco cosas antes de empezar." in template
+
+
+def test_first10_cohort_metrics_are_campaign_specific_not_global():
+    template = (ROOT / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
+    assert "first10_registered = first10_cohort.get('count', 0)" in template
+    assert "first10_stage_counts.get('FIRST_VALUE', 0)" in template
+    assert "first10_stage_counts.get('ACTIVATED', 0)" in template
+    assert "first10_stage_counts.get('RETURNING', 0)" in template
+    assert "Acceso actual; no equivale a pago confirmado" in template
+    assert "Pago real" not in template[template.index('id="first10-today"'):template.index('id="first10-today"') + 5000]

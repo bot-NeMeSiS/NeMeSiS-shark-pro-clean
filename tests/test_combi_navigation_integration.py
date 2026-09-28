@@ -133,7 +133,7 @@ def test_mobile_keeps_five_items_and_marks_picks_section(app_module,path,authent
         assert len(elements.find('a')) == 5
         current = elements.find('a',**{'aria-current':None})
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
-        assert current[0].attrs['aria-current'] == 'true'  # current section, not the Picks page
+        assert current[0].attrs['aria-current'] == 'page'  # current section follows the canonical page token
 
 
 @pytest.mark.parametrize('path',['/combis','/combinadas'])
@@ -146,12 +146,22 @@ def test_desktop_marks_same_section_without_extra_primary_items(app_module,path,
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
 
 
-@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendar'),('/profile','/profile'),('/app','/app')])
+@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario'),('/shark','/shark'),('/app','/app')])
 def test_other_primary_destinations_keep_their_current_page(app_module,path,href):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
         elements = Elements(macro.v933_mobile_bottom_nav(True))
         assert elements.find('a',**{'aria-current':'page'})[0].attrs['href'] == href
+
+
+def test_mobile_header_keeps_account_access_when_bottom_nav_prioritizes_shark(app_module):
+    with app_module.app.test_request_context('/shark'):
+        macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
+        shell = Elements(macro.v933_client_navigation('PRO'))
+        bottom = Elements(macro.v933_mobile_bottom_nav(True))
+    assert shell.find('a',href='/mi-cuenta')
+    assert bottom.find('a',href='/shark')
+    assert not bottom.find('a',href='/mi-cuenta')
 
 
 @pytest.fixture
@@ -183,11 +193,11 @@ def test_actual_home_account_and_picks_reach_one_combi_screen(client_pages,app_m
     home = Elements(client_pages['/app'])
     account = Elements(client_pages['/profile'])
     shortcuts = [e for e in home.find('a') if any('ns16-home-actions' in a.get('class','').split() for t,a in e.parents)]
-    assert [e.attrs['href'] for e in shortcuts] == ['/favorites','/memberships','/support']
+    assert [e.attrs['href'] for e in shortcuts] == ['/favoritos','/membresias','/soporte']
     assert any(e.attrs['href'] == '/combinadas' and any('ns16-featured-pick' in a.get('class','').split()
                for t,a in e.parents) for e in home.find('a'))
     assert account.find('a',href='/combinadas#combinadas-guardadas')
-    assert account.find('a',href='/memberships')  # plan access is retained
+    assert account.find('a',href='/membresias')  # plan access is retained
     for route in ('/combis','/combinadas','/picks'):
         assert len(Elements(client_pages[route]).find('nav',**{'data-picks-workspace-nav':None})) == 1
     app = app_module.app
@@ -222,7 +232,7 @@ def test_real_client_shell_workspace_is_visible_and_usable(browser,client_pages,
     assert page.evaluate('document.activeElement.textContent.trim()') == 'Combinadas'
     if width < 768:
         assert page.locator('[data-nav-zone=client-bottom]').is_visible()
-        assert page.locator('[data-nav-zone=client-bottom] [aria-current=true]').get_attribute('href') == '/picks'
+        assert page.locator('[data-nav-zone=client-bottom] [aria-current=page]').get_attribute('href') == '/picks'
     page.locator('.ns-combis').evaluate("el=>el.insertAdjacentHTML('afterbegin','<p style=\"color:white;position:relative;z-index:9999\">SIMULATED_QA · cuenta y datos temporales; no producción</p>')")
     import os
     out = Path(os.environ.get('NEMESIS_COMBI_INTEGRATION_EVIDENCE',str(tmp_path)));out.mkdir(parents=True,exist_ok=True)

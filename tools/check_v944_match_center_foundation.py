@@ -68,12 +68,12 @@ def main() -> int:
         / "browser_qa_result.json"
     )
 
-    require(read("VERSION.txt").strip() == BASE_RUNTIME, "VERSION.txt was modified")
-    require(read("APP_VERSION").strip() == BASE_RUNTIME, "APP_VERSION was modified")
-    require(
-        f"APP_VERSION = '{BASE_RUNTIME}'" in app_source,
-        "app.py runtime was modified",
-    )
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.print_release_identity import runtime_identity
+    identity = runtime_identity(ROOT)
+    current_runtime = identity["runtime_version"] or ""
+    require(identity["ok"], "Runtime authorities missing or inconsistent")
     require(
         'MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"' in engine,
         "approved Match Center contract missing",
@@ -141,13 +141,13 @@ def main() -> int:
 
     contract = build_v944_match_center_foundation_contract_snapshot(
         ROOT,
-        BASE_RUNTIME,
+        current_runtime,
     )
     require(contract.get("validation_result") == "PASS", "Sentinel contract failed")
     require(contract.get("production_certified") is False, "local gate claimed production")
     issues = [
         item
-        for item in detect_product_quality_contract_issues(ROOT, BASE_RUNTIME)
+        for item in detect_product_quality_contract_issues(ROOT, current_runtime)
         if item.get("id") == "V944-MATCH-CENTER-FOUNDATION-CONTRACT"
     ]
     require(not issues, "healthy foundation opened an AutoPilot issue")
@@ -161,7 +161,8 @@ def main() -> int:
     result = {
         "sprint": SPRINT,
         "base_runtime": BASE_RUNTIME,
-        "runtime_modified": False,
+        "runtime_version": current_runtime,
+        "runtime_modified": current_runtime != BASE_RUNTIME,
         "status": "PASS" if not failures else "FAIL",
         "failures": failures,
         "contract": contract,

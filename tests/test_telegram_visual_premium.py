@@ -438,7 +438,7 @@ def test_simulated_qa_representative_gallery(tmp_path, monkeypatch):
     final = {**match, "kickoff_iso": (now - timedelta(hours=3)).isoformat(), "status": "FT", "home_score": 2, "away_score": 1}
     highlight = {"url": "https://example.invalid/resumen-qa", "rights_status": "OWNED", "commercial_use_status": "ALLOWED", "allowed_channels": ["TELEGRAM"]}
     cases = {"pick": cards.build_pick_visual_card_payload(match), "combi": cards.build_combi_visual_card_payload(combi),
-             "live": cards.build_live_visual_card_payload(live), "result": cards.build_result_visual_card_payload(final, highlight={}),
+             "live": cards.build_live_visual_card_payload(live), "result": cards.build_result_visual_card_payload(final),
              "highlight": cards.build_highlight_visual_card_payload(final, highlight)}
     copy = {"pick": fmt.format_pick_message(match), "combi": fmt.format_combi_message(combi), "live": fmt.format_live_alert_message(live),
             "result": fmt.format_result_message(final, {**match, "result_status": "won"}), "highlight": fmt.format_highlight_message(final, highlight)}

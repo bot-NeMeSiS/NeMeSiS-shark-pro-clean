@@ -80,13 +80,14 @@ def main() -> int:
     })
     request = urllib.request.Request(
         target,
+        data=b"{}",
         headers={
             "User-Agent": "NeMeSiS-SHARK-PRO-Sports-Cron/V937",
             "X-NeMeSiS-Cron-Runner": "render-cron",
             "X-Automation-Secret": secret,
             "Accept": "application/json",
         },
-        method="GET",
+        method="POST",
     )
     try:
         with urllib.request.urlopen(request, timeout=75) as response:

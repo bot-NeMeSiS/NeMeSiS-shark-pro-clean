@@ -134,7 +134,6 @@ def main() -> int:
         read(path) for path in [
             "templates/admin_continuous_sentinel.html",
             "templates/admin_sentinel_workflow.html",
-            "templates/admin_shark_sentinel.html",
         ]
     )
     require('href="/api/admin/continuous-sentinel/run' not in unsafe_templates, "direct API navigation remains in admin Sentinel templates", failures)

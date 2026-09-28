@@ -30,7 +30,9 @@ def test_browser_runner_passes_unchanged_secret_guard(tmp_path):
     (target / source.name).write_bytes(source.read_bytes())
     result = scan_repository(tmp_path)
     assert result["ok"] and result["files_scanned"] == 1
-    assert result["privacy_findings"] == []
+    assert result["privacy_review_findings"] == 0
+    assert all(item["classification"] == "EXPECTED_FIXTURE" for item in result["privacy_findings"])
+    assert all(item["value_redacted"] is True for item in result["privacy_findings"])
     # A new hardcoded session secret must still fail; no scanner exceptions.
     (target / "bad_runner.py").write_text("SECRET_KEY = 'unapproved-static-session-value'\n", encoding="utf-8")
     result = scan_repository(tmp_path)
@@ -133,6 +135,36 @@ def test_partial_must_not_invent_zero_score():
     assert observation_failures(row)
 
 
+@pytest.mark.parametrize("status", [200,404])
+def test_image_readiness_waits_for_pending_responses_and_preserves_broken_detection(status):
+    import os
+    from playwright.sync_api import sync_playwright
+    from tools.run_v944_match_center_browser_qa import INSPECT_JS, wait_for_rendered_images
+    with sync_playwright() as pw:
+        options={"headless":True}
+        if os.getenv("NEMESIS_QA_CHROMIUM"):
+            options["executable_path"]=os.environ["NEMESIS_QA_CHROMIUM"]
+        browser=pw.chromium.launch(**options)
+        page=browser.new_page()
+        pending=[]
+        page.route("**/*",lambda route:pending.append(route))
+        try:
+            page.set_content('<img src="http://localhost/qa-crest.svg">',wait_until="domcontentloaded")
+            page.wait_for_function("() => document.images.length === 1 && !document.images[0].complete")
+            page.on("console",lambda message:pending.pop().fulfill(status=status,content_type="image/svg+xml",
+                body='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24"/></svg>' if status==200 else "missing")
+                if message.text=="QA_RELEASE_IMAGE" else None)
+            page.evaluate("() => setTimeout(() => console.log('QA_RELEASE_IMAGE'), 100)")
+            wait_for_rendered_images(page)
+            observed=page.evaluate(INSPECT_JS)
+            assert bool(observed["broken_images"])==(status==404)
+            row=capture("partial","mobile")
+            row["broken_images"]=observed["broken_images"]
+            assert ("broken_images" in observation_failures(row))==(status==404)
+        finally:
+            browser.close()
+
+
 def test_isolation_accepts_only_owned_sqlite_uri_and_browser_driver(tmp_path, monkeypatch):
     callbacks = []
     monkeypatch.setattr("sys.addaudithook", callbacks.append)
@@ -152,6 +184,30 @@ def test_isolation_accepts_only_owned_sqlite_uri_and_browser_driver(tmp_path, mo
         with pytest.raises(PermissionError):
             audit(event, args)
     assert len(guards) == 5
+
+
+@pytest.mark.parametrize("windows", [False, True])
+def test_isolation_matches_exact_command_and_executable(tmp_path, monkeypatch, windows):
+    import subprocess
+    callbacks = []
+    monkeypatch.setattr("sys.addaudithook", callbacks.append)
+    command = ["C:/QA runtime/node.exe", "C:/QA runtime/cli.js", "run-driver"]
+    extra = ["C:/QA runtime/python.exe", "check.py"]
+    guards = install_boundary(tmp_path / "temp", tmp_path / "out", tmp_path / "qa.sqlite", command, [extra])
+    audit = callbacks[0]
+    serialize = subprocess.list2cmdline if windows else list
+    for allowed in (command, extra):
+        audit("subprocess.Popen", (allowed[0], serialize(allowed)))
+        audit("subprocess.Popen", (None, serialize(allowed)))
+    for executable, argv in (
+        ("other.exe", command),
+        (command[0], [*command, "--unexpected"]),
+        (command[0], [command[0], "arbitrary.js"]),
+        (None, [*command, "--unexpected"]),
+    ):
+        with pytest.raises(PermissionError, match="V944_QA_PROCESS_BLOCKED"):
+            audit("subprocess.Popen", (executable, serialize(argv)))
+    assert guards == ["PROCESS"] * 4
 
 
 def test_preflight_produces_browser_evidence_before_check_and_uploads_it():

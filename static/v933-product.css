@@ -91,16 +91,8 @@ body.ns-app:not(.ns-admin) .v933-page-header {
   background: linear-gradient(90deg, rgba(2, 10, 22, .98), rgba(4, 18, 34, .92));
 }
 body.ns-app:not(.ns-admin) .v933-page-header::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  top: -72px;
-  right: 28px;
-  width: 300px;
-  height: 210px;
-  pointer-events: none;
-  background: url('/static/img/nemesis-shark-atmosphere-v2.webp?v=design4-atmosphere-1') center / contain no-repeat;
-  opacity: .075;
+  /* The canonical ::before already owns the decorative shark. */
+  content: none;
 }
 body.ns-app:not(.ns-admin) .v933-page-header h1 { font-size: 2.25rem; }
 body.ns-app:not(.ns-admin) .v933-client-hero h1 { font-size: 2.35rem; }
@@ -4673,8 +4665,9 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero)::after {
   background: linear-gradient(90deg, rgba(1, 8, 19, .94) 0%, rgba(1, 8, 19, .63) 43%, rgba(1, 8, 19, .08) 68%, rgba(1,8,19,.08) 100%);
 }
 body.ns-app .v933-page-header {
-  min-height: 82px !important;
-  padding: 10px 14px !important;
+  min-height: 56px !important;
+  padding: 6px 10px !important;
+  align-items: center;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -4682,8 +4675,8 @@ body.ns-app .v933-page-header {
 }
 body.ns-app .v933-page-header::before {
   right: 1%;
-  width: clamp(360px, 37vw, 520px);
-  opacity: .46;
+  width: clamp(140px, 18vw, 240px);
+  opacity: .22;
 }
 body.ns-app .v944-match-header::before {
   right: 2%;
@@ -4909,7 +4902,7 @@ body.ns-app.ns-admin :is(.v933-admin-panel,.operations-card,.executive-board-v1 
 }
 body.ns-app.ns-admin :is(table,.table) { font-size: .76rem; }
 body.ns-app.ns-admin :is(th,td) { padding: 8px 10px !important; }
-body.ns-app.ns-admin :is(.v933-page-header,.v928-page-header) { margin-bottom: 10px !important; }
+body.ns-app.ns-admin :is(.v933-page-header,.v928-page-header) { margin-bottom: 0 !important; }
 body.ns-app.ns-admin :is(.v933-page-header h1,.v928-page-header h1) { font-size: clamp(1.35rem, 2vw, 1.95rem) !important; }
 body.ns-app[data-ns-route*="founder"] :is(.v933-admin-panel,.operations-card),
 body.ns-app[data-ns-route*="growth"] :is(.v933-admin-panel,.operations-card) { padding: 12px !important; }
@@ -5078,8 +5071,8 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   body.ns-app :is(.v933-public-hero,.v933-client-hero) { min-height: 142px !important; padding: 11px 10px !important; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -156px; top: 43%; width: 420px; opacity: .34; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero)::after { background: linear-gradient(90deg, rgba(1,8,19,.94), rgba(1,8,19,.62) 54%, rgba(1,8,19,.12) 82%); }
-  body.ns-app .v933-page-header { min-height: 78px !important; padding: 11px 12px !important; }
-  body.ns-app .v933-page-header::before { right: -96px; width: 330px; opacity: .34; }
+  body.ns-app .v933-page-header { min-height: 56px !important; padding: 6px 8px !important; }
+  body.ns-app .v933-page-header::before { right: 0; width: 140px; opacity: .22; }
   body.ns-app[data-v928-shell="true"] .brand.v808-brand.ns-brand .mark.ns-brand-mark { width: 44px !important; min-width: 44px !important; height: 34px !important; flex-basis: 44px !important; padding: 0 !important; }
   body.ns-app .sports-priority-client-hero { grid-template-columns: 1fr; }
   body.ns-app .sports-priority-client-hero p { display: none; }
@@ -5388,20 +5381,20 @@ html body.ns-app main.ns-main-shell .auth-card > a { display: block; margin-top:
 /* Official 16-screen rebuild: route-specific composition inside the canonical layer. */
 .ns16-home,.ns16-live { gap: 9px; }
 body.ns-app .ns16-home-hero {
-  min-height: 112px !important;
-  padding: 10px 14px !important;
+  min-height: 96px !important;
+  padding: 8px 10px !important;
   background:
     radial-gradient(ellipse at 73% 40%, rgba(25, 145, 232, .16), transparent 34%),
     linear-gradient(100deg, rgba(2, 14, 31, .62), rgba(2, 10, 23, .08) 72%) !important;
 }
 body.ns-app .ns16-home-hero::before {
-  right: 14px;
-  width: min(39%, 420px);
+  right: 4px;
+  width: min(30%, 180px);
   top: 55%;
   opacity: .9;
   filter: saturate(1.12) brightness(1.4) contrast(1.04);
 }
-.ns16-home-hero > div { max-width: min(58%, 650px); }
+.ns16-home-hero > div { max-width: 78%; }
 .ns16-home-hero h1 { margin: 3px 0 4px; }
 .ns16-home-hero h1 .ns16-user-name { color: inherit; font: inherit; }
 .ns16-home-hero p { margin: 0; font-size: .82rem; }
@@ -5470,11 +5463,17 @@ body.ns-app .ns16-featured-pick .v933-empty-state { grid-template-columns: 32px 
 .ns16-live-overview > .v933-page-header { grid-column: 1 / -1; }
 .ns16-live-overview > .ns16-filter-strip { margin: 0; align-self: stretch; display: flex; align-items: center; }
 .ns16-live-overview > .ns16-kpi-strip { align-self: stretch; }
+.ns16-live-overview > .v933-page-actions { grid-column: 1 / -1; }
+/* Honor the existing realtime controller's visibility state. */
+.ns16-live :is([data-directo-notice],[data-directo-refresh-list])[hidden] { display: none !important; }
+@media (min-width: 1101px) {
+  .ns16-live-overview:not(:has(.ns16-kpi-strip)) > .v933-page-actions { grid-column: 2; grid-row: 2; align-self: center; }
+}
 
 /* Partidos follows the reference as a dense catalogue, not a sequence of explainers. */
 body.ns-app .v933-calendar-board { gap: 9px; }
-body.ns-app .v933-calendar-board > .v933-page-header { min-height: 70px !important; margin-bottom: 0; padding-block: 8px !important; }
-body.ns-app .ns16-live-overview > .v933-page-header { min-height: 70px !important; margin-bottom: 0; padding-block: 8px !important; }
+body.ns-app .v933-calendar-board > .v933-page-header { min-height: 56px !important; margin-bottom: 0; padding-block: 6px !important; }
+body.ns-app .ns16-live-overview > .v933-page-header { min-height: 56px !important; margin-bottom: 0; padding-block: 6px !important; }
 body.ns-app[data-v928-shell="true"] .v933-page .v940-calendar-command { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 16px; padding: 8px 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
 .v940-calendar-command-section:has(.v933-calendar-date-navigation) { grid-column: 1; grid-row: 1; }
 .v940-calendar-command-section:has(> .v933-filter-tabs) { grid-column: 1 / -1; grid-row: 2; }
@@ -5567,6 +5566,14 @@ body.ns-app .v933-shark-analysis .v937-pick-brief { gap: 6px; margin-top: 8px; }
 body.ns-app .v933-picks-board .v937-pick-brief article,
 body.ns-app .v933-shark-analysis .v937-pick-brief article { padding: 8px; }
 body.ns-app .ns16-shark-more { margin: 0; }
+/* Keep the existing question form immediately below its single heading. */
+body.ns-app .v933-shark-page > .ns-shark-conversation { margin-block: 0; padding: 12px 14px; }
+@media (max-width: 767px) {
+  body.ns-app .v933-shark-page > .v933-page-header { flex-wrap: wrap; gap: 8px; }
+  .v933-shark-page > .v933-page-header .v933-page-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; gap: 6px; }
+  .v933-shark-page .v933-page-actions > a { min-width: 0; min-height: 44px; padding: 6px; white-space: normal; text-align: center; }
+  .v933-shark-page .v933-page-actions .v933-icon { display: none; }
+}
 body.ns-app .ns16-shark-more > summary { min-height: 42px; }
 body.ns-app .v933-track-record .v933-table-wrap { max-height: 390px; overflow: auto; }
 body.ns-app .ns16-track-recent table { min-width: 1100px; table-layout: auto; }
@@ -5882,7 +5889,14 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-live-feature .v933-match-card { display: grid; grid-template-columns: minmax(140px,.3fr) minmax(320px,1fr) minmax(190px,.4fr); grid-template-rows: 1fr; min-height: 126px; align-items: center; gap: 16px; }
   .ns16-live-priority .ns16-match-row:has(> .v933-live-card:only-child) .v933-match-card-footer,
   .ns16-live-feature .v933-match-card-footer { display: grid; justify-items: end; gap: 12px; }
-  body.ns-app .ns16-home { display: flex !important; flex-direction: column; align-items: stretch; }
+  body.ns-app .ns16-home { display: grid !important; grid-template-columns: minmax(0,.85fr) minmax(0,1.4fr); align-items: stretch; }
+  .ns16-home > * { grid-column: 1 / -1; }
+  body.ns-app .ns16-home > .ns16-home-hero { grid-column: 1; grid-row: 1; }
+  body.ns-app .ns16-home > .ns16-kpi-strip { grid-column: 2; grid-row: 1; align-self: center; }
+  body.ns-app .v933-profile-page { display: grid; grid-template-columns: minmax(0,1fr) auto; }
+  .v933-profile-page > * { grid-column: 1 / -1; }
+  body.ns-app .v933-profile-page > .v933-profile-card { grid-column: 1; grid-row: 2; }
+  body.ns-app .v933-profile-page > .v933-language-selector { grid-column: 2; grid-row: 2; align-self: center; margin: 0; }
   .ns16-home > .ns16-home-command { display: grid; }
   .ns16-home > [data-sports-priority="important-today"] { width: 100%; }
   .ns16-home-sports .ns16-match-row > .v933-match-card:only-child { width: min(100%,560px); justify-self: start; display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(64px,auto) auto; gap: 10px; min-height: 180px; }
@@ -5905,6 +5919,8 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-home > .ns16-home-hero { order: 1; }
   .ns16-home > .ns16-live-priority { order: 2; }
   .ns16-home > .ns16-kpi-strip { order: 3; }
+  body.ns-app .ns16-kpi-strip .v933-kpi { display: flex; justify-content: center; min-height: 60px; padding: 6px !important; }
+  body.ns-app .ns16-kpi-strip .v933-kpi > .v933-icon { display: none; }
   .ns16-home > .ns16-home-command { order: 4; display: grid; grid-template-columns: minmax(0,1fr); grid-template-areas: none; grid-template-rows: none; }
   .ns16-home-command > .ns16-featured-pick,.ns16-home-command > .ns16-home-actions { grid-area: auto; }
   .ns16-home-command > .ns16-home-primary { display: contents; }
@@ -5917,7 +5933,7 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-home-sports [data-home-match-previews] > * { scroll-snap-align: start; }
   .ns16-home-command > .ns16-home-actions { order: 4; }
   .ns16-home > .ns16-more { order: 6; }
-  body.ns-app .ns16-home-hero > div { max-width: 61%; }
+  body.ns-app .ns16-home-hero > div { max-width: 78%; }
   body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 { max-width: 100%; font-size: 20px !important; line-height: 1.25; overflow-wrap: anywhere; }
   body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 > span,
   body.ns-app.ns-authenticated:not(.ns-admin) .v933-client-hero.ns16-home-hero h1 > .ns16-user-name { display: inline; }
@@ -6039,7 +6055,7 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   body.ns-app .v944-score-widget > strong { font-size: 24px; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
   body.ns-app .ns16-home-hero { min-height: 88px !important; padding: 8px 9px !important; }
-  body.ns-app .ns16-home-hero::before { display: block; right: -12px; top: 57%; width: 190px; opacity: .68; filter: saturate(1.3) contrast(1.08); }
+  body.ns-app .ns16-home-hero::before { display: block; right: 0; top: 57%; width: 112px; opacity: .55; filter: saturate(1.3) contrast(1.08); }
   .ns-video-empty-dashboard { min-height: 148px; padding: 10px 6px; }
   .ns-video-empty-dashboard::before { right: -92px; width: 280px; opacity: .12; }
   .ns-video-empty-actions { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }
@@ -6149,3 +6165,110 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
 .sentinel-ops :is(p,dd,li,button,h3) { overflow-wrap: anywhere; letter-spacing: 0; }
 .sentinel-ops [data-job-message]:empty { display: none; }
 @media(max-width: 650px) { .sentinel-ops-layout { grid-template-columns: minmax(0,1fr); } .sentinel-ops { padding: 12px; } }
+
+
+/* PR92 density pass: reclaim overview rows on Picks, Track Record and Telegram. */
+@media (min-width: 1101px) {
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) {
+    grid-template-columns: minmax(410px,.8fr) minmax(0,1.2fr);
+    column-gap: 14px;
+    row-gap: 9px;
+    align-items: start;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-page-header {
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 70px !important;
+    margin: 0;
+    padding-block: 7px !important;
+    align-self: stretch;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 6px;
+    align-self: stretch;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi {
+    min-height: 70px;
+    grid-template-columns: 30px minmax(0,1fr);
+    gap: 7px;
+    padding: 7px 9px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi > .v933-icon {
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi span {
+    font-size: .62rem;
+    line-height: 1.25;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi strong {
+    margin-top: 2px;
+    font-size: 1.02rem;
+    line-height: 1.15;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page):has(> .v933-kpi-grid) > .v933-kpi-grid .v933-kpi small {
+    margin-top: 2px;
+    font-size: .55rem;
+    line-height: 1.2;
+  }
+
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > [data-picks-workspace-nav] {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: stretch;
+  }
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > .v933-filter-panel {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: stretch;
+    padding: 5px 8px !important;
+  }
+  body.ns-app .v933-picks-board:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body.ns-app .v933-track-record:has(> .v933-kpi-grid) > .v933-filter-panel {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding: 5px 8px !important;
+  }
+  body.ns-app .v933-track-record:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body.ns-app .v933-telegram-page:has(> .v933-kpi-grid) > .v933-two-col {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  body.ns-app .v933-telegram-page:has(> .v933-kpi-grid) > .ns-video-safety-note {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  /* Favorites still has legacy content below the overview; keep every existing section full width. */
+  body.ns-app .v933-favorites-page:has(> .v933-kpi-grid) > :not(.v933-page-header):not(.v933-kpi-grid) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page) {
+    gap: 9px;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page) > .v933-page-header {
+    min-height: 58px !important;
+    margin-bottom: 0;
+    padding: 7px 9px !important;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-telegram-page,.v933-favorites-page) > .v933-page-header p {
+    display: none;
+  }
+  body.ns-app :is(.v933-picks-board,.v933-track-record) > .v933-filter-panel {
+    padding: 5px 7px !important;
+  }
+}

@@ -1,3 +1,4 @@
+import os
 import pytest
 from playwright.sync_api import sync_playwright
 from tools.run_autonomous_product_qa import inspect_text_geometry
@@ -5,7 +6,7 @@ from tools.run_autonomous_product_qa import inspect_text_geometry
 
 def test_text_geometry_detects_overlap_and_accepts_separate_lines():
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=True)
+        browser = pw.chromium.launch(headless=True, executable_path=os.getenv("NEMESIS_QA_CHROMIUM"))
         page = browser.new_page(viewport={"width":390,"height":844})
         page.set_content('<div class="v944-match-header__status"><span>Final</span><section class="v944-score-widget"><strong>2-0</strong></section><time>Domingo, 30 de agosto - 21:00</time></div>')
         assert inspect_text_geometry(page)["match_text_status"] == "PASS"

@@ -31,10 +31,13 @@ def main() -> int:
     javascript = read("static/v940-calendar.js")
     specification = ROOT / "reports" / "V940_CALENDAR_SPORTS_EXPERIENCE_TECHNICAL_SPECIFICATION.md"
 
-    require(read("VERSION.txt").strip() == VERSION, "VERSION.txt mismatch")
-    require(read("APP_VERSION").strip() == VERSION, "APP_VERSION file mismatch")
-    require(f"APP_VERSION = '{VERSION}'" in app_source, "app.py version mismatch")
-    require("NEMESIS_CACHE_V940" in app_source, "service worker cache mismatch")
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.print_release_identity import runtime_identity, service_worker_cache_from_source
+    identity = runtime_identity(ROOT)
+    current_runtime = identity["runtime_version"] or ""
+    require(identity["ok"], "Runtime authorities missing or inconsistent")
+    require(service_worker_cache_from_source(app_source) == current_runtime.split("_", 1)[0], "service worker cache mismatch")
     require(
         "has_v940_nemesis_sports_experience_phase_1_foundation" in app_source,
         "runtime V940 flag missing",
@@ -84,18 +87,19 @@ def main() -> int:
         detect_product_quality_contract_issues,
     )
 
-    contract = build_v940_calendar_experience_contract_snapshot(ROOT, VERSION)
+    contract = build_v940_calendar_experience_contract_snapshot(ROOT, current_runtime)
     require(contract.get("validation_result") == "PASS", "Sentinel Calendar contract failed")
     require(contract.get("production_certified") is False, "local check claimed production certification")
     v940_issues = [
         item
-        for item in detect_product_quality_contract_issues(ROOT, VERSION)
+        for item in detect_product_quality_contract_issues(ROOT, current_runtime)
         if item.get("id") == "V940-CALENDAR-EXPERIENCE-CONTRACT"
     ]
     require(not v940_issues, "healthy Calendar opens a Sentinel issue")
 
     result = {
-        "version": VERSION,
+        "version": current_runtime,
+        "sprint_base_runtime": VERSION,
         "check": "V940 Calendar Sports Experience",
         "status": "PASS" if not failures else "FAIL",
         "failures": failures,

@@ -28,7 +28,7 @@ def test_search_and_submit_are_always_outside_disclosures(app_module,language):
     for node in (search,submit):
         assert form in node['parents']
         assert not any(p['tag']=='details' for p in node['parents'])
-    assert form['attrs']['method']=='get' and form['attrs']['action']=='/calendar'
+    assert form['attrs']['method']=='get' and form['attrs']['action']=='/calendario'
     assert search['attrs']['maxlength']=='90'
     assert any(n['tag']=='label' and n['attrs'].get('for')==search['attrs']['id'] for n in dom.nodes)
 

@@ -31,7 +31,7 @@ def now_labels() -> tuple[str, str]:
 
 def safe_target_url(base_url: str) -> str:
     base = base_url.rstrip("/")
-    return f"{base}{ENDPOINT}?runner=render_cron"
+    return f"{base}{ENDPOINT}"
 
 
 def print_event(payload: dict) -> None:
@@ -99,13 +99,15 @@ def main() -> int:
 
     request = urllib.request.Request(
         url,
+        data=b"{}",
         headers={
             "User-Agent": "NeMeSiS-SHARK-PRO-Render-Cron/753",
             "X-NeMeSiS-Cron-Runner": "render-cron",
             "X-Automation-Secret": automation_secret,
             "Accept": "application/json,text/plain,*/*",
+            "Content-Type": "application/json",
         },
-        method="GET",
+        method="POST",
     )
 
     try:

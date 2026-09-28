@@ -16,10 +16,13 @@ def test_install_guide_routes_share_official_icon(app_module):
         assert "data-ns-install-now" in text
 
 
-def test_prompt_skips_admin_and_uses_versioned_seven_day_dismissal():
+def test_admin_keeps_install_api_without_floating_prompt_and_uses_versioned_dismissal():
     js = (ROOT / "static" / "pwa-install.js").read_text(encoding="utf-8")
     base = (ROOT / "templates" / "base.html").read_text(encoding="utf-8")
     assert "isAdminSurface" in js
+    assert "if (isAdminSurface && !isInstallGuide) return;" in js
+    assert "isStandalone || isAdminSurface" not in js
+    assert "window.NemesisPwaInstall" in js
     assert "isInstallGuide" in js
     assert "nemesis-pwa-install-dismissed-" in js
     assert "7 * 24 * 60 * 60 * 1000" in js

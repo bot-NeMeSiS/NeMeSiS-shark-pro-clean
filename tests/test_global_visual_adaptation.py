@@ -21,13 +21,13 @@ def test_favorites_help_does_not_replace_existing_sports_content(app_module, sav
     ]))
     data={'favorite_insights':{'by_kind':{'team':[{'name':'QA'}] if saved else [],'league':[],'match':[]}},
           'favorite_feed':[],'favorite_bundle':{'live':[],'picks':[]},'favorites':[]}
-    with app_module.app.test_request_context('/favorites'):
+    with app_module.app.test_request_context('/favoritos'):
         html=env.get_template('favorites.html').render(data=data)
     nodes=Elements(html).nodes
     help_node=next(attrs for tag,attrs in nodes if tag=='details' and attrs.get('class')=='ns-favorites-help')
     assert ('open' in help_node) is not saved
     assert html.index('</details>') < html.index('Partidos relacionados')
-    assert any(tag=='form' and attrs.get('action')=='/favorites' and attrs.get('method')=='post' for tag,attrs in nodes)
+    assert any(tag=='form' and attrs.get('action')=='/favoritos' and attrs.get('method')=='post' for tag,attrs in nodes)
     assert 'Crea tu primer favorito' not in html
 
 
@@ -36,11 +36,11 @@ def test_access_form_preserves_destination_and_fields(app_module):
         DictLoader({'base.html':'{% block content %}{% endblock %}'}),
         app_module.app.jinja_env.loader,
     ]))
-    with app_module.app.test_request_context('/cliente-login?next=/favorites'):
+    with app_module.app.test_request_context('/cliente-login?next=/favoritos'):
         html=env.get_template('client_login.html').render(data={}, ui_languages=app_module.LANGUAGE_NAMES, ui_locale='es')
     nodes=Elements(html).nodes
     form=next(attrs for tag,attrs in nodes if tag=='form' and attrs.get('action')=='/cliente-login')
     assert form['action']=='/cliente-login' and form['method']=='post'
     inputs=[attrs for tag,attrs in nodes if tag=='input']
     assert {n.get('name') for n in inputs} >= {'login','password','next','plan'}
-    assert any(n.get('name')=='next' and n.get('value')=='/favorites' for n in inputs)
+    assert any(n.get('name')=='next' and n.get('value')=='/favoritos' for n in inputs)

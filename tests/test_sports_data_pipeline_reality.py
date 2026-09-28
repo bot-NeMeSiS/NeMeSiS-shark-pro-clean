@@ -403,8 +403,8 @@ def test_render_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_
     )
     monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
 
-    response = client.get(
-        "/api/automation/telegram/tick?runner=render_cron",
+    response = client.post(
+        "/api/automation/telegram/tick",
         headers={"X-Automation-Secret": secret, "X-NeMeSiS-Cron-Runner": "render-cron"},
     )
 

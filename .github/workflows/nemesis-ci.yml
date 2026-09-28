@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -46,10 +46,11 @@ jobs:
           python tools/audit_release_zip.py
 
       - name: Upload reports and release output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: nemesis-ci-artifacts
           path: |
-            reports/
-            release_output/
+            reports/V941_*
+            release_output/*_RENDER_READY.zip
+            release_output/RELEASE_ZIP_AUDIT_V941.*

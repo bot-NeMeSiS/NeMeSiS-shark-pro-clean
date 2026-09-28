@@ -3,35 +3,36 @@
 <section class="ns-admin-page v888-autopilot">
   <div class="ns-page-header">
     <span class="ns-chip">V888 Sentinel AutoPilot</span>
-    <h1>AutoPilot de mejora interna</h1>
-    <p>Radar seguro de producto: detecta incidencias, crea tareas y prepara prompts Codex sin tocar secretos, pagos, Telegram real, deploy ni datos reales.</p>
+    <h1>Mejora automática (AutoPilot)</h1>
+    <p>Consulta de evidencia guardada. Abrir este panel no ejecuta revisiones ni certifica la versión actual.</p>
+    {% if summary.recorded_at_madrid %}<p>Última revisión guardada: {{ summary.recorded_at_madrid|madrid_datetime_label }} · {{ summary.version }}</p>{% endif %}
     <div class="ns-actions">
-      <a class="ns-button ns-button-primary" href="/api/admin/sentinel-autopilot/run?dry_run=1" target="_blank">Ejecutar revisión segura</a>
+      <form method="post" action="/api/admin/sentinel-autopilot/run?dry_run=1" target="_blank" style="display:inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="ns-button ns-button-primary" type="submit">Ejecutar revisión segura</button></form>
       <a class="ns-button ns-button-primary" href="/admin/sentinel-issues">Ver Centro de Incidencias</a>
-      <a class="ns-button ns-button-secondary" href="/api/admin/sentinel-autopilot/generate-prompt" target="_blank">Generar prompt Codex</a>
-      <a class="ns-button ns-button-ghost" href="/api/admin/sentinel-autopilot/summary" target="_blank">Exportar reporte</a>
+      <a class="ns-button ns-button-secondary" href="/api/admin/sentinel-autopilot/generate-prompt" target="_blank">Preparar tarea para Codex</a>
+      <a class="ns-button ns-button-ghost" href="/api/admin/sentinel-autopilot/summary" target="_blank">Exportar informe</a>
     </div>
   </div>
 
   <section class="ns-grid ns-grid-4">
     <article class="ns-stat">
-      <span>Score real</span>
-      <strong>{{ summary.score }}</strong>
-      <small>{{ summary.status }}</small>
+      <span>Puntuación registrada</span>
+      <strong>{{ summary.score if summary.score is not none else 'Sin evaluación' }}</strong>
+      <small>{{ 'Evidencia histórica' if summary.evidence_available else 'Sin revisión guardada' }}</small>
     </article>
     <article class="ns-stat">
       <span>Incidencias</span>
-      <strong>{{ (summary.issues or [])|length }}</strong>
+      <strong>{{ (summary.issues or [])|length if summary.evidence_available else 'Sin evaluación' }}</strong>
       <small>abiertas detectadas</small>
     </article>
     <article class="ns-stat">
       <span>Críticas / altas</span>
-      <strong>{{ (summary.priority_matrix.counts.critical if summary.priority_matrix is defined else 0) or 0 }} / {{ (summary.priority_matrix.counts.high if summary.priority_matrix is defined else 0) or 0 }}</strong>
+      <strong>{% if summary.evidence_available %}{{ summary.priority_matrix.counts.critical }} / {{ summary.priority_matrix.counts.high }}{% else %}Sin evaluación{% endif %}</strong>
       <small>prioridad operativa</small>
     </article>
     <article class="ns-stat">
       <span>Render/local</span>
-      <strong>{{ 'Alineado' if summary.render_local_aligned else 'Mismatch' }}</strong>
+      <strong>No comprobado</strong>
       <small>{{ summary.render_version or 'Render no consultado desde este panel' }}</small>
     </article>
   </section>
@@ -46,7 +47,7 @@
         {% for action in summary.next_best_actions or [] %}
           <div class="ns-empty ns-empty-compact">{{ action }}</div>
         {% else %}
-          <div class="ns-empty ns-empty-compact">Sin acciones pendientes. Mantener revisión diaria.</div>
+          <div class="ns-empty ns-empty-compact">No hay acciones en la evidencia disponible. Solicita una revisión para evaluar el estado actual.</div>
         {% endfor %}
       </div>
     </article>
@@ -93,7 +94,7 @@
             <td>{{ issue.status }}</td>
           </tr>
           {% else %}
-          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Sin incidencias abiertas en este scan seguro.</div></td></tr>
+          <tr><td colspan="5"><div class="ns-empty ns-empty-compact">Sin incidencias en la evidencia disponible; no se ha ejecutado una revisión al abrir este panel.</div></td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -138,14 +139,14 @@
 
   <section class="ns-admin-card">
     <div class="ns-section-title">
-      <h2>Prompts Codex listos</h2>
+      <h2>Tareas Codex preparadas</h2>
       <span class="ns-badge">{{ (summary.codex_prompts or [])|length }}</span>
     </div>
     <div class="ns-stack">
       {% for prompt in (summary.codex_prompts or [])[:5] %}
         <pre class="ns-code-block">{{ prompt }}</pre>
       {% else %}
-        <div class="ns-empty ns-empty-compact">Sin prompts necesarios. AutoPilot seguirá vigilando.</div>
+        <div class="ns-empty ns-empty-compact">Sin tareas guardadas. Este panel no activa vigilancia automática.</div>
       {% endfor %}
     </div>
   </section>

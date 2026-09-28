@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero compact product-hero auto-picks-hero">
-  <div class="kicker">Auto Picks</div>
+  <div class="kicker">Pronósticos automáticos</div>
   <h1>Motor automático reservado para ELITE</h1>
-  <p class="lead">Auto Picks usa partidos próximos reales y cuotas cacheadas cuando existen. Si falta cuota, lo marca como pendiente; no inventa datos.</p>
-  <div class="actions"><a class="btn primary" href="/picks">Picks publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
+  <p class="lead">Pronósticos automáticos usa partidos próximos reales y cuotas cacheadas cuando existen. Si falta cuota, lo marca como pendiente; no inventa datos.</p>
+  <div class="actions"><a class="btn primary" href="/picks">Pronósticos publicados</a><a class="btn" href="/membresias">{{ data.membership.next_cta }}</a></div>
 </section>
 
 {% if data.locked_auto_picks %}
@@ -13,7 +13,7 @@
 
 <section class="band compact-band">
   <div class="grid compact-grid metric-row">
-    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.published }}</div><div class="muted">picks visibles</div></div>
+    <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.published }}</div><div class="muted">pronósticos visibles</div></div>
     <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.recommendations }}</div><div class="muted">analizados</div></div>
     <div class="card metric-card"><div class="metric">{{ data.autonomous_picks.with_odds }}</div><div class="muted">con cuota</div></div>
     <div class="card metric-card"><div class="metric">{{ data.membership.membership }}</div><div class="muted">plan activo</div></div>

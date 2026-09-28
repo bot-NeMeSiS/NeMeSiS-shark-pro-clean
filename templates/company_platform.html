@@ -20,11 +20,11 @@
           {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
           {{ action_button('Preguntas frecuentes', '/faq', false, 'cyan', false, 'arrow') }}
         {% elif page_key in ['faq','help','knowledge'] %}
-          {{ action_button('Contactar soporte', '/support', true, 'blue', false, 'arrow') }}
+          {{ action_button('Contactar soporte', '/soporte', true, 'blue', false, 'arrow') }}
           {{ action_button('Ver privacidad', '/privacidad', false, 'cyan', false, 'shield') }}
         {% elif page_key == 'status' %}
           {{ action_button('Health local', '/api/health', true, 'blue', false, 'history') }}
-          {{ action_button('Soporte', '/support', false, 'cyan', false, 'arrow') }}
+          {{ action_button('Soporte', '/soporte', false, 'cyan', false, 'arrow') }}
         {% else %}
           {{ action_button('Ver roadmap', '/roadmap', true, 'blue', false, 'arrow') }}
           {{ action_button('Contactar', '/contact', false, 'cyan', false, 'arrow') }}
@@ -64,7 +64,7 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Que ofrece NeMeSiS', 'Una forma mas clara de seguir partidos, equipos, competiciones y decisiones deportivas sin ruido.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Acceso FREE','neutral') }}</header><h3>Deporte con contexto</h3><p>Match Center, Team Center, Competition Center y Player Center organizan información disponible sin rellenar huecos.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Acceso FREE','neutral') }}</header><h3>Deporte con contexto</h3><p>Los centros de partidos, equipos, competiciones y jugadores organizan información disponible sin rellenar huecos.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Evidence-first','neutral') }}</header><h3>SHARK explicable</h3><p>SHARK muestra que se sabe, que falta y que evidencia respalda cada lectura. No es un chat ni una prediccion automatica.</p><a class="v933-action is-blue" href="/shark">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Sin spam','neutral') }}</header><h3>Comunicacion controlada</h3><p>Telegram y Action Platform priorizan mensajes utiles, deduplicados y con limites visibles.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
@@ -72,8 +72,8 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Por donde empezar', 'Tres accesos suficientes para entender el valor inicial antes de pagar o participar en beta.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('1','neutral') }}</header><h3>Encuentra un partido</h3><p>Abre el calendario y entra en el partido que quieras revisar.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('2','neutral') }}</header><h3>Sigue tu equipo</h3><p>Guarda favoritos para reducir busqueda y volver antes al contexto que te importa.</p><a class="v933-action is-blue" href="/favorites">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('1','neutral') }}</header><h3>Encuentra un partido</h3><p>Abre el calendario y entra en el partido que quieras revisar.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('2','neutral') }}</header><h3>Sigue tu equipo</h3><p>Guarda favoritos para reducir busqueda y volver antes al contexto que te importa.</p><a class="v933-action is-blue" href="/favoritos">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('3','neutral') }}</header><h3>Compara planes</h3><p>Los planes se presentan sin activar cobros desde esta infraestructura comercial.</p><a class="v933-action is-blue" href="/precios">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
   </section>
@@ -90,8 +90,8 @@
     {{ section_header('Comparativa responsable', 'Ningun plan garantiza beneficios. NeMeSiS ofrece organizacion, contexto y controles de calidad.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Acceso inicial para entender jornada, calendario y bases de confianza.</p><a class="v933-action is-blue" href="/registro">{{ icon('arrow') }}<span>Empezar gratis</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
     </div>
   </section>
   <section class="v933-panel company-platform-section">
@@ -109,7 +109,7 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Canales de ayuda', 'Cada ruta explica que información aportar y que datos no debes compartir.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Soporte</h3><p>Envio de incidencias y sugerencias con asunto, categoria y mensaje.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Soporte</h3><p>Envio de incidencias y sugerencias con asunto, categoria y mensaje.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Disponible','neutral') }}</header><h3>Guia de uso</h3><p>Ruta de ayuda existente para orientar primer uso y dudas frecuentes.</p><a class="v933-action is-blue" href="/guia">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Visible','neutral') }}</header><h3>Juego responsable</h3><p>Limites, advertencias y posicionamiento de NeMeSiS como información deportiva.</p><a class="v933-action is-blue" href="/juego-responsable">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
@@ -119,7 +119,7 @@
     {{ section_header('Temas disponibles', 'Accesos a información real ya presente en el producto.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip('Ruta existente','neutral') }}</header><h3>Cuenta y acceso</h3><p>Registro, login, perfil, contrasena y soporte.</p><a class="v933-action is-blue" href="/cliente-login">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('Ruta existente','neutral') }}</header><h3>Datos deportivos</h3><p>Calendario, directo y centros deportivos basados en disponibilidad real.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Ruta existente','neutral') }}</header><h3>Datos deportivos</h3><p>Calendario, directo y centros deportivos basados en disponibilidad real.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Ruta existente','neutral') }}</header><h3>Privacidad</h3><p>Preferencias, datos de uso y controles del usuario.</p><a class="v933-action is-blue" href="/privacidad">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
   </section>
@@ -131,9 +131,9 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Hitos visibles', 'Orden estrategico, no calendario comercial cerrado.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Preparacion','neutral') }}</header><h3>Beta cerrada</h3><p>Validar primer uso, soporte, feedback y valor percibido con usuarios reales.</p><a class="v933-action is-blue" href="/beta">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Preparación','neutral') }}</header><h3>Beta cerrada</h3><p>Validar primer uso, soporte, comentarios y valor percibido con usuarios reales.</p><a class="v933-action is-blue" href="/beta">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Gate pendiente','neutral') }}</header><h3>Release 1.0</h3><p>Activar lanzamiento solo cuando producción, pagos, Telegram, soporte y observabilidad tengan evidencia suficiente.</p><a class="v933-action is-blue" href="/service-status">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('Base local','neutral') }}</header><h3>Ecosistema deportivo</h3><p>Profundizar centros deportivos y experiencia diaria sin romper Sports Core.</p><a class="v933-action is-blue" href="/calendar">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Base local','neutral') }}</header><h3>Ecosistema deportivo</h3><p>Profundizar centros deportivos y experiencia diaria sin romper Sports Core.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
   </section>
   {% elif page_key == 'status' %}
@@ -141,7 +141,7 @@
     {{ section_header('Sistemas visibles', 'Clasificacion honesta; no se convierte falta de evidencia en PASS.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip('LOCAL_ONLY','neutral') }}</header><h3>Aplicacion web</h3><p>Rutas publicas y cliente disponibles en entorno local de QA.</p><a class="v933-action is-blue" href="/">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('NO CERTIFICADO','neutral') }}</header><h3>Render</h3><p>No certificado desde esta página. Requiere evidencia read-only de producción.</p><a class="v933-action is-blue" href="/support">{{ icon('arrow') }}<span>Soporte</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('NO CERTIFICADO','neutral') }}</header><h3>Render</h3><p>No certificado desde esta página. Requiere evidencia read-only de producción.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Soporte</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('NO CONECTADO AQUI','neutral') }}</header><h3>Pagos</h3><p>La plataforma comercial no inicia pagos ni abre procesos de compra.</p><a class="v933-action is-blue" href="/precios">{{ icon('arrow') }}<span>Precios</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('SIN ENVIO','neutral') }}</header><h3>Telegram</h3><p>Integracion existente; esta página no envia mensajes ni modifica destinos.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>

@@ -50,7 +50,7 @@ def test_date_picker_keeps_native_form_and_filter_identity(client, app_module, m
     picker, = [a for t, a in tags if t == 'details' and a.get('class') == 'v933-calendar-date-picker']
     assert 'open' not in picker
     form, = [a for t, a in tags if t == 'form' and a.get('class') == 'v933-calendar-date-form']
-    assert form['method'] == 'get' and form['action'] == '/calendar'
+    assert form['method'] == 'get' and form['action'] == '/calendario'
     field, = [a for t, a in tags if a.get('id') == 'calendar-date']
     assert field['type'] == 'date' and field['value'] == '2026-10-25'
     assert any(a.get('name') == 'team' and a.get('value') == 'Real Madrid' for _, a in tags)

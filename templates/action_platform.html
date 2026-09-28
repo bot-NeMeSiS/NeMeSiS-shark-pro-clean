@@ -41,9 +41,9 @@
       <div><span>Favoritos</span><strong>{{ a.summary.favorites or 0 }}</strong></div>
       <div><span>Watchlist</span><strong>{{ a.summary.watchlist or 0 }}</strong></div>
       <nav class="action-platform-actions" aria-label="Acciones principales">
-        <a href="/calendar">Calendario</a>
+        <a href="/calendario">Calendario</a>
         <a href="/user-intelligence">Privacidad</a>
-        <a href="/favorites">Favoritos</a>
+        <a href="/favoritos">Favoritos</a>
       </nav>
     </aside>
   </header>
@@ -69,7 +69,7 @@
   <main class="action-platform-layout">
     <section class="action-platform-panel action-platform-wide" data-action-platform-active-section="{{ active }}">
       <div class="action-platform-section-head">
-        <span>{{ nav[active].title if active in nav else 'Smart Home' }}</span>
+        <span>{{ nav[active].title if active in nav else 'Inicio inteligente' }}</span>
         <strong>{{ current['items']|length if current and current['items'] else 0 }}</strong>
       </div>
       <p class="action-platform-section-intro">{{ nav[active].goal if active in nav else 'Organizar información real disponible.' }}</p>
@@ -93,12 +93,12 @@
 
 
     <section class="action-platform-panel action-platform-wide" data-top100-improvement="20" data-action-platform-section="evening-recap-guide">
-      <div class="action-platform-section-head"><span>Recap nocturno</span><strong>Sin ruido</strong></div>
-      <p class="action-platform-section-intro">Cierra el día con resultados disponibles, actividad propia y pendientes honestos. Si no hay datos suficientes, el recap lo dice claramente.</p>
+      <div class="action-platform-section-head"><span>Resumen nocturno</span><strong>Sin ruido</strong></div>
+      <p class="action-platform-section-intro">Cierra el día con resultados disponibles, actividad propia y pendientes honestos. Si no hay datos suficientes, el resumen lo dice claramente.</p>
       <div class="action-platform-card-grid">
         <article class="action-platform-card"><header><span>RESULTADOS</span><strong>Qué terminó</strong></header><p>Solo partidos cerrados o evidencia ya registrada. Nada de marcadores inventados.</p></article>
-        <article class="action-platform-card"><header><span>PENDIENTES</span><strong>Qué falta</strong></header><p>Picks sin grading, datos stale o eventos sin confirmar quedan como pendientes.</p></article>
-        <article class="action-platform-card"><header><span>HÁBITO</span><strong>Qué revisar mañana</strong></header><p>Favoritos y actividad propia preparan la siguiente jornada sin enviar datos externos.</p><a href="/evening-recap">Abrir recap</a></article>
+        <article class="action-platform-card"><header><span>PENDIENTES</span><strong>Qué falta</strong></header><p>Pronósticos sin resultado evaluado, datos desactualizados o eventos sin confirmar quedan como pendientes.</p></article>
+        <article class="action-platform-card"><header><span>HÁBITO</span><strong>Qué revisar mañana</strong></header><p>Favoritos y actividad propia preparan la siguiente jornada sin enviar datos externos.</p><a href="/evening-recap">Abrir resumen</a></article>
       </div>
     </section>
 

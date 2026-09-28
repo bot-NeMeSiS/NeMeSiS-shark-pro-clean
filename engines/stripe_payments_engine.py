@@ -13,6 +13,7 @@ import os
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
 MADRID_OFFSET_FALLBACK = "+01:00"
@@ -167,7 +168,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
             "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "9,99 €/mes"),
             "price_id": plan_price_id("PRO"),
             "configured": bool(plan_price_id("PRO")),
-            "features": ["Picks PRO", "Combis", "Telegram premium", "Más lectura SHARK"],
+            "features": ["Pronósticos PRO", "Combinadas", "Telegram premium", "Más lectura SHARK"],
         },
         "ELITE": {
             "plan": "ELITE",
@@ -175,7 +176,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
             "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "24,99 €/mes"),
             "price_id": plan_price_id("ELITE"),
             "configured": bool(plan_price_id("ELITE")),
-            "features": ["Picks ELITE", "Alertas live", "Prioridad Telegram", "SHARK contextual"],
+            "features": ["Pronósticos ELITE", "Alertas en directo", "Prioridad Telegram", "SHARK contextual"],
         },
     }
 
@@ -218,8 +219,9 @@ def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
     summary = {}
     if db_path:
         try:
-            ensure_stripe_schema(db_path)
-            conn = connect(db_path)
+            conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True, timeout=1)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
             summary = {
                 "events_total": scalar(conn, "SELECT COUNT(*) FROM payment_webhook_events", default=0),
                 "subscriptions_total": scalar(conn, "SELECT COUNT(*) FROM stripe_subscriptions", default=0),
@@ -849,14 +851,30 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
 
 
 def client_payments_context(db_path: str, user: Dict[str, Any]) -> Dict[str, Any]:
-    ensure_stripe_schema(db_path)
+    """Read client billing state without creating or migrating payment tables."""
     status = stripe_runtime_status(db_path)
     plan = str(user.get("membership") or user.get("role") or "FREE").upper()
-    conn = connect(db_path)
     uid = str(user.get("id") or "")
-    db_user = user_by_id(conn, uid) if uid else {}
-    subs = rows(conn, "SELECT plan,status,current_period_end,cancel_at_period_end,last_event_at FROM stripe_subscriptions WHERE user_id=? ORDER BY last_event_at DESC LIMIT 5", (uid,)) if uid else []
-    conn.close()
+    db_user: Dict[str, Any] = {}
+    subs: list[Dict[str, Any]] = []
+    if uid:
+        try:
+            path = Path(db_path).expanduser().resolve()
+            conn = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=1.5, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA query_only=ON")
+            conn.execute("PRAGMA busy_timeout=1500")
+            db_user = user_by_id(conn, uid)
+            subs = rows(
+                conn,
+                "SELECT plan,status,current_period_end,cancel_at_period_end,last_event_at "
+                "FROM stripe_subscriptions WHERE user_id=? ORDER BY last_event_at DESC LIMIT 5",
+                (uid,),
+            )
+            conn.close()
+        except (OSError, sqlite3.Error):
+            db_user = {}
+            subs = []
     return {
         "ok": True,
         "current_plan": plan,
@@ -868,5 +886,7 @@ def client_payments_context(db_path: str, user: Dict[str, Any]) -> Dict[str, Any
         "portal_ready": bool(status.get("flags", {}).get("stripe_sdk") and status.get("flags", {}).get("secret_key") and db_user.get("stripe_customer_id")),
         "blockers": status.get("blockers", []),
         "subscriptions": subs,
+        "read_only": True,
     }
+
 # QA token: customer.subscription.deleted

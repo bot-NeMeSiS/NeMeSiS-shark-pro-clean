@@ -1219,10 +1219,16 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
 
 
 def live_tracker_matches(db_path: str, limit: int = 80) -> list[dict[str, Any]]:
-    ensure_live_tracker_schema(db_path)
-    conn = _connect(db_path)
+    """Read persisted live tracker rows without schema writes or provider calls."""
     try:
-        return _live_tracker_matches_from_conn(conn, limit=limit)
+        conn = _connect_readonly(db_path)
+    except (OSError, sqlite3.Error):
+        return []
+    try:
+        try:
+            return _live_tracker_matches_from_conn(conn, limit=limit)
+        except sqlite3.OperationalError:
+            return []
     finally:
         conn.close()
 
@@ -1544,13 +1550,22 @@ def sync_api_football_match_window(
 
 
 def live_tracker_quality_summary(db_path: str) -> dict[str, Any]:
-    """Return a no-network quality summary for the API-Football live tracker.
-
-    The UI and admin can call this safely; it reads normalized cache only and does
-    not consume API-Football credits.
-    """
-    ensure_live_tracker_schema(db_path)
-    conn = _connect(db_path)
+    """Return a read-only, no-network quality summary of persisted tracker data."""
+    unavailable = {
+        "ok": True, "provider": "api_football", "configured": api_key_configured(),
+        "enabled": tracker_enabled(), "status": "CACHE_NOT_READY",
+        "message": "El caché live todavía no está disponible.",
+        "last_sync_at": "", "cache_age_seconds": None, "external_calls_last_sync": 0,
+        "fixtures_total": 0, "fixtures_live": 0, "fixtures_finished": 0,
+        "fixtures_with_stats": 0, "fixtures_with_events": 0, "fixtures_with_pressure": 0,
+        "fixtures_with_attacks": 0, "fixtures_with_dangerous_attacks": 0,
+        "ball_position_available": False, "advanced_sample_count": 0,
+        "evidence_counter": {}, "sample": [], "read_only": True, "external_calls": 0,
+    }
+    try:
+        conn = _connect_readonly(db_path)
+    except (OSError, sqlite3.Error):
+        return unavailable
     try:
         rows = conn.execute("SELECT * FROM api_football_live_snapshots ORDER BY last_synced_at DESC LIMIT 300").fetchall()
         live_rows = [r for r in rows if str(r["status_short"] or "").upper() in LIVE_STATUS_SHORT]
@@ -1641,15 +1656,28 @@ def live_tracker_quality_summary(db_path: str) -> dict[str, Any]:
                 "No se inventan eventos, estadísticas, resultados, cuotas ni picks.",
             ],
         }
+    except sqlite3.OperationalError:
+        return unavailable
     finally:
         conn.close()
 
 
 def live_tracker_status(db_path: str) -> dict[str, Any]:
-    ensure_live_tracker_schema(db_path)
-    conn = _connect(db_path)
+    unavailable = {
+        "ok": True, "configured": api_key_configured(), "enabled": tracker_enabled(),
+        "status": "CACHE_NOT_READY", "last_sync_at": "", "fixtures_count": 0,
+        "events_count": 0, "stats_count": 0, "external_calls": 0, "error": "",
+        "read_only": True,
+    }
     try:
-        row = conn.execute("SELECT * FROM api_football_live_sync_state WHERE key='live'").fetchone()
+        conn = _connect_readonly(db_path)
+    except (OSError, sqlite3.Error):
+        return unavailable
+    try:
+        try:
+            row = conn.execute("SELECT * FROM api_football_live_sync_state WHERE key='live'").fetchone()
+        except sqlite3.OperationalError:
+            return unavailable
         state = _rowdict(row)
         return {
             "ok": True,
@@ -1662,6 +1690,7 @@ def live_tracker_status(db_path: str) -> dict[str, Any]:
             "stats_count": state.get("stats_count") or 0,
             "external_calls": state.get("external_calls") or 0,
             "error": state.get("error") or "",
+            "read_only": True,
         }
     finally:
         conn.close()

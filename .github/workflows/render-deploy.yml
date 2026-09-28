@@ -56,12 +56,12 @@ jobs:
       expected_sha: ${{ steps.release.outputs.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11.9"
           cache: "pip"
@@ -135,11 +135,17 @@ jobs:
           python tools/check_v929_navigation_integrity.py
           python automation_workforce/navigation_integrity_worker.py --dry-run
 
+      - name: Canonical client and admin browser matrix
+        run: python tools/run_v929_click_navigation_qa.py --timeout 15000
+
       - name: Continuous Sentinel
         run: python tools/run_continuous_sentinel_static.py
 
       - name: Secret Guard
         run: python automation_workforce/security_secret_guard.py --dry-run
+
+      - name: Privacy classification
+        run: python tools/check_repository_privacy_and_secrets.py --no-report
 
       - name: Route and link audit
         run: |
@@ -165,12 +171,26 @@ jobs:
           echo "Preflight authorized for event=$GITHUB_EVENT_NAME ref=$GITHUB_REF sha=$GITHUB_SHA"
 
       - name: Upload preflight evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: render-preflight-${{ github.run_id }}
           path: |
-            reports/
+            reports/V941_*
+            reports/V929_FULL_NAVIGATION_ROUTE_MATRIX.*
+            reports/V929_CLICK_NAVIGATION_MATRIX.json
+            reports/V929_NAVIGATION_INTEGRITY_WORKER_REPORT.md
+            reports/V929_browser_qa_navigation/
+            reports/IMPORTS_ROUTES_VERIFY_V723.*
+            reports/V915_AUTOMATED_COMPANY_WORKFORCE_REPORT.md
+            reports/V915_RUNTIME_VERIFICATION_REPORT.md
+            reports/V915_POST_DEPLOY_SENTINEL_REPORT.md
+            reports/V915_BROWSER_QA_ORCHESTRATOR_REPORT.md
+            reports/V915_VISUAL_QUEUE_MANAGER_REPORT.md
+            reports/V915_TELEGRAM_DRY_RUN_WATCHER_REPORT.md
+            reports/V915_SECURITY_SECRET_GUARD_REPORT.md
+            reports/V937_PRODUCT_UPDATE_CLIENT_01.md
+            reports/V940_CALENDAR_SPORTS_EXPERIENCE_TECHNICAL_SPECIFICATION.md
             browser_qa/V944_MATCH_CENTER_FOUNDATION/*.json
             browser_qa/V944_MATCH_CENTER_FOUNDATION/*.png
           if-no-files-found: warn
@@ -184,12 +204,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11.9"
 
@@ -215,12 +235,12 @@ jobs:
       url: https://bot-apuestas-crgf.onrender.com
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11.9"
 
@@ -250,7 +270,7 @@ jobs:
             --output-dir reports/production_quality_sentinel
 
       - name: Upload post-deploy evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: render-post-deploy-${{ github.run_id }}

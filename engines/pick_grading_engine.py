@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +23,38 @@ from engines.madrid_time_engine import (
     madrid_local_from_parts,
     to_madrid_time,
 )
+
+
+# Keep every audit row while projecting one current evaluation per pick.
+LATEST_GRADING_CTE = """WITH latest_grades AS (
+    SELECT * FROM (
+        SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY COALESCE(NULLIF(r.pick_id,''),r.id)
+            ORDER BY COALESCE(r.graded_at,'') DESC, r.rowid DESC
+        ) AS evaluation_rank
+        FROM pick_grading_results r
+    ) WHERE evaluation_rank=1
+) """
+
+ELIGIBLE_PICK_STATUSES = (
+    "published", "pending", "won", "lost", "void",
+    "publicado", "pendiente", "ganado", "perdido", "nulo",
+)
+_ELIGIBLE_PICK_STATUS_SQL = ",".join("'" + status + "'" for status in ELIGIBLE_PICK_STATUSES)
+LATEST_ELIGIBLE_GRADING_CTE = """WITH latest_grades AS (
+    SELECT * FROM (
+        SELECT r.*, ROW_NUMBER() OVER (
+            PARTITION BY COALESCE(NULLIF(r.pick_id,''),r.id)
+            ORDER BY COALESCE(r.graded_at,'') DESC, r.rowid DESC
+        ) AS evaluation_rank
+        FROM pick_grading_results r
+    ) WHERE evaluation_rank=1
+), eligible_grades AS (
+    SELECT g.*
+      FROM latest_grades g
+      JOIN picks p ON p.id = g.pick_id
+     WHERE lower(trim(COALESCE(p.status,''))) IN (""" + _ELIGIBLE_PICK_STATUS_SQL + """)
+) """
 
 try:
     from engines.team_identity_engine import identity_payload
@@ -105,14 +139,13 @@ def normalize_status(value: Any) -> str:
 
 
 def parse_score(value: Any, home_score: Any = None, away_score: Any = None) -> tuple[int | None, int | None]:
-    if home_score not in (None, "") and away_score not in (None, ""):
-        return as_int(home_score), as_int(away_score)
-    text = str(value or "")
-    for sep in ["-", ":", "–"]:
-        if sep in text:
-            left, right = text.split(sep, 1)
-            return as_int(left), as_int(right)
-    return None, None
+    def goal(raw):
+        text = str(raw).strip()
+        return int(text) if re.fullmatch(r"[0-9]+", text) else None
+    if home_score not in (None, "") or away_score not in (None, ""):
+        return goal(home_score), goal(away_score)
+    match = re.fullmatch(r"\s*([0-9]+)\s*[-:–]\s*([0-9]+)\s*", str(value or ""))
+    return (int(match[1]), int(match[2])) if match else (None, None)
 
 
 def ensure_pick_grading_schema(db_path: str) -> Dict[str, Any]:
@@ -165,19 +198,23 @@ def ensure_pick_grading_schema(db_path: str) -> Dict[str, Any]:
 
 def _load_candidates(conn: sqlite3.Connection, limit: int) -> list[Dict[str, Any]]:
     query = """SELECT p.id AS pick_id, p.match_id, p.match_date, p.competition_name, p.home_team, p.away_team,
-                      p.pick_type, p.selection, p.odds, p.confidence, p.stake_units, p.status AS pick_status,
+                      p.pick_type, p.market, p.selection, p.odds, p.confidence, p.stake_units,
+                      p.status AS pick_status, p.result_status,
                       m.status AS match_status, m.score, m.home_score, m.away_score, m.updated_at AS match_updated_at
                FROM picks p
                LEFT JOIN matches m ON m.id = p.match_id
+               WHERE lower(trim(p.status)) IN ('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')
                ORDER BY COALESCE(p.updated_at,p.created_at,p.match_date,'') DESC
                LIMIT ?"""
     items = rows(conn, query, (int(limit),))
-    if items:
+    if items or scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='picks'"):
         return items
     return rows(conn, """SELECT pick_id, match_id, league_name AS competition_name, home_team, away_team,
                               market AS pick_type, selection, odds, confidence, stake AS stake_units,
                               status AS pick_status, result_status, snapshot_at AS match_updated_at
-                       FROM warehouse_pick_facts ORDER BY COALESCE(updated_at,snapshot_at,'') DESC LIMIT ?""", (int(limit),))
+                       FROM warehouse_pick_facts
+                       WHERE lower(trim(status)) IN ('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')
+                       ORDER BY COALESCE(updated_at,snapshot_at,'') DESC LIMIT ?""", (int(limit),))
 
 
 def _settle_1x2(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
@@ -218,9 +255,16 @@ def _settle_total_goals(selection: str, market: str, home_goals: int, away_goals
     line = _line_number(text)
     if line is None:
         return "pending"
+    # Quarter-goal Asian lines can be half-won/half-lost. The current grading
+    # schema only represents won/lost/void, so they require manual review.
+    fraction = round(line - math.floor(line), 2)
+    if fraction in {0.25, 0.75}:
+        return "pending"
     total = home_goals + away_goals
     is_over = any(x in text for x in ["over", "mas de", "más de", "+", "mayor de"])
     is_under = any(x in text for x in ["under", "menos de", "-", "menor de"])
+    if total == line and (is_over or is_under):
+        return "void"
     if is_over:
         return "won" if total > line else "lost"
     if is_under:
@@ -266,6 +310,38 @@ def _settle_double_chance(selection: str, home_goals: int, away_goals: int, home
     return "won" if outcome in wanted else "lost"
 
 
+def _automatic_grading_blocker(market: str, selection: str) -> str:
+    joined = normalize_text(f"{market} {selection}")
+    if re.search(r"(?:^|\\s)(?:1h|2h|ht)(?:\\s|$)", joined) or any(token in joined for token in (
+        "primera parte", "primer tiempo", "1er tiempo", "first half", "1st half",
+        "segunda parte", "segundo tiempo", "2do tiempo", "second half", "2nd half",
+        "half time", "halftime", "descanso",
+    )):
+        return "Mercado por periodo: necesita resultado específico del periodo."
+    if any(token in joined for token in (
+        "corner", "córner", "corners", "córners", "tarjeta", "cards", "booking",
+        "tiro", "shot", "disparo", "falta", "foul", "offside", "fuera de juego",
+        "parada", "save", "posesión", "possession", "saque de banda",
+    )):
+        return "Mercado estadístico no derivable del marcador final."
+    if any(token in joined for token in (
+        "resultado exacto", "marcador exacto", "correct score", "winning margin",
+        "margen de victoria", "goleador", "jugador", "player prop", "marca primero",
+        "primer gol", "first goalscorer",
+    )):
+        return "Mercado especial no soportado por el auto-grading."
+    if any(token in joined for token in (
+        "team total", "total equipo", "total local", "total visitante",
+        "goles del local", "goles del visitante", "goles local", "goles visitante",
+        "home team total", "away team total",
+    )):
+        return "Total de equipo: necesita marcador/desglose específico."
+    dnb = any(token in joined for token in ("dnb", "draw no bet", "empate no apuesta"))
+    if not dnb and any(token in joined for token in ("handicap", "hándicap", "asian handicap", "spread")):
+        return "Hándicap no soportado por el auto-grading actual."
+    return ""
+
+
 def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
     explicit = normalize_status(pick.get("result_status"))
     if explicit in {"won", "lost", "void"}:
@@ -277,6 +353,9 @@ def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
     market = normalize_text(pick.get("pick_type") or pick.get("market"))
     selection = str(pick.get("selection") or "")
     joined = normalize_text(f"{market} {selection}")
+    blocker = _automatic_grading_blocker(market, selection)
+    if blocker:
+        return "pending", blocker, 58
     if any(x in joined for x in ["ambos marcan", "btts", "both teams"]):
         res = _settle_btts(selection, market, home_goals, away_goals)
         if res != "pending":
@@ -300,10 +379,22 @@ def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
     return "pending", "Marcador final detectado, pero el mercado necesita revisión manual.", 55
 
 
-def profit_for(result_status: str, odds: Any, stake: Any) -> float:
-    stake_f = as_float(stake, 1.0)
-    odds_f = as_float(odds, 0.0)
-    if result_status == "won" and odds_f > 1:
+def _recorded_amount(value: Any, minimum: float) -> float | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        amount = float(str(value).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    return amount if math.isfinite(amount) and amount > minimum else None
+
+
+def profit_for(result_status: str, odds: Any, stake: Any) -> float | None:
+    stake_f = _recorded_amount(stake, 0)
+    odds_f = _recorded_amount(odds, 1)
+    if stake_f is None or odds_f is None or result_status not in {"won", "lost", "void"}:
+        return None
+    if result_status == "won":
         return round((odds_f - 1) * stake_f, 2)
     if result_status == "lost":
         return round(-stake_f, 2)
@@ -313,8 +404,8 @@ def profit_for(result_status: str, odds: Any, stake: Any) -> float:
 def grade_pick(pick: Dict[str, Any]) -> Dict[str, Any]:
     result, reason, evidence_score = infer_result(pick)
     confidence = as_int(pick.get("confidence"), 50)
-    odds = as_float(pick.get("odds"), 0.0)
-    stake = as_float(pick.get("stake_units"), 1.0)
+    odds = _recorded_amount(pick.get("odds"), 1)
+    stake = _recorded_amount(pick.get("stake_units"), 0)
     profit = profit_for(result, odds, stake)
     if result == "won":
         after = min(100, confidence + 4)
@@ -360,7 +451,7 @@ def run_pick_grading(db_path: str, limit: int = 500, apply: bool = False) -> Dic
         else:
             stats[result] += 1
         stats["auto_validated"] += int(grade["auto_validated"])
-        stats["profit"] += grade["profit"]
+        stats["profit"] += grade["profit"] or 0.0
         gid = stable_id("pgr", p.get("pick_id"), result, p.get("match_updated_at"), grade["evidence_score"])
         cur.execute("""INSERT OR REPLACE INTO pick_grading_results
             (id,pick_id,match_id,grading_status,result_status,confidence_before,confidence_after,odds,stake,profit,grading_score,auto_validated,reason,payload_json,graded_at)
@@ -463,19 +554,33 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
             "recent_runs": [], "read_only": True,
         }
     evaluable_where = "result_status IN ('won','lost','void') AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0"
-    total = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results", default=0)
-    evaluable = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE {evaluable_where}", default=0)
-    auto_validated = scalar(conn, f"SELECT COUNT(*) FROM pick_grading_results WHERE auto_validated=1 AND {evaluable_where}", default=0)
-    pending = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='pending'", default=0)
-    won = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='won' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    lost = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='lost' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    voids = scalar(conn, "SELECT COUNT(*) FROM pick_grading_results WHERE result_status='void' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0)
-    stake_total = scalar(conn, f"SELECT ROUND(SUM(stake),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
-    profit = scalar(conn, f"SELECT ROUND(SUM(profit),2) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
-    avg_score = scalar(conn, f"SELECT ROUND(AVG(grading_score),1) FROM pick_grading_results WHERE {evaluable_where}", default=0) or 0
+    has_picks = bool(scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='picks'", default=0))
+    pick_columns = {str(row.get("name") or "") for row in rows(conn, "PRAGMA table_info(picks)")} if has_picks else set()
+    if has_picks and "status" in pick_columns:
+        grading_cte = LATEST_ELIGIBLE_GRADING_CTE
+    elif has_picks:
+        # Older/minimal schemas still prove pick existence even when they predate
+        # the status column. Keep orphan rows out without inventing a status.
+        grading_cte = LATEST_GRADING_CTE + """, eligible_grades AS (
+            SELECT g.* FROM latest_grades g
+            JOIN picks p ON p.id = g.pick_id
+        ) """
+    else:
+        grading_cte = ""
+    grade_source = "eligible_grades"
+    total = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source}", default=0) if grading_cte else 0
+    evaluable = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE {evaluable_where}", default=0) if grading_cte else 0
+    auto_validated = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE auto_validated=1 AND {evaluable_where}", default=0) if grading_cte else 0
+    pending = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE result_status='pending'", default=0) if grading_cte else 0
+    won = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE result_status='won' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0) if grading_cte else 0
+    lost = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE result_status='lost' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0) if grading_cte else 0
+    voids = scalar(conn, grading_cte + f"SELECT COUNT(*) FROM {grade_source} WHERE result_status='void' AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0", default=0) if grading_cte else 0
+    stake_total = (scalar(conn, grading_cte + f"SELECT ROUND(SUM(stake),2) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
+    profit = (scalar(conn, grading_cte + f"SELECT ROUND(SUM(profit),2) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
+    avg_score = (scalar(conn, grading_cte + f"SELECT ROUND(AVG(grading_score),1) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
     recent_rows = rows(
         conn,
-        """SELECT r.*,
+        grading_cte + """SELECT r.*,
                   COALESCE(m.match_date, p.match_date) AS event_match_date,
                   m.kickoff_time AS event_kickoff_time,
                   m.kickoff_iso AS event_kickoff_iso,
@@ -487,7 +592,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
                   COALESCE(m.home_team, p.home_team) AS home_team,
                   COALESCE(m.away_team, p.away_team) AS away_team,
                   COALESCE(m.competition_name, p.competition_name) AS competition_name
-             FROM pick_grading_results r
+             FROM eligible_grades r
              LEFT JOIN picks p ON p.id = r.pick_id
              LEFT JOIN matches m ON m.id = COALESCE(r.match_id, p.match_id)
             WHERE r.result_status IN ('won','lost','void')
@@ -497,7 +602,7 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
             LIMIT 10""",
     )
     if not recent_rows:
-        recent_rows = rows(conn, f"SELECT * FROM pick_grading_results WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10")
+        recent_rows = rows(conn, grading_cte + f"SELECT * FROM eligible_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10") if grading_cte else []
     recent = [_enrich_recent_result(r) for r in recent_rows]
     runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]

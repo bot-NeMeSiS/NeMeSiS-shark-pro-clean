@@ -1,6 +1,8 @@
 """Safe internal scheduler helpers for NeMeSiS SHARK PRO.
 
-This module is pure logic. Flask, SQLite writes and API calls stay in app.py.
+This is a manual compatibility scheduler, not the production recurring owner.
+Production recurrence is defined only in render.yaml. Flask, SQLite writes and
+API calls stay in app.py.
 """
 
 from datetime import datetime, timedelta
@@ -53,8 +55,8 @@ def interval_seconds(task_name, env):
 
 def scheduler_config(env):
     return {
-        "enabled": env_bool(env, "ENABLE_AUTO_SYNC", True),
-        "startup": env_bool(env, "AUTO_SYNC_ON_STARTUP", True),
+        "enabled": env_bool(env, "ENABLE_AUTO_SYNC", False),
+        "startup": env_bool(env, "AUTO_SYNC_ON_STARTUP", False),
         "tasks": [
             {
                 **task,

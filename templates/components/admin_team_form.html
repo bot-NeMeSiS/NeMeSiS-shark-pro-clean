@@ -1,0 +1,43 @@
+{# Read-only shared result evidence. Not a prediction or season completeness check. #}
+{% set forms = mi.get('team_form') or {} %}
+<section class="admin-team-form" aria-labelledby="admin-team-form-title" data-admin-team-form>
+  <header>
+    <h2 id="admin-team-form-title">Forma reciente de los equipos</h2>
+    <p>Hasta cinco resultados finales válidos de la colección ya cargada, en orden del más reciente al más antiguo. Puede incluir distintas competiciones y temporadas.</p>
+    <p>Esta lectura no acredita toda la temporada ni reconstruye lo que se sabía antes del partido seleccionado.</p>
+  </header>
+  <div class="admin-team-form-grid">
+    {% for side, label in [('home','Equipo local'), ('away','Equipo visitante')] %}
+    {% set sample = forms.get(side) or {} %}
+    {% set certified = sample.get('contract') == 'TEAM-FORM-CONFIRMED-CACHE-V1' %}
+    <article class="admin-team-form-card" data-form-side="{{ side }}">
+      <h3>{{ sample.get('team') or label }}</h3>
+      {% if certified and sample.get('form_available') %}
+      <dl class="admin-team-form-totals">
+        {% for key, title in [('sample_size','Resultados'), ('wins','Victorias'), ('draws','Empates'), ('losses','Derrotas'), ('goals_for','Goles a favor'), ('goals_against','Goles en contra')] %}
+        <div><dt>{{ title }}</dt><dd>{{ sample.get(key, 0) }}</dd></div>
+        {% endfor %}
+      </dl>
+      <details>
+        <summary>Ver resultados recientes ({{ sample.get('sample_size', 0) }})</summary>
+        <ol>
+          {% for result in sample.get('results') or [] %}
+          <li>
+            <time datetime="{{ result.get('kickoff') or '' }}">{{ result.get('date_label') }}</time>
+            {% if result.get('href') %}<a href="{{ result.get('href') }}">{{ result.get('home_team') }} — {{ result.get('away_team') }}</a>{% else %}<span>{{ result.get('home_team') }} — {{ result.get('away_team') }}</span>{% endif %}
+            <strong>{{ result.get('home_score') }}–{{ result.get('away_score') }}</strong><span>{{ result.get('outcome') }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </details>
+      {% else %}
+      <p data-form-empty>No hay una muestra de resultados finales verificada para este equipo en la colección cargada.</p>
+      {% endif %}
+      {% if certified %}
+      <p class="admin-team-form-note">Resultados válidos cargados: {{ sample.get('valid_loaded_results', 0) }}. Total de temporada: no verificado.</p>
+      {% if sample.get('omitted_count') %}<p class="admin-team-form-note" data-form-omissions>{{ sample.get('omitted_count') }} registros no incluidos por estado, calidad o duplicación. No se han borrado datos.</p>{% endif %}
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>

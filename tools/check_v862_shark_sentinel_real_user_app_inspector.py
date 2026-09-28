@@ -27,7 +27,7 @@ def main() -> None:
     base = read("templates/base.html")
     css = read("static/app.css")
     engine = read("engines/shark_sentinel_engine.py")
-    template = read("templates/admin_shark_sentinel.html")
+    template = read("templates/admin_continuous_sentinel.html")
 
     ok(version_txt in VALID_CURRENT_VERSIONS, "VERSION.txt V862", failures)
     ok(any(f"APP_VERSION = '{candidate}'" in app_py for candidate in VALID_CURRENT_VERSIONS), "APP_VERSION V862", failures)
@@ -39,7 +39,7 @@ def main() -> None:
 
     for path in [
         "engines/shark_sentinel_engine.py",
-        "templates/admin_shark_sentinel.html",
+        "templates/admin_continuous_sentinel.html",
         "tools/run_shark_sentinel_static.py",
     ]:
         ok((ROOT / path).exists(), f"existe {path}", failures)
@@ -100,7 +100,7 @@ def main() -> None:
 
     visible = "\n".join(read(path) for path in [
         "templates/base.html",
-        "templates/admin_shark_sentinel.html",
+        "templates/admin_continuous_sentinel.html",
         "templates/admin_auto_improvement.html",
     ])
     for bad in ["Ã", "Â", "", "membresÃ", "acciÃ", "navegaciÃ"]:

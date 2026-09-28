@@ -318,7 +318,7 @@ def test_observer_missing_store_schema_and_entity_stay_missing(tmp_path):
     assert observe_persisted_match(path, "qa", evaluation_time=now)["reason"] == "MATCH_UNAVAILABLE"
 
 
-def test_normal_first_access_writes_are_not_hidden_by_observer_claim(app_module, tmp_path, monkeypatch):
+def test_first_access_only_populates_technical_cache_not_client_preferences(app_module, tmp_path, monkeypatch):
     path = tmp_path / "first-access.sqlite"
     monkeypatch.setattr(app_module, "DB_PATH", str(path))
     monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None)
@@ -346,7 +346,8 @@ def test_normal_first_access_writes_are_not_hidden_by_observer_claim(app_module,
             app_module.default_profile()
             app_module.match_hub("2044-09-09")
         if iteration == 0:
-            assert {"client_profiles", "persistent_cache"} <= set(writes)
+            assert "persistent_cache" in writes
+            assert "client_profiles" not in writes
             assert "live_sync_state" not in writes
         else:
             assert not writes

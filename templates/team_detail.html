@@ -33,7 +33,7 @@
     </div>
     <aside class="team-center-status-card" aria-label="{{ ui("Seguimiento del equipo") }}">
       <div><span>{{ ui("Seguimiento") }}</span><strong>{{ ui_owned('Activo' if t.is_favorite else 'Disponible') }}</strong></div>
-      <form method="post" action="/favorites">
+      <form method="post" action="/favoritos">
         <input type="hidden" name="action" value="{{ 'remove' if t.is_favorite else 'add' }}">
         <input type="hidden" name="kind" value="team">
         <input type="hidden" name="value" value="{{ t.name }}">
@@ -41,7 +41,7 @@
         <button class="team-center-action {{ 'is-danger' if t.is_favorite else 'is-primary' }}" type="submit">{{ ui('Quitar favorito' if t.is_favorite else 'Guardar equipo') }}</button>
       </form>
       <nav class="team-center-actions" aria-label="{{ ui("Acciones rápidas") }}">
-        <a href="/calendar?team={{ t.name|urlencode }}">{{ ui("Calendario") }}</a>
+        <a href="/calendario?team={{ t.name|urlencode }}">{{ ui("Calendario") }}</a>
         <a href="/shark?team={{ t.name|urlencode }}">SHARK</a>
         {% if links.match_center %}<a href="{{ links.match_center }}">{{ ui("Partido relacionado") }}</a>{% endif %}
       </nav>
@@ -59,7 +59,7 @@
     <article><span>{{ ui("Próximos") }}</span><strong>{{ metrics.upcoming or 0 }}</strong><small>{{ ui("partidos confirmados") }}</small></article>
     <article><span>{{ ui("Resultados") }}</span><strong>{{ metrics.recent or 0 }}</strong><small>{{ ui("historial disponible") }}</small></article>
     <article><span>{{ ui("Directo") }}</span><strong>{{ metrics.live or 0 }}</strong><small>{{ ui("eventos ahora") }}</small></article>
-    <article><span>{{ ui("Picks") }}</span><strong>{{ metrics.picks or 0 }}</strong><small>{{ ui("relacionados") }}</small></article>
+    <article><span>{{ ui("Pronósticos") }}</span><strong>{{ metrics.picks or 0 }}</strong><small>{{ ui("relacionados") }}</small></article>
     <article><span>{{ ui("Relaciones") }}</span><strong>{{ metrics.graph_edges or 0 }}</strong><small>{{ ui("deportivas") }}</small></article>
   </section>
 
@@ -165,12 +165,12 @@
     </section>
 
     <section class="team-center-panel" data-team-center-section="picks">
-      <div class="team-center-section-head"><span>{{ ui("Picks relacionados") }}</span><strong>{{ t.picks|length }}</strong></div>
+      <div class="team-center-section-head"><span>{{ ui("Pronósticos relacionados") }}</span><strong>{{ t.picks|length }}</strong></div>
       <div class="team-center-list">
         {% for pick in t.picks[:6] %}
-        <a href="/picks"><span>{{ pick.selection_display or pick.selection or 'Seleccion pendiente' }}</span><strong>{{ pick.odds or ui('No disponible') }}</strong></a>
+        <a href="/picks"><span>{{ pick.selection_display or pick.selection or 'Selección pendiente' }}</span><strong>{{ pick.odds or ui('No disponible') }}</strong></a>
         {% else %}
-        <p class="team-center-empty">{{ ui("Aún no hay picks publicados para este equipo.") }}</p>
+        <p class="team-center-empty">{{ ui("Aún no hay pronósticos publicados para este equipo.") }}</p>
         {% endfor %}
       </div>
     </section>

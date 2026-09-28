@@ -11,7 +11,7 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
     checks = {
         "templates/track_record.html": [
             'data-top100-improvement="7"',
-            "Metodología del histórico",
+            "Cómo calculamos el historial",
             "Entra en el cálculo",
             "Muestra suficiente",
         ],
@@ -41,8 +41,8 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         "templates/home.html": [
             'data-top100-improvement="17"',
             "Estado de datos deportivos",
-            "sports-metrics-v1",
-            "Esperando sincronización",
+            "sports_contract_attributes(sports_metrics)",
+            "esperando sincronización",
         ],
         "templates/favorites.html": [
             'data-top100-improvement="18"',
@@ -52,14 +52,14 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         ],
         "templates/action_platform.html": [
             'data-top100-improvement="20"',
-            "Recap nocturno",
+            "Resumen nocturno",
             "Siguiente acción útil",
             "esta sección",
         ],
         "templates/daily_briefing.html": [
             'data-top100-improvement="20"',
             "Después de la jornada",
-            "Abrir recap nocturno",
+            "Abrir resumen nocturno",
         ],
     }
     for file_name, snippets in checks.items():

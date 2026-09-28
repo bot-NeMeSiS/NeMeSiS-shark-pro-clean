@@ -112,10 +112,10 @@ def _fixture_root(tmp_path: Path, *, break_context: bool = False) -> Path:
 
 def test_v940_version_cache_and_runtime_markers_are_aligned():
     app_source = (ROOT / "app.py").read_text(encoding="utf-8")
-    assert (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip() == VERSION
-    assert (ROOT / "APP_VERSION").read_text(encoding="utf-8").strip() == VERSION
-    assert f"APP_VERSION = '{VERSION}'" in app_source
-    assert "NEMESIS_CACHE_V940" in app_source
+    from tools.print_release_identity import runtime_identity, service_worker_cache_from_source
+    identity = runtime_identity(ROOT)
+    assert identity["ok"]
+    assert service_worker_cache_from_source(app_source) == identity["runtime_version"].split("_", 1)[0]
     assert "has_v940_nemesis_sports_experience_phase_1_foundation" in app_source
     assert "has_v939_autonomous_company_intelligence_growth_quality_platform" in app_source
 
