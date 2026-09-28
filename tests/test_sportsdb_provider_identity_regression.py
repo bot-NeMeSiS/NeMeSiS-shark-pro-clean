@@ -151,3 +151,62 @@ def test_sportsdb_provider_identity_rejects_older_snapshot_for_same_external_id(
     assert row["status"] == "FINALIZADO"
     assert row["score"] == "2-0"
     assert row["last_synced_at"] == newer_at.isoformat()
+
+
+def test_sportsdb_reconciliation_metrics_survive_diagnostics_and_cron(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    fallback = {
+        "ok": True,
+        "status": "OK",
+        "processed": 3,
+        "external_calls": 2,
+        "provider_identity_rows_reconciled": 3,
+        "stale_reconciliation_candidates": 3,
+        "stale_reconciliation_observed": 3,
+        "stale_reconciliation_resolved": 2,
+        "stale_reconciliation_remaining": 1,
+        "stale_reconciliation_missing": 0,
+    }
+    sports_result = {
+        "status": "PARTIAL",
+        "fixtures": {
+            "ok": False,
+            "status": "ERROR",
+            "configured": True,
+            "enabled": True,
+            "external_calls": 0,
+            "fixtures_count": 0,
+        },
+        "fallback": fallback,
+        "live": {"ok": True, "status": "NOT_REQUIRED", "external_calls": 0, "fixtures_count": 0},
+        "odds": {"ok": True, "status": "NOT_REQUIRED", "external_calls": 0, "processed": 0},
+        "deep_enrichment": {"status": "NOT_REQUIRED", "external_calls": 0},
+    }
+
+    diagnostics = app_module._build_sports_pipeline_diagnostics(sports_result, {})
+    current = diagnostics["current_sync"]["sportsdb_fallback"]
+    assert current["provider_identity_rows_reconciled"] == 3
+    assert current["stale_reconciliation_resolved"] == 2
+    assert current["stale_reconciliation_remaining"] == 1
+    assert current["stale_reconciliation_missing"] == 0
+
+    compact = app_module._cron_compact_payload(
+        "telegram_tick",
+        {"ok": True, "status": "PARTIAL", "sports_pipeline": diagnostics},
+        "2026-09-28T23:40:00+02:00",
+        "2026-09-28T23:40:05+02:00",
+    )["sports_pipeline"]
+    compact_fallback = compact["current_sync"]["sportsdb_fallback"]
+    assert compact_fallback["provider_identity_rows_reconciled"] == 3
+    assert compact_fallback["stale_reconciliation_resolved"] == 2
+    assert compact_fallback["stale_reconciliation_remaining"] == 1
+    assert compact_fallback["stale_reconciliation_missing"] == 0
+
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "secret-canary")
+    safe_fallback = sanitized["current_sync"]["sportsdb_fallback"]
+    assert safe_fallback["provider_identity_rows_reconciled"] == 3
+    assert safe_fallback["stale_reconciliation_resolved"] == 2
+    assert safe_fallback["stale_reconciliation_remaining"] == 1
+    assert safe_fallback["stale_reconciliation_missing"] == 0
+    assert "secret-canary" not in str(sanitized)
