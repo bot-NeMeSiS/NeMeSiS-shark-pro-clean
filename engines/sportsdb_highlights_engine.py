@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from engines.content_rights_engine import classify_media_asset
+from engines.highlight_url_engine import public_https_url, safe_embed_url
 from engines.video_highlights_engine import classify_match_video
 
 TZ = ZoneInfo('Europe/Madrid')
@@ -244,15 +245,24 @@ def _rights_status(item):
 
 
 def classify_stored_highlight(item, *, channel='APP'):
-    """Apply the canonical fail-closed rights decision to persisted metadata."""
+    """Apply rights, URL and channel guards to persisted highlight metadata."""
     row = dict(item or {})
     rights_status = _rights_status(row)
     commercial = str(row.get('commercial_use_status') or 'UNKNOWN').strip().upper()
     geo_status = str(row.get('geo_restriction_status') or 'UNKNOWN').strip().upper()
-    original_url = str(row.get('video_url') or row.get('original_url') or '').strip()
+    original_url = public_https_url(row.get('video_url') or row.get('original_url') or '')
     embed_url = str(row.get('embed_url') or '').strip()
-    if geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'}:
+    embed_policy = str(row.get('embed_policy') or 'LEGACY').strip().upper()
+    if embed_policy in {'LINK_ONLY', 'BLOCKED', 'REVIEW_REQUIRED'} or geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'}:
         embed_url = ''
+    try:
+        channels = json.loads(row.get('allowed_channels_json') or '[]')
+        if not isinstance(channels, list):
+            channels = []
+    except (ValueError, TypeError):
+        channels = []
+    channels = [str(value).strip().upper() for value in channels if str(value).strip()]
+    requested_channel = str(channel or 'APP').strip().upper()
     decision = classify_match_video({
         **row,
         'content_type': 'video',
@@ -267,8 +277,28 @@ def classify_stored_highlight(item, *, channel='APP'):
         'rights_verified_at': row.get('rights_verified_at'),
         'official_source_verified': bool(row.get('official_source_verified')),
         'geo_restriction_status': geo_status,
-        'channel': channel,
+        'channel': requested_channel,
+        'allowed_channels': channels,
     })
+    if channels and requested_channel not in channels:
+        decision = {
+            **decision,
+            'can_embed': False,
+            'can_link': False,
+            'show_block': False,
+            'channel_allowed': False,
+            'decision': 'BLOCKED',
+            'reason': 'La licencia no autoriza esta superficie o canal.',
+        }
+    if not original_url:
+        decision = {
+            **decision,
+            'can_embed': False,
+            'can_link': False,
+            'show_block': False,
+            'decision': 'BLOCKED',
+            'reason': 'La URL del vídeo no es pública y HTTPS válida.',
+        }
     thumbnail = classify_media_asset({
         'content_type': 'thumbnail',
         'source': row.get('source') or row.get('provider'),
@@ -277,17 +307,17 @@ def classify_stored_highlight(item, *, channel='APP'):
         'commercial_use_status': row.get('thumbnail_commercial_use_status') or 'UNKNOWN',
         'attribution': row.get('thumbnail_attribution') or '',
         'rights_verified_at': row.get('rights_verified_at'),
-    }, channel=channel)
+    }, channel=requested_channel)
     return {
         **row,
         **decision,
         'video_url': original_url,
+        'allowed_channels': channels,
         'thumbnail_url': thumbnail.get('asset_url') if thumbnail.get('can_display') else '',
         'thumbnail_rights': thumbnail,
         'geo_restriction_status': geo_status,
         'geo_restricted': geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'},
     }
-
 
 def _visible_highlights(items):
     classified = [classify_stored_highlight(item) for item in (items or [])]
@@ -295,39 +325,60 @@ def _visible_highlights(items):
 
 
 def _find_match(conn, item):
+    """Associate only an unambiguous SportsDB identity or exact dated team pair."""
     cols = _cols(conn, 'matches')
-    if not cols:
+    if 'id' not in cols:
         return None
-    sid = _event_id(item)
+    sid = str(item.get('idEvent') or item.get('event_id') or '').strip()
     if sid and 'external_id' in cols:
-        found = _one(conn, 'SELECT id FROM matches WHERE external_id=? OR external_id=? LIMIT 1', (sid, 'sportsdb-' + sid))
-        if found:
-            return found.get('id')
-    date_value = item.get('dateEvent') or item.get('date') or item.get('strDate') or ''
-    home, away = _home_away(item)
-    if not date_value or not home or not away:
+        candidates = _rows(conn, 'SELECT * FROM matches WHERE external_id=? OR external_id=?', (sid, 'sportsdb-' + sid))
+        qualified = []
+        for row in candidates:
+            source = _norm(row.get('source') or row.get('provider'))
+            if str(row.get('external_id')) == 'sportsdb-' + sid or 'sportsdb' in source:
+                qualified.append(row)
+        if len(qualified) == 1:
+            home, away = _home_away(item)
+            row = qualified[0]
+            if home and away and (_norm(home), _norm(away)) != (_norm(row.get('home_team')), _norm(row.get('away_team'))):
+                return None
+            return row['id']
+        if qualified:
+            return None
+    needed = {'home_team', 'away_team', 'match_date'}
+    if not needed <= cols:
         return None
-    candidates = _rows(conn, '''SELECT id,home_team,away_team,match_date FROM matches
-        WHERE match_date LIKE ? LIMIT 80''', (str(date_value)[:10] + '%',))
-    hn, an = _norm(home), _norm(away)
-    for match in candidates:
-        if _norm(match.get('home_team')) == hn and _norm(match.get('away_team')) == an:
-            return match.get('id')
-    for match in candidates:
-        text = _norm(str(match.get('home_team')) + str(match.get('away_team')))
-        if hn in text and an in text:
-            return match.get('id')
-    return None
-
+    date = str(item.get('dateEvent') or item.get('date') or '')[:10]
+    home, away = _home_away(item)
+    if not date or not home or not away:
+        return None
+    candidates = _rows(conn, 'SELECT * FROM matches WHERE substr(match_date,1,10)=? LIMIT 501', (date,))
+    if len(candidates) > 500:
+        return None
+    matched = []
+    for row in candidates:
+        if (_norm(row.get('home_team')), _norm(row.get('away_team'))) != (_norm(home), _norm(away)):
+            continue
+        league = str(item.get('idLeague') or '')
+        source = _norm(row.get('source') or row.get('provider'))
+        row_league = str(row.get('league_id') or '')
+        if league and row_league and 'sportsdb' in source and league != row_league:
+            continue
+        name = _norm(item.get('strLeague'))
+        row_name = _norm(row.get('competition_name') or row.get('league_name'))
+        if name and row_name and name != row_name:
+            continue
+        matched.append(row['id'])
+    return matched[0] if len(matched) == 1 else None
 
 def _upsert_highlight(conn, item):
     now = _now()
     sid = _event_id(item)
     date_value = (item.get('dateEvent') or item.get('date') or '')[:10]
     home, away = _home_away(item)
-    video = _video_url(item)
-    embed = _youtube_embed_url(video)
-    if not sid and not video:
+    video = public_https_url(_video_url(item))
+    embed = safe_embed_url(video)
+    if not video:
         return None
     hid = hashlib.md5(('sportsdb-highlight:' + (sid or video)).encode()).hexdigest()[:22]
     match_id = _find_match(conn, item) or ''
