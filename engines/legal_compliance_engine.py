@@ -105,6 +105,7 @@ PAGES = {
         "sections": [
             {"title": "Base de tratamiento", "body": "Ejecución de la relación de usuario/suscripción, interés legítimo de seguridad y consentimiento cuando sea necesario."},
             {"title": "Encargados", "body": "Render aloja la app, Stripe procesa pagos, Telegram/OpenAI/TheSportsDB/The Odds API pueden intervenir según funciones activas."},
+            {"title": "Telegram opcional", "body": "Si el usuario vincula Telegram, NeMeSiS trata identificadores técnicos de Telegram (chat_id, username si existe, estado y fecha de enlace) y sus preferencias de avisos para prestar esa función. La vinculación no exige que NeMeSiS solicite el número de teléfono."},
             {"title": "Seguridad", "body": "No se deben exponer secretos, tokens, números completos de tarjeta ni bases de datos en descargas o vistas públicas."},
         ],
     },
