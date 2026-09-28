@@ -154,8 +154,8 @@ def test_filter_items_uses_selected_league_only():
 
 def test_defaults_are_low_volume_by_plan():
     assert default_telegram_user_preferences("FREE")["daily_limit"] == 2
-    assert default_telegram_user_preferences("PRO")["daily_limit"] == 6
-    assert default_telegram_user_preferences("ELITE")["daily_limit"] == 10
+    assert default_telegram_user_preferences("PRO")["daily_limit"] == 4
+    assert default_telegram_user_preferences("ELITE")["daily_limit"] == 6
 
 
 def _insert_test_user(app_module, membership="PRO"):
