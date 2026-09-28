@@ -16,7 +16,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,6 +55,37 @@ def _now_madrid() -> str:
         return datetime.now(ZoneInfo("Europe/Madrid")).replace(microsecond=0).isoformat()
     except Exception:
         return datetime.now().replace(microsecond=0).isoformat()
+
+
+
+def _same_dynamic_navigation_target(expected: str, observed: str) -> bool:
+    """Allow a link discovered before midnight to refresh only its date parameter."""
+    left = urlsplit(str(expected or ""))
+    right = urlsplit(str(observed or ""))
+    if left.path != right.path or not left.path:
+        return False
+    left_query = dict(parse_qsl(left.query, keep_blank_values=True))
+    right_query = dict(parse_qsl(right.query, keep_blank_values=True))
+    if "date" not in left_query or "date" not in right_query:
+        return False
+    left_query.pop("date", None)
+    right_query.pop("date", None)
+    return left_query == right_query
+
+
+def _dynamic_visible_link(page, expected_target: str, expected_text: str):
+    links = page.locator("a[href]:visible")
+    normalized_text = " ".join(str(expected_text or "").split())
+    for index in range(min(links.count(), 100)):
+        node = links.nth(index)
+        href = node.get_attribute("href") or ""
+        if not _same_dynamic_navigation_target(expected_target, href):
+            continue
+        text = " ".join((node.inner_text() or node.get_attribute("aria-label") or "").split())
+        if normalized_text and text != normalized_text:
+            continue
+        return node
+    return None
 
 
 def _safe_internal_target(value: str) -> bool:
@@ -176,6 +207,13 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
 
         if action.get("tag") == "a":
             locator = page.locator(f'a[href="{target}"]:visible').first
+            if locator.count() == 0:
+                dynamic_locator = _dynamic_visible_link(page, target, action.get("text") or "")
+                if dynamic_locator is not None:
+                    locator = dynamic_locator
+                    refreshed_target = locator.get_attribute("href") or target
+                    item["target_refreshed_after_date_rollover"] = refreshed_target != target
+                    target = refreshed_target
         else:
             locator = page.locator(f'button[data-q="{target}"]:visible').first
         if locator.count() == 0:
