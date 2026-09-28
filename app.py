@@ -7147,6 +7147,11 @@ def growth_attribution_from_session():
     return value if isinstance(value, dict) else normalize_growth_attribution({})
 
 
+def growth_is_first10_attribution(value=None):
+    attribution = value if isinstance(value, dict) else growth_attribution_from_session()
+    return str(attribution.get("campaign_id") or "").upper().startswith("FIRST_10_USERS")
+
+
 def capture_growth_attribution_from_request():
     if not has_request_context():
         return normalize_growth_attribution({})
@@ -7310,8 +7315,8 @@ FIRST10_COHORT_STAGE_ORDER = (
     "ACTIVATED",
     "RETURNING",
     "PREMIUM_INTENT",
-    "PRO",
-    "ELITE",
+    "RETAINED",
+    "REFERRAL",
 )
 
 
@@ -19990,13 +19995,15 @@ def register_page():
             set_login_session(user)
             session["growth_attribution"] = growth_attribution
             _growth_record_registration_journey(user.get("id"), growth_journey, growth_attribution)
-            return _post_auth_redirect("/app")
+            registration_default = "/onboarding" if growth_is_first10_attribution(growth_attribution) and not selected_plan else "/app"
+            return _post_auth_redirect(registration_default)
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
     auth_data = home_light_data()
     auth_data["selected_plan"] = selected_plan
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
+    registration_default = "/onboarding" if growth_is_first10_attribution() and not selected_plan else "/app"
+    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), registration_default)
     return render_template("register.html", data=auth_data, error=error)
 
 
@@ -28633,20 +28640,67 @@ def onboarding_status(user=None):
         telegram_linked = bool(telegram_user_state(user).get("linked")) if uid else False
     except Exception:
         telegram_linked = False
+
     steps = [
-        {"key": "account", "label": "Cuenta creada", "done": bool(uid), "href": "/mi-cuenta"},
-        {"key": "favorites", "label": "Añadir un favorito", "done": fav_count > 0, "href": "/favoritos"},
-        {"key": "first_value", "label": "Revisar contenido deportivo", "done": first_value_count > 0, "href": "/calendar"},
-        {"key": "telegram", "label": "Vincular Telegram", "done": telegram_linked, "href": "/telegram"},
-        {"key": "shark", "label": "Preguntar a SHARK", "done": shark_questions > 0, "href": "/shark"},
+        {
+            "key": "account",
+            "label": "Cuenta creada",
+            "done": bool(uid),
+            "href": "/mi-cuenta",
+            "optional": False,
+            "body": "Tu acceso ya está preparado.",
+        },
+        {
+            "key": "first_value",
+            "label": "Abre un partido real",
+            "done": first_value_count > 0,
+            "href": "/calendario",
+            "optional": False,
+            "body": "Elige un partido que te interese y entra en su contexto. Este es el primer valor que queremos comprobar.",
+        },
+        {
+            "key": "shark",
+            "label": "Prueba SHARK",
+            "done": shark_questions > 0,
+            "href": "/shark",
+            "optional": True,
+            "body": "Úsalo solo si quieres entender mejor un partido, riesgo o pronóstico.",
+        },
+        {
+            "key": "favorites",
+            "label": "Guarda un favorito",
+            "done": fav_count > 0,
+            "href": "/favoritos",
+            "optional": True,
+            "body": "Personaliza la experiencia cuando ya hayas encontrado algo útil.",
+        },
+        {
+            "key": "telegram",
+            "label": "Configura Telegram si quieres alertas",
+            "done": telegram_linked,
+            "href": "/telegram",
+            "optional": True,
+            "body": "Es opcional. Puedes elegir ligas, tipos de aviso y un límite diario para evitar ruido.",
+        },
     ]
     done = sum(1 for step in steps if step["done"])
     score = round(done / len(steps) * 100)
-    next_step = next((step for step in steps if not step["done"]), steps[-1])
+    core_steps = [step for step in steps if not step["optional"]]
+    core_done = sum(1 for step in core_steps if step["done"])
+    core_score = round(core_done / len(core_steps) * 100)
+    next_step = next((step for step in core_steps if not step["done"]), None)
+    if next_step is None:
+        next_step = next((step for step in steps if not step["done"]), {"key": "home", "label": "Ir a Inicio", "href": "/app", "done": True, "optional": True})
+    first10_beta = growth_is_first10_attribution() if has_request_context() else False
     return {
         "score": score,
         "done": done,
         "total": len(steps),
+        "core_score": core_score,
+        "core_done": core_done,
+        "core_total": len(core_steps),
+        "first_value_ready": first_value_count > 0,
+        "first10_beta": first10_beta,
         "steps": steps,
         "next_step": next_step,
         "favorites_count": fav_count,
