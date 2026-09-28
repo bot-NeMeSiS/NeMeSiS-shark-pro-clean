@@ -44,6 +44,13 @@
 {% set gr_daily = growth.get('daily_founder_growth_brief', {}) %}
 {% set gr_launch_kit = growth.get('first_10_launch_kit', []) %}
 {% set gr_paid_path = growth.get('first_paid_customer_path', {}) %}
+{% set first10_current = gr_progress.get('current', {}) %}
+{% set first10_stages = gr_real.get('stages', {}) %}
+{% set first10_registered = first10_current.get('REGISTERED', 0)|int %}
+{% set first10_first_value = first10_stages.get('FIRST_VALUE', 0)|int %}
+{% set first10_activated = first10_current.get('ACTIVATED', 0)|int %}
+{% set first10_returning = first10_current.get('RETURNING', 0)|int %}
+{% set first10_paid = first10_current.get('PAID', 0)|int %}
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
@@ -61,6 +68,47 @@
     {'label':'Documentación técnica','href':'/admin/developer-center','icon':'code'},
     {'label':'Revisión continua','href':'#continuous-evolution','primary':true,'icon':'history'}
   ]) }}
+
+  <section class="v933-admin-panel" id="first10-today" data-first10-founder-today="true" aria-label="FIRST 10 siguiente acción">
+    <header>
+      <div><h2>FIRST 10 · Tu siguiente acción</h2><p>Crecer despacio, aprender rápido y no invitar a más personas de las que podamos entender bien.</p></div>
+      {{ status_chip((first10_registered ~ ' / 10') if first10_registered < 10 else '10 / 10', 'success' if first10_registered >= 10 else 'blue') }}
+    </header>
+    <div class="v933-admin-panel-body">
+      <div class="v933-kpi-grid">
+        {{ kpi_card('Registrados reales', first10_registered ~ ' / 10', 'Objetivo inicial, no métrica de vanidad', 'blue', 'users') }}
+        {{ kpi_card('Primer valor', first10_first_value, 'Abrió valor real dentro del producto', 'cyan', 'target') }}
+        {{ kpi_card('Activados', first10_activated, 'Segundo uso verificable', 'gold', 'star') }}
+        {{ kpi_card('Han vuelto', first10_returning, 'Retorno real observado', 'success', 'history') }}
+        {{ kpi_card('Pago real', first10_paid, 'PRO + ELITE confirmados', 'neutral', 'plan') }}
+      </div>
+
+      <div class="v933-truth-list is-no-icon">
+        {% if first10_registered >= 10 %}
+        <div><span><strong>Pausa las invitaciones.</strong><small>Ya tenemos 10 registros reales. Ahora toca revisar primer valor, activación, retorno y comentarios antes de ampliar a 25.</small></span>{{ status_chip('ANALIZAR','success') }}</div>
+        {% elif first10_registered == 0 %}
+        <div><span><strong>Invita a una sola persona adecuada.</strong><small>No busques diez de golpe. Comparte la Beta privada con una persona adulta que realmente siga fútbol y observa si alcanza primer valor.</small></span>{{ status_chip('INVITAR 1','blue') }}</div>
+        {% elif first10_first_value < first10_registered %}
+        <div><span><strong>No invites a otra persona todavía.</strong><small>Hay {{ first10_registered - first10_first_value }} registro(s) que aún no han alcanzado primer valor. Entiende esa fricción antes de aumentar tráfico.</small></span>{{ status_chip('ARREGLAR PRIMER VALOR','warning') }}</div>
+        {% elif first10_activated < first10_first_value %}
+        <div><span><strong>Convierte valor en uso real.</strong><small>Quien ya entendió NeMeSiS debe encontrar una segunda acción útil: SHARK, favorito, otro partido o Telegram configurado.</small></span>{{ status_chip('ACTIVAR','warning') }}</div>
+        {% elif first10_returning < first10_activated %}
+        <div><span><strong>Observa si vuelven.</strong><small>Ya existe activación. Antes de ampliar, necesitamos comprobar que NeMeSiS merece abrirse otra vez sin perseguir al usuario.</small></span>{{ status_chip('RETENCIÓN','warning') }}</div>
+        {% else %}
+        <div><span><strong>Invita a una persona más.</strong><small>La cohorte actual alcanzó valor y activación observables. Avanza de uno en uno hasta completar FIRST 10.</small></span>{{ status_chip('SIGUIENTE USUARIO','success') }}</div>
+        {% endif %}
+      </div>
+
+      <div class="v933-page-actions">
+        {% if gr_campaign.get('landing') %}
+        <button class="v933-action is-primary is-cyan" type="button" data-copy="{{ gr_campaign.get('landing')|e }}">{{ icon('copy') }}<span>Copiar invitación</span></button>
+        {% endif %}
+        <a class="v933-action is-blue" href="/beta#first10-share">{{ icon('users') }}<span>Abrir Beta privada</span></a>
+        <a class="v933-action is-blue" href="#growth-revenue">{{ icon('chart') }}<span>Ver embudo y evidencia</span></a>
+      </div>
+      <p class="v933-safe-copy">Nada se publica ni se envía automáticamente. Este bloque usa solo etapas REAL_USER; SIMULATED_QA no incrementa estos contadores.</p>
+    </div>
+  </section>
 
   <section class="v933-admin-panel v933-founder-sports-quality" id="founder-sports-quality" aria-label="Calidad deportiva">
     <header>
