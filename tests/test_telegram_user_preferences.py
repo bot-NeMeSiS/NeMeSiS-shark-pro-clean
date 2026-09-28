@@ -346,3 +346,12 @@ def test_active_telegram_runtime_does_not_call_legacy_queue_processor():
     assert source.count("process_telegram_queue(") == 1
     assert source.count("enqueue_telegram_alerts(") == 2  # definition + legacy compatibility call only
     assert "process_premium_telegram_queue(limit=cfg[\"max_queue_per_tick\"]" in source
+
+
+def test_privacy_notice_explains_optional_telegram_identifiers():
+    root = __import__("pathlib").Path(__file__).resolve().parents[1]
+    source = (root / "engines" / "legal_compliance_engine.py").read_text(encoding="utf-8")
+    assert "Telegram opcional" in source
+    assert "chat_id" in source
+    assert "username si existe" in source
+    assert "no exige que NeMeSiS solicite el número de teléfono" in source
