@@ -242,3 +242,10 @@ def test_official_brand_capture_and_all_surfaces_gate_are_wired():
     assert 'for item in [*pages, mobile_evidence]' in source
     assert 'all(item["verified"] for item in official_brand_surfaces)' in source
     assert 'official_brand_verified=official_brand_verified' in source
+
+
+def test_production_quality_gate_uses_current_public_navigation_contract():
+    from tools.run_production_quality_browser_gate import MOBILE_NAV, PUBLIC_NAV
+
+    assert PUBLIC_NAV == ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
+    assert MOBILE_NAV == ("/", "/calendario", "/directo", "/picks", "/cliente-login")
