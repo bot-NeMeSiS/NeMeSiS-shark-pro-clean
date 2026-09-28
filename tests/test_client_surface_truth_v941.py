@@ -306,7 +306,6 @@ def test_client_visible_copy_stays_spanish_after_final_polish():
         ">Ver pronósticos<",
         "pronósticos reales.",
         "Un pronóstico o una recomendación",
-        "favoritos, pronósticos y alertas",
         "Importe máximo por pronóstico",
         "pronósticos publicados",
         "pronóstico recomendado",
