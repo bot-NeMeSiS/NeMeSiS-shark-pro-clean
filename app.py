@@ -466,6 +466,7 @@ from engines.beta_program_engine import (
     FEEDBACK_TYPES,
     SEVERITIES,
     build_beta_program_snapshot,
+    pseudonymized_user_ref,
     sanitize_beta_feedback_payload,
 )
 
@@ -7301,6 +7302,170 @@ def growth_funnel_analytics_snapshot():
             "Los eventos legacy sin evidence_origin permanecen UNKNOWN y no elevan hitos reales.",
         ],
     }
+
+
+FIRST10_COHORT_STAGE_ORDER = (
+    "REGISTRATION",
+    "FIRST_VALUE",
+    "ACTIVATED",
+    "RETURNING",
+    "PREMIUM_INTENT",
+    "PRO",
+    "ELITE",
+)
+
+
+def growth_first10_cohort_snapshot(limit=10):
+    """Read-only, privacy-minimal founder view of the FIRST_10_USERS cohort."""
+    limit = max(1, min(int(limit or 10), 10))
+    try:
+        activity = rows(
+            "SELECT user_id,activity_type,target_id,payload_json,created_at "
+            "FROM user_activity WHERE target_type='growth_funnel' ORDER BY created_at ASC"
+        )
+    except Exception:
+        activity = []
+
+    reverse = {value: key for key, value in GROWTH_STAGE_ACTIVITY.items()}
+    cohort_ids = []
+    event_rows = []
+    for item in activity:
+        uid = str(item.get("user_id") or "").strip()
+        stage = reverse.get(str(item.get("activity_type") or ""))
+        if not uid or not stage:
+            continue
+        try:
+            payload = json.loads(item.get("payload_json") or "{}")
+        except (TypeError, ValueError):
+            payload = {}
+        if str(payload.get("evidence_origin") or "").upper() != "REAL_USER":
+            continue
+        event_rows.append((uid, stage, payload, str(item.get("created_at") or "")))
+        if stage == "REGISTRATION" and str(payload.get("campaign_id") or "").upper().startswith("FIRST_10_USERS"):
+            if uid not in cohort_ids and len(cohort_ids) < limit:
+                cohort_ids.append(uid)
+
+    if not cohort_ids:
+        return {
+            "contract": "NEMESIS-FIRST10-FOUNDER-COHORT-V1",
+            "campaign_id": "FIRST_10_USERS",
+            "items": [],
+            "count": 0,
+            "feedback_users": 0,
+            "privacy": {"pii_exposed": False, "display_alias_only": True},
+            "evidence_origin": "REAL_USER_ONLY",
+        }
+
+    by_user = {uid: {"stages": set(), "first_seen_at": "", "last_seen_at": ""} for uid in cohort_ids}
+    for uid, stage, _payload, created_at in event_rows:
+        if uid not in by_user:
+            continue
+        by_user[uid]["stages"].add(stage)
+        if not by_user[uid]["first_seen_at"] or created_at < by_user[uid]["first_seen_at"]:
+            by_user[uid]["first_seen_at"] = created_at
+        if not by_user[uid]["last_seen_at"] or created_at > by_user[uid]["last_seen_at"]:
+            by_user[uid]["last_seen_at"] = created_at
+
+    memberships = {}
+    placeholders = ",".join("?" for _ in cohort_ids)
+    try:
+        for item in rows(
+            f"SELECT id,role,membership FROM users WHERE id IN ({placeholders})",
+            tuple(cohort_ids),
+        ):
+            memberships[str(item.get("id") or "")] = normalize_role(
+                item.get("membership") or item.get("role") or "FREE"
+            )
+    except Exception:
+        memberships = {}
+
+    feedback_by_ref = {}
+    if db_table_exists("beta_feedback"):
+        try:
+            feedback_rows = rows(
+                "SELECT user_ref,feedback_type,category,severity,satisfaction_score,status,created_at_madrid "
+                "FROM beta_feedback WHERE user_ref!='' AND user_ref!='anonimo' ORDER BY id ASC"
+            )
+        except Exception:
+            feedback_rows = []
+        for item in feedback_rows:
+            ref = str(item.get("user_ref") or "")
+            if not ref:
+                continue
+            bucket = feedback_by_ref.setdefault(ref, {
+                "count": 0,
+                "latest_type": "",
+                "latest_category": "",
+                "latest_severity": "",
+                "latest_at": "",
+                "satisfaction_score": None,
+            })
+            bucket["count"] += 1
+            bucket["latest_type"] = str(item.get("feedback_type") or "")
+            bucket["latest_category"] = str(item.get("category") or "")
+            bucket["latest_severity"] = str(item.get("severity") or "")
+            bucket["latest_at"] = str(item.get("created_at_madrid") or "")
+            if item.get("satisfaction_score") is not None:
+                bucket["satisfaction_score"] = item.get("satisfaction_score")
+
+    items = []
+    for index, uid in enumerate(cohort_ids, start=1):
+        stages = by_user[uid]["stages"]
+        stage = "REGISTRATION"
+        for candidate in FIRST10_COHORT_STAGE_ORDER:
+            if candidate in stages:
+                stage = candidate
+        user_ref = pseudonymized_user_ref({"id": uid})
+        feedback = dict(feedback_by_ref.get(user_ref) or {})
+        if "FIRST_VALUE" not in stages:
+            next_action = "Comprobar si encuentra un partido y alcanza primer valor."
+            action_state = "FIRST_VALUE"
+        elif "ACTIVATED" not in stages:
+            next_action = "Observar una segunda acción útil: otro partido, favorito, SHARK o Telegram."
+            action_state = "ACTIVATE"
+        elif "RETURNING" not in stages:
+            next_action = "No empujar: comprobar si vuelve por iniciativa propia."
+            action_state = "RETURN"
+        elif not feedback.get("count"):
+            next_action = "Pedir una opinión breve después del valor, sin presión."
+            action_state = "FEEDBACK"
+        else:
+            next_action = "Aprendizaje recogido; revisar comentarios antes de ampliar cohorte."
+            action_state = "LEARN"
+
+        items.append({
+            "alias": f"Beta {index:02d}",
+            "stage": stage,
+            "stages": [value for value in FIRST10_COHORT_STAGE_ORDER if value in stages],
+            "membership": memberships.get(uid, "FREE"),
+            "feedback_count": int(feedback.get("count") or 0),
+            "feedback_type": feedback.get("latest_type") or "",
+            "feedback_category": feedback.get("latest_category") or "",
+            "feedback_severity": feedback.get("latest_severity") or "",
+            "satisfaction_score": feedback.get("satisfaction_score"),
+            "first_seen_at": by_user[uid]["first_seen_at"],
+            "last_seen_at": by_user[uid]["last_seen_at"],
+            "next_action": next_action,
+            "action_state": action_state,
+            "user_ref": user_ref,
+        })
+
+    return {
+        "contract": "NEMESIS-FIRST10-FOUNDER-COHORT-V1",
+        "campaign_id": "FIRST_10_USERS",
+        "items": items,
+        "count": len(items),
+        "feedback_users": sum(1 for item in items if item["feedback_count"] > 0),
+        "privacy": {
+            "pii_exposed": False,
+            "display_alias_only": True,
+            "email_included": False,
+            "name_included": False,
+            "ip_included": False,
+        },
+        "evidence_origin": "REAL_USER_ONLY",
+    }
+
 
 def growth_instrumentation_snapshot():
     return {"event_contract": GROWTH_FUNNEL_EVENT_CONTRACT, "safe_attribution": True, "anonymous_persistence_consent_gated": True, "landing_cro": True, "first_value": "canonical_match_center", "activated": "first_value_plus_favorite_or_second_match", "external_calls": 0, "fingerprinting": False, "pii_in_event_payload": False}
@@ -33056,6 +33221,7 @@ def founder_command_center_snapshot():
             "export": True,
         },
     }
+    first10_cohort = growth_first10_cohort_snapshot(limit=10)
     growth_product = dict(product)
     growth_product["growth_funnel"] = growth_funnel_analytics_snapshot()
     growth_product["growth_instrumentation"] = growth_instrumentation_snapshot()
@@ -33087,6 +33253,7 @@ def founder_command_center_snapshot():
         "business_kpis": business_kpis,
         "customer_overview": customer_overview,
         "growth_revenue": growth_revenue,
+        "first10_cohort": first10_cohort,
         "beta_control": beta_control,
         "operations_summary": operations_summary,
         "sports_quality": {
