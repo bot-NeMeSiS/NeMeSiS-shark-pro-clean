@@ -27,7 +27,7 @@
   <section class="v933-two-col" data-v939-layout-contract="bounded-rail">
     <div class="v933-main-stack">
       <section class="v933-panel" id="vincular">
-        {{ section_header('Conexión de Telegram', 'Vincula o gestiona tu cuenta sin exponer identificadores.') }}
+        {{ section_header('Conexión de Telegram', 'Opcional. Vincula tu cuenta con un código temporal; NeMeSiS no necesita pedir tu número de teléfono.') }}
         {% if state.get('linked') %}
         <div class="v933-linked-state">
           <div>{{ status_chip('Cuenta vinculada','success') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div>
@@ -129,7 +129,7 @@
 
     <aside class="v933-side-stack">
       <section class="v933-panel">
-        {{ section_header('Configurar en 3 pasos', 'Proceso protegido.') }}
+        {{ section_header('Configurar en 3 pasos', 'Proceso protegido y opcional.') }}
         <div class="v933-main-stack">
           {{ quick_action('1. Vincula Telegram', 'Usa el código o enlace seguro', '#vincular', 'telegram', 'cyan') }}
           {{ quick_action('2. Revisa alertas', 'Comprueba el estado de conexión', '/telegram', 'alert') }}

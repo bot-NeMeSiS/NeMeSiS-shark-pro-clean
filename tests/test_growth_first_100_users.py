@@ -345,6 +345,7 @@ def test_onboarding_after_first_value_moves_to_optional_value_and_feedback(app_m
     assert 'data-first10-feedback-prompt="true"' in template
     assert 'href="/beta#beta-feedback-form"' in template
     assert "No configures cinco cosas antes de empezar." in template
+    assert "no te pide tu número de teléfono" in template
 
 
 def test_first10_cohort_metrics_are_campaign_specific_not_global():
