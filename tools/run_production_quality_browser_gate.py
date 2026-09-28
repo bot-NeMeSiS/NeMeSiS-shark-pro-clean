@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 
 
-PUBLIC_NAV = ("/", "/calendar", "/live", "/picks", "/track-record", "/shark")
-MOBILE_NAV = ("/", "/calendar", "/live", "/picks", "/cliente-login")
+PUBLIC_NAV = ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
+MOBILE_NAV = ("/", "/calendario", "/directo", "/picks", "/cliente-login")
 CRITICAL_PAGES = ("/", "/calendar", "/live", "/picks", "/shark", "/track-record")
 ENTITY_PATH_PREFIXES = ("/match/", "/team/", "/competition/", "/player/")
 MOJIBAKE = re.compile(r"(?:Actualizaci\?n|Ã.|Â.|â€|�)")
