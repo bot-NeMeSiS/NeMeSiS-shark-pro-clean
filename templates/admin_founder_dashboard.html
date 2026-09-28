@@ -44,15 +44,14 @@
 {% set gr_daily = growth.get('daily_founder_growth_brief', {}) %}
 {% set gr_launch_kit = growth.get('first_10_launch_kit', []) %}
 {% set gr_paid_path = growth.get('first_paid_customer_path', {}) %}
-{% set first10_current = gr_progress.get('current', {}) %}
-{% set first10_stages = gr_real.get('stages', {}) %}
-{% set first10_registered = first10_current.get('REGISTERED', 0)|int %}
-{% set first10_first_value = first10_stages.get('FIRST_VALUE', 0)|int %}
-{% set first10_activated = first10_current.get('ACTIVATED', 0)|int %}
-{% set first10_returning = first10_current.get('RETURNING', 0)|int %}
-{% set first10_paid = first10_current.get('PAID', 0)|int %}
 {% set first10_cohort = founder.first10_cohort or {} %}
 {% set first10_items = first10_cohort.get('items', []) %}
+{% set first10_stage_counts = first10_cohort.get('stage_counts', {}) %}
+{% set first10_registered = first10_cohort.get('count', 0)|int %}
+{% set first10_first_value = first10_stage_counts.get('FIRST_VALUE', 0)|int %}
+{% set first10_activated = first10_stage_counts.get('ACTIVATED', 0)|int %}
+{% set first10_returning = first10_stage_counts.get('RETURNING', 0)|int %}
+{% set first10_premium = first10_cohort.get('premium_access_users', 0)|int %}
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
@@ -82,7 +81,7 @@
         {{ kpi_card('Primer valor', first10_first_value, 'Abrió valor real dentro del producto', 'cyan', 'target') }}
         {{ kpi_card('Activados', first10_activated, 'Segundo uso verificable', 'gold', 'star') }}
         {{ kpi_card('Han vuelto', first10_returning, 'Retorno real observado', 'success', 'history') }}
-        {{ kpi_card('Pago real', first10_paid, 'PRO + ELITE confirmados', 'neutral', 'plan') }}
+        {{ kpi_card('PRO / ELITE', first10_premium, 'Acceso actual; no equivale a pago confirmado', 'neutral', 'plan') }}
       </div>
 
       <div class="v933-truth-list is-no-icon">
@@ -114,7 +113,7 @@
         {% call data_table(['Usuario beta','Etapa','Plan','Feedback','Siguiente acción']) %}
         {% for item in first10_items %}
         <tr>
-          <td><strong>{{ item.alias }}</strong><br><small>{{ item.user_ref }}</small></td>
+          <td><strong>{{ item.alias }}</strong><br><small>Identidad pseudonimizada internamente</small></td>
           <td>{{ status_chip(item.stage, 'success' if item.stage in ['RETURNING','PRO','ELITE'] else 'blue' if item.stage in ['FIRST_VALUE','ACTIVATED'] else 'neutral') }}</td>
           <td>{{ item.membership }}</td>
           <td>
