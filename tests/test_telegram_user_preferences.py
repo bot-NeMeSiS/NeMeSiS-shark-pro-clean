@@ -36,7 +36,7 @@ def test_pro_can_focus_leagues_types_and_daily_budget():
     prefs = sanitize_telegram_user_preferences(
         {},
         {
-            "intensity": "focus",
+            "intensity": "balanced",
             "selected_leagues": ["laliga", "champions", "premier"],
             "message_types": ["summaries", "picks", "results", "live"],
             "daily_limit": 4,
@@ -199,7 +199,7 @@ def test_pro_telegram_page_persists_focus_preferences(app_module, client):
             "/telegram/preferencias",
             data={
                 "csrf_token": token_match.group(1),
-                "intensity": "focus",
+                "intensity": "balanced",
                 "daily_limit": "4",
                 "selected_leagues": ["laliga", "champions"],
                 "message_types": ["summaries", "picks", "results"],
@@ -213,7 +213,7 @@ def test_pro_telegram_page_persists_focus_preferences(app_module, client):
         assert saved["selected_leagues"] == ["laliga", "champions"]
         assert saved["message_types"] == ["summaries", "picks", "results"]
         assert saved["daily_limit"] == 4
-        assert saved["intensity"] == "focus"
+        assert saved["intensity"] == "balanced"
     finally:
         _cleanup_test_user(app_module, user_id)
 
@@ -288,3 +288,43 @@ def test_queue_send_guard_blocks_legacy_live_alert_to_global_channel(app_module,
     assert result["sent"] == 0
     assert result["skipped"] == 1
     assert result["skipped_items"][0]["reason"] == "canal_global_solo_resumenes"
+
+
+def test_essential_mode_is_a_real_low_volume_cap():
+    prefs = sanitize_telegram_user_preferences(
+        {},
+        {
+            "intensity": "essential",
+            "daily_limit": 8,
+            "message_types": ["summaries", "picks", "results"],
+        },
+        "PRO",
+    )
+    assert prefs["intensity"] == "essential"
+    assert prefs["daily_limit"] == 2
+    assert prefs["message_types"] == ["summaries", "picks", "results"]
+
+
+def test_user_can_intentionally_disable_every_message_category_without_fake_defaults():
+    prefs = sanitize_telegram_user_preferences(
+        {},
+        {"intensity": "balanced", "message_types": [], "daily_limit": 4},
+        "PRO",
+    )
+    assert prefs["message_types"] == []
+    dest = {"target_kind": "private", "telegram_preferences": prefs}
+    allowed, reason = destination_allows_message(dest, "daily_picks", {"competition_name": "LaLiga"})
+    assert allowed is False
+    assert reason == "tipo_aviso_no_seleccionado"
+
+
+def test_telegram_paid_value_is_visible_in_memberships_and_links_are_canonical():
+    root = __import__("pathlib").Path(__file__).resolve().parents[1]
+    membership = (root / "templates" / "membership.html").read_text(encoding="utf-8")
+    app_source = (root / "app.py").read_text(encoding="utf-8")
+    assert "Telegram personalizable por ligas y tipos de aviso" in membership
+    assert "Telegram avanzado con directo, prepartido y más ligas" in membership
+    assert 'telegram_absolute_url("/live")' not in app_source
+    assert 'telegram_absolute_url("/calendar")' not in app_source
+    assert 'telegram_absolute_url("/directo")' in app_source
+    assert 'telegram_absolute_url("/calendario")' in app_source
