@@ -314,7 +314,7 @@ def test_membership_benefits_are_conditional_and_payment_copy_is_plain_spanish()
     for token in ("Experiencia completa","Prioridad y acceso avanzado","Alertas prioritarias","Acceso anticipado a funciones",">Checkout<"):
         assert token not in text
     assert "Pronósticos PRO cuando estén publicados" in text
-    assert "Funciones ELITE cuando estén habilitadas" in text
+    assert "Telegram avanzado con directo, prepartido y más ligas" in text
     assert "Pago seguro" in text
     assert "Pago pendiente de configuración" in text
 
