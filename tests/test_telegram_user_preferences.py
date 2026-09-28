@@ -328,3 +328,12 @@ def test_telegram_paid_value_is_visible_in_memberships_and_links_are_canonical()
     assert 'telegram_absolute_url("/calendar")' not in app_source
     assert 'telegram_absolute_url("/directo")' in app_source
     assert 'telegram_absolute_url("/calendario")' in app_source
+
+
+def test_active_telegram_runtime_does_not_call_legacy_queue_processor():
+    root = __import__("pathlib").Path(__file__).resolve().parents[1]
+    source = (root / "app.py").read_text(encoding="utf-8")
+    # The compatibility function may remain defined, but the active app must not call it.
+    assert source.count("process_telegram_queue(") == 1
+    assert source.count("enqueue_telegram_alerts(") == 2  # definition + legacy compatibility call only
+    assert "process_premium_telegram_queue(limit=cfg[\"max_queue_per_tick\"]" in source
