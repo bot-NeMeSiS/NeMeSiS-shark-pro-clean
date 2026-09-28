@@ -13103,7 +13103,7 @@ def build_live_alert_message(match=None):
     if not match:
         return ""
     match = telegram_enrich_match_for_message(match)
-    return format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
+    return format_live_alert_message(match, internal_url=telegram_absolute_url("/directo") or "/live")
 
 
 def build_system_test_message():
@@ -13243,7 +13243,7 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
             body,
             chat_id=dest.get("chat_id"),
             user_id=dest.get("user_id"),
-            payload={"visual_card_type": "pick_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"pick": pick, "membership": dest.get("membership")}, "membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/live"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
+            payload={"visual_card_type": "pick_alert", "visual_card_enabled": telegram_visual_card_config()["visual_cards_enabled"], "visual_card_payload": {"pick": pick, "membership": dest.get("membership")}, "membership": dest.get("membership"), "target_key": dest.get("target_key"), "source": "automatic_cron", "trigger_type": "render_cron", "auto_job_key": f"auto_pick:{pick.get('id') or today_iso()}", "job_type": "auto_pick", "pick_id": pick.get("id"), "priority": 90, "auto": True, "target_kind": dest.get("target_kind"), "match_url": pick.get("match_url"), "home_logo": pick.get("home_logo"), "away_logo": pick.get("away_logo"), "button_text": "Ver analisis SHARK", "picks_url": telegram_absolute_url("/picks"), "include_picks_button": True, "include_live_button": True, "live_url": telegram_absolute_url("/directo"), "enable_link_preview": bool(pick.get("home_logo") or pick.get("away_logo")), "window": item.get("candidate", {}).get("window") or {}, "candidate": item.get("candidate") or {}},
             dedupe_key=(item.get("dedupe") or {}).get("dedupe_key") or telegram_auto_pick_dedupe_key_for(pick, dest),
             force=force,
         )
@@ -13269,7 +13269,7 @@ def enqueue_live_alerts(force=False):
         if not is_telegram_football_item(match) or not is_top_football_match(match):
             skipped += 1
             continue
-        body = format_live_alert_message(match, internal_url=telegram_absolute_url("/live") or "/live")
+        body = format_live_alert_message(match, internal_url=telegram_absolute_url("/directo") or "/live")
         for sub in subscribers:
             allowed, _reason = telegram_destination_allows_message(sub, "live_alert", match)
             if not allowed:
@@ -13936,8 +13936,8 @@ def v771_activity_payload(candidate, dest):
         "button_text": "Abrir NeMeSiS",
         "app_url": telegram_absolute_url("/app") or telegram_absolute_url("/"),
         "picks_url": telegram_absolute_url("/picks"),
-        "live_url": telegram_absolute_url("/live"),
-        "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendar"),
+        "live_url": telegram_absolute_url("/directo"),
+        "match_url": telegram_match_url(match.get("id") or pick.get("match_id")) if (match.get("id") or pick.get("match_id")) else telegram_absolute_url("/calendario"),
         "include_picks_button": kind in {"daily_summary", "live_alert", "pick_alert", "prematch_reminder"},
         "include_live_button": kind in {"daily_summary", "live_alert"},
         "visual_card_type": visual_type,
