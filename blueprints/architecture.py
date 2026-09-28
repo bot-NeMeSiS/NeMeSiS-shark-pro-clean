@@ -72,4 +72,6 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
     bp.register_blueprint(create_client_surfaces_blueprint())
     from blueprints.admin_productivity import create_admin_productivity_blueprint
     bp.register_blueprint(create_admin_productivity_blueprint(_admin_required))
+    from blueprints.media_review import create_media_review_blueprint
+    bp.register_blueprint(create_media_review_blueprint(db_path, _admin_required))
     return bp
