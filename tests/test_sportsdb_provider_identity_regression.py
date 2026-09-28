@@ -9,11 +9,11 @@ from zoneinfo import ZoneInfo
 MADRID = ZoneInfo("Europe/Madrid")
 
 
-def _prepare(app_module, tmp_path, name):
+def _prepare(app_module, tmp_path, monkeypatch, name):
     db_path = tmp_path / name
-    app_module.DB_PATH = str(db_path)
-    app_module._SEEDED_DB_PATH = None
-    app_module._SEEDING_DB_PATH = None
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path), raising=False)
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None, raising=False)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None, raising=False)
     app_module.init_db()
     return db_path
 
@@ -36,8 +36,8 @@ def _incoming(app_module, external_id, today, observed_at, *, status="Match Fini
     )
 
 
-def test_sportsdb_provider_identity_reconciles_legacy_internal_id_atomically(app_module, tmp_path):
-    db_path = _prepare(app_module, tmp_path, "identity.sqlite")
+def test_sportsdb_provider_identity_reconciles_legacy_internal_id_atomically(app_module, tmp_path, monkeypatch):
+    db_path = _prepare(app_module, tmp_path, monkeypatch, "identity.sqlite")
     today = datetime.now(MADRID).date().isoformat()
     legacy_id = "legacy-live-2440438"
     with sqlite3.connect(db_path) as conn:
@@ -78,8 +78,8 @@ def test_sportsdb_provider_identity_reconciles_legacy_internal_id_atomically(app
     assert live_rows == 0
 
 
-def test_sportsdb_provider_identity_updates_all_legacy_duplicates_before_cleanup(app_module, tmp_path):
-    db_path = _prepare(app_module, tmp_path, "duplicates.sqlite")
+def test_sportsdb_provider_identity_updates_all_legacy_duplicates_before_cleanup(app_module, tmp_path, monkeypatch):
+    db_path = _prepare(app_module, tmp_path, monkeypatch, "duplicates.sqlite")
     today = datetime.now(MADRID).date().isoformat()
     with sqlite3.connect(db_path) as conn:
         for legacy_id in ("legacy-a-2429209","legacy-b-2429209"):
@@ -115,8 +115,8 @@ def test_sportsdb_provider_identity_updates_all_legacy_duplicates_before_cleanup
     assert rows[0]["score"] == "1-3"
 
 
-def test_sportsdb_provider_identity_rejects_older_snapshot_for_same_external_id(app_module, tmp_path):
-    db_path = _prepare(app_module, tmp_path, "out-of-order.sqlite")
+def test_sportsdb_provider_identity_rejects_older_snapshot_for_same_external_id(app_module, tmp_path, monkeypatch):
+    db_path = _prepare(app_module, tmp_path, monkeypatch, "out-of-order.sqlite")
     today = datetime.now(MADRID).date().isoformat()
     newer_at = datetime.now(MADRID)
     older_at = newer_at - timedelta(minutes=5)
