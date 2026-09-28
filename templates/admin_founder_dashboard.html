@@ -51,6 +51,8 @@
 {% set first10_activated = first10_current.get('ACTIVATED', 0)|int %}
 {% set first10_returning = first10_current.get('RETURNING', 0)|int %}
 {% set first10_paid = first10_current.get('PAID', 0)|int %}
+{% set first10_cohort = founder.first10_cohort or {} %}
+{% set first10_items = first10_cohort.get('items', []) %}
 {% set sports_quality = founder.sports_quality or {} %}
 {% set sports_knowledge = founder.sports_knowledge or {} %}
 {% set product_qa = founder.autonomous_product_qa or {} %}
@@ -106,6 +108,32 @@
         <a class="v933-action is-blue" href="/beta#first10-share">{{ icon('users') }}<span>Abrir Beta privada</span></a>
         <a class="v933-action is-blue" href="#growth-revenue">{{ icon('chart') }}<span>Ver embudo y evidencia</span></a>
       </div>
+      {% if first10_items %}
+      <details class="v933-safe-copy" open data-first10-cohort="true">
+        <summary>Cohorte FIRST 10 · seguimiento sin PII</summary>
+        {% call data_table(['Usuario beta','Etapa','Plan','Feedback','Siguiente acción']) %}
+        {% for item in first10_items %}
+        <tr>
+          <td><strong>{{ item.alias }}</strong><br><small>{{ item.user_ref }}</small></td>
+          <td>{{ status_chip(item.stage, 'success' if item.stage in ['RETURNING','PRO','ELITE'] else 'blue' if item.stage in ['FIRST_VALUE','ACTIVATED'] else 'neutral') }}</td>
+          <td>{{ item.membership }}</td>
+          <td>
+            {% if item.feedback_count %}
+              <strong>{{ item.feedback_count }} comentario{% if item.feedback_count != 1 %}s{% endif %}</strong>
+              <br><small>{{ item.feedback_type or 'general' }}{% if item.feedback_category %} · {{ item.feedback_category }}{% endif %}{% if item.satisfaction_score is not none %} · {{ item.satisfaction_score }}/5{% endif %}</small>
+            {% else %}
+              <small>Sin feedback todavía</small>
+            {% endif %}
+          </td>
+          <td><small>{{ item.next_action }}</small></td>
+        </tr>
+        {% endfor %}
+        {% endcall %}
+        <p><strong>Feedback recibido:</strong> {{ first10_cohort.get('feedback_users', 0) }} / {{ first10_cohort.get('count', 0) }} usuarios de la cohorte.</p>
+      </details>
+      {% else %}
+      <p class="v933-safe-copy" data-first10-cohort-empty="true"><strong>Cohorte aún vacía.</strong> Solo aparecerán aquí registros reales atribuidos a FIRST_10_USERS. Usuarios históricos y SIMULATED_QA quedan fuera.</p>
+      {% endif %}
       <p class="v933-safe-copy">Nada se publica ni se envía automáticamente. Este bloque usa solo etapas REAL_USER; SIMULATED_QA no incrementa estos contadores.</p>
     </div>
   </section>
