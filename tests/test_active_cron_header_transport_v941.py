@@ -72,3 +72,37 @@ def test_legacy_telegram_automation_gets_cannot_execute(client,app_module,monkey
     ):
         assert client.get(path).status_code==405,path
 
+
+
+def test_active_cron_queue_empty_is_a_healthy_no_work_result(client, app_module, monkeypatch):
+    monkeypatch.setenv("AUTOMATION_SECRET", "qa-active-cron-secret")
+    monkeypatch.setattr(
+        app_module,
+        "telegram_cron_with_sports_sync",
+        lambda force=False: {
+            "ok": True,
+            "status": "QUEUE_EMPTY",
+            "processed": 0,
+            "inserted": 0,
+            "sent": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": [],
+            "due_jobs": [],
+        },
+    )
+    response = client.post(
+        "/api/automation/telegram/tick",
+        json={},
+        headers={
+            "X-Automation-Secret": "qa-active-cron-secret",
+            "X-NeMeSiS-Cron-Runner": "render-cron",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["status"] == "QUEUE_EMPTY"
+    assert payload["cron_status"] == "CRON_OK"
+    assert payload["sent"] == 0
+    assert payload["failed"] == 0
