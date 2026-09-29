@@ -20,7 +20,21 @@ def _summary():
         "valid_live_events": [],
         "valid_active_picks": [],
         "valid_matches_available": [],
-        "finished_matches": [],
+        "finished_matches": [
+            {
+                "id": "finished-qa",
+                "home_team": "Final QA",
+                "away_team": "Visitante QA",
+                "competition_name": "Liga QA",
+                "match_date": "2026-09-29",
+                "kickoff_time": "08:00",
+                "source": "TheSportsDB API",
+                "status": "FT",
+                "home_score": 2,
+                "away_score": 1,
+                "score": "2-1",
+            }
+        ],
         "all_valid_matches": [],
         "incomplete_matches": [],
         "provider_status": "qa",
@@ -65,6 +79,9 @@ def test_compact_client_home_never_calls_full_dashboard_builder(app_module, monk
     assert "sports_metrics" in data
     assert summary["provider_status"] == "qa"
 
+    home_summary = data["home_summary"]
+    assert home_summary["sports_home"]["recent_results"]
+
 
 def test_client_app_route_selects_compact_context():
     source = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
@@ -74,6 +91,9 @@ def test_client_app_route_selects_compact_context():
     assert "v932_safe_dashboard_data(request.path, compact=True)" in route
     assert "\n    data = dashboard_data(" not in route
     assert "\n    return dashboard_data(" not in route
+
+    assert '"finished": sports_home.get("recent_results") or []' in route
+    assert '"sports_home": sports_home' in route
 
 
 def test_client_home_template_only_depends_on_compact_sports_contract():
