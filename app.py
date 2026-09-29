@@ -29167,21 +29167,12 @@ def v742_track_record_context():
 @app.route("/seguimiento")
 @app.route("/rendimiento-picks")
 def public_track_record_page():
-    user = current_session_user()
-    if user:
-        data, summary = v932_safe_dashboard_data(request.path)
-    else:
-        data = home_light_data()
-        summary = get_public_home_sports_summary()
-    data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
-    data["certification"] = v931_safe_context(request.path, "certification", lambda: commercial_launch_snapshot(DB_PATH, APP_VERSION), {})
-    data["v757_track"] = v931_safe_context(request.path, "trust_snapshot", lambda: build_v757_trust_snapshot(data.get("track_record") or {}), {})
-    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=data.get("track_record")), {})
-    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "track_record"), {})
-    data["v769_highlights_center"] = v931_safe_context(request.path, "highlights_center", lambda: v769_highlights_content_center(data, user, limit=8), {})
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
+    # Histórico solo renderiza su snapshot de grading. Evita cargar contexto
+    # deportivo/home que la plantilla actual no consume.
+    data = {
+        "track_record": v931_safe_context(request.path, "track_record", v742_track_record_context, {})
+    }
     return render_template("track_record.html", data=data)
-
 
 @app.route("/api/track-record")
 def api_track_record():
