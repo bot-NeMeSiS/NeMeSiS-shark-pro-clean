@@ -1,0 +1,94 @@
+"""Regression for Telegram activity worker-timeout budget."""
+from pathlib import Path
+
+
+def test_v771_activity_pick_scan_is_bounded_and_reuses_normalized_rows(app_module, monkeypatch):
+    seen = {"limit": None, "normalize_calls": 0, "enrich_flags": []}
+
+    def fake_get_picks(limit=50, **_kwargs):
+        seen["limit"] = limit
+        return [
+            {
+                "id": f"p{idx}",
+                "match_id": "",
+                "home_team": "Local",
+                "away_team": "Visitante",
+                "market": "Gana local",
+                "selection": "Gana local",
+                "odds": 1.8,
+                "confidence": 80,
+                "status": "published",
+            }
+            for idx in range(limit)
+        ]
+
+    original_enrich = app_module.telegram_enrich_pick_for_message
+
+    def tracked_enrich(pick, already_normalized=False):
+        seen["enrich_flags"].append(already_normalized)
+        return original_enrich(pick, already_normalized=already_normalized)
+
+    monkeypatch.setattr(app_module, "get_picks", fake_get_picks)
+    monkeypatch.setattr(app_module, "telegram_enrich_pick_for_message", tracked_enrich)
+    monkeypatch.setenv("TELEGRAM_ACTIVITY_PICK_SCAN_LIMIT", "12")
+
+    picks = app_module.v771_telegram_activity_picks()
+
+    assert len(picks) == 12
+    assert seen["limit"] == 12
+    assert seen["enrich_flags"] == [True] * 12
+    assert all(item.get("_telegram_message_enriched") is True for item in picks)
+
+
+def test_v771_activity_pick_scan_has_hard_max(app_module, monkeypatch):
+    captured = {}
+
+    def fake_get_picks(limit=50, **_kwargs):
+        captured["limit"] = limit
+        return []
+
+    monkeypatch.setattr(app_module, "get_picks", fake_get_picks)
+    monkeypatch.setenv("TELEGRAM_ACTIVITY_PICK_SCAN_LIMIT", "999")
+    assert app_module.v771_telegram_activity_picks() == []
+    assert captured["limit"] == 18
+
+
+def test_normalize_candidate_reuses_enriched_pick_without_reenriching(app_module, monkeypatch):
+    candidate = {
+        "_telegram_message_enriched": True,
+        "id": "p1",
+        "home_team": "Local",
+        "away_team": "Visitante",
+        "market": "Gana local",
+        "selection": "Gana local",
+        "odds": 1.8,
+        "match_date": "2099-01-01",
+        "kickoff_time": "20:00",
+        "status": "published",
+    }
+
+    monkeypatch.setattr(
+        app_module,
+        "telegram_enrich_pick_for_message",
+        lambda *_a, **_kw: (_ for _ in ()).throw(AssertionError("must reuse enriched Telegram pick")),
+    )
+
+    normalized = app_module.normalize_telegram_pick_candidate(candidate)
+    assert normalized["_telegram_message_enriched"] is True
+    assert normalized["selection"] == "Gana local"
+
+
+def test_telegram_activity_source_keeps_message_limit_separate_from_scan_budget():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "app.py").read_text(encoding="utf-8")
+    start = source.index("def v771_telegram_activity_picks")
+    end = source.index("\n\ndef v771_telegram_activity_highlights", start)
+    block = source[start:end]
+    assert 'TELEGRAM_ACTIVITY_PICK_SCAN_LIMIT' in block
+    assert "min(requested, 18)" in block
+    assert "already_normalized=True" in block
+
+    delivery_start = source.index("def telegram_scheduler_delivery")
+    delivery_end = source.index("\n\ndef telegram_scheduler_tick", delivery_start)
+    delivery = source[delivery_start:delivery_end]
+    assert 'TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK' in delivery
