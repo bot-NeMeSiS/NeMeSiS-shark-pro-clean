@@ -17,8 +17,14 @@ def create_media_review_blueprint(db_path, is_admin_callback):
             admin = False
         if not admin:
             return jsonify({'ok': False, 'error': 'admin_required'}), 403
-        if request.method == 'POST' and not validate_csrf(session, request.form.get('csrf_token')):
-            return jsonify({'ok': False, 'error': 'csrf_failed'}), 403
+        if request.method == 'POST':
+            try:
+                csrf_ok = validate_csrf(session, request.form.get('csrf_token'))
+            except (TypeError, ValueError):
+                # Malformed tokens must fail closed, not raise a server error.
+                csrf_ok = False
+            if not csrf_ok:
+                return jsonify({'ok': False, 'error': 'csrf_failed'}), 403
 
     @bp.after_request
     def private_review(response):
