@@ -45,7 +45,21 @@ def _summary():
             "live_now": [],
             "favorites": [],
             "upcoming": [],
-            "recent_results": [],
+            "recent_results": [
+                {
+                    "id": "finished-qa",
+                    "home_team": "Final QA",
+                    "away_team": "Visitante QA",
+                    "competition_name": "Liga QA",
+                    "match_date": "2026-09-29",
+                    "kickoff_time": "08:00",
+                    "source": "TheSportsDB API",
+                    "status": "FT",
+                    "home_score": 2,
+                    "away_score": 1,
+                    "score": "2-1",
+                }
+            ],
             "counts": {},
         },
     }
