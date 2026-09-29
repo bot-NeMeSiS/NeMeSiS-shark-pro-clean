@@ -13764,21 +13764,92 @@ def telegram_send_text_with_fallback(url, data):
     return retry
 
 
+def _telegram_queue_pending_rows(limit=5, current=None):
+    """Load due Telegram queue rows with a strict SQLite read budget.
+
+    Premium delivery persists lowercase statuses, while a legacy path can still
+    contain uppercase values. Avoid case-folding the status column so the existing
+    idx_telegram_queue_status(status, scheduled_at) index remains usable.
+    A transient busy/slow disk must not consume the whole Gunicorn worker
+    timeout; the 5-minute cron will retry on its next run.
+    """
+    safe_limit = max(1, min(as_int(limit, 5), 100))
+    query = """SELECT * FROM telegram_queue
+       WHERE status IN (?,?,?,?)
+         AND attempts < COALESCE(max_attempts,3)
+         AND (scheduled_at IS NULL OR scheduled_at='' OR scheduled_at<=?)
+       ORDER BY scheduled_at ASC, priority DESC, created_at ASC
+       LIMIT ?"""
+    params = (
+        QUEUE_PENDING,
+        QUEUE_FAILED,
+        QUEUE_PENDING.upper(),
+        QUEUE_FAILED.upper(),
+        current or now_iso(),
+        safe_limit,
+    )
+    db_path = str(DB_PATH or "").strip()
+    if not db_path or db_path == ":memory:" or not Path(db_path).exists():
+        return rows(query, params)
+
+    timeout_ms = max(100, min(as_int(os.getenv("TELEGRAM_QUEUE_READ_TIMEOUT_MS", "1200"), 1200), 3000))
+    connection = None
+    deadline = time.monotonic() + (timeout_ms / 1000)
+    try:
+        uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+        connection = sqlite3.connect(
+            uri,
+            uri=True,
+            timeout=timeout_ms / 1000,
+            check_same_thread=False,
+        )
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute(f"PRAGMA busy_timeout={timeout_ms}")
+        connection.set_progress_handler(lambda: 1 if time.monotonic() >= deadline else 0, 1000)
+        cur = connection.cursor()
+        cur.execute(query, params)
+        return [dict(row) for row in cur.fetchall()]
+    except sqlite3.OperationalError as exc:
+        message = str(exc).lower()
+        if "locked" in message or "busy" in message or "interrupted" in message:
+            return None
+        raise
+    finally:
+        if connection is not None:
+            try:
+                connection.set_progress_handler(None, 0)
+            except sqlite3.Error:
+                pass
+            connection.close()
+
+
 def process_premium_telegram_queue(limit=5, force=False):
     settings = get_telegram_settings()
     cfg = telegram_pro_calibration()
     if not (settings.get("enabled") or telegram_env_should_enable()) and not force:
         return {"ok": True, "message": "Telegram automatico desactivado.", "processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
     limit = min(int(limit or cfg["max_queue_per_tick"]), cfg["max_queue_per_tick"]) if not force else int(limit or cfg["max_queue_per_tick"])
-    pending = rows(
-        """SELECT * FROM telegram_queue
-           WHERE lower(status) IN ('pending','failed')
-             AND attempts < COALESCE(max_attempts,3)
-             AND (scheduled_at IS NULL OR scheduled_at='' OR scheduled_at<=?)
-           ORDER BY scheduled_at ASC, priority DESC, created_at ASC
-           LIMIT ?""",
-        (now_iso(), int(limit)),
-    )
+    pending = _telegram_queue_pending_rows(limit=int(limit), current=now_iso())
+    if pending is None:
+        try:
+            print("[TELEGRAM][QUEUE_DB_BUSY] lectura de cola aplazada; se reintentara en el siguiente tick")
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "status": "QUEUE_DB_BUSY_RETRY",
+            "message": "Cola Telegram temporalmente ocupada; reintento automatico en el siguiente tick.",
+            "processed": 0,
+            "sent": 0,
+            "failed": 0,
+            "skipped": 1,
+            "errors": [],
+            "discard_reasons": ["QUEUE_DB_BUSY_RETRY"],
+            "sent_items": [],
+            "failed_items": [],
+            "skipped_items": [{"reason": "QUEUE_DB_BUSY_RETRY"}],
+        }
     telegram_log("[QUEUE_LOAD]", "loaded", "Cola Telegram cargada para procesamiento.", {"pending_loaded": len(pending), "limit": int(limit), "force": bool(force)})
     processed = sent = failed = skipped = 0
     errors = []
