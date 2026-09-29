@@ -12356,8 +12356,8 @@ def telegram_enrich_match_for_message(match):
     return item
 
 
-def telegram_enrich_pick_for_message(pick):
-    item = normalize_pick_row(dict(pick or {}))
+def telegram_enrich_pick_for_message(pick, already_normalized=False):
+    item = dict(pick or {}) if already_normalized else normalize_pick_row(dict(pick or {}))
     match = one("SELECT * FROM matches WHERE id=?", (item.get("match_id"),)) if item.get("match_id") else None
     if match:
         item.setdefault("competition_name", match.get("competition_name") or match.get("league_name") or "")
@@ -12377,6 +12377,7 @@ def telegram_enrich_pick_for_message(pick):
         item["home_logo"] = telegram_crest_url_for_team(item.get("home_team"), item.get("home_logo") or "")
         item["away_logo"] = telegram_crest_url_for_team(item.get("away_team"), item.get("away_logo") or "")
     item["match_url"] = item.get("match_url") or telegram_match_url(item.get("match_id"))
+    item["_telegram_message_enriched"] = True
     return item
 
 
@@ -12483,7 +12484,7 @@ def normalize_match_time_madrid(pick, current=None):
 
 def normalize_telegram_pick_candidate(pick):
     original = dict(pick or {})
-    item = telegram_enrich_pick_for_message(original)
+    item = dict(original) if original.get("_telegram_message_enriched") else telegram_enrich_pick_for_message(original)
     market_field, market_raw = _pick_first_text(original, TELEGRAM_MARKET_FIELDS)
     if not market_raw or str(market_raw).strip().lower() in {"principal", "mercado principal"}:
         market_field, market_raw = _pick_first_text(item, TELEGRAM_MARKET_FIELDS)
@@ -14108,13 +14109,20 @@ def v771_telegram_activity_matches(limit=80):
     return items
 
 
-def v771_telegram_activity_picks(limit=40):
+def v771_telegram_activity_picks(limit=None):
+    # El tick termina enviando como máximo unos pocos mensajes. No tiene sentido
+    # normalizar decenas de picks tres veces antes de aplicar filtros/dedupe.
+    requested = as_int(limit if limit is not None else os.getenv("TELEGRAM_ACTIVITY_PICK_SCAN_LIMIT", "12"), 12)
+    scan_limit = max(6, min(requested, 18))
     picks = []
-    for pick in get_picks(limit=limit, status=["published", "telegram_test"], include_admin=True):
+    # get_picks() ya ejecuta normalize_pick_row(); reutilizamos ese resultado.
+    for pick in get_picks(limit=scan_limit, status=["published", "telegram_test"], include_admin=True):
         try:
-            picks.append(telegram_enrich_pick_for_message(pick))
+            picks.append(telegram_enrich_pick_for_message(pick, already_normalized=True))
         except Exception:
-            picks.append(pick)
+            fallback = dict(pick or {})
+            fallback["_telegram_message_enriched"] = True
+            picks.append(fallback)
     return picks
 
 
