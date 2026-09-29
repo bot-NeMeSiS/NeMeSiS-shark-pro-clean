@@ -31194,7 +31194,7 @@ def v757_client_app_center_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app")
-    data, summary = v932_safe_dashboard_data(request.path)
+    # Inicio only needs the cached sports snapshot plus presentation contexts.\r\n    # Avoid the full dashboard_data() fan-out used by legacy/admin surfaces.\r\n    data, summary = v932_safe_dashboard_data(request.path, compact=True)
     data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
     data["membership"] = v566_membership_ui(user)
     data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user), {})
