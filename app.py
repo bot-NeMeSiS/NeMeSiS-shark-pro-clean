@@ -28974,24 +28974,54 @@ def account_center_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login")
-    data = dashboard_data()
-    data["onboarding"] = onboarding_status(user)
-    data["membership"] = v566_membership_ui(user)
+
+    # Mi cuenta is an account surface, not a sports dashboard. Load only the
+    # personal records actually rendered by account_center.html.
+    user_id = user.get("id") or ""
+    favorites = v931_safe_context(
+        request.path,
+        "account_favorites",
+        lambda: get_favorites(user_id=user_id) if user_id else [],
+        [],
+    )
+    activity = v931_safe_context(
+        request.path,
+        "account_activity",
+        lambda: client_activity_feed(limit=8, user_id=user_id) if user_id else [],
+        [],
+    )
+    client_alerts = v931_safe_context(
+        request.path,
+        "account_alerts",
+        lambda: build_client_alerts(limit=8, user_id=user_id),
+        [],
+    )
+    data = {
+        "session_user": user,
+        "favorites": favorites,
+        "client_activity": activity,
+        "client_alerts": client_alerts,
+        "membership": v566_membership_ui(user),
+    }
     data["account_center"] = {
         "user": user,
         "plan": normalize_role(user.get("membership") or user.get("role")),
-        "favorites": len(data.get("favorites") or []),
-        "alerts": len(data.get("client_alerts") or []),
-        "activity": len(data.get("client_activity") or []),
+        "favorites": len(favorites),
+        "alerts": len(client_alerts),
+        "activity": len(activity),
     }
-    data["payments_client"] = client_payments_context(DB_PATH, user)
+    data["payments_client"] = v931_safe_context(
+        request.path,
+        "account_payments",
+        lambda: client_payments_context(DB_PATH, user),
+        {},
+    )
     data["telegram_state"] = v931_safe_context(
         request.path,
         "telegram_state",
         lambda: telegram_user_state(user),
         {"linked": False, "username": "", "code": "", "deep_link": ""},
     )
-    data["v778_organization"] = v778_client_product_organization_context(data, user) if "v778_client_product_organization_context" in globals() else {}
     return render_template("account_center.html", data=data)
 
 
