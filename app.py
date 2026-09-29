@@ -14078,33 +14078,49 @@ def telegram_scheduler_module_payload(result=None, default_status="NO_DUE_JOBS")
     }
 
 
-def v771_telegram_activity_matches(limit=80):
+def v771_telegram_activity_matches(limit=None):
+    # V771 solo necesita una muestra corta para live/resumen/prepartido. Evita
+    # match_hub(), que construye semanas de agenda, resultados y agrupaciones.
+    requested = as_int(limit if limit is not None else os.getenv("TELEGRAM_ACTIVITY_MATCH_SCAN_LIMIT", "24"), 24)
+    scan_limit = max(12, min(requested, 30))
+    today = today_iso()
+    tomorrow = today_iso(1)
     try:
-        hub = match_hub(today_iso())
+        raw_matches = rows(
+            """SELECT * FROM matches
+               WHERE match_date>=? AND match_date<=?
+               ORDER BY CASE WHEN match_date=? THEN 0 ELSE 1 END,
+                        priority DESC, kickoff_time, competition_name
+               LIMIT ?""",
+            (today, tomorrow, today, scan_limit),
+        )
     except Exception:
-        hub = {}
-    buckets = []
-    for key in ("live", "with_picks", "upcoming", "popular", "today", "matches", "finished"):
-        value = hub.get(key)
-        if isinstance(value, list):
-            buckets.extend(value)
-    if not buckets:
-        try:
-            buckets = get_matches(today_iso(), "today")[: int(limit or 80)]
-        except Exception:
-            buckets = []
+        raw_matches = []
+    try:
+        pick_rows = rows(
+            """SELECT DISTINCT match_id FROM picks
+               WHERE lower(status) IN (?,?)
+                 AND COALESCE(match_id,'')!=''
+               LIMIT 100""",
+            (normalize_pick_status("published"), normalize_pick_status("telegram_test")),
+        )
+        pick_ids = {str(item.get("match_id") or "") for item in pick_rows}
+    except Exception:
+        pick_ids = set()
     seen = set()
     items = []
-    for match in buckets:
+    for match in raw_matches[:scan_limit]:
         if not isinstance(match, dict):
             continue
-        item = telegram_enrich_match_for_message(match)
+        prepared = dict(match)
+        prepared["has_pick"] = str(prepared.get("id") or "") in pick_ids
+        item = telegram_enrich_match_for_message(prepared)
         key = item.get("id") or f"{item.get('competition_name')}-{item.get('home_team')}-{item.get('away_team')}-{item.get('kickoff_time') or item.get('match_time')}"
         if key in seen:
             continue
         seen.add(key)
         items.append(item)
-        if len(items) >= int(limit or 80):
+        if len(items) >= scan_limit:
             break
     return items
 
