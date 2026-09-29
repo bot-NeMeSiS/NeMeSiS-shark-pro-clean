@@ -28853,8 +28853,9 @@ def onboarding_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login")
-    data = dashboard_data()
-    data["onboarding"] = onboarding_status(user)
+    # First-use flow renders only onboarding_status; avoid loading the sports
+    # dashboard before the user reaches their first real-value action.
+    data = {"onboarding": onboarding_status(user)}
     return render_template("onboarding.html", data=data)
 
 
