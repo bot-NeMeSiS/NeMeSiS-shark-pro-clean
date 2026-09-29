@@ -22798,11 +22798,15 @@ def alerts_page():
 
 @app.route("/actividad")
 def activity_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login")
-    # El historial es una superficie de lectura: consultarlo no debe crear
-    # una nueva fila de actividad ni mutar estado de negocio.
-    data = dashboard_data()
+    # El historial es una superficie privada y local: no necesita construir
+    # agenda deportiva, picks, combinadas, alertas ni briefing para renderizar.
+    data = {
+        "session_user": user,
+        "client_activity": client_activity_feed(limit=20, user_id=user.get("id")),
+    }
     return render_template("activity.html", data=data)
 
 
