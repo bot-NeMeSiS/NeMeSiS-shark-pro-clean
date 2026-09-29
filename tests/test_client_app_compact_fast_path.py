@@ -72,7 +72,8 @@ def test_client_app_route_selects_compact_context():
     end = source.index("\n\n@app.route(\"/api/client/app-center\")", start)
     route = source[start:end]
     assert "v932_safe_dashboard_data(request.path, compact=True)" in route
-    assert "dashboard_data(" not in route
+    assert "\n    data = dashboard_data(" not in route
+    assert "\n    return dashboard_data(" not in route
 
 
 def test_client_home_template_only_depends_on_compact_sports_contract():
