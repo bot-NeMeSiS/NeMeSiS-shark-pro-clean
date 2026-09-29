@@ -92,3 +92,76 @@ def test_telegram_activity_source_keeps_message_limit_separate_from_scan_budget(
     delivery_end = source.index("\n\ndef telegram_scheduler_tick", delivery_start)
     delivery = source[delivery_start:delivery_end]
     assert 'TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK' in delivery
+
+
+def test_v771_activity_matches_avoid_match_hub_and_are_bounded(app_module, monkeypatch):
+    calls = {"match_hub": 0, "rows": []}
+
+    monkeypatch.setattr(
+        app_module,
+        "match_hub",
+        lambda *_a, **_kw: calls.__setitem__("match_hub", calls["match_hub"] + 1),
+    )
+
+    raw = [
+        {
+            "id": f"m{idx}",
+            "match_date": app_module.today_iso(),
+            "kickoff_time": "20:00",
+            "competition_name": "Liga QA",
+            "home_team": f"Local {idx}",
+            "away_team": f"Visitante {idx}",
+            "priority": 90,
+            "status": "PROGRAMADO",
+        }
+        for idx in range(40)
+    ]
+
+    def fake_rows(query, params=()):
+        calls["rows"].append((query, params))
+        if "SELECT DISTINCT match_id FROM picks" in query:
+            return [{"match_id": "m1"}]
+        if "FROM matches" in query:
+            return raw[: int(params[-1])]
+        return []
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+    monkeypatch.setattr(app_module, "telegram_enrich_match_for_message", lambda item: dict(item))
+    monkeypatch.setenv("TELEGRAM_ACTIVITY_MATCH_SCAN_LIMIT", "24")
+
+    matches = app_module.v771_telegram_activity_matches()
+
+    assert calls["match_hub"] == 0
+    assert len(matches) == 24
+    assert matches[1]["has_pick"] is True
+    match_query, match_params = next((q, p) for q, p in calls["rows"] if "FROM matches" in q)
+    assert "match_date>=?" in match_query
+    assert "match_date<=?" in match_query
+    assert match_params[-1] == 24
+
+
+def test_v771_activity_match_scan_has_hard_max(app_module, monkeypatch):
+    captured = {}
+
+    def fake_rows(query, params=()):
+        if "FROM matches" in query:
+            captured["limit"] = params[-1]
+        return []
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+    monkeypatch.setenv("TELEGRAM_ACTIVITY_MATCH_SCAN_LIMIT", "999")
+    assert app_module.v771_telegram_activity_matches() == []
+    assert captured["limit"] == 30
+
+
+def test_v771_activity_match_source_never_builds_full_match_hub():
+    root = Path(__file__).resolve().parents[1]
+    source = (root / "app.py").read_text(encoding="utf-8")
+    start = source.index("def v771_telegram_activity_matches")
+    end = source.index("\n\ndef v771_telegram_activity_picks", start)
+    block = source[start:end]
+    assert "match_hub(" not in block
+    assert "get_results_matches(" not in block
+    assert "get_upcoming_matches(" not in block
+    assert "TELEGRAM_ACTIVITY_MATCH_SCAN_LIMIT" in block
+    assert "min(requested, 30)" in block
