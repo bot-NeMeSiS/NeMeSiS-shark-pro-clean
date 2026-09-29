@@ -3,15 +3,17 @@
 {% block content %}
 {% set plan_name = (current_user.membership or 'FREE')|upper %}
 {% set hub = data.get('match_hub') or {} %}
-{% set sports_home = hub.get('sports_home') or {} %}
+{# Compact and legacy contexts expose the same snapshot at different paths. #}
+{% set home_summary = data.get('home_summary') or {} %}
+{% set sports_home = home_summary.get('sports_home') if home_summary.get('sports_home') is mapping else (hub.get('sports_home') or {}) %}
 {% set matches = data.get('available_matches') or [] %}
-{% set live_matches = sports_home.get('live_now') or hub.get('live') or [] %}
-{% set important_matches = sports_home.get('important_today') or hub.get('today') or [] %}
-{% set favorite_matches = sports_home.get('favorites') or hub.get('favorites') or [] %}
-{% set upcoming_matches = sports_home.get('upcoming') or hub.get('upcoming') or [] %}
+{% set live_matches = sports_home.get('live_now', hub.get('live') or []) or [] %}
+{% set important_matches = sports_home.get('important_today', hub.get('today') or []) or [] %}
+{% set favorite_matches = sports_home.get('favorites', hub.get('favorites') or []) or [] %}
+{% set upcoming_matches = sports_home.get('upcoming', hub.get('upcoming') or []) or [] %}
 {% set visible_live_ids = live_matches[:3]|map(attribute='id')|list %}
 {% set featured_matches = (important_matches|rejectattr('id', 'in', visible_live_ids)|list) or (upcoming_matches|rejectattr('id', 'in', visible_live_ids)|list) %}
-{% set recent_results = sports_home.get('recent_results') or hub.get('finished') or [] %}
+{% set recent_results = sports_home.get('recent_results', hub.get('finished') or []) or [] %}
 {% set last_result = (recent_results|rejectattr('id', 'in', featured_matches|map(attribute='id')|list)|rejectattr('id', 'in', visible_live_ids)|list)|first %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
