@@ -270,7 +270,6 @@ def test_queue_send_guard_blocks_legacy_live_alert_to_global_channel(app_module,
     monkeypatch.setattr(app_module, "telegram_log", lambda *args, **kwargs: None)
     monkeypatch.setattr(app_module, "telegram_send_http", lambda *args, **kwargs: sent.append(args) or {"sent": True})
 
-    real_rows = app_module.rows
     queue_item = {
         "id": "qa-global-live-backlog",
         "chat_id": "-1009999999999",
@@ -286,12 +285,11 @@ def test_queue_send_guard_blocks_legacy_live_alert_to_global_channel(app_module,
         "dedupe_key": "qa-global-live-backlog",
     }
 
-    def controlled_rows(query, params=()):
-        if "FROM telegram_queue" in query and "lower(status)" in query and "attempts" in query:
-            return [queue_item]
-        return real_rows(query, params)
-
-    monkeypatch.setattr(app_module, "rows", controlled_rows)
+    monkeypatch.setattr(
+        app_module,
+        "_telegram_queue_pending_rows",
+        lambda limit=5, current=None: [queue_item],
+    )
     result = app_module.process_premium_telegram_queue(limit=1, force=False)
     assert sent == []
     assert result["sent"] == 0
