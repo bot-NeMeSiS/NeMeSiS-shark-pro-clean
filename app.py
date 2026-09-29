@@ -22776,17 +22776,28 @@ def profile_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login")
-    data, summary = v932_safe_dashboard_data(request.path)
-    data["session_user"] = user
-    data["membership"] = v566_membership_ui(user)
-    data["sportsdb"] = v931_safe_context(request.path, "crest_status", crest_sync_status, {})
-    data["briefing"] = v931_safe_context(request.path, "briefing", shark_briefing, {})
-    data["v925_calendar"] = _v931_provider_context(summary)
-    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
-    data["telegram_state"] = v931_safe_context(request.path, "telegram_state", lambda: telegram_user_state(user), {"linked": False})
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
+    # Perfil is account-only: load just the personal records visible in the page.
+    data = {"session_user": user}
+    user_id = user.get("id") or ""
+    data["favorites"] = v931_safe_context(
+        request.path,
+        "profile_favorites",
+        lambda: get_favorites(user_id=user_id) if user_id else [],
+        [],
+    )
+    data["client_activity"] = v931_safe_context(
+        request.path,
+        "profile_activity",
+        lambda: client_activity_feed(limit=8, user_id=user_id) if user_id else [],
+        [],
+    )
+    data["telegram_state"] = v931_safe_context(
+        request.path,
+        "telegram_state",
+        lambda: telegram_user_state(user),
+        {"linked": False},
+    )
     return render_template("profile.html", data=data)
-
 
 @app.route("/alertas")
 def alerts_page():
