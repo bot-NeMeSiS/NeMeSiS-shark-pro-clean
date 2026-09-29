@@ -22721,6 +22721,20 @@ def api_admin_production_readiness():
 @app.route("/picks")
 def picks_page():
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
+    # Compact data already computed sports_home; expose its lanes through the
+    # legacy match_hub contract still consumed by the current Inicio template.
+    home_summary = data.get("home_summary") or {}
+    sports_home = home_summary.get("sports_home") or {}
+    hub = dict(data.get("match_hub") or {})
+    hub.update({
+        "today": sports_home.get("important_today") or hub.get("today") or [],
+        "live": sports_home.get("live_now") or hub.get("live") or [],
+        "favorites": sports_home.get("favorites") or [],
+        "upcoming": sports_home.get("upcoming") or hub.get("upcoming") or [],
+        "finished": sports_home.get("recent_results") or [],
+        "sports_home": sports_home,
+    })
+    data["match_hub"] = hub
     data["picks"] = list(summary.get("valid_active_picks") or [])
     data["pick_stats"] = v931_safe_context(request.path, "pick_stats", pick_stats, {"closed": 0, "graded": 0})
     data["v925_picks"] = get_safe_picks_context(data["picks"])
