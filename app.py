@@ -14080,7 +14080,7 @@ def telegram_scheduler_module_payload(result=None, default_status="NO_DUE_JOBS")
 
 def v771_telegram_activity_matches(limit=None):
     # V771 solo necesita una muestra corta para live/resumen/prepartido. Evita
-    # match_hub(), que construye semanas de agenda, resultados y agrupaciones.
+    # el hub completo construye semanas de agenda, resultados y agrupaciones.
     requested = as_int(limit if limit is not None else os.getenv("TELEGRAM_ACTIVITY_MATCH_SCAN_LIMIT", "24"), 24)
     scan_limit = max(12, min(requested, 30))
     today = today_iso()
