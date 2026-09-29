@@ -13768,7 +13768,7 @@ def _telegram_queue_pending_rows(limit=5, current=None):
     """Load due Telegram queue rows with a strict SQLite read budget.
 
     Premium delivery persists lowercase statuses, while a legacy path can still
-    contain uppercase values. Avoid lower(status) so the existing
+    contain uppercase values. Avoid case-folding the status column so the existing
     idx_telegram_queue_status(status, scheduled_at) index remains usable.
     A transient busy/slow disk must not consume the whole Gunicorn worker
     timeout; the 5-minute cron will retry on its next run.
