@@ -31546,25 +31546,15 @@ def v757_client_app_center_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app")
-    # Inicio only needs the cached sports snapshot plus presentation contexts.
-    # Avoid the full dashboard_data() fan-out used by legacy/admin surfaces.
+    # Inicio renders the cached sports snapshot only. Do not rebuild legacy
+    # presentation contexts that are not consumed by this template or base.
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
-    data["track_record"] = v931_safe_context(request.path, "track_record", v742_track_record_context, {})
     data["membership"] = v566_membership_ui(user)
-    data["client_premium"] = v931_safe_context(request.path, "client_premium", lambda: build_client_app_premium_context(data, user), {})
-    data["v757_app"] = v931_safe_context(request.path, "v757_app", lambda: build_v757_app_center(data, user, track_record=data.get("track_record")), {})
-    data["v757_trust"] = v931_safe_context(request.path, "v757_trust", lambda: build_v757_trust_snapshot(data.get("track_record") or {}), {})
-    data["v758_adaptive"] = v931_safe_context(request.path, "adaptive", lambda: v758_adaptive_context(data, user, "app_center"), {})
-    data["v777_product"] = v931_safe_context(request.path, "product", lambda: v777_client_product_context(data, user), {})
-    data["v778_organization"] = v931_safe_context(request.path, "organization", lambda: v778_client_product_organization_context(data, user), {}) if "v778_client_product_organization_context" in globals() else {}
     data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
-    data["v934_realtime"] = get_v934_realtime_context(summary)
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     return render_template("client_app_center.html", data=data)
-
 
 @app.route("/api/client/app-center")
 def api_v757_client_app_center():
