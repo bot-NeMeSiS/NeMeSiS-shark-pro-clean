@@ -18244,16 +18244,23 @@ def _v765_collect_market_matches(data=None, limit=120):
     return dedupe_matches_list(source)[:limit]
 
 
-def v765_markets_context(data=None, user=None):
+def _v765_enriched_market_picks(user, limit=160):
+    try:
+        return [
+            enrich_pick_market_context(enrich_pick_client_context(p))
+            for p in published_picks_for_user(user, limit=limit)
+        ]
+    except Exception:
+        return []
+
+
+def v765_markets_context(data=None, user=None, matches=None, picks=None):
     """Mercados básicos para cliente: sin apuestas inventadas ni llamadas externas."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     plan = str(user.get("membership") or user.get("role") or "FREE").upper()
-    try:
-        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=120)]
-    except Exception:
-        picks = []
-    matches = _v765_collect_market_matches(data, limit=160)
-    snapshot = build_betting_markets_snapshot(picks=picks, matches=matches, plan=plan)
+    resolved_picks = list(picks) if picks is not None else _v765_enriched_market_picks(user, limit=120)
+    resolved_matches = list(matches) if matches is not None else _v765_collect_market_matches(data, limit=160)
+    snapshot = build_betting_markets_snapshot(picks=resolved_picks, matches=resolved_matches, plan=plan)
     snapshot["plan"] = plan
     snapshot["quick_actions"] = [
         {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
@@ -18264,40 +18271,54 @@ def v765_markets_context(data=None, user=None):
     return snapshot
 
 
-def v765_combi_context(data=None, user=None, requested_count=3):
+def v765_combi_context(data=None, user=None, requested_count=3, matches=None, picks=None):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    try:
-        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=160)]
-    except Exception:
-        picks = []
-    matches = _v765_collect_market_matches(data, limit=180)
-    context = build_combi_strategy_context(picks=picks, matches=matches, requested_count=requested_count)
+    resolved_picks = list(picks) if picks is not None else _v765_enriched_market_picks(user, limit=160)
+    resolved_matches = list(matches) if matches is not None else _v765_collect_market_matches(data, limit=180)
+    context = build_combi_strategy_context(picks=resolved_picks, matches=resolved_matches, requested_count=requested_count)
     context["plan"] = str(user.get("membership") or user.get("role") or "FREE").upper()
     context["selected_type"] = (request.args.get("tipo") or request.args.get("type") or "mixta") if has_request_context() else "mixta"
     return context
+
+
+def _v765_shared_market_inputs(user):
+    matches = _v765_collect_market_matches(None, limit=180)
+    picks = _v765_enriched_market_picks(user, limit=160)
+    return matches, picks
 
 
 @app.route("/mercados")
 @app.route("/markets")
 @app.route("/apuestas-basicas")
 def betting_markets_page():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = dashboard_data("today", today_iso())
-    data["v765_markets"] = v765_markets_context(data, user)
-    data["v765_combis"] = v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "markets")
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
+    market_matches, market_picks = _v765_shared_market_inputs(user)
+    requested_count = combi_leg_count(request.args.get("partidos"), 3)
+    data = {
+        "session_user": session_user,
+        "v765_markets": v765_markets_context(user=user, matches=market_matches[:160], picks=market_picks[:120]),
+        "v765_combis": v765_combi_context(user=user, requested_count=requested_count, matches=market_matches, picks=market_picks),
+    }
     return render_template("betting_markets.html", data=data)
 
 
 @app.route("/api/client/betting-markets")
 def api_client_betting_markets():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = home_light_data()
-    return jsonify({"ok": True, "version": APP_VERSION, "markets": v765_markets_context(data, user), "combis": v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))})
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
+    market_matches, market_picks = _v765_shared_market_inputs(user)
+    requested_count = combi_leg_count(request.args.get("partidos"), 3)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "markets": v765_markets_context(user=user, matches=market_matches[:160], picks=market_picks[:120]),
+        "combis": v765_combi_context(user=user, requested_count=requested_count, matches=market_matches, picks=market_picks),
+    })
 
 
 
-# ===================== V766 CALENDAR RESULTS / HIGHLIGHTS / ORDER AUTOMATION =====================
+# ===================== V766 CALENDAR RESULTS / HIGHLIGHTS / ORDER AUTOMATION =====================# ===================== V766 CALENDAR RESULTS / HIGHLIGHTS / ORDER AUTOMATION =====================
 
 def v766_highlights_key_present():
     return env_present("THESPORTSDB_API_KEY") or env_present("THESPORTSDB_KEY")
@@ -19777,8 +19798,7 @@ def v741_calendar_experience_context():
 @app.route("/global")
 @app.route("/competiciones")
 def global_football():
-    return render_template("global.html", data=dashboard_data())
-
+    return render_template("global.html", data={"competitions": competitions()})
 
 
 def _v940_hydrate_selected_date_results(summary, date_value):
@@ -30841,8 +30861,8 @@ def consume_shark_question(user=None):
         conn.close()
 
 
-def v570_shark_core_summary():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+def v570_shark_core_summary(user=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     membership = (user.get("membership") or user.get("role") or "FREE").upper()
     favorites = get_favorites(user_id=user.get("id")) if user.get("id") else []
     try:
@@ -30916,9 +30936,14 @@ def v570_shark_admin_summary():
 
 @app.route("/shark-core")
 def v570_shark_core_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login?next=/shark-core")
-    return render_template("shark_core.html", data=dashboard_data(), shark=v570_shark_core_summary())
+    return render_template(
+        "shark_core.html",
+        data={"session_user": user},
+        shark=v570_shark_core_summary(user),
+    )
 
 
 @app.route("/inteligencia")
