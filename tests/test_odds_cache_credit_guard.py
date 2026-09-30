@@ -158,8 +158,9 @@ def test_odds_sport_specific_not_found_does_not_stop_other_competitions(
     assert len(events) == 1
     assert len(calls) == 2
     assert quota["observed_calls"] == 2
-    assert quota.get("systemic_failure", False) is False
-    assert quota.get("stopped_early", False) is False
+    assert quota["systemic_failure"] is False
+    assert quota["systemic_http_status"] == 0
+    assert quota["stopped_early"] is False
 
 
 def test_odds_systemic_failure_classifier_is_conservative(app_module):
@@ -167,3 +168,22 @@ def test_odds_systemic_failure_classifier_is_conservative(app_module):
         assert app_module._odds_systemic_failure_response({"http_status": status}) is True
     for status in (200, 404, 409, 422):
         assert app_module._odds_systemic_failure_response({"http_status": status}) is False
+
+
+def test_odds_empty_competition_set_returns_complete_zero_call_quota(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "odds_competitions", lambda: [])
+
+    events, errors, quota = app_module.fetch_odds_events(limit=80)
+
+    assert events == []
+    assert errors == []
+    assert quota == {
+        "observed_calls": 0,
+        "requests_last_total": 0,
+        "requests_used": 0,
+        "requests_remaining": 0,
+        "http_status": 0,
+        "systemic_failure": False,
+        "systemic_http_status": 0,
+        "stopped_early": False,
+    }
