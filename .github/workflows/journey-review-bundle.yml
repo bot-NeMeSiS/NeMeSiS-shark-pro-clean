@@ -42,7 +42,8 @@ jobs:
           (out / 'manifest.json').write_text(json.dumps({'commit':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'files':inventory},indent=2))
           PY
       - name: Pure Python dependencies for offline local review
-        run: python -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/journey-review/wheels" Flask==3.0.3 Werkzeug==3.0.6 itsdangerous==2.2.0 blinker==1.9.0 stripe==15.3.0 click==8.1.7
+        run: |
+          python -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/journey-review/wheels" Flask==3.0.3 Werkzeug==3.0.6 itsdangerous==2.2.0 blinker==1.9.0 stripe==15.3.0 click==8.1.7
       - uses: actions/upload-artifact@v7
         with:
           name: journey-source-${{ github.sha }}
