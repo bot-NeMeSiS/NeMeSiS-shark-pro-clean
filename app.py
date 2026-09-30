@@ -7795,15 +7795,19 @@ def client_activity_feed(limit=20, user_id=None, include_internal=False):
     return "Actividad registrada en tu cuenta."
 
 
-def build_client_alerts(limit=12, user_id=None):
+def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=None, upcoming=None, telegram=None):
     """Alertas visuales para cliente sin inventar datos reales.
-    Mezcla favoritos, partidos próximos, directo, pronósticos publicados y estado Telegram.
+
+    Optional inputs let focused routes reuse one request snapshot instead of
+    re-reading the same agenda, picks and favorites. Existing callers keep the
+    historical behavior when those inputs are omitted.
     """
     user_id = user_id or current_user_id()
-    hub = match_hub(today_iso())
-    favs = get_favorites(user_id=user_id) if user_id else []
-    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
-    upcoming = get_upcoming_matches(today_iso(), days=3, limit=12)
+    hub = hub if hub is not None else match_hub(today_iso())
+    favs = favorites if favorites is not None else (get_favorites(user_id=user_id) if user_id else [])
+    picks = picks if picks is not None else published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
+    upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=3, limit=12)
+    telegram = telegram if telegram is not None else telegram_config()
     alerts = []
 
     if hub.get("counts", {}).get("live", 0):
@@ -7851,7 +7855,7 @@ def build_client_alerts(limit=12, user_id=None):
             "href": "/favoritos",
             "badge": "PERSONALIZA",
         })
-    if not telegram_config().get("configured"):
+    if not telegram.get("configured"):
         alerts.append({
             "type": "telegram",
             "priority": 52,
@@ -7894,34 +7898,58 @@ def client_retention_summary(user=None, alerts=None, activity=None, favorites=No
 
 
 # ===================== V537 DAILY BRIEFING + CLIENT COMMAND CENTER =====================
-def client_progress_score(user=None):
+def client_progress_score(user=None, favorites=None, picks=None, upcoming=None, activity=None, telegram=None):
     user = user or current_session_user() or {}
     score = 25
-    favs = get_favorites(user_id=user.get("id")) if user.get("id") else []
+    favs = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user.get("id") else [])
     if favs:
         score += min(20, len(favs) * 5)
-    if telegram_config().get("configured"):
+    telegram = telegram if telegram is not None else telegram_config()
+    if telegram.get("configured"):
         score += 15
-    if published_picks_for_user(user or {"membership": "FREE"}, limit=3):
+    picks = picks if picks is not None else published_picks_for_user(user or {"membership": "FREE"}, limit=3)
+    if picks:
         score += 15
-    if get_upcoming_matches(today_iso(), days=7, limit=5):
+    upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=7, limit=5)
+    if upcoming:
         score += 15
-    if client_activity_feed(limit=3, user_id=user.get("id")):
+    activity = activity if activity is not None else (client_activity_feed(limit=3, user_id=user.get("id")) if user.get("id") else [])
+    if activity:
         score += 10
     return max(0, min(100, score))
 
 
-def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None, smart=None, alerts=None, activity=None):
-    """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos."""
+def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=None, live_matches=None, upcoming=None, membership=None, smart=None, alerts=None, activity=None, hub=None, today_matches=None, progress_score=None, telegram=None):
+    """Briefing comercial para cliente: resume qué mirar hoy sin inventar datos.
+
+    Focused routes can pass already-loaded request data to avoid duplicate reads.
+    """
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    hub = match_hub(today_iso())
+    hub = hub if hub is not None else match_hub(today_iso())
     upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=7, limit=12)
-    today_matches = get_matches(today_iso(), "today")
+    today_matches = today_matches if today_matches is not None else get_matches(today_iso(), "today")
     favs = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user.get("id") else [])
     picks = picks if picks is not None else published_picks_for_user(user, limit=8)
     smart = smart if smart is not None else smart_pick_board(user, limit=8)
-    alerts = alerts if alerts is not None else build_client_alerts(limit=6, user_id=user.get("id"))
+    telegram = telegram if telegram is not None else telegram_config()
+    alerts = alerts if alerts is not None else build_client_alerts(
+        limit=6,
+        user_id=user.get("id"),
+        hub=hub,
+        favorites=favs,
+        picks=picks,
+        upcoming=upcoming[:12],
+        telegram=telegram,
+    )
     activity = activity if activity is not None else (client_activity_feed(limit=6, user_id=user.get("id")) if user.get("id") else [])
+    progress_score = progress_score if progress_score is not None else client_progress_score(
+        user,
+        favorites=favs,
+        picks=picks,
+        upcoming=upcoming,
+        activity=activity,
+        telegram=telegram,
+    )
     next_action = alerts[0] if alerts else {
         "title": "Explora el calendario",
         "body": "Revisa partidos por liga y guarda tus favoritos para personalizar la experiencia.",
@@ -7941,7 +7969,7 @@ def build_daily_briefing(user=None, favorites=None, recommendations=None, picks=
         priorities.append({"label": "Sincronización pendiente", "value": "OK", "href": "/match-hub", "tone": "empty"})
     return {
         "date": today_iso(),
-        "score": client_progress_score(user),
+        "score": progress_score,
         "next_action": next_action,
         "priorities": priorities[:4],
         "alerts": alerts,
@@ -22988,11 +23016,39 @@ def activity_page():
 @app.route("/mi-dia")
 @app.route("/briefing")
 def daily_briefing_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login")
-    data = dashboard_data()
-    data["briefing"] = build_daily_briefing(current_session_user())
-    data["client_command"] = client_command_center_data(current_session_user())
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
+    user_id = user.get("id") or ""
+    favorites = get_favorites(user_id=user_id) if user_id else []
+    picks = published_picks_for_user(user, limit=8)
+    activity = client_activity_feed(limit=6, user_id=user_id) if user_id else []
+    telegram = telegram_config()
+    hub = data.get("match_hub") or {}
+    upcoming = list(data.get("upcoming_matches") or [])[:12]
+    alerts = build_client_alerts(
+        limit=6,
+        user_id=user_id,
+        hub=hub,
+        favorites=favorites,
+        picks=picks,
+        upcoming=upcoming,
+        telegram=telegram,
+    )
+    data["briefing"] = build_daily_briefing(
+        user,
+        favorites=favorites,
+        picks=picks,
+        live_matches=hub.get("live") or [],
+        upcoming=upcoming,
+        smart=[],
+        alerts=alerts,
+        activity=activity,
+        hub=hub,
+        today_matches=list(data.get("matches") or []),
+        telegram=telegram,
+    )
     return render_template("daily_briefing.html", data=data)
 
 
