@@ -13567,7 +13567,7 @@ def telegram_live_alert_matches(limit=None):
         status_info = canonical_match_status(match)
         if not status_info.get("is_live") or status_info.get("is_finished") or status_info.get("is_upcoming"):
             continue
-        item = telegram_enrich_match_for_message(match)
+        item = dict(match)
         item["status_info"] = status_info
         item["client_live_minute"] = canonical_live_minute(item)
         key = item.get("id") or match_logical_key(item)
