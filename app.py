@@ -19843,17 +19843,52 @@ def calendar_page():
 @app.route("/today")
 def sports_hub_page():
     tab = (request.args.get("tab") or "today").strip().lower()
-    data = dashboard_data()
-    hub = data.get("match_hub") or {}
-    picks = published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=30)
-    recs = v565_recommendation_pool(limit=24)
-    best = picks[0] if picks else (recs[0] if recs else {})
-    score = as_int(best.get("confidence") or best.get("score"), 0)
-    today_matches = annotate_sports_hub_matches((hub.get("today") or data.get("matches") or []), picks)
-    live_matches = annotate_sports_hub_matches((hub.get("live") or []), picks)
-    tomorrow_matches = annotate_sports_hub_matches(get_matches(today_iso(1), "today"), picks)
-    week_matches = annotate_sports_hub_matches(get_upcoming_matches(today_iso(), days=10, limit=220), picks)
-    favorites_feed = annotate_sports_hub_matches((data.get("favorite_feed") or []), picks)
+    data, summary = v932_safe_dashboard_data(request.path, compact=True)
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    user_id = user.get("id") or ""
+    picks = v931_safe_context(
+        request.path,
+        "sports_hub_picks",
+        lambda: published_picks_for_user(user, limit=30),
+        [],
+    )
+
+    sports_home = (data.get("home_summary") or {}).get("sports_home") or summary.get("sports_home") or {}
+    today_matches = annotate_sports_hub_matches(
+        sports_home.get("important_today") or data.get("matches") or [],
+        picks,
+    )
+    live_matches = annotate_sports_hub_matches(
+        sports_home.get("live_now") or [],
+        picks,
+    )
+    tomorrow = today_iso(1)
+    all_valid = list(summary.get("all_valid_matches") or summary.get("valid_upcoming_matches") or [])
+    tomorrow_matches = annotate_sports_hub_matches(
+        [item for item in all_valid if str(item.get("match_date") or "") == tomorrow],
+        picks,
+    )
+    week_end = (datetime.fromisoformat(today_iso()).date() + timedelta(days=10)).isoformat()
+    week_matches = annotate_sports_hub_matches(
+        [
+            item for item in summary.get("valid_upcoming_matches") or []
+            if today_iso() <= str(item.get("match_date") or "") <= week_end
+        ],
+        picks,
+    )
+    favorites_feed = v931_safe_context(
+        request.path,
+        "sports_hub_favorites",
+        lambda: annotate_sports_hub_matches(favorite_feed(limit=80, user_id=user_id), picks) if user_id else [],
+        [],
+    )
+    combis = v931_safe_context(
+        request.path,
+        "sports_hub_combis",
+        lambda: get_combis(limit=12),
+        [],
+    )
+
     if tab == "live":
         selected_matches = live_matches or today_matches
     elif tab == "tomorrow":
@@ -19863,7 +19898,9 @@ def sports_hub_page():
     elif tab == "favorites":
         selected_matches = favorites_feed
     else:
+        tab = "today"
         selected_matches = today_matches
+
     data["sports_hub"] = {
         "tab": tab,
         "date": today_iso(),
@@ -19883,21 +19920,21 @@ def sports_hub_page():
         "tomorrow": tomorrow_matches[:120],
         "week": week_matches[:220],
         "picks": picks,
-        "recommendations": recs,
         "favorites": favorites_feed[:80],
-        "top_leagues": (hub.get("top_leagues") or data.get("competitions") or [])[:18],
-        "counts": hub.get("counts") or {},
-        "combis": get_combis(limit=12),
-    }
-    data["shark_product"] = {
-        "score": score,
-        "confidence": score,
-        "risk": best.get("risk_level") or best.get("risk") or "Medio",
-        "reason": best.get("reasoning") or best.get("reason") or "SHARK espera datos suficientes antes de recomendar.",
-        "value": best.get("value_label") or ("Detectado" if best.get("odds") else "Pendiente"),
+        "combis": combis,
+        "counts": {
+            "today": len(today_matches),
+            "live": len(live_matches),
+            "tomorrow": len(tomorrow_matches),
+            "week": len(week_matches),
+            "favorites": len(favorites_feed),
+        },
+        "route_guard": {
+            "status": "sports_hub_fast_path",
+            "no_render_api_call": True,
+        },
     }
     return render_template("sports_hub.html", data=data)
-
 
 @app.route("/live")
 @app.route("/live-center")
