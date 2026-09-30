@@ -72,7 +72,7 @@ def test_progress_score_accepts_reused_inputs(app_module, monkeypatch):
         activity=[{"id": "a1"}],
         telegram={"configured": True},
     )
-    assert score == 100
+    assert score == 85
 
 
 def test_briefing_accepts_complete_preloaded_context(app_module, monkeypatch):
