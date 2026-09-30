@@ -19930,7 +19930,7 @@ def live_page():
 def match_hub_page():
     lane = request.args.get("lane") or ("results" if request.path == "/resultados" else "today")
     date = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
-    data = dashboard_data(lane, date)
+    data = {"match_hub": match_hub(date, lane)}
     return render_template("match_hub.html", data=data)
 
 
