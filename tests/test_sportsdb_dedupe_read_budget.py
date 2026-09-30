@@ -77,5 +77,7 @@ def test_sportsdb_upsert_uses_scoped_duplicate_cleanup():
 
     assert "touched_match_dates = set()" in block
     assert 'item.get("match_date") or today_iso()' in block
+    assert "for offset in (-1, 0, 1)" in block
+    assert "timedelta(days=offset)" in block
     assert "cleanup_duplicate_matches(cur, match_dates=touched_match_dates)" in block
     assert "cleanup_duplicate_matches(cur)" not in block
