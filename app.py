@@ -3981,6 +3981,16 @@ def inject_security_context():
 
 @app.after_request
 def apply_security_headers_and_csrf(response):
+    # Versioned public CSS/JS is content-addressed by ?v=... and can be cached
+    # aggressively by the browser. Private HTML/API responses remain no-store.
+    if (
+        request.path.startswith("/static/")
+        and request.args.get("v")
+        and response.status_code == 200
+        and str(response.mimetype or "").lower() in {"text/css", "application/javascript", "text/javascript", "application/x-javascript"}
+    ):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+
     if request.path == '/admin' or request.path == '/admin-login' or request.path.startswith(('/admin/', '/api/admin/')):
         current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
         if 'no-store' not in current_cache_control:
@@ -15276,7 +15286,7 @@ def service_worker():
         f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
-        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
+        "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
         "self.addEventListener('push',event=>{let data={};try{data=event.data?event.data.json():{};}catch(e){data={body:event.data?event.data.text():'NeMeSiS Founder'};}const title=data.title||'NeMeSiS Founder';const options={body:data.body||'',icon:'/static/img/app-icons/app-icon-192.png',badge:'/static/img/app-icons/app-icon-192.png',tag:data.tag||'nemesis-founder',data:{url:data.url||'/admin/founder-os#inbox',severity:data.severity||'INFO'}};event.waitUntil(self.registration.showNotification(title,options));});\n"
         "self.addEventListener('notificationclick',event=>{event.notification.close();const target=(event.notification.data&&event.notification.data.url)||'/admin/founder-os#inbox';event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus' in client){client.navigate(target);return client.focus();}}return clients.openWindow(target);}));});\n"
     )
@@ -29313,9 +29323,11 @@ def client_success_runtime_context(user=None):
 @app.route("/ayuda")
 def client_success_page():
     user = current_session_user()
-    data = dashboard_data() if user else home_light_data()
-    data["client_success"] = client_success_runtime_context(user or {"membership": "FREE", "role": "FREE", "id": ""})
-    data["onboarding"] = onboarding_status(user or {"membership": "FREE", "role": "FREE", "id": ""})
+    user_ctx = user or {"membership": "FREE", "role": "FREE", "id": ""}
+    data = {
+        "session_user": user,
+        "client_success": client_success_runtime_context(user_ctx),
+    }
     return render_template("client_success.html", data=data)
 
 
@@ -30588,21 +30600,13 @@ def v928_admin_overview(data=None):
 def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/control-center")
-    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
-    sports = data.get("v932_sports_value") or {}
-    fallback_overview = {
-        "users_total": 0, "users_pro": 0, "users_elite": 0, "picks_active": 0,
-        "matches_today": int(sports.get("valid_matches_today_count") or 0),
-        "live_now": 1 if sports.get("real_live_available") else 0,
-        "telegram": {}, "automation": {}, "recent_errors": [], "global_status": "review",
-    }
-    data["v928_admin"] = v932_safe_context(request.path, "admin", "admin_overview", lambda: v928_admin_overview(data), fallback_overview)
-    data["v934_realtime"] = get_v934_realtime_context(_summary)
-    quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
-    items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    # The master dashboard renders bounded local evidence plus the realtime bar.
+    # Do not rebuild the legacy admin/client dashboard fan-out on every visit.
+    data, summary = v932_safe_dashboard_data(request.path, scope="admin", compact=True)
+    data["v934_realtime"] = get_v934_realtime_context(summary)
     from blueprints.admin_master_control import master_snapshot
     data["admin_master"] = master_snapshot(__import__(__name__))
-    return render_template("admin_dashboard.html", data=data, q=quality, items=items)
+    return render_template("admin_dashboard.html", data=data)
 
 
 @app.route("/api/admin/control-center")
@@ -31590,11 +31594,7 @@ def v758_adaptive_experience_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/experiencia")
-    data = dashboard_data()
-    data["track_record"] = v742_track_record_context()
-    data["membership"] = v566_membership_ui(user)
-    data["client_premium"] = build_client_app_premium_context(data, user)
-    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    data, _summary = v932_safe_dashboard_data(request.path, scope="client", compact=True)
     data["v758_adaptive"] = v758_adaptive_context(data, user, "adaptive")
     return render_template("adaptive_experience.html", data=data)
 
@@ -32369,10 +32369,8 @@ def v809_client_navigation_map_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app/mapa")
-    data = dashboard_data()
-    data["membership"] = v566_membership_ui(user)
-    data["client_navigation_items"] = v809_client_navigation_items()
-    return render_template("client_navigation_map.html", data=data, items=data["client_navigation_items"])
+    items = v809_client_navigation_items()
+    return render_template("client_navigation_map.html", data={"session_user": user}, items=items)
 
 # V808 route aliases for buttons found in legacy/client/admin templates.
 @app.route("/password-reset")
