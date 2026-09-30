@@ -20123,7 +20123,8 @@ def player_center_spanish_page(player_id):
 @app.route("/favoritos", methods=["GET", "POST"])
 @app.route("/favorites", methods=["GET", "POST"])
 def favorites_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login")
     if request.method == "POST":
         action = str(request.form.get("action") or "add").lower()
@@ -20133,10 +20134,39 @@ def favorites_page():
             add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
             _growth_maybe_activate_user(reason="favorite_saved")
         return redirect("/favoritos")
-    data, _summary = v932_safe_dashboard_data(request.path, scope="client")
+
+    # Favorites is a focused account surface. Avoid the broad dashboard builder, whose
+    # fan-out loads modules this template never renders. Keep this route DB/cache-only.
+    user_id = user.get("id") or ""
+    favorites = v931_safe_context(
+        request.path,
+        "favorites_list",
+        lambda: get_favorites(user_id=user_id) if user_id else [],
+        [],
+    )
+    favorite_bundle = v931_safe_context(
+        request.path,
+        "favorites_bundle",
+        lambda: favorite_feed_full(user_id=user_id) if user_id else {"matches": [], "live": [], "picks": [], "priority": []},
+        {"matches": [], "live": [], "picks": [], "priority": []},
+    )
+    favorite_summary = favorite_insights(
+        user_id=user_id,
+        favorites=favorites,
+        bundle=favorite_bundle,
+    )
+    data = {
+        "session_user": user,
+        "favorites": favorites,
+        "favorite_feed": list(favorite_bundle.get("matches") or []),
+        "favorite_bundle": favorite_bundle,
+        "favorite_insights": favorite_summary,
+        "v931_route_guard": {
+            "status": "favorites_fast_path",
+            "no_render_api_call": True,
+        },
+    }
     return render_template("favorites.html", data=data)
-
-
 
 # ===================== V785 MEMBERSHIP / STRIPE FLOW POLISH =====================
 
