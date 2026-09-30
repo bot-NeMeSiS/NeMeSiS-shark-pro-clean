@@ -1,0 +1,51 @@
+name: Journey source review bundle
+on:
+  push:
+    branches: [fix/journey-responsive-evidence-20261001]
+    paths: [.github/workflows/journey-review-bundle.yml]
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11.9'
+      - name: Package only tracked source and public assets
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, zipfile
+          root = pathlib.Path.cwd()
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'journey-review'
+          out.mkdir()
+          dirs = {'templates','static','engines','services','blueprints','tools','tests','automation_workforce','browser_qa','config','utils','core','models','project_control','.github'}
+          blocked = {'.env','.git','.venv','__pycache__','node_modules','data','logs','release_output','secrets','credentials'}
+          files = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          inventory = {}
+          with zipfile.ZipFile(out / 'source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in files:
+                  if not name: continue
+                  p = pathlib.Path(name)
+                  if set(p.parts) & blocked: continue
+                  if p.suffix.lower() in {'.db','.sqlite','.sqlite3','.pem','.key','.p12','.log','.zip'}: continue
+                  if not (p.parts[0] in dirs or (len(p.parts)==1 and p.suffix in {'.py','.ini','.toml','.txt'})): continue
+                  source = root / p
+                  if source.is_symlink() or not source.is_file(): continue
+                  data = source.read_bytes()
+                  z.writestr(name,data)
+                  inventory[name] = hashlib.sha256(data).hexdigest()
+          (out / 'manifest.json').write_text(json.dumps({'commit':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'files':inventory},indent=2))
+          PY
+      - name: Pure Python dependencies for offline local review
+        run: python -m pip download --no-deps --only-binary=:all: --dest "$RUNNER_TEMP/journey-review/wheels" Flask==3.0.3 Werkzeug==3.0.6 itsdangerous==2.2.0 blinker==1.9.0 stripe==15.3.0 click==8.1.7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: journey-source-${{ github.sha }}
+          path: ${{ runner.temp }}/journey-review/
+          if-no-files-found: error
+          retention-days: 2
