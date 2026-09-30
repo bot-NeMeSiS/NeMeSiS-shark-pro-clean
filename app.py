@@ -5319,11 +5319,17 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     updated = 0
     skipped = 0
     provider_identity_rows_reconciled = 0
+    touched_match_dates = set()
 
     for item in match_rows:
         if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
             skipped += 1
             continue
+        touched_date = str(item.get("match_date") or today_iso()).strip()[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", touched_date):
+            parsed_touched_date = datetime.fromisoformat(touched_date).date()
+            for offset in (-1, 0, 1):
+                touched_match_dates.add((parsed_touched_date + timedelta(days=offset)).isoformat())
 
         existing_rows = _sportsdb_existing_provider_rows(cur, item)
         if any(older_match_observation(existing, item) for existing in existing_rows):
@@ -5346,7 +5352,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         else:
             imported += 1
 
-    dedupe_result = cleanup_duplicate_matches(cur)
+    dedupe_result = cleanup_duplicate_matches(cur, match_dates=touched_match_dates)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
@@ -13529,13 +13535,61 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
     status = "QUEUED" if inserted else ("NO_DESTINATION" if errors else "DUPLICATE_ALREADY_SENT")
     return {"ok": not errors, "module": "auto_picks", "status": status, "message": "Picks automáticos revisados.", "processed": audit.get("reviewed", 0), "reviewed": audit.get("reviewed", 0), "eligible": audit.get("eligible", 0), "inserted": inserted, "updated": 0, "sent": 0, "failed": 0, "skipped": skipped + blocked, "errors": errors[:12], "candidates": audit.get("candidates", 0), "discarded": discarded[:12], "next_candidate": audit.get("next_candidate"), "window": audit.get("window"), "discard_reasons": telegram_collect_discard_reasons({"discarded": discarded, "errors": errors}) or ([] if inserted else ["DUPLICATE_ALREADY_SENT"])}
 
+def telegram_live_alert_matches(limit=None):
+    """Carga solo una muestra acotada de partidos live para alertas Telegram.
+
+    Este camino se ejecuta cada 5 minutos. No debe construir el hub completo, que
+    incluye agenda, picks y semanas de resultados que las alertas live no usan.
+    """
+    requested = as_int(limit if limit is not None else os.getenv("TELEGRAM_LIVE_ALERT_SCAN_LIMIT", "16"), 16)
+    scan_limit = max(4, min(requested, 24))
+    today = today_iso()
+    try:
+        raw_matches = rows(
+            """SELECT * FROM matches
+               WHERE match_date=?
+                 AND (
+                     lower(status) LIKE '%live%'
+                     OR lower(status) LIKE '%directo%'
+                     OR lower(status) LIKE '%progress%'
+                     OR lower(status) IN ('1h','2h','ht','descanso','halftime','inplay','in play','et','p','bt')
+                     OR COALESCE(minute,'')!=''
+                 )
+               ORDER BY priority DESC, kickoff_time, competition_name
+               LIMIT ?""",
+            (today, scan_limit),
+        )
+    except Exception:
+        raw_matches = []
+
+    items = []
+    seen = set()
+    for match in raw_matches[:scan_limit]:
+        if not isinstance(match, dict) or is_fake_match(match):
+            continue
+        status_info = canonical_match_status(match)
+        if not status_info.get("is_live") or status_info.get("is_finished") or status_info.get("is_upcoming"):
+            continue
+        item = dict(match)
+        item["status_info"] = status_info
+        item["client_live_minute"] = canonical_live_minute(item)
+        key = item.get("id") or match_logical_key(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(item)
+        if len(items) >= scan_limit:
+            break
+    return items
+
+
 def enqueue_live_alerts(force=False):
     settings = get_telegram_settings()
     if telegram_should_delay_message("live_alert", force=force):
         return {"ok": True, "status": "OUTSIDE_PRO_WINDOW", "message": "Horario silencioso PRO activo; no se encolan alertas live.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "reason": "horario_silencioso", "discard_reasons": ["OUTSIDE_PRO_WINDOW"]}
     if not settings.get("auto_live_alerts") and not force:
         return {"ok": True, "status": "NO_LIVE_ALERTS", "message": "Alertas live desactivadas.", "processed": 0, "inserted": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "discard_reasons": ["NO_LIVE_ALERTS"]}
-    live_matches = match_hub(today_iso(), "live").get("live") or []
+    live_matches = telegram_live_alert_matches()
     subscribers = telegram_auto_destinations("ELITE", include_global=False)
     inserted = skipped = 0
     for match in live_matches[:8]:
@@ -14925,7 +14979,7 @@ def match_deduplication_metrics(sample_limit=5000):
     }
 
 
-def cleanup_duplicate_matches(cur=None):
+def cleanup_duplicate_matches(cur=None, match_dates=None):
     from engines.realtime_state_engine import _provider_clock
 
     own_conn = None
@@ -14935,8 +14989,27 @@ def cleanup_duplicate_matches(cur=None):
     try:
         if own_conn:
             own_conn.execute("BEGIN IMMEDIATE")
+        scoped_dates = None
+        if match_dates is not None:
+            scoped_dates = sorted({
+                str(value or "").strip()[:10]
+                for value in match_dates
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value or "").strip()[:10])
+            })
+            if not scoped_dates:
+                return {"duplicates_removed": 0, "groups": 0}
         try:
-            raw = cur.execute("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC").fetchall()
+            if scoped_dates is None:
+                raw = cur.execute(
+                    "SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC"
+                ).fetchall()
+            else:
+                placeholders = ",".join("?" for _ in scoped_dates)
+                raw = cur.execute(
+                    "SELECT * FROM matches WHERE match_date IN (" + placeholders + ") "
+                    "ORDER BY match_date DESC, kickoff_time DESC",
+                    tuple(scoped_dates),
+                ).fetchall()
         except sqlite3.OperationalError:
             return {"duplicates_removed": 0, "groups": 0}
         # Fixed allowlist + existing columns: supports older DBs without schema writes.
