@@ -27,7 +27,7 @@ RUNNER_NAME = "nemesis_master_tick"
 TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"
 CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
 BACKUP_ENDPOINT = "/api/automation/data-backup/run"
-READINESS_ENDPOINT = "/api/runtime-version"
+READINESS_ENDPOINT = "/api/runtime-version?compact=1"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
 BACKUP_TIMEOUT_SECONDS = 90

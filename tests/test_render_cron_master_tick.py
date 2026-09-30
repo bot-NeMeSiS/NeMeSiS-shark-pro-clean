@@ -453,6 +453,8 @@ def test_readiness_failure_does_not_run_side_effecting_ticks(monkeypatch, capsys
 
 def test_readiness_probe_never_sends_automation_secret(monkeypatch):
     seen = []
+    secret = "pytest-readiness-secret-must-not-travel"
+    monkeypatch.setenv("AUTOMATION_SECRET", secret)
 
     def fake_urlopen(request, timeout):
         seen.append(request)
@@ -464,5 +466,10 @@ def test_readiness_probe_never_sends_automation_secret(monkeypatch):
     assert result["readiness_status"] == "PASS"
     assert len(seen) == 1
     assert seen[0].get_method() == "GET"
-    assert seen[0].full_url.endswith("/api/runtime-version")
-    assert "X-automation-secret" not in seen[0].headers
+    assert seen[0].full_url == "https://example.invalid/api/runtime-version?compact=1"
+    assert seen[0].data is None
+    headers = {name.lower(): value for name, value in seen[0].header_items()}
+    assert "x-automation-secret" not in headers
+    assert "authorization" not in headers
+    assert secret not in seen[0].full_url
+    assert secret not in json.dumps(headers)

@@ -18254,16 +18254,23 @@ def _v765_collect_market_matches(data=None, limit=120):
     return dedupe_matches_list(source)[:limit]
 
 
-def v765_markets_context(data=None, user=None):
+def _v765_enriched_market_picks(user, limit=160):
+    try:
+        return [
+            enrich_pick_market_context(enrich_pick_client_context(p))
+            for p in published_picks_for_user(user, limit=limit)
+        ]
+    except Exception:
+        return []
+
+
+def v765_markets_context(data=None, user=None, matches=None, picks=None):
     """Mercados básicos para cliente: sin apuestas inventadas ni llamadas externas."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     plan = str(user.get("membership") or user.get("role") or "FREE").upper()
-    try:
-        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=120)]
-    except Exception:
-        picks = []
-    matches = _v765_collect_market_matches(data, limit=160)
-    snapshot = build_betting_markets_snapshot(picks=picks, matches=matches, plan=plan)
+    resolved_picks = list(picks) if picks is not None else _v765_enriched_market_picks(user, limit=120)
+    resolved_matches = list(matches) if matches is not None else _v765_collect_market_matches(data, limit=160)
+    snapshot = build_betting_markets_snapshot(picks=resolved_picks, matches=resolved_matches, plan=plan)
     snapshot["plan"] = plan
     snapshot["quick_actions"] = [
         {"label": "1X2", "href": "/mercados?tipo=1x2", "text": "Ganador, empate o visitante"},
@@ -18274,36 +18281,50 @@ def v765_markets_context(data=None, user=None):
     return snapshot
 
 
-def v765_combi_context(data=None, user=None, requested_count=3):
+def v765_combi_context(data=None, user=None, requested_count=3, matches=None, picks=None):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    try:
-        picks = [enrich_pick_market_context(enrich_pick_client_context(p)) for p in published_picks_for_user(user, limit=160)]
-    except Exception:
-        picks = []
-    matches = _v765_collect_market_matches(data, limit=180)
-    context = build_combi_strategy_context(picks=picks, matches=matches, requested_count=requested_count)
+    resolved_picks = list(picks) if picks is not None else _v765_enriched_market_picks(user, limit=160)
+    resolved_matches = list(matches) if matches is not None else _v765_collect_market_matches(data, limit=180)
+    context = build_combi_strategy_context(picks=resolved_picks, matches=resolved_matches, requested_count=requested_count)
     context["plan"] = str(user.get("membership") or user.get("role") or "FREE").upper()
     context["selected_type"] = (request.args.get("tipo") or request.args.get("type") or "mixta") if has_request_context() else "mixta"
     return context
+
+
+def _v765_shared_market_inputs(user):
+    matches = _v765_collect_market_matches(None, limit=180)
+    picks = _v765_enriched_market_picks(user, limit=160)
+    return matches, picks
 
 
 @app.route("/mercados")
 @app.route("/markets")
 @app.route("/apuestas-basicas")
 def betting_markets_page():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = dashboard_data("today", today_iso())
-    data["v765_markets"] = v765_markets_context(data, user)
-    data["v765_combis"] = v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "markets")
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
+    market_matches, market_picks = _v765_shared_market_inputs(user)
+    requested_count = combi_leg_count(request.args.get("partidos"), 3)
+    data = {
+        "session_user": session_user,
+        "v765_markets": v765_markets_context(user=user, matches=market_matches[:160], picks=market_picks[:120]),
+        "v765_combis": v765_combi_context(user=user, requested_count=requested_count, matches=market_matches, picks=market_picks),
+    }
     return render_template("betting_markets.html", data=data)
 
 
 @app.route("/api/client/betting-markets")
 def api_client_betting_markets():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = home_light_data()
-    return jsonify({"ok": True, "version": APP_VERSION, "markets": v765_markets_context(data, user), "combis": v765_combi_context(data, user, combi_leg_count(request.args.get("partidos"), 3))})
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
+    market_matches, market_picks = _v765_shared_market_inputs(user)
+    requested_count = combi_leg_count(request.args.get("partidos"), 3)
+    return jsonify({
+        "ok": True,
+        "version": APP_VERSION,
+        "markets": v765_markets_context(user=user, matches=market_matches[:160], picks=market_picks[:120]),
+        "combis": v765_combi_context(user=user, requested_count=requested_count, matches=market_matches, picks=market_picks),
+    })
 
 
 
@@ -19787,8 +19808,7 @@ def v741_calendar_experience_context():
 @app.route("/global")
 @app.route("/competiciones")
 def global_football():
-    return render_template("global.html", data=dashboard_data())
-
+    return render_template("global.html", data={"competitions": competitions()})
 
 
 def _v940_hydrate_selected_date_results(summary, date_value):
@@ -20353,6 +20373,22 @@ def enforce_checkout_legal_gate(user: dict, plan: str):
     qs = {"plan": selected or "PRO", "legal_pendiente": "1"}
     return False, redirect("/membresias?" + urllib.parse.urlencode(qs))
 
+def auth_shell_data(selected_plan="", next_url=""):
+    """Minimal render context for auth/account-recovery screens.
+
+    Authentication must remain available even when sports, Stripe or provider
+    summaries are slow/unavailable. Templates in this shell do not consume the
+    home dashboard payload.
+    """
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": today_iso(),
+        "selected_plan": str(selected_plan or "").upper(),
+        "next_url": str(next_url or ""),
+    }
+
+
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
     capture_growth_attribution_from_request()
@@ -20379,11 +20415,16 @@ def register_page():
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
-    auth_data = home_light_data()
-    auth_data["selected_plan"] = selected_plan
     registration_default = "/onboarding" if growth_is_first10_attribution() and not selected_plan else "/app"
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), registration_default)
-    return render_template("register.html", data=auth_data, error=error)
+    next_url = _safe_client_next(
+        request.args.get("next") or request.form.get("next") or session.get("post_auth_next"),
+        registration_default,
+    )
+    return render_template(
+        "register.html",
+        data=auth_shell_data(selected_plan=selected_plan, next_url=next_url),
+        error=error,
+    )
 
 
 @app.route("/clientes")
@@ -20423,10 +20464,15 @@ def client_login_page():
         error = "Email, usuario o contraseña incorrectos."
     if auth_backend_error:
         error = "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos."
-    auth_data = home_light_data()
-    auth_data["selected_plan"] = selected_plan
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
-    return render_template("client_login.html", data=auth_data, error=error)
+    next_url = _safe_client_next(
+        request.args.get("next") or request.form.get("next") or session.get("post_auth_next"),
+        "/app",
+    )
+    return render_template(
+        "client_login.html",
+        data=auth_shell_data(selected_plan=selected_plan, next_url=next_url),
+        error=error,
+    )
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -20439,7 +20485,7 @@ def forgot_password_page():
         result = password_reset_request(identifier, scope="client")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña."
-    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
+    return render_template("password_reset_request.html", data=auth_shell_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
 
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -20453,7 +20499,7 @@ def reset_password_page(token):
             return redirect("/cliente-login")
         except ValueError as exc:
             error = str(exc)
-    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=False)
+    return render_template("password_reset_form.html", data=auth_shell_data(), token=token, error=error, admin=False)
 
 
 @app.route("/admin-login", methods=["GET", "POST"])
@@ -20480,7 +20526,7 @@ def admin_login_page():
         error = "Acceso admin no válido."
     if auth_backend_error:
         error = "Acceso admin temporalmente no disponible. Inténtalo de nuevo en unos minutos."
-    return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
+    return render_template("admin_login.html", data=auth_shell_data(), error=error, configured=configured)
 
 
 @app.route("/local-safe")
@@ -20597,7 +20643,7 @@ def admin_forgot_password_page():
         result = password_reset_request(identifier, scope="admin")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta admin con esos datos, recibirás un enlace para restablecer la contraseña."
-    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
+    return render_template("password_reset_request.html", data=auth_shell_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
 
 
 @app.route("/admin-reset-password/<token>", methods=["GET", "POST"])
@@ -20611,7 +20657,7 @@ def admin_reset_password_page(token):
             return redirect("/admin-login")
         except ValueError as exc:
             error = str(exc)
-    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=True)
+    return render_template("password_reset_form.html", data=auth_shell_data(), token=token, error=error, admin=True)
 
 
 @app.route("/admin-bootstrap", methods=["GET", "POST"])
@@ -26598,6 +26644,17 @@ def get_safe_runtime_identity_for_admin() -> dict:
 
 @app.route("/api/runtime-version")
 def api_runtime_version():
+    # The master cron only needs a cheap liveness/readiness identity every five
+    # minutes. Keep the full certification payload as the default for deploy QA.
+    if str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}:
+        return jsonify({
+            "ok": True,
+            "status": "READY",
+            "version": APP_VERSION,
+            "runtime_checked_at_madrid": now_iso(),
+            "compact": True,
+        })
+
     version_txt = ""
     app_version_file = ""
     base_template = ""
@@ -30845,8 +30902,8 @@ def consume_shark_question(user=None):
         conn.close()
 
 
-def v570_shark_core_summary():
-    user = current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
+def v570_shark_core_summary(user=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE", "id": ""}
     membership = (user.get("membership") or user.get("role") or "FREE").upper()
     favorites = get_favorites(user_id=user.get("id")) if user.get("id") else []
     try:
@@ -30920,9 +30977,14 @@ def v570_shark_admin_summary():
 
 @app.route("/shark-core")
 def v570_shark_core_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login?next=/shark-core")
-    return render_template("shark_core.html", data=dashboard_data(), shark=v570_shark_core_summary())
+    return render_template(
+        "shark_core.html",
+        data={"session_user": user},
+        shark=v570_shark_core_summary(user),
+    )
 
 
 @app.route("/inteligencia")
@@ -34051,7 +34113,7 @@ def admin_founder_os_page():
         return redirect("/admin-login?next=/admin/founder-os")
     return render_template(
         "admin_founder_os.html",
-        data=dashboard_data(),
+        data={"session_user": current_session_user()},
         founder_os=founder_os_snapshot(DB_PATH, read_only=True),
         title="NeMeSiS Founder OS",
     )
@@ -34104,7 +34166,7 @@ def admin_founder_os_ack_alert(alert_id):
     result = founder_acknowledge_alert(DB_PATH, alert_id)
     if not result.get('acknowledged'):
         return render_template(
-            'admin_founder_os.html', data=dashboard_data(),
+            'admin_founder_os.html', data={"session_user": current_session_user()},
             founder_os=founder_os_snapshot(DB_PATH, read_only=True),
             action_error='No se confirmó el cambio. La alerta no existe o ya no está abierta.',
             title='Founder Control',
