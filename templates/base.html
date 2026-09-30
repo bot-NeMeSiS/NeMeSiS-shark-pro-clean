@@ -45,7 +45,9 @@
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
+  {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}">
+  {% endif %}
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
   {% endif %}
 </head>
