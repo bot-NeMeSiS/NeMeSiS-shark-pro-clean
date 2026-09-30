@@ -20343,6 +20343,22 @@ def enforce_checkout_legal_gate(user: dict, plan: str):
     qs = {"plan": selected or "PRO", "legal_pendiente": "1"}
     return False, redirect("/membresias?" + urllib.parse.urlencode(qs))
 
+def auth_shell_data(selected_plan="", next_url=""):
+    """Minimal render context for auth/account-recovery screens.
+
+    Authentication must remain available even when sports, Stripe or provider
+    summaries are slow/unavailable. Templates in this shell do not consume the
+    home dashboard payload.
+    """
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": today_iso(),
+        "selected_plan": str(selected_plan or "").upper(),
+        "next_url": str(next_url or ""),
+    }
+
+
 @app.route("/registro", methods=["GET", "POST"])
 def register_page():
     capture_growth_attribution_from_request()
@@ -20369,11 +20385,16 @@ def register_page():
         except ValueError as exc:
             security_event_for_auth("registration_attempt", False, request.form.get("username") or request.form.get("email"), str(exc)[:180])
             error = str(exc)
-    auth_data = home_light_data()
-    auth_data["selected_plan"] = selected_plan
     registration_default = "/onboarding" if growth_is_first10_attribution() and not selected_plan else "/app"
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), registration_default)
-    return render_template("register.html", data=auth_data, error=error)
+    next_url = _safe_client_next(
+        request.args.get("next") or request.form.get("next") or session.get("post_auth_next"),
+        registration_default,
+    )
+    return render_template(
+        "register.html",
+        data=auth_shell_data(selected_plan=selected_plan, next_url=next_url),
+        error=error,
+    )
 
 
 @app.route("/clientes")
@@ -20413,10 +20434,15 @@ def client_login_page():
         error = "Email, usuario o contraseña incorrectos."
     if auth_backend_error:
         error = "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos."
-    auth_data = home_light_data()
-    auth_data["selected_plan"] = selected_plan
-    auth_data["next_url"] = _safe_client_next(request.args.get("next") or request.form.get("next") or session.get("post_auth_next"), "/app")
-    return render_template("client_login.html", data=auth_data, error=error)
+    next_url = _safe_client_next(
+        request.args.get("next") or request.form.get("next") or session.get("post_auth_next"),
+        "/app",
+    )
+    return render_template(
+        "client_login.html",
+        data=auth_shell_data(selected_plan=selected_plan, next_url=next_url),
+        error=error,
+    )
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -20429,7 +20455,7 @@ def forgot_password_page():
         result = password_reset_request(identifier, scope="client")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta con esos datos, recibirás un enlace para restablecer la contraseña."
-    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
+    return render_template("password_reset_request.html", data=auth_shell_data(), message=message, diagnostic_url=diagnostic_url, admin=False)
 
 
 @app.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -20443,7 +20469,7 @@ def reset_password_page(token):
             return redirect("/cliente-login")
         except ValueError as exc:
             error = str(exc)
-    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=False)
+    return render_template("password_reset_form.html", data=auth_shell_data(), token=token, error=error, admin=False)
 
 
 @app.route("/admin-login", methods=["GET", "POST"])
@@ -20470,7 +20496,7 @@ def admin_login_page():
         error = "Acceso admin no válido."
     if auth_backend_error:
         error = "Acceso admin temporalmente no disponible. Inténtalo de nuevo en unos minutos."
-    return render_template("admin_login.html", data=home_light_data(), error=error, configured=configured)
+    return render_template("admin_login.html", data=auth_shell_data(), error=error, configured=configured)
 
 
 @app.route("/local-safe")
@@ -20587,7 +20613,7 @@ def admin_forgot_password_page():
         result = password_reset_request(identifier, scope="admin")
         diagnostic_url = result.get("diagnostic_reset_url") or ""
         message = "Si existe una cuenta admin con esos datos, recibirás un enlace para restablecer la contraseña."
-    return render_template("password_reset_request.html", data=home_light_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
+    return render_template("password_reset_request.html", data=auth_shell_data(), message=message, diagnostic_url=diagnostic_url, admin=True)
 
 
 @app.route("/admin-reset-password/<token>", methods=["GET", "POST"])
@@ -20601,7 +20627,7 @@ def admin_reset_password_page(token):
             return redirect("/admin-login")
         except ValueError as exc:
             error = str(exc)
-    return render_template("password_reset_form.html", data=home_light_data(), token=token, error=error, admin=True)
+    return render_template("password_reset_form.html", data=auth_shell_data(), token=token, error=error, admin=True)
 
 
 @app.route("/admin-bootstrap", methods=["GET", "POST"])
