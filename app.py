@@ -31481,7 +31481,7 @@ def api_v757_client_app_center():
     user = current_session_user()
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     track = v742_track_record_context()
     return jsonify({
         "ok": True,
@@ -31524,7 +31524,7 @@ def api_v758_device_experience():
     user = current_session_user()
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     payload = build_v758_device_api_payload(
         data=data,
         user=user,
@@ -31842,7 +31842,7 @@ def api_client_v777_product_experience():
     user = current_session_user()
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     data["track_record"] = v742_track_record_context()
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     return jsonify({"ok": True, "version": APP_VERSION, "product": v777_client_product_context(data, user)})
@@ -31977,7 +31977,7 @@ def api_client_v778_product_organization():
     user = current_session_user()
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 403
-    data = dashboard_data()
+    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
     data["track_record"] = v742_track_record_context()
     data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
     return jsonify({"ok": True, "version": APP_VERSION, "organization": v778_client_product_organization_context(data, user)})
