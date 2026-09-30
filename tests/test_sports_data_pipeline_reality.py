@@ -466,4 +466,7 @@ def test_existing_odds_calls_capture_quota_without_extra_probe(app_module, monke
         "requests_used": 42,
         "requests_remaining": 58,
         "http_status": 200,
+        "systemic_failure": False,
+        "systemic_http_status": 0,
+        "stopped_early": False,
     }
