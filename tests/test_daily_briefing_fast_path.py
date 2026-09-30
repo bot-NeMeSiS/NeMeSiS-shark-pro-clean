@@ -21,7 +21,7 @@ def _function_source(name):
 def test_daily_briefing_route_uses_compact_context_only():
     route = _function_source("daily_briefing_page")
     assert "v932_safe_dashboard_data(request.path, compact=True)" in route
-    assert "dashboard_data(" not in route
+    assert "= dashboard_data(" not in route
     assert "client_command_center_data(" not in route
     assert "briefing_cutoff" in route
     assert "timedelta(days=7)" in route
