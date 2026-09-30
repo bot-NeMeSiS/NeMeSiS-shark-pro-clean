@@ -5327,7 +5327,9 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
             continue
         touched_date = str(item.get("match_date") or today_iso()).strip()[:10]
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", touched_date):
-            touched_match_dates.add(touched_date)
+            parsed_touched_date = datetime.fromisoformat(touched_date).date()
+            for offset in (-1, 0, 1):
+                touched_match_dates.add((parsed_touched_date + timedelta(days=offset)).isoformat())
 
         existing_rows = _sportsdb_existing_provider_rows(cur, item)
         if any(older_match_observation(existing, item) for existing in existing_rows):
@@ -13551,6 +13553,7 @@ def telegram_live_alert_matches(limit=None):
                      OR lower(status) LIKE '%directo%'
                      OR lower(status) LIKE '%progress%'
                      OR lower(status) IN ('1h','2h','ht','descanso','halftime','inplay','in play','et','p','bt')
+                     OR COALESCE(minute,'')!=''
                  )
                ORDER BY priority DESC, kickoff_time, competition_name
                LIMIT ?""",
