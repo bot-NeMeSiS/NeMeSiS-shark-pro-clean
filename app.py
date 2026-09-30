@@ -23026,7 +23026,11 @@ def daily_briefing_page():
     activity = client_activity_feed(limit=6, user_id=user_id) if user_id else []
     telegram = telegram_config()
     hub = data.get("match_hub") or {}
-    upcoming = list(data.get("upcoming_matches") or [])[:12]
+    briefing_cutoff = (datetime.fromisoformat(today_iso()).date() + timedelta(days=7)).isoformat()
+    upcoming = [
+        item for item in (data.get("upcoming_matches") or [])
+        if today_iso() <= str(item.get("match_date") or "") <= briefing_cutoff
+    ][:12]
     alerts = build_client_alerts(
         limit=6,
         user_id=user_id,
