@@ -29313,11 +29313,12 @@ def client_success_runtime_context(user=None):
 @app.route("/ayuda")
 def client_success_page():
     user = current_session_user()
-    data = dashboard_data() if user else home_light_data()
-    data["client_success"] = client_success_runtime_context(user or {"membership": "FREE", "role": "FREE", "id": ""})
-    data["onboarding"] = onboarding_status(user or {"membership": "FREE", "role": "FREE", "id": ""})
+    user_ctx = user or {"membership": "FREE", "role": "FREE", "id": ""}
+    data = {
+        "session_user": user,
+        "client_success": client_success_runtime_context(user_ctx),
+    }
     return render_template("client_success.html", data=data)
-
 
 @app.route("/api/client/success")
 def api_client_success():
@@ -31600,14 +31601,9 @@ def v758_adaptive_experience_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/experiencia")
-    data = dashboard_data()
-    data["track_record"] = v742_track_record_context()
-    data["membership"] = v566_membership_ui(user)
-    data["client_premium"] = build_client_app_premium_context(data, user)
-    data["v757_app"] = build_v757_app_center(data, user, track_record=data.get("track_record"))
+    data, _summary = v932_safe_dashboard_data(request.path, scope="client", compact=True)
     data["v758_adaptive"] = v758_adaptive_context(data, user, "adaptive")
     return render_template("adaptive_experience.html", data=data)
-
 
 @app.route("/api/client/device-experience")
 def api_v758_device_experience():
@@ -32379,10 +32375,8 @@ def v809_client_navigation_map_page():
     user = current_session_user()
     if not user:
         return redirect("/cliente-login?next=/app/mapa")
-    data = dashboard_data()
-    data["membership"] = v566_membership_ui(user)
-    data["client_navigation_items"] = v809_client_navigation_items()
-    return render_template("client_navigation_map.html", data=data, items=data["client_navigation_items"])
+    items = v809_client_navigation_items()
+    return render_template("client_navigation_map.html", data={"session_user": user}, items=items)
 
 # V808 route aliases for buttons found in legacy/client/admin templates.
 @app.route("/password-reset")
