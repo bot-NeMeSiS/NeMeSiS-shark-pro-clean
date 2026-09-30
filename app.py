@@ -13546,7 +13546,7 @@ def telegram_live_alert_matches(limit=None):
                      lower(status) LIKE '%live%'
                      OR lower(status) LIKE '%directo%'
                      OR lower(status) LIKE '%progress%'
-                     OR lower(status) IN ('1h','2h','ht','descanso','halftime','inplay','in play')
+                     OR lower(status) IN ('1h','2h','ht','descanso','halftime','inplay','in play','et','p','bt')
                  )
                ORDER BY priority DESC, kickoff_time, competition_name
                LIMIT ?""",
