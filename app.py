@@ -5319,11 +5319,15 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     updated = 0
     skipped = 0
     provider_identity_rows_reconciled = 0
+    touched_match_dates = set()
 
     for item in match_rows:
         if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
             skipped += 1
             continue
+        touched_date = str(item.get("match_date") or today_iso()).strip()[:10]
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", touched_date):
+            touched_match_dates.add(touched_date)
 
         existing_rows = _sportsdb_existing_provider_rows(cur, item)
         if any(older_match_observation(existing, item) for existing in existing_rows):
@@ -5346,7 +5350,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         else:
             imported += 1
 
-    dedupe_result = cleanup_duplicate_matches(cur)
+    dedupe_result = cleanup_duplicate_matches(cur, match_dates=touched_match_dates)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
@@ -14972,7 +14976,7 @@ def match_deduplication_metrics(sample_limit=5000):
     }
 
 
-def cleanup_duplicate_matches(cur=None):
+def cleanup_duplicate_matches(cur=None, match_dates=None):
     from engines.realtime_state_engine import _provider_clock
 
     own_conn = None
@@ -14982,8 +14986,27 @@ def cleanup_duplicate_matches(cur=None):
     try:
         if own_conn:
             own_conn.execute("BEGIN IMMEDIATE")
+        scoped_dates = None
+        if match_dates is not None:
+            scoped_dates = sorted({
+                str(value or "").strip()[:10]
+                for value in match_dates
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(value or "").strip()[:10])
+            })
+            if not scoped_dates:
+                return {"duplicates_removed": 0, "groups": 0}
         try:
-            raw = cur.execute("SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC").fetchall()
+            if scoped_dates is None:
+                raw = cur.execute(
+                    "SELECT * FROM matches ORDER BY match_date DESC, kickoff_time DESC"
+                ).fetchall()
+            else:
+                placeholders = ",".join("?" for _ in scoped_dates)
+                raw = cur.execute(
+                    "SELECT * FROM matches WHERE match_date IN (" + placeholders + ") "
+                    "ORDER BY match_date DESC, kickoff_time DESC",
+                    tuple(scoped_dates),
+                ).fetchall()
         except sqlite3.OperationalError:
             return {"duplicates_removed": 0, "groups": 0}
         # Fixed allowlist + existing columns: supports older DBs without schema writes.
