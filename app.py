@@ -34113,7 +34113,7 @@ def admin_founder_os_page():
         return redirect("/admin-login?next=/admin/founder-os")
     return render_template(
         "admin_founder_os.html",
-        data=dashboard_data(),
+        data={"session_user": current_session_user()},
         founder_os=founder_os_snapshot(DB_PATH, read_only=True),
         title="NeMeSiS Founder OS",
     )
@@ -34166,7 +34166,7 @@ def admin_founder_os_ack_alert(alert_id):
     result = founder_acknowledge_alert(DB_PATH, alert_id)
     if not result.get('acknowledged'):
         return render_template(
-            'admin_founder_os.html', data=dashboard_data(),
+            'admin_founder_os.html', data={"session_user": current_session_user()},
             founder_os=founder_os_snapshot(DB_PATH, read_only=True),
             action_error='No se confirmó el cambio. La alerta no existe o ya no está abierta.',
             title='Founder Control',
