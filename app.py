@@ -13538,7 +13538,7 @@ def enqueue_auto_pick_alerts(force=False, limit=4):
 def telegram_live_alert_matches(limit=None):
     """Carga solo una muestra acotada de partidos live para alertas Telegram.
 
-    Este camino se ejecuta cada 5 minutos. No debe construir match_hub(), que
+    Este camino se ejecuta cada 5 minutos. No debe construir el hub completo, que
     incluye agenda, picks y semanas de resultados que las alertas live no usan.
     """
     requested = as_int(limit if limit is not None else os.getenv("TELEGRAM_LIVE_ALERT_SCAN_LIMIT", "16"), 16)
