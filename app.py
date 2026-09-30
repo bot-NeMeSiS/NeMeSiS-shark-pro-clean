@@ -19930,7 +19930,7 @@ def live_page():
 def match_hub_page():
     lane = request.args.get("lane") or ("results" if request.path == "/resultados" else "today")
     date = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
-    data = dashboard_data(lane, date)
+    data = {"match_hub": match_hub(date, lane)}
     return render_template("match_hub.html", data=data)
 
 
@@ -22945,9 +22945,26 @@ def profile_page():
 
 @app.route("/alertas")
 def alerts_page():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return redirect("/cliente-login")
-    data = dashboard_data()
+    user_id = user.get("id")
+    client_alerts = build_client_alerts(limit=8, user_id=user_id)
+    activity = client_activity_feed(limit=8, user_id=user_id) if user_id else []
+    favorites = get_favorites(user_id=user_id) if user_id else []
+    retention = client_retention_summary(
+        user=user,
+        alerts=client_alerts,
+        activity=activity,
+        favorites=favorites,
+    )
+    data = {
+        "date": today_iso(),
+        "session_user": user,
+        "client_alerts": client_alerts,
+        "client_activity": activity,
+        "retention": retention,
+    }
     return render_template("alerts.html", data=data)
 
 
