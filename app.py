@@ -26644,6 +26644,17 @@ def get_safe_runtime_identity_for_admin() -> dict:
 
 @app.route("/api/runtime-version")
 def api_runtime_version():
+    # The master cron only needs a cheap liveness/readiness identity every five
+    # minutes. Keep the full certification payload as the default for deploy QA.
+    if str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}:
+        return jsonify({
+            "ok": True,
+            "status": "READY",
+            "version": APP_VERSION,
+            "runtime_checked_at_madrid": now_iso(),
+            "compact": True,
+        })
+
     version_txt = ""
     app_version_file = ""
     base_template = ""
