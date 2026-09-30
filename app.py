@@ -30483,21 +30483,13 @@ def v928_admin_overview(data=None):
 def v566_admin_dashboard_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/control-center")
-    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
-    sports = data.get("v932_sports_value") or {}
-    fallback_overview = {
-        "users_total": 0, "users_pro": 0, "users_elite": 0, "picks_active": 0,
-        "matches_today": int(sports.get("valid_matches_today_count") or 0),
-        "live_now": 1 if sports.get("real_live_available") else 0,
-        "telegram": {}, "automation": {}, "recent_errors": [], "global_status": "review",
-    }
-    data["v928_admin"] = v932_safe_context(request.path, "admin", "admin_overview", lambda: v928_admin_overview(data), fallback_overview)
-    data["v934_realtime"] = get_v934_realtime_context(_summary)
-    quality = v932_safe_context(request.path, "admin", "quality_center", quality_center_summary, {})
-    items = v932_safe_context(request.path, "admin", "admin_items", v566_admin_items, [])
+    # The master dashboard renders bounded local evidence plus the realtime bar.
+    # Do not rebuild the legacy admin/client dashboard fan-out on every visit.
+    data, summary = v932_safe_dashboard_data(request.path, scope="admin", compact=True)
+    data["v934_realtime"] = get_v934_realtime_context(summary)
     from blueprints.admin_master_control import master_snapshot
     data["admin_master"] = master_snapshot(__import__(__name__))
-    return render_template("admin_dashboard.html", data=data, q=quality, items=items)
+    return render_template("admin_dashboard.html", data=data)
 
 
 @app.route("/api/admin/control-center")
