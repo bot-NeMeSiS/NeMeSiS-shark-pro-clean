@@ -45,7 +45,11 @@ def test_live_alert_loader_uses_bounded_live_only_query(app_module, monkeypatch)
         },
     )
     monkeypatch.setattr(app_module, "canonical_live_minute", lambda _item: "12")
-    monkeypatch.setattr(app_module, "telegram_enrich_match_for_message", lambda item: dict(item))
+    monkeypatch.setattr(
+        app_module,
+        "telegram_enrich_match_for_message",
+        lambda _item: (_ for _ in ()).throw(AssertionError("loader must stay lightweight")),
+    )
     monkeypatch.setenv("TELEGRAM_LIVE_ALERT_SCAN_LIMIT", "16")
 
     items = app_module.telegram_live_alert_matches()
