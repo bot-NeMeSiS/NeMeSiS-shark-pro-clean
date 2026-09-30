@@ -14,7 +14,7 @@ def _between(start_marker, end_marker):
 
 def test_service_worker_caches_only_versioned_same_origin_static_assets():
     route = _between("def service_worker():", "def pwa_install_guide_page():")
-    assert "NEMESIS_STATIC_V1_" in route
+    assert "NEMESIS_CACHE_V941_ICON_" in route
     assert "req.mode==='navigate'" in route
     assert "cache:'no-store'" in route
     assert "url.origin===self.location.origin" in route
@@ -32,7 +32,7 @@ def test_service_worker_runtime_keeps_html_network_only_and_private_data_out_of_
         response = app_module.service_worker()
 
     body = response.get_data(as_text=True)
-    assert "NEMESIS_STATIC_V1_" in body
+    assert "NEMESIS_CACHE_V941_ICON_" in body
     assert "if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'})" in body
     assert "url.pathname.startsWith('/static/')" in body
     assert "url.searchParams.has('v')" in body
