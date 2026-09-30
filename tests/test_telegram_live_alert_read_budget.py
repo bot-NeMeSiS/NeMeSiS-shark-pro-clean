@@ -59,6 +59,7 @@ def test_live_alert_loader_uses_bounded_live_only_query(app_module, monkeypatch)
     assert "match_date=?" in query
     assert "lower(status) LIKE '%live%'" in query
     assert "'et','p','bt'" in query
+    assert "COALESCE(minute,'')!=''" in query
     assert "LIMIT ?" in query
     assert params[-1] == 16
     assert items[0]["client_live_minute"] == "12"
