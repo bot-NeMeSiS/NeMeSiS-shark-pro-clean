@@ -3,20 +3,27 @@ on:
   pull_request:
     paths:
       - '.github/workflows/sportsdb-premium-qa.yml'
-      - 'tools/_apply_sportsdb_premium_138.py'
+      - 'engines/sportsdb*'
+      - 'engines/postmatch*'
+      - 'app.py'
+      - 'tests/test_sportsdb*'
+      - 'tests/test_postmatch*'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sportsdb-premium-qa.yml'
       - 'engines/sportsdb*'
       - 'engines/postmatch*'
       - 'app.py'
       - 'tests/test_sportsdb*'
       - 'tests/test_postmatch*'
 permissions:
-  contents: write
+  contents: read
 concurrency:
-  group: sportsdb-premium-${{ github.event.pull_request.number }}
+  group: sportsdb-premium-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   premium-qa:
-    if: github.event.pull_request.number == 138 && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'improve/sportsdb-premium-efficiency-20261001'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -36,21 +43,18 @@ jobs:
       DB_PATH: /tmp/sportsdb-premium-${{ github.run_id }}/app.sqlite
       SECRET_KEY: isolated-sportsdb-ci-only
       AUTOMATION_SECRET: isolated-sportsdb-cron-only
-      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply exact source-hashed patch (temporary)
-        run: python tools/_apply_sportsdb_premium_138.py
       - name: Install isolated dependencies
         run: python -m pip install -r requirements-dev.txt
       - name: Compile, parse Jinja and initialize temporary test storage
         run: |
+          mkdir -p sportsdb-qa
           python -m compileall -q app.py engines services blueprints tests
           python - <<'PY'
           import app
@@ -59,6 +63,7 @@ jobs:
           paths=list(Path('templates').rglob('*.html'))
           for path in paths:
               app.app.jinja_env.parse(path.read_text(encoding='utf-8'))
+          Path('sportsdb-qa/jinja-count.txt').write_text(str(len(paths)))
           print('Jinja templates parsed:',len(paths))
           PY
       - name: Full focused regressions including Flask, with no provider keys
@@ -81,36 +86,19 @@ jobs:
             tests/test_render_cron_data_backup.py \
             --junitxml=sportsdb-qa/results.xml
           python tools/check_madrid_times.py
-      - name: Verify evidence and commit only tested product files to PR branch
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify executed evidence
         run: |
           python - <<'PY'
-          import base64, hashlib, json, os, subprocess
+          import hashlib, json, os, subprocess
           from pathlib import Path
           from xml.etree import ElementTree
           cases=ElementTree.parse('sportsdb-qa/results.xml').findall('.//testcase')
           assert len(cases)>=236, 'Regression matrix incomplete'
           assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
-          changed=['app.py','engines/sportsdb_highlights_engine.py','engines/postmatch_sources.py','engines/postmatch_recovery.py','tests/test_postmatch_recovery.py']
-          for row in json.loads(Path('sportsdb-qa/patch-hashes.json').read_text()):
-              assert hashlib.sha256(Path(row['path']).read_bytes()).hexdigest()==row['after']
-          branch='improve/sportsdb-premium-efficiency-20261001'
-          auth=base64.b64encode(('x-access-token:'+os.environ['GH_TOKEN']).encode()).decode()
-          def remote(*args):
-              return subprocess.check_output(['git','-c','http.https://github.com/.extraheader=AUTHORIZATION: basic '+auth,*args],text=True)
-          tip=remote('ls-remote','origin','refs/heads/'+branch).split()[0]
-          assert tip==os.environ['EXPECTED_HEAD'], 'Branch changed; abort rather than overwrite'
-          subprocess.run(['git','config','user.name','NeMeSiS QA'],check=True)
-          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add','--',*changed],check=True)
-          if subprocess.run(['git','diff','--cached','--quiet']).returncode:
-              subprocess.run(['git','commit','-m','feat(sportsdb): apply validated premium efficiency and highlight recovery'],check=True)
-              remote('push','origin','HEAD:refs/heads/'+branch)
-          commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
-          Path('sportsdb-qa/source-commit.txt').write_text(commit+'\n')
-          Path('sportsdb-qa/summary.json').write_text(json.dumps({'tests':len(cases),'failed':0,'errors':0,'skipped':0,'product_commit':commit,'production_changed':False,'real_provider_calls':0},indent=2))
-          print('Verified tests:',len(cases),'product commit:',commit)
+          files=['app.py','engines/sportsdb_request_budget.py','engines/sportsdb_highlights_engine.py','engines/postmatch_sources.py','engines/postmatch_recovery.py','tests/test_postmatch_recovery.py','tests/test_sportsdb_premium_efficiency.py']
+          hashes={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in files}
+          Path('sportsdb-qa/summary.json').write_text(json.dumps({'tests':len(cases),'failed':0,'errors':0,'skipped':0,'checkout_sha':os.environ['GITHUB_SHA'],'source_hashes':hashes,'production_changed':False,'real_provider_calls':0},indent=2))
+          print('Verified tests:',len(cases))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
