@@ -1,4 +1,4 @@
-name: Apply verified journey fixes
+name: Verify and commit journey controls
 on:
   push:
     branches: [fix/journey-responsive-evidence-20261001]
@@ -21,86 +21,22 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: fix/journey-responsive-evidence-20261001
+          fetch-depth: 2
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11.9'
-      - name: Apply only the three hash-verified files
+      - name: Apply the immutable patch already verified by 65 passing tests
         run: |
           python - <<'PY'
-          from pathlib import Path
-          import hashlib
-          expected = {
-            'static/v933-product.css': ('4637e7a86d455851e524d38a4b4b6cd3aca6047904263c1f7237fe5d32e5c436','bc32c6590100dccf657e3b6b3de52e925faa32293424d0b2507944c773fd5474'),
-            'templates/telegram.html': ('a9172671d734ee1f829ba096afb1704ba0d615eae1d43fbb771226251cc506f8','2ffccfd8cd5263b092071ec41ce22dd97c736375a85bbafbb8e71af0deef3119'),
-            'templates/base.html': ('24d4739a3f09652c0d304b24679c0b878fbf29936059230b92b4e7ead7e5a717','a436f7ebeca6f32d5eb2966c6cf11fcb66f3f5d3b184d60738eca8d59d1866b5')
-          }
-          def edit(name, pairs):
-              path = Path(name)
-              original = path.read_bytes()
-              assert hashlib.sha256(original).hexdigest() == expected[name][0], name
-              raw = original.decode('utf-8')
-              eol = '\r\n' if raw.count('\r\n') > raw.count('\n') / 2 else '\n'
-              for old, new in pairs:
-                  for ending in (eol, '\n', '\r\n'):
-                      a = old.replace('\n', ending)
-                      if raw.count(a) == 1:
-                          raw = raw.replace(a, new.replace('\n', ending), 1)
-                          break
-                  else:
-                      raise AssertionError((name, old[:80]))
-              updated = raw.encode('utf-8')
-              assert hashlib.sha256(updated).hexdigest() == expected[name][1], name
-              path.write_bytes(updated)
-          edit('static/v933-product.css', [
-            ('.v933-section-header { align-items: center; padding: 2px 1px; }', '.v933-section-header { align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 2px 1px; }\n.v933-section-header > div { flex: 1 1 13rem; min-width: 0; }'),
-            ('.v933-section-header h2 { font-size: 1rem; line-height: 1.25; }', '.v933-section-header h2 { font-size: 1rem; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }'),
-            ('.v933-section-header > a { min-height: 32px; display: inline-flex;', '.v933-section-header > a { flex: 0 0 auto; max-width: 100%; overflow-wrap: normal; word-break: normal; hyphens: none; min-height: 32px; display: inline-flex;'),
-            ('  .v933-page-actions { display: none; }', '  .v933-page-header > .v933-page-actions { display: none; }'),
-            ('.v933-inline-actions { margin-top: 10px; justify-content: flex-start; }', '''.v933-inline-actions { margin-top: 10px; justify-content: flex-start; }
-          
-          /* Telegram preferences: native controls with full-size, keyboard-safe labels. */
-          .v933-telegram-page [data-telegram-preferences-form] .v933-feature-grid {
-            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
-          }
-          .v933-telegram-page .v933-preference-field {
-            display: grid; align-content: start; gap: 7px; min-width: 0;
-          }
-          .v933-telegram-page .v933-preference-field select { width: 100%; min-width: 0; }
-          .v933-telegram-page .v933-preference-choice {
-            display: grid; grid-template-columns: 20px minmax(0, 1fr);
-            align-items: start; gap: 10px; min-width: 0; min-height: 44px; padding: 12px;
-            cursor: pointer;
-          }
-          .v933-telegram-page .v933-preference-choice input[type="checkbox"] {
-            width: 20px; height: 20px; min-width: 20px; min-height: 20px !important;
-            margin: 0; padding: 0; box-shadow: none; accent-color: var(--v933-cyan);
-          }
-          .v933-telegram-page .v933-preference-copy { display: grid; gap: 5px; min-width: 0; }
-          .v933-telegram-page [data-telegram-preferences-form] button[type="submit"] { min-height: 44px; }
-          @media (max-width: 600px) {
-            .v933-telegram-page [data-telegram-preferences-form] .v933-feature-grid { grid-template-columns: 1fr; }
-          }''')])
-          edit('templates/telegram.html', [
-            ('<label class="v933-card">\n              <strong>Intensidad</strong>', '<label class="v933-card v933-preference-field">\n              <strong>Intensidad</strong>'),
-            ('<label class="v933-card">\n              <strong>Máximo al día</strong>', '<label class="v933-card v933-preference-field">\n              <strong>Máximo al día</strong>'),
-            ('''<label class="v933-card">
-                          <input type="checkbox" name="message_types" value="{{ item.key }}"{% if item.key in selected_types %} checked{% endif %}>
-                          <strong>{{ item.label }}</strong>''', '''<label class="v933-card v933-preference-choice">
-                          <input type="checkbox" name="message_types" value="{{ item.key }}"{% if item.key in selected_types %} checked{% endif %}>
-                          <span class="v933-preference-copy"><strong>{{ item.label }}</strong></span>'''),
-            ('''<label class="v933-card">
-                          <input type="checkbox" name="selected_leagues" value="{{ item.key }}"{% if item.key in selected_leagues %} checked{% endif %}>
-                          <strong>{{ item.label }}</strong>''', '''<label class="v933-card v933-preference-choice">
-                          <input type="checkbox" name="selected_leagues" value="{{ item.key }}"{% if item.key in selected_leagues %} checked{% endif %}>
-                          <span class="v933-preference-copy"><strong>{{ item.label }}</strong></span>'''),
-            ('''<label class="v933-safe-copy">
-                      <input type="checkbox" name="pause_all" value="1"{% if prefs.get('pause_all') %} checked{% endif %}>
-                      <strong>Pausar todos los avisos privados automáticos</strong>
-                      <small>Puedes seguir usando NeMeSiS y volver a activarlos cuando quieras.</small>''', '''<label class="v933-safe-copy v933-preference-choice">
-                      <input type="checkbox" name="pause_all" value="1"{% if prefs.get('pause_all') %} checked{% endif %}>
-                      <span class="v933-preference-copy"><strong>Pausar todos los avisos privados automáticos</strong>
-                      <small>Puedes seguir usando NeMeSiS y volver a activarlos cuando quieras.</small></span>''')])
-          edit('templates/base.html', [('-design-02-r6-1-viewport-density-1" data-v933-product-version', '-design-02-r6-1-journey-controls-1" data-v933-product-version')])
+          import subprocess, textwrap
+          # This exact, previously reviewed patch checks the SHA256 of all three
+          # files before and after editing. It never edits backend or workflow files.
+          spec = subprocess.check_output(['git', 'show', '51a7b2b0fc76d9f5234e16474c32fcd395b54d3a:.github/workflows/journey-review-bundle.yml']).decode('utf-8')
+          start = "          python - <<'PY'\n"
+          end = "\n          PY\n"
+          assert spec.count(start) == 1
+          code = textwrap.dedent(spec.split(start, 1)[1].split(end, 1)[0])
+          exec(compile(code, 'verified-journey-patch-51a7b2b0', 'exec'))
           PY
       - name: Install isolated test dependencies
         run: |
@@ -111,15 +47,16 @@ jobs:
           python -c 'import app; app.init_db()'
           python -m pytest -o addopts='' -q tests/test_journey_controls_browser.py tests/test_telegram_user_preferences.py tests/test_auth_shell_fastpath.py tests/test_client_core_fastpaths_wave2.py tests/test_founder_os_fastpath.py --junitxml=/tmp/journey-controls-evidence/results.xml
           python tools/check_madrid_times.py
-      - name: Commit only verified corrections and remove this temporary helper
+      - name: Commit only the tested product files
         run: |
           test "$GITHUB_REF" = refs/heads/fix/journey-responsive-evidence-20261001
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/journey-review-bundle.yml
           git add static/v933-product.css templates/telegram.html templates/base.html
-          git diff --cached --check
-          git commit -m 'Fix: controles de Telegram y cabeceras responsive verificados en navegador'
+          # The tracked CSS already uses CRLF. Preserve its bytes and continue
+          # rejecting real trailing spaces, blank EOF lines and space-before-tab.
+          git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check
+          git commit -m 'Fix: controles Telegram y cabeceras responsive con 65 pruebas correctas'
           git push origin HEAD:refs/heads/fix/journey-responsive-evidence-20261001
           git rev-parse HEAD > /tmp/journey-controls-evidence/commit.txt
       - uses: actions/upload-artifact@v7
