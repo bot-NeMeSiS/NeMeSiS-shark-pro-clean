@@ -1,0 +1,69 @@
+{% set editor = editorial_status() %}
+<link rel="stylesheet" href="{{ url_for('static', filename='editorial-worker.css') }}?v=1">
+<section class="ns-editor" id="editorial-worker" data-editorial-worker>
+  <header class="ns-editor__header"><div><span class="ns-editorial__kicker">AUTOMATIZACIÓN EDITORIAL</span><h2>SHARK Editor</h2><p>Noticias del encuentro, desde fuentes revisadas hasta la ficha del cliente.</p></div>
+    <span class="ns-editor__badge">{{ 'Estado no verificable' if editor.state == 'READ_UNAVAILABLE' else 'Revisando una fuente' if editor.running else 'En espera del próximo lote' if editor.enabled else 'En pausa' }}</span>
+  </header>
+  <div class="ns-editor__summary"><span><strong>{{ editor.used if editor.used is not none else '—' }} / {{ editor.daily_limit }}</strong> consultas hoy · Madrid</span><span><strong>{{ editor.sources|length if editor.state != 'READ_UNAVAILABLE' else '—' }}</strong> fuentes registradas</span><span>Una fuente por lote · sin llamadas de IA</span></div>
+  {% if editor.state == 'READ_UNAVAILABLE' %}<p role="alert">No se puede consultar el estado del editor. No se interpreta como una pausa voluntaria ni como cero noticias.</p>{% else %}
+  <div class="ns-editor__actions">
+    {% if editor.enabled %}
+    <form method="post" action="/admin/highlights-review/editor/run"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Revisar fuentes pendientes</button></form>
+    <form method="post" action="/admin/highlights-review/editor/configure"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ editor.revision }}"><input type="hidden" name="daily_limit" value="{{ editor.daily_limit }}"><button type="submit" class="is-secondary">Pausar editor</button></form>
+    {% endif %}
+    <a href="/admin/highlights-review#postmatch-workers">Vídeos y estadísticas</a>
+  </div>
+  {% if not editor.sources %}<p class="ns-editor__notice">No hay fuentes aprobadas. Registra un feed RSS/Atom permitido y su competición antes de activar búsquedas. No hay proveedores ni créditos de pago nuevos.</p>{% endif %}
+  <details class="ns-editor__details"><summary>Fuentes y límites</summary>
+    {% if editor.state == 'VERIFIED' %}
+    <form method="post" action="/admin/highlights-review/editor/configure" class="ns-editor__form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ editor.revision }}">
+      <label>Consultas adicionales por día<input type="number" name="daily_limit" value="{{ editor.daily_limit }}" min="1" max="60" required></label>
+      <label class="ns-editor__check"><input type="checkbox" name="enabled" value="1"{% if editor.enabled %} checked{% endif %}><span>Activar el editor en el Cron existente</span></label>
+      <label class="ns-editor__check is-wide"><input type="checkbox" name="confirmed" value="1"><span>Confirmo las fuentes vigentes y este límite adicional. Los vídeos mantienen su revisión de derechos independiente.</span></label>
+      <button type="submit">Guardar configuración</button>
+    </form>{% endif %}
+    <details><summary>Registrar una fuente revisada</summary>
+      <p>Un feed por competición revisada. Sin coincidencias difusas: ambos nombres completos deben aparecer y el artículo debe corresponder a un final confirmado reciente. La regla identifica noticias relacionadas, no verifica sus afirmaciones.</p>
+      <form method="post" action="/admin/highlights-review/editor/sources" class="ns-editor__form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Medio<input name="publisher" required maxlength="100"></label><label>Competición exacta guardada<input name="competition" required maxlength="100"></label>
+        <label class="is-wide">Feed RSS o Atom HTTPS<input type="url" name="feed_url" required maxlength="2048" placeholder="https://medio.example/competicion/rss"></label>
+        <label>Dominio exacto de los artículos<input name="article_host" required maxlength="200" placeholder="www.medio.example"></label>
+        <label>Revisar permiso antes de<input name="expires_at" required maxlength="40" placeholder="2026-11-01T00:00:00+01:00"></label>
+        <label class="is-wide">Evidencia de permiso<input type="url" name="evidence_url" required maxlength="2048"></label>
+        <label class="is-wide">Condiciones y alcance de uso<textarea name="basis" required rows="3" maxlength="1200"></textarea></label>
+        <label class="ns-editor__check is-wide"><input type="checkbox" name="confirmed" value="1" required><span>He verificado la consulta automática del feed y la reutilización comercial de sus metadatos y enlaces. No autorizo copiar artículos, fotografías o vídeos.</span></label>
+        <label class="ns-editor__check is-wide"><input type="checkbox" name="scope_confirmed" value="1" required><span>El feed cubre esta competición; he contrastado el dominio y los nombres canónicos de sus equipos.</span></label>
+        <label class="ns-editor__check is-wide"><input type="checkbox" name="auto_publish" value="1"><span>Publicar automáticamente asociaciones inequívocas; en caso contrario, guardar borradores.</span></label>
+        <label class="ns-editor__check is-wide"><input type="checkbox" name="auto_confirmed" value="1"><span>Apruebo la regla automática de equipos completos, competición y fecha. Las ambigüedades y cambios posteriores requieren revisión.</span></label>
+        <div class="is-wide"><button type="submit">Registrar fuente aprobada</button></div>
+      </form>
+    </details>
+  </details>
+  <div class="ns-editor__sources">
+    {% for source in editor.sources %}<article class="ns-editor__source">
+      <div class="ns-editor__header"><div><h3>{{ source.publisher }}</h3><p>{{ source.competition }}</p></div><span class="ns-editor__badge">{{ 'Permiso retirado' if source.revoked else 'Permiso caducado' if not source.policy_valid else 'Búsqueda habilitada' if source.enabled else 'Búsqueda en pausa' }}</span></div>
+      <p>{{ 'Publicación por regla aprobada' if source.auto_publish else 'Borradores para revisión' }} · Permiso hasta {{ source.expires_at|editorial_madrid }}</p>
+      <dl class="ns-editor__times"><div><dt>Última consulta correcta</dt><dd>{{ source.last_success|editorial_madrid }}</dd></div><div><dt>Próximo intento previsto</dt><dd>{{ source.due_at|editorial_madrid }}</dd></div></dl>
+      <p role="status">{{ {'NEVER_RUN':'Todavía no se ha consultado esta fuente.','RUNNING':'Revisión iniciada; pendiente de resultado.','REFERENCES_UPDATED':'Referencias actualizadas.','NO_NEW_REFERENCES':'Última lectura sin referencias nuevas inequívocas.','ACCESS_DENIED':'La fuente denegó el acceso.','RATE_LIMIT':'La fuente limitó las peticiones.','NETWORK_OR_TLS':'No se pudo completar la conexión segura.','REDIRECT_REVIEW':'El feed redirige: revisa su dirección antes de continuar.','MATCH_WINDOW_TOO_LARGE':'Hay demasiados candidatos para garantizar una asociación única.','MALFORMED_FEED':'El contenido no es un feed compatible.','UNSAFE_XML':'Feed bloqueado por su estructura XML.','UNSAFE_DNS':'Destino bloqueado por no ser una dirección pública.','TIME_BUDGET':'Se agotó el tiempo del lote; se reintentará de forma limitada.'}.get(source.last_result,'Requiere revisión del origen o del formato.') }}</p>
+      <details><summary>Controlar esta fuente</summary>
+        <p>{{ source.feed_url }}</p><p>{{ source.basis }}</p><a href="{{ source.evidence_url }}" target="_blank" rel="noopener noreferrer">Examinar condiciones originales ↗</a>
+        {% if not source.revoked %}<form method="post" action="/admin/highlights-review/editor/sources/{{ source.id }}/action" class="ns-editor__form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ source.revision }}">
+          <label>Acción<select name="action"><option value="{{ 'PAUSE' if source.enabled else 'RESUME' }}">{{ 'Pausar búsquedas sin retirar publicaciones' if source.enabled else 'Reanudar búsquedas' }}</option><option value="RECHECK">Programar una revisión limitada</option><option value="RENEW">Renovar la revisión de la misma política</option><option value="REVOKE">Retirar autorización y ocultar referencias automáticas</option></select></label>
+          <label>Solo al renovar: próxima revisión<input name="expires_at" placeholder="2026-12-01T00:00:00+01:00" maxlength="40"></label>
+          <label class="ns-editor__check"><input type="checkbox" name="confirmed" value="1" required><span>Confirmo la acción y, para renovar, he vuelto a contrastar las mismas condiciones de uso. El historial se conserva.</span></label><button type="submit">Aplicar a esta fuente</button>
+        </form>{% endif %}
+      </details>
+    </article>{% endfor %}
+  </div>
+  {% if editor.inbox %}<details class="ns-editor__details"><summary>Revisión editorial · últimas {{ editor.inbox|length }} entradas</summary>
+    <p>Los títulos del feed solo se muestran aquí para contrastarlos. La ficha utiliza un título descriptivo propio.</p>
+    {% for item in editor.inbox %}<article class="ns-editor__source"><h3>{{ item.source_title }}</h3><p>{{ item.publisher }} · {{ item.published_at|madrid_datetime_label }} · {{ {'AMBIGUOUS':'Varios partidos posibles','UNMATCHED':'Sin asociación inequívoca','SOURCE_CHANGED':'La fuente cambió; contrasta la publicación','DRAFT':'Borrador listo para revisar'}.get(item.state,'Por revisar') }}</p>
+      <div class="ns-editor__actions"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Examinar original ↗</a>{% if item.match_id %}<a href="/admin/highlights-review/news?match_id={{ item.match_id|urlencode }}">Revisar en su partido</a>{% endif %}</div>
+    </article>{% endfor %}
+  </details>{% endif %}
+  {% endif %}
+  <p class="ns-editor__footnote">Se examinan hasta 50 entradas por feed. Una lectura correcta no garantiza cobertura de todos los encuentros ni disponibilidad del artículo. El resumen factual utiliza los datos guardados; vídeo y estadísticas conservan sus trabajadores y permisos.</p>
+</section>

@@ -36,8 +36,18 @@ def create_postmatch_blueprint(db_path, is_admin_callback):
 
     @bp.post('/api/automation/postmatch/tick')
     def cron():
-        result = tick(db_path, dry_run=request.args.get('dry_run') == '1')
-        return jsonify(result), (200 if result.get('ok') else 503)
+        import time
+        from engines.editorial_worker import tick as editorial_tick
+        deadline = time.monotonic() + 20
+        dry_run = request.args.get('dry_run') == '1'
+        result = tick(db_path, dry_run=dry_run)
+        # Same scheduler and total cooperative budget; an independent source policy
+        # must be activated before this additional worker can make a request.
+        editorial = editorial_tick(db_path, dry_run=dry_run, deadline=deadline)
+        result['editorial'] = editorial
+        result['external_calls'] = int(result.get('external_calls') or 0) + int(editorial.get('external_calls') or 0)
+        result['ok'] = bool(result.get('ok') and editorial.get('ok'))
+        return jsonify(result), (200 if result.get('ok') and editorial.get('ok') else 503)
 
     @bp.get('/api/admin/postmatch/status')
     def status():

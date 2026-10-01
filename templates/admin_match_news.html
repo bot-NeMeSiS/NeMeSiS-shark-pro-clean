@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="{{ url_for('static',filename='match-editorial.css') }}?v=1">
 <section class="ns-news-admin" data-match-news-admin>
   <header><span class="ns-editorial__kicker">CONTENIDO DE PARTIDOS</span><h1>Noticias y crónicas</h1><p>Referencias externas revisadas. Sin copiar artículos ni activar búsquedas de pago.</p><nav class="ns-news-admin__actions"><a href="/admin/highlights-review">Vídeos y trabajadores</a>{% if news.match %}<a href="/match/{{ news.match.id|urlencode }}#match-section-news">Ver ficha del cliente</a><a href="{{ url_for('.news_index') }}">Elegir otro partido</a>{% endif %}</nav></header>
+  {% include 'partials/editorial_worker.html' %}
   {% if review_error %}<p class="ns-news-admin__error" role="alert">{{ review_error }}</p>{% endif %}
   {% if news.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo consultar el almacenamiento. No se interpreta el fallo como ausencia de noticias.</p>
   {% elif news.state == 'MATCH_NOT_FOUND' %}<p role="status">No se ha encontrado este partido.</p>

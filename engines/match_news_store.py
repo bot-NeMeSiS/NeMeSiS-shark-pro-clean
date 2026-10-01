@@ -108,7 +108,15 @@ def snapshot(path, match_id='', *, admin=False):
                 return result
             query = 'SELECT * FROM match_news_references WHERE match_id=? AND match_identity=?'
             if not admin: query += " AND state='PUBLISHED'"
-            rows = conn.execute(query+' ORDER BY published_at DESC,id DESC LIMIT 30',(str(match_id),ident)).fetchall()
+            params = [str(match_id), ident]
+            # Pausing acquisition keeps publications. Revoking/expiring the source
+            # policy hides its automatic references immediately, even before Cron.
+            if not admin and conn.execute("SELECT 1 FROM sqlite_master WHERE name='editorial_reference_sources'").fetchone():
+                query += (" AND (NOT EXISTS (SELECT 1 FROM editorial_reference_sources e WHERE e.news_id=match_news_references.id)"
+                          " OR EXISTS (SELECT 1 FROM editorial_reference_sources e JOIN editorial_sources s ON s.id=e.source_id"
+                          " WHERE e.news_id=match_news_references.id AND s.revoked=0 AND s.expires_at>?))")
+                params.append(time.time())
+            rows = conn.execute(query+' ORDER BY published_at DESC,id DESC LIMIT 30',params).fetchall()
             for raw in rows:
                 item = dict(raw)
                 try: item['url'] = safe_url(item['url'])
@@ -174,7 +182,12 @@ def decide(path, match_id, news_id, data, *, actor, now=None):
         if not row or not match or row['match_identity'] != identity(dict(match)):
             raise NewsError('La referencia o el partido han cambiado.')
         if data.get('revision') != row['revision']: raise NewsError('Otra revisión cambió esta referencia. Recarga la página.')
-        if data['action'] == 'PUBLISH': safe_url(row['url']); safe_url(row['evidence_url'])
+        if data['action'] == 'PUBLISH':
+            safe_url(row['url']); safe_url(row['evidence_url'])
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name='editorial_reference_sources'").fetchone():
+                origin = conn.execute('SELECT source_id FROM editorial_reference_sources WHERE news_id=?',(int(news_id),)).fetchone()
+                if origin and not conn.execute('SELECT 1 FROM editorial_sources WHERE id=? AND revoked=0 AND expires_at>?',(origin[0],now)).fetchone():
+                    raise NewsError('La política de esta fuente está retirada o caducada. Revisa su autorización.')
         state = 'PUBLISHED' if data['action']=='PUBLISH' else 'RETRACTED'
         rev = hashlib.sha256((row['revision']+state+str(now)).encode()).hexdigest()
         conn.execute('UPDATE match_news_references SET state=?,revision=?,reviewed_by=?,updated_at=? WHERE id=?',

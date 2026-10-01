@@ -103,4 +103,6 @@ def create_media_review_blueprint(db_path, is_admin_callback):
         flash('Referencia publicada en la ficha.' if state == 'PUBLISHED' else 'Referencia retirada; el historial se conserva.', 'success')
         return redirect(url_for('.news_index', match_id=match_id), code=303)
 
+    from blueprints.editorial_worker import create_editorial_blueprint
+    bp.register_blueprint(create_editorial_blueprint(db_path))
     return bp

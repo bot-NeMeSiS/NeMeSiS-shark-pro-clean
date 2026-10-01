@@ -1,0 +1,32 @@
+/* Scoped editorial operations, not another global application skin. */
+.ns-editor { margin:20px 0; padding:22px; border:1px solid rgba(71,180,220,.25); border-radius:20px; background:linear-gradient(130deg,#092032,#071420); color:#e5f3fc; min-width:0; }
+.ns-editor * { box-sizing:border-box; }
+.ns-editor h2 { font-size:1.4rem; margin:5px 0 8px; }
+.ns-editor h3 { font-size:1rem; margin:0 0 6px; }
+.ns-editor p { color:#b2c9d8; line-height:1.55; overflow-wrap:anywhere; }
+.ns-editor__header,.ns-editor__actions,.ns-editor__summary { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; min-width:0; }
+.ns-editor__header > div { flex:1 1 230px; min-width:0; }
+.ns-editor__badge { padding:7px 11px; border:1px solid #245570; border-radius:30px; font-size:.78rem; color:#c5e9fb; }
+.ns-editor__summary { justify-content:flex-start; gap:12px 26px; margin:18px 0; font-size:.84rem; color:#a6c4d8; }
+.ns-editor__summary strong { color:#e4f5ff; }
+.ns-editor__actions { justify-content:flex-start; margin:12px 0; }
+.ns-editor__actions form { margin:0; }
+.ns-editor button,.ns-editor__actions a { display:inline-flex; justify-content:center; align-items:center; gap:8px; min-height:44px; max-width:100%; padding:10px 15px; font:inherit; font-size:.84rem; line-height:1.4; border-radius:10px; border:1px solid #247698; color:#e8faff; background:#104263; text-decoration:none; cursor:pointer; white-space:normal; }
+.ns-editor .is-secondary,.ns-editor__actions a { background:transparent; }
+.ns-editor :is(button,a,input,select,textarea,summary):focus-visible { outline:3px solid #8cdffb; outline-offset:3px; }
+.ns-editor summary { min-height:44px; padding:12px 0; cursor:pointer; color:#e2f1fc; }
+.ns-editor__details { border-top:1px solid #19384c; margin-top:16px; }
+.ns-editor__form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin:14px 0 20px; }
+.ns-editor__form label { display:grid; gap:7px; min-width:0; font-size:.84rem; }
+.ns-editor__form :is(input:not([type=checkbox]):not([type=hidden]),select,textarea) { width:100%; min-width:0; min-height:44px; border:1px solid #31526b; border-radius:8px; padding:11px; background:#061320; color:#e2f3ff; font:inherit; }
+.ns-editor__form .is-wide { grid-column:1 / -1; }
+.ns-editor__form .ns-editor__check { display:flex; flex-direction:row; align-items:flex-start; gap:12px; padding:10px 0; min-height:44px; line-height:1.5; }
+.ns-editor .ns-editor__check input[type=checkbox] { width:20px; height:20px; min-width:20px; min-height:20px!important; flex:0 0 20px; margin:2px 0 0; padding:0; accent-color:#4fc4f3; }
+.ns-editor__sources { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:14px; }
+.ns-editor__source { min-width:0; padding:16px; margin-top:8px; border:1px solid #1d4056; border-radius:14px; background:#081a28; }
+.ns-editor__times { display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:.8rem; }
+.ns-editor__times dt { color:#9cbdcf; }.ns-editor__times dd { margin:5px 0 0; }
+.ns-editor .ns-editor__footnote { font-size:.78rem; margin:18px 0 0; }
+.ns-editor__notice { padding:12px 15px; border-left:3px solid #468ead; background:#0b2333; }
+@media(max-width:800px) { .ns-editor__sources { grid-template-columns:1fr; } }
+@media(max-width:600px) { .ns-editor { padding:15px; border-radius:15px; }.ns-editor__form { grid-template-columns:1fr; }.ns-editor__header > div { flex-basis:100%; }.ns-editor__actions form,.ns-editor__actions a { flex:1 1 auto; }.ns-editor__actions button { width:100%; }.ns-editor__times { grid-template-columns:1fr; }.ns-editor__summary { align-items:flex-start; flex-direction:column; gap:7px; } }
