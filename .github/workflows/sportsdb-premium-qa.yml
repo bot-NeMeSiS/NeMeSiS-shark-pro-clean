@@ -1,0 +1,60 @@
+name: SportsDB Premium QA
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sportsdb-premium-qa.yml'
+      - 'engines/sportsdb*'
+      - 'sportsdb_highlights_engine.py'
+      - 'tests/test_sportsdb*'
+      - 'templates/admin_sportsdb*'
+permissions:
+  contents: read
+concurrency:
+  group: sportsdb-premium-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  premium-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      THESPORTSDB_KEY: ''
+      THESPORTSDB_API_KEY: ''
+      API_FOOTBALL_KEY: ''
+      THE_ODDS_API_KEY: ''
+      OPENAI_API_KEY: ''
+      TELEGRAM_BOT_TOKEN: ''
+      ENABLE_AUTO_SYNC: 'false'
+      SCHEDULER_ENABLED: 'false'
+      AUTO_SYNC_ON_STARTUP: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Source snapshot for isolated review (temporary bootstrap)
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, zipfile, hashlib, json
+          base = '1690df66d3a114df36f9d93df3cb2e2230023afc'
+          names = subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          out=Path('sportsdb-qa');out.mkdir()
+          hashes={}
+          with zipfile.ZipFile(out/'source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in names:
+                  p=Path(name)
+                  if not p.is_file() or p.is_symlink(): continue
+                  allowed=(p.suffix in ('.py','.html','.js','.css') and (p.parent==Path('.') or p.parts[0] in ('engines','services','blueprints','tests','tools','templates','static','localization')))
+                  allowed=allowed or name in ('requirements.txt','requirements-dev.txt','pytest.ini','VERSION.txt')
+                  if not allowed: continue
+                  b=p.read_bytes();z.writestr(name,b);hashes[name]=hashlib.sha256(b).hexdigest()
+              z.writestr('source-manifest.json',json.dumps({'base_sha':base,'files':hashes},indent=2))
+          print('Tracked source files exported:',len(hashes))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sportsdb-premium-review-source
+          path: sportsdb-qa/
+          retention-days: 3
