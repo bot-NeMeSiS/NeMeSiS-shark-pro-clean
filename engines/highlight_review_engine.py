@@ -7,6 +7,7 @@ from contextlib import closing
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from urllib.parse import unquote, urlsplit
 
 from engines.highlight_url_engine import public_https_url, safe_embed_url, review_fingerprint
 from engines.sportsdb_highlights_engine import classify_stored_highlight
@@ -79,6 +80,25 @@ def review_snapshot(db_path, limit=40):
     return result
 
 
+def _generic_api_evidence(url):
+    """Reject an API subscription/documentation page as a video's rights evidence.
+
+    A narrow negative check, not a licence verifier. Other URLs still require
+    documented human review; this never requests an external page.
+    """
+    parsed = urlsplit(url)
+    host = (parsed.hostname or '').lower()
+    if host != 'thesportsdb.com' and not host.endswith('.thesportsdb.com'):
+        return False
+    path = unquote(parsed.path).lower().rstrip('/')
+    generic = {'', '/api.php', '/documentation', '/docs_api', '/docs_api.php',
+               '/docs_api_guide', '/docs_api_guide.php', '/docs_terms_of_use',
+               '/docs_terms_of_use.php', '/pricing', '/pricing.php', '/premium',
+               '/subscribe', '/upgrade', '/login', '/login.php', '/user', '/user.php',
+               '/profile', '/profile.php', '/event', '/event.php'}
+    return path in generic or path.startswith(('/api/', '/user/', '/profile/', '/event/'))
+
+
 def decide_highlight(db_path, highlight_id, values, *, actor):
     action = str(values.get('decision') or '')
     if action not in {'LINK_ONLY', 'EMBED', 'BLOCKED', 'REVIEW_REQUIRED'}:
@@ -92,6 +112,8 @@ def decide_highlight(db_path, highlight_id, values, *, actor):
     approval = action in {'LINK_ONLY', 'EMBED'}
     if approval and (not evidence or not attribution or not basis or values.get('confirmed') != '1'):
         raise ReviewError('La autorización exige evidencia, atribución, fundamento y confirmación expresa de uso comercial en la app.')
+    if approval and _generic_api_evidence(evidence):
+        raise ReviewError('El acceso Premium o una página general de la API no acreditan los derechos de este vídeo. Aporta evidencia específica de su uso permitido.')
     if approval and rights not in {'OWNED', 'LICENSED', 'PROVIDER_ALLOWED', 'OPEN_LICENSE_ALLOWED', 'ATTRIBUTION_REQUIRED'}:
         raise ReviewError('Selecciona la base de derechos verificada.')
     path = Path(db_path).resolve()

@@ -13,7 +13,7 @@
     <p><a href="/api/admin/highlights/readiness">Diagnóstico de catálogo y almacenamiento (solo lectura)</a></p>
     {% if review.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo leer el catálogo. No se ha interpretado el error como cero vídeos.</p>{% endif %}
     <form method="post" action="/admin/highlights-review/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <p>Consultar hoy y ayer: como máximo dos peticiones, dentro del presupuesto diario. No autoriza ni envía vídeos.</p>
+      <p>Consultar hoy y ayer y ampliar por liga cuando proceda: hasta 12 peticiones por ejecución. Este recolector tiene un límite propio; no está incluido en las 60 consultas diarias de los trabajadores. No autoriza ni envía vídeos.</p>
       <button type="submit">Buscar resúmenes recientes</button></form>
     {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados</p>{% endfor %}
   </section>
@@ -27,7 +27,8 @@
       <form method="post" action="/admin/highlights-review/{{ item.id|urlencode }}/decision">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="review_token" value="{{ item.review_token }}">
         <label>Decisión<select name="decision"><option value="REVIEW_REQUIRED">Mantener pendiente / retirar autorización</option><option value="LINK_ONLY">Autorizar solo enlace externo</option><option value="EMBED">Autorizar reproductor externo</option><option value="BLOCKED">Bloquear publicación</option></select></label>
-        <label>Base de derechos<select name="rights_status"><option value="">Sin verificar</option><option value="LICENSED">Licencia documentada</option><option value="PROVIDER_ALLOWED">Condiciones del proveedor</option><option value="OPEN_LICENSE_ALLOWED">Licencia abierta compatible</option><option value="OWNED">Contenido propio</option><option value="ATTRIBUTION_REQUIRED">Licencia con atribución obligatoria</option></select></label>
+        <label>Base de derechos<select name="rights_status"><option value="">Sin verificar</option><option value="LICENSED">Licencia documentada</option><option value="PROVIDER_ALLOWED">Permiso específico del titular o proveedor autorizado</option><option value="OPEN_LICENSE_ALLOWED">Licencia abierta compatible</option><option value="OWNED">Contenido propio</option><option value="ATTRIBUTION_REQUIRED">Licencia con atribución obligatoria</option></select></label>
+        <p>Para mantener pendiente o bloquear no necesitas declarar permisos. Para publicar, registra una base de uso que cubra este vídeo y esta modalidad. Un recibo Premium o las condiciones generales de una API no son evidencia suficiente de derechos sobre un vídeo ajeno.</p>
         <label>URL pública de la evidencia<input type="url" name="evidence_url" placeholder="https://…" maxlength="2048"></label>
         <label>Atribución que verá el cliente<input name="attribution" value="{{ item.attribution }}" maxlength="500"></label>
         <label>Fundamento y alcance de la autorización<textarea name="basis" rows="3" maxlength="1500"></textarea></label>
