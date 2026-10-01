@@ -174,7 +174,7 @@ def _sportsdb_v1(endpoint, params=None):
 def _as_list(payload):
     if not isinstance(payload, dict):
         return []
-    for key in ('eventshighlights', 'highlights', 'events', 'tv', 'results'):
+    for key in ('tvhighlights', 'eventshighlights', 'highlights', 'events', 'tv', 'results'):
         value = payload.get(key)
         if isinstance(value, list):
             return value
@@ -545,7 +545,7 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             params['l'] = league
         payload = scope.call(1, 'eventshighlights.php', params,
                              lambda: _sportsdb_v1('eventshighlights.php', params))
-        recognized = ('eventshighlights', 'highlights', 'events', 'tv', 'results')
+        recognized = ('tvhighlights', 'eventshighlights', 'highlights', 'events', 'tv', 'results')
         if not any(k in payload for k in recognized):
             raise SportsDBStopped('MALFORMED')
         values = next((payload[k] for k in recognized if k in payload), None)

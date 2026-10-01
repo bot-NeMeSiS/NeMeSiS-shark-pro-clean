@@ -1,0 +1,110 @@
+name: Postmatch delivery QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-delivery-qa.yml'
+      - '.github/workflows/postmatch-workers.yml'
+      - 'engines/postmatch*'
+      - 'engines/sportsdb_highlights_engine.py'
+      - 'blueprints/postmatch*'
+      - 'templates/admin_postmatch_result.html'
+      - 'templates/partials/postmatch_workers.html'
+      - 'templates/base.html'
+      - 'tests/test_postmatch*'
+      - 'tests/test_sportsdb*'
+      - 'tools/run_postmatch_delivery_browser_qa.py'
+      - 'app.py'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-delivery-qa.yml'
+      - '.github/workflows/postmatch-workers.yml'
+      - 'engines/postmatch*'
+      - 'engines/sportsdb_highlights_engine.py'
+      - 'blueprints/postmatch*'
+      - 'templates/admin_postmatch_result.html'
+      - 'templates/partials/postmatch_workers.html'
+      - 'templates/base.html'
+      - 'tests/test_postmatch*'
+      - 'tests/test_sportsdb*'
+      - 'tools/run_postmatch_delivery_browser_qa.py'
+      - 'app.py'
+permissions:
+  contents: read
+concurrency:
+  group: postmatch-delivery-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DB_PATH: /tmp/postmatch-delivery-${{ github.run_id }}/app.sqlite
+      SECRET_KEY: isolated-delivery-test-only
+      AUTOMATION_SECRET: isolated-delivery-cron-only
+      THESPORTSDB_KEY: ''
+      THESPORTSDB_API_KEY: ''
+      API_FOOTBALL_KEY: ''
+      API_FOOTBALL_API_KEY: ''
+      THE_ODDS_API_KEY: ''
+      OPENAI_API_KEY: ''
+      TELEGRAM_BOT_TOKEN: ''
+      ENABLE_AUTO_SYNC: '0'
+      AUTO_SYNC_ON_STARTUP: '0'
+      SCHEDULER_ENABLED: '0'
+      BACKGROUND_JOBS_ENABLED: 'false'
+      AUTO_GENERATE_PICKS: 'false'
+      AUTO_SEND_TELEGRAM_PICKS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated dependencies
+        run: python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt
+      - name: Execute delivery, rights and inherited regression tests
+        run: |
+          mkdir -p postmatch-evidence
+          python - <<'PY'
+          import socket,re,json,pytest,os,hashlib
+          from pathlib import Path
+          from xml.etree import ElementTree as ET
+          calls=[];original=socket.socket.connect
+          def guard(self,address):
+              if isinstance(address,tuple) and address[0] not in {'127.0.0.1','localhost','::1'}:
+                  calls.append(1);raise AssertionError('External transport forbidden')
+              return original(self,address)
+          socket.socket.connect=guard
+          import app
+          app.init_db()
+          text=Path('.github/workflows/postmatch-workers.yml').read_text()
+          files=list(dict.fromkeys(['tests/test_postmatch_delivery.py','tests/test_sportsdb_activation_permissions.py',*re.findall(r'tests/test_[a-z0-9_]+\.py',text)]))
+          result=pytest.main(['-o','addopts=','-q',*files,'--junitxml=postmatch-evidence/results.xml'])
+          assert not calls
+          if result: raise SystemExit(result)
+          cases=ET.parse('postmatch-evidence/results.xml').findall('.//testcase')
+          assert len(cases)>=453
+          assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
+          for module,minimum in [('test_postmatch_delivery',34),('test_sportsdb_activation_permissions',40)]:
+              assert sum(module in c.get('classname','') for c in cases)>=minimum
+          names=app.app.jinja_env.list_templates()
+          for name in names: app.app.jinja_env.parse(app.app.jinja_env.loader.get_source(app.app.jinja_env,name)[0])
+          source=['engines/postmatch_delivery.py','engines/postmatch_sources.py','engines/postmatch_recovery.py','engines/sportsdb_highlights_engine.py','blueprints/postmatch_recovery.py','templates/admin_postmatch_result.html','templates/partials/postmatch_workers.html','tests/test_postmatch_delivery.py']
+          Path('postmatch-evidence/summary.json').write_text(json.dumps({'tests':len(cases),'failures':0,'errors':0,'skipped':0,'templates':len(names),'real_provider_calls':0,'production_changed':False,'checkout_sha':os.environ['GITHUB_SHA'],'source_hashes':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in source}},indent=2))
+          print('Verified test cases:',len(cases))
+          PY
+          python -m compileall -q engines blueprints
+          python tools/check_madrid_times.py
+      - name: Install isolated browser
+        run: python -m playwright install --with-deps chromium
+      - name: Verify real HTTP result screen on desktop and mobile
+        run: python tools/run_postmatch_delivery_browser_qa.py --output postmatch-evidence/browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postmatch-delivery-${{ github.run_id }}
+          path: postmatch-evidence/
+          retention-days: 7
