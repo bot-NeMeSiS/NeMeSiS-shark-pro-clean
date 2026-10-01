@@ -1,0 +1,121 @@
+name: Postmatch workers QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-workers.yml'
+      - 'app.py'
+      - 'blueprints/**'
+      - 'engines/**'
+      - 'templates/**'
+      - 'static/**'
+      - 'tests/**'
+      - 'tools/render_cron*.py'
+      - 'tools/run_postmatch_browser_qa.py'
+      - 'conftest.py'
+      - 'pytest.ini'
+      - 'requirements*.txt'
+      - 'browser_qa/playwright_requirements.txt'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-workers.yml'
+      - 'app.py'
+      - 'blueprints/**'
+      - 'engines/**'
+      - 'templates/**'
+      - 'static/**'
+      - 'tests/**'
+      - 'tools/render_cron*.py'
+      - 'tools/run_postmatch_browser_qa.py'
+      - 'conftest.py'
+      - 'pytest.ini'
+      - 'requirements*.txt'
+      - 'browser_qa/playwright_requirements.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: postmatch-workers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postmatch-workers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_PATH: /tmp/nemesis-postmatch-${{ github.run_id }}/app.sqlite
+      SECRET_KEY: isolated-postmatch-ci-only
+      AUTOMATION_SECRET: isolated-postmatch-cron-only
+      BACKGROUND_JOBS_ENABLED: 'false'
+      AUTO_GENERATE_PICKS: 'false'
+      AUTO_SEND_TELEGRAM_PICKS: 'false'
+      SCHEDULER_ENABLED: '0'
+      POSTMATCH_EVIDENCE: reports/postmatch_workers_ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11.9'
+      - name: Install isolated dependencies and Chromium
+        run: |
+          python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt
+          python -m playwright install --with-deps chromium
+          python -c 'import app; app.init_db()'
+      - name: Postmatch faults, rights and inherited integration regressions
+        run: |
+          mkdir -p "$POSTMATCH_EVIDENCE"
+          python -m pytest -o addopts='' -q \
+            tests/test_postmatch_recovery.py \
+            tests/test_highlight_review_flow.py \
+            tests/test_highlights_admin_review_activation.py \
+            tests/test_sports_media_rights_convergence.py \
+            tests/test_sports_knowledge_media_experience.py \
+            tests/test_sportsdb_dedupe_read_budget.py \
+            tests/test_sportsdb_provider_identity_regression.py \
+            tests/test_v944_match_center_foundation.py \
+            tests/test_match_context_intelligence_continuation.py \
+            tests/test_sports_core_match_center_intelligence.py \
+            tests/test_design02_reference_conformance.py \
+            tests/test_render_cron_master_tick.py \
+            tests/test_active_cron_header_transport_v941.py \
+            tests/test_render_cron_data_backup.py \
+            --junitxml="$POSTMATCH_EVIDENCE/results.xml"
+          python tools/check_madrid_times.py
+      - name: Full local HTTP browser with complete application JavaScript
+        run: python tools/run_postmatch_browser_qa.py --output "$POSTMATCH_EVIDENCE/browser"
+      - name: Verify executed evidence rather than skipped tests
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from xml.etree import ElementTree
+          output = Path(os.environ['POSTMATCH_EVIDENCE'])
+          cases = ElementTree.parse(output / 'results.xml').findall('.//testcase')
+          assert len(cases) >= 195, 'Incomplete recovery regression matrix'
+          assert all(case.find(tag) is None for case in cases for tag in ('skipped', 'failure', 'error'))
+          evidence = json.loads((output / 'browser/checks.json').read_text())
+          assert evidence['mode'] == 'full_http', 'Snapshots do not certify the HTTP browser gate'
+          expected = {(role, width) for role in ('client_free', 'client_pro', 'client_elite', 'admin') for width in (320, 390, 1440)}
+          assert {(row['role'], row['width']) for row in evidence['checks']} == expected
+          assert len(evidence['checks']) == 12
+          assert all(row['status'] == 200 and not row['overflow'] and not row['page_errors'] for row in evidence['checks'])
+          assert evidence['production_playback_verified'] is False
+          (output / 'source-commit.txt').write_text(os.environ['GITHUB_SHA'] + '\n')
+          print('Verified regressions:', len(cases), 'Full HTTP browser cases:', len(expected))
+          PY
+      - name: Upload isolated evidence
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: postmatch-workers-${{ github.run_id }}
+          path: reports/postmatch_workers_ci/
+          if-no-files-found: warn
+          retention-days: 7
