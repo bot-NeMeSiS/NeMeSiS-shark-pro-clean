@@ -3,6 +3,7 @@
 {% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='match-editorial.css') }}?v=1">
 <script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
 {% if not detail or not match_context %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">
@@ -10,7 +11,7 @@
   {{ empty_state('Sin detalle de partido', 'Vuelve al calendario para elegir un encuentro disponible.', 'Volver a partidos', '/calendario', 'calendar') }}
 </div>
 {% else %}
-<div class="v933-page v944-match-center"
+<div class="v933-page v944-match-center ns-editorial-match"
      data-v933-template="match_detail"
      data-v944-match-center-foundation="phase-1"
      data-growth-stage="FIRST_VALUE"
@@ -39,32 +40,38 @@
   {% set media = match_context.get('media') or {} %}
   {% set shark = match_context.get('shark_context') or {} %}
   <nav class="v944-match-sections" aria-label="{{ ui("Secciones disponibles del partido") }}">
-    <a href="#match-section-story" data-match-section-link="story">{{ ui("Resumen") }}</a>
+    <a href="#match-editorial-summary" data-match-section-link="story">{{ ui("Resumen") }}</a>
+    <a href="#match-section-video" data-match-section-link="video">{{ ui("Vídeo") }}</a>
+    <a href="#match-section-news" data-match-section-link="news">{{ ui("Noticias") }}</a>
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">{{ ui("Alineaciones") }}</a>{% endif %}
     {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">{{ ui("Eventos") }}</a>{% endif %}
     {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">{{ ui("Estadísticas") }}</a>{% endif %}
     {% if head_to_head.get('available') %}<a href="#match-section-h2h" data-match-section-link="h2h">H2H</a>{% endif %}
     {% if standings.get('available') %}<a href="#match-section-standings" data-match-section-link="standings">{{ ui("Clasificación") }}</a>{% endif %}
-    <a href="#match-section-video" data-match-section-link="video">{{ ui("Vídeo") }}</a>
+
     {% if shark.get('available') %}<a href="#match-section-shark" data-match-section-link="shark">SHARK</a>{% endif %}
   </nav>
 
+  {% set editorial = match_editorial(match_context, detail.get('match') or {}, ui_locale) if match_editorial is defined else {} %}
+  {% include 'partials/match_editorial.html' %}
   <div class="v944-match-layout">
     {% if shark.get('available') %}
     <div class="v944-match-intelligence-priority">
       {{ shark_panel(match_context) }}
-      {{ match_story(match_context) }}
+
       {{ quick_actions(match_context) }}
     </div>
     {% endif %}
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
-      {% if not shark.get('available') %}{{ match_story(match_context) }}{% endif %}
+      {# Keep canonical status visible until a fresh, confirmed final; only then collapse extra context. #}
+      {% set context_lifecycle = match_context.get('lifecycle') or {} %}
+      <details class="v944-coverage-details" data-editorial-context{% if not context_lifecycle.get('is_finished') or context_lifecycle.get('is_stale') %} open{% endif %}><summary>{{ ui('Análisis y contexto deportivo') }}</summary>{{ match_story(match_context) }}</details>
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
       {% if head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
       {% if standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
-      {{ video_panel(match_context, detail.get('postmatch_recovery') or {}) }}
+
       {% set recovery = detail.get('postmatch_recovery') or {} %}
       {% if recovery.get('items') %}
       <details class="v944-coverage-details" data-postmatch-statistics-evidence><summary>{{ ui('Estadísticas recuperadas después del partido · fuentes') }}</summary>

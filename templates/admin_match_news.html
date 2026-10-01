@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static',filename='match-editorial.css') }}?v=1">
+<section class="ns-news-admin" data-match-news-admin>
+  <header><span class="ns-editorial__kicker">CONTENIDO DE PARTIDOS</span><h1>Noticias y crónicas</h1><p>Referencias externas revisadas. Sin copiar artículos ni activar búsquedas de pago.</p><nav class="ns-news-admin__actions"><a href="/admin/highlights-review">Vídeos y trabajadores</a>{% if news.match %}<a href="/match/{{ news.match.id|urlencode }}#match-section-news">Ver ficha del cliente</a><a href="{{ url_for('.news_index') }}">Elegir otro partido</a>{% endif %}</nav></header>
+  {% include 'partials/editorial_worker.html' %}
+  {% if review_error %}<p class="ns-news-admin__error" role="alert">{{ review_error }}</p>{% endif %}
+  {% if news.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo consultar el almacenamiento. No se interpreta el fallo como ausencia de noticias.</p>
+  {% elif news.state == 'MATCH_NOT_FOUND' %}<p role="status">No se ha encontrado este partido.</p>
+  {% elif not news.match %}
+  <section class="ns-news-admin__panel"><h2>Seleccionar encuentro</h2><p>Últimos 30 partidos de la agenda guardada. También puedes introducir el identificador exacto.</p><form method="get" class="ns-news-admin__form"><label>Identificador del partido<input name="match_id" required maxlength="180"></label><div class="ns-news-admin__actions"><button type="submit">Abrir contenido</button></div></form>
+  {% for match in news.matches %}<article class="ns-news-admin__item"><h3>{{ match.home_team }} — {{ match.away_team }}</h3><p>{{ match.competition_name }} · {{ match.match_date }}</p><nav class="ns-news-admin__actions"><a href="{{ url_for('.news_index',match_id=match.id) }}">Revisar noticias</a><a href="/match/{{ match.id|urlencode }}">Ver partido</a></nav></article>{% else %}<p>No hay partidos guardados en esta lectura.</p>{% endfor %}</section>
+  {% else %}
+  <section class="ns-news-admin__panel"><span class="ns-editorial__kicker">{{ news.match.competition_name }}</span><h2>{{ news.match.home_team }} — {{ news.match.away_team }}</h2><p>{{ news.match.match_date }} · Las referencias quedan ligadas a esta identidad y fecha del encuentro.</p>
+  <details><summary style="min-height:44px;cursor:pointer">Añadir una referencia</summary>
+    <form method="post" action="{{ url_for('.news_save',match_id=news.match.id) }}" class="ns-news-admin__form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="identity" value="{{ news.identity }}">
+      <label class="is-wide">Enlace al artículo<input type="url" name="url" required maxlength="2048" placeholder="https://medio.example/articulo"></label>
+      <label class="is-wide">Título descriptivo propio de la referencia<input name="title" required maxlength="180" placeholder="Describe el artículo sin copiar su texto"></label>
+      <label>Medio o fuente<input name="publisher" required maxlength="100"></label>
+      <label>Publicación con zona horaria<input name="published_at" required placeholder="2026-10-01T18:00:00+02:00" maxlength="40"></label>
+      <label class="is-wide">Enlace a condiciones o evidencia de uso<input type="url" name="evidence_url" required maxlength="2048"></label>
+      <label class="is-wide">Fundamento del uso de esta referencia<textarea name="basis" required maxlength="1200" rows="3"></textarea></label>
+      <label class="ns-news-admin__check is-wide"><input type="checkbox" name="confirmed" value="1" required><span>He comprobado que trata de este encuentro, que la fecha corresponde y que se permite publicar esta referencia con atribución. No copio la crónica, fotografías ni fragmentos sin permiso.</span></label>
+      <div class="ns-news-admin__actions is-wide"><button type="submit">Guardar borrador revisable</button></div>
+    </form>
+  </details></section>
+  <section class="ns-news-admin__panel"><h2>Referencias del encuentro</h2>
+    {% for item in news['items'] %}<article class="ns-news-admin__item" data-news-review="{{ item.id }}"><span class="ns-editorial__status">{{ {'DRAFT':'Borrador','PUBLISHED':'Publicado','RETRACTED':'Retirado'}.get(item.state,'Por revisar') }}</span><h3>{{ item.title }}</h3><p>{{ item.publisher }} · {{ item.published_at|madrid_datetime_label }}</p><nav class="ns-news-admin__actions"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Examinar original ↗</a></nav><details><summary>Evidencia y publicación</summary><p>{{ item.basis }}</p><p>Condiciones: {{ item.evidence_url }}</p>
+    <form method="post" action="{{ url_for('.news_decision',match_id=news.match.id,news_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="revision" value="{{ item.revision }}"><input type="hidden" name="action" value="{{ 'RETRACT' if item.state == 'PUBLISHED' else 'PUBLISH' }}"><label class="ns-news-admin__check"><input type="checkbox" name="confirmed" value="1" required><span>Confirmo {{ 'retirar esta referencia de la ficha conservando el historial' if item.state == 'PUBLISHED' else 'la publicación de esta referencia y la vigencia de su revisión' }}.</span></label><button type="submit">{{ 'Retirar publicación' if item.state == 'PUBLISHED' else 'Publicar en la ficha' }}</button></form></details></article>
+    {% else %}<p>No hay referencias registradas para la identidad actual. Añade únicamente artículos que hayas contrastado.</p>{% endfor %}
+  </section>
+  {% endif %}
+</section>
+{% endblock %}
