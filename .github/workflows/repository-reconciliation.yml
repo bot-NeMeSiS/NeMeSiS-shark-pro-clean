@@ -1,0 +1,83 @@
+name: Repository reconciliation audit
+on:
+  push:
+    branches: [ops/repository-reconciliation-20261001]
+    paths: [.github/workflows/repository-reconciliation.yml]
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          filter: blob:none
+      - name: Read commit ancestry without legacy binary blobs
+        run: |
+          git config remote.origin.promisor true
+          git config remote.origin.partialclonefilter blob:none
+          git fetch --filter=blob:none --no-tags --unshallow origin '+refs/heads/*:refs/remotes/origin/*'
+      - name: Classify refs using exact PR heads and merge ancestry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AUDIT_DIR: ${{ runner.temp }}/repository-reconciliation
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, subprocess, urllib.request, datetime
+          repo = 'bot-NeMeSiS/NeMeSiS-shark-pro-clean'
+          assert os.environ['GITHUB_REPOSITORY'] == repo
+          out = pathlib.Path(os.environ['AUDIT_DIR']); out.mkdir()
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          def ancestor(a, b):
+              code = subprocess.run(['git','merge-base','--is-ancestor',a,b], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+              if code not in (0,1): raise RuntimeError('Incomplete ancestry')
+              return code == 0
+          def collection(path):
+              result=[]
+              for page in range(1, 51):
+                  sep='&' if '?' in path else '?'
+                  req=urllib.request.Request('https://api.github.com/repos/'+repo+'/'+path+sep+'per_page=100&page='+str(page),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+                  with urllib.request.urlopen(req, timeout=30) as r: items=json.load(r)
+                  assert isinstance(items,list)
+                  result.extend(items)
+                  if len(items)<100: return result
+              raise RuntimeError('Pagination incomplete')
+          branches=collection('branches')
+          prs=collection('pulls?state=all')
+          main=next(b['commit']['sha'] for b in branches if b['name']=='main')
+          assert main == git('rev-parse','refs/remotes/origin/main'), 'Main moved during inventory'
+          records=[]
+          for branch in branches:
+              name=branch['name']; sha=branch['commit']['sha']
+              assert sha == git('rev-parse','refs/remotes/origin/'+name), 'Branch moved during inventory'
+              related=[p for p in prs if p['head']['ref']==name and (p['head'].get('repo') or {}).get('full_name')==repo]
+              opened=[p['number'] for p in related if p['state']=='open']
+              contained=ancestor(sha,main)
+              integrated=[p for p in related if p['merged_at'] and p['head']['sha']==sha and p.get('merge_commit_sha') and ancestor(p['merge_commit_sha'],main)]
+              protected=branch.get('protected') or name in {'main','master','develop'} or name.startswith(('rollback/','codex/','ops/','release/','archive/'))
+              state='KEEP_PROTECTED' if protected else 'KEEP_OPEN_PR' if opened else 'INTEGRATED_CANDIDATE' if contained or integrated else 'KEEP_UNIQUE_OR_UNRESOLVED'
+              counts=git('rev-list','--left-right','--count',main+'...'+sha).split()
+              records.append({'branch':name,'sha':sha,'state':state,'ancestor_of_main':contained,'behind':int(counts[0]),'ahead':int(counts[1]),'open_prs':opened,'exact_merged_prs':[{'number':p['number'],'merge_sha':p['merge_commit_sha']} for p in integrated],'related_prs':[{'number':p['number'],'state':p['state'],'merged':bool(p['merged_at']),'title':p['title']} for p in related]})
+          snapshot={'repository':repo,'main_sha':main,'observed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'local_windows_worktrees':'NOT_INSPECTED','deletions':0,'branches':records}
+          (out/'branches.json').write_text(json.dumps(snapshot,indent=2,ensure_ascii=False),encoding='utf-8')
+          from collections import Counter
+          counts=Counter(r['state'] for r in records)
+          lines=['# Repository reconciliation', '', 'Main: `'+main+'`','', 'Read-only inventory; Windows worktrees and uncommitted changes are NOT inspected. No deletion authorized by this report alone.', '', '| State | Count |','|---|---:|']
+          lines += ['| '+k+' | '+str(v)+' |' for k,v in sorted(counts.items())]
+          lines += ['', '| Branch | Classification | Exact merged PR |','|---|---|---|']
+          lines += ['| `'+r['branch']+'` | '+r['state']+' | '+', '.join('#'+str(p['number']) for p in r['exact_merged_prs'])+' |' for r in records]
+          (out/'BRANCHES.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
+          for label,base,head in [('main-delta','c76fa868b582bda89b39b6942f2ef414860420ed',main),('postmatch-delta','c728994df0cf2b6e9e991a4566f7d62d7ebfcde7','7b0ab665a62683d923ba03df55fdff5e8dcaba0e')]:
+              (out/(label+'.patch')).write_bytes(subprocess.check_output(['git','diff','--binary',base,head]))
+          print(json.dumps({'total_branches':len(records),'main_sha':main,'counts':dict(counts),'deletions':0}))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: repository-reconciliation-${{ github.run_id }}
+          path: ${{ runner.temp }}/repository-reconciliation/
+          retention-days: 14
+          if-no-files-found: error
