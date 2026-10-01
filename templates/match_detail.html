@@ -63,7 +63,9 @@
     </div>
     {% endif %}
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
-      <details class="v944-coverage-details" data-editorial-context><summary>{{ ui('Análisis y contexto deportivo') }}</summary>{{ match_story(match_context) }}</details>
+      {# Keep canonical status visible until a fresh, confirmed final; only then collapse extra context. #}
+      {% set context_lifecycle = match_context.get('lifecycle') or {} %}
+      <details class="v944-coverage-details" data-editorial-context{% if not context_lifecycle.get('is_finished') or context_lifecycle.get('is_stale') %} open{% endif %}><summary>{{ ui('Análisis y contexto deportivo') }}</summary>{{ match_story(match_context) }}</details>
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
