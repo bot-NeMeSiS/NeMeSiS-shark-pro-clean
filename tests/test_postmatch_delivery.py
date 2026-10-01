@@ -35,6 +35,12 @@ STAT = {'idEvent':'101','strStat':'Total Shots','intHome':'7','intAway':'0'}
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
+    # Adapter requests use NOW; daily-budget reads must observe that same day.
+    class FixtureDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromtimestamp(NOW, tz)
+    monkeypatch.setattr('engines.postmatch_store.datetime', FixtureDateTime)
     monkeypatch.setenv('THESPORTSDB_KEY','local-secret-never-expose')
     def reject(*args, **kwargs): raise AssertionError('Real transport forbidden')
     monkeypatch.setattr('urllib.request.urlopen',reject)

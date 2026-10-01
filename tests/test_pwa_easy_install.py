@@ -42,3 +42,32 @@ def test_manifest_and_service_worker_keep_single_icon_family():
     assert 'app-icon-180.png' in app
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip().split("_", 1)[0]
     assert f"NEMESIS_CACHE_{version}_ICON_" in app
+
+
+def test_served_worker_activation_preserves_unrelated_caches(app_module):
+    """Execute the actual served JS in an isolated browser, not an installed PWA."""
+    import os
+    from playwright.sync_api import sync_playwright
+
+    response = app_module.app.test_client().get('/service-worker.js')
+    assert response.status_code == 200
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(executable_path=os.getenv('NEMESIS_QA_CHROMIUM') or pw.chromium.executable_path,
+                                    headless=True)
+        try:
+            page = browser.new_page()
+            result = page.evaluate("""async script => {
+                const listeners = {}, removed = [];
+                let pending, claimed = false;
+                const self = {addEventListener: (name, fn) => listeners[name] = fn,
+                              clients: {claim: async () => { claimed = true; }}};
+                const caches = {keys: async () => ['NEMESIS_CACHE_OLD', 'other-app', 'FOUNDER_PRIVATE'],
+                                delete: async key => { removed.push(key); return true; }};
+                new Function('self', 'caches', script)(self, caches);
+                listeners.activate({waitUntil: promise => { pending = promise; }});
+                await pending;
+                return {removed, claimed};
+            }""", response.get_data(as_text=True))
+            assert result == {'removed': ['NEMESIS_CACHE_OLD'], 'claimed': True}
+        finally:
+            browser.close()

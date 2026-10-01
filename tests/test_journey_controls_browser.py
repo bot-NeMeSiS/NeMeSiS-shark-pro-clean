@@ -6,6 +6,7 @@ The browser only exercises native form controls; it never submits a request.
 from __future__ import annotations
 
 import os
+import math
 import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -105,7 +106,10 @@ def test_telegram_preferences_remain_operable(browser, page_html, width, plan, j
         assert submit.is_visible(), "Mobile CSS must not hide the preferences submit action"
         submit.scroll_into_view_if_needed()
         submit.click(trial=True)  # Actionability only; never submit or write data.
-        assert submit.bounding_box()["height"] >= 44
+        height = submit.bounding_box()["height"]
+        # Chromium can report 43.999969 for a 44px box after a transform.
+        assert float(submit.evaluate("(e) => getComputedStyle(e).minHeight").removesuffix("px")) >= 44
+        assert height >= 44 or math.isclose(height, 44, rel_tol=0, abs_tol=0.0001)
 
         checks = form.locator('input[type="checkbox"]')
         assert checks.count() >= 2

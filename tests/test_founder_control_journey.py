@@ -142,6 +142,35 @@ def test_untrusted_evidence_cannot_become_action_target(tmp_path):
     assert item['panel_url'] == '/admin/operations-center'
 
 
+@pytest.mark.parametrize('original,expected', [
+    (None, 'private, no-store'),
+    ('no-store', 'no-store'),
+    ('private, no-store', 'private, no-store'),
+    ('public, max-age=600', 'private, no-store'),
+    ('public, no-store', 'private, no-store'),
+    ('public, x-no-store', 'private, no-store'),
+])
+def test_admin_cache_protection_preserves_existing_no_store(app_module, original, expected):
+    with app_module.app.test_request_context('/api/admin/sentinel/project-control'):
+        response = app_module.app.response_class('{}', mimetype='application/json')
+        if original:
+            response.headers['Cache-Control'] = original
+        response = app_module.apply_security_headers_and_csrf(response)
+        assert response.headers['Cache-Control'] == expected
+        assert response.cache_control.no_store and not response.cache_control.public
+    assert 'Cookie' in response.vary
+
+
+def test_client_private_response_cannot_be_marked_public(app_module):
+    with app_module.app.test_request_context('/api/client/picks'):
+        from flask import session
+        session['user_id'] = 'synthetic-cache-check'
+        response = app_module.app.response_class('{}', mimetype='application/json')
+        response.headers['Cache-Control'] = 'public, no-store'
+        response = app_module.apply_security_headers_and_csrf(response)
+        assert response.headers['Cache-Control'] == 'private, no-store'
+
+
 @pytest.mark.parametrize('path', ['/admin/founder-os', '/api/admin/founder-os'])
 def test_flask_founder_queries_preserve_persisted_state(app_module, tmp_path, monkeypatch, path):
     db = seeded_database(tmp_path)

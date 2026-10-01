@@ -155,7 +155,7 @@ class _NavigationHTMLParser(HTMLParser):
             button_type = (attr.get("type") or "submit").lower()
             if self.form_depth <= 0 and not has_action and button_type != "reset":
                 record = {
-                    "kind": "button",
+                    "kind": "disabled_control" if "disabled" in attr else "button",
                     "target": "",
                     "text": attr.get("aria-label") or attr.get("title") or "",
                     "selector": "button" + (f"#{attr['id']}" if attr.get("id") else ""),
@@ -209,6 +209,8 @@ def _resolve_url_for_target(app: Any, raw: str) -> tuple[str, str, str]:
     if not match:
         return "", "", ""
     endpoint = match.group(1)
+    if endpoint.startswith(".") and any(name.endswith(endpoint) for name in app.view_functions):
+        return endpoint, "WARNING", "Endpoint relativo registrado; requiere contexto blueprint y prueba de render."
     if endpoint not in app.view_functions:
         return endpoint, "ENDPOINT_INEXISTENTE", "El endpoint usado por url_for no está registrado."
     return endpoint, "OK", "Endpoint url_for registrado."
@@ -356,8 +358,7 @@ def _source_route_entries(root: Path) -> list[dict[str, Any]]:
 
 
 def _orphan_templates(root: Path) -> list[str]:
-    app_text = (root / "app.py").read_text(encoding="utf-8-sig", errors="replace")
-    referenced = set(re.findall(r"render_template\(\s*['\"]([^'\"]+)['\"]", app_text))
+    referenced = source_rendered_templates(root)
     for path in (root / "templates").rglob("*.html"):
         text = path.read_text(encoding="utf-8-sig", errors="replace")
         referenced.update(re.findall(r"(?:extends|include|import|from)\s+['\"]([^'\"]+)['\"]", text))
@@ -382,8 +383,13 @@ def _entry_payload(app: Any, item: dict[str, Any], aliases: dict[str, str]) -> d
         else:
             result = "BOTÓN_SIN_ACCIÓN"
             detail = "Botón fuera de formulario sin destino ni acción identificable."
+    if item.get("kind") == "disabled_control":
+        result = "CONTROL_DESACTIVADO"
+        detail = "Control explicitamente desactivado; no promete una accion ejecutable."
     auth = _route_authentication(urlsplit(target).path if str(target).startswith("/") else "")
     expected = "200/redirect seguro"
+    if item.get("kind") == "disabled_control":
+        expected = "sin accion; desactivado"
     if auth == "admin":
         expected = "200 admin o 302/403 sin sesión"
     elif auth == "client":
@@ -419,6 +425,8 @@ def classify_navigation_finding(item: dict[str, Any], orphan_origins: set[str] |
 
     if result in BROKEN_RESULTS:
         return "FALLO_REAL", "Destino o acción roto según el mapa Flask/contrato estático."
+    if result == "CONTROL_DESACTIVADO":
+        return "AVISO_ESPERADO", "Control desactivado en la interfaz; no equivale a una accion completada."
     if origin in orphan_origins or result == "RUTA_SIN_ACCESO_UI":
         return "DEUDA_HEREDADA", "Superficie histórica sin acceso UI activo; conservar visible como deuda hasta archivar o reactivar."
     if result == "RUTA_INTERNA_NO_DEBE_SER_VISIBLE":
@@ -642,12 +650,12 @@ def matrix_markdown(snapshot: dict[str, Any]) -> str:
 
 
 def source_rendered_templates(root: Path) -> set[str]:
-    """Public helper used by V929 checks."""
-    tree = ast.parse((root / "app.py").read_text(encoding="utf-8-sig", errors="replace"))
+    """Conservatively retain templates referenced by the app and blueprints."""
     result: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "render_template" and node.args:
-            first = node.args[0]
-            if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                result.add(first.value)
+    for path in [root / "app.py", *sorted((root / "blueprints").rglob("*.py"))]:
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+        # Registries and conditional mappings also have legitimate consumers.
+        result.update(node.value for node in ast.walk(tree)
+                      if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                      and node.value.endswith(".html"))
     return result

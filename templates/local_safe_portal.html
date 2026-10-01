@@ -115,6 +115,9 @@
 </section>
 
 <script>
+document.querySelectorAll('[data-local-design-refresh]').forEach(function(button){
+  button.addEventListener('click',function(){window.location.reload();});
+});
 (function(){
   var grid=document.querySelector('[data-local-review-grid]');
   if(!grid){return;}

@@ -169,7 +169,7 @@ def test_prompt_auth_and_csrf_precede_snapshot(app_module,monkeypatch,role,valid
 
 def test_display_is_deterministic_and_not_scheduled():
     assert build_admin_workbench(sample())==build_admin_workbench(sample())
-    source=(ROOT/'engines/admin_operations_workbench.py').read_text()
+    source=(ROOT/'engines/admin_operations_workbench.py').read_text(encoding='utf-8')
     for token in ('sqlite3','requests','subprocess','os.environ','open('):assert token not in source
 
 

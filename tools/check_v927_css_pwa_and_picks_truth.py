@@ -111,7 +111,7 @@ def main() -> int:
         failures.append("base.html does not bind app.css to the runtime version")
     if f"NEMESIS_CACHE_V927" not in source:
         failures.append("service worker cache is not V927")
-    for marker in ("cache:'no-store'", "cache:'reload'", "keys.map(key=>caches.delete(key))"):
+    for marker in ("cache:'no-store'", "cache:'reload'", "keys.filter(key=>key.startsWith('NEMESIS_CACHE_')).map(key=>caches.delete(key))"):
         if marker not in source:
             failures.append(f"service worker missing stale-cache guard: {marker}")
     if "V927 cache delivery fingerprint" not in css:

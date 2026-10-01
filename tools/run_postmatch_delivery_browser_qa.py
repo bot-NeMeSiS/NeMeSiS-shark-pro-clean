@@ -70,7 +70,8 @@ with tempfile.TemporaryDirectory(prefix='nemesis-delivery-browser-') as tmp:
     }
     try:
         with sync_playwright() as pw:
-            browser = pw.chromium.launch(headless=True, args=['--no-sandbox'])
+            browser = pw.chromium.launch(executable_path=os.getenv('NEMESIS_QA_CHROMIUM') or pw.chromium.executable_path,
+                                         headless=True, args=['--no-sandbox'])
             for name, sample in samples.items():
                 for width in (320,390,1440):
                     session = signer.loads(sessions['admin'])

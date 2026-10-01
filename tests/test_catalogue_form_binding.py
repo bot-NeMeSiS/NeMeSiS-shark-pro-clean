@@ -17,7 +17,7 @@ FORM = 'combi-manual-builder'
 
 
 def test_partial_declares_a_real_form_owner_to_navigation_auditor():
-    source = (ROOT / 'templates/components/combi_match_catalogue.html').read_text()
+    source = (ROOT / 'templates/components/combi_match_catalogue.html').read_text(encoding='utf-8')
     parser = _NavigationHTMLParser('combi_match_catalogue.html')
     parser.feed(source)
     assert not [item for item in parser.entries if item['kind'] == 'button']

@@ -3999,15 +3999,13 @@ def apply_security_headers_and_csrf(response):
         response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
 
     if request.path == '/admin' or request.path == '/admin-login' or request.path.startswith(('/admin/', '/api/admin/')):
-        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
-        if 'no-store' not in current_cache_control:
+        if not response.cache_control.no_store or response.cache_control.public:
             response.headers['Cache-Control'] = 'private, no-store'
         response.vary.add('Cookie')
     if request.path.startswith('/api/'):
         response.vary.add('Cookie')
     if session.get('user_id') and (request.path.startswith('/api/') or response.mimetype == 'text/html'):
-        current_cache_control = str(response.headers.get('Cache-Control') or '').lower()
-        if 'no-store' not in current_cache_control:
+        if not response.cache_control.no_store or response.cache_control.public:
             response.headers['Cache-Control'] = 'private, no-store'
         response.vary.add('Cookie')
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -6011,8 +6009,18 @@ def refresh_auto_picks_basic(limit=40):
     candidates = []
     discarded = []
     for rec in recs:
+        # A watchlist/analysis is not a weak pick: it has no publication approval.
+        if rec.get("can_publish") is not True or rec.get("decision") != "BET":
+            discarded.append({"match_id": rec.get("match_id"), "reason": "analisis_no_publicable"})
+            continue
         score = as_int(rec.get("score"), 0)
-        odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
+        raw_odds = rec.get("odds_value")
+        if raw_odds in (None, ""):
+            raw_odds = rec.get("odds")
+        odds = as_float(raw_odds, 0.0)
+        if isinstance(raw_odds, bool) or not math.isfinite(odds) or odds <= 1:
+            discarded.append({"match_id": rec.get("match_id"), "reason": "sin_cuota_valida", "score": score})
+            continue
         if score < min_score:
             discarded.append({"match_id": rec.get("match_id"), "reason": "score_bajo", "score": score})
             continue
@@ -7136,9 +7144,18 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
 
 def ensure_auto_pick_from_recommendation(rec):
     rec = dict(rec or {})
+    # Defense in depth: a cosmetic score must never override WAIT/NO_BET.
+    # This boundary is necessary, not proof that a statistical model is validated.
+    if rec.get("can_publish") is not True or rec.get("decision") != "BET":
+        return {"ok": False, "created": False, "reason": "analisis_no_publicable"}
+    raw_odds = rec.get("odds_value")
+    if raw_odds in (None, ""):
+        raw_odds = rec.get("odds")
+    odds = as_float(raw_odds, 0.0)
+    if isinstance(raw_odds, bool) or not math.isfinite(odds) or odds <= 1:
+        return {"ok": False, "created": False, "reason": "sin_cuota_valida"}
     match_id = str(rec.get("match_id") or "").strip()
     selection = str(rec.get("selection") or "").strip()
-    odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
     if not match_id or not selection:
         return {"ok": False, "created": False, "reason": "datos_incompletos"}
     if odds <= 1:
@@ -15272,7 +15289,7 @@ def service_worker():
     body = (
         f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
-        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
+        "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('NEMESIS_CACHE_')).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
         "self.addEventListener('push',event=>{let data={};try{data=event.data?event.data.json():{};}catch(e){data={body:event.data?event.data.text():'NeMeSiS Founder'};}const title=data.title||'NeMeSiS Founder';const options={body:data.body||'',icon:'/static/img/app-icons/app-icon-192.png',badge:'/static/img/app-icons/app-icon-192.png',tag:data.tag||'nemesis-founder',data:{url:data.url||'/admin/founder-os#inbox',severity:data.severity||'INFO'}};event.waitUntil(self.registration.showNotification(title,options));});\n"
         "self.addEventListener('notificationclick',event=>{event.notification.close();const target=(event.notification.data&&event.notification.data.url)||'/admin/founder-os#inbox';event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const client of list){if('focus' in client){client.navigate(target);return client.focus();}}return clients.openWindow(target);}));});\n"
@@ -26858,7 +26875,7 @@ def api_runtime_version():
         service_worker_cache_name in app_py_text
         and "cache:'no-store'" in app_py_text
         and "cache:'reload'" in app_py_text
-        and "keys.map(key=>caches.delete(key))" in app_py_text
+        and "keys.filter(key=>key.startsWith('NEMESIS_CACHE_')).map(key=>caches.delete(key))" in app_py_text
     )
     v902_truth_summary = v902_sentinel_truth_runtime_summary()
     v903_active_errors_count = int(v902_truth_summary.get("sentinel_active_issues_count") or 0)
@@ -30021,7 +30038,10 @@ def v565_data_picks_health():
     if not odds_count:
         actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
     if not published:
-        actions.append("Generar recomendaciones automáticas y convertir las mejores en picks publicados.")
+        if recommendations and not any(r.get("can_publish") is True and r.get("decision") == "BET" for r in recommendations):
+            actions.append("Hay partidos en análisis, pero no una recomendación de apuesta aprobada. Completar evidencia y validar el modelo; añadir cuotas o bajar el umbral no basta.")
+        else:
+            actions.append("Revisar evidencia, modelo y cuotas vigentes de los candidatos antes de publicar picks.")
     if logos < max(1, total_teams // 3):
         actions.append("Ejecutar SportsDB Crest Sync para subir identidad visual.")
     if not actions:
