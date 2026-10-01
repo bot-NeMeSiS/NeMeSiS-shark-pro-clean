@@ -342,6 +342,10 @@ def _find_match(conn, item):
             row = qualified[0]
             if home and away and (_norm(home), _norm(away)) != (_norm(row.get('home_team')), _norm(row.get('away_team'))):
                 return None
+            if item.get('dateEvent') and str(row.get('match_date') or '')[:10] != str(item['dateEvent'])[:10]:
+                from engines.postmatch_sources import match_event
+                if not match_event(row, item):
+                    return None
             return row['id']
         if qualified:
             return None
@@ -384,6 +388,23 @@ def _upsert_highlight(conn, item):
     match_id = _find_match(conn, item) or ''
     provider = 'YouTube' if 'youtu' in video.lower() else 'Video'
     existing = _one(conn, 'SELECT * FROM sportsdb_match_highlights WHERE id=?', (hid,)) or {}
+    # Approval is bound to the exact content and association, not merely the event ID.
+    changed = bool(existing) and any(str(existing.get(key) or '') != str(value or '') for key, value in (
+        ('video_url', video), ('match_id', match_id), ('event_date', date_value),
+        ('home_team', home), ('away_team', away)))
+    if changed:
+        revoked = {key: existing.get(key) for key in ('video_url','match_id','rights_status','commercial_use_status','rights_verified_at')}
+        conn.execute("UPDATE sportsdb_match_highlights SET rights_status='REVIEW_REQUIRED',rights_note='REVIEW_REQUIRED',"
+                     "commercial_use_status='UNKNOWN',rights_verified_at='',official_source_verified=0,"
+                     "thumbnail_rights_status='UNKNOWN_RIGHTS',thumbnail_commercial_use_status='UNKNOWN' WHERE id=?", (hid,))
+        existing = {**existing, 'rights_status':'REVIEW_REQUIRED', 'commercial_use_status':'UNKNOWN',
+                    'rights_verified_at':'', 'official_source_verified':0}
+        if _table_exists(conn, 'sportsdb_highlight_reviews'):
+            conn.execute('INSERT INTO sportsdb_highlight_reviews(highlight_id,actor,decision,evidence_url,basis,previous_json,created_at) '
+                         'VALUES(?,?,?,?,?,?,?)', (hid, 'ingestion', 'REVIEW_REQUIRED', '', 'MEDIA_IDENTITY_CHANGED', json.dumps(revoked), now))
+    if existing and str(existing.get('thumbnail_url') or '') != str(_thumb(item) or ''):
+        conn.execute("UPDATE sportsdb_match_highlights SET thumbnail_rights_status='UNKNOWN_RIGHTS',"
+                     "thumbnail_commercial_use_status='UNKNOWN',thumbnail_attribution='' WHERE id=?", (hid,))
     rights_status = _rights_status(existing)
     commercial = str(existing.get('commercial_use_status') or 'UNKNOWN').strip().upper()
     attribution = str(existing.get('attribution') or '').strip()

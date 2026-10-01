@@ -203,7 +203,8 @@ def _real_statistics(
             "away": away or "No disponible",
             "leader": _text(raw.get("leader")) or "even",
         })
-    if provider and live_rows and not stale:
+    recovered_final = bool((cached or {}).get('postmatch_recovered') and lifecycle.get('is_finished'))
+    if provider and live_rows and not stale and not recovered_final:
         return {
             "available": True,
             "item_count": len(live_rows),

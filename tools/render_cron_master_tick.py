@@ -501,6 +501,30 @@ def backup_tick(base_url: str, secret: str) -> dict:
         return request_error_result("backup", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
+def postmatch_tick(base_url: str, secret: str) -> dict:
+    """A 200 only confirms transport; inspect the domain result independently."""
+    started = time.perf_counter()
+    try:
+        req = urllib.request.Request(base_url + '/api/automation/postmatch/tick', data=b'{}',
+            headers={'X-Automation-Secret': secret, 'Accept': 'application/json',
+                     'User-Agent': 'NeMeSiS-Master-Postmatch/1.0'}, method='POST')
+        with urllib.request.urlopen(req, timeout=25) as response:
+            raw = response.read(64001)
+            if len(raw) > 64000:
+                raise ValueError('INVALID_RESPONSE')
+            data = json.loads(raw.decode('utf-8'))
+        label = data.get('result') if isinstance(data, dict) else None
+        valid = {'SKIPPED_DISABLED','IDLE','COMPLETE','PARTIAL','STORAGE_UNAVAILABLE'}
+        label = label if label in valid else 'INVALID_RESPONSE'
+        status = 'PASS' if data.get('ok') is True and label in {'SKIPPED_DISABLED','IDLE','COMPLETE'} else 'PARTIAL' if data.get('ok') is True and label == 'PARTIAL' else 'FAIL'
+        return {'postmatch_status': status, 'postmatch_result': label,
+                'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
+                'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
+    except Exception:
+        return {'postmatch_status':'FAIL', 'postmatch_result':'REQUEST_FAILED',
+                'duration_ms':max(0, round((time.perf_counter() - started) * 1000))}
+
+
 def skipped_backup() -> dict:
     return {
         "backup_http": None,
@@ -629,7 +653,10 @@ def main() -> int:
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
+    postmatch = postmatch_tick(base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
+    if postmatch.get("postmatch_status") != "PASS" and overall == "PASS":
+        overall = "PARTIAL"
     print_event({
         "runner": RUNNER_NAME,
         "web_readiness": readiness,
@@ -639,6 +666,7 @@ def main() -> int:
         "telegram": telegram,
         "continuous_evolution": continuous,
         "backup": backup,
+        "postmatch": postmatch,
         "overall": overall,
         "timestamp_madrid": madrid_now,
         "timestamp_utc": utc_now,

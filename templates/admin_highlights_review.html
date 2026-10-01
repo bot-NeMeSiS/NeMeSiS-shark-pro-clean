@@ -6,6 +6,7 @@
     <p>Un enlace encontrado no es una autorización. Revisa su fuente y las condiciones aplicables antes de publicarlo.</p>
     <a href="/admin/highlights-center">Volver al centro de resúmenes</a> · <a href="/resumenes">Vista cliente</a>
   </header>
+  {% if postmatch is defined %}{% include 'partials/postmatch_workers.html' %}{% endif %}
   {% if review_error %}<p role="alert" class="ns-media-alert">{{ review_error }}</p>{% endif %}
   <section class="ns-media-overview"><h2>Detección y disponibilidad</h2>
     {% if review.state in ['RECORDED','NO_LINKS_RECORDED'] %}<p>{{ review.counts.get('stored') }} registros guardados. Esta vista revisa hasta {{ review.sample_limit }} enlaces recientes; no es una medición de toda la cobertura.</p>{% else %}<p>Recuento no verificable: falta un catálogo inicializado o no se ha podido leer.</p>{% endif %}
