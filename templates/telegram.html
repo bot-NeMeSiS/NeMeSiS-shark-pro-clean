@@ -50,7 +50,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
           <div class="v933-feature-grid">
-            <label class="v933-card">
+            <label class="v933-card v933-preference-field">
               <strong>Intensidad</strong>
               <small>El límite diario manda siempre.</small>
               <select name="intensity">
@@ -59,7 +59,7 @@
                 {% endfor %}
               </select>
             </label>
-            <label class="v933-card">
+            <label class="v933-card v933-preference-field">
               <strong>Máximo al día</strong>
               <small>Tope duro para avisos privados automáticos.</small>
               <select name="daily_limit">
@@ -75,9 +75,9 @@
             <p class="small muted">Desmarca lo que no te aporte valor.</p>
             <div class="v933-feature-grid">
               {% for item in pref_options.get('message_types', []) %}
-              <label class="v933-card">
+              <label class="v933-card v933-preference-choice">
                 <input type="checkbox" name="message_types" value="{{ item.key }}"{% if item.key in selected_types %} checked{% endif %}>
-                <strong>{{ item.label }}</strong>
+                <span class="v933-preference-copy"><strong>{{ item.label }}</strong></span>
               </label>
               {% endfor %}
             </div>
@@ -89,9 +89,9 @@
             <p class="small muted">Puedes elegir hasta {{ pref_options.get('league_limit') }}. Si no marcas ninguna, recibirás solo el catálogo curado dentro de tu límite diario.</p>
             <div class="v933-feature-grid" data-telegram-league-selector>
               {% for item in pref_options.get('leagues', []) %}
-              <label class="v933-card">
+              <label class="v933-card v933-preference-choice">
                 <input type="checkbox" name="selected_leagues" value="{{ item.key }}"{% if item.key in selected_leagues %} checked{% endif %}>
-                <strong>{{ item.label }}</strong>
+                <span class="v933-preference-copy"><strong>{{ item.label }}</strong></span>
               </label>
               {% endfor %}
             </div>
@@ -102,10 +102,10 @@
           </div>
           {% endif %}
 
-          <label class="v933-safe-copy">
+          <label class="v933-safe-copy v933-preference-choice">
             <input type="checkbox" name="pause_all" value="1"{% if prefs.get('pause_all') %} checked{% endif %}>
-            <strong>Pausar todos los avisos privados automáticos</strong>
-            <small>Puedes seguir usando NeMeSiS y volver a activarlos cuando quieras.</small>
+            <span class="v933-preference-copy"><strong>Pausar todos los avisos privados automáticos</strong>
+            <small>Puedes seguir usando NeMeSiS y volver a activarlos cuando quieras.</small></span>
           </label>
 
           <div class="v933-page-actions">
