@@ -9,9 +9,9 @@
 </section>
 <section class="grid cards-4">
   <article class="card stat-card"><span>Estado</span><strong>{{ center.status }}</strong><small>{{ center.key_present and 'Key configurada' or 'Falta key' }}</small></article>
-  <article class="card stat-card"><span>Vídeos</span><strong>{{ (center.counts or {}).get('videos', 0) }}</strong><small>{{ (center.counts or {}).get('embeddable', 0) }} embebibles</small></article>
-  <article class="card stat-card"><span>Pendientes</span><strong>{{ (center.counts or {}).get('pending', 0) }}</strong><small>finalizados sin resumen</small></article>
-  <article class="card stat-card"><span>Enlazados</span><strong>{{ (center.counts or {}).get('linked_matches', 0) }}</strong><small>partidos con match_id</small></article>
+  <article class="card stat-card"><span>Vídeos</span><strong>{{ (center.counts or {}).get('videos') if (center.counts or {}).get('videos') is not none else '—' }}</strong><small>{{ (center.counts or {}).get('embeddable') if (center.counts or {}).get('embeddable') is not none else '—' }} embebibles</small></article>
+  <article class="card stat-card"><span>Pendientes</span><strong>{{ (center.counts or {}).get('pending') if (center.counts or {}).get('pending') is not none else '—' }}</strong><small>finalizados sin resumen</small></article>
+  <article class="card stat-card"><span>Enlazados</span><strong>{{ (center.counts or {}).get('linked_matches') if (center.counts or {}).get('linked_matches') is not none else '—' }}</strong><small>partidos con match_id</small></article>
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>Render Cron recomendado</h2><span class="pill">{{ (center.cron or {}).recommended }}</span></div>
@@ -21,13 +21,13 @@
 <section class="band compact-band">
   <div class="section-head"><h2>Últimos vídeos</h2><span class="pill">{{ (center.available or [])|length }}</span></div>
   <div class="stack compact-list">
-    {% for h in (center.available or [])[:12] %}<div class="list-row"><span>{{ h.match_label }}<small>{{ h.event_date_label }} · {{ h.competition_label }} · {{ h.client_status }}</small></span><a class="btn small-btn" href="{{ h.detail_url }}">Ver</a></div>{% else %}<div class="empty-state">Todavía no hay vídeos sincronizados.</div>{% endfor %}
+    {% for h in (center.available or [])[:12] %}<div class="list-row"><span>{{ h.match_label }}<small>{{ h.event_date_label }} · {{ h.competition_label }} · {{ h.client_status }}</small></span><a class="btn small-btn" href="{{ h.detail_url }}">Ver</a></div>{% else %}<div class="empty-state">{{ 'No se pudo comprobar el catálogo.' if not center.get('read_ok') else 'No hay vídeos autorizados en esta muestra.' }}</div>{% endfor %}
   </div>
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>Finalizados pendientes</h2><span class="pill">{{ (center.pending_matches or [])|length }}</span></div>
   <div class="stack compact-list">
-    {% for m in (center.pending_matches or [])[:18] %}<div class="list-row"><span>{{ m.v769_title }}<small>{{ m.v769_competition }} · {{ m.v769_when }} · {{ m.v769_status }}</small></span><a class="btn small-btn" href="/match/{{ m.id }}">Partido</a></div>{% else %}<div class="empty-state">Sin pendientes detectados en la muestra.</div>{% endfor %}
+    {% for m in (center.pending_matches or [])[:18] %}<div class="list-row"><span>{{ m.v769_title }}<small>{{ m.v769_competition }} · {{ m.v769_when }} · {{ m.v769_status }}</small></span><a class="btn small-btn" href="/match/{{ m.id }}">Partido</a></div>{% else %}<div class="empty-state">{{ 'Disponibilidad de pendientes sin comprobar.' if center.get('pending_read_state') != 'VERIFIED' else 'Sin pendientes detectados en la muestra.' }}</div>{% endfor %}
   </div>
 </section>
 {% endblock %}
