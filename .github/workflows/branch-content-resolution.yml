@@ -1,0 +1,144 @@
+name: Resolve historical branch content
+on:
+  push:
+    branches: [ops/repository-reconciliation-20261001]
+    paths: [.github/workflows/branch-content-resolution.yml]
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          filter: blob:none
+      - uses: actions/download-artifact@v7
+        with:
+          name: repository-reconciliation-36858719878
+          run-id: 36858719878
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/original-inventory
+      - name: Read exact current and historical trees without publishing or deleting
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT: ${{ runner.temp }}/original-inventory/branches.json
+          OUTPUT: ${{ runner.temp }}/branch-content-resolution
+        run: |
+          python - <<'PY'
+          import ast, datetime, hashlib, json, os, pathlib, subprocess, tempfile, urllib.request
+          root=pathlib.Path.cwd(); out=pathlib.Path(os.environ['OUTPUT']); out.mkdir()
+          raw=pathlib.Path(os.environ['INPUT']).read_bytes()
+          assert hashlib.sha256(raw).hexdigest()=='20f913b6a51018f51837ea9cd583788ac14773704f442e0e2cd880f6602b2357'
+          targets=[r for r in json.loads(raw)['branches'] if r['state']=='KEEP_UNIQUE_OR_UNRESOLVED']; assert len(targets)==35
+          def git(*args, data=None, cwd=root, check=True):
+              p=subprocess.run(['git','-c','core.fsmonitor=false',*args],cwd=cwd,input=data,capture_output=True,timeout=120)
+              if check and p.returncode: raise RuntimeError('git '+args[0]+' failed')
+              return p
+          def text(*args): return git(*args).stdout.decode().strip()
+          git('config','remote.origin.promisor','true'); git('config','remote.origin.partialclonefilter','blob:none')
+          git('fetch','--filter=blob:none','--no-tags','--unshallow','origin','+refs/heads/*:refs/remotes/origin/*')
+          main=text('rev-parse','refs/remotes/origin/main')
+          assert main=='1690df66d3a114df36f9d93df3cb2e2230023afc','Main advanced: reframe before reviewing'
+          def get(path):
+              req=urllib.request.Request('https://api.github.com/repos/bot-NeMeSiS/NeMeSiS-shark-pro-clean/'+path,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
+          prs=[]
+          for page in range(1,20):
+              batch=get('pulls?state=all&per_page=100&page='+str(page)); prs+=batch
+              if len(batch)<100:break
+          else:raise RuntimeError('Incomplete PR pagination')
+          (out/'pulls.json').write_text(json.dumps([{'number':p['number'],'title':p['title'],'body':p['body'],'state':p['state'],'merged_at':p['merged_at'],'head':p['head']['ref'],'head_sha':p['head']['sha'],'base_sha':p['base']['sha'],'merge_sha':p['merge_commit_sha']} for p in prs],ensure_ascii=False,indent=2))
+          def tree(sha):
+              found={}
+              for r in git('ls-tree','-r','-z',sha).stdout.split(b'\0'):
+                  if not r:continue
+                  info,name=r.split(b'\t',1); mode,kind,blob=info.decode().split()
+                  found[name.decode()]={'mode':mode,'kind':kind,'sha':blob}
+              return found
+          mt=tree(main); blob_cache={}
+          safe_suffix={'.py','.html','.css','.js','.json','.md','.yml','.yaml','.txt','.ini','.toml','.sh','.ps1'}
+          denied={'.git','.venv','.env','data','logs','secrets','credentials','node_modules','release_output'}
+          def safe(path):
+              p=pathlib.PurePosixPath(path)
+              return not p.is_absolute() and '..' not in p.parts and not set(p.parts)&denied and not p.name.startswith('.env') and p.suffix in safe_suffix
+          def blob(sha):
+              if sha not in blob_cache:blob_cache[sha]=git('cat-file','blob',sha).stdout
+              return blob_cache[sha]
+          def write(name,data):
+              dest=out/name; dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+          def defs(data):
+              try:
+                  module=ast.parse(data.decode('utf-8-sig')); found={}
+                  for n in module.body:
+                      if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef)):
+                          found[n.name]=ast.dump(n,include_attributes=False)
+                  return found
+              except (ValueError,SyntaxError,UnicodeError):return {}
+          results=[]
+          with tempfile.TemporaryDirectory(prefix='readonly-branch-comparison-') as t:
+              work=pathlib.Path(t)
+              for idx,row in enumerate(targets,1):
+                  name,sha=row['branch'],row['sha']; assert text('rev-parse','refs/remotes/origin/'+name)==sha,'Branch advanced'
+                  base=text('merge-base',main,sha); bt,ht=tree(base),tree(sha)
+                  paths=[p for p in sorted(set(bt)|set(ht)) if bt.get(p)!=ht.get(p)]
+                  label=f'{idx:02d}'
+                  record={'index':idx,'branch':name,'sha':sha,'base':base,'files':[],'related_prs':row['related_prs']}
+                  commits=text('log','--format=%H %s',base+'..'+sha)
+                  record['commits']=commits.splitlines()
+                  for path in paths:
+                      before,after,current=bt.get(path),ht.get(path),mt.get(path)
+                      f={'path':path,'base':before,'branch':after,'main':current}
+                      if current==after:f['status']='EXACT_CURRENT_FILE'
+                      elif current==before:f['status']='BASE_UNCHANGED_IN_MAIN'
+                      else:f['status']='DIVERGED_CURRENT_FILE'
+                      if safe(path) and all(x is None or x['kind']=='blob' and x['mode'] in {'100644','100755'} for x in (before,after,current)):
+                          a=blob(before['sha']) if before else b'';b=blob(after['sha']) if after else b'';c=blob(current['sha']) if current else b''
+                          if b'\0' not in a+b+c and max(map(len,(a,b,c)))<6000000:
+                              patch=git('diff','--no-ext-diff','--no-textconv','--no-renames','--full-index',base,sha,'--',path).stdout
+                              write(f'branches/{label}/patches/{path}.patch',patch)
+                              if before:write(f'branches/{label}/base/{path}',a)
+                              if after:write(f'branches/{label}/head/{path}',b)
+                              if current:write(f'main/{path}',c)
+                              probe=work/label;probe.mkdir(exist_ok=True)
+                              if current:
+                                  dest=probe/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(c)
+                              reverse=git('apply','--check','--reverse','--whitespace=nowarn','-',data=patch,cwd=probe,check=False)
+                              forward=git('apply','--check','--whitespace=nowarn','-',data=patch,cwd=probe,check=False)
+                              f.update(reverse_check=reverse.returncode==0,forward_check=forward.returncode==0)
+                              if path.endswith('.py'):
+                                  da,db,dc=defs(a),defs(b),defs(c)
+                                  changed=[key for key in sorted(set(da)|set(db)) if da.get(key)!=db.get(key)]
+                                  f['changed_definitions']=[{'name':key,'in_current':dc.get(key)==db.get(key),'removed':key not in db} for key in changed]
+                          else:f['content_review']='BINARY_OR_OVERSIZE'
+                      else:f['content_review']='OUTSIDE_SOURCE_SCOPE'
+                      record['files'].append(f)
+                  results.append(record)
+                  print(json.dumps({'branch':name,'files':len(paths),'exact':sum(f['status']=='EXACT_CURRENT_FILE' for f in record['files']),'reverse':sum(f.get('reverse_check',False) for f in record['files'])}))
+                  related=[p for p in prs if p['head']['ref']==name]
+                  for pr in related:
+                      comments=get('issues/'+str(pr['number'])+'/comments?per_page=100')
+                      write(f'branches/{label}/comments-{pr["number"]}.json',json.dumps([{'author':r['user']['login'],'body':r['body'],'url':r['html_url']} for r in comments],ensure_ascii=False,indent=2).encode())
+          report={'main_sha':main,'observed_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'branches':results,'deleted':0,'merged':0,'windows_worktrees_inspected':False}
+          (out/'content-comparison.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          # Export only current tracked source used for isolated reproducible testing.
+          import zipfile
+          dirs={'templates','static','engines','services','blueprints','tools','tests','automation_workforce','browser_qa','config','utils','core','models','project_control','.github'}
+          with zipfile.ZipFile(out/'current-source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name,item in mt.items():
+                  p=pathlib.PurePosixPath(name)
+                  if not safe(name) or item['kind']!='blob' or item['mode'] not in {'100644','100755'}:continue
+                  if p.parts[0] in dirs or len(p.parts)==1:
+                      data=blob(item['sha'])
+                      if b'\0' not in data and len(data)<6000000:z.writestr(name,data)
+          print('Completed: 35 branches compared; no remote writes, no deletion, no application execution.')
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: branch-content-resolution-${{ github.run_id }}
+          path: ${{ runner.temp }}/branch-content-resolution/
+          retention-days: 14
+          if-no-files-found: error
