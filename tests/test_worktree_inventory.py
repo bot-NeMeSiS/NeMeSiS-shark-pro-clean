@@ -101,3 +101,43 @@ def test_no_ref_or_index_changes(repo):
 
 def test_reject_non_ref_base(repo):
     with pytest.raises(m.InspectionError):m.inspect(repo,'--all')
+
+
+@pytest.mark.parametrize('flags', [
+    ['--assume-unchanged'], ['--skip-worktree'],
+    ['--assume-unchanged', '--skip-worktree'],
+])
+def test_hidden_index_flags_are_not_clean(repo, flags):
+    path=linked(repo)
+    for flag in flags:
+        g(path,'update-index',flag,'file.txt')
+    (path/'file.txt').write_text('LOCAL CHANGE HIDDEN FROM STATUS')
+    before=g(path,'ls-files','-v','file.txt')
+    assert not g(path,'status','--porcelain')
+    row=lookup(repo,path)
+    assert row['classification']=='KEEP'
+    if '--assume-unchanged' in flags:
+        assert row['assume_unchanged_entries']==1
+        assert 'ASSUME_UNCHANGED_INDEX_ENTRIES' in row['reasons']
+    if '--skip-worktree' in flags:
+        assert row['skip_worktree_entries']==1
+        assert 'SKIP_WORKTREE_INDEX_ENTRIES' in row['reasons']
+    assert g(path,'ls-files','-v','file.txt')==before
+    assert (path/'file.txt').read_text()=='LOCAL CHANGE HIDDEN FROM STATUS'
+
+
+def test_fsmonitor_hook_is_never_invoked_by_inspection(repo):
+    path=linked(repo)
+    marker=repo/'.git'/'hook-marker'
+    hook=repo/'.git'/'qa-fsmonitor'
+    hook.write_text('#!/bin/sh\nprintf "ran" >> "'+str(marker)+'"\nprintf "token\\000"\n')
+    hook.chmod(0o700)
+    g(repo,'config','core.fsmonitor',str(hook))
+    # Establish that this Git setup really would execute the hook without a guard.
+    g(path,'status','--porcelain')
+    assert marker.exists()
+    marker.unlink()  # Disposable marker in this test repository, not user data.
+    before=(g(repo,'show-ref'),(repo/'.git/index').read_bytes())
+    m.inspect(repo)
+    assert not marker.exists(), 'Read-only inspection executed the fsmonitor hook'
+    assert before==(g(repo,'show-ref'),(repo/'.git/index').read_bytes())
