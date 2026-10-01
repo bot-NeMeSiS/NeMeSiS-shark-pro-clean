@@ -213,3 +213,17 @@ def test_restart_retains_review_and_schema(db):
     second=news.snapshot(Path(db),'ed-qa')
     assert first['items']==second['items']
     assert second['items'][0]['id']==nid
+
+
+@pytest.mark.parametrize('kind,label', [
+    ('own_goal','Autogol'), ('penalty_goal','Gol de penalti'),
+    ('missed_penalty','Penalti fallado'), ('second_yellow','Segunda amarilla'),
+])
+def test_editorial_keeps_decisive_canonical_events(kind,label):
+    ctx=copy.deepcopy(CONTEXT)
+    ctx['event_summary']={'available':True,'source':'QA verificada','items':[
+        {'id':'canonical-event','type':kind,'label':label,'minute_label':"58′",'player':'Jugador QA'}]}
+    result=build_editorial(ctx)
+    assert len(result['moments'])==1, f'Canonical event {kind} was omitted'
+    assert result['moments'][0]['label']==label
+    assert result['moments'][0]['minute']=="58′"

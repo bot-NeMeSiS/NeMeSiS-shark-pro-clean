@@ -45,7 +45,7 @@ jobs:
           import os,json,pathlib,xml.etree.ElementTree as ET
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'editorial-evidence'
           cases=ET.parse(root/'tests.xml').findall('.//testcase')
-          assert len(cases)>=39
+          assert len(cases)>=43
           assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
           checks=json.loads((root/'browser/results.json').read_text())
           assert len(checks)==12

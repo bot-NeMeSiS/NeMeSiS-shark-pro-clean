@@ -54,7 +54,7 @@ def build_editorial(context, news=None):
         for row in (events.get('items') or [])[:150]:
             row = obj(row)
             kind = text(row.get('type')).lower()
-            if kind not in {'goal','red_card','yellow_card','card','penalty','var','substitution'}:
+            if kind not in {'goal','own_goal','penalty_goal','missed_penalty','red_card','second_yellow','yellow_card','var','substitution'}:
                 continue
             label = text(row.get('label') or row.get('detail'), 180)
             key = (row.get('id'), row.get('minute_label'), label, row.get('player'), row.get('team'))
