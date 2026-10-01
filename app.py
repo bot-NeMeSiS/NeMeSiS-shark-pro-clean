@@ -4369,6 +4369,7 @@ def fetch_json_response(url, headers=None, timeout=10):
 
 
 def sportsdb_v1(endpoint, params=None):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4378,10 +4379,11 @@ def sportsdb_v1(endpoint, params=None):
     )
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    return fetch_json_url(url, timeout=12)
+    return fetch_json_url(url, timeout=request_timeout(12))
 
 
 def sportsdb_v2(path):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4389,7 +4391,7 @@ def sportsdb_v2(path):
     return fetch_json_url(
         url,
         headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key},
-        timeout=12,
+        timeout=request_timeout(12),
     )
 
 
@@ -5007,39 +5009,18 @@ def _prioritize_sportsdb_feed_events(events, limit=220, priority_external_ids=No
 
 
 def fetch_sportsdb_feed_events(limit=220, priority_external_ids=None):
-    events = []
-    errors = []
-    external_calls = 0
-    try:
-        external_calls += 1
-        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
-        events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-    except Exception as exc:
-        save_thesportsdb_error(exc)
-        errors.append("eventsday: " + str(exc)[:160])
-    for league in SPORTSDB_FEED_LEAGUES:
-        if len(events) >= int(limit):
-            break
-        try:
-            external_calls += 1
-            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
-            events.extend([(item, league) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append(f"{league['name']}: {str(exc)[:160]}")
-    if sportsdb_live_enabled():
-        try:
-            external_calls += 1
-            payload = sportsdb_v2("livescore/soccer")
-            events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append("livescore: " + str(exc)[:160])
-    selected = _prioritize_sportsdb_feed_events(
-        events,
-        limit=limit,
+    from engines.sportsdb_request_budget import fetch_feed
+    if not thesportsdb_key():
+        return [], ['MISSING_KEY'], 0
+    selected, errors, external_calls = fetch_feed(
+        v1=sportsdb_v1, v2=sportsdb_v2, today=today_iso(),
+        leagues=SPORTSDB_FEED_LEAGUES, live_enabled=sportsdb_live_enabled(),
+        limit=limit, prioritize=_prioritize_sportsdb_feed_events,
+        slug=slug, collect=sportsdb_event_collection,
         priority_external_ids=priority_external_ids,
     )
+    if errors:
+        save_thesportsdb_error('; '.join(errors))
     return selected, errors, external_calls
 
 
@@ -18452,24 +18433,33 @@ def v766_calendar_order_context(calendar=None):
 
 
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
-    """Sincroniza highlights de forma controlada. Protegido por admin/secret en rutas."""
+    """Reuse the existing daily sync; failures must not suppress a whole day."""
+    import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         last_day = str(last.get("date") or "")[:10]
         if last_day == today_iso():
-            return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('retryable') is False:
+                return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
+            try:
+                age = time.time() - float(last.get('attempt_finished_epoch') or 0)
+            except (ValueError, TypeError, OverflowError):
+                age = 901
+            if 0 <= age < 900:
+                return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"]}
     try:
         result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
-        try:
-            rebuild_match_enrichment(DB_PATH, limit=limit)
-        except Exception:
-            pass
-    except Exception as exc:
-        result = {"ok": False, "errors": [str(exc)[:220]], "processed": 0, "updated": 0}
+    except Exception:
+        result = {"ok": False, "status": "FAILED", "errors": ["HIGHLIGHTS_SYNC_FAILED"], "processed": 0, "updated": 0}
     result["started_at"] = started
     result["finished_at"] = now_iso()
     result["date"] = today_iso()
+    result['attempt_finished_epoch'] = time.time()
     automation_set("sportsdb_highlights_last_sync", result)
     return result
 

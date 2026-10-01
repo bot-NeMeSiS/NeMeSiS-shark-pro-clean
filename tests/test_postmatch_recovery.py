@@ -78,7 +78,7 @@ def test_requires_explicit_source_permission(store):
 def test_real_workers_recover_stats_and_queue_video_review(store):
     result = tick(store.path, clock=lambda:NOW, source_factory=factory)
     assert result['processed'] == 2
-    assert result['external_calls'] == 3
+    assert result['external_calls'] == 2  # one event lookup shared by both jobs, plus statistics
     assert {row['state'] for row in result['jobs']} == {'COMPLETE','REVIEW_REQUIRED'}
     assert result['result'] == 'PARTIAL'  # Not automatic legal approval.
     snap = read_for_match(store.path, MATCH)
