@@ -1,4 +1,4 @@
-name: Verify recovered media readers
+name: Verify and commit recovered media readers
 on:
   push:
     branches: [fix/highlights-read-consumers-recovery-20261001]
@@ -20,122 +20,40 @@ jobs:
       AUTO_SYNC_ON_STARTUP: '0'
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - uses: actions/setup-python@v7
         with:
           python-version: '3.11.9'
-      - name: Read historical source without executing it
-        run: git fetch --filter=blob:none --no-tags origin ac2e43df6c13b01b353ba692db3f01c4cb4d7b9f
-      - name: Apply only the byte-verified selective recovery
+      - name: Read the fixed historical source and immutable verified patch
         run: |
+          git fetch --filter=blob:none --no-tags origin ac2e43df6c13b01b353ba692db3f01c4cb4d7b9f
           python - <<'PY'
+          import subprocess,textwrap,hashlib,ast,json
           from pathlib import Path
-          import ast,re,hashlib,json,subprocess
-          root=Path.cwd()
-          historical=subprocess.check_output(['git','show','ac2e43df6c13b01b353ba692db3f01c4cb4d7b9f:app.py']).decode().replace('\r\n','\n')
-          hashes={
-          'app.py':('9c59f16603ed4c9a0950f7f5b7f697869090c24c4b1bc03ed488ea504693cda2','67aa50e86e5d130fc7a855c5ac7b02c58cd808c4abf54646e40c23a5a2166c49'),
-          'engines/sportsdb_highlights_engine.py':('824cca2ae0b1290616f675aa5064001e62f6e23f9d734a1d4eb4bbd3225bf8e3','b5aca9cc11854925c5b5d1b984901a810512d1fd027b19e17c25ae7adc1da945'),
-          'templates/highlight_detail.html':('c7770db370aa4cd6ac0d20e86c516a63985f943fd6eedf6024835fb03c496382','c67c1cbee91592821ca121a44c6826ab343def9505defc11b3b03ed6e7670fc8'),
-          'templates/admin_highlights_center.html':('6947f1bb7192c15ce3e0c741dd42c55e4d181293a4d077010f36db54d9e56b67','6f2fdff8e9996ca709d94b5e59cdb9a84925d45b4d876441f018329ea0e525ab')}
-          def read(p):
-              raw=(root/p).read_bytes();assert hashlib.sha256(raw).hexdigest()==hashes[p][0],p
-              return raw.decode()
-          def write(p,s):
-              raw=s.encode();assert hashlib.sha256(raw).hexdigest()==hashes[p][1],p
-              (root/p).write_bytes(raw)
-          def extract(s,name):
-              for n in ast.parse(s).body:
-                  if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name:return ''.join(s.splitlines(keepends=True)[n.lineno-1:n.end_lineno]).rstrip('\r\n')
-              raise KeyError(name)
-          def replace(s,name,new):
-              lines=s.splitlines(keepends=True);eol='\r\n' if s.count('\r\n')>s.count('\n')/2 else '\n'
-              for n in ast.parse(s).body:
-                  if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name==name:
-                      return ''.join(lines[:n.lineno-1])+new.replace('\r\n','\n').replace('\n',eol)+eol+''.join(lines[n.end_lineno:])
-              raise KeyError(name)
-          p='engines/sportsdb_highlights_engine.py';s=read(p)
-          for fn,body in [('sportsdb_highlights_summary','read_highlights_summary(db_path)'),('sportsdb_highlights_for_match','read_highlights_for_match(db_path, match_id)')]:
-              sig='db_path' if fn.endswith('summary') else 'db_path, match_id';reader=body.split('(')[0]
-              s=replace(s,fn,f'def {fn}({sig}):\n    """Read persisted metadata only; schema creation belongs to ingestion."""\n    from engines.highlight_read_model import {reader}\n    return {body}')
-          s+='\n\ndef sportsdb_highlight_by_id(db_path, highlight_id):\n    from engines.highlight_read_model import read_highlight_by_id\n    return read_highlight_by_id(db_path, highlight_id)\n\n\ndef sportsdb_highlights_map(db_path, match_ids, limit_per_match=2):\n    from engines.highlight_read_model import read_highlights_map\n    return read_highlights_map(db_path, match_ids, limit_per_match=limit_per_match)\n'
-          write(p,s)
-          p='app.py';s=read(p)
-          s=s.replace('    sportsdb_highlights_summary,','    sportsdb_highlights_summary,\n    sportsdb_highlight_by_id,\n    sportsdb_highlights_map,',1)
-          for name in ['_cached_match_media','v766_highlight_map','v766_apply_match_highlight_badge','v766_enrich_matches_with_highlights','v766_highlights_context','v769_get_highlight_by_id','v769_highlights_content_center']:
-              new=extract(historical,name)
-              if name=='v766_apply_match_highlight_badge':
-                  guard='    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:\n        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="", highlight_read_state="DISABLED_BY_ADMIN")\n        return item\n'
-                  new=new.replace('    item = dict(match or {})\n','    item = dict(match or {})\n'+guard,1)
-              if name=='v766_highlights_context':
-                  guard='    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:\n        return {"version": APP_VERSION, "ok": False, "read_state": "DISABLED_BY_ADMIN", "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador."}\n'
-                  new=new.replace('    try:\n',guard+'    try:\n',1)
-              if name=='v769_highlights_content_center':
-                  new=new.replace('    if not verified:\n','    if base.get("status") == "DISABLED_BY_ADMIN":\n        status = "DISABLED_BY_ADMIN"\n        headline = "Resúmenes en pausa"\n        description = "La presentación de resúmenes está pausada por el administrador."\n    elif not verified:\n',1)
-                  new=new.replace('/api/automation/highlights/sync?secret=AUTOMATION_SECRET&days_back=7&limit=300','/api/automation/highlights/sync')
-                  new=new.replace('Cada día por la mañana y otra pasada por la noche en días con muchos partidos.','Coordinado por el Cron existente; no crear otra programación.')
-              s=replace(s,name,new)
-          names=['v766_highlight_map_snapshot','v769_get_highlight_snapshot','v769_pending_highlight_snapshot']
-          for name in names:s+='\n\n'+extract(historical,name)+'\n'
-          s=replace(s,'v769_pending_highlight_matches','def v769_pending_highlight_matches(days_back=10, limit=80):\n    return v769_pending_highlight_snapshot(days_back=days_back, limit=limit).get("matches") or []')
-          appended='\n\n'.join(extract(s,name) for name in names)
-          for name in names:
-              n=[n for n in ast.parse(s).body if isinstance(n,ast.FunctionDef) and n.name==name][-1]
-              lines=s.splitlines(keepends=True);s=''.join(lines[:n.lineno-1])+''.join(lines[n.end_lineno:])
-          pos=s.index('def v766_highlight_map(');s=s[:pos]+appended+'\n\n\n'+s[pos:]
-          s=s.replace('    highlight_map = v766_highlight_map([m.get("id") for m in dedupe_matches_list(matches or []) if isinstance(m, dict)], limit_per_match=3)', '    highlight_snapshot = v766_highlight_map_snapshot([m.get("id") for m in dedupe_matches_list(matches or []) if isinstance(m, dict)], limit_per_match=3)\n    highlight_map = highlight_snapshot.get("map") or {}',1)
-          s=s.replace('item = v766_apply_match_highlight_badge(item, highlight_map.get(str(item.get("id") or ""), []))','item = v766_apply_match_highlight_badge(item, highlight_map.get(str(item.get("id") or ""), []), read_state=highlight_snapshot.get("read_state"))',1)
-          # Preserve the original normalization of this one function before its focused change.
-          s=replace(s,'highlight_detail_page',extract(s,'highlight_detail_page'))
-          a='    data = dashboard_data("results", today_iso())\r\n    data["highlight"] = v769_get_highlight_by_id(highlight_id)'
-          b='    snapshot = v769_get_highlight_snapshot(highlight_id)\n    if snapshot.get("ok") is not True:\n        return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",\n            resource_title="No se pudo comprobar este resumen",\n            resource_message="El catálogo no está accesible en esta lectura. Esto no significa que el vídeo no exista."), 503\n    data = dashboard_data("results", today_iso())\n    data["highlight"] = snapshot.get("highlight") or {}'
-          assert s.count(a)==1;s=s.replace(a,b.replace('\n','\r\n'),1)
-          a='"read_state": next(iter(states), "READ_UNAVAILABLE")';assert s.count(a)==1
-          s=s.replace(a,'"read_state": next(iter(sorted(states - {"VERIFIED"})), "READ_UNAVAILABLE")',1)
-          ast.parse(s);write(p,s)
-          p='templates/highlight_detail.html';s=read(p)
-          s=s.replace('{% block content %}','{% block content %}\n<script defer src="{{ url_for(\'static\', filename=\'postmatch-media.js\') }}?v=1"></script>',1)
-          s=s.replace('<section class="band compact-band v769-highlight-detail">','<section class="band compact-band v769-highlight-detail" data-postmatch-video>',1)
-          a='<div class="v769-video-frame xl"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>'
-          b='<div class="v769-video-frame xl" data-video-mount hidden style="display:none"></div>\n  <button type="button" class="btn primary" data-video-activate="{{ h.embed_url }}">Cargar reproductor externo</button>\n  <p class="small muted" data-video-notice role="status">Al cargar el reproductor se conectará con la plataforma del vídeo. No se inicia la reproducción automáticamente.</p>'
-          assert a in s;s=s.replace(a,b,1);write(p,s)
-          p='templates/admin_highlights_center.html';s=read(p)
-          s=re.sub(r"\{\{ \(center.counts or \{\}\).get\('([^']+)', 0\) \}\}",r"{{ (center.counts or {}).get('\1') if (center.counts or {}).get('\1') is not none else '—' }}",s)
-          s=s.replace('Todavía no hay vídeos sincronizados.','{{ \'No se pudo comprobar el catálogo.\' if not center.get(\'read_ok\') else \'No hay vídeos autorizados en esta muestra.\' }}')
-          s=s.replace('Sin pendientes detectados en la muestra.','{{ \'Disponibilidad de pendientes sin comprobar.\' if center.get(\'pending_read_state\') != \'VERIFIED\' else \'Sin pendientes detectados en la muestra.\' }}');write(p,s)
-          tests={'test_highlight_catalogue_read_truth.py':'9a5fdbc0ed0a6411c850da1e3fa920e9111e82eab95fb48f1ee12748182a51c2','test_highlight_read_diagnostic.py':'e05aed632971cfabdac1a00ab4b148e24bd08e954ee48f50e97697ef979e2543'}
-          for name,sha in tests.items():
-              dest=root/'tests'/name;assert not dest.exists()
-              raw=subprocess.check_output(['git','show','ac2e43df6c13b01b353ba692db3f01c4cb4d7b9f:tests/'+name]);assert hashlib.sha256(raw).hexdigest()==sha
-              dest.write_bytes(raw)
-          Path('/tmp/media-recovery-evidence').mkdir(exist_ok=True)
-          Path('/tmp/media-recovery-evidence/hashes.json').write_text(json.dumps(hashes,indent=2))
+          spec=subprocess.check_output(['git','show','454d0fc7a984e29c3fe5f8c3aa30ae4cda6477de:.github/workflows/recover-media-read.yml']).decode()
+          blocks=spec.split("          python - <<'PY'\n")[1:]
+          assert len(blocks)==2
+          scripts=[textwrap.dedent(b.split('\n          PY',1)[0]) for b in blocks]
+          # The previous run verified all four before/after hashes and 242 tests.
+          # Reuse precisely that reviewed code, then remove only six EOF bytes.
+          exec(compile(scripts[0],'reviewed-selective-recovery-454d0fc','exec'))
+          path=Path('app.py');before=path.read_bytes()
+          assert hashlib.sha256(before).hexdigest()=='67aa50e86e5d130fc7a855c5ac7b02c58cd808c4abf54646e40c23a5a2166c49'
+          after=before.rstrip(b'\r\n')+b'\r\n'
+          assert ast.dump(ast.parse(before))==ast.dump(ast.parse(after))
+          assert hashlib.sha256(after).hexdigest()=='f42d077ab99fd3afbeb3911f84f2fa0fc2beec961044e30939409c3822ea9d94'
+          path.write_bytes(after)
+          evidence=Path('/tmp/media-recovery-evidence')
+          (evidence/'normalized-app-sha256.txt').write_text(hashlib.sha256(after).hexdigest())
+          # Executed with project cwd/import path, not as an imported remote module.
+          Path('/tmp/media-recovery-tests.py').write_text(scripts[1])
           PY
       - name: Install isolated dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Run source recovery and inherited postmatch tests offline
+      - name: Repeat complete 242-case recovery gate before commit
         run: |
-          python - <<'PY'
-          import os,secrets,socket,pytest
-          for key in list(os.environ):
-              if any(s in key for s in ('API_KEY','BOT_TOKEN','AUTOMATION_SECRET','STRIPE_SECRET','PUBLIC_BASE_URL')):os.environ.pop(key,None)
-          os.environ['SECRET_KEY']=secrets.token_hex(32)
-          os.environ['AUTOMATION_SECRET']=secrets.token_hex(32)
-          original=socket.socket.connect
-          def guard(self,address):
-              if isinstance(address,tuple) and address[0] not in {'127.0.0.1','localhost','::1'}:raise AssertionError('External network forbidden')
-              return original(self,address)
-          socket.socket.connect=guard
-          import app
-          app.init_db()
-          files=['test_highlight_read_consumer_recovery','test_highlight_catalogue_read_truth','test_highlight_read_diagnostic','test_postmatch_recovery','test_highlight_review_flow','test_highlights_admin_review_activation','test_sports_media_rights_convergence','test_sports_knowledge_media_experience','test_sportsdb_dedupe_read_budget','test_sportsdb_provider_identity_regression','test_v944_match_center_foundation','test_match_context_intelligence_continuation','test_sports_core_match_center_intelligence','test_design02_reference_conformance','test_render_cron_master_tick','test_active_cron_header_transport_v941','test_render_cron_data_backup']
-          code=pytest.main(['-o','addopts=','-q',*['tests/'+f+'.py' for f in files],'--junitxml=/tmp/media-recovery-evidence/results.xml'])
-          if code:raise SystemExit(code)
-          from xml.etree import ElementTree as ET
-          cases=ET.parse('/tmp/media-recovery-evidence/results.xml').findall('.//testcase')
-          assert len(cases)==242
-          assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
-          for name in app.app.jinja_env.list_templates():app.app.jinja_env.parse(app.app.jinja_env.loader.get_source(app.app.jinja_env,name)[0])
-          PY
+          python -c "exec(compile(open('/tmp/media-recovery-tests.py').read(), 'verified-media-tests', 'exec'))"
           python -m py_compile app.py engines/sportsdb_highlights_engine.py
           python tools/check_madrid_times.py
       - name: Commit only verified product and regression files
@@ -145,7 +63,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add app.py engines/sportsdb_highlights_engine.py templates/highlight_detail.html templates/admin_highlights_center.html tests/test_highlight_catalogue_read_truth.py tests/test_highlight_read_diagnostic.py
           git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check
-          git commit -m 'Fix: recuperar consumidores de highlights y mantener disponibilidad verificable'
+          git commit -m 'Fix: recuperar lectores de highlights, incertidumbre y reproductor por acción'
           git push origin HEAD:refs/heads/fix/highlights-read-consumers-recovery-20261001
           git rev-parse HEAD > /tmp/media-recovery-evidence/source-commit.txt
       - uses: actions/upload-artifact@v7
