@@ -1,0 +1,43 @@
+<section class="ns-media-overview" id="postmatch-workers" data-postmatch-workers>
+  <h2>Trabajadores pospartido</h2>
+  <p>Resúmenes y estadísticas: {{ 'activados' if postmatch.config.enabled else 'en pausa' }}. Estado de lectura: {{ postmatch.state }}.</p>
+  <p>Solo se procesan finales confirmados. Las estadísticas mantienen su procedencia y las discrepancias requieren revisión. Encontrar un vídeo no concede permisos para publicarlo.</p>
+  <details><summary>Configurar recuperación automática</summary>
+    <form method="post" action="/admin/highlights-review/workers/settings">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="ns-media-check"><input type="checkbox" name="enabled" value="1"{% if postmatch.config.enabled %} checked{% endif %}>Activar ambos trabajadores en el Cron existente</label>
+      <label class="ns-media-check"><input type="checkbox" name="sources" value="thesportsdb"{% if 'thesportsdb' in postmatch.config.sources %} checked{% endif %}>TheSportsDB: eventos, resúmenes y estadísticas disponibles para la clave actual</label>
+      <label class="ns-media-check"><input type="checkbox" name="sources" value="api_football"{% if 'api_football' in postmatch.config.sources %} checked{% endif %}>API-Football: recuperación de estadísticas con la clave actual</label>
+      <label>Máximo de consultas adicionales al día (compartido por ambos trabajadores)<input type="number" name="daily_limit" min="1" max="200" value="{{ postmatch.config.daily_limit }}"></label>
+      <label class="ns-media-check"><input type="checkbox" name="confirmed" value="1">He verificado que la cuenta, las condiciones de las fuentes y la cuota permiten estas consultas y la reutilización de los datos. No activa permisos de vídeo.</label>
+      <p>No se compran planes ni se crean claves. El límite es para recuperación pospartido, no sustituye la cuota total de tus proveedores. No se extraen páginas web ajenas.</p>
+      <button type="submit">Guardar configuración</button>
+    </form>
+  </details>
+  <form method="post" action="/admin/highlights-review/workers/run"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Ejecutar un lote pendiente</button></form>
+  <p><a href="/api/admin/postmatch/status">Ver diagnóstico de recuperación</a></p>
+  {% for budget in postmatch.budget %}<p>{{ budget.source }} · {{ budget.day }} · {{ budget.used }} consultas de recuperación.</p>{% endfor %}
+  <details><summary>Tareas recientes y reintentos (hasta 100)</summary>
+  {% for job in postmatch.jobs %}<article class="ns-media-review-card">
+    <p><a href="/match/{{ job.match_id|urlencode }}">Partido {{ job.match_id }}</a> · {{ 'Resumen en vídeo' if job.kind == 'highlights' else 'Estadísticas' }}</p>
+    <p>{{ job.state }} · {{ job.reason }} · {{ job.attempts }} intentos. Próxima revisión programada: {{ job.due_at_madrid|madrid_datetime_label }}.</p>
+    {% if job.state != 'RUNNING' %}<form method="post" action="/admin/highlights-review/workers/{{ job.id }}/retry"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Reabrir esta tarea</button></form>{% endif %}
+  </article>{% else %}<p>No hay tareas registradas en esta lectura.</p>{% endfor %}
+  </details>
+  <details><summary>Revisar estadísticas observadas (últimas 25 observaciones)</summary>
+    <p>Elegir una observación sustituye únicamente sus métricas y las bloquea frente a cambios automáticos. Se conserva la selección anterior en el historial de revisión.</p>
+    {% for observation in postmatch.observations %}<article class="ns-media-review-card">
+      <h3>Partido {{ observation.match_id }} · {{ observation.source }}</h3>
+      <p>{{ observation.reference }} · {{ 'Incluye prórroga' if observation.scope == 'INCLUDING_EXTRA_TIME' else 'Tiempo reglamentario' }}</p>
+      <h4>Valores observados</h4>
+      {% for metric in observation['items'] %}<p>{{ metric.label }}: {{ metric.home if metric.home is not none else '—' }} / {{ metric.away if metric.away is not none else '—' }}</p>{% endfor %}
+      <h4>Selección actual</h4>
+      {% for metric in observation.current_items %}<p>{{ metric.label }}: {{ metric.home if metric.home is not none else '—' }} / {{ metric.away if metric.away is not none else '—' }} · {{ metric.source }}</p>{% endfor %}
+      <form method="post" action="/admin/highlights-review/workers/statistics/{{ observation.id }}/select">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="identity" value="{{ observation.identity }}"><input type="hidden" name="selection_revision" value="{{ observation.selection_revision }}">
+        <label class="ns-media-check"><input type="checkbox" name="confirmed" value="1">He contrastado los valores, la fuente y el periodo de este partido.</label>
+        <button type="submit">Elegir estos valores y registrar revisión</button>
+      </form>
+    </article>{% else %}<p>No hay observaciones registradas en esta lectura.</p>{% endfor %}
+  </details>
+</section>
