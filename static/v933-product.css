@@ -436,9 +436,10 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 .v933-page-header h1 { font-size: clamp(1.55rem,2vw,2.15rem); line-height: 1.08; letter-spacing: 0; }
 .v933-page-header p,.v933-section-header p { margin-top: 5px; color: var(--v933-muted); font-size: .86rem; line-height: 1.45; }
 .v933-page-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-.v933-section-header { align-items: center; padding: 2px 1px; }
-.v933-section-header h2 { font-size: 1rem; line-height: 1.25; }
-.v933-section-header > a { min-height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--v933-radius-xs); color: #65c2ff; font-size: .72rem; font-weight: 800; text-decoration: none; }
+.v933-section-header { align-items: center; flex-wrap: wrap; gap: 8px 18px; padding: 2px 1px; }
+.v933-section-header > div { flex: 1 1 13rem; min-width: 0; }
+.v933-section-header h2 { font-size: 1rem; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: none; }
+.v933-section-header > a { flex: 0 0 auto; max-width: 100%; overflow-wrap: normal; word-break: normal; hyphens: none; min-height: 32px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: var(--v933-radius-xs); color: #65c2ff; font-size: .72rem; font-weight: 800; text-decoration: none; }
 .v933-eyebrow { display: block; margin-bottom: 4px; color: var(--v933-cyan); font-size: .62rem; font-weight: 850; text-transform: uppercase; }
 
 .v933-action {
@@ -701,7 +702,7 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
   .v933-page-header { min-height: 52px; align-items: flex-start; padding: 1px 1px 5px; }
   .v933-page-header h1 { font-size: 1.42rem; }
   .v933-page-header p { font-size: .72rem; }
-  .v933-page-actions { display: none; }
+  .v933-page-header > .v933-page-actions { display: none; }
   .v933-section-header { align-items: flex-start; }
   .v933-section-header h2 { font-size: .9rem; }
   .v933-kpi-grid,.v933-kpi-grid.is-six { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
@@ -986,6 +987,29 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
 .v933-truth-list strong { color: #e8f3fe; font-size: .69rem; }
 .v933-truth-list small { margin-top: 2px; color: var(--v933-muted); font-size: .59rem; }
 .v933-inline-actions { margin-top: 10px; justify-content: flex-start; }
+
+/* Telegram preferences: native controls with full-size, keyboard-safe labels. */
+.v933-telegram-page [data-telegram-preferences-form] .v933-feature-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+}
+.v933-telegram-page .v933-preference-field {
+  display: grid; align-content: start; gap: 7px; min-width: 0;
+}
+.v933-telegram-page .v933-preference-field select { width: 100%; min-width: 0; }
+.v933-telegram-page .v933-preference-choice {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start; gap: 10px; min-width: 0; min-height: 44px; padding: 12px;
+  cursor: pointer;
+}
+.v933-telegram-page .v933-preference-choice input[type="checkbox"] {
+  width: 20px; height: 20px; min-width: 20px; min-height: 20px !important;
+  margin: 0; padding: 0; box-shadow: none; accent-color: var(--v933-cyan);
+}
+.v933-telegram-page .v933-preference-copy { display: grid; gap: 5px; min-width: 0; }
+.v933-telegram-page [data-telegram-preferences-form] button[type="submit"] { min-height: 44px; }
+@media (max-width: 600px) {
+  .v933-telegram-page [data-telegram-preferences-form] .v933-feature-grid { grid-template-columns: 1fr; }
+}
 
 .v933-match-hero { min-height: 210px; display: grid; grid-template-columns: minmax(0,1fr) minmax(180px,.65fr) minmax(0,1fr); align-items: center; gap: 22px; padding: 24px 34px; overflow: hidden; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: radial-gradient(circle at 50% 45%,rgba(8,124,255,.24),transparent 26%),linear-gradient(145deg,#071a31,#030c18 76%); box-shadow: var(--v933-shadow); }
 .v933-match-hero-team { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 16px; }
