@@ -1,0 +1,127 @@
+name: Verify readable media settings
+on:
+  push:
+    branches: [fix/highlights-read-consumers-recovery-20261001]
+    paths: [.github/workflows/media-settings-prepare.yml]
+permissions:
+  contents: write
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/fix/highlights-read-consumers-recovery-20261001'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DB_PATH: /tmp/media-settings-qa/app.sqlite
+      SECRET_KEY: isolated-media-settings-only
+      AUTOMATION_SECRET: isolated-media-settings-cron-only
+      BACKGROUND_JOBS_ENABLED: 'false'
+      AUTO_GENERATE_PICKS: 'false'
+      AUTO_SEND_TELEGRAM_PICKS: 'false'
+      SCHEDULER_ENABLED: '0'
+      ENABLE_AUTO_SYNC: '0'
+      AUTO_SYNC_ON_STARTUP: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11.9'
+      - name: Apply only byte-verified settings and permanent regression gate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          expected={
+            'app.py':('702f68047b185cacdeab09ffdd63e4031135b42e09cf1028670022f151e36a59','73d911732729812e8b52c3182d4bbdbf9c7aada3902bf38fe7c9122b480dbcee'),
+            'blueprints/admin_master_control.py':('b8528372fbb4acf1ef92d36755885c3b6f7d4598c17bff8142fee23b30522c3d','86b95b5a0e963a32ffe0f1fab0db1ad9c72b45f7bbc4c4e81725a5dc58d022bc'),
+            'tests/test_highlight_http_cold_read.py':('cf611f66000309552e75ef0e24f682f2b79cde001fc2ba5e1b8b3039ffd2779c','2dcabaea0bf908651aa66263cf328a0689db029653e8874eb19a90f0798a5cb9'),
+            'tests/test_highlight_read_consumer_recovery.py':('5ba9ccdc1f02b6b2feaf579e020f3f987f3aaeca6f932a08666514f1e9d04d5c','d575c10df2d3d67931eb7d1fd276f65dc14187df4cc727c536bcd5b97b47fead'),
+            '.github/workflows/postmatch-workers.yml':('2fb59699f7154074858202c08dd26da0f8932e6661d08da72aee9cf04c4c2c52','19598f5cc4c10e2c8695350c9f0237e7568bdb2869365bc20b3ae5a8f72ea924')}
+          def load(name):
+              raw=Path(name).read_bytes();assert hashlib.sha256(raw).hexdigest()==expected[name][0],name
+              return raw
+          def save(name,raw):
+              assert hashlib.sha256(raw).hexdigest()==expected[name][1],name
+              Path(name).write_bytes(raw)
+          def patch(raw,old,new):
+              for ending in (b'\r\n',b'\n'):
+                  a=old.encode().replace(b'\n',ending);b=new.encode().replace(b'\n',ending)
+                  if raw.count(a)==1:return raw.replace(a,b,1)
+              raise AssertionError('Patch must match exactly once')
+          p='blueprints/admin_master_control.py';raw=load(p)
+          raw=patch(raw,'def settings_values(a):\n    return _settings_snapshot(a)[0]', 'def settings_values(a, *, include_read_state=False):\n    values, readable = _settings_snapshot(a)\n    # Preserve the values-only contract for existing admin consumers.\n    return {**values, "settings_readable": readable} if include_read_state else values');save(p,raw)
+          p='app.py';raw=load(p)
+          raw=patch(raw,'g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])','g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__], include_read_state=True)')
+          raw=patch(raw,'''        if not admin_operational_settings()["highlights_enabled"]:
+                      if request.path.startswith("/api/"):''','''        settings = admin_operational_settings()
+                  if settings.get("settings_readable") is not True:
+                      if request.path.startswith("/api/"):
+                          return jsonify(ok=False, disabled=None, status="READ_UNAVAILABLE", highlights=[], content_center={}), 503
+                      return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",
+                          resource_title="No se pudo comprobar la disponibilidad de los resúmenes",
+                          resource_message="No se pudo leer la configuración. No se ha confirmado una pausa administrativa ni la ausencia de vídeos."), 503
+                  if not settings["highlights_enabled"]:
+                      if request.path.startswith("/api/"):''')
+          raw=patch(raw,'''    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+                  return {"version": APP_VERSION, "ok": False, "read_state": "DISABLED_BY_ADMIN", "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador."}''','''    if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
+                  readable = admin_operational_settings().get("settings_readable") is True
+                  state = "DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE"
+                  return {"version": APP_VERSION, "ok": False, "read_state": state, "status": state, "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador." if readable else "No se pudo leer la configuración de resúmenes."}''')
+          raw=patch(raw,'''        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="", highlight_read_state="DISABLED_BY_ADMIN")''','''        readable = admin_operational_settings().get("settings_readable") is True
+                  item.update(has_highlights=False if readable else None, highlight_count=0 if readable else None,
+                              highlight_url="", highlight_title="", client_highlight_label="" if readable else "Disponibilidad sin comprobar",
+                              highlight_read_state="DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE")''');save(p,raw)
+          for p in ('tests/test_highlight_http_cold_read.py','tests/test_highlight_read_consumer_recovery.py'):
+              raw=load(p)
+              raw=raw.replace(b"{'highlights_enabled':True}",b"{'highlights_enabled':True, 'settings_readable':True}")
+              raw=raw.replace(b"{'highlights_enabled':False}",b"{'highlights_enabled':False, 'settings_readable':True}")
+              save(p,raw)
+          p='.github/workflows/postmatch-workers.yml';raw=load(p)
+          anchor='            tests/test_postmatch_recovery.py '+chr(92)+'\n'
+          extra=''.join('            tests/'+n+'.py '+chr(92)+'\n' for n in ['test_highlight_settings_read_truth','test_highlight_http_cold_read','test_highlight_read_consumer_recovery','test_highlight_catalogue_read_truth','test_highlight_read_diagnostic'])
+          raw=patch(raw,anchor,extra+anchor)
+          raw=patch(raw,"assert len(cases) >= 195, 'Incomplete recovery regression matrix'", "assert len(cases) >= 307, 'Incomplete recovery regression matrix'\n          for module, minimum in [('test_highlight_settings_read_truth', 26), ('test_highlight_http_cold_read', 39)]:\n              assert sum(module in case.get('classname', '') for case in cases) >= minimum, module")
+          save(p,raw)
+          PY
+      - name: Install isolated test dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Verify 307 cases with outbound transport blocked
+        run: |
+          mkdir -p /tmp/media-settings-evidence
+          python - <<'PY'
+          import socket,pytest
+          calls=[];original=socket.socket.connect
+          def guard(self,address):
+              if isinstance(address,tuple) and address[0] not in {'127.0.0.1','localhost','::1'}:
+                  calls.append(1);raise AssertionError('External transport forbidden')
+              return original(self,address)
+          socket.socket.connect=guard
+          import app
+          app.init_db()
+          files=['test_highlight_settings_read_truth','test_highlight_http_cold_read','test_highlight_read_consumer_recovery','test_highlight_catalogue_read_truth','test_highlight_read_diagnostic','test_postmatch_recovery','test_highlight_review_flow','test_highlights_admin_review_activation','test_sports_media_rights_convergence','test_sports_knowledge_media_experience','test_sportsdb_dedupe_read_budget','test_sportsdb_provider_identity_regression','test_v944_match_center_foundation','test_match_context_intelligence_continuation','test_sports_core_match_center_intelligence','test_design02_reference_conformance','test_render_cron_master_tick','test_active_cron_header_transport_v941','test_render_cron_data_backup']
+          result=pytest.main(['-o','addopts=','-q',*['tests/'+f+'.py' for f in files],'--junitxml=/tmp/media-settings-evidence/results.xml'])
+          assert not calls
+          if result:raise SystemExit(result)
+          from xml.etree import ElementTree as ET
+          cases=ET.parse('/tmp/media-settings-evidence/results.xml').findall('.//testcase')
+          assert len(cases)==307
+          assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
+          for name in app.app.jinja_env.list_templates():app.app.jinja_env.parse(app.app.jinja_env.loader.get_source(app.app.jinja_env,name)[0])
+          PY
+          python -m py_compile app.py blueprints/admin_master_control.py
+          python tools/check_madrid_times.py
+      - name: Save only reviewed source files to the existing PR branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.py blueprints/admin_master_control.py tests/test_highlight_http_cold_read.py tests/test_highlight_read_consumer_recovery.py .github/workflows/postmatch-workers.yml
+          git -c core.whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol diff --cached --check
+          git commit -m 'Fix: distinguir ajustes ilegibles de una pausa real en highlights'
+          git push origin HEAD:refs/heads/fix/highlights-read-consumers-recovery-20261001
+          git rev-parse HEAD > /tmp/media-settings-evidence/source-commit.txt
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: media-settings-${{ github.run_id }}
+          path: /tmp/media-settings-evidence/
+          retention-days: 7
+          if-no-files-found: warn
