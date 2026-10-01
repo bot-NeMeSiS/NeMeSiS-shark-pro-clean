@@ -77,7 +77,7 @@ def state(path, *, now=None):
             result['sources'] = [dict(r) for r in conn.execute('SELECT id,publisher,feed_url,article_host,competition,evidence_url,basis,expires_at,auto_publish,enabled,revoked,revision,due_at,last_attempt,last_success,failures,last_result FROM editorial_sources ORDER BY revoked,id DESC LIMIT 10')]
             for source in result['sources']:
                 source['policy_valid'] = not source['revoked'] and source['expires_at'] > now
-            result['inbox'] = [dict(r) for r in conn.execute("SELECT i.id,i.source_id,s.publisher,i.url,i.source_title,i.published_at,i.state,i.match_id,i.news_id FROM editorial_inbox i JOIN editorial_sources s ON s.id=i.source_id WHERE i.state IN ('UNMATCHED','AMBIGUOUS','SOURCE_CHANGED','DRAFT') ORDER BY i.updated_at DESC LIMIT 20")]
+            result['inbox'] = [dict(r) for r in conn.execute("SELECT i.id,i.source_id,s.publisher,i.url,i.source_title,i.published_at,i.state,i.match_id,i.news_id FROM editorial_inbox i JOIN editorial_sources s ON s.id=i.source_id WHERE i.state IN ('UNMATCHED','AMBIGUOUS','CATEGORY_REVIEW','SOURCE_CHANGED','DRAFT') ORDER BY i.updated_at DESC LIMIT 20")]
     except (sqlite3.Error, OSError, ValueError):
         return {**result, 'state':'READ_UNAVAILABLE','enabled':False,'sources':[],'inbox':[],'used':None}
     return result
@@ -201,7 +201,7 @@ def finish(path, job, items, *, now, error='', rejected=0):
     with connection(path,True) as conn:
         _fence(conn,job,now)
         if not error:
-            day = datetime.fromtimestamp(now-7*86400,ZoneInfo('Europe/Madrid')).date().isoformat()
+            day = datetime.fromtimestamp(now-9*86400,ZoneInfo('Europe/Madrid')).date().isoformat()
             today = datetime.fromtimestamp(now,ZoneInfo('Europe/Madrid')).date().isoformat()
             matches = [dict(r) for r in conn.execute('SELECT * FROM matches WHERE substr(match_date,1,10) BETWEEN ? AND ? ORDER BY match_date DESC,id LIMIT 501',(day,today))]
             # Fail closed instead of claiming uniqueness from an incomplete candidate set.

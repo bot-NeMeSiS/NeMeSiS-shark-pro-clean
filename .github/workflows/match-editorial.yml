@@ -19,6 +19,7 @@ on:
       - 'tests/test_match_editorial.py'
       - 'tests/test_editorial_worker.py'
       - 'tests/test_editorial_worker_http.py'
+      - 'tests/test_editorial_review_regressions.py'
       - 'tools/run_match_editorial_browser_qa.py'
       - 'tools/run_editorial_worker_browser_qa.py'
       - '.github/workflows/match-editorial.yml'
@@ -45,7 +46,7 @@ jobs:
       - name: Publication, feed, budget and HTTP regressions
         run: |
           mkdir -p "$RUNNER_TEMP/editorial-evidence"
-          python -m pytest -o addopts='' -q tests/test_match_editorial.py tests/test_editorial_worker.py tests/test_editorial_worker_http.py --junitxml="$RUNNER_TEMP/editorial-evidence/tests.xml"
+          python -m pytest -o addopts='' -q tests/test_match_editorial.py tests/test_editorial_worker.py tests/test_editorial_worker_http.py tests/test_editorial_review_regressions.py --junitxml="$RUNNER_TEMP/editorial-evidence/tests.xml"
       - name: Full application browser from automatic feed publication
         run: python tools/run_editorial_worker_browser_qa.py --output "$RUNNER_TEMP/editorial-evidence/browser"
       - name: Verify complete evidence
@@ -54,7 +55,7 @@ jobs:
           import os,json,pathlib,xml.etree.ElementTree as ET
           root=pathlib.Path(os.environ['RUNNER_TEMP'])/'editorial-evidence'
           cases=ET.parse(root/'tests.xml').findall('.//testcase')
-          assert len(cases)>=122
+          assert len(cases)>=132
           assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
           checks=json.loads((root/'browser/results.json').read_text())
           assert len(checks)==12

@@ -7,7 +7,9 @@ de Render ni otras ramas. No sustituye PR137 ni sus correcciones pendientes.
 RSS2/Atom HTTPS aprobado -> metadatos -> asociación conservadora -> borrador o
 publicación bajo política revisada -> ficha cliente. Nombres canónicos completos
 de ambos equipos, competición revisada, final confirmado y noticia publicada
-entre el inicio y 48 horas después. No hay matching difuso ni finales inferidos.
+entre el inicio y 48 horas después. Las categorías RSS/Atom explícitas deben
+coincidir con la competición; las desconocidas o contradictorias requieren revisión.
+El lector considera todas las categorías RSS y el atributo term de Atom. No hay matching difuso ni finales inferidos.
 Ambigüedades y nombres no cubiertos quedan para revisión. Una asociación no prueba
 las afirmaciones de la noticia. No se promete cobertura para todos los partidos.
 
@@ -26,7 +28,8 @@ No viene ninguna fuente real aprobada. Registrar una fuente no activa el editor.
 Activación explícita con presupuesto: 12 reservas/día por defecto, máximo 60,
 compartidas entre fuentes; día Europe/Madrid. No representa toda la cuota de una
 cuenta ni un coste monetario. Reserva previa, no reembolsada en fallos inciertos.
-Un feed por tick; hasta 256 KiB, 50 entradas y 500 candidatos recientes. Si la
+Un feed por tick; hasta 256 KiB, 50 entradas y 500 candidatos de hasta nueve días: siete del feed más dos entre
+inicio y publicación. Si la
 ventana es mayor no se afirma unicidad. Las agendas futuras no consumen esa muestra.
 Revisión normal cada 2 horas, errores a 30 minutos, 2 y 12 horas. Revisión manual
 no evita el mínimo de 5 minutos. Arrendamiento y versiones protegen concurrencia.
@@ -54,7 +57,7 @@ redirecciones, cookies, credenciales o destinos internos. XML sin DTD/entidades.
 La validación técnica no concede licencia. Red fuera de transacciones SQLite,
 escrituras condicionadas a identidad, revisión de política y arrendamiento vigentes.
 
-79 casos nuevos y 195 regresiones pospartido se prueban con datos aislados. El
+89 casos nuevos y 195 regresiones pospartido se prueban con datos aislados. El
 workflow editorial conserva las 43 regresiones de la ficha y exige 12 casos HTTP
 completos (FREE/PRO/ELITE/admin a 320/390/1440) desde tres referencias publicadas
 por un feed sintético, no insertadas a mano. Chromium local bloquea localhost;
@@ -62,3 +65,9 @@ ese intento no se declara aprobado ni se sustituye por snapshots. CI valida HTTP
 Antes de producción: comprobar candidato y despliegue, conservar copia recuperable,
 aprobar una fuente real con permiso/cobertura contrastados y ejecutar un lote acotado.
 Las pruebas no conceden derechos reales ni certifican reproducción regional.
+
+## Correcciones verificadas durante revisión
+Se recalcula el tiempo restante antes de cada fase de conexión/TLS/envío/cabeceras,
+además de limitar lectura del cuerpo. No se afirma cancelación absoluta de DNS.
+Las respuestas administrativas se muestran en el panel una sola vez, con estado
+accesible para éxito o error; la redirección no deja el resultado invisible.

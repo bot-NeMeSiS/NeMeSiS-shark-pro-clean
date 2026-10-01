@@ -82,3 +82,36 @@ def test_status_private_and_has_no_lease_secrets(http,db):
     r=c.get('/api/admin/editorial/status')
     assert r.status_code==200 and 'no-store' in r.headers['Cache-Control']
     assert job['token'] not in r.text and 'lease_token' not in r.text
+
+
+def _render_real_admin_template(app):
+    from pathlib import Path
+    from jinja2 import ChoiceLoader, DictLoader, FileSystemLoader
+    root = Path(__file__).resolve().parents[1]
+    # The actual page and its editor partial must render their own feedback;
+    # the real global shell currently has no flashed-message outlet.
+    app.jinja_loader = ChoiceLoader([
+        DictLoader({'base.html': '<!doctype html><html><body>{% block content %}{% endblock %}</body></html>'}),
+        FileSystemLoader(str(root / 'templates')),
+    ])
+    app.jinja_env.globals['csrf_token'] = lambda: generate_csrf_token(session)
+    app.jinja_env.filters['madrid_datetime_label'] = str
+
+
+def test_operator_sees_result_after_redirect_exactly_once(http):
+    app, client, token = http
+    _render_real_admin_template(app)
+    response = client.post('/admin/highlights-review/editor/run', data={'csrf_token':token}, follow_redirects=True)
+    assert response.status_code == 200
+    assert 'El editor está en pausa. No se han hecho consultas.' in response.text
+    assert 'data-editorial-feedback' in response.text
+    assert 'El editor está en pausa. No se han hecho consultas.' not in client.get('/admin/highlights-review/news').text
+
+
+def test_invalid_source_explains_error_after_redirect(http):
+    app, client, token = http
+    _render_real_admin_template(app)
+    response = client.post('/admin/highlights-review/editor/sources', data={'csrf_token':token}, follow_redirects=True)
+    assert response.status_code == 200
+    assert 'Confirma el uso permitido del feed y su ámbito de competición.' in response.text
+    assert 'role="alert"' in response.text

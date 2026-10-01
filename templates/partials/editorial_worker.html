@@ -4,6 +4,9 @@
   <header class="ns-editor__header"><div><span class="ns-editorial__kicker">AUTOMATIZACIÓN EDITORIAL</span><h2>SHARK Editor</h2><p>Noticias del encuentro, desde fuentes revisadas hasta la ficha del cliente.</p></div>
     <span class="ns-editor__badge">{{ 'Estado no verificable' if editor.state == 'READ_UNAVAILABLE' else 'Revisando una fuente' if editor.running else 'En espera del próximo lote' if editor.enabled else 'En pausa' }}</span>
   </header>
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+  <p class="ns-editor__feedback{% if category == 'error' %} is-error{% endif %}" role="{{ 'alert' if category == 'error' else 'status' }}" data-editorial-feedback>{{ message }}</p>
+  {% endfor %}
   <div class="ns-editor__summary"><span><strong>{{ editor.used if editor.used is not none else '—' }} / {{ editor.daily_limit }}</strong> consultas hoy · Madrid</span><span><strong>{{ editor.sources|length if editor.state != 'READ_UNAVAILABLE' else '—' }}</strong> fuentes registradas</span><span>Una fuente por lote · sin llamadas de IA</span></div>
   {% if editor.state == 'READ_UNAVAILABLE' %}<p role="alert">No se puede consultar el estado del editor. No se interpreta como una pausa voluntaria ni como cero noticias.</p>{% else %}
   <div class="ns-editor__actions">
@@ -24,7 +27,7 @@
       <button type="submit">Guardar configuración</button>
     </form>{% endif %}
     <details><summary>Registrar una fuente revisada</summary>
-      <p>Un feed por competición revisada. Sin coincidencias difusas: ambos nombres completos deben aparecer y el artículo debe corresponder a un final confirmado reciente. La regla identifica noticias relacionadas, no verifica sus afirmaciones.</p>
+      <p>Un feed por competición revisada. Sin coincidencias difusas: ambos nombres completos deben aparecer y el artículo debe corresponder a un final confirmado reciente. Las categorías declaradas deben coincidir con la competición; las desconocidas requieren revisión. La regla identifica noticias relacionadas, no verifica sus afirmaciones.</p>
       <form method="post" action="/admin/highlights-review/editor/sources" class="ns-editor__form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <label>Medio<input name="publisher" required maxlength="100"></label><label>Competición exacta guardada<input name="competition" required maxlength="100"></label>
@@ -60,7 +63,7 @@
   </div>
   {% if editor.inbox %}<details class="ns-editor__details"><summary>Revisión editorial · últimas {{ editor.inbox|length }} entradas</summary>
     <p>Los títulos del feed solo se muestran aquí para contrastarlos. La ficha utiliza un título descriptivo propio.</p>
-    {% for item in editor.inbox %}<article class="ns-editor__source"><h3>{{ item.source_title }}</h3><p>{{ item.publisher }} · {{ item.published_at|madrid_datetime_label }} · {{ {'AMBIGUOUS':'Varios partidos posibles','UNMATCHED':'Sin asociación inequívoca','SOURCE_CHANGED':'La fuente cambió; contrasta la publicación','DRAFT':'Borrador listo para revisar'}.get(item.state,'Por revisar') }}</p>
+    {% for item in editor.inbox %}<article class="ns-editor__source"><h3>{{ item.source_title }}</h3><p>{{ item.publisher }} · {{ item.published_at|madrid_datetime_label }} · {{ {'AMBIGUOUS':'Varios partidos posibles','CATEGORY_REVIEW':'La categoría no coincide con la política del feed','UNMATCHED':'Sin asociación inequívoca','SOURCE_CHANGED':'La fuente cambió; contrasta la publicación','DRAFT':'Borrador listo para revisar'}.get(item.state,'Por revisar') }}</p>
       <div class="ns-editor__actions"><a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">Examinar original ↗</a>{% if item.match_id %}<a href="/admin/highlights-review/news?match_id={{ item.match_id|urlencode }}">Revisar en su partido</a>{% endif %}</div>
     </article>{% endfor %}
   </details>{% endif %}

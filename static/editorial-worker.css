@@ -30,3 +30,6 @@
 .ns-editor__notice { padding:12px 15px; border-left:3px solid #468ead; background:#0b2333; }
 @media(max-width:800px) { .ns-editor__sources { grid-template-columns:1fr; } }
 @media(max-width:600px) { .ns-editor { padding:15px; border-radius:15px; }.ns-editor__form { grid-template-columns:1fr; }.ns-editor__header > div { flex-basis:100%; }.ns-editor__actions form,.ns-editor__actions a { flex:1 1 auto; }.ns-editor__actions button { width:100%; }.ns-editor__times { grid-template-columns:1fr; }.ns-editor__summary { align-items:flex-start; flex-direction:column; gap:7px; } }
+
+.ns-editor .ns-editor__feedback { padding:12px 15px; border:1px solid #386c83; border-radius:10px; background:#102f40; color:#def4ff; line-height:1.6; }
+.ns-editor .ns-editor__feedback.is-error { border-color:#a86767; background:#351d27; color:#ffe0e0; }

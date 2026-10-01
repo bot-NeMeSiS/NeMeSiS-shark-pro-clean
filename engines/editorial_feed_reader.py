@@ -21,7 +21,7 @@ from engines.match_news_store import NewsError, safe_url
 
 MAX_BYTES = 262144
 MAX_ENTRIES = 50
-RULE = 'EXACT_TEAMS_COMPETITION_POSTMATCH_V1'
+RULE = 'EXACT_TEAMS_COMPETITION_POSTMATCH_V2'
 
 
 class FeedError(ValueError):
@@ -36,8 +36,11 @@ def https_feed(url, *, deadline, monotonic=time.monotonic):
     try:
         url = safe_url(url)
         p = urlsplit(url)
-        remaining = deadline - monotonic()
-        if remaining <= 0: raise FeedError('TIME_BUDGET')
+        def network_timeout(cap=4.):
+            remaining = deadline - monotonic()
+            if remaining <= 0: raise FeedError('TIME_BUDGET')
+            return min(cap, remaining)
+        network_timeout()
         addresses = socket.getaddrinfo(p.hostname, 443, type=socket.SOCK_STREAM)
         if not addresses or any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
             raise FeedError('UNSAFE_DNS')
@@ -46,18 +49,20 @@ def https_feed(url, *, deadline, monotonic=time.monotonic):
         sock = socket.socket(family, socktype, proto)
         conn = None
         try:
-            remaining = deadline - monotonic()
-            if remaining <= 0: raise FeedError('TIME_BUDGET')
-            sock.settimeout(min(4., remaining))
+            sock.settimeout(network_timeout())
             sock.connect(address)
+            sock.settimeout(network_timeout())
             sock = ssl.create_default_context().wrap_socket(sock, server_hostname=p.hostname)
-            conn = http.client.HTTPConnection(p.hostname, timeout=min(4., remaining))
+            conn = http.client.HTTPConnection(p.hostname, timeout=network_timeout())
             conn.sock = sock
+            sock.settimeout(network_timeout())
             conn.request('GET', p.path + ('?' + p.query if p.query else ''), headers={
                 'Host': p.hostname, 'User-Agent': 'NeMeSiS-Editorial/1.0 (approved feeds only)',
                 'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml',
                 'Accept-Encoding': 'identity', 'Connection': 'close'})
+            sock.settimeout(network_timeout())
             response = conn.getresponse()
+            network_timeout()
             if 300 <= response.status < 400: raise FeedError('REDIRECT_REVIEW')
             if response.status in (401,403): raise FeedError('ACCESS_DENIED')
             if response.status == 429: raise FeedError('RATE_LIMIT')
@@ -102,12 +107,15 @@ def parse_feed(raw, *, feed_url, article_host, now):
         else: raise FeedError('UNSUPPORTED_FEED')
         items, rejected, seen = [], 0, set()
         for node in nodes[:MAX_ENTRIES]:
-            values = {}
+            values, categories = {}, []
             for child in node:
                 name = local(child)
                 if name == 'link' and child.get('href'):
                     if child.get('rel', 'alternate') == 'alternate': values['link'] = child.get('href')
-                elif name in ('title','link','pubDate','published','updated','category'):
+                elif name == 'category':
+                    category = (child.get('term') or ''.join(child.itertext())).strip()
+                    if category: categories.append(category)
+                elif name in ('title','link','pubDate','published','updated'):
                     values.setdefault(name, ''.join(child.itertext()).strip())
             try:
                 link = safe_url(urljoin(feed_url, values.get('link','')))
@@ -125,7 +133,8 @@ def parse_feed(raw, *, feed_url, article_host, now):
                     continue
                 seen.add(link)
                 items.append({'url':link, 'title':title, 'published_at':dt.astimezone(timezone.utc).isoformat(),
-                              'published_ts':dt.timestamp(), 'category':values.get('category','')})
+                              'published_ts':dt.timestamp(), 'category':categories[0] if categories else '',
+                              'categories':categories})
             except (NewsError, ValueError, TypeError, OverflowError): rejected += 1
         return items, rejected
     except FeedError:
@@ -143,6 +152,11 @@ one team. Even this rule is editorial association, not proof of article claims.
     from engines.v935_launch_trust_engine import match_kickoff_madrid
     title, hits = ' ' + normalized(item['title']) + ' ', []
     competition = normalized(source['competition'])
+    categories = item.get('categories') or ([item['category']] if item.get('category') else [])
+    # A reviewed feed scope cannot override an explicit conflicting article tag.
+    # Unknown tags require review instead of inventing competition aliases.
+    if any(normalized(category) != competition for category in categories):
+        return None, 'CATEGORY_REVIEW'
     for match in matches:
         if not is_final(match, now): continue
         if competition not in {normalized(match.get('competition_name')), normalized(match.get('league_name'))}: continue
