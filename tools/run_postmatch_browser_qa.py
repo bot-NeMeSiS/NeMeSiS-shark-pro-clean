@@ -4,7 +4,7 @@
 The runner uses a temporary database, synthetic source fixtures and blocked
 third-party requests. It cannot certify provider access or video playback.
 """
-import os,json,sys,sqlite3,base64,argparse,tempfile,threading,logging
+import os,json,sys,sqlite3,base64,argparse,tempfile,threading,logging,secrets
 from contextlib import closing
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -16,7 +16,7 @@ args=parser.parse_args()
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'tests'))
 temporary=tempfile.TemporaryDirectory(prefix='nemesis-postmatch-qa-')
 os.chdir(ROOT)
-os.environ.update(DB_PATH=str(Path(temporary.name)/'app.sqlite'),SECRET_KEY='offline-browser-only',AUTOMATION_SECRET='offline-automation-only',
+os.environ.update(DB_PATH=str(Path(temporary.name)/'app.sqlite'),SECRET_KEY=secrets.token_hex(32),AUTOMATION_SECRET=secrets.token_hex(32),
   BACKGROUND_JOBS_ENABLED='false',AUTO_SEND_TELEGRAM_PICKS='false',AUTO_GENERATE_PICKS='false',SCHEDULER_ENABLED='0')
 for key in ('THE_ODDS_API_KEY','ODDS_API_KEY','THESPORTSDB_KEY','THESPORTSDB_API_KEY','API_FOOTBALL_KEY','API_FOOTBALL_API_KEY','OPENAI_API_KEY','TELEGRAM_BOT_TOKEN','STRIPE_SECRET_KEY'):os.environ.pop(key,None)
 import app
