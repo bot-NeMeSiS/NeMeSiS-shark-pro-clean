@@ -864,6 +864,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/sports/sync",
         "/api/automation/data-backup/run",
         "/api/automation/highlights/sync",
+        "/api/automation/postmatch/tick",
         "/api/telegram/auto-run",
         "/api/telegram/scheduler-tick",
         "/api/v495/telegram-auto-run",
@@ -20077,6 +20078,8 @@ def match_detail_page(match_id):
         detail["lineups"] = _cached_lineups_for_match(detail["match"])
         detail["media"] = _cached_match_media(detail["match"])
         detail["cached_statistics"] = _cached_match_statistics(detail["match"])
+        from engines.postmatch_recovery import attach_detail as _attach_postmatch_detail
+        _attach_postmatch_detail(DB_PATH, detail)
         detail["head_to_head"] = _cached_h2h_for_match(detail["match"])
         detail["standings"] = _cached_match_standings(detail["match"])
         competition_identity = canonical_competition_surface_contract(detail["match"])

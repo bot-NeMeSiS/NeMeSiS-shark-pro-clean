@@ -40,6 +40,8 @@ def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secre
         if request.full_url.endswith(master.READINESS_ENDPOINT):
             return MockResponse({"ok": True, "version": "SIMULATED_QA"})
         calls.append({"request": request, "timeout": timeout})
+        if request.full_url.endswith('/api/automation/postmatch/tick'):
+            return MockResponse({'ok': True, 'result': 'SKIPPED_DISABLED', 'processed': 0})
         outcome = outcomes[len(calls) - 1]
         if isinstance(outcome, BaseException):
             raise outcome
@@ -84,7 +86,7 @@ def test_master_calls_backup_only_when_due(monkeypatch, capsys):
     assert payload["overall"] == "PASS"
     assert payload["backup_status"] == "PASS"
     assert payload["backup"]["backup_created"] is True
-    assert len(calls) == 3
+    assert len(calls) == 4
     assert calls[2]["request"].get_method() == "POST"
     assert calls[2]["request"].full_url.endswith(master.BACKUP_ENDPOINT)
     assert calls[2]["request"].headers["X-automation-secret"] == "pytest-master-secret"
@@ -105,7 +107,7 @@ def test_master_passes_for_telegram_and_valid_evolution_results(monkeypatch, cap
     assert payload["telegram"]["telegram_status"] == "PASS"
     assert payload["continuous_evolution"]["continuous_status"] == "PASS"
     assert payload["continuous_evolution"]["continuous_result"] == ("RUN" if evolution_result == "PASS" else evolution_result)
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert len(_output.splitlines()) == 1
 
 
@@ -119,7 +121,7 @@ def test_master_partial_when_telegram_fails_and_evolution_still_runs(monkeypatch
     assert payload["overall"] == "PARTIAL"
     assert payload["telegram"]["telegram_status"] == "FAIL"
     assert payload["continuous_evolution"]["continuous_result"] == "RUN"
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 def test_master_partial_when_evolution_fails_and_telegram_is_preserved(monkeypatch, capsys):
@@ -132,7 +134,7 @@ def test_master_partial_when_evolution_fails_and_telegram_is_preserved(monkeypat
     assert payload["overall"] == "PARTIAL"
     assert payload["telegram"]["telegram_result"] == "NO_DUE_JOBS"
     assert payload["continuous_evolution"]["continuous_status"] == "FAIL"
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 def test_master_fails_when_both_calls_fail(monkeypatch, capsys):
@@ -143,7 +145,7 @@ def test_master_fails_when_both_calls_fail(monkeypatch, capsys):
     )
     assert return_code == 2
     assert payload["overall"] == "FAIL"
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 @pytest.mark.parametrize(
@@ -175,7 +177,7 @@ def test_telegram_timeout_does_not_block_evolution(monkeypatch, capsys):
     assert return_code == 1
     assert payload["telegram"]["telegram_result"] == "TIMEOUT"
     assert payload["continuous_evolution"]["continuous_result"] == "RUN"
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 def test_evolution_timeout_preserves_telegram(monkeypatch, capsys):
@@ -187,7 +189,7 @@ def test_evolution_timeout_preserves_telegram(monkeypatch, capsys):
     assert return_code == 1
     assert payload["telegram"]["telegram_result"] == "QUEUE_EMPTY"
     assert payload["continuous_evolution"]["continuous_result"] == "TIMEOUT"
-    assert len(calls) == 2
+    assert len(calls) == 3
 
 
 def test_unexpected_telegram_exception_still_allows_evolution(monkeypatch, capsys):
@@ -239,7 +241,7 @@ def test_secret_is_header_only_and_never_appears_in_output(monkeypatch, capsys):
     assert payload["overall"] == "PARTIAL"
     assert secret not in output
     assert secret not in json.dumps(payload)
-    assert len(calls) == 2
+    assert len(calls) == 3
     assert all(call["request"].headers["X-automation-secret"] == secret for call in calls)
     assert all(secret not in call["request"].full_url for call in calls)
     assert calls[0]["request"].get_method() == "POST"
@@ -405,6 +407,8 @@ def test_readiness_probe_retries_transient_502_then_recovers(monkeypatch):
 
     def fake_urlopen(request, timeout):
         calls.append((request.full_url, timeout))
+        if request.full_url.endswith('/api/automation/postmatch/tick'):
+            return MockResponse({'ok': True, 'result': 'SKIPPED_DISABLED', 'processed': 0})
         outcome = outcomes[len(calls) - 1]
         if isinstance(outcome, BaseException):
             raise outcome

@@ -71,15 +71,21 @@ def main() -> int:
     try:
         with urllib.request.urlopen(req, timeout=60) as res:
             body = res.read(24000).decode("utf-8", errors="replace")
-            print_event({"ok": int(res.status) == 200, "event": "HIGHLIGHTS_SYNC_RESPONSE", "status": int(res.status), "target": safe, "body": body, "utc_now": utc_now, "madrid_now": madrid_now})
-            return 0 if int(res.status) == 200 else 5
+            try:
+                payload = json.loads(body)
+                result = payload.get('highlights_sync') if isinstance(payload, dict) else None
+                ok = int(res.status) == 200 and payload.get('ok') is True and isinstance(result, dict) and result.get('ok') is True and not result.get('errors')
+            except (ValueError, AttributeError):
+                ok = False
+            print_event({"ok": ok, "event": "HIGHLIGHTS_SYNC_RESPONSE", "status": int(res.status), "result": "SYNC_ACCEPTED" if ok else "SYNC_FAILED_OR_PARTIAL", "utc_now": utc_now, "madrid_now": madrid_now})
+            return 0 if ok else 5
     except urllib.error.HTTPError as exc:
         body = exc.read(12000).decode("utf-8", errors="replace") if exc.fp else ""
         status = int(exc.code)
-        print_event({"ok": False, "event": "HIGHLIGHTS_SYNC_HTTP_ERROR", "status": status, "target": safe, "body": body, "utc_now": utc_now, "madrid_now": madrid_now})
+        print_event({"ok": False, "event": "HIGHLIGHTS_SYNC_HTTP_ERROR", "status": status, "utc_now": utc_now, "madrid_now": madrid_now})
         return 3 if status == 403 else 5
     except Exception as exc:
-        print_event({"ok": False, "event": "HIGHLIGHTS_SYNC_NETWORK_ERROR", "error": type(exc).__name__, "message": str(exc), "target": safe, "utc_now": utc_now, "madrid_now": madrid_now})
+        print_event({"ok": False, "event": "HIGHLIGHTS_SYNC_NETWORK_ERROR", "error": type(exc).__name__, "target": safe, "utc_now": utc_now, "madrid_now": madrid_now})
         return 4
 
 

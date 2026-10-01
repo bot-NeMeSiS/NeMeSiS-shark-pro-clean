@@ -234,23 +234,28 @@
   {{ transparency_meta(context, 'lineups') }}
 </section>{%- endmacro %}
 
-{% macro video_panel(context) -%}
+{% macro video_panel(context, recovery={}) -%}
 {% set media = context.get('media') or {} %}
-{% if media.get('visible_count') %}
-<section class="v944-match-panel v944-video-panel" id="match-section-video" data-match-region="authorized-video" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
-  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui("Vídeo") }}</span><h2>{{ ui("Resumen oficial autorizado") }}</h2></div></header>
+<section class="v944-match-panel v944-video-panel" id="match-section-video" data-match-region="{{ 'authorized-video' if media.get('visible_count') else 'video-availability' }}" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
+  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui("Vídeo") }}</span><h2>{{ ui("Resumen en vídeo") }}</h2></div></header>
   {% for video in media.get('visible_videos') or [] %}
-  <article data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video">
+  <article data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video" data-postmatch-video>
+    <h3>{{ video.get('title') or ui('Resumen del partido') }}</h3>
+    {% if video.get('official_source_verified') %}<p>{{ ui('Fuente oficial verificada') }}</p>{% endif %}
     {% if video.get('can_embed') %}
-    <div class="v944-video-frame"><iframe src="{{ video.get('embed_url') }}" title="{{ video.get('title') or 'Resumen del partido' }}" loading="lazy" allowfullscreen></iframe></div>
-    {% elif video.get('can_link') %}
-    <a class="v944-video-link" href="{{ video.get('original_url') }}" rel="noopener noreferrer" target="_blank">{{ ui("Ver resumen en vídeo") }}</a>
+    <div class="v944-video-frame" data-video-mount hidden style="display:none"></div>
+    <button type="button" class="v933-action is-primary" data-video-activate="{{ video.get('embed_url') }}">{{ ui('Cargar reproductor externo') }}</button>
+    <p class="small muted" data-video-notice role="status">{{ ui('Al cargar el reproductor se conectará con la plataforma del vídeo. No se inicia la reproducción automáticamente.') }}</p>
     {% endif %}
+    {% if video.get('can_link') %}<p><a class="v944-video-link" href="{{ video.get('original_url') }}" rel="noopener noreferrer" target="_blank">{{ ui("Ver en la plataforma original") }}</a></p>{% endif %}
     {% if video.get('attribution') %}<small>{{ ui("Fuente:") }} {{ video.get('attribution') }}</small>{% endif %}
   </article>
+  {% else %}
+    {% if context.get('lifecycle', {}).get('is_finished') %}<p role="status">{{ ui('Resumen todavía no disponible. Solo aparecerá un vídeo asociado a este encuentro y con publicación permitida.') }}</p>
+    {% else %}<p role="status">{{ ui('Todavía no hay resumen de este encuentro. La disponibilidad depende de la publicación de la fuente.') }}</p>{% endif %}
   {% endfor %}
 </section>
-{% endif %}{%- endmacro %}
+{%- endmacro %}
 
 {% macro timeline(context) -%}
 {% set component = context.get('components', {}).get('Timeline') or {} %}
