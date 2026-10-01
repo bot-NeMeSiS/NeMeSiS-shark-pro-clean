@@ -1,0 +1,39 @@
+name: Postmatch delivery QA
+on:
+  push:
+    branches: [fix/postmatch-delivery-diagnostics-20261001]
+    paths: [.github/workflows/postmatch-delivery-qa.yml]
+permissions:
+  contents: read
+jobs:
+  source-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Export tracked source only for isolated review
+        run: |
+          python - <<'PY'
+          import subprocess,zipfile,hashlib,json
+          from pathlib import Path
+          names=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          hashes={}
+          Path('postmatch-evidence').mkdir()
+          with zipfile.ZipFile('postmatch-evidence/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in names:
+                  p=Path(name)
+                  if not p.is_file() or p.is_symlink(): continue
+                  valid=(p.suffix in ('.py','.html','.js','.css') and (p.parent==Path('.') or p.parts[0] in ('engines','services','blueprints','tests','tools','templates','static','localization','browser_qa')))
+                  valid=valid or name in ('requirements.txt','requirements-dev.txt','pytest.ini','VERSION.txt')
+                  if not valid: continue
+                  data=p.read_bytes();z.writestr(name,data);hashes[name]=hashlib.sha256(data).hexdigest()
+              z.writestr('source-manifest.json',json.dumps({'base_sha':'047924de232e0e218f6d2477f89fa7fee0b30bce','files':hashes},indent=2))
+          print('Tracked source files:',len(hashes))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: postmatch-delivery-source
+          path: postmatch-evidence/
+          retention-days: 2
