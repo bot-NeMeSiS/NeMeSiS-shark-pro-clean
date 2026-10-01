@@ -102,9 +102,16 @@ antes de declarar CANDIDATA CONSOLIDADA Y VERIFICADA.
   No se incorporan DB, caches, capturas de cuentas reales ni datos operativos.
 - Primer CI en HEAD `c410667e`, merge temporal `6bc09354`: Smoke fallo en
   `test_served_worker_activation_preserves_unrelated_caches`, porque el gate
-  rapido precedia a instalar Chromium. Se adelanta la instalacion existente,
-  sin omitir ninguna prueba, y se agrega un caso negativo que rechaza ese orden.
-  Consultar el ultimo CI de #142; este fallo no se oculta con los PASS locales.
+  rapido precedia a instalar Chromium. El primer ajuste (`d4398470`) paso
+  392 focales pero contradijo el contrato de fast-fail: CI Linux termino con
+  3850 PASS y 1 FAIL; Windows reprodujo ese fallo y los dos de Gunicorn/fcntl.
+  Correccion definitiva: la nueva prueba del service worker se mueve al grupo
+  Browser QA existente, conservando sus aserciones y el orden original de CI.
+  Se agrega una regresion que impide imports Playwright en el gate rapido.
+  No se cambia el test del contrato V941, ni se omiten pruebas. Consultar
+  el ultimo CI de #142; los fallos anteriores no se ocultan con PASS focales.
+  Tras esa correccion: 48 pruebas de contratos/PWA/navegador PASS y 397 del
+  gate rapido PASS con ruta Chromium deliberadamente inexistente; cero red externa.
 
 ### Sesiones y recuperacion
 
