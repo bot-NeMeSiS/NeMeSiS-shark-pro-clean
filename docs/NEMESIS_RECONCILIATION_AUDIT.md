@@ -11,6 +11,7 @@ instruccion de trabajar directamente en main.
 
 - Base comprobada: `cc1481c0a29f91be49f92abaaea48e3dde345356`.
 - Unica rama candidata: `codex/consolidation-20261001`.
+- Unica PR de consolidacion: #142, OPEN/DRAFT; sin auto-merge.
 - Coordinadora identificada y fijada; ningun agente escritor nuevo.
 - Continuidad canonica: `project_control/CURRENT_TRUTH.md`.
 - Sin merge a main, deploy, cambio operativo, proveedor ni datos reales.
@@ -99,6 +100,11 @@ antes de declarar CANDIDATA CONSOLIDADA Y VERIFICADA.
   titulares externos y nombres propios no se traducen artificialmente.
 - Evidencias y logs detallados quedan locales/privados o en artifacts CI.
   No se incorporan DB, caches, capturas de cuentas reales ni datos operativos.
+- Primer CI en HEAD `c410667e`, merge temporal `6bc09354`: Smoke fallo en
+  `test_served_worker_activation_preserves_unrelated_caches`, porque el gate
+  rapido precedia a instalar Chromium. Se adelanta la instalacion existente,
+  sin omitir ninguna prueba, y se agrega un caso negativo que rechaza ese orden.
+  Consultar el ultimo CI de #142; este fallo no se oculta con los PASS locales.
 
 ### Sesiones y recuperacion
 

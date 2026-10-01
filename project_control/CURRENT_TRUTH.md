@@ -19,8 +19,11 @@ encargos porque un chat o informe los describa como abiertos.
   Codigo consolidado en `df813446` y `fd13abd2`: merge controlado de #139,
   reparaciones editoriales, guards de publicacion de picks, cache privada
   Founder, PWA, navegacion administrativa y compatibilidad LOCAL SAFE.
-  La unica PR corresponde a `codex/consolidation-20261001`; consultar sus
+  La unica PR es #142, OPEN/DRAFT, en `codex/consolidation-20261001`; consultar sus
   checks para el ultimo HEAD, no inferir un PASS remoto de esta documentacion.
+  Primer Smoke remoto: Chromium se instalaba despues del gate rapido que ahora
+  ejecuta el service worker. Orden corregido y regresion negativa incorporada;
+  el resultado definitivo sigue dependiendo del CI del ultimo HEAD.
 - #141 y sus contratos POST -> 303 -> GET se conservan. #139 no activa feeds:
   pausa, fuentes permitidas, derechos, revision humana, expiracion y limites siguen.
 - De #135 se recupera solo el guard que impide publicar WAIT/NO_BET y cuotas
