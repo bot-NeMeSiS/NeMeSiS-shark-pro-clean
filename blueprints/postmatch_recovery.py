@@ -3,7 +3,7 @@ from __future__ import annotations
 import hmac
 import os
 import sqlite3
-from flask import Blueprint, jsonify, redirect, request, session
+from flask import Blueprint, jsonify, redirect, render_template, request, session
 from engines.postmatch_store import Store
 from engines.postmatch_recovery import tick
 from engines.security_engine import validate_csrf
@@ -59,7 +59,19 @@ def create_postmatch_blueprint(db_path, is_admin_callback):
     @bp.post('/admin/highlights-review/workers/run')
     def run():
         result = tick(db_path)
+        if request.form.get('return_to_panel') == '1':
+            from engines.postmatch_delivery import safe_run_result
+            session['postmatch_last_result'] = safe_run_result(result)
+            return redirect('/admin/highlights-review/workers/result', code=303)
         return jsonify(result), (200 if result.get('ok') else 503)
+
+    @bp.get('/admin/highlights-review/workers/result')
+    def run_result():
+        from engines.postmatch_delivery import present_run_result
+        # A refresh repeats a GET, not the paid query. Authentication still applies.
+        result = session.get('postmatch_last_result')
+        presentation = present_run_result(result, Store(db_path))
+        return render_template('admin_postmatch_result.html', data={}, delivery=presentation), (503 if result and not result.get('ok') else 200)
 
     @bp.post('/admin/highlights-review/workers/<int:job_id>/retry')
     def retry(job_id):

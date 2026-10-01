@@ -23,7 +23,7 @@
       <button type="submit">Guardar configuración</button>
     </form>
   </details>
-  <form method="post" action="/admin/highlights-review/workers/run"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Ejecutar un lote pendiente</button></form>
+  <form method="post" action="/admin/highlights-review/workers/run"><input type="hidden" name="return_to_panel" value="1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Ejecutar un lote pendiente</button></form>
   <p><a href="/api/admin/postmatch/status">Ver diagnóstico de recuperación</a></p>
   {% for budget in postmatch.budget %}<p>{{ budget.source }} · {{ budget.day }} · {{ budget.used }} consultas de recuperación.</p>{% endfor %}
   <details><summary>Tareas recientes y reintentos (hasta 100)</summary>

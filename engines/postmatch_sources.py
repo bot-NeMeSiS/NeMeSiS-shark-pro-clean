@@ -150,6 +150,7 @@ class OfficialSources:
         self.transport = transport or self._http
         self.calls = 0
         self.cache = {}
+        self.diagnostics = {}
 
     @staticmethod
     def _http(request, timeout):
@@ -161,7 +162,7 @@ class OfficialSources:
             return json.loads(data.decode('utf-8'))
 
     def request(self, provider, endpoint, params):
-        allowed = {'thesportsdb': {'lookupevent.php', 'eventsday.php', 'lookupeventstats.php'},
+        allowed = {'thesportsdb': {'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php'},
                    'api_football': {'fixtures', 'fixtures/statistics'}}
         if provider not in self.config['sources'] or endpoint not in allowed.get(provider, set()):
             raise SourceError('SOURCE_NOT_ALLOWED')
@@ -169,6 +170,7 @@ class OfficialSources:
             key = (os.getenv('THESPORTSDB_KEY') or os.getenv('THESPORTSDB_API_KEY') or '').strip()
             if not key:
                 raise SourceError('MISSING_KEY')
+            self.diagnostics['key_mode'] = 'PUBLIC_DEMO_KEY' if key in {'3', '123'} else 'CONFIGURED_KEY_NOT_PLAN_VERIFIED'
             base = 'https://www.thesportsdb.com/api/v1/json/' + urllib.parse.quote(key, safe='') + '/'
             headers = {}
         else:
@@ -184,6 +186,7 @@ class OfficialSources:
         if self.clock() >= self.deadline - .5:
             raise BudgetStopped('TICK_BUDGET')
         if cache_key in self.cache:
+            self.diagnostics['cache_hits'] = self.diagnostics.get('cache_hits', 0) + 1
             return deepcopy(self.cache[cache_key])
         if self.calls >= 6:
             raise BudgetStopped('TICK_BUDGET')
@@ -254,7 +257,10 @@ class OfficialSources:
             except (TypeError, ValueError):
                 pass  # No guessed kickoff; keep the dated discovery scope.
             payload = self.request('thesportsdb', 'eventsday.php', {'d': day, 's': 'Soccer'})
-        events = payload.get('events')
+        if 'events' not in payload:
+            raise SourceError('MALFORMED')
+        events = payload['events']
+        self.diagnostics['event_rows'] = len(events) if isinstance(events, list) else 0
         if events is None:
             return None
         if not isinstance(events, list) or len(events) > 1500:
@@ -268,6 +274,7 @@ class OfficialSources:
             if sid and events:
                 raise SourceError('IDENTITY_MISMATCH')
             return None
+        self.diagnostics['sportsdb_event_id'] = integer_id(found[0].get('idEvent'))
         return found[0]
 
     def statistics(self, match):
@@ -321,14 +328,27 @@ class OfficialSources:
                     if not sid:
                         raise SourceError('IDENTITY_MISMATCH')
                     scope = final_scope(event.get('strStatus'))
-                    stats = self.request(provider, 'lookupeventstats.php', {'id': sid}).get('eventstats')
+                    payload = self.request(provider, 'lookupeventstats.php', {'id': sid})
+                    if 'eventstats' not in payload:
+                        raise SourceError('MALFORMED')
+                    stats = payload['eventstats']
                     if stats is None:
                         stats = []
                     if not isinstance(stats, list):
                         raise SourceError('MALFORMED')
                     if any(not isinstance(s, dict) or str(s.get('idEvent')) != sid for s in stats):
                         raise SourceError('IDENTITY_MISMATCH')
+                    self.diagnostics['statistics_received'] = len(stats)
+                    if any(not isinstance(s.get('strStat'), str) or not s['strStat'].strip()
+                           or not ('intHome' in s or 'intAway' in s) for s in stats):
+                        raise SourceError('MALFORMED')
+                    self.diagnostics['statistics_recognized'] = sum(
+                        s['strStat'].strip().casefold() in STAT_NAMES for s in stats)
                     rows = validate_rows({'label': s.get('strStat'), 'home': s.get('intHome'), 'away': s.get('intAway')} for s in stats)
+                    self.diagnostics['statistics_accepted'] = len(rows)
+                    if stats and not rows:
+                        reasons.append('EMPTY_STATISTIC_VALUES' if self.diagnostics['statistics_recognized'] else 'UNSUPPORTED_STATISTICS')
+                        continue
                     ref = 'thesportsdb:event:' + sid
                 if rows:
                     observations.append({'source': provider, 'reference': ref, 'scope': scope, 'items': rows, 'observed_at': self.clock()})
@@ -345,9 +365,69 @@ class OfficialSources:
         try:
             event = self.sportsdb_event(match)
             # Link acquisition is metadata only. Approval always remains with the existing rights guard.
-            if not event or not public_https_url(event.get('strVideo')):
-                return {'event': None, 'reasons': ['NO_VIDEO'], 'external_calls': self.calls}
+            if not event:
+                return {'event': None, 'reasons': ['NO_EVENT'], 'external_calls': self.calls}
             final_scope(event.get('strStatus'))
+            if public_https_url(event.get('strVideo')):
+                self.diagnostics['video_lookup'] = 'EVENT_LINK'
+            else:
+                original_invalid = bool(str(event.get('strVideo') or '').strip())
+                event = self.sportsdb_highlight_fallback(match, event)
+                if not event:
+                    return {'event': None, 'reasons': ['INVALID_VIDEO_URL' if original_invalid else 'NO_VIDEO'], 'external_calls': self.calls}
             return {'event': event, 'reasons': [], 'external_calls': self.calls}
         except (SourceError, BudgetStopped) as exc:
             return {'event': None, 'reasons': [str(exc)], 'external_calls': self.calls}
+
+
+    def sportsdb_highlight_fallback(self, match, event):
+        """One dated league query using the SAME credential, lease and daily budget.
+
+        The official tvhighlights projection may omit teams/date/status. Only its
+        URL is joined to a fully validated final event by exact provider/league ID.
+        No rights fields, thumbnails or scores from this projection are copied.
+        """
+        from engines.highlight_url_engine import public_https_url
+        sid, league = integer_id(event.get('idEvent')), integer_id(event.get('idLeague'))
+        try:
+            day = datetime.strptime(str(event.get('dateEvent') or ''), '%Y-%m-%d').date().isoformat()
+        except ValueError:
+            raise SourceError('VIDEO_LOOKUP_UNAVAILABLE') from None
+        if not sid or not league:
+            raise SourceError('VIDEO_LOOKUP_UNAVAILABLE')
+        self.diagnostics['video_lookup'] = 'LEAGUE_DAY'
+        payload = self.request('thesportsdb', 'eventshighlights.php', {'d': day, 'l': league, 's': 'Soccer'})
+        keys = ('tvhighlights', 'eventshighlights', 'highlights', 'events')
+        key = next((key for key in keys if key in payload), None)
+        if key is None:
+            raise SourceError('MALFORMED')
+        rows = payload[key]
+        if rows is None:
+            rows = []
+        if not isinstance(rows, list) or len(rows) > 1500 or any(not isinstance(row, dict) for row in rows):
+            raise SourceError('MALFORMED')
+        self.diagnostics['highlight_rows'] = len(rows)
+        urls = set()
+        for row in rows:
+            if integer_id(row.get('idEvent')) != sid:
+                continue
+            if integer_id(row.get('idLeague')) != league:
+                raise SourceError('IDENTITY_MISMATCH')
+            if row.get('strSport') and norm(row['strSport']) != 'soccer':
+                raise SourceError('IDENTITY_MISMATCH')
+            for field in ('strHomeTeam', 'strAwayTeam', 'strEvent'):
+                if row.get(field) and event.get(field) and norm(row[field]) != norm(event[field]):
+                    raise SourceError('IDENTITY_MISMATCH')
+            if row.get('dateEvent') and str(row['dateEvent'])[:10] != day:
+                raise SourceError('IDENTITY_MISMATCH')
+            url = public_https_url(row.get('strVideo'))
+            if url:
+                urls.add(url)
+        if len(urls) > 1:
+            raise SourceError('AMBIGUOUS_VIDEO')
+        if not urls:
+            if len(rows) >= 50:
+                raise SourceError('HIGHLIGHT_RESPONSE_LIMIT')
+            return None
+        self.diagnostics['video_lookup'] = 'LEAGUE_DAY_LINK'
+        return {**event, 'strVideo': next(iter(urls))}

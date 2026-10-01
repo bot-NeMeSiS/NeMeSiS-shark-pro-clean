@@ -11,10 +11,13 @@ import time
 
 from engines.postmatch_store import Store, StaleLease, identity, is_final, RETRY_DELAYS, stamp
 from engines.postmatch_sources import OfficialSources, REQUIRED, STAT_NAMES, norm, final_scope, SourceError
+from engines.postmatch_delivery import safe_diagnostics, safe_run_result
 
 REASONS = {'NO_VIDEO','NO_EVENT','NO_STATISTICS','PARTIAL_COVERAGE','RIGHTS_REVIEW',
            'COMPLETE','CONFLICT','IDENTITY_CHANGED','NOT_FINAL','MISSING_KEY','SOURCE_DISABLED',
            'SOURCE_NOT_ALLOWED','SOURCE_COOLDOWN','DAILY_BUDGET','TICK_BUDGET','MISSING_PROVIDER_ID',
+           'EMPTY_STATISTIC_VALUES','UNSUPPORTED_STATISTICS','INVALID_VIDEO_URL','VIDEO_LOOKUP_UNAVAILABLE',
+           'AMBIGUOUS_VIDEO','HIGHLIGHT_RESPONSE_LIMIT',
            'ACCESS_DENIED','RATE_LIMIT','NETWORK','MALFORMED','REDIRECT_BLOCKED','AMBIGUOUS_MATCH',
            'IDENTITY_MISMATCH','INVALID_STATISTIC','CONFLICTING_STATISTICS','INCONSISTENT_STATISTICS',
            'SOURCE_NOT_FINAL','INTERNAL_ERROR','STORAGE_UNAVAILABLE','NO_APPROVED_SOURCE'}
@@ -104,7 +107,7 @@ def finish(store, job, result, now):
             reason = closed_reason(reasons[-1])
         if reason == 'COMPLETE':
             state = 'COMPLETE'
-        elif reason in {'RIGHTS_REVIEW','CONFLICT','AMBIGUOUS_MATCH','IDENTITY_MISMATCH'}:
+        elif reason in {'RIGHTS_REVIEW','CONFLICT','AMBIGUOUS_MATCH','IDENTITY_MISMATCH','AMBIGUOUS_VIDEO'}:
             state = 'REVIEW_REQUIRED'
         elif reason in {'IDENTITY_CHANGED','NOT_FINAL'}:
             state = 'CANCELLED'
@@ -115,8 +118,12 @@ def finish(store, job, result, now):
         delay = RETRY_DELAYS[min(job['attempts'] - 1, len(RETRY_DELAYS) - 1)]
         conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,lease_token=NULL,lease_until=0 WHERE id=?',
                      (state, reason, now + delay, now, job['id']))
-        Store.audit(conn, job['id'], 'FINISH', {'state':state,'reason':reason,'external_calls':int(result.get('external_calls') or 0)}, 'worker', now)
-        return {'job_id':job['id'],'kind':job['kind'],'state':state,'reason':reason,'external_calls':int(result.get('external_calls') or 0)}
+        diagnostics = safe_diagnostics(result.get('diagnostics'))
+        summary = {'job_id':job['id'],'kind':job['kind'],'match_id':str(job['match_id']),
+                   'state':state,'reason':reason,'external_calls':int(result.get('external_calls') or 0),
+                   'due_at':now + delay if state == 'RETRY' else None, 'diagnostics':diagnostics}
+        Store.audit(conn, job['id'], 'FINISH', summary, 'worker', now)
+        return summary
 
 
 def reconcile_media_reviews(store, now):
@@ -165,6 +172,7 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                     if isinstance(source, OfficialSources):
                         source.cache = shared_request_cache
                     outcome = source.highlights(match) if job['kind'] == 'highlights' else source.statistics(match)
+                outcome['diagnostics'] = safe_diagnostics(getattr(source, 'diagnostics', {}))
                 results.append(finish(store, job, outcome, clock()))
             except StaleLease:
                 results.append({'job_id':job['id'],'kind':job['kind'],'state':'LEASE_LOST','reason':'PAUSED_OR_RECLAIMED','external_calls':0})
@@ -172,14 +180,21 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                 # A parser or source crash cannot disappear as a successful empty response.
                 reason = closed_reason(exc) if isinstance(exc, SourceError) else 'STORAGE_UNAVAILABLE' if isinstance(exc, sqlite3.Error) else 'INTERNAL_ERROR'
                 try:
-                    results.append(finish(store, job, {'reasons':[reason], 'external_calls':getattr(source,'calls',outcome.get('external_calls',0))}, clock()))
+                    results.append(finish(store, job, {'reasons':[reason], 'external_calls':getattr(source,'calls',outcome.get('external_calls',0)), 'diagnostics':safe_diagnostics(getattr(source, 'diagnostics', {}))}, clock()))
                 except (StaleLease, sqlite3.Error):
                     results.append({'job_id':job['id'],'kind':job['kind'],'state':'FAILED','reason':reason,'external_calls':0})
     except (sqlite3.Error, OSError, ValueError):
         return {'ok':False,'result':'STORAGE_UNAVAILABLE','processed':len(results),'jobs':results}
     completed = all(row['state'] == 'COMPLETE' for row in results)
-    return {'ok': True, 'result': 'IDLE' if not results else 'COMPLETE' if completed else 'PARTIAL',
-            'processed':len(results),'external_calls':sum(r['external_calls'] for r in results),'jobs':results}
+    output = {'ok': True, 'result': 'IDLE' if not results else 'COMPLETE' if completed else 'PARTIAL',
+              'processed':len(results),'external_calls':sum(r['external_calls'] for r in results),'jobs':results}
+    if results:
+        # Closed projection only: no credentials, URLs, raw payloads or personal data.
+        try:
+            print(json.dumps({'event':'postmatch_delivery', **safe_run_result(output)}, sort_keys=True), flush=True)
+        except (OSError, ValueError):
+            pass  # Logging must not change persisted recovery outcomes.
+    return output
 
 
 def read_for_match(db_path, match):
