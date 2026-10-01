@@ -4,36 +4,95 @@ on:
     branches: [fix/postmatch-delivery-diagnostics-20261001]
     paths: [.github/workflows/postmatch-delivery-qa.yml]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: postmatch-delivery-prepare
+  cancel-in-progress: false
 jobs:
-  source-review:
+  delivery:
+    if: github.ref == 'refs/heads/fix/postmatch-delivery-diagnostics-20261001'
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 10
+    env:
+      DB_PATH: /tmp/postmatch-delivery-${{ github.run_id }}/app.sqlite
+      SECRET_KEY: isolated-delivery-test-only
+      AUTOMATION_SECRET: isolated-delivery-cron-only
+      THESPORTSDB_KEY: ''
+      THESPORTSDB_API_KEY: ''
+      API_FOOTBALL_KEY: ''
+      API_FOOTBALL_API_KEY: ''
+      THE_ODDS_API_KEY: ''
+      OPENAI_API_KEY: ''
+      TELEGRAM_BOT_TOKEN: ''
+      ENABLE_AUTO_SYNC: '0'
+      AUTO_SYNC_ON_STARTUP: '0'
+      SCHEDULER_ENABLED: '0'
+      BACKGROUND_JOBS_ENABLED: 'false'
+      AUTO_GENERATE_PICKS: 'false'
+      AUTO_SEND_TELEGRAM_PICKS: 'false'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          persist-credentials: false
-      - name: Export tracked source only for isolated review
+          python-version: '3.11'
+      - name: Apply only source-hashed edits
+        run: python tools/_apply_postmatch_delivery.py
+      - name: Install isolated dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Execute combined delivery, rights and inherited regression tests
         run: |
           python - <<'PY'
-          import subprocess,zipfile,hashlib,json
+          import socket,re,json,pytest
           from pathlib import Path
-          names=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
-          hashes={}
-          Path('postmatch-evidence').mkdir()
-          with zipfile.ZipFile('postmatch-evidence/source.zip','w',zipfile.ZIP_DEFLATED) as z:
-              for name in names:
-                  p=Path(name)
-                  if not p.is_file() or p.is_symlink(): continue
-                  valid=(p.suffix in ('.py','.html','.js','.css') and (p.parent==Path('.') or p.parts[0] in ('engines','services','blueprints','tests','tools','templates','static','localization','browser_qa')))
-                  valid=valid or name in ('requirements.txt','requirements-dev.txt','pytest.ini','VERSION.txt')
-                  if not valid: continue
-                  data=p.read_bytes();z.writestr(name,data);hashes[name]=hashlib.sha256(data).hexdigest()
-              z.writestr('source-manifest.json',json.dumps({'base_sha':'047924de232e0e218f6d2477f89fa7fee0b30bce','files':hashes},indent=2))
-          print('Tracked source files:',len(hashes))
+          from xml.etree import ElementTree as ET
+          calls=[];original=socket.socket.connect
+          def guard(self,address):
+              if isinstance(address,tuple) and address[0] not in {'127.0.0.1','localhost','::1'}:
+                  calls.append(1);raise AssertionError('External transport forbidden')
+              return original(self,address)
+          socket.socket.connect=guard
+          import app
+          app.init_db()
+          text=Path('.github/workflows/postmatch-workers.yml').read_text()
+          files=list(dict.fromkeys(['tests/test_postmatch_delivery.py','tests/test_sportsdb_activation_permissions.py',*re.findall(r'tests/test_[a-z0-9_]+\.py',text)]))
+          result=pytest.main(['-o','addopts=','-q',*files,'--junitxml=postmatch-evidence/results.xml'])
+          assert not calls
+          if result: raise SystemExit(result)
+          cases=ET.parse('postmatch-evidence/results.xml').findall('.//testcase')
+          assert len(cases)>=453
+          assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
+          for module,minimum in [('test_postmatch_delivery',34),('test_sportsdb_activation_permissions',40)]:
+              assert sum(module in c.get('classname','') for c in cases)>=minimum
+          names=app.app.jinja_env.list_templates()
+          for name in names: app.app.jinja_env.parse(app.app.jinja_env.loader.get_source(app.app.jinja_env,name)[0])
+          Path('postmatch-evidence/summary.json').write_text(json.dumps({'tests':len(cases),'failures':0,'errors':0,'skipped':0,'templates':len(names),'real_provider_calls':0,'production_changed':False},indent=2))
+          print('Verified test cases:',len(cases))
+          PY
+          python -m compileall -q engines blueprints
+          python tools/check_madrid_times.py
+      - name: Commit only verified product files, never workflows or main
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          rows=json.loads(Path('postmatch-evidence/source-hashes.json').read_text())
+          names=[r['path'] for r in rows]
+          assert len(names)==5 and all(not p.startswith('.github/') for p in names)
+          for row in rows: assert hashlib.sha256(Path(row['path']).read_bytes()).hexdigest()==row['after']
+          branch='fix/postmatch-delivery-diagnostics-20261001'
+          tip=subprocess.check_output(['git','ls-remote','origin','refs/heads/'+branch],text=True).split()[0]
+          assert tip==os.environ['GITHUB_SHA'], 'Branch moved; abort rather than overwrite'
+          subprocess.run(['git','config','user.name','NeMeSiS QA'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','add','--',*names],check=True)
+          subprocess.run(['git','diff','--cached','--check'],check=True)
+          subprocess.run(['git','commit','-m','Fix postmatch delivery: official tvhighlights schema, bounded lookup and evidence'],check=True)
+          subprocess.run(['git','push','origin','HEAD:refs/heads/'+branch],check=True)
+          Path('postmatch-evidence/source-commit.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD'],text=True))
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: postmatch-delivery-source
+          name: postmatch-delivery-${{ github.run_id }}
           path: postmatch-evidence/
-          retention-days: 2
+          retention-days: 7
