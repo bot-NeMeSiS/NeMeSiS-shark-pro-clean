@@ -60,3 +60,34 @@ def test_non_finite_or_invalid_price_cannot_reach_storage(isolated_publisher, pr
     result = publish(candidate(odds_value=price))
     assert writes == [], 'An invalid observation was treated as an executable quote'
     assert result.get('created') is False
+
+
+@pytest.mark.parametrize('changes,reason', [
+    ({'decision':'WAIT', 'can_publish':False}, 'analisis_no_publicable'),
+    ({'decision':'NO_BET'}, 'analisis_no_publicable'),
+    ({'can_publish':'true'}, 'analisis_no_publicable'),
+    ({'odds_value':math.nan}, 'sin_cuota_valida'),
+    ({'odds_value':math.inf}, 'sin_cuota_valida'),
+    ({'odds_value':True}, 'sin_cuota_valida'),
+])
+def test_scheduler_reports_the_actual_blocker(app_module, monkeypatch, changes, reason):
+    monkeypatch.setattr(app_module, 'v565_recommendation_pool', lambda **_kw: [candidate(**changes)])
+    monkeypatch.setattr(app_module, 'telegram_log', lambda *_a, **_k: None)
+    def forbidden(*_a, **_k):
+        raise AssertionError('Rejected candidate reached the publisher')
+    monkeypatch.setattr(app_module, 'ensure_auto_pick_from_recommendation', forbidden)
+    result = app_module.refresh_auto_picks_basic()
+    assert result['saved'] == 0
+    assert result['auto_candidates'] == 0
+    assert result['discarded'][0]['reason'] == reason
+
+
+def test_admin_does_not_present_missing_model_as_a_low_score(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'get_upcoming_matches', lambda *_a, **_k: [{'id':'synthetic'}])
+    monkeypatch.setattr(app_module, 'get_matches', lambda *_a, **_k: [])
+    monkeypatch.setattr(app_module, 'rows', lambda *_a, **_k: [])
+    monkeypatch.setattr(app_module, 'get_picks', lambda *_a, **_k: [])
+    monkeypatch.setattr(app_module, 'v565_recommendation_pool', lambda **_kw: [candidate(decision='WAIT',can_publish=False)])
+    report = app_module.v565_data_picks_health()
+    assert any('validar el modelo' in line for line in report['actions'])
+    assert not any('convertir las mejores' in line for line in report['actions'])
