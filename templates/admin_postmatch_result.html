@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="ns-card" data-postmatch-run-result>
+<link rel="stylesheet" href="{{ url_for('static', filename='highlights-experience.css') }}?v=media-review-1">
+<div class="ns-highlights-review">
+<section class="ns-card ns-media-overview" data-postmatch-run-result>
   <p>Administración · Recuperación pospartido</p>
   <h1>{{ delivery.title }}</h1>
   {% if delivery.available %}
@@ -12,7 +14,7 @@
   <a class="ns-button ns-button-primary" href="/admin/highlights-review#postmatch-workers">Volver a trabajadores pospartido</a>
 </section>
 {% for job in delivery.jobs %}
-<article class="ns-card" data-postmatch-result-job>
+<article class="ns-card ns-media-review-card" data-postmatch-result-job>
   <h2>{{ job.match_label }}</h2>
   <p><strong>{{ job.kind_label }}</strong> · {{ job.state_label }}</p>
   <p>{{ job.reason_label }}</p>
@@ -29,4 +31,5 @@
 </article>
 {% endfor %}
 <p>No necesitas repetir el botón para cada partido. Los reintentos continúan mediante el coordinador existente. Encontrar un vídeo no autoriza su publicación.</p>
+</div>
 {% endblock %}
