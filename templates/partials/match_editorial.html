@@ -1,0 +1,37 @@
+{% from "components/v944_match_center.html" import video_panel %}
+{% set story = match_context.get('story') or {} %}
+<section class="ns-editorial" data-match-editorial="NEMESIS-MATCH-EDITORIAL-V1" data-editorial-revision="{{ editorial.get('revision') or '' }}" aria-label="Resumen, vídeo y noticias del encuentro">
+  <div class="ns-editorial__lead">
+    <section class="ns-editorial__recap" id="match-editorial-summary">
+      <header class="ns-editorial__heading"><div><span class="ns-editorial__kicker">EL PARTIDO, EN CONTEXTO</span><h2>{{ editorial.get('title') or 'Resumen del encuentro' }}</h2></div><span class="ns-editorial__status">{{ editorial.get('phase') or match_context.get('lifecycle', {}).get('label') or 'Por confirmar' }}</span></header>
+      <p class="ns-editorial__intro">{{ editorial.get('summary') or story.get('summary') or 'Información todavía no disponible.' }}</p>
+      {% for paragraph in editorial.get('paragraphs') or [] %}<p class="ns-editorial__fine">{{ paragraph }}</p>{% endfor %}
+      <p class="ns-editorial__byline">Resumen factual de NeMeSiS · Sin opiniones ni predicciones añadidas</p>
+      {% if editorial.get('facts') %}
+      <div class="ns-editorial__facts" aria-label="Datos registrados, local y visitante">
+        {% for fact in editorial.get('facts') %}<div><span>{{ fact.label }}</span><strong>{{ fact.home }} <small>—</small> {{ fact.away }}</strong></div>{% endfor %}
+      </div>
+      <p class="ns-editorial__fine">Local / visitante · {{ editorial.get('stat_source') }}{% if editorial.get('stat_observed_at') %} · {{ editorial.get('stat_observed_at')|sync_madrid_label }}{% endif %}</p>
+      {% endif %}
+      {% if editorial.get('moments') %}
+      <div class="ns-editorial__moments"><h3>Hechos registrados</h3><ol>
+        {% for event in editorial.get('moments') %}<li><time>{{ event.minute }}</time><span><strong>{{ event.label }}</strong>{% if event.player %}<small>{{ event.player }}{% if event.team %} · {{ event.team }}{% endif %}</small>{% elif event.team %}<small>{{ event.team }}</small>{% endif %}</span></li>{% endfor %}
+      </ol></div>
+      {% endif %}
+      <details class="ns-editorial__sources"><summary>Fuentes y alcance del resumen</summary><p>{{ editorial.get('coverage') or 'Información disponible' }}. {{ editorial.get('limitation') or 'No se deducen acontecimientos que no estén registrados.' }}</p><p>Datos: {{ editorial.get('source') or 'Fuente no identificada' }}{% if editorial.get('observed_at') %} · {{ editorial.get('observed_at')|sync_madrid_label }}{% endif %}</p><p>La hora corresponde a la evidencia guardada, no al momento de abrir esta página.</p></details>
+    </section>
+    <aside class="ns-editorial__video" aria-label="Vídeo del encuentro">
+      {{ video_panel(match_context, detail.get('postmatch_recovery') or {}) }}
+    </aside>
+  </div>
+  <section class="ns-editorial__news" id="match-section-news" data-news-state="{{ editorial.get('news_state') or 'NOT_INITIALIZED' }}">
+    <header class="ns-editorial__heading"><div><span class="ns-editorial__kicker">FUENTES EXTERNAS</span><h2>Noticias y crónicas del partido</h2></div><span class="ns-editorial__status">{% if editorial.get('news_state') == 'VERIFIED' %}{{ (editorial.get('news') or [])|length }} referencias{% else %}{{ 'Sin comprobar' if editorial.get('news_state') == 'READ_UNAVAILABLE' else 'Por revisar' }}{% endif %}</span></header>
+    {% if editorial.get('news') %}
+    <div class="ns-editorial__news-grid">
+      {% for article in editorial.get('news') %}<article class="ns-editorial__article" data-match-news="{{ article.id }}"><p class="ns-editorial__kicker">{{ article.publisher }}</p><h3><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a></h3><time datetime="{{ article.published_at }}">{{ article.published_at|madrid_datetime_label }}</time><a class="ns-editorial__link" href="{{ article.url }}" target="_blank" rel="noopener noreferrer">Leer en el medio original <span aria-hidden="true">↗</span></a></article>{% endfor %}
+    </div><p class="ns-editorial__fine">Referencias revisadas para este encuentro. La crónica completa pertenece a su medio; NeMeSiS no la reproduce.</p>
+    {% else %}
+    <div class="ns-editorial__empty"><span aria-hidden="true">↗</span><p>{% if editorial.get('news_state') == 'READ_UNAVAILABLE' %}No se pudo consultar la selección de noticias. Esto no significa que no existan artículos del partido.{% else %}Todavía no hay referencias revisadas para este encuentro. El resumen y el vídeo se muestran de forma independiente.{% endif %}</p></div>
+    {% endif %}
+  </section>
+</section>

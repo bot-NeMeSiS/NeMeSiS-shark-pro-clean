@@ -1,7 +1,7 @@
 """Media review sub-blueprint mounted explicitly by the existing admin composition factory."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify, redirect, render_template, request, session
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for, flash
 from engines.highlight_review_engine import ReviewError, decide_highlight, review_snapshot
 from engines.security_engine import validate_csrf
 
@@ -61,5 +61,46 @@ def create_media_review_blueprint(db_path, is_admin_callback):
         # One explicit request checks today and yesterday, never changes rights or sends Telegram.
         result = sync_sportsdb_highlights(db_path, days_back=1, limit=100, force=False)
         return jsonify(result), (200 if result.get('ok') else 503)
+
+    @bp.app_template_global('match_editorial')
+    def match_editorial(context, match):
+        from engines.match_editorial_engine import build_editorial
+        from engines.match_news_store import snapshot
+        return build_editorial(context, snapshot(db_path, str(match.get('id') or '')))
+
+    @bp.get('/admin/highlights-review/news')
+    def news_index():
+        from engines.match_news_store import snapshot
+        model = snapshot(db_path, request.args.get('match_id', ''), admin=True)
+        status = 503 if model['state'] == 'READ_UNAVAILABLE' else 404 if model['state'] == 'MATCH_NOT_FOUND' else 200
+        return render_template('admin_match_news.html', data={}, news=model, review_error=''), status
+
+    @bp.post('/admin/highlights-review/news/<match_id>/save')
+    def news_save(match_id):
+        from engines.match_news_store import save_draft, snapshot, NewsError
+        import sqlite3
+        actor = str(session.get('user_id') or session.get('admin_id') or 'authenticated-admin-session')
+        try:
+            save_draft(db_path, match_id, request.form, actor=actor)
+        except NewsError as exc:
+            return render_template('admin_match_news.html', data={}, news=snapshot(db_path, match_id, admin=True), review_error=str(exc)), 409
+        except (sqlite3.Error, OSError):
+            return jsonify(ok=False, error='news_storage_unavailable'), 503
+        flash('Borrador guardado. Revisa la referencia antes de publicarla.', 'success')
+        return redirect(url_for('.news_index', match_id=match_id), code=303)
+
+    @bp.post('/admin/highlights-review/news/<match_id>/<int:news_id>/decision')
+    def news_decision(match_id, news_id):
+        from engines.match_news_store import decide, snapshot, NewsError
+        import sqlite3
+        actor = str(session.get('user_id') or session.get('admin_id') or 'authenticated-admin-session')
+        try:
+            state = decide(db_path, match_id, news_id, request.form, actor=actor)
+        except NewsError as exc:
+            return render_template('admin_match_news.html', data={}, news=snapshot(db_path, match_id, admin=True), review_error=str(exc)), 409
+        except (sqlite3.Error, OSError):
+            return jsonify(ok=False, error='news_storage_unavailable'), 503
+        flash('Referencia publicada en la ficha.' if state == 'PUBLISHED' else 'Referencia retirada; el historial se conserva.', 'success')
+        return redirect(url_for('.news_index', match_id=match_id), code=303)
 
     return bp

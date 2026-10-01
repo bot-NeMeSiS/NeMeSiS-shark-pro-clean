@@ -1,0 +1,61 @@
+name: Match editorial QA
+on:
+  pull_request:
+    paths:
+      - 'engines/match_editorial_engine.py'
+      - 'engines/match_news_store.py'
+      - 'blueprints/media_review.py'
+      - 'templates/match_detail.html'
+      - 'templates/partials/match_editorial.html'
+      - 'templates/admin_match_news.html'
+      - 'templates/admin_highlights_review.html'
+      - 'static/match-editorial.css'
+      - 'tests/test_match_editorial.py'
+      - 'tools/run_match_editorial_browser_qa.py'
+      - '.github/workflows/match-editorial.yml'
+permissions:
+  contents: read
+concurrency:
+  group: match-editorial-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  editorial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11.9'
+      - name: Isolated dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: New publication and identity regressions
+        run: |
+          mkdir -p "$RUNNER_TEMP/editorial-evidence"
+          python -m pytest -o addopts='' -q tests/test_match_editorial.py --junitxml="$RUNNER_TEMP/editorial-evidence/tests.xml"
+      - name: Full application browser, no snapshot substitution
+        run: python tools/run_match_editorial_browser_qa.py --output "$RUNNER_TEMP/editorial-evidence/browser"
+      - name: Verify complete evidence
+        run: |
+          python - <<'PY'
+          import os,json,pathlib,xml.etree.ElementTree as ET
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'editorial-evidence'
+          cases=ET.parse(root/'tests.xml').findall('.//testcase')
+          assert len(cases)>=39
+          assert all(c.find(t) is None for c in cases for t in ('failure','error','skipped'))
+          checks=json.loads((root/'browser/results.json').read_text())
+          assert len(checks)==12
+          assert all(c['mode']=='full_http' and c['status']==200 and not c['errors'] and not c['overflow'] for c in checks)
+          (root/'commit.txt').write_text(os.environ['GITHUB_SHA'])
+          PY
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: match-editorial-${{ github.run_id }}
+          path: ${{ runner.temp }}/editorial-evidence/
+          retention-days: 7
+          if-no-files-found: warn
