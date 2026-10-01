@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-card" data-postmatch-run-result>
+  <p>Administración · Recuperación pospartido</p>
+  <h1>{{ delivery.title }}</h1>
+  {% if delivery.available %}
+    <p>Tareas procesadas: <strong>{{ delivery.processed if delivery.processed is not none else '—' }}</strong> · Consultas externas: <strong>{{ delivery.external_calls if delivery.external_calls is not none else '—' }}</strong>.</p>
+    <p>Este es el resultado de la ejecución solicitada, no un estado en directo. Recargar esta página no repite consultas.</p>
+  {% else %}
+    <p>No hay un resultado reciente de ejecución manual en esta sesión.</p>
+  {% endif %}
+  <a class="ns-button ns-button-primary" href="/admin/highlights-review#postmatch-workers">Volver a trabajadores pospartido</a>
+</section>
+{% for job in delivery.jobs %}
+<article class="ns-card" data-postmatch-result-job>
+  <h2>{{ job.match_label }}</h2>
+  <p><strong>{{ job.kind_label }}</strong> · {{ job.state_label }}</p>
+  <p>{{ job.reason_label }}</p>
+  {% if job.due_label %}<p>Reintento previsto a partir de {{ job.due_label }} (hora de Madrid), sujeto al Cron y al presupuesto disponible.</p>{% endif %}
+  {% if job.match_id %}<a href="/match/{{ job.match_id|urlencode }}">Abrir ficha del partido</a>{% endif %}
+  {% set evidence = job.diagnostics %}
+  {% if evidence %}<details><summary>Detalle de las consultas de esta tarea</summary>
+    {% if evidence.sportsdb_event_id %}<p>Evento TheSportsDB: {{ evidence.sportsdb_event_id }}.</p>{% endif %}
+    {% if evidence.key_mode == 'PUBLIC_DEMO_KEY' %}<p role="alert">La configuración está usando una clave pública de pruebas. Eso no acredita acceso con tu suscripción. No pegues claves en esta pantalla.</p>{% elif evidence.key_mode %}<p>Clave configurada; este diagnóstico no verifica la suscripción ni la facturación.</p>{% endif %}
+    {% if evidence.statistics_received is defined %}<p>Filas de estadísticas recibidas: {{ evidence.statistics_received }}. Reconocidas: {{ evidence.statistics_recognized if evidence.statistics_recognized is defined else '—' }}. Aprovechables: {{ evidence.statistics_accepted if evidence.statistics_accepted is defined else '—' }}.</p>{% endif %}
+    {% if evidence.highlight_rows is defined %}<p>Enlaces candidatos en la búsqueda por fecha y liga: {{ evidence.highlight_rows }}.</p>{% endif %}
+    {% if evidence.video_lookup == 'LEAGUE_DAY_LINK' %}<p>Se recuperó un enlace desde la búsqueda por fecha y liga. Sigue sujeto a revisión de publicación.</p>{% endif %}
+  </details>{% endif %}
+</article>
+{% endfor %}
+<p>No necesitas repetir el botón para cada partido. Los reintentos continúan mediante el coordinador existente. Encontrar un vídeo no autoriza su publicación.</p>
+{% endblock %}
