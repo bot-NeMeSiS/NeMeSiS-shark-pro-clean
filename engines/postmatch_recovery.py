@@ -144,6 +144,7 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
     if not config['enabled']:
         return {'ok': True, 'result': 'SKIPPED_DISABLED', 'external_calls': 0, 'processed': 0}
     began, results = clock(), []
+    shared_request_cache = {}
     try:
         # Migration belongs to explicit activation, not to a page read or import.
         store.discover(began)
@@ -161,6 +162,8 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                     outcome = {'reasons':['IDENTITY_CHANGED'], 'external_calls':0}
                 else:
                     source = source_factory(store, job, config, deadline=began + 20, clock=clock)
+                    if isinstance(source, OfficialSources):
+                        source.cache = shared_request_cache
                     outcome = source.highlights(match) if job['kind'] == 'highlights' else source.statistics(match)
                 results.append(finish(store, job, outcome, clock()))
             except StaleLease:

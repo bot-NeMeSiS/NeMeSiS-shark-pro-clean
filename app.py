@@ -4375,6 +4375,7 @@ def fetch_json_response(url, headers=None, timeout=10):
 
 
 def sportsdb_v1(endpoint, params=None):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4384,10 +4385,11 @@ def sportsdb_v1(endpoint, params=None):
     )
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    return fetch_json_url(url, timeout=12)
+    return fetch_json_url(url, timeout=request_timeout(12))
 
 
 def sportsdb_v2(path):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4395,7 +4397,7 @@ def sportsdb_v2(path):
     return fetch_json_url(
         url,
         headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key},
-        timeout=12,
+        timeout=request_timeout(12),
     )
 
 
@@ -5013,39 +5015,18 @@ def _prioritize_sportsdb_feed_events(events, limit=220, priority_external_ids=No
 
 
 def fetch_sportsdb_feed_events(limit=220, priority_external_ids=None):
-    events = []
-    errors = []
-    external_calls = 0
-    try:
-        external_calls += 1
-        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
-        events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-    except Exception as exc:
-        save_thesportsdb_error(exc)
-        errors.append("eventsday: " + str(exc)[:160])
-    for league in SPORTSDB_FEED_LEAGUES:
-        if len(events) >= int(limit):
-            break
-        try:
-            external_calls += 1
-            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
-            events.extend([(item, league) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append(f"{league['name']}: {str(exc)[:160]}")
-    if sportsdb_live_enabled():
-        try:
-            external_calls += 1
-            payload = sportsdb_v2("livescore/soccer")
-            events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append("livescore: " + str(exc)[:160])
-    selected = _prioritize_sportsdb_feed_events(
-        events,
-        limit=limit,
+    from engines.sportsdb_request_budget import fetch_feed
+    if not thesportsdb_key():
+        return [], ['MISSING_KEY'], 0
+    selected, errors, external_calls = fetch_feed(
+        v1=sportsdb_v1, v2=sportsdb_v2, today=today_iso(),
+        leagues=SPORTSDB_FEED_LEAGUES, live_enabled=sportsdb_live_enabled(),
+        limit=limit, prioritize=_prioritize_sportsdb_feed_events,
+        slug=slug, collect=sportsdb_event_collection,
         priority_external_ids=priority_external_ids,
     )
+    if errors:
+        save_thesportsdb_error('; '.join(errors))
     return selected, errors, external_calls
 
 
@@ -18392,7 +18373,10 @@ def v766_highlight_map(match_ids, limit_per_match=2):
 def v766_apply_match_highlight_badge(match, highlights=None, read_state="VERIFIED"):
     item = dict(match or {})
     if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
-        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="", highlight_read_state="DISABLED_BY_ADMIN")
+        readable = admin_operational_settings().get("settings_readable") is True
+        item.update(has_highlights=False if readable else None, highlight_count=0 if readable else None,
+                    highlight_url="", highlight_title="", client_highlight_label="" if readable else "Disponibilidad sin comprobar",
+                    highlight_read_state="DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE")
         return item
     state = str(read_state or "READ_UNAVAILABLE")
     hs = highlights if highlights is not None else []
@@ -18435,7 +18419,9 @@ def v766_enrich_matches_with_highlights(matches):
 
 def v766_highlights_context(limit=12):
     if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
-        return {"version": APP_VERSION, "ok": False, "read_state": "DISABLED_BY_ADMIN", "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador."}
+        readable = admin_operational_settings().get("settings_readable") is True
+        state = "DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE"
+        return {"version": APP_VERSION, "ok": False, "read_state": state, "status": state, "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador." if readable else "No se pudo leer la configuración de resúmenes."}
     try:
         summary = sportsdb_highlights_summary(DB_PATH)
     except Exception:
@@ -18513,24 +18499,33 @@ def v766_calendar_order_context(calendar=None):
 
 
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
-    """Sincroniza highlights de forma controlada. Protegido por admin/secret en rutas."""
+    """Reuse the existing daily sync; failures must not suppress a whole day."""
+    import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         last_day = str(last.get("date") or "")[:10]
         if last_day == today_iso():
-            return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('retryable') is False:
+                return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
+            try:
+                age = time.time() - float(last.get('attempt_finished_epoch') or 0)
+            except (ValueError, TypeError, OverflowError):
+                age = 901
+            if 0 <= age < 900:
+                return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"]}
     try:
         result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
-        try:
-            rebuild_match_enrichment(DB_PATH, limit=limit)
-        except Exception:
-            pass
-    except Exception as exc:
-        result = {"ok": False, "errors": [str(exc)[:220]], "processed": 0, "updated": 0}
+    except Exception:
+        result = {"ok": False, "status": "FAILED", "errors": ["HIGHLIGHTS_SYNC_FAILED"], "processed": 0, "updated": 0}
     result["started_at"] = started
     result["finished_at"] = now_iso()
     result["date"] = today_iso()
+    result['attempt_finished_epoch'] = time.time()
     automation_set("sportsdb_highlights_last_sync", result)
     return result
 
@@ -34432,7 +34427,7 @@ register_admin_master(_admin_sys.modules[__name__])
 def admin_operational_settings():
     # One bounded settings read per request, shared by cards and templates.
     if not hasattr(g, "admin_operational_settings"):
-        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])
+        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__], include_read_state=True)
     return g.admin_operational_settings
 
 @app.context_processor
@@ -34443,7 +34438,14 @@ def admin_operational_settings_context():
 def admin_client_content_visibility():
     # Client-only presentation switch; never deletes content or stops ingestion.
     if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.endpoint == "highlight_detail_page") and not is_admin_session():
-        if not admin_operational_settings()["highlights_enabled"]:
+        settings = admin_operational_settings()
+        if settings.get("settings_readable") is not True:
+            if request.path.startswith("/api/"):
+                return jsonify(ok=False, disabled=None, status="READ_UNAVAILABLE", highlights=[], content_center={}), 503
+            return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",
+                resource_title="No se pudo comprobar la disponibilidad de los resúmenes",
+                resource_message="No se pudo leer la configuración. No se ha confirmado una pausa administrativa ni la ausencia de vídeos."), 503
+        if not settings["highlights_enabled"]:
             if request.path.startswith("/api/"):
                 return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
             return render_template("admin_content_paused.html", data={})

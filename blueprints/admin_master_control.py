@@ -29,8 +29,10 @@ def _settings_snapshot(a):
         return {"highlights_enabled": False, "banner_enabled": False, "banner_text": ""}, False
 
 
-def settings_values(a):
-    return _settings_snapshot(a)[0]
+def settings_values(a, *, include_read_state=False):
+    values, readable = _settings_snapshot(a)
+    # Preserve the values-only contract for existing admin consumers.
+    return {**values, "settings_readable": readable} if include_read_state else values
 
 
 def _safe_stamp(value):

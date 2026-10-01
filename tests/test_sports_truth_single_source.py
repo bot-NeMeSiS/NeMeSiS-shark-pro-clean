@@ -558,6 +558,7 @@ def test_sportsdb_feed_prioritizes_stale_reconciliation_and_live_with_same_limit
     ]
 
     calls = []
+    monkeypatch.setattr(app_module, "thesportsdb_key", lambda: "isolated-premium-test-key")
     monkeypatch.setattr(app_module, "SPORTSDB_FEED_LEAGUES", [], raising=False)
     monkeypatch.setattr(app_module, "sportsdb_live_enabled", lambda: True)
     monkeypatch.setattr(

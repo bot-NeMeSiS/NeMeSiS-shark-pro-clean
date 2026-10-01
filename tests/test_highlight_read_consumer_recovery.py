@@ -45,7 +45,7 @@ def test_batch_failure_preserves_unknown(app_module, monkeypatch):
 
 def test_admin_pause_is_not_removed_by_historical_recovery(app_module, monkeypatch):
     monkeypatch.setattr(app_module, 'is_admin_session', lambda:False)
-    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda:{'highlights_enabled':False})
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda:{'highlights_enabled':False, 'settings_readable':True})
     monkeypatch.setattr(app_module, 'sportsdb_highlights_summary', lambda *_a: pytest.fail('Paused read'))
     with app_module.app.test_request_context('/highlights'):
         context = app_module.v766_highlights_context()

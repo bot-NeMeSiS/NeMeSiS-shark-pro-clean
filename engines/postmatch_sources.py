@@ -8,6 +8,8 @@ budgeted before network access, redirects are rejected and raw errors discarded.
 from __future__ import annotations
 from datetime import datetime, timezone
 import json
+import hashlib
+from copy import deepcopy
 import os
 import re
 import sqlite3
@@ -163,8 +165,6 @@ class OfficialSources:
                    'api_football': {'fixtures', 'fixtures/statistics'}}
         if provider not in self.config['sources'] or endpoint not in allowed.get(provider, set()):
             raise SourceError('SOURCE_NOT_ALLOWED')
-        if self.calls >= 6 or self.clock() >= self.deadline - .5:
-            raise BudgetStopped('TICK_BUDGET')
         if provider == 'thesportsdb':
             key = (os.getenv('THESPORTSDB_KEY') or os.getenv('THESPORTSDB_API_KEY') or '').strip()
             if not key:
@@ -180,9 +180,13 @@ class OfficialSources:
                 raise SourceError('SOURCE_DISABLED')
             base = 'https://v3.football.api-sports.io/'
             headers = {'x-apisports-key': key}
-        cache_key = (provider, endpoint, tuple(sorted(params.items())))
+        cache_key = (provider, hashlib.sha256(key.encode()).digest(), endpoint, tuple(sorted(params.items())))
+        if self.clock() >= self.deadline - .5:
+            raise BudgetStopped('TICK_BUDGET')
         if cache_key in self.cache:
-            return self.cache[cache_key]
+            return deepcopy(self.cache[cache_key])
+        if self.calls >= 6:
+            raise BudgetStopped('TICK_BUDGET')
         self.store.reserve(provider, self.job, self.clock(), self.config['daily_limit'])
         self.calls += 1
         req = urllib.request.Request(base + endpoint + '?' + urllib.parse.urlencode(params),
@@ -195,7 +199,7 @@ class OfficialSources:
                 raw = json.dumps(payload.get('errors') or payload.get('error')).lower()[:1000]
                 reason = 'RATE_LIMIT' if any(t in raw for t in ('quota','limit','429')) else 'ACCESS_DENIED'
                 raise SourceError(reason)
-            self.cache[cache_key] = payload
+            self.cache[cache_key] = deepcopy(payload)
             self.store.circuit(provider, False, '', self.clock())
             return payload
         except (BudgetStopped, StaleLease):
@@ -241,7 +245,15 @@ class OfficialSources:
             payload = self.request('thesportsdb', 'lookupevent.php', {'id': sid})
         else:
             # Exact dated discovery, capped by provider response and the worker's request budget.
-            payload = self.request('thesportsdb', 'eventsday.php', {'d': match_date(match), 's': 'Soccer'})
+            day = match_date(match)
+            try:
+                local = datetime.fromisoformat(day + 'T' + str(match.get('kickoff_time') or ''))
+                if local.tzinfo is None:
+                    local = local.replace(tzinfo=ZoneInfo('Europe/Madrid'))
+                day = local.astimezone(timezone.utc).date().isoformat()
+            except (TypeError, ValueError):
+                pass  # No guessed kickoff; keep the dated discovery scope.
+            payload = self.request('thesportsdb', 'eventsday.php', {'d': day, 's': 'Soccer'})
         events = payload.get('events')
         if events is None:
             return None

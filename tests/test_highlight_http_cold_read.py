@@ -26,7 +26,7 @@ def test_cold_http_detail_does_not_initialize_or_misclassify_catalogue(app_modul
     monkeypatch.setattr(app_module, 'dashboard_data', forbidden)
     # Isolate storage semantics from administrative pause. The visibility guard
     # and every other before/after-request hook still execute normally.
-    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda:{'highlights_enabled':True})
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda:{'highlights_enabled':True, 'settings_readable':True})
     client = app_module.app.test_client()
     if role:
         with client.session_transaction() as session:
@@ -78,7 +78,7 @@ def test_authorized_http_video_renders_without_startup_or_dashboard(app_module, 
 
 @pytest.mark.parametrize('prefix',['/highlight/','/resumen/','/resumenes/'])
 def test_administrative_pause_covers_all_video_aliases(app_module, monkeypatch, prefix):
-    monkeypatch.setattr(app_module,'admin_operational_settings',lambda:{'highlights_enabled':False})
+    monkeypatch.setattr(app_module,'admin_operational_settings',lambda:{'highlights_enabled':False, 'settings_readable':True})
     calls = []
     def unexpected(*_a, **_k):
         calls.append('read')
