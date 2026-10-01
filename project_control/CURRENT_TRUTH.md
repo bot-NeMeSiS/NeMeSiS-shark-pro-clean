@@ -1,5 +1,52 @@
 # Current Truth
 
+## Consolidacion activa - 2026-10-02
+
+Esta seccion prevalece sobre los cierres historicos inferiores. Antes de editar,
+verificar Git actual y los pendientes; no reanudar ramas antiguas ni repetir
+encargos porque un chat o informe los describa como abiertos.
+
+- Repositorio oficial: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.
+- Main observado: `cc1481c0a29f91be49f92abaaea48e3dde345356`; incluye #141.
+  #92 ya esta fusionada: su antigua descripcion OPEN/DRAFT no manda.
+- Unica candidata de esta mision: `codex/consolidation-20261001`, worktree
+  independiente registrado en el mismo repositorio. La carpeta oficial y los
+  otros worktrees siguen preservados; no son candidatas de publicacion adicionales.
+- Coordinadora: **NeMeSiS — Consolidación y continuidad**, fijada en Codex.
+  Un solo escritor conocido sobre la candidata. Otras cuentas, dispositivos y
+  sesiones no accesibles no estan certificados. Inventario y recuperacion privados.
+- Estado al registrar este cierre: **CANDIDATA PENDIENTE DE VALIDACION REMOTA**.
+  Codigo consolidado en `df813446` y `fd13abd2`: merge controlado de #139,
+  reparaciones editoriales, guards de publicacion de picks, cache privada
+  Founder, PWA, navegacion administrativa y compatibilidad LOCAL SAFE.
+  La unica PR corresponde a `codex/consolidation-20261001`; consultar sus
+  checks para el ultimo HEAD, no inferir un PASS remoto de esta documentacion.
+- #141 y sus contratos POST -> 303 -> GET se conservan. #139 no activa feeds:
+  pausa, fuentes permitidas, derechos, revision humana, expiracion y limites siguen.
+- De #135 se recupera solo el guard que impide publicar WAIT/NO_BET y cuotas
+  invalidas. Su modelo experimental NO se integra ni se aprueba.
+- El inventario de #134 se reutiliza; el inspector local ignora reemplazos Git
+  que falsearian la ascendencia. No se borran ramas, worktrees ni stashes.
+- Pendientes preservados: #136 (presupuesto cooperativo SportsDB), modelo #135,
+  fiabilidad/copiloto/RC locales no validados y recuperacion Design historica.
+  No se importan sus eliminaciones masivas ni workflows anteriores.
+- Pruebas: entorno completo nuevo con requisitos declarados, SQLite temporal,
+  credenciales externas ausentes y bloqueo de red exterior. Primera suite:
+  3834 = 3822 PASS + 12 FAIL, cero errores/omitidos. Diez fallos reparados
+  y revalidados; dos Gunicorn/fcntl no certificables en Windows, exigidos en CI Linux.
+  198 focales + 71 navegacion/guards PASS (no sumar como suite unica);
+  diez procesos LOCAL SAFE/fresh: 334 PASS. HTTP editorial: 36 casos;
+  feed: 12; pospartido #141: 9. Smoke/Madrid/Jinja/privacidad/enlaces PASS.
+  Sentinel static: cero incidencias, diagnostico local, no certificacion global.
+- Produccion: **NO OBSERVADA en esta mision**. Sin merge, deploy, proveedores,
+  cobros, Telegram real ni certificacion Sports Data/LIVE Day 3-7.
+- El workflow declara Auto-Deploy desde main. Un eventual merge necesita
+  aprobacion separada del SHA y de sus efectos productivos.
+
+Decisiones, procedencia y resultados de esta misma candidata se mantienen en
+`docs/NEMESIS_RECONCILIATION_AUDIT.md`. No crear otra cola ni otro informe por
+cada reanudacion; comprobar primero esos dos documentos y las refs actuales.
+
 ## Punto operativo remoto y cierre Sentinel · 2026-09-23
 
 - GitHub `main` vigente: `228369d42447f37f3023a7f09216205057e4655c` (PR #82).
