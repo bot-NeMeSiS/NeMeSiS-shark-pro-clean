@@ -45,12 +45,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DB_PATH: ${{ runner.temp }}/journey-controls/app.sqlite3
+      DB_PATH: /tmp/nemesis-journey-${{ github.run_id }}/app.sqlite3
       SECRET_KEY: isolated-journey-ci-only
       BACKGROUND_JOBS_ENABLED: 'false'
       AUTO_GENERATE_PICKS: 'false'
       AUTO_SEND_TELEGRAM_PICKS: 'false'
-      NEMESIS_JOURNEY_EVIDENCE_DIR: ${{ runner.temp }}/journey-controls/evidence
+      NEMESIS_JOURNEY_EVIDENCE_DIR: /tmp/nemesis-journey-${{ github.run_id }}/evidence
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -93,7 +93,7 @@ jobs:
         if: always()
         with:
           name: journey-controls-${{ github.run_id }}
-          path: ${{ runner.temp }}/journey-controls/evidence/
+          path: /tmp/nemesis-journey-${{ github.run_id }}/evidence/
           if-no-files-found: warn
           retention-days: 7
 
