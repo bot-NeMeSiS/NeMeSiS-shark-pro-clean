@@ -1,0 +1,42 @@
+name: Reviewed media source
+on:
+  push:
+    branches: [ops/repository-reconciliation-20261001]
+    paths: [.github/workflows/media-reviewed-source.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Export exact reviewed source delta without running application code
+        run: |
+          git fetch --filter=blob:none --no-tags origin c0b393ac79dccb717ab4a60aef6a7e45839a2730
+          git fetch --filter=blob:none --no-tags origin 1690df66d3a114df36f9d93df3cb2e2230023afc
+          python - <<'PY'
+          import subprocess, pathlib, hashlib, json, zipfile, os
+          base='1690df66d3a114df36f9d93df3cb2e2230023afc'
+          head='c0b393ac79dccb717ab4a60aef6a7e45839a2730'
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'reviewed-media';out.mkdir()
+          files=subprocess.check_output(['git','diff','--name-only','-z',base,head]).decode().strip('\0').split('\0')
+          manifest={'base':base,'head':head,'files':{}}
+          with zipfile.ZipFile(out/'source-delta.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in files:
+                  p=pathlib.PurePosixPath(name)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  assert p.suffix in {'.py','.html','.js','.css'} and p.name!='.env'
+                  raw=subprocess.check_output(['git','show',head+':'+name])
+                  z.writestr(name,raw);manifest['files'][name]=hashlib.sha256(raw).hexdigest()
+          (out/'manifest.json').write_text(json.dumps(manifest,indent=2))
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reviewed-media-source-${{ github.run_id }}
+          path: ${{ runner.temp }}/reviewed-media/
+          retention-days: 2
+          if-no-files-found: error
