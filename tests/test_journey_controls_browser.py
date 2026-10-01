@@ -11,7 +11,10 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 import pytest
-from playwright.sync_api import sync_playwright
+
+# Production and the unit-test-only environment do not require a browser.
+# The dedicated Browser QA job installs and verifies Playwright explicitly.
+sync_playwright = pytest.importorskip("playwright.sync_api").sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,8 +45,10 @@ def browser():
         if os.getenv("NEMESIS_QA_CHROMIUM"):
             options["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
         instance = pw.chromium.launch(**options)
-        yield instance
-        instance.close()
+        try:
+            yield instance
+        finally:
+            instance.close()
 
 
 @pytest.fixture
