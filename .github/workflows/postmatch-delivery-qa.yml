@@ -1,18 +1,44 @@
 name: Postmatch delivery QA
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-delivery-qa.yml'
+      - '.github/workflows/postmatch-workers.yml'
+      - 'engines/postmatch*'
+      - 'engines/sportsdb_highlights_engine.py'
+      - 'blueprints/postmatch*'
+      - 'templates/admin_postmatch_result.html'
+      - 'templates/partials/postmatch_workers.html'
+      - 'templates/base.html'
+      - 'tests/test_postmatch*'
+      - 'tests/test_sportsdb*'
+      - 'tools/run_postmatch_delivery_browser_qa.py'
+      - 'app.py'
   push:
-    branches: [fix/postmatch-delivery-diagnostics-20261001]
-    paths: [.github/workflows/postmatch-delivery-qa.yml]
+    branches: [main]
+    paths:
+      - '.github/workflows/postmatch-delivery-qa.yml'
+      - '.github/workflows/postmatch-workers.yml'
+      - 'engines/postmatch*'
+      - 'engines/sportsdb_highlights_engine.py'
+      - 'blueprints/postmatch*'
+      - 'templates/admin_postmatch_result.html'
+      - 'templates/partials/postmatch_workers.html'
+      - 'templates/base.html'
+      - 'tests/test_postmatch*'
+      - 'tests/test_sportsdb*'
+      - 'tools/run_postmatch_delivery_browser_qa.py'
+      - 'app.py'
 permissions:
-  contents: write
+  contents: read
 concurrency:
-  group: postmatch-delivery-prepare
-  cancel-in-progress: false
+  group: postmatch-delivery-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   delivery:
-    if: github.ref == 'refs/heads/fix/postmatch-delivery-diagnostics-20261001'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       DB_PATH: /tmp/postmatch-delivery-${{ github.run_id }}/app.sqlite
       SECRET_KEY: isolated-delivery-test-only
@@ -32,17 +58,18 @@ jobs:
       AUTO_SEND_TELEGRAM_PICKS: 'false'
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply only source-hashed edits
-        run: python tools/_apply_postmatch_delivery.py
       - name: Install isolated dependencies
-        run: python -m pip install -r requirements-dev.txt
-      - name: Execute combined delivery, rights and inherited regression tests
+        run: python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt
+      - name: Execute delivery, rights and inherited regression tests
         run: |
+          mkdir -p postmatch-evidence
           python - <<'PY'
-          import socket,re,json,pytest
+          import socket,re,json,pytest,os,hashlib
           from pathlib import Path
           from xml.etree import ElementTree as ET
           calls=[];original=socket.socket.connect
@@ -65,31 +92,16 @@ jobs:
               assert sum(module in c.get('classname','') for c in cases)>=minimum
           names=app.app.jinja_env.list_templates()
           for name in names: app.app.jinja_env.parse(app.app.jinja_env.loader.get_source(app.app.jinja_env,name)[0])
-          Path('postmatch-evidence/summary.json').write_text(json.dumps({'tests':len(cases),'failures':0,'errors':0,'skipped':0,'templates':len(names),'real_provider_calls':0,'production_changed':False},indent=2))
+          source=['engines/postmatch_delivery.py','engines/postmatch_sources.py','engines/postmatch_recovery.py','engines/sportsdb_highlights_engine.py','blueprints/postmatch_recovery.py','templates/admin_postmatch_result.html','templates/partials/postmatch_workers.html','tests/test_postmatch_delivery.py']
+          Path('postmatch-evidence/summary.json').write_text(json.dumps({'tests':len(cases),'failures':0,'errors':0,'skipped':0,'templates':len(names),'real_provider_calls':0,'production_changed':False,'checkout_sha':os.environ['GITHUB_SHA'],'source_hashes':{p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in source}},indent=2))
           print('Verified test cases:',len(cases))
           PY
           python -m compileall -q engines blueprints
           python tools/check_madrid_times.py
-      - name: Commit only verified product files, never workflows or main
-        run: |
-          python - <<'PY'
-          import hashlib,json,os,subprocess
-          from pathlib import Path
-          rows=json.loads(Path('postmatch-evidence/source-hashes.json').read_text())
-          names=[r['path'] for r in rows]
-          assert len(names)==5 and all(not p.startswith('.github/') for p in names)
-          for row in rows: assert hashlib.sha256(Path(row['path']).read_bytes()).hexdigest()==row['after']
-          branch='fix/postmatch-delivery-diagnostics-20261001'
-          tip=subprocess.check_output(['git','ls-remote','origin','refs/heads/'+branch],text=True).split()[0]
-          assert tip==os.environ['GITHUB_SHA'], 'Branch moved; abort rather than overwrite'
-          subprocess.run(['git','config','user.name','NeMeSiS QA'],check=True)
-          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
-          subprocess.run(['git','add','--',*names],check=True)
-          subprocess.run(['git','diff','--cached','--check'],check=True)
-          subprocess.run(['git','commit','-m','Fix postmatch delivery: official tvhighlights schema, bounded lookup and evidence'],check=True)
-          subprocess.run(['git','push','origin','HEAD:refs/heads/'+branch],check=True)
-          Path('postmatch-evidence/source-commit.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD'],text=True))
-          PY
+      - name: Install isolated browser
+        run: python -m playwright install --with-deps chromium
+      - name: Verify real HTTP result screen on desktop and mobile
+        run: python tools/run_postmatch_delivery_browser_qa.py --output postmatch-evidence/browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:
