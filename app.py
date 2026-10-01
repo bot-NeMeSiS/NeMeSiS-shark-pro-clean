@@ -2627,8 +2627,9 @@ def request_read_db():
     if not db_path:
         return None
     timeout_ms = max(100, min(as_int(os.getenv("SQLITE_READ_BUSY_TIMEOUT_MS", "750"), 750), 2500))
+    media_read_only = request.endpoint == "highlight_detail_page"
     try:
-        if db_path != ":memory:" and Path(db_path).exists():
+        if db_path != ":memory:" and (media_read_only or Path(db_path).exists()):
             uri = Path(db_path).resolve().as_uri() + "?mode=ro"
             connection = sqlite3.connect(
                 uri,
@@ -2653,6 +2654,8 @@ def request_read_db():
                 connection.close()
             except sqlite3.Error:
                 pass
+        if media_read_only:
+            raise  # Never fall back to creating a database from a media read.
         return None
 
 
@@ -3923,6 +3926,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "founder_manifest_json",
     "favicon_ico",
     "apple_touch_icon",
+    "highlight_detail_page",  # Media GETs never own schema creation or seed work.
     "static",
     "home",
 }
@@ -10930,7 +10934,7 @@ def current_ui_locale():
     if user.get("id"):
         try:
             preference = valid_language(_load_user_intelligence_preferences(user["id"]).get("language"))
-        except sqlite3.OperationalError:
+        except sqlite3.Error:
             app.logger.warning("UI locale profile unavailable; using browser preference")
     g.ui_locale = (preference or valid_language(session.get("ui_locale"))
                    or valid_language(request.cookies.get("nemesis_locale"))
@@ -18726,12 +18730,17 @@ def api_admin_highlights_sync():
 @app.route("/resumenes/<highlight_id>")
 def highlight_detail_page(highlight_id):
     snapshot = v769_get_highlight_snapshot(highlight_id)
+    if snapshot.get("read_state") == "CATALOGUE_NOT_INITIALIZED":
+        # The database was readable and its schema confirms no local catalogue.
+        # This individual resource is absent; global coverage counts stay unknown.
+        return render_template("resource_unavailable.html", title="Resumen no disponible",
+            resource_title="Este resumen todavía no está disponible",
+            resource_message="No hay un resumen registrado para este identificador. Vuelve al partido para consultar su cobertura."), 404
     if snapshot.get("ok") is not True:
         return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",
             resource_title="No se pudo comprobar este resumen",
             resource_message="El catálogo no está accesible en esta lectura. Esto no significa que el vídeo no exista."), 503
-    data = dashboard_data("results", today_iso())
-    data["highlight"] = snapshot.get("highlight") or {}
+    data = {"highlight": snapshot.get("highlight") or {}}
     if not data["highlight"]:
         return render_template(
             "resource_unavailable.html",
@@ -18739,7 +18748,6 @@ def highlight_detail_page(highlight_id):
             resource_title="Este resumen ya no está disponible",
             resource_message="El contenido solicitado no está en el historial real actual. No se ha sustituido por un resumen inventado.",
         ), 404
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
     return render_template("highlight_detail.html", data=data)
 
 
@@ -34434,7 +34442,7 @@ def admin_operational_settings_context():
 @app.before_request
 def admin_client_content_visibility():
     # Client-only presentation switch; never deletes content or stops ingestion.
-    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.path.startswith("/highlight/")) and not is_admin_session():
+    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.endpoint == "highlight_detail_page") and not is_admin_session():
         if not admin_operational_settings()["highlights_enabled"]:
             if request.path.startswith("/api/"):
                 return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
