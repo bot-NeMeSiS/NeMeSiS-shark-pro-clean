@@ -20,13 +20,14 @@ class InspectionError(RuntimeError):
 
 
 def git(repo: Path, *args: str) -> str:
-    env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"}
+    env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1"}
     try:
-        result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True,
+        result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), *args], capture_output=True,
                                 timeout=30, env=env)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise InspectionError("Git no está disponible o excedió el límite de lectura.") from exc
     if result.returncode:
+        # Do not echo command output: it might contain credential-bearing remotes.
         raise InspectionError("No se pudo verificar el estado de Git.")
     return result.stdout.decode("utf-8", errors="surrogateescape")
 
@@ -47,7 +48,7 @@ def parse_worktrees(raw: str) -> list[dict[str, Any]]:
         if key in {"worktree", "HEAD", "branch"}:
             current[key] = value
         elif key in {"locked", "prunable", "bare", "detached"}:
-            current[key] = True
+            current[key] = True  # Lock reasons might contain private details.
     if current:
         records.append(current)
     if not records or any("worktree" not in row for row in records):
@@ -69,13 +70,13 @@ def status_counts(raw: str) -> dict[str, int]:
         else:
             counts["tracked_changes"] += 1
             if "R" in code or "C" in code:
-                next(tokens, None)
+                next(tokens, None)  # -z rename/copy includes a second pathname.
     return counts
 
 
 def is_ancestor(repo: Path, sha: str, target: str) -> bool:
-    env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0"}
-    result = subprocess.run(["git", "-C", str(repo), "merge-base", "--is-ancestor", sha, target],
+    env = {**os.environ, "GIT_OPTIONAL_LOCKS": "0", "GIT_TERMINAL_PROMPT": "0", "GIT_NO_LAZY_FETCH": "1"}
+    result = subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), "merge-base", "--is-ancestor", sha, target],
                             capture_output=True, timeout=30, env=env)
     if result.returncode not in (0, 1):
         raise InspectionError("Ascendencia no verificable.")
@@ -111,6 +112,12 @@ def inspect(repo: Path, base: str = "refs/remotes/origin/main") -> dict[str, Any
             counts = status_counts(git(path, "status", "--porcelain=v1", "-z",
                                        "--untracked-files=all", "--ignored=matching"))
             row.update(counts)
+            # Git status intentionally hides these entries, even when modified.
+            tags = [entry[:1] for entry in git(path, "ls-files", "-v", "-z").split("\0") if entry]
+            row["assume_unchanged_entries"] = sum(tag.islower() for tag in tags)
+            row["skip_worktree_entries"] = sum(tag.upper() == "S" for tag in tags)
+            if row["assume_unchanged_entries"]: reasons.append("ASSUME_UNCHANGED_INDEX_ENTRIES")
+            if row["skip_worktree_entries"]: reasons.append("SKIP_WORKTREE_INDEX_ENTRIES")
             if counts["tracked_changes"]: reasons.append("TRACKED_CHANGES")
             if counts["untracked_entries"]: reasons.append("UNTRACKED_FILES")
             if counts["ignored_entries"]: reasons.append("IGNORED_LOCAL_FILES")
