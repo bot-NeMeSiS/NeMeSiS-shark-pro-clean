@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
 {% set h = data.highlight if data.highlight is defined else {} %}
 {% if not h %}
 <section class="scoreboard-hero v701-scoreboard">
@@ -21,9 +22,11 @@
   </div>
   <div class="scoreboard-kpis"><div><strong>{{ h.client_status }}</strong><span>Estado</span></div><div><strong>{{ h.provider or 'Video' }}</strong><span>Proveedor</span></div></div>
 </section>
-<section class="band compact-band v769-highlight-detail">
+<section class="band compact-band v769-highlight-detail" data-postmatch-video>
   {% if h.can_embed %}
-  <div class="v769-video-frame xl"><iframe loading="lazy" src="{{ h.embed_url }}" title="{{ h.title }}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
+  <div class="v769-video-frame xl" data-video-mount hidden style="display:none"></div>
+  <button type="button" class="btn primary" data-video-activate="{{ h.embed_url }}">Cargar reproductor externo</button>
+  <p class="small muted" data-video-notice role="status">Al cargar el reproductor se conectará con la plataforma del vídeo. No se inicia la reproducción automáticamente.</p>
   {% elif h.thumbnail_url %}
   <a href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}"></a>
   {% else %}

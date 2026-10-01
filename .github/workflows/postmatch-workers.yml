@@ -73,6 +73,13 @@ jobs:
         run: |
           mkdir -p "$POSTMATCH_EVIDENCE"
           python -m pytest -o addopts='' -q \
+            tests/test_highlight_settings_read_truth.py \
+            tests/test_highlight_http_cold_read.py \
+            tests/test_highlight_read_consumer_recovery.py \
+            tests/test_highlight_catalogue_read_truth.py \
+            tests/test_highlight_read_diagnostic.py \
+            tests/test_sportsdb_premium_efficiency.py \
+            tests/test_sports_truth_single_source.py \
             tests/test_postmatch_recovery.py \
             tests/test_highlight_review_flow.py \
             tests/test_highlights_admin_review_activation.py \
@@ -99,7 +106,9 @@ jobs:
           from xml.etree import ElementTree
           output = Path(os.environ['POSTMATCH_EVIDENCE'])
           cases = ElementTree.parse(output / 'results.xml').findall('.//testcase')
-          assert len(cases) >= 195, 'Incomplete recovery regression matrix'
+          assert len(cases) >= 348, 'Incomplete recovery regression matrix'
+          for module, minimum in [('test_highlight_settings_read_truth',26),('test_highlight_http_cold_read',39),('test_sportsdb_premium_efficiency',41)]:
+              assert sum(module in case.get('classname','') for case in cases) >= minimum, module
           assert all(case.find(tag) is None for case in cases for tag in ('skipped', 'failure', 'error'))
           evidence = json.loads((output / 'browser/checks.json').read_text())
           assert evidence['mode'] == 'full_http', 'Snapshots do not certify the HTTP browser gate'

@@ -374,6 +374,8 @@ from engines.sportsdb_highlights_engine import (
     rebuild_match_enrichment,
     sportsdb_highlights_for_match,
     sportsdb_highlights_summary,
+    sportsdb_highlight_by_id,
+    sportsdb_highlights_map,
     sync_sportsdb_highlights,
 )
 from engines.spanish_localization_engine import (
@@ -2625,8 +2627,9 @@ def request_read_db():
     if not db_path:
         return None
     timeout_ms = max(100, min(as_int(os.getenv("SQLITE_READ_BUSY_TIMEOUT_MS", "750"), 750), 2500))
+    media_read_only = request.endpoint == "highlight_detail_page"
     try:
-        if db_path != ":memory:" and Path(db_path).exists():
+        if db_path != ":memory:" and (media_read_only or Path(db_path).exists()):
             uri = Path(db_path).resolve().as_uri() + "?mode=ro"
             connection = sqlite3.connect(
                 uri,
@@ -2651,6 +2654,8 @@ def request_read_db():
                 connection.close()
             except sqlite3.Error:
                 pass
+        if media_read_only:
+            raise  # Never fall back to creating a database from a media read.
         return None
 
 
@@ -3921,6 +3926,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "founder_manifest_json",
     "favicon_ico",
     "apple_touch_icon",
+    "highlight_detail_page",  # Media GETs never own schema creation or seed work.
     "static",
     "home",
 }
@@ -4369,6 +4375,7 @@ def fetch_json_response(url, headers=None, timeout=10):
 
 
 def sportsdb_v1(endpoint, params=None):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4378,10 +4385,11 @@ def sportsdb_v1(endpoint, params=None):
     )
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    return fetch_json_url(url, timeout=12)
+    return fetch_json_url(url, timeout=request_timeout(12))
 
 
 def sportsdb_v2(path):
+    from engines.sportsdb_request_budget import request_timeout
     api_key = thesportsdb_key()
     if not api_key:
         return {}
@@ -4389,7 +4397,7 @@ def sportsdb_v2(path):
     return fetch_json_url(
         url,
         headers={"User-Agent": "NeMeSiS-SHARK-PRO/1.0", "X-API-KEY": api_key},
-        timeout=12,
+        timeout=request_timeout(12),
     )
 
 
@@ -5007,39 +5015,18 @@ def _prioritize_sportsdb_feed_events(events, limit=220, priority_external_ids=No
 
 
 def fetch_sportsdb_feed_events(limit=220, priority_external_ids=None):
-    events = []
-    errors = []
-    external_calls = 0
-    try:
-        external_calls += 1
-        payload = sportsdb_v1("eventsday.php", {"d": today_iso(), "s": "Soccer"})
-        events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-day"), "name": item.get("strLeague") or "Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-    except Exception as exc:
-        save_thesportsdb_error(exc)
-        errors.append("eventsday: " + str(exc)[:160])
-    for league in SPORTSDB_FEED_LEAGUES:
-        if len(events) >= int(limit):
-            break
-        try:
-            external_calls += 1
-            payload = sportsdb_v1("eventsnextleague.php", {"id": league["id"]})
-            events.extend([(item, league) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append(f"{league['name']}: {str(exc)[:160]}")
-    if sportsdb_live_enabled():
-        try:
-            external_calls += 1
-            payload = sportsdb_v2("livescore/soccer")
-            events.extend([(item, {"key": slug(item.get("strLeague") or "sportsdb-live"), "name": item.get("strLeague") or "Live Soccer", "country": item.get("strCountry") or ""}) for item in sportsdb_event_collection(payload)])
-        except Exception as exc:
-            save_thesportsdb_error(exc)
-            errors.append("livescore: " + str(exc)[:160])
-    selected = _prioritize_sportsdb_feed_events(
-        events,
-        limit=limit,
+    from engines.sportsdb_request_budget import fetch_feed
+    if not thesportsdb_key():
+        return [], ['MISSING_KEY'], 0
+    selected, errors, external_calls = fetch_feed(
+        v1=sportsdb_v1, v2=sportsdb_v2, today=today_iso(),
+        leagues=SPORTSDB_FEED_LEAGUES, live_enabled=sportsdb_live_enabled(),
+        limit=limit, prioritize=_prioritize_sportsdb_feed_events,
+        slug=slug, collect=sportsdb_event_collection,
         priority_external_ids=priority_external_ids,
     )
+    if errors:
+        save_thesportsdb_error('; '.join(errors))
     return selected, errors, external_calls
 
 
@@ -8793,17 +8780,16 @@ def _cached_match_media(match, limit=6):
     """Classify cached highlight metadata without provider calls or GET writes."""
     if not match or not db_table_exists("sportsdb_match_highlights"):
         return video_highlights_snapshot([])
-    identifiers = [
-        str(value).strip()
-        for value in (match.get("id"), match.get("external_id"))
-        if str(value or "").strip()
-    ]
-    if not identifiers:
+    # match_id stores the canonical local match, never an unscoped provider ID.
+    # Legacy external associations must be reconciled during ingestion/review,
+    # not guessed while rendering a client's match page.
+    raw_local_id = match.get("id")
+    local_id = str(raw_local_id).strip() if raw_local_id is not None else ""
+    if not local_id:
         return video_highlights_snapshot([])
-    placeholders = ",".join(["?"] * len(identifiers))
     items = rows(
-        f"SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') IN ({placeholders}) ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
-        tuple(identifiers + [int(limit)]),
+        "SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') = ? ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
+        (local_id, int(limit)),
     )
     classified = [classify_stored_highlight(item) for item in items]
     return video_highlights_snapshot(classified, preclassified=True)
@@ -10929,7 +10915,7 @@ def current_ui_locale():
     if user.get("id"):
         try:
             preference = valid_language(_load_user_intelligence_preferences(user["id"]).get("language"))
-        except sqlite3.OperationalError:
+        except sqlite3.Error:
             app.logger.warning("UI locale profile unavailable; using browser preference")
     g.ui_locale = (preference or valid_language(session.get("ui_locale"))
                    or valid_language(request.cookies.get("nemesis_locale"))
@@ -18335,72 +18321,121 @@ def v766_highlights_key_present():
     return env_present("THESPORTSDB_API_KEY") or env_present("THESPORTSDB_KEY")
 
 
-def v766_highlight_map(match_ids, limit_per_match=2):
-    """Mapa seguro match_id -> highlights guardados. No hace llamadas externas en páginas cliente."""
-    ids = [str(x or "").strip() for x in (match_ids or []) if str(x or "").strip()]
-    if not ids:
-        return {}
+def v766_highlight_map_snapshot(match_ids, limit_per_match=2):
+    """Read-only batch view. Unavailable storage stays unknown, never fake-empty."""
     try:
-        ensure_sportsdb_highlights_schema(DB_PATH)
-        placeholders = ",".join("?" for _ in ids[:500])
-        if not placeholders:
-            return {}
-        records = rows(
-            f"""SELECT * FROM sportsdb_match_highlights
-                WHERE match_id IN ({placeholders}) AND COALESCE(video_url,'')!=''
-                ORDER BY updated_at DESC""",
-            tuple(ids[:500]),
-        )
+        result = sportsdb_highlights_map(DB_PATH, match_ids, limit_per_match=limit_per_match)
     except Exception:
-        return {}
-    out = {}
-    for raw in records:
-        item = classify_stored_highlight(raw)
-        if not item.get("show_block"):
+        result = {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
+    return result if isinstance(result, dict) else {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
+
+def v769_get_highlight_snapshot(highlight_id):
+    try:
+        result = sportsdb_highlight_by_id(DB_PATH, highlight_id)
+    except Exception:
+        result = {"ok": False, "read_state": "READ_UNAVAILABLE", "highlight": {}}
+    if not isinstance(result, dict):
+        result = {"ok": False, "read_state": "READ_UNAVAILABLE", "highlight": {}}
+    item = result.get("highlight") or {}
+    card = v769_highlight_card_from_row(item) if item else {}
+    return {**result, "highlight": card}
+
+def v769_pending_highlight_snapshot(days_back=10, limit=80):
+    """Finished matches lacking a verified visible highlight; unknown reads stay unknown."""
+    try:
+        matches = get_results_matches(today_iso(), days_back=days_back, limit=limit)
+        matches = v766_enrich_matches_with_highlights(matches)
+    except Exception:
+        return {"ok": False, "read_state": "READ_UNAVAILABLE", "matches": []}
+    states = {str(m.get("highlight_read_state") or "READ_UNAVAILABLE") for m in (matches or [])}
+    if any(state != "VERIFIED" for state in states):
+        return {"ok": False, "read_state": next(iter(sorted(states - {"VERIFIED"})), "READ_UNAVAILABLE"), "matches": []}
+    pending = []
+    for m in matches or []:
+        if m.get("has_highlights"):
             continue
-        mid = str(item.get("match_id") or "").strip()
-        if not mid:
-            continue
-        out.setdefault(mid, [])
-        if len(out[mid]) < int(limit_per_match or 2):
-            out[mid].append(item)
-    return out
+        try:
+            item = client_match_display_context(dict(m))
+        except Exception:
+            item = dict(m)
+        item["v769_title"] = f"{item.get('client_home') or item.get('safe_home') or item.get('home_team') or 'Local'} vs {item.get('client_away') or item.get('safe_away') or item.get('away_team') or 'Visitante'}"
+        item["v769_competition"] = item.get("client_competition") or spanish_competition_name(item.get("competition_name") or item.get("league_name") or "") or "Competición"
+        item["v769_when"] = item.get("client_full_datetime_label") or jinja_match_full_datetime(item)
+        item["v769_status"] = item.get("client_result_label") or item.get("calendar_status") or item.get("status") or "Finalizado"
+        pending.append(item)
+    return {"ok": True, "read_state": "VERIFIED", "matches": pending[: int(limit or 80)]}
 
 
-def v766_apply_match_highlight_badge(match, highlights=None):
+def v766_highlight_map(match_ids, limit_per_match=2):
+    return (v766_highlight_map_snapshot(match_ids, limit_per_match=limit_per_match).get("map") or {})
+
+
+def v766_apply_match_highlight_badge(match, highlights=None, read_state="VERIFIED"):
     item = dict(match or {})
     if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
-        item.update(has_highlights=False, highlight_count=0, highlight_url="", highlight_title="", client_highlight_label="")
+        readable = admin_operational_settings().get("settings_readable") is True
+        item.update(has_highlights=False if readable else None, highlight_count=0 if readable else None,
+                    highlight_url="", highlight_title="", client_highlight_label="" if readable else "Disponibilidad sin comprobar",
+                    highlight_read_state="DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE")
         return item
+    state = str(read_state or "READ_UNAVAILABLE")
     hs = highlights if highlights is not None else []
-    if not hs and item.get("id"):
+    if highlights is None and item.get("id") is not None:
         try:
-            hs = sportsdb_highlights_for_match(DB_PATH, str(item.get("id"))).get("highlights") or []
+            snapshot = sportsdb_highlights_for_match(DB_PATH, str(item.get("id")))
+            state = str(snapshot.get("read_state") or "READ_UNAVAILABLE")
+            hs = snapshot.get("highlights") or []
         except Exception:
-            hs = []
+            state, hs = "READ_UNAVAILABLE", []
+    item["highlight_read_state"] = state
+    if state != "VERIFIED":
+        item["has_highlights"] = None
+        item["highlight_count"] = None
+        item["highlight_url"] = ""
+        item["highlight_title"] = "Disponibilidad sin comprobar"
+        item["highlight_provider"] = ""
+        item["client_highlight_label"] = "Disponibilidad sin comprobar"
+        return item
     first = hs[0] if hs else {}
     item["has_highlights"] = bool(hs)
     item["highlight_count"] = len(hs)
     item["highlight_url"] = first.get("video_url") or ""
-    item["highlight_title"] = first.get("title") or "Resumen disponible"
-    item["highlight_provider"] = first.get("provider") or "YouTube"
+    item["highlight_title"] = first.get("title") or ("Resumen disponible" if hs else "Resumen pendiente")
+    item["highlight_provider"] = first.get("provider") or ("YouTube" if hs else "")
     item["client_highlight_label"] = "Resumen disponible" if hs else "Resumen pendiente"
     return item
 
 
 def v766_enrich_matches_with_highlights(matches):
     match_ids = [m.get("id") for m in (matches or []) if isinstance(m, dict)]
-    hmap = v766_highlight_map(match_ids, limit_per_match=3)
-    return [v766_apply_match_highlight_badge(m, hmap.get(str(m.get("id") or ""), [])) for m in (matches or [])]
+    snapshot = v766_highlight_map_snapshot(match_ids, limit_per_match=3)
+    hmap = snapshot.get("map") or {}
+    state = snapshot.get("read_state") or "READ_UNAVAILABLE"
+    return [
+        v766_apply_match_highlight_badge(m, hmap.get(str(m.get("id") or ""), []), read_state=state)
+        for m in (matches or [])
+    ]
 
 
 def v766_highlights_context(limit=12):
     if has_request_context() and not is_admin_session() and not admin_operational_settings()["highlights_enabled"]:
-        return {"version": APP_VERSION, "status": "DISABLED_BY_ADMIN", "latest": [], "recent_runs": [], "client_note": "Presentacion pausada por el administrador."}
+        readable = admin_operational_settings().get("settings_readable") is True
+        state = "DISABLED_BY_ADMIN" if readable else "READ_UNAVAILABLE"
+        return {"version": APP_VERSION, "ok": False, "read_state": state, "status": state, "latest": [], "recent_runs": [], "client_note": "Presentación pausada por el administrador." if readable else "No se pudo leer la configuración de resúmenes."}
     try:
         summary = sportsdb_highlights_summary(DB_PATH)
-    except Exception as exc:
-        summary = {"status": "PENDIENTE", "key_present": v766_highlights_key_present(), "highlights_total": 0, "with_video": 0, "linked_matches": 0, "latest_highlights": [], "recent_runs": [], "note": str(exc)[:160]}
+    except Exception:
+        summary = {
+            "ok": False, "read_state": "READ_UNAVAILABLE", "status": "READ_UNAVAILABLE",
+            "key_present": v766_highlights_key_present(), "highlights_total": None,
+            "with_video": None, "linked_matches": None, "stored_media_total": None,
+            "authorized_highlights": None, "blocked_highlights": None,
+            "rights_warnings": None, "enriched_matches": None,
+            "latest_highlights": [], "recent_runs": [],
+            "note": "Catálogo no verificable en esta lectura.",
+        }
+    read_state = str(summary.get("read_state") or "READ_UNAVAILABLE")
+    verified = bool(summary.get("ok") is True and read_state == "VERIFIED")
     latest = []
     for h in (summary.get("latest_highlights") or [])[: int(limit or 12)]:
         latest.append({
@@ -18412,22 +18447,34 @@ def v766_highlights_context(limit=12):
             "rights_decision": h.get("decision") or "REVIEW_REQUIRED",
             "video_classification": h.get("video_classification") or "REVIEW_REQUIRED",
         })
+    def known(key):
+        return summary.get(key) if verified else None
     return {
         "version": APP_VERSION,
-        "status": summary.get("status") or ("ACTIVO" if v766_highlights_key_present() else "FALTA KEY"),
+        "ok": verified,
+        "read_state": read_state,
+        "status": summary.get("status") or read_state,
         "key_present": bool(summary.get("key_present") or v766_highlights_key_present()),
-        "highlights_total": summary.get("highlights_total", 0),
-        "with_video": summary.get("with_video", 0),
-        "linked_matches": summary.get("linked_matches", 0),
-        "stored_media_total": summary.get("stored_media_total", 0),
-        "authorized_highlights": summary.get("authorized_highlights", 0),
-        "blocked_highlights": summary.get("blocked_highlights", 0),
-        "rights_warnings": summary.get("rights_warnings", 0),
-        "enriched_matches": summary.get("enriched_matches", 0),
-        "latest": latest,
-        "recent_runs": summary.get("recent_runs") or [],
+        "playback_verified": bool(summary.get("playback_verified")),
+        "highlights_total": known("highlights_total"),
+        "with_video": known("with_video"),
+        "linked_matches": known("linked_matches"),
+        "stored_media_total": known("stored_media_total"),
+        "authorized_highlights": known("authorized_highlights"),
+        "blocked_highlights": known("blocked_highlights"),
+        "rights_warnings": known("rights_warnings"),
+        "enriched_matches": known("enriched_matches"),
+        "sampled_media": known("sampled_media"),
+        "sample_truncated": known("sample_truncated"),
+        "visible_counts_scope": summary.get("visible_counts_scope") if verified else "NOT_ESTABLISHED",
+        "latest": latest if verified else [],
+        "recent_runs": (summary.get("recent_runs") or []) if verified else [],
         "note": summary.get("note") or "Los metadatos externos requieren certificación de derechos antes de mostrarse.",
-        "client_note": "Solo se muestran resúmenes con derechos y uso comercial certificados. NeMeSiS no descarga ni rehostea vídeos.",
+        "client_note": (
+            "Solo se muestran resúmenes con derechos y uso comercial certificados. NeMeSiS no descarga ni rehostea vídeos."
+            if verified
+            else "Disponibilidad sin comprobar. No equivale a cero resúmenes ni confirma que exista un vídeo reproducible."
+        ),
     }
 
 
@@ -18452,24 +18499,33 @@ def v766_calendar_order_context(calendar=None):
 
 
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
-    """Sincroniza highlights de forma controlada. Protegido por admin/secret en rutas."""
+    """Reuse the existing daily sync; failures must not suppress a whole day."""
+    import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         last_day = str(last.get("date") or "")[:10]
         if last_day == today_iso():
-            return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
+            if last.get('retryable') is False:
+                return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
+            try:
+                age = time.time() - float(last.get('attempt_finished_epoch') or 0)
+            except (ValueError, TypeError, OverflowError):
+                age = 901
+            if 0 <= age < 900:
+                return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"]}
     try:
         result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
-        try:
-            rebuild_match_enrichment(DB_PATH, limit=limit)
-        except Exception:
-            pass
-    except Exception as exc:
-        result = {"ok": False, "errors": [str(exc)[:220]], "processed": 0, "updated": 0}
+    except Exception:
+        result = {"ok": False, "status": "FAILED", "errors": ["HIGHLIGHTS_SYNC_FAILED"], "processed": 0, "updated": 0}
     result["started_at"] = started
     result["finished_at"] = now_iso()
     result["date"] = today_iso()
+    result['attempt_finished_epoch'] = time.time()
     automation_set("sportsdb_highlights_last_sync", result)
     return result
 
@@ -18504,18 +18560,7 @@ def v769_youtube_embed_url(url):
 
 
 def v769_get_highlight_by_id(highlight_id):
-    hid = str(highlight_id or "").strip()[:80]
-    if not hid:
-        return {}
-    try:
-        ensure_sportsdb_highlights_schema(DB_PATH)
-        row = rows("SELECT * FROM sportsdb_match_highlights WHERE id=? LIMIT 1", (hid,))
-        item = dict(row[0]) if row else {}
-    except Exception:
-        item = {}
-    if not item:
-        return {}
-    return v769_highlight_card_from_row(item)
+    return v769_get_highlight_snapshot(highlight_id).get("highlight") or {}
 
 
 def v769_highlight_card_from_row(row):
@@ -18553,71 +18598,72 @@ def v769_highlight_card_from_row(row):
 
 
 def v769_pending_highlight_matches(days_back=10, limit=80):
-    """Finished matches that are useful in Results but still have no highlight linked."""
-    try:
-        matches = get_results_matches(today_iso(), days_back=days_back, limit=limit)
-        matches = v766_enrich_matches_with_highlights(matches)
-    except Exception:
-        matches = []
-    pending = []
-    for m in matches or []:
-        if m.get("has_highlights"):
-            continue
-        try:
-            item = client_match_display_context(dict(m))
-        except Exception:
-            item = dict(m)
-        item["v769_title"] = f"{item.get('client_home') or item.get('safe_home') or item.get('home_team') or 'Local'} vs {item.get('client_away') or item.get('safe_away') or item.get('away_team') or 'Visitante'}"
-        item["v769_competition"] = item.get("client_competition") or spanish_competition_name(item.get("competition_name") or item.get("league_name") or "") or "Competición"
-        item["v769_when"] = item.get("client_full_datetime_label") or jinja_match_full_datetime(item)
-        item["v769_status"] = item.get("client_result_label") or item.get("calendar_status") or item.get("status") or "Finalizado"
-        pending.append(item)
-    return pending[: int(limit or 80)]
+    return v769_pending_highlight_snapshot(days_back=days_back, limit=limit).get("matches") or []
 
 
 def v769_highlights_content_center(data=None, user=None, limit=24):
-    """Client/admin-ready highlights center: available videos, pending results, Cron state and actions."""
+    """Client/admin highlights center with explicit catalogue-read truth."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     base = v766_highlights_context(limit=limit)
+    verified = bool(base.get("ok") is True and base.get("read_state") == "VERIFIED")
     available = []
     for item in (base.get("latest") or []):
         card = v769_highlight_card_from_row(item)
         if card:
             available.append(card)
     embedded = [h for h in available if h.get("can_embed")]
-    pending = v769_pending_highlight_matches(days_back=10, limit=36)
+    pending_snapshot = (
+        v769_pending_highlight_snapshot(days_back=10, limit=36)
+        if verified else {"ok": False, "read_state": base.get("read_state") or "READ_UNAVAILABLE", "matches": []}
+    )
+    pending = pending_snapshot.get("matches") or []
+    pending_verified = bool(pending_snapshot.get("ok") is True and pending_snapshot.get("read_state") == "VERIFIED")
     recent_runs = base.get("recent_runs") or []
     last_run = recent_runs[0] if recent_runs else {}
-    status = "ACTIVO" if available else ("REQUIERE REVISIÓN" if base.get("stored_media_total") else ("CONFIGURADO" if base.get("key_present") else "FALTA KEY"))
-    if available:
-        headline = "Centro de resúmenes activo"
-        description = "Resultados pasados con vídeo externo, partido enlazado y contexto de la app."
-    elif base.get("key_present"):
-        headline = "Sin vídeos autorizados todavía"
-        description = "Los metadatos detectados solo serán visibles cuando sus derechos y atribución estén certificados."
+    if base.get("status") == "DISABLED_BY_ADMIN":
+        status = "DISABLED_BY_ADMIN"
+        headline = "Resúmenes en pausa"
+        description = "La presentación de resúmenes está pausada por el administrador."
+    elif not verified:
+        status = base.get("read_state") or "READ_UNAVAILABLE"
+        headline = "Disponibilidad sin comprobar"
+        description = "No se pudo verificar el catálogo de resúmenes en esta lectura. Esto no equivale a cero vídeos."
+    elif available:
+        status = base.get("status") or "AUTHORIZED_METADATA_RECORDED"
+        headline = "Resúmenes autorizados en catálogo"
+        description = "Resultados pasados con vídeo externo autorizado, partido enlazado y contexto de la plataforma."
+    elif base.get("stored_media_total"):
+        status = base.get("status") or "REVIEW_REQUIRED"
+        headline = "Resúmenes pendientes de revisión"
+        description = "Hay metadatos guardados, pero solo serán visibles cuando derechos y atribución estén certificados."
     else:
-        headline = "Activa la key de highlights"
-        description = "Configura THESPORTSDB_API_KEY o THESPORTSDB_KEY en Render para detectar resúmenes automáticamente."
+        status = base.get("status") or "NO_LINKS_RECORDED"
+        headline = "Sin resúmenes disponibles ahora mismo"
+        description = "No hay un resumen autorizado que mostrar. Los resultados del partido siguen disponibles."
     return {
         "version": APP_VERSION,
         "status": status,
+        "read_state": base.get("read_state") or "READ_UNAVAILABLE",
+        "read_ok": verified,
+        "pending_read_state": pending_snapshot.get("read_state") or "READ_UNAVAILABLE",
+        "playback_verified": False,
         "headline": headline,
         "description": description,
         "now_madrid": now_madrid_label(),
         "key_present": bool(base.get("key_present")),
-        "available": available,
-        "embedded": embedded,
-        "pending_matches": pending,
-        "recent_runs": recent_runs,
-        "last_run": last_run,
+        "available": available if verified else [],
+        "embedded": embedded if verified else [],
+        "pending_matches": pending if pending_verified else [],
+        "recent_runs": recent_runs if verified else [],
+        "last_run": last_run if verified else {},
         "counts": {
-            "videos": len(available),
-            "embeddable": len(embedded),
-            "pending": len(pending),
-            "stored": int(base.get("stored_media_total") or 0),
-            "rights_warnings": int(base.get("rights_warnings") or 0),
-            "linked_matches": base.get("linked_matches") or 0,
-            "enriched_matches": base.get("enriched_matches") or 0,
+            "videos": len(available) if verified else None,
+            "embeddable": len(embedded) if verified else None,
+            "pending": len(pending) if pending_verified else None,
+            "stored": base.get("stored_media_total") if verified else None,
+            "rights_warnings": base.get("rights_warnings") if verified else None,
+            "linked_matches": base.get("linked_matches") if verified else None,
+            "enriched_matches": base.get("enriched_matches") if verified else None,
         },
         "primary_actions": [
             {"label": "Ver resultados", "href": "/calendar?lane=results"},
@@ -18629,9 +18675,9 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
             {"label": "Sincronizar ahora", "href": "/api/admin/highlights/sync?force=1&days_back=7&limit=300"},
         ],
         "cron": {
-            "endpoint": "/api/automation/highlights/sync?secret=AUTOMATION_SECRET&days_back=7&limit=300",
+            "endpoint": "/api/automation/highlights/sync",
             "command": "python tools/render_cron_highlights_sync.py",
-            "recommended": "Cada día por la mañana y otra pasada por la noche en días con muchos partidos.",
+            "recommended": "Coordinado por el Cron existente; no crear otra programación.",
         },
         "rights_note": "Solo se enlazan o embeben vídeos con derechos, canal, uso comercial y atribución certificados. NeMeSiS no descarga, copia ni rehostea contenido.",
     }
@@ -18678,8 +18724,18 @@ def api_admin_highlights_sync():
 @app.route("/highlight/<highlight_id>")
 @app.route("/resumenes/<highlight_id>")
 def highlight_detail_page(highlight_id):
-    data = dashboard_data("results", today_iso())
-    data["highlight"] = v769_get_highlight_by_id(highlight_id)
+    snapshot = v769_get_highlight_snapshot(highlight_id)
+    if snapshot.get("read_state") == "CATALOGUE_NOT_INITIALIZED":
+        # The database was readable and its schema confirms no local catalogue.
+        # This individual resource is absent; global coverage counts stay unknown.
+        return render_template("resource_unavailable.html", title="Resumen no disponible",
+            resource_title="Este resumen todavía no está disponible",
+            resource_message="No hay un resumen registrado para este identificador. Vuelve al partido para consultar su cobertura."), 404
+    if snapshot.get("ok") is not True:
+        return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",
+            resource_title="No se pudo comprobar este resumen",
+            resource_message="El catálogo no está accesible en esta lectura. Esto no significa que el vídeo no exista."), 503
+    data = {"highlight": snapshot.get("highlight") or {}}
     if not data["highlight"]:
         return render_template(
             "resource_unavailable.html",
@@ -18687,7 +18743,6 @@ def highlight_detail_page(highlight_id):
             resource_title="Este resumen ya no está disponible",
             resource_message="El contenido solicitado no está en el historial real actual. No se ha sustituido por un resumen inventado.",
         ), 404
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=8)
     return render_template("highlight_detail.html", data=data)
 
 
@@ -18954,7 +19009,8 @@ def _calendar_match_text(match):
 def _calendar_enrich_matches(matches, picks):
     pick_map = _calendar_pick_map(picks)
     favs = favorite_sets() if has_request_context() else {"team": set(), "league": set(), "match": set(), "all": []}
-    highlight_map = v766_highlight_map([m.get("id") for m in dedupe_matches_list(matches or []) if isinstance(m, dict)], limit_per_match=3)
+    highlight_snapshot = v766_highlight_map_snapshot([m.get("id") for m in dedupe_matches_list(matches or []) if isinstance(m, dict)], limit_per_match=3)
+    highlight_map = highlight_snapshot.get("map") or {}
     enriched = []
     for raw in dedupe_matches_list(matches or []):
         if is_fake_match(raw):
@@ -18997,7 +19053,7 @@ def _calendar_enrich_matches(matches, picks):
         item["calendar_text"] = _calendar_match_text(item)
         item["safe_home"] = item.get("safe_home") or item.get("home_team") or "Equipo local"
         item["safe_away"] = item.get("safe_away") or item.get("away_team") or "Equipo visitante"
-        item = v766_apply_match_highlight_badge(item, highlight_map.get(str(item.get("id") or ""), []))
+        item = v766_apply_match_highlight_badge(item, highlight_map.get(str(item.get("id") or ""), []), read_state=highlight_snapshot.get("read_state"))
         enriched.append(item)
     return enriched
 
@@ -34371,7 +34427,7 @@ register_admin_master(_admin_sys.modules[__name__])
 def admin_operational_settings():
     # One bounded settings read per request, shared by cards and templates.
     if not hasattr(g, "admin_operational_settings"):
-        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__])
+        g.admin_operational_settings = _admin_settings_values(_admin_sys.modules[__name__], include_read_state=True)
     return g.admin_operational_settings
 
 @app.context_processor
@@ -34381,8 +34437,15 @@ def admin_operational_settings_context():
 @app.before_request
 def admin_client_content_visibility():
     # Client-only presentation switch; never deletes content or stops ingestion.
-    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.path.startswith("/highlight/")) and not is_admin_session():
-        if not admin_operational_settings()["highlights_enabled"]:
+    if (request.path in {"/highlights", "/resumenes", "/resumenes-partidos"} or request.path.startswith("/api/client/highlights") or request.endpoint == "highlight_detail_page") and not is_admin_session():
+        settings = admin_operational_settings()
+        if settings.get("settings_readable") is not True:
+            if request.path.startswith("/api/"):
+                return jsonify(ok=False, disabled=None, status="READ_UNAVAILABLE", highlights=[], content_center={}), 503
+            return render_template("resource_unavailable.html", title="Disponibilidad sin comprobar",
+                resource_title="No se pudo comprobar la disponibilidad de los resúmenes",
+                resource_message="No se pudo leer la configuración. No se ha confirmado una pausa administrativa ni la ausencia de vídeos."), 503
+        if not settings["highlights_enabled"]:
             if request.path.startswith("/api/"):
                 return jsonify(ok=True, disabled=True, status="DISABLED_BY_ADMIN", highlights=[], content_center={})
             return render_template("admin_content_paused.html", data={})

@@ -154,6 +154,8 @@ def _api_key():
 
 
 def _fetch_json(url, timeout=12):
+    from engines.sportsdb_request_budget import request_timeout
+    timeout = request_timeout(timeout)
     req = urllib.request.Request(url, headers={'User-Agent': 'NeMeSiS-SHARK-PRO/1.0'})
     with urllib.request.urlopen(req, timeout=timeout) as res:
         return json.loads(res.read().decode('utf-8', errors='replace'))
@@ -356,6 +358,16 @@ def _find_match(conn, item):
     home, away = _home_away(item)
     if not date or not home or not away:
         return None
+    timestamp = item.get('strTimestamp')
+    if timestamp:
+        try:
+            from datetime import timezone
+            event_time = datetime.fromisoformat(str(timestamp).replace('Z', '+00:00'))
+            if event_time.tzinfo is None:
+                event_time = event_time.replace(tzinfo=timezone.utc)
+            date = event_time.astimezone(TZ).date().isoformat()
+        except (TypeError, ValueError):
+            return None
     candidates = _rows(conn, 'SELECT * FROM matches WHERE substr(match_date,1,10)=? LIMIT 501', (date,))
     if len(candidates) > 500:
         return None
@@ -370,7 +382,7 @@ def _find_match(conn, item):
             continue
         name = _norm(item.get('strLeague'))
         row_name = _norm(row.get('competition_name') or row.get('league_name'))
-        if name and row_name and name != row_name:
+        if not name or not row_name or name != row_name:
             continue
         matched.append(row['id'])
     return matched[0] if len(matched) == 1 else None
@@ -464,8 +476,10 @@ def _summary_for_match(conn, match):
         line += f" · marcador {score}"
     if highlights:
         line += f" · {len(highlights)} resumen(es)/highlight(s) guardados desde TheSportsDB."
+    elif any(row.get('video_url') for row in stored):
+        line += " · enlace recibido; publicación pendiente de revisión o restringida."
     else:
-        line += " · sin resumen disponible todavía en TheSportsDB."
+        line += " · sin enlace de resumen guardado en esta lectura."
     if status:
         line += f" Estado: {status}."
     return line, highlights
@@ -499,84 +513,157 @@ def rebuild_match_enrichment(db_path, limit=300):
 
 
 def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
-    ensure_sportsdb_highlights_schema(db_path)
-    run_id = hashlib.md5(('sportsdb-highlights:' + _now()).encode()).hexdigest()[:22]
-    start = _now()
-    found = linked = 0
-    errors = []
+    """Bounded collection with league partitioning when the 50-row feed saturates.
+
+    Uses the current worker/rights pipeline. No network under a SQLite write
+    transaction, no automatic rights approval, and no fake all-provider coverage.
+    """
+    import uuid
+    from engines.sportsdb_request_budget import SportsDBBudget, SportsDBStopped
     if not _api_key():
-        return {'ok': False, 'sin_key': True, 'error': 'Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY'}
+        return {'ok': False, 'status': 'MISSING_KEY', 'sin_key': True,
+                'error': 'Falta THESPORTSDB_KEY o THESPORTSDB_API_KEY', 'external_calls': 0}
+    try:
+        days = max(0, min(int(days_back), 14))
+        capacity = max(1, min(int(limit), 1000))
+    except (ValueError, TypeError, OverflowError):
+        return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
+    ensure_sportsdb_highlights_schema(db_path)
+    run_id, start = uuid.uuid4().hex[:22], _now()
     with _connect(db_path) as conn:
-        conn.execute('INSERT OR REPLACE INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
-                     (run_id, start, '', 'RUNNING', int(days_back or 5), 0, 0, ''))
+        conn.execute('INSERT INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
+                     (run_id, start, '', 'RUNNING', days, 0, 0, ''))
         conn.commit()
-        for delta in range(0, int(days_back or 5) + 1):
-            d = (_today() - timedelta(days=delta)).isoformat()
-            try:
-                payload = _sportsdb_v1('eventshighlights.php', {'d': d, 's': 'Soccer'})
-                for item in _as_list(payload)[:int(limit or 250)]:
-                    saved = _upsert_highlight(conn, item)
-                    if saved:
-                        found += 1
-                        if saved.get('match_id'):
-                            linked += 1
-            except Exception as exc:
-                errors.append(f'{d}: {exc}')
+    found = linked = 0
+    errors, seen, saturated_dates = [], set(), []
+    partitions = 0
+    scope = SportsDBBudget(max_calls=12)
+
+    def acquire(day, league=None):
+        params = {'d': day, 's': 'Soccer'}
+        if league:
+            params['l'] = league
+        payload = scope.call(1, 'eventshighlights.php', params,
+                             lambda: _sportsdb_v1('eventshighlights.php', params))
+        recognized = ('eventshighlights', 'highlights', 'events', 'tv', 'results')
+        if not any(k in payload for k in recognized):
+            raise SportsDBStopped('MALFORMED')
+        values = next((payload[k] for k in recognized if k in payload), None)
+        if values is None:
+            return []
+        if not isinstance(values, list) or any(not isinstance(v, dict) for v in values):
+            raise SportsDBStopped('MALFORMED')
+        return values
+
+    def save(items):
+        nonlocal found, linked
+        pending, batch_seen, stopped = [], set(), False
+        for item in items:
+            sid = _event_id(item)
+            if not sid or sid in seen or sid in batch_seen or not public_https_url(_video_url(item)):
+                continue
+            if len(seen) + len(pending) >= capacity:
+                stopped = True
+                break
+            pending.append((sid, item))
+            batch_seen.add(sid)
+        batch_found = batch_linked = 0
+        with _connect(db_path) as conn:
+            for sid, item in pending:
+                saved = _upsert_highlight(conn, item)
+                if saved:
+                    batch_found += 1
+                    batch_linked += int(bool(saved.get('match_id')))
+            conn.commit()
+        seen.update(batch_seen)
+        found += batch_found
+        linked += batch_linked
+        if stopped:
+            raise SportsDBStopped('ITEM_BUDGET')
+
+    def target_leagues(day, items):
+        # Explicit provider namespaces only; API-Football numeric IDs are different.
+        ids = []
+        with _connect(db_path) as conn:
+            cols = _cols(conn, 'matches')
+            if {'match_date', 'league_id', 'source'} <= cols:
+                for row in _rows(conn, "SELECT DISTINCT league_id FROM matches WHERE substr(match_date,1,10) IN (?,?) AND source LIKE '%SportsDB%' ORDER BY league_id LIMIT 40",
+                                 (day, (datetime.fromisoformat(day) + timedelta(days=1)).date().isoformat())):
+                    ids.append(str(row.get('league_id') or '').removeprefix('sportsdb-'))
+        ids.extend(str(item.get('idLeague') or '') for item in items)
+        return list(dict.fromkeys(x for x in ids if x.isdigit() and int(x) > 0))[:12]
+
+    try:
+        with scope:
+            partition_jobs = []
+            # Cover requested dates first; optional fanout must not starve older days.
+            for delta in range(days + 1):
+                day = (_today() - timedelta(days=delta)).isoformat()
+                items = acquire(day)
+                save(items)
+                if len(items) >= 50:
+                    saturated_dates.append(day)
+                    partition_jobs.append((day, target_leagues(day, items)))
+            # Round-robin by day: one busy competition cannot consume every slot.
+            for offset in range(12):
+                for day, leagues in partition_jobs:
+                    if offset >= len(leagues):
+                        continue
+                    if scope.calls >= scope.max_calls:
+                        raise SportsDBStopped('PARTITION_BUDGET')
+                    more = acquire(day, leagues[offset])
+                    partitions += 1
+                    save(more)
+                    if len(more) >= 50:
+                        errors.append('LEAGUE_RESPONSE_LIMIT')
+    except SportsDBStopped as exc:
+        errors.append(str(exc))
+    except (sqlite3.Error, OSError):
+        errors.append('STORAGE_UNAVAILABLE')
+    except Exception:
+        errors.append('INTERNAL_ERROR')
+    if saturated_dates:
+        # Partitioning known leagues is useful but cannot prove global completeness.
+        errors.append('SCOPED_COVERAGE_ONLY')
+    try:
+        enrich = rebuild_match_enrichment(db_path, limit=capacity)
+        if not enrich.get('ok'):
+            errors.append('ENRICHMENT_PENDING')
+    except (sqlite3.Error, OSError):
+        enrich = {}
+        errors.append('STORAGE_UNAVAILABLE')
+    status = 'PARTIAL' if errors and found else 'FAILED' if errors else 'OK'
+    errors = list(dict.fromkeys(errors))
+    with _connect(db_path) as conn:
+        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=? WHERE id=?',
+                     (_now(), status, found, linked, '; '.join(errors[:8]), run_id))
         conn.commit()
-        enrich = rebuild_match_enrichment(db_path, limit=limit)
-        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?, status=?, highlights_found=?, linked_matches=?, errors=? WHERE id=?',
-                     (_now(), 'OK' if not errors else 'PARTIAL', found, linked, '; '.join(errors[:5]), run_id))
-        conn.commit()
-    return {'ok': True, 'run_id': run_id, 'days_back': int(days_back or 5), 'highlights_found': found, 'linked_matches': linked, 'enrichment_updated': enrich.get('updated', 0), 'errors': errors[:5]}
+    return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
+            'days_back': days, 'highlights_found': found, 'linked_matches': linked,
+            'enrichment_updated': enrich.get('updated', 0), 'errors': errors[:8],
+            'saturated_dates': saturated_dates, 'league_partitions': partitions,
+            'retryable': bool(set(errors) - {'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'PARTITION_BUDGET', 'ITEM_BUDGET'}),
+            'provider_coverage_complete': False, 'playback_verified': False,
+            **scope.metrics()}
 
 
 def sportsdb_highlights_for_match(db_path, match_id):
-    ensure_sportsdb_highlights_schema(db_path)
-    with _connect(db_path) as conn:
-        stored = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 8', (match_id,))
-        enrich = _one(conn, 'SELECT * FROM sportsdb_match_enrichment WHERE match_id=?', (match_id,)) or {}
-    classified, highlights = _visible_highlights(stored)
-    return {
-        'highlights': highlights,
-        'all_highlights': classified,
-        'rights_warnings': len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}]),
-        'enrichment': enrich,
-        'summary_text': enrich.get('summary_text') or '',
-    }
+    """Read persisted metadata only; schema creation belongs to ingestion."""
+    from engines.highlight_read_model import read_highlights_for_match
+    return read_highlights_for_match(db_path, match_id)
 
 
 def sportsdb_highlights_summary(db_path):
-    ensure_sportsdb_highlights_schema(db_path)
-    with _connect(db_path) as conn:
-        total = (_one(conn, 'SELECT COUNT(*) AS total FROM sportsdb_match_highlights') or {}).get('total', 0)
-        linked = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(match_id,'')<>''") or {}).get('total', 0)
-        enriched = (_one(conn, 'SELECT COUNT(*) AS total FROM sportsdb_match_enrichment') or {}).get('total', 0)
-        with_video = (_one(conn, "SELECT COUNT(*) AS total FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''") or {}).get('total', 0)
-        stored_latest = _rows(conn, 'SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC LIMIT 250')
-        runs = _rows(conn, 'SELECT * FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 6')
-    classified, visible = _visible_highlights(stored_latest)
-    linked_visible = len({str(item.get('match_id')) for item in visible if str(item.get('match_id') or '').strip()})
-    rights_warnings = len([item for item in classified if item.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'}])
-    readiness = 25
-    if _api_key(): readiness += 25
-    if total: readiness += 20
-    if linked: readiness += 20
-    if enriched: readiness += 10
-    return {
-        'status': 'ACTIVO' if _api_key() else 'FALTA KEY',
-        'key_present': bool(_api_key()),
-        'readiness_score': min(readiness, 100),
-        'highlights_total': len(visible),
-        'stored_media_total': total,
-        'with_video': len(visible),
-        'stored_with_video': with_video,
-        'linked_matches': linked_visible,
-        'stored_linked_matches': linked,
-        'authorized_highlights': len(visible),
-        'blocked_highlights': rights_warnings,
-        'rights_warnings': rights_warnings,
-        'enriched_matches': enriched,
-        'latest_highlights': visible[:8],
-        'recent_runs': runs,
-        'note': 'TheSportsDB aporta metadatos y enlaces de YouTube. Solo se muestran tras certificar derechos, uso comercial y atribución; los vídeos pueden estar geobloqueados.'
-    }
+    """Read persisted metadata only; schema creation belongs to ingestion."""
+    from engines.highlight_read_model import read_highlights_summary
+    return read_highlights_summary(db_path)
+
+
+def sportsdb_highlight_by_id(db_path, highlight_id):
+    from engines.highlight_read_model import read_highlight_by_id
+    return read_highlight_by_id(db_path, highlight_id)
+
+
+def sportsdb_highlights_map(db_path, match_ids, limit_per_match=2):
+    from engines.highlight_read_model import read_highlights_map
+    return read_highlights_map(db_path, match_ids, limit_per_match=limit_per_match)
