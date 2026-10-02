@@ -64,14 +64,14 @@ def normalize_status(value):
 
 
 def h2h_price_snapshot(event):
-    bookmakers = event.get("bookmakers") or []
-    if not bookmakers:
-        return {}
-    bookmaker = bookmakers[0] or {}
-    markets = bookmaker.get("markets") or []
-    h2h = next((market for market in markets if market.get("key") == "h2h"), markets[0] if markets else {})
-    return {
-        "bookmaker": bookmaker.get("title") or bookmaker.get("key") or "",
-        "last_update": bookmaker.get("last_update") or h2h.get("last_update") or "",
-        "outcomes": h2h.get("outcomes") or [],
-    }
+    # Never reinterpret totals/spreads as a 1X2 market; search all bookmakers.
+    for bookmaker in event.get("bookmakers") or []:
+        for market in bookmaker.get("markets") or []:
+            if market.get("key") != "h2h" or not market.get("outcomes"):
+                continue
+            return {
+                "bookmaker": bookmaker.get("title") or bookmaker.get("key") or "",
+                "last_update": market.get("last_update") or bookmaker.get("last_update") or "",
+                "outcomes": market["outcomes"],
+            }
+    return {}

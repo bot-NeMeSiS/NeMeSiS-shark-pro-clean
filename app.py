@@ -18,7 +18,7 @@ import unicodedata
 import urllib.parse
 import urllib.request
 import urllib.error
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from functools import wraps
 from zoneinfo import ZoneInfo
@@ -4367,9 +4367,9 @@ def fetch_json_response(url, headers=None, timeout=10):
             "payload": payload,
             "http_status": int(getattr(res, "status", 200) or 200),
             "headers": {
-                "requests_remaining": as_int(res.headers.get("x-requests-remaining"), 0),
-                "requests_used": as_int(res.headers.get("x-requests-used"), 0),
-                "requests_last": as_int(res.headers.get("x-requests-last"), 0),
+                "requests_remaining": as_int(res.headers.get("x-requests-remaining"), None),
+                "requests_used": as_int(res.headers.get("x-requests-used"), None),
+                "requests_last": as_int(res.headers.get("x-requests-last"), None),
             },
         }
 
@@ -4427,7 +4427,12 @@ def odds_api_request(path, params=None):
             "ok": False,
             "payload": {},
             "http_status": int(getattr(exc, "code", 0) or 0),
-            "quota": {},
+            "quota": {
+                label: as_int((getattr(exc, "headers", None) or {}).get(header), None)
+                for label, header in (("requests_used", "x-requests-used"),
+                                      ("requests_remaining", "x-requests-remaining"),
+                                      ("requests_last", "x-requests-last"))
+            },
             "error": type(exc).__name__,
         }
 
@@ -5241,6 +5246,11 @@ def _sportsdb_existing_provider_rows(cur, item):
 
 def _write_sportsdb_match_snapshot(cur, item, target_id):
     """Persist one provider observation under a stable existing/internal match ID."""
+    item = dict(item)
+    existing = cur.execute("SELECT bookmaker,odds_h2h_json,odds_updated_at FROM matches WHERE id=?", (target_id,)).fetchone()
+    if existing and str(item.get("odds_h2h_json") or "").strip() in ("", "{}", "null"):
+        for field in ("bookmaker", "odds_h2h_json", "odds_updated_at"):
+            item[field] = existing[field]
     cur.execute(
         """INSERT OR REPLACE INTO matches
            (id,external_id,match_date,kickoff_time,match_time,kickoff_iso,competition_id,competition_key,competition_name,league_name,country,
@@ -5351,6 +5361,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
             imported += 1
 
     dedupe_result = cleanup_duplicate_matches(cur, match_dates=touched_match_dates)
+    _reconcile_cached_odds(cur, touched_match_dates)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
@@ -5368,11 +5379,12 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         "last_sync": now_iso(),
         "time": now_iso(),
     }
-    conn.execute(
-        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
-           VALUES (?,?,?)""",
-        ("sportsdb_feed_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
-    )
+    if any(str(item.get("source") or "TheSportsDB API").startswith("TheSportsDB") for item in match_rows):
+        conn.execute(
+            """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+               VALUES (?,?,?)""",
+            ("sportsdb_feed_sync", json.dumps(summary, ensure_ascii=False), now_iso()),
+        )
     return summary
 
 
@@ -5742,12 +5754,97 @@ def sync_sportsdb_calendar(limit=160):
     return result
 
 
+def _attach_odds_snapshot(cur, target, snapshot):
+    observed = str(snapshot.get("last_update") or "")
+    old_stamp = str(target.get("odds_updated_at") or "")
+    try:
+        newer = not old_stamp or datetime.fromisoformat(observed.replace("Z", "+00:00")) >= datetime.fromisoformat(old_stamp.replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        newer = not old_stamp
+    if not newer:
+        return False
+    cur.execute("UPDATE matches SET bookmaker=?, odds_h2h_json=?, odds_updated_at=? WHERE id=?",
+                (snapshot.get("bookmaker") or "", json.dumps(snapshot, ensure_ascii=False), observed, target["id"]))
+    return True
+
+
+def _reconcile_cached_odds(cur, match_dates):
+    """Attach already paid-for observations when the sporting fixture arrives later."""
+    if not match_dates:
+        return
+    lower = (date.fromisoformat(min(match_dates)) - timedelta(days=1)).isoformat()
+    upper = (date.fromisoformat(max(match_dates)) + timedelta(days=1)).isoformat()
+    snapshots = cur.execute("SELECT * FROM odds_snapshots WHERE substr(commence_time,1,10) BETWEEN ? AND ? ORDER BY created_at",
+                            (lower, upper)).fetchall()
+    for record in snapshots:
+        stored = dict(record)
+        try:
+            event = json.loads(stored.get("payload_json") or "{}")
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(event, dict):
+            continue
+        sport = next((sport for sport in IMPORTANT_COMPETITIONS if sport.get("odds_key") == stored.get("sport_key")),
+                     {"key": stored.get("sport_key"), "name": stored.get("league_name")})
+        target = _odds_fixture_target(cur, sport, event)
+        snapshot = h2h_price_snapshot(event)
+        if not target or not snapshot:
+            continue
+        snapshot.update(price_map_from_outcomes(snapshot.get("outcomes"), event.get("home_team"), event.get("away_team")))
+        snapshot["source"] = "The Odds API"
+        if _attach_odds_snapshot(cur, target, snapshot):
+            cur.execute("UPDATE odds_snapshots SET match_id=? WHERE id=?", (target["id"], stored["id"]))
+
+
+def _odds_fixture_target(cur, sport, event):
+    """Resolve by fixture identity, never by equality of provider IDs."""
+    match = odds_event_to_match(sport, event)
+    if not match:
+        return None
+    def instant(value):
+        try:
+            stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+            return stamp if stamp.tzinfo else stamp.replace(tzinfo=TZ)
+        except (ValueError, TypeError):
+            return None
+    kickoff = instant(match.get("kickoff_iso"))
+    if kickoff is None:
+        return None
+    def team(value):
+        return normalized_label(spanish_team_name(value))
+    def competition(row):
+        labels = {normalized_label(row.get(k)) for k in ("competition_key", "competition_name", "league_name") if row.get(k)}
+        for known in IMPORTANT_COMPETITIONS:
+            if labels & {normalized_label(known["key"]), normalized_label(known["name"]), normalized_label(spanish_competition_name(known["name"]))}:
+                labels.add(normalized_label(known["key"]))
+        return labels
+    candidates = []
+    lower = (kickoff.astimezone(TZ).date() - timedelta(days=1)).isoformat()
+    upper = (kickoff.astimezone(TZ).date() + timedelta(days=1)).isoformat()
+    for record in cur.execute("SELECT * FROM matches WHERE match_date BETWEEN ? AND ?", (lower, upper)).fetchall():
+        row = dict(record)
+        if team(row.get("home_team")) != team(match["home_team"]) or team(row.get("away_team")) != team(match["away_team"]):
+            continue
+        if not competition(row) & competition(match):
+            continue
+        stamp = instant(row.get("kickoff_iso"))
+        if stamp is None or abs((stamp - kickoff).total_seconds()) > 1200:
+            continue
+        candidates.append(row)
+    sporting = [row for row in candidates if row.get("source") != "The Odds API"]
+    candidates = sporting or candidates
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def upsert_odds_snapshots(events):
     conn = db()
     cur = conn.cursor()
-    inserted = updated = skipped = 0
+    inserted = updated = skipped = linked = 0
     for sport, event in events:
         snapshot = h2h_price_snapshot(event)
+        if not snapshot:
+            skipped += 1
+            continue
         bookmaker = snapshot.get("bookmaker") or ""
         outcomes = snapshot.get("outcomes") or []
         if not outcomes:
@@ -5756,7 +5853,12 @@ def upsert_odds_snapshots(events):
         home = event.get("home_team") or ""
         away = event.get("away_team") or ""
         prices = price_map_from_outcomes(outcomes, home, away)
-        match_id = odds_event_id(sport.get("odds_key") or sport.get("key"), event)
+        target = _odds_fixture_target(cur, sport, event)
+        match_id = target["id"] if target else odds_event_id(sport.get("odds_key") or sport.get("key"), event)
+        snapshot.update(prices)
+        snapshot["source"] = "The Odds API"
+        if target and _attach_odds_snapshot(cur, target, snapshot):
+            linked += 1
         snap_id = hashlib.md5(f"{match_id}:{bookmaker}:{snapshot.get('last_update') or now_iso()}".encode("utf-8")).hexdigest()[:18]
         exists = cur.execute("SELECT id FROM odds_snapshots WHERE id=?", (snap_id,)).fetchone()
         cur.execute(
@@ -5778,7 +5880,7 @@ def upsert_odds_snapshots(events):
                 str(prices.get("draw") or ""),
                 str(prices.get("away") or ""),
                 event.get("commence_time") or "",
-                json.dumps(event, ensure_ascii=False)[:5000],
+                json.dumps(event, ensure_ascii=False),
                 now_iso(),
             ),
         )
@@ -5786,33 +5888,16 @@ def upsert_odds_snapshots(events):
             updated += 1
         else:
             inserted += 1
+    cur.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     conn.commit()
     conn.close()
-    return {"processed": len(events), "inserted": inserted, "updated": updated, "skipped": skipped}
+    invalidate_v934_realtime_cache('v934:sports:')
+    return {"processed": len(events), "inserted": inserted, "updated": updated, "skipped": skipped, "linked": linked}
 
 
 def sync_odds_snapshots(limit=80, force=False):
-    seed_core()
-    if not os.getenv("THE_ODDS_API_KEY"):
-        return empty_sync("odds", "odds", "Falta THE_ODDS_API_KEY.")
-    if not odds_enabled():
-        result = empty_sync("odds", "odds", "ENABLE_ODDS_API no está activo.")
-        result["disabled"] = True
-        return result
-    if odds_recently_synced() and not force:
-        last = odds_last_sync()
-        return {"ok": True, "source": "odds", "sync_type": "odds", "skipped": True, "processed": 0, "inserted": 0, "updated": 0, "errors": [], "last_sync": last}
-    log_id = sync_log_start("odds", "odds")
-    try:
-        fetched, errors = fetch_odds_events(limit=limit)
-        result = upsert_odds_snapshots(fetched)
-        result.update(success_sync("odds", "odds", result["processed"], result["inserted"], result["updated"], result["skipped"], errors[:12]))
-        result["last_sync"] = now_iso()
-        sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result["processed"], "; ".join(errors[:3]))
-        return result
-    except Exception as exc:
-        sync_log_finish(log_id, "ERROR", 0, str(exc))
-        return empty_sync("odds", "odds", str(exc)[:200])
+    """Keep the legacy entry point on the canonical events/odds pipeline."""
+    return sync_odds_events(limit=limit, force=force)
 
 
 def data_center_summary():
@@ -6314,6 +6399,8 @@ def odds_event_to_match(sport, event):
     match_date = time_values.get("match_date") or (commence[:10] if len(commence) >= 10 else today_iso())
     match_time = time_values.get("kickoff_time") or (commence[11:16] if "T" in commence else "")
     odds_snapshot = h2h_price_snapshot(event)
+    if odds_snapshot:
+        odds_snapshot["source"] = "The Odds API"
     comp_key = sport.get("key") or slug(event.get("sport_key") or "odds")
     comp_name = spanish_competition_name(sport.get("name") or event.get("sport_title") or comp_key)
     status = sync_normalize_status(event.get("status") or "PROGRAMADO")
@@ -6369,8 +6456,9 @@ def fetch_odds_events(limit=250):
     quota = {
         "observed_calls": 0,
         "requests_last_total": 0,
-        "requests_used": 0,
-        "requests_remaining": 0,
+        "requests_used": None,
+        "requests_remaining": None,
+        "requests_last": None,
         "http_status": 0,
         "systemic_failure": False,
         "systemic_http_status": 0,
@@ -6393,8 +6481,9 @@ def fetch_odds_events(limit=250):
             quota["http_status"] = as_int(response.get("http_status"), quota["http_status"])
             observed = response.get("quota") or {}
             quota["requests_last_total"] += as_int(observed.get("requests_last"), 0)
-            quota["requests_used"] = as_int(observed.get("requests_used"), quota["requests_used"])
-            quota["requests_remaining"] = as_int(observed.get("requests_remaining"), quota["requests_remaining"])
+            for field in ("requests_used", "requests_remaining", "requests_last"):
+                if observed.get(field) is not None:
+                    quota[field] = as_int(observed[field], None)
             payload = response.get("payload")
             if not response.get("ok"):
                 errors.append(f"{sport['name']}: {response.get('error') or 'provider_error'}")
@@ -6407,7 +6496,12 @@ def fetch_odds_events(limit=250):
             if isinstance(payload, list):
                 events.extend([(sport, item) for item in payload if isinstance(item, dict)])
         except Exception as exc:
-            errors.append(f"{sport['name']}: {str(exc)[:160]}")
+            errors.append(f"{sport['name']}: {type(exc).__name__}")
+    quota["events_received"] = len(events)
+    quota["events_with_bookmakers"] = sum(bool(e.get("bookmakers")) for _, e in events)
+    quota["bookmakers_received"] = sum(len(e.get("bookmakers") or []) for _, e in events)
+    quota["markets_received"] = sum(len(b.get("markets") or []) for _, e in events for b in e.get("bookmakers") or [])
+    quota["events_with_h2h"] = sum(bool(h2h_price_snapshot(e)) for _, e in events)
     return events[: int(limit)], errors, quota
 
 
@@ -6442,14 +6536,22 @@ def sync_odds_events(limit=250, force=False):
         fetched, errors, quota = fetch_odds_events(limit=limit)
         match_rows = []
         seen = set()
+        lookup = db()
+        try:
+            matched_ids = {event.get("id") for sport, event in fetched if _odds_fixture_target(lookup.cursor(), sport, event)}
+        finally:
+            lookup.close()
         for sport, event in fetched:
+            if event.get("id") in matched_ids:
+                continue
             match = odds_event_to_match(sport, event)
             if not match or match["id"] in seen:
                 continue
             seen.add(match["id"])
             match_rows.append(match)
-        result = upsert_sportsdb_matches(match_rows)
+        result = upsert_sportsdb_matches(match_rows) if match_rows else {"ok": True, "processed": 0, "inserted": 0, "updated": 0}
         odds_snapshot_result = upsert_odds_snapshots(fetched)
+        result["processed"] = len(fetched)
         result["errors"] = errors[:12]
         if errors and not fetched:
             result["ok"] = False
@@ -6468,6 +6570,7 @@ def sync_odds_events(limit=250, force=False):
         result["inserted"] = result.get("inserted", result.get("imported", 0))
         result["odds_snapshots"] = odds_snapshot_result
         result["quota"] = quota
+        result["linked_matches"] = odds_snapshot_result.get("linked", 0)
         result["external_calls"] = as_int(quota.get("observed_calls"), 0)
         result["skipped"] = False
         result["last_sync"] = now_iso()
@@ -6482,8 +6585,22 @@ def sync_odds_events(limit=250, force=False):
         sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
         return result
     except Exception as exc:
-        sync_log_finish(log_id, "ERROR", 0, str(exc))
-        return {"ok": False, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": [str(exc)[:200]]}
+        safe_error = type(exc).__name__
+        failure = {"ok": False, "status": "PIPELINE_ERROR", "skipped": False,
+                   "imported": 0, "updated": 0, "processed": 0,
+                   "errors": [safe_error], "last_sync": now_iso(),
+                   "quota": locals().get("quota", {}),
+                   "external_calls": as_int(locals().get("quota", {}).get("observed_calls"), 0)}
+        app.logger.error("Odds pipeline failed: %s", safe_error)
+        conn = db()
+        try:
+            conn.execute("INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",
+                         ("odds_events_sync", json.dumps(failure), now_iso()))
+            conn.commit()
+        finally:
+            conn.close()
+        sync_log_finish(log_id, "ERROR", 0, safe_error)
+        return failure
 
 
 def odds_diagnostics():
@@ -6499,6 +6616,12 @@ def odds_diagnostics():
         "odds_snapshots": snapshots,
         "last_sync": last_sync,
         "quota": (last_sync or {}).get("quota") or {},
+        "http_status": ((last_sync or {}).get("quota") or {}).get("http_status"),
+        "last_error": "; ".join((last_sync or {}).get("errors") or []),
+        "linked_last_sync": (last_sync or {}).get("linked_matches"),
+        "matches_with_odds": (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(odds_h2h_json,'') NOT IN ('','{}')") or {}).get("total", 0),
+        "client_displayed": None,
+        "billing": "no disponible automáticamente",
         "sports_configured": len(odds_competitions()),
         "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
         "markets": os.getenv("ODDS_MARKETS", "h2h"),
@@ -30019,6 +30142,7 @@ def v565_extract_odds(match):
         "away": away,
         "markets": len(outcomes) if isinstance(outcomes, list) else 0,
         "available": any(x > 1 for x in (home, draw, away)),
+        "source": parsed.get("source") or match.get("odds_source") or "",
     }
 
 
@@ -30030,7 +30154,7 @@ def v565_recommendation_for_match(match):
     # Calendar relevance and a price are not a calibrated betting model.
     observations = [
         {"market": "1X2", "selection": name, "odds": odds[key],
-         "source": match.get("odds_source") or "",
+         "source": odds.get("source") or "",
          "bookmaker": match.get("bookmaker") or "",
          "observed_at": match.get("odds_updated_at") or ""}
         for key, name in (("home", match.get("home_team")), ("draw", "Empate"),
