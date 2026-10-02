@@ -1,5 +1,5 @@
-{% set od = data.get('odds') or %}
-{% set oq = od.get('quota') or %}
+{% set od = data.get('odds') or {} %}
+{% set oq = od.get('quota') or {} %}
 {% set ov = od.get('visibility') or {} %}
 <section class="v928-admin-panel" data-odds-diagnostics="persisted">
 <header><div><h2>The Odds API · cadena de cuotas</h2><p>Última evidencia persistida y visibilidad real del cliente; abrir Admin no consume créditos.</p></div></header>

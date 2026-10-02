@@ -6714,7 +6714,7 @@ def odds_diagnostics():
         "http_status": ((last_sync or {}).get("quota") or {}).get("http_status"),
         "last_error": "; ".join((last_sync or {}).get("errors") or []),
         "linked_last_sync": (last_sync or {}).get("linked_matches"),
-        "matches_with_odds": (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(odds_h2h_json,'') NOT IN ('','{}')") or {}).get("total", 0),
+        "matches_with_odds": (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(odds_h2h_json,'') NOT IN ('','{}','null')") or {}).get("total", 0),
         "client_displayed": visibility.get("client_visible"),
         "visibility": visibility,
         "billing": "no disponible automáticamente",
