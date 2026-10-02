@@ -509,6 +509,8 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
             headers={'X-Automation-Secret': secret, 'Accept': 'application/json',
                      'User-Agent': 'NeMeSiS-Master-Postmatch/1.0'}, method='POST')
         with urllib.request.urlopen(req, timeout=25) as response:
+            if response.status != 200:
+                raise ValueError('INVALID_RESPONSE')
             raw = response.read(64001)
             if len(raw) > 64000:
                 raise ValueError('INVALID_RESPONSE')
@@ -516,7 +518,15 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
         label = data.get('result') if isinstance(data, dict) else None
         valid = {'SKIPPED_DISABLED','IDLE','COMPLETE','PARTIAL','STORAGE_UNAVAILABLE'}
         label = label if label in valid else 'INVALID_RESPONSE'
-        status = 'PASS' if data.get('ok') is True and label in {'SKIPPED_DISABLED','IDLE','COMPLETE'} else 'PARTIAL' if data.get('ok') is True and label == 'PARTIAL' else 'FAIL'
+        if label == 'PARTIAL':
+            jobs = data.get('jobs')
+            controlled = isinstance(jobs, list) and bool(jobs) and all(
+                isinstance(job, dict)
+                and job.get('state') in {'COMPLETE', 'RETRY', 'PARTIAL'}
+                and job.get('reason') in {'COMPLETE', 'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'}
+                for job in jobs
+            )
+        status = 'PASS' if data.get('ok') is True and label in {'SKIPPED_DISABLED','IDLE','COMPLETE'} else 'PARTIAL' if data.get('ok') is True and label == 'PARTIAL' and controlled else 'FAIL'
         return {'postmatch_status': status, 'postmatch_result': label,
                 'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
                 'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
@@ -655,7 +665,8 @@ def main() -> int:
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
     postmatch = postmatch_tick(base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
-    if postmatch.get("postmatch_status") != "PASS" and overall == "PASS":
+    # Controlled deferrals remain visible without failing an otherwise healthy run.
+    if postmatch.get("postmatch_status") not in {"PASS", "PARTIAL"} and overall == "PASS":
         overall = "PARTIAL"
     print_event({
         "runner": RUNNER_NAME,

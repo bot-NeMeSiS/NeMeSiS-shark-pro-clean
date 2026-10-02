@@ -289,7 +289,10 @@ def test_actual_flask_cron_accepts_header_not_query(client, app_module, monkeypa
 def test_master_reports_postmatch_result_not_http_only(monkeypatch,domain_result,ok,expected):
     from tools import render_cron_master_tick as master
     class Response:
-        def read(self,n): return json.dumps({'ok':ok,'result':domain_result}).encode()
+        status = 200
+        def read(self,n):
+            return json.dumps({'ok':ok,'result':domain_result,
+                'jobs':[{'state':'RETRY','reason':'DAILY_BUDGET'}]}).encode()
         def __enter__(self): return self
         def __exit__(self,*a): pass
     calls=[]
