@@ -8962,27 +8962,88 @@ def _competition_matches_for(competition, competition_id, limit=260):
 
 
 def _competition_teams_for(matches, competition):
+    """Resolve competition teams with bounded batched reads instead of N+1 lookups."""
     seen = {}
     competition_name = (competition or {}).get("name") or ""
     country = (competition or {}).get("country") or ""
     for match in matches:
         for side in ("home", "away"):
-            name = match.get(f"{side}_team")
+            name = str(match.get(f"{side}_team") or "").strip()
             if not name:
                 continue
             key = canonical_team_key(name)
-            if key not in seen:
-                team = team_lookup(key) or team_lookup(name) or {"key": key, "name": name}
-                seen[key] = dict(team)
-                seen[key]["key"] = team.get("key") or key
-                seen[key]["name"] = team.get("name") or name
-                seen[key].setdefault("league", competition_name)
-                seen[key].setdefault("country", country)
-            logo_key = f"{side}_logo"
-            if match.get(logo_key) and not seen[key].get("logo_url"):
-                seen[key]["logo_url"] = match.get(logo_key)
-    return sorted(seen.values(), key=lambda item: str(item.get("name") or "").lower())
+            external_id = str(match.get(f"{side}_team_id") or "").strip()
+            item = seen.setdefault(
+                key,
+                {
+                    "key": key,
+                    "name": name,
+                    "external_id": external_id,
+                    "league": competition_name,
+                    "country": country,
+                },
+            )
+            if external_id and not item.get("external_id"):
+                item["external_id"] = external_id
+            logo = match.get(f"{side}_logo")
+            if logo and not item.get("logo_url"):
+                item["logo_url"] = logo
 
+    if not seen or not db_table_exists("teams"):
+        return sorted(seen.values(), key=lambda item: str(item.get("name") or "").lower())
+
+    available_columns = _sqlite_table_columns("teams")
+    candidates = list(seen.values())
+    persisted = []
+    # Stay comfortably below SQLite parameter limits even for unusually large competitions.
+    for offset in range(0, len(candidates), 120):
+        chunk = candidates[offset:offset + 120]
+        filters = []
+        params = []
+        keys = sorted({str(item.get("key") or "").strip().lower() for item in chunk if item.get("key")})
+        names = sorted({str(item.get("name") or "").strip().lower() for item in chunk if item.get("name")})
+        external_ids = sorted({str(item.get("external_id") or "").strip().lower() for item in chunk if item.get("external_id")})
+        if "key" in available_columns and keys:
+            placeholders = ",".join("?" for _ in keys)
+            filters.append(f"lower(COALESCE(key,'')) IN ({placeholders})")
+            params.extend(keys)
+        if "name" in available_columns and names:
+            placeholders = ",".join("?" for _ in names)
+            filters.append(f"lower(COALESCE(name,'')) IN ({placeholders})")
+            params.extend(names)
+        if "external_id" in available_columns and external_ids:
+            placeholders = ",".join("?" for _ in external_ids)
+            filters.append(f"lower(COALESCE(external_id,'')) IN ({placeholders})")
+            params.extend(external_ids)
+        if filters:
+            persisted.extend(rows("SELECT * FROM teams WHERE " + " OR ".join(filters), tuple(params)))
+
+    persisted_by_identity = {}
+    for team in persisted:
+        for value in (team.get("key"), team.get("name"), team.get("external_id")):
+            marker = str(value or "").strip().lower()
+            if marker:
+                persisted_by_identity.setdefault(marker, team)
+
+    resolved = []
+    for fallback in candidates:
+        team = None
+        for value in (fallback.get("key"), fallback.get("name"), fallback.get("external_id")):
+            marker = str(value or "").strip().lower()
+            if marker and marker in persisted_by_identity:
+                team = persisted_by_identity[marker]
+                break
+        merged = dict(fallback)
+        if team:
+            merged.update(dict(team))
+            merged["key"] = team.get("key") or fallback.get("key")
+            merged["name"] = team.get("name") or fallback.get("name")
+            merged.setdefault("league", competition_name)
+            merged.setdefault("country", country)
+            if fallback.get("logo_url") and not merged.get("logo_url"):
+                merged["logo_url"] = fallback.get("logo_url")
+        resolved.append(merged)
+    return sorted(resolved, key=lambda item: str(item.get("name") or "").lower())
 
 def _competition_standings_for(
     competition,
@@ -20240,8 +20301,12 @@ def competition_center_contract_page(competition_id):
             detail,
             observed_at_madrid=today_iso(),
         )
-    data, _summary = v932_safe_dashboard_data(request.path, compact=True)
-    data["competition_detail"] = detail
+    # Competition Center already owns its complete factual snapshot. Avoid
+    # rebuilding the global sports dashboard on this read-only detail route.
+    data = {
+        "competition_detail": detail,
+        "session_user": current_session_user(),
+    }
     return render_template("competition_detail.html", data=data, detail=detail)
 
 @app.route("/player/<player_id>")
