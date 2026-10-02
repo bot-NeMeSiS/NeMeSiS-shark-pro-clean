@@ -100,3 +100,29 @@ def test_founder_os_does_not_infer_sports_freshness_without_evidence(tmp_path):
     sports_alert=next(item for item in snap['alerts']['items'] if item['category']=='SPORTS_DATA')
     assert sports_alert['severity']=='HIGH'
     assert sports_alert['push_eligible'] is False
+
+
+def test_integrations_center_enriches_providers_without_external_calls(tmp_path,monkeypatch):
+    db=str(tmp_path/'integrations.db')
+    monkeypatch.setenv('THE_ODDS_API_KEY','odds-secret')
+    monkeypatch.setenv('ENABLE_ODDS_API','true')
+    monkeypatch.setenv('THESPORTSDB_KEY','sports-secret')
+    monkeypatch.setenv('TELEGRAM_BOT_TOKEN','telegram-secret')
+    monkeypatch.setenv('TELEGRAM_CHAT_ID','12345')
+    monkeypatch.setenv('ENABLE_TELEGRAM_AUTO','true')
+    monkeypatch.setenv('STRIPE_SECRET_KEY','stripe-secret')
+    monkeypatch.setenv('PAYMENTS_ENABLED','true')
+    monkeypatch.setenv('RENDER_EXTERNAL_URL','https://example.invalid')
+    snap=founder.founder_os_snapshot(db)
+    providers=snap['providers']; by_key={item['key']:item for item in providers['items']}
+    assert providers['provider_calls_during_render']==0
+    assert 'evidencia persistida' in providers['evidence_policy'].lower()
+    assert by_key['the_odds_api']['admin_url']=='/admin/matches-sync'
+    assert 'cuotas' in by_key['the_odds_api']['contribution'].lower()
+    assert by_key['thesportsdb']['admin_url']=='/admin/data-center'
+    assert by_key['telegram']['admin_url']=='/admin/telegram/command-center'
+    assert by_key['stripe']['admin_url']=='/admin/payments'
+    assert by_key['render']['admin_url']=='/admin/operations-center'
+    rendered=str(snap)
+    for secret in ('odds-secret','sports-secret','telegram-secret','stripe-secret'):
+        assert secret not in rendered

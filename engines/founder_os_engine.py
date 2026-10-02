@@ -11,13 +11,13 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, Iterable
 
 PROVIDER_CATALOG = {
-    "render": {"label":"Render","category":"Infraestructura","criticality":"CRITICAL","config_any":("RENDER_EXTERNAL_URL","APP_PUBLIC_URL"),"enabled_env":"","optional":False},
-    "the_odds_api": {"label":"The Odds API","category":"Datos / cuotas","criticality":"CRITICAL","config_any":("THE_ODDS_API_KEY",),"enabled_env":"ENABLE_ODDS_API","optional":False},
-    "api_football": {"label":"API-Football","category":"Datos deportivos","criticality":"HIGH","config_any":("API_FOOTBALL_KEY","API_FOOTBALL_API_KEY"),"enabled_env":"ENABLE_API_FOOTBALL_PROVIDER","optional":False},
-    "thesportsdb": {"label":"TheSportsDB","category":"Datos / fallback","criticality":"HIGH","config_any":("THESPORTSDB_KEY","THESPORTSDB_API_KEY"),"enabled_env":"","optional":False},
-    "telegram": {"label":"Telegram","category":"Comunicaciones","criticality":"HIGH","config_all":("TELEGRAM_BOT_TOKEN","TELEGRAM_CHAT_ID"),"enabled_env":"ENABLE_TELEGRAM_AUTO","optional":False},
-    "stripe": {"label":"Stripe","category":"Pagos","criticality":"HIGH","config_any":("STRIPE_SECRET_KEY",),"enabled_env":"PAYMENTS_ENABLED","optional":True},
-    "openai": {"label":"OpenAI","category":"IA","criticality":"MEDIUM","config_any":("OPENAI_API_KEY",),"enabled_env":"","optional":True},
+    "render": {"label":"Render","category":"Infraestructura","criticality":"CRITICAL","config_any":("RENDER_EXTERNAL_URL","APP_PUBLIC_URL"),"enabled_env":"","optional":False,"contribution":"Aloja la web y los procesos programados de NeMeSiS.","admin_url":"/admin/operations-center"},
+    "the_odds_api": {"label":"The Odds API","category":"Datos / cuotas","criticality":"CRITICAL","config_any":("THE_ODDS_API_KEY",),"enabled_env":"ENABLE_ODDS_API","optional":False,"contribution":"Aporta cuotas y mercados; NeMeSiS enlaza 1X2 con partidos reales y conserva caché/snapshots.","admin_url":"/admin/matches-sync"},
+    "api_football": {"label":"API-Football","category":"Datos deportivos","criticality":"HIGH","config_any":("API_FOOTBALL_KEY","API_FOOTBALL_API_KEY"),"enabled_env":"ENABLE_API_FOOTBALL_PROVIDER","optional":False,"contribution":"Proveedor deportivo primario cuando el plan y el acceso permiten datos actuales.","admin_url":"/admin/data-center"},
+    "thesportsdb": {"label":"TheSportsDB","category":"Datos / fallback","criticality":"HIGH","config_any":("THESPORTSDB_KEY","THESPORTSDB_API_KEY"),"enabled_env":"","optional":False,"contribution":"Aporta calendario, resultados, identidad deportiva y fallback; preserva cuotas enlazadas.","admin_url":"/admin/data-center"},
+    "telegram": {"label":"Telegram","category":"Comunicaciones","criticality":"HIGH","config_all":("TELEGRAM_BOT_TOKEN","TELEGRAM_CHAT_ID"),"enabled_env":"ENABLE_TELEGRAM_AUTO","optional":False,"contribution":"Entrega automatizaciones y contenido autorizado a Telegram.","admin_url":"/admin/telegram/command-center"},
+    "stripe": {"label":"Stripe","category":"Pagos","criticality":"HIGH","config_any":("STRIPE_SECRET_KEY",),"enabled_env":"PAYMENTS_ENABLED","optional":True,"contribution":"Gestiona checkout, suscripciones, webhooks y evidencia de pagos de clientes.","admin_url":"/admin/payments"},
+    "openai": {"label":"OpenAI","category":"IA","criticality":"MEDIUM","config_any":("OPENAI_API_KEY",),"enabled_env":"","optional":True,"contribution":"Potencia funciones de IA/SHARK cuando está configurado; no sustituye datos deportivos reales.","admin_url":"/admin/shark-center"},
 }
 CADENCES={"monthly","quarterly","yearly","one_time","manual"}
 PAYMENT_STATES={"UNKNOWN","PENDING","PAID","WAIVED"}
@@ -251,6 +251,10 @@ def sports_data_freshness_snapshot(db_path, *, read_only=False):
     }
 
 def _provider_evidence(conn,key):
+    if key=="render":
+        return {"state":"CONFIGURED" if _configured(PROVIDER_CATALOG["render"]) else "NO_LOCAL_EVIDENCE",
+                "observed_at":"","external_calls":0,"error_present":False,
+                "note":"Configuración local; coste, uso y deploy actual se consultan en Jornada operativa."}
     if key=="the_odds_api":
         s=_automation_state(conn,"odds_events_sync"); q=s.get("quota") if isinstance(s.get("quota"),dict) else {}
         return {"state":_safe(s.get("status") or ("CACHE_REUSED" if s.get("skipped") else ""),80) or "UNKNOWN",
@@ -271,11 +275,20 @@ def _provider_evidence(conn,key):
                 "external_calls":int(r.get("external_calls") or 0),"processed":int(r.get("fixtures_count") or 0),"error_present":bool(r.get("error"))}
     if key=="telegram" and _table_exists(conn,"telegram_delivery_memory"):
         r=_one(conn,"SELECT status,sent_at_madrid,created_at FROM telegram_delivery_memory ORDER BY created_at DESC LIMIT 1")
+        total=_one(conn,"SELECT COUNT(*) AS total FROM telegram_delivery_memory")
         return {"state":_safe(r.get("status"),80) or "UNKNOWN","observed_at":_safe(r.get("sent_at_madrid") or r.get("created_at"),80),
-                "error_present":str(r.get("status") or "").upper() in {"FAILED","ERROR"}}
+                "processed":_nonnegative_int(total.get("total")),"error_present":str(r.get("status") or "").upper() in {"FAILED","ERROR"}}
     if key=="stripe" and _table_exists(conn,"payment_webhook_events"):
         r=_one(conn,"SELECT status,received_at,verified FROM payment_webhook_events ORDER BY received_at DESC LIMIT 1")
-        return {"state":_safe(r.get("status"),80) or "NO_EVENTS","observed_at":_safe(r.get("received_at"),80),"verified":bool(r.get("verified")),"error_present":False}
+        total=_one(conn,"SELECT COUNT(*) AS total FROM payment_webhook_events")
+        verified=_one(conn,"SELECT COUNT(*) AS total FROM payment_webhook_events WHERE verified=1")
+        return {"state":_safe(r.get("status"),80) or "NO_EVENTS","observed_at":_safe(r.get("received_at"),80),
+                "verified":bool(r.get("verified")),"processed":_nonnegative_int(total.get("total")),
+                "verified_events":_nonnegative_int(verified.get("total")),"error_present":False}
+    if key=="openai":
+        return {"state":"CONFIGURED" if _configured(PROVIDER_CATALOG["openai"]) else "NO_LOCAL_EVIDENCE",
+                "observed_at":"","external_calls":0,"error_present":False,
+                "note":"Configuración local únicamente; este panel no ejecuta una llamada de IA para comprobarla."}
     return {"state":"NO_LOCAL_EVIDENCE","observed_at":"","error_present":False}
 
 def _configured(spec):
@@ -298,9 +311,15 @@ def providers_snapshot(db_path,obligations=None, *, read_only=False):
         operational="NOT_CONFIGURED" if not configured else "DISABLED" if enabled is False else estate if estate!="NO_LOCAL_EVIDENCE" else "CONFIGURED"
         items.append({"key":key,"label":spec["label"],"category":spec["category"],"criticality":spec["criticality"],"optional":bool(spec.get("optional")),
                       "configured":configured,"enabled":enabled,"operational_state":operational,"evidence":evidence,
-                      "billing_state":billing,"billing_tracked":bool(obs),"obligations":len(obs),"plan":plan or "UNKNOWN"})
+                      "billing_state":billing,"billing_tracked":bool(obs),"obligations":len(obs),"plan":plan or "UNKNOWN",
+                      "contribution":_safe(spec.get("contribution"),360),"admin_url":_safe(spec.get("admin_url"),160)})
     conn.close()
-    return {"items":items,"configured":sum(1 for i in items if i["configured"]),"total":len(items),"billing_tracked":sum(1 for i in items if i["billing_tracked"])}
+    attention=sum(1 for i in items if (not i["configured"] and not i["optional"]) or any(token in str(i["operational_state"]).upper() for token in ("ERROR","FAIL","RESTRICT","BACKOFF")))
+    with_evidence=sum(1 for i in items if (i.get("evidence") or {}).get("observed_at") or str((i.get("evidence") or {}).get("state") or "") not in {"","NO_LOCAL_EVIDENCE"})
+    return {"items":items,"configured":sum(1 for i in items if i["configured"]),"total":len(items),
+            "billing_tracked":sum(1 for i in items if i["billing_tracked"]),"attention":attention,
+            "with_evidence":with_evidence,"provider_calls_during_render":0,
+            "evidence_policy":"Solo evidencia persistida/local; abrir Founder OS no llama a proveedores externos."}
 
 def _alert_id(fp): return "fa:"+hashlib.sha1(fp.encode()).hexdigest()[:22]
 def _upsert_alert(conn,a):
