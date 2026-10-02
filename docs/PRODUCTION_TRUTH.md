@@ -93,11 +93,33 @@ These are candidates for responsibility mapping, not proven interchangeable
 duplicates. Keep them until contract tests and a reversible migration exist.
 
 base.html delegates the active shell to components/v933_shells.html and
-components/v933_navigation.html. Desired primary client groups: Inicio, Partidos,
+components/v933_navigation.html; components/navigation_contracts.html owns its
+link data. Current client desktop has eight links and mobile five; admin desktop
+has sixteen and mobile five. The existing mobile client already follows the five
+primary destinations through /app, /calendario, /directo, /picks and /shark.
+Desired primary client groups: Inicio, Partidos,
 Live, Picks, SHARK. Desired admin groups: Empresa, Usuarios, Membresías, Deportes,
 Picks, Telegram, Ingresos, Operaciones, Sentinel. Preserve existing routes,
 entitlements, secondary links and browser coverage; defer menu rewrites until
 each current destination is mapped and authenticated PC/tablet/mobile QA passes.
+
+## Observed release risk
+
+At 14:40:47 Europe/Madrid (12:40:47 UTC), Gunicorn reported WORKER TIMEOUT while
+the Telegram tick was executing SELECT on telegram_queue by dedupe_key. It then
+returned 500, killed the worker and booted a replacement. Metrics also recorded
+a 502 in the same early observation period. The generic "Perhaps out of memory"
+message does not prove OOM: the sampled later memory was about 229 MB against
+512 MB, and the trace explicitly records timeout. Investigate query/index and
+lock contention in an isolated production-shaped copy before changing timeout,
+worker count or plan. Do not claim absence of 5xx across this release window.
+Read-only preflight at approximately 15:00 checked 17 routes without 5xx;
+protected /api/live/diagnostics returned 403 as expected.
+
+62 local tests passed on PR #143 head a389819be3eb30c016ad8b92b2dbd9daf78fd4c1:
+Master Cron, backup runner and atomic Data Vault tests, using disposable SQLite
+and OFFLINE_SAFE mode. WAL recovery and corrupt-backup rejection passed. This
+does not establish a successful backup of the real persistent database.
 
 ## Release and exact rollback
 
