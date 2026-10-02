@@ -64,7 +64,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         True,
         automation_secret and public_base and db_ok,
         state.get("last_cron_telegram_call"),
-        "cada 10 min",
+        "cada 5 min",
     )
     master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
     master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution", "data_backup"]
@@ -124,7 +124,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         },
         "warnings": warnings,
         "next_actions": [
-            "Mantener un único servicio cron cada 10 minutos.",
+            "Mantener un único servicio cron cada 5 minutos.",
             "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
             "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
         ],
