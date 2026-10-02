@@ -719,9 +719,15 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                 lambda: _sportsdb_v2('lookup/event_highlights/' + urllib.parse.quote(str(event_id))),
             )
             v2_event_lookups += 1
-        if not isinstance(payload, dict) or 'lookup' not in payload:
+        if not isinstance(payload, dict):
             raise SportsDBStopped('MALFORMED')
-        values = payload['lookup']
+        message = str(payload.get('Message') or payload.get('message') or '').strip().lower()
+        if 'lookup' in payload:
+            values = payload['lookup']
+        elif message in {'no data found', 'no data'}:
+            values = []
+        else:
+            raise SportsDBStopped('MALFORMED')
         if values is not None and (not isinstance(values, list) or any(not isinstance(item, dict) for item in values)):
             raise SportsDBStopped('MALFORMED')
         if any(str(item.get('idEvent') or '') != str(event_id) for item in (values or [])):
