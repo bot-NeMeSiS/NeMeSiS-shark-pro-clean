@@ -78,7 +78,10 @@ def read_highlights_summary(db_path):
             enrichment_available = _table(conn, 'sportsdb_match_enrichment')
             enriched = conn.execute('SELECT COUNT(*) FROM sportsdb_match_enrichment').fetchone()[0] if enrichment_available else None
             runs_available = _table(conn, 'sportsdb_highlight_runs')
-            runs = _rows(conn, '''SELECT started_at,finished_at,status,highlights_found,linked_matches,errors
+            run_columns = {row['name'] for row in conn.execute('PRAGMA table_info(sportsdb_highlight_runs)')} if runs_available else set()
+            metrics = ','.join(name if name in run_columns else f'NULL AS {name}'
+                               for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused'))
+            runs = _rows(conn, f'''SELECT started_at,finished_at,status,highlights_found,linked_matches,errors,{metrics}
                 FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 6''') if runs_available else []
             for run in runs:
                 if run.get('errors'):

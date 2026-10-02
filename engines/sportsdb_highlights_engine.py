@@ -118,6 +118,14 @@ def ensure_sportsdb_highlights_schema(db_path):
             linked_matches INTEGER DEFAULT 0,
             errors TEXT
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS sportsdb_highlight_feed_cache(
+            cache_key TEXT PRIMARY KEY, payload_json TEXT NOT NULL,
+            fetched_at TEXT NOT NULL, expires_at TEXT NOT NULL
+        )''')
+        run_cols = _cols(conn, 'sportsdb_highlight_runs')
+        for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused'):
+            if name not in run_cols:
+                conn.execute(f'ALTER TABLE sportsdb_highlight_runs ADD COLUMN {name} INTEGER DEFAULT 0')
         cols = _cols(conn, 'sportsdb_match_highlights')
         if 'embed_url' not in cols:
             conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN embed_url TEXT DEFAULT ''")
@@ -538,22 +546,47 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
     scope = SportsDBBudget(max_calls=12)
+    persistent_cache_hits = 0
+    profile_links_reused = 0
 
     def acquire(day, league=None):
+        nonlocal persistent_cache_hits
         params = {'d': day, 's': 'Soccer'}
         if league:
             params['l'] = league
-        payload = scope.call(1, 'eventshighlights.php', params,
-                             lambda: _sportsdb_v1('eventshighlights.php', params))
+        cache_key = json.dumps(params, sort_keys=True)
+        cached = None
+        if not force:
+            with _connect(db_path) as conn:
+                cached = _one(conn, 'SELECT payload_json,expires_at FROM sportsdb_highlight_feed_cache WHERE cache_key=?', (cache_key,))
+        from_cache = False
+        if cached:
+            try:
+                payload = json.loads(cached['payload_json'])
+                from_cache = isinstance(payload, dict) and datetime.fromisoformat(cached['expires_at']) > datetime.fromisoformat(_now())
+            except (ValueError, TypeError):
+                pass
+        if not from_cache:
+            payload = scope.call(1, 'eventshighlights.php', params,
+                                 lambda: _sportsdb_v1('eventshighlights.php', params))
         recognized = ('tvhighlights', 'eventshighlights', 'highlights', 'events', 'tv', 'results')
         if not any(k in payload for k in recognized):
             raise SportsDBStopped('MALFORMED')
         values = next((payload[k] for k in recognized if k in payload), None)
-        if values is None:
-            return []
-        if not isinstance(values, list) or any(not isinstance(v, dict) for v in values):
+        if values is not None and (not isinstance(values, list) or any(not isinstance(v, dict) for v in values)):
             raise SportsDBStopped('MALFORMED')
-        return values
+        if from_cache:
+            persistent_cache_hits += 1
+        else:
+            fetched_at = _now()
+            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
+            with _connect(db_path) as conn:
+                conn.execute('INSERT OR REPLACE INTO sportsdb_highlight_feed_cache VALUES (?,?,?,?)',
+                             (cache_key, json.dumps(payload, ensure_ascii=False), fetched_at, expires))
+                conn.execute('DELETE FROM sportsdb_highlight_feed_cache WHERE expires_at<?',
+                             ((datetime.fromisoformat(fetched_at) - timedelta(days=15)).isoformat(timespec='seconds'),))
+                conn.commit()
+        return values or []
 
     def save(items):
         nonlocal found, linked
@@ -593,7 +626,21 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         ids.extend(str(item.get('idLeague') or '') for item in items)
         return list(dict.fromkeys(x for x in ids if x.isdigit() and int(x) > 0))[:12]
 
+    profile_items = []
     try:
+        # Reuse provider payloads already acquired by enrichment. No extra HTTP.
+        with _connect(db_path) as conn:
+            profiles = []
+            if {'raw_json', 'event_date', 'video_url'} <= _cols(conn, 'sportsdb_event_profiles'):
+                profiles = _rows(conn, "SELECT raw_json FROM sportsdb_event_profiles WHERE event_date BETWEEN ? AND ? AND COALESCE(video_url,'')<>'' ORDER BY updated_at DESC LIMIT ?",
+                                 ((_today() - timedelta(days=days)).isoformat(), _today().isoformat(), capacity))
+        for profile in profiles:
+            try:
+                item = json.loads(profile['raw_json'])
+                if isinstance(item, dict) and item.get('idEvent') and item.get('strVideo'):
+                    profile_items.append(item)
+            except (ValueError, TypeError):
+                continue
         with scope:
             partition_jobs = []
             # Cover requested dates first; optional fanout must not starve older days.
@@ -626,6 +673,14 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         # Partitioning known leagues is useful but cannot prove global completeness.
         errors.append('SCOPED_COVERAGE_ONLY')
     try:
+        before_profiles = found
+        save(profile_items)
+        profile_links_reused = found - before_profiles
+    except SportsDBStopped as exc:
+        errors.append(str(exc))
+    except (sqlite3.Error, OSError):
+        errors.append('STORAGE_UNAVAILABLE')
+    try:
         enrich = rebuild_match_enrichment(db_path, limit=capacity)
         if not enrich.get('ok'):
             errors.append('ENRICHMENT_PENDING')
@@ -635,8 +690,8 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     status = 'PARTIAL' if errors and found else 'FAILED' if errors else 'OK'
     errors = list(dict.fromkeys(errors))
     with _connect(db_path) as conn:
-        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=? WHERE id=?',
-                     (_now(), status, found, linked, '; '.join(errors[:8]), run_id))
+        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=? WHERE id=?',
+                     (_now(), status, found, linked, '; '.join(errors[:8]), scope.calls, persistent_cache_hits, profile_links_reused, run_id))
         conn.commit()
     return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
             'days_back': days, 'highlights_found': found, 'linked_matches': linked,
@@ -644,6 +699,8 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             'saturated_dates': saturated_dates, 'league_partitions': partitions,
             'retryable': bool(set(errors) - {'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'PARTITION_BUDGET', 'ITEM_BUDGET'}),
             'provider_coverage_complete': False, 'playback_verified': False,
+            'persistent_cache_hits': persistent_cache_hits, 'profile_links_reused': profile_links_reused,
+            'cache_ttl_hours': 6,
             **scope.metrics()}
 
 

@@ -14,6 +14,13 @@
   <article class="card stat-card"><span>Enlazados</span><strong>{{ (center.counts or {}).get('linked_matches') if (center.counts or {}).get('linked_matches') is not none else '—' }}</strong><small>partidos con match_id</small></article>
 </section>
 <section class="band compact-band">
+  <div class="section-head"><h2>Última sincronización</h2><span class="pill">{{ (center.last_run or {}).get('status', 'Sin evidencia') }}</span></div>
+  <p>{{ (center.last_run or {}).get('finished_at') or 'Sin sincronización terminada registrada' }}</p>
+  <p>Llamadas externas: {{ (center.last_run or {}).get('external_calls') if (center.last_run or {}).get('external_calls') is not none else '—' }} · Respuestas reutilizadas de caché: {{ (center.last_run or {}).get('persistent_cache_hits') if (center.last_run or {}).get('persistent_cache_hits') is not none else '—' }} · Enlaces recuperados de perfiles: {{ (center.last_run or {}).get('profile_links_reused') if (center.last_run or {}).get('profile_links_reused') is not none else '—' }}</p>
+  <p class="small">Caché del feed: 6 horas, incluidos resultados vacíos. Sincronizar ahora fuerza una consulta. Las lecturas del cliente y Admin no consultan al proveedor. La cobertura es parcial; un enlace no garantiza reproducción ni disponibilidad geográfica.</p>
+  {% if (center.last_run or {}).get('errors') %}<p>{{ center.last_run.errors }}</p>{% endif %}
+</section>
+<section class="band compact-band">
   <div class="section-head"><h2>Render Cron recomendado</h2><span class="pill">{{ (center.cron or {}).recommended }}</span></div>
   <p><code>{{ (center.cron or {}).command }}</code></p>
   <p class="small"><code>{{ (center.cron or {}).endpoint }}</code></p>
