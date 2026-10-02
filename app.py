@@ -6011,8 +6011,18 @@ def refresh_auto_picks_basic(limit=40):
     candidates = []
     discarded = []
     for rec in recs:
+        # A watchlist/analysis is not a weak pick: it has no publication approval.
+        if rec.get("can_publish") is not True or rec.get("decision") != "BET":
+            discarded.append({"match_id": rec.get("match_id"), "reason": "analisis_no_publicable"})
+            continue
         score = as_int(rec.get("score"), 0)
-        odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
+        raw_odds = rec.get("odds_value")
+        if raw_odds in (None, ""):
+            raw_odds = rec.get("odds")
+        odds = as_float(raw_odds, 0.0)
+        if isinstance(raw_odds, bool) or not math.isfinite(odds) or odds <= 1:
+            discarded.append({"match_id": rec.get("match_id"), "reason": "sin_cuota_valida", "score": score})
+            continue
         if score < min_score:
             discarded.append({"match_id": rec.get("match_id"), "reason": "score_bajo", "score": score})
             continue
@@ -7136,9 +7146,18 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
 
 def ensure_auto_pick_from_recommendation(rec):
     rec = dict(rec or {})
+    # Defense in depth: a cosmetic score must never override WAIT/NO_BET.
+    # This boundary is necessary, not proof that a statistical model is validated.
+    if rec.get("can_publish") is not True or rec.get("decision") != "BET":
+        return {"ok": False, "created": False, "reason": "analisis_no_publicable"}
+    raw_odds = rec.get("odds_value")
+    if raw_odds in (None, ""):
+        raw_odds = rec.get("odds")
+    odds = as_float(raw_odds, 0.0)
+    if isinstance(raw_odds, bool) or not math.isfinite(odds) or odds <= 1:
+        return {"ok": False, "created": False, "reason": "sin_cuota_valida"}
     match_id = str(rec.get("match_id") or "").strip()
     selection = str(rec.get("selection") or "").strip()
-    odds = as_float(rec.get("odds_value") or rec.get("odds"), 0.0)
     if not match_id or not selection:
         return {"ok": False, "created": False, "reason": "datos_incompletos"}
     if odds <= 1:
@@ -30021,7 +30040,10 @@ def v565_data_picks_health():
     if not odds_count:
         actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
     if not published:
-        actions.append("Generar recomendaciones automáticas y convertir las mejores en picks publicados.")
+        if recommendations and not any(r.get("can_publish") is True and r.get("decision") == "BET" for r in recommendations):
+            actions.append("Hay partidos en análisis, pero no una recomendación de apuesta aprobada. Completar evidencia y validar el modelo; añadir cuotas o bajar el umbral no basta.")
+        else:
+            actions.append("Revisar evidencia, modelo y cuotas vigentes de los candidatos antes de publicar picks.")
     if logos < max(1, total_teams // 3):
         actions.append("Ejecutar SportsDB Crest Sync para subir identidad visual.")
     if not actions:
