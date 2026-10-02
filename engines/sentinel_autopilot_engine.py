@@ -958,7 +958,7 @@ def build_v944_match_center_foundation_contract_snapshot(
 
     expected_components = (
         "MatchHeader", "ScoreWidget", "MatchStory", "Timeline", "StatsPanel",
-        "SharkPanel", "TelegramPanel", "BankrollPanel", "CompetitionPanel", "QuickActions",
+        "SharkPanel", "PickPanel", "TelegramPanel", "BankrollPanel", "CompetitionPanel", "QuickActions",
     )
     expected_states = (
         "loading", "ready", "partial", "finished", "error", "offline", "unknown",
@@ -1025,6 +1025,7 @@ def build_v944_match_center_foundation_contract_snapshot(
         "timeline(match_context)",
         "stats_panel(match_context)",
         "shark_panel(match_context)",
+        "pick_panel(match_context)",
         "telegram_panel(match_context)",
         "bankroll_panel(match_context)",
         "competition_panel(match_context)",
@@ -2482,7 +2483,7 @@ def detect_product_quality_contract_issues(
             "profile": "CLIENT",
             "component": "match_center_foundation",
             "description": "Una región del partido ha dejado de compartir contexto, estado o fallback canónico.",
-            "expected_behavior": "Diez componentes consumen un MatchContext puro, responsive y sin efectos laterales.",
+            "expected_behavior": "Los componentes canónicos consumen un MatchContext puro, responsive y sin efectos laterales.",
             "actual_behavior": "Una o más garantías de MATCH-CENTER-LIFECYCLE-STORY-V1 no se pueden demostrar.",
             "suggested_fix": "Restaurar solo el contrato incumplido y repetir tests y Browser QA en tres viewports.",
             "safe_auto_fix_possible": False,

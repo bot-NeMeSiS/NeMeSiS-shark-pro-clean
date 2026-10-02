@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import empty_state, page_header %}
-{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
+{% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, pick_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 <script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
@@ -38,6 +38,7 @@
   {% set standings = match_context.get('standings') or {} %}
   {% set media = match_context.get('media') or {} %}
   {% set shark = match_context.get('shark_context') or {} %}
+  {% set picks = match_context.get('picks') or {} %}
   <nav class="v944-match-sections" aria-label="{{ ui("Secciones disponibles del partido") }}">
     <a href="#match-section-story" data-match-section-link="story">{{ ui("Resumen") }}</a>
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">{{ ui("Alineaciones") }}</a>{% endif %}
@@ -47,18 +48,21 @@
     {% if standings.get('available') %}<a href="#match-section-standings" data-match-section-link="standings">{{ ui("Clasificación") }}</a>{% endif %}
     <a href="#match-section-video" data-match-section-link="video">{{ ui("Vídeo") }}</a>
     {% if shark.get('available') %}<a href="#match-section-shark" data-match-section-link="shark">SHARK</a>{% endif %}
+    {% if picks.get('available') %}<a href="#match-section-pick" data-match-section-link="pick">{{ ui("Pick") }}</a>{% endif %}
   </nav>
 
   <div class="v944-match-layout">
     {% if shark.get('available') %}
     <div class="v944-match-intelligence-priority">
       {{ shark_panel(match_context) }}
+      {{ pick_panel(match_context) }}
       {{ match_story(match_context) }}
       {{ quick_actions(match_context) }}
     </div>
     {% endif %}
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
       {% if not shark.get('available') %}{{ match_story(match_context) }}{% endif %}
+      {% if not shark.get('available') %}{{ pick_panel(match_context) }}{% endif %}
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}

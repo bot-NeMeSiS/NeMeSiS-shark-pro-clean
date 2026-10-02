@@ -44,6 +44,7 @@
   'HeadToHeadPanel': 'Historial',
   'StandingsPanel': 'Tabla',
   'SharkPanel': 'Inteligencia',
+  'PickPanel': 'Pick',
   'TelegramPanel': 'Continuidad',
   'BankrollPanel': 'Responsabilidad',
   'CompetitionPanel': 'Contexto',
@@ -403,6 +404,74 @@
   {{ transparency_meta(context, 'intelligence') }}
   <p class="v944-safe-copy">{{ ui("SHARK no completa conclusiones, riesgos ni recomendaciones cuando faltan datos suficientes.") }}</p>
   {{ action_button('Abrir SHARK', '/shark?match=' ~ (context.get('match', {}).get('id') or ''), false, 'cyan', false, 'shark') }}
+</section>{%- endmacro %}
+
+{% macro pick_panel(context) -%}
+{% set component = context.get('components', {}).get('PickPanel') or {} %}
+{% set picks = context.get('picks') or {} %}
+{% set primary = picks.get('primary') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+{{ panel_start('PickPanel', component, 'Pick del partido', 'Selección relacionada solo cuando existe evidencia publicada.', 'pick') }}
+  {% if picks.get('available') %}
+  <div class="v944-experience-grid"
+       data-match-pick-contract="{{ picks.get('contract') or '' }}"
+       data-match-pick-ready="{{ 'true' if primary.get('decision_ready') else 'false' }}"
+       data-match-pick-invented-fields="{{ picks.get('invented_fields') or 0 }}">
+    <article>
+      <span>{{ ui("Qué apostar") }}</span>
+      <strong>{{ primary.get('selection') or ui('Selección pendiente') }}</strong>
+      <p>{{ primary.get('market') or ui('Mercado pendiente') }}</p>
+    </article>
+    <article>
+      <span>{{ ui("Cuota") }}</span>
+      <strong>{% if primary.get('odds') is not none %}{{ primary.get('odds') }}{% else %}{{ ui('Pendiente') }}{% endif %}</strong>
+      {% if primary.get('bookmaker') %}<p>{{ primary.get('bookmaker') }}</p>{% endif %}
+    </article>
+    <article>
+      <span>{{ ui("Riesgo y confianza") }}</span>
+      <strong>
+        {% if primary.get('risk') %}{{ primary.get('risk') }}{% else %}{{ ui('Riesgo no indicado') }}{% endif %}
+      </strong>
+      {% if primary.get('confidence') is not none %}<p>{{ ui("Confianza") }}: {{ primary.get('confidence') }}/100</p>{% endif %}
+    </article>
+  </div>
+
+  {% if primary.get('stake') %}
+  <dl class="v944-context-list">
+    <div><dt>{{ ui("Stake orientativo") }}</dt><dd>{{ primary.get('stake') }}</dd></div>
+    {% if primary.get('membership_required') %}<div><dt>{{ ui("Plan") }}</dt><dd>{{ primary.get('membership_required') }}</dd></div>{% endif %}
+    {% if primary.get('result_label') %}<div><dt>{{ ui("Resultado del pick") }}</dt><dd>{{ primary.get('result_label') }}</dd></div>{% endif %}
+  </dl>
+  {% elif primary.get('result_label') %}
+  <dl class="v944-context-list"><div><dt>{{ ui("Resultado del pick") }}</dt><dd>{{ primary.get('result_label') }}</dd></div></dl>
+  {% endif %}
+
+  {% if primary.get('reasoning') %}
+  <article class="v944-story-detail" data-pick-evidence="reasoning">
+    <strong>{{ ui("Por qué sí") }}</strong>
+    <p>{{ primary.get('reasoning') }}</p>
+  </article>
+  {% endif %}
+  {% if primary.get('warning') %}
+  <article class="v944-story-detail" data-pick-evidence="warning">
+    <strong>{{ ui("Por qué no") }}</strong>
+    <p>{{ primary.get('warning') }}</p>
+  </article>
+  {% endif %}
+
+  {% if not primary.get('decision_ready') %}
+  <p class="v944-safe-copy" role="status">{{ ui("El pick relacionado no tiene selección, mercado y cuota confirmados al mismo tiempo. No se presenta como entrada lista.") }}</p>
+  {% elif lifecycle.get('is_live') %}
+  <p class="v944-safe-copy">{{ ui("Pick publicado antes o durante el encuentro: revisa el estado actual antes de tomar cualquier decisión.") }}</p>
+  {% elif lifecycle.get('is_finished') and not primary.get('result_label') %}
+  <p class="v944-safe-copy">{{ ui("El partido terminó, pero el resultado del pick todavía no está liquidado en el histórico.") }}</p>
+  {% endif %}
+  {% else %}
+  {{ state_notice(component, 'No hay pick publicado para este partido.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'picks') }}
+  <p class="v944-safe-copy">{{ ui("NeMeSiS no convierte una ausencia de datos en una recomendación.") }}</p>
+  {{ action_button('Ver todos los picks', '/picks', false, 'blue', false, 'target') }}
 </section>{%- endmacro %}
 
 {% macro telegram_panel(context) -%}
