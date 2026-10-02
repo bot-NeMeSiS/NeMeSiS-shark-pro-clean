@@ -24,7 +24,11 @@ from engines.sports_domain_model_engine import (
     legacy_match_from_entity,
 )
 from engines.sports_knowledge_layer_engine import build_sports_knowledge_snapshot
-from engines.spanish_localization_engine import parse_datetime_to_madrid
+from engines.spanish_localization_engine import (
+    parse_datetime_to_madrid,
+    spanish_market_name,
+    spanish_pick_selection_name,
+)
 from engines.v935_launch_trust_engine import match_status_truth
 from engines.realtime_state_engine import observed_live_minute, observed_period_label
 
@@ -53,6 +57,7 @@ MATCH_CENTER_COMPONENTS = (
     "HeadToHeadPanel",
     "StandingsPanel",
     "SharkPanel",
+    "PickPanel",
     "TelegramPanel",
     "BankrollPanel",
     "CompetitionPanel",
@@ -332,6 +337,134 @@ def _optional_int(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _optional_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        number = float(str(value).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    return number if number == number and number not in {float("inf"), float("-inf")} else None
+
+
+def _public_pick_context(
+    raw_pick: Mapping[str, Any],
+    lifecycle: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Project one already-authorized related pick without inventing missing facts."""
+
+    item = _mapping(raw_pick)
+    home = _first_text(item.get("home_team"), item.get("home"))
+    away = _first_text(item.get("away_team"), item.get("away"))
+    market_raw = _first_text(item.get("market"), item.get("pick_type"))
+    selection_raw = _first_text(
+        item.get("selection"),
+        item.get("pick"),
+        item.get("recommendation"),
+    )
+    market = spanish_market_name(market_raw) or market_raw
+    selection = (
+        spanish_pick_selection_name(selection_raw, home, away, market_raw)
+        or selection_raw
+    )
+    odds = _optional_float(item.get("odds"))
+    if odds is not None and odds <= 1:
+        odds = None
+
+    status_raw = _text(item.get("result") or item.get("status")).casefold()
+    result_labels = {
+        "won": "Ganado",
+        "win": "Ganado",
+        "lost": "Perdido",
+        "loss": "Perdido",
+        "void": "Nulo",
+        "push": "Nulo",
+        "pending": "Pendiente",
+    }
+    result_label = result_labels.get(status_raw)
+    if not result_label and lifecycle.get("is_finished") and status_raw in {
+        "",
+        "published",
+        "publicado",
+    }:
+        result_label = "Pendiente de liquidación"
+
+    confidence = _optional_int(
+        item.get("confidence") or item.get("shark_score") or item.get("score")
+    )
+    risk = _first_text(item.get("risk_level"), item.get("risk"))
+    reasoning = _first_text(item.get("reasoning"), item.get("reason"))
+    warning = _first_text(item.get("warning_reason"), item.get("warning"))
+    stake = _first_text(
+        item.get("recommended_stake"),
+        item.get("stake"),
+        item.get("units"),
+    )
+    bookmaker = _first_text(
+        item.get("bookmaker"),
+        item.get("bookmaker_name"),
+        item.get("sportsbook"),
+    )
+    source = _first_text(item.get("source"), item.get("provider"))
+
+    decision_ready = bool(selection and market and odds is not None)
+    return {
+        "id": _first_text(item.get("id"), item.get("pick_id")) or None,
+        "match_id": _first_text(item.get("match_id")) or None,
+        "selection": selection or None,
+        "market": market or None,
+        "odds": odds,
+        "bookmaker": bookmaker or None,
+        "confidence": confidence,
+        "risk": risk or None,
+        "reasoning": reasoning or None,
+        "warning": warning or None,
+        "stake": stake or None,
+        "membership_required": _first_text(item.get("membership_required")) or None,
+        "result_label": result_label,
+        "status": _text(item.get("status")) or None,
+        "source": source or None,
+        "decision_ready": decision_ready,
+        "has_reasoning": bool(reasoning),
+        "has_warning": bool(warning),
+    }
+
+
+def _picks_context(
+    related_picks: Iterable[Mapping[str, Any]],
+    lifecycle: Mapping[str, Any],
+) -> dict[str, Any]:
+    items = [_public_pick_context(item, lifecycle) for item in related_picks]
+    items = [item for item in items if item.get("selection") or item.get("market") or item.get("odds") is not None]
+    items.sort(
+        key=lambda item: (
+            bool(item.get("decision_ready")),
+            item.get("confidence") if item.get("confidence") is not None else -1,
+            item.get("odds") if item.get("odds") is not None else 0,
+        ),
+        reverse=True,
+    )
+    decision_ready_count = sum(bool(item.get("decision_ready")) for item in items)
+    return {
+        "contract": "MATCH-CENTER-PICK-CONTEXT-V1",
+        "available": bool(items),
+        "count": len(items),
+        "decision_ready_count": decision_ready_count,
+        "items": items,
+        "primary": items[0] if items else {},
+        "state": (
+            "ready"
+            if decision_ready_count
+            else "partial"
+            if items
+            else "unknown"
+        ),
+        "external_calls": 0,
+        "database_writes": 0,
+        "invented_fields": 0,
+    }
 
 
 def _standings_context(
@@ -1441,11 +1574,7 @@ def build_match_context(
         lifecycle,
         _mapping(detail_data.get("cached_statistics")),
     )
-    picks = {
-        "available": bool(related_picks),
-        "count": len(related_picks),
-        "items": related_picks,
-    }
+    picks = _picks_context(related_picks, lifecycle)
 
     teams = _teams_from_domain(canonical_match)
     facts = _match_facts(match)
@@ -1638,6 +1767,19 @@ def build_match_context(
             shark_context["message"],
             available=shark_context["available"],
         ),
+        "PickPanel": _component(
+            "ready"
+            if picks.get("decision_ready_count")
+            else "partial"
+            if picks.get("available")
+            else "unknown",
+            "Pick relacionado disponible con selección, mercado y cuota confirmados."
+            if picks.get("decision_ready_count")
+            else "Hay información de pick relacionada, pero faltan selección, mercado o cuota confirmados."
+            if picks.get("available")
+            else "No hay pick publicado para este partido.",
+            available=picks.get("available"),
+        ),
         "TelegramPanel": _component(
             "partial",
             "No disponible todavía.",
@@ -1717,6 +1859,30 @@ def build_match_context(
             confidence=intelligence_quality.get("quality_label") or intelligence_quality.get("numeric_confidence_score"),
             limitations=intelligence.get("limitations") or missing_from_conclusions,
         ),
+        "picks": _transparency_block(
+            source=",".join(
+                sorted({
+                    _text(item.get("source"))
+                    for item in picks.get("items") or []
+                    if _text(item.get("source"))
+                })
+            ),
+            evidence_state=(
+                "VERIFIED"
+                if picks.get("decision_ready_count")
+                else "PARTIALLY_VERIFIED"
+                if picks.get("available")
+                else "INSUFFICIENT_DATA"
+            ),
+            freshness={"state": "stored_pick"},
+            limitations=(
+                []
+                if picks.get("decision_ready_count")
+                else ["No hay selección, mercado y cuota confirmados en el mismo pick."]
+                if picks.get("available")
+                else ["No hay pick publicado para este partido."]
+            ),
+        ),
         "statistics": _transparency_block(
             source=statistics.get("source"),
             evidence_state="VERIFIED" if statistics.get("available") else "INSUFFICIENT_DATA",
@@ -1788,6 +1954,7 @@ def build_match_context(
         {"id": "score", "label": "Marcador", "available": score.get("confirmed")},
         {"id": "timeline", "label": "Cronología", "available": event_summary.get("available")},
         {"id": "intelligence", "label": "Inteligencia", "available": shark_context.get("available")},
+        {"id": "picks", "label": "Pick relacionado", "available": picks.get("available")},
         {"id": "evidence", "label": "Evidencia", "available": bool(intelligence.get("evidence"))},
         {"id": "context", "label": "Contexto", "available": competition.get("available")},
         {"id": "teams", "label": "Equipos", "available": bool(teams.get("home") and teams.get("away"))},
@@ -1864,6 +2031,12 @@ def build_match_context(
             "single_snapshot": True,
             "match_intelligence_contract": intelligence.get("contract"),
             "match_intelligence_reused_by_shark": True,
+            "pick_context_contract": picks.get("contract"),
+            "pick_context_count": picks.get("count"),
+            "pick_context_decision_ready_count": picks.get("decision_ready_count"),
+            "pick_context_external_calls": picks.get("external_calls"),
+            "pick_context_database_writes": picks.get("database_writes"),
+            "pick_context_invented_fields": picks.get("invented_fields"),
             "sports_domain_model_contract": domain_model.get("contract"),
             "sports_graph_write_authorized": False,
             "sports_knowledge_contract": sports_knowledge.get("contract"),
