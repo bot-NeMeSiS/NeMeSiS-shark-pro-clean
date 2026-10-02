@@ -181,6 +181,27 @@ def test_pipeline_errors_persist_safe_diagnostics(odds_db, monkeypatch):
     assert diag['last_error'] == 'ValueError' and 'DO-NOT-EXPOSE' not in json.dumps(diag)
 
 
+
+def test_odds_diagnostics_explains_client_visibility_without_provider_call(odds_db, monkeypatch):
+    app = odds_db
+    sport, event, match = fixture(app)
+    app.upsert_sportsdb_matches([match])
+    app.upsert_odds_snapshots([(sport, event)])
+    monkeypatch.setattr(app, 'odds_api_request', lambda *a, **k: pytest.fail('diagnostics must stay local'))
+
+    diag = app.odds_diagnostics()
+    visibility = diag['visibility']
+
+    assert diag['client_displayed'] == 1
+    assert visibility['state'] == 'VISIBLE_CLIENT'
+    assert visibility['valid_odds_matches'] == 1
+    assert visibility['visible_upcoming'] == 1
+    assert visibility['sporting_linked_snapshots'] == 1
+    assert visibility['odds_only_snapshots'] == 0
+    assert visibility['orphan_snapshots'] == 0
+    assert visibility['window_start'] <= match['match_date'] <= visibility['window_end']
+
+
 def test_admin_odds_partial_renders_unknown_credit_and_escapes_errors(odds_db):
     from flask import render_template
     with odds_db.app.test_request_context('/admin/matches-sync'):
@@ -190,3 +211,5 @@ def test_admin_odds_partial_renders_unknown_credit_and_escapes_errors(odds_db):
     assert 'Créditos restantes</span><strong>0<' in html
     assert 'Créditos usados</span><strong>No disponible automáticamente<' in html
     assert '&lt;script&gt;' in html and '<script>secret</script>' not in html
+    assert 'Visibles en cliente' in html
+    assert 'Diagnóstico de cobertura' in html
