@@ -55,14 +55,14 @@
     {% if shark.get('available') %}
     <div class="v944-match-intelligence-priority">
       {{ shark_panel(match_context) }}
-      {% if picks.get('available') %}{{ pick_panel(match_context) }}{% endif %}
+      {{ pick_panel(match_context) }}
       {{ match_story(match_context) }}
       {{ quick_actions(match_context) }}
     </div>
     {% endif %}
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
       {% if not shark.get('available') %}{{ match_story(match_context) }}{% endif %}
-      {% if not shark.get('available') and picks.get('available') %}{{ pick_panel(match_context) }}{% endif %}
+      {% if not shark.get('available') %}{{ pick_panel(match_context) }}{% endif %}
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
