@@ -33,6 +33,7 @@ CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
 BACKUP_TIMEOUT_SECONDS = 90
 BACKUP_WINDOW_START_MINUTE_UTC = 2 * 60 + 30
 BACKUP_WINDOW_END_MINUTE_UTC = 4 * 60 + 30
+POSTMATCH_TIMEOUT_SECONDS = 45
 READINESS_TIMEOUT_SECONDS = 8
 READINESS_ATTEMPTS = 6
 READINESS_BACKOFF_SECONDS = 5
@@ -508,7 +509,7 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
         req = urllib.request.Request(base_url + '/api/automation/postmatch/tick', data=b'{}',
             headers={'X-Automation-Secret': secret, 'Accept': 'application/json',
                      'User-Agent': 'NeMeSiS-Master-Postmatch/1.0'}, method='POST')
-        with urllib.request.urlopen(req, timeout=25) as response:
+        with urllib.request.urlopen(req, timeout=POSTMATCH_TIMEOUT_SECONDS) as response:
             if response.status != 200:
                 raise ValueError('INVALID_RESPONSE')
             raw = response.read(64001)
@@ -530,9 +531,24 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
         return {'postmatch_status': status, 'postmatch_result': label,
                 'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
                 'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
-    except Exception:
-        return {'postmatch_status':'FAIL', 'postmatch_result':'REQUEST_FAILED',
-                'duration_ms':max(0, round((time.perf_counter() - started) * 1000))}
+    except urllib.error.HTTPError as exc:
+        return {
+            'postmatch_http': int(exc.code),
+            'postmatch_status': 'FAIL',
+            'postmatch_result': f'HTTP_{int(exc.code)}',
+            'duration_ms': max(0, round((time.perf_counter() - started) * 1000)),
+        }
+    except Exception as exc:
+        reason = getattr(exc, 'reason', None)
+        is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(
+            reason, (TimeoutError, socket.timeout)
+        )
+        return {
+            'postmatch_http': None,
+            'postmatch_status': 'FAIL',
+            'postmatch_result': 'TIMEOUT' if is_timeout else type(exc).__name__,
+            'duration_ms': max(0, round((time.perf_counter() - started) * 1000)),
+        }
 
 
 def skipped_backup() -> dict:
