@@ -374,3 +374,67 @@ def test_v944_sentinel_detects_mutation_and_autopilot_requires_approval(tmp_path
     assert issue["safe_to_auto_fix"] is False
     assert task["status"] == "pending_approval"
     assert task["safe_fix_plan"]["requires_approval"] is True
+
+def test_match_center_pick_panel_uses_only_existing_pick_facts():
+    detail = _detail()
+    detail["related_picks"] = [
+        {
+            "id": "pick-real-1",
+            "match_id": "v944-match-1",
+            "home_team": "Real Club Deportivo Local",
+            "away_team": "Unión Deportiva Visitante",
+            "market": "Ganador del partido",
+            "selection": "Real Club Deportivo Local",
+            "odds": "1.82",
+            "confidence": 74,
+            "risk_level": "Medio",
+            "status": "published",
+            "source": "persisted_pick_store",
+        }
+    ]
+
+    context = _context(detail)
+    picks = context["picks"]
+    primary = picks["primary"]
+
+    assert picks["contract"] == "MATCH-CENTER-PICK-CONTEXT-V1"
+    assert picks["count"] == 1
+    assert picks["decision_ready_count"] == 1
+    assert picks["external_calls"] == 0
+    assert picks["database_writes"] == 0
+    assert picks["invented_fields"] == 0
+    assert primary["decision_ready"] is True
+    assert primary["selection"]
+    assert primary["market"]
+    assert primary["odds"] == 1.82
+    assert primary["reasoning"] is None
+    assert primary["warning"] is None
+    assert primary["stake"] is None
+    assert primary["bookmaker"] is None
+    assert context["components"]["PickPanel"]["state"] == "ready"
+    assert context["diagnostics"]["pick_context_invented_fields"] == 0
+
+
+def test_match_center_pick_panel_never_marks_incomplete_pick_as_ready():
+    detail = _detail()
+    detail["related_picks"] = [
+        {
+            "id": "pick-partial-1",
+            "match_id": "v944-match-1",
+            "market": "Ganador del partido",
+            "selection": "Real Club Deportivo Local",
+            "status": "published",
+            "source": "persisted_pick_store",
+        }
+    ]
+
+    context = _context(detail)
+    primary = context["picks"]["primary"]
+
+    assert context["picks"]["available"] is True
+    assert context["picks"]["decision_ready_count"] == 0
+    assert primary["decision_ready"] is False
+    assert primary["odds"] is None
+    assert primary["reasoning"] is None
+    assert primary["warning"] is None
+    assert context["components"]["PickPanel"]["state"] == "partial"
