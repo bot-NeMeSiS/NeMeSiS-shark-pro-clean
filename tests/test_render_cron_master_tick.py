@@ -544,3 +544,24 @@ def test_invalid_or_failed_postmatch_response_still_fails(monkeypatch, capsys, o
     )
     assert code != 0
     assert payload["postmatch"]["postmatch_status"] == "FAIL"
+
+
+def test_postmatch_timeout_uses_extended_budget_and_is_diagnostic(monkeypatch, capsys):
+    code, payload, calls, output = run_master(
+        monkeypatch,
+        capsys,
+        [telegram_ok(), evolution_ok()],
+        postmatch_outcome=socket.timeout("late but healthy response"),
+    )
+
+    assert code != 0
+    assert payload["postmatch"]["postmatch_status"] == "FAIL"
+    assert payload["postmatch"]["postmatch_result"] == "TIMEOUT"
+    assert payload["postmatch"]["postmatch_http"] is None
+    postmatch_call = next(
+        call for call in calls
+        if call["request"].full_url.endswith("/api/automation/postmatch/tick")
+    )
+    assert postmatch_call["timeout"] == master.POSTMATCH_TIMEOUT_SECONDS
+    assert master.POSTMATCH_TIMEOUT_SECONDS == 45
+    assert "late but healthy response" not in output
