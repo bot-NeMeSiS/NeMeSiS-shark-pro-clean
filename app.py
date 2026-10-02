@@ -6603,10 +6603,105 @@ def sync_odds_events(limit=250, force=False):
         return failure
 
 
+def odds_client_visibility_diagnostics():
+    """Explain stored odds versus the exact current client match window using local DB reads only."""
+    today = today_iso()
+    horizon = today_iso(10)
+    stored_rows = [
+        item for item in rows(
+            """SELECT * FROM matches
+               WHERE COALESCE(odds_h2h_json,'') NOT IN ('','{}','null')
+               ORDER BY match_date DESC, kickoff_time DESC LIMIT 2500"""
+        )
+        if not is_fake_match(item)
+    ]
+    valid_rows = [item for item in stored_rows if v565_extract_odds(item).get("available")]
+    valid_unique = dedupe_matches_list(valid_rows)
+    window_rows = [
+        item for item in rows(
+            """SELECT * FROM matches
+               WHERE match_date>=? AND match_date<=?
+               ORDER BY match_date, kickoff_time, priority DESC LIMIT 1200""",
+            (today, horizon),
+        )
+        if not is_fake_match(item)
+    ]
+    window_unique = dedupe_matches_list(window_rows)
+    visible = []
+    for match in window_unique:
+        if not v565_extract_odds(match).get("available"):
+            continue
+        info = canonical_match_status(match)
+        if match.get("match_date") == today or info.get("is_upcoming"):
+            visible.append(match)
+
+    visible_today = sum(1 for match in visible if match.get("match_date") == today)
+    visible_upcoming = max(0, len(visible) - visible_today)
+    valid_unique_count = len(valid_unique)
+    duplicate_valid_rows = max(0, len(valid_rows) - valid_unique_count)
+    not_currently_visible = max(0, valid_unique_count - len(visible))
+    snapshot_total = (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0)
+    sporting_linked = (one(
+        """SELECT COUNT(*) AS total FROM odds_snapshots s
+           JOIN matches m ON m.id=s.match_id
+           WHERE COALESCE(m.source,'')!='The Odds API'"""
+    ) or {}).get("total", 0)
+    odds_only = (one(
+        """SELECT COUNT(*) AS total FROM odds_snapshots s
+           JOIN matches m ON m.id=s.match_id
+           WHERE m.source='The Odds API'"""
+    ) or {}).get("total", 0)
+    orphan = (one(
+        """SELECT COUNT(*) AS total FROM odds_snapshots s
+           LEFT JOIN matches m ON m.id=s.match_id
+           WHERE m.id IS NULL"""
+    ) or {}).get("total", 0)
+    newest = (one(
+        "SELECT MAX(odds_updated_at) AS observed_at FROM matches WHERE COALESCE(odds_updated_at,'')!=''"
+    ) or {}).get("observed_at") or ""
+
+    if visible:
+        state = "VISIBLE_CLIENT"
+        message = f"{len(visible)} partidos con 1X2 válido están dentro de la ventana actual del cliente."
+    elif valid_unique_count:
+        state = "VALID_OUTSIDE_CLIENT_WINDOW"
+        message = "Hay cuotas 1X2 válidas guardadas, pero ninguna corresponde ahora a Hoy o próximos 10 días."
+    elif stored_rows:
+        state = "STORED_WITHOUT_VALID_1X2"
+        message = "Hay datos de cuotas guardados, pero no contienen precios 1X2 válidos (>1) para mostrar."
+    elif snapshot_total:
+        state = "SNAPSHOTS_WITHOUT_DISPLAYABLE_MATCH"
+        message = "Hay snapshots del proveedor, pero todavía no existe una cuota 1X2 válida visible en un partido cliente."
+    else:
+        state = "NO_ODDS_EVIDENCE"
+        message = "No hay evidencia local de cuotas todavía; Admin no hará una llamada extra solo para diagnosticarlo."
+
+    return {
+        "state": state,
+        "message": message,
+        "window_start": today,
+        "window_end": horizon,
+        "stored_odds_rows": len(stored_rows),
+        "valid_odds_matches": valid_unique_count,
+        "invalid_odds_rows": max(0, len(stored_rows) - len(valid_rows)),
+        "duplicate_valid_rows": duplicate_valid_rows,
+        "client_visible": len(visible),
+        "visible_today": visible_today,
+        "visible_upcoming": visible_upcoming,
+        "not_currently_visible": not_currently_visible,
+        "snapshot_total": snapshot_total,
+        "sporting_linked_snapshots": sporting_linked,
+        "odds_only_snapshots": odds_only,
+        "orphan_snapshots": orphan,
+        "newest_odds_observed_at": newest,
+    }
+
+
 def odds_diagnostics():
     cached = (one("SELECT COUNT(*) AS total FROM matches WHERE source='The Odds API'") or {}).get("total", 0)
     snapshots = (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0)
     last_sync = odds_last_sync()
+    visibility = odds_client_visibility_diagnostics()
     return {
         "key_present": bool(os.getenv("THE_ODDS_API_KEY")),
         "key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
@@ -6620,14 +6715,14 @@ def odds_diagnostics():
         "last_error": "; ".join((last_sync or {}).get("errors") or []),
         "linked_last_sync": (last_sync or {}).get("linked_matches"),
         "matches_with_odds": (one("SELECT COUNT(*) AS total FROM matches WHERE COALESCE(odds_h2h_json,'') NOT IN ('','{}')") or {}).get("total", 0),
-        "client_displayed": None,
+        "client_displayed": visibility.get("client_visible"),
+        "visibility": visibility,
         "billing": "no disponible automáticamente",
         "sports_configured": len(odds_competitions()),
         "regions": os.getenv("ODDS_REGIONS", "eu,uk"),
         "markets": os.getenv("ODDS_MARKETS", "h2h"),
         "legal_policy": "The Odds API solo mediante API permitida y cache persistente; sin scraping.",
     }
-
 
 def match_calendar_diagnostics():
     seed_core()
