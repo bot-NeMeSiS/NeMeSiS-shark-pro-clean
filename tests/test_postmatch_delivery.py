@@ -42,7 +42,13 @@ def offline(monkeypatch):
 
 
 @pytest.fixture
-def store(tmp_path):
+def store(tmp_path, monkeypatch):
+    # Budget writes and snapshot reads must share the synthetic scenario day.
+    class ScenarioDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.fromtimestamp(NOW, tz)
+    monkeypatch.setattr('engines.postmatch_store.datetime', ScenarioDateTime)
     path=tmp_path/'delivery.sqlite'
     with sqlite3.connect(path) as conn:
         conn.execute('CREATE TABLE matches (' + ','.join(k+(' INTEGER' if k.endswith('_score') else ' TEXT') for k in MATCH)+')')

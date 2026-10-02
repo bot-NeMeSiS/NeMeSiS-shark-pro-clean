@@ -33,7 +33,7 @@ class MockResponse:
         return False
 
 
-def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret", backup_is_due: bool = False):
+def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret", backup_is_due: bool = False, postmatch_outcome=None):
     calls = []
 
     def fake_urlopen(request, timeout):
@@ -41,7 +41,9 @@ def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secre
             return MockResponse({"ok": True, "version": "SIMULATED_QA"})
         calls.append({"request": request, "timeout": timeout})
         if request.full_url.endswith('/api/automation/postmatch/tick'):
-            return MockResponse({'ok': True, 'result': 'SKIPPED_DISABLED', 'processed': 0})
+            if isinstance(postmatch_outcome, BaseException):
+                raise postmatch_outcome
+            return postmatch_outcome or MockResponse({'ok': True, 'result': 'SKIPPED_DISABLED', 'processed': 0})
         outcome = outcomes[len(calls) - 1]
         if isinstance(outcome, BaseException):
             raise outcome
@@ -477,3 +479,68 @@ def test_readiness_probe_never_sends_automation_secret(monkeypatch):
     assert "authorization" not in headers
     assert secret not in seen[0].full_url
     assert secret not in json.dumps(headers)
+
+
+@pytest.mark.parametrize("reason", ["DAILY_BUDGET", "TICK_BUDGET", "SOURCE_COOLDOWN"])
+def test_controlled_postmatch_partial_succeeds(monkeypatch, capsys, reason):
+    code, payload, _, _ = run_master(
+        monkeypatch, capsys, [telegram_ok(), evolution_ok(), backup_ok()],
+        backup_is_due=True,
+        postmatch_outcome=MockResponse({"ok": True, "result": "PARTIAL", "jobs": [
+            {"state": "COMPLETE", "reason": "COMPLETE"},
+            {"state": "RETRY", "reason": reason},
+        ]}),
+    )
+    assert code == 0
+    assert payload["overall"] == "PASS"
+    assert payload["postmatch"]["postmatch_status"] == "PARTIAL"
+    assert payload["postmatch"]["postmatch_result"] == "PARTIAL"
+
+
+@pytest.mark.parametrize("job", [
+    {"state": "RETRY", "reason": "INTERNAL_ERROR"},
+    {"state": "RETRY", "reason": "STORAGE_UNAVAILABLE"},
+    {"state": "RETRY", "reason": "NETWORK"},
+    {"state": "FAILED", "reason": "DAILY_BUDGET"},
+    {"state": "RETRY", "reason": "UNKNOWN"},
+    None,
+])
+def test_uncontrolled_postmatch_partial_fails(monkeypatch, capsys, job):
+    code, payload, _, _ = run_master(
+        monkeypatch, capsys, [telegram_ok(), evolution_ok()],
+        postmatch_outcome=MockResponse({"ok": True, "result": "PARTIAL", "jobs": [job]}),
+    )
+    assert code != 0
+    assert payload["postmatch"]["postmatch_status"] == "FAIL"
+
+
+@pytest.mark.parametrize("failed", [0, 1, 2])
+def test_controlled_partial_does_not_hide_other_failures(monkeypatch, capsys, failed):
+    outcomes = [telegram_ok(), evolution_ok(), backup_ok()]
+    outcomes[failed] = urllib.error.URLError("unavailable")
+    code, payload, _, _ = run_master(
+        monkeypatch, capsys, outcomes, backup_is_due=True,
+        postmatch_outcome=MockResponse({"ok": True, "result": "PARTIAL", "jobs": [
+            {"state": "RETRY", "reason": "DAILY_BUDGET"},
+        ]}),
+    )
+    assert code != 0
+    assert payload["postmatch"]["postmatch_status"] == "PARTIAL"
+
+
+@pytest.mark.parametrize("outcome", [
+    MockResponse({"ok": False, "result": "PARTIAL", "jobs": [{"state": "RETRY", "reason": "DAILY_BUDGET"}]}),
+    MockResponse({"ok": True, "result": "PARTIAL"}),
+    MockResponse({"ok": True, "result": "PARTIAL", "jobs": []}),
+    MockResponse({"ok": True, "result": "PARTIAL", "jobs": "invalid"}),
+    MockResponse({"ok": True, "result": "STORAGE_UNAVAILABLE"}),
+    MockResponse({"ok": True, "result": "IDLE"}, status=201),
+    urllib.error.URLError("postmatch unavailable"),
+    socket.timeout("postmatch timeout"),
+])
+def test_invalid_or_failed_postmatch_response_still_fails(monkeypatch, capsys, outcome):
+    code, payload, _, _ = run_master(
+        monkeypatch, capsys, [telegram_ok(), evolution_ok()], postmatch_outcome=outcome,
+    )
+    assert code != 0
+    assert payload["postmatch"]["postmatch_status"] == "FAIL"
