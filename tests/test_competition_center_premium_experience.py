@@ -217,3 +217,63 @@ def test_competition_center_engines_are_read_only():
     assert snapshot["guardrails"]["database_writes"] == 0
     assert snapshot["guardrails"]["external_calls"] == 0
     assert snapshot["guardrails"]["telegram_sends"] == 0
+
+
+def test_competition_center_route_skips_global_dashboard_context(client, app_module, monkeypatch):
+    detail = _detail()
+    detail["competition_center"] = build_competition_center_context(
+        detail,
+        observed_at_madrid="2026-07-28T10:00:00+02:00",
+    )
+
+    monkeypatch.setattr(app_module, "competition_page_data", lambda _competition_id: detail)
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("global dashboard must not run")),
+    )
+
+    response = client.get("/competition/140")
+
+    assert response.status_code == 200
+    assert "Liga Real" in response.get_data(as_text=True)
+
+
+def test_competition_center_resolves_team_rows_in_bounded_batches(app_module, monkeypatch):
+    matches = _detail()["matches"]
+    competition = _detail()["competition"]
+    queries = []
+
+    monkeypatch.setattr(app_module, "db_table_exists", lambda table: table == "teams")
+    monkeypatch.setattr(
+        app_module,
+        "_sqlite_table_columns",
+        lambda table: {"key", "name", "external_id", "logo_url", "country", "league"} if table == "teams" else set(),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "team_lookup",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("N+1 team lookup must not run")),
+    )
+
+    def fake_rows(query, params=()):
+        queries.append((query, tuple(params)))
+        assert query.startswith("SELECT * FROM teams WHERE ")
+        return [
+            {"key": "club-norte", "name": "Club Norte", "source": "teams"},
+            {"key": "club-sur", "name": "Club Sur", "source": "teams"},
+            {"key": "club-este", "name": "Club Este", "source": "teams"},
+            {"key": "club-oeste", "name": "Club Oeste", "source": "teams"},
+        ]
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+
+    teams = app_module._competition_teams_for(matches, competition)
+
+    assert len(queries) == 1
+    assert {team.get("name") for team in teams} == {
+        "Club Norte",
+        "Club Sur",
+        "Club Este",
+        "Club Oeste",
+    }
