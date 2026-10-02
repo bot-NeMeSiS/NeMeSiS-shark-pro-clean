@@ -12297,7 +12297,7 @@ def enqueue_telegram_message(message_type, title, body, chat_id="", user_id="", 
     trigger_type = str(payload.get("trigger_type") or message_type or "")
     auto_job_key = str(payload.get("auto_job_key") or payload.get("target_key") or dedupe_key or "")
     dedupe_key = dedupe_key or telegram_dedupe_key(message_type, today_iso(), chat_id or user_id or "global", source=source)
-    existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=?", (dedupe_key,))
+    existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=? AND dedupe_key IS NOT NULL AND dedupe_key!=''", (dedupe_key,))
     if existing and not force:
         telegram_log("queue", "skipped", "Mensaje duplicado omitido.", {"dedupe_key": dedupe_key, "message_type": message_type})
         return {"ok": True, "queued": False, "skipped": 1, "reason": "duplicate", "item": existing}
@@ -12746,7 +12746,7 @@ def telegram_auto_pick_dedupe_key_for(pick, destination):
 
 def telegram_auto_pick_dedupe_status(pick, destination):
     key = telegram_auto_pick_dedupe_key_for(pick, destination)
-    existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=? ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1", (key,))
+    existing = one("SELECT * FROM telegram_queue WHERE dedupe_key=? AND dedupe_key IS NOT NULL AND dedupe_key!='' ORDER BY COALESCE(sent_at, created_at) DESC LIMIT 1", (key,))
     if not existing:
         return {"blocked": False, "dedupe_key": key}
     delivery = one("SELECT * FROM telegram_deliveries WHERE response_json LIKE ? ORDER BY created_at DESC LIMIT 1", (f"%{key}%",)) or {}
@@ -13088,7 +13088,7 @@ def telegram_reliability_snapshot(limit=60):
             market=pick.get("market") or pick.get("pick_type"),
             source="automatic_cron",
         )
-        existing = one("SELECT id,status,sent_at,error_message FROM telegram_queue WHERE dedupe_key=? ORDER BY created_at DESC LIMIT 1", (dedupe,))
+        existing = one("SELECT id,status,sent_at,error_message FROM telegram_queue WHERE dedupe_key=? AND dedupe_key IS NOT NULL AND dedupe_key!='' ORDER BY created_at DESC LIMIT 1", (dedupe,))
         if existing:
             already_sent += 1
             duplicates += 1
