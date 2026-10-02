@@ -73,3 +73,21 @@ def test_inbox_preserves_twenty_item_limit():
     assert 'Unique alert 019' in html
     assert 'Unique alert 020' not in html
     assert html.count('class="founder-os-alert severity-low"') == 20
+
+
+def test_integrations_center_renders_contribution_evidence_and_management_link():
+    data=snapshot()
+    data['providers'].update({'with_evidence':1,'attention':0,'billing_tracked':1,
+        'evidence_policy':'Solo evidencia persistida/local; abrir Founder OS no llama a proveedores externos.'})
+    data['providers']['items']=[{
+        'label':'The Odds API','category':'Datos / cuotas','criticality':'CRITICAL',
+        'configured':True,'enabled':True,'operational_state':'CACHE_REUSED',
+        'plan':'PAID','billing_state':'TRACKED','contribution':'Aporta cuotas 1X2 reales.',
+        'admin_url':'/admin/matches-sync','evidence':{'requests_remaining':123,'external_calls':0,'error_present':False}
+    }]
+    html=render_founder(data)
+    assert 'Centro de integraciones' in html
+    assert 'Aporta cuotas 1X2 reales.' in html
+    assert 'Créditos restantes' in html and '>123<' in html
+    assert '/admin/matches-sync' in html
+    assert 'abrir Founder OS no llama a proveedores externos' in html
