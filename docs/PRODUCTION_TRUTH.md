@@ -1,5 +1,52 @@
 # PRODUCTION TRUTH & CONSOLIDATION
 
+## Final closure continuation (2026-10-02)
+
+Canonical coordination is chat 01a0fcbe-ee48-7533-b951-01b806a3f2c2.
+The two earlier Works were stopped/archived with their files preserved. Historical
+PRs #134, #135, #139 and #142 were closed with explicit dispositions; their branches
+remain recovery references, not deployment sources. Do not reactivate their broad
+editorial/model changes as part of this operational closure.
+
+Merged: #143 (b3df67d32b8374538134af9ce4c74676f5b940e9) and #144
+(f8dd1db425ef126101b15dc300842d51e345cf0c). Focused follow-ups #145, #146,
+and this budget-deferral PR require final-head checks before integration. The final
+deployed identity must be read from main, both Render deploy records and
+/api/runtime-version.git_commit_hint; this document is not a substitute for them.
+
+At 15:25 Madrid the natural cron succeeded with postmatch PARTIAL and no postmatch
+external calls. TheSportsDB was AVAILABLE for the observed fixture fallback;
+API-Football remained LIMITED by a cached access restriction (current authentication
+not certified; historical access/quota evidence is STALE). Odds was UNAVAILABLE
+for that attempted refresh. Three match rows were explicitly STALE. These states
+are scoped observations, not permanent provider labels or invented coverage.
+
+Public runtime confirmed DB_PATH=/data/database.db, db_exists=true,
+scheduler_enabled=false, data_backup_enabled=true and daily_automation_enabled=true.
+The last flag is the OR of DAILY_AUTOMATION_ENABLED, RUN_DAILY_AUTOMATION and
+AUTO_GENERATE_PICKS. Individual real values and historical aliases remain
+PENDING REAL: the connector lacks environment-read and service-setting operations,
+and the browser account does not have access to this workspace. Do not infer which
+alias is responsible or delete valid secrets. Real healthCheckPath remains empty.
+
+The #144 replacement caused an observed HTTP 502 and a real cron readiness failure
+(exit 2) at 15:20. The 15:25 run recovered. This is not the controlled PARTIAL bug;
+never claim zero interruption or hide this failure. A Telegram query full-scan risk
+was reproduced in isolated SQLite and is addressed by #146; lock contention and
+the sole cause of the earlier timeout are not certified.
+
+This budget fix prevents future controlled DAILY_BUDGET/TICK_BUDGET/SOURCE_COOLDOWN
+claims from exhausting error attempts. DAILY_BUDGET waits for the next Madrid day.
+Historical already-FAILED jobs are not rewritten; inspection and selective recovery
+are PENDING REAL. Real daily backup manifests/free space/retention, user/data count
+continuity, complete payment configuration/webhook state, and authenticated real-user
+browser QA also remain PENDING REAL. Isolated recovery tests do not certify those.
+
+The local inventory found 158 remote branches before the last follow-up branches,
+and 14 existing worktrees, including several with uncommitted changes. Nothing was
+deleted or overwritten. Runtime files have existing code/test consumers; no blanket
+cleanup or speculative engine merger is safe. Preserve these recovery references.
+
 Baseline: main cc1481c0a29f91be49f92abaaea48e3dde345356, VERSION V941.
 Evidence observed on 2026-10-02. This document distinguishes intended configuration
 from production certification. No secret values belong in this document.

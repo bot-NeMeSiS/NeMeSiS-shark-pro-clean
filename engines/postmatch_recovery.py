@@ -8,6 +8,8 @@ import hashlib
 import json
 import sqlite3
 import time
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from engines.postmatch_store import Store, StaleLease, identity, is_final, RETRY_DELAYS, stamp
 from engines.postmatch_sources import OfficialSources, REQUIRED, STAT_NAMES, norm, final_scope, SourceError
@@ -111,17 +113,27 @@ def finish(store, job, result, now):
             state = 'REVIEW_REQUIRED'
         elif reason in {'IDENTITY_CHANGED','NOT_FINAL'}:
             state = 'CANCELLED'
+        elif reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'}:
+            state = 'RETRY'
         elif job['attempts'] >= 5:
             state = 'PARTIAL' if reason == 'PARTIAL_COVERAGE' else 'FAILED'
         else:
             state = 'RETRY'
         delay = RETRY_DELAYS[min(job['attempts'] - 1, len(RETRY_DELAYS) - 1)]
-        conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,lease_token=NULL,lease_until=0 WHERE id=?',
-                     (state, reason, now + delay, now, job['id']))
+        due_at = now + delay
+        attempts = job['attempts']
+        if reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'}:
+            # A controlled deferral is not a failed provider attempt.
+            attempts = max(0, attempts - 1)
+            if reason == 'DAILY_BUDGET':
+                local = datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid'))
+                due_at = (local.replace(hour=0, minute=0, second=5, microsecond=0) + timedelta(days=1)).timestamp()
+        conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,attempts=?,lease_token=NULL,lease_until=0 WHERE id=?',
+                     (state, reason, due_at, now, attempts, job['id']))
         diagnostics = safe_diagnostics(result.get('diagnostics'))
         summary = {'job_id':job['id'],'kind':job['kind'],'match_id':str(job['match_id']),
                    'state':state,'reason':reason,'external_calls':int(result.get('external_calls') or 0),
-                   'due_at':now + delay if state == 'RETRY' else None, 'diagnostics':diagnostics}
+                   'due_at':due_at if state == 'RETRY' else None, 'diagnostics':diagnostics}
         Store.audit(conn, job['id'], 'FINISH', summary, 'worker', now)
         return summary
 
