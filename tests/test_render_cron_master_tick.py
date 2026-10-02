@@ -526,3 +526,21 @@ def test_controlled_partial_does_not_hide_other_failures(monkeypatch, capsys, fa
     )
     assert code != 0
     assert payload["postmatch"]["postmatch_status"] == "PARTIAL"
+
+
+@pytest.mark.parametrize("outcome", [
+    MockResponse({"ok": False, "result": "PARTIAL", "jobs": [{"state": "RETRY", "reason": "DAILY_BUDGET"}]}),
+    MockResponse({"ok": True, "result": "PARTIAL"}),
+    MockResponse({"ok": True, "result": "PARTIAL", "jobs": []}),
+    MockResponse({"ok": True, "result": "PARTIAL", "jobs": "invalid"}),
+    MockResponse({"ok": True, "result": "STORAGE_UNAVAILABLE"}),
+    MockResponse({"ok": True, "result": "IDLE"}, status=201),
+    urllib.error.URLError("postmatch unavailable"),
+    socket.timeout("postmatch timeout"),
+])
+def test_invalid_or_failed_postmatch_response_still_fails(monkeypatch, capsys, outcome):
+    code, payload, _, _ = run_master(
+        monkeypatch, capsys, [telegram_ok(), evolution_ok()], postmatch_outcome=outcome,
+    )
+    assert code != 0
+    assert payload["postmatch"]["postmatch_status"] == "FAIL"
