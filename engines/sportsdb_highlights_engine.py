@@ -118,6 +118,15 @@ def ensure_sportsdb_highlights_schema(db_path):
             linked_matches INTEGER DEFAULT 0,
             errors TEXT
         )''')
+        conn.execute('''CREATE TABLE IF NOT EXISTS sportsdb_highlight_feed_cache(
+            cache_key TEXT PRIMARY KEY, payload_json TEXT NOT NULL,
+            fetched_at TEXT NOT NULL, expires_at TEXT NOT NULL
+        )''')
+        run_cols = _cols(conn, 'sportsdb_highlight_runs')
+        for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused',
+                     'v2_event_lookups', 'v2_cache_hits', 'v2_highlights_found'):
+            if name not in run_cols:
+                conn.execute(f'ALTER TABLE sportsdb_highlight_runs ADD COLUMN {name} INTEGER DEFAULT 0')
         cols = _cols(conn, 'sportsdb_match_highlights')
         if 'embed_url' not in cols:
             conn.execute("ALTER TABLE sportsdb_match_highlights ADD COLUMN embed_url TEXT DEFAULT ''")
@@ -169,6 +178,21 @@ def _sportsdb_v1(endpoint, params=None):
     if params:
         url += '?' + urllib.parse.urlencode(params)
     return _fetch_json(url)
+
+
+def _sportsdb_v2(path):
+    """Premium V2 request. The API key travels only in X-API-KEY."""
+    from engines.sportsdb_request_budget import request_timeout
+    key = _api_key()
+    if not key:
+        return {}
+    url = 'https://www.thesportsdb.com/api/v2/json/' + str(path or '').lstrip('/')
+    req = urllib.request.Request(
+        url,
+        headers={'User-Agent': 'NeMeSiS-SHARK-PRO/1.0', 'X-API-KEY': key},
+    )
+    with urllib.request.urlopen(req, timeout=request_timeout(12)) as res:
+        return json.loads(res.read().decode('utf-8', errors='replace'))
 
 
 def _as_list(payload):
@@ -538,22 +562,50 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
     scope = SportsDBBudget(max_calls=12)
+    persistent_cache_hits = 0
+    profile_links_reused = 0
+    v2_event_lookups = 0
+    v2_cache_hits = 0
+    v2_highlights_found = 0
 
     def acquire(day, league=None):
+        nonlocal persistent_cache_hits
         params = {'d': day, 's': 'Soccer'}
         if league:
             params['l'] = league
-        payload = scope.call(1, 'eventshighlights.php', params,
-                             lambda: _sportsdb_v1('eventshighlights.php', params))
+        cache_key = json.dumps(params, sort_keys=True)
+        cached = None
+        if not force:
+            with _connect(db_path) as conn:
+                cached = _one(conn, 'SELECT payload_json,expires_at FROM sportsdb_highlight_feed_cache WHERE cache_key=?', (cache_key,))
+        from_cache = False
+        if cached:
+            try:
+                payload = json.loads(cached['payload_json'])
+                from_cache = isinstance(payload, dict) and datetime.fromisoformat(cached['expires_at']) > datetime.fromisoformat(_now())
+            except (ValueError, TypeError):
+                pass
+        if not from_cache:
+            payload = scope.call(1, 'eventshighlights.php', params,
+                                 lambda: _sportsdb_v1('eventshighlights.php', params))
         recognized = ('tvhighlights', 'eventshighlights', 'highlights', 'events', 'tv', 'results')
         if not any(k in payload for k in recognized):
             raise SportsDBStopped('MALFORMED')
         values = next((payload[k] for k in recognized if k in payload), None)
-        if values is None:
-            return []
-        if not isinstance(values, list) or any(not isinstance(v, dict) for v in values):
+        if values is not None and (not isinstance(values, list) or any(not isinstance(v, dict) for v in values)):
             raise SportsDBStopped('MALFORMED')
-        return values
+        if from_cache:
+            persistent_cache_hits += 1
+        else:
+            fetched_at = _now()
+            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
+            with _connect(db_path) as conn:
+                conn.execute('INSERT OR REPLACE INTO sportsdb_highlight_feed_cache VALUES (?,?,?,?)',
+                             (cache_key, json.dumps(payload, ensure_ascii=False), fetched_at, expires))
+                conn.execute('DELETE FROM sportsdb_highlight_feed_cache WHERE expires_at<?',
+                             ((datetime.fromisoformat(fetched_at) - timedelta(days=15)).isoformat(timespec='seconds'),))
+                conn.commit()
+        return values or []
 
     def save(items):
         nonlocal found, linked
@@ -593,7 +645,120 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         ids.extend(str(item.get('idLeague') or '') for item in items)
         return list(dict.fromkeys(x for x in ids if x.isdigit() and int(x) > 0))[:12]
 
+    def v2_candidates(max_items=4):
+        """Finished SportsDB matches with a provider event ID and no stored video."""
+        with _connect(db_path) as conn:
+            if not _table_exists(conn, 'matches'):
+                return []
+            cols = _cols(conn, 'matches')
+            required = {'id', 'external_id', 'match_date'}
+            if not required <= cols:
+                return []
+            select_cols = [name for name in ('id','external_id','source','match_date','status','score') if name in cols]
+            start_day = (_today() - timedelta(days=days)).isoformat()
+            candidates = _rows(
+                conn,
+                f"SELECT {','.join(select_cols)} FROM matches WHERE substr(match_date,1,10) BETWEEN ? AND ? ORDER BY match_date DESC LIMIT 500",
+                (start_day, _today().isoformat()),
+            )
+            linked = set()
+            if _table_exists(conn, 'sportsdb_match_highlights'):
+                linked = {
+                    str(row.get('match_id') or '')
+                    for row in _rows(conn, "SELECT DISTINCT match_id FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''")
+                }
+        output = []
+        final_states = {'ft','finished','final','finalizado','match finished','full time',
+                        'aet','pen','after extra time','after penalties'}
+        for row in candidates:
+            match_id = str(row.get('id') or '')
+            if not match_id or match_id in linked:
+                continue
+            source = _norm(row.get('source') or '')
+            external = str(row.get('external_id') or '').strip()
+            if not external:
+                continue
+            if external.startswith('sportsdb-'):
+                sid = external[len('sportsdb-'):]
+            elif 'sportsdb' in source:
+                sid = external
+            else:
+                continue
+            if not sid.isdigit():
+                continue
+            status = str(row.get('status') or '').strip().lower()
+            finished = status in final_states
+            if not finished:
+                continue
+            output.append({'match_id': match_id, 'event_id': sid})
+            if len(output) >= int(max_items):
+                break
+        return output
+
+    def acquire_v2_event(event_id):
+        nonlocal v2_event_lookups, v2_cache_hits
+        cache_key = 'v2:event_highlights:' + str(event_id)
+        cached = None
+        if not force:
+            with _connect(db_path) as conn:
+                cached = _one(conn, 'SELECT payload_json,expires_at FROM sportsdb_highlight_feed_cache WHERE cache_key=?', (cache_key,))
+        from_cache = False
+        if cached:
+            try:
+                payload = json.loads(cached['payload_json'])
+                from_cache = isinstance(payload, dict) and datetime.fromisoformat(cached['expires_at']) > datetime.fromisoformat(_now())
+            except (ValueError, TypeError):
+                payload = {}
+        if from_cache:
+            v2_cache_hits += 1
+        else:
+            payload = scope.call(
+                2,
+                'v2:lookup/event_highlights',
+                {'idEvent': str(event_id)},
+                lambda: _sportsdb_v2('lookup/event_highlights/' + urllib.parse.quote(str(event_id))),
+            )
+            v2_event_lookups += 1
+        if not isinstance(payload, dict):
+            raise SportsDBStopped('MALFORMED')
+        message = str(payload.get('Message') or payload.get('message') or '').strip().lower()
+        if 'lookup' in payload:
+            values = payload['lookup']
+        elif message in {'no data found', 'no data'}:
+            values = []
+        else:
+            raise SportsDBStopped('MALFORMED')
+        if values is not None and (not isinstance(values, list) or any(not isinstance(item, dict) for item in values)):
+            raise SportsDBStopped('MALFORMED')
+        if any(str(item.get('idEvent') or '') != str(event_id) for item in (values or [])):
+            raise SportsDBStopped('IDENTITY_MISMATCH')
+        if not from_cache:
+            fetched_at = _now()
+            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
+            with _connect(db_path) as conn:
+                conn.execute(
+                    'INSERT OR REPLACE INTO sportsdb_highlight_feed_cache VALUES (?,?,?,?)',
+                    (cache_key, json.dumps(payload, ensure_ascii=False), fetched_at, expires),
+                )
+                conn.commit()
+        return values or []
+
+    profile_items = []
+    profiles_saved = False
     try:
+        # Reuse provider payloads already acquired by enrichment. No extra HTTP.
+        with _connect(db_path) as conn:
+            profiles = []
+            if {'raw_json', 'event_date', 'video_url'} <= _cols(conn, 'sportsdb_event_profiles'):
+                profiles = _rows(conn, "SELECT raw_json FROM sportsdb_event_profiles WHERE event_date BETWEEN ? AND ? AND COALESCE(video_url,'')<>'' ORDER BY updated_at DESC LIMIT ?",
+                                 ((_today() - timedelta(days=days)).isoformat(), _today().isoformat(), capacity))
+        for profile in profiles:
+            try:
+                item = json.loads(profile['raw_json'])
+                if isinstance(item, dict) and item.get('idEvent') and item.get('strVideo'):
+                    profile_items.append(item)
+            except (ValueError, TypeError):
+                continue
         with scope:
             partition_jobs = []
             # Cover requested dates first; optional fanout must not starve older days.
@@ -604,7 +769,23 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                 if len(items) >= 50:
                     saturated_dates.append(day)
                     partition_jobs.append((day, target_leagues(day, items)))
-            # Round-robin by day: one busy competition cannot consume every slot.
+
+            before_profiles = found
+            save(profile_items)
+            profile_links_reused = found - before_profiles
+            profiles_saved = True
+
+            # Premium V2: precise lookup for a bounded set of finished matches still
+            # missing video metadata. Cache hits cost no provider call. This runs only
+            # inside the scheduled worker, never during a client/Admin GET.
+            for candidate in v2_candidates(max_items=4):
+                if scope.calls >= scope.max_calls:
+                    break
+                before_v2 = found
+                save(acquire_v2_event(candidate['event_id']))
+                v2_highlights_found += max(0, found - before_v2)
+
+            # Remaining budget can improve saturated date coverage by league.
             for offset in range(12):
                 for day, leagues in partition_jobs:
                     if offset >= len(leagues):
@@ -626,6 +807,15 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         # Partitioning known leagues is useful but cannot prove global completeness.
         errors.append('SCOPED_COVERAGE_ONLY')
     try:
+        if not profiles_saved:
+            before_profiles = found
+            save(profile_items)
+            profile_links_reused = found - before_profiles
+    except SportsDBStopped as exc:
+        errors.append(str(exc))
+    except (sqlite3.Error, OSError):
+        errors.append('STORAGE_UNAVAILABLE')
+    try:
         enrich = rebuild_match_enrichment(db_path, limit=capacity)
         if not enrich.get('ok'):
             errors.append('ENRICHMENT_PENDING')
@@ -635,8 +825,9 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     status = 'PARTIAL' if errors and found else 'FAILED' if errors else 'OK'
     errors = list(dict.fromkeys(errors))
     with _connect(db_path) as conn:
-        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=? WHERE id=?',
-                     (_now(), status, found, linked, '; '.join(errors[:8]), run_id))
+        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=? WHERE id=?',
+                     (_now(), status, found, linked, '; '.join(errors[:8]), scope.calls, persistent_cache_hits, profile_links_reused,
+                      v2_event_lookups, v2_cache_hits, v2_highlights_found, run_id))
         conn.commit()
     return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
             'days_back': days, 'highlights_found': found, 'linked_matches': linked,
@@ -644,6 +835,9 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             'saturated_dates': saturated_dates, 'league_partitions': partitions,
             'retryable': bool(set(errors) - {'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'PARTITION_BUDGET', 'ITEM_BUDGET'}),
             'provider_coverage_complete': False, 'playback_verified': False,
+            'persistent_cache_hits': persistent_cache_hits, 'profile_links_reused': profile_links_reused,
+            'v2_event_lookups': v2_event_lookups, 'v2_cache_hits': v2_cache_hits,
+            'v2_highlights_found': v2_highlights_found, 'cache_ttl_hours': 6,
             **scope.metrics()}
 
 

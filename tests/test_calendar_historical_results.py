@@ -208,3 +208,28 @@ def test_calendar_page_provider_state_uses_hydrated_history(app_module, monkeypa
     assert state["has_real_data"] is True
     assert state["provider_status"] == "data_available"
     assert "Resultados persistidos" in state["safe_message"]
+
+
+def test_past_calendar_enriches_authorized_highlight_state_without_provider_call(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "today_iso", _today_factory("2026-09-20"))
+    summary = _empty_summary(app_module)
+    match = _finished("with-highlight", "2026-09-18")
+    summary["all_valid_matches"] = [match]
+    summary["finished_matches"] = [match]
+    summary["sports_metrics"] = app_module.build_sports_metrics_contract(summary)
+    calls = []
+
+    def enrich(matches):
+        calls.append([item["id"] for item in matches])
+        return [{**item, "has_highlights": True, "client_highlight_label": "Resumen disponible",
+                 "highlight_read_state": "VERIFIED"} for item in matches]
+
+    monkeypatch.setattr(app_module, "v766_enrich_matches_with_highlights", enrich)
+    with app_module.app.test_request_context("/calendar?lane=results&date=2026-09-18"):
+        calendar = app_module.v940_calendar_context(summary, "results", "2026-09-18")
+
+    assert calls == [["with-highlight"]]
+    assert calendar["matches"][0]["has_highlights"] is True
+    assert calendar["matches"][0]["client_highlight_label"] == "Resumen disponible"
+    assert calendar["external_calls"] == 0
+    assert calendar["database_written"] is False
