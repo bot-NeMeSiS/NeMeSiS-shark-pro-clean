@@ -13,6 +13,50 @@ from engines.postmatch_store import Store, StaleLease, BudgetStopped, identity, 
 from engines.postmatch_sources import OfficialSources, SourceError, validate_rows, match_event
 from engines.postmatch_recovery import tick, finish, save_statistics, read_for_match, attach_detail
 
+
+@pytest.mark.parametrize('reason', ['DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'])
+def test_controlled_deferral_does_not_exhaust_error_attempts(store, reason):
+    store.discover(NOW)
+    with store.connection(True) as conn:
+        first = conn.execute('SELECT min(id) FROM postmatch_jobs').fetchone()[0]
+        conn.execute('DELETE FROM postmatch_jobs WHERE id<>?', (first,))
+        conn.execute('UPDATE postmatch_jobs SET attempts=4')
+    for _ in range(6):
+        job = store.claim(NOW)
+        result = finish(store, job, {'reasons':[reason], 'external_calls':0}, NOW)
+        assert result['state'] == 'RETRY'
+        with store.connection(True) as conn:
+            assert conn.execute('SELECT attempts FROM postmatch_jobs').fetchone()[0] == 4
+            conn.execute('UPDATE postmatch_jobs SET due_at=?', (NOW,))
+
+
+@pytest.mark.parametrize('local_time', ['2026-10-24T23:30:00+02:00', '2026-10-25T02:30:00+01:00'])
+def test_daily_budget_waits_until_next_madrid_day_including_dst(store, local_time):
+    from zoneinfo import ZoneInfo
+    from datetime import timedelta
+    now = datetime.fromisoformat(local_time).timestamp()
+    store.discover(NOW)
+    with store.connection(True) as conn:
+        first = conn.execute('SELECT min(id) FROM postmatch_jobs').fetchone()[0]
+        conn.execute('DELETE FROM postmatch_jobs WHERE id<>?', (first,))
+    job = store.claim(now)
+    result = finish(store, job, {'reasons':['DAILY_BUDGET'], 'external_calls':0}, now)
+    due = datetime.fromtimestamp(result['due_at'], ZoneInfo('Europe/Madrid'))
+    today = datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid')).date()
+    assert due.date() == today + timedelta(days=1)
+    assert (due.hour, due.minute, due.second) == (0, 0, 5)
+    assert store.claim(result['due_at'] - 1) is None
+    assert store.claim(result['due_at']) is not None
+
+
+def test_real_network_errors_still_exhaust_attempts(store):
+    store.discover(NOW)
+    with store.connection(True) as conn:
+        conn.execute('UPDATE postmatch_jobs SET attempts=4')
+    job = store.claim(NOW)
+    result = finish(store, job, {'reasons':['NETWORK'], 'external_calls':1}, NOW)
+    assert result['state'] == 'FAILED'
+
 NOW = datetime(2026, 9, 30, 22, tzinfo=timezone.utc).timestamp()
 MATCH = {'id':'pm-test', 'external_id':'sportsdb-101', 'source':'TheSportsDB',
          'home_team':'Equipo Uno', 'away_team':'Equipo Dos', 'league_id':'4328',
