@@ -1,0 +1,17 @@
+{% set od = data.get('odds') or {} %}
+{% set oq = od.get('quota') or {} %}
+<section class="v928-admin-panel" data-odds-diagnostics="persisted">
+<header><div><h2>The Odds API · cadena de cuotas</h2><p>Última evidencia persistida; abrir Admin no consume créditos.</p></div></header>
+<div class="v928-admin-panel-body"><div class="v928-truth-list">
+<div><span>Configuración / activación</span><strong>{{ 'Configurada' if od.get('key_present') else 'Falta clave' }} / {{ 'Activa' if od.get('enabled') else 'Desactivada' }}</strong></div>
+<div><span>Última consulta</span><strong>{{ (od.get('last_sync') or {}).get('last_sync')|madrid_datetime_label if (od.get('last_sync') or {}).get('last_sync') else 'Sin evidencia' }}</strong></div>
+{% for field, label in [('http_status','Último HTTP'),('requests_used','Créditos usados'),('requests_remaining','Créditos restantes'),('requests_last','Créditos última consulta'),('events_received','Eventos recibidos'),('events_with_bookmakers','Eventos con bookmakers'),('bookmakers_received','Bookmakers recibidos'),('markets_received','Mercados recibidos'),('events_with_h2h','Eventos con 1X2')] %}
+<div><span>{{ label }}</span><strong>{{ oq.get(field) if oq.get(field) is not none else 'No disponible automáticamente' }}</strong></div>
+{% endfor %}
+<div><span>Enlazados en última sincronización</span><strong>{{ od.get('linked_last_sync') if od.get('linked_last_sync') is not none else 'Sin evidencia' }}</strong></div>
+<div><span>Partidos guardados con cuotas</span><strong>{{ od.get('matches_with_odds', 'Sin evidencia') }}</strong></div>
+<div><span>Mostrados en navegador</span><strong>No disponible automáticamente</strong></div>
+<div><span>Último error</span><strong>{{ od.get('last_error') or 'Sin error registrado' }}</strong></div>
+<div><span>Región / mercados solicitados</span><strong>{{ od.get('regions') or 'Sin dato' }} / {{ od.get('markets') or 'Sin dato' }}</strong></div>
+<div><span>Plan, coste y facturación</span><strong>No disponible automáticamente · consultar obligación configurada en Control fundador</strong></div>
+</div><a href="/admin/founder-os">Integraciones y obligaciones</a></div></section>

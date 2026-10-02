@@ -256,11 +256,15 @@ def _provider_evidence(conn,key):
         return {"state":_safe(s.get("status") or ("CACHE_REUSED" if s.get("skipped") else ""),80) or "UNKNOWN",
                 "observed_at":_safe(s.get("last_sync") or s.get("time") or s.get("observed_at"),80),
                 "external_calls":int(s.get("external_calls") or 0),"error_present":bool(s.get("errors")),
-                "quota":{k:int(q.get(k) or 0) for k in ("requests_used","requests_remaining","observed_calls") if q.get(k) is not None}}
+                "http_status":q.get("http_status"),"processed":s.get("processed"),
+                **{k:q.get(k) for k in ("requests_used","requests_remaining")},
+                "quota":{k:int(q.get(k) or 0) for k in ("requests_used","requests_remaining","requests_last","observed_calls") if q.get(k) is not None}}
     if key=="thesportsdb":
         s=_automation_state(conn,"sportsdb_feed_sync")
         return {"state":_safe(s.get("status"),80) or "UNKNOWN","observed_at":_safe(s.get("last_sync") or s.get("time") or s.get("observed_at"),80),
-                "external_calls":int(s.get("external_calls") or 0),"processed":int(s.get("processed") or 0),"error_present":bool(s.get("errors"))}
+                "external_calls":int(s.get("external_calls") or 0),"processed":s.get("processed"),"error_present":bool(s.get("errors")),
+                "http_status":(s.get("quota") or {}).get("http_status"),
+                "quota":s.get("quota") or {}}
     if key=="api_football" and _table_exists(conn,"api_football_live_sync_state"):
         r=_one(conn,"SELECT * FROM api_football_live_sync_state WHERE key='live'")
         return {"state":_safe(r.get("status"),80) or "UNKNOWN","observed_at":_safe(r.get("last_sync_at"),80),
