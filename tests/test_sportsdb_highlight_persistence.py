@@ -95,3 +95,64 @@ def test_new_feed_wins_over_old_profile(store, monkeypatch):
     assert result['profile_links_reused'] == 0
     with sqlite3.connect(store) as conn:
         assert conn.execute('SELECT video_url FROM sportsdb_match_highlights').fetchone()[0].endswith('zyxwvutsrqp')
+
+
+def test_v2_lookup_uses_header_auth_and_keeps_key_out_of_url(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(media, '_api_key', lambda: 'premium-secret')
+
+    class Response:
+        def __enter__(self):
+            return self
+        def __exit__(self, *_args):
+            return False
+        def read(self):
+            return b'{"lookup": []}'
+
+    def fake_urlopen(request, timeout):
+        seen['request'] = request
+        seen['timeout'] = timeout
+        return Response()
+
+    monkeypatch.setattr(media.urllib.request, 'urlopen', fake_urlopen)
+    payload = media._sportsdb_v2('lookup/event_highlights/42')
+
+    assert payload == {'lookup': []}
+    request = seen['request']
+    assert 'premium-secret' not in request.full_url
+    headers = {key.lower(): value for key, value in request.header_items()}
+    assert headers['x-api-key'] == 'premium-secret'
+    assert request.full_url.endswith('/api/v2/json/lookup/event_highlights/42')
+
+
+def test_targeted_v2_lookup_fills_finished_match_missing_highlight(store, monkeypatch):
+    v2_calls = []
+    monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: {'events': []})
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda path: v2_calls.append(path) or {'lookup': [event()]})
+
+    result = media.sync_sportsdb_highlights(store, days_back=0)
+
+    assert result['status'] == 'OK'
+    assert result['external_calls'] == 2
+    assert result['v2_event_lookups'] == 1
+    assert result['v2_cache_hits'] == 0
+    assert result['v2_highlights_found'] == 1
+    assert v2_calls == ['lookup/event_highlights/42']
+    with sqlite3.connect(store) as conn:
+        row = conn.execute('SELECT match_id,video_url FROM sportsdb_match_highlights').fetchone()
+    assert row[0] == 'local'
+    assert row[1].startswith('https://www.youtube.com/watch?v=')
+
+
+def test_empty_v2_lookup_is_cached_to_avoid_repeat_paid_calls(store, monkeypatch):
+    v2_calls = []
+    monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: {'events': []})
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda path: v2_calls.append(path) or {'lookup': []})
+
+    first = media.sync_sportsdb_highlights(store, days_back=0)
+    second = media.sync_sportsdb_highlights(store, days_back=0)
+
+    assert first['v2_event_lookups'] == 1
+    assert second['v2_event_lookups'] == 0
+    assert second['v2_cache_hits'] == 1
+    assert len(v2_calls) == 1
