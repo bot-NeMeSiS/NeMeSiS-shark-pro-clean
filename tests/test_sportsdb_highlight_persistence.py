@@ -14,6 +14,7 @@ def store(tmp_path, monkeypatch):
     path = tmp_path / 'media.sqlite'
     monkeypatch.setattr(media, '_api_key', lambda: 'isolated-test')
     monkeypatch.setattr(media, '_today', lambda: date(2026, 10, 3))
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda *a: {'lookup': []})
     with sqlite3.connect(path) as conn:
         conn.execute('CREATE TABLE matches(id TEXT PRIMARY KEY,external_id TEXT,source TEXT,home_team TEXT,away_team TEXT,match_date TEXT,competition_name TEXT,status TEXT,score TEXT)')
         conn.execute("INSERT INTO matches VALUES ('local','sportsdb-42','TheSportsDB','Home','Away','2026-10-03','League','FT','2-1')")
@@ -32,14 +33,14 @@ def test_repeated_sync_reuses_valid_feed_including_empty(store, monkeypatch, row
     monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: calls.append(a) or {'events': rows})
     first = media.sync_sportsdb_highlights(store, days_back=0)
     second = media.sync_sportsdb_highlights(store, days_back=0)
-    assert first['external_calls'] == 1
+    assert first['external_calls'] == (1 if rows else 2)
     assert second['external_calls'] == 0 and second['persistent_cache_hits'] == 1
     assert len(calls) == 1
     run = media.sportsdb_highlights_summary(store)['recent_runs'][0]
     # Runs can share a second; evidence exists in persisted metrics regardless of ordering.
     with sqlite3.connect(store) as conn:
         assert conn.execute('SELECT SUM(persistent_cache_hits) FROM sportsdb_highlight_runs').fetchone()[0] == 1
-    assert run['external_calls'] in (0, 1)
+    assert run['external_calls'] == 0
 
 
 def test_forced_sync_bypasses_cache_and_revokes_changed_content(store, monkeypatch):
@@ -156,3 +157,24 @@ def test_empty_v2_lookup_is_cached_to_avoid_repeat_paid_calls(store, monkeypatch
     assert second['v2_event_lookups'] == 0
     assert second['v2_cache_hits'] == 1
     assert len(v2_calls) == 1
+
+
+@pytest.mark.parametrize('payload', [{}, {'lookup': 'invalid'}, {'lookup': [{**event(), 'idEvent': '99'}]}])
+def test_v2_malformed_or_wrong_identity_is_not_cached_or_published(store, monkeypatch, payload):
+    monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: {'events': []})
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda *a: payload)
+    result = media.sync_sportsdb_highlights(store, days_back=0)
+    assert result['status'] == 'FAILED'
+    with sqlite3.connect(store) as conn:
+        assert conn.execute("SELECT COUNT(*) FROM sportsdb_highlight_feed_cache WHERE cache_key LIKE 'v2:%'").fetchone()[0] == 0
+        assert conn.execute('SELECT COUNT(*) FROM sportsdb_match_highlights').fetchone()[0] == 0
+
+
+def test_v2_does_not_treat_old_live_score_as_final(store, monkeypatch):
+    with sqlite3.connect(store) as conn:
+        conn.execute("UPDATE matches SET status='LIVE',match_date='2026-10-02'")
+    calls = []
+    monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: {'events': []})
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda *a: calls.append(a) or {'lookup': []})
+    result = media.sync_sportsdb_highlights(store, days_back=1)
+    assert result['v2_event_lookups'] == 0 and calls == []

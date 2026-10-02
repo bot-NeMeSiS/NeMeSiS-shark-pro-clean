@@ -668,7 +668,8 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                     for row in _rows(conn, "SELECT DISTINCT match_id FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''")
                 }
         output = []
-        final_states = {'ft','finished','final','finalizado','match finished','full time'}
+        final_states = {'ft','finished','final','finalizado','match finished','full time',
+                        'aet','pen','after extra time','after penalties'}
         for row in candidates:
             match_id = str(row.get('id') or '')
             if not match_id or match_id in linked:
@@ -686,10 +687,7 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             if not sid.isdigit():
                 continue
             status = str(row.get('status') or '').strip().lower()
-            finished = status in final_states or (
-                str(row.get('match_date') or '')[:10] < _today().isoformat()
-                and bool(str(row.get('score') or '').strip())
-            )
+            finished = status in final_states
             if not finished:
                 continue
             output.append({'match_id': match_id, 'event_id': sid})
@@ -715,15 +713,19 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             v2_cache_hits += 1
         else:
             payload = scope.call(
-                1,
+                2,
                 'v2:lookup/event_highlights',
                 {'idEvent': str(event_id)},
                 lambda: _sportsdb_v2('lookup/event_highlights/' + urllib.parse.quote(str(event_id))),
             )
             v2_event_lookups += 1
-        values = payload.get('lookup') if isinstance(payload, dict) else None
+        if not isinstance(payload, dict) or 'lookup' not in payload:
+            raise SportsDBStopped('MALFORMED')
+        values = payload['lookup']
         if values is not None and (not isinstance(values, list) or any(not isinstance(item, dict) for item in values)):
-            raise SportsDBStopped('MALFORMED_V2')
+            raise SportsDBStopped('MALFORMED')
+        if any(str(item.get('idEvent') or '') != str(event_id) for item in (values or [])):
+            raise SportsDBStopped('IDENTITY_MISMATCH')
         if not from_cache:
             fetched_at = _now()
             expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
@@ -736,6 +738,7 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         return values or []
 
     profile_items = []
+    profiles_saved = False
     try:
         # Reuse provider payloads already acquired by enrichment. No extra HTTP.
         with _connect(db_path) as conn:
@@ -760,6 +763,11 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                 if len(items) >= 50:
                     saturated_dates.append(day)
                     partition_jobs.append((day, target_leagues(day, items)))
+
+            before_profiles = found
+            save(profile_items)
+            profile_links_reused = found - before_profiles
+            profiles_saved = True
 
             # Premium V2: precise lookup for a bounded set of finished matches still
             # missing video metadata. Cache hits cost no provider call. This runs only
@@ -793,9 +801,10 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
         # Partitioning known leagues is useful but cannot prove global completeness.
         errors.append('SCOPED_COVERAGE_ONLY')
     try:
-        before_profiles = found
-        save(profile_items)
-        profile_links_reused = found - before_profiles
+        if not profiles_saved:
+            before_profiles = found
+            save(profile_items)
+            profile_links_reused = found - before_profiles
     except SportsDBStopped as exc:
         errors.append(str(exc))
     except (sqlite3.Error, OSError):
