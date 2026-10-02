@@ -104,6 +104,7 @@ def main() -> int:
         "Timeline",
         "StatsPanel",
         "SharkPanel",
+        "PickPanel",
         "TelegramPanel",
         "BankrollPanel",
         "CompetitionPanel",
