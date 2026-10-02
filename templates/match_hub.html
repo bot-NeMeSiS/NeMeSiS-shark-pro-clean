@@ -67,8 +67,9 @@
                       <div class="scoreline"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
                       <a class="team mini-team away team-link" href="/team/{{ (m._raw_away_team or m.away_team)|urlencode }}">{{ crest(m|team_identity('away'), m.safe_away or m.away_team, 'small') }}<strong>{{ m.safe_away or m.away_team }}</strong></a>
                       <div class="row-actions">
+                        {% if m.has_highlights %}<span class="tag">▶ Resumen</span>{% endif %}
                         {% if m.bookmaker %}<span class="tag">Cuotas</span>{% endif %}
-                        <a class="mini-link" href="/match/{{ m.id }}">Detalle</a>
+                        <a class="mini-link" href="/match/{{ m.id }}{% if m.has_highlights %}#match-section-video{% endif %}">{{ 'Ver resumen' if m.has_highlights else 'Detalle' }}</a>
                       </div>
                     </article>
                   {% endfor %}
@@ -116,6 +117,7 @@
         <div class="team">{{ crest(m|team_identity('away'), m.safe_away or m.away_team, 'compact') }}<strong>{{ m.safe_away or m.away_team }}</strong></div>
       </div>
       <div class="status"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'Sin marcador' }}</span></div>
+      {% if m.has_highlights %}<p class="small">▶ Resumen disponible</p>{% endif %}
       {% if m.bookmaker %}<p class="small">Cuotas H2H: {{ m.bookmaker }}</p>{% endif %}
     </a>
     {% endfor %}

@@ -10274,6 +10274,9 @@ def match_hub(date=None, lane="today"):
             continue
         seen.add(logical_key)
         combined.append(match)
+    if lane in {"results", "finished"}:
+        combined = v766_enrich_matches_with_highlights(combined)
+        result_matches = v766_enrich_matches_with_highlights(result_matches)
     sections = hub_sections(combined, favorites=favorites, picks=picks)
     live_state = split_live(combined)
     sync = sync_plan(sections["today"], now_iso())
@@ -19986,6 +19989,8 @@ def v940_calendar_context(summary, lane="today", date_value=None):
     )
     filtered = _calendar_apply_filters(source_matches, filters)
     sorted_matches = _calendar_sort(filtered, filters.get("sort"))
+    if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
+        sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
     day_groups = _calendar_group(sorted_matches)
     day_navigation = _v940_calendar_group_navigation(day_groups)
     facets = _calendar_facets(source_matches)
@@ -20372,6 +20377,10 @@ def live_page():
         {**item, **projected.get(str(item.get("id") or item.get("match_id") or item.get("external_id") or ""), {})}
         for item in data["live_experience"]["matches"]
     ]
+    if lane in {"finished", "results", "history", "finalizados"}:
+        data["live_experience"]["matches"] = v766_enrich_matches_with_highlights(
+            data["live_experience"]["matches"]
+        )
     data["v925_live"] = _v931_provider_context(summary)
     data["v934_realtime"] = realtime
     return render_template("live.html", data=data)
