@@ -40,7 +40,8 @@ services:
     plan: starter
     branch: main
     autoDeployTrigger: commit
-    schedule: "*/10 * * * *"
+    # Canonical cadence: preserve the existing production schedule; see docs/PRODUCTION_TRUTH.md.
+    schedule: "*/5 * * * *"
     buildCommand: pip install -r requirements.txt
     startCommand: python tools/render_cron_master_tick.py
     envVars:

@@ -11,7 +11,7 @@ def test_render_yaml_has_only_one_master_cron():
     text=(ROOT/"render.yaml").read_text(encoding="utf-8")
     assert text.count("  - type: cron") == 1
     assert "name: telegram-auto-tick" in text
-    assert 'schedule: "*/10 * * * *"' in text
+    assert 'schedule: "*/5 * * * *"' in text
     assert "startCommand: python tools/render_cron_master_tick.py" in text
     assert "name: nemesis-data-backup" not in text
     for setting in ("SCHEDULER_ENABLED","ENABLE_AUTO_SYNC","AUTO_SYNC_ON_STARTUP","DAILY_AUTOMATION_ENABLED"):
@@ -32,7 +32,7 @@ def test_automation_center_lists_only_actual_recurring_jobs():
     summary=build_automation_center_summary("/tmp/test.db","SIMULATED_QA",env=env,state={})
     assert summary["policy"]=="ONE_OPERATIONAL_MASTER"
     assert [j["name"] for j in summary["jobs"]]==["master_tick"]
-    assert summary["jobs"][0]["cadence"]=="cada 10 min"
+    assert summary["jobs"][0]["cadence"]=="cada 5 min"
     assert "pick_grading" in summary["jobs"][0]["included_flows"]
     assert "data_backup" in summary["jobs"][0]["included_flows"]
     assert "Sincronización de destacados" in summary["manual_only"]
@@ -41,7 +41,7 @@ def test_automation_center_lists_only_actual_recurring_jobs():
 def test_legacy_admin_page_does_not_claim_old_jobs_are_render_scheduled():
     text=(ROOT/"templates/admin_daily_automation.html").read_text(encoding="utf-8")
     assert "Manual / compatibilidad" in text
-    assert "Frecuencia real</td><td>Cada 10 minutos" in text
+    assert "Frecuencia real</td><td>Cada 5 minutos" in text
     assert "Cron anterior conservado" not in text
 
 
