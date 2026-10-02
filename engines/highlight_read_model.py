@@ -80,7 +80,8 @@ def read_highlights_summary(db_path):
             runs_available = _table(conn, 'sportsdb_highlight_runs')
             run_columns = {row['name'] for row in conn.execute('PRAGMA table_info(sportsdb_highlight_runs)')} if runs_available else set()
             metrics = ','.join(name if name in run_columns else f'NULL AS {name}'
-                               for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused'))
+                               for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused',
+                                            'v2_event_lookups', 'v2_cache_hits', 'v2_highlights_found'))
             runs = _rows(conn, f'''SELECT started_at,finished_at,status,highlights_found,linked_matches,errors,{metrics}
                 FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 6''') if runs_available else []
             for run in runs:
