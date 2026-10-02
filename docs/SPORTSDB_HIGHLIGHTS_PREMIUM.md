@@ -46,12 +46,14 @@ Existing pipeline: `engines/sportsdb_highlights_engine.py` → persisted
 Provider association uses a qualified SportsDB external ID and validates
 the event context; the fallback requires an unambiguous dated team/league pair.
 
-The current date feed remains the acquisition path. V2 per-event highlights
-are documented for future targeted acquisition; this release does not add
-a second worker or spend additional per-event calls merely to exercise V2.
-Already fetched `sportsdb_event_profiles.raw_json` carrying `strVideo` now
-feeds the same catalogue, with the feed taking precedence within a run.
-Profile payloads never invent URLs or grant rights.
+The date feed remains the broad acquisition path. The same worker now also
+uses Premium V2 `lookup/event_highlights/<idEvent>` for a bounded set of
+finished SportsDB matches that still have no stored video. These lookups run
+only after the date feeds, share the existing 12-call worker budget, are capped
+to four candidates per run, and are cached for six hours including empty
+responses. No client/Admin GET triggers V2. Already fetched
+`sportsdb_event_profiles.raw_json` carrying `strVideo` also feeds the same
+catalogue. None of these sources invent URLs or grant rights automatically.
 
 Successful feed responses, including empty results, are persisted by date,
 sport and league for six hours. Expired responses are fetched again; force
