@@ -178,3 +178,19 @@ def test_v2_does_not_treat_old_live_score_as_final(store, monkeypatch):
     monkeypatch.setattr(media, '_sportsdb_v2', lambda *a: calls.append(a) or {'lookup': []})
     result = media.sync_sportsdb_highlights(store, days_back=1)
     assert result['v2_event_lookups'] == 0 and calls == []
+
+
+def test_v2_no_data_message_is_honest_empty_and_cached(store, monkeypatch):
+    calls = []
+    monkeypatch.setattr(media, '_sportsdb_v1', lambda *a: {'events': []})
+    monkeypatch.setattr(media, '_sportsdb_v2', lambda *a: calls.append(a) or {'Message': 'No data found'})
+
+    first = media.sync_sportsdb_highlights(store, days_back=0)
+    second = media.sync_sportsdb_highlights(store, days_back=0)
+
+    assert first['status'] == 'OK'
+    assert first['v2_event_lookups'] == 1
+    assert first['v2_highlights_found'] == 0
+    assert second['status'] == 'OK'
+    assert second['v2_cache_hits'] == 1
+    assert len(calls) == 1
