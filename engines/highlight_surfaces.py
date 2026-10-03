@@ -10,8 +10,9 @@ def enrich_context(db_path, context, enabled=True):
         if isinstance(value, (dict,list,tuple)):
             visited.add(id(value))
         if isinstance(value, dict):
-            if value.get('id') and value.get('home_team') and value.get('away_team') and value.get('source'):
-                rows.append(value)
+            canonical_id = value.get('match_id') or value.get('id')
+            if canonical_id and value.get('home_team') and value.get('away_team') and value.get('source'):
+                rows.append((value,str(canonical_id)))
             for item in value.values():
                 if isinstance(item,(dict,list,tuple)):
                     walk(item,depth+1)
@@ -19,7 +20,7 @@ def enrich_context(db_path, context, enabled=True):
             for item in value:
                 walk(item,depth+1)
     walk(context)
-    ids = list(dict.fromkeys(str(row['id']) for row in rows))
+    ids = list(dict.fromkeys(mid for row,mid in rows))
     mapped = {}
     state = 'DISABLED_BY_ADMIN' if not enabled else 'VERIFIED'
     if enabled:
@@ -28,8 +29,8 @@ def enrich_context(db_path, context, enabled=True):
             if snapshot['read_state'] != 'VERIFIED':
                 state = snapshot['read_state']
             mapped.update(snapshot['map'])
-    for row in rows:
-        row['has_highlights'] = bool(mapped.get(str(row['id']))) if state in {'VERIFIED','DISABLED_BY_ADMIN'} else None
+    for row,mid in rows:
+        row['has_highlights'] = bool(mapped.get(mid)) if state in {'VERIFIED','DISABLED_BY_ADMIN'} else None
         row['highlight_read_state'] = state
         row['client_highlight_label'] = '▶ Resumen disponible' if row['has_highlights'] else ''
     return {mid:bool(mapped.get(mid)) for mid in ids}

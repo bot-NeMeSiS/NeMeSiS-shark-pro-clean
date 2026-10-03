@@ -268,3 +268,14 @@ def test_verified_persisted_profile_id_is_preferred_and_stale_mapping_rejected(c
         conn.execute("UPDATE matches SET away_team='Changed'")
     coverage.prepare()
     assert coverage.claim()['event_id']==''
+
+
+def test_collection_row_id_cannot_override_explicit_canonical_match_id(monkeypatch):
+    from engines import highlight_surfaces
+    calls=[]
+    monkeypatch.setattr(highlight_surfaces,'read_highlights_map',lambda path,ids,**kw:
+        calls.append(ids) or {'read_state':'VERIFIED','map':{'canonical':[{'show_block':True}]}})
+    item={**MATCH,'id':'collection-row','match_id':'canonical'}
+    context={'collection':[item,dict(item)]}
+    highlight_surfaces.enrich_context('unused',context)
+    assert calls==[['canonical']] and item['has_highlights']
