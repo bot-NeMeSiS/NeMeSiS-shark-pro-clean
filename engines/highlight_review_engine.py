@@ -38,7 +38,7 @@ def _review_revisions(conn, identifiers):
     return result
 
 
-def review_snapshot(db_path, limit=40):
+def review_snapshot(db_path, limit=40, *, unlinked=False):
     result = {'state': 'NOT_SYNCED', 'items': [], 'runs': [], 'counts': {}, 'sample_limit': limit}
     path = Path(db_path).resolve()
     if not path.is_file():
@@ -52,7 +52,10 @@ def review_snapshot(db_path, limit=40):
             if not exists:
                 return result
             result['counts']['stored'] = conn.execute('SELECT COUNT(*) FROM sportsdb_match_highlights').fetchone()[0]
-            records = conn.execute('SELECT * FROM sportsdb_match_highlights ORDER BY updated_at DESC, id LIMIT ?', (max(1, min(int(limit), 100)),)).fetchall()
+            result['counts']['unlinked'] = conn.execute("SELECT COUNT(*) FROM sportsdb_match_highlights WHERE trim(COALESCE(match_id,''))='' ").fetchone()[0]
+            result['unlinked_only'] = bool(unlinked)
+            where = " WHERE trim(COALESCE(match_id,''))=''" if unlinked else ''
+            records = conn.execute('SELECT * FROM sportsdb_match_highlights' + where + ' ORDER BY updated_at DESC, id LIMIT ?', (max(1, min(int(limit), 100)),)).fetchall()
             revisions = _review_revisions(conn, [str(record['id']) for record in records])
             for record in records:
                 raw = dict(record)
