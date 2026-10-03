@@ -123,18 +123,19 @@ def resolve_policy(row, policies, *, channel='APP', now=None):
     # Exact video decisions take precedence over a reusable channel scope.
     exact = [p for p in matched if p['scope_kind'] == 'VIDEO']
     matched = exact or matched
-    if any(p['modality'] == 'BLOCKED' and not p['revoked_at'] for p in matched):
-        return {'decision': 'BLOCKED', 'modality': 'BLOCKED', 'reason': 'La política documentada bloquea esta publicación.'}
     active = []
     for policy in matched:
         try:
             valid = not policy['revoked_at'] and _date(policy['verified_at']) <= now < _date(policy['review_at'])
-            valid = valid and channel in json.loads(policy['channels_json']) and policy['commercial_use'] == 1
+            valid = valid and channel in json.loads(policy['channels_json'])
             valid = valid and public_https_url(policy['evidence_url']) and policy['basis'] and policy['attribution']
         except (TypeError, ValueError, KeyError):
             valid = False
         if valid:
             active.append(policy)
+    if any(p['modality'] == 'BLOCKED' for p in active):
+        return {'decision': 'BLOCKED', 'modality': 'BLOCKED', 'reason': 'La política documentada bloquea esta publicación.'}
+    active = [p for p in active if p['commercial_use'] == 1]
     if len(active) != 1:
         return {'decision': 'REVIEW_REQUIRED', 'modality': 'REVIEW_REQUIRED', 'reason': 'Política vencida, revocada, fuera de canal o con alcance ambiguo.'}
     policy = active[0]

@@ -106,3 +106,12 @@ def test_expired_exact_policy_overrides_old_authorization_flags():
     policy = resolve_policy(legacy, policies(conn), now=NOW+timedelta(seconds=2))
     assert policy['decision'] == 'REVIEW_REQUIRED'
     assert not classify_stored_highlight({**legacy, '_rights_policy':policy})['show_block']
+
+
+def test_documented_block_takes_precedence_and_expires_to_review():
+    conn = setup()
+    candidate = values()
+    candidate.update(scope_kind='VIDEO',scope_value=URL,modality='BLOCKED',commercial_use=False)
+    register_policy(conn,candidate,actor='reviewer',now=NOW)
+    assert resolve_policy(row(),policies(conn),now=NOW)['decision'] == 'BLOCKED'
+    assert resolve_policy(row(),policies(conn),now=NOW+timedelta(days=61))['decision'] == 'REVIEW_REQUIRED'
