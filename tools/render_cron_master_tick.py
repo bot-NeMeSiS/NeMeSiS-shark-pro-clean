@@ -496,7 +496,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
                 "v2_highlights_found": safe_count(result.get("v2_highlights_found")),
                 "highlights_found": safe_count(result.get("highlights_found")),
                 "linked_matches": safe_count(result.get("linked_matches")),
-                "duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
+                "highlights_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
     except urllib.error.HTTPError as exc:
         return request_error_result("highlights", started, f"HTTP_{int(exc.code)}", int(exc.code))
@@ -684,7 +684,7 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
             "highlights_http": None,
             "highlights_status": "NOT_EXECUTED",
             "highlights_result": reason,
-            "duration_ms": 0,
+            "highlights_duration_ms": 0,
         },
         "backup": {
             "backup_http": None,
@@ -722,7 +722,7 @@ def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
             "highlights_http": None,
             "highlights_status": "NOT_EXECUTED",
             "highlights_result": error,
-            "duration_ms": 0,
+            "highlights_duration_ms": 0,
         },
         "backup": {
             "backup_http": None,
