@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 from jinja2 import Environment
+from visual_assets import stylesheet_loaded
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -68,7 +69,8 @@ for marker in ("data_confidence_badge(match", "data_confidence_badge(pick", "att
         errors.append(f"cards:{marker}")
 
 for asset in ("v937-sports-lifecycle.css", "v937-sports-lifecycle.js"):
-    if base_source.count(asset) != 1:
+    loaded = stylesheet_loaded(base_source, asset) if asset.endswith('.css') else base_source.count(asset) == 1
+    if not loaded:
         errors.append(f"base_asset:{asset}")
 
 template_markers = {

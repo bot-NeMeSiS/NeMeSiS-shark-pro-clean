@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 
 
+from visual_assets import stylesheet_loaded
+
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V928_CANONICAL_REFERENCE_FULL_APP_ADMIN_CLIENT_MOBILE_REBUILD_FINAL"
 V929_VERSION = "V929_NAVIGATION_INTEGRITY_ROUTE_NOT_FOUND_FULL_APP_RECOVERY_FINAL"
@@ -50,7 +52,7 @@ def base_checks() -> list[dict]:
     base = read("templates/base.html")
     css = read("static/v928-canonical.css")
     add(checks, "app_version_matches", f"APP_VERSION = '{current_version}'" in app)
-    add(checks, "canonical_css_loaded", "filename='v928-canonical.css'" in base and "?v={{ app_version }}" in base)
+    add(checks, "canonical_css_loaded", stylesheet_loaded(base, 'v928-canonical.css') and "?v={{ app_version }}" in base)
     cache_tag = "NEMESIS_CACHE_V930" if current_version == V930_VERSION else ("NEMESIS_CACHE_V929" if current_version == V929_VERSION else "NEMESIS_CACHE_V928")
     add(checks, "service_worker_current", cache_tag in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "render_cache_only", "page_render_cache_only" in app and 'v928_page_render_external_calls\": False' in app)

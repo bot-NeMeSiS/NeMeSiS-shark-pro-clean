@@ -30,9 +30,18 @@ remote browser capture and deployment-only jobs were skipped.
   sizes and a native account menu expose memberships and support.
 - Fixed an existing invalid transition declaration found by the CSS parser.
 
+Known pre-existing tier limitation: the presentation helper recognizes ELITE+,
+but `app.normalize_role` and the entitlement engine accept FREE/PRO/ELITE/ADMIN.
+A persisted `ELITE_PLUS` account therefore renders FREE after session
+normalization. The ELITE+ visual class/accent is prepared and corrected, but this
+phase does not introduce a fourth paid entitlement or change Stripe's ELITE
+alias. Separate membership work is required before claiming an operational
+ELITE+ account experience. FREE/PRO/ELITE account pages were additionally
+captured on desktop/mobile; the ELITE_PLUS probe recorded this limitation.
+
 ## Verification
 
-153 presentation/navigation/browser-control tests passed, plus membership,
+154 presentation/navigation/browser-control tests passed, plus 50 membership,
 SHARK limits, Telegram preferences and authentication regression checks.
 The billing-only checks require the existing OFFLINE_SAFE configuration;
 they were rerun in that mode after an initial environment mismatch.
@@ -72,6 +81,8 @@ Optional `--snapshot <saved-public-cache.json>` on the preview imports only
 published values into a new local database. It never fetches a provider.
 The new `premium-visual` CI job verifies the bundle, semantic states and the
 full empty-data browser matrix, with screenshot artifacts.
+Existing release validators now check the bundle's source manifest and hash
+rather than require retired individual CSS links.
 
 The generated bundle ships in the existing release's `static/` directory;
 production needs no frontend build step. Rollback is the previous commit.

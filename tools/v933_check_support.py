@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 
 
+from visual_assets import stylesheet_loaded
+
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V933_REFERENCE_PARITY_PRODUCT_DESIGN_SPRINT_SYSTEM_FINAL"
 SUCCESSOR = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_FINAL"
@@ -121,7 +123,7 @@ def base_checks() -> list[dict]:
     add(checks, "version_exact", version in SUPPORTED_VERSIONS, version)
     add(checks, "version_without_bom", not version_bytes.startswith(b"\xef\xbb\xbf"))
     add(checks, "app_version_exact", f"APP_VERSION = '{version}'" in app)
-    add(checks, "v933_css_loaded", all(token in base for token in ("filename='v933_design_tokens.css'", "filename='v933-product.css'", "?v={{ app_version }}")))
+    add(checks, "v933_css_loaded", all(stylesheet_loaded(base, asset) for asset in ('v933_design_tokens.css', 'v933-product.css')) and '?v={{ app_version }}' in base)
     add(checks, "service_worker_v933", f"NEMESIS_CACHE_{version.split('_', 1)[0]}" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "v929_navigation_preserved", '@app.route("/clientes")' in app and (ROOT / "engines" / "navigation_integrity_engine.py").exists())
     add(checks, "v931_data_truth_preserved", "get_public_home_sports_summary" in app and "v931_safe_dashboard_data" in app)
@@ -195,7 +197,7 @@ def run(kind: str) -> dict:
         add(checks, "image_alt", "alt=\"\"" in ui)
     elif kind == "performance":
         app = read("app.py")
-        add(checks, "cache_busting", "data-v933-product-version" in base)
+        add(checks, "cache_busting", ('data-v933-product-version' in base or 'data-product-system' in base))
         add(checks, "service_worker_network_first_html", "cache:'no-store'" in app)
         add(checks, "service_worker_reload_assets", "cache:'reload'" in app)
         add(checks, "lazy_team_logos", "loading=\"lazy\"" in ui)

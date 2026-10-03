@@ -132,8 +132,8 @@ def test_sports_styles_use_canonical_sizes_and_version_both_stylesheets():
     assert '.v933-team-logo img' in css and 'object-fit: contain' in css
     bundle_link = next(line for line in base.splitlines() if "filename='product-system.css'" in line)
     assert 'data-product-system="premium-1"' in bundle_link
-    builder = (root / 'tools/build_visual_css.mjs').read_text(encoding='utf-8')
-    assert builder.index("'v933_design_tokens.css'") < builder.index("'v933-product.css'")
+    sources = (root / 'tools/visual_css_sources.json').read_text(encoding='utf-8')
+    assert sources.index('v933_design_tokens.css') < sources.index('v933-product.css')
     realtime_script = next(line for line in base.splitlines() if "filename='v934-realtime.js'" in line)
     assert '-design-02-r5-1' in realtime_script
 

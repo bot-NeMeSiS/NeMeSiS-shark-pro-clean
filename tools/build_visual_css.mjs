@@ -8,11 +8,7 @@ import postcss from 'postcss';
 import cssnano from 'cssnano';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const sources = [
-  'app.css', 'v928-canonical.css', 'v930-canonical.css',
-  'v933_design_tokens.css', 'v936-commercial.css', 'v937-product-client.css',
-  'v937-sports-lifecycle.css', 'v933-product.css'
-];
+export const sources = JSON.parse(await fs.readFile(path.join(root, 'tools/visual_css_sources.json'), 'utf8'));
 const input = (await Promise.all(sources.map(async file =>
   (await fs.readFile(path.join(root, 'static', file), 'utf8')).replace(/\r\n/g, '\n')
 ))).join('\n');
