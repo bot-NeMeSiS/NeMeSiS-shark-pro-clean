@@ -33003,8 +33003,9 @@ def api_admin_v773_data_marketplace_export(export_key):
 def admin_v773_automation_center_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/automation-center")
-    data = dashboard_data()
-    data["automation_center"] = v773_automation_center_context()
+    # This panel needs bounded automation observations, not the full team and
+    # crest catalogue. Loading that unrelated dashboard caused a LIVE timeout.
+    data = {"automation_center": v773_automation_center_context()}
     return render_template("admin_automation_center.html", data=data)
 
 
