@@ -14,7 +14,7 @@ from contextlib import closing
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS
 
 FINAL = {"ft", "finished", "final", "finalizado", "match finished", "archived", "aet", "pen"}
-KINDS = {"competition", "season", "team", "player", "stadium", "referee", "match"}
+KINDS = {"competition", "season", "team", "player", "coach", "stadium", "referee", "match"}
 DETAILS = {"lineups", "events", "statistics", "odds", "picks", "highlights"}
 
 
