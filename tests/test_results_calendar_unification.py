@@ -37,6 +37,7 @@ def test_finished_canonical_state_overrides_stale_live_presentation_copy(app_mod
         "v935_lifecycle": "FINISHED",
         "is_live": False,
         "is_finished": True,
+        "is_stale": True,
         "status_info": {"key": "FINISHED", "is_live": False, "is_finished": True},
     }
     with app_module.app.test_request_context("/calendario?lane=finished"):
