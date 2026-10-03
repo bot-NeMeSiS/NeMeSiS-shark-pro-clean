@@ -186,6 +186,12 @@ class Store:
         with self.connection(True) as conn:
             if conn.execute("SELECT COUNT(*) FROM postmatch_jobs WHERE state='RUNNING' AND lease_until>?", (now,)).fetchone()[0]:
                 return None  # One bounded processor across all web workers / overlapping crons.
+            # Exhausted jobs must not consume the entire tick while other due
+            # work is ready. Preserve the error-attempt ceiling and lease fencing.
+            conn.execute("UPDATE postmatch_jobs SET state='FAILED',reason='ATTEMPTS_EXHAUSTED',"
+                         "lease_token=NULL,lease_until=0,updated_at=? WHERE attempts>=5 AND "
+                         "((state IN ('PENDING','RETRY') AND due_at<=?) OR "
+                         "(state='RUNNING' AND lease_until<=?))", (now, now, now))
             row = conn.execute("SELECT * FROM postmatch_jobs WHERE "
                                "(state IN ('PENDING','RETRY') AND due_at<=?) OR "
                                "(state='RUNNING' AND lease_until<=?) ORDER BY due_at,id LIMIT 1", (now, now)).fetchone()
