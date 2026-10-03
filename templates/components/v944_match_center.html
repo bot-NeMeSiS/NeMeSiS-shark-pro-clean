@@ -131,6 +131,7 @@
 {% set component = context.get('components', {}).get('MatchStory') or {} %}
 {% set story = context.get('story') or {} %}
 {% set factual = ((context.get('summaries') or {}).get('items') or [{}])[0] %}
+{% set postmatch = (context.get('summaries') or {}).get('postmatch') or {} %}
 {% set context_intelligence = context.get('context_intelligence') or {} %}
 {% set context_text = ui_context_copy(context) %}
 {% set recent_form = context.get('recent_form') or {} %}
@@ -163,6 +164,34 @@
       {% if risk_value.get('flags') %}<p>{{ ui('Se muestran solo señales con evidencia.') }}</p>{% endif %}
     </article>
   </div>
+  {% if postmatch.get('available') %}
+  <section class="v944-story-detail v944-postmatch-summary"
+           data-postmatch-factual-summary="{{ postmatch.get('contract') or '' }}"
+           data-summary-ai-calls="{{ postmatch.get('generative_ai_calls') or 0 }}"
+           data-summary-unsupported-claims="{{ postmatch.get('unsupported_claims') or 0 }}">
+    <span>{{ ui("Lo esencial del partido") }}</span>
+    <h3>{{ postmatch.get("headline") }}</h3>
+    {% if postmatch.get('key_events') %}
+    <div class="v944-context-list">
+      <strong>{{ ui("Momentos clave confirmados") }}</strong>
+      <ul class="v944-limitations is-compact">
+        {% for event in postmatch.get('key_events')[:6] %}<li>{{ event.get('text') }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if postmatch.get('key_stats') %}
+    <dl class="v944-context-list">
+      {% for stat in postmatch.get('key_stats')[:5] %}
+      <div><dt>{{ stat.get("label") }}</dt><dd>{{ stat.get("home") or "—" }} · {{ stat.get("away") or "—" }}</dd></div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+    {% if postmatch.get('video_available') %}
+    <p><a class="v933-action is-primary" href="#match-section-video">▶ {{ ui("Ver resumen en vídeo") }}</a></p>
+    {% endif %}
+    <small>{{ ui("Resumen factual construido con datos confirmados del partido; sin narración generativa.") }}</small>
+  </section>
+  {% endif %}
   {% if recent_form.get('available') %}
   <dl class="v944-context-list v944-limitations" data-recent-form-contract="{{ recent_form.get('contract') or '' }}">
     {% for side in ['home', 'away'] %}
