@@ -162,6 +162,7 @@ def allow_api_job(db_path: str, provider: str, job_key: str, estimated_calls: in
     budgets = {
         "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
         "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
+        "thesportsdb": _budget("THESPORTSDB_DAILY_CALL_BUDGET", 24, env),
     }
     valid_estimate = type(estimated_calls) is int and estimated_calls >= 0
     result = {
