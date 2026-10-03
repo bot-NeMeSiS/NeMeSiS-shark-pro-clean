@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% from "components/v933_ui.html" import page_header, kpi_card, match_card with context %}
+{% from "components/density.html" import collection %}
 {% block content %}
 <div class="v933-page v933-favorites-page" data-v933-template="favorites">
   {{ page_header('Favoritos', 'Equipos, competiciones y partidos guardados.', 'star') }}
@@ -27,11 +28,11 @@
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>{{ ui("Partidos relacionados") }}</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
-  <div class="sports-list v701-match-list">
+  {% call collection('matches', 'sports-list v701-match-list') %}
     {% for m in data.favorite_feed %}
     {{ match_card(m, true, true) }}
     {% endfor %}
-  </div>
+  {% endcall %}
   {% else %}
   <div class="empty premium-empty">
     <strong>{{ ui("Aún no hay partidos relacionados con tus favoritos.") }}</strong>

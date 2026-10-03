@@ -71,6 +71,7 @@ jobs:
           python -c 'import app; app.init_db()'
           python -m pytest -o addopts='' -q \
             tests/test_journey_controls_browser.py \
+            tests/test_global_density_browser.py \
             tests/test_telegram_user_preferences.py \
             tests/test_auth_shell_fastpath.py \
             tests/test_client_core_fastpaths_wave2.py \

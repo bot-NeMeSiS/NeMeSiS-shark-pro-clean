@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, sports_contract_attributes with context %}
 {% from "components/realtime_live_card.html" import live_card with context %}
+{% from "components/density.html" import collection %}
 {% block content %}
 {% set live = data.get('live_experience') or {} %}
 {% set counts = live.get('counts') or {} %}
@@ -32,7 +33,7 @@
   <section class="ns16-section" id="v936-live-board">
     {{ section_header(surface.title, '', '', '', 'RESULTADOS' if surface.historical else 'CENTRO EN DIRECTO') }}
     <div class="ns16-live-feature">{{ live_card(ns.matches[0]) }}</div>
-    {% if ns.matches|length > 1 %}<div class="ns16-match-row is-four">{% for match in ns.matches[1:] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
+    {% if ns.matches|length > 1 %}{% call collection('matches', 'ns16-match-row is-four') %}{% for match in ns.matches[1:] %}{{ live_card(match) }}{% endfor %}{% endcall %}{% endif %}
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns16-live-empty" data-empty-dashboard="resolved">

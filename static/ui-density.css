@@ -1,0 +1,195 @@
+/* Shared presentation contract. No records, states or permissions are hidden.
+   Explicit specificity bridges legacy sheets while they are retired. */
+body[data-ui-density="adaptive-v1"] {
+  --ui-gap: 12px;
+  --ui-panel-pad: 12px;
+  --ui-card-min: 310px;
+  --ui-card-max: 520px;
+}
+html body.ns-app[data-ui-density] :is(.v933-page,.v928-page,.v928-stack,.v933-main-stack,.v933-side-stack,.master-main,.master-side) {
+  gap: var(--ui-gap) !important;
+  min-width: 0;
+}
+html body.ns-app[data-ui-density] :is(.v933-panel,.v933-admin-panel,.v928-admin-panel,.master-panel) {
+  min-width: 0;
+  min-height: 0;
+}
+html body.ns-app[data-ui-density] :is(.v933-page-header,.v933-section-header,.master-heading) {
+  min-height: 0 !important;
+  gap: 10px !important;
+  align-items: center;
+}
+html body.ns-app[data-ui-density] :is(.v933-page-header,.master-heading) h1 {
+  font-size: clamp(24px,2vw,32px) !important;
+  line-height: 1.15;
+}
+html body.ns-app[data-ui-density] :is(.v933-section-header,.v928-admin-panel > header,.v933-admin-panel > header) h2 {
+  font-size: clamp(17px,1.3vw,21px) !important;
+  line-height: 1.3;
+}
+html body.ns-app[data-ui-density] :is(.ns-collection,.v933-match-grid,.v933-live-grid,.v933-pick-grid,.v933-user-grid,.preview-grid) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,var(--ui-card-min)),1fr)) !important;
+  gap: var(--ui-gap) !important;
+  align-items: start !important;
+  min-width: 0;
+}
+html body.ns-app[data-ui-density] :is(.ns-collection,.v933-match-grid,.v933-live-grid,.v933-pick-grid,.v933-user-grid,.preview-grid) > * {
+  min-width: 0;
+  width: 100%;
+  max-width: var(--ui-card-max);
+  justify-self: start;
+}
+/* Empty notices describe the whole collection, not one missing card. */
+html body.ns-app[data-ui-density] .ns-collection > .v933-empty-state {
+  grid-column: 1 / -1;
+  max-width: 100%;
+}
+html body.ns-app[data-ui-density] .v933-match-card {
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  min-height: 0 !important;
+  gap: 8px !important;
+  padding: 10px !important;
+}
+html body.ns-app[data-ui-density] .v933-match-teams {
+  min-height: 56px !important;
+  grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) !important;
+}
+html body.ns-app[data-ui-density] .v933-match-teams strong {
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  font-size: 14px !important;
+  overflow-wrap: anywhere;
+}
+html body.ns-app[data-ui-density] .v933-match-card-footer {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px !important;
+}
+html body.ns-app[data-ui-density] .v933-match-card-header {
+  flex-wrap: wrap;
+}
+html body.ns-app[data-ui-density] .v933-match-card-actions { flex-wrap: wrap; }
+html body.ns-app[data-ui-density] .ns16-live-feature {
+  max-width: var(--ui-card-max);
+}
+html body.ns-app[data-ui-density] .ns-supporting-panel > summary {
+  display: list-item;
+  cursor: pointer;
+  min-height: 44px;
+  align-content: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+html body.ns-app[data-ui-density] .ns-supporting-panel > summary:focus-visible {
+  outline: 2px solid var(--v933-cyan);
+  outline-offset: 3px;
+}
+html body.ns-app[data-ui-density] .ns-supporting-panel[open] > summary {
+  margin-bottom: var(--ui-gap);
+}
+html body.ns-app[data-ui-density] .v933-empty-state {
+  min-height: 0 !important;
+  padding: 12px !important;
+}
+html body.ns-app[data-ui-density] :is(.v933-table-wrap,.v928-table-wrap,.master-table-wrap) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+@media (min-width:1101px) {
+  html body.ns-app[data-ui-density] :is(.v933-page-header,.master-heading) {
+    padding-block: 6px !important;
+    margin-block: 0 8px !important;
+  }
+  html body.ns-app[data-ui-density] :is(.v933-panel,.master-panel,.v933-admin-panel-body,.v928-admin-panel-body,.band.compact-band,.grid.dense-grid > .card) {
+    padding: var(--ui-panel-pad) !important;
+  }
+  html body.ns-app[data-ui-density] :is(.v933-section-header,.v933-admin-panel > header,.v928-admin-panel > header) {
+    padding-block: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  html body.ns-app[data-ui-density] :is(.v933-kpi,.v928-fact-card,.master-facts > article) {
+    min-height: 0 !important;
+    padding: 8px 10px !important;
+  }
+  html body.ns-app[data-ui-density] .v933-kpi strong { font-size: 24px !important; }
+  html body.ns-app[data-ui-density] :is(.v933-data-table,.v928-data-table,.master-table) :is(th,td) {
+    padding-block: 8px !important;
+    vertical-align: top;
+  }
+  html body.ns-app[data-ui-density] :is(.v933-two-col,.v928-layout-main-aside) {
+    grid-template-columns: minmax(0,2fr) minmax(280px,1fr) !important;
+    gap: var(--ui-gap) !important;
+    align-items: start;
+  }
+  html body.ns-app[data-ui-density] :is(.v928-grid,.grid.dense-grid,.v933-quick-actions) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr)) !important;
+    gap: var(--ui-gap) !important;
+    align-items: start;
+  }
+  html body.ns-app[data-ui-density] :is(.ns16-home-hero,.ns-video-empty-dashboard) {
+    min-height: 0 !important;
+    padding-block: 14px !important;
+  }
+}
+@media (max-width:600px) {
+  body[data-ui-density="adaptive-v1"] { --ui-gap: 10px; --ui-card-max: 100%; }
+  html body.ns-app[data-ui-density] :is(.ns-collection,.v933-match-grid,.v933-live-grid,.v933-pick-grid,.v933-user-grid,.preview-grid) {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+  html body.ns-app[data-ui-density] .v933-match-card :is(a,button) { min-height: 44px !important; }
+}
+
+
+/* Desktop sports collections keep all evidence visible while reducing the
+   oversized legacy vertical rhythm observed in populated 1440px collections. */
+@media (min-width:1101px) {
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card {
+    gap: 5px !important;
+    padding: 7px 8px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-header {
+    min-height: 0 !important;
+    gap: 5px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-header time {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-teams {
+    min-height: 44px !important;
+    gap: 5px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-team-logo {
+    --sports-crest-size: 34px;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-teams strong {
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-footer {
+    gap: 4px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-signals {
+    gap: 3px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-signals :is(.v933-status-chip,small) {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-actions .v933-action {
+    min-height: 32px !important;
+    padding: 4px 8px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card-actions > .fav-star {
+    flex-basis: 32px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+}

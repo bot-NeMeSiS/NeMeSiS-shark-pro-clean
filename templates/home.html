@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes with context %}
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
+{% from "components/density.html" import collection %}
 {% block content %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
@@ -102,9 +103,9 @@
   <section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/directo', 'Directo') }}
     {% if live_matches %}
-      <div class="v933-match-grid sports-priority-grid is-live">
+      {% call collection('matches', 'v933-match-grid sports-priority-grid is-live') %}
         {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
-      </div>
+      {% endcall %}
     {% else %}
       {{ empty_state('No hay partidos destacados en directo', 'Cuando exista directo real con evidencia fresca aparecerá arriba automáticamente.', 'Ver agenda', '/calendario?lane=week', 'live') }}
     {% endif %}
@@ -115,9 +116,9 @@
       <section class="v933-panel sports-priority-section" data-sports-priority="important-today">
         {{ section_header('Importantes hoy', '', 'Todos los partidos', '/calendario', 'Relevancia deportiva') }}
         {% if important_matches %}
-          <div class="v933-match-grid sports-priority-grid">
+          {% call collection('matches', 'v933-match-grid sports-priority-grid') %}
             {% for match in important_matches[:6] %}{{ match_card(match, false, true) }}{% endfor %}
-          </div>
+          {% endcall %}
         {% else %}
           {{ empty_state('Sin destacados hoy', safe_message, 'Ver semana', '/calendario?lane=week', 'calendar') }}
         {% endif %}
@@ -126,9 +127,9 @@
       <section class="v933-panel sports-priority-section" data-sports-priority="favorites">
         {{ section_header('Favoritos', '', 'Abrir favoritos', '/favoritos', 'Personal') }}
         {% if favorite_matches %}
-          <div class="v933-match-grid sports-priority-grid">
+          {% call collection('matches', 'v933-match-grid sports-priority-grid') %}
             {% for match in favorite_matches[:4] %}{{ match_card(match, true, true) }}{% endfor %}
-          </div>
+          {% endcall %}
         {% else %}
           {{ empty_state('Sin favoritos todavía', 'Guarda equipos, ligas o partidos para subirlos en tu experiencia sin ocultar el catálogo completo.', 'Elegir favoritos', '/favoritos', 'star') }}
         {% endif %}
@@ -137,9 +138,9 @@
       <section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
         {{ section_header('Próximos importantes', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
         {% if upcoming_matches %}
-          <div class="v933-match-grid sports-priority-grid is-compact">
+          {% call collection('matches', 'v933-match-grid sports-priority-grid is-compact') %}
             {% for match in upcoming_matches[:6] %}{{ match_card(match, true, true) }}{% endfor %}
-          </div>
+          {% endcall %}
         {% else %}
           {{ empty_state('Esperando próximos partidos', 'No hay próximos completos en la base local. NeMeSiS no fabrica calendario.', 'Actualizar vista', '/calendario?lane=week', 'calendar') }}
         {% endif %}
@@ -148,9 +149,9 @@
       <section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
         {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished', 'Resultados') }}
         {% if recent_results %}
-          <div class="v933-match-grid sports-priority-grid is-compact">
+          {% call collection('matches', 'v933-match-grid sports-priority-grid is-compact') %}
             {% for match in recent_results[:4] %}{{ match_card(match, true, true) }}{% endfor %}
-          </div>
+          {% endcall %}
         {% else %}
           {{ empty_state('Sin resultados recientes verificados', 'Aparecerán solo con marcador final real.', 'Ver calendario', '/calendario?lane=finished', 'history') }}
         {% endif %}

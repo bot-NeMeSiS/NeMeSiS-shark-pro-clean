@@ -2,6 +2,7 @@
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes, competition_logo with context %}
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
+{% from "components/density.html" import collection %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-1">
 {# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
@@ -229,7 +230,7 @@
             <div>{{ competition_logo(league_name, league_asset) }}<strong>{{ league_name }}</strong></div>
             <span>{{ ui('{count} partido' if (league.get('matches') or [])|length == 1 else '{count} partidos', count=(league.get('matches') or [])|length) }}</span>
           </header>
-          <div class="v933-match-grid">{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+          {% call collection('matches', 'v933-match-grid') %}{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}{% endcall %}
         </section>
         {% endfor %}
       </section>
