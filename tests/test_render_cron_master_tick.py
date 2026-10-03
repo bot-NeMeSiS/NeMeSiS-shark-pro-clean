@@ -229,6 +229,16 @@ def test_unexpected_telegram_exception_still_allows_evolution(monkeypatch, capsy
             "continuous_duration_ms": 1,
         },
     )
+    monkeypatch.setattr(
+        master,
+        "highlights_tick",
+        lambda *_args: {
+            "highlights_http": 200,
+            "highlights_status": "PASS",
+            "highlights_result": "fresh_sync_window",
+            "highlights_duration_ms": 1,
+        },
+    )
     monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
     monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
     return_code = master.main()
