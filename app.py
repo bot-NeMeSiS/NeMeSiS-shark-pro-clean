@@ -5623,8 +5623,19 @@ def sportsdb_team_from_payload(item, league_name=""):
         "country": item.get("strCountry") or "",
         "region": item.get("strRegion") or "",
         "league": league_name or item.get("strLeague") or "",
+        "league_id": item.get("idLeague") or "",
         "logo_url": item.get("strBadge") or item.get("strTeamBadge") or item.get("strLogo") or "",
         "external_id": item.get("idTeam") or "",
+        "formed_year": item.get("intFormedYear") or "",
+        "stadium_name": item.get("strStadium") or "",
+        "stadium_id": item.get("idVenue") or item.get("idStadium") or "",
+        "stadium_location": item.get("strStadiumLocation") or "",
+        "stadium_capacity": item.get("intStadiumCapacity") or "",
+        "jersey": item.get("strEquipment") or "",
+        "website": item.get("strWebsite") or "",
+        "description_es": item.get("strDescriptionES") or "",
+        "description_en": item.get("strDescriptionEN") or "",
+        "coach": item.get("strManager") or item.get("strCoach") or "",
         "color_hint": "premium-blue",
         "source": "sportsdb",
         "legal_note": "Equipo/escudo obtenido desde TheSportsDB mediante API permitida; sin scraping.",
@@ -5632,10 +5643,16 @@ def sportsdb_team_from_payload(item, league_name=""):
     }
 
 
+
 def upsert_team_payloads(team_rows, source="sportsdb"):
+    from engines.sports_history_adapters import ingest_sportsdb_team_profile
+    from engines.sports_history_engine import ensure_schema as ensure_sports_history_schema
+
     conn = db()
     cur = conn.cursor()
-    inserted = updated = skipped = 0
+    ensure_sports_history_schema(conn)
+    inserted = updated = skipped = history_linked = 0
+    history_errors = []
     for item in team_rows:
         name = item.get("name") or ""
         if not name:
@@ -5663,13 +5680,28 @@ def upsert_team_payloads(team_rows, source="sportsdb"):
                 now_iso(),
             ),
         )
+        provider = str(item.get("source") or source or "").strip().lower()
+        if "sportsdb" in provider and item.get("external_id"):
+            try:
+                ingest_sportsdb_team_profile(conn, item)
+                history_linked += 1
+            except (ValueError, sqlite3.Error):
+                history_errors.append(str(item.get("external_id") or "")[:40])
         if exists:
             updated += 1
         else:
             inserted += 1
     conn.commit()
     conn.close()
-    return {"inserted": inserted, "updated": updated, "skipped": skipped, "processed": len(team_rows)}
+    return {
+        "inserted": inserted,
+        "updated": updated,
+        "skipped": skipped,
+        "processed": len(team_rows),
+        "history_linked": history_linked,
+        "history_errors": history_errors[:12],
+    }
+
 
 
 def sync_sportsdb_teams(limit=240):
