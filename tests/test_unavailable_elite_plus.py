@@ -33,3 +33,10 @@ def test_checkout_remains_blocked_in_local_safe_mode(monkeypatch):
     result = billing.create_checkout_session("unused", {"id": "local-only"}, "PRO")
     assert result["status"] == "LOCAL_SAFE_BLOCKED"
     assert result["external_calls"] == result["membership_changes"] == 0
+
+@pytest.mark.parametrize("plan", ["ELITE+", "ELITE_PLUS"])
+def test_unsupported_value_ladder_highlights_free(plan, app_module):
+    with app_module.app.test_request_context("/membresias"):
+        html = app_module.app.jinja_env.get_template("components/v936_product.html").module.value_ladder(plan)
+    assert '<article class="is-current">' in html
+    assert 'is-elite is-current' not in html

@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes with context %}
 {% block content %}
-{% set plan_name = (current_user.membership or 'FREE')|upper %}
+{% set plan_name = (current_user.membership or 'FREE')|trim|upper %}
+{% if plan_name not in ['FREE', 'PRO', 'ELITE', 'ADMIN'] %}{% set plan_name = 'FREE' %}{% endif %}
 {% set hub = data.get('match_hub') or {} %}
 {# Compact and legacy contexts expose the same snapshot at different paths. #}
 {% set home_summary = data.get('home_summary') or {} %}
@@ -27,7 +28,7 @@
       <h1 data-madrid-greeting><span>{{ greeting.label }}{% if greeting.name %},{% endif %}</span>{% if greeting.name %} <strong class="ns16-user-name">{{ greeting.name }}</strong>{% endif %}</h1>
       <p>{% if sports_metrics.get('matches_today') %}{{ ui('{count} partido para hoy' if sports_metrics.get('matches_today') == 1 else '{count} partidos para hoy', count=sports_metrics.get('matches_today')) }}{% if sports_metrics.get('live_confirmed') %} · {{ ui('{count} en directo', count=sports_metrics.get('live_confirmed')) }}{% endif %}{% else %}{{ ui('Tu próxima jornada, en el calendario.') }}{% endif %}</p>
       <div class="v933-client-hero-meta">
-        {{ status_chip(ui('Plan {plan}', plan=plan_name), 'gold' if plan_name in ['ELITE','ELITE_PLUS'] else ('cyan' if plan_name == 'PRO' else 'blue')) }}
+        {{ status_chip(ui('Plan {plan}', plan=plan_name), 'gold' if plan_name == 'ELITE' else ('cyan' if plan_name == 'PRO' else 'blue')) }}
         {% if sports_metrics.get('live_confirmed', 0) %}{{ status_chip(ui('{count} en directo', count=sports_metrics.get('live_confirmed')), 'success') }}{% endif %}
       </div>
     </div>

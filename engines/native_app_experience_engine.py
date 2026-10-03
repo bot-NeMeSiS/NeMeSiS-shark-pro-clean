@@ -75,7 +75,7 @@ EXPERIENCE_PILLARS = [
     },
     {
         "name": "Consistencia por membresía",
-        "description": "Mantiene FREE, PRO, ELITE y ELITE+ con la energía visual global de V736.",
+        "description": "Mantiene FREE, PRO, ELITE y administración con la energía visual global de V736.",
     },
 ]
 
