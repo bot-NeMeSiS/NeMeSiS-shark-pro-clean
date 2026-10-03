@@ -252,6 +252,9 @@ class Coverage:
                    'states':{},'cursor':None,'next_batch':[], 'external_calls':0}
         try:
             with closing(self.connect()) as conn:
+                # Denominator and evidence must come from the same database
+                # snapshot while sports ingestion updates matches concurrently.
+                conn.execute('BEGIN')
                 expr = self.projection(conn)
                 total = conn.execute(f'SELECT COUNT(*) FROM matches m WHERE coverage_eligible({expr})').fetchone()[0]
                 exists = conn.execute("SELECT 1 FROM sqlite_master WHERE name='highlight_coverage'").fetchone()
@@ -263,6 +266,7 @@ class Coverage:
                     f'WHERE coverage_eligible({expr}) AND c.identity=coverage_identity({expr}) GROUP BY c.state').fetchall()
                 states = {row['state']:row['n'] for row in rows}
                 states['UNSCANNED'] = states.get('UNSCANNED',0) + total - sum(states.values())
+                states = {state:states.get(state,0) for state in STATES}
                 checked = sum(row['checked'] for row in rows)
                 cursor = dict(conn.execute('SELECT * FROM highlight_coverage_cursor').fetchone())
                 cursor['catalogue_rows'] = conn.execute('SELECT COUNT(*) FROM matches').fetchone()[0]

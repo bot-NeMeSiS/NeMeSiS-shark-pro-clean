@@ -279,3 +279,28 @@ def test_collection_row_id_cannot_override_explicit_canonical_match_id(monkeypat
     context={'collection':[item,dict(item)]}
     highlight_surfaces.enrich_context('unused',context)
     assert calls==[['canonical']] and item['has_highlights']
+
+
+def test_coverage_ratio_uses_one_snapshot_during_concurrent_ingestion(coverage,monkeypatch):
+    from engines.highlight_coverage import eligible
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('PRAGMA journal_mode=WAL')
+    original=coverage.connect
+    changed=[]
+    def reader(write=False):
+        conn=original(write)
+        def check(raw):
+            if not changed:
+                changed.append(True)
+                new={**MATCH,'id':'arrived','external_id':'sportsdb-43'}
+                with sqlite3.connect(coverage.path) as writer:
+                    writer.execute('INSERT INTO matches VALUES('+','.join('?' for _ in new)+')',tuple(new.values()))
+                    writer.execute('INSERT INTO highlight_coverage(match_id,identity,state,checked_at,due_at,updated_at) '
+                                   "VALUES(?,?,'LINKED',?,?,?)",('arrived',identity(new),NOW,NOW,NOW))
+            return int(eligible(json.loads(raw),NOW))
+        conn.create_function('coverage_eligible',1,check)
+        return conn
+    monkeypatch.setattr(coverage,'connect',reader)
+    snapshot=coverage.snapshot()
+    assert snapshot['eligible']==1 and snapshot['checked']==0 and snapshot['pending']==1
+    assert Coverage(coverage.path,NOW).snapshot()['eligible']==2

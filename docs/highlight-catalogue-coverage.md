@@ -39,7 +39,7 @@ vacíos se reintentan a seis horas para recientes, tres días para 8–30 días 
 
 La caché V2 y los feeds persisten en `sportsdb_highlight_feed_cache`. El backfill
 usa el mismo límite de 12 llamadas por operación, además de una reserva atómica
-persistente de 12 llamadas por ventana de seis horas (como máximo 48/día; no es
+persistente de 12 llamadas por ventana de seis horas (como máximo 48 por día UTC; no es
 una cuota contractual del proveedor). Histórico: máximo dos llamadas por esa
 ventana, dentro de las doce, para preservar el carril reciente. Se reserva ANTES
 de HTTP y no se reembolsa tras un error/reinicio. Nunca toca las 60 llamadas/día
