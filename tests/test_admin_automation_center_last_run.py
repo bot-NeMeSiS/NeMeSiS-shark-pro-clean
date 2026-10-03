@@ -46,7 +46,7 @@ def test_admin_automation_template_accepts_string_last_run(app_module):
             data={"automation_center": summary},
         )
     assert "2026-09-28T22:00:00+02:00" in html
-    assert "Centro de automatización" in html
+    assert "NeMeSiS Master Automation" in html
 
 
 def test_template_does_not_call_get_on_last_run_string():

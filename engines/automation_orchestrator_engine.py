@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from engines.automation_domains import domain_summary
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -58,7 +59,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
 
     master = _job(
         "master_tick",
-        "Cron maestro",
+        "NeMeSiS Master Automation",
         "/api/automation/telegram/tick + /api/automation/continuous-evolution/tick + backup diario",
         "python tools/render_cron_master_tick.py",
         True,
@@ -67,7 +68,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "cada 5 min",
     )
     master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
-    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution", "data_backup"]
+    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "highlights", "postmatch", "telegram", "continuous_evolution", "data_backup"]
     master["backup_window"] = "02:30–04:30 UTC; el web service deduplica por día y bloquea solapes."
 
     jobs = [master]
@@ -92,10 +93,13 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "jobs_ready": ready,
         "jobs_total": len(jobs),
         "jobs": jobs,
+        "domains": domain_summary(state),
+        "production_owner": "NeMeSiS Master Automation",
+        "qa_owner": "GitHub Actions / revisión bajo demanda",
         "manual_only": [
             "Programador heredado (manual)",
             "Automatización diaria V818 (compatibilidad)",
-            "Sincronización de destacados",
+            "Recuperación excepcional del catálogo de highlights",
             "Evaluación independiente de pronósticos",
             "Sincronización deportiva independiente",
             "Copia de seguridad independiente",
@@ -126,6 +130,6 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "next_actions": [
             "Mantener un único servicio cron cada 5 minutos.",
             "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
-            "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
+            "Highlights y postmatch pertenecen al Cron maestro; QA visual, navegador y deploy guard son controles separados.",
         ],
     }
