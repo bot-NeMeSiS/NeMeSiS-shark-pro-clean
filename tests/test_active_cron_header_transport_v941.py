@@ -8,6 +8,7 @@ def test_active_cron_query_secret_is_rejected(client,app_module,monkeypatch):
         "/api/automation/telegram/tick?runner=render_cron&secret=qa-active-cron-secret",
         "/api/automation/data-backup/run?secret=qa-active-cron-secret",
         "/api/automation/continuous-evolution/tick?secret=qa-active-cron-secret",
+        "/api/automation/highlights/sync?secret=qa-active-cron-secret",
     ):
         response=client.post(path,json={})
         assert response.status_code==403,(path,response.status_code)
@@ -30,6 +31,7 @@ def test_active_runners_use_post_and_no_runner_query_parameter():
     master=(ROOT/"tools/render_cron_master_tick.py").read_text(encoding="utf-8")
     standalone=(ROOT/"tools/render_cron_telegram_tick.py").read_text(encoding="utf-8")
     assert 'TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"' in master
+    assert 'HIGHLIGHTS_ENDPOINT = "/api/automation/highlights/sync"' in master
     assert 'telegram/tick?runner=render_cron' not in master
     assert 'method="POST"' in master
     assert 'return f"{base}{ENDPOINT}"' in standalone
@@ -106,3 +108,32 @@ def test_active_cron_queue_empty_is_a_healthy_no_work_result(client, app_module,
     assert payload["cron_status"] == "CRON_OK"
     assert payload["sent"] == 0
     assert payload["failed"] == 0
+
+
+def test_highlight_interval_guard_avoids_provider_call(app_module, monkeypatch):
+    now = 1_800_000_000.0
+    monkeypatch.setenv("HIGHLIGHTS_SYNC_INTERVAL_HOURS", "6")
+    monkeypatch.setattr(app_module.time, "time", lambda: now)
+    monkeypatch.setattr(
+        app_module,
+        "automation_get",
+        lambda key, default=None: {
+            "ok": True,
+            "status": "OK",
+            "errors": [],
+            "date": app_module.today_iso(),
+            "attempt_finished_epoch": now - 600,
+        } if key == "sportsdb_highlights_last_sync" else (default or {}),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "sync_sportsdb_highlights",
+        lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("provider must not run inside interval")),
+    )
+    result = app_module.v766_sync_highlights_daily(force=False, days_back=5, limit=250)
+    assert result["ok"] is True
+    assert result["skipped"] is True
+    assert result["reason"] == "interval_active"
+    assert result["external_calls"] == 0
+    assert result["interval_hours"] == 6
+    assert 0 < result["next_due_seconds"] <= 6 * 3600

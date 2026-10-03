@@ -18799,26 +18799,61 @@ def v766_calendar_order_context(calendar=None):
     }
 
 
+def v766_highlights_interval_seconds():
+    hours = max(1, min(as_int(os.getenv("HIGHLIGHTS_SYNC_INTERVAL_HOURS", "6"), 6), 24))
+    return hours * 3600
+
+
+def v766_highlights_last_age_seconds(last):
+    last = last or {}
+    try:
+        epoch = float(last.get("attempt_finished_epoch") or 0)
+        if epoch > 0:
+            return max(0, time.time() - epoch)
+    except (TypeError, ValueError, OverflowError):
+        pass
+    stamp = str(last.get("finished_at") or last.get("started_at") or "").strip()
+    if not stamp:
+        return None
+    try:
+        parsed = datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        else:
+            parsed = parsed.astimezone(TZ)
+        return max(0, (datetime.now(TZ) - parsed).total_seconds())
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
-    """Reuse the existing daily sync; failures must not suppress a whole day."""
-    import time
+    """Persist highlights on a bounded interval; client/Admin reads never call the provider."""
     started = now_iso()
+    interval_seconds = v766_highlights_interval_seconds()
+    interval_hours = interval_seconds // 3600
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         last_day = str(last.get("date") or "")[:10]
-        if last_day == today_iso():
-            if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
-                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
-            if last.get('retryable') is False:
-                return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
-                        "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
-            try:
-                age = time.time() - float(last.get('attempt_finished_epoch') or 0)
-            except (ValueError, TypeError, OverflowError):
-                age = 901
-            if 0 <= age < 900:
-                return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
-                        "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"]}
+        age = v766_highlights_last_age_seconds(last)
+        successful = last.get("ok") is True and not last.get("errors") and last.get("status", "OK") == "OK"
+        if successful:
+            if age is not None and age < interval_seconds:
+                return {"ok": True, "skipped": True, "reason": "interval_active", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0,
+                        "interval_hours": interval_hours,
+                        "next_due_seconds": max(0, int(interval_seconds - age)), "errors": []}
+            if age is None and last_day == today_iso():
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0,
+                        "interval_hours": interval_hours, "errors": []}
+        if last_day == today_iso() and last.get("retryable") is False:
+            return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                    "processed": 0, "updated": 0, "external_calls": 0,
+                    "interval_hours": interval_hours, "errors": last.get("errors") or []}
+        if last.get("ok") is not True and age is not None and age < 900:
+            return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
+                    "processed": 0, "updated": 0, "external_calls": 0,
+                    "interval_hours": interval_hours, "errors": ["RETRY_COOLDOWN"]}
     try:
         result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
     except Exception:
@@ -18826,11 +18861,10 @@ def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
     result["started_at"] = started
     result["finished_at"] = now_iso()
     result["date"] = today_iso()
-    result['attempt_finished_epoch'] = time.time()
+    result["attempt_finished_epoch"] = time.time()
+    result["interval_hours"] = interval_hours
     automation_set("sportsdb_highlights_last_sync", result)
     return result
-
-
 
 # ===================== V769 HIGHLIGHTS / RESULTS CONTENT CENTER FINAL =====================
 
@@ -19008,7 +19042,25 @@ def api_automation_highlights_sync():
     days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 5)
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
+    result = v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)
+    compact = {
+        "time": now_iso(),
+        "status": result.get("status") or result.get("reason") or ("OK" if result.get("ok") else "FAILED"),
+        "result": {
+            "status": result.get("status") or result.get("reason") or ("OK" if result.get("ok") else "FAILED"),
+            "ok": bool(result.get("ok")),
+            "skipped": bool(result.get("skipped")),
+            "external_calls": as_int(result.get("external_calls"), 0),
+            "highlights_found": as_int(result.get("highlights_found"), 0),
+            "linked_matches": as_int(result.get("linked_matches"), 0),
+            "v2_event_lookups": as_int(result.get("v2_event_lookups"), 0),
+            "v2_cache_hits": as_int(result.get("v2_cache_hits"), 0),
+            "v2_highlights_found": as_int(result.get("v2_highlights_found"), 0),
+        },
+    }
+    automation_safe_set("last_cron_highlights_sync", compact)
+    automation_safe_set("highlights_sync_last_call", compact)
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": result})
 
 
 @app.route("/api/admin/highlights/sync", methods=["POST"])

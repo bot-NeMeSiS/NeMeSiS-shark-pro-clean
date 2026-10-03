@@ -59,15 +59,15 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
     master = _job(
         "master_tick",
         "Cron maestro",
-        "/api/automation/telegram/tick + /api/automation/continuous-evolution/tick + backup diario",
+        "/api/automation/telegram/tick + highlights + evolución + backup",
         "python tools/render_cron_master_tick.py",
         True,
         automation_secret and public_base and db_ok,
         state.get("last_cron_telegram_call"),
         "cada 5 min",
     )
-    master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
-    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution", "data_backup"]
+    master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, highlights, evolución segura y backup diario."
+    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "highlights", "continuous_evolution", "data_backup"]
     master["backup_window"] = "02:30–04:30 UTC; el web service deduplica por día y bloquea solapes."
 
     jobs = [master]
@@ -95,7 +95,6 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "manual_only": [
             "Programador heredado (manual)",
             "Automatización diaria V818 (compatibilidad)",
-            "Sincronización de destacados",
             "Evaluación independiente de pronósticos",
             "Sincronización deportiva independiente",
             "Copia de seguridad independiente",
@@ -126,6 +125,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "next_actions": [
             "Mantener un único servicio cron cada 5 minutos.",
             "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
-            "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
+            "Highlights se comprueba desde el cron maestro; la app limita llamadas externas con intervalo persistido.",
+            "Ejecutar Sentinel, QA visual y jobs legacy solo bajo demanda.",
         ],
     }
