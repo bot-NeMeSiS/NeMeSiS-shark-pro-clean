@@ -194,7 +194,8 @@ class Store:
                          "(state='RUNNING' AND lease_until<=?))", (now, now, now))
             row = conn.execute("SELECT * FROM postmatch_jobs WHERE "
                                "(state IN ('PENDING','RETRY') AND due_at<=?) OR "
-                               "(state='RUNNING' AND lease_until<=?) ORDER BY due_at,attempts,id LIMIT 1", (now, now)).fetchone()
+                               "(state='RUNNING' AND lease_until<=?) ORDER BY due_at,"
+                               "CASE WHEN state='RUNNING' THEN 0 ELSE 1 END,attempts,id LIMIT 1", (now, now)).fetchone()
             if not row:
                 return None
             token = secrets.token_hex(16)
