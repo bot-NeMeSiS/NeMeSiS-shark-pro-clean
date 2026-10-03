@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "ES_EU": {
+      "basis": "editorial_market_hypothesis_supported_by_public_research_not_user_telemetry",
+      "reviewed_at": "2026-10-03",
+      "evidence": [
+        "https://www.csd.gob.es/es/encuesta-de-habitos-deportivos-en-espana",
+        "https://www.uefa.com/news-media/news/02a9-21aca98834ff-f54c73c29132-1000--the-key-trends-at-the-heart-of-european-club-football/"
+      ],
+      "rules": [
+        {"key":"fifa-world-cup","rank":1,"rationale":"Editorial: major national-team tournament; not a measured Spanish preference."},
+        {"key":"uefa-euro","rank":2,"rationale":"Editorial: European national-team tournament for the target market."},
+        {"key":"laliga","rank":3,"rationale":"Editorial: Spanish top division for the initial Spanish market."},
+        {"key":"uefa-champions-league","rank":4,"rationale":"Editorial: leading continental club competition; European interest supported by UEFA landscape research."},
+        {"key":"uefa-nations-league","rank":5,"rationale":"Editorial: European national-team competition."},
+        {"key":"uefa-europa-league","rank":6,"rationale":"Editorial: continental club competition relevant to European coverage."},
+        {"key":"uefa-conference-league","rank":7,"rationale":"Editorial: continental club competition relevant to European coverage."},
+        {"key":"premier-league","rank":8,"rationale":"Editorial: European top division; no claimed Spanish audience share."},
+        {"key":"serie-a","rank":9,"rationale":"Editorial: European top division; no claimed Spanish audience share."},
+        {"key":"bundesliga","rank":11,"rationale":"Editorial: European top division; no claimed Spanish audience share."},
+        {"key":"ligue-1","rank":12,"rationale":"Editorial: European top division; no claimed Spanish audience share."},
+        {"key":"copa-del-rey","rank":13,"rationale":"Editorial: domestic Spanish cup; retains the catalog tier."},
+        {"key":"segunda-division","rank":14,"rationale":"Editorial: Spanish professional second tier; retains the catalog tier."},
+        {"key":"supercopa-espana","rank":15,"rationale":"Editorial: Spanish domestic competition; retains the catalog tier."},
+        {"key":"primeira-liga","rank":16,"rationale":"Editorial: neighboring European market; retains the catalog tier."}
+      ]
+    },
+    "GLOBAL": {
+      "basis":"existing_catalog_policy",
+      "reviewed_at":"2026-10-03",
+      "evidence":["engines/match_sync_engine.py:IMPORTANT_COMPETITIONS"],
+      "rules":[]
+    }
+  }
+}
