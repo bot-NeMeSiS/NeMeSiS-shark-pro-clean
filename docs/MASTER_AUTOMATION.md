@@ -9,6 +9,8 @@ El registro `engines/automation_domains.py` concentra cinco dominios de
 producción sin importar módulos ni iniciar hilos. Los módulos y endpoints
 existentes siguen siendo adaptadores compatibles. Sports y delivery comparten
 el tick existente: dividirlos físicamente duplicaría llamadas y entrega.
+El runner real consume sus endpoints desde este registro; Admin y Cron usan
+la misma definición de propiedad. Sus constantes públicas se conservan como aliases.
 
 | Dominio | Entrada del Cron | Estado / recuperación |
 | --- | --- | --- |

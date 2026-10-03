@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import os
 import socket
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -23,11 +24,16 @@ import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+# Direct script execution still resolves the same package as the web service.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from engines.automation_domains import production_endpoint
+
 RUNNER_NAME = "nemesis_master_tick"
-TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"
-CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
-BACKUP_ENDPOINT = "/api/automation/data-backup/run"
-HIGHLIGHTS_ENDPOINT = "/api/automation/highlights/sync"
+TELEGRAM_ENDPOINT = production_endpoint('delivery')
+CONTINUOUS_EVOLUTION_ENDPOINT = production_endpoint('maintenance', 'evolution')
+BACKUP_ENDPOINT = production_endpoint('maintenance')
+HIGHLIGHTS_ENDPOINT = production_endpoint('media')
+POSTMATCH_ENDPOINT = production_endpoint('postmatch')
 READINESS_ENDPOINT = "/api/runtime-version?compact=1"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
@@ -586,7 +592,7 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
     """A 200 only confirms transport; inspect the domain result independently."""
     started = time.perf_counter()
     try:
-        req = urllib.request.Request(base_url + '/api/automation/postmatch/tick', data=b'{}',
+        req = urllib.request.Request(base_url + POSTMATCH_ENDPOINT, data=b'{}',
             headers={'X-Automation-Secret': secret, 'Accept': 'application/json',
                      'User-Agent': 'NeMeSiS-Master-Postmatch/1.0'}, method='POST')
         with urllib.request.urlopen(req, timeout=POSTMATCH_TIMEOUT_SECONDS) as response:

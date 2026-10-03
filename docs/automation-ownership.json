@@ -873,12 +873,14 @@
       "purpose": "Canonical production ownership. Existing module paths remain adapters.",
       "imports": [
         "engines/automation_orchestrator_engine.py:5",
-        "tests/test_automation_domains.py:2"
+        "tests/test_automation_domains.py:2",
+        "tools/render_cron_master_tick.py:29"
       ],
       "references": [
         "engines/automation_orchestrator_engine.py:5",
         "tests/test_automation_domains.py:2",
-        "tools/audit_automation_ownership.py:11"
+        "tools/audit_automation_ownership.py:11",
+        "tools/render_cron_master_tick.py:29"
       ],
       "execution_surfaces": [
         "source reference (execution unproven)"
@@ -8671,7 +8673,7 @@
       "imports": [],
       "references": [
         "app.py:19373",
-        "tests/test_active_cron_header_transport_v941.py:43"
+        "tests/test_active_cron_header_transport_v941.py:44"
       ],
       "execution_surfaces": [
         "Render web import",
@@ -8685,6 +8687,7 @@
       "category": "PRODUCTION",
       "purpose": "Stateless coordinator for the existing NeMeSiS Render Cron service.",
       "imports": [
+        "tests/test_active_cron_header_transport_v941.py:32",
         "tests/test_dashboard_runtime_sports_diagnostics_repair.py:688",
         "tests/test_sports_pipeline_stage_truth.py:121",
         "tests/test_sports_pipeline_stage_truth.py:257",
@@ -8696,6 +8699,7 @@
         "engines/automation_orchestrator_engine.py:64",
         "render.yaml:46",
         "tests/test_active_cron_header_transport_v941.py:30",
+        "tests/test_active_cron_header_transport_v941.py:32",
         "tests/test_automation_schedule_minimal.py:15",
         "tests/test_dashboard_runtime_sports_diagnostics_repair.py:688",
         "tests/test_postmatch_recovery.py:345",
@@ -8719,7 +8723,7 @@
       "purpose": "Protected Render Cron runner for the sports-only synchronization cycle.",
       "imports": [],
       "references": [
-        "tests/test_active_cron_header_transport_v941.py:42",
+        "tests/test_active_cron_header_transport_v941.py:43",
         "tools/check_v937_operational_closeout.py:133"
       ],
       "execution_surfaces": [

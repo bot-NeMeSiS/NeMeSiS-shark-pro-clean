@@ -29,7 +29,8 @@ def test_active_cron_header_is_accepted_before_business_logic(client,app_module,
 def test_active_runners_use_post_and_no_runner_query_parameter():
     master=(ROOT/"tools/render_cron_master_tick.py").read_text(encoding="utf-8")
     standalone=(ROOT/"tools/render_cron_telegram_tick.py").read_text(encoding="utf-8")
-    assert 'TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"' in master
+    from tools.render_cron_master_tick import TELEGRAM_ENDPOINT
+    assert TELEGRAM_ENDPOINT == '/api/automation/telegram/tick'
     assert 'telegram/tick?runner=render_cron' not in master
     assert 'method="POST"' in master
     assert 'return f"{base}{ENDPOINT}"' in standalone
