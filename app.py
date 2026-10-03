@@ -6382,6 +6382,8 @@ def run_scheduler_task(task_name, force=False, limit=None):
                 "teams": teams_result,
                 "crests": crest_result,
             }
+        elif task_name == "sports_entities":
+            result = sync_sportsdb_entity_memory(limit_teams=limit or 6)
         elif task_name == "odds":
             result = sync_odds_events(limit=limit or 250, force=force)
         elif task_name == "live":
@@ -6418,7 +6420,7 @@ def run_scheduler_task(task_name, force=False, limit=None):
 def run_due_scheduler_tasks(force=False, startup=False):
     if not force and not scheduler_enabled():
         return {"ok": True, "skipped": True, "reason": "auto_sync_disabled", "tasks": []}
-    tasks = ["calendar", "crests", "odds", "live", "highlights", "recommendations", "auto_picks", "live_alerts", "warehouse", "pick_grading", "telegram", "cleanup"]
+    tasks = ["calendar", "crests", "sports_entities", "odds", "live", "highlights", "recommendations", "auto_picks", "live_alerts", "warehouse", "pick_grading", "telegram", "cleanup"]
     if startup:
         total_matches = (one("SELECT COUNT(*) AS total FROM matches") or {}).get("total", 0)
         teams_with_crests = (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0)
@@ -33499,6 +33501,12 @@ def v818_master_callbacks():
         "daily_close_previous_day": v818_daily_close_previous_day,
         "daily_data_backup_maintenance": v818_backup_maintenance,
         "morning_fixtures_sync": v818_fixtures_sync,
+        "sports_entities_sync": lambda: v818_callback_result(
+            "sportsdb_entity_memory",
+            sync_sportsdb_entity_memory,
+            limit_teams=as_int(os.getenv("SPORTSDB_ENTITY_TEAMS_PER_DAY", "6"), 6),
+            daily_budget=as_int(os.getenv("THESPORTSDB_DAILY_CALL_BUDGET", "24"), 24),
+        ),
         "morning_odds_and_pick_candidates": v818_odds_and_candidates,
         "telegram_daily_top_agenda": v818_telegram_daily_top_agenda,
         "live_tracker_smart_sync": v818_live_tracker_smart_sync,
