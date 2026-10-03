@@ -19,6 +19,7 @@ JOB_WINDOWS = {
     "daily_close_previous_day": "00:10",
     "daily_data_backup_maintenance": "02:30",
     "morning_fixtures_sync": "07:00",
+    "sports_entities_sync": "07:10",
     "morning_odds_and_pick_candidates": "09:00",
     "telegram_daily_top_agenda": "11:30",
     "daily_evening_recap": "22:45",
@@ -37,6 +38,7 @@ JOB_NAMES = {
     "daily_close_previous_day": "Cierre de dia anterior",
     "daily_data_backup_maintenance": "Backup y mantenimiento",
     "morning_fixtures_sync": "Agenda del dia",
+    "sports_entities_sync": "Entidades deportivas SportsDB",
     "morning_odds_and_pick_candidates": "Cuotas y picks candidatos",
     "telegram_daily_top_agenda": "Telegram agenda TOP",
     "match_lifecycle_reconciler": "Ciclo de vida de partidos",
@@ -50,6 +52,7 @@ JOB_NAMES = {
 
 API_ESTIMATES = {
     "morning_fixtures_sync": ("api_football", 6),
+    "sports_entities_sync": ("thesportsdb", 6),
     "morning_odds_and_pick_candidates": ("odds_api", 5),
     "live_tracker_smart_sync": ("api_football", 1),
     "results_sync_and_telegram_top_results": ("api_football", 2),
