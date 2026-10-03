@@ -153,6 +153,7 @@ from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
 from engines.competition_center_engine import build_competition_center_context
 from engines.player_center_engine import build_player_center_context
+from engines.sports_entity_navigation_engine import entity_href as sports_entity_href, entity_navigation_contract as sports_entity_navigation_contract
 from engines.sports_domain_model_engine import normalize_competition_entity
 from engines.shark_intelligence_platform_engine import build_shark_intelligence_platform_snapshot
 from engines.user_intelligence_platform_engine import (
@@ -10962,6 +10963,16 @@ def enrich_pick_client_context(pick, match=None):
     pick["client_provider_empty_label"] = "Proveedor sin datos ahora mismo"
     pick["client_summary_line"] = f"{pick.get('client_match_label')} · {pick.get('client_temporal_label')} · {pick.get('client_competition')}"
     return pick
+
+@app.template_global("sports_entity_href")
+def jinja_sports_entity_href(entity_type, identifier="", label=""):
+    return sports_entity_href(entity_type, identifier, label)
+
+
+@app.template_global("sports_entity_navigation")
+def jinja_sports_entity_navigation(entity_type, identifier="", label=""):
+    return sports_entity_navigation_contract(entity_type, identifier, label)
+
 
 @app.template_filter("match_full_datetime")
 def jinja_match_full_datetime(value):
