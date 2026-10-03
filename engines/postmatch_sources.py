@@ -97,6 +97,18 @@ def match_date(match):
     return str(match.get('match_date') or '')[:10]
 
 
+def sportsdb_query_date(match):
+    """Existing dated reconciliation uses the provider UTC date, not a guessed day."""
+    day = match_date(match)
+    try:
+        local = datetime.fromisoformat(day + 'T' + str(match.get('kickoff_time') or ''))
+        if local.tzinfo is None:
+            local = local.replace(tzinfo=ZoneInfo('Europe/Madrid'))
+        return local.astimezone(timezone.utc).date().isoformat()
+    except (TypeError, ValueError):
+        return day
+
+
 def match_event(match, event):
     """Cross-source identity requires exact names AND date AND competition.
 
@@ -248,14 +260,7 @@ class OfficialSources:
             payload = self.request('thesportsdb', 'lookupevent.php', {'id': sid})
         else:
             # Exact dated discovery, capped by provider response and the worker's request budget.
-            day = match_date(match)
-            try:
-                local = datetime.fromisoformat(day + 'T' + str(match.get('kickoff_time') or ''))
-                if local.tzinfo is None:
-                    local = local.replace(tzinfo=ZoneInfo('Europe/Madrid'))
-                day = local.astimezone(timezone.utc).date().isoformat()
-            except (TypeError, ValueError):
-                pass  # No guessed kickoff; keep the dated discovery scope.
+            day = sportsdb_query_date(match)
             payload = self.request('thesportsdb', 'eventsday.php', {'d': day, 's': 'Soccer'})
         if 'events' not in payload:
             raise SourceError('MALFORMED')

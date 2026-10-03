@@ -115,7 +115,7 @@ def finish(store, job, result, now):
             state = 'REVIEW_REQUIRED'
         elif reason in {'IDENTITY_CHANGED','NOT_FINAL'}:
             state = 'CANCELLED'
-        elif reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'}:
+        elif reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN', 'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
             state = 'RETRY'
         elif job['attempts'] >= 5:
             state = 'PARTIAL' if reason == 'PARTIAL_COVERAGE' else 'FAILED'
@@ -124,12 +124,15 @@ def finish(store, job, result, now):
         delay = RETRY_DELAYS[min(job['attempts'] - 1, len(RETRY_DELAYS) - 1)]
         due_at = now + delay
         attempts = job['attempts']
-        if reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN'}:
+        if reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN', 'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
             # A controlled deferral is not a failed provider attempt.
             attempts = max(0, attempts - 1)
             if reason == 'DAILY_BUDGET':
                 local = datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid'))
                 due_at = (local.replace(hour=0, minute=0, second=5, microsecond=0) + timedelta(days=1)).timestamp()
+            elif reason in {'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
+                from engines.highlight_coverage import retry_delay
+                due_at = now + retry_delay(current, now, job['attempts'])
         conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,attempts=?,lease_token=NULL,lease_until=0 WHERE id=?',
                      (state, reason, due_at, now, attempts, job['id']))
         diagnostics = safe_diagnostics(result.get('diagnostics'))
@@ -227,8 +230,12 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                     results.append({'job_id':job['id'],'kind':job['kind'],'state':'FAILED','reason':reason,'external_calls':0})
     except (sqlite3.Error, OSError, ValueError):
         return {'ok':False,'result':'STORAGE_UNAVAILABLE','processed':len(results),'jobs':results}
+    from engines.automation_outcome import postmatch_outcome
+    technical = postmatch_outcome(results)
     completed = all(row['state'] == 'COMPLETE' for row in results)
-    output = {'ok': True, 'result': 'IDLE' if not results else 'COMPLETE' if completed else 'PARTIAL',
+    output = {'ok': technical != 'FAIL', 'result': 'IDLE' if not results else 'FAIL' if technical == 'FAIL' else 'PARTIAL' if technical == 'PARTIAL' else 'COMPLETE',
+              'technical_status': technical,
+              'content_pending': not completed,
               'processed':len(results),'external_calls':sum(r['external_calls'] for r in results),'jobs':results}
     if results:
         # Closed projection only: no credentials, URLs, raw payloads or personal data.

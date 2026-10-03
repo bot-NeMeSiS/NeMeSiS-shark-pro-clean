@@ -216,6 +216,8 @@ def read_highlights_readiness(db_path):
     from datetime import datetime, timezone
     import shutil
     snapshot = read_highlights_summary(db_path)
+    from engines.highlight_coverage import Coverage
+    coverage = Coverage(db_path).snapshot()
     storage = {'state': 'NOT_OBSERVED', 'database_bytes': None,
                'wal_bytes': None, 'filesystem_free_bytes': None}
     try:
@@ -236,6 +238,7 @@ def read_highlights_readiness(db_path):
         'ok': snapshot['ok'], 'read_state': snapshot['read_state'],
         'catalogue_status': snapshot['status'],
         'metadata': {key: snapshot.get(key) for key in keys},
+        'match_coverage': coverage,
         'storage': storage, 'observed_at': datetime.now(timezone.utc).isoformat(),
         'playback_verified': False, 'production_activation_certified': False,
         'external_calls': 0,

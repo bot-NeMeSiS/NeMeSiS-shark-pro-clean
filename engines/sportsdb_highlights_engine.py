@@ -578,7 +578,7 @@ def reconcile_cached_highlight_links(db_path, *, days_back=7, limit=250):
     return changed
 
 
-def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
+def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, historical_only=False, priority=None):
     """Bounded collection with league partitioning when the 50-row feed saturates.
 
     Uses the current worker/rights pipeline. No network under a SQLite write
@@ -596,6 +596,10 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
         return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
     ensure_sportsdb_highlights_schema(db_path)
     associations_reconciled = reconcile_cached_highlight_links(db_path, days_back=days, limit=capacity)
+    from engines.highlight_coverage import Coverage, run_one
+    coverage = Coverage(db_path, datetime.fromisoformat(_now()).timestamp(), priority=priority)
+    coverage.prepare()
+    historical = {'processed': 0, 'state': 'NOT_RUN'}
     run_id, start = uuid.uuid4().hex[:22], _now()
     with _connect(db_path) as conn:
         conn.execute('INSERT INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
@@ -604,7 +608,8 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
     found = linked = 0
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
-    scope = SportsDBBudget(max_calls=12)
+    historical_phase = [bool(historical_only)]
+    scope = SportsDBBudget(max_calls=12, before_call=lambda: coverage.reserve_media_call(historical_phase[0]))
     persistent_cache_hits = 0
     profile_links_reused = 0
     v2_event_lookups = 0
@@ -650,7 +655,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
                 conn.commit()
         return values or []
 
-    def save(items):
+    def save(items, observe=True):
         nonlocal found, linked
         pending, batch_seen, stopped = [], set(), False
         for item in items:
@@ -673,6 +678,9 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
         seen.update(batch_seen)
         found += batch_found
         linked += batch_linked
+        if observe:
+            for sid, item in pending:
+                coverage.observe(sid, [item])
         if stopped:
             raise SportsDBStopped('ITEM_BUDGET')
 
@@ -814,7 +822,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
             partition_jobs = []
             deferred_day = None
             # Cover requested dates first; optional fanout must not starve older days.
-            for delta in range(days + 1):
+            for delta in range(0 if historical_only else days + 1):
                 # Reserve calls and time for exact event lookups. Cached dates
                 # progressively complete a deferred feed window on later retries.
                 if scope.calls >= scope.max_calls - 4 or (scope.calls and scope.remaining() < 8):
@@ -835,12 +843,22 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
             # Premium V2: precise lookup for a bounded set of finished matches still
             # missing video metadata. Cache hits cost no provider call. This runs only
             # inside the scheduled worker, never during a client/Admin GET.
-            for candidate in v2_candidates(max_items=4):
+            for candidate in ([] if historical_only else v2_candidates(max_items=2 if coverage.has_due_history() else 4)):
                 if scope.calls >= scope.max_calls:
                     break
                 before_v2 = found
-                save(acquire_v2_event(candidate['event_id']))
+                event_items = acquire_v2_event(candidate['event_id'])
+                save(event_items, observe=False)
+                coverage.observe(candidate['event_id'], event_items)
                 v2_highlights_found += max(0, found - before_v2)
+
+            # One durable historical job uses the SAME request/time scope. Recent
+            # feed/exact lookups take precedence; no additional cron or allowance.
+            historical_phase[0] = True
+            historical = run_one(coverage, scope, acquire_v2_event, lambda rows: save(rows, observe=False), _sportsdb_v1)
+            historical_phase[0] = False
+            if historical.get('state') == 'RETRY_LATER' and historical.get('reason'):
+                errors.append(historical['reason'])
 
             # After exact lookups, use any remaining budget on deferred dates.
             if deferred_day is not None:
@@ -889,7 +907,9 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
     except (sqlite3.Error, OSError):
         enrich = {}
         errors.append('STORAGE_UNAVAILABLE')
-    status = 'PARTIAL' if errors and found else 'FAILED' if errors else 'OK'
+    technical = set(errors) - {'TIME_BUDGET', 'REQUEST_BUDGET', 'MEDIA_BUDGET', 'BUDGET_RESERVED_FOR_RECENT', 'NO_EVENT', 'PARTITION_BUDGET',
+                              'ITEM_BUDGET', 'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'ENRICHMENT_PENDING'}
+    status = 'FAILED' if technical else 'PARTIAL' if errors else 'OK'
     errors = list(dict.fromkeys(errors))
     with _connect(db_path) as conn:
         conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=?,associations_reconciled=? WHERE id=?',
@@ -898,6 +918,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
         conn.commit()
     return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
             'days_back': days, 'highlights_found': found, 'linked_matches': linked,
+            'historical_backfill': historical,
             'enrichment_updated': enrich.get('updated', 0), 'errors': errors[:8],
             'saturated_dates': saturated_dates, 'league_partitions': partitions,
             'retryable': bool(set(errors) - {'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'PARTITION_BUDGET', 'ITEM_BUDGET'}),
