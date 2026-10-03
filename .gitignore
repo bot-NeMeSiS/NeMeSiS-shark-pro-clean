@@ -152,3 +152,5 @@ data/runtime/autonomous_sentinel/history/
 data/runtime/v902_autonomous_reference_scan_final.json
 data/runtime/v902_autonomous_reference_scan.json
 data/runtime/v902_autonomous_safe_scan.json
+
+/node_modules/

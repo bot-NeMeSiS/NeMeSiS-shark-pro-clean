@@ -130,15 +130,12 @@ def test_sports_styles_use_canonical_sizes_and_version_both_stylesheets():
     assert 'font-size: var(--score-size-compact)' in css
     assert 'width: var(--sports-crest-size, var(--crest-md))' in css
     assert '.v933-team-logo img' in css and 'object-fit: contain' in css
-    token_link = next(line for line in base.splitlines() if "filename='v933_design_tokens.css'" in line)
-    product_link = next(line for line in base.splitlines() if "filename='v933-product.css'" in line)
-    assert '-design-02-sports-1' in token_link
+    bundle_link = next(line for line in base.splitlines() if "filename='product-system.css'" in line)
+    assert 'data-product-system="premium-1"' in bundle_link
+    builder = (root / 'tools/build_visual_css.mjs').read_text(encoding='utf-8')
+    assert builder.index("'v933_design_tokens.css'") < builder.index("'v933-product.css'")
     realtime_script = next(line for line in base.splitlines() if "filename='v934-realtime.js'" in line)
-    assert '-design-02-r6-1' in product_link
-    assert '-design-02-r5-1' not in product_link
     assert '-design-02-r5-1' in realtime_script
-    assert '-design-02-r3-1' not in product_link
-    assert '-design-02-conformance-2' not in product_link
 
 
 @pytest.mark.parametrize('route', ['/calendar', '/calendario', '/calendario-global', '/partidos', '/partidos/calendario'])

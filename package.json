@@ -1,0 +1,12 @@
+{
+  "name": "nemesis-visual-assets",
+  "private": true,
+  "scripts": {
+    "build:css": "node tools/build_visual_css.mjs",
+    "check:css": "node tools/build_visual_css.mjs --check"
+  },
+  "devDependencies": {
+    "cssnano": "7.1.2",
+    "postcss": "8.5.6"
+  }
+}
