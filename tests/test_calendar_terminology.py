@@ -1,17 +1,18 @@
-"""V941 terminology: Calendario is the section name; match copy stays specific."""
+"""Results is the unified section; Calendario remains an internal sports view."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def test_canonical_navigation_uses_calendario_and_keeps_internal_routes():
+def test_canonical_navigation_uses_resultados_and_keeps_calendar_aliases():
     nav=(ROOT/"templates/components/navigation_contracts.html").read_text(encoding="utf-8")
-    assert "Calendario" in nav
+    assert "('Resultados','/calendario?lane=finished','history')" in nav
+    assert "('Resultados y calendario','/admin/matches','matches')" in nav
     assert "/calendar" in nav
     assert "/partidos" in nav
     renderer=(ROOT/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
     assert "nav_contracts.CLIENT_LINKS" in renderer
 
-def test_home_entry_points_name_the_section_calendario():
+def test_home_keeps_calendar_as_a_contextual_view_inside_results():
     home=(ROOT/"templates/home.html").read_text(encoding="utf-8")
     assert "Abrir calendario" in home
     assert "quick_action('Calendario'" in home

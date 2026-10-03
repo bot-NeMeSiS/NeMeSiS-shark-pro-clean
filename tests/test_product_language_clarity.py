@@ -26,7 +26,8 @@ def test_canonical_navigation_uses_spanish_plan_route_and_page_state():
 def test_canonical_navigation_contract_matches_current_language_and_legacy_layers_stay_purged():
     contract=read("templates/components/navigation_contracts.html")
     canonical=read("templates/components/v933_navigation.html")
-    assert "Calendario" in contract and "Pronósticos" in contract and "Historial" in contract
+    assert "Resultados" in contract and "Pronósticos" in contract and "Historial" in contract
+    assert "Resultados y calendario" in contract
     assert "('Partidos'," not in contract and "('Picks'," not in contract
     assert 'navigation_contracts.html' in canonical
     assert "nav_contracts.CLIENT_LINKS" in canonical

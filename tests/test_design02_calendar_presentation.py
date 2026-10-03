@@ -107,15 +107,15 @@ def test_shared_card_preserves_unknown_and_confirmed_zero(app_module, scores, ex
 
 
 @pytest.mark.parametrize('authenticated', [True, False])
-def test_mobile_primary_navigation_keeps_shark_and_calendar(app_module, authenticated):
+def test_mobile_primary_navigation_keeps_shark_and_results(app_module, authenticated):
     with app_module.app.test_request_context('/calendar'):
         module = app_module.app.jinja_env.get_template('components/v933_navigation.html').make_module()
         html = str(module.v933_mobile_bottom_nav(authenticated))
         client_header = str(module.v933_client_navigation('PRO')) if authenticated else ''
     dom = Structure(html)
     links = [n['attrs']['href'] for n in dom.nodes if n['tag'] == 'a']
-    assert links == ['/app' if authenticated else '/', '/calendario', '/directo', '/picks', '/shark' if authenticated else '/cliente-login']
-    assert '<span>Calendario</span>' in html
+    assert links == ['/app' if authenticated else '/', '/calendario?lane=finished', '/directo', '/picks', '/shark' if authenticated else '/cliente-login']
+    assert '<span>Resultados</span>' in html
     if authenticated:
         assert 'href="/mi-cuenta"' in client_header
     else:
@@ -149,7 +149,7 @@ def test_calendar_aliases_share_visible_navigation_state(app_module, route, surf
         dom = Structure(str(getattr(module, surface)()))
     selected = [n for n in dom.nodes if n['tag'] == 'a' and n['attrs'].get('aria-current') == 'page']
     assert selected
-    assert all(n['attrs'].get('href') == '/calendario' for n in selected)
+    assert all(n['attrs'].get('href') == '/calendario?lane=finished' for n in selected)
 
 
 def test_client_copy_reduction_does_not_hide_temporal_container():

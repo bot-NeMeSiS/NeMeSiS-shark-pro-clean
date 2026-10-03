@@ -3,7 +3,7 @@
 
 {% set PUBLIC_LINKS = [
   ('Inicio','/','home'),
-  ('Calendario','/calendario','calendar'),
+  ('Resultados','/calendario?lane=finished','history'),
   ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('Historial','/historico','history'),
@@ -12,7 +12,7 @@
 
 {% set CLIENT_LINKS = [
   ('Inicio','/app','home'),
-  ('Calendario','/calendario','calendar'),
+  ('Resultados','/calendario?lane=finished','history'),
   ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('Historial','/historico','history'),
@@ -23,7 +23,7 @@
 
 {% set ADMIN_LINKS = [
   ('Centro de mando','/admin/dashboard','dashboard'),
-  ('Calendario','/admin/matches','matches'),
+  ('Resultados y calendario','/admin/matches','matches'),
   ('Directo','/admin/realtime-center','live'),
   ('Pronósticos','/admin/picks','target'),
   ('Telegram','/admin/telegram/command-center','telegram'),
@@ -50,7 +50,7 @@
 
 {% set CLIENT_MOBILE_LINKS = [
   ('Inicio','/app','home'),
-  ('Calendario','/calendario','calendar'),
+  ('Resultados','/calendario?lane=finished','history'),
   ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('SHARK','/shark','shark')
@@ -58,7 +58,7 @@
 
 {% set PUBLIC_MOBILE_LINKS = [
   ('Inicio','/','home'),
-  ('Calendario','/calendario','calendar'),
+  ('Resultados','/calendario?lane=finished','history'),
   ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('Entrar','/cliente-login','user')
@@ -72,7 +72,8 @@
 {%- set history_aliases = ['/track-record'] -%}
 {%- set picks_aliases = ['/combis','/combinadas'] -%}
 {%- set account_aliases = ['/profile','/perfil'] -%}
-{%- if not contextual and (
+{%- set results_center = clean_href == '/calendario' and 'lane=finished' in href -%}
+{%- if (not contextual or results_center) and (
        path == clean_href
        or (clean_href == '/calendario' and path in calendar_aliases)
        or (clean_href == '/directo' and path in live_aliases)

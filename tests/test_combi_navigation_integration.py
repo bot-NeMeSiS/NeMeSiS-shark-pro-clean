@@ -146,7 +146,7 @@ def test_desktop_marks_same_section_without_extra_primary_items(app_module,path,
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
 
 
-@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario'),('/shark','/shark'),('/app','/app')])
+@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario?lane=finished'),('/shark','/shark'),('/app','/app')])
 def test_other_primary_destinations_keep_their_current_page(app_module,path,href):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
