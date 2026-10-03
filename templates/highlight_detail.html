@@ -34,5 +34,53 @@
   {% endif %}
   <p class="small">{{ h.rights_note }}</p>
 </section>
+{% set mc = data.get('match_context') or {} %}
+{% set summaries = mc.get('summaries') or {} %}
+{% set score = mc.get('score') or {} %}
+{% set events = mc.get('event_summary') or {} %}
+{% set stats = mc.get('statistics') or {} %}
+{% set recap_meta = data.get('postmatch_recap') or {} %}
+{% if mc %}
+<section class="band compact-band v769-highlight-recap" data-factual-postmatch-recap data-summary-contract="{{ summaries.get('contract') or 'NEMESIS-FACTUAL-MATCH-SUMMARIES-V1' }}">
+  <div class="section-head">
+    <div><h2>Así terminó el partido</h2><p class="small">Resumen factual construido con datos deportivos persistidos y confirmados.</p></div>
+    {% if score.get('confirmed') %}<span class="pill">{{ score.get('label') }}</span>{% endif %}
+  </div>
+
+  {% if summaries.get('items') %}
+  <div class="grid compact-grid" data-postmatch-summary-items>
+    {% for item in summaries.get('items') or [] %}
+    <article class="card soft-card">
+      <strong>{{ item.get('text') }}</strong>
+      {% if item.get('evidence') %}<small>Evidencia: {{ item.get('evidence')|join(', ') }}</small>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if events.get('available') %}
+  <div class="section-head"><h3>Hechos confirmados</h3><span class="pill">{{ events.get('count', 0) }}</span></div>
+  <div class="v774-match-list" data-postmatch-confirmed-events>
+    {% for event in (events.get('items') or [])[:8] %}
+    <div class="v774-match-row">
+      <span class="v774-date"><strong>{{ event.get('minute_label') or '—' }}</strong></span>
+      <span class="v774-main"><strong>{{ event.get('label') or 'Evento confirmado' }}</strong><small>{% if event.get('team') %}{{ event.get('team') }}{% endif %}{% if event.get('player') %} · {{ event.get('player') }}{% endif %}{% if event.get('detail') %} · {{ event.get('detail') }}{% endif %}</small></span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if stats.get('available') %}
+  <div class="section-head"><h3>Estadísticas confirmadas</h3><span class="pill">{{ stats.get('item_count', 0) }}</span></div>
+  <div class="grid compact-grid" data-postmatch-confirmed-stats>
+    {% for stat in (stats.get('items') or [])[:8] %}
+    <article class="card stat-card"><span>{{ stat.get('label') }}</span><strong>{{ stat.get('home') }} · {{ stat.get('away') }}</strong></article>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <p class="small muted" data-postmatch-recap-policy>Este resumen no genera hechos nuevos: 0 llamadas de IA generativa, 0 llamadas externas durante la lectura y {{ recap_meta.get('unsupported_claims', 0) }} afirmaciones sin evidencia.</p>
+</section>
+{% endif %}
 {% endif %}
 {% endblock %}
