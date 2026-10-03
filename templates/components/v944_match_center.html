@@ -231,7 +231,7 @@
   <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
     {% for team in lineups.get('teams') or [] %}
     <section class="v944-lineup-team">
-      <header><strong>{{ team.get('team_name') or ui('Equipo') }}</strong><span>{{ team.get('formation') or ui('Formación no disponible') }}</span></header>
+      <header>{% if team.get('href') %}<a class="v944-entity-link" href="{{ team.get('href') }}" data-entity-contract="team"><strong>{{ team.get('team_name') or ui('Equipo') }}</strong></a>{% else %}<strong>{{ team.get('team_name') or ui('Equipo') }}</strong>{% endif %}<span>{{ team.get('formation') or ui('Formación no disponible') }}</span></header>
       {% if lineups.get('pitch_available') %}
       <div class="v944-lineup-pitch" aria-label="Once inicial por líneas">
         {% for band in ['GK','DEF','MID','FWD'] %}
@@ -301,7 +301,7 @@
         <strong>{{ ui('Evento confirmado' if event_label|lower in ['unknown', 'desconocido'] else event_label or 'Evento confirmado') }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
         <small>
           {% if event.get('player') %}{% if event.get('player_href') %}<a href="{{ event.get('player_href') }}" data-entity-contract="player">{{ event.get('player') }}</a>{% else %}{{ event.get('player') }}{% endif %}{% endif %}
-          {% if event.get('related_player') %}<span> · {{ event.get('related_player') }}</span>{% endif %}
+          {% if event.get('related_player') %}<span> · {% if event.get('related_player_href') %}<a href="{{ event.get('related_player_href') }}" data-entity-contract="player">{{ event.get('related_player') }}</a>{% else %}{{ event.get('related_player') }}{% endif %}</span>{% endif %}
           {% if event.get('detail') %}<span> · {{ ui(event.get('detail')) }}</span>{% endif %}
           {% if not event.get('player') and not event.get('related_player') and not event.get('detail') %}{{ ui("No disponible") }}{% endif %}
         </small>
@@ -352,9 +352,9 @@
     <article data-h2h-fixture="{{ item.get('fixture_id') or item.get('match_id') or '' }}">
       <time datetime="{{ item.get('kickoff_iso') or '' }}">{{ ui_match_datetime(item) }}</time>
       <span>
-        <b>{{ item.get('home_team') }}</b>
+        <b>{% set h2h_home_href = sports_entity_href('team', item.get('home_team_id') or item.get('home_team'), item.get('home_team')) %}{% if h2h_home_href %}<a class="v944-entity-link" href="{{ h2h_home_href }}" data-entity-contract="team">{{ item.get('home_team') }}</a>{% else %}{{ item.get('home_team') }}{% endif %}</b>
         <strong>{{ item.get('score') or 'Resultado no disponible' }}</strong>
-        <b>{{ item.get('away_team') }}</b>
+        <b>{% set h2h_away_href = sports_entity_href('team', item.get('away_team_id') or item.get('away_team'), item.get('away_team')) %}{% if h2h_away_href %}<a class="v944-entity-link" href="{{ h2h_away_href }}" data-entity-contract="team">{{ item.get('away_team') }}</a>{% else %}{{ item.get('away_team') }}{% endif %}</b>
       </span>
       {% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="match">{{ ui("Ver partido") }}</a>{% endif %}
     </article>

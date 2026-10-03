@@ -26,6 +26,7 @@ from engines.sports_graph_foundation_engine import (
     SPORTS_GRAPH_FOUNDATION_CONTRACT,
     build_sports_graph_relationships,
 )
+from engines.sports_entity_navigation_engine import entity_href, public_entity_route_id
 from engines.sports_knowledge_layer_engine import (
     SPORTS_KNOWLEDGE_LAYER_CONTRACT,
     build_sports_knowledge_snapshot,
@@ -47,11 +48,7 @@ def _items(value: Any) -> list[dict[str, Any]]:
 
 
 def _player_route_id(value: Any) -> str:
-    identifier = _text(value, 180)
-    marker = ":player:"
-    if marker in identifier:
-        identifier = identifier.rsplit(marker, 1)[-1]
-    return identifier
+    return public_entity_route_id("player", value)
 
 
 def _text(value: Any, limit: int = 240) -> str:
@@ -64,15 +61,17 @@ def _score_number(value: Any) -> int | None:
 
 def _competition_route_id(competition: Mapping[str, Any]) -> str:
     providers = _mapping(competition.get("provider_competition_ids"))
-    for value in providers.values():
-        if _text(value, 160):
-            return _text(value, 160)
-    return _text(
+    identifier = next((_text(value, 160) for value in providers.values() if _text(value, 160)), "")
+    label = _text(
         competition.get("display_name")
         or competition.get("official_name")
-        or competition.get("name")
-        or competition.get("canonical_competition_id"),
+        or competition.get("name"),
         160,
+    )
+    return public_entity_route_id(
+        "competition",
+        identifier or competition.get("canonical_competition_id"),
+        label,
     )
 
 
@@ -248,7 +247,7 @@ def build_team_center_context(
             "position": canonical_player.get("position") or "No disponible",
             "shirt_number": canonical_player.get("shirt_number") or "No disponible",
             "is_starting": str(raw_player.get("is_starting") or "").lower() in {"1", "true", "yes", "si", "sí"},
-            "href": "/player/" + quote(route_id, safe=""),
+            "href": entity_href("player", route_id, player_name),
             "source": raw_player.get("source") or source,
             "canonical": canonical_player,
         })
@@ -399,7 +398,7 @@ def build_team_center_context(
             "limitations": sorted(set((knowledge.get("limitations") or []) + missing)),
         },
         "links": {
-            "competition_center": "/competition/" + _competition_route_id(competitions[0]) if competitions and _competition_route_id(competitions[0]) else "",
+            "competition_center": entity_href("competition", _competition_route_id(competitions[0]), competitions[0].get("display_name") or competitions[0].get("official_name") or competitions[0].get("name")) if competitions else "",
             "player_center": players[0].get("href") if players else "",
             "match_center": "/match/" + _text(matches[0].get("id"), 160) if matches else "",
             "sports_graph": "",

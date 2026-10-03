@@ -17,6 +17,7 @@ from engines.sports_domain_model_engine import (
     normalize_competition_entity,
     normalize_team_entity,
 )
+from engines.sports_entity_navigation_engine import entity_href, public_entity_route_id
 from engines.sports_graph_foundation_engine import (
     SPORTS_GRAPH_FOUNDATION_CONTRACT,
     build_sports_graph_relationships,
@@ -79,26 +80,28 @@ def _domain_for_match(match: Mapping[str, Any], *, now_madrid: Any = "") -> dict
 
 
 def _team_route_id(team: Mapping[str, Any]) -> str:
-    return _text(
+    label = _text(
         team.get("display_name")
         or team.get("official_name")
-        or team.get("name")
-        or team.get("canonical_team_id"),
+        or team.get("name"),
         160,
     )
+    return public_entity_route_id("team", team.get("canonical_team_id"), label)
 
 
 def _competition_route_id(competition: Mapping[str, Any]) -> str:
     providers = _mapping(competition.get("provider_competition_ids"))
-    for value in providers.values():
-        if _text(value, 160):
-            return _text(value, 160)
-    return _text(
+    identifier = next((_text(value, 160) for value in providers.values() if _text(value, 160)), "")
+    label = _text(
         competition.get("display_name")
         or competition.get("official_name")
-        or competition.get("name")
-        or competition.get("canonical_competition_id"),
+        or competition.get("name"),
         160,
+    )
+    return public_entity_route_id(
+        "competition",
+        identifier or competition.get("canonical_competition_id"),
+        label,
     )
 
 
@@ -516,7 +519,7 @@ def build_competition_center_context(
         "links": {
             "calendar": "/calendar",
             "match_center": "/match/" + _text(matches[0].get("id"), 160) if matches else "",
-            "team_center": "/team/" + _text(teams[0].get("route_id"), 160) if teams else "",
+            "team_center": entity_href("team", teams[0].get("route_id"), teams[0].get("name")) if teams else "",
             "sports_graph": "",
         },
         "diagnostics": {

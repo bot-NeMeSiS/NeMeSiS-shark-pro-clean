@@ -49,9 +49,9 @@
   </header>
 
   <section class="team-center-meta-grid" data-team-center-section="identity-facts" aria-label="{{ ui("Datos del club") }}">
-    <article><span>{{ ui("Competición") }}</span><strong>{{ team.competition or ui('No disponible') }}</strong></article>
+    <article><span>{{ ui("Competición") }}</span><strong>{% if links.competition_center %}<a class="v933-entity-inline" href="{{ links.competition_center }}" data-entity-contract="competition">{{ team.competition or ui('No disponible') }}</a>{% else %}{{ team.competition or ui('No disponible') }}{% endif %}</strong></article>
     <article><span>{{ ui("País") }}</span><strong>{{ team.country or ui('No disponible') }}</strong></article>
-    <article><span>{{ ui("Estadio") }}</span><strong>{{ ui_value(team.stadium) }}</strong></article>
+    <article><span>{{ ui("Estadio") }}</span><strong data-entity-contract="stadium" data-entity-state="{{ sports_entity_navigation('stadium', team.stadium, team.stadium).state|lower }}">{{ ui_value(team.stadium) }}</strong></article>
     <article><span>{{ ui("Fundación") }}</span><strong>{{ ui_value(team.founded) }}</strong></article>
   </section>
 
