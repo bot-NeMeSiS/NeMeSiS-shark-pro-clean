@@ -3,6 +3,29 @@
 
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ ui(label or 'Pendiente') }}</span>{%- endmacro %}
 
+{% macro canonical_match_state(match, complete=true) -%}
+{% set match = match or {} %}
+{% set status_info = match.get('status_info') or {} %}
+{% set canonical_status = (status_info.get('key') or match.get('v935_lifecycle') or match.get('lifecycle') or '')|upper %}
+{% set canonical_live = status_info.get('is_live') if status_info.get('is_live') is not none else match.get('is_live') %}
+{% set canonical_finished = status_info.get('is_finished') if status_info.get('is_finished') is not none else match.get('is_finished') %}
+{% set raw_status = match.get('client_status_label') or match.get('calendar_status') or match.get('status_label') or match.get('display_status') or match.get('status') or 'Programado' %}
+{% if not complete %}{{ status_chip('Pendiente de completar', 'warning') }}
+{% elif match.get('is_stale') or canonical_status == 'STALE' %}{{ status_chip('Datos retrasados', 'warning') }}
+{% elif canonical_finished or canonical_status in ['FINISHED','ARCHIVED','FT','FINAL'] %}{{ status_chip('Finalizado', 'blue') }}
+{% elif canonical_status == 'RESULT_PENDING' %}{{ status_chip('Resultado pendiente', 'warning') }}
+{% elif canonical_status == 'POSTPONED' %}{{ status_chip('Aplazado', 'warning') }}
+{% elif canonical_status == 'SUSPENDED' %}{{ status_chip('Suspendido', 'warning') }}
+{% elif canonical_status == 'CANCELLED' %}{{ status_chip('Cancelado', 'warning') }}
+{% elif canonical_status == 'ABANDONED' %}{{ status_chip('Abandonado', 'warning') }}
+{% elif canonical_status == 'HALFTIME' and canonical_live %}{{ status_chip('Descanso', 'warning') }}
+{% elif canonical_status == 'LIVE' and canonical_live %}{{ status_chip('En directo', 'success') }}
+{% elif canonical_status in ['UPCOMING','SCHEDULED','PREMATCH','NOT_STARTED','NS'] %}{{ status_chip('Programado', 'blue') }}
+{% elif canonical_live %}{{ status_chip('En directo', 'success') }}
+{% else %}{{ status_chip(raw_status, 'blue') }}
+{% endif %}
+{%- endmacro %}
+
 {% macro evidence_label(value) -%}
 {% set code = value or 'NOT_CERTIFIED' %}
 {{- {
@@ -107,7 +130,7 @@
   <header class="v933-match-card-header"><div><span>{{ competition or ui('Pendiente de completar') }}</span>{% if match.get('country') %}<small>{{ match.get('country') }}</small>{% endif %}</div><div class="v937-card-trust">{{ data_confidence_badge(match, 'match') }}<time{% if match.get('madrid_dt_iso') %} datetime="{{ match.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ match.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ ui_match_datetime(match) }}</time></div></header>
   <div class="v933-match-teams"><div>{{ team_logo(home, home_logo) }}<strong>{{ home or ui('Equipo pendiente') }}</strong></div><div class="v933-match-center"><b data-v934-score{% if show_kickoff %} hidden{% endif %}>{% if score_label is not none %}{{ ui(score_label) }}{% elif has_score %}{{ match.get('home_score') }} - {{ match.get('away_score') }}{% else %}VS{% endif %}</b>{% if show_kickoff %}<time data-match-kickoff-clock{% if match.get('madrid_dt_iso') %} datetime="{{ match.get('madrid_dt_iso') }}"{% endif %}>{{ kickoff_clock }}</time><small data-match-kickoff-zone>Madrid</small>{% endif %}</div><div>{{ team_logo(away, away_logo) }}<strong>{{ away or ui('Equipo pendiente') }}</strong></div></div>
   <footer class="v933-match-card-footer">
-  <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ status_chip('Pendiente de completar' if not complete else ('Datos retrasados' if match.get('is_stale') else status), 'warning' if not complete or match.get('is_stale') else ('success' if 'live' in status|string|lower or 'directo' in status|string|lower else 'blue')) }}</span>{% if minute is not none and minute|string|trim and minute|string not in status|string %}<small data-v934-minute>{{ ui("Min") }} {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if relevance_bucket %}{{ status_chip('Prioridad' if relevance_bucket == 'PRIORITY' else ('Estándar' if relevance_bucket == 'STANDARD' else ('Local' if relevance_bucket == 'LOW_PRIORITY' else 'Competición pendiente')), 'success' if relevance_bucket == 'PRIORITY' else ('blue' if relevance_bucket == 'STANDARD' else 'warning')) }}{% endif %}{% if match.get('has_highlights') %}{{ status_chip('Resumen disponible', 'success') }}{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
+  <div class="v934-match-state v933-match-card-signals"><span data-v934-status>{{ canonical_match_state(match, complete) }}</span>{% if canonical_live and canonical_status in ['LIVE','HALFTIME'] and minute is not none and minute|string|trim %}<small data-v934-minute>{{ ui("Min") }} {{ minute }}</small>{% else %}<small data-v934-minute hidden></small>{% endif %}{% if relevance_bucket %}{{ status_chip('Prioridad' if relevance_bucket == 'PRIORITY' else ('Estándar' if relevance_bucket == 'STANDARD' else ('Local' if relevance_bucket == 'LOW_PRIORITY' else 'Competición pendiente')), 'success' if relevance_bucket == 'PRIORITY' else ('blue' if relevance_bucket == 'STANDARD' else 'warning')) }}{% endif %}{% if match.get('has_highlights') %}{{ status_chip('Resumen disponible', 'success') }}{% endif %}{% if complete %}{{ attention_priority(match) }}{% endif %}{% if complete and match.get('v935_source') %}{{ data_provenance_badge(match.get('v935_source'), (match.get('v935_freshness') or {}).get('label'), match.get('v935_lifecycle')) }}{% endif %}</div>
     <div class="v933-match-card-actions">{% if current_user and match_id %}<button class="v933-icon-button fav-star{% if match.get('is_favorite') %} active{% endif %}" type="button" data-kind="match" data-value="{{ match_id }}" data-label="{{ home }} vs {{ away }}" aria-label="{{ ui("Guardar favorito") }}" aria-pressed="{{ 'true' if match.get('is_favorite') else 'false' }}">{{ icon('star') }}</button>{% endif %}{% if show_actions and match_id and complete and match.get('has_highlights') %}{{ action_button('Ver resumen', '/match/' ~ match_id ~ '#match-section-video', true, 'gold') }}{% endif %}{% if show_actions and match_id and complete %}{{ action_button('Ver partido', '/match/' ~ match_id, true, 'blue') }}{% endif %}</div>
   </footer>
 </article>
