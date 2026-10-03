@@ -1009,6 +1009,7 @@ def _factual_summaries(
     statistics: Mapping[str, Any],
     lineups: Mapping[str, Any],
     shark_context: Mapping[str, Any],
+    media: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     home = _text(match.get("home_team")) or "Equipo local"
     away = _text(match.get("away_team")) or "Equipo visitante"
@@ -1055,6 +1056,7 @@ def _factual_summaries(
         summary_type = "PREMATCH_SUMMARY"
         text = f"{home} y {away} tienen un partido programado."
     items.append({"type": summary_type, "text": text, "evidence": evidence})
+
     if lineups.get("confirmed"):
         items.append({
             "type": "LINEUP_SUMMARY",
@@ -1079,15 +1081,131 @@ def _factual_summaries(
             "text": _text(shark_context.get("headline")) or "SHARK dispone de evidencia postpartido.",
             "evidence": list(shark_context.get("evidence") or []),
         })
+
+    media_data = _mapping(media)
+    postmatch: dict[str, Any] = {
+        "contract": "NEMESIS-FACTUAL-POSTMATCH-SUMMARY-V1",
+        "available": False,
+        "headline": "",
+        "key_events": [],
+        "key_stats": [],
+        "video_available": False,
+        "video_count": 0,
+        "evidence": [],
+        "generative_ai_calls": 0,
+        "unsupported_claims": 0,
+    }
+    if lifecycle.get("is_finished"):
+        headline = f"El partido entre {home} y {away} ha finalizado."
+        postmatch_evidence = ["match_status"]
+        if score.get("confirmed"):
+            try:
+                home_score = int(score.get("home"))
+                away_score = int(score.get("away"))
+            except (TypeError, ValueError):
+                home_score = away_score = None
+            score_label = _text(score.get("label"))
+            if home_score is not None and away_score is not None:
+                if home_score > away_score:
+                    headline = f"{home} ganó {score_label} a {away}."
+                elif away_score > home_score:
+                    headline = f"{away} ganó {score_label} a {home}."
+                else:
+                    headline = f"{home} y {away} empataron {score_label}."
+            elif score_label:
+                headline = f"{home} y {away} finalizaron {score_label}."
+            postmatch_evidence.append("score")
+
+        key_events = []
+        notable_tokens = ("goal", "gol", "penal", "red card", "tarjeta roja", "yellow card", "tarjeta amarilla")
+        for raw in _items(event_summary.get("items")):
+            label = _first_text(raw.get("label"), raw.get("title"), raw.get("detail"), raw.get("type"))
+            event_type = _first_text(raw.get("type"), raw.get("event_type"))
+            searchable = f"{event_type} {label}".casefold()
+            if not label or not any(token in searchable for token in notable_tokens):
+                continue
+            parts = []
+            minute = _first_text(raw.get("minute_label"), raw.get("minute"))
+            if minute:
+                parts.append(minute)
+            parts.append(label)
+            team = _first_text(raw.get("team"), raw.get("team_name"))
+            player = _first_text(raw.get("player"), raw.get("player_name"))
+            if team:
+                parts.append(team)
+            if player:
+                parts.append(player)
+            key_events.append({
+                "text": " · ".join(parts),
+                "minute": minute or None,
+                "label": label,
+                "team": team or None,
+                "player": player or None,
+            })
+            if len(key_events) >= 6:
+                break
+        if key_events:
+            postmatch_evidence.append("canonical_timeline")
+
+        preferred_stats = {
+            "Goles esperados": 0,
+            "Tiros a puerta": 1,
+            "Tiros": 2,
+            "Posesión": 3,
+            "Córners": 4,
+            "Paradas": 5,
+            "Tarjetas rojas": 6,
+            "Tarjetas amarillas": 7,
+        }
+        stat_rows = []
+        for raw in _items(statistics.get("items")):
+            label = _text(raw.get("label"))
+            if label not in preferred_stats:
+                continue
+            home_value = _stat_value(raw.get("home"))
+            away_value = _stat_value(raw.get("away"))
+            if home_value is None and away_value is None:
+                continue
+            stat_rows.append({
+                "label": label,
+                "home": home_value,
+                "away": away_value,
+                "text": f"{label}: {home_value or '—'} · {away_value or '—'}",
+                "_rank": preferred_stats[label],
+            })
+        stat_rows.sort(key=lambda item: item["_rank"])
+        key_stats = [{key: value for key, value in item.items() if key != "_rank"} for item in stat_rows[:5]]
+        if key_stats:
+            postmatch_evidence.append("provider_stats_cache")
+
+        video_count = 0
+        try:
+            video_count = max(0, int(media_data.get("visible_count") or len(media_data.get("visible_videos") or [])))
+        except (TypeError, ValueError):
+            video_count = len(media_data.get("visible_videos") or [])
+        if video_count:
+            postmatch_evidence.append("authorized_video_metadata")
+
+        postmatch = {
+            **postmatch,
+            "available": True,
+            "headline": headline,
+            "key_events": key_events,
+            "key_stats": key_stats,
+            "video_available": bool(video_count),
+            "video_count": video_count,
+            "evidence": postmatch_evidence,
+        }
+
     return {
         "contract": "NEMESIS-FACTUAL-MATCH-SUMMARIES-V1",
         "available": bool(items),
         "current_type": summary_type,
         "items": items,
+        "postmatch": postmatch,
         "generative_ai_calls": 0,
         "unsupported_claims": 0,
     }
-
 
 
 
@@ -1658,6 +1776,7 @@ def build_match_context(
         statistics,
         lineups,
         shark_context,
+        media,
     )
     telegram_readonly_contract = build_telegram_readonly_contract(
         match_entity=canonical_match,

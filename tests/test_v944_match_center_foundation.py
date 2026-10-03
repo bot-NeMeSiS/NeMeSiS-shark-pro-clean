@@ -9,6 +9,7 @@ from engines.match_context_engine import (
     CANONICAL_COMPONENT_STATES,
     MATCH_CENTER_COMPONENTS,
     MATCH_CENTER_CONTRACT,
+    _factual_summaries,
     build_match_context,
 )
 from engines.sentinel_autopilot_engine import (
@@ -290,6 +291,8 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     assert 'data-canonical-timeline-event=' in components
     assert 'data-timeline-event-contract=' in components
     assert 'data-sports-domain-model="unified-v1"' in components
+    assert 'data-postmatch-factual-summary=' in components
+    assert 'Resumen factual construido con datos confirmados del partido; sin narración generativa.' in components
     assert all(name in components for name in MATCH_CENTER_COMPONENTS)
     assert all(f"'{state}'" in components for state in CANONICAL_COMPONENT_STATES)
     assert "@media (max-width: 1080px)" in css
@@ -438,3 +441,86 @@ def test_match_center_pick_panel_never_marks_incomplete_pick_as_ready():
     assert primary["reasoning"] is None
     assert primary["warning"] is None
     assert context["components"]["PickPanel"]["state"] == "partial"
+
+
+def test_finished_match_gets_factual_postmatch_summary_without_ai_or_invented_claims():
+    summary = _factual_summaries(
+        {
+            "home_team": "Real Club Deportivo Local",
+            "away_team": "Unión Deportiva Visitante",
+        },
+        {"key": "FINISHED", "is_finished": True, "is_live": False, "is_stale": False},
+        {"home": 2, "away": 1, "label": "2-1", "confirmed": True},
+        {
+            "available": True,
+            "count": 3,
+            "items": [
+                {
+                    "minute_label": "12'",
+                    "type": "goal",
+                    "label": "Gol",
+                    "team": "Real Club Deportivo Local",
+                    "player": "Delantero Uno",
+                },
+                {
+                    "minute_label": "66'",
+                    "type": "goal",
+                    "label": "Gol",
+                    "team": "Unión Deportiva Visitante",
+                    "player": "Delantero Dos",
+                },
+                {
+                    "minute_label": "81'",
+                    "type": "red card",
+                    "label": "Tarjeta roja",
+                    "team": "Unión Deportiva Visitante",
+                    "player": "Defensa Tres",
+                },
+            ],
+        },
+        {
+            "available": True,
+            "item_count": 4,
+            "items": [
+                {"label": "Tiros a puerta", "home": "6", "away": "3"},
+                {"label": "Posesión", "home": "54%", "away": "46%"},
+                {"label": "Córners", "home": "5", "away": "4"},
+                {"label": "Faltas", "home": "10", "away": "12"},
+            ],
+        },
+        {"confirmed": False},
+        {"available": False, "evidence": []},
+        {"visible_count": 1, "visible_videos": [{"id": "video-real-1"}]},
+    )
+
+    postmatch = summary["postmatch"]
+    assert postmatch["contract"] == "NEMESIS-FACTUAL-POSTMATCH-SUMMARY-V1"
+    assert postmatch["available"] is True
+    assert postmatch["headline"] == "Real Club Deportivo Local ganó 2-1 a Unión Deportiva Visitante."
+    assert [item["label"] for item in postmatch["key_events"]] == ["Gol", "Gol", "Tarjeta roja"]
+    assert [item["label"] for item in postmatch["key_stats"]] == ["Tiros a puerta", "Posesión", "Córners"]
+    assert postmatch["video_available"] is True
+    assert postmatch["video_count"] == 1
+    assert postmatch["generative_ai_calls"] == 0
+    assert postmatch["unsupported_claims"] == 0
+    assert summary["generative_ai_calls"] == 0
+    assert summary["unsupported_claims"] == 0
+
+
+def test_finished_draw_is_stated_as_draw_without_narrative_inference():
+    summary = _factual_summaries(
+        {"home_team": "Club A", "away_team": "Club B"},
+        {"key": "FINISHED", "is_finished": True},
+        {"home": 0, "away": 0, "label": "0-0", "confirmed": True},
+        {"available": False, "items": []},
+        {"available": False, "items": []},
+        {"confirmed": False},
+        {"available": False},
+        {"visible_count": 0, "visible_videos": []},
+    )
+    postmatch = summary["postmatch"]
+    assert postmatch["headline"] == "Club A y Club B empataron 0-0."
+    assert postmatch["key_events"] == []
+    assert postmatch["key_stats"] == []
+    assert postmatch["video_available"] is False
+    assert postmatch["unsupported_claims"] == 0
