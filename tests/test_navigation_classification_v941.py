@@ -136,9 +136,10 @@ def test_navigation_renderers_share_canonical_contract_source():
     assert "CLIENT_LINKS" in contract and "ADMIN_LINKS" in contract
     assert "/calendario-global" in contract and "/partidos/calendario" in contract
     assert "/combis" in contract and "/combinadas" in contract
-    mobile_contract=contract.split("{% set CLIENT_MOBILE_LINKS = [",1)[1].split("] %}",1)[0]
-    assert "('SHARK','/shark','shark')" in mobile_contract
-    assert "('Cuenta','/profile','user')" not in mobile_contract
+    from jinja2 import Environment
+    model = Environment().from_string(contract).make_module()
+    assert model.CLIENT_MOBILE_LINKS == model.CLIENT_LINKS
+    assert [item[0] for item in model.CLIENT_LINKS] == ['Inicio','Partidos','Picks','SHARK','Cuenta']
     assert "('Cuenta','/mi-cuenta','user')" in contract
     assert "('Resultados','/calendario?lane=finished','history')" in contract
     assert "('Resultados y calendario','/admin/matches','matches')" in contract
