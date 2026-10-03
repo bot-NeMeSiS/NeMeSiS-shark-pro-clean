@@ -13,3 +13,23 @@ def test_unsupported_plan_cannot_promise_paid_benefits(plan):
 def test_only_real_memberships_and_admin_are_presented():
     assert set(build_membership_experience_matrix()) == {"free", "pro", "elite", "admin"}
     assert set(THEMES) == {"FREE", "PRO", "ELITE", "ADMIN"}
+
+@pytest.mark.parametrize("plan", ["ELITE+", "ELITE_PLUS", "ADMIN", "ELITE"])
+def test_navigation_badge_matches_supported_access(plan):
+    from jinja2 import Environment, FileSystemLoader
+    from types import SimpleNamespace
+    env = Environment(loader=FileSystemLoader("templates"))
+    env.globals.update(ui=lambda text: text, request=SimpleNamespace(path="/app"))
+    module = env.get_template("components/v933_navigation.html").module
+    html = module.v933_client_navigation(plan)
+    expected = plan if plan in {"ADMIN", "ELITE"} else "FREE"
+    assert f"<strong>{expected}</strong>" in html
+    assert "<strong>ELITE+" not in html
+
+def test_checkout_remains_blocked_in_local_safe_mode(monkeypatch):
+    from engines import stripe_payments_engine as billing
+    monkeypatch.setenv("NEMESIS_LOCAL_SAFE_MODE", "true")
+    monkeypatch.setattr(billing, "stripe_sdk", lambda: pytest.fail("Unexpected SDK access"))
+    result = billing.create_checkout_session("unused", {"id": "local-only"}, "PRO")
+    assert result["status"] == "LOCAL_SAFE_BLOCKED"
+    assert result["external_calls"] == result["membership_changes"] == 0
