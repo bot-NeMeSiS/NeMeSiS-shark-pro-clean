@@ -18830,15 +18830,31 @@ def v766_calendar_order_context(calendar=None):
 
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
     """Bounded highlight sync with persistent freshness/retry guards."""
+    import os
     import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
-        interval_minutes = max(60, min(as_int(os.getenv("HIGHLIGHTS_SYNC_INTERVAL_MINUTES", "360"), 360), 1440))
         try:
-            age = time.time() - float(last.get('attempt_finished_epoch') or 0)
-        except (ValueError, TypeError, OverflowError):
+            interval_minutes = int(os.getenv("HIGHLIGHTS_SYNC_INTERVAL_MINUTES", "360") or 360)
+        except (TypeError, ValueError, OverflowError):
+            interval_minutes = 360
+        interval_minutes = max(60, min(interval_minutes, 1440))
+        last_day = str(last.get("date") or "")[:10]
+        raw_epoch = last.get('attempt_finished_epoch')
+        if raw_epoch in (None, ""):
+            if last_day == today_iso() and last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": []}
+            if last_day == today_iso() and last.get('retryable') is False:
+                return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
             age = (interval_minutes * 60) + 1
+        else:
+            try:
+                age = time.time() - float(raw_epoch)
+            except (ValueError, TypeError, OverflowError):
+                age = (interval_minutes * 60) + 1
         if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK' and 0 <= age < interval_minutes * 60:
             return {"ok": True, "skipped": True, "reason": "fresh_sync_window", "last": last,
                     "processed": 0, "updated": 0, "external_calls": 0, "errors": [],
