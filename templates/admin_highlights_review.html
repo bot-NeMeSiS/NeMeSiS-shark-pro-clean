@@ -25,6 +25,12 @@
       <button type="submit">Buscar resúmenes recientes</button></form>
     {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados · {{ run.get("days_back", "—") }} días · {{ run.get("external_calls", "—") }} consultas · {{ run.get("v2_event_lookups", "—") }} búsquedas por evento · {{ run.get("associations_reconciled", "—") }} asociaciones revisadas automáticamente</p>{% endfor %}
   </section>
+  {% if policies is defined %}<section class="ns-media-review-card"><h2>Políticas documentadas</h2>
+  <p>Asociación y publicación son decisiones separadas. Las políticas de canal solo cubren vídeos recibidos después de registrar la política; no autorizan masivamente el catálogo anterior.</p>
+  {% for policy in policies['items'] %}<details><summary>{{ policy.source }} · {{ policy.modality }} · {{ policy.scope_kind }} · {{ 'Revocada' if policy.revoked_at else 'Registrada' }}</summary>
+  <p>Alcance: {{ policy.scope_value }} · canal: APP · revisión/expiración: {{ policy.review_at|madrid_datetime_label }}</p><p>{{ policy.basis }}</p><p>Atribución: {{ policy.attribution }}</p><p><a href="{{ policy.evidence_url }}" target="_blank" rel="noopener noreferrer">Evidencia documental</a></p>
+  {% if not policy.revoked_at %}<form method="post" action="/admin/highlights-review/policies/{{ policy.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Revocar política</button></form>{% endif %}</details>
+  {% else %}<p>No hay políticas documentadas en esta lectura. Ninguna suscripción a la API certifica derechos sobre vídeos ajenos.</p>{% endfor %}</section>{% endif %}
   {% for item in review['items'] %}
   <article class="ns-media-review-card" data-highlight-review="{{ item.id }}">
     <h2>{{ item.title }}</h2><p>{{ item.event_date }} · {{ item.source }}</p>
@@ -40,6 +46,13 @@
         <label>URL pública de la evidencia<input type="url" name="evidence_url" placeholder="https://…" maxlength="2048"></label>
         <label>Atribución que verá el cliente<input name="attribution" value="{{ item.attribution }}" maxlength="500"></label>
         <label>Fundamento y alcance de la autorización<textarea name="basis" rows="3" maxlength="1500"></textarea></label>
+        <label>Expiración o revisión de la política (fecha con zona horaria)<input name="policy_review_at" placeholder="2027-01-03T23:59:00+01:00" maxlength="40"></label>
+        <p>Sin fecha indicada se revisará a los 180 días. Al vencer, el vídeo vuelve a revisión automáticamente.</p>
+        {% if item.source_channel_id %}
+        <p>Identificador de canal registrado: {{ item.source_channel_id }}</p>
+        <label class="ns-media-check"><input type="checkbox" name="policy_future" value="1">La misma política cubre futuros vídeos de este canal y esta fuente.</label>
+        <label class="ns-media-check"><input type="checkbox" name="channel_scope_confirmed" value="1">He comprobado el identificador estable del canal y que la evidencia cubre los futuros vídeos equivalentes, el uso comercial y esta modalidad.</label>
+        {% else %}<p>La política se limita a este vídeo. Falta un identificador estable de canal para reutilizarla en vídeos futuros.</p>{% endif %}
         <label class="ns-media-check"><input type="checkbox" name="confirmed" value="1">He verificado el uso comercial en la app y la modalidad seleccionada. Una URL de YouTube o de una API, por sí sola, no basta.</label>
         <label class="ns-media-check"><input type="checkbox" name="official" value="1">La fuente oficial también está verificada.</label>
         <p>No pegues claves ni contraseñas. Cada decisión conserva su evidencia y la revisión anterior. Si cambia el enlace, se requiere una nueva revisión.</p>

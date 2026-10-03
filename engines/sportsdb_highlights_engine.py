@@ -42,7 +42,8 @@ def _connect(db_path):
 
 
 def _rows(conn, sql, args=()):
-    return [dict(r) for r in conn.execute(sql, args).fetchall()]
+    from engines.highlight_policy_engine import attach_policies
+    return attach_policies(conn, [dict(r) for r in conn.execute(sql, args).fetchall()])
 
 
 def _one(conn, sql, args=()):
@@ -306,6 +307,23 @@ def classify_stored_highlight(item, *, channel='APP'):
         'channel': requested_channel,
         'allowed_channels': channels,
     })
+    policy = row.get('_rights_policy')
+    if policy:
+        # A recorded per-video block/review cannot be overridden by a channel rule.
+        if embed_policy in {'BLOCKED', 'REVIEW_REQUIRED'}:
+            policy = {**policy, 'decision': embed_policy, 'modality': embed_policy,
+                      'reason': 'Revisión individual pendiente o bloqueo registrado.'}
+        if policy.get('decision') == 'APPROVED':
+            approved_embed = safe_embed_url(original_url) if policy['modality'] == 'EMBED' else ''
+            if geo_status in {'BLOCKED', 'RESTRICTED', 'GEO_BLOCKED'}:
+                approved_embed = ''
+            decision = classify_match_video({**row, **policy, 'original_url': original_url,
+                'embed_url': approved_embed, 'commercial_use_status': 'ALLOWED',
+                'attribution_required': True, 'allowed_channels': ['APP'], 'channel': requested_channel})
+            decision['policy_id'] = policy['policy_id']
+        else:
+            decision = {**decision, **policy, 'show_block': False, 'can_embed': False,
+                        'can_link': False, 'channel_allowed': False}
     if channels and requested_channel not in channels:
         decision = {
             **decision,

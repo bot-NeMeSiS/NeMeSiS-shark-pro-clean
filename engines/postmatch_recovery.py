@@ -82,6 +82,7 @@ def save_statistics(conn, job, observations, now):
 
 def finish(store, job, result, now):
     from engines.sportsdb_highlights_engine import _upsert_highlight, classify_stored_highlight
+    from engines.highlight_policy_engine import attach_policies
     with store.connection(True) as conn:
         store.check_lease(conn, job, now)
         row = conn.execute('SELECT * FROM matches WHERE id=?', (job['match_id'],)).fetchone()
@@ -103,6 +104,7 @@ def finish(store, job, result, now):
                 # Entire transaction rollback avoids storing an ambiguous association.
                 raise SourceError('IDENTITY_MISMATCH')
             media = dict(conn.execute('SELECT * FROM sportsdb_match_highlights WHERE id=?', (saved['id'],)).fetchone())
+            attach_policies(conn, [media])
             reason = 'COMPLETE' if classify_stored_highlight(media).get('show_block') else 'RIGHTS_REVIEW'
         else:
             reasons = result.get('reasons') or ['NO_APPROVED_SOURCE']
@@ -146,6 +148,7 @@ def reconcile_media_reviews(store, now):
     """
     from engines.sportsdb_highlights_engine import classify_stored_highlight, _find_match
     from engines.highlight_url_engine import public_https_url
+    from engines.highlight_policy_engine import attach_policies
     with store.connection(True) as conn:
         jobs=conn.execute("SELECT * FROM postmatch_jobs WHERE kind='highlights' "
                           "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') "
@@ -169,6 +172,7 @@ def reconcile_media_reviews(store, now):
                          'idLeague': item.get('league_id'), 'strLeague': item.get('league_name')}
                 if str(_find_match(conn, event) or '') == str(job['match_id']):
                     safe.append(item)
+            attach_policies(conn, safe)
             if any(classify_stored_highlight(item).get('show_block') for item in safe):
                 conn.execute("UPDATE postmatch_jobs SET state='COMPLETE',reason='COMPLETE',updated_at=? WHERE id=?",(now,job['id']))
                 Store.audit(conn,job['id'],'RIGHTS_REVIEW_RECONCILED',{},'worker',now)
