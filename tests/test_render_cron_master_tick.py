@@ -33,12 +33,24 @@ class MockResponse:
         return False
 
 
-def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret", backup_is_due: bool = False, postmatch_outcome=None):
+def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secret", backup_is_due: bool = False, postmatch_outcome=None, highlights_outcome=None):
     calls = []
 
     def fake_urlopen(request, timeout):
         if request.full_url.endswith(master.READINESS_ENDPOINT):
             return MockResponse({"ok": True, "version": "SIMULATED_QA"})
+        if master.HIGHLIGHTS_ENDPOINT in request.full_url:
+            if isinstance(highlights_outcome, BaseException):
+                raise highlights_outcome
+            return highlights_outcome or MockResponse({
+                "ok": True,
+                "highlights_sync": {
+                    "ok": True,
+                    "skipped": True,
+                    "reason": "fresh_sync_window",
+                    "external_calls": 0,
+                },
+            })
         calls.append({"request": request, "timeout": timeout})
         if request.full_url.endswith('/api/automation/postmatch/tick'):
             if isinstance(postmatch_outcome, BaseException):
@@ -565,3 +577,80 @@ def test_postmatch_timeout_uses_extended_budget_and_is_diagnostic(monkeypatch, c
     assert postmatch_call["timeout"] == master.POSTMATCH_TIMEOUT_SECONDS
     assert master.POSTMATCH_TIMEOUT_SECONDS == 45
     assert "late but healthy response" not in output
+
+
+def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatch):
+    seen = {}
+    secret = "pytest-highlights-secret"
+
+    def fake_urlopen(request, timeout):
+        seen["request"] = request
+        seen["timeout"] = timeout
+        return MockResponse({
+            "ok": True,
+            "highlights_sync": {
+                "ok": True,
+                "status": "OK",
+                "external_calls": 2,
+                "persistent_cache_hits": 1,
+                "profile_links_reused": 1,
+                "v2_event_lookups": 1,
+                "v2_cache_hits": 0,
+                "v2_highlights_found": 1,
+                "highlights_found": 3,
+                "linked_matches": 2,
+                "errors": [],
+            },
+        })
+
+    monkeypatch.setattr(master.urllib.request, "urlopen", fake_urlopen)
+    result = master.highlights_tick("https://example.invalid", secret)
+
+    assert result["highlights_status"] == "PASS"
+    assert result["external_calls"] == 2
+    assert result["v2_event_lookups"] == 1
+    assert result["v2_highlights_found"] == 1
+    assert seen["timeout"] == master.HIGHLIGHTS_TIMEOUT_SECONDS == 24
+    request = seen["request"]
+    assert request.get_method() == "POST"
+    assert request.full_url.startswith("https://example.invalid" + master.HIGHLIGHTS_ENDPOINT + "?")
+    assert "days_back=2" in request.full_url
+    assert "limit=250" in request.full_url
+    assert secret not in request.full_url
+    headers = {name.lower(): value for name, value in request.header_items()}
+    assert headers["x-automation-secret"] == secret
+
+
+def test_highlights_failure_never_changes_core_master_overall(monkeypatch, capsys):
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
+    monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
+    monkeypatch.setattr(master, "wait_for_web_ready", lambda _url: {
+        "readiness_status": "PASS",
+        "readiness_http": 200,
+        "readiness_result": "WEB_READY",
+        "readiness_attempts": 1,
+        "readiness_duration_ms": 1,
+    })
+    monkeypatch.setattr(master, "telegram_tick", lambda *_a: {
+        "telegram_status": "PASS", "telegram_result": "QUEUE_EMPTY", "telegram_duration_ms": 1,
+    })
+    monkeypatch.setattr(master, "highlights_tick", lambda *_a: {
+        "highlights_status": "FAIL", "highlights_result": "TIMEOUT", "highlights_duration_ms": 24000,
+    })
+    monkeypatch.setattr(master, "continuous_evolution_tick", lambda *_a: {
+        "continuous_status": "PASS", "continuous_result": "RUN", "continuous_duration_ms": 1,
+    })
+    monkeypatch.setattr(master, "backup_due", lambda _utc: False)
+    monkeypatch.setattr(master, "postmatch_tick", lambda *_a: {
+        "postmatch_status": "PASS", "postmatch_result": "IDLE", "duration_ms": 1,
+    })
+
+    code = master.main()
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["overall"] == "PASS"
+    assert payload["telegram_status"] == "PASS"
+    assert payload["highlights_status"] == "FAIL"
+    assert payload["highlights"]["highlights_result"] == "TIMEOUT"
+    assert payload["continuous_evolution_status"] == "PASS"
