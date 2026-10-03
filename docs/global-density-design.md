@@ -87,3 +87,7 @@ passed, and after isolating the audience policy from operational ranking, 88
 identity/calendar/provider/Telegram/policy cases passed. All 197 Jinja templates
 parse. The Windows temporary-directory permission issue during the first run was
 resolved by using dedicated temporary directories in this workspace.
+
+## Unified-base validation
+
+This revision is validated after the canonical sports entity navigation layer entered the PR chain. Density and ES/EU presentation priority remain presentation-only and must not replace Sports Core identity, lifecycle, historical memory, provider, pick or settlement truth.
