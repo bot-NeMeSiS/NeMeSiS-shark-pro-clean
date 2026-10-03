@@ -25,7 +25,6 @@
      data-canonical-status="{{ match_context.get('match', {}).get('status_info', {}).get('key') or match_context.get('lifecycle', {}).get('key') or '' }}"
      data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
   <nav class="v933-page-actions" aria-label="Revisar partido con SHARK">
-    <a class="v933-action" href="/calendario?lane=today">← {{ ui("Partidos") }}</a>
     {% if (match_context.get('media') or {}).get('visible_count') %}<a class="v933-action is-primary" href="#match-section-video">▶ {{ ui("Ver resumen del partido") }}</a>{% endif %}
     <a class="v933-action" href="/shark?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Consejos de SHARK sobre este partido</a>
     <a class="v933-action" href="/combinadas?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Revisar en combinadas</a>

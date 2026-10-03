@@ -78,7 +78,7 @@
         data-match-region="header">
   <h1 class="sr-only">{{ home.get('name') or ui('No disponible') }} vs {{ away.get('name') or ui('No disponible') }}</h1>
   <div class="v944-match-header__meta">
-    <a href="/calendar" class="v944-back-link">{{ icon('arrow') }}<span>{{ ui("Calendario") }}</span></a>
+    <a href="/calendario?lane=today" class="v944-back-link">{{ icon('arrow') }}<span>{{ ui("Partidos") }}</span></a>
     {% if competition.get('href') %}
     <a class="v944-match-header__competition" href="{{ competition.get('href') }}">{{ competition.get('name') or ui('No disponible') }}</a>
     {% else %}
