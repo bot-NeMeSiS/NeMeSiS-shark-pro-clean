@@ -1,5 +1,6 @@
 from pathlib import Path
 import re
+from visual_assets import stylesheet_loaded
 
 ROOT = Path(__file__).resolve().parents[1]
 required = [
@@ -20,7 +21,8 @@ if app_version != current_version:
     errors.append("APP_VERSION")
 text = base.read_text(encoding="utf-8", errors="ignore") if base.exists() else ""
 for marker in ("v937-product-client.css", "v937-product-client.js"):
-    if text.count(marker) != 1:
+    loaded = stylesheet_loaded(text, marker) if marker.endswith('.css') else text.count(marker) == 1
+    if not loaded:
         errors.append(f"base link count: {marker}")
 if "letter-spacing:-" in (ROOT / "static/v937-product-client.css").read_text(encoding="utf-8"):
     errors.append("negative letter spacing")

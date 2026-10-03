@@ -7,6 +7,8 @@ import tempfile
 from pathlib import Path
 
 
+from visual_assets import stylesheet_loaded
+
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "V930_CANONICAL_REFERENCE_VISUAL_PARITY_ADMIN_CLIENT_MOBILE_FINAL"
 V931_VERSION = "V931_PRODUCTION_CLIENT_ROUTES_AND_HOME_DATA_CONSISTENCY_HOTFIX_FINAL"
@@ -85,7 +87,7 @@ def _base_checks() -> list[dict]:
     add(checks, "version_v930_or_successor", current in ALLOWED_VERSIONS, current)
     add(checks, "version_without_bom", not version_bytes.startswith(b"\xef\xbb\xbf"))
     add(checks, "app_version_exact", f"APP_VERSION = '{current}'" in app)
-    add(checks, "v930_css_loaded", "filename='v930-canonical.css'" in base and "?v={{ app_version }}" in base)
+    add(checks, "v930_css_loaded", stylesheet_loaded(base, 'v930-canonical.css') and "?v={{ app_version }}" in base)
     add(checks, "service_worker_v930_or_successor", f"NEMESIS_CACHE_{current.split('_', 1)[0]}" in app and "cache:'no-store'" in app and "cache:'reload'" in app)
     add(checks, "canonical_css_substantial", len(css) > 18000, str(len(css)))
     for flag in (

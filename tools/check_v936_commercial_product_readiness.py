@@ -9,6 +9,8 @@ import tempfile
 from pathlib import Path
 
 
+from visual_assets import stylesheet_loaded
+
 ROOT = Path(__file__).resolve().parents[1]
 BASE_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
 CURRENT_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
@@ -49,7 +51,7 @@ def main() -> int:
     add(checks, "version_exact", version == VERSION, version)
     add(checks, "version_without_bom", not (ROOT / "VERSION.txt").read_bytes().startswith(b"\xef\xbb\xbf"))
     add(checks, "app_version_exact", f"APP_VERSION = '{VERSION}'" in app_text)
-    add(checks, "css_cache_busting", "filename='v936-commercial.css'" in base and 'data-v936-commercial-version="{{ app_version }}"' in base)
+    add(checks, "css_cache_busting", stylesheet_loaded(base, 'v936-commercial.css') and '?v={{ app_version }}' in base)
     add(checks, "service_worker_v936", f"NEMESIS_CACHE_{VERSION.split('_', 1)[0]}" in app_text)
     add(checks, "commercial_css_present", len(css.encode("utf-8")) > 3000)
 

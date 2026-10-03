@@ -40,6 +40,56 @@ permissions:
   contents: read
 
 jobs:
+  premium-visual:
+    name: premium-visual
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - name: Verify committed CSS and semantic states
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm run check:css
+          python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt tzdata
+          python -m playwright install --with-deps chromium
+          python -m pytest -o addopts='' -q tests/test_premium_visual_system.py tests/test_design02_calendar_presentation.py tests/test_contextual_sports_entity_navigation.py
+      - name: Capture isolated desktop and mobile surfaces
+        run: |
+          python tools/run_visual_preview.py > /tmp/visual-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid"' EXIT
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(60):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:54920/cliente-login', timeout=2)
+                  break
+              except OSError:
+                  time.sleep(1)
+          else:
+              raise SystemExit('Visual preview failed to start')
+          PY
+          python tools/run_visual_browser_qa.py --output /tmp/premium-visual-evidence
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: premium-visual-${{ github.run_id }}
+          path: |
+            /tmp/premium-visual-evidence/
+            /tmp/visual-preview.log
+          retention-days: 7
+
   journey-controls:
     name: journey-controls
     runs-on: ubuntu-latest

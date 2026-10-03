@@ -34,12 +34,12 @@
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
-    <a class="v933-plan-chip is-{{ plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
+    <a class="v933-plan-chip is-{{ 'eliteplus' if plan in ['ELITE+', 'ADMIN'] else plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
   </div>
 </header>
 <header class="v933-mobile-header v933-client-mobile-header" data-nav-zone="client-mobile">
   {{ nemesis_brand('/app', 'topbar', True) }}
-  <div class="v933-mobile-header-actions"><a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a><a class="v933-icon-button" href="/mi-cuenta" aria-label="{{ ui("Abrir mi cuenta") }}" title="{{ ui("Mi cuenta") }}">{{ nav_icon('user') }}</a></div>
+  <div class="v933-mobile-header-actions"><a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a><details class="product-account-menu"><summary class="v933-icon-button" aria-label="{{ ui('Abrir opciones de cuenta') }}">{{ nav_icon('user') }}</summary><nav aria-label="{{ ui('Opciones de cuenta') }}"><a href="/mi-cuenta">{{ ui('Mi cuenta') }}</a><a href="/membresias">{{ ui('Membresías') }}</a><a href="/soporte">{{ ui('Soporte') }}</a></nav></details></div>
 </header>
 {%- endmacro %}
 
@@ -60,7 +60,7 @@
 
 {% macro v933_admin_topbar() -%}
 <header class="v933-admin-topbar" data-nav-zone="admin-topbar">
-  <form action="/admin/dashboard" method="get" role="search"><label class="sr-only" for="v933-admin-search">{{ ui("Buscar en el panel") }}</label>{{ nav_icon('search') }}<input id="v933-admin-search" type="search" name="q" placeholder="Buscar en el panel..." autocomplete="off"><kbd>Ctrl K</kbd></form>
+  <form action="/admin/dashboard" method="get" role="search"><label class="sr-only" for="v933-admin-search">{{ ui("Buscar en el panel") }}</label>{{ nav_icon('search') }}<input id="v933-admin-search" type="search" name="q" placeholder="Buscar en el panel..." autocomplete="off"><kbd aria-hidden="true">Ctrl K</kbd></form>
   <div class="v933-admin-tools">
     <a class="v933-admin-alerts" href="/admin/sentinel-issues">{{ nav_icon('shield') }}<span>{{ ui("Incidencias") }}</span></a>
     <a class="v933-admin-identity" href="/admin/founder-os">{{ nav_icon('home') }}<span><strong>Control general</strong><small>{{ ui("Acceso protegido") }}</small></span></a>
