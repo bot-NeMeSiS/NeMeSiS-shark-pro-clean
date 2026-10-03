@@ -70,6 +70,9 @@ jobs:
         run: |
           python -m pytest -o addopts='' -q \
             tests/test_sportsdb_premium_efficiency.py \
+            tests/test_sportsdb_canonical_entity_enrichment.py \
+            tests/test_sportsdb_rescue_reconciliation.py \
+            tests/test_api_usage_read_truth.py \
             tests/test_sportsdb_highlight_persistence.py \
             tests/test_postmatch_recovery.py \
             tests/test_highlight_review_flow.py \

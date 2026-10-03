@@ -15,7 +15,7 @@ from contextlib import closing
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS
 
 FINAL = {"ft", "finished", "final", "finalizado", "match finished", "archived", "aet", "pen"}
-KINDS = {"competition", "season", "team", "player", "stadium", "referee", "match"}
+KINDS = {"competition", "season", "team", "player", "coach", "stadium", "referee", "match"}
 DETAILS = {"lineups", "events", "statistics", "odds", "picks", "highlights"}
 MADRID = ZoneInfo('Europe/Madrid')
 
@@ -77,6 +77,18 @@ def ensure_schema(conn):
     CREATE TABLE IF NOT EXISTS sports_history_coverage_issues (
       team TEXT NOT NULL, competition TEXT NOT NULL, season TEXT NOT NULL,
       code TEXT, updated_at TEXT NOT NULL, PRIMARY KEY(team,competition,season));
+    CREATE TABLE IF NOT EXISTS sports_history_entity_links (
+      source_id TEXT NOT NULL REFERENCES sports_history_entities(id),
+      relation TEXT NOT NULL,
+      target_id TEXT NOT NULL REFERENCES sports_history_entities(id),
+      source TEXT NOT NULL,
+      facts TEXT NOT NULL DEFAULT '{}',
+      observed_at TEXT NOT NULL,
+      PRIMARY KEY(source_id,relation,target_id,source));
+    CREATE INDEX IF NOT EXISTS sports_history_entity_links_source
+      ON sports_history_entity_links(source_id,relation);
+    CREATE INDEX IF NOT EXISTS sports_history_entity_links_target
+      ON sports_history_entity_links(target_id,relation);
     """)
     for competition in IMPORTANT_COMPETITIONS:
         canonical = entity(conn, "competition", "canonical", competition["key"], {"name": competition["name"], "country": competition["country"]})
@@ -86,8 +98,14 @@ def ensure_schema(conn):
 
 
 def provider_name(value):
-    raw = str(value or "local").lower().replace("-", "_")
-    return {"sportsdb": "thesportsdb", "the sports db": "thesportsdb", "odds": "the_odds_api", "odds_api": "the_odds_api", "the odds api": "the_odds_api"}.get(raw, raw)
+    raw = str(value or "local").strip().lower().replace("-", "_").replace(" ", "_")
+    if "sportsdb" in raw:
+        return "thesportsdb"
+    if raw in {"odds", "odds_api", "the_odds_api"}:
+        return "the_odds_api"
+    if raw in {"api_football", "api_sports", "api_football_api"}:
+        return "api_football"
+    return raw
 
 
 def entity(conn, kind, source, external_id, facts=None, canonical_id=None):
@@ -112,6 +130,126 @@ def entity(conn, kind, source, external_id, facts=None, canonical_id=None):
     conn.execute("INSERT INTO sports_history_entities VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET facts=excluded.facts,updated_at=excluded.updated_at", (target, kind, encode(merged), now()))
     conn.execute("INSERT OR IGNORE INTO sports_history_ids VALUES(?,?,?,?)", (kind, source, external_id, target))
     return target
+
+
+def entity_id(conn, kind, source, external_id):
+    source = provider_name(source)
+    row = conn.execute(
+        "SELECT canonical_id FROM sports_history_ids WHERE kind=? AND source=? AND external_id=?",
+        (str(kind or ""), source, str(external_id or "")),
+    ).fetchone()
+    from engines.sports_history_reconciliation import resolve
+    return resolve(conn, row[0]) if row else ""
+
+
+def link_entities(conn, source_id, relation, target_id, source, facts=None):
+    """Persist one verified relationship without inferring identities by name."""
+    relation = str(relation or "").strip()
+    source = provider_name(source)
+    from engines.sports_history_reconciliation import resolve
+    source_id = resolve(conn, str(source_id or "").strip())
+    target_id = resolve(conn, str(target_id or "").strip())
+    if not source_id or not target_id or not relation or not source:
+        raise ValueError("Entity link requires source, relation, target and provenance")
+    present = {
+        row[0]
+        for row in conn.execute(
+            "SELECT id FROM sports_history_entities WHERE id IN (?,?)",
+            (source_id, target_id),
+        )
+    }
+    if present != {source_id, target_id}:
+        raise ValueError("Entity link requires existing canonical entities")
+    conn.execute(
+        """INSERT INTO sports_history_entity_links(source_id,relation,target_id,source,facts,observed_at)
+           VALUES(?,?,?,?,?,?)
+           ON CONFLICT(source_id,relation,target_id,source)
+           DO UPDATE SET facts=excluded.facts,observed_at=excluded.observed_at""",
+        (source_id, relation, target_id, source, encode(facts or {}), now()),
+    )
+    return {"source_id": source_id, "relation": relation, "target_id": target_id, "source": source}
+
+
+def entity_profile(db_path, kind, identifier, source=None):
+    """Read one canonical entity by canonical id or an exact provider-scoped id."""
+    try:
+        with closing(read_connection(db_path)) as conn:
+            canonical = str(identifier or "").strip()
+            if source:
+                canonical = entity_id(conn, kind, source, identifier)
+            if not canonical:
+                return {}
+            card = entity_card(conn, canonical)
+            if card and card.get("kind") == kind:
+                card["external_calls"] = 0
+                return card
+            return {}
+    except sqlite3.OperationalError:
+        return {}
+
+
+def linked_entity_cards(db_path, source_kind, source_identifier, relation, *, source=None, target_kind=None):
+    """Return locally persisted related entities; never calls a provider."""
+    try:
+        with closing(read_connection(db_path)) as conn:
+            canonical = str(source_identifier or "").strip()
+            if source:
+                canonical = entity_id(conn, source_kind, source, source_identifier)
+            if not canonical:
+                return []
+            from engines.sports_history_reconciliation import resolve
+            canonical = resolve(conn, canonical)
+            aliases = [canonical]
+            aliases.extend(row[0] for row in conn.execute("SELECT source_id FROM sports_history_redirects") if resolve(conn, row[0]) == canonical)
+            placeholders = ','.join('?' for _ in aliases)
+            query = """SELECT l.target_id,l.source,l.facts,l.observed_at,e.kind
+                       FROM sports_history_entity_links l
+                       JOIN sports_history_entities e ON e.id=l.target_id
+                       WHERE l.source_id IN (""" + placeholders + """) AND l.relation=?"""
+            params = [*aliases, str(relation or "")]
+            if target_kind:
+                query += " AND e.kind=?"
+                params.append(target_kind)
+            query += " ORDER BY l.observed_at DESC,l.target_id"
+            result, seen = [], set()
+            for target_id, provenance, link_facts, observed_at, kind_value in conn.execute(query, tuple(params)):
+                target_id = resolve(conn, target_id)
+                if target_id in seen:
+                    continue
+                seen.add(target_id)
+                card = entity_card(conn, target_id)
+                if not card:
+                    continue
+                card.update(
+                    relation=relation,
+                    relation_source=provenance,
+                    relation_facts=json.loads(link_facts or "{}"),
+                    relation_observed_at=observed_at,
+                    external_calls=0,
+                )
+                result.append(card)
+            return result
+    except sqlite3.OperationalError:
+        return []
+
+
+def team_profile(db_path, identifier, source="thesportsdb"):
+    return entity_profile(db_path, "team", identifier, source=source)
+
+
+def player_profile(db_path, identifier, source="thesportsdb"):
+    return entity_profile(db_path, "player", identifier, source=source)
+
+
+def team_roster(db_path, identifier, source="thesportsdb"):
+    return linked_entity_cards(
+        db_path,
+        "team",
+        identifier,
+        "team_has_player",
+        source=source,
+        target_kind="player",
+    )
 
 
 def score(value):
@@ -481,9 +619,20 @@ def history_summary(db_path):
             audits = []
             if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sports_history_identity_audit'").fetchone():
                 audits = [dict(kind=r[0], source=r[1], external_id=r[2], target_id=r[3], evidence=r[4], created_at=r[5]) for r in conn.execute('SELECT kind,source,external_id,target_id,evidence,created_at FROM sports_history_identity_audit ORDER BY created_at DESC LIMIT 30')]
-            return dict(available=True, sources=sources, scopes=scopes, jobs=jobs, ids=ids, consumption=consumption, reconciliations=audits, last_sync=last, external_calls=0)
+            entity_counts = [dict(kind=r[0], count=r[1]) for r in conn.execute("SELECT kind,COUNT(*) FROM sports_history_entities GROUP BY kind ORDER BY kind")]
+            relation_counts = [dict(relation=r[0], count=r[1]) for r in conn.execute("SELECT relation,COUNT(*) FROM sports_history_entity_links GROUP BY relation ORDER BY relation")]
+            entity_sync = {}
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='automation_state'").fetchone():
+                state = conn.execute("SELECT value_json,updated_at FROM automation_state WHERE key='sportsdb_entity_memory_sync'").fetchone()
+                if state:
+                    try:
+                        entity_sync = json.loads(state[0] or "{}")
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        entity_sync = {"state": "invalid"}
+                    entity_sync["updated_at"] = state[1]
+            return dict(available=True, sources=sources, scopes=scopes, jobs=jobs, ids=ids, consumption=consumption, reconciliations=audits, entity_counts=entity_counts, relation_counts=relation_counts, entity_sync=entity_sync, last_sync=last, external_calls=0)
     except sqlite3.OperationalError:
-        return dict(available=False, sources=[], scopes=[], jobs=[], ids=[], last_sync=None, external_calls=0)
+        return dict(available=False, sources=[], scopes=[], jobs=[], ids=[], consumption=[], entity_counts=[], relation_counts=[], entity_sync={}, last_sync=None, external_calls=0)
 
 
 def match_history(db_path, internal_id):
