@@ -80,7 +80,7 @@ WORKER_BLUEPRINTS = [
         "Membership Value Worker",
         "Membresías",
         "/admin/memberships",
-        ["Diferencia FREE, PRO, ELITE y ELITE+ sin inventar beneficios reales.", "Bloqueos elegantes y CTAs claros."],
+        ["Diferencia FREE, PRO y ELITE según los permisos reales; Admin conserva su espacio de administración.", "Bloqueos elegantes y CTAs claros."],
         ["Mantener mensajes Disponible en PRO/ELITE y Desbloquea análisis avanzado."],
     ),
     (

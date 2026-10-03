@@ -54,9 +54,9 @@
 {% elif _raw_tier == 'ELITE' %}
   {% set _visual_tier = 'elite' %}
   {% set _tier_label = 'ELITE' %}
-{% elif _raw_tier in ['ADMIN', 'ELITE+', 'ELITE_PLUS'] %}
+{% elif _raw_tier in ['ADMIN'] %}
   {% set _visual_tier = 'eliteplus' %}
-  {% set _tier_label = 'ELITE+' if _raw_tier != 'ADMIN' else 'ADMIN' %}
+  {% set _tier_label = 'ADMIN' %}
 {% else %}
   {% set _visual_tier = 'free' %}
   {% set _tier_label = 'FREE' %}

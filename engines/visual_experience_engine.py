@@ -32,11 +32,11 @@ THEMES = {
         "accent": "#d69a16",
         "description": "Dorado de máximo valor para análisis avanzado.",
     },
-    "ELITE+": {
+    "ADMIN": {
         "name": "Neon Purple",
         "primary": "#c45cff",
         "accent": "#7c3aed",
-        "description": "Morado ultra premium para administración, pruebas y futuras capas superiores.",
+        "description": "Morado para el centro de administración.",
     },
 }
 

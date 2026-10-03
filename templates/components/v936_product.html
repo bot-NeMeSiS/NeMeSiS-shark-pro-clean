@@ -17,7 +17,8 @@
 {%- endmacro %}
 
 {% macro value_ladder(current_plan='FREE') -%}
-{% set plan = (current_plan or 'FREE')|upper %}
+{% set plan = (current_plan or 'FREE')|trim|upper %}
+{% if plan not in ['FREE', 'PRO', 'ELITE', 'ADMIN'] %}{% set plan = 'FREE' %}{% endif %}
 <section class="v936-value-ladder" aria-label="Recorrido de membresía">
   <article class="{% if plan == 'FREE' %}is-current{% endif %}">
     <span>{{ ui("Explorar") }}</span><strong>FREE</strong><p>{{ ui("Agenda, directo y estados deportivos honestos.") }}</p>
@@ -27,7 +28,7 @@
     <span>{{ ui("Decidir con contexto") }}</span><strong>PRO</strong><p>{{ ui("Pronósticos completos, SHARK y alertas según disponibilidad real.") }}</p>
   </article>
   <i aria-hidden="true">{{ icon('arrow') }}</i>
-  <article class="is-elite{% if plan in ['ELITE','ELITE_PLUS'] %} is-current{% endif %}">
+  <article class="is-elite{% if plan == 'ELITE' %} is-current{% endif %}">
     <span>{{ ui("Prioridad") }}</span><strong>ELITE</strong><p>{{ ui("Acceso avanzado y soporte, sin promesas de rentabilidad.") }}</p>
   </article>
 </section>

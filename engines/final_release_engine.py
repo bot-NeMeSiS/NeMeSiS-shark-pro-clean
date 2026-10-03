@@ -220,7 +220,7 @@ def final_release_snapshot(db_path: str, app_version: str = "") -> dict[str, Any
                 {"label": "Templates cliente críticos", "ok": all(project["client_templates"].values()), "value": f"{sum(project['client_templates'].values())}/{len(project['client_templates'])}"},
                 {"label": "Base visual global", "ok": all(project["base_markers"].values()), "value": f"{sum(project['base_markers'].values())}/{len(project['base_markers'])}"},
                 {"label": "CSS visual V736/V737/V738", "ok": all(project["css_markers"].values()), "value": f"{sum(project['css_markers'].values())}/{len(project['css_markers'])}"},
-                {"label": "FREE/PRO/ELITE/ELITE+ preparado", "ok": all(project["css_markers"].get(m, False) for m in ["ns-tier-free", "ns-tier-pro", "ns-tier-elite", "ns-tier-eliteplus"])},
+                {"label": "Temas FREE/PRO/ELITE y Admin disponibles", "ok": all(project["css_markers"].get(m, False) for m in ["ns-tier-free", "ns-tier-pro", "ns-tier-elite", "ns-tier-eliteplus"])},
             ],
             "Hacer QA visual real en móvil y desktop con usuarios de cada plan.",
             critical=False,
