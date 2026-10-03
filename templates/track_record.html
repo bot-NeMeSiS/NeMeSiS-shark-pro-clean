@@ -11,6 +11,7 @@
 
 <div class="v933-page v933-track-record" data-v933-template="track_record" data-v933-reference="official-ref-13" data-top100-improvement="7">
   {{ page_header('Historial', 'Rendimiento real de pronósticos cerrados.', 'history', [{'label':'Ver pronósticos','href':'/picks','primary':true,'icon':'target'}]) }}
+  {% include 'components/picks_workspace_nav.html' %}
 
   {% if has_history %}<section class="v933-kpi-grid">
     {{ kpi_card('Rentabilidad (ROI)', (roi|string ~ '%') if roi is not none else none, 'Beneficio sobre ' ~ (record.get('stake_total')|string) ~ ' u. evaluadas', 'success', 'history') }}
