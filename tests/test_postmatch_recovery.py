@@ -191,6 +191,17 @@ def test_budget_shared_by_workers_and_crash_does_not_refund(store):
     with store.connection() as conn:assert conn.execute('SELECT SUM(used) FROM postmatch_source_budget').fetchone()[0]==1
 
 
+def test_production_budget_cannot_exceed_sixty_with_legacy_larger_configuration(store):
+    store.configure(enabled=True,sources=['thesportsdb'],daily_limit=200,actor='qa',confirmed=True)
+    store.discover(NOW);job=store.claim(NOW)
+    for _ in range(60):
+        store.reserve('thesportsdb',job,NOW,200)
+    with pytest.raises(BudgetStopped,match='DAILY_BUDGET'):
+        store.reserve('thesportsdb',job,NOW,200)
+    with store.connection() as conn:
+        assert conn.execute('SELECT SUM(used) FROM postmatch_source_budget').fetchone()[0] == 60
+
+
 def test_circuit_breaker_stops_failed_source(store):
     store.discover(NOW);job=store.claim(NOW)
     for _ in range(3):store.circuit('thesportsdb',True,'NETWORK',NOW)

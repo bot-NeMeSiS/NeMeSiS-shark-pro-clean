@@ -12,6 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--output',default='reports/postmatch_browser')
 parser.add_argument('--snapshot',action='store_true')
+parser.add_argument('--automation-center',action='store_true')
 args=parser.parse_args()
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'tests'))
 temporary=tempfile.TemporaryDirectory(prefix='nemesis-postmatch-qa-')
@@ -55,7 +56,7 @@ else:
  base='http://nemesis.test'
 with sync_playwright() as pw:
  browser=pw.chromium.launch(executable_path=os.getenv('NEMESIS_QA_CHROMIUM') or pw.chromium.executable_path,headless=True,args=['--no-sandbox'])
- for role in ['client_free','client_pro','client_elite','admin']:
+ for role in (['admin'] if args.automation_center else ['client_free','client_pro','client_elite','admin']):
   for width in [320,390,1440]:
    client=app.app.test_client();client.set_cookie(sessions['cookie_name'],sessions[role])
    ctx=browser.new_context(viewport={'width':width,'height':900},service_workers='block',locale='es-ES')
@@ -73,7 +74,7 @@ with sync_playwright() as pw:
     headers={k:v for k,v in response.headers.items() if k.lower() not in {'content-length','content-encoding','transfer-encoding','set-cookie'}}
     route.fulfill(status=response.status_code,headers=headers,body=response.get_data())
    ctx.route('**/*',route_request)
-   path='/admin/highlights-review' if role=='admin' else '/match/'+MATCH['id']
+   path='/admin/automation-center' if args.automation_center else '/admin/highlights-review' if role=='admin' else '/match/'+MATCH['id']
    if args.snapshot:
     # The fallback deliberately uses an isolated CSS + native-video-controller
     # snapshot. The full application JS/navigation must still pass in CI.
@@ -108,8 +109,17 @@ with sync_playwright() as pw:
     assert page.get_by_role('link',name='Ver en la plataforma original').count()==1
     assert page.locator('[data-video-notice]').inner_text().startswith('La plataforma')
    else:
-    assert page.locator('[data-postmatch-workers]').count()==1
-    assert page.get_by_text('Trabajadores pospartido',exact=True).count()==1
+    if args.automation_center:
+     assert page.get_by_text('NeMeSiS Master Automation',exact=True).count()>=1
+     for label in ('Sports','Highlights','Postmatch','Delivery / Telegram','Maintenance / Backups'):
+      assert page.get_by_text(label,exact=True).count()>=1
+     for link in page.locator('.v933-admin-automation a').all():
+      href=link.get_attribute('href') or ''
+      if href.startswith('/admin/'):
+       assert client.get(href.split('#')[0]).status_code==200, href
+    else:
+     assert page.locator('[data-postmatch-workers]').count()==1
+    if not args.automation_center: assert page.get_by_text('Trabajadores pospartido',exact=True).count()==1
    overflow=page.evaluate('document.documentElement.scrollWidth>innerWidth+2')
    print(role,width,status, 'overflow',overflow, 'errors',errors)
    page.screenshot(path=str(out/f'{role}-{width}.png'),full_page=True)

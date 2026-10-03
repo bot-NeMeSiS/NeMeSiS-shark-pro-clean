@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from engines.automation_domains import domain_summary
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -58,7 +59,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
 
     master = _job(
         "master_tick",
-        "Cron maestro",
+        "NeMeSiS Master Automation",
         "/api/automation/telegram/tick + /api/automation/continuous-evolution/tick + backup diario",
         "python tools/render_cron_master_tick.py",
         True,
@@ -67,7 +68,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "cada 5 min",
     )
     master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
-    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "telegram", "continuous_evolution", "data_backup"]
+    master["included_flows"] = ["sports_sync", "odds", "pick_grading", "highlights", "postmatch", "telegram", "continuous_evolution", "data_backup"]
     master["backup_window"] = "02:30–04:30 UTC; el web service deduplica por día y bloquea solapes."
 
     jobs = [master]
@@ -82,6 +83,15 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
     if not backup_enabled:
         warnings.append("Backup diario desactivado en el web service. DATA_BACKUP_ENABLED debe estar activo.")
 
+    from engines.postmatch_store import Store
+    from engines.highlight_read_model import read_highlights_summary
+    postmatch = Store(db_path).snapshot()
+    media = read_highlights_summary(db_path)
+    used = sum(item.get('used', 0) for item in postmatch.get('budget') or [])
+    configured_limit = (postmatch.get('config') or {}).get('daily_limit', 60)
+    limit = min(configured_limit, 60)
+    budget_verified = postmatch.get('state') in {'ACTIVE', 'PAUSED'}
+
     return {
         "version": app_version,
         "generated_at_madrid": datetime.now(MADRID_TZ).isoformat(timespec="seconds"),
@@ -92,10 +102,19 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "jobs_ready": ready,
         "jobs_total": len(jobs),
         "jobs": jobs,
+        "domains": domain_summary(state),
+        "production_owner": "NeMeSiS Master Automation",
+        "qa_owner": "GitHub Actions / revisión bajo demanda",
+        "postmatch": {'state': postmatch.get('state'), 'counts': postmatch.get('counts') or {},
+                      'daily_limit': limit, 'daily_used': used if budget_verified else None,
+                      'daily_remaining': max(0, limit-used) if budget_verified else None,
+                      'jobs': postmatch.get('jobs') or [], 'circuits': postmatch.get('circuits') or []},
+        "media": {key: media.get(key) for key in ('read_state', 'stored_media_total', 'stored_linked_matches',
+                  'authorized_highlights', 'rights_warnings', 'sample_truncated', 'visible_counts_scope')},
         "manual_only": [
             "Programador heredado (manual)",
             "Automatización diaria V818 (compatibilidad)",
-            "Sincronización de destacados",
+            "Recuperación excepcional del catálogo de highlights",
             "Evaluación independiente de pronósticos",
             "Sincronización deportiva independiente",
             "Copia de seguridad independiente",
@@ -126,6 +145,6 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "next_actions": [
             "Mantener un único servicio cron cada 5 minutos.",
             "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
-            "Ejecutar highlights, Sentinel, QA visual y jobs legacy solo bajo demanda.",
+            "Highlights y postmatch pertenecen al Cron maestro; QA visual, navegador y control de despliegue son controles separados.",
         ],
     }

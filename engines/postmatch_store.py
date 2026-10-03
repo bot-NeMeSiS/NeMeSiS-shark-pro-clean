@@ -194,7 +194,8 @@ class Store:
                          "(state='RUNNING' AND lease_until<=?))", (now, now, now))
             row = conn.execute("SELECT * FROM postmatch_jobs WHERE "
                                "(state IN ('PENDING','RETRY') AND due_at<=?) OR "
-                               "(state='RUNNING' AND lease_until<=?) ORDER BY due_at,id LIMIT 1", (now, now)).fetchone()
+                               "(state='RUNNING' AND lease_until<=?) ORDER BY due_at,"
+                               "CASE WHEN state='RUNNING' THEN 0 ELSE 1 END,attempts,id LIMIT 1", (now, now)).fetchone()
             if not row:
                 return None
             token = secrets.token_hex(16)
@@ -233,7 +234,7 @@ class Store:
                 raise BudgetStopped('SOURCE_COOLDOWN')
             conn.execute('INSERT OR IGNORE INTO postmatch_source_budget VALUES(?,?,0)', (source, day))
             used = conn.execute('SELECT COALESCE(SUM(used),0) FROM postmatch_source_budget WHERE day=?', (day,)).fetchone()[0]
-            if used >= min(int(limit), int(config['daily_limit'])):
+            if used >= min(int(limit), int(config['daily_limit']), 60):
                 raise BudgetStopped('DAILY_BUDGET')
             conn.execute('UPDATE postmatch_source_budget SET used=used+1 WHERE source=? AND day=?', (source, day))
 
