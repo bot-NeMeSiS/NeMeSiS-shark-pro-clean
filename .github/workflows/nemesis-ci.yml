@@ -29,7 +29,9 @@ jobs:
           python -m compileall app.py engines tools automation_workforce
 
       - name: Project checks
-        run: python -m unittest discover -s tests -p 'test_sports_history*.py' -v
+        run: |
+          python -m unittest discover -s tests -p test_sports_history.py -v
+          python -m unittest discover -s tests -p test_sports_history_operations.py -v
 
       - name: Existing project checks
         run: |
