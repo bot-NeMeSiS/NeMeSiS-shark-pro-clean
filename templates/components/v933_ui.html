@@ -4,26 +4,26 @@
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ ui(label or 'Pendiente') }}</span>{%- endmacro %}
 
 {% macro canonical_match_state(match, complete=true) -%}
-{% set match = match or {} %}
-{% set status_info = match.get('status_info') or {} %}
-{% set canonical_status = (status_info.get('key') or match.get('v935_lifecycle') or match.get('lifecycle') or '')|upper %}
-{% set canonical_live = status_info.get('is_live') if status_info.get('is_live') is not none else match.get('is_live') %}
-{% set canonical_finished = status_info.get('is_finished') if status_info.get('is_finished') is not none else match.get('is_finished') %}
-{% set raw_status = match.get('client_status_label') or match.get('calendar_status') or match.get('status_label') or match.get('display_status') or match.get('status') or 'Programado' %}
-{% if not complete %}{{ status_chip('Pendiente de completar', 'warning') }}
-{% elif canonical_finished or canonical_status in ['FINISHED','ARCHIVED','FT','FINAL'] %}{{ status_chip('Finalizado', 'blue') }}
-{% elif canonical_status == 'RESULT_PENDING' %}{{ status_chip('Resultado pendiente', 'warning') }}
-{% elif canonical_status == 'POSTPONED' %}{{ status_chip('Aplazado', 'warning') }}
-{% elif canonical_status == 'SUSPENDED' %}{{ status_chip('Suspendido', 'warning') }}
-{% elif canonical_status == 'CANCELLED' %}{{ status_chip('Cancelado', 'warning') }}
-{% elif canonical_status == 'ABANDONED' %}{{ status_chip('Abandonado', 'warning') }}
-{% elif match.get('is_stale') or canonical_status == 'STALE' %}{{ status_chip('Datos retrasados', 'warning') }}
-{% elif canonical_status == 'HALFTIME' and canonical_live %}{{ status_chip('Descanso', 'warning') }}
-{% elif canonical_status == 'LIVE' and canonical_live %}{{ status_chip('En directo', 'success') }}
-{% elif canonical_status in ['UPCOMING','SCHEDULED','PREMATCH','NOT_STARTED','NS'] %}{{ status_chip('Programado', 'blue') }}
-{% elif canonical_live %}{{ status_chip('En directo', 'success') }}
-{% else %}{{ status_chip(raw_status, 'blue') }}
-{% endif %}
+{%- set match = match or {} -%}
+{%- set status_info = match.get('status_info') or {} -%}
+{%- set canonical_status = (status_info.get('key') or match.get('v935_lifecycle') or match.get('lifecycle') or '')|upper -%}
+{%- set canonical_live = status_info.get('is_live') if status_info.get('is_live') is not none else match.get('is_live') -%}
+{%- set canonical_finished = status_info.get('is_finished') if status_info.get('is_finished') is not none else match.get('is_finished') -%}
+{%- set raw_status = match.get('client_status_label') or match.get('calendar_status') or match.get('status_label') or match.get('display_status') or match.get('status') or 'Programado' -%}
+{%- if not complete -%}{{ status_chip('Pendiente de completar', 'warning') }}
+{%- elif canonical_finished or canonical_status in ['FINISHED','ARCHIVED','FT','FINAL'] -%}{{ status_chip('Finalizado', 'blue') }}
+{%- elif canonical_status == 'RESULT_PENDING' -%}{{ status_chip('Resultado pendiente', 'warning') }}
+{%- elif canonical_status == 'POSTPONED' -%}{{ status_chip('Aplazado', 'warning') }}
+{%- elif canonical_status == 'SUSPENDED' -%}{{ status_chip('Suspendido', 'warning') }}
+{%- elif canonical_status == 'CANCELLED' -%}{{ status_chip('Cancelado', 'warning') }}
+{%- elif canonical_status == 'ABANDONED' -%}{{ status_chip('Abandonado', 'warning') }}
+{%- elif match.get('is_stale') or canonical_status == 'STALE' -%}{{ status_chip('Datos retrasados', 'warning') }}
+{%- elif canonical_status == 'HALFTIME' and canonical_live -%}{{ status_chip('Descanso', 'warning') }}
+{%- elif canonical_status == 'LIVE' and canonical_live -%}{{ status_chip('En directo', 'success') }}
+{%- elif canonical_status in ['UPCOMING','SCHEDULED','PREMATCH','NOT_STARTED','NS'] -%}{{ status_chip('Programado', 'blue') }}
+{%- elif canonical_live -%}{{ status_chip('En directo', 'success') }}
+{%- else -%}{{ status_chip(raw_status, 'blue') }}
+{%- endif -%}
 {%- endmacro %}
 
 {% macro evidence_label(value) -%}
