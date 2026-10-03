@@ -83,8 +83,14 @@ def ensure_schema(conn):
 
 
 def provider_name(value):
-    raw = str(value or "local").lower().replace("-", "_")
-    return {"sportsdb": "thesportsdb", "the sports db": "thesportsdb", "odds": "the_odds_api", "odds_api": "the_odds_api", "the odds api": "the_odds_api"}.get(raw, raw)
+    raw = str(value or "local").strip().lower().replace("-", "_").replace(" ", "_")
+    if "sportsdb" in raw:
+        return "thesportsdb"
+    if raw in {"odds", "odds_api", "the_odds_api"}:
+        return "the_odds_api"
+    if raw in {"api_football", "api_sports", "api_football_api"}:
+        return "api_football"
+    return raw
 
 
 def entity(conn, kind, source, external_id, facts=None, canonical_id=None):
