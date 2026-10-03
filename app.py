@@ -9132,6 +9132,8 @@ def team_page_data(team_id, limit=80):
         detail,
         observed_at_madrid=today_iso(),
     )
+    from engines.sports_history_engine import team_history_snapshot
+    detail["historical_memory"] = team_history_snapshot(DB_PATH, name, team_matches)
     return detail
 
 
@@ -20573,6 +20575,8 @@ def match_detail_page(match_id):
             ),
             "external_calls": 0,
         }
+    from engines.sports_history_match_center import attach_archived_sports_details
+    attach_archived_sports_details(DB_PATH, detail)
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}

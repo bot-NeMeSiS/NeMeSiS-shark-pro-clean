@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from engines.sports_history_engine import ensure_schema, ingest_match, sync_existing_details
+from engines.sports_history_engine import ensure_schema, ingest_match, sync_existing_details, sync_standings_coverage
 from engines.sports_history_adapters import sportsdb_event, odds_event
 
 
@@ -57,7 +57,8 @@ def import_existing(db_path):
                     skipped += 1
         with conn:
             details = sync_existing_details(conn)
-        return {'processed': processed, 'requires_review': skipped, 'details': details, 'external_calls': 0}
+            coverage = sync_standings_coverage(conn)
+        return {'processed': processed, 'requires_review': skipped, 'details': details, 'coverage':coverage, 'external_calls': 0}
     finally:
         conn.close()
 
