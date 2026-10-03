@@ -49,7 +49,8 @@
       "references": [
         "blueprints/postmatch_recovery.py:57",
         "blueprints/postmatch_recovery.py:84",
-        "blueprints/postmatch_recovery.py:98"
+        "blueprints/postmatch_recovery.py:98",
+        "engines/automation_domains.py:9"
       ],
       "execution_surfaces": [
         "source reference (execution unproven)"
@@ -867,6 +868,22 @@
       "removal_eligible": false
     },
     {
+      "path": "engines/automation_domains.py",
+      "category": "DEV",
+      "purpose": "Canonical production ownership. Existing module paths remain adapters.",
+      "imports": [
+        "engines/automation_orchestrator_engine.py:5"
+      ],
+      "references": [
+        "engines/automation_orchestrator_engine.py:5"
+      ],
+      "execution_surfaces": [
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
       "path": "engines/automation_orchestrator_engine.py",
       "category": "DEV",
       "purpose": "V773 admin automation center helpers.",
@@ -1013,6 +1030,7 @@
       "references": [
         "app.py:28157",
         "app.py:401",
+        "engines/automation_domains.py:7",
         "tests/test_api_usage_read_truth.py:227",
         "tests/test_automation_transaction_boundaries.py:11",
         "tests/test_lifecycle_reconciler_source_preservation.py:10",
@@ -1039,6 +1057,7 @@
       "purpose": "Read-only persisted media views; configuration is not availability or playback.",
       "imports": [
         "blueprints/media_review.py:37",
+        "engines/automation_orchestrator_engine.py:87",
         "engines/sportsdb_highlights_engine.py:895",
         "engines/sportsdb_highlights_engine.py:901",
         "engines/sportsdb_highlights_engine.py:906",
@@ -1049,6 +1068,7 @@
       ],
       "references": [
         "blueprints/media_review.py:37",
+        "engines/automation_orchestrator_engine.py:87",
         "engines/sportsdb_highlights_engine.py:895",
         "engines/sportsdb_highlights_engine.py:901",
         "engines/sportsdb_highlights_engine.py:906",
@@ -1075,6 +1095,7 @@
       ],
       "references": [
         "blueprints/media_review.py:5",
+        "engines/automation_domains.py:8",
         "tests/test_highlight_association_exceptions.py:3",
         "tests/test_highlight_review_flow.py:15",
         "tests/test_sportsdb_activation_permissions.py:10"
@@ -1150,9 +1171,9 @@
         "tests/test_postmatch_catalogue_reuse.py:3",
         "tests/test_postmatch_delivery.py:17",
         "tests/test_postmatch_recovery.py:14",
-        "tests/test_postmatch_recovery.py:363",
+        "tests/test_postmatch_recovery.py:374",
         "tests/test_sportsdb_premium_efficiency.py:15",
-        "tools/run_postmatch_browser_qa.py:27"
+        "tools/run_postmatch_browser_qa.py:28"
       ],
       "references": [
         ".github/workflows/postmatch-delivery-qa.yml:95",
@@ -1162,13 +1183,14 @@
         "blueprints/postmatch_recovery.py:13",
         "blueprints/postmatch_recovery.py:8",
         "blueprints/postmatch_recovery.py:88",
+        "engines/automation_domains.py:9",
         "engines/postmatch_store.py:281",
         "tests/test_postmatch_catalogue_reuse.py:3",
         "tests/test_postmatch_delivery.py:17",
         "tests/test_postmatch_recovery.py:14",
-        "tests/test_postmatch_recovery.py:363",
+        "tests/test_postmatch_recovery.py:374",
         "tests/test_sportsdb_premium_efficiency.py:15",
-        "tools/run_postmatch_browser_qa.py:27"
+        "tools/run_postmatch_browser_qa.py:28"
       ],
       "execution_surfaces": [
         "GitHub QA",
@@ -1187,7 +1209,7 @@
         "engines/sportsdb_highlights_engine.py:372",
         "tests/test_postmatch_delivery.py:15",
         "tests/test_postmatch_recovery.py:13",
-        "tests/test_postmatch_recovery.py:241",
+        "tests/test_postmatch_recovery.py:252",
         "tests/test_sportsdb_premium_efficiency.py:13"
       ],
       "references": [
@@ -1197,7 +1219,7 @@
         "engines/sportsdb_highlights_engine.py:372",
         "tests/test_postmatch_delivery.py:15",
         "tests/test_postmatch_recovery.py:13",
-        "tests/test_postmatch_recovery.py:241",
+        "tests/test_postmatch_recovery.py:252",
         "tests/test_sportsdb_premium_efficiency.py:13"
       ],
       "execution_surfaces": [
@@ -1214,24 +1236,27 @@
       "imports": [
         "blueprints/media_review.py:44",
         "blueprints/postmatch_recovery.py:7",
+        "engines/automation_orchestrator_engine.py:86",
         "engines/postmatch_recovery.py:14",
         "engines/postmatch_sources.py:23",
         "tests/test_postmatch_delivery.py:16",
         "tests/test_postmatch_recovery.py:12",
         "tests/test_sportsdb_activation_permissions.py:11",
         "tests/test_sportsdb_premium_efficiency.py:14",
-        "tools/run_postmatch_browser_qa.py:26"
+        "tools/run_postmatch_browser_qa.py:27"
       ],
       "references": [
         "blueprints/media_review.py:44",
         "blueprints/postmatch_recovery.py:7",
+        "engines/automation_domains.py:9",
+        "engines/automation_orchestrator_engine.py:86",
         "engines/postmatch_recovery.py:14",
         "engines/postmatch_sources.py:23",
         "tests/test_postmatch_delivery.py:16",
         "tests/test_postmatch_recovery.py:12",
         "tests/test_sportsdb_activation_permissions.py:11",
         "tests/test_sportsdb_premium_efficiency.py:14",
-        "tools/run_postmatch_browser_qa.py:26"
+        "tools/run_postmatch_browser_qa.py:27"
       ],
       "execution_surfaces": [
         "source reference (execution unproven)"
@@ -1676,12 +1701,12 @@
         "tests/test_highlight_association_exceptions.py:2",
         "tests/test_highlight_http_cold_read.py:46",
         "tests/test_postmatch_catalogue_reuse.py:2",
-        "tests/test_postmatch_recovery.py:266",
-        "tests/test_postmatch_recovery.py:278",
-        "tests/test_postmatch_recovery.py:415",
+        "tests/test_postmatch_recovery.py:277",
+        "tests/test_postmatch_recovery.py:289",
+        "tests/test_postmatch_recovery.py:426",
         "tests/test_sports_media_rights_convergence.py:7",
         "tools/run_autonomous_product_qa.py:168",
-        "tools/run_postmatch_browser_qa.py:40"
+        "tools/run_postmatch_browser_qa.py:41"
       ],
       "references": [
         ".github/workflows/postmatch-delivery-qa.yml:24",
@@ -1690,6 +1715,7 @@
         ".github/workflows/sportsdb-premium-qa.yml:103",
         "app.py:372",
         "blueprints/media_review.py:60",
+        "engines/automation_domains.py:8",
         "engines/highlight_read_model.py:48",
         "engines/highlight_review_engine.py:13",
         "engines/postmatch_recovery.py:147",
@@ -1705,16 +1731,16 @@
         "tests/test_highlights_admin_review_activation.py:73",
         "tests/test_postmatch_catalogue_reuse.py:2",
         "tests/test_postmatch_delivery.py:19",
-        "tests/test_postmatch_recovery.py:266",
-        "tests/test_postmatch_recovery.py:278",
-        "tests/test_postmatch_recovery.py:415",
+        "tests/test_postmatch_recovery.py:277",
+        "tests/test_postmatch_recovery.py:289",
+        "tests/test_postmatch_recovery.py:426",
         "tests/test_sports_media_rights_convergence.py:7",
         "tests/test_sportsdb_activation_permissions.py:9",
         "tests/test_sportsdb_highlight_persistence.py:8",
         "tests/test_sportsdb_premium_efficiency.py:12",
         "tools/check_v766_calendar_results_highlights_order.py:30",
         "tools/run_autonomous_product_qa.py:168",
-        "tools/run_postmatch_browser_qa.py:40"
+        "tools/run_postmatch_browser_qa.py:41"
       ],
       "execution_surfaces": [
         "GitHub QA",
@@ -1791,6 +1817,7 @@
       "references": [
         "tests/test_product_language_clarity.py:206",
         "tests/test_sportsdb_canonical_entity_enrichment.py:148",
+        "tools/audit_automation_ownership.py:37",
         "tools/check_v768_final_commercial_certification.py:42"
       ],
       "execution_surfaces": [
@@ -1868,6 +1895,16 @@
         "GitHub QA",
         "source reference (execution unproven)"
       ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
+      "path": "tools/audit_automation_ownership.py",
+      "category": "QA",
+      "purpose": "Reproducible source inventory; references are evidence, not execution proof.",
+      "imports": [],
+      "references": [],
+      "execution_surfaces": [],
       "retained": true,
       "removal_eligible": false
     },
@@ -8455,7 +8492,7 @@
         "tests/test_active_cron_header_transport_v941.py:30",
         "tests/test_automation_schedule_minimal.py:15",
         "tests/test_dashboard_runtime_sports_diagnostics_repair.py:688",
-        "tests/test_postmatch_recovery.py:334",
+        "tests/test_postmatch_recovery.py:345",
         "tests/test_render_cron_master_tick.py:15",
         "tests/test_runtime_readiness_compact.py:23",
         "tests/test_sports_pipeline_stage_truth.py:121",
@@ -8941,7 +8978,7 @@
       "purpose": "Safe click-through Browser QA for V929 navigation integrity.",
       "imports": [
         "tests/test_journey_controls_browser.py:61",
-        "tools/run_postmatch_browser_qa.py:42",
+        "tools/run_postmatch_browser_qa.py:43",
         "tools/run_postmatch_delivery_browser_qa.py:50"
       ],
       "references": [
@@ -8953,7 +8990,7 @@
         "tests/test_canonical_browser_matrix_v941.py:6",
         "tests/test_design02_i18n.py:172",
         "tests/test_journey_controls_browser.py:61",
-        "tools/run_postmatch_browser_qa.py:42",
+        "tools/run_postmatch_browser_qa.py:43",
         "tools/run_postmatch_delivery_browser_qa.py:50"
       ],
       "execution_surfaces": [
