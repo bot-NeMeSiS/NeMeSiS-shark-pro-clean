@@ -3,6 +3,7 @@
 {% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, pick_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
+{% from 'components/sports_history.html' import history_panel %}
 <script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
 {% if not detail or not match_context %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">
@@ -31,6 +32,7 @@
   <div class="v944-match-anchor">
     {{ match_header(match_context) }}
   </div>
+  {{ history_panel(match_context.get('historical_memory')) }}
 
   {% set lineups = match_context.get('lineups') or {} %}
   {% set events = match_context.get('event_summary') or {} %}

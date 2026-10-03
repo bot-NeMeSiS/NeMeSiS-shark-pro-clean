@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+{% from 'components/sports_history.html' import history_panel %}
+{{ history_panel(historical_memory, admin=true) }}
 <section class="scoreboard-hero v701-scoreboard">
   <div>
     <div class="kicker">Admin · Memoria SHARK</div>
