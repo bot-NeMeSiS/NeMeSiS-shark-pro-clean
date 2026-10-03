@@ -51,8 +51,9 @@
   <section class="team-center-meta-grid" data-team-center-section="identity-facts" aria-label="{{ ui("Datos del club") }}">
     <article><span>{{ ui("Competición") }}</span><strong>{% if links.competition_center %}<a class="v933-entity-inline" href="{{ links.competition_center }}" data-entity-contract="competition">{{ team.competition or ui('No disponible') }}</a>{% else %}{{ team.competition or ui('No disponible') }}{% endif %}</strong></article>
     <article><span>{{ ui("País") }}</span><strong>{{ team.country or ui('No disponible') }}</strong></article>
-    <article><span>{{ ui("Estadio") }}</span><strong data-entity-contract="stadium" data-entity-state="{{ sports_entity_navigation('stadium', team.stadium, team.stadium).state|lower }}">{{ ui_value(team.stadium) }}</strong></article>
+    <article><span>{{ ui("Estadio") }}</span><strong data-entity-contract="stadium" data-entity-state="{{ sports_entity_navigation('stadium', team.stadium, team.stadium).state|lower }}">{{ ui_value(team.stadium) }}</strong>{% if team.stadium_location and team.stadium_location != 'No disponible' %}<small>{{ team.stadium_location }}</small>{% endif %}{% if team.stadium_capacity and team.stadium_capacity != 'No disponible' %}<small>{{ ui("Capacidad:") }} {{ team.stadium_capacity }}</small>{% endif %}</article>
     <article><span>{{ ui("Fundación") }}</span><strong>{{ ui_value(team.founded) }}</strong></article>
+    {% if team.coach and team.coach != 'No disponible' %}<article><span>{{ ui("Entrenador") }}</span><strong data-entity-contract="coach" data-entity-state="{{ sports_entity_navigation('coach', team.coach, team.coach).state|lower }}">{{ team.coach }}</strong></article>{% endif %}
   </section>
 
   <section class="team-center-scoreboard" data-team-center-section="metrics" aria-label="{{ ui("Resumen deportivo") }}">
@@ -105,6 +106,7 @@
 
     <section class="team-center-panel team-center-wide" data-team-center-section="squad" data-lineup-state="{{ (squad.state or 'NOT_CONFIRMED')|lower }}">
       <div class="team-center-section-head"><span>{{ ui("Plantilla") }}</span><strong>{{ center.players|length }}</strong></div>
+      {% if squad.message %}<p class="team-center-empty">{{ ui(squad.message) }}{% if squad.source %} · {{ nemesis_source_label(squad.source) }}{% endif %}</p>{% endif %}
       {% if center.players %}
       <div class="team-center-player-grid">
         {% for player in center.players %}
