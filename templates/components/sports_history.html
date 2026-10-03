@@ -5,8 +5,21 @@
   <p class="small">{% if metrics.coverage == 'complete' %}Cobertura verificada{% else %}Cobertura parcial: estos conteos describen los resultados guardados, no necesariamente todos los partidos disputados.{% endif %}</p>
   {% if metrics.missing is not none %}<p class="small">Resultados faltantes: {{ metrics.missing }}</p>{% endif %}
   {% if metrics.coverage_conflict %}<p class="small">Discrepancia con el total declarado por la fuente. Requiere revisión.</p>{% endif %}
+  {% if metrics.coverage_issue %}<p class="small">{{ {'conflicting_expected_totals':'Las fuentes no coinciden en el total de partidos.', 'incoherent_standings':'La clasificación recibida tiene conteos inconsistentes.', 'standings_results_mismatch':'Los resultados guardados no coinciden con la clasificación.'}.get(metrics.coverage_issue, 'Hay datos pendientes de verificar.') }}</p>{% endif %}
   {% for size, window in metrics.windows.items() %}<span class="pill">Últimos {{ size }}: {{ window.form|join(' · ') or 'Sin resultados' }} ({{ window.played }})</span>{% endfor %}
+  {% if metrics.chronology_partial %}<p class="small">Las rachas solo incluyen partidos con fecha y zona horaria confirmadas.</p>{% endif %}
 </article>
+{%- endmacro %}
+
+{% macro team_scope_history(history) -%}
+{% if history and (history.available or history.requires_reconciliation) %}
+<section class="band compact-band" aria-label="Resultados históricos por temporada">
+  <h2>Resultados históricos por temporada</h2>
+  {% if history.requires_reconciliation %}<p>El histórico está pendiente de reconciliar las fuentes. No se combinan conteos de identidades distintas.</p>{% else %}
+  <div class="grid compact-grid">{% for scope in history.scopes %}{{ team_history(scope, scope.competition_name ~ ' · ' ~ scope.season) }}{% endfor %}</div>
+  {% endif %}
+</section>
+{% endif %}
 {%- endmacro %}
 
 {% macro history_panel(history, admin=false) -%}
@@ -16,12 +29,13 @@
   {% if admin %}
   <p class="small">Última sincronización: {{ history.last_sync|madrid_datetime_label if history.last_sync else 'Pendiente' }} · Lectura local</p>
   <div class="grid compact-grid">
-    {% for scope in history.scopes %}{{ team_history(scope, scope.team ~ ' · ' ~ scope.season) }}{% else %}<p>Histórico pendiente de sincronización. No hay cobertura certificada.</p>{% endfor %}
+    {% for scope in history.scopes %}{{ team_history(scope, scope.team_name ~ ' · ' ~ scope.competition_name ~ ' · ' ~ scope.season) }}{% else %}<p>Histórico pendiente de sincronización. No hay cobertura certificada.</p>{% endfor %}
   </div>
   <h3>Fuentes, errores y consumo del backfill</h3>
   {% for source in history.sources %}<p>{{ source.source }} · {{ source.linked_ids }} IDs enlazados</p>{% endfor %}
-  {% for job in history.jobs %}<p>{{ job.source }} · {{ job.scope }} · página {{ job.page }} · {{ job.status }} · {{ job.calls }} llamadas · {{ job.updated_at|madrid_datetime_label }}</p>{% else %}<p>Sin trabajos de backfill ejecutados.</p>{% endfor %}
-  {% for usage in history.consumption or [] %}<p>{{ usage.source }} · {{ usage.day }} · {{ usage.calls }} llamadas reservadas (incluye errores)</p>{% endfor %}
+  {% for job in history.jobs %}<p>{{ job.source }} · {{ job.scope }} · página {{ job.page }} · {{ job.status }} · {{ job.calls }} llamadas · {{ job.updated_at|madrid_datetime_label }}{% if job.error_code %} · No se pudo completar la descarga o importación.{% endif %}</p>{% else %}<p>Sin trabajos de backfill ejecutados.</p>{% endfor %}
+  {% for usage in history.consumption or [] %}<p>{{ usage.source }} · {{ usage.day }} (Madrid) · {{ usage.calls }} llamadas reservadas (incluye errores)</p>{% endfor %}
+  <details><summary>Reconciliaciones revisadas</summary>{% for link in history.reconciliations or [] %}<p>{{ link.kind }} · {{ link.source }} · {{ link.external_id }} → {{ link.target_id }} · {{ link.evidence }} · {{ link.created_at|madrid_datetime_label }}</p>{% else %}<p>No hay enlaces revisados.</p>{% endfor %}</details>
   <details><summary>Identidades enlazadas (muestra de hasta 100)</summary>{% for identity in history.ids %}<p>{{ identity.kind }} · {{ identity.source }} · {{ identity.external_id }} → {{ identity.canonical_id }}</p>{% endfor %}</details>
   {% else %}
   <p class="small">Temporada {{ history.season or 'sin confirmar' }} · Resultados anteriores al inicio de este partido</p>
