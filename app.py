@@ -21644,7 +21644,7 @@ def admin_matches_sync_page():
         message = "Sincronización ejecutada."
         if result and result.get("errors"):
             message += " Revisa errores recientes."
-    data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
+    data, _summary = v932_safe_dashboard_data(request.path, scope="admin", compact=True)
     sports = data.get("v932_sports_value") or {}
     data["matches_diagnostics"] = v932_safe_context(
         request.path, "admin", "match_calendar_diagnostics", match_calendar_diagnostics,
