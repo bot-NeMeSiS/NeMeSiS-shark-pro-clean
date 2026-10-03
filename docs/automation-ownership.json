@@ -869,13 +869,16 @@
     },
     {
       "path": "engines/automation_domains.py",
-      "category": "DEV",
+      "category": "PRODUCTION",
       "purpose": "Canonical production ownership. Existing module paths remain adapters.",
       "imports": [
-        "engines/automation_orchestrator_engine.py:5"
+        "engines/automation_orchestrator_engine.py:5",
+        "tests/test_automation_domains.py:2"
       ],
       "references": [
-        "engines/automation_orchestrator_engine.py:5"
+        "engines/automation_orchestrator_engine.py:5",
+        "tests/test_automation_domains.py:2",
+        "tools/audit_automation_ownership.py:11"
       ],
       "execution_surfaces": [
         "source reference (execution unproven)"
@@ -885,7 +888,7 @@
     },
     {
       "path": "engines/automation_orchestrator_engine.py",
-      "category": "DEV",
+      "category": "PRODUCTION",
       "purpose": "V773 admin automation center helpers.",
       "imports": [
         "app.py:31430",
@@ -900,6 +903,7 @@
         "tests/test_admin_automation_center_last_run.py:2",
         "tests/test_automation_schedule_minimal.py:30",
         "tests/test_product_language_clarity.py:196",
+        "tools/audit_automation_ownership.py:11",
         "tools/check_v773_data_marketplace_automation_video_ux_quality.py:50",
         "tools/check_v773_data_marketplace_automation_video_ux_quality.py:80",
         "tools/check_v773_data_marketplace_automation_video_ux_quality.py:87"
@@ -913,7 +917,7 @@
     },
     {
       "path": "engines/autonomous_company_sentinel_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 Autonomous Company Sentinel.",
       "imports": [
         "app.py:422",
@@ -940,7 +944,7 @@
     },
     {
       "path": "engines/autonomous_sentinel_worker_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V893 Autonomous Sentinel Worker.",
       "imports": [
         "app.py:418"
@@ -961,7 +965,7 @@
     },
     {
       "path": "engines/codex_daily_automation_engine.py",
-      "category": "PRODUCTION",
+      "category": "DEV",
       "purpose": "Automatización diaria para trabajar con Codex sin ensuciar el proyecto.",
       "imports": [
         "app.py:28656",
@@ -980,8 +984,39 @@
       "removal_eligible": false
     },
     {
+      "path": "engines/content_rights_engine.py",
+      "category": "PRODUCTION",
+      "purpose": "Legal-safe external content classification for NeMeSiS SHARK PRO.",
+      "imports": [
+        "app.py:148",
+        "engines/sportsdb_highlights_engine.py:10",
+        "engines/telegram_message_formatter.py:18",
+        "engines/video_highlights_engine.py:4",
+        "tests/test_sports_knowledge_media_experience.py:6",
+        "tests/test_sports_media_rights_convergence.py:6",
+        "tools/check_v742_content_rights.py:12"
+      ],
+      "references": [
+        "app.py:148",
+        "engines/player_center_engine.py:13",
+        "engines/sportsdb_highlights_engine.py:10",
+        "engines/telegram_message_formatter.py:18",
+        "engines/video_highlights_engine.py:4",
+        "tests/test_sports_knowledge_media_experience.py:6",
+        "tests/test_sports_media_rights_convergence.py:6",
+        "tools/audit_automation_ownership.py:14",
+        "tools/check_v742_content_rights.py:12"
+      ],
+      "execution_surfaces": [
+        "Render web import",
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
       "path": "engines/continuous_shark_sentinel_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "continuous_shark_sentinel_engine",
       "imports": [
         "app.py:185",
@@ -1034,6 +1069,7 @@
         "tests/test_api_usage_read_truth.py:227",
         "tests/test_automation_transaction_boundaries.py:11",
         "tests/test_lifecycle_reconciler_source_preservation.py:10",
+        "tools/audit_automation_ownership.py:12",
         "tools/check_v818_daily_automation_os.py:15",
         "tools/check_v819_admin_command_center.py:42",
         "tools/check_v820_v818_v819_compatibility.py:29",
@@ -1052,8 +1088,39 @@
       "removal_eligible": false
     },
     {
+      "path": "engines/data_vault_engine.py",
+      "category": "PRODUCTION",
+      "purpose": "Data Vault, backup and ownership helpers for NeMeSiS SHARK PRO.",
+      "imports": [
+        "app.py:149",
+        "app.py:6519",
+        "app.py:6539",
+        "tools/check_v743_data_ownership.py:12",
+        "tools/check_v743_data_vault.py:28",
+        "tools/check_v938_company_operations_center.py:258"
+      ],
+      "references": [
+        "app.py:149",
+        "app.py:6519",
+        "app.py:6539",
+        "engines/automation_domains.py:11",
+        "engines/product_review_system_engine.py:664",
+        "tests/test_data_vault_atomic.py:9",
+        "tools/audit_automation_ownership.py:13",
+        "tools/check_v743_data_ownership.py:12",
+        "tools/check_v743_data_vault.py:28",
+        "tools/check_v938_company_operations_center.py:258"
+      ],
+      "execution_surfaces": [
+        "Render web import",
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
       "path": "engines/highlight_read_model.py",
-      "category": "DEV",
+      "category": "PRODUCTION",
       "purpose": "Read-only persisted media views; configuration is not availability or playback.",
       "imports": [
         "blueprints/media_review.py:37",
@@ -1108,7 +1175,7 @@
     },
     {
       "path": "engines/highlight_url_engine.py",
-      "category": "DEV",
+      "category": "PRODUCTION",
       "purpose": "Video URL validation only. Never requests or downloads a resource.",
       "imports": [
         "engines/highlight_review_engine.py:12",
@@ -1167,7 +1234,7 @@
         "app.py:20883",
         "blueprints/postmatch_recovery.py:8",
         "blueprints/postmatch_recovery.py:88",
-        "engines/postmatch_store.py:281",
+        "engines/postmatch_store.py:282",
         "tests/test_postmatch_catalogue_reuse.py:3",
         "tests/test_postmatch_delivery.py:17",
         "tests/test_postmatch_recovery.py:14",
@@ -1184,7 +1251,7 @@
         "blueprints/postmatch_recovery.py:8",
         "blueprints/postmatch_recovery.py:88",
         "engines/automation_domains.py:9",
-        "engines/postmatch_store.py:281",
+        "engines/postmatch_store.py:282",
         "tests/test_postmatch_catalogue_reuse.py:3",
         "tests/test_postmatch_delivery.py:17",
         "tests/test_postmatch_recovery.py:14",
@@ -1265,8 +1332,72 @@
       "removal_eligible": false
     },
     {
+      "path": "engines/product_review_system_engine.py",
+      "category": "PRODUCTION",
+      "purpose": "Evidence-first product review system for NeMeSiS.",
+      "imports": [
+        "app.py:452",
+        "tests/test_continuous_evolution_os.py:10",
+        "tests/test_continuous_evolution_os.py:11",
+        "tests/test_executive_board.py:5",
+        "tests/test_product_review_system.py:5",
+        "tools/check_executive_board.py:15",
+        "tools/check_product_review_system.py:15",
+        "tools/reconcile_autonomous_workforce_evidence.py:12",
+        "tools/run_continuous_evolution_scheduler.py:21"
+      ],
+      "references": [
+        "app.py:452",
+        "engines/automation_domains.py:11",
+        "engines/project_operating_system_engine.py:750",
+        "engines/sports_platform_contracts.py:357",
+        "engines/sports_platform_contracts.py:361",
+        "tests/test_continuous_evolution_os.py:10",
+        "tests/test_continuous_evolution_os.py:11",
+        "tests/test_executive_board.py:5",
+        "tests/test_product_review_system.py:5",
+        "tools/audit_automation_ownership.py:13",
+        "tools/check_executive_board.py:15",
+        "tools/check_executive_board.py:322",
+        "tools/check_product_review_system.py:15",
+        "tools/check_product_review_system.py:328",
+        "tools/reconcile_autonomous_workforce_evidence.py:12",
+        "tools/run_continuous_evolution_scheduler.py:21"
+      ],
+      "execution_surfaces": [
+        "Render web import",
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
+      "path": "engines/scheduler_engine.py",
+      "category": "PRODUCTION",
+      "purpose": "Safe internal scheduler helpers for NeMeSiS SHARK PRO.",
+      "imports": [
+        "app.py:199",
+        "tests/test_automation_schedule_minimal.py:23"
+      ],
+      "references": [
+        "app.py:199",
+        "engines/product_review_system_engine.py:663",
+        "tests/test_automation_schedule_minimal.py:23",
+        "tests/test_product_language_clarity.py:206",
+        "tools/audit_automation_ownership.py:12",
+        "tools/check_v768_final_commercial_certification.py:32",
+        "tools/check_v768_final_commercial_certification.py:42"
+      ],
+      "execution_surfaces": [
+        "Render web import",
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
       "path": "engines/sentinel_autofix_planner_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Safe autofix planning for Autonomous Sentinel Worker.",
       "imports": [
         "engines/autonomous_sentinel_worker_engine.py:16",
@@ -1285,7 +1416,7 @@
     },
     {
       "path": "engines/sentinel_autopilot_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V888 Sentinel AutoPilot self-improvement engine.",
       "imports": [
         "app.py:188",
@@ -1365,7 +1496,7 @@
     },
     {
       "path": "engines/sentinel_codex_outbox_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Codex outbox writer for Autonomous Company Sentinel.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:16",
@@ -1393,7 +1524,7 @@
     },
     {
       "path": "engines/sentinel_improvement_workflow_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Sentinel Issue-to-Improvement workflow.",
       "imports": [
         "app.py:186",
@@ -1418,7 +1549,7 @@
     },
     {
       "path": "engines/sentinel_issues_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 Sentinel issues command center.",
       "imports": [
         "app.py:410",
@@ -1475,7 +1606,7 @@
     },
     {
       "path": "engines/sentinel_jobs.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Local-only durable requests for the existing Product Experience Worker.",
       "imports": [
         "app.py:183",
@@ -1507,7 +1638,7 @@
     },
     {
       "path": "engines/sentinel_reference_qa_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Reference visual QA helpers for Autonomous Sentinel Worker.",
       "imports": [
         "engines/autonomous_sentinel_worker_engine.py:22",
@@ -1529,7 +1660,7 @@
     },
     {
       "path": "engines/sentinel_reference_visual_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V900 reference visual QA wrapper for Autonomous Company Sentinel.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:18",
@@ -1555,7 +1686,7 @@
     },
     {
       "path": "engines/sentinel_render_alignment_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 Render/local alignment helpers.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:19",
@@ -1576,7 +1707,7 @@
     },
     {
       "path": "engines/sentinel_safe_autofix_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 safe autofix planner for Autonomous Company Sentinel.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:20"
@@ -1597,7 +1728,7 @@
     },
     {
       "path": "engines/sentinel_telegram_quality_watch_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 Telegram quality watch for Autonomous Company Sentinel.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:21"
@@ -1616,7 +1747,7 @@
     },
     {
       "path": "engines/sentinel_user_admin_journey_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V892 user/admin journey wrapper for Autonomous Company Sentinel.",
       "imports": [
         "engines/autonomous_company_sentinel_engine.py:22"
@@ -1637,7 +1768,7 @@
     },
     {
       "path": "engines/sentinel_user_journey_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "User/admin journey checks for Autonomous Sentinel Worker.",
       "imports": [
         "engines/autonomous_sentinel_worker_engine.py:23",
@@ -1657,7 +1788,7 @@
     },
     {
       "path": "engines/shark_sentinel_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "shark_sentinel_engine",
       "imports": [
         "app.py:182",
@@ -1751,8 +1882,27 @@
       "removal_eligible": false
     },
     {
+      "path": "engines/telegram_autonomous_delivery_engine.py",
+      "category": "PRODUCTION",
+      "purpose": "telegram_autonomous_delivery_engine",
+      "imports": [
+        "telegram_autonomous_delivery_engine.py:3"
+      ],
+      "references": [
+        "engines/automation_domains.py:10",
+        "telegram_autonomous_delivery_engine.py:3",
+        "tests/test_master_operating_system.py:224",
+        "tools/audit_automation_ownership.py:15"
+      ],
+      "execution_surfaces": [
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
       "path": "engines/video_highlights_engine.py",
-      "category": "DEV",
+      "category": "PRODUCTION",
       "purpose": "Safe video highlights foundation: metadata only, no downloads.",
       "imports": [
         "app.py:151",
@@ -1775,7 +1925,7 @@
     },
     {
       "path": "engines/visual_company_worker_engine.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "V883 Visual Company Worker.",
       "imports": [
         "app.py:187",
@@ -1817,8 +1967,64 @@
       "references": [
         "tests/test_product_language_clarity.py:206",
         "tests/test_sportsdb_canonical_entity_enrichment.py:148",
-        "tools/audit_automation_ownership.py:37",
+        "tools/audit_automation_ownership.py:45",
         "tools/check_v768_final_commercial_certification.py:42"
+      ],
+      "execution_surfaces": [
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
+      "path": "sports_service.py",
+      "category": "PRODUCTION",
+      "purpose": "Compatibility adapter. Canonical implementation: services.sports_service.",
+      "imports": [],
+      "references": [
+        "engines/automation_domains.py:7",
+        "tools/audit_automation_ownership.py:14"
+      ],
+      "execution_surfaces": [
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
+      "path": "sportsdb_highlights_engine.py",
+      "category": "DEV",
+      "purpose": "sportsdb_highlights_engine",
+      "imports": [],
+      "references": [
+        "tests/test_automatic_match_highlights_delivery.py:6",
+        "tests/test_highlight_catalogue_read_truth.py:8",
+        "tests/test_highlight_read_diagnostic.py:11",
+        "tests/test_highlight_review_flow.py:13",
+        "tests/test_highlights_admin_review_activation.py:53",
+        "tests/test_highlights_admin_review_activation.py:73",
+        "tests/test_postmatch_delivery.py:19",
+        "tests/test_sportsdb_activation_permissions.py:9",
+        "tests/test_sportsdb_highlight_persistence.py:8",
+        "tests/test_sportsdb_premium_efficiency.py:12",
+        "tools/audit_automation_ownership.py:45",
+        "tools/check_v769_highlights_content_center_final.py:15"
+      ],
+      "execution_surfaces": [
+        "source reference (execution unproven)"
+      ],
+      "retained": true,
+      "removal_eligible": false
+    },
+    {
+      "path": "telegram_service.py",
+      "category": "PRODUCTION",
+      "purpose": "Compatibility adapter. Canonical implementation: services.telegram_service.",
+      "imports": [],
+      "references": [
+        "engines/automation_domains.py:10",
+        "tests/test_master_operating_system.py:227",
+        "tools/audit_automation_ownership.py:14"
       ],
       "execution_surfaces": [
         "source reference (execution unproven)"
@@ -8027,7 +8233,7 @@
     },
     {
       "path": "tools/export_sentinel_codex_outbox.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "export_sentinel_codex_outbox",
       "imports": [],
       "references": [
@@ -8160,7 +8366,7 @@
     },
     {
       "path": "tools/local_desktop/run_sentinel_local.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "Supervised LOCAL SAFE Sentinel preview; no production scheduler is installed.",
       "imports": [
         "tests/test_project_control_http.py:8",
@@ -8416,7 +8622,7 @@
     },
     {
       "path": "tools/reconcile_v902_sentinel_truth.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "reconcile_v902_sentinel_truth",
       "imports": [
         "tools/check_v902_sentinel_full_active_issues_fix.py:74"
@@ -8610,7 +8816,7 @@
     },
     {
       "path": "tools/run_autonomous_company_sentinel.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "run_autonomous_company_sentinel",
       "imports": [],
       "references": [
@@ -8716,7 +8922,7 @@
     },
     {
       "path": "tools/run_continuous_sentinel_static.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "run_continuous_sentinel_static",
       "imports": [],
       "references": [
@@ -8920,7 +9126,7 @@
     },
     {
       "path": "tools/run_shark_sentinel_static.py",
-      "category": "DEV",
+      "category": "QA",
       "purpose": "run_shark_sentinel_static",
       "imports": [],
       "references": [

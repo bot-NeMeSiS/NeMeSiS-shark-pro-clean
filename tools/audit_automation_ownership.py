@@ -7,6 +7,13 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PRODUCTION_MODULES = {
+    'engines.automation_domains', 'engines.automation_orchestrator_engine',
+    'engines.daily_automation_engine', 'engines.scheduler_engine',
+    'engines.data_vault_engine', 'engines.product_review_system_engine',
+    'engines.content_rights_engine', 'sports_service', 'telegram_service',
+    'engines.telegram_autonomous_delivery_engine',
+}
 
 
 def inventory():
@@ -34,7 +41,8 @@ def inventory():
     items = []
     for path in sorted(sources):
         if not (path.startswith(('automation_workforce/', 'tools/', '.github/workflows/')) or
-                path.startswith('engines/') and any(x in path for x in ('automation', 'postmatch', 'highlight', 'sentinel', 'worker')) or path == 'scheduler_engine.py'):
+                path.startswith('engines/') and any(x in path for x in ('automation', 'postmatch', 'highlight', 'sentinel', 'worker')) or
+                path[:-3].replace('/', '.') in PRODUCTION_MODULES or path in {'scheduler_engine.py', 'sportsdb_highlights_engine.py'}):
             continue
         stem = Path(path).stem
         module = path[:-3].replace('/', '.') if path.endswith('.py') else ''
@@ -42,8 +50,8 @@ def inventory():
         tokens = (path, module, stem, stem.removesuffix('_worker')) if path.startswith('automation_workforce/') else (path, module, stem)
         refs = [r for token in tokens for r in reference_index.get(token, [])
                 if not r.startswith(path + ':')]
-        qa = path.startswith('automation_workforce/') or path.startswith('.github/workflows/') or stem.startswith(('check_', 'test_', 'audit_', 'benchmark_')) or 'browser_qa' in stem
-        production = stem.startswith('render_cron') or path.startswith('engines/') and any(x in stem for x in ('postmatch', 'sportsdb_highlight', 'daily_automation', 'highlight_review'))
+        qa = path.startswith('automation_workforce/') or path.startswith('.github/workflows/') or stem.startswith(('check_', 'test_', 'audit_', 'benchmark_')) or any(x in stem for x in ('browser_qa', 'sentinel', 'visual_company_worker'))
+        production = stem.startswith('render_cron') or module in PRODUCTION_MODULES or path.startswith('engines/') and any(x in stem for x in ('postmatch', 'highlight'))
         category = 'PRODUCTION' if production else 'QA' if qa else 'DEV'
         if not imported and not refs and not qa and not production:
             category = 'LEGACY'  # Candidate only; dynamic use still needs human inspection.
