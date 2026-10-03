@@ -31,6 +31,7 @@ from engines.spanish_localization_engine import (
 )
 from engines.v935_launch_trust_engine import match_status_truth
 from engines.realtime_state_engine import observed_live_minute, observed_period_label
+from engines.sports_entity_navigation_engine import entity_href as _entity_href
 
 
 MATCH_CENTER_CONTRACT = "MATCH-CENTER-LIFECYCLE-STORY-V1"
@@ -102,24 +103,6 @@ def _first_text(*values: Any) -> str:
             return candidate
     return ""
 
-
-def _public_entity_route_id(entity_type: str, identifier: str) -> str:
-    marker = f":{entity_type}:"
-    if entity_type in {"competition", "player"} and marker in identifier:
-        return identifier.rsplit(marker, 1)[-1] or identifier
-    return identifier
-
-
-def _entity_href(entity_type: str, entity_id: Any, label: Any = "") -> str:
-    identifier = _text(entity_id)
-    display = _text(label)
-    if entity_type == "team" and display:
-        return f"/team/{quote(display, safe='')}"
-    if entity_type == "competition" and identifier:
-        return f"/competition/{quote(_public_entity_route_id(entity_type, identifier), safe='')}"
-    if entity_type == "player" and identifier:
-        return f"/player/{quote(_public_entity_route_id(entity_type, identifier), safe='')}"
-    return ""
 
 
 def _match_facts(match: Mapping[str, Any]) -> dict[str, Any]:
