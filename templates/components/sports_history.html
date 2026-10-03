@@ -18,6 +18,25 @@
   <div class="grid compact-grid">
     {% for scope in history.scopes %}{{ team_history(scope, scope.team ~ ' · ' ~ scope.season) }}{% else %}<p>Histórico pendiente de sincronización. No hay cobertura certificada.</p>{% endfor %}
   </div>
+  <h3>Entidades deportivas canónicas</h3>
+  <div class="grid compact-grid">
+    {% for item in history.entity_counts or [] %}
+    <article class="card"><strong>{{ item.count }}</strong><span>{{ item.kind }}</span></article>
+    {% else %}
+    <p>Entidades todavía no inventariadas.</p>
+    {% endfor %}
+  </div>
+  {% if history.relation_counts %}
+  <details><summary>Relaciones deportivas guardadas</summary>
+    {% for item in history.relation_counts %}<p>{{ item.relation }} · {{ item.count }}</p>{% endfor %}
+  </details>
+  {% endif %}
+  {% if history.entity_sync %}
+  <p class="small">Último enriquecimiento de entidades: {{ history.entity_sync.updated_at|madrid_datetime_label if history.entity_sync.updated_at else 'Pendiente' }}
+    · {{ history.entity_sync.processed or 0 }} equipos revisados
+    · {{ history.entity_sync.players_after or 0 }} jugadores disponibles
+    · {{ history.entity_sync.external_calls or 0 }} llamadas registradas en la ejecución.</p>
+  {% endif %}
   <h3>Fuentes, errores y consumo del backfill</h3>
   {% for source in history.sources %}<p>{{ source.source }} · {{ source.linked_ids }} IDs enlazados</p>{% endfor %}
   {% for job in history.jobs %}<p>{{ job.source }} · {{ job.scope }} · página {{ job.page }} · {{ job.status }} · {{ job.calls }} llamadas · {{ job.updated_at|madrid_datetime_label }}</p>{% else %}<p>Sin trabajos de backfill ejecutados.</p>{% endfor %}
