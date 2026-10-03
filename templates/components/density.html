@@ -1,0 +1,11 @@
+{# Layout only: callers own records, actions and authorization. #}
+{% macro collection(kind='matches', extra_class='') -%}
+<div class="ns-collection {{ extra_class }}" data-ui-collection="{{ kind }}">{{ caller() }}</div>
+{%- endmacro %}
+
+{% macro supporting_panel(title, panel_id='', extra_class='') -%}
+<details class="ns-supporting-panel {{ extra_class }}"{% if panel_id %} id="{{ panel_id }}"{% endif %}>
+  <summary>{{ title }}</summary>
+  <div class="ns-supporting-panel-body">{{ caller() }}</div>
+</details>
+{%- endmacro %}
