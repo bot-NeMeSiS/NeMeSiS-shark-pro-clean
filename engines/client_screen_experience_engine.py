@@ -64,13 +64,15 @@ def _title_for_route(route: str) -> str:
 
 
 def build_client_screen_state(route: str = "/app", plan: str = "FREE") -> dict[str, Any]:
-    normalized_plan = (plan or "FREE").upper()
+    normalized_plan = (plan or "FREE").strip().upper()
+    if normalized_plan not in {"FREE", "PRO", "ELITE", "ADMIN"}:
+        normalized_plan = "FREE"
     ctas = [
         {"label": "Ver partidos", "href": "/partidos"},
         {"label": "Abrir SHARK", "href": "/shark"},
         {"label": "Conectar Telegram", "href": "/telegram"},
     ]
-    if normalized_plan in {"PRO", "ELITE", "ELITE+"}:
+    if normalized_plan in {"PRO", "ELITE", "ADMIN"}:
         ctas.insert(1, {"label": "Ver picks", "href": "/picks"})
     state = ClientScreenState(
         route=route,

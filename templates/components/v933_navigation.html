@@ -24,6 +24,8 @@
 {%- endmacro %}
 
 {% macro v933_client_navigation(plan='FREE') -%}
+{% set plan = (plan or 'FREE')|trim|upper %}
+{% if plan not in ['FREE', 'PRO', 'ELITE', 'ADMIN'] %}{% set plan = 'FREE' %}{% endif %}
 {% set links = nav_contracts.CLIENT_LINKS %}
 <header class="v933-topbar v933-client-topbar" data-nav-zone="client-desktop">
   <div class="v933-topbar-inner">
@@ -34,7 +36,7 @@
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
-    <a class="v933-plan-chip is-{{ 'eliteplus' if plan in ['ELITE+', 'ADMIN'] else plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
+    <a class="v933-plan-chip is-{{ 'eliteplus' if plan == 'ADMIN' else plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a>
   </div>
 </header>
 <header class="v933-mobile-header v933-client-mobile-header" data-nav-zone="client-mobile">

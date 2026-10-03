@@ -10,15 +10,12 @@ SAFE_LOCKED_COPY = {
     "free": "Disponible en PRO",
     "pro": "Disponible en ELITE",
     "elite": "Incluido en ELITE",
-    "eliteplus": "Acceso prioritario",
     "admin": "Command center total",
 }
 
 
 def normalize_plan(plan: str | None) -> str:
     value = (plan or "FREE").strip().upper()
-    if value in {"ELITE+", "ELITE_PLUS"}:
-        return "eliteplus"
     if value == "ADMIN":
         return "admin"
     if value == "ELITE":
@@ -62,15 +59,6 @@ def build_membership_experience_matrix() -> dict:
             "unlocks": ["SHARK avanzado", "Telegram top", "Análisis ampliado", "Prioridad visual"],
             "cta": "Mantener ELITE",
             "locked_copy": SAFE_LOCKED_COPY["elite"],
-        },
-        "eliteplus": {
-            "label": "ELITE+",
-            "tone": "máxima prioridad",
-            "accent": "platinum",
-            "summary": "Capa máxima de producto para acceso prioritario y profundidad cuando hay datos reales.",
-            "unlocks": ["Acceso prioritario", "Contexto completo", "Soporte máximo", "SHARK profundo"],
-            "cta": "Gestionar ELITE+",
-            "locked_copy": SAFE_LOCKED_COPY["eliteplus"],
         },
         "admin": {
             "label": "ADMIN",
