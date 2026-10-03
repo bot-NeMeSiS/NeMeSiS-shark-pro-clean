@@ -345,14 +345,6 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
             "processed": 0,
             "errors": ["some odds requests failed"],
         },
-        "highlights": {
-            "ok": True,
-            "status": "OK",
-            "external_calls": 2,
-            "highlights_found": 1,
-            "linked_matches": 1,
-            "errors": [],
-        },
         "pick_grading": {
             "ok": True,
             "status": "OK",
@@ -379,8 +371,7 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
 
     assert result["ok"] is True
     assert result["status"] == "PARTIAL"
-    assert result["external_calls"] == 23
-    assert result["highlight_external_calls"] == 2
+    assert result["external_calls"] == 21
     assert any(str(item).startswith("odds_PARTIAL") for item in result["errors"])
     assert any(str(item).startswith("live_partial") for item in result["errors"])
 

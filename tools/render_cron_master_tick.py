@@ -27,6 +27,7 @@ RUNNER_NAME = "nemesis_master_tick"
 TELEGRAM_ENDPOINT = "/api/automation/telegram/tick"
 CONTINUOUS_EVOLUTION_ENDPOINT = "/api/automation/continuous-evolution/tick"
 BACKUP_ENDPOINT = "/api/automation/data-backup/run"
+HIGHLIGHTS_ENDPOINT = "/api/automation/highlights/sync"
 READINESS_ENDPOINT = "/api/runtime-version?compact=1"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
@@ -34,6 +35,7 @@ BACKUP_TIMEOUT_SECONDS = 90
 BACKUP_WINDOW_START_MINUTE_UTC = 2 * 60 + 30
 BACKUP_WINDOW_END_MINUTE_UTC = 4 * 60 + 30
 POSTMATCH_TIMEOUT_SECONDS = 45
+HIGHLIGHTS_TIMEOUT_SECONDS = 24
 READINESS_TIMEOUT_SECONDS = 8
 READINESS_ATTEMPTS = 6
 READINESS_BACKOFF_SECONDS = 5
@@ -441,6 +443,69 @@ def telegram_tick(base_url: str, secret: str) -> dict:
         return request_error_result("telegram", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
+def highlights_tick(base_url: str, secret: str) -> dict:
+    """Run media enrichment independently so a slow provider cannot kill sports/Telegram."""
+    started = time.perf_counter()
+    query = urllib.parse.urlencode({
+        "days_back": 2,
+        "limit": 250,
+        "runner": "render_cron_master",
+    })
+    request = urllib.request.Request(
+        f"{base_url}{HIGHLIGHTS_ENDPOINT}?{query}",
+        data=b"{}",
+        headers={
+            "User-Agent": "NeMeSiS-SHARK-PRO-Master-Highlights/V1",
+            "X-NeMeSiS-Cron-Runner": "render-cron",
+            "X-Automation-Secret": secret,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=HIGHLIGHTS_TIMEOUT_SECONDS) as response:
+            http_status = int(response.status)
+            payload = decode_json(response.read(30000))
+            if payload is None:
+                return request_error_result("highlights", started, "INVALID_JSON_RESPONSE", http_status)
+            result = payload.get("highlights_sync") if isinstance(payload, dict) else None
+            if not isinstance(result, dict):
+                return request_error_result("highlights", started, "INVALID_RESPONSE", http_status)
+            reason = safe_label(result.get("reason") or result.get("status"), secret, "UNKNOWN")
+            skipped = bool(result.get("skipped"))
+            errors_present = bool(result.get("error") or result.get("errors"))
+            if skipped:
+                status = "PASS" if reason in {"fresh_sync_window", "already_synced_today"} else "PARTIAL"
+            elif result.get("ok") is True and not errors_present:
+                status = "PASS"
+            elif str(result.get("status") or "").upper() == "PARTIAL" or safe_count(result.get("highlights_found")):
+                status = "PARTIAL"
+            else:
+                status = "FAIL"
+            return {
+                "highlights_http": http_status,
+                "highlights_status": status,
+                "highlights_result": reason,
+                "skipped": skipped,
+                "external_calls": safe_count(result.get("external_calls")),
+                "persistent_cache_hits": safe_count(result.get("persistent_cache_hits")),
+                "profile_links_reused": safe_count(result.get("profile_links_reused")),
+                "v2_event_lookups": safe_count(result.get("v2_event_lookups")),
+                "v2_cache_hits": safe_count(result.get("v2_cache_hits")),
+                "v2_highlights_found": safe_count(result.get("v2_highlights_found")),
+                "highlights_found": safe_count(result.get("highlights_found")),
+                "linked_matches": safe_count(result.get("linked_matches")),
+                "highlights_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
+            }
+    except urllib.error.HTTPError as exc:
+        return request_error_result("highlights", started, f"HTTP_{int(exc.code)}", int(exc.code))
+    except Exception as exc:
+        reason = getattr(exc, "reason", None)
+        is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(reason, (TimeoutError, socket.timeout))
+        return request_error_result("highlights", started, "TIMEOUT" if is_timeout else type(exc).__name__)
+
+
 def continuous_evolution_tick(base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     request = urllib.request.Request(
@@ -601,6 +666,7 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
         "web_readiness": readiness,
         "telegram_status": "NOT_EXECUTED",
         "continuous_evolution_status": "NOT_EXECUTED",
+        "highlights_status": "NOT_EXECUTED",
         "backup_status": "NOT_EXECUTED",
         "telegram": {
             "telegram_http": None,
@@ -613,6 +679,12 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
             "continuous_status": "NOT_EXECUTED",
             "continuous_result": reason,
             "continuous_duration_ms": 0,
+        },
+        "highlights": {
+            "highlights_http": None,
+            "highlights_status": "NOT_EXECUTED",
+            "highlights_result": reason,
+            "highlights_duration_ms": 0,
         },
         "backup": {
             "backup_http": None,
@@ -633,6 +705,7 @@ def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
         "runner": RUNNER_NAME,
         "telegram_status": "NOT_EXECUTED",
         "continuous_evolution_status": "NOT_EXECUTED",
+        "highlights_status": "NOT_EXECUTED",
         "telegram": {
             "telegram_http": None,
             "telegram_status": "NOT_EXECUTED",
@@ -644,6 +717,12 @@ def config_failure(error: str, utc_now: str, madrid_now: str) -> dict:
             "continuous_status": "NOT_EXECUTED",
             "continuous_result": error,
             "continuous_duration_ms": 0,
+        },
+        "highlights": {
+            "highlights_http": None,
+            "highlights_status": "NOT_EXECUTED",
+            "highlights_result": error,
+            "highlights_duration_ms": 0,
         },
         "backup": {
             "backup_http": None,
@@ -691,6 +770,7 @@ def main() -> int:
         return 2
 
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
+    highlights = isolated_tick(highlights_tick, "highlights", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
     postmatch = postmatch_tick(base_url, automation_secret)
@@ -703,8 +783,10 @@ def main() -> int:
         "web_readiness": readiness,
         "telegram_status": telegram.get("telegram_status"),
         "continuous_evolution_status": continuous.get("continuous_status"),
+        "highlights_status": highlights.get("highlights_status"),
         "backup_status": backup.get("backup_status"),
         "telegram": telegram,
+        "highlights": highlights,
         "continuous_evolution": continuous,
         "backup": backup,
         "postmatch": postmatch,

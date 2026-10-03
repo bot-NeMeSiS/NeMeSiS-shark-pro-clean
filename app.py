@@ -1453,13 +1453,6 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         deep_limit=1,
     )
     odds = _safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
-    highlights = _safe_sports_sync_call(
-        "highlights",
-        v766_sync_highlights_daily,
-        force=force,
-        days_back=5,
-        limit=250,
-    )
     grading = _safe_sports_sync_call(
         "pick_grading",
         run_pick_grading,
@@ -1479,16 +1472,9 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         for result in (fixtures, fallback, live, deep, odds)
     )
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
-    highlight_errors = [
-        masked_admin_text(error, 160)
-        for error in (highlights.get("errors") or [])
-    ][:8]
-    if highlights.get("error"):
-        highlight_errors.insert(0, masked_admin_text(highlights.get("error"), 160))
-    highlight_errors = list(dict.fromkeys(highlight_errors))[:8]
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, fallback, live, deep, odds, highlights)
+        for result in (fixtures, fallback, live, deep, odds)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1507,10 +1493,6 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "live": live,
         "deep_enrichment": deep,
         "odds": odds,
-        "highlights": highlights,
-        "highlights_synced": as_int(highlights.get("highlights_found"), 0),
-        "highlight_external_calls": as_int(highlights.get("external_calls"), 0),
-        "media_errors": highlight_errors,
         "grading": grading,
         "picks_checked": as_int(grading.get("picks_checked"), 0),
         "picks_graded": picks_graded,
@@ -1534,10 +1516,6 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "deep_status": result["deep_status"],
         "deep_fixture_ids": result["deep_fixture_ids"],
         "deep_external_calls": result["deep_external_calls"],
-        "highlights_synced": result["highlights_synced"],
-        "highlight_external_calls": result["highlight_external_calls"],
-        "highlight_status": str(highlights.get("status") or highlights.get("reason") or "UNKNOWN")[:80],
-        "highlight_errors_count": len(highlight_errors),
         "picks_checked": result["picks_checked"],
         "picks_graded": result["picks_graded"],
         "external_calls": external_calls,
@@ -18851,25 +18829,44 @@ def v766_calendar_order_context(calendar=None):
 
 
 def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
-    """Reuse the existing daily sync; failures must not suppress a whole day."""
+    """Bounded highlight sync with persistent freshness/retry guards."""
+    import os
     import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
+        try:
+            interval_minutes = int(os.getenv("HIGHLIGHTS_SYNC_INTERVAL_MINUTES", "360") or 360)
+        except (TypeError, ValueError, OverflowError):
+            interval_minutes = 360
+        interval_minutes = max(60, min(interval_minutes, 1440))
         last_day = str(last.get("date") or "")[:10]
-        if last_day == today_iso():
-            if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
-                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last, "processed": 0, "updated": 0, "errors": []}
-            if last.get('retryable') is False:
+        raw_epoch = last.get('attempt_finished_epoch')
+        if raw_epoch in (None, ""):
+            if last_day == today_iso() and last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+                return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last,
+                        "processed": 0, "updated": 0, "external_calls": 0, "errors": []}
+            if last_day == today_iso() and last.get('retryable') is False:
                 return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
                         "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
+            age = (interval_minutes * 60) + 1
+        else:
             try:
-                age = time.time() - float(last.get('attempt_finished_epoch') or 0)
+                age = time.time() - float(raw_epoch)
             except (ValueError, TypeError, OverflowError):
-                age = 901
-            if 0 <= age < 900:
-                return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
-                        "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"]}
+                age = (interval_minutes * 60) + 1
+        if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK' and 0 <= age < interval_minutes * 60:
+            return {"ok": True, "skipped": True, "reason": "fresh_sync_window", "last": last,
+                    "processed": 0, "updated": 0, "external_calls": 0, "errors": [],
+                    "next_check_seconds": max(0, int(interval_minutes * 60 - age))}
+        if last.get('retryable') is False and 0 <= age < interval_minutes * 60:
+            return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
+                    "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or [],
+                    "next_check_seconds": max(0, int(interval_minutes * 60 - age))}
+        if 0 <= age < 900:
+            return {"ok": False, "skipped": True, "reason": "retry_cooldown", "last": last,
+                    "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"],
+                    "next_check_seconds": max(0, int(900 - age))}
     try:
         result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
     except Exception:
