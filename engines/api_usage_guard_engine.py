@@ -114,6 +114,7 @@ def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> di
     budgets = {
         "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
         "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
+        "thesportsdb": _budget("THESPORTSDB_DAILY_CALL_BUDGET", 24, env),
     }
     result = {
         "ok": False,
@@ -126,6 +127,7 @@ def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> di
         "configured": {
             "api_football": bool(env.get("API_FOOTBALL_KEY") or env.get("API_FOOTBALL_API_KEY")),
             "odds_api": bool(env.get("ODDS_API_KEY") or env.get("THE_ODDS_API_KEY")),
+            "thesportsdb": bool(env.get("THESPORTSDB_KEY") or env.get("THESPORTSDB_API_KEY")),
         },
         "usage_scope": "LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA",
         "provider_quota_verified": False,
