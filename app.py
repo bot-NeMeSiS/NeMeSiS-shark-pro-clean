@@ -16865,7 +16865,7 @@ def _sports_registry_key_countries(config, key):
     return expected
 
 
-def _compile_sports_competition_priority_registry():
+def _compile_sports_competition_priority_registry(registry=None):
     important = []
     for competition in IMPORTANT_COMPETITIONS:
         competition_key = normalized_label(competition.get("key"))
@@ -16885,7 +16885,7 @@ def _compile_sports_competition_priority_registry():
         })
 
     compiled = []
-    for config in SPORTS_COMPETITION_PRIORITY_REGISTRY:
+    for config in (registry if registry is not None else SPORTS_COMPETITION_PRIORITY_REGISTRY):
         keys = frozenset(
             value for value in (normalized_label(item) for item in config.get("keys") or []) if value
         )
@@ -16928,17 +16928,27 @@ def _compile_sports_competition_priority_registry():
     return tuple(compiled)
 
 
+from engines.audience_priority_policy import load_policy as load_audience_policy, priority_registry as audience_priority_registry
+
+SPORTS_AUDIENCE_POLICY = load_audience_policy(
+    {item['key'] for item in IMPORTANT_COMPETITIONS},
+    profile=os.environ.get('NEMESIS_AUDIENCE_PROFILE', 'ES_EU'),
+)
+SPORTS_COMPILED_AUDIENCE_REGISTRY = _compile_sports_competition_priority_registry(
+    audience_priority_registry(SPORTS_AUDIENCE_POLICY, IMPORTANT_COMPETITIONS, SPORTS_COMPETITION_PRIORITY_REGISTRY),
+)
 SPORTS_COMPILED_PRIORITY_REGISTRY = _compile_sports_competition_priority_registry()
 
 
-def sports_competition_priority(match):
+def sports_competition_priority(match, audience=False):
     """Deterministic sports relevance tier. Picks and odds are intentionally ignored."""
+    registry = SPORTS_COMPILED_AUDIENCE_REGISTRY if audience else SPORTS_COMPILED_PRIORITY_REGISTRY
     item = match if isinstance(match, dict) else {}
     identifiers = _sports_competition_identifiers(item)
     keys = _sports_competition_keys(item, identifiers)
     names = _sports_competition_names(item)
     countries = _sports_competition_countries(item)
-    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+    for config in registry:
         if identifiers.intersection(config["identifiers"]):
             return {
                 "tier": config["tier"],
@@ -16947,7 +16957,7 @@ def sports_competition_priority(match):
                 "label": config["label"],
                 "reason": "CANONICAL_COMPETITION_ID",
             }
-    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+    for config in registry:
         for key in keys.intersection(config["keys"]):
             expected_countries = config["key_countries"].get(key, frozenset())
             if expected_countries and not countries.intersection(expected_countries):
@@ -16959,7 +16969,7 @@ def sports_competition_priority(match):
                 "label": config["label"],
                 "reason": "COUNTRY_SCOPED_COMPETITION_KEY" if expected_countries else "EXACT_COMPETITION_KEY",
             }
-    for config in SPORTS_COMPILED_PRIORITY_REGISTRY:
+    for config in registry:
         if names.intersection(config["aliases"]):
             return {
                 "tier": config["tier"],
@@ -17035,13 +17045,13 @@ def _sports_kickoff_delta_minutes(match, now_value=None):
     return int((kickoff - now_value.astimezone(TZ)).total_seconds() // 60)
 
 
-def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=None):
+def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=None, audience=False):
     """Explainable sports-first priority for Home, Directo and Partidos."""
     item = match if isinstance(match, dict) else {}
     match_id = str(item.get("id") or item.get("match_id") or "").strip()
     # Persisted status_info can predate a conflicting terminal provider signal.
     status_info = canonical_match_status(item)
-    competition = sports_competition_priority(item)
+    competition = sports_competition_priority(item, audience=audience)
     pick_ids = pick_ids if isinstance(pick_ids, frozenset) else frozenset(str(value) for value in (pick_ids or set()))
     has_pick = bool(item.get("has_pick") or (match_id and match_id in pick_ids))
     is_favorite = _sports_match_favorite(item, favorites)
@@ -17175,7 +17185,7 @@ def sports_relevance_profile(match, pick_ids=None, favorites=None, now_value=Non
 
 def apply_sports_relevance(match, pick_ids=None, favorites=None, now_value=None):
     item = dict(match or {})
-    relevance = sports_relevance_profile(item, pick_ids=pick_ids, favorites=favorites, now_value=now_value)
+    relevance = sports_relevance_profile(item, pick_ids=pick_ids, favorites=favorites, now_value=now_value, audience=True)
     item["sports_relevance"] = relevance
     item["sports_relevance_score"] = relevance["score"]
     item["sports_relevance_tier"] = relevance["tier"]
@@ -17191,7 +17201,7 @@ def apply_sports_relevance(match, pick_ids=None, favorites=None, now_value=None)
 
 def sports_relevance_sort_tuple(match, surface="home"):
     item = match if isinstance(match, dict) else {}
-    relevance = item.get("sports_relevance") if isinstance(item.get("sports_relevance"), dict) else sports_relevance_profile(item)
+    relevance = item.get("sports_relevance") if isinstance(item.get("sports_relevance"), dict) else sports_relevance_profile(item, audience=True)
     kickoff = match_kickoff_madrid_dt(item)
     kickoff_key = kickoff.isoformat(timespec="minutes") if kickoff else "9999-99-99T99:99"
     home_lane = int(relevance.get("home_priority_lane") if relevance.get("home_priority_lane") is not None else 7)
@@ -17207,8 +17217,8 @@ def sports_relevance_sort_tuple(match, surface="home"):
     return (
         lifecycle_rank,
         surface_lane,
-        -int(relevance.get("score") or 0),
         int(relevance.get("competition_rank") or 95),
+        -int(relevance.get("score") or 0),
         kickoff_key,
         normalized_label(item.get("calendar_competition") or item.get("competition_name") or item.get("league_name") or ""),
         normalized_label(item.get("safe_home") or item.get("home_team") or ""),
