@@ -10,6 +10,7 @@
 {% set filters = calendar.get('filters') or {} %}
 {% set counts = calendar.get('counts') or {} %}
 {% set lane = filters.get('lane') or 'today' %}
+{% set results_center_lane = 'finished' if lane in ['finished', 'results'] else lane %}
 {% set day_groups = calendar.get('day_groups') or calendar.get('groups') or [] %}
 {% set active_filters = calendar.get('active_filters') or [] %}
 {% set date_navigation = calendar.get('date_navigation') or {} %}
@@ -26,7 +27,15 @@
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Calendario', 'Tu agenda deportiva.', 'calendar') }}
+  {{ page_header('Resultados', 'Resultados confirmados, calendario y próximos partidos en un único centro.', 'history') }}
+  <nav class="v933-panel v933-filter-panel v940-results-calendar-tabs" data-results-calendar-tabs aria-label="{{ ui('Resultados y calendario') }}">
+    {{ filter_tabs([
+      {'key':'finished','label':'Resultados','href':'/calendario?lane=finished'},
+      {'key':'today','label':'Calendario','href':'/calendario?lane=today'},
+      {'key':'week','label':'Próximos','href':'/calendario?lane=week'},
+      {'key':'with_pick','label':'Con pronóstico','href':'/calendario?lane=with_pick'}
+    ], results_center_lane) }}
+  </nav>
 
 
 
