@@ -69,7 +69,10 @@ def review_snapshot(db_path, limit=40):
                 })
             if conn.execute("SELECT 1 FROM sqlite_master WHERE name='sportsdb_highlight_runs'").fetchone():
                 # Do not render historical errors: legacy versions could store a provider URL/key.
-                for row in conn.execute('SELECT started_at,finished_at,status,highlights_found,linked_matches FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 3'):
+                columns = {row[1] for row in conn.execute('PRAGMA table_info(sportsdb_highlight_runs)')}
+                fields = ['started_at', 'finished_at', 'status', 'highlights_found', 'linked_matches']
+                fields.extend(name for name in ('days_back', 'external_calls', 'v2_event_lookups', 'persistent_cache_hits', 'associations_reconciled') if name in columns)
+                for row in conn.execute('SELECT ' + ','.join(fields) + ' FROM sportsdb_highlight_runs ORDER BY started_at DESC LIMIT 3'):
                     result['runs'].append(dict(row))
             result['state'] = 'RECORDED' if result['counts']['stored'] else 'NO_LINKS_RECORDED'
     except (sqlite3.Error, OSError, ValueError):

@@ -52,6 +52,7 @@ def test_highlights_fresh_six_hour_window_skips_provider(monkeypatch):
             "ok": True,
             "status": "OK",
             "errors": [],
+            "days_back": 2,
             "attempt_finished_epoch": now - (60 * 60),
         } if key == "sportsdb_highlights_last_sync" else default,
     )

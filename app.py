@@ -18843,13 +18843,17 @@ def v766_calendar_order_context(calendar=None):
     }
 
 
-def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
+def v766_sync_highlights_daily(force=False, days_back=7, limit=250):
     """Bounded highlight sync with persistent freshness/retry guards."""
     import os
     import time
     started = now_iso()
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
+        try:
+            same_window = int(last.get("days_back") or 0) >= max(0, int(days_back))
+        except (TypeError, ValueError, OverflowError):
+            same_window = False
         try:
             interval_minutes = int(os.getenv("HIGHLIGHTS_SYNC_INTERVAL_MINUTES", "360") or 360)
         except (TypeError, ValueError, OverflowError):
@@ -18858,10 +18862,10 @@ def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
         last_day = str(last.get("date") or "")[:10]
         raw_epoch = last.get('attempt_finished_epoch')
         if raw_epoch in (None, ""):
-            if last_day == today_iso() and last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
+            if same_window and last_day == today_iso() and last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK':
                 return {"ok": True, "skipped": True, "reason": "already_synced_today", "last": last,
                         "processed": 0, "updated": 0, "external_calls": 0, "errors": []}
-            if last_day == today_iso() and last.get('retryable') is False:
+            if (same_window or 'days_back' not in last) and last_day == today_iso() and last.get('retryable') is False:
                 return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
                         "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or []}
             age = (interval_minutes * 60) + 1
@@ -18870,11 +18874,11 @@ def v766_sync_highlights_daily(force=False, days_back=5, limit=250):
                 age = time.time() - float(raw_epoch)
             except (ValueError, TypeError, OverflowError):
                 age = (interval_minutes * 60) + 1
-        if last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK' and 0 <= age < interval_minutes * 60:
+        if same_window and last.get('ok') is True and not last.get('errors') and last.get('status', 'OK') == 'OK' and 0 <= age < interval_minutes * 60:
             return {"ok": True, "skipped": True, "reason": "fresh_sync_window", "last": last,
                     "processed": 0, "updated": 0, "external_calls": 0, "errors": [],
                     "next_check_seconds": max(0, int(interval_minutes * 60 - age))}
-        if last.get('retryable') is False and 0 <= age < interval_minutes * 60:
+        if (same_window or 'days_back' not in last) and last.get('retryable') is False and 0 <= age < interval_minutes * 60:
             return {"ok": False, "skipped": True, "reason": "scope_completed_with_gaps", "last": last,
                     "processed": 0, "updated": 0, "external_calls": 0, "errors": last.get('errors') or [],
                     "next_check_seconds": max(0, int(interval_minutes * 60 - age))}
@@ -19068,20 +19072,20 @@ def api_client_highlights():
 def api_automation_highlights_sync():
     if not automation_cron_access_allowed():
         return automation_json_forbidden()
-    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 5)
+    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 7)
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back if days_back is not None else 7, limit=limit or 250)})
 
 
 @app.route("/api/admin/highlights/sync", methods=["POST"])
 def api_admin_highlights_sync():
     if not is_admin_session():
         return admin_json_forbidden()
-    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 5)
+    days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 7)
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
     force = True
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back if days_back is not None else 7, limit=limit or 250)})
 
 
 def v769_highlight_match_context(match_id):

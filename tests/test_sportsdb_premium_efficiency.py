@@ -253,7 +253,7 @@ def test_completed_scoped_collection_is_not_repolled_every_tick():
 
 def test_successful_daily_sync_still_skips():
     fn=load_app_function('v766_sync_highlights_daily',now_iso=lambda:'now',today_iso=lambda:'2026-10-01',
-        automation_get=lambda *a:{'date':'2026-10-01','ok':True,'status':'OK','errors':[]})
+        automation_get=lambda *a:{'date':'2026-10-01','days_back':7,'ok':True,'status':'OK','errors':[]})
     assert fn()['reason']=='already_synced_today'
 
 
@@ -338,9 +338,12 @@ def test_recent_failure_cooldown_avoids_hammering():
 
 def test_force_keeps_the_call_budget(db,monkeypatch):
     calls=[]
+    event_calls=[]
     monkeypatch.setattr(media,'_sportsdb_v1',lambda *a:(calls.append(True) or {'events':None}))
+    monkeypatch.setattr(media,'_sportsdb_v2',lambda *a:(event_calls.append(True) or {'lookup':[]}))
     result=media.sync_sportsdb_highlights(db,days_back=14,force=True)
-    assert result['external_calls']==12 and len(calls)==12 and 'REQUEST_BUDGET' in result['errors']
+    assert result['external_calls']==12 and len(calls)+len(event_calls)==12 and 'REQUEST_BUDGET' in result['errors']
+    assert len(event_calls)==1  # The force flag cannot consume the budget before precise event recovery.
 
 
 def test_shared_postmatch_cache_is_bound_to_credential(monkeypatch):

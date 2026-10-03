@@ -624,7 +624,7 @@ def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatc
     request = seen["request"]
     assert request.get_method() == "POST"
     assert request.full_url.startswith("https://example.invalid" + master.HIGHLIGHTS_ENDPOINT + "?")
-    assert "days_back=2" in request.full_url
+    assert "days_back=7" in request.full_url
     assert "limit=250" in request.full_url
     assert secret not in request.full_url
     headers = {name.lower(): value for name, value in request.header_items()}
