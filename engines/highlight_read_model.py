@@ -40,7 +40,8 @@ def _reader(db_path):
 
 
 def _rows(conn, sql, params=()):
-    return [dict(row) for row in conn.execute(sql, params).fetchall()]
+    from engines.highlight_policy_engine import attach_policies
+    return attach_policies(conn, [dict(row) for row in conn.execute(sql, params).fetchall()])
 
 
 def _classified(items):
