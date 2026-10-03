@@ -10,7 +10,7 @@ import pytest
 from engines import api_usage_guard_engine as guard
 
 NOW = datetime(2026, 9, 22, 12, 0, tzinfo=guard.TZ)
-ENV = {'API_FOOTBALL_DAILY_CALL_BUDGET':'5','ODDS_API_DAILY_CALL_BUDGET':'3'}
+ENV = {'API_FOOTBALL_DAILY_CALL_BUDGET':'5','ODDS_API_DAILY_CALL_BUDGET':'3','THESPORTSDB_DAILY_CALL_BUDGET':'6'}
 
 @pytest.fixture(autouse=True)
 def fixed_clock_and_no_network(monkeypatch):
@@ -33,8 +33,8 @@ def test_budget_missing_db_is_unknown_and_not_created(tmp_path,relative):
     result=guard.api_usage_snapshot(str(path),ENV)
     assert not path.exists()
     assert result['state']=='NOT_INITIALIZED' and not result['ok']
-    assert result['used_estimated']=={'api_football':None,'odds_api':None}
-    assert result['remaining_estimated']=={'api_football':None,'odds_api':None}
+    assert result['used_estimated']=={'api_football':None,'odds_api':None,'thesportsdb':None}
+    assert result['remaining_estimated']=={'api_football':None,'odds_api':None,'thesportsdb':None}
     assert 'private.db' not in str(result)
 
 @pytest.mark.parametrize('reader',['snapshot','cache'])
@@ -63,8 +63,8 @@ def test_unreadable_budget_never_reports_full_balance(tmp_path,path_kind):
 def test_empty_valid_ledger_is_a_known_zero_not_provider_quota(db):
     result=guard.api_usage_snapshot(str(db),ENV)
     assert result['state']=='READY' and result['ok']
-    assert result['used_estimated']=={'api_football':0,'odds_api':0}
-    assert result['remaining_estimated']=={'api_football':5,'odds_api':3}
+    assert result['used_estimated']=={'api_football':0,'odds_api':0,'thesportsdb':0}
+    assert result['remaining_estimated']=={'api_football':5,'odds_api':3,'thesportsdb':6}
     assert result['usage_scope']=='LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA'
     assert not result['provider_quota_verified']
 
@@ -251,3 +251,14 @@ def test_recursive_cache_decode_error_is_a_safe_miss(db,monkeypatch):
         raise RecursionError('synthetic decoder limit')
     monkeypatch.setattr(guard.json,'loads',recursive_decode)
     assert guard.cache_get(str(db),'api_football','k') is None
+
+
+def test_sportsdb_reservations_are_local_estimates_without_verified_provider_quota(db):
+    assert guard.allow_api_job(str(db), 'thesportsdb', 'squad-local-qa', 2, ENV)['ok']
+    before = db.read_bytes()
+    result = guard.api_usage_snapshot(str(db), ENV)
+    assert result['used_estimated']['thesportsdb'] == 2
+    assert result['remaining_estimated']['thesportsdb'] == 4
+    assert result['configured']['thesportsdb'] is False
+    assert result['provider_quota_verified'] is False
+    assert db.read_bytes() == before
