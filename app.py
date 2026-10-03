@@ -19069,6 +19069,41 @@ def api_admin_highlights_sync():
     return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back or 5, limit=limit or 250)})
 
 
+def v769_highlight_match_context(match_id):
+    """Build a factual postmatch recap from persisted match data only."""
+    local_id = str(match_id or "").strip()
+    if not local_id:
+        return {}
+    try:
+        detail = match_detail(local_id, include_depth=False)
+    except Exception:
+        return {}
+    if not detail or not isinstance(detail.get("match"), dict):
+        return {}
+    try:
+        detail["match"] = v935_enrich_match_lifecycle(detail["match"])
+        detail["lineups"] = _cached_lineups_for_match(detail["match"])
+        detail["cached_statistics"] = _cached_match_statistics(detail["match"])
+        from engines.postmatch_recovery import attach_detail as _attach_postmatch_detail
+        _attach_postmatch_detail(DB_PATH, detail)
+        live_context = live_tracker_for_match(DB_PATH, local_id) or {}
+        detail["api_football_live_tracker"] = live_context
+        context_detail = {
+            **detail,
+            "match": canonical_match_for_domain_context(detail.get("match") or {}),
+        }
+        context = build_match_context(
+            context_detail,
+            madrid_context=client_match_display_context(detail.get("match") or {}),
+            live_context=live_context,
+        )
+    except Exception:
+        return {}
+    diagnostics = context.get("diagnostics") or {}
+    if as_int(diagnostics.get("external_calls"), 0) != 0:
+        return {}
+    return context
+
 @app.route("/resumen/<highlight_id>")
 @app.route("/highlight/<highlight_id>")
 @app.route("/resumenes/<highlight_id>")
@@ -19092,6 +19127,14 @@ def highlight_detail_page(highlight_id):
             resource_title="Este resumen ya no está disponible",
             resource_message="El contenido solicitado no está en el historial real actual. No se ha sustituido por un resumen inventado.",
         ), 404
+    data["match_context"] = v769_highlight_match_context(data["highlight"].get("match_id"))
+    data["postmatch_recap"] = {
+        "available": bool(data["match_context"]),
+        "external_calls": 0,
+        "database_writes": 0,
+        "generative_ai_calls": 0,
+        "unsupported_claims": as_int(((data["match_context"].get("summaries") or {}).get("unsupported_claims")), 0) if data["match_context"] else 0,
+    }
     return render_template("highlight_detail.html", data=data)
 
 

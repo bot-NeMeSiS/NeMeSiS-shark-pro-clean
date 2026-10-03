@@ -91,3 +91,68 @@ def test_administrative_pause_covers_all_video_aliases(app_module, monkeypatch, 
     assert response.status_code == 200
     assert calls == []
     assert '<iframe' not in response.get_data(as_text=True)
+
+
+def test_highlight_detail_renders_cached_factual_postmatch_recap(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda:{'highlights_enabled':True, 'settings_readable':True})
+    monkeypatch.setattr(app_module, 'v769_get_highlight_snapshot', lambda _hid: {
+        'ok': True,
+        'read_state': 'VERIFIED',
+        'highlight': {
+            'id': 'recap-highlight',
+            'match_id': 'match-42',
+            'match_label': 'Local vs Visitante',
+            'competition_label': 'Liga QA',
+            'event_date_label': '03/10/2026',
+            'source_label': 'TheSportsDB · YouTube',
+            'client_status': 'AUTHORIZED',
+            'provider': 'YouTube',
+            'safe_url': 'https://www.youtube.com/watch?v=SYNTHETIC_QA',
+            'embed_url': 'https://www.youtube-nocookie.com/embed/SYNTHETIC_QA',
+            'can_embed': True,
+            'can_link': True,
+            'rights_note': 'LICENSED',
+            'match_url': '/match/match-42',
+        },
+    })
+    monkeypatch.setattr(app_module, 'v769_highlight_match_context', lambda match_id: {
+        'score': {'confirmed': True, 'label': '2 - 1'},
+        'summaries': {
+            'contract': 'NEMESIS-FACTUAL-MATCH-SUMMARIES-V1',
+            'unsupported_claims': 0,
+            'items': [
+                {'type': 'FULLTIME_SUMMARY', 'text': 'Local y Visitante finalizaron 2 - 1.', 'evidence': ['match_status', 'score']},
+                {'type': 'EVENTS_SUMMARY', 'text': 'La cronología contiene 2 eventos confirmados.', 'evidence': ['canonical_timeline']},
+            ],
+        },
+        'event_summary': {
+            'available': True,
+            'count': 2,
+            'items': [
+                {'minute_label': "12'", 'label': 'Gol', 'team': 'Local', 'player': 'Jugador A', 'detail': ''},
+                {'minute_label': "70'", 'label': 'Tarjeta amarilla', 'team': 'Visitante', 'player': 'Jugador B', 'detail': ''},
+            ],
+        },
+        'statistics': {
+            'available': True,
+            'item_count': 2,
+            'items': [
+                {'label': 'Posesión', 'home': '55%', 'away': '45%'},
+                {'label': 'Tiros a puerta', 'home': '6', 'away': '3'},
+            ],
+        },
+        'diagnostics': {'external_calls': 0},
+    } if match_id == 'match-42' else {})
+
+    response = app_module.app.test_client().get('/resumen/recap-highlight')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+
+    assert 'Así terminó el partido' in html
+    assert 'Local y Visitante finalizaron 2 - 1.' in html
+    assert 'La cronología contiene 2 eventos confirmados.' in html
+    assert 'Jugador A' in html
+    assert 'Posesión' in html and '55%' in html and '45%' in html
+    assert '0 llamadas de IA generativa' in html
+    assert '0 llamadas externas durante la lectura' in html
+    assert '<iframe' not in html
