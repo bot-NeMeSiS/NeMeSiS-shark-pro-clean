@@ -124,6 +124,8 @@ def ingest_match(conn, item):
     # Exact known identities/time only; uncertain matches remain separate.
     known = conn.execute("SELECT id FROM sports_history_matches WHERE competition=? AND season=? AND home=? AND away=? AND kickoff=?", (competition, season, *teams, kickoff)).fetchall() if "T" in kickoff and season and item.get("home_team_id") and item.get("away_team_id") else []
     match_id = entity(conn, "match", source, item.get("external_id") or item.get("internal_match_id"), {"round": item.get("round_name")}, canonical_id=known[0][0] if len(known) == 1 else None)
+    if item.get("internal_match_id"):
+        entity(conn, "match", "nemesis_internal", item["internal_match_id"], canonical_id=match_id)
     old = conn.execute("SELECT status,home_score,away_score FROM sports_history_matches WHERE id=?", (match_id,)).fetchone()
     status = str(item.get("status") or "").strip().lower()
     hs, aws = score(item.get("home_score")), score(item.get("away_score"))
@@ -345,7 +347,7 @@ def history_summary(db_path):
 def match_history(db_path, internal_id):
     try:
         with closing(read_connection(db_path)) as conn:
-            candidates = conn.execute("SELECT id,home,away,competition,season,kickoff FROM sports_history_matches WHERE internal_id=? OR id=?", (str(internal_id), str(internal_id))).fetchall()
+            candidates = conn.execute("SELECT id,home,away,competition,season,kickoff FROM sports_history_matches WHERE internal_id=? OR id=? OR id IN (SELECT canonical_id FROM sports_history_ids WHERE kind='match' AND source='nemesis_internal' AND external_id=?)", (str(internal_id), str(internal_id), str(internal_id))).fetchall()
             row = candidates[0] if len(candidates) == 1 else None
             if not row:
                 return {}
@@ -362,7 +364,7 @@ def historical_match_detail(db_path, identifier):
     """Keep an archived Match Center reachable after a provider window shrinks."""
     try:
         with closing(read_connection(db_path)) as conn:
-            cursor = conn.execute("SELECT * FROM sports_history_matches WHERE id=? OR internal_id=?", (str(identifier), str(identifier)))
+            cursor = conn.execute("SELECT * FROM sports_history_matches WHERE id=? OR internal_id=? OR id IN (SELECT canonical_id FROM sports_history_ids WHERE kind='match' AND source='nemesis_internal' AND external_id=?)", (str(identifier), str(identifier), str(identifier)))
             rows = cursor.fetchall()
             if len(rows) != 1:
                 return None

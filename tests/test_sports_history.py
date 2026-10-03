@@ -88,7 +88,7 @@ class SportsHistoryTests(unittest.TestCase):
         item.update(provider='odds',external_id='other',league_id='soccer_spain_la_liga',home_team_id='oh',away_team_id='oa',kickoff_iso='2026-09-01T21:00:00+02:00')
         self.assertEqual(ingest_match(self.conn,item),first)
         self.assertEqual(team_metrics(self.conn,home,comp,season)['played'],1)
-        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM sports_history_ids WHERE kind='match'").fetchone()[0],2)
+        self.assertEqual(self.conn.execute("SELECT COUNT(*) FROM sports_history_ids WHERE kind='match' AND source<>'nemesis_internal'").fetchone()[0],2)
 
     def test_names_dont_merge_provider_entities_or_gender(self):
         a=entity(self.conn,'team','sportsdb','1',{'name':'United'})
@@ -235,10 +235,13 @@ class SportsHistoryTests(unittest.TestCase):
             original=self.fixture(1)
             original.update(id='original',source='sportsdb',competition_id='4335')
             remember_sports_match(path,original)
+            replacement=dict(original,id='replacement')
+            remember_sports_match(path,replacement)
             detail=historical_match_detail(path,'original')
             self.assertEqual(detail['match']['home_score'],2)
             self.assertEqual(detail['match']['home_team'],'Home')
             self.assertTrue(detail['historical_archive'])
+            self.assertEqual(historical_match_detail(path,'replacement')['match']['home_score'],2)
             self.assertIsNone(historical_match_detail(path,'unknown'))
             context=build_match_context(detail)
             self.assertIsInstance(context,dict)
