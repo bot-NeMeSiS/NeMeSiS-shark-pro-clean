@@ -41,7 +41,7 @@ def test_master_sports_sync_runs_bounded_highlights_and_counts_provider_calls(mo
             "errors": [],
         }
 
-    writes = _stub_core(monkeypatch, highlights())
+    writes = _stub_core(monkeypatch, {"ok": True, "status": "OK", "external_calls": 0, "errors": []})
     monkeypatch.setattr(app_module, "v766_sync_highlights_daily", highlights)
 
     result = app_module.run_sports_sync_cycle(force=False, trigger_type="shared_telegram_cron")
