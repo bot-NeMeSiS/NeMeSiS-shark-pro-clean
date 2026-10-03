@@ -139,18 +139,44 @@ def finish(store, job, result, now):
 
 
 def reconcile_media_reviews(store, now):
-    """A rights decision can complete a waiting task without another provider call."""
-    from engines.sportsdb_highlights_engine import classify_stored_highlight
+    """Reuse safely associated catalogue metadata before spending provider budget.
+
+    A cached URL never confers publication rights. Rotate rights-only checks so an
+    older unapproved item cannot hide a later approval beyond the bounded batch.
+    """
+    from engines.sportsdb_highlights_engine import classify_stored_highlight, _find_match
+    from engines.highlight_url_engine import public_https_url
     with store.connection(True) as conn:
-        jobs=conn.execute("SELECT * FROM postmatch_jobs WHERE kind='highlights' AND state='REVIEW_REQUIRED' ORDER BY updated_at LIMIT 50").fetchall()
+        jobs=conn.execute("SELECT * FROM postmatch_jobs WHERE kind='highlights' "
+                          "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') "
+                          "AND EXISTS (SELECT 1 FROM sportsdb_match_highlights h WHERE h.match_id=postmatch_jobs.match_id) "
+                          "ORDER BY CASE WHEN state='REVIEW_REQUIRED' THEN 1 ELSE 0 END,due_at,id LIMIT 100").fetchall()
+        config = store.config()
         for job in jobs:
             raw=conn.execute('SELECT * FROM matches WHERE id=?',(job['match_id'],)).fetchone()
             if not raw or identity(dict(raw))!=job['identity'] or not is_final(dict(raw),now):
                 continue
             media=conn.execute('SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC LIMIT 8',(job['match_id'],)).fetchall()
-            if any(classify_stored_highlight(dict(row)).get('show_block') for row in media):
+            safe = []
+            for row in media:
+                item = dict(row)
+                # Require the exact identity again; stale or ambiguous associations
+                # must not suppress recovery or inherit authorization.
+                if item.get('source') != 'TheSportsDB' or not public_https_url(item.get('video_url')):
+                    continue
+                event = {'idEvent': item.get('sportsdb_event_id'), 'dateEvent': item.get('event_date'),
+                         'strHomeTeam': item.get('home_team'), 'strAwayTeam': item.get('away_team'),
+                         'idLeague': item.get('league_id'), 'strLeague': item.get('league_name')}
+                if str(_find_match(conn, event) or '') == str(job['match_id']):
+                    safe.append(item)
+            if any(classify_stored_highlight(item).get('show_block') for item in safe):
                 conn.execute("UPDATE postmatch_jobs SET state='COMPLETE',reason='COMPLETE',updated_at=? WHERE id=?",(now,job['id']))
                 Store.audit(conn,job['id'],'RIGHTS_REVIEW_RECONCILED',{},'worker',now)
+            elif safe and 'thesportsdb' in config.get('sources', []):
+                conn.execute("UPDATE postmatch_jobs SET state='REVIEW_REQUIRED',reason='RIGHTS_REVIEW',due_at=?,updated_at=? WHERE id=?",
+                             (now + 300, now, job['id']))
+                if job['state'] != 'REVIEW_REQUIRED':
+                    Store.audit(conn,job['id'],'CATALOGUE_LINK_REUSED',{'external_calls':0},'worker',now)
 
 
 def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSources):
