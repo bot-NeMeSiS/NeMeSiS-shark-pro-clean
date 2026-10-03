@@ -40,7 +40,7 @@ def create_media_review_blueprint(db_path, is_admin_callback):
 
     @bp.get('/admin/highlights-review')
     def index():
-        snapshot = review_snapshot(db_path)
+        snapshot = review_snapshot(db_path, unlinked=request.args.get('association') == 'missing')
         from engines.postmatch_store import Store
         return render_template('admin_highlights_review.html', data={}, review=snapshot, review_error='', postmatch=Store(db_path).snapshot())
 
