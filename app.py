@@ -9187,6 +9187,107 @@ def _cached_match_standings(match, limit=24):
     }
 
 
+def _sports_history_team_context(team):
+    """Read rich team facts from canonical history without provider traffic."""
+    from engines.sports_history_engine import team_profile as history_team_profile
+
+    item = dict(team or {})
+    provider_id = str(item.get("external_id") or "").strip()
+    if not provider_id:
+        return {}
+    card = history_team_profile(DB_PATH, provider_id, source="thesportsdb")
+    facts = dict(card.get("facts") or {}) if isinstance(card, dict) else {}
+    if not facts:
+        return {}
+    return {
+        **facts,
+        "canonical_team_id": card.get("id"),
+        "provider_team_id": provider_id,
+        "external_id": provider_id,
+        "name": facts.get("name") or item.get("name"),
+        "logo_url": facts.get("logo") or item.get("logo_url"),
+        "venue": facts.get("stadium_name") or facts.get("venue"),
+        "stadium": facts.get("stadium_name") or facts.get("stadium"),
+        "founded": facts.get("formed_year") or facts.get("founded"),
+        "coach": facts.get("coach"),
+        "source": "thesportsdb_history",
+        "external_calls": 0,
+    }
+
+
+def _sports_history_players_for_team(team):
+    """Return provider-identified roster rows from canonical local memory."""
+    from engines.sports_history_engine import team_roster as history_team_roster
+
+    item = dict(team or {})
+    provider_id = str(item.get("external_id") or "").strip()
+    if not provider_id:
+        return []
+    cards = history_team_roster(DB_PATH, provider_id, source="thesportsdb")
+    players = []
+    for card in cards:
+        facts = dict(card.get("facts") or {})
+        external_id = ""
+        for source in card.get("sources") or []:
+            if source.get("source") == "thesportsdb" and source.get("external_id"):
+                external_id = str(source["external_id"])
+                break
+        if not external_id or not facts.get("name"):
+            continue
+        players.append({
+            "player_id": external_id,
+            "player_name": facts.get("name"),
+            "team_id": provider_id,
+            "team_name": facts.get("team_name") or item.get("name"),
+            "position": facts.get("position"),
+            "number": facts.get("shirt_number"),
+            "shirt_number": facts.get("shirt_number"),
+            "nationality": facts.get("nationality"),
+            "birth_date": facts.get("birth_date"),
+            "height": facts.get("height"),
+            "preferred_foot": facts.get("preferred_foot"),
+            "photo": facts.get("photo"),
+            "source": "thesportsdb_history",
+            "canonical_player_id": card.get("id"),
+            "is_starting": False,
+        })
+    return players
+
+
+def _sports_history_player_fact(player_id, player_rows):
+    """Use SportsDB memory only when no other local provider already owns the id."""
+    from engines.sports_history_engine import player_profile as history_player_profile
+
+    has_other_evidence = any(player_rows.get(key) for key in ("profiles", "events", "lineups", "injuries"))
+    if has_other_evidence:
+        return {}
+    route_id = urllib.parse.unquote(str(player_id or "")).strip()
+    if not route_id:
+        return {}
+    card = history_player_profile(DB_PATH, route_id, source="thesportsdb")
+    facts = dict(card.get("facts") or {}) if isinstance(card, dict) else {}
+    if not facts:
+        return {}
+    return {
+        "player_id": route_id,
+        "player_name": facts.get("name"),
+        "display_name": facts.get("name"),
+        "team_id": facts.get("team_external_id"),
+        "team_name": facts.get("team_name"),
+        "position": facts.get("position"),
+        "shirt_number": facts.get("shirt_number"),
+        "nationality": facts.get("nationality"),
+        "birth_date": facts.get("birth_date"),
+        "height": facts.get("height"),
+        "preferred_foot": facts.get("preferred_foot"),
+        "photo": facts.get("photo"),
+        "photo_source": "TheSportsDB",
+        "status": facts.get("status") or "Con perfil SportsDB",
+        "source": "thesportsdb_history",
+        "canonical_player_id": card.get("id"),
+    }
+
+
 def _cached_players_for_team(team, matches, limit=160):
     """Return deduplicated provider-identified players for one Team Center."""
     if not team or not db_table_exists("api_football_lineups_deep"):
@@ -9292,7 +9393,9 @@ def team_page_data(team_id, limit=80):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
     is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
-    players = _cached_players_for_team(team, team_matches)
+    players = _sports_history_players_for_team(team)
+    if not players:
+        players = _cached_players_for_team(team, team_matches)
     detail = {
         "team": team,
         "key": key,
