@@ -352,9 +352,9 @@
     <article data-h2h-fixture="{{ item.get('fixture_id') or item.get('match_id') or '' }}">
       <time datetime="{{ item.get('kickoff_iso') or '' }}">{{ ui_match_datetime(item) }}</time>
       <span>
-        <b>{{ item.get('home_team') }}</b>
+        <b>{% set h2h_home_href = sports_entity_href('team', item.get('home_team_id') or item.get('home_team'), item.get('home_team')) %}{% if h2h_home_href %}<a class="v944-entity-link" href="{{ h2h_home_href }}" data-entity-contract="team">{{ item.get('home_team') }}</a>{% else %}{{ item.get('home_team') }}{% endif %}</b>
         <strong>{{ item.get('score') or 'Resultado no disponible' }}</strong>
-        <b>{{ item.get('away_team') }}</b>
+        <b>{% set h2h_away_href = sports_entity_href('team', item.get('away_team_id') or item.get('away_team'), item.get('away_team')) %}{% if h2h_away_href %}<a class="v944-entity-link" href="{{ h2h_away_href }}" data-entity-contract="team">{{ item.get('away_team') }}</a>{% else %}{{ item.get('away_team') }}{% endif %}</b>
       </span>
       {% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="match">{{ ui("Ver partido") }}</a>{% endif %}
     </article>
