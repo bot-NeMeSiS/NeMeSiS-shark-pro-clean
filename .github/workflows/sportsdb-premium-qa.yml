@@ -74,6 +74,7 @@ jobs:
             tests/test_sportsdb_rescue_reconciliation.py \
             tests/test_api_usage_read_truth.py \
             tests/test_sportsdb_highlight_persistence.py \
+            tests/test_automatic_match_highlights_delivery.py \
             tests/test_postmatch_recovery.py \
             tests/test_highlight_review_flow.py \
             tests/test_highlights_admin_review_activation.py \

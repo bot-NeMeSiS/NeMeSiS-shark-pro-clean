@@ -3,6 +3,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='highlights-experience.css') }}?v=media-review-1">
 <section class="ns-highlights-review">
   <header><p>Administración · Contenido externo</p><h1>Revisión de vídeo-resúmenes</h1>
+    <p>El Cron maestro recupera automáticamente hasta siete días y asocia cada resumen a su partido cuando la identidad es inequívoca. Admin supervisa errores, métricas y excepciones de derechos; no asigna vídeos a partidos.</p>
     <p>Un enlace encontrado no es una autorización. Revisa su fuente y las condiciones aplicables antes de publicarlo.</p>
     <a href="/admin/highlights-center">Volver al centro de resúmenes</a> · <a href="/resumenes">Vista cliente</a>
   </header>
@@ -15,7 +16,7 @@
     <form method="post" action="/admin/highlights-review/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <p>Consultar hoy y ayer y ampliar por liga cuando proceda: hasta 12 peticiones por ejecución. Este recolector tiene un límite propio; no está incluido en las 60 consultas diarias de los trabajadores. No autoriza ni envía vídeos.</p>
       <button type="submit">Buscar resúmenes recientes</button></form>
-    {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados</p>{% endfor %}
+    {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados · {{ run.get("days_back", "—") }} días · {{ run.get("external_calls", "—") }} consultas · {{ run.get("v2_event_lookups", "—") }} búsquedas por evento · {{ run.get("associations_reconciled", "—") }} asociaciones revisadas automáticamente</p>{% endfor %}
   </section>
   {% for item in review['items'] %}
   <article class="ns-media-review-card" data-highlight-review="{{ item.id }}">

@@ -447,7 +447,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
     """Run media enrichment independently so a slow provider cannot kill sports/Telegram."""
     started = time.perf_counter()
     query = urllib.parse.urlencode({
-        "days_back": 2,
+        "days_back": 7,
         "limit": 250,
         "runner": "render_cron_master",
     })
@@ -491,6 +491,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
                 "external_calls": safe_count(result.get("external_calls")),
                 "persistent_cache_hits": safe_count(result.get("persistent_cache_hits")),
                 "profile_links_reused": safe_count(result.get("profile_links_reused")),
+                "associations_reconciled": safe_count(result.get("associations_reconciled")),
                 "v2_event_lookups": safe_count(result.get("v2_event_lookups")),
                 "v2_cache_hits": safe_count(result.get("v2_cache_hits")),
                 "v2_highlights_found": safe_count(result.get("v2_highlights_found")),

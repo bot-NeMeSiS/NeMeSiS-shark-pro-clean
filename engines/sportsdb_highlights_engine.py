@@ -124,7 +124,7 @@ def ensure_sportsdb_highlights_schema(db_path):
         )''')
         run_cols = _cols(conn, 'sportsdb_highlight_runs')
         for name in ('external_calls', 'persistent_cache_hits', 'profile_links_reused',
-                     'v2_event_lookups', 'v2_cache_hits', 'v2_highlights_found'):
+                     'v2_event_lookups', 'v2_cache_hits', 'v2_highlights_found', 'associations_reconciled'):
             if name not in run_cols:
                 conn.execute(f'ALTER TABLE sportsdb_highlight_runs ADD COLUMN {name} INTEGER DEFAULT 0')
         cols = _cols(conn, 'sportsdb_match_highlights')
@@ -536,7 +536,31 @@ def rebuild_match_enrichment(db_path, limit=300):
     return {'ok': True, 'updated': updated}
 
 
-def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
+def reconcile_cached_highlight_links(db_path, *, days_back=7, limit=250):
+    """Re-evaluate stored provider evidence in the worker, never on a client GET.
+
+    New fixtures can arrive after their video. Changed or ambiguous association
+    revokes the old approval through the same ingestion identity guard.
+    """
+    changed = 0
+    with _connect(db_path) as conn:
+        items = _rows(conn, "SELECT * FROM sportsdb_match_highlights WHERE event_date BETWEEN ? AND ? ORDER BY updated_at DESC LIMIT ?",
+                      ((_today() - timedelta(days=days_back)).isoformat(), _today().isoformat(), limit))
+        for stored in items:
+            try:
+                evidence = json.loads(stored.get('raw_json') or '{}')
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(evidence, dict) or public_https_url(_video_url(evidence)) != stored.get('video_url'):
+                continue
+            if (_find_match(conn, evidence) or '') != (stored.get('match_id') or ''):
+                _upsert_highlight(conn, evidence)
+                changed += 1
+        conn.commit()
+    return changed
+
+
+def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False):
     """Bounded collection with league partitioning when the 50-row feed saturates.
 
     Uses the current worker/rights pipeline. No network under a SQLite write
@@ -553,6 +577,7 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     except (ValueError, TypeError, OverflowError):
         return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
     ensure_sportsdb_highlights_schema(db_path)
+    associations_reconciled = reconcile_cached_highlight_links(db_path, days_back=days, limit=capacity)
     run_id, start = uuid.uuid4().hex[:22], _now()
     with _connect(db_path) as conn:
         conn.execute('INSERT INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
@@ -667,6 +692,8 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                     str(row.get('match_id') or '')
                     for row in _rows(conn, "SELECT DISTINCT match_id FROM sportsdb_match_highlights WHERE COALESCE(video_url,'')<>''")
                 }
+            event_cache = {row['cache_key']: row for row in _rows(conn,
+                "SELECT cache_key,fetched_at,expires_at FROM sportsdb_highlight_feed_cache WHERE cache_key LIKE 'v2:event_highlights:%'")}
         output = []
         final_states = {'ft','finished','final','finalizado','match finished','full time',
                         'aet','pen','after extra time','after penalties'}
@@ -690,10 +717,16 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             finished = status in final_states
             if not finished:
                 continue
-            output.append({'match_id': match_id, 'event_id': sid})
-            if len(output) >= int(max_items):
-                break
-        return output
+            cached = event_cache.get('v2:event_highlights:' + sid) or {}
+            try:
+                fresh = datetime.fromisoformat(cached['expires_at']) > datetime.fromisoformat(_now())
+            except (KeyError, ValueError, TypeError):
+                fresh = False
+            output.append({'match_id': match_id, 'event_id': sid, 'fresh': fresh,
+                           'attempted_at': cached.get('fetched_at') or ''})
+        # A negative response for the newest four games must not starve the rest.
+        output.sort(key=lambda item: (item['fresh'], item['attempted_at']))
+        return output[:int(max_items)]
 
     def acquire_v2_event(event_id):
         nonlocal v2_event_lookups, v2_cache_hits
@@ -761,8 +794,14 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                 continue
         with scope:
             partition_jobs = []
+            deferred_day = None
             # Cover requested dates first; optional fanout must not starve older days.
             for delta in range(days + 1):
+                # Reserve calls and time for exact event lookups. Cached dates
+                # progressively complete a deferred feed window on later retries.
+                if scope.calls >= scope.max_calls - 4 or (scope.calls and scope.remaining() < 8):
+                    deferred_day = delta
+                    break
                 day = (_today() - timedelta(days=delta)).isoformat()
                 items = acquire(day)
                 save(items)
@@ -784,6 +823,16 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
                 before_v2 = found
                 save(acquire_v2_event(candidate['event_id']))
                 v2_highlights_found += max(0, found - before_v2)
+
+            # After exact lookups, use any remaining budget on deferred dates.
+            if deferred_day is not None:
+                for delta in range(deferred_day, days + 1):
+                    day = (_today() - timedelta(days=delta)).isoformat()
+                    items = acquire(day)
+                    save(items)
+                    if len(items) >= 50:
+                        saturated_dates.append(day)
+                        partition_jobs.append((day, target_leagues(day, items)))
 
             # Remaining budget can improve saturated date coverage by league.
             for offset in range(12):
@@ -825,9 +874,9 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
     status = 'PARTIAL' if errors and found else 'FAILED' if errors else 'OK'
     errors = list(dict.fromkeys(errors))
     with _connect(db_path) as conn:
-        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=? WHERE id=?',
+        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=?,associations_reconciled=? WHERE id=?',
                      (_now(), status, found, linked, '; '.join(errors[:8]), scope.calls, persistent_cache_hits, profile_links_reused,
-                      v2_event_lookups, v2_cache_hits, v2_highlights_found, run_id))
+                      v2_event_lookups, v2_cache_hits, v2_highlights_found, associations_reconciled, run_id))
         conn.commit()
     return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
             'days_back': days, 'highlights_found': found, 'linked_matches': linked,
@@ -837,7 +886,7 @@ def sync_sportsdb_highlights(db_path, days_back=5, limit=250, force=False):
             'provider_coverage_complete': False, 'playback_verified': False,
             'persistent_cache_hits': persistent_cache_hits, 'profile_links_reused': profile_links_reused,
             'v2_event_lookups': v2_event_lookups, 'v2_cache_hits': v2_cache_hits,
-            'v2_highlights_found': v2_highlights_found, 'cache_ttl_hours': 6,
+            'v2_highlights_found': v2_highlights_found, 'associations_reconciled': associations_reconciled, 'cache_ttl_hours': 6,
             **scope.metrics()}
 
 
