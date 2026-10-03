@@ -62,6 +62,18 @@ def ensure_schema(conn):
       id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT NOT NULL,
       scope TEXT NOT NULL, page TEXT NOT NULL, attempted_at TEXT NOT NULL);
     CREATE INDEX IF NOT EXISTS sports_history_call_day ON sports_history_call_ledger(source,attempted_at);
+    CREATE TABLE IF NOT EXISTS sports_history_entity_links (
+      source_id TEXT NOT NULL REFERENCES sports_history_entities(id),
+      relation TEXT NOT NULL,
+      target_id TEXT NOT NULL REFERENCES sports_history_entities(id),
+      source TEXT NOT NULL,
+      facts TEXT NOT NULL DEFAULT '{}',
+      observed_at TEXT NOT NULL,
+      PRIMARY KEY(source_id,relation,target_id,source));
+    CREATE INDEX IF NOT EXISTS sports_history_entity_links_source
+      ON sports_history_entity_links(source_id,relation);
+    CREATE INDEX IF NOT EXISTS sports_history_entity_links_target
+      ON sports_history_entity_links(target_id,relation);
     """)
     for competition in IMPORTANT_COMPETITIONS:
         canonical = entity(conn, "competition", "canonical", competition["key"], {"name": competition["name"], "country": competition["country"]})
@@ -94,6 +106,115 @@ def entity(conn, kind, source, external_id, facts=None, canonical_id=None):
     conn.execute("INSERT INTO sports_history_entities VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET facts=excluded.facts,updated_at=excluded.updated_at", (target, kind, encode(merged), now()))
     conn.execute("INSERT OR IGNORE INTO sports_history_ids VALUES(?,?,?,?)", (kind, source, external_id, target))
     return target
+
+
+def entity_id(conn, kind, source, external_id):
+    source = provider_name(source)
+    row = conn.execute(
+        "SELECT canonical_id FROM sports_history_ids WHERE kind=? AND source=? AND external_id=?",
+        (str(kind or ""), source, str(external_id or "")),
+    ).fetchone()
+    return row[0] if row else ""
+
+
+def link_entities(conn, source_id, relation, target_id, source, facts=None):
+    """Persist one verified relationship without inferring identities by name."""
+    relation = str(relation or "").strip()
+    source = provider_name(source)
+    source_id = str(source_id or "").strip()
+    target_id = str(target_id or "").strip()
+    if not source_id or not target_id or not relation or not source:
+        raise ValueError("Entity link requires source, relation, target and provenance")
+    present = {
+        row[0]
+        for row in conn.execute(
+            "SELECT id FROM sports_history_entities WHERE id IN (?,?)",
+            (source_id, target_id),
+        )
+    }
+    if present != {source_id, target_id}:
+        raise ValueError("Entity link requires existing canonical entities")
+    conn.execute(
+        """INSERT INTO sports_history_entity_links(source_id,relation,target_id,source,facts,observed_at)
+           VALUES(?,?,?,?,?,?)
+           ON CONFLICT(source_id,relation,target_id,source)
+           DO UPDATE SET facts=excluded.facts,observed_at=excluded.observed_at""",
+        (source_id, relation, target_id, source, encode(facts or {}), now()),
+    )
+    return {"source_id": source_id, "relation": relation, "target_id": target_id, "source": source}
+
+
+def entity_profile(db_path, kind, identifier, source=None):
+    """Read one canonical entity by canonical id or an exact provider-scoped id."""
+    try:
+        with closing(read_connection(db_path)) as conn:
+            canonical = str(identifier or "").strip()
+            if source:
+                canonical = entity_id(conn, kind, source, identifier)
+            if not canonical:
+                return {}
+            card = entity_card(conn, canonical)
+            if card and card.get("kind") == kind:
+                card["external_calls"] = 0
+                return card
+            return {}
+    except sqlite3.OperationalError:
+        return {}
+
+
+def linked_entity_cards(db_path, source_kind, source_identifier, relation, *, source=None, target_kind=None):
+    """Return locally persisted related entities; never calls a provider."""
+    try:
+        with closing(read_connection(db_path)) as conn:
+            canonical = str(source_identifier or "").strip()
+            if source:
+                canonical = entity_id(conn, source_kind, source, source_identifier)
+            if not canonical:
+                return []
+            query = """SELECT l.target_id,l.source,l.facts,l.observed_at,e.kind
+                       FROM sports_history_entity_links l
+                       JOIN sports_history_entities e ON e.id=l.target_id
+                       WHERE l.source_id=? AND l.relation=?"""
+            params = [canonical, str(relation or "")]
+            if target_kind:
+                query += " AND e.kind=?"
+                params.append(target_kind)
+            query += " ORDER BY l.observed_at DESC,l.target_id"
+            result = []
+            for target_id, provenance, link_facts, observed_at, kind_value in conn.execute(query, tuple(params)):
+                card = entity_card(conn, target_id)
+                if not card:
+                    continue
+                card.update(
+                    relation=relation,
+                    relation_source=provenance,
+                    relation_facts=json.loads(link_facts or "{}"),
+                    relation_observed_at=observed_at,
+                    external_calls=0,
+                )
+                result.append(card)
+            return result
+    except sqlite3.OperationalError:
+        return []
+
+
+def team_profile(db_path, identifier, source="thesportsdb"):
+    return entity_profile(db_path, "team", identifier, source=source)
+
+
+def player_profile(db_path, identifier, source="thesportsdb"):
+    return entity_profile(db_path, "player", identifier, source=source)
+
+
+def team_roster(db_path, identifier, source="thesportsdb"):
+    return linked_entity_cards(
+        db_path,
+        "team",
+        identifier,
+        "team_has_player",
+        source=source,
+        target_kind="player",
+    )
 
 
 def score(value):
