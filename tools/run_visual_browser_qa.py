@@ -70,7 +70,9 @@ def run(output, profiles=None):
                     page.locator('.product-account-menu a[href="/soporte"]').click()
                     assert urlparse(page.url).path == '/soporte'
                     page.go_back()
-                    page.locator('[data-nav-zone="client-bottom"] a[href="/directo"]').click()
+                    page.locator('[data-nav-zone="client-bottom"] a[href="/calendario?lane=today"]').click()
+                    assert urlparse(page.url).path == '/calendario'
+                    page.locator('.v933-filter-tabs a[href="/directo"]').click()
                     assert urlparse(page.url).path == '/directo'
                     page.keyboard.press('Tab')
                 context.close()

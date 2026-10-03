@@ -31,11 +31,11 @@
   {% endfor %}
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-1" data-product-system="premium-1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-1-client-core-1" data-product-system="premium-1">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}" data-v930-icon-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
-  <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1"></script>
+  <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-design-02-r5-1-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
   {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}

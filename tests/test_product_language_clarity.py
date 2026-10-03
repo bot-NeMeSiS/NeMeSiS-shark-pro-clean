@@ -28,7 +28,7 @@ def test_canonical_navigation_contract_matches_current_language_and_legacy_layer
     canonical=read("templates/components/v933_navigation.html")
     assert "Resultados" in contract and "Pronósticos" in contract and "Historial" in contract
     assert "Resultados y calendario" in contract
-    assert "('Partidos'," not in contract and "('Picks'," not in contract
+    assert "('Partidos','/calendario?lane=today'" in contract and "('Picks','/picks'" in contract
     assert 'navigation_contracts.html' in canonical
     assert "nav_contracts.CLIENT_LINKS" in canonical
     assert "nav_contracts.ADMIN_LINKS" in canonical
