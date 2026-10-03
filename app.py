@@ -5722,6 +5722,7 @@ def sync_sportsdb_teams(limit=240):
             "inserted": base["inserted"],
             "updated": base["updated"],
             "skipped": base["skipped"],
+            "history_linked": base.get("history_linked", 0),
             "errors": errors,
             "last_sync": now_iso(),
         }
@@ -5739,7 +5740,16 @@ def sync_sportsdb_teams(limit=240):
                     fetched.append(team)
         except Exception as exc:
             errors.append(f"{league.get('name')}: {str(exc)[:160]}")
-    result = upsert_team_payloads(fetched[: int(limit)], source="sportsdb") if fetched else {"processed": 0, "inserted": 0, "updated": 0, "skipped": 0}
+    result = upsert_team_payloads(fetched[: int(limit)], source="sportsdb") if fetched else {
+        "processed": 0,
+        "inserted": 0,
+        "updated": 0,
+        "skipped": 0,
+        "history_linked": 0,
+        "history_errors": [],
+    }
+    if result.get("history_errors"):
+        errors.extend(["sports_history:" + value for value in result["history_errors"]])
     processed = base["processed"] + result["processed"]
     inserted = base["inserted"] + result["inserted"]
     updated = base["updated"] + result["updated"]
@@ -5753,9 +5763,151 @@ def sync_sportsdb_teams(limit=240):
         "inserted": inserted,
         "updated": updated,
         "skipped": skipped,
+        "history_linked": base.get("history_linked", 0) + result.get("history_linked", 0),
         "errors": errors[:12],
         "last_sync": now_iso(),
     }
+
+
+def _sportsdb_payload_items(payload, *keys):
+    if not isinstance(payload, dict):
+        return []
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, list):
+            return [dict(item) for item in value if isinstance(item, dict)]
+    for value in payload.values():
+        if isinstance(value, list):
+            return [dict(item) for item in value if isinstance(item, dict)]
+    return []
+
+
+def sync_sportsdb_entity_memory(limit_teams=6, daily_budget=None):
+    """Persist bounded SportsDB rosters into canonical Sports History.
+
+    This is a scheduler/admin write boundary. Rendering Team/Player Center only
+    reads SQLite and never calls the provider.
+    """
+    from engines.sports_history_adapters import ingest_sportsdb_player_profile
+    from engines.sports_history_engine import (
+        backfill_page,
+        ensure_schema as ensure_sports_history_schema,
+        team_roster,
+    )
+
+    seed_core()
+    if not thesportsdb_key():
+        return {
+            "ok": False,
+            "sin_key": True,
+            "processed": 0,
+            "updated": 0,
+            "skipped": 0,
+            "external_calls": 0,
+            "errors": ["MISSING_KEY"],
+        }
+    limit_teams = max(1, min(20, as_int(limit_teams, 6)))
+    daily_budget = max(
+        1,
+        min(
+            60,
+            as_int(
+                daily_budget if daily_budget is not None else os.getenv("THESPORTSDB_DAILY_CALL_BUDGET", "24"),
+                24,
+            ),
+        ),
+    )
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    ensure_sports_history_schema(conn)
+    conn.commit()
+    try:
+        candidates = [
+            dict(row)
+            for row in conn.execute(
+                """SELECT key,name,external_id,last_sync_at
+                   FROM teams
+                   WHERE lower(COALESCE(source,'')) LIKE '%sportsdb%'
+                     AND COALESCE(external_id,'')<>''
+                   ORDER BY COALESCE(last_sync_at,'') DESC,name
+                   LIMIT 120"""
+            ).fetchall()
+        ]
+        scored = []
+        for team in candidates:
+            existing = team_roster(DB_PATH, team.get("external_id"), source="thesportsdb")
+            scored.append((0 if not existing else 1, str(team.get("name") or "").casefold(), team))
+        targets = [item for _missing, _name, item in sorted(scored, key=lambda row: (row[0], row[1]))[:limit_teams]]
+        statuses = []
+        players_before = players_after = calls = 0
+        timestamp = time.time()
+        for team in targets:
+            team_id = str(team.get("external_id") or "").strip()
+            team_name = str(team.get("name") or "").strip()
+            before = team_roster(DB_PATH, team_id, source="thesportsdb")
+            players_before += len(before)
+
+            def fetch(scope, page):
+                payload = sportsdb_v2("list/players/" + urllib.parse.quote(str(scope), safe=""))
+                return _sportsdb_payload_items(payload, "players", "player")
+
+            def ingest(history_conn, player):
+                return ingest_sportsdb_player_profile(
+                    history_conn,
+                    player,
+                    team_external_id=team_id,
+                    team_name=team_name,
+                )
+
+            result = backfill_page(
+                conn,
+                "thesportsdb",
+                team_id,
+                "players",
+                fetch,
+                ingest,
+                budget=daily_budget,
+                timestamp=timestamp,
+                ttl=24 * 3600,
+            )
+            calls += as_int(result.get("calls"), 0)
+            after = team_roster(DB_PATH, team_id, source="thesportsdb")
+            players_after += len(after)
+            statuses.append({
+                "team_id": team_id,
+                "team": team_name,
+                "status": result.get("status"),
+                "players": len(after),
+                "calls": result.get("calls", 0),
+            })
+        errors = ["SPORTSDB_ENTITY_SYNC_ERROR"] if any(item.get("status") == "error" for item in statuses) else []
+        summary = {
+            "ok": not errors,
+            "source": "thesportsdb",
+            "sync_type": "sports_entities",
+            "processed": len(targets),
+            "updated": max(0, players_after - players_before),
+            "inserted": max(0, players_after - players_before),
+            "skipped": sum(item.get("status") in {"cached", "budget_exhausted"} for item in statuses),
+            "external_calls": calls,
+            "players_before": players_before,
+            "players_after": players_after,
+            "teams": statuses,
+            "errors": errors,
+            "last_sync": now_iso(),
+            "render_external_calls": 0,
+            "coverage_complete": False,
+        }
+        with conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
+                   VALUES (?,?,?)""",
+                ("sportsdb_entity_memory_sync", json.dumps(summary, ensure_ascii=False)[:12000], now_iso()),
+            )
+        return summary
+    finally:
+        conn.close()
+
 
 
 def fetch_sportsdb_results(limit=220):
