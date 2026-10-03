@@ -1,0 +1,34 @@
+{% macro team_history(metrics, label) -%}
+<article class="card" data-sports-history="{{ metrics.coverage }}">
+  <h3>{{ label }}</h3>
+  <p>{{ metrics.played }} resultados confirmados · {{ metrics.wins }} V · {{ metrics.draws }} E · {{ metrics.losses }} D · {{ metrics.gf }} GF / {{ metrics.ga }} GC</p>
+  <p class="small">{% if metrics.coverage == 'complete' %}Cobertura verificada{% else %}Cobertura parcial: estos conteos describen los resultados guardados, no necesariamente todos los partidos disputados.{% endif %}</p>
+  {% if metrics.missing is not none %}<p class="small">Resultados faltantes: {{ metrics.missing }}</p>{% endif %}
+  {% if metrics.coverage_conflict %}<p class="small">Discrepancia con el total declarado por la fuente. Requiere revisión.</p>{% endif %}
+  {% for size, window in metrics.windows.items() %}<span class="pill">Últimos {{ size }}: {{ window.form|join(' · ') or 'Sin resultados' }} ({{ window.played }})</span>{% endfor %}
+</article>
+{%- endmacro %}
+
+{% macro history_panel(history, admin=false) -%}
+{% if history %}
+<section class="band compact-band" aria-label="Memoria deportiva histórica">
+  <h2>Memoria deportiva histórica</h2>
+  {% if admin %}
+  <p class="small">Última sincronización: {{ history.last_sync|madrid_datetime_label if history.last_sync else 'Pendiente' }} · Lectura local</p>
+  <div class="grid compact-grid">
+    {% for scope in history.scopes %}{{ team_history(scope, scope.team ~ ' · ' ~ scope.season) }}{% else %}<p>Histórico pendiente de sincronización. No hay cobertura certificada.</p>{% endfor %}
+  </div>
+  <h3>Fuentes, errores y consumo del backfill</h3>
+  {% for source in history.sources %}<p>{{ source.source }} · {{ source.linked_ids }} IDs enlazados</p>{% endfor %}
+  {% for job in history.jobs %}<p>{{ job.source }} · {{ job.scope }} · página {{ job.page }} · {{ job.status }} · {{ job.calls }} llamadas · {{ job.updated_at|madrid_datetime_label }}</p>{% else %}<p>Sin trabajos de backfill ejecutados.</p>{% endfor %}
+  {% for usage in history.consumption or [] %}<p>{{ usage.source }} · {{ usage.day }} · {{ usage.calls }} llamadas reservadas (incluye errores)</p>{% endfor %}
+  <details><summary>Identidades enlazadas (muestra de hasta 100)</summary>{% for identity in history.ids %}<p>{{ identity.kind }} · {{ identity.source }} · {{ identity.external_id }} → {{ identity.canonical_id }}</p>{% endfor %}</details>
+  {% else %}
+  <p class="small">Temporada {{ history.season or 'sin confirmar' }} · Resultados anteriores al inicio de este partido</p>
+  <div class="grid compact-grid">{{ team_history(history.home, 'Local') }}{{ team_history(history.away, 'Visitante') }}</div>
+  <p>H2H en esta competición y temporada: {{ history.h2h.played }} resultados guardados. Cobertura parcial.</p>
+  {% for previous in history.previous_seasons or [] %}<details><summary>Temporada {{ previous.season }}</summary><div class="grid compact-grid">{{ team_history(previous.home, 'Local') }}{{ team_history(previous.away, 'Visitante') }}</div></details>{% endfor %}
+  {% endif %}
+</section>
+{% endif %}
+{%- endmacro %}

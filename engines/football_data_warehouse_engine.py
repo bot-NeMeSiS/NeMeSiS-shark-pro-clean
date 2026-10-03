@@ -285,6 +285,8 @@ def ensure_football_warehouse_schema(db_path: str) -> Dict[str, Any]:
             );
             """
         )
+        from engines.sports_history_engine import ensure_schema
+        ensure_schema(conn)
         conn.commit()
         return {"ok": True, "schema": "football_warehouse_ready"}
     finally:
@@ -368,6 +370,12 @@ def _normalize_api_football_event(fixture_id: str, item: Mapping[str, Any]) -> D
 
 
 def _upsert_match(conn: sqlite3.Connection, item: Mapping[str, Any]) -> Tuple[int, int]:
+    from engines.sports_history_engine import ingest_match, FINAL
+    ingest_match(conn, item)
+    item = dict(item)
+    previous = conn.execute("SELECT status,home_score,away_score FROM football_matches_history WHERE provider=? AND external_id=?", (str(item.get("provider") or "local"), str(item.get("external_id") or item.get("internal_match_id") or ""))).fetchone()
+    if previous and str(previous[0] or "").lower() in FINAL and (str(item.get("status") or "").lower() not in FINAL or item.get("home_score") is None or item.get("away_score") is None):
+        item.update(status=previous[0], home_score=previous[1], away_score=previous[2])
     now = _now_iso()
     external_id = str(item.get("external_id") or item.get("internal_match_id") or _hash_id("match", item.get("home_team"), item.get("away_team"), item.get("kickoff_iso")))
     provider = str(item.get("provider") or "local")

@@ -2603,6 +2603,8 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
             try:
                 for match in rows("SELECT * FROM matches ORDER BY COALESCE(updated_at, kickoff_iso, match_date) DESC LIMIT 80"):
                     safe_memory_call(DB_PATH, "match_snapshot", remember_match_snapshot, match=match, source="daily_run_cache")
+                    from engines.sports_history_engine import remember_sports_match
+                    safe_memory_call(DB_PATH, "sports_history", remember_sports_match, match=match, source="daily_run_cache")
                     if match.get("home_team"):
                         safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("home_team"), logo_url=match.get("home_logo") or "", country=match.get("country") or "", source="daily_run_cache")
                     if match.get("away_team"):
@@ -20520,6 +20522,9 @@ def match_detail_page(match_id):
     detail_force_refresh = request.args.get("refresh") in {"1", "true", "yes"}
     detail = match_detail(match_id, include_depth=False)
     if not detail:
+        from engines.sports_history_engine import historical_match_detail
+        detail = historical_match_detail(DB_PATH, match_id)
+    if not detail:
         return render_template(
             "resource_unavailable.html",
             title="Partido no disponible",
@@ -20565,6 +20570,8 @@ def match_detail_page(match_id):
         madrid_context=client_match_display_context(detail.get("match") or {}),
         live_context=live_context,
     )
+    from engines.sports_history_engine import match_history
+    match_context["historical_memory"] = match_history(DB_PATH, match_id)
     data = {
         "match_detail": detail,
         "v934_detail_refresh": {
@@ -28292,7 +28299,8 @@ def admin_data_memory_page():
         return redirect("/admin-login?next=/admin/data-memory")
     seed_core()
     summary = data_memory_summary(DB_PATH)
-    return render_template("admin_data_memory.html", summary=summary, version=APP_VERSION)
+    from engines.sports_history_engine import history_summary
+    return render_template("admin_data_memory.html", summary=summary, historical_memory=history_summary(DB_PATH), version=APP_VERSION)
 
 
 @app.route("/admin/codex-automation")
