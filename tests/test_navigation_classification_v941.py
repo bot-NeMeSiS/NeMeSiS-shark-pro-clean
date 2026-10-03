@@ -140,7 +140,8 @@ def test_navigation_renderers_share_canonical_contract_source():
     assert "('SHARK','/shark','shark')" in mobile_contract
     assert "('Cuenta','/profile','user')" not in mobile_contract
     assert "('Cuenta','/mi-cuenta','user')" in contract
-    assert "('Calendario','/calendario','calendar')" in contract
+    assert "('Resultados','/calendario?lane=finished','history')" in contract
+    assert "('Resultados y calendario','/admin/matches','matches')" in contract
     assert "('Directo','/directo','live')" in contract
     assert "('Historial','/historico','history')" in contract
     source=(root/"templates/components/v933_navigation.html").read_text(encoding="utf-8")
