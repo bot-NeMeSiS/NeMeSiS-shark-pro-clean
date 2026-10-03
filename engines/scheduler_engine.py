@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 TASKS = [
     {"name": "calendar", "label": "Calendario SportsDB", "kind": "sportsdb", "env": "SPORTSDB_SYNC_HOURS", "unit": "hours", "default": 6},
     {"name": "crests", "label": "Equipos y escudos", "kind": "crests", "env": "CREST_SYNC_HOURS", "unit": "hours", "default": 24},
+    {"name": "sports_entities", "label": "Plantillas y entidades SportsDB", "kind": "sportsdb", "env": "SPORTS_ENTITIES_SYNC_HOURS", "unit": "hours", "default": 24},
     {"name": "odds", "label": "Cuotas Odds", "kind": "odds", "env": "ODDS_CACHE_MINUTES", "unit": "minutes", "default": 20},
     {"name": "live", "label": "Live basico", "kind": "live", "env": "LIVE_CACHE_MINUTES", "unit": "minutes", "default": 2},
     {"name": "recommendations", "label": "Recomendaciones SHARK", "kind": "intelligence", "env": "RECOMMENDATIONS_REFRESH_MINUTES", "unit": "minutes", "default": 30},
