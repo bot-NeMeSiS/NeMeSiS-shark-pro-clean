@@ -89,6 +89,14 @@ def test_stadium_name_without_provider_id_stays_a_team_fact(tmp_path):
     assert card["facts"]["stadium_name"] == "Santiago Bernabeu"
 
 
+def test_known_provider_aliases_share_one_namespace():
+    assert history.provider_name("sportsdb") == "thesportsdb"
+    assert history.provider_name("TheSportsDB API") == "thesportsdb"
+    assert history.provider_name("The SportsDB Premium") == "thesportsdb"
+    assert history.provider_name("API-Football") == "api_football"
+    assert history.provider_name("The Odds API") == "the_odds_api"
+
+
 def test_same_numeric_id_from_different_providers_is_not_auto_merged():
     conn = sqlite3.connect(":memory:")
     try:
