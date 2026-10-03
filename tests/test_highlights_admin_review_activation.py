@@ -86,6 +86,7 @@ def _assert_private(response):
 @pytest.mark.parametrize("url", [
     "/admin/highlights-review/qa-id/decision",
     "/admin/highlights-review/sync",
+    "/admin/highlights-review/policies/1/revoke",
 ])
 @pytest.mark.parametrize("token", [None, "", "wrong-token", "ñ-token", "🔒"])
 def test_admin_post_rejects_malformed_csrf_without_server_error(isolated_review, url, token):
@@ -103,6 +104,7 @@ def test_admin_post_rejects_malformed_csrf_without_server_error(isolated_review,
     ("GET", "/api/admin/highlights/readiness"),
     ("POST", "/admin/highlights-review/qa-id/decision"),
     ("POST", "/admin/highlights-review/sync"),
+    ("POST", "/admin/highlights-review/policies/1/revoke"),
 ])
 def test_all_review_surfaces_reject_non_admin_even_with_valid_csrf(isolated_review, method, url):
     client, database, csrf = isolated_review

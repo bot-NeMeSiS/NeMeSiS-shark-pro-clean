@@ -5,12 +5,13 @@ import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from urllib.parse import unquote, urlsplit
 
 from engines.highlight_url_engine import public_https_url, safe_embed_url, review_fingerprint
 from engines.sportsdb_highlights_engine import classify_stored_highlight
+from engines.highlight_policy_engine import attach_policies, channel_identity, register_policy
 
 
 class ReviewError(ValueError):
@@ -59,6 +60,7 @@ def review_snapshot(db_path, limit=40, *, unlinked=False):
             revisions = _review_revisions(conn, [str(record['id']) for record in records])
             for record in records:
                 raw = dict(record)
+                attach_policies(conn, [raw])
                 raw['review_revision'] = revisions.get(str(raw['id']), 0)
                 item = classify_stored_highlight(raw)
                 result['items'].append({
@@ -69,6 +71,7 @@ def review_snapshot(db_path, limit=40, *, unlinked=False):
                     'review_token': review_fingerprint(raw), 'attribution': raw.get('attribution') or '',
                     'rights_status': raw.get('rights_status') or 'UNKNOWN_RIGHTS',
                     'can_display': bool(item.get('show_block')),
+                    'source_channel_id': channel_identity(raw),
                 })
             if conn.execute("SELECT 1 FROM sqlite_master WHERE name='sportsdb_highlight_runs'").fetchone():
                 # Do not render historical errors: legacy versions could store a provider URL/key.
@@ -172,6 +175,36 @@ def decide_highlight(db_path, highlight_id, values, *, actor):
                 (chosen_rights, chosen_rights, 'ALLOWED' if approval else 'UNKNOWN', attribution,
                  now, int(approval and values.get('official') == '1'), action, embed,
                  'AUTHORIZED' if approval else action, 'READY' if approval else action, now, highlight_id))
+            if approval:
+                # One audited policy covers the exact reviewed URL by default.
+                # Channel reuse requires explicit scope confirmation AND a stable
+                # identifier actually recorded by the metadata provider.
+                future = values.get('policy_future') == '1'
+                source_channel = channel_identity(raw)
+                if future and (not source_channel or values.get('channel_scope_confirmed') != '1'):
+                    raise ReviewError('La reutilización exige id de canal registrado y evidencia que cubra futuros vídeos equivalentes.')
+                scope_kind = 'CHANNEL' if future else 'VIDEO'
+                scope_value = source_channel if future else raw['video_url']
+                try:
+                    from engines.highlight_policy_engine import ensure_schema
+                    ensure_schema(conn)
+                    conn.execute("UPDATE highlight_rights_policies SET revoked_at=? WHERE source=? AND scope_kind=? AND scope_value=? AND revoked_at=''",
+                                 (now, raw.get('source') or 'TheSportsDB', scope_kind, scope_value))
+                    policy_values = {'source': raw.get('source') or 'TheSportsDB',
+                        'scope_kind': scope_kind, 'scope_value': scope_value, 'channels': ['APP'],
+                        'modality': action, 'evidence_url': evidence, 'basis': basis,
+                        'attribution': attribution, 'commercial_use': True, 'rights_status': rights,
+                        'review_at': values.get('policy_review_at') or (datetime.now(ZoneInfo('Europe/Madrid')) + timedelta(days=180)).isoformat(),
+                        'channel_identity_verified': future}
+                    register_policy(conn, policy_values, actor=actor)
+                    if future:
+                        # The item actually reviewed gets its exact video policy;
+                        # the channel rule applies only to later ingestion.
+                        conn.execute("UPDATE highlight_rights_policies SET revoked_at=? WHERE source=? AND scope_kind='VIDEO' AND scope_value=? AND revoked_at=''",
+                                     (now, policy_values['source'], raw['video_url']))
+                        register_policy(conn, {**policy_values, 'scope_kind': 'VIDEO', 'scope_value': raw['video_url']}, actor=actor)
+                except (ValueError, TypeError) as exc:
+                    raise ReviewError(str(exc)) from exc
             conn.commit()
         except Exception:
             conn.rollback()
