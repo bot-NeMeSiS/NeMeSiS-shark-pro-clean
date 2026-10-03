@@ -333,6 +333,8 @@ def build_team_center_context(
             "country": team.get("country") or identity.get("country") or "No disponible",
             "competition": team.get("league") or team.get("competition_name") or (competitions[0].get("display_name") if competitions else "No disponible"),
             "stadium": team.get("stadium") or team.get("venue") or "No disponible",
+            "stadium_location": team.get("stadium_location") or "No disponible",
+            "stadium_capacity": team.get("stadium_capacity") or "No disponible",
             "founded": team.get("founded") or team.get("foundation_year") or "No disponible",
             "coach": team.get("coach") or "No disponible",
             "state": state,
