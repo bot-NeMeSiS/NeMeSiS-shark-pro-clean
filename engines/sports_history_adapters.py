@@ -49,23 +49,23 @@ def sportsdb_team_profile(item):
     """Normalize one provider-confirmed team profile without transport."""
     item = dict(item or {})
     return {
-        "external_id": str(item.get("idTeam") or item.get("id") or "").strip(),
+        "external_id": str(item.get("idTeam") or item.get("external_id") or item.get("id") or "").strip(),
         "name": item.get("strTeam") or item.get("name") or "",
         "short_name": item.get("strTeamShort") or "",
         "alternate_name": item.get("strTeamAlternate") or "",
-        "country": item.get("strCountry") or "",
-        "league_id": str(item.get("idLeague") or "").strip(),
-        "league_name": item.get("strLeague") or "",
-        "formed_year": item.get("intFormedYear") or "",
-        "stadium_name": item.get("strStadium") or "",
-        "stadium_id": str(item.get("idVenue") or item.get("idStadium") or "").strip(),
-        "stadium_location": item.get("strStadiumLocation") or "",
-        "stadium_capacity": item.get("intStadiumCapacity") or "",
-        "logo": item.get("strBadge") or item.get("strTeamBadge") or item.get("strLogo") or "",
-        "jersey": item.get("strEquipment") or "",
-        "website": item.get("strWebsite") or "",
-        "description_es": item.get("strDescriptionES") or "",
-        "description_en": item.get("strDescriptionEN") or "",
+        "country": item.get("strCountry") or item.get("country") or "",
+        "league_id": str(item.get("idLeague") or item.get("league_id") or "").strip(),
+        "league_name": item.get("strLeague") or item.get("league") or item.get("league_name") or "",
+        "formed_year": item.get("intFormedYear") or item.get("formed_year") or item.get("founded") or "",
+        "stadium_name": item.get("strStadium") or item.get("stadium_name") or item.get("stadium") or "",
+        "stadium_id": str(item.get("idVenue") or item.get("idStadium") or item.get("stadium_id") or "").strip(),
+        "stadium_location": item.get("strStadiumLocation") or item.get("stadium_location") or "",
+        "stadium_capacity": item.get("intStadiumCapacity") or item.get("stadium_capacity") or "",
+        "logo": item.get("strBadge") or item.get("strTeamBadge") or item.get("strLogo") or item.get("logo_url") or item.get("logo") or "",
+        "jersey": item.get("strEquipment") or item.get("jersey") or "",
+        "website": item.get("strWebsite") or item.get("website") or "",
+        "description_es": item.get("strDescriptionES") or item.get("description_es") or "",
+        "description_en": item.get("strDescriptionEN") or item.get("description_en") or "",
         "source": "thesportsdb",
     }
 
@@ -129,23 +129,25 @@ def sportsdb_player_profile(item, *, team_external_id="", team_name=""):
     provider_team_id = str(
         item.get("idTeam")
         or item.get("idCurrentTeam")
+        or item.get("team_external_id")
+        or item.get("team_id")
         or team_external_id
         or ""
     ).strip()
     return {
-        "external_id": str(item.get("idPlayer") or item.get("id") or "").strip(),
-        "name": item.get("strPlayer") or item.get("name") or "",
+        "external_id": str(item.get("idPlayer") or item.get("external_id") or item.get("player_id") or item.get("id") or "").strip(),
+        "name": item.get("strPlayer") or item.get("player_name") or item.get("name") or "",
         "team_external_id": provider_team_id,
-        "team_name": item.get("strTeam") or item.get("strCurrentTeam") or team_name or "",
-        "position": item.get("strPosition") or "",
-        "shirt_number": item.get("strNumber") or item.get("intNumber") or "",
-        "nationality": item.get("strNationality") or "",
-        "birth_date": item.get("dateBorn") or "",
+        "team_name": item.get("strTeam") or item.get("strCurrentTeam") or item.get("team_name") or team_name or "",
+        "position": item.get("strPosition") or item.get("position") or "",
+        "shirt_number": item.get("strNumber") or item.get("intNumber") or item.get("shirt_number") or item.get("number") or "",
+        "nationality": item.get("strNationality") or item.get("nationality") or "",
+        "birth_date": item.get("dateBorn") or item.get("birth_date") or "",
         "birth_location": item.get("strBirthLocation") or "",
-        "height": item.get("strHeight") or "",
+        "height": item.get("strHeight") or item.get("height") or "",
         "weight": item.get("strWeight") or "",
-        "preferred_foot": item.get("strSide") or item.get("strFoot") or "",
-        "photo": item.get("strThumb") or item.get("strCutout") or "",
+        "preferred_foot": item.get("strSide") or item.get("strFoot") or item.get("preferred_foot") or "",
+        "photo": item.get("strThumb") or item.get("strCutout") or item.get("photo") or item.get("photo_url") or "",
         "description_es": item.get("strDescriptionES") or "",
         "description_en": item.get("strDescriptionEN") or "",
         "status": item.get("strStatus") or "",
@@ -169,6 +171,7 @@ def ingest_sportsdb_player_profile(conn, item, *, team_external_id="", team_name
         {
             "name": profile["name"],
             "team_name": profile["team_name"],
+            "team_external_id": profile["team_external_id"],
             "position": profile["position"],
             "shirt_number": profile["shirt_number"],
             "nationality": profile["nationality"],
