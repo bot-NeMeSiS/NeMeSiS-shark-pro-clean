@@ -1453,6 +1453,13 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         deep_limit=1,
     )
     odds = _safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
+    highlights = _safe_sports_sync_call(
+        "highlights",
+        v766_sync_highlights_daily,
+        force=force,
+        days_back=5,
+        limit=250,
+    )
     grading = _safe_sports_sync_call(
         "pick_grading",
         run_pick_grading,
@@ -1472,9 +1479,16 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         for result in (fixtures, fallback, live, deep, odds)
     )
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
+    highlight_errors = [
+        masked_admin_text(error, 160)
+        for error in (highlights.get("errors") or [])
+    ][:8]
+    if highlights.get("error"):
+        highlight_errors.insert(0, masked_admin_text(highlights.get("error"), 160))
+    highlight_errors = list(dict.fromkeys(highlight_errors))[:8]
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, fallback, live, deep, odds)
+        for result in (fixtures, fallback, live, deep, odds, highlights)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1493,6 +1507,10 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "live": live,
         "deep_enrichment": deep,
         "odds": odds,
+        "highlights": highlights,
+        "highlights_synced": as_int(highlights.get("highlights_found"), 0),
+        "highlight_external_calls": as_int(highlights.get("external_calls"), 0),
+        "media_errors": highlight_errors,
         "grading": grading,
         "picks_checked": as_int(grading.get("picks_checked"), 0),
         "picks_graded": picks_graded,
@@ -1516,6 +1534,10 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         "deep_status": result["deep_status"],
         "deep_fixture_ids": result["deep_fixture_ids"],
         "deep_external_calls": result["deep_external_calls"],
+        "highlights_synced": result["highlights_synced"],
+        "highlight_external_calls": result["highlight_external_calls"],
+        "highlight_status": str(highlights.get("status") or highlights.get("reason") or "UNKNOWN")[:80],
+        "highlight_errors_count": len(highlight_errors),
         "picks_checked": result["picks_checked"],
         "picks_graded": result["picks_graded"],
         "external_calls": external_calls,
@@ -1918,6 +1940,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
     fallback_stage = sports_result.get("fallback") if isinstance(sports_result.get("fallback"), dict) else {}
     live_stage = sports_result.get("live") if isinstance(sports_result.get("live"), dict) else {}
     odds_stage = sports_result.get("odds") if isinstance(sports_result.get("odds"), dict) else {}
+    highlights_stage = sports_result.get("highlights") if isinstance(sports_result.get("highlights"), dict) else {}
 
     primary_ok = fixtures_stage.get("ok") is True
     primary_has_data = as_int(fixtures_stage.get("fixtures_count"), 0) > 0
@@ -2001,6 +2024,20 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             ),
             "external_calls": as_int(odds_stage.get("external_calls"), 0),
             "error_present": bool(odds_stage.get("error") or odds_stage.get("errors")),
+        },
+        "highlights_refresh": {
+            "state": _sports_diagnostic_text(highlights_stage.get("status") or highlights_stage.get("reason"), 80) or "UNKNOWN",
+            "ok": highlights_stage.get("ok") if isinstance(highlights_stage.get("ok"), bool) else None,
+            "skipped": bool(highlights_stage.get("skipped")),
+            "highlights_found": as_int(highlights_stage.get("highlights_found"), 0),
+            "linked_matches": as_int(highlights_stage.get("linked_matches"), 0),
+            "external_calls": as_int(highlights_stage.get("external_calls"), 0),
+            "persistent_cache_hits": as_int(highlights_stage.get("persistent_cache_hits"), 0),
+            "profile_links_reused": as_int(highlights_stage.get("profile_links_reused"), 0),
+            "v2_event_lookups": as_int(highlights_stage.get("v2_event_lookups"), 0),
+            "v2_cache_hits": as_int(highlights_stage.get("v2_cache_hits"), 0),
+            "v2_highlights_found": as_int(highlights_stage.get("v2_highlights_found"), 0),
+            "error_present": bool(highlights_stage.get("error") or highlights_stage.get("errors")),
         },
     }
 
@@ -2448,6 +2485,20 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "processed": as_int((raw_current_sync.get("odds_refresh") or {}).get("processed"), 0),
                     "external_calls": as_int((raw_current_sync.get("odds_refresh") or {}).get("external_calls"), 0),
                     "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
+                },
+                "highlights_refresh": {
+                    "state": _sports_diagnostic_text((raw_current_sync.get("highlights_refresh") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("highlights_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("highlights_refresh") or {}).get("ok"), bool) else None,
+                    "skipped": bool((raw_current_sync.get("highlights_refresh") or {}).get("skipped")),
+                    "highlights_found": as_int((raw_current_sync.get("highlights_refresh") or {}).get("highlights_found"), 0),
+                    "linked_matches": as_int((raw_current_sync.get("highlights_refresh") or {}).get("linked_matches"), 0),
+                    "external_calls": as_int((raw_current_sync.get("highlights_refresh") or {}).get("external_calls"), 0),
+                    "persistent_cache_hits": as_int((raw_current_sync.get("highlights_refresh") or {}).get("persistent_cache_hits"), 0),
+                    "profile_links_reused": as_int((raw_current_sync.get("highlights_refresh") or {}).get("profile_links_reused"), 0),
+                    "v2_event_lookups": as_int((raw_current_sync.get("highlights_refresh") or {}).get("v2_event_lookups"), 0),
+                    "v2_cache_hits": as_int((raw_current_sync.get("highlights_refresh") or {}).get("v2_cache_hits"), 0),
+                    "v2_highlights_found": as_int((raw_current_sync.get("highlights_refresh") or {}).get("v2_highlights_found"), 0),
+                    "error_present": bool((raw_current_sync.get("highlights_refresh") or {}).get("error_present")),
                 },
             },
             "data_freshness": {
