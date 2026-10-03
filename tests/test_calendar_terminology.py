@@ -19,10 +19,10 @@ def test_home_keeps_calendar_as_a_contextual_view_inside_results():
     assert "/calendar" in home
     assert "Partidos de hoy" in home or "partidos" in home.lower()
 
-def test_dynamic_guard_only_maps_standalone_partidos_label():
+def test_dynamic_guard_preserves_client_partidos_label():
     js=(ROOT/"static/ui-localization.js").read_text(encoding="utf-8")
-    assert "const section = /^(\\s*)partidos(\\s*)$/i.exec(raw);" in js
-    assert "'CALENDARIO'" in js
+    assert "partidos(\\s*)$/i.exec(raw)" not in js
+    assert "'CALENDARIO'" not in js
     assert "preferredTerms" in js
 
 def test_match_specific_language_is_not_globally_replaced():

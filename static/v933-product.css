@@ -6311,3 +6311,9 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
     padding: 5px 7px !important;
   }
 }
+
+/* Sports subviews share the established product tokens and stay inside Partidos. */
+.client-sports-subviews { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--v933-border); }
+.client-sports-subviews a { display:inline-flex; align-items:center; min-height:44px; padding:8px 12px; border-radius:10px; color:var(--v933-text-soft); text-decoration:none; }
+.client-sports-subviews a:hover { color:var(--v933-cyan); }
+.client-sports-subviews a:focus-visible { outline:2px solid var(--v933-cyan); outline-offset:3px; }

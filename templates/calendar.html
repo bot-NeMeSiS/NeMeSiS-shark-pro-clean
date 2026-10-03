@@ -27,14 +27,16 @@
      data-v940-calendar-experience="history-layers-v1"
      data-v940-calendar-contract="{{ calendar.get('contract') or '' }}"
      {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Resultados', 'Resultados confirmados, calendario y próximos partidos en un único centro.', 'history') }}
+  {{ page_header('Partidos', 'Agenda, directo y resultados. Abre un partido para ver su análisis y el resumen disponible.', 'calendar') }}
   <nav class="v933-panel v933-filter-panel v940-results-calendar-tabs" data-results-calendar-tabs aria-label="{{ ui('Resultados y calendario') }}">
     {{ filter_tabs([
+      {'key':'live','label':'Directo','href':'/directo'},
       {'key':'finished','label':'Resultados','href':'/calendario?lane=finished'},
       {'key':'today','label':'Calendario','href':'/calendario?lane=today'},
       {'key':'week','label':'Próximos','href':'/calendario?lane=week'},
       {'key':'with_pick','label':'Con pronóstico','href':'/calendario?lane=with_pick'}
     ], results_center_lane) }}
+    <div class="client-sports-subviews" aria-label="Explorar datos deportivos"><a href="/competiciones">{{ ui('Competiciones') }}</a><a href="/mercados">{{ ui('Mercados') }}</a></div>
   </nav>
 
 
