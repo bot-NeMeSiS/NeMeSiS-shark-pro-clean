@@ -460,9 +460,32 @@ def history_summary(db_path):
             ids = [dict(kind=r[0], source=r[1], external_id=r[2], canonical_id=r[3]) for r in conn.execute("SELECT kind,source,external_id,canonical_id FROM sports_history_ids LIMIT 100")]
             last = conn.execute("SELECT MAX(updated_at) FROM sports_history_matches").fetchone()[0]
             consumption = [dict(source=r[0], day=r[1], calls=r[2]) for r in conn.execute("SELECT source,substr(attempted_at,1,10),COUNT(*) FROM sports_history_call_ledger GROUP BY source,substr(attempted_at,1,10) ORDER BY attempted_at DESC LIMIT 30")]
-            return dict(available=True, sources=sources, scopes=scopes, jobs=jobs, ids=ids, consumption=consumption, last_sync=last, external_calls=0)
+            entity_counts = [dict(kind=r[0], count=r[1]) for r in conn.execute("SELECT kind,COUNT(*) FROM sports_history_entities GROUP BY kind ORDER BY kind")]
+            relation_counts = [dict(relation=r[0], count=r[1]) for r in conn.execute("SELECT relation,COUNT(*) FROM sports_history_entity_links GROUP BY relation ORDER BY relation")]
+            entity_sync = {}
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='automation_state'").fetchone():
+                state = conn.execute("SELECT value_json,updated_at FROM automation_state WHERE key='sportsdb_entity_memory_sync'").fetchone()
+                if state:
+                    try:
+                        entity_sync = json.loads(state[0] or "{}")
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        entity_sync = {"state": "invalid"}
+                    entity_sync["updated_at"] = state[1]
+            return dict(
+                available=True,
+                sources=sources,
+                scopes=scopes,
+                jobs=jobs,
+                ids=ids,
+                consumption=consumption,
+                entity_counts=entity_counts,
+                relation_counts=relation_counts,
+                entity_sync=entity_sync,
+                last_sync=last,
+                external_calls=0,
+            )
     except sqlite3.OperationalError:
-        return dict(available=False, sources=[], scopes=[], jobs=[], ids=[], last_sync=None, external_calls=0)
+        return dict(available=False, sources=[], scopes=[], jobs=[], ids=[], consumption=[], entity_counts=[], relation_counts=[], entity_sync={}, last_sync=None, external_calls=0)
 
 
 def match_history(db_path, internal_id):
