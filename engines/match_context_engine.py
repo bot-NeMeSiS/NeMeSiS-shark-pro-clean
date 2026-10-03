@@ -940,6 +940,7 @@ def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]
         group = groups.setdefault(team_key, {
             "team_id": team_id,
             "team_name": team_name,
+            "href": _entity_href("team", team_id, team_name),
             "formation": _text(raw.get("formation")) or None,
             "coach": None,
             "starters": [],
