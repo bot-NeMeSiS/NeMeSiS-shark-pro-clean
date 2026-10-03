@@ -193,3 +193,18 @@ html body.ns-app[data-ui-density] :is(.v933-table-wrap,.v928-table-wrap,.master-
     min-height: 32px !important;
   }
 }
+
+
+/* Final desktop bound: contextual entity links from Sports Core add semantic
+   anchors but must not restore the old oversized card rhythm. No evidence is hidden. */
+@media (min-width:1101px) {
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-card {
+    padding-block: 6px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-match-teams {
+    min-height: 40px !important;
+  }
+  html body.ns-app[data-ui-density] .ns-collection .v933-team-logo {
+    --sports-crest-size: 32px;
+  }
+}
