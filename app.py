@@ -19004,8 +19004,10 @@ def v766_highlight_map_snapshot(match_ids, limit_per_match=2):
 def enrich_canonical_highlight_surfaces(sender, template, context, **extra):
     if not has_request_context() or request.path.startswith(('/admin','/api/admin')):
         return
-    from engines.highlight_surfaces import enrich_context
+    from engines.highlight_surfaces import copy_view, enrich_context
     settings = admin_operational_settings()
+    # Availability is presentation metadata; never mutate shared sports evidence.
+    context.update(copy_view(context))
     enrich_context(DB_PATH, context, enabled=settings.get('settings_readable') is True and settings['highlights_enabled'])
 
 def v769_get_highlight_snapshot(highlight_id):

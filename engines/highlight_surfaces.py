@@ -2,6 +2,27 @@
 from engines.highlight_read_model import read_highlights_map
 
 
+def copy_view(value, depth=0, memo=None):
+    """Copy presentation containers without copying Flask objects or source rows."""
+    memo = {} if memo is None else memo
+    if depth > 10 or not isinstance(value, (dict, list, tuple)):
+        return value
+    if id(value) in memo:
+        return memo[id(value)]
+    if isinstance(value, dict):
+        result = {}
+        memo[id(value)] = result
+        result.update((key, copy_view(item, depth + 1, memo)) for key, item in value.items())
+    else:
+        result = []
+        memo[id(value)] = result
+        result.extend(copy_view(item, depth + 1, memo) for item in value)
+        if isinstance(value, tuple):
+            result = tuple(result)
+            memo[id(value)] = result
+    return result
+
+
 def enrich_context(db_path, context, enabled=True):
     rows, visited = [], set()
     def walk(value, depth=0):
