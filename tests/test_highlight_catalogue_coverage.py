@@ -630,3 +630,37 @@ def test_identity_cache_with_different_event_id_never_checks_wrong_match(coverag
     with pytest.raises(SportsDBStopped,match='IDENTITY_MISMATCH'):
         lookup_pipeline(coverage)
     assert coverage.snapshot()['checked']==0
+
+
+def test_bulk_season_prefilter_skips_impossible_events_without_individual_queries(coverage,monkeypatch):
+    from engines.highlight_season_evidence import new_exact_videos
+    monkeypatch.setattr(media,'_find_match',lambda *args:pytest.fail('foreign event must not scan matches'))
+    assert new_exact_videos(coverage,[{**EVENT,'idEvent':'999','strHomeTeam':'Foreign'}])==[]
+
+
+def test_bulk_season_prefilter_preserves_exact_cross_provider_madrid_date(coverage):
+    from engines.highlight_season_evidence import new_exact_videos
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute("UPDATE matches SET source='API-Football',external_id='api-football-1',league_id='999',match_date='2025-01-02',kickoff_time='00:30'")
+    event={**EVENT,'strTimestamp':'2025-01-01T23:30:00Z'}
+    assert new_exact_videos(coverage,[event])==[event]
+
+
+def test_bulk_season_identity_duplicates_remain_ambiguous_even_with_video(coverage):
+    from engines.highlight_season_evidence import new_exact_videos
+    with sqlite3.connect(coverage.path) as conn:
+        duplicate={**MATCH,'id':'zzz-duplicate','home_team':'Different'}
+        conn.execute('INSERT INTO matches VALUES('+','.join('?' for _ in duplicate)+')',tuple(duplicate.values()))
+    Coverage(coverage.path,NOW,priority=lambda match:1 if match['id']=='old' else 0).prepare()
+    assert new_exact_videos(coverage,[EVENT])==[]
+    scope=SportsDBBudget()
+    with scope:
+        result=run_one(coverage,scope,lambda sid:pytest.fail('a known ambiguous video is not NO_VIDEO'),
+            lambda rows:pytest.fail('no forced association'),lambda ep,p:pytest.fail('batch metadata verifies identity'),
+            batch_lookup=lambda match:[EVENT])
+    assert result['state']=='AMBIGUOUS' and coverage.snapshot()['checked']==0
+
+
+def test_bulk_season_id_mapping_still_requires_competition_evidence(coverage):
+    from engines.highlight_season_evidence import new_exact_videos
+    assert new_exact_videos(coverage,[{**EVENT,'idLeague':'999'}])==[]

@@ -4,7 +4,7 @@ Official endpoint: https://thesportsdb.readme.io/reference/geteventsbyseason
 The provider's Premium response limit is 3000. Missing rows are not coverage.
 """
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import re
 from zoneinfo import ZoneInfo
@@ -106,18 +106,58 @@ def acquire(coverage, match, scope, fetch, *, allow_fetch, force=False):
 
 def new_exact_videos(coverage, items):
     """Skip proven stored videos so large positive feeds advance across ticks."""
-    from engines.sportsdb_highlights_engine import _find_match, _video_url
+    from engines.sportsdb_highlights_engine import _find_match, _video_url, _norm, _home_away, _cols
     from engines.highlight_url_engine import public_https_url
     result=[]
     with closing(coverage.connect()) as conn:
+        conn.execute('BEGIN')
+        columns=_cols(conn,'matches')
+        if not {'id','home_team','away_team','match_date'}<=columns:
+            return []
+        fields=('id','external_id','source','provider','home_team','away_team','match_date','league_id',
+                'competition_name','league_name','league')
+        projection=','.join(name if name in columns else "'' AS "+name for name in fields)
+        canonical=conn.execute('SELECT '+projection+' FROM matches').fetchall()
+        dated={(str(row['match_date'] or '')[:10],_norm(row['home_team']),_norm(row['away_team'])) for row in canonical}
+        mapped={}
+        for row in canonical:
+            external=str(row['external_id'] or '')
+            if external.startswith('sportsdb-') or 'sportsdb' in str(row['source'] or row['provider'] or '').lower():
+                mapped.setdefault(external.removeprefix('sportsdb-'),[]).append(dict(row))
         stored={(str(row['sportsdb_event_id']),row['video_url'],row['match_id']) for row in conn.execute(
             'SELECT sportsdb_event_id,video_url,match_id FROM sportsdb_match_highlights')}
         for item in items:
             url=public_https_url(_video_url(item))
             if not url:
                 continue
-            mid=_find_match(conn,item)
-            row=conn.execute('SELECT * FROM matches WHERE id=?',(mid,)).fetchone() if mid else None
+            # A cheap prefilter only excludes impossible candidates. Every
+            # remaining item still passes the existing exact association engine.
+            qualified=mapped.get(str(item.get('idEvent')))
+            if qualified:
+                # Same uniqueness and exact name checks as _find_match, with
+                # stronger date/competition validation; avoids a table scan
+                # for every already mapped provider event in a large season.
+                if len(qualified)!=1:
+                    continue
+                row=qualified[0]
+                home,away=_home_away(item)
+                if (_norm(home),_norm(away))!=(_norm(row['home_team']),_norm(row['away_team'])) or not match_event(row,item):
+                    continue
+                mid=row['id']
+            else:
+                day=str(item.get('dateEvent') or '')[:10]
+                if item.get('strTimestamp'):
+                    try:
+                        clock=datetime.fromisoformat(str(item['strTimestamp']).replace('Z','+00:00'))
+                        clock=clock if clock.tzinfo else clock.replace(tzinfo=timezone.utc)
+                        day=clock.astimezone(ZoneInfo('Europe/Madrid')).date().isoformat()
+                    except (ValueError,TypeError):
+                        continue
+                home,away=_home_away(item)
+                if (day,_norm(home),_norm(away)) not in dated:
+                    continue
+                mid=_find_match(conn,item)
+                row=conn.execute('SELECT * FROM matches WHERE id=?',(mid,)).fetchone() if mid else None
             if row and match_event(dict(row),item) and (str(item['idEvent']),url,mid) not in stored:
                 result.append(item)
     return result

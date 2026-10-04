@@ -445,6 +445,8 @@ def run_one(coverage, scope, lookup, save, v1, batch_lookup=None):
                 save([event])
                 coverage.finish(job,'LINKED','PROFILE_VIDEO_REUSED',checked=True,sid=sid)
                 return {'processed':1,'state':'LINKED','evidence':'PERSISTED_EVENT_PROFILE'}
+            coverage.finish(job,'AMBIGUOUS','AMBIGUOUS_MATCH',sid=sid)
+            return {'processed':1,'state':'AMBIGUOUS'}
         items = lookup(sid)
         valid = [dict(item) for item in items if public_https_url(_video_url(item))]
         for item in valid:
