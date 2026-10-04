@@ -685,6 +685,29 @@ def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
         return request_error_result(prefix, started, type(exc).__name__)
 
 
+def readiness_guarded_tick(call, prefix: str, base_url: str, secret: str) -> dict:
+    """Probe the public gateway before a new side-effecting lane.
+
+    A slow preceding lane can leave Render's public gateway transiently unavailable
+    even while the instance health probe is green. Wait on a read-only readiness GET
+    before starting the next POST. Never replay a POST after an uncertain response.
+    """
+    started = time.perf_counter()
+    readiness = wait_for_web_ready(base_url)
+    if readiness.get("readiness_status") != "PASS":
+        result = request_error_result(
+            prefix,
+            started,
+            safe_label(readiness.get("readiness_result"), secret, "WEB_NOT_READY"),
+            readiness.get("readiness_http"),
+        )
+        result["preflight_readiness"] = readiness
+        return result
+    result = isolated_tick(call, prefix, base_url, secret)
+    result["preflight_readiness"] = readiness
+    return result
+
+
 def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
     reason = safe_label(readiness.get("readiness_result"), "", "WEB_NOT_READY")
     return {
@@ -796,10 +819,10 @@ def main() -> int:
         return 2
 
     telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
-    highlights = isolated_tick(highlights_tick, "highlights", base_url, automation_secret)
+    highlights = readiness_guarded_tick(highlights_tick, "highlights", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
-    postmatch = isolated_tick(postmatch_tick, "postmatch", base_url, automation_secret)
+    postmatch = readiness_guarded_tick(postmatch_tick, "postmatch", base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
     # Controlled deferrals remain visible without failing an otherwise healthy run.
     statuses = [overall, telegram.get('telegram_status'), continuous.get('continuous_status'),
