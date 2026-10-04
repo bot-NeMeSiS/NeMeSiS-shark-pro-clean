@@ -223,7 +223,8 @@ def api_sports_safe_request(
         url += "?" + query
     req = urllib.request.Request(url, headers={"x-apisports-key": _provider_key(), "User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=int(guard["timeout_seconds"])) as resp:
+        from engines.cron_request_budget import request_timeout
+        with urllib.request.urlopen(req, timeout=request_timeout(int(guard["timeout_seconds"]))) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         result = {
             "ok": not bool(payload.get("errors")),

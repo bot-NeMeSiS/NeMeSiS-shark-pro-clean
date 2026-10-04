@@ -12,7 +12,7 @@ services:
     disk:
       name: disk
       mountPath: /data
-      sizeGB: 1
+      sizeGB: 2
     envVars:
       - key: DB_PATH
         value: /data/database.db

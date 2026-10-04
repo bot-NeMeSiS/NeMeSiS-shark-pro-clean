@@ -20,6 +20,9 @@ class SportsDBStopped(RuntimeError):
 
 
 def closed_error(exc):
+    from engines.cron_request_budget import CronTimeBudget
+    if isinstance(exc, CronTimeBudget):
+        return "TIME_BUDGET"
     if isinstance(exc, SportsDBStopped):
         return str(exc) if str(exc) in {'TIME_BUDGET', 'REQUEST_BUDGET', 'MEDIA_BUDGET', 'MALFORMED', 'PROVIDER_ERROR', 'RATE_LIMIT', 'ACCESS_DENIED', 'NETWORK'} else 'PROVIDER_ERROR'
     code = getattr(exc, 'code', None)

@@ -105,7 +105,8 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        from engines.cron_request_budget import request_timeout
+        with urllib.request.urlopen(req, timeout=request_timeout(timeout)) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         errors = payload.get("errors") or []
         if not isinstance(payload.get("response"), list):

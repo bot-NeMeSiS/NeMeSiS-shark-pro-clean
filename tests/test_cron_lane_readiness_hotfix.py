@@ -108,6 +108,6 @@ def test_master_uses_readiness_guard_for_observed_gateway_sensitive_lanes():
         / "render_cron_master_tick.py"
     ).read_text(encoding="utf-8")
 
-    assert 'telegram = isolated_tick(telegram_tick, "telegram"' in source
+    assert 'telegram = readiness_guarded_tick(telegram_tick, "telegram"' in source
     assert 'highlights = readiness_guarded_tick(highlights_tick, "highlights"' in source
     assert 'postmatch = readiness_guarded_tick(postmatch_tick, "postmatch"' in source

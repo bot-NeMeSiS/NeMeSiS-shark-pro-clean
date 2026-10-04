@@ -5,19 +5,22 @@ El único propietario periódico es el recurso Render `telegram-auto-tick`, con
 cadencia, secretos ni almacenamiento. GitHub Actions ejecuta controles de QA,
 no la operación periódica de la aplicación.
 
-El registro `engines/automation_domains.py` concentra cinco dominios de
+El registro `engines/automation_domains.py` concentra seis dominios de
 producción sin importar módulos ni iniciar hilos. Los módulos y endpoints
-existentes siguen siendo adaptadores compatibles. Sports y delivery comparten
-el tick existente: dividirlos físicamente duplicaría llamadas y entrega.
+existentes siguen siendo adaptadores compatibles. Sports, Odds y Delivery usan
+requests independientes dentro del mismo Master Cron. Telegram no sincroniza
+Sports, y Sports excluye Odds. Cada POST de esos carriles requiere readiness GET;
+un POST con respuesta incierta nunca se repite.
 El runner real consume sus endpoints desde este registro; Admin y Cron usan
 la misma definición de propiedad. Sus constantes públicas se conservan como aliases.
 
 | Dominio | Entrada del Cron | Estado / recuperación |
 | --- | --- | --- |
-| sports | `/api/automation/telegram/tick` | `/admin/data-center` |
+| sports | `/api/automation/sports/sync` | `/admin/data-center` |
+| odds | `/api/automation/odds/sync` | `/admin/data-center` |
 | media | `/api/automation/highlights/sync` | `/admin/highlights-review` |
 | postmatch | `/api/automation/postmatch/tick` | `/admin/highlights-review#postmatch-workers` |
-| delivery | tick Telegram compartido | `/admin/telegram/command-center` |
+| delivery | `/api/automation/telegram/tick` | `/admin/telegram/command-center` |
 | maintenance | tick continuous-evolution y backup diario | `/admin/backups` |
 
 Highlights y postmatch ya se ejecutaban en el Cron real, aunque el resumen
@@ -26,6 +29,14 @@ esa propiedad; no se fuerza una activación si faltan permisos de fuentes.
 Postmatch conserva configuración, cola durable, leases, caché, circuitos y
 aplazamiento hasta el siguiente día Madrid sin consumir intentos por presupuesto.
 Su presupuesto de partida permanece en 60/día.
+
+Sports y Odds reservan 16 segundos para proveedores, con timeout de transporte
+de hasta 4 segundos y limitado al tiempo restante. El cliente del Master espera
+hasta 24 segundos para permitir persistencia y respuesta bajo el timeout de
+Gunicorn de 30 segundos. El presupuesto es cooperativo; las operaciones locales
+siguen requiriendo observación. PARTIAL y aplazamientos controlados terminan con
+exit 0; errores técnicos terminan con exit 2. El disco existente conserva nombre
+y mountPath; render.yaml refleja los 2 GB ya provisionados.
 
 QA visual, responsive, navegación, seguridad, data truth, Browser QA y deploy
 guard siguen separados del flujo normal. `automation_workforce/` es tooling

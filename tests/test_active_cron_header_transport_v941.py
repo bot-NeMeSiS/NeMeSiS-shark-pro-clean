@@ -79,7 +79,7 @@ def test_active_cron_queue_empty_is_a_healthy_no_work_result(client, app_module,
     monkeypatch.setenv("AUTOMATION_SECRET", "qa-active-cron-secret")
     monkeypatch.setattr(
         app_module,
-        "telegram_cron_with_sports_sync",
+        "telegram_scheduler_tick",
         lambda force=False: {
             "ok": True,
             "status": "QUEUE_EMPTY",

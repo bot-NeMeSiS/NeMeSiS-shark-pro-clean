@@ -72,7 +72,7 @@ def test_diagnostics_failure_does_not_erase_delivery(app_module, monkeypatch):
     monkeypatch.setattr(app_module, "founder_alert_tick", lambda *a: {})
     result = app_module.telegram_cron_with_sports_sync()
     assert result["ok"] is True
-    assert result["sports_pipeline"]["status"] == "CONTROLLED_ERROR"
+    assert "sports_pipeline" not in result
 
 
 def test_execution_error_cannot_be_labeled_queue_empty(app_module):
