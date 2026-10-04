@@ -8751,7 +8751,9 @@ def annotate_match(match, favs=None, include_timeline=True):
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match) if include_timeline else []
     match["live_depth"] = live_depth(match)
-    if match["status_info"].get("is_result_pending"):
+    if match["status_info"].get("key") == "STALE":
+        match["live_depth"].update(state="STALE", label="Datos retrasados", badge="stale", minute="")
+    elif match["status_info"].get("is_result_pending"):
         match["live_depth"]["state"] = "RESULT_PENDING"
         match["live_depth"]["label"] = "Resultado pendiente"
         match["live_depth"]["badge"] = "result_pending"
@@ -11250,13 +11252,15 @@ def client_match_display_context(match, now_madrid=None):
         status_label = "Abandonado"
     elif status_key == "INCOMPLETE":
         status_label = "Estado pendiente"
+    elif status_key == "STALE":
+        status_label = "Datos retrasados"
     else:
         status_label = "Próximo"
     temporal_label = status_label if (
         status_info.get("is_live")
         or status_info.get("is_finished")
         or status_info.get("is_result_pending")
-        or status_key in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
+        or status_key in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE", "STALE"}
     ) else schedule_label
     item.update({
         "client_timezone_label": "Hora oficial de España",
@@ -11281,6 +11285,9 @@ def client_match_display_context(match, now_madrid=None):
         "client_detail_datetime_label": detail_label or "Fecha pendiente",
         "client_status_label": status_label,
         "client_short_status_label": status_label,
+        "display_status_label": status_label,
+        "display_datetime": schedule_label,
+        "madrid_display": temporal_label,
         "client_temporal_label": temporal_label,
         "client_has_confirmed_kickoff": bool(instant and time_label),
         "client_temporal_contract": "MATCH-TEMPORAL-CONTEXT-V1",
@@ -18655,7 +18662,12 @@ def v931_live_context(summary, lane="live", query=""):
     if lane == "all":
         selected = today_matches
     elif lane in {"finished", "finalizados"}:
-        selected = [item for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")]
+        # Confirmed late-night finals retain their original kickoff date.
+        # Use the bounded persisted results window rather than dropping them at midnight.
+        result_candidates = list(summary.get("finished_matches") or []) + today_matches
+        selected = dedupe_matches_list([
+            item for item in result_candidates if canonical_match_status(item).get("is_finished")
+        ])
     elif lane in {"break", "halftime", "descanso"}:
         selected = [item for item in today_matches if canonical_match_status(item).get("key") == "HT"]
     elif lane in {"with_pick", "picks"}:

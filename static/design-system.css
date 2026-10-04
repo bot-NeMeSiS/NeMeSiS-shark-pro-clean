@@ -22994,6 +22994,11 @@ body.ns-app .v933-calendar-day .v933-match-card { content-visibility: auto; cont
 
 .v933-calendar-day .v933-match-card-footer { grid-template-columns: minmax(0,1fr) auto; }
 
+.ns-match-odds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.ns-match-odds > div { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--ns-radius); }
+.ns-match-odds dt { overflow-wrap: anywhere; font-size: 13px; }
+.ns-match-odds dd { margin: 8px 0 0; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
 .v933-match-card-signals > .v933-status-chip { display: none; }
 
 .v933-match-center { display: grid; justify-items: center; gap: 2px; min-width: 0; text-align: center; }

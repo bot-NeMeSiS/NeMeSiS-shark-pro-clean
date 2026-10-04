@@ -265,6 +265,19 @@
   {{ transparency_meta(context, 'lineups') }}
 </section>{%- endmacro %}
 
+{% macro odds_panel(context) -%}
+{% set odds = context.get('odds') or {} %}
+<section class="v944-match-panel" id="match-section-odds" data-match-region="persisted-odds">
+  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui('Mercado 1X2') }}</span><h2>{{ ui('Cuotas del partido') }}</h2></div></header>
+  {% if odds.get('available') %}
+  <p>{{ odds.get('bookmaker') }}</p>
+  <dl class="ns-match-odds">{% for item in odds.get('items') %}<div><dt>{{ item.get('label') }}</dt><dd>{{ '%.2f'|format(item.get('price')) }}</dd></div>{% endfor %}</dl>
+  <p role="status">{{ ui(odds.get('message')) }}</p>
+  <small>{{ ui('Actualización:') }} <time datetime="{{ odds.get('observed_at') }}">{{ odds.get('observed_label') }}</time></small>
+  {% else %}<p role="status">{{ ui('Todavía no hay cuotas confirmadas para este partido.') }}</p>{% endif %}
+</section>
+{%- endmacro %}
+
 {% macro video_panel(context, recovery={}) -%}
 {% set media = context.get('media') or {} %}
 <section class="v944-match-panel v944-video-panel" id="match-section-video" data-match-region="{{ 'authorized-video' if media.get('visible_count') else 'video-availability' }}" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">

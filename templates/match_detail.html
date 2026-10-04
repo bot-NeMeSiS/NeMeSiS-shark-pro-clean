@@ -2,6 +2,7 @@
 {% from "components/v933_ui.html" import empty_state, page_header %}
 {% from "components/v944_match_center.html" import match_header, score_widget, match_story, lineups_panel, timeline, stats_panel, head_to_head_panel, standings_panel, video_panel, shark_panel, pick_panel, telegram_panel, bankroll_panel, competition_panel, quick_actions, data_quality_panel %}
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
+{% from "components/v944_match_center.html" import odds_panel %}
 {% block content %}
 {% from 'components/sports_history.html' import history_panel %}
 <script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
@@ -44,6 +45,7 @@
   {% set picks = match_context.get('picks') or {} %}
   <nav class="v944-match-sections" aria-label="{{ ui("Secciones disponibles del partido") }}">
     <a href="#match-section-story" data-match-section-link="story">{{ ui("Resumen") }}</a>
+    {% if (match_context.get('odds') or {}).get('available') %}<a href="#match-section-odds" data-match-section-link="odds">{{ ui("Cuotas") }}</a>{% endif %}
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">{{ ui("Alineaciones") }}</a>{% endif %}
     {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">{{ ui("Eventos") }}</a>{% endif %}
     {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">{{ ui("Estadísticas") }}</a>{% endif %}
@@ -71,6 +73,7 @@
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
       {% if head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
       {% if standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
+      {{ odds_panel(match_context) }}
       {{ video_panel(match_context, detail.get('postmatch_recovery') or {}) }}
       {% set recovery = detail.get('postmatch_recovery') or {} %}
       {% if recovery.get('items') %}

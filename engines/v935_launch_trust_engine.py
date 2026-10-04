@@ -375,6 +375,17 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
     if not raw_lifecycle and "LIVE" in live_kinds:
         raw_lifecycle = "LIVE"
 
+    kickoff = match_kickoff_madrid(source)
+    future_live_conflict = bool(
+        live_kinds and not terminal_kinds and kickoff is not None
+        and kickoff > madrid_now(now) + timedelta(seconds=LIVE_FUTURE_SKEW_SECONDS)
+    )
+    if future_live_conflict:
+        # A fresh provider receipt cannot make a future fixture live.
+        # Retain the conflicting signal for diagnostics; never change its clock.
+        raw_lifecycle = "UPCOMING"
+        conflict = True
+
     if not raw_lifecycle:
         kickoff = match_kickoff_madrid(source)
         if kickoff is None:
@@ -399,7 +410,7 @@ def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dic
         "live_timestamp_source": freshness["timestamp_source"],
         "live_timestamp_in_future": freshness["future_timestamp"],
         "status_conflict": conflict,
-        "conflict_type": "LIVE_TERMINAL" if conflict else "",
+        "conflict_type": "LIVE_FUTURE_KICKOFF" if future_live_conflict else "LIVE_TERMINAL" if conflict else "",
         "signal_kinds": sorted({kind for kind in kinds if kind != "UNKNOWN"}),
         "signal_count": len(signals),
         "live_inferred_from_time": False,
