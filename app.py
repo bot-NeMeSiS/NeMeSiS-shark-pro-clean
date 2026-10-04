@@ -2572,6 +2572,16 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         compact["controlled_deferrals"] = result.get("controlled_deferrals") or []
         compact["external_calls"] = as_int(result.get("external_calls"), 0)
         compact["technical_errors"] = result.get("technical_errors") or []
+    if endpoint == "odds_sync":
+        from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
+        quota = result.get("quota") or {}
+        compact["provider_error_code"] = quota.get("error_code") if quota.get("error_code") in KNOWN_ODDS_ERROR_CODES else ""
+        compact["provider_observation_current"] = as_int(result.get("external_calls"), 0) > 0
+        compact["provider_http"] = as_int(quota.get("http_status"), 0)
+        compact["provider_error_type"] = quota.get("error_type") if quota.get("error_type") in {
+            "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
+        } else "UNKNOWN" if quota.get("error_type") else ""
+        compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
     if result.get("errors"):
@@ -4499,6 +4509,16 @@ def odds_api_request(path, params=None):
             "error": "",
         }
     except Exception as exc:
+        from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
+        error_code = ""
+        if isinstance(exc, urllib.error.HTTPError):
+            try:
+                # Existing response only: no retry, bounded read, no message/URL retention.
+                code = json.loads(exc.read(2048).decode("utf-8")).get("error_code")
+                if code in KNOWN_ODDS_ERROR_CODES:
+                    error_code = code
+            except Exception:
+                pass
         return {
             "ok": False,
             "payload": {},
@@ -4510,6 +4530,7 @@ def odds_api_request(path, params=None):
                                       ("requests_last", "x-requests-last"))
             },
             "error": type(exc).__name__,
+            "error_code": error_code,
         }
 
 
@@ -6767,6 +6788,8 @@ def fetch_odds_events(limit=250):
                     quota[field] = as_int(observed[field], None)
             payload = response.get("payload")
             if not response.get("ok"):
+                quota["error_type"] = response.get("error")
+                quota["error_code"] = response.get("error_code")
                 errors.append(f"{sport['name']}: {response.get('error') or 'provider_error'}")
                 if _odds_systemic_failure_response(response):
                     quota["systemic_failure"] = True
