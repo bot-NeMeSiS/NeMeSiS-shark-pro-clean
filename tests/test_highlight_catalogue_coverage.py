@@ -480,3 +480,153 @@ def test_concurrent_historical_calls_cannot_consume_recent_reserve(coverage):
     with ThreadPoolExecutor(max_workers=4) as pool:
         assert sum(pool.map(spend,range(16)))==9
     assert coverage.media_allowance()['remaining']==3
+
+
+def seed_season_identity(coverage, other=False):
+    first={**EVENT,'strSeason':'2025','strVideo':''}
+    second={**first,'idEvent':'43','strHomeTeam':'Other'}
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('ALTER TABLE matches ADD COLUMN raw_json TEXT')
+        conn.execute('UPDATE matches SET raw_json=?',(json.dumps(first),))
+        if other:
+            row={**MATCH,'id':'other','external_id':'sportsdb-43','home_team':'Other'}
+            conn.execute('INSERT INTO matches('+','.join(row)+') VALUES('+','.join('?' for _ in row)+')',tuple(row.values()))
+    coverage.prepare()
+    return first,second
+
+
+def season_collector(coverage,monkeypatch,items,limit=250):
+    calls=[]
+    monkeypatch.setattr(media,'_api_key',lambda:'offline-only')
+    monkeypatch.setattr(media,'_now',lambda:datetime.fromtimestamp(NOW,timezone.utc).isoformat())
+    def v1(endpoint,params):
+        calls.append((endpoint,params))
+        assert endpoint=='eventsseason.php'
+        assert params=={'id':'123','s':'2025'}
+        return {'events':items}
+    def v2(path):
+        calls.append(('v2',path))
+        return {'lookup':[]}
+    monkeypatch.setattr(media,'_sportsdb_v1',v1)
+    monkeypatch.setattr(media,'_sportsdb_v2',v2)
+    return media.sync_sportsdb_highlights(coverage.path,historical_only=True,limit=limit),calls
+
+
+def test_season_feed_reuses_identity_for_other_events_but_still_checks_v2(coverage,monkeypatch):
+    first,second=seed_season_identity(coverage,other=True)
+    result,calls=season_collector(coverage,monkeypatch,[first,second])
+    assert result['external_calls']==3
+    assert [call[0] for call in calls]==['eventsseason.php','v2','v2']
+    assert coverage.snapshot()['checked']==2
+    assert coverage.snapshot()['states']['CHECKED_NO_VIDEO']==2
+
+
+def test_large_positive_season_feed_resumes_after_item_budget_without_new_calls(coverage,monkeypatch):
+    first,second=seed_season_identity(coverage,other=True)
+    items=[{**first,'strVideo':EVENT['strVideo']},{**second,'strVideo':EVENT['strVideo']}]
+    initial,calls=season_collector(coverage,monkeypatch,items,limit=1)
+    assert initial['external_calls']==1 and len(calls)==1
+    resumed,calls=season_collector(coverage,monkeypatch,items,limit=1)
+    assert resumed['external_calls']==0 and calls==[]
+    assert coverage.snapshot()['checked']==2
+    assert coverage.snapshot()['states']['LINKED']==2
+    assert media.sportsdb_highlights_for_match(coverage.path,'old')['highlights']==[]
+    assert media.sportsdb_highlights_for_match(coverage.path,'other')['highlights']==[]
+
+
+def test_cached_season_remains_usable_with_no_remaining_budget(coverage):
+    from engines.highlight_season_evidence import acquire
+    first,_=seed_season_identity(coverage)
+    match={**MATCH,'raw_json':json.dumps(first)}
+    scope=SportsDBBudget(before_call=lambda:coverage.reserve_media_call(True))
+    with scope:
+        assert acquire(coverage,match,scope,lambda ep,p:{'events':[first]},allow_fetch=True)==[first]
+    for _ in range(11):coverage.reserve_media_call()
+    restarted=Coverage(coverage.path,NOW+1)
+    free=SportsDBBudget(before_call=lambda:restarted.reserve_media_call(True))
+    with free:
+        assert acquire(restarted,match,free,lambda ep,p:pytest.fail('cache must be free'),allow_fetch=False)==[first]
+    assert free.calls==0 and restarted.media_allowance()['used']==12
+
+
+def test_empty_season_feed_never_counts_missing_events_as_checked(coverage):
+    from engines.highlight_season_evidence import acquire
+    seed_season_identity(coverage)
+    scope=SportsDBBudget(max_calls=1,before_call=lambda:coverage.reserve_media_call(True))
+    def group(match):return acquire(coverage,match,scope,lambda ep,p:{'events':[]},allow_fetch=True)
+    def exact(sid):return scope.call(2,'exact',{},lambda:{'lookup':[]})['lookup']
+    with scope:
+        result=run_one(coverage,scope,exact,lambda rows:None,lambda ep,p:pytest.fail('raw identity exists'),batch_lookup=group)
+    assert result['state']=='RETRY_LATER' and coverage.snapshot()['checked']==0
+
+
+@pytest.mark.parametrize('items',[{},[{'idEvent':'42','idLeague':'999'}]])
+def test_invalid_season_response_is_a_technical_failure_not_coverage(coverage,monkeypatch,items):
+    seed_season_identity(coverage)
+    result,_=season_collector(coverage,monkeypatch,items)
+    assert result['status']=='FAILED' and coverage.snapshot()['checked']==0
+
+
+def test_season_partition_requires_provider_evidence_not_a_guessed_year(coverage):
+    from engines.highlight_season_evidence import partition
+    assert partition(coverage,MATCH) is None
+    first,_=seed_season_identity(coverage)
+    assert partition(coverage,{**MATCH,'raw_json':json.dumps(first)})==('123','2025')
+    assert partition(coverage,{**MATCH,'raw_json':json.dumps({**first,'strAwayTeam':'Wrong'})}) is None
+
+
+def test_recent_repeated_no_video_reduces_polling_without_delaying_newest_games():
+    assert retry_delay({**MATCH,'match_date':'2026-10-03'},NOW,8)==6*3600
+    assert retry_delay({**MATCH,'match_date':'2026-10-01'},NOW,1)==6*3600
+    assert retry_delay({**MATCH,'match_date':'2026-10-01'},NOW,2)==24*3600
+
+
+def test_late_window_uses_remainder_but_keeps_recent_arrival_capacity(coverage):
+    late=Coverage(coverage.path,datetime(2026,10,4,11,45,tzinfo=timezone.utc).timestamp())
+    late.set_recent_reserve(0)
+    for _ in range(11):late.reserve_media_call(True)
+    with pytest.raises(SportsDBStopped):late.reserve_media_call(True)
+    late.reserve_media_call()
+    assert late.media_allowance()['used']==12
+    late.set_recent_reserve(4)
+    assert late.media_allowance()['recent_reserved']==4
+
+
+def test_older_recent_date_feeds_are_reused_in_next_six_hour_window(coverage,monkeypatch):
+    from datetime import date
+    monkeypatch.setattr(media,'_api_key',lambda:'offline-only')
+    monkeypatch.setattr(media,'_today',lambda:date(2026,10,4))
+    monkeypatch.setattr(media,'_now',lambda:datetime.fromtimestamp(NOW,timezone.utc).isoformat())
+    days=[]
+    def v1(endpoint,params):
+        if endpoint=='eventshighlights.php':days.append(params['d'])
+        return {'events':[]}
+    monkeypatch.setattr(media,'_sportsdb_v1',v1)
+    monkeypatch.setattr(media,'_sportsdb_v2',lambda path:pytest.fail('no recent canonical events'))
+    media.sync_sportsdb_highlights(coverage.path)
+    assert len(days)==8
+    days.clear()
+    monkeypatch.setattr(media,'_now',lambda:datetime.fromtimestamp(NOW+6*3600,timezone.utc).isoformat())
+    media.sync_sportsdb_highlights(coverage.path)
+    assert days==['2026-10-04','2026-10-03']
+
+
+def test_season_partition_uses_verified_cross_provider_profile_not_numeric_id_guess(coverage):
+    from engines.highlight_season_evidence import partition
+    match={**MATCH,'source':'API-Football','external_id':'api-football-1','league_id':'999'}
+    assert partition(coverage,match) is None
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('CREATE TABLE sportsdb_event_profiles(match_id TEXT,sportsdb_event_id TEXT,raw_json TEXT)')
+        conn.execute('INSERT INTO sportsdb_event_profiles VALUES(?,?,?)',
+                     ('old','42',json.dumps({**EVENT,'strSeason':'2025'})))
+    assert partition(coverage,match)==('123','2025')
+
+
+def test_identity_cache_with_different_event_id_never_checks_wrong_match(coverage):
+    stamp=datetime.fromtimestamp(NOW+86400,timezone.utc).isoformat()
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('INSERT INTO sportsdb_highlight_feed_cache VALUES(?,?,?,?)',
+            ('coverage:identity:'+identity(MATCH),json.dumps({**EVENT,'idEvent':'999','strVideo':''}),stamp,stamp))
+    with pytest.raises(SportsDBStopped,match='IDENTITY_MISMATCH'):
+        lookup_pipeline(coverage)
+    assert coverage.snapshot()['checked']==0
