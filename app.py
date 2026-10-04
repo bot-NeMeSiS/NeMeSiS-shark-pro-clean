@@ -2199,7 +2199,19 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
 
 def telegram_cron_with_sports_sync(force=False):
     """Compatibility adapter: delivery only; Sports and Odds have separate lanes."""
-    return telegram_scheduler_tick(force=force)
+    return telegram_cron_delivery_tick(force=force)
+
+
+def telegram_cron_delivery_tick(force=False):
+    """Preserve existing scheduled delivery and founder alerts without provider work."""
+    result = _safe_sports_sync_call("telegram_scheduler", telegram_scheduler_tick, force=force)
+    try:
+        result["founder_alerts"] = founder_alert_tick(DB_PATH)
+    except Exception as exc:
+        result["founder_alerts"] = {
+            "ok": False, "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__, "sent": 0,
+        }
+    return result
 
 
 def bounded_sports_sync(force=False):
@@ -29367,10 +29379,14 @@ def api_automation_telegram_tick():
     if not automation_header_secret_status().get("ok"):
         return automation_header_json_forbidden()
     force = cron_force_requested()
+    runner_header = str(request.headers.get("X-NeMeSiS-Cron-Runner") or "").lower()
+    runner_query = str(request.args.get("runner") or "").lower()
+    dry_run = str(request.args.get("dry_run") or "").lower() in {"1", "true", "yes", "on"}
+    is_render_cron = runner_header == "render-cron" or runner_query == "render_cron"
     return automation_cron_result(
         "telegram_tick",
         ("last_cron_telegram_call", "cron_telegram_tick_last_call"),
-        telegram_scheduler_tick,
+        telegram_cron_delivery_tick if is_render_cron and not dry_run else telegram_scheduler_tick,
         force=force,
     )
 

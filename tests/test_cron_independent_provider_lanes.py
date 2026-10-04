@@ -18,16 +18,19 @@ def test_deadline_caps_transport_and_restores_context():
 
 
 def test_render_telegram_never_calls_sports_or_odds(client, app_module, monkeypatch):
+    founders = []
     monkeypatch.setenv('AUTOMATION_SECRET', 'isolated-lane-test')
     monkeypatch.setattr(app_module, 'seed_core', lambda: None)
     monkeypatch.setattr(app_module, 'run_sports_sync_cycle', lambda **k: pytest.fail('inline Sports'))
     monkeypatch.setattr(app_module, 'sync_odds_events', lambda **k: pytest.fail('inline Odds'))
     monkeypatch.setattr(app_module, 'telegram_scheduler_tick', lambda **k: {'ok': True, 'status': 'QUEUE_EMPTY'})
+    monkeypatch.setattr(app_module, 'founder_alert_tick', lambda *a: founders.append(1) or {'ok':True,'sent':0})
     result = client.post('/api/automation/telegram/tick', headers={
         'X-Automation-Secret': 'isolated-lane-test', 'X-NeMeSiS-Cron-Runner': 'render-cron'})
     assert result.status_code == 200
     assert result.get_json()['ok'] is True
     assert 'sports_pipeline' not in result.get_json()
+    assert founders == [1]
 
 
 @pytest.mark.parametrize('path', ['/api/automation/sports/sync', '/api/automation/odds/sync'])
