@@ -21,7 +21,7 @@
     {% endif %}
     {% if review.state == 'READ_UNAVAILABLE' %}<p role="status">No se pudo leer el catálogo. No se ha interpretado el error como cero vídeos.</p>{% endif %}
     <form method="post" action="/admin/highlights-review/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <p>Consultar hoy y ayer y ampliar por liga cuando proceda: hasta 12 peticiones por ejecución. Este recolector tiene un límite propio; no está incluido en las 60 consultas diarias de los trabajadores. No autoriza ni envía vídeos.</p>
+      <p>Carril reciente de siete días y backfill histórico incremental: hasta 12 peticiones por ventana de seis horas. Los recientes tienen prioridad; el histórico utiliza el remanente conservando un margen operativo. Este recolector tiene un límite propio; no está incluido en las 60 consultas diarias de los trabajadores. No autoriza ni envía vídeos.</p>
       <button type="submit">Buscar resúmenes recientes</button></form>
     {% for run in review.runs %}<p>Última búsqueda: {{ run.started_at|madrid_datetime_label }} · {{ run.status }} · {{ run.highlights_found if run.highlights_found is not none else '—' }} enlaces detectados · {{ run.linked_matches if run.linked_matches is not none else '—' }} asociados · {{ run.get("days_back", "—") }} días · {{ run.get("external_calls", "—") }} consultas · {{ run.get("v2_event_lookups", "—") }} búsquedas por evento · {{ run.get("associations_reconciled", "—") }} asociaciones revisadas automáticamente</p>{% endfor %}
   </section>

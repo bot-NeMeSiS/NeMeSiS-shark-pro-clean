@@ -162,8 +162,8 @@ def test_visible_statistics_credit_only_the_observed_source(source, expected):
 
 
 def test_collector_copy_does_not_claim_shared_daily_budget():
-    text = (ROOT/'templates/admin_highlights_review.html').read_text()
+    text = (ROOT/'templates/admin_highlights_review.html').read_text(encoding='utf-8')
     assert 'como máximo dos peticiones' not in text
-    assert 'hasta 12 peticiones por ejecución' in text
+    assert 'hasta 12 peticiones por ventana de seis horas' in text
     assert 'no está incluido en las 60 consultas' in text
     assert 'Para mantener pendiente o bloquear no necesitas declarar permisos' in text

@@ -44,7 +44,7 @@ def lookup_pipeline(coverage, items=None, fail=None):
         return scope.call(2,'v2',{'idEvent':sid},fetch)['lookup']
     def v1(endpoint,params):
         calls.append((endpoint,params))
-        return {'events':[EVENT]}
+        return {'events':[{**EVENT,'strVideo':''}]}
     def save(rows):
         with sqlite3.connect(coverage.path) as conn:
             conn.row_factory=sqlite3.Row
@@ -122,10 +122,10 @@ def test_budget_persisted_reserved_before_io_and_concurrent(coverage):
 
 
 def test_historical_cannot_drain_recent_or_postmatch_budget(coverage):
-    coverage.reserve_media_call(True);coverage.reserve_media_call(True)
+    for _ in range(9):coverage.reserve_media_call(True)
     with pytest.raises(SportsDBStopped,match='MEDIA_BUDGET'):
         coverage.reserve_media_call(True)
-    for _ in range(10):coverage.reserve_media_call(False)
+    for _ in range(3):coverage.reserve_media_call(False)
     assert coverage.snapshot()['media_budget']['used']==12
     with sqlite3.connect(coverage.path) as conn:
         assert not conn.execute("SELECT 1 FROM sqlite_master WHERE name='postmatch_source_budget'").fetchone()
@@ -221,15 +221,15 @@ def test_collector_integrates_persistent_backfill_and_negative_cache(coverage,mo
     calls=[]
     def fetch(endpoint,params):
         calls.append(endpoint)
-        return {'events':[EVENT] if endpoint=='lookupevent.php' else []}
+        return {'events':[{**EVENT,'strVideo':''}] if endpoint=='lookupevent.php' else []}
     monkeypatch.setattr(media,'_sportsdb_v1',fetch)
     monkeypatch.setattr(media,'_sportsdb_v2',lambda path:{'lookup':[]})
     first=media.sync_sportsdb_highlights(coverage.path,historical_only=True)
-    assert first['historical_backfill']['state']=='CHECKED_NO_VIDEO' and first['external_calls']==2
+    assert first['historical_backfill']['state']=='CHECKED_NO_VIDEO' and first['external_calls']==3
     second=media.sync_sportsdb_highlights(coverage.path,historical_only=True)
     assert second['external_calls']==0
     assert Coverage(coverage.path,NOW).snapshot()['checked']==1
-    assert calls==['lookupevent.php']
+    assert calls==['eventshighlights.php','lookupevent.php']
 
 
 def test_v2_minimal_payload_uses_verified_event_identity_for_cross_source(coverage):
@@ -304,3 +304,111 @@ def test_coverage_ratio_uses_one_snapshot_during_concurrent_ingestion(coverage,m
     snapshot=coverage.snapshot()
     assert snapshot['eligible']==1 and snapshot['checked']==0 and snapshot['pending']==1
     assert Coverage(coverage.path,NOW).snapshot()['eligible']==2
+
+
+def test_dynamic_history_uses_remainder_and_leaves_recent_margin(coverage):
+    for _ in range(2):coverage.reserve_media_call(False)
+    coverage.set_recent_reserve(0)
+    for _ in range(7):coverage.reserve_media_call(True)
+    with pytest.raises(SportsDBStopped,match='MEDIA_BUDGET'):coverage.reserve_media_call(True)
+    budget=Coverage(coverage.path,NOW).media_allowance()
+    assert budget['recent_used']==2 and budget['historical_used']==7
+    assert budget['remaining']==3 and budget['historical_available']==0
+    for _ in range(3):coverage.reserve_media_call(False)
+    assert coverage.media_allowance()['used']==12
+
+
+def test_recent_demand_can_reserve_more_than_the_margin(coverage):
+    coverage.reserve_media_call(False)
+    coverage.set_recent_reserve(9)
+    for _ in range(2):coverage.reserve_media_call(True)
+    with pytest.raises(SportsDBStopped):coverage.reserve_media_call(True)
+    assert coverage.media_allowance()['remaining']==9
+    coverage.set_recent_reserve(0)
+    for _ in range(6):coverage.reserve_media_call(True)
+    assert coverage.media_allowance()['historical_used']==8
+
+
+def test_raw_exact_event_saves_identity_call_but_not_empty_video_lookup(coverage):
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('ALTER TABLE matches ADD COLUMN raw_json TEXT')
+        conn.execute('UPDATE matches SET raw_json=?',(json.dumps({**EVENT,'strVideo':''}),))
+    result,calls,requests=lookup_pipeline(coverage)
+    assert result['state']=='CHECKED_NO_VIDEO' and calls==1
+    assert requests==[('v2','42')]
+    assert coverage.media_allowance()['historical_checked']==1
+
+
+def test_exact_profile_video_reused_with_zero_calls_and_no_rights_approval(coverage):
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('CREATE TABLE sportsdb_event_profiles(match_id TEXT,sportsdb_event_id TEXT,raw_json TEXT)')
+        conn.execute('INSERT INTO sportsdb_event_profiles VALUES(?,?,?)',('old','42',json.dumps(EVENT)))
+    result,calls,_=lookup_pipeline(coverage)
+    assert result['state']=='LINKED' and calls==0
+    assert media.sportsdb_highlights_for_match(coverage.path,'old')['highlights']==[]
+
+
+def test_conflicting_persisted_event_is_not_used_as_identity(coverage):
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('ALTER TABLE matches ADD COLUMN raw_json TEXT')
+        conn.execute('UPDATE matches SET raw_json=?',(json.dumps({**EVENT,'strAwayTeam':'Wrong','strVideo':''}),))
+    result,calls,requests=lookup_pipeline(coverage)
+    assert result['state']=='CHECKED_NO_VIDEO' and calls==2
+    assert requests[0][0]=='lookupevent.php'
+
+
+def test_empty_grouped_feed_never_claims_negative_event_coverage(coverage):
+    scope=SportsDBBudget(max_calls=1,before_call=lambda:coverage.reserve_media_call(True))
+    def batch(match):return scope.call(1,'group',{},lambda:{'events':[]})['events']
+    with scope:
+        result=run_one(coverage,scope,lambda sid:[],lambda rows:None,
+                       lambda ep,p:{'events':[]},batch_lookup=batch)
+    assert result['state']=='RETRY_LATER'
+    assert coverage.snapshot()['checked']==0
+    assert coverage.snapshot()['states']['CHECKED_NO_VIDEO']==0
+
+
+def test_group_feed_links_multiple_exact_events_with_one_call(coverage,monkeypatch):
+    other={**MATCH,'id':'other','external_id':'sportsdb-43','home_team':'Other'}
+    second={**EVENT,'idEvent':'43','strHomeTeam':'Other'}
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('INSERT INTO matches VALUES('+','.join('?' for _ in other)+')',tuple(other.values()))
+    coverage.prepare()
+    monkeypatch.setattr(media,'_api_key',lambda:'offline')
+    monkeypatch.setattr(media,'_now',lambda:datetime.fromtimestamp(NOW,timezone.utc).isoformat())
+    calls=[]
+    def fetch(endpoint,params):
+        calls.append(endpoint)
+        assert endpoint=='eventshighlights.php'
+        return {'events':[EVENT,second]}
+    monkeypatch.setattr(media,'_sportsdb_v1',fetch)
+    monkeypatch.setattr(media,'_sportsdb_v2',lambda path:pytest.fail('feed already resolves both'))
+    result=media.sync_sportsdb_highlights(coverage.path,historical_only=True)
+    assert result['external_calls']==1 and calls==['eventshighlights.php']
+    assert Coverage(coverage.path,NOW).snapshot()['checked']==2
+    assert media.sportsdb_highlights_for_match(coverage.path,'other')['highlights']==[]
+
+
+def test_old_budget_read_is_compatible_and_does_not_migrate_on_get(coverage):
+    with sqlite3.connect(coverage.path) as conn:
+        conn.execute('DROP TABLE highlight_coverage_budget')
+        conn.execute('CREATE TABLE highlight_coverage_budget(window INTEGER PRIMARY KEY,used INTEGER,historical_used INTEGER)')
+        conn.execute('INSERT INTO highlight_coverage_budget VALUES(?,?,?)',(int(NOW//21600),2,2))
+    snapshot=coverage.snapshot()
+    assert snapshot['inventoried']==1 and snapshot['media_budget']['remaining']==10
+    with sqlite3.connect(coverage.path) as conn:
+        assert len(conn.execute('PRAGMA table_info(highlight_coverage_budget)').fetchall())==3
+    coverage.prepare()
+    assert coverage.media_allowance()['historical_available']==7
+
+
+def test_concurrent_historical_calls_cannot_consume_recent_reserve(coverage):
+    def spend(_):
+        try:
+            Coverage(coverage.path,NOW).reserve_media_call(True)
+            return True
+        except SportsDBStopped:
+            return False
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        assert sum(pool.map(spend,range(16)))==9
+    assert coverage.media_allowance()['remaining']==3

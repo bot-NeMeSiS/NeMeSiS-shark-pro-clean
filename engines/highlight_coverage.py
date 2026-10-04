@@ -17,6 +17,8 @@ from engines.postmatch_sources import match_event, integer_id, sportsdb_query_da
 
 STATES = ('UNSCANNED', 'CHECK_PENDING', 'CHECKED_NO_VIDEO', 'VIDEO_FOUND',
           'LINKED', 'RETRY_LATER', 'AMBIGUOUS', 'PROVIDER_ERROR')
+RECENT_MARGIN = 3
+HISTORY_BATCH = 8
 FIELDS = ('id','external_id','source','home_team','away_team','match_date',
           'kickoff_time','competition_name','league_name','league_id','status',
           'score','home_score','away_score','raw_json','country','competition_key','league_key','league')
@@ -70,6 +72,27 @@ def persisted_event_id(conn, match):
         return ''
 
 
+def persisted_event(conn, match, sid):
+    """Reuse an exact provider payload; an ID alone never proves identity."""
+    candidates = []
+    if event_id(match) == sid:
+        candidates.append(match.get('raw_json'))
+    cols = {row[1] for row in conn.execute('PRAGMA table_info(sportsdb_event_profiles)')}
+    if {'match_id','sportsdb_event_id','raw_json'} <= cols:
+        candidates.extend(row['raw_json'] for row in conn.execute(
+            'SELECT raw_json FROM sportsdb_event_profiles WHERE match_id=? AND sportsdb_event_id=? LIMIT 2',
+            (str(match['id']),sid)))
+    valid = []
+    for raw in candidates:
+        try:
+            item = json.loads(raw or '{}')
+            if isinstance(item,dict) and str(item.get('idEvent')) == sid and match_event(match,item):
+                valid.append(item)
+        except (ValueError,TypeError):
+            pass
+    return valid[0] if valid else None
+
+
 def retry_delay(match, now, attempts):
     age = (datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid')).date() -
            datetime.fromisoformat(str(match['match_date'])[:10]).date()).days
@@ -110,6 +133,10 @@ class Coverage:
         """
         with closing(self.connect(True)) as conn, conn:
             conn.executescript(SCHEMA)
+            budget_cols = {row[1] for row in conn.execute('PRAGMA table_info(highlight_coverage_budget)')}
+            for name, default in [('recent_reserve',RECENT_MARGIN),('historical_checked',0)]:
+                if name not in budget_cols:
+                    conn.execute(f'ALTER TABLE highlight_coverage_budget ADD COLUMN {name} INTEGER NOT NULL DEFAULT {default}')
             conn.execute('INSERT OR IGNORE INTO highlight_coverage_cursor VALUES(1,0,?)', (self.now,))
             cursor = conn.execute('SELECT row_cursor FROM highlight_coverage_cursor').fetchone()[0]
             expr = self.projection(conn)
@@ -133,6 +160,8 @@ class Coverage:
                     "attempts=0,due_at=excluded.due_at,reason='',lease='',lease_until=0,updated_at=excluded.updated_at,priority=excluded.priority "
                     'WHERE highlight_coverage.identity<>excluded.identity',
                     (str(match['id']), identity(match), persisted_event_id(conn,match), self.now, self.now,int(self.priority(match))))
+                conn.execute('UPDATE highlight_coverage SET priority=? WHERE match_id=? AND identity=?',
+                             (int(self.priority(match)),str(match['id']),identity(match)))
             # Reuse concrete catalog evidence rather than buying another lookup
             # for an already linked video. The two unassociated assets are excluded.
             from engines.sportsdb_highlights_engine import _find_match
@@ -168,6 +197,7 @@ class Coverage:
             if not row:
                 return None
             job = dict(row)
+            job['historical'] = historical
             job['match'] = json.loads(job.pop('payload'))
             job['lease'] = secrets.token_hex(16)
             conn.execute("UPDATE highlight_coverage SET state='CHECK_PENDING',lease=?,lease_until=?,updated_at=? WHERE match_id=?",
@@ -181,8 +211,26 @@ class Coverage:
                 "WHERE c.state NOT IN ('LINKED','VIDEO_FOUND','AMBIGUOUS') AND c.due_at<=? AND substr(m.match_date,1,10)<? LIMIT 1",
                 (self.now,cutoff)).fetchone())
 
+    def set_recent_reserve(self, pending_calls=0):
+        """Recent demand and an operational margin precede historical spending."""
+        reserve = min(12,max(RECENT_MARGIN,int(pending_calls)))
+        with closing(self.connect(True)) as conn, conn:
+            conn.execute('INSERT OR IGNORE INTO highlight_coverage_budget(window) VALUES(?)',(int(self.now//21600),))
+            conn.execute('UPDATE highlight_coverage_budget SET recent_reserve=? WHERE window=?',
+                         (reserve,int(self.now//21600)))
+
+    def media_allowance(self):
+        with closing(self.connect()) as conn:
+            row = conn.execute('SELECT * FROM highlight_coverage_budget WHERE window=?',(int(self.now//21600),)).fetchone()
+        used = row['used'] if row else 0
+        reserved = row['recent_reserve'] if row else RECENT_MARGIN
+        return {'limit':12,'used':used,'recent_used':used-(row['historical_used'] if row else 0),
+                'historical_used':row['historical_used'] if row else 0,'remaining':max(0,12-used),
+                'recent_reserved':reserved,'historical_available':max(0,12-used-reserved),
+                'historical_checked':row['historical_checked'] if row else 0,'window_hours':6}
+
     def reserve_media_call(self, historical=False):
-        """Twelve calls per six hours, shared lanes; historical maximum two.
+        """Twelve calls per six hours; history consumes only unreserved capacity.
 
         This caps the existing 12-call / 360-minute collector allowance rather
         than multiplying it when the master invokes the persistent queue again.
@@ -194,7 +242,7 @@ class Coverage:
             conn.execute('BEGIN IMMEDIATE')
             conn.execute('INSERT OR IGNORE INTO highlight_coverage_budget(window) VALUES(?)',(window,))
             row = conn.execute('SELECT * FROM highlight_coverage_budget WHERE window=?',(window,)).fetchone()
-            if row['used'] >= 12 or (historical and row['historical_used'] >= 2):
+            if row['used'] >= 12 or (historical and row['used'] >= 12-row['recent_reserve']):
                 raise SportsDBStopped('MEDIA_BUDGET')
             conn.execute('UPDATE highlight_coverage_budget SET used=used+1,historical_used=historical_used+? WHERE window=?',
                          (int(historical),window))
@@ -213,11 +261,16 @@ class Coverage:
             current = conn.execute('SELECT * FROM matches WHERE id=?', (job['match_id'],)).fetchone()
             if not current or not eligible(dict(current), self.now) or identity(dict(current)) != job['identity']:
                 return False
-            return bool(conn.execute('UPDATE highlight_coverage SET state=?,reason=?,event_id=?,checked_at=CASE WHEN ? '
+            updated = bool(conn.execute('UPDATE highlight_coverage SET state=?,reason=?,event_id=?,checked_at=CASE WHEN ? '
                 'THEN ? ELSE checked_at END,attempts=?,due_at=?,lease=\'\',lease_until=0,updated_at=? '
                 'WHERE match_id=? AND identity=? AND lease=? AND lease_until>?',
                 (state, reason, sid or job['event_id'], checked, self.now, attempts, self.now+delay,
                  self.now, job['match_id'], job['identity'], job['lease'], self.now)).rowcount)
+            if updated and checked and job.get('historical') and job['checked_at'] is None:
+                conn.execute('INSERT OR IGNORE INTO highlight_coverage_budget(window) VALUES(?)',(int(self.now//21600),))
+                conn.execute('UPDATE highlight_coverage_budget SET historical_checked=historical_checked+1 WHERE window=?',
+                             (int(self.now//21600),))
+            return updated
 
     def observe(self, sid, items):
         """Recent exact lookups update the same evidence, including empty responses."""
@@ -248,7 +301,7 @@ class Coverage:
                      attempts, self.now + retry_delay(match, self.now, attempts), self.now, sid, raw['match_id']))
 
     def snapshot(self):
-        unknown = {'read_state':'NOT_INITIALIZED','eligible':None,'checked':None,'pending':None,'coverage_percent':None,
+        unknown = {'read_state':'NOT_INITIALIZED','eligible':None,'inventoried':None,'checked':None,'pending':None,'coverage_percent':None,
                    'states':{},'cursor':None,'next_batch':[], 'external_calls':0}
         try:
             with closing(self.connect()) as conn:
@@ -259,7 +312,7 @@ class Coverage:
                 total = conn.execute(f'SELECT COUNT(*) FROM matches m WHERE coverage_eligible({expr})').fetchone()[0]
                 exists = conn.execute("SELECT 1 FROM sqlite_master WHERE name='highlight_coverage'").fetchone()
                 if not exists:
-                    return {**unknown, 'read_state':'UNSCANNED','eligible':total,'checked':0,'pending':total,
+                    return {**unknown, 'read_state':'UNSCANNED','eligible':total,'inventoried':0,'checked':0,'pending':total,
                             'coverage_percent':0 if total else None,'states':{'UNSCANNED':total}}
                 rows = conn.execute(f'SELECT c.state,COUNT(*) AS n,SUM(c.checked_at IS NOT NULL) AS checked '
                     'FROM highlight_coverage c JOIN matches m ON m.id=c.match_id '
@@ -271,25 +324,32 @@ class Coverage:
                 cursor = dict(conn.execute('SELECT * FROM highlight_coverage_cursor').fetchone())
                 cursor['catalogue_rows'] = conn.execute('SELECT COUNT(*) FROM matches').fetchone()[0]
                 cursor['last_row'] = conn.execute('SELECT COALESCE(MAX(rowid),0) FROM matches').fetchone()[0]
-                budget = conn.execute('SELECT used,historical_used FROM highlight_coverage_budget WHERE window=?',
-                                      (int(self.now//21600),)).fetchone()
+                budget_row = conn.execute('SELECT * FROM highlight_coverage_budget WHERE window=?',
+                                          (int(self.now//21600),)).fetchone()
+                budget = dict(budget_row) if budget_row else None
                 cutoff = datetime.fromtimestamp(self.now-7*86400,ZoneInfo('Europe/Madrid')).date().isoformat()
                 upcoming = [dict(row) for row in conn.execute('SELECT c.match_id,c.state,c.event_id,c.due_at FROM highlight_coverage c '
                     'JOIN matches m ON m.id=c.match_id '
                     f"WHERE c.state NOT IN ('LINKED','VIDEO_FOUND','AMBIGUOUS') AND substr(m.match_date,1,10)<? AND coverage_eligible({expr}) "
                     f'AND c.identity=coverage_identity({expr}) ORDER BY CASE WHEN c.checked_at IS NULL THEN 0 ELSE 1 END,'
                     'c.priority DESC,c.due_at,m.match_date DESC,c.match_id LIMIT 3',(cutoff,))]
-                return {**unknown,'read_state':'VERIFIED','eligible':total,'checked':checked,'pending':total-checked,
+                inventoried = sum(row['n'] for row in rows)
+                used = budget['used'] if budget else 0
+                reserved = budget.get('recent_reserve',RECENT_MARGIN) if budget else RECENT_MARGIN
+                return {**unknown,'read_state':'VERIFIED','eligible':total,'inventoried':inventoried,'checked':checked,'pending':total-checked,
                         'coverage_percent':round(100*checked/total,2) if total else None,'states':states,
-                        'cursor':cursor,'next_batch':upcoming,'batch_limit':1,
-                        'media_budget':{'window_hours':6,'limit':12,'used':budget['used'] if budget else 0,
-                                        'historical_limit':2,'historical_used':budget['historical_used'] if budget else 0},
+                        'cursor':cursor,'next_batch':upcoming,'batch_limit':HISTORY_BATCH,
+                        'media_budget':{'window_hours':6,'limit':12,'used':used,'remaining':max(0,12-used),
+                            'recent_used':used-(budget['historical_used'] if budget else 0),'recent_reserved':reserved,
+                            'historical_available':max(0,12-used-reserved),
+                            'historical_checked':budget.get('historical_checked',0) if budget else 0,
+                            'historical_used':budget['historical_used'] if budget else 0},
                         'note':'Comprobados por evento; catálogo de vídeos y permisos son métricas independientes.'}
         except (sqlite3.Error, OSError, ValueError, TypeError):
             return {**unknown,'read_state':'READ_UNAVAILABLE'}
 
 
-def run_one(coverage, scope, lookup, save, v1):
+def run_one(coverage, scope, lookup, save, v1, batch_lookup=None):
     """One historical match, inside the collector's existing 12-call allowance.
 
     Reconciliation uses the existing exact date/teams/competition contract. This
@@ -314,6 +374,15 @@ def run_one(coverage, scope, lookup, save, v1):
         event = None
         if cached and datetime.fromisoformat(cached['expires_at']).timestamp() > coverage.now:
             event = json.loads(cached['payload_json'])
+        if not event and sid:
+            with closing(coverage.connect()) as conn:
+                event = persisted_event(conn,match,sid)
+        if batch_lookup:
+            feed = batch_lookup(match)
+            exact = [item for item in feed if match_event(match,item) and
+                     (not sid or str(item.get('idEvent')) == sid)]
+            if len(exact) == 1 and public_https_url(_video_url(exact[0])):
+                event = exact[0]
         if not event:
             params = {'id':sid} if sid else {'d':sportsdb_query_date(match),'s':'Soccer'}
             endpoint = 'lookupevent.php' if sid else 'eventsday.php'
@@ -344,6 +413,13 @@ def run_one(coverage, scope, lookup, save, v1):
         if not match_event(match,event):
             raise SportsDBStopped('IDENTITY_MISMATCH')
         sid = integer_id(event.get('idEvent'))
+        if public_https_url(_video_url(event)):
+            with closing(coverage.connect()) as conn:
+                exact = _find_match(conn,event) == match['id']
+            if exact:
+                save([event])
+                coverage.finish(job,'LINKED','PROFILE_VIDEO_REUSED',checked=True,sid=sid)
+                return {'processed':1,'state':'LINKED','evidence':'PERSISTED_EVENT_PROFILE'}
         items = lookup(sid)
         valid = [dict(item) for item in items if public_https_url(_video_url(item))]
         for item in valid:
