@@ -296,3 +296,54 @@ def test_restore_aborts_if_recovery_copy_cannot_be_created(legacy_restore_source
     with sqlite3.connect(source) as connection:
         assert connection.execute("SELECT name FROM users").fetchone()[0] == "Keep current data"
     assert not list(vault.backup_dir(root).glob("*.partial"))
+
+
+def test_capacity_preflight_removes_oldest_backup_but_preserves_latest_verified(backup_source, monkeypatch):
+    source, root = backup_source
+    first = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+    second = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+    assert first["ok"] and second["ok"]
+
+    required = 64 * 1024 * 1024 + 1024
+    samples = iter([
+        type("Disk", (), {"free": required - 1, "total": required * 4})(),
+        type("Disk", (), {"free": required + 1, "total": required * 4})(),
+    ])
+    monkeypatch.setattr(vault, "_sqlite_snapshot_estimate_bytes", lambda _path: 1024)
+    monkeypatch.setattr(vault.shutil, "disk_usage", lambda _path: next(samples))
+
+    result = vault.ensure_backup_capacity(source, root)
+    assert result["ok"] is True
+    assert result["preserved_verified"] == second["backup_file"]
+    assert first["backup_file"] in result["removed"]
+    assert Path(second["path"]).exists()
+    assert not Path(first["path"]).exists()
+
+
+def test_capacity_preflight_fails_closed_when_space_is_still_insufficient(backup_source, monkeypatch):
+    source, root = backup_source
+    folder = vault.backup_dir(root)
+    folder.mkdir(parents=True, exist_ok=True)
+    orphan = folder / "database_orphan.db"
+    orphan.write_bytes(b"orphan")
+    required = 64 * 1024 * 1024 + 1024
+    monkeypatch.setattr(vault, "_sqlite_snapshot_estimate_bytes", lambda _path: 1024)
+    monkeypatch.setattr(
+        vault.shutil,
+        "disk_usage",
+        lambda _path: type("Disk", (), {"free": 1024, "total": required * 4})(),
+    )
+
+    result = vault.ensure_backup_capacity(source, root)
+    assert result["ok"] is False
+    assert result["error"] == "backup_storage_insufficient"
+    assert "database_orphan.db" in result["removed"]
+    assert not orphan.exists()
+
+
+def test_successful_backup_reports_storage_preflight(backup_source):
+    source, root = backup_source
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+    assert result["ok"] is True
+    assert result["storage"]["ok"] is True
+    assert result["storage"]["required_bytes"] > result["storage"]["snapshot_bytes"]
