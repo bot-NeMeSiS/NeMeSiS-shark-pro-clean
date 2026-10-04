@@ -649,11 +649,17 @@ def backup_tick(base_url: str, secret: str) -> dict:
             candidate = payload.get("status") or payload.get("result")
             result = safe_label(candidate, secret, "PASS" if payload.get("ok") is not False else "FAIL")
             ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
+            allowed_error_codes = {
+                "STORAGE_FULL", "STORAGE_BUSY", "STORAGE_PERMISSION",
+                "BACKUP_INTEGRITY", "BACKUP_RETENTION", "BACKUP_CREATE_FAILED",
+            }
+            error_code = safe_label(payload.get("error_code"), secret, "")
             return {
                 "backup_http": http_status,
                 "backup_status": "PASS" if ok else "FAIL",
                 "backup_result": result,
                 "backup_created": bool(payload.get("backup_created")),
+                "backup_error_code": error_code if error_code in allowed_error_codes else ("BACKUP_CREATE_FAILED" if not ok else ""),
                 "backup_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
     except urllib.error.HTTPError as exc:

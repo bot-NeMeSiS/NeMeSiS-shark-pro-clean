@@ -32527,6 +32527,10 @@ def api_automation_data_backup_run():
         try:
             ensure_automation_schema_conn(conn)
             claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+            # The claim must be durable before the long SQLite backup starts.
+            # Closing a sqlite3 connection without commit rolls this INSERT back,
+            # which made every five-minute Cron tick retry the same failed copy.
+            conn.commit()
         finally:
             close_conn = getattr(conn, "close", None)
             if callable(close_conn):
@@ -32535,6 +32539,20 @@ def api_automation_data_backup_run():
             result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING", "message": "Otro intento de backup posee el claim temporal."}
         else:
             result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
+            if result.get("ok") is False:
+                backup_error = str(result.get("error") or "").strip().lower()
+                if "no space" in backup_error or "disk is full" in backup_error or "database or disk is full" in backup_error:
+                    result["error_code"] = "STORAGE_FULL"
+                elif "locked" in backup_error or "busy" in backup_error:
+                    result["error_code"] = "STORAGE_BUSY"
+                elif "permission" in backup_error or "read-only" in backup_error or "readonly" in backup_error:
+                    result["error_code"] = "STORAGE_PERMISSION"
+                elif "integrity" in backup_error or "unreadable" in backup_error:
+                    result["error_code"] = "BACKUP_INTEGRITY"
+                elif "retention" in backup_error or "verified_backup" in backup_error:
+                    result["error_code"] = "BACKUP_RETENTION"
+                else:
+                    result["error_code"] = "BACKUP_CREATE_FAILED"
             if result.get("ok") is not False and result.get("backup_created") is True:
                 automation_safe_set("last_successful_data_backup_call", {"time": now_value, "result": result})
     automation_safe_set("last_cron_data_backup_call", {"time": now_value, "result": result})
