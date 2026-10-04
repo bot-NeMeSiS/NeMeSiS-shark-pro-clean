@@ -1,6 +1,17 @@
 def read_match_record(read_one, match_id):
     """Shared parameterized store lookup; the caller owns its read connection."""
-    return read_one("SELECT * FROM matches WHERE id=?", (match_id,))
+    record = read_one("SELECT * FROM matches WHERE id=?", (match_id,))
+    if record is not None:
+        return record
+    # Existing links to a deduplicated route retain their canonical match.
+    import sqlite3
+    try:
+        alias = read_one("SELECT canonical_id FROM sports_truth_mappings WHERE entity_type='match' AND provider='local_cache' AND provider_id=?", (str(match_id),))
+    except sqlite3.OperationalError:
+        alias = None  # Existing databases are valid without the additive tables.
+    if alias and str(alias.get("canonical_id")) != str(match_id):
+        return read_one("SELECT * FROM matches WHERE id=?", (alias["canonical_id"],))
+    return None
 
 
 def observe_persisted_match(db_path, match_id, *, evaluation_time):
@@ -26,7 +37,8 @@ def observe_persisted_match(db_path, match_id, *, evaluation_time):
         return result
     with closing(sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)) as conn:
         conn.row_factory = sqlite3.Row
-        if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='matches'").fetchone():
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if "matches" not in tables:
             return {**result, "reason": "SCHEMA_UNAVAILABLE"}
 
         def read_one(query, params):
@@ -34,9 +46,13 @@ def observe_persisted_match(db_path, match_id, *, evaluation_time):
             return dict(row) if row is not None else None
 
         record = read_match_record(read_one, match_id)
+        canonical_record = record
+        if record is not None:
+            from engines.unified_sports_truth_store import project_rows
+            canonical_record = project_rows(conn, [record], now=evaluation_time, tables=tables)[0]
     if record is None:
         return {**result, "reason": "MATCH_UNAVAILABLE"}
-    context = build_match_context({"match": record}, evaluation_time=evaluation_time)
+    context = build_match_context({"match": canonical_record}, evaluation_time=evaluation_time)
     return {**result, "state": "OBSERVED_PROJECTOR", "reason": "",
             "store": record, "match_context": context}
 

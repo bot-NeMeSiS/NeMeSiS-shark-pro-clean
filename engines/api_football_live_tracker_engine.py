@@ -367,6 +367,11 @@ def _upsert_fixture(conn: sqlite3.Connection, item: Mapping[str, Any]) -> int:
     f = _normalize_fixture(item)
     if not f.get("fixture_id"):
         return 0
+    from engines.unified_sports_truth_store import ensure_schema
+    ensure_schema(conn)
+    mapped = conn.execute("SELECT canonical_id FROM sports_truth_mappings WHERE entity_type='match' AND provider='api_football' AND provider_id=?", (str(f["fixture_id"]),)).fetchone()
+    if mapped:
+        f["match_id"] = mapped[0]
     conn.execute(
         """
         INSERT INTO api_football_live_snapshots(fixture_id, match_id, league_id, league_name, country, season, round_name, kickoff_iso, match_date, status_short, status_long, elapsed, home_team_id, away_team_id, home_team, away_team, home_logo, away_logo, home_score, away_score, venue, payload_json, first_seen_at, last_synced_at)
@@ -423,6 +428,10 @@ def _upsert_match_row(
 ) -> None:
     """Mirror live fixture into existing matches table so /match/<id> works."""
     now = _now_iso()
+    from engines.unified_sports_truth_store import persist_receipt
+    persist_receipt(conn, f.get("match_id") or "api-football-" + str(f.get("fixture_id")),
+                    {**f, "source": "api_football_live", "last_synced_at": provider_observed_at},
+                    provider="api_football")
     score = ""
     if f.get("home_score") is not None and f.get("away_score") is not None:
         score = f"{f.get('home_score')}-{f.get('away_score')}"
@@ -495,6 +504,9 @@ def _time_from_iso(value: Any) -> str:
 def _upsert_events(conn: sqlite3.Connection, fixture_id: str, events: Iterable[Mapping[str, Any]]) -> int:
     received = utc_stamp()
     events = list(events or [])
+    from engines.unified_sports_truth_store import persist_api_section
+    persist_api_section(conn, fixture_id, "events", events, observed_at=received,
+                        availability="AVAILABLE" if events else "EMPTY_CONFIRMED")
     now = _now_iso()
     inserted = 0
     for item in events or []:
@@ -535,6 +547,9 @@ def persist_api_football_events(
 def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload: Iterable[Mapping[str, Any]]) -> int:
     received = utc_stamp()
     stats_payload = list(stats_payload or [])
+    from engines.unified_sports_truth_store import persist_api_section
+    persist_api_section(conn, fixture_id, "stats", stats_payload, observed_at=received,
+                        availability="AVAILABLE" if stats_payload else "EMPTY_CONFIRMED")
     now = _now_iso()
     inserted = 0
     for team_block in stats_payload or []:
@@ -1215,7 +1230,8 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
                 "live_tracker": tracker,
             }
         )
-    return out
+    from engines.unified_sports_truth_store import project_rows
+    return project_rows(conn, out)
 
 
 def live_tracker_matches(db_path: str, limit: int = 80) -> list[dict[str, Any]]:

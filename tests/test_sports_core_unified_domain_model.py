@@ -280,7 +280,15 @@ def test_module_has_no_io_network_or_generative_dependencies():
         for node in ast.walk(tree)
         if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("engines.")
     ]
-    assert engine_imports == ["engines.v935_launch_trust_engine"]
+    assert engine_imports == ["engines.v935_launch_trust_engine", "engines.unified_sports_truth_engine"]
+    # Phase 3 adds a pure resolver dependency; persistence stays in its own
+    # repository. Guard the resolver too, rather than weakening the I/O rule.
+    import engines.unified_sports_truth_engine as truth_engine
+    resolver_tree = ast.parse(inspect.getsource(truth_engine))
+    resolver_modules = {node.module for node in ast.walk(resolver_tree) if isinstance(node, ast.ImportFrom)}
+    resolver_modules.update(alias.name for node in ast.walk(resolver_tree) if isinstance(node, ast.Import) for alias in node.names)
+    assert not any(module and module.split('.')[0] in {"sqlite3", "urllib", "requests", "openai"} for module in resolver_modules)
+    assert "engines.unified_sports_truth_store" not in resolver_modules
     lowered = source.lower()
     assert "sqlite3" not in lowered
     assert "urlopen" not in lowered

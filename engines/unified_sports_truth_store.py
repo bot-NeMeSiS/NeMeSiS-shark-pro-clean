@@ -1,0 +1,237 @@
+"""SQLite repository for Unified Sports Truth. Ingestors own transactions.
+
+Public reads never create schemas, mutate records, or contact providers.
+"""
+from __future__ import annotations
+
+from collections import OrderedDict
+from datetime import datetime, timezone
+import hashlib
+import json
+import sqlite3
+import threading
+
+from engines.snapshot_copy_engine import clone_snapshot
+from engines.unified_sports_truth_engine import (
+    GROUPS, _json, _present, instant, provider_name, evidence_from_row,
+    resolve_match, legacy_projection, adapt_section,
+)
+
+_STORE_REVISIONS = OrderedDict()
+_CACHE_LOCK = threading.RLock()
+
+def ensure_schema(conn):
+    # execute, never executescript: caller retains transaction ownership.
+    conn.execute("""CREATE TABLE IF NOT EXISTS sports_truth_receipts (
+        match_id TEXT NOT NULL, provider TEXT NOT NULL, evidence_json TEXT NOT NULL,
+        observed_at TEXT, PRIMARY KEY(match_id,provider))""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS sports_truth_mappings (
+        entity_type TEXT NOT NULL, provider TEXT NOT NULL, provider_id TEXT NOT NULL,
+        canonical_id TEXT NOT NULL, proof TEXT NOT NULL,
+        PRIMARY KEY(entity_type,provider,provider_id))""")
+    conn.execute("CREATE INDEX IF NOT EXISTS sports_truth_provider_id ON sports_truth_mappings(provider_id)")
+    conn.execute("CREATE TABLE IF NOT EXISTS sports_truth_generation (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL)")
+    conn.execute("INSERT OR IGNORE INTO sports_truth_generation VALUES(1,0)")
+
+
+def invalidate_changed_store(conn, cache_key):
+    """Detect committed ingest in other workers, with bounded local metadata."""
+    try:
+        row = conn.execute("SELECT revision FROM sports_truth_generation WHERE id=1").fetchone()
+    except sqlite3.OperationalError as exc:
+        if "no such table" in str(exc).lower():
+            return
+        raise
+    if not row:
+        return
+    revision = row[0]
+    with _CACHE_LOCK:
+        previous = _STORE_REVISIONS.get(cache_key)
+        _STORE_REVISIONS[cache_key] = revision
+        _STORE_REVISIONS.move_to_end(cache_key)
+        while len(_STORE_REVISIONS) > 32:
+            _STORE_REVISIONS.popitem(last=False)
+    if previous != revision:
+        from engines.v934_realtime_sports_engine import invalidate_realtime_cache
+        invalidate_realtime_cache(cache_key)
+
+
+def bind_identity(conn, entity_type, provider, provider_id, canonical_id, *, proof):
+    """Only explicit, unique mappings; a conflicting mapping is never replaced."""
+    if entity_type not in {"match", "team", "competition", "player"} or not all((provider_id, canonical_id, proof)):
+        return False
+    ensure_schema(conn)
+    key = (entity_type, provider_name(provider), str(provider_id))
+    prior = conn.execute("SELECT canonical_id FROM sports_truth_mappings WHERE entity_type=? AND provider=? AND provider_id=?", key).fetchone()
+    if prior and prior[0] != str(canonical_id):
+        return False
+    inserted = conn.execute("INSERT OR IGNORE INTO sports_truth_mappings VALUES(?,?,?,?,?)", (*key, str(canonical_id), str(proof)))
+    if inserted.rowcount:
+        conn.execute("UPDATE sports_truth_generation SET revision=revision+1 WHERE id=1")
+    return True
+
+
+def persist_receipt(conn, match_id, row, *, provider=None):
+    ensure_schema(conn)
+    receipt = evidence_from_row(row, provider=provider)
+    if receipt["provider_id"] and not bind_identity(conn, "match", receipt["provider"], receipt["provider_id"], match_id, proof="EXPLICIT_INGEST_TARGET"):
+        return False
+    if provider is not None:
+        for kind, fields in (("team", ("home_team_id", "away_team_id")), ("competition", ("competition_id",))):
+            for field in fields:
+                identifier = receipt["values"].get(field)
+                if _present(identifier):
+                    bind_identity(conn, kind, receipt["provider"], identifier, f"{receipt['provider']}:{kind}:{identifier}", proof="NAMESPACED_PROVIDER_ID")
+        for player in row.get("players") or []:
+            identifier = player.get("id") or player.get("player_id") if isinstance(player, dict) else None
+            if identifier:
+                bind_identity(conn, "player", receipt["provider"], identifier, f"{receipt['provider']}:player:{identifier}", proof="NAMESPACED_PROVIDER_ID")
+    observed = receipt["groups"]["state"]["observed_at"]
+    prior = conn.execute("SELECT observed_at,evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider=?", (str(match_id), receipt["provider"])).fetchone()
+    if prior:
+        previous = _json(prior[1])
+        for group, fields in GROUPS.items():
+            incoming = receipt["groups"][group]
+            old = previous.get("groups", {}).get(group) or {}
+            has_group = any(_present(receipt["values"].get(field)) for field in fields) or incoming.get("state") != "AVAILABLE"
+            had_group = any(_present(previous.get("values", {}).get(field)) for field in fields) or old.get("state", "AVAILABLE") != "AVAILABLE"
+            older = had_group and instant(old.get("observed_at")) and (not instant(incoming.get("observed_at")) or instant(incoming["observed_at"]) < instant(old["observed_at"]))
+            if not has_group or older:
+                receipt["groups"][group] = clone_snapshot(old)
+                if group in previous.get("raw", {}):
+                    receipt["raw"][group] = clone_snapshot(previous["raw"][group])
+                for field in fields:
+                    receipt["values"][field] = clone_snapshot(previous.get("values", {}).get(field))
+                if group == "state":
+                    receipt["values"]["_status_signals"] = clone_snapshot(previous.get("values", {}).get("_status_signals", {}))
+        observed = receipt["groups"]["state"].get("observed_at")
+    encoded = json.dumps(receipt, ensure_ascii=False)
+    if not prior or prior[1] != encoded:
+        conn.execute("INSERT OR REPLACE INTO sports_truth_receipts VALUES(?,?,?,?)",
+                     (str(match_id), receipt["provider"], encoded, observed))
+        conn.execute("UPDATE sports_truth_generation SET revision=revision+1 WHERE id=1")
+    return True
+
+
+def persist_api_section(conn, fixture_id, group, payload, *, observed_at, availability="AVAILABLE"):
+    """Persist an already authorized section, resolving only explicit local IDs."""
+    if group not in GROUPS:
+        return False
+    ensure_schema(conn)
+    mapping = conn.execute("SELECT canonical_id FROM sports_truth_mappings WHERE entity_type='match' AND provider='api_football' AND provider_id=?", (str(fixture_id),)).fetchone()
+    if not mapping:
+        # Deep sync has its own explicit fixture index. Never assume that an
+        # external ID equals a local ID or another provider's event ID.
+        exists = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='api_football_fixture_index'").fetchone()
+        if exists:
+            mapping = conn.execute("SELECT internal_match_id FROM api_football_fixture_index WHERE fixture_id=?", (str(fixture_id),)).fetchone()
+    if not mapping or not mapping[0]:
+        return False
+    existing = conn.execute("SELECT evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider='api_football'", (str(mapping[0]),)).fetchone()
+    context = _json(existing[0]).get("values", {}) if existing else {}
+    raw_payload = payload
+    payload = adapt_section(group, payload, context)
+    if group == "stats" and isinstance(payload, dict) and not payload.get("available") and availability == "AVAILABLE":
+        has_values = isinstance(raw_payload, list) and any(s.get("value") is not None for b in raw_payload if isinstance(b, dict) for s in b.get("statistics", []) if isinstance(s, dict))
+        availability = "UNRESOLVED_IDENTITY" if has_values else "EMPTY_CONFIRMED"
+    persist_receipt(conn, mapping[0], {"source": "api_football", "external_id": str(fixture_id),
+        group: payload, "last_synced_at": observed_at, "coverage": {group: availability},
+        "raw_json": json.dumps({group: raw_payload}, ensure_ascii=False), "context_status": context.get("status")}, provider="api_football")
+    return True
+
+
+def rehome_receipts(conn, old_id, new_id):
+    """Called only after existing exact-identity dedupe has selected a keeper."""
+    if str(old_id) == str(new_id):
+        return
+    ensure_schema(conn)
+    for provider, encoded, observed in conn.execute("SELECT provider,evidence_json,observed_at FROM sports_truth_receipts WHERE match_id=?", (str(old_id),)).fetchall():
+        previous = conn.execute("SELECT observed_at,evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider=?", (str(new_id), provider)).fetchone()
+        if previous:
+            incoming, retained = _json(encoded), _json(previous[1])
+            for group, fields in GROUPS.items():
+                a, b = incoming.get("groups", {}).get(group, {}), retained.get("groups", {}).get(group, {})
+                available = any(_present(incoming.get("values", {}).get(field)) for field in fields) or a.get("state") != "AVAILABLE"
+                retained_available = any(_present(retained.get("values", {}).get(field)) for field in fields) or b.get("state", "AVAILABLE") != "AVAILABLE"
+                older = retained_available and instant(b.get("observed_at")) and (not instant(a.get("observed_at")) or instant(a["observed_at"]) < instant(b["observed_at"]))
+                if not available or older:
+                    incoming["groups"][group] = clone_snapshot(b)
+                    for field in fields:
+                        incoming["values"][field] = clone_snapshot(retained.get("values", {}).get(field))
+                    if group in retained.get("raw", {}):
+                        incoming["raw"][group] = clone_snapshot(retained["raw"][group])
+                    if group == "state":
+                        incoming["values"]["_status_signals"] = clone_snapshot(retained.get("values", {}).get("_status_signals", {}))
+            encoded = json.dumps(incoming, ensure_ascii=False)
+            observed = incoming["groups"]["state"].get("observed_at")
+        conn.execute("INSERT OR REPLACE INTO sports_truth_receipts VALUES(?,?,?,?)", (str(new_id), provider, encoded, observed))
+    conn.execute("UPDATE sports_truth_mappings SET canonical_id=?, proof='EXISTING_EXACT_FIXTURE_DEDUPE' WHERE entity_type='match' AND canonical_id=?", (str(new_id), str(old_id)))
+    bind_identity(conn, "match", "local_cache", old_id, new_id, proof="EXISTING_ROUTE_ALIAS")
+    conn.execute("DELETE FROM sports_truth_receipts WHERE match_id=?", (str(old_id),))
+    conn.execute("UPDATE sports_truth_generation SET revision=revision+1 WHERE id=1")
+
+
+def project_rows(conn, rows, *, now=None, tables=None, cache=None):
+    """One bulk read per table per batch. Never write or migrate on public reads."""
+    if not rows:
+        return rows
+    evaluated = instant(now) or datetime.now(timezone.utc)
+    if cache is not None:
+        signatures = [hashlib.sha256(json.dumps(row, sort_keys=True, default=str).encode()).hexdigest() for row in rows]
+        pending = [i for i, key in enumerate(signatures) if key not in cache or not (instant(cache[key]["evaluated_at"]) <= evaluated < instant(cache[key]["valid_until"]))]
+        if pending:
+            projected = project_rows(conn, [rows[i] for i in pending], now=evaluated, tables=tables)
+            for i, result in zip(pending, projected):
+                cache[signatures[i]] = result["unified_sports_truth"]
+        return [legacy_projection(row, clone_snapshot(cache[key])) for row, key in zip(rows, signatures)]
+    tables = tables if tables is not None else {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    ids = [str(r.get("id") or r.get("match_id") or "") for r in rows]
+    by_id = {key: [] for key in ids}
+    # Bound SQL parameter count for large calendar/history batches.
+    for start in range(0, len(ids), 400):
+        chunk = ids[start:start+400]
+        placeholders = ",".join("?" for _ in chunk)
+        if "sports_truth_receipts" in tables:
+            for key, encoded in conn.execute(f"SELECT match_id,evidence_json FROM sports_truth_receipts WHERE match_id IN ({placeholders})", chunk):
+                receipt = _json(encoded)
+                if isinstance(receipt, dict) and "values" in receipt:
+                    by_id[key].append(receipt)
+        if "api_football_live_snapshots" in tables:
+            cur = conn.execute(f"SELECT * FROM api_football_live_snapshots WHERE match_id IN ({placeholders})", chunk)
+            names = [c[0] for c in cur.description]
+            for values in cur:
+                raw = dict(zip(names, values))
+                by_id[str(raw["match_id"])].append(evidence_from_row(raw, provider="api_football"))
+    result = []
+    for row, key in zip(rows, ids):
+        receipts = by_id[key]
+        base = evidence_from_row(row)
+        # A merged legacy row may contain odds from a different observation.
+        # Its explicit odds clock is independent from the football receipt.
+        receipts = receipts + [base]
+        # Only explicitly persisted mappings may unify entity IDs. Collect the
+        # selected providers' IDs below in bulk, never match names fuzzily.
+        by_id[key] = receipts
+    provider_ids = {str(r["values"].get(field)) for receipts in by_id.values() for r in receipts
+                    for field in ("home_team_id", "away_team_id", "competition_id") if _present(r["values"].get(field))}
+    for receipts in by_id.values():
+        for receipt in receipts:
+            players = receipt["values"].get("players")
+            if isinstance(players, list):
+                provider_ids.update(str(p.get("id") or p.get("player_id")) for p in players if isinstance(p, dict) and (p.get("id") or p.get("player_id")))
+    mappings = {}
+    if "sports_truth_mappings" in tables and provider_ids:
+        identifiers = sorted(provider_ids)
+        for start in range(0, len(identifiers), 400):
+            chunk = identifiers[start:start+400]
+            placeholders = ",".join("?" for _ in chunk)
+            for kind, provider, identifier, canonical in conn.execute(f"SELECT entity_type,provider,provider_id,canonical_id FROM sports_truth_mappings WHERE provider_id IN ({placeholders})", chunk):
+                mappings[kind, provider, identifier] = canonical
+    for row, key in zip(rows, ids):
+        receipts = by_id[key]
+        for receipt in receipts:
+            receipt["entity_mappings"] = {field: mappings.get((kind, receipt["provider"], str(receipt["values"].get(field))))
+                                          for kind, fields in (("team", ("home_team_id", "away_team_id")), ("competition", ("competition_id",))) for field in fields}
+            receipt["player_mappings"] = {identifier: canonical for (kind, provider, identifier), canonical in mappings.items() if kind == "player" and provider == receipt["provider"]}
+        result.append(legacy_projection(row, resolve_match(key, receipts, now=evaluated)))
+    return result

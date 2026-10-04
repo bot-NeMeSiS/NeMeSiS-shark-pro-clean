@@ -1608,6 +1608,13 @@ def build_match_context(
 
     detail_data = _mapping(detail)
     match = _mapping(detail_data.get("match"))
+    if match.get("unified_sports_truth"):
+        from engines.unified_sports_truth_engine import canonicalize_detail, refresh_payload_truth
+        if not detail_data.get("unified_sports_truth"):
+            detail_data = canonicalize_detail(detail_data, now=evaluation_time)
+        else:
+            detail_data = refresh_payload_truth(detail_data, now=evaluation_time)
+        match = _mapping(detail_data.get("match"))
     display = _mapping(madrid_context)
     live = _mapping(live_context or detail_data.get("api_football_live_tracker"))
     lineups = _lineups_context(detail_data.get("lineups") or [])
@@ -1671,10 +1678,16 @@ def build_match_context(
     }
     shell_state = _shell_state(shell_identity, lifecycle, offline=offline)
     statistics = _real_statistics(
-        live,
+        {} if match.get("unified_sports_truth") else live,
         lifecycle,
         _mapping(detail_data.get("cached_statistics")),
     )
+    unified = _mapping(match.get("unified_sports_truth"))
+    if unified:
+        statistics["provenance"] = unified.get("resolved", {}).get("stats", {})
+        if statistics["provenance"].get("stale_reason") and statistics.get("available"):
+            statistics["status"] = "stale"
+            statistics["usable_for_current_intelligence"] = False
     picks = _picks_context(related_picks, lifecycle)
 
     teams = _teams_from_domain(canonical_match)
