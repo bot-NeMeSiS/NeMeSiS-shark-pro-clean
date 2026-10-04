@@ -43,6 +43,25 @@ def install(monkeypatch, *, empty=False):
     return calls
 
 
+@pytest.mark.parametrize('status',['Finished (AET)','Finalizado (prórroga)','FINISHED_UNKNOWN_SCOPE'])
+def test_unresolved_final_period_cannot_roll_back_inventory_cursor(store,status):
+    from engines.postmatch_store import is_final
+    with store.connection(True) as conn:
+        conn.execute('UPDATE matches SET status=? WHERE id=?',(status,MATCH['id']))
+        second={**MATCH,'id':'valid-next'}
+        conn.execute('INSERT INTO matches ('+','.join(second)+') VALUES ('+','.join('?' for _ in second)+')',tuple(second.values()))
+    assert is_final(store.match(MATCH['id']),NOW)
+    assert store.discover(NOW,include_archive=True)==6
+    with store.connection() as conn:
+        assert conn.execute('SELECT row_cursor FROM postmatch_inventory_cursor').fetchone()[0]>0
+        assert conn.execute("SELECT COUNT(*) FROM postmatch_jobs WHERE kind='archive'").fetchone()[0]==2
+        assert not conn.execute('SELECT COUNT(*) FROM postmatch_sections').fetchone()[0]
+    assert Store(store.path).discover(NOW,include_archive=True)==0
+    with pytest.raises(SourceError,match='SOURCE_NOT_FINAL'):
+        from engines.postmatch_sources import final_scope
+        final_scope(status)  # Never infer regulation or extra-time scope from a finality label.
+
+
 def test_production_recovers_archive_after_statistics_without_duplicate_video_calls(store,monkeypatch):
     calls=install(monkeypatch)
     result=tick(store.path,clock=lambda:NOW)

@@ -213,8 +213,13 @@ class Store:
                 conn.execute('UPDATE postmatch_jobs SET priority=?,match_day=? WHERE match_id=? AND identity=?',
                              (int(priority(match)) if priority else 0,str(match['match_date'])[:10],mid,ident))
                 if include_archive:
-                    from engines.postmatch_sources import final_scope
-                    scope = final_scope(match.get('status'))
+                    from engines.postmatch_sources import final_scope, SourceError
+                    try:
+                        scope = final_scope(match.get('status'))
+                    except SourceError:
+                        # Canonical finality can come from persisted provider evidence.
+                        # An unresolved period must defer this job, not roll back the inventory.
+                        continue
                     # A corrected period must be checked again, without mixing old receipts.
                     conn.execute("UPDATE postmatch_jobs SET state='PENDING',attempts=0,due_at=?,reason='SCOPE_CHANGED' "
                                  "WHERE match_id=? AND identity=? AND kind='archive' AND state='COMPLETE' "
