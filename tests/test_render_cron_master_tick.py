@@ -668,3 +668,22 @@ def test_highlights_failure_is_reported_without_stopping_other_lanes(monkeypatch
     assert payload["highlights_status"] == "FAIL"
     assert payload["highlights"]["highlights_result"] == "TIMEOUT"
     assert payload["continuous_evolution_status"] == "PASS"
+
+
+def test_backup_tick_reports_safe_failure_classification(monkeypatch):
+    secret="pytest-backup-secret"
+    def fake_urlopen(request,timeout):
+        return MockResponse({
+            "ok":False,
+            "status":"FAIL",
+            "backup_created":False,
+            "error_code":"STORAGE_FULL",
+            "error":"sensitive provider detail must not be emitted",
+        })
+    monkeypatch.setattr(master.urllib.request,"urlopen",fake_urlopen)
+    result=master.backup_tick("https://example.invalid",secret)
+    assert result["backup_status"]=="FAIL"
+    assert result["backup_result"]=="FAIL"
+    assert result["backup_created"] is False
+    assert result["backup_error_code"]=="STORAGE_FULL"
+    assert "sensitive provider detail" not in json.dumps(result)
