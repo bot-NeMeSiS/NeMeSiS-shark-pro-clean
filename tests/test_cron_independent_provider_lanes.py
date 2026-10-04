@@ -128,6 +128,41 @@ class Response:
     def __exit__(self, *a): pass
 
 
+def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, monkeypatch):
+    result = {'ok':False, 'status':'PROVIDER_FAILURE_STOPPED_EARLY', 'errors':['provider'], 'external_calls':1,
+              'quota':{'http_status':401,'error_type':'HTTPError','requests_remaining':0}}
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+    monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(compact))
+    observed = master.odds_tick('https://example.invalid', 'test')
+    assert observed['odds_status'] == 'FAIL'
+    assert observed['provider_http'] == 401
+    assert observed['provider_error_type'] == 'HTTPError'
+    assert observed['provider_requests_remaining'] == 0
+    assert observed['provider_observation_current'] is True
+    result['external_calls'] = 0
+    assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_observation_current'] is False
+    result['quota']['error_type'] = 'private-url?apiKey=secret'
+    assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_error_type'] == 'UNKNOWN'
+
+
+@pytest.mark.parametrize('tick', [master.telegram_tick, master.postmatch_tick])
+def test_uncertain_http_error_retains_only_correlation_metadata(monkeypatch, tick):
+    import urllib.error
+    calls = []
+    def transport(*args, **kwargs):
+        calls.append(args)
+        raise urllib.error.HTTPError('https://example.invalid', 502, 'bad gateway', {
+            'Server':'cloudflare', 'CF-Ray':'abc01234-LHR', 'Rndr-Id':'private?secret=value',
+            'Set-Cookie':'private-cookie'}, None)
+    monkeypatch.setattr(master.urllib.request, 'urlopen', transport)
+    observed = tick('https://example.invalid', 'test')
+    assert len(calls) == 1
+    assert observed['response_server'] == 'cloudflare'
+    assert observed['edge_request_id'] == 'abc01234-LHR'
+    assert 'render_request_id' not in observed
+    assert 'private' not in json.dumps(observed)
+
+
 @pytest.mark.parametrize('payload,expected', [
     ({'ok':True,'status':'OK'}, 'PASS'),
     ({'ok':True,'status':'PARTIAL','controlled_deferrals':['TIME_BUDGET']}, 'PARTIAL'),

@@ -2572,6 +2572,14 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         compact["controlled_deferrals"] = result.get("controlled_deferrals") or []
         compact["external_calls"] = as_int(result.get("external_calls"), 0)
         compact["technical_errors"] = result.get("technical_errors") or []
+    if endpoint == "odds_sync":
+        quota = result.get("quota") or {}
+        compact["provider_observation_current"] = as_int(result.get("external_calls"), 0) > 0
+        compact["provider_http"] = as_int(quota.get("http_status"), 0)
+        compact["provider_error_type"] = quota.get("error_type") if quota.get("error_type") in {
+            "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
+        } else "UNKNOWN" if quota.get("error_type") else ""
+        compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
     if result.get("errors"):
@@ -6767,6 +6775,7 @@ def fetch_odds_events(limit=250):
                     quota[field] = as_int(observed[field], None)
             payload = response.get("payload")
             if not response.get("ok"):
+                quota["error_type"] = response.get("error")
                 errors.append(f"{sport['name']}: {response.get('error') or 'provider_error'}")
                 if _odds_systemic_failure_response(response):
                     quota["systemic_failure"] = True

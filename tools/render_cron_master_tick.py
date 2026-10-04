@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import socket
 import sys
 import time
@@ -341,13 +342,23 @@ def decode_json(body: bytes) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
-def request_error_result(prefix: str, started: float, error: str, http_status: int | None = None) -> dict:
-    return {
+def request_error_result(prefix: str, started: float, error: str, http_status: int | None = None, http_error=None) -> dict:
+    result = {
         f"{prefix}_http": http_status,
         f"{prefix}_status": "FAIL",
         f"{prefix}_result": error,
         f"{prefix}_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
     }
+    if http_error is not None:
+        headers = getattr(http_error, "headers", None) or {}
+        server = str(headers.get("Server", "")).lower()
+        result["response_server"] = server if server in {"cloudflare", "gunicorn", "render"} else "OTHER"
+        # Correlation metadata only; never print a response body or arbitrary headers.
+        for header, field in (("CF-Ray", "edge_request_id"), ("Rndr-Id", "render_request_id")):
+            value = str(headers.get(header, ""))
+            if re.fullmatch(r"[A-Za-z0-9-]{8,80}", value):
+                result[field] = value
+    return result
 
 
 def wait_for_web_ready(base_url: str) -> dict:
@@ -447,7 +458,7 @@ def telegram_tick(base_url: str, secret: str) -> dict:
                 response["sports_pipeline"] = pipeline
             return response
     except urllib.error.HTTPError as exc:
-        return request_error_result("telegram", started, f"HTTP_{int(exc.code)}", int(exc.code))
+        return request_error_result("telegram", started, f"HTTP_{int(exc.code)}", int(exc.code), exc)
     except Exception as exc:
         reason = getattr(exc, "reason", None)
         is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(reason, (TimeoutError, socket.timeout))
@@ -480,13 +491,22 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
                 f"{prefix}_result": reason, "processed": safe_count(payload.get("processed")),
                 "external_calls": safe_count(payload.get("external_calls")),
                 f"{prefix}_duration_ms": max(0, round((time.perf_counter()-started)*1000))}
+        if prefix == "odds":
+            result["provider_observation_current"] = payload.get("provider_observation_current") is True
+            result["provider_http"] = safe_count(payload.get("provider_http"))
+            error_type = payload.get("provider_error_type")
+            result["provider_error_type"] = error_type if error_type in {
+                "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError", "UNKNOWN",
+            } else ""
+            remaining = payload.get("provider_requests_remaining")
+            result["provider_requests_remaining"] = safe_count(remaining) if remaining is not None else None
         if prefix == "sports":
             pipeline = sanitized_sports_pipeline(payload, secret)
             if pipeline:
                 result["sports_pipeline"] = pipeline
         return result
     except urllib.error.HTTPError as exc:
-        return request_error_result(prefix, started, f"HTTP_{exc.code}", int(exc.code))
+        return request_error_result(prefix, started, f"HTTP_{exc.code}", int(exc.code), exc)
     except Exception as exc:
         return request_error_result(prefix, started, type(exc).__name__)
 
@@ -673,12 +693,9 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
                 'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
                 'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
     except urllib.error.HTTPError as exc:
-        return {
-            'postmatch_http': int(exc.code),
-            'postmatch_status': 'FAIL',
-            'postmatch_result': f'HTTP_{int(exc.code)}',
-            'duration_ms': max(0, round((time.perf_counter() - started) * 1000)),
-        }
+        result = request_error_result('postmatch', started, f'HTTP_{int(exc.code)}', int(exc.code), exc)
+        result['duration_ms'] = result.pop('postmatch_duration_ms')
+        return result
     except Exception as exc:
         reason = getattr(exc, 'reason', None)
         is_timeout = isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(
