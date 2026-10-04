@@ -61,7 +61,7 @@
     </div>
     <section class="ns16-section ns16-featured-pick">
       {{ section_header('Pronóstico destacado', '', 'Combinadas', '/combinadas') }}
-      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay pronósticos publicados', 'Los nuevos pronósticos aparecerán aquí cuando estén disponibles.', '', '', 'shark') }}{% endif %}
+      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}<details class="v933-home-more"><summary>{{ ui('Todavía no hay pronósticos publicados') }}</summary>{{ empty_state('Todavía no hay pronósticos publicados', 'Los nuevos pronósticos aparecerán aquí cuando estén disponibles.', '', '', 'shark') }}</details>{% endif %}
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
     {{ quick_action('Favoritos', 'Tu selección', '/favoritos', 'star') }}
@@ -76,7 +76,7 @@
       <section class="v933-two-col is-balanced">
         <article class="v933-panel">
           {{ section_header('Próximos', '', 'Semana completa', '/calendario?lane=week') }}
-          {% if upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Esperando próximos partidos', 'Sin calendario inventado.', '', '', 'calendar') }}{% endif %}
+          {% if upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% else %}{{ empty_state('Esperando próximos partidos', 'Los próximos encuentros aparecerán aquí cuando estén disponibles.', '', '', 'calendar') }}{% endif %}
         </article>
         <article class="v933-panel">
           {{ section_header('Favoritos y resultados', '', 'Abrir favoritos', '/favoritos') }}

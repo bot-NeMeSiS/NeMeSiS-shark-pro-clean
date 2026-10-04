@@ -23578,10 +23578,10 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   .ns16-home { display: grid; }
   .ns16-home > .ns16-home-hero { order: 1; }
   .ns16-home > .ns16-live-priority { order: 2; }
-  .ns16-home > .ns16-kpi-strip { order: 3; }
+  .ns16-home > .ns16-kpi-strip { order: 5; }
   body.ns-app .ns16-kpi-strip .v933-kpi { display: flex; justify-content: center; min-height: 60px; padding: 6px !important; }
   body.ns-app .ns16-kpi-strip .v933-kpi > .v933-icon { display: none; }
-  .ns16-home > .ns16-home-command { order: 4; display: grid; grid-template-columns: minmax(0,1fr); grid-template-areas: none; grid-template-rows: none; }
+  .ns16-home > .ns16-home-command { order: 3; display: grid; grid-template-columns: minmax(0,1fr); grid-template-areas: none; grid-template-rows: none; }
   .ns16-home-command > .ns16-featured-pick,.ns16-home-command > .ns16-home-actions { grid-area: auto; }
   .ns16-home-command > .ns16-home-primary { display: contents; }
   .ns16-home .ns16-journey { order: 1; }
