@@ -63,6 +63,15 @@ no una garantía de completar el catálogo ni una extrapolación de feeds incomp
 
 ## Lecturas y cliente
 
+La evidencia del catálogo asociado se recorre además con un cursor persistente
+independiente del inventario general. Cada lote es acotado y vuelve a verificar
+fecha, equipos, competición e identidad canónica antes de contar LINKED. Así,
+un vídeo histórico ya persistido puede aportar cobertura sin esperar al cursor
+general y sin comprar llamadas. Las asociaciones ambiguas no se reutilizan.
+Los permisos no cambian. El cursor de evidencia vuelve al principio al terminar
+su recorrido para detectar nuevos enlaces o correcciones de datos, sin reiniciar
+las comprobaciones ya registradas.
+
 Command Center y `/api/admin/highlights/readiness` leen sin migraciones, escrituras
 ni consultas al proveedor. Elegibles/comprobados/pendientes y porcentaje se miden
 sobre partidos, no sobre vídeos. También muestran estados, cursor y próximo lote.

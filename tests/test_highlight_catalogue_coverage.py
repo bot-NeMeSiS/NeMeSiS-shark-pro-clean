@@ -256,6 +256,74 @@ def test_existing_linked_catalogue_reused_without_provider_or_rights_changes(cov
     assert media.sportsdb_highlights_for_match(coverage.path,'old')['highlights']==[]
 
 
+def add_deep_catalogue_match(coverage, sid, *, invalid=False):
+    row={**MATCH,'id':f'archive-{sid}','external_id':f'sportsdb-{sid}',
+         'home_team':f'Archive {sid}','match_date':'2020-01-01'}
+    event={**EVENT,'idEvent':str(sid),'strHomeTeam':row['home_team'],'dateEvent':row['match_date']}
+    with sqlite3.connect(coverage.path) as conn:
+        conn.row_factory=sqlite3.Row
+        conn.execute('INSERT INTO matches VALUES('+','.join('?' for _ in row)+')',tuple(row.values()))
+        media._upsert_highlight(conn,event)
+        if invalid:
+            conn.execute('UPDATE sportsdb_match_highlights SET raw_json=? WHERE sportsdb_event_id=?',
+                         (json.dumps({**event,'strAwayTeam':'Wrong identity'}),str(sid)))
+    return row
+
+
+def test_catalogue_evidence_precedes_general_inventory_without_calls(coverage):
+    with sqlite3.connect(coverage.path) as conn:
+        for i in range(10):
+            row={**MATCH,'id':f'filler-{i}','external_id':f'sportsdb-{200+i}'}
+            conn.execute('INSERT INTO matches VALUES('+','.join('?' for _ in row)+')',tuple(row.values()))
+    target=add_deep_catalogue_match(coverage,99)
+    coverage.prepare(batch=1)
+    snapshot=coverage.snapshot()
+    assert snapshot['cursor']['row_cursor']==2
+    assert snapshot['checked']==1 and snapshot['states']['LINKED']==1
+    assert snapshot['media_budget']['used']==0
+    assert media.sportsdb_highlights_for_match(coverage.path,target['id'])['highlights']==[]
+
+
+def test_catalogue_cursor_restart_skips_invalid_evidence_without_starvation(coverage):
+    add_deep_catalogue_match(coverage,99,invalid=True)
+    target=add_deep_catalogue_match(coverage,100)
+    coverage.prepare(batch=1)
+    first=coverage.snapshot()
+    assert first['checked']==0 and first['cursor']['media_row_cursor']==1
+    restarted=Coverage(coverage.path,NOW+1)
+    restarted.prepare(batch=1)
+    second=restarted.snapshot()
+    assert second['checked']==1 and second['cursor']['media_row_cursor']==2
+    assert second['media_budget']['used']==0
+    # Traversal wraps without deleting or restarting proven coverage.
+    restarted.prepare(batch=1)
+    assert restarted.snapshot()['checked']==1
+    assert media.sportsdb_highlights_for_match(coverage.path,target['id'])['highlights']==[]
+
+
+def test_new_catalogue_video_promotes_negative_evidence_without_http(coverage):
+    lookup_pipeline(coverage)
+    with sqlite3.connect(coverage.path) as conn:
+        conn.row_factory=sqlite3.Row
+        media._upsert_highlight(conn,EVENT)
+    before=coverage.snapshot()['media_budget']['used']
+    coverage.prepare()
+    assert coverage.snapshot()['states']['LINKED']==1
+    assert coverage.snapshot()['media_budget']['used']==before
+
+
+def test_catalogue_reuse_preserves_active_lease(coverage):
+    job=coverage.claim()
+    with sqlite3.connect(coverage.path) as conn:
+        conn.row_factory=sqlite3.Row
+        media._upsert_highlight(conn,EVENT)
+    coverage.prepare()
+    assert coverage.snapshot()['states']['CHECK_PENDING']==1
+    assert coverage.finish(job,'CHECKED_NO_VIDEO',checked=True)
+    coverage.prepare()
+    assert coverage.snapshot()['states']['LINKED']==1
+
+
 def test_verified_persisted_profile_id_is_preferred_and_stale_mapping_rejected(coverage):
     with sqlite3.connect(coverage.path) as conn:
         conn.execute("UPDATE matches SET external_id='api-football-1',source='API-Football'")

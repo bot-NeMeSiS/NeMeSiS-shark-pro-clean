@@ -137,7 +137,10 @@ class Coverage:
             for name, default in [('recent_reserve',RECENT_MARGIN),('historical_checked',0)]:
                 if name not in budget_cols:
                     conn.execute(f'ALTER TABLE highlight_coverage_budget ADD COLUMN {name} INTEGER NOT NULL DEFAULT {default}')
-            conn.execute('INSERT OR IGNORE INTO highlight_coverage_cursor VALUES(1,0,?)', (self.now,))
+            conn.execute('INSERT OR IGNORE INTO highlight_coverage_cursor(id,row_cursor,updated_at) VALUES(1,0,?)', (self.now,))
+            cursor_cols = {row[1] for row in conn.execute('PRAGMA table_info(highlight_coverage_cursor)')}
+            if 'media_row_cursor' not in cursor_cols:
+                conn.execute('ALTER TABLE highlight_coverage_cursor ADD COLUMN media_row_cursor INTEGER NOT NULL DEFAULT 0')
             cursor = conn.execute('SELECT row_cursor FROM highlight_coverage_cursor').fetchone()[0]
             expr = self.projection(conn)
             rows = conn.execute(f'SELECT m.rowid AS inventory_row,{expr} AS payload FROM matches m '
@@ -150,7 +153,23 @@ class Coverage:
                 'LEFT JOIN highlight_coverage c ON c.match_id=m.id '
                 f'WHERE coverage_eligible({expr}) AND (c.match_id IS NULL OR c.identity<>coverage_identity({expr})) '
                 'ORDER BY m.match_date DESC,m.id LIMIT ?', (batch,)).fetchall()
-            for raw in list(rows) + list(extra):
+            # Catalogue evidence has its own bounded persistent traversal. A
+            # linked historical match need not wait behind the inventory scan.
+            # Missing/ambiguous associations are excluded; payloads are verified
+            # again below, so a stored link alone never proves coverage.
+            media_cursor = conn.execute('SELECT media_row_cursor FROM highlight_coverage_cursor').fetchone()[0]
+            def media_rows(after):
+                return conn.execute(f'SELECT h.rowid AS media_row,{expr} AS payload '
+                    'FROM sportsdb_match_highlights h JOIN matches m ON m.id=h.match_id '
+                    "WHERE h.rowid>? AND COALESCE(h.video_url,'')<>'' ORDER BY h.rowid LIMIT ?",
+                    (after,batch)).fetchall()
+            catalogue = media_rows(media_cursor)
+            if not catalogue and media_cursor:
+                catalogue = media_rows(0)
+            if catalogue:
+                conn.execute('UPDATE highlight_coverage_cursor SET media_row_cursor=?',
+                             (catalogue[-1]['media_row'],))
+            for raw in list(rows) + list(extra) + list(catalogue):
                 match = json.loads(raw['payload'])
                 if not eligible(match, self.now):
                     continue
@@ -166,9 +185,11 @@ class Coverage:
             # for an already linked video. The two unassociated assets are excluded.
             from engines.sportsdb_highlights_engine import _find_match
             from engines.highlight_url_engine import public_https_url
+            media_ids = [raw['media_row'] for raw in catalogue]
             known = conn.execute('SELECT c.match_id,h.raw_json,h.video_url FROM highlight_coverage c '
                 'JOIN sportsdb_match_highlights h ON h.match_id=c.match_id '
-                "WHERE c.state='UNSCANNED' AND c.lease_until<=? LIMIT ?",(self.now,batch)).fetchall()
+                "WHERE c.state<>'LINKED' AND c.lease_until<=? AND h.rowid IN (" +
+                ','.join('?' for _ in media_ids) + ')', (self.now,*media_ids)).fetchall() if media_ids else []
             for item in known:
                 try:
                     event = json.loads(item['raw_json'])
