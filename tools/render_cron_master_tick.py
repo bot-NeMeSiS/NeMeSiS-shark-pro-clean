@@ -103,6 +103,24 @@ def safe_count(value: object) -> int:
         return 0
 
 
+def backup_error_code(value: object, secret: str) -> str:
+    """Reduce backup exceptions to a small non-sensitive operational code."""
+    label = safe_label(value, secret, "").lower()
+    if not label:
+        return ""
+    if "database or disk is full" in label or "backup_storage_insufficient" in label or "no space left" in label:
+        return "STORAGE_CAPACITY"
+    if "locked" in label or "busy" in label:
+        return "DATABASE_BUSY"
+    if "permission" in label or "readonly" in label or "read-only" in label:
+        return "STORAGE_PERMISSION"
+    if "integrity" in label or "snapshot_unreadable" in label:
+        return "BACKUP_VALIDATION"
+    if "not found" in label or "no encontrada" in label or "database_missing" in label:
+        return "DATABASE_MISSING"
+    return "BACKUP_FAILED"
+
+
 def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw = payload.get("sports_pipeline")
     if not isinstance(raw, dict):
@@ -649,11 +667,17 @@ def backup_tick(base_url: str, secret: str) -> dict:
             candidate = payload.get("status") or payload.get("result")
             result = safe_label(candidate, secret, "PASS" if payload.get("ok") is not False else "FAIL")
             ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
+            storage = payload.get("storage") if isinstance(payload.get("storage"), dict) else {}
             return {
                 "backup_http": http_status,
                 "backup_status": "PASS" if ok else "FAIL",
                 "backup_result": result,
                 "backup_created": bool(payload.get("backup_created")),
+                "backup_error_code": backup_error_code(payload.get("error"), secret),
+                "backup_storage_required_bytes": safe_count(storage.get("required_bytes")),
+                "backup_storage_free_before": safe_count(storage.get("free_before")),
+                "backup_storage_free_after": safe_count(storage.get("free_after")),
+                "backup_storage_removed_count": len(storage.get("removed") or []) if isinstance(storage.get("removed"), list) else 0,
                 "backup_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
     except urllib.error.HTTPError as exc:
