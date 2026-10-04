@@ -53,6 +53,15 @@ def test_sports_wrapper_explicitly_excludes_odds(app_module, monkeypatch):
     assert seen['include_odds'] is False
 
 
+def test_sports_diagnostic_failure_preserves_execution(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'run_sports_sync_cycle', lambda **k: {'ok':True,'status':'OK'})
+    monkeypatch.setattr(app_module, 'api_exploitation_summary', lambda *a: {})
+    monkeypatch.setattr(app_module, '_build_sports_pipeline_diagnostics', lambda *a: (_ for _ in ()).throw(ValueError()))
+    result = app_module.bounded_sports_sync()
+    assert result['ok'] is True
+    assert result['sports_pipeline']['status'] == 'CONTROLLED_ERROR'
+
+
 @pytest.mark.parametrize('stage,expected_errors', [
     ({'ok':False,'status':'CACHE_PROVIDER_FAILURE_FREE_PLAN_RESTRICTED','error':'cached_provider_failure'}, []),
     ({'ok':True,'status':'PROVIDER_FAILURE_BACKOFF_ACCESS_RESTRICTED','errors':['provider_failure_backoff']}, []),

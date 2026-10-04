@@ -2243,6 +2243,21 @@ def bounded_sports_sync(force=False):
             result["ok"] = not technical
             if budget.deferred and "TIME_BUDGET" not in controlled:
                 result["controlled_deferrals"].append("TIME_BUDGET")
+        if budget.remaining() >= 1:
+            deep = result.get("deep_enrichment") or {}
+            history = {}
+            if not deep.get("account") or not deep.get("capabilities"):
+                try:
+                    history = api_exploitation_summary(DB_PATH) or {}
+                except Exception:
+                    history = {}
+            # Cached provider history only; no entity-wide scan or provider calls.
+            try:
+                result["sports_pipeline"] = _build_sports_pipeline_diagnostics(result, history)
+            except Exception as exc:
+                result["sports_pipeline"] = {
+                    "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
+                }
         return result
 
 
@@ -2311,7 +2326,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         "called_at": called_at,
         "finished_at": finished_at,
     }
-    if endpoint == "telegram_tick" and isinstance(result.get("sports_pipeline"), dict):
+    if endpoint in {"telegram_tick", "sports_sync"} and isinstance(result.get("sports_pipeline"), dict):
         raw_pipeline = result["sports_pipeline"]
         raw_quota = raw_pipeline.get("quota") if isinstance(raw_pipeline.get("quota"), dict) else {}
         raw_capabilities = raw_pipeline.get("capabilities") if isinstance(raw_pipeline.get("capabilities"), dict) else {}

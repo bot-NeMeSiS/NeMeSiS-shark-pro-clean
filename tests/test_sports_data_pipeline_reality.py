@@ -291,7 +291,7 @@ def test_sports_scheduler_invokes_due_gated_deep_cycle(app_module, monkeypatch):
     assert deep_calls == [{"fixture_ids": ["9001"], "deep_limit": 1}]
 
 
-def test_shared_cron_exposes_only_sanitized_pipeline_evidence(app_module, monkeypatch):
+def test_sports_lane_exposes_only_sanitized_pipeline_evidence(app_module, monkeypatch):
     monkeypatch.setattr(
         app_module,
         "run_sports_sync_cycle",
@@ -307,7 +307,7 @@ def test_shared_cron_exposes_only_sanitized_pipeline_evidence(app_module, monkey
     )
     monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
 
-    result = app_module.telegram_cron_with_sports_sync()
+    result = app_module.bounded_sports_sync()
 
     assert result["sports_pipeline"]["provider_authenticated"] is True
     assert result["sports_pipeline"]["provider_plan"] == "Free"
@@ -315,7 +315,7 @@ def test_shared_cron_exposes_only_sanitized_pipeline_evidence(app_module, monkey
     assert "secret" not in json.dumps(result).lower()
 
 
-def test_shared_cron_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_due(app_module, monkeypatch):
+def test_sports_lane_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_due(app_module, monkeypatch):
     monkeypatch.setattr(
         app_module,
         "run_sports_sync_cycle",
@@ -353,7 +353,7 @@ def test_shared_cron_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_
     )
     monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
 
-    result = app_module.telegram_cron_with_sports_sync()
+    result = app_module.bounded_sports_sync()
     pipeline = result["sports_pipeline"]
 
     assert pipeline["provider_authenticated"] is True
@@ -363,7 +363,7 @@ def test_shared_cron_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_
     assert pipeline["deep_external_calls"] == 0
 
 
-def test_render_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_module, monkeypatch):
+def test_sports_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_module, monkeypatch):
     secret = "pytest-automation-secret"
     monkeypatch.setenv("AUTOMATION_SECRET", secret)
     monkeypatch.setattr(
@@ -404,7 +404,7 @@ def test_render_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_
     monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
 
     response = client.post(
-        "/api/automation/telegram/tick",
+        "/api/automation/sports/sync",
         headers={"X-Automation-Secret": secret, "X-NeMeSiS-Cron-Runner": "render-cron"},
     )
 

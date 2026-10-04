@@ -476,10 +476,15 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             status = "PARTIAL"
         else:
             status = "PASS"
-        return {f"{prefix}_http": http_status, f"{prefix}_status": status,
+        result = {f"{prefix}_http": http_status, f"{prefix}_status": status,
                 f"{prefix}_result": reason, "processed": safe_count(payload.get("processed")),
                 "external_calls": safe_count(payload.get("external_calls")),
                 f"{prefix}_duration_ms": max(0, round((time.perf_counter()-started)*1000))}
+        if prefix == "sports":
+            pipeline = sanitized_sports_pipeline(payload, secret)
+            if pipeline:
+                result["sports_pipeline"] = pipeline
+        return result
     except urllib.error.HTTPError as exc:
         return request_error_result(prefix, started, f"HTTP_{exc.code}", int(exc.code))
     except Exception as exc:
