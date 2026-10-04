@@ -162,6 +162,7 @@ class OfficialSources:
         self.transport = transport or self._http
         self.calls = 0
         self.cache = {}
+        self.receipts = {}
         self.diagnostics = {}
 
     @staticmethod
@@ -174,8 +175,9 @@ class OfficialSources:
             return json.loads(data.decode('utf-8'))
 
     def request(self, provider, endpoint, params):
-        allowed = {'thesportsdb': {'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php'},
-                   'api_football': {'fixtures', 'fixtures/statistics'}}
+        allowed = {'thesportsdb': {'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php',
+                                  'lookuplineup.php', 'lookuptimeline.php'},
+                   'api_football': {'fixtures', 'fixtures/statistics', 'fixtures/events', 'fixtures/lineups'}}
         if provider not in self.config['sources'] or endpoint not in allowed.get(provider, set()):
             raise SourceError('SOURCE_NOT_ALLOWED')
         if provider == 'thesportsdb':
@@ -190,16 +192,26 @@ class OfficialSources:
             key = _provider_key()
             if not key:
                 raise SourceError('MISSING_KEY')
-            if not usage_guard()['network_enabled'] or os.getenv('ENABLE_API_FOOTBALL_PROVIDER', 'true').lower() in {'0', 'false', 'off'}:
+            if os.getenv('ENABLE_API_FOOTBALL_PROVIDER', 'true').lower() in {'0', 'false', 'off'}:
                 raise SourceError('SOURCE_DISABLED')
             base = 'https://v3.football.api-sports.io/'
             headers = {'x-apisports-key': key}
         cache_key = (provider, hashlib.sha256(key.encode()).digest(), endpoint, tuple(sorted(params.items())))
+        receipt_key = (provider,endpoint,tuple(sorted(params.items())))
         if self.clock() >= self.deadline - .5:
             raise BudgetStopped('TICK_BUDGET')
         if cache_key in self.cache:
             self.diagnostics['cache_hits'] = self.diagnostics.get('cache_hits', 0) + 1
             return deepcopy(self.cache[cache_key])
+        persistent_key = hashlib.sha256(repr(cache_key).encode()).hexdigest()
+        cached = self.store.cached_request(persistent_key, self.job['identity'], self.clock())
+        if cached is not None:
+            self.diagnostics['cache_hits'] = self.diagnostics.get('cache_hits', 0) + 1
+            self.cache[cache_key] = cached['payload']
+            self.receipts[receipt_key] = cached['observed_at']
+            return deepcopy(cached['payload'])
+        if provider=='api_football' and not usage_guard()['network_enabled']:
+            raise SourceError('SOURCE_DISABLED')
         if self.calls >= 6:
             raise BudgetStopped('TICK_BUDGET')
         self.store.reserve(provider, self.job, self.clock(), self.config['daily_limit'])
@@ -214,10 +226,25 @@ class OfficialSources:
                 raw = json.dumps(payload.get('errors') or payload.get('error')).lower()[:1000]
                 reason = 'RATE_LIMIT' if any(t in raw for t in ('quota','limit','429')) else 'ACCESS_DENIED'
                 raise SourceError(reason)
+            expected = {'fixtures':'response','fixtures/statistics':'response','fixtures/events':'response',
+                        'fixtures/lineups':'response','lookupevent.php':'events','eventsday.php':'events',
+                        'lookupeventstats.php':'eventstats','lookuplineup.php':'lineup','lookuptimeline.php':'timeline'}
+            field = expected.get(endpoint)
+            if endpoint=='eventshighlights.php':
+                field = next((key for key in ('tvhighlights','eventshighlights','highlights','events') if key in payload),None)
+                if not field:
+                    raise SourceError('MALFORMED')
+            if field and (field not in payload or (payload[field] is not None and
+                          (not isinstance(payload[field], list) or
+                           any(not isinstance(row, dict) for row in payload[field])))):
+                raise SourceError('MALFORMED')
+            observed = self.clock()
+            self.store.cache_request(persistent_key, self.job, payload, observed)
+            self.receipts[receipt_key] = observed
             self.cache[cache_key] = deepcopy(payload)
             self.store.circuit(provider, False, '', self.clock())
             return payload
-        except (BudgetStopped, StaleLease):
+        except (BudgetStopped, StaleLease, sqlite3.Error):
             raise
         except Exception as exc:
             code = getattr(exc, 'code', None)
@@ -256,6 +283,19 @@ class OfficialSources:
 
     def sportsdb_event(self, match):
         sid, fid = self.identities(match)
+        if sid:
+            from engines.highlight_coverage import persisted_event
+            with self.store.connection() as conn:
+                recorded = persisted_event(conn,match,sid)
+            if recorded:
+                try:
+                    compatible = final_scope(recorded.get('strStatus'))==final_scope(match.get('status'))
+                except SourceError:
+                    compatible = False
+                if compatible and (not fid or not recorded.get('idAPIfootball') or str(recorded['idAPIfootball'])==fid):
+                    self.diagnostics['cache_hits'] = self.diagnostics.get('cache_hits',0)+1
+                    self.diagnostics['sportsdb_event_id'] = sid
+                    return recorded
         if sid:
             payload = self.request('thesportsdb', 'lookupevent.php', {'id': sid})
         else:
@@ -356,7 +396,9 @@ class OfficialSources:
                         continue
                     ref = 'thesportsdb:event:' + sid
                 if rows:
-                    observations.append({'source': provider, 'reference': ref, 'scope': scope, 'items': rows, 'observed_at': self.clock()})
+                    endpoint, params = ('fixtures/statistics',{'fixture':fid}) if provider=='api_football' else ('lookupeventstats.php',{'id':sid})
+                    observed = self.receipts.get((provider,endpoint,tuple(sorted(params.items()))),self.clock())
+                    observations.append({'source': provider, 'reference': ref, 'scope': scope, 'items': rows, 'observed_at': observed})
                 else:
                     reasons.append('NO_STATISTICS')
             except (SourceError, BudgetStopped) as exc:
@@ -383,6 +425,10 @@ class OfficialSources:
             return {'event': event, 'reasons': [], 'external_calls': self.calls}
         except (SourceError, BudgetStopped) as exc:
             return {'event': None, 'reasons': [str(exc)], 'external_calls': self.calls}
+
+    def archive(self, match):
+        from engines.postmatch_archive import acquire
+        return acquire(self, match)
 
 
     def sportsdb_highlight_fallback(self, match, event):

@@ -5,11 +5,15 @@ from datetime import datetime
 import re
 import sqlite3
 from zoneinfo import ZoneInfo
+from engines.automation_outcome import TECHNICAL_REASONS
 
 REASON_TEXT = {
     'NO_EVENT': 'No se encontró un evento que coincida con este partido.',
     'NO_VIDEO': 'No se obtuvo un enlace de vídeo en las consultas realizadas.',
     'NO_STATISTICS': 'La consulta no devolvió estadísticas para guardar.',
+    'NO_POSTMATCH_DETAILS': 'Las consultas no aportaron todos los eventos o alineaciones; se volverá a comprobar.',
+    'MEDIA_PENDING': 'La cola de media del Cron maestro continúa la búsqueda de vídeo, sin duplicar consultas.',
+    'ARCHIVE_BUDGET': 'Se alcanzó el límite del archivo pospartido; el trabajo permanece pendiente.',
     'UNSUPPORTED_STATISTICS': 'Llegaron estadísticas, pero sus nombres no están reconocidos por el lector.',
     'EMPTY_STATISTIC_VALUES': 'Llegaron métricas reconocidas sin valores disponibles.',
     'INVALID_VIDEO_URL': 'El enlace recibido no cumple el formato seguro y no se obtuvo una alternativa.',
@@ -88,17 +92,21 @@ def safe_run_result(value):
               'result': result if isinstance(result, str) and result in RESULT_TEXT else 'UNKNOWN',
               'processed': _count(value.get('processed'), 2),
               'external_calls': _count(value.get('external_calls'), 12), 'jobs': []}
+    output['pending_jobs'] = _count(value.get('pending_jobs'),2**53-1)
+    output['content_pending'] = value.get('content_pending') if type(value.get('content_pending')) is bool else None
     rows = value.get('jobs')
     for row in rows[:2] if isinstance(rows, list) else []:
         if not isinstance(row, dict):
             continue
         reason, state = row.get('reason'), row.get('state')
         job = {'job_id': _count(row.get('job_id'), 2**53 - 1),
-               'kind': row.get('kind') if row.get('kind') in ('highlights','statistics') else 'unknown',
+               'kind': row.get('kind') if row.get('kind') in ('highlights','statistics','archive') else 'unknown',
                'reason': reason if isinstance(reason, str) and reason in REASON_TEXT else 'UNKNOWN',
                'state': state if isinstance(state, str) and state in STATE_TEXT else 'FAILED',
                'external_calls': _count(row.get('external_calls'), 6),
                'diagnostics': safe_diagnostics(row.get('diagnostics'))}
+        errors = row.get('technical_errors')
+        job['technical_errors'] = [error for error in errors[:12] if isinstance(error,str) and error in TECHNICAL_REASONS] if isinstance(errors,list) else []
         mid = row.get('match_id')
         if isinstance(mid, str) and re.fullmatch(r'[A-Za-z0-9_-]{1,80}', mid):
             job['match_id'] = mid
@@ -114,7 +122,8 @@ def present_run_result(value, store):
     output['title'] = RESULT_TEXT[output['result']]
     output['available'] = isinstance(value, dict)
     for job in output['jobs']:
-        job['kind_label'] = 'Resumen en vídeo' if job['kind'] == 'highlights' else 'Estadísticas'
+        job['kind_label'] = {'highlights':'Resumen en vídeo','statistics':'Estadísticas',
+                             'archive':'Eventos y alineaciones'}.get(job['kind'],'Tarea sin identificar')
         job['state_label'] = STATE_TEXT[job['state']]
         job['reason_label'] = REASON_TEXT[job['reason']]
         job['match_label'] = 'Partido sin identificar en esta lectura'

@@ -1,4 +1,4 @@
-"""Two real post-match workers: recover metadata, validate, persist, expose read-only.
+"""Bounded post-match recovery: validate, persist and expose factual evidence.
 
 Never changes match scores, bets, memberships or published predictions. Provider
 failures are isolated and publication rights are never inferred from a URL.
@@ -14,6 +14,10 @@ from zoneinfo import ZoneInfo
 from engines.postmatch_store import Store, StaleLease, identity, is_final, RETRY_DELAYS, stamp
 from engines.postmatch_sources import OfficialSources, REQUIRED, STAT_NAMES, norm, final_scope, SourceError
 from engines.postmatch_delivery import safe_diagnostics, safe_run_result
+from engines.automation_outcome import DEFERRED_REASONS, TECHNICAL_REASONS
+
+CONTROLLED = DEFERRED_REASONS | {'NO_VIDEO','NO_STATISTICS','NO_EVENT','NO_POSTMATCH_DETAILS',
+                               'SOURCE_NOT_FINAL','UNSUPPORTED_STATISTICS','EMPTY_STATISTIC_VALUES'}
 
 REASONS = {'NO_VIDEO','NO_EVENT','NO_STATISTICS','PARTIAL_COVERAGE','RIGHTS_REVIEW',
            'COMPLETE','CONFLICT','IDENTITY_CHANGED','NOT_FINAL','MISSING_KEY','SOURCE_DISABLED',
@@ -22,7 +26,8 @@ REASONS = {'NO_VIDEO','NO_EVENT','NO_STATISTICS','PARTIAL_COVERAGE','RIGHTS_REVI
            'AMBIGUOUS_VIDEO','HIGHLIGHT_RESPONSE_LIMIT',
            'ACCESS_DENIED','RATE_LIMIT','NETWORK','MALFORMED','REDIRECT_BLOCKED','AMBIGUOUS_MATCH',
            'IDENTITY_MISMATCH','INVALID_STATISTIC','CONFLICTING_STATISTICS','INCONSISTENT_STATISTICS',
-           'SOURCE_NOT_FINAL','INTERNAL_ERROR','STORAGE_UNAVAILABLE','NO_APPROVED_SOURCE'}
+           'SOURCE_NOT_FINAL','INTERNAL_ERROR','STORAGE_UNAVAILABLE','NO_APPROVED_SOURCE',
+           'NO_POSTMATCH_DETAILS','MEDIA_PENDING','ARCHIVE_BUDGET'}
 
 
 def closed_reason(reason):
@@ -98,6 +103,13 @@ def finish(store, job, result, now):
                 expected_scope = 'REGULATION'
             observations = [o for o in result['observations'] if o['scope'] == expected_scope]
             reason = save_statistics(conn, job, observations, now) if observations else 'CONFLICT'
+        elif job['kind'] == 'archive' and result.get('sections'):
+            from engines.postmatch_archive import save
+            observations = [o for o in result['sections'] if o['scope']==final_scope(current.get('status'))]
+            stopped = save(conn,job,observations)
+            reasons = result.get('reasons') or []
+            complete = all(any(o['section']==s and o['items'] for o in observations) for s in ('events','lineups'))
+            reason = stopped or ('COMPLETE' if complete else closed_reason(reasons[-1]) if reasons else 'NO_POSTMATCH_DETAILS')
         elif job['kind'] == 'highlights' and result.get('event'):
             saved = _upsert_highlight(conn, result['event'])
             if not saved or str(saved.get('match_id')) != job['match_id']:
@@ -109,13 +121,16 @@ def finish(store, job, result, now):
         else:
             reasons = result.get('reasons') or ['NO_APPROVED_SOURCE']
             reason = closed_reason(reasons[-1])
+        errors = sorted(set(result.get('reasons') or []) & TECHNICAL_REASONS)
+        if errors and reason != 'COMPLETE':
+            reason = errors[0]
         if reason == 'COMPLETE':
             state = 'COMPLETE'
         elif reason in {'RIGHTS_REVIEW','CONFLICT','AMBIGUOUS_MATCH','IDENTITY_MISMATCH','AMBIGUOUS_VIDEO'}:
             state = 'REVIEW_REQUIRED'
         elif reason in {'IDENTITY_CHANGED','NOT_FINAL'}:
             state = 'CANCELLED'
-        elif reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN', 'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
+        elif reason in CONTROLLED:
             state = 'RETRY'
         elif job['attempts'] >= 5:
             state = 'PARTIAL' if reason == 'PARTIAL_COVERAGE' else 'FAILED'
@@ -124,21 +139,28 @@ def finish(store, job, result, now):
         delay = RETRY_DELAYS[min(job['attempts'] - 1, len(RETRY_DELAYS) - 1)]
         due_at = now + delay
         attempts = job['attempts']
-        if reason in {'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN', 'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
+        checks = job.get('checks',0) + int(reason in {'NO_VIDEO','NO_STATISTICS','NO_EVENT','NO_POSTMATCH_DETAILS'}
+                                         and bool(result.get('external_calls')))
+        if reason in CONTROLLED:
             # A controlled deferral is not a failed provider attempt.
             attempts = max(0, attempts - 1)
             if reason == 'DAILY_BUDGET':
                 local = datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid'))
                 due_at = (local.replace(hour=0, minute=0, second=5, microsecond=0) + timedelta(days=1)).timestamp()
-            elif reason in {'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT'}:
+            elif reason in {'NO_VIDEO', 'NO_STATISTICS', 'NO_EVENT','NO_POSTMATCH_DETAILS'}:
                 from engines.highlight_coverage import retry_delay
-                due_at = now + retry_delay(current, now, job['attempts'])
-        conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,attempts=?,lease_token=NULL,lease_until=0 WHERE id=?',
-                     (state, reason, due_at, now, attempts, job['id']))
+                due_at = now + retry_delay(current, now, max(1,checks))
+            elif reason in {'MEDIA_PENDING','ARCHIVE_BUDGET'}:
+                due_at = now + (3600 if reason=='MEDIA_PENDING' else 86400)
+        if reason in {'MEDIA_PENDING','NO_VIDEO'} and isinstance(result.get('next_check'),(int,float)):
+            due_at = max(now+300,float(result['next_check']))
+        conn.execute('UPDATE postmatch_jobs SET state=?,reason=?,due_at=?,updated_at=?,attempts=?,checks=?,lease_token=NULL,lease_until=0 WHERE id=?',
+                     (state, reason, due_at, now, attempts, checks, job['id']))
         diagnostics = safe_diagnostics(result.get('diagnostics'))
         summary = {'job_id':job['id'],'kind':job['kind'],'match_id':str(job['match_id']),
                    'state':state,'reason':reason,'external_calls':int(result.get('external_calls') or 0),
-                   'due_at':due_at if state == 'RETRY' else None, 'diagnostics':diagnostics}
+                   'due_at':due_at if state == 'RETRY' else None, 'diagnostics':diagnostics,
+                   'technical_errors':errors}
         Store.audit(conn, job['id'], 'FINISH', summary, 'worker', now)
         return summary
 
@@ -186,7 +208,25 @@ def reconcile_media_reviews(store, now):
                     Store.audit(conn,job['id'],'CATALOGUE_LINK_REUSED',{'external_calls':0},'worker',now)
 
 
-def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSources):
+def media_handoff(store, match, now):
+    """The master media lane owns discovery; postmatch must not buy it twice."""
+    try:
+        with store.connection() as conn:
+            row = conn.execute('SELECT * FROM highlight_coverage WHERE match_id=? AND identity=?',
+                               (str(match['id']),identity(match))).fetchone()
+        if row and row['state']=='CHECKED_NO_VIDEO' and row['checked_at'] is not None:
+            return {'reasons':['NO_VIDEO'],'external_calls':0,'next_check':row['due_at']}
+        if row and row['state']=='AMBIGUOUS':
+            return {'reasons':['AMBIGUOUS_MATCH'],'external_calls':0}
+        return {'reasons':['MEDIA_PENDING'],'external_calls':0,
+                'next_check':max(now+3600,row['due_at']) if row else now+3600}
+    except sqlite3.OperationalError as exc:
+        if 'no such table' not in str(exc):
+            raise
+        return {'reasons':['MEDIA_PENDING'],'external_calls':0,'next_check':now+3600}
+
+
+def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSources, priority=None):
     store = Store(db_path)
     config = store.config()
     if config.get('read_state') == 'READ_UNAVAILABLE':
@@ -197,14 +237,17 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
         return {'ok': True, 'result': 'SKIPPED_DISABLED', 'external_calls': 0, 'processed': 0}
     began, results = clock(), []
     shared_request_cache = {}
+    shared_receipts = {}
     try:
         # Migration belongs to explicit activation, not to a page read or import.
-        store.discover(began)
+        official = source_factory is OfficialSources
+        store.initialize()  # Explicit worker mutation; additive schema migration, never a reader action.
+        store.discover(began,include_archive=official,priority=priority)
         reconcile_media_reviews(store, began)
         for _ in range(min(2, config['batch_size'])):
             if clock() >= began + 20:
                 break
-            job = store.claim(clock())
+            job = store.claim(clock(),prefer_critical=official)
             if not job:
                 break
             outcome, source = {'external_calls':0}, None
@@ -216,7 +259,13 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                     source = source_factory(store, job, config, deadline=began + 20, clock=clock)
                     if isinstance(source, OfficialSources):
                         source.cache = shared_request_cache
-                    outcome = source.highlights(match) if job['kind'] == 'highlights' else source.statistics(match)
+                        source.receipts = shared_receipts
+                    if official and job['kind']=='highlights':
+                        outcome = media_handoff(store,match,clock())
+                    elif job['kind']=='archive':
+                        outcome = source.archive(match)
+                    else:
+                        outcome = source.highlights(match) if job['kind'] == 'highlights' else source.statistics(match)
                 outcome['diagnostics'] = safe_diagnostics(getattr(source, 'diagnostics', {}))
                 results.append(finish(store, job, outcome, clock()))
             except StaleLease:
@@ -232,10 +281,15 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
         return {'ok':False,'result':'STORAGE_UNAVAILABLE','processed':len(results),'jobs':results}
     from engines.automation_outcome import postmatch_outcome
     technical = postmatch_outcome(results)
-    completed = all(row['state'] == 'COMPLETE' for row in results)
+    try:
+        with store.connection() as conn:
+            pending = conn.execute("SELECT COUNT(*) FROM postmatch_jobs WHERE state NOT IN ('COMPLETE','CANCELLED')").fetchone()[0]
+    except (sqlite3.Error,OSError):
+        return {'ok':False,'result':'STORAGE_UNAVAILABLE','technical_status':'FAIL',
+                'processed':len(results),'jobs':results,'external_calls':sum(r['external_calls'] for r in results)}
     output = {'ok': technical != 'FAIL', 'result': 'IDLE' if not results else 'FAIL' if technical == 'FAIL' else 'PARTIAL' if technical == 'PARTIAL' else 'COMPLETE',
               'technical_status': technical,
-              'content_pending': not completed,
+              'content_pending': bool(pending),'pending_jobs':pending,
               'processed':len(results),'external_calls':sum(r['external_calls'] for r in results),'jobs':results}
     if results:
         # Closed projection only: no credentials, URLs, raw payloads or personal data.
@@ -247,7 +301,7 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
 
 
 def read_for_match(db_path, match):
-    output = {'state':'NOT_INITIALIZED','items':[],'jobs':[], 'recovered_at':None}
+    output = {'state':'NOT_INITIALIZED','items':[],'jobs':[], 'sections':{}, 'recovered_at':None}
     if not match or not match.get('id'):
         return output
     store = Store(db_path)
@@ -263,11 +317,21 @@ def read_for_match(db_path, match):
                 return {**output, 'state':'IDENTITY_CHANGED'}
             ident = identity(canonical)
             values = selected_values(conn, str(match['id']), ident)
+            if is_final(canonical):
+                expected_scope = final_scope(canonical.get('status'))
+                values = {key:value for key,value in values.items() if value['scope']==expected_scope}
+            if is_final(canonical) and is_final(match):
+                try:
+                    from engines.postmatch_archive import read
+                    output['sections'] = read(conn,str(match['id']),ident,final_scope(canonical.get('status')))
+                except sqlite3.OperationalError as exc:
+                    if 'no such table' not in str(exc):
+                        raise
             output['jobs'] = [dict(row) for row in conn.execute('SELECT kind,state,reason,due_at FROM postmatch_jobs WHERE match_id=? AND identity=?',
                                (str(match['id']), ident))]
         # Even old stored observations must not leak into a postponed/remapped/live match.
         output['items'] = list(values.values()) if is_final(canonical) and is_final(match) else []
-        output['state'] = 'RECOVERED' if output['items'] else 'PENDING'
+        output['state'] = 'RECOVERED' if output['items'] or any(s['items'] for s in output['sections'].values()) else 'PENDING'
         output['recovered_at'] = stamp(max(v['observed_at'] for v in output['items'])) if output['items'] else None
     except sqlite3.OperationalError as exc:
         output['state'] = 'NOT_INITIALIZED' if 'no such table' in str(exc) else 'READ_UNAVAILABLE'
@@ -281,6 +345,12 @@ def attach_detail(db_path, detail):
     match = detail.get('match') or {}
     recovery = read_for_match(db_path, match)
     detail['postmatch_recovery'] = recovery
+    # Keep the existing primary snapshots intact; fill missing sections only.
+    sections = recovery.get('sections') or {}
+    for section, target in (('lineups','lineups'),('events','timeline')):
+        recorded = sections.get(section) or {}
+        if recorded.get('items') and not detail.get(target) and (section!='events' or not detail.get('live_events')):
+            detail[target] = [{**row,'captured_at':recorded['observed_at']} for row in recorded['items']]
     if not recovery['items']:
         return detail
     cached = dict(detail.get('cached_statistics') or {})

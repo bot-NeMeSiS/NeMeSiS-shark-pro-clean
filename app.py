@@ -32517,7 +32517,8 @@ def register_optional_blueprints():
     try:
         if "architecture" not in app.blueprints:
             from blueprints.architecture import create_architecture_blueprint
-            app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_session))
+            app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_session,
+                postmatch_priority=lambda match: sports_competition_priority(match,audience=True)['weight']))
         if "developer_center" not in app.blueprints:
             from blueprints.developer_center import create_developer_center_blueprint
             app.register_blueprint(
