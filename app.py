@@ -1352,7 +1352,8 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
         result = callback(*args, **kwargs)
         if isinstance(result, dict):
             return result
-        return {"ok": True, "status": "OK", "processed": 0, "result_type": type(result).__name__}
+        return {"ok": False, "status": "INVALID_RESPONSE", "processed": 0,
+                "error": f"{label}_INVALID_RESPONSE", "result_type": type(result).__name__}
     except Exception as exc:
         return {
             "ok": False,
@@ -2209,19 +2210,25 @@ def telegram_cron_with_sports_sync(force=False):
             "safe_error": type(exc).__name__,
             "next_action": "review_sports_sync_logs",
         })
-    telegram_result = dict(telegram_scheduler_tick(force=force) or {})
-    deep = sports_result.get("deep_enrichment") or {}
+    if not isinstance(sports_result, dict):
+        sports_result = {"ok": False, "status": "INVALID_RESPONSE", "error": "sports_INVALID_RESPONSE"}
+    telegram_result = _safe_sports_sync_call("telegram_scheduler", telegram_scheduler_tick, force=force)
+    deep = sports_result.get("deep_enrichment")
+    deep = deep if isinstance(deep, dict) else {}
     deep_history = {}
     if not deep.get("account") or not deep.get("capabilities"):
         try:
             deep_history = api_exploitation_summary(DB_PATH) or {}
         except Exception:
             deep_history = {}
-    telegram_result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
-        sports_result,
-        deep_history,
-        _sports_entity_freshness_snapshot(),
-    )
+    try:
+        telegram_result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
+            sports_result, deep_history, _sports_entity_freshness_snapshot(),
+        )
+    except Exception as exc:
+        telegram_result["sports_pipeline"] = {
+            "ok": False, "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
+        }
     try:
         telegram_result["founder_alerts"] = founder_alert_tick(DB_PATH)
     except Exception as exc:
@@ -2255,8 +2262,9 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             no_work_status = discard_reasons[0] if discard_reasons[0] in {"NO_ELIGIBLE_PICKS", "OUTSIDE_PRO_WINDOW", "QUEUE_EMPTY", "NO_LIVE_ALERTS"} else "NO_SENDABLE_ITEMS"
         else:
             no_work_status = "QUEUE_EMPTY" if not due_jobs else "NO_SENDABLE_ITEMS"
-    status = result.get("status") or no_work_status
-    if endpoint == "telegram_tick" and as_int(result.get("sent"), 0) > 0:
+    technical_error = bool(result.get("error") or result.get("errors") or as_int(result.get("failed"), 0))
+    status = "CONTROLLED_ERROR" if endpoint == "telegram_tick" and technical_error else result.get("status") or no_work_status
+    if endpoint == "telegram_tick" and not technical_error and as_int(result.get("sent"), 0) > 0:
         status = "SENT"
     latest_delivery_id = ""
     if endpoint == "telegram_tick" and as_int(result.get("sent"), 0) > 0:
@@ -2558,7 +2566,7 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         seed_core()
         result = runner(force=force)
         if not isinstance(result, dict):
-            result = {"ok": True, "result": result}
+            result = {"ok": False, "status": "INVALID_RESPONSE", "error": "INVALID_RESPONSE"}
     except Exception as exc:
         try:
             print(f"[CRON_ENDPOINT_ERROR] {endpoint}:", str(exc)[:800])
@@ -14353,6 +14361,8 @@ def telegram_http_error_payload(exc):
         parsed = json.loads(body) if body else {}
     except Exception:
         parsed = {"raw": body}
+    if not isinstance(parsed, dict):
+        parsed = {}
     description = parsed.get("description") or body or str(exc)
     category, action = telegram_error_category(description)
     return {
@@ -14372,8 +14382,14 @@ def telegram_post_send_message(url, data):
     req = urllib.request.Request(url, data=encoded, method="POST")
     with urllib.request.urlopen(req, timeout=12) as res:
         response = json.loads(res.read().decode("utf-8", errors="replace"))
+    return telegram_transport_result(response)
+
+
 def telegram_transport_result(response, photo=False):
-    if response.get("ok") is True and (response.get("result") or {}).get("message_id") is not None:
+    if not isinstance(response, dict):
+        return telegram_delivery_uncertain()
+    message = response.get("result")
+    if response.get("ok") is True and isinstance(message, dict) and message.get("message_id") is not None:
         return {"ok": True, "sent": True, "status": "SENT_PHOTO" if photo else "SENT", "category": "SENT", "telegram": response, "visual_card_sent": photo}
     if response.get("ok") is False:
         category, action = telegram_error_category(response.get("description"))
@@ -14482,7 +14498,8 @@ def telegram_send_text_with_fallback(url, data):
     """One conservative retry only after a definite format/button rejection."""
     def attempt(body):
         try:
-            return telegram_post_send_message(url, body)
+            result = telegram_post_send_message(url, body)
+            return result if isinstance(result, dict) else telegram_delivery_uncertain()
         except urllib.error.HTTPError as exc:
             return telegram_delivery_uncertain() if exc.code >= 500 else telegram_http_error_payload(exc)
         except Exception:
@@ -15188,14 +15205,14 @@ def telegram_scheduler_delivery(force=False):
     results = []
     auto_env = telegram_env_auto_enabled()
     if (settings.get("auto_daily_matches") or auto_env) and telegram_time_due(settings.get("daily_matches_time"), force=force):
-        summary_result = enqueue_daily_matches(force=force)
+        summary_result = _safe_sports_sync_call("daily_matches", enqueue_daily_matches, force=force)
         results.append(summary_result)
         modules["summary"] = telegram_scheduler_module_payload(summary_result)
     if (settings.get("auto_daily_picks") or auto_env) and telegram_time_due(settings.get("daily_picks_time"), force=force):
-        auto_pick_result = enqueue_auto_pick_alerts(force=force, limit=cfg["max_auto_picks_per_tick"])
+        auto_pick_result = _safe_sports_sync_call("auto_picks", enqueue_auto_pick_alerts, force=force, limit=cfg["max_auto_picks_per_tick"])
         results.append(auto_pick_result)
         modules["auto_picks"] = telegram_scheduler_module_payload(auto_pick_result)
-        daily_picks_result = enqueue_daily_picks(force=force, force_empty=False)
+        daily_picks_result = _safe_sports_sync_call("daily_picks", enqueue_daily_picks, force=force, force_empty=False)
         results.append(daily_picks_result)
         summary_inserted = as_int(modules["summary"].get("inserted"), 0) + as_int(daily_picks_result.get("inserted"), 0)
         modules["summary"]["inserted"] = summary_inserted
@@ -15204,14 +15221,16 @@ def telegram_scheduler_delivery(force=False):
             modules["summary"]["status"] = daily_picks_result.get("status")
         modules["summary"]["discard_reasons"] = sorted(set((modules["summary"].get("discard_reasons") or []) + (daily_picks_result.get("discard_reasons") or [])))
     if settings.get("auto_live_alerts"):
-        live_result = enqueue_live_alerts(force=force)
+        live_result = _safe_sports_sync_call("live_alerts", enqueue_live_alerts, force=force)
         results.append(live_result)
         modules["live_alerts"] = telegram_scheduler_module_payload(live_result, default_status="NO_LIVE_ALERTS")
     if telegram_env_auto_enabled() or env_bool("TELEGRAM_SEND_DAILY_SUMMARY", True) or env_bool("TELEGRAM_SEND_LIVE_ALERTS", True):
-        activity_result = enqueue_v771_telegram_activity(force=force, limit=as_int(os.getenv("TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK", "6"), 6))
+        activity_result = _safe_sports_sync_call("activity", enqueue_v771_telegram_activity, force=force, limit=as_int(os.getenv("TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK", "6"), 6))
         results.append(activity_result)
         modules["v771_activity"] = telegram_scheduler_module_payload(activity_result, default_status="NO_ACTIVITY_CANDIDATES")
-    processed_queue = process_premium_telegram_queue(limit=cfg["max_queue_per_tick"], force=force)
+    processed_queue = _safe_sports_sync_call(
+        "telegram_queue", lambda: process_premium_telegram_queue(limit=cfg["max_queue_per_tick"], force=force),
+    )
     for item in processed_queue.get("sent_items") or []:
         message_type = str(item.get("message_type") or "").lower()
         if message_type == "auto_pick":
@@ -15228,7 +15247,8 @@ def telegram_scheduler_delivery(force=False):
     skipped = sum(as_int(r.get("skipped"), 0) for r in results) + as_int(processed_queue.get("skipped"), 0)
     sent = as_int(processed_queue.get("sent"), 0)
     failed = as_int(processed_queue.get("failed"), 0)
-    errors = [e for r in results + [processed_queue] for e in (r.get("errors") or [])]
+    errors = [e for r in results + [processed_queue] for e in
+              ((r.get("errors") or []) + ([r.get("error") or "INVALID_RESPONSE"] if r.get("ok") is False and not r.get("errors") else []))]
     discard_reasons = telegram_collect_discard_reasons({"results": results})
     due_jobs = []
     for item in results:
@@ -15418,7 +15438,7 @@ def telegram_scheduler_tick(force=False):
     cfg = telegram_config()
     if not (cfg["enabled"] or telegram_env_should_enable()) and not force:
         return {"ok": False, "sent": 0, "sent_count": 0, "skipped": 1, "status": "AUTO_DISABLED", "telegram": cfg, "due_jobs": [], "errors": ["AUTO_DISABLED"]}
-    result = telegram_scheduler_delivery(force=force)
+    result = _safe_sports_sync_call("telegram_delivery", telegram_scheduler_delivery, force=force)
     dispatch = {"time": now_iso(), "time_madrid": datetime.now(TZ).isoformat(timespec="seconds"), "source": "automatic_cron" if automation_secret_valid() else "automatic_scheduler", "result": result}
     automation_set("telegram_last_dispatch", dispatch)
     status = result.get("status") or "QUEUE_PROCESSED"
