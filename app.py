@@ -865,6 +865,7 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/master-tick",
         "/api/automation/picks/grade",
         "/api/automation/sports/sync",
+        "/api/automation/odds/sync",
         "/api/automation/data-backup/run",
         "/api/automation/highlights/sync",
         "/api/automation/postmatch/tick",

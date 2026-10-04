@@ -43,6 +43,31 @@ def test_provider_routes_require_header_and_post(client, app_module, monkeypatch
     assert client.post(path+'?secret=isolated-lane-test').status_code == 403
 
 
+@pytest.mark.parametrize('path', ['/api/automation/sports/sync', '/api/automation/odds/sync'])
+def test_provider_header_passes_real_request_boundary_without_browser_csrf(client, app_module, monkeypatch, path):
+    monkeypatch.setenv('AUTOMATION_SECRET', 'isolated-boundary-test')
+    calls = []
+    def execute(endpoint, *args, **kwargs):
+        calls.append(endpoint)
+        return app_module.jsonify({'ok':True, 'status':'QA_HEADER_ACCEPTED'})
+    monkeypatch.setattr(app_module, 'automation_cron_result', execute)
+    response = client.post(path, json={}, headers={
+        'X-Automation-Secret':'isolated-boundary-test', 'X-NeMeSiS-Cron-Runner':'render-cron'})
+    assert response.status_code == 200, response.get_json()
+    assert calls == ['sports_sync' if '/sports/' in path else 'odds_sync']
+    calls.clear()
+    for headers in ({}, {'X-Automation-Secret':'incorrect'}, {'X-CSRF-Token':'browser-token'}):
+        response = client.post(path, json={}, headers=headers)
+        assert response.status_code == 403
+        assert response.get_json()['query_secret_accepted'] is False
+    assert calls == []
+
+
+def test_odds_boundary_exemption_is_exact(app_module):
+    assert app_module.csrf_exempt_path('/api/automation/odds/sync') is True
+    assert app_module.csrf_exempt_path('/api/automation/odds/sync/extra') is False
+
+
 def test_sports_wrapper_explicitly_excludes_odds(app_module, monkeypatch):
     seen = {}
     def sports(**kwargs):
