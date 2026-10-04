@@ -9,7 +9,7 @@ from engines.postmatch_recovery import tick
 from engines.security_engine import validate_csrf
 
 
-def create_postmatch_blueprint(db_path, is_admin_callback):
+def create_postmatch_blueprint(db_path, is_admin_callback, priority=None):
     bp = Blueprint('postmatch_recovery', __name__)
 
     @bp.before_request
@@ -36,7 +36,8 @@ def create_postmatch_blueprint(db_path, is_admin_callback):
 
     @bp.post('/api/automation/postmatch/tick')
     def cron():
-        result = tick(db_path, dry_run=request.args.get('dry_run') == '1')
+        options = {'priority':priority} if priority is not None else {}
+        result = tick(db_path, dry_run=request.args.get('dry_run') == '1',**options)
         return jsonify(result), (200 if result.get('ok') else 503)
 
     @bp.get('/api/admin/postmatch/status')
@@ -58,7 +59,7 @@ def create_postmatch_blueprint(db_path, is_admin_callback):
 
     @bp.post('/admin/highlights-review/workers/run')
     def run():
-        result = tick(db_path)
+        result = tick(db_path,**({'priority':priority} if priority is not None else {}))
         if request.form.get('return_to_panel') == '1':
             from engines.postmatch_delivery import safe_run_result
             session['postmatch_last_result'] = safe_run_result(result)

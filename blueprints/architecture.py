@@ -14,7 +14,7 @@ from flask import Blueprint, jsonify, redirect, render_template, url_for, curren
 from engines.blueprint_migration_engine import build_runtime_architecture_summary, write_route_map
 
 
-def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callback: Callable[[], bool]) -> Blueprint:
+def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callback: Callable[[], bool], postmatch_priority=None) -> Blueprint:
     bp = Blueprint("architecture", __name__, url_prefix="")
 
     def _admin_required():
@@ -75,5 +75,5 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
     from blueprints.media_review import create_media_review_blueprint
     bp.register_blueprint(create_media_review_blueprint(db_path, _admin_required))
     from blueprints.postmatch_recovery import create_postmatch_blueprint
-    bp.register_blueprint(create_postmatch_blueprint(db_path, _admin_required))
+    bp.register_blueprint(create_postmatch_blueprint(db_path, _admin_required,priority=postmatch_priority))
     return bp

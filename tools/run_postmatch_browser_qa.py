@@ -13,6 +13,7 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--output',default='reports/postmatch_browser')
 parser.add_argument('--snapshot',action='store_true')
 parser.add_argument('--automation-center',action='store_true')
+parser.add_argument('--lifecycle-archive',action='store_true')
 args=parser.parse_args()
 sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'tests'))
 temporary=tempfile.TemporaryDirectory(prefix='nemesis-postmatch-qa-')
@@ -35,6 +36,16 @@ with sqlite3.connect(app.DB_PATH) as c:
 store=Store(app.DB_PATH);store.configure(enabled=True,sources=['thesportsdb'],daily_limit=60,actor='offline-qa',confirmed=True)
 os.environ['THESPORTSDB_KEY']='offline-test-only'
 print('RECOVERY',tick(app.DB_PATH,clock=lambda:NOW,source_factory=factory))
+if args.lifecycle_archive:
+ from engines.postmatch_sources import OfficialSources
+ from test_postmatch_lifecycle_completion import LINEUP,TIMELINE
+ from test_postmatch_recovery import transport
+ def archived_transport(request,timeout):
+  if 'lookuplineup.php' in request.full_url:return {'lineup':[LINEUP]}
+  if 'lookuptimeline.php' in request.full_url:return {'timeline':[TIMELINE]}
+  return transport(request,timeout)
+ OfficialSources._http=staticmethod(archived_transport)
+ print('ARCHIVE',tick(app.DB_PATH,clock=lambda:NOW))
 os.environ.pop('THESPORTSDB_KEY',None)
 coverage=Coverage(app.DB_PATH,NOW);coverage.prepare();coverage.observe('101',[EVENT])
 with store.connection(True) as c:
@@ -98,6 +109,9 @@ with sync_playwright() as pw:
    page.wait_for_timeout(750)
    content=page.locator('body').inner_text()
    if role!='admin':
+    if args.lifecycle_archive:
+     assert page.locator('[data-lineup-state="confirmed"]').count()==1
+     assert page.get_by_text(LINEUP['strPlayer'],exact=True).count()>=1
     assert page.locator('#match-section-video').count()==1
     assert page.get_by_text('Estadísticas recuperadas después del partido · fuentes').count()==1, content[-1800:]
     assert page.locator('#match-section-video iframe').count()==0

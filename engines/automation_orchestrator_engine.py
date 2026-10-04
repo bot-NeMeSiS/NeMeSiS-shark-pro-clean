@@ -111,7 +111,9 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "postmatch": {'state': postmatch.get('state'), 'counts': postmatch.get('counts') or {},
                       'daily_limit': limit, 'daily_used': used if budget_verified else None,
                       'daily_remaining': max(0, limit-used) if budget_verified else None,
-                      'jobs': postmatch.get('jobs') or [], 'circuits': postmatch.get('circuits') or []},
+                      'jobs': postmatch.get('jobs') or [], 'circuits': postmatch.get('circuits') or [],
+                      'kinds': postmatch.get('kinds') or [],'inventory_cursor':postmatch.get('inventory_cursor'),
+                      'archive':postmatch.get('archive')},
         "media": {key: media.get(key) for key in ('read_state', 'stored_media_total', 'stored_linked_matches',
                   'authorized_highlights', 'rights_warnings', 'sample_truncated', 'visible_counts_scope')},
         "manual_only": [

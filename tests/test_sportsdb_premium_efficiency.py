@@ -351,8 +351,10 @@ def test_shared_postmatch_cache_is_bound_to_credential(monkeypatch):
         reserves=0
         def reserve(self,*a): self.reserves+=1
         def circuit(self,*a): pass
+        def cached_request(self,*a): return None
+        def cache_request(self,*a): pass
     store=FakeStore();calls=[]
-    source=OfficialSources(store,{}, {'sources':['thesportsdb'],'daily_limit':60},deadline=1000,clock=lambda:0,
+    source=OfficialSources(store,{'identity':'test-match'}, {'sources':['thesportsdb'],'daily_limit':60},deadline=1000,clock=lambda:0,
         transport=lambda *a:(calls.append(True) or {'events':[event()]}))
     first=source.request('thesportsdb','lookupevent.php',{'id':'1'})
     first['events'][0]['strHomeTeam']='modified'
