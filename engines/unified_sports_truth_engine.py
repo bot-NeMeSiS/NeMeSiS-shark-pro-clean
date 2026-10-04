@@ -400,6 +400,28 @@ def canonicalize_detail(detail, *, now=None):
     match = detail.get("match") or {}
     canonical = match.get("unified_sports_truth") or resolve_match(match.get("id") or "", [evidence_from_row(match)], now=now)
     receipts = list(canonical["provider_evidence"])
+    tracker = detail.get("api_football_live_tracker") or {}
+    # Older databases have live depth rows but no Phase 3 receipt yet. Their
+    # actual captured_at clocks remain usable; the fixture clock is not a
+    # substitute for the statistics/events capture clock.
+    tracker_stats = tracker.get("stats") or {}
+    raw_stats = [r for team in tracker_stats.get("teams", []) if isinstance(team, dict) for r in team.get("raw", []) if isinstance(r, dict)]
+    stat_cards = [{k: v for k, v in card.items() if k not in {"home_numeric", "away_numeric"}}
+                  for card in tracker.get("stat_cards") or [] if isinstance(card, dict)]
+    for group, rows, value in (
+        ("stats", raw_stats, {"available": bool(stat_cards), "items": stat_cards, "source": tracker.get("provider")}),
+        ("events", tracker.get("events") or [], tracker.get("events") or []),
+    ):
+        if not rows:
+            continue
+        clocks = [instant(r.get("captured_at")) for r in rows if isinstance(r, dict)]
+        stamp = min(clocks).isoformat() if clocks and all(clocks) else None
+        receipt = evidence_from_row({"source": tracker.get("provider") or "api_football", group: value,
+            "last_synced_at": stamp, "raw_json": json.dumps({group: rows}, default=str)})
+        terminal_observed = instant(canonical.get("resolved", {}).get("status", {}).get("observed_at"))
+        if terminal_observed and instant(stamp) and instant(stamp) >= terminal_observed:
+            receipt["groups"][group]["match_status_at_receipt"] = match.get("status")
+        receipts.append(receipt)
     for group, key in (("lineups", "lineups"), ("stats", "cached_statistics"), ("video", "media"), ("h2h", "head_to_head"), ("standings", "standings")):
         value = detail.get(key)
         if not value or (isinstance(value, dict) and value.get("available") is False):
@@ -431,6 +453,8 @@ def canonicalize_detail(detail, *, now=None):
         selected = unified["values"].get(group)
         if selected is not None:
             detail[key] = selected
+    if unified["values"].get("events") is not None:
+        detail["timeline"] = unified["values"]["events"]
     return detail
 
 

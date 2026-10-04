@@ -1619,10 +1619,11 @@ def build_match_context(
     live = _mapping(live_context or detail_data.get("api_football_live_tracker"))
     lineups = _lineups_context(detail_data.get("lineups") or [])
     media = _mapping(detail_data.get("media"))
-    live_events = _items(live.get("events"))
+    event_truth = _mapping(match.get("unified_sports_truth"))
+    live_events = _items(event_truth.get("values", {}).get("events")) if event_truth else _items(live.get("events"))
     raw_timeline_total = len(live_events)
     if live_events:
-        provider = _text(live.get("provider"))
+        provider = _text(event_truth.get("resolved", {}).get("events", {}).get("provider")) if event_truth else _text(live.get("provider"))
         raw_timeline = [
             {**event, "source": _text(event.get("source")) or provider}
             for event in live_events

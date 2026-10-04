@@ -118,6 +118,25 @@ def test_exact_dedupe_preserves_independent_latest_groups():
     assert result["values"]["stats"] == {"shots": 8}
 
 
+@pytest.mark.parametrize("age,stale", [(20, ""), (500, "TTL_EXPIRED")])
+def test_legacy_live_depth_uses_its_own_capture_clock(age, stale):
+    from engines.unified_sports_truth_engine import canonicalize_detail
+    captured = (NOW-timedelta(seconds=age)).isoformat()
+    detail = {"match": legacy_projection({"id": "stable"}, resolve(receipt())), "api_football_live_tracker": {
+        "provider": "api_football", "updated_at": NOW.isoformat(),
+        "stats": {"teams": [{"raw": [{"captured_at": captured, "stat_value": "55%"}]}]},
+        "stat_cards": [{"label": "Posesión", "home": "55%", "away": "45%", "home_numeric": 55, "away_numeric": 45}],
+        "events": [{"captured_at": captured, "elapsed": 25, "event_type": "Goal", "team_name": "Local", "player_name": "Jugador"}],
+    }}
+    canonicalize_detail(detail, now=NOW)
+    canonical = detail["unified_sports_truth"]
+    assert detail["cached_statistics"]["available"]
+    assert canonical["resolved"]["stats"]["observed_at"] == captured
+    assert canonical["resolved"]["stats"]["stale_reason"] == stale
+    assert "home_numeric" not in canonical["values"]["stats"]["items"][0]
+    assert canonical["resolved"]["events"]["observed_at"] == captured
+
+
 @pytest.mark.parametrize("date,hour,offset", [("2026-01-15T20:00:00Z", "21:00", "+01:00"), ("2026-07-15T20:00:00Z", "22:00", "+02:00")])
 def test_kickoff_madrid_winter_summer(date, hour, offset):
     canonical = resolve(receipt(kickoff_iso=date))
