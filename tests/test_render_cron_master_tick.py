@@ -131,8 +131,8 @@ def test_master_partial_when_telegram_fails_and_evolution_still_runs(monkeypatch
         capsys,
         [urllib.error.URLError("telegram unavailable"), evolution_ok()],
     )
-    assert return_code == 1
-    assert payload["overall"] == "PARTIAL"
+    assert return_code == 2
+    assert payload["overall"] == "FAIL"
     assert payload["telegram"]["telegram_status"] == "FAIL"
     assert payload["continuous_evolution"]["continuous_result"] == "RUN"
     assert len(calls) == 3
@@ -144,8 +144,8 @@ def test_master_partial_when_evolution_fails_and_telegram_is_preserved(monkeypat
         capsys,
         [telegram_ok("NO_DUE_JOBS"), urllib.error.URLError("evolution unavailable")],
     )
-    assert return_code == 1
-    assert payload["overall"] == "PARTIAL"
+    assert return_code == 2
+    assert payload["overall"] == "FAIL"
     assert payload["telegram"]["telegram_result"] == "NO_DUE_JOBS"
     assert payload["continuous_evolution"]["continuous_status"] == "FAIL"
     assert len(calls) == 3
@@ -188,7 +188,7 @@ def test_telegram_timeout_does_not_block_evolution(monkeypatch, capsys):
         capsys,
         [socket.timeout("telegram timeout"), evolution_ok()],
     )
-    assert return_code == 1
+    assert return_code == 2
     assert payload["telegram"]["telegram_result"] == "TIMEOUT"
     assert payload["continuous_evolution"]["continuous_result"] == "RUN"
     assert len(calls) == 3
@@ -200,7 +200,7 @@ def test_evolution_timeout_preserves_telegram(monkeypatch, capsys):
         capsys,
         [telegram_ok("QUEUE_EMPTY"), socket.timeout("evolution timeout")],
     )
-    assert return_code == 1
+    assert return_code == 2
     assert payload["telegram"]["telegram_result"] == "QUEUE_EMPTY"
     assert payload["continuous_evolution"]["continuous_result"] == "TIMEOUT"
     assert len(calls) == 3
@@ -243,8 +243,8 @@ def test_unexpected_telegram_exception_still_allows_evolution(monkeypatch, capsy
     monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
     return_code = master.main()
     payload = json.loads(capsys.readouterr().out)
-    assert return_code == 1
-    assert payload["overall"] == "PARTIAL"
+    assert return_code == 2
+    assert payload["overall"] == "FAIL"
     assert payload["telegram"]["telegram_result"] == "RuntimeError"
     assert payload["continuous_evolution"]["continuous_result"] == "RUN"
     assert "sensitive detail" not in json.dumps(payload)
@@ -261,8 +261,8 @@ def test_secret_is_header_only_and_never_appears_in_output(monkeypatch, capsys):
         ],
         secret=secret,
     )
-    assert return_code == 1
-    assert payload["overall"] == "PARTIAL"
+    assert return_code == 2
+    assert payload["overall"] == "FAIL"
     assert secret not in output
     assert secret not in json.dumps(payload)
     assert len(calls) == 3
@@ -513,8 +513,8 @@ def test_controlled_postmatch_partial_succeeds(monkeypatch, capsys, reason):
             {"state": "RETRY", "reason": reason},
         ]}),
     )
-    assert code == 0
-    assert payload["overall"] == "PASS"
+    assert code == 1
+    assert payload["overall"] == "PARTIAL"
     assert payload["postmatch"]["postmatch_status"] == "PARTIAL"
     assert payload["postmatch"]["postmatch_result"] == "PARTIAL"
 
@@ -631,7 +631,7 @@ def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatc
     assert headers["x-automation-secret"] == secret
 
 
-def test_highlights_failure_never_changes_core_master_overall(monkeypatch, capsys):
+def test_highlights_failure_is_reported_without_stopping_other_lanes(monkeypatch, capsys):
     monkeypatch.setenv("PUBLIC_BASE_URL", "https://example.invalid")
     monkeypatch.setenv("AUTOMATION_SECRET", "pytest-master-secret")
     monkeypatch.setattr(master, "wait_for_web_ready", lambda _url: {
@@ -658,8 +658,8 @@ def test_highlights_failure_never_changes_core_master_overall(monkeypatch, capsy
     code = master.main()
     payload = json.loads(capsys.readouterr().out)
 
-    assert code == 0
-    assert payload["overall"] == "PASS"
+    assert code == 2
+    assert payload["overall"] == "FAIL"
     assert payload["telegram_status"] == "PASS"
     assert payload["highlights_status"] == "FAIL"
     assert payload["highlights"]["highlights_result"] == "TIMEOUT"

@@ -485,7 +485,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
                 status = "PASS" if reason in {"fresh_sync_window", "already_synced_today"} else "PARTIAL"
             elif result.get("ok") is True and not errors_present:
                 status = "PASS"
-            elif str(result.get("status") or "").upper() == "PARTIAL" or safe_count(result.get("highlights_found")):
+            elif str(result.get("status") or "").upper() == "PARTIAL":
                 status = "PARTIAL"
             else:
                 status = "FAIL"
@@ -603,7 +603,7 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
                 raise ValueError('INVALID_RESPONSE')
             data = json.loads(raw.decode('utf-8'))
         label = data.get('result') if isinstance(data, dict) else None
-        valid = {'SKIPPED_DISABLED','IDLE','COMPLETE','PARTIAL','STORAGE_UNAVAILABLE'}
+        valid = {'SKIPPED_DISABLED','IDLE','COMPLETE','PARTIAL','FAIL','STORAGE_UNAVAILABLE'}
         label = label if label in valid else 'INVALID_RESPONSE'
         if label == 'PARTIAL':
             jobs = data.get('jobs')
@@ -614,6 +614,11 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
                 for job in jobs
             )
         status = 'PASS' if data.get('ok') is True and label in {'SKIPPED_DISABLED','IDLE','COMPLETE'} else 'PARTIAL' if data.get('ok') is True and label == 'PARTIAL' and controlled else 'FAIL'
+        # Recompute from closed reasons. A successful empty response or rights
+        # review is not a provider/execution failure; queued retries stay visible.
+        if label == 'PARTIAL' and isinstance(data.get('jobs'), list) and data['jobs']:
+            from engines.automation_outcome import postmatch_outcome
+            status = postmatch_outcome(data['jobs']) if data.get('ok') is True else 'FAIL'
         return {'postmatch_status': status, 'postmatch_result': label,
                 'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
                 'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
@@ -783,8 +788,9 @@ def main() -> int:
     postmatch = postmatch_tick(base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
     # Controlled deferrals remain visible without failing an otherwise healthy run.
-    if postmatch.get("postmatch_status") not in {"PASS", "PARTIAL"} and overall == "PASS":
-        overall = "PARTIAL"
+    statuses = [overall, telegram.get('telegram_status'), continuous.get('continuous_status'),
+                backup.get('backup_status'), postmatch.get('postmatch_status'), highlights.get('highlights_status')]
+    overall = 'FAIL' if 'FAIL' in statuses else 'PARTIAL' if 'PARTIAL' in statuses else 'PASS'
     print_event({
         "runner": RUNNER_NAME,
         "web_readiness": readiness,

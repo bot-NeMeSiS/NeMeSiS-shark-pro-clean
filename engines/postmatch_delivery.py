@@ -50,6 +50,7 @@ STATE_TEXT = {'COMPLETE':'Completada', 'RETRY':'Reintento programado',
               'REVIEW_REQUIRED':'Pendiente de revisión', 'CANCELLED':'Cancelada',
               'PARTIAL':'Datos parciales', 'FAILED':'No completada', 'LEASE_LOST':'Ejecución interrumpida'}
 RESULT_TEXT = {'COMPLETE':'Lote completado', 'PARTIAL':'Lote procesado con pendientes',
+               'FAIL':'Error técnico de ejecución',
                'IDLE':'No había tareas pendientes de ejecutar', 'SKIPPED_DISABLED':'Recuperación en pausa',
                'STORAGE_UNAVAILABLE':'No se pudo completar el lote', 'UNKNOWN':'Resultado no disponible'}
 

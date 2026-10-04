@@ -21,7 +21,7 @@ class SportsDBStopped(RuntimeError):
 
 def closed_error(exc):
     if isinstance(exc, SportsDBStopped):
-        return str(exc) if str(exc) in {'TIME_BUDGET', 'REQUEST_BUDGET', 'MALFORMED', 'PROVIDER_ERROR', 'RATE_LIMIT', 'ACCESS_DENIED', 'NETWORK'} else 'PROVIDER_ERROR'
+        return str(exc) if str(exc) in {'TIME_BUDGET', 'REQUEST_BUDGET', 'MEDIA_BUDGET', 'MALFORMED', 'PROVIDER_ERROR', 'RATE_LIMIT', 'ACCESS_DENIED', 'NETWORK'} else 'PROVIDER_ERROR'
     code = getattr(exc, 'code', None)
     if code == 429:
         return 'RATE_LIMIT'
@@ -44,7 +44,7 @@ def request_timeout(default=12):
 
 
 class SportsDBBudget:
-    def __init__(self, *, max_calls=12, max_seconds=18, clock=None):
+    def __init__(self, *, max_calls=12, max_seconds=18, clock=None, before_call=None):
         self.clock = clock or time.monotonic
         self.max_calls = max(1, min(int(max_calls), 20))
         self.deadline = self.clock() + max(1, min(float(max_seconds), 20))
@@ -53,6 +53,7 @@ class SportsDBBudget:
         self.cache = {}
         self.stopped = ''
         self._token = None
+        self.before_call = before_call
 
     def remaining(self):
         return max(0., self.deadline - self.clock())
@@ -77,6 +78,8 @@ class SportsDBBudget:
         if self.calls >= self.max_calls:
             self.stopped = 'REQUEST_BUDGET'
             raise SportsDBStopped(self.stopped)
+        if self.before_call:
+            self.before_call()
         self.calls += 1
         try:
             result = fetch()

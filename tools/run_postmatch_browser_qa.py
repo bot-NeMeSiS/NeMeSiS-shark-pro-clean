@@ -26,6 +26,7 @@ app.init_db()
 from test_postmatch_recovery import MATCH,EVENT,STATS,NOW,factory
 from engines.postmatch_store import Store
 from engines.postmatch_recovery import tick
+from engines.highlight_coverage import Coverage
 with sqlite3.connect(app.DB_PATH) as c:
  cols={r[1] for r in c.execute('PRAGMA table_info(matches)')}
  seed={k:v for k,v in MATCH.items() if k in cols}
@@ -35,6 +36,7 @@ store=Store(app.DB_PATH);store.configure(enabled=True,sources=['thesportsdb'],da
 os.environ['THESPORTSDB_KEY']='offline-test-only'
 print('RECOVERY',tick(app.DB_PATH,clock=lambda:NOW,source_factory=factory))
 os.environ.pop('THESPORTSDB_KEY',None)
+coverage=Coverage(app.DB_PATH,NOW);coverage.prepare();coverage.observe('101',[EVENT])
 with store.connection(True) as c:
  c.execute("UPDATE sportsdb_match_highlights SET rights_status='LICENSED',commercial_use_status='ALLOWED',"
            "rights_verified_at='2026-09-30T22:00:00Z',attribution='Fuente simulada para QA',official_source_verified=0")
@@ -111,6 +113,8 @@ with sync_playwright() as pw:
    else:
     if args.automation_center:
      assert page.get_by_text('NeMeSiS Master Automation',exact=True).count()>=1
+     for label in ('Cobertura de partidos','Catálogo de vídeos','Finalizados elegibles','Partidos comprobados','Pendientes de comprobar','Cobertura comprobada'):
+      assert page.get_by_text(label,exact=True).count()>=1
      for label in ('Sports','Highlights','Postmatch','Delivery / Telegram','Maintenance / Backups'):
       assert page.get_by_text(label,exact=True).count()>=1
      for link in page.locator('.v933-admin-automation a').all():

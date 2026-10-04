@@ -124,7 +124,7 @@ def test_real_workers_recover_stats_and_queue_video_review(store):
     assert result['processed'] == 2
     assert result['external_calls'] == 2  # one event lookup shared by both jobs, plus statistics
     assert {row['state'] for row in result['jobs']} == {'COMPLETE','REVIEW_REQUIRED'}
-    assert result['result'] == 'PARTIAL'  # Not automatic legal approval.
+    assert result['result'] == 'COMPLETE' and result['content_pending']  # Technical completion does not approve rights.
     snap = read_for_match(store.path, MATCH)
     assert len(snap['items']) == 7
     zero = next(row for row in snap['items'] if row['key']=='red_cards')
@@ -235,15 +235,29 @@ def test_empty_200_retry_is_not_complete(store):
     def empty(*args,**kwargs):return {'events':None}
     def sf(s,j,c,**kw):return OfficialSources(s,j,c,transport=empty,**kw)
     result=tick(store.path,clock=lambda:NOW,source_factory=sf)
-    assert result['result']=='PARTIAL'
+    assert result['result']=='COMPLETE' and result['content_pending']
     assert all(row['state']=='RETRY' for row in result['jobs'])
+
+
+def test_no_video_no_statistics_are_technical_pass_and_do_not_exhaust_retries(store):
+    def empty_content(request,timeout):
+        if 'lookupeventstats.php' in request.full_url:return {'eventstats':[]}
+        if 'eventshighlights.php' in request.full_url:return {'events':[]}
+        return {'events':[{**EVENT,'strVideo':''}]}
+    def sf(s,j,c,**kw):return OfficialSources(s,j,c,transport=empty_content,**kw)
+    result=tick(store.path,clock=lambda:NOW,source_factory=sf)
+    assert result['result']=='COMPLETE' and result['technical_status']=='PASS' and result['content_pending']
+    assert {row['reason'] for row in result['jobs']}=={'NO_VIDEO','NO_STATISTICS'}
+    with store.connection() as conn:
+        assert all(row['state']=='RETRY' and row['attempts']==0 and row['due_at']==NOW+21600
+                   for row in conn.execute('SELECT * FROM postmatch_jobs'))
 
 
 def test_http_200_provider_error_is_not_success_and_secrets_hidden(store):
     def error(*args,**kwargs):return {'errors':{'subscription':'key local-test-secret-never-log forbidden'}}
     def sf(s,j,c,**kw):return OfficialSources(s,j,c,transport=error,**kw)
     result=tick(store.path,clock=lambda:NOW,source_factory=sf)
-    assert result['result']=='PARTIAL'
+    assert result['result']=='FAIL' and result['ok'] is False
     assert 'local-test-secret' not in json.dumps(result)
     assert 'local-test-secret' not in json.dumps(store.snapshot())
 

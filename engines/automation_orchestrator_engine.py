@@ -87,6 +87,8 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
     from engines.highlight_read_model import read_highlights_summary
     postmatch = Store(db_path).snapshot()
     media = read_highlights_summary(db_path)
+    from engines.highlight_coverage import Coverage
+    coverage = Coverage(db_path).snapshot()
     used = sum(item.get('used', 0) for item in postmatch.get('budget') or [])
     configured_limit = (postmatch.get('config') or {}).get('daily_limit', 60)
     limit = min(configured_limit, 60)
@@ -104,6 +106,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "jobs": jobs,
         "domains": domain_summary(state),
         "production_owner": "NeMeSiS Master Automation",
+        "highlight_coverage": coverage,
         "qa_owner": "GitHub Actions / revisión bajo demanda",
         "postmatch": {'state': postmatch.get('state'), 'counts': postmatch.get('counts') or {},
                       'daily_limit': limit, 'daily_used': used if budget_verified else None,

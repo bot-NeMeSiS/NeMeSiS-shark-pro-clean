@@ -25,6 +25,7 @@
         <li><time datetime="{{ item.kickoff }}">{{ item.date_label }}</time>
           {% if item.href %}<a href="{{ item.href }}">{{ item.match.home_team or item.match.safe_home }} — {{ item.match.away_team or item.match.safe_away }}</a>{% else %}<span>{{ item.match.home_team or item.match.safe_home }} — {{ item.match.away_team or item.match.safe_away }}</span>{% endif %}
           <strong>{{ item.home_score }}–{{ item.away_score }}</strong>
+          {% if item.match.has_highlights %}<small>▶ Resumen disponible</small>{% endif %}
         </li>
       {% endfor %}
       </ol>

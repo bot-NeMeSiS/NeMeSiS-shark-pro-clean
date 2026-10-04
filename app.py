@@ -24,7 +24,7 @@ from functools import wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for
+from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
 from werkzeug.security import check_password_hash, generate_password_hash
 from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label
 from engines.support_inbox_engine import submit as submit_support_request, admin_snapshot as support_inbox_snapshot, SupportRejected
@@ -18999,6 +18999,17 @@ def v766_highlight_map_snapshot(match_ids, limit_per_match=2):
         result = {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
     return result if isinstance(result, dict) else {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
 
+
+@before_render_template.connect_via(app)
+def enrich_canonical_highlight_surfaces(sender, template, context, **extra):
+    if not has_request_context() or request.path.startswith(('/admin','/api/admin')):
+        return
+    from engines.highlight_surfaces import copy_view, enrich_context
+    settings = admin_operational_settings()
+    # Availability is presentation metadata; never mutate shared sports evidence.
+    context.update(copy_view(context))
+    enrich_context(DB_PATH, context, enabled=settings.get('settings_readable') is True and settings['highlights_enabled'])
+
 def v769_get_highlight_snapshot(highlight_id):
     try:
         result = sportsdb_highlight_by_id(DB_PATH, highlight_id)
@@ -19168,7 +19179,7 @@ def v766_calendar_order_context(calendar=None):
     }
 
 
-def v766_sync_highlights_daily(force=False, days_back=7, limit=250):
+def v766_sync_highlights_daily(force=False, days_back=7, limit=250, priority=None):
     """Bounded highlight sync with persistent freshness/retry guards."""
     import os
     import time
@@ -19212,7 +19223,8 @@ def v766_sync_highlights_daily(force=False, days_back=7, limit=250):
                     "processed": 0, "updated": 0, "external_calls": 0, "errors": ["RETRY_COOLDOWN"],
                     "next_check_seconds": max(0, int(900 - age))}
     try:
-        result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force)
+        options = {'priority': priority} if priority is not None else {}
+        result = sync_sportsdb_highlights(DB_PATH, days_back=days_back, limit=limit, force=force, **options)
     except Exception:
         result = {"ok": False, "status": "FAILED", "errors": ["HIGHLIGHTS_SYNC_FAILED"], "processed": 0, "updated": 0}
     result["started_at"] = started
@@ -19400,7 +19412,14 @@ def api_automation_highlights_sync():
     days_back = days_from_admin_value(request.args.get("days_back") or request.form.get("days_back"), 7)
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 250)
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": v766_sync_highlights_daily(force=force, days_back=days_back if days_back is not None else 7, limit=limit or 250)})
+    priority = lambda match: sports_competition_priority(match, audience=True)['weight']
+    result = v766_sync_highlights_daily(force=force, days_back=days_back if days_back is not None else 7, limit=limit or 250, priority=priority)
+    if result.get('skipped') and result.get('reason') in {'fresh_sync_window','already_synced_today','scope_completed_with_gaps'}:
+        # Keep the recent-feed cadence; advance durable inventory on every master
+        # tick using only the unspent shared media allowance. No extra scheduler.
+        result = sync_sportsdb_highlights(DB_PATH, days_back=7, limit=limit or 250, historical_only=True, priority=priority)
+        result['recent_lane'] = 'CACHED_WINDOW'
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights_sync": result})
 
 
 @app.route("/api/admin/highlights/sync", methods=["POST"])

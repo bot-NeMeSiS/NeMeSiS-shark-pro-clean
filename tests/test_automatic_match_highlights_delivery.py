@@ -36,9 +36,15 @@ def test_empty_newest_events_do_not_starve_other_finished_matches(store, monkeyp
     first = media.sync_sportsdb_highlights(store, days_back=7)
     second = media.sync_sportsdb_highlights(store, days_back=7)
     assert first['external_calls'] <= 12 and second['external_calls'] <= 12
+    assert second['external_calls'] == 0  # Persistent allowance is shared across master ticks.
+    from datetime import datetime, timedelta
+    start = datetime.fromisoformat(media._now())
+    monkeypatch.setattr(media, '_now', lambda: (start + timedelta(hours=6)).isoformat())
+    media.sync_sportsdb_highlights(store, days_back=7)
     assert len(calls) == 8 and len(set(calls)) == 8
     with sqlite3.connect(store) as conn:
         conn.execute("UPDATE sportsdb_highlight_feed_cache SET expires_at='2000-01-01T00:00:00+01:00' WHERE cache_key LIKE 'v2:%'")
+    monkeypatch.setattr(media, '_now', lambda: (start + timedelta(hours=12)).isoformat())
     third = media.sync_sportsdb_highlights(store, days_back=7)
     assert third['v2_event_lookups'] == 4
 
