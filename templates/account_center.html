@@ -26,7 +26,7 @@
         {{ section_header('Cuenta y servicios') }}
         <div class="v933-quick-actions ns16-account-actions">
           {{ quick_action('Tu plan', plan, '/membresias', 'plan', 'gold') }}
-          {{ quick_action('Telegram', 'Vinculado' if telegram.get('linked') else 'Vincula tus avisos', '/telegram', 'telegram') }}
+          {{ quick_action('Telegram', ('Vinculado a @' ~ telegram.get('username')) if telegram.get('linked') and telegram.get('username') else ('Vinculado' if telegram.get('linked') else 'Vincula tus avisos'), '/telegram', 'telegram') }}
           {{ quick_action('Favoritos', 'Equipos, competiciones y partidos', '/favoritos', 'star') }}
           {{ quick_action('Notificaciones', 'Elige qué quieres recibir', '/notificaciones', 'bell') }}
         </div>
@@ -34,8 +34,8 @@
       <section class="v933-panel">
         {{ section_header('Plan y facturación') }}
         <p>{{ client_message(membership.get('headline'), 'Consulta lo que incluye tu plan.') }}</p>
-        {% if plan == 'FREE' %}<p>Tu plan es gratuito. No hay renovación de pago activa.</p>
-        {% elif admin_granted or membership_source == 'admin_manual' %}<p>Tienes un acceso concedido, sin renovación automática de pago.</p>
+        {% if plan == 'FREE' %}<p>Plan gratuito. No hay renovación de pago activa.</p>
+        {% elif admin_granted or membership_source == 'admin_manual' %}<p>Acceso concedido, sin renovación automática de pago.</p>
         {% elif stripe_status %}<p>Suscripción: <strong>{{ stripe_label }}</strong>.</p><p>Renovación: {{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Fecha pendiente de confirmar' }}.</p>
         {% else %}<p>No hay una renovación automática asociada a esta cuenta.</p>{% endif %}
         {% if plan != 'FREE' and not admin_granted and membership_source != 'admin_manual' and stripe_status and pay.portal_ready %}
@@ -44,6 +44,7 @@
       </section>
       <section class="v933-panel">
         {{ section_header('Tu actividad', '', 'Ver todo', '/actividad') }}
+        <p class="v933-safe-copy">Abrir páginas o consultar pronósticos no añade un registro de navegación.</p>
         {% if activity %}<div class="v933-truth-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ client_message(item.label, 'Actividad guardada') }}</strong></div>{% endfor %}</div>
         {% else %}{{ empty_state('Todavía no hay actividad guardada', 'Tus acciones guardadas aparecerán aquí.', 'Explorar partidos', '/calendario', 'history') }}{% endif %}
       </section>

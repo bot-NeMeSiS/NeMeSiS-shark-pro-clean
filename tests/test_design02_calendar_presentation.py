@@ -124,7 +124,7 @@ def test_mobile_primary_navigation_keeps_shark_and_results(app_module, authentic
 
 def test_sports_styles_use_canonical_sizes_and_version_both_stylesheets():
     root = Path(__file__).resolve().parents[1]
-    css = (root / 'static/v933-product.css').read_text(encoding='utf-8')
+    css = (root / 'static/design-system.css').read_text(encoding='utf-8')
     base = (root / 'templates/base.html').read_text(encoding='utf-8')
     assert 'font-size: var(--score-size)' in css
     assert 'font-size: var(--score-size-compact)' in css
@@ -133,9 +133,10 @@ def test_sports_styles_use_canonical_sizes_and_version_both_stylesheets():
     bundle_link = next(line for line in base.splitlines() if "filename='product-system.css'" in line)
     assert 'data-product-system="premium-1"' in bundle_link
     sources = (root / 'tools/visual_css_sources.json').read_text(encoding='utf-8')
-    assert sources.index('v933_design_tokens.css') < sources.index('v933-product.css')
+    assert sources.index('design-tokens.css') < sources.index('design-system.css')
+    assert 'v933_design_tokens.css' not in sources and 'v933-product.css' not in sources
     realtime_script = next(line for line in base.splitlines() if "filename='v934-realtime.js'" in line)
-    assert '-design-02-r5-1' in realtime_script
+    assert '-client-core-2-directo-inplace-1' in realtime_script
 
 
 @pytest.mark.parametrize('route', ['/calendar', '/calendario', '/calendario-global', '/partidos', '/partidos/calendario'])
@@ -152,7 +153,7 @@ def test_calendar_aliases_share_visible_navigation_state(app_module, route, surf
 
 def test_client_copy_reduction_does_not_hide_temporal_container():
     root = Path(__file__).resolve().parents[1]
-    css = (root / 'static/v933-product.css').read_text(encoding='utf-8')
+    css = (root / 'static/design-system.css').read_text(encoding='utf-8')
     for owner in ('sports-priority-home', 'ns16-home', 'ns16-live', 'v933-calendar-board'):
         rule = next(line for line in css.splitlines() if line.startswith('.' + owner + ' .v933-match-card :is('))
         assert '.v937-confidence-badge' in rule

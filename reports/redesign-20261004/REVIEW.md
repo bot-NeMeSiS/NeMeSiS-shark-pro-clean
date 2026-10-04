@@ -46,7 +46,7 @@ El antes procede de las plantillas y CSS inmutables de `b7e8aea1`, con la misma 
 
 ## Pruebas ejecutadas
 
-- **318 pruebas únicas superadas**, 0 fallos/errores: Core, referencias, Home, Madrid Time, Jinja/contratos, sesiones concurrentes, acceso, membresías, límites SHARK, Sports Truth, Founder, Telegram en preview seguro y backups. Las repeticiones se deduplican por caso.
+- **497 pruebas únicas superadas**, 0 fallos/errores: Core, referencias, Home, Madrid Time, Jinja/contratos, sesiones concurrentes, acceso, membresías, límites SHARK, Sports Truth, Founder, Telegram en preview seguro y backups. Las repeticiones se deduplican por caso.
 - **155 capturas finales** de 31 rutas en cinco tamaños; **54 capturas históricas** PC/tablet/móvil. Las últimas capturas específicas sustituyen las anteriores de Home, SHARK y Match Center tras la limpieza de copy.
 - En la matriz final: 0 overflow horizontal de página, 0 IDs duplicados, 0 errores JavaScript, 0 imágenes rotas visibles, 0 respuestas 5xx y 0 términos técnicos detectados por el escáner de texto cliente. Encabezados y textos de marcador comprobados por geometría.
 - `/match/unavailable` devuelve 404 deliberadamente con una pantalla legible. Las demás rutas examinadas responden 200.
@@ -98,3 +98,7 @@ No hay mejora universal de latencia: Live, Combinadas y algunas superficies admi
 5. **Publicación:** rama y PR separados para revisión; ningún merge/deploy, pago o envío real autorizado/ejecutado. El PR se crea draft con `[skip preview]` para evitar previews automáticos de Render ([documentación oficial](https://render.com/docs/service-previews)).
 
 Las carpetas anteriores after/before/evidence/final/founder y css-comparison.json son evidencias de una fase parcial, conservadas como histórico. La aceptación final usa exclusivamente screenshots/, GALLERY.html, route-performance.json, tests.xml y evidence-summary.json.
+
+## Contratos conservados tras CI
+
+Los probes operativos que detectan capacidades leyendo claves históricas de base.html conservan esas claves en un registro Jinja no renderizado. No vuelven a activar CSS ni se altera la lógica de cierre. Cuenta conserva el usuario de Telegram vinculado y la explicación de privacidad de actividad. Las pruebas anteriores que exigían textos Stripe/técnicos o diagnósticos visibles en cliente se actualizan al lenguaje y a la separación acordados, manteniendo las comprobaciones de lecturas únicas, permisos y ausencia de escrituras. La suite local ampliada reúne 497 pruebas únicas superadas.

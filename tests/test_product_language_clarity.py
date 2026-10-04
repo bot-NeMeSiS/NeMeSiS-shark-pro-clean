@@ -306,7 +306,7 @@ def test_client_telegram_never_promises_delivery_when_channel_is_not_ready():
     assert "Contenido previsto para tu plan" in text
     assert "Pronósticos premium" not in text
     assert "Pronósticos disponibles" in text
-    assert "Esta pantalla no envía mensajes por sí sola" in text
+    assert "según tu vinculación, tus preferencias y la información disponible para tu plan" in text
     assert "status_chip('Listo' if telegram_ready else 'En espera'" in text
 
 
@@ -423,7 +423,8 @@ def test_final_visible_client_copy_avoids_residual_english_product_jargon():
     assert "Enviar resumen" in imports and "Centro de control" in imports
     assert "antes de cualquier checkout" not in membership and "antes de cualquier pago" in membership
     assert "<span>Onboarding</span>" not in onboarding
-    assert "Primero lo esencial" in onboarding
+    assert "Tu próxima jornada empieza aquí." in onboarding
+    assert "El deporte, a tu manera." in onboarding
 
 def test_founder_header_and_data_copy_stay_plain_spanish():
     founder=read("templates/admin_founder_dashboard.html")
