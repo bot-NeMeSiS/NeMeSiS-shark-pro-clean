@@ -15228,7 +15228,9 @@ def telegram_scheduler_delivery(force=False):
         activity_result = _safe_sports_sync_call("activity", enqueue_v771_telegram_activity, force=force, limit=as_int(os.getenv("TELEGRAM_MAX_ACTIVITY_MESSAGES_PER_TICK", "6"), 6))
         results.append(activity_result)
         modules["v771_activity"] = telegram_scheduler_module_payload(activity_result, default_status="NO_ACTIVITY_CANDIDATES")
-    processed_queue = _safe_sports_sync_call("telegram_queue", process_premium_telegram_queue, limit=cfg["max_queue_per_tick"], force=force)
+    processed_queue = _safe_sports_sync_call(
+        "telegram_queue", lambda: process_premium_telegram_queue(limit=cfg["max_queue_per_tick"], force=force),
+    )
     for item in processed_queue.get("sent_items") or []:
         message_type = str(item.get("message_type") or "").lower()
         if message_type == "auto_pick":
