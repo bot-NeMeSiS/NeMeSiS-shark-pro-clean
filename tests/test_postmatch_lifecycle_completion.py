@@ -16,6 +16,21 @@ TIMELINE={'idEvent':'101','idTimeline':'789','strTimeline':'Goal','strTimelineDe
           'strHome':'Yes','strTeam':MATCH['home_team'],'intTime':'30','strPlayer':'Jugador de prueba'}
 
 
+@pytest.mark.parametrize('stage,method',[('INITIALIZE','initialize'),('DISCOVER','discover'),('RECONCILE',None)])
+def test_storage_failure_reports_closed_stage_without_sensitive_exception(store,monkeypatch,caplog,stage,method):
+    def fail(*args,**kwargs):
+        raise sqlite3.OperationalError('private SQL or credential must never be reported')
+    if method:
+        monkeypatch.setattr(Store,method,fail)
+    else:
+        monkeypatch.setattr('engines.postmatch_recovery.reconcile_media_reviews',fail)
+    result=tick(store.path,clock=lambda:NOW)
+    assert not result['ok'] and result['result']=='STORAGE_UNAVAILABLE'
+    assert result['failure_stage']==stage and result['storage_code']=='OperationalError'
+    assert 'private SQL' not in json.dumps(result)+caplog.text
+    assert 'POSTMATCH_STORAGE stage='+stage in caplog.text
+
+
 def install(monkeypatch, *, empty=False):
     calls=[]
     def fetch(request,timeout):

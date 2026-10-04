@@ -6,6 +6,7 @@ failures are isolated and publication rights are never inferred from a URL.
 from __future__ import annotations
 import hashlib
 import json
+import logging
 import sqlite3
 import time
 from datetime import datetime, timedelta
@@ -238,12 +239,16 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
     began, results = clock(), []
     shared_request_cache = {}
     shared_receipts = {}
+    stage = 'INITIALIZE'
     try:
         # Migration belongs to explicit activation, not to a page read or import.
         official = source_factory is OfficialSources
         store.initialize()  # Explicit worker mutation; additive schema migration, never a reader action.
+        stage = 'DISCOVER'
         store.discover(began,include_archive=official,priority=priority)
+        stage = 'RECONCILE'
         reconcile_media_reviews(store, began)
+        stage = 'PROCESS'
         for _ in range(min(2, config['batch_size'])):
             if clock() >= began + 20:
                 break
@@ -277,8 +282,13 @@ def tick(db_path, *, dry_run=False, clock=time.time, source_factory=OfficialSour
                     results.append(finish(store, job, {'reasons':[reason], 'external_calls':getattr(source,'calls',outcome.get('external_calls',0)), 'diagnostics':safe_diagnostics(getattr(source, 'diagnostics', {}))}, clock()))
                 except (StaleLease, sqlite3.Error):
                     results.append({'job_id':job['id'],'kind':job['kind'],'state':'FAILED','reason':reason,'external_calls':0})
-    except (sqlite3.Error, OSError, ValueError):
-        return {'ok':False,'result':'STORAGE_UNAVAILABLE','processed':len(results),'jobs':results}
+    except (sqlite3.Error, OSError, ValueError) as exc:
+        # Closed operational diagnostics: never emit exception text, SQL, paths or payloads.
+        code = getattr(exc, 'sqlite_errorname', '')
+        code = code if isinstance(code,str) and code.startswith('SQLITE_') and code.replace('_','').isalnum() else type(exc).__name__
+        logging.getLogger(__name__).error('POSTMATCH_STORAGE stage=%s code=%s',stage,code)
+        return {'ok':False,'result':'STORAGE_UNAVAILABLE','processed':len(results),'jobs':results,
+                'failure_stage':stage,'storage_code':code}
     from engines.automation_outcome import postmatch_outcome
     technical = postmatch_outcome(results)
     try:
