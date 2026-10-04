@@ -8,7 +8,8 @@ Un resultado del proveedor vacío cuenta como comprobación, nunca como licencia
 ## Ejecución y persistencia
 
 El único Cron maestro conserva `/api/automation/highlights/sync`. La ventana
-reciente de siete días mantiene su frecuencia existente. Cuando ese carril está
+reciente de siete días se mantiene: los días más recientes se revisan con mayor
+frecuencia y los anteriores aprovechan caché de 24 horas. Cuando ese carril está
 en caché, el mismo endpoint avanza el inventario y un lote histórico sin refrescar
 la ventana ni añadir otro programador. Se inventarían 200 filas por cursor y hasta
 200 partidos adicionales nuevos/finalizados/remapeados por ejecución. El cursor
@@ -35,15 +36,17 @@ El carril reciente precede al histórico. El histórico prioriza partidos aún n
 comprobados y el peso editorial deportivo existente; después antigüedad del
 aplazamiento y fecha. Hasta ocho partidos históricos por ejecución, dentro del
 mismo presupuesto y deadline; no se exige gastar ocho llamadas. Los resultados
-vacíos se reintentan a seis horas para recientes, tres días para 8–30 días y
+vacíos se reintentan a seis horas para recientes; después de una segunda respuesta
+vacía, partidos de 2–7 días pasan a 24 horas. Se usan tres días para 8–30 días y
 30 días para históricos; tras varias comprobaciones históricas, 90 días.
 
 La caché V2 y los feeds persisten en `sportsdb_highlight_feed_cache`. El backfill
 usa el mismo límite de 12 llamadas por operación, además de una reserva atómica
 persistente de 12 llamadas por ventana de seis horas (como máximo 48 por día UTC; no es
 una cuota contractual del proveedor). El reciente consume primero lo necesario.
-El histórico aprovecha el remanente conservando al menos tres llamadas para
-nuevas llegadas; si hay más demanda reciente pendiente, esa reserva aumenta.
+El histórico aprovecha el remanente conservando tres llamadas para nuevas
+llegadas; durante los últimos treinta minutos conserva una si la demanda
+reciente pendiente no exige más. La reserva aumenta con esa demanda real.
 No existe un tope histórico fijo de dos llamadas. Se reserva ANTES
 de HTTP y no se reembolsa tras un error/reinicio. Nunca toca las 60 llamadas/día
 de recuperación pospartido. No cambia planes, claves ni recursos de Render.
@@ -60,6 +63,16 @@ El panel expone llamadas recientes/históricas, libres, reserva y disponibilidad
 histórica reales. El ritmo depende de demanda reciente y evidencia reutilizable.
 Las comprobaciones individuales nuevas de la ventana son evidencia de actividad,
 no una garantía de completar el catálogo ni una extrapolación de feeds incompletos.
+
+El histórico puede reutilizar una consulta de temporada cuando liga y temporada
+proceden de un evento SportsDB cuya identidad ya está verificada. Usa
+`eventsseason.php?id=...&s=...`, el mismo presupuesto compartido y una caché
+persistente de tres días para temporadas actuales o treinta para antiguas.
+La respuesta aporta identidad exacta y vídeos positivos para varios partidos.
+Los partidos sin vídeo siguen requiriendo su lookup Premium V2: ni filas ausentes
+ni metadatos vacíos del feed cuentan como NO_VIDEO. Una respuesta grande avanza
+en lotes omitiendo vídeos ya guardados, sin reiniciar la cola ni aprobar derechos.
+Contrato del proveedor: https://thesportsdb.readme.io/reference/geteventsbyseason.
 
 ## Lecturas y cliente
 

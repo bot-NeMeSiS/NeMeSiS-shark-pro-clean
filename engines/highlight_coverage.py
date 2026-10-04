@@ -97,7 +97,7 @@ def retry_delay(match, now, attempts):
     age = (datetime.fromtimestamp(now, ZoneInfo('Europe/Madrid')).date() -
            datetime.fromisoformat(str(match['match_date'])[:10]).date()).days
     if age <= 7:
-        return 6 * 3600
+        return (24 if age>1 and attempts>=2 else 6) * 3600
     if age <= 30:
         return 3 * 86400
     return (90 if attempts >= 3 else 30) * 86400
@@ -234,7 +234,9 @@ class Coverage:
 
     def set_recent_reserve(self, pending_calls=0):
         """Recent demand and an operational margin precede historical spending."""
-        reserve = min(12,max(RECENT_MARGIN,int(pending_calls)))
+        remaining = (int(self.now//21600)+1)*21600-self.now
+        margin = 1 if remaining<=1800 else RECENT_MARGIN
+        reserve = min(12,max(margin,int(pending_calls)))
         with closing(self.connect(True)) as conn, conn:
             conn.execute('INSERT OR IGNORE INTO highlight_coverage_budget(window) VALUES(?)',(int(self.now//21600),))
             conn.execute('UPDATE highlight_coverage_budget SET recent_reserve=? WHERE window=?',
@@ -402,7 +404,9 @@ def run_one(coverage, scope, lookup, save, v1, batch_lookup=None):
             feed = batch_lookup(match)
             exact = [item for item in feed if match_event(match,item) and
                      (not sid or str(item.get('idEvent')) == sid)]
-            if len(exact) == 1 and public_https_url(_video_url(exact[0])):
+            if len(exact) == 1:
+                # Complete event metadata can verify identity, but absent video
+                # metadata still requires the exact Premium V2 lookup below.
                 event = exact[0]
         if not event:
             params = {'id':sid} if sid else {'d':sportsdb_query_date(match),'s':'Soccer'}
@@ -431,7 +435,7 @@ def run_one(coverage, scope, lookup, save, v1, batch_lookup=None):
                     (cache_key,json.dumps(event),datetime.fromtimestamp(coverage.now,ZoneInfo('Europe/Madrid')).isoformat(),
                      datetime.fromtimestamp(coverage.now+90*86400,ZoneInfo('Europe/Madrid')).isoformat()))
         # Reject a stale or inconsistent identity cache too.
-        if not match_event(match,event):
+        if not match_event(match,event) or not integer_id(event.get('idEvent')) or (sid and str(event.get('idEvent'))!=sid):
             raise SportsDBStopped('IDENTITY_MISMATCH')
         sid = integer_id(event.get('idEvent'))
         if public_https_url(_video_url(event)):
@@ -441,6 +445,8 @@ def run_one(coverage, scope, lookup, save, v1, batch_lookup=None):
                 save([event])
                 coverage.finish(job,'LINKED','PROFILE_VIDEO_REUSED',checked=True,sid=sid)
                 return {'processed':1,'state':'LINKED','evidence':'PERSISTED_EVENT_PROFILE'}
+            coverage.finish(job,'AMBIGUOUS','AMBIGUOUS_MATCH',sid=sid)
+            return {'processed':1,'state':'AMBIGUOUS'}
         items = lookup(sid)
         valid = [dict(item) for item in items if public_https_url(_video_url(item))]
         for item in valid:

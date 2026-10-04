@@ -596,7 +596,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
     ensure_sportsdb_highlights_schema(db_path)
     associations_reconciled = reconcile_cached_highlight_links(db_path, days_back=days, limit=capacity)
-    from engines.highlight_coverage import Coverage, HISTORY_BATCH, run_one, sportsdb_query_date
+    from engines.highlight_coverage import Coverage, HISTORY_BATCH, run_one, sportsdb_query_date, retry_delay
     coverage = Coverage(db_path, datetime.fromisoformat(_now()).timestamp(), priority=priority)
     coverage.prepare()
     historical = {'processed': 0, 'state': 'NOT_RUN'}
@@ -646,7 +646,8 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
             persistent_cache_hits += 1
         else:
             fetched_at = _now()
-            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
+            age = (_today()-datetime.fromisoformat(day).date()).days
+            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6 if age<=1 else 24)).isoformat(timespec='seconds')
             with _connect(db_path) as conn:
                 conn.execute('INSERT OR REPLACE INTO sportsdb_highlight_feed_cache VALUES (?,?,?,?)',
                              (cache_key, json.dumps(payload, ensure_ascii=False), fetched_at, expires))
@@ -793,7 +794,14 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
             raise SportsDBStopped('IDENTITY_MISMATCH')
         if not from_cache:
             fetched_at = _now()
-            expires = (datetime.fromisoformat(fetched_at) + timedelta(hours=6)).isoformat(timespec='seconds')
+            delay = 6*3600
+            if not (values or []):
+                with _connect(db_path) as conn:
+                    previous = _one(conn,'SELECT c.attempts,m.* FROM highlight_coverage c '
+                        'JOIN matches m ON m.id=c.match_id WHERE c.event_id=? LIMIT 1',(str(event_id),))
+                if previous:
+                    delay = retry_delay(previous,coverage.now,int(previous['attempts'])+1)
+            expires = (datetime.fromisoformat(fetched_at) + timedelta(seconds=delay)).isoformat(timespec='seconds')
             with _connect(db_path) as conn:
                 conn.execute(
                     'INSERT OR REPLACE INTO sportsdb_highlight_feed_cache VALUES (?,?,?,?)',
@@ -884,6 +892,15 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
             historical_jobs = []
             feed_attempted = [False]
             def historical_feed(match):
+                from engines.highlight_season_evidence import acquire as acquire_season, new_exact_videos
+                allowed = not feed_attempted[0] and coverage.media_allowance()['historical_available'] >= 3
+                before = scope.calls
+                season_items = acquire_season(coverage,match,scope,_sportsdb_v1,allow_fetch=allowed,force=force)
+                if scope.calls > before:
+                    feed_attempted[0] = True
+                if season_items is not None:
+                    save(new_exact_videos(coverage,season_items))
+                    return season_items
                 # One date/competition request can contribute many exact links.
                 # Missing rows NEVER prove an event has no video.
                 if feed_attempted[0] or coverage.media_allowance()['historical_available'] < 3:
@@ -951,6 +968,8 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
             'persistent_cache_hits': persistent_cache_hits, 'profile_links_reused': profile_links_reused,
             'v2_event_lookups': v2_event_lookups, 'v2_cache_hits': v2_cache_hits,
             'v2_highlights_found': v2_highlights_found, 'associations_reconciled': associations_reconciled, 'cache_ttl_hours': 6,
+            'cache_ttl_scope': 'MINIMUM_RECENT_TTL_NOT_ALL_RESULTS',
+            'cache_ttl_policy': 'Recientes 6h; feeds de días previos 24h; NO_VIDEO repetido según edad e intentos.',
             **scope.metrics()}
 
 
