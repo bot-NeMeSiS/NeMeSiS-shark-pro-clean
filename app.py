@@ -3096,6 +3096,8 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduler_locks_status ON scheduler_locks(status, next_run)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_telegram_queue_dedupe ON telegram_queue(dedupe_key) WHERE dedupe_key IS NOT NULL AND dedupe_key!=''")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_status ON telegram_queue(status, scheduled_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_sent_at ON telegram_queue(status, sent_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_chat_sent_at ON telegram_queue(chat_id, status, sent_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_logs_created ON telegram_logs(created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_memory_status ON telegram_delivery_memory(status, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_memory_dedupe ON telegram_delivery_memory(dedupe_key, created_at)")
@@ -12805,23 +12807,84 @@ def telegram_auto_destinations(required_membership="FREE", include_global=True):
     return destinations
 
 
-def telegram_sent_last_hour(chat_id=None):
-    since = (datetime.now(TZ) - timedelta(hours=1)).isoformat(timespec="seconds")
-    if chat_id:
-        return (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE chat_id=? AND status=? AND sent_at>=?", (chat_id, QUEUE_SENT, since)) or {}).get("total", 0)
-    return (one("SELECT COUNT(*) AS total FROM telegram_queue WHERE status=? AND sent_at>=?", (QUEUE_SENT, since)) or {}).get("total", 0)
+TELEGRAM_QUEUE_RATE_LIMIT_FAILSAFE_COUNT = 1_000_000
 
 
-def telegram_sent_today(chat_id=None, message_type=None):
-    clauses = ["status=?", "sent_at LIKE ?"]
-    params = [QUEUE_SENT, today_iso() + "%"]
+def _telegram_queue_sent_count(chat_id=None, since=None, day_prefix=None, message_type=None):
+    """Bound Telegram rate-limit reads so SQLite contention cannot consume a Gunicorn worker.
+
+    These reads guard automatic delivery. If the persistent database is busy or a
+    count unexpectedly exceeds its small read budget, return None and let callers
+    fail closed for this tick rather than sending past a destination limit.
+    """
+    clauses = ["status=?"]
+    params = [QUEUE_SENT]
+    if since:
+        clauses.append("sent_at>=?")
+        params.append(str(since))
+    if day_prefix:
+        clauses.append("sent_at LIKE ?")
+        params.append(str(day_prefix))
     if chat_id:
         clauses.append("chat_id=?")
         params.append(chat_id)
     if message_type:
         clauses.append("lower(coalesce(message_type,''))=?")
         params.append(str(message_type).lower())
-    return (one(f"SELECT COUNT(*) AS total FROM telegram_queue WHERE {' AND '.join(clauses)}", tuple(params)) or {}).get("total", 0)
+    query = f"SELECT COUNT(*) AS total FROM telegram_queue WHERE {' AND '.join(clauses)}"
+
+    db_path = str(DB_PATH or "").strip()
+    if not db_path or db_path == ":memory:" or not Path(db_path).exists():
+        return as_int((one(query, tuple(params)) or {}).get("total"), 0)
+
+    timeout_ms = max(100, min(as_int(os.getenv("TELEGRAM_RATE_LIMIT_READ_TIMEOUT_MS", "1200"), 1200), 3000))
+    connection = None
+    deadline = time.monotonic() + (timeout_ms / 1000)
+    try:
+        uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+        connection = sqlite3.connect(
+            uri,
+            uri=True,
+            timeout=timeout_ms / 1000,
+            check_same_thread=False,
+        )
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA query_only=ON")
+        connection.execute(f"PRAGMA busy_timeout={timeout_ms}")
+        connection.set_progress_handler(lambda: 1 if time.monotonic() >= deadline else 0, 1000)
+        row = connection.execute(query, tuple(params)).fetchone()
+        return as_int(row["total"] if row else 0, 0)
+    except sqlite3.OperationalError as exc:
+        message = str(exc).lower()
+        if "locked" in message or "busy" in message or "interrupted" in message:
+            try:
+                print("[TELEGRAM][RATE_LIMIT_DB_BUSY] lectura de limite aplazada; envio automatico retenido hasta el siguiente tick")
+            except Exception:
+                pass
+            return None
+        raise
+    finally:
+        if connection is not None:
+            try:
+                connection.set_progress_handler(None, 0)
+            except sqlite3.Error:
+                pass
+            connection.close()
+
+
+def telegram_sent_last_hour(chat_id=None):
+    since = (datetime.now(TZ) - timedelta(hours=1)).isoformat(timespec="seconds")
+    count = _telegram_queue_sent_count(chat_id=chat_id, since=since)
+    return TELEGRAM_QUEUE_RATE_LIMIT_FAILSAFE_COUNT if count is None else count
+
+
+def telegram_sent_today(chat_id=None, message_type=None):
+    count = _telegram_queue_sent_count(
+        chat_id=chat_id,
+        day_prefix=today_iso() + "%",
+        message_type=message_type,
+    )
+    return TELEGRAM_QUEUE_RATE_LIMIT_FAILSAFE_COUNT if count is None else count
 
 
 def telegram_pro_calibration():

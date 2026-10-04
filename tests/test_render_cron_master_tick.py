@@ -513,7 +513,7 @@ def test_controlled_postmatch_partial_succeeds(monkeypatch, capsys, reason):
             {"state": "RETRY", "reason": reason},
         ]}),
     )
-    assert code == 1
+    assert code == 0
     assert payload["overall"] == "PARTIAL"
     assert payload["postmatch"]["postmatch_status"] == "PARTIAL"
     assert payload["postmatch"]["postmatch_result"] == "PARTIAL"

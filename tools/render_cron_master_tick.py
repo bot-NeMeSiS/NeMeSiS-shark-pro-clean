@@ -665,6 +665,11 @@ def overall_status(telegram: dict, continuous: dict, backup: dict) -> str:
     return base
 
 
+def exit_code_for_overall(status: str) -> int:
+    """Render should fail the process only for a technical FAIL, not controlled PARTIAL work."""
+    return 2 if str(status or "").upper() == "FAIL" else 0
+
+
 def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     try:
@@ -817,7 +822,7 @@ def main() -> int:
         "timestamp_utc": utc_now,
         "duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
     })
-    return {"PASS": 0, "PARTIAL": 1, "FAIL": 2}[overall]
+    return exit_code_for_overall(overall)
 
 
 if __name__ == "__main__":
