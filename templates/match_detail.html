@@ -25,14 +25,17 @@
      data-match-id="{{ match_context.get('match', {}).get('id') or '' }}"
      data-canonical-status="{{ match_context.get('match', {}).get('status_info', {}).get('key') or match_context.get('lifecycle', {}).get('key') or '' }}"
      data-canonical-live="{{ 'true' if match_context.get('lifecycle', {}).get('is_live') else 'false' }}">
-  <nav class="v933-page-actions" aria-label="Revisar partido con SHARK">
-    {% if (match_context.get('media') or {}).get('visible_count') %}<a class="v933-action is-primary" href="#match-section-video">▶ {{ ui("Ver resumen del partido") }}</a>{% endif %}
-    <a class="v933-action" href="/shark?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Consejos de SHARK sobre este partido</a>
-    <a class="v933-action" href="/combinadas?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">Revisar en combinadas</a>
-  </nav>
   <div class="v944-match-anchor">
     {{ match_header(match_context) }}
   </div>
+  <nav class="v933-page-actions" aria-label="{{ ui('Acciones del partido') }}">
+    {% if (match_context.get('media') or {}).get('visible_count') %}<a class="v933-action is-primary" href="#match-section-video">{{ ui("Ver resumen") }}</a>{% endif %}
+    <a class="v933-action" href="#match-section-shark">{{ ui('Análisis SHARK') }}</a>
+    <details class="v944-match-more-actions"><summary>{{ ui('Más opciones') }}</summary>
+      <a class="v933-action" href="/shark?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">{{ ui('Consultar a SHARK') }}</a>
+      <a class="v933-action" href="/combinadas?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">{{ ui('Revisar combinadas') }}</a>
+    </details>
+  </nav>
   {{ history_panel(match_context.get('historical_memory')) }}
 
   {% set lineups = match_context.get('lineups') or {} %}
@@ -57,17 +60,8 @@
   </nav>
 
   <div class="v944-match-layout">
-    {% if shark.get('available') %}
-    <div class="v944-match-intelligence-priority">
-      {{ shark_panel(match_context) }}
-      {{ pick_panel(match_context) }}
-      {{ match_story(match_context) }}
-      {{ quick_actions(match_context) }}
-    </div>
-    {% endif %}
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
-      {% if not shark.get('available') %}{{ match_story(match_context) }}{% endif %}
-      {% if not shark.get('available') %}{{ pick_panel(match_context) }}{% endif %}
+      {{ match_story(match_context) }}
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
@@ -97,10 +91,11 @@
     </section>
 
     <aside class="v944-match-rail" aria-label="{{ ui("Contexto y continuidad del partido") }}">
-      {% if not shark.get('available') %}{{ quick_actions(match_context) }}{% endif %}
+      {{ shark_panel(match_context) }}
+      {{ pick_panel(match_context) }}
+      {{ quick_actions(match_context) }}
       {{ competition_panel(match_context) }}
       {% if request.path.startswith('/admin') %}{{ data_confidence_panel(match_context.get('match', {}), 'match') }}{% endif %}
-      {% if not shark.get('available') %}{{ shark_panel(match_context) }}{% endif %}
       <details class="v944-coverage-details"><summary>{{ ui('Seguimiento y gestión') }}</summary>
         {{ telegram_panel(match_context) }}
         {{ bankroll_panel(match_context) }}

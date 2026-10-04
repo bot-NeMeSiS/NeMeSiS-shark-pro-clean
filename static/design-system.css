@@ -18200,14 +18200,14 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   display: flex;
   gap: 7px;
   min-width: 0;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding: 2px 0 4px;
   scrollbar-width: thin;
 }
 
 .v944-match-sections a {
   flex: 0 0 auto;
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   padding: 7px 11px;
@@ -23357,9 +23357,10 @@ body.ns-app .v944-match-team .v933-team-logo { --sports-crest-size: var(--crest-
 
 body.ns-app .v944-match-team strong { font-size: 22px; line-height: 1.2; }
 
-.v944-match-intelligence-priority { min-width: 0; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(220px,.8fr); gap: 12px; align-items: start; }
-
-.v944-match-intelligence-priority .v944-experience-grid { grid-template-columns: 1fr; }
+.v944-match-more-actions { min-width: 0; }
+.v944-match-more-actions > summary { display: flex; align-items: center; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--ns-radius); cursor: pointer; color: var(--ns-text-muted); }
+.v944-match-more-actions > summary:focus-visible { outline: 2px solid var(--nsx-cyan); outline-offset: 3px; }
+.v944-match-more-actions[open] { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .v944-story-detail > summary { cursor: pointer; min-height: 40px; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ns-text); }
 
@@ -23367,19 +23368,11 @@ body.ns-app .v944-match-team strong { font-size: 22px; line-height: 1.2; }
 
 .v944-story-detail[open] > summary::before { content: '\2212'; }
 
-body.ns-app .v944-match-intelligence-priority [data-match-component="QuickActions"] { padding: 10px 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
-
-.v944-match-intelligence-priority .v944-experience-grid article { padding-block: 8px; }
 
 body.ns-app .v944-match-main { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; }
 
 body.ns-app .v944-match-main > :is([data-match-component="MatchStory"],.v944-coverage-details,.v944-transparency-disclosure) { grid-column: 1 / -1; }
 
-.v944-match-intelligence-priority .v944-shark-context { border: 0; border-radius: 0; background: transparent; padding: 0; }
-
-.v944-match-intelligence-priority .v944-shark-context > strong { font-size: 18px; }
-
-.v944-match-intelligence-priority .v944-shark-context li { border: 0; background: transparent; padding: 4px 0; }
 
 .v944-shark-evidence > summary { min-height: 40px; cursor: pointer; display: flex; align-items: center; }
 
@@ -23710,7 +23703,7 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   body.ns-app .v944-match-header__meta { grid-template-columns: auto minmax(0,1fr) auto; gap: 6px; margin-bottom: 3px; }
   body.ns-app .v944-match-header__meta > .v944-match-header__competition { max-width: 100%; }
   body.ns-app .v944-match-header__identity { grid-template-columns: minmax(0,1fr) 82px minmax(0,1fr); gap: 4px; }
-  .v944-match-intelligence-priority, body.ns-app .v944-match-main { grid-template-columns: 1fr; }
+  body.ns-app .v944-match-main { grid-template-columns: 1fr; }
   body.ns-app .v944-match-team .v933-team-logo { --sports-crest-size: var(--crest-md); }
   body.ns-app .v944-match-team, body.ns-app .v944-match-team.is-away { grid-template-columns: 1fr; grid-template-areas: "logo" "name" "role"; }
   body.ns-app .v944-match-team strong { font-size: 13px; line-height: 1.25; }

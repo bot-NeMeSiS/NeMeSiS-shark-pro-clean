@@ -62,7 +62,7 @@
       <h2>{{ ui(title) }}</h2>
       {% if subtitle %}<p>{{ ui(subtitle) }}</p>{% endif %}
     </div>
-    <span class="v944-component-state is-{{ state }}">{{ state_label(state) }}</span>
+    {% if state not in ['ready', 'finished'] %}<span class="v944-component-state is-{{ state }}">{{ state_label(state) }}</span>{% endif %}
   </header>{%- endmacro %}
 
 {% macro match_header(context) -%}
@@ -139,7 +139,7 @@
 {% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
 {% set risk = conclusions.get('riesgo') or {} %}
 {% set risk_value = risk.get('value') or {} %}
-{{ panel_start('MatchStory', component, 'Resumen del partido', 'Estado, contexto y riesgos disponibles.', 'story') }}
+{{ panel_start('MatchStory', component, 'Resumen del partido', '', 'story') }}
   <div class="v944-experience-grid"
        data-sports-domain-model="unified-v1"
        data-summary-contract="{{ (context.get('summaries') or {}).get('contract') or '' }}"
@@ -159,11 +159,11 @@
       <details class="v944-story-detail"><summary>{{ ui(context_intelligence.get('label') or 'Contexto deportivo insuficiente') }}</summary><p>{{ context_text.get('headline') or ui('No hay evidencia suficiente para explicar la relevancia deportiva.') }}</p></details>
       {% endif %}
     </article>
-    <article>
+    {% if risk_value.get('flags') %}<article>
       <span>{{ ui("Riesgos") }}</span>
-      <strong>{{ ui('Riesgo confirmado' if risk_value.get('flags') else 'Sin riesgo confirmado') }}</strong>
-      {% if risk_value.get('flags') %}<p>{{ ui('Se muestran solo señales con evidencia.') }}</p>{% endif %}
-    </article>
+      <strong>{{ ui('Riesgo confirmado') }}</strong>
+      <p>{{ ui('Se muestran solo señales con evidencia.') }}</p>
+    </article>{% endif %}
   </div>
   {% if postmatch.get('available') %}
   <section class="v944-story-detail v944-postmatch-summary"
@@ -519,9 +519,9 @@
 
 {% macro telegram_panel(context) -%}
 {% set component = context.get('components', {}).get('TelegramPanel') or {} %}
-{{ panel_start('TelegramPanel', component, 'Telegram', 'Contrato preparado en solo lectura, sin envío real.', 'telegram') }}
+{{ panel_start('TelegramPanel', component, 'Telegram', 'Gestiona tus avisos de partidos.', 'telegram') }}
   {{ state_notice(component) }}
-  <p class="v944-safe-copy">{{ ui("Telegram podrá reutilizar este partido, timeline e inteligencia sin recalcular datos.") }}</p>
+  {{ action_button('Ver mis avisos', '/telegram', false, 'blue', false, 'telegram') }}
 </section>{%- endmacro %}
 
 {% macro bankroll_panel(context) -%}
