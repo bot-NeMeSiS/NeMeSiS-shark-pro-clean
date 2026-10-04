@@ -33,17 +33,33 @@ ambigüedades no se fuerzan. Respuestas incorrectas no cuentan como NO_VIDEO.
 
 El carril reciente precede al histórico. El histórico prioriza partidos aún no
 comprobados y el peso editorial deportivo existente; después antigüedad del
-aplazamiento y fecha. Máximo un partido histórico por ejecución. Los resultados
+aplazamiento y fecha. Hasta ocho partidos históricos por ejecución, dentro del
+mismo presupuesto y deadline; no se exige gastar ocho llamadas. Los resultados
 vacíos se reintentan a seis horas para recientes, tres días para 8–30 días y
 30 días para históricos; tras varias comprobaciones históricas, 90 días.
 
 La caché V2 y los feeds persisten en `sportsdb_highlight_feed_cache`. El backfill
 usa el mismo límite de 12 llamadas por operación, además de una reserva atómica
 persistente de 12 llamadas por ventana de seis horas (como máximo 48 por día UTC; no es
-una cuota contractual del proveedor). Histórico: máximo dos llamadas por esa
-ventana, dentro de las doce, para preservar el carril reciente. Se reserva ANTES
+una cuota contractual del proveedor). El reciente consume primero lo necesario.
+El histórico aprovecha el remanente conservando al menos tres llamadas para
+nuevas llegadas; si hay más demanda reciente pendiente, esa reserva aumenta.
+No existe un tope histórico fijo de dos llamadas. Se reserva ANTES
 de HTTP y no se reembolsa tras un error/reinicio. Nunca toca las 60 llamadas/día
 de recuperación pospartido. No cambia planes, claves ni recursos de Render.
+
+Antes del lookup individual se reutilizan perfiles y raw_json SportsDB con ID,
+fecha, equipos y competición comprobados contra la identidad canónica actual.
+Un ID solo no sustituye esa evidencia. Los enlaces persistidos válidos evitan
+comprar una consulta y no cambian sus permisos. Una consulta agrupada por fecha
+y competición puede aportar varios vídeos de forma inequívoca; la ausencia de
+un evento en ese feed no constituye NO_VIDEO ni cobertura de toda la fecha.
+Premium V2 queda para los eventos todavía sin resolver.
+
+El panel expone llamadas recientes/históricas, libres, reserva y disponibilidad
+histórica reales. El ritmo depende de demanda reciente y evidencia reutilizable.
+Las comprobaciones individuales nuevas de la ventana son evidencia de actividad,
+no una garantía de completar el catálogo ni una extrapolación de feeds incompletos.
 
 ## Lecturas y cliente
 

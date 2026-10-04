@@ -596,7 +596,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
     ensure_sportsdb_highlights_schema(db_path)
     associations_reconciled = reconcile_cached_highlight_links(db_path, days_back=days, limit=capacity)
-    from engines.highlight_coverage import Coverage, run_one
+    from engines.highlight_coverage import Coverage, HISTORY_BATCH, run_one, sportsdb_query_date
     coverage = Coverage(db_path, datetime.fromisoformat(_now()).timestamp(), priority=priority)
     coverage.prepare()
     historical = {'processed': 0, 'state': 'NOT_RUN'}
@@ -608,7 +608,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
     found = linked = 0
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
-    historical_phase = [bool(historical_only)]
+    historical_phase = [False]
     scope = SportsDBBudget(max_calls=12, before_call=lambda: coverage.reserve_media_call(historical_phase[0]))
     persistent_cache_hits = 0
     profile_links_reused = 0
@@ -843,7 +843,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
             # Premium V2: precise lookup for a bounded set of finished matches still
             # missing video metadata. Cache hits cost no provider call. This runs only
             # inside the scheduled worker, never during a client/Admin GET.
-            for candidate in ([] if historical_only else v2_candidates(max_items=2 if coverage.has_due_history() else 4)):
+            for candidate in v2_candidates(max_items=4):
                 if scope.calls >= scope.max_calls:
                     break
                 before_v2 = found
@@ -851,14 +851,6 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
                 save(event_items, observe=False)
                 coverage.observe(candidate['event_id'], event_items)
                 v2_highlights_found += max(0, found - before_v2)
-
-            # One durable historical job uses the SAME request/time scope. Recent
-            # feed/exact lookups take precedence; no additional cron or allowance.
-            historical_phase[0] = True
-            historical = run_one(coverage, scope, acquire_v2_event, lambda rows: save(rows, observe=False), _sportsdb_v1)
-            historical_phase[0] = False
-            if historical.get('state') == 'RETRY_LATER' and historical.get('reason'):
-                errors.append(historical['reason'])
 
             # After exact lookups, use any remaining budget on deferred dates.
             if deferred_day is not None:
@@ -882,6 +874,39 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
                     save(more)
                     if len(more) >= 50:
                         errors.append('LEAGUE_RESPONSE_LIMIT')
+
+            # Recent work runs first, including newly finalized exact candidates
+            # during a cached-feed tick. Keep a margin for arrivals later in the
+            # window; spend only the unreserved remainder on bounded history.
+            recent_pending = sum(not item['fresh'] for item in v2_candidates(max_items=12))
+            coverage.set_recent_reserve(recent_pending)
+            historical_phase[0] = True
+            historical_jobs = []
+            feed_attempted = [False]
+            def historical_feed(match):
+                # One date/competition request can contribute many exact links.
+                # Missing rows NEVER prove an event has no video.
+                if feed_attempted[0] or coverage.media_allowance()['historical_available'] < 3:
+                    return []
+                feed_attempted[0] = True
+                league = str(match.get('league_id') or '').removeprefix('sportsdb-')
+                league = league if 'sportsdb' in str(match.get('source') or '').lower() and league.isdigit() else None
+                items = acquire(sportsdb_query_date(match),league)
+                save(items)
+                return items
+            for _ in range(HISTORY_BATCH):
+                job = run_one(coverage,scope,acquire_v2_event,lambda rows: save(rows,observe=False),
+                              _sportsdb_v1,batch_lookup=historical_feed)
+                historical_jobs.append(job)
+                if job.get('reason') or job.get('state') == 'IDLE':
+                    if job.get('state') == 'RETRY_LATER' and job.get('reason'):
+                        errors.append(job['reason'])
+                    break
+            completed_jobs = [job for job in historical_jobs if job.get('processed')]
+            historical = {'processed':sum(job.get('processed',0) for job in historical_jobs),
+                          'state':(completed_jobs or historical_jobs)[-1]['state'] if historical_jobs else 'IDLE',
+                          'jobs':historical_jobs,'budget':coverage.media_allowance()}
+            historical_phase[0] = False
     except SportsDBStopped as exc:
         errors.append(str(exc))
     except (sqlite3.Error, OSError):
