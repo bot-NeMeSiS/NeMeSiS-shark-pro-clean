@@ -32523,10 +32523,13 @@ def api_automation_data_backup_run():
     elif already_done:
         result = {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_DONE", "message": "El backup diario ya fue creado y verificado para esta fecha Madrid."}
     else:
+        dedupe_key = f"v941:data_backup_lock:{madrid_day}"
         conn = sqlite3.connect(DB_PATH, timeout=2)
         try:
             ensure_automation_schema_conn(conn)
-            claimed = v818_claim_dedupe(conn, "data_backup", f"v941:data_backup_lock:{madrid_day}", ttl_hours=1)
+            claimed = v818_claim_dedupe(conn, "data_backup", dedupe_key, ttl_hours=1)
+            if claimed:
+                conn.commit()
         finally:
             close_conn = getattr(conn, "close", None)
             if callable(close_conn):
@@ -32537,6 +32540,21 @@ def api_automation_data_backup_run():
             result = create_sqlite_backup(DB_PATH, project_root_path(), APP_VERSION, backup_type="auto", created_by="render_cron")
             if result.get("ok") is not False and result.get("backup_created") is True:
                 automation_safe_set("last_successful_data_backup_call", {"time": now_value, "result": result})
+            else:
+                # Release only this completed failed attempt so the next natural
+                # Master Cron tick may retry after storage pressure changes.
+                release_conn = sqlite3.connect(DB_PATH, timeout=2)
+                try:
+                    ensure_automation_schema_conn(release_conn)
+                    release_conn.execute(
+                        "DELETE FROM automation_dedupe WHERE dedupe_key=? AND job_key=?",
+                        (dedupe_key, "data_backup"),
+                    )
+                    release_conn.commit()
+                finally:
+                    release_close = getattr(release_conn, "close", None)
+                    if callable(release_close):
+                        release_close()
     automation_safe_set("last_cron_data_backup_call", {"time": now_value, "result": result})
     return jsonify({"version": APP_VERSION, **result})
 
