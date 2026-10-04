@@ -28,6 +28,7 @@ from zoneinfo import ZoneInfo
 # Direct script execution still resolves the same package as the web service.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from engines.automation_domains import production_endpoint
+from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
 
 RUNNER_NAME = "nemesis_master_tick"
 SPORTS_ENDPOINT = production_endpoint('sports')
@@ -492,6 +493,8 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
                 "external_calls": safe_count(payload.get("external_calls")),
                 f"{prefix}_duration_ms": max(0, round((time.perf_counter()-started)*1000))}
         if prefix == "odds":
+            code = payload.get("provider_error_code")
+            result["provider_error_code"] = code if code in KNOWN_ODDS_ERROR_CODES else ""
             result["provider_observation_current"] = payload.get("provider_observation_current") is True
             result["provider_http"] = safe_count(payload.get("provider_http"))
             error_type = payload.get("provider_error_type")

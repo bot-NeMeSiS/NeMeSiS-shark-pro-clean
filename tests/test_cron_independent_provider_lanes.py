@@ -130,12 +130,13 @@ class Response:
 
 def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, monkeypatch):
     result = {'ok':False, 'status':'PROVIDER_FAILURE_STOPPED_EARLY', 'errors':['provider'], 'external_calls':1,
-              'quota':{'http_status':401,'error_type':'HTTPError','requests_remaining':0}}
+              'quota':{'http_status':401,'error_type':'HTTPError','requests_remaining':0,'error_code':'OUT_OF_USAGE_CREDITS'}}
     compact = app_module._cron_compact_payload('odds_sync', result, '', '')
     monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(compact))
     observed = master.odds_tick('https://example.invalid', 'test')
     assert observed['odds_status'] == 'FAIL'
     assert observed['provider_http'] == 401
+    assert observed['provider_error_code'] == 'OUT_OF_USAGE_CREDITS'
     assert observed['provider_error_type'] == 'HTTPError'
     assert observed['provider_requests_remaining'] == 0
     assert observed['provider_observation_current'] is True
@@ -143,6 +144,26 @@ def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, mo
     assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_observation_current'] is False
     result['quota']['error_type'] = 'private-url?apiKey=secret'
     assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_error_type'] == 'UNKNOWN'
+
+
+@pytest.mark.parametrize('code,expected', [('OUT_OF_USAGE_CREDITS','OUT_OF_USAGE_CREDITS'),
+                                         ('INVALID_KEY','INVALID_KEY'), ('private-secret','')])
+def test_odds_existing_error_response_keeps_only_documented_code(app_module, monkeypatch, code, expected):
+    import io
+    import urllib.error
+    monkeypatch.setenv('THE_ODDS_API_KEY', 'isolated-test-key')
+    calls = []
+    def fetch(*args, **kwargs):
+        calls.append(1)
+        body = json.dumps({'error_code':code, 'message':'private-secret'}).encode()
+        raise urllib.error.HTTPError('https://example.invalid', 401, 'unauthorized', {}, io.BytesIO(body))
+    monkeypatch.setattr(app_module, 'fetch_json_response', fetch)
+    result = app_module.odds_api_request('sports/test/odds')
+    assert result['error_code'] == expected
+    assert result['http_status'] == 401
+    assert result['error'] == 'HTTPError'
+    assert len(calls) == 1
+    assert 'private-secret' not in json.dumps(result)
 
 
 @pytest.mark.parametrize('tick', [master.telegram_tick, master.postmatch_tick])
