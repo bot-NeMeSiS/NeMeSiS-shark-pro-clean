@@ -2,7 +2,8 @@
 {% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes with context %}
 {% block content %}
 {% set plan_name = (current_user.membership or 'FREE')|trim|upper %}
-{% if plan_name not in ['FREE', 'PRO', 'ELITE', 'ADMIN'] %}{% set plan_name = 'FREE' %}{% endif %}
+{% if plan_name == 'ADMIN' %}{% set plan_name = 'ELITE' %}{% endif %}
+{% if plan_name not in ['FREE', 'PRO', 'ELITE'] %}{% set plan_name = 'FREE' %}{% endif %}
 {% set hub = data.get('match_hub') or {} %}
 {# Compact and legacy contexts expose the same snapshot at different paths. #}
 {% set home_summary = data.get('home_summary') or {} %}
@@ -29,7 +30,7 @@
       <p>{% if sports_metrics.get('matches_today') %}{{ ui('{count} partido para hoy' if sports_metrics.get('matches_today') == 1 else '{count} partidos para hoy', count=sports_metrics.get('matches_today')) }}{% if sports_metrics.get('live_confirmed') %} · {{ ui('{count} en directo', count=sports_metrics.get('live_confirmed')) }}{% endif %}{% else %}{{ ui('Tu próxima jornada, en el calendario.') }}{% endif %}</p>
       <div class="v933-client-hero-meta">
         {{ status_chip(ui('Plan {plan}', plan=plan_name), 'gold' if plan_name == 'ELITE' else ('cyan' if plan_name == 'PRO' else 'blue')) }}
-        {% if sports_metrics.get('live_confirmed', 0) %}{{ status_chip(ui('{count} en directo', count=sports_metrics.get('live_confirmed')), 'success') }}{% endif %}
+        {% if sports_metrics.get('live_confirmed', 0) %}{{ status_chip(ui('{count} en directo', count=sports_metrics.get('live_confirmed')), 'live') }}{% endif %}
       </div>
     </div>
   </section>
@@ -43,7 +44,7 @@
 
   <section class="v933-kpi-grid ns16-kpi-strip" aria-label="{{ ui("Resumen de la jornada") }}">
     {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendario') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/directo') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
     {{ kpi_card('Pronósticos activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
     {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favoritos') }}
   </section>

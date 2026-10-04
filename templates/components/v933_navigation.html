@@ -25,7 +25,8 @@
 
 {% macro v933_client_navigation(plan='FREE') -%}
 {% set plan = (plan or 'FREE')|trim|upper %}
-{% if plan not in ['FREE', 'PRO', 'ELITE', 'ADMIN'] %}{% set plan = 'FREE' %}{% endif %}
+{% if plan == 'ADMIN' %}{% set plan = 'ELITE' %}{% endif %}
+{% if plan not in ['FREE', 'PRO', 'ELITE'] %}{% set plan = 'FREE' %}{% endif %}
 {% set links = nav_contracts.CLIENT_LINKS %}
 <header class="v933-topbar v933-client-topbar" data-nav-zone="client-desktop">
   <div class="v933-topbar-inner">

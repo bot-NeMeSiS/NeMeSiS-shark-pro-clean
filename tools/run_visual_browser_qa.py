@@ -1,19 +1,21 @@
 """Capture the local premium system; no provider calls or simulated sports data."""
 import argparse
 import json
+import time
 from pathlib import Path
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 ROUTES = {
-    'public': ['/', '/precios', '/cliente-login', '/soporte'],
+    'public': ['/', '/precios', '/cliente-login', '/registro', '/soporte'],
     'client': ['/app', '/calendario', '/directo', '/picks', '/shark', '/telegram',
-               '/mi-cuenta', '/membresias', '/soporte', '/team/Real%20Madrid', '/match/unavailable'],
+               '/combinadas', '/favoritos', '/mi-cuenta', '/membresias', '/onboarding', '/soporte', '/team/Real%20Madrid', '/match/unavailable'],
     'admin': ['/admin/dashboard', '/admin/matches', '/admin/picks',
-              '/admin/telegram/command-center', '/admin/users', '/admin/memberships', '/admin/data-center'],
+              '/admin/telegram/command-center', '/admin/users', '/admin/memberships', '/admin/data-center',
+              '/admin/founder-os', '/admin/founder-control'],
 }
-PROFILES = {'desktop': (1440, 900), 'laptop': (1024, 768), 'mobile': (390, 844), 'small-mobile': (320, 740)}
+PROFILES = {'desktop': (1440, 900), 'laptop': (1024, 768), 'tablet': (768, 1024), 'mobile': (390, 844), 'small-mobile': (320, 740)}
 INSPECT = '''() => {
   const visible = el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
   const navs = [...document.querySelectorAll('[data-nav-zone]')].filter(visible);
@@ -25,6 +27,10 @@ INSPECT = '''() => {
     mainCount: document.querySelectorAll('main').length,
     styles: [...document.querySelectorAll('link[rel=stylesheet]')].map(e=>new URL(e.href).pathname),
     emptyStates: document.querySelectorAll('[data-empty-state]').length,
+    brokenImages: [...document.images].filter(visible).filter(e=>e.complete && !e.naturalWidth).map(e=>e.getAttribute('src')),
+    transferBytes: performance.getEntriesByType('resource').reduce((n,e)=>n+e.transferSize,0),
+    domNodes: document.querySelectorAll('*').length,
+    clientTextViolations: document.body.classList.contains('ns-admin') ? [] : [...new Set((document.body.innerText.match(/\b(?:runtime|cron|storage|provider|cache|backfill|sentinel|PARTIAL|PASS|FAIL|DB_PATH)\b/gi) || []))],
     heading: document.querySelector('main h1')?.textContent.trim(),
     plan: document.body.dataset.nsPlan,
     visibleButtons: [...document.querySelectorAll('button,a[role=button],.v933-action')].filter(visible).length
@@ -38,7 +44,8 @@ def run(output, profiles=None):
     output.mkdir(parents=True, exist_ok=True)
     rows = []
     routes_by_surface = {key: list(value) for key, value in ROUTES.items()}
-    routes_by_surface['client'].extend('/match/' + value for value in meta.get('match_ids', [])[:3])
+    if 'client' in routes_by_surface:
+        routes_by_surface['client'].extend('/match/' + value for value in meta.get('match_ids', [])[:3])
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         for profile, size in PROFILES.items():
@@ -50,21 +57,32 @@ def run(output, profiles=None):
                 context.route('**/*', lambda route: route.continue_() if urlparse(route.request.url).hostname in ('127.0.0.1', 'localhost', None) else route.abort())
                 page = context.new_page()
                 errors = []
+                requests = []
+                server_errors = []
+                page.on('request', lambda request: requests.append(request.url))
+                page.on('response', lambda response: server_errors.append(response.status) if response.status >= 500 else None)
                 page.on('pageerror', lambda error: errors.append(str(error)))
                 if surface != 'public':
                     page.goto(base + '/local-safe/login/' + surface + '?token=' + meta['token'])
                 for index, route in enumerate(routes):
                     errors.clear()
+                    requests.clear()
+                    server_errors.clear()
+                    started = time.perf_counter()
                     response = page.goto(base + route, wait_until='load', timeout=120000)
+                    load_ms = round((time.perf_counter() - started) * 1000, 1)
                     page.evaluate('document.fonts.ready')
-                    filename = f'{profile}-{surface}-{index}.png'
-                    page.screenshot(path=str(output / filename), full_page=True)
+                    filename = f'{profile}-{surface}-{index}.jpg'
+                    page.screenshot(path=str(output / filename), full_page=True, type='jpeg', quality=80)
                     row = {'profile': profile, 'surface': surface, 'route': route,
                            'status': response.status, 'finalPath': urlparse(page.url).path,
-                           'screenshot': filename, 'jsErrors': list(errors), **page.evaluate(INSPECT)}
+                           'screenshot': filename, 'jsErrors': list(errors), 'loadMs': load_ms,
+                           'requestCount': len(requests), 'serverErrors': list(server_errors),
+                           'externalRequests': sum(urlparse(url).hostname not in ('127.0.0.1', 'localhost', None) for url in requests),
+                           **page.evaluate(INSPECT)}
                     rows.append(row)
                     print(json.dumps({k:row[k] for k in ('profile','surface','route','status','overflow','duplicateIds','jsErrors')},ensure_ascii=False),flush=True)
-                if surface == 'client' and profile == 'mobile':
+                if surface == 'client' and profile == 'mobile' and routes:
                     page.goto(base + '/app')
                     page.locator('.product-account-menu summary').click()
                     page.locator('.product-account-menu a[href="/soporte"]').click()
@@ -78,7 +96,7 @@ def run(output, profiles=None):
                 context.close()
         browser.close()
     (output / 'observations.json').write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding='utf-8')
-    failures = [r for r in rows if r['overflow'] or r['duplicateIds'] or r['jsErrors']
+    failures = [r for r in rows if r['overflow'] or r['duplicateIds'] or r['jsErrors'] or r['serverErrors'] or r['brokenImages'] or r['clientTextViolations']
                 or r['status'] != (404 if r['route'] == '/match/unavailable' else 200) or r['mainCount'] != 1]
     print(f'{len(rows)} captures, {len(failures)} failures')
     return 1 if failures else 0

@@ -9,6 +9,12 @@
     return window.NemesisI18n ? window.NemesisI18n.text(source, values) : source;
   }
 
+  function clientMessage(value) {
+    var message = String(value || '');
+    return text(!message || /runtime|cron|storage|provider|cache|caché|backfill|sentinel|\b(?:partial|pass|fail)\b|pipeline|sports truth|db_path/i.test(message)
+      ? 'La información confirmada sigue disponible entre actualizaciones.' : message);
+  }
+
   function number(value) {
     var parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -414,10 +420,10 @@
     });
     var hasLive = number(counts.live) > 0;
     var hasData = number(counts.matches) > 0 || number(counts.picks) > 0;
-    var technical = bar.getAttribute('data-v934-technical') === 'true';
+    var technical = location.pathname.indexOf('/admin/') === 0 && bar.getAttribute('data-v934-technical') === 'true';
     var message = technical
       ? 'DB/caché: ' + (payload.cache_state || payload.cache_status || 'estado seguro') + '. Render sin llamada directa al proveedor.'
-      : text(payload.safe_message || 'La información confirmada sigue disponible entre actualizaciones.');
+      : clientMessage(payload.safe_message);
     setText(bar, '[data-v934-realtime-title]', text(hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
     setText(bar, '[data-v934-realtime-message]', message);
     setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : text('Actualización segura'));

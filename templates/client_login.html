@@ -17,12 +17,12 @@
     <input type="hidden" name="plan" value="{{ selected }}">
     <div class="field"><label for="client-login-user">{{ ui("Email o nombre de usuario") }}</label><input id="client-login-user" name="login" autocomplete="username" required></div>
     <div class="field"><label for="client-login-password">{{ ui("Contraseña") }}</label><input id="client-login-password" type="password" name="password" autocomplete="current-password" required></div>
-    <button type="submit">{{ ui('Entrar y seguir con {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</button>
+    <button class="v933-action is-primary" type="submit">{{ ui('Entrar y seguir con {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</button>
     <a class="small" href="/forgot-password">{{ ui("He olvidado mi contraseña") }}</a>
   </form>
   <aside class="card auth-side">
     <h2>{{ ui("Nuevo cliente") }}</h2>
-    <p class="small">{{ ui('Crea tu cuenta y volverás al plan {plan} para pagar en Stripe.', plan=selected) if selected in ['PRO','ELITE'] else ui('Crea una cuenta FREE para activar el perfil y dejar lista la capa premium.') }}</p>
+    <p class="small">{{ ui('Crea tu cuenta y volverás al plan {plan} para continuar.', plan=selected) if selected in ['PRO','ELITE'] else ui('Crea tu cuenta gratuita y empieza a seguir tus partidos favoritos.') }}</p>
     <a class="btn" href="/registro{% if selected in ['PRO','ELITE'] %}?plan={{ selected }}&next={{ next_url|urlencode }}{% endif %}">{{ ui('Crear cuenta y seguir' if selected in ['PRO','ELITE'] else 'Crear cuenta') }}</a>
     <a class="small" href="/membresias">{{ ui("Ver planes y precios") }}</a>
   </aside>

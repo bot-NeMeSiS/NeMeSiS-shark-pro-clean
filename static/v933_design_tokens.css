@@ -1,10 +1,10 @@
-/* Product system: restrained SHARK blue, neutral sports surfaces, shared spacing.
+/* Core Design System: dark premium sports, broadcast LIVE, SHARK intelligence.
    Compatibility aliases keep existing templates on one token vocabulary. */
 :root {
-  --v933-bg: #080e18;
-  --v933-bg-raised: #0d1523;
-  --v933-surface: #111c2c;
-  --v933-surface-2: #162337;
+  --v933-bg: #080b12;
+  --v933-bg-raised: #101622;
+  --v933-surface: #141c29;
+  --v933-surface-2: #1b2636;
   --v933-surface-3: #1b2d43;
   --v933-border: rgba(153, 180, 210, 0.18);
   --v933-border-strong: rgba(31, 168, 255, 0.5);
@@ -22,7 +22,7 @@
   --v933-neutral: #8395a8;
   --v933-radius-xs: 4px;
   --v933-radius-sm: 8px;
-  --v933-radius: 12px;
+  --v933-radius: 14px;
   --v933-shadow-sm: 0 3px 12px rgba(0, 0, 0, 0.18);
   --v933-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
   --v933-space-1: 4px;
@@ -48,7 +48,7 @@
   --team-name-size: .875rem;
   --competition-size: .75rem;
   --datetime-size: .75rem;
-  --status-live: var(--v933-green);
+  --status-live: var(--v933-red);
   --status-final: var(--v933-text);
   --status-upcoming: var(--v933-cyan);
   --match-row-gap: 8px;
@@ -102,6 +102,7 @@
 }
 
 html { color-scheme: dark; }
+.v933-progress { width: 100%; height: 8px; accent-color: var(--v933-blue); }
 body.ns-app { font-family: var(--v933-font); background: var(--v933-bg); color: var(--v933-text); }
 body.ns-app * { box-sizing: border-box; }
 body.ns-app :is(a, button, input, select, textarea) { font: inherit; letter-spacing: 0; }
@@ -112,3 +113,8 @@ body.ns-app :is(button, a, input, select, textarea):disabled { cursor: not-allow
 body.ns-tier-pro { --product-tier: var(--v933-cyan); }
 body.ns-tier-elite { --product-tier: var(--v933-gold); }
 body.ns-tier-eliteplus { --product-tier: var(--v933-purple); }
+
+/* Semantic roles belong to the core, rather than individual route overrides. */
+.v933-status-chip.is-live { color: var(--status-live); border-color: rgba(255,92,112,.3); background: rgba(255,92,112,.1); }
+.v933-kpi.is-live > .v933-icon { color: var(--status-live); border-color: rgba(255,92,112,.3); background: rgba(255,92,112,.08); }
+.v933-shark-page { --v933-blue: #6953cb; --v933-blue-hover: #7d67df; --v933-cyan: var(--v933-purple); }

@@ -798,7 +798,7 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
 .v940-calendar-result-summary strong { color: #fff; font-size: 1.55rem; line-height: 1; }
 .v940-calendar-result-summary span { color: #d7e5f3; font-size: .68rem; font-weight: 850; }
 .v940-calendar-result-summary small { grid-column: 1 / -1; color: var(--v933-muted); font-size: .59rem; }
-.v940-calendar-command-section { min-width: 0; display: grid; gap: 6px; }
+.v940-calendar-command-section { display: grid; gap: 6px; }
 .v940-calendar-command-section > span { color: #8fa8bf; font-size: .59rem; font-weight: 850; }
 .v940-calendar-filter-form .v933-action { gap: 7px; }
 .v940-calendar-filter-form .v933-action .v933-icon { width: 17px; height: 17px; }
@@ -1040,7 +1040,7 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
 .v933-fact-grid > article { min-width: 0; min-height: 92px; padding: 12px; border: 1px solid rgba(132,171,213,.15); border-radius: var(--v933-radius-sm); background: rgba(255,255,255,.018); }
 .v933-fact-grid span,.v933-fact-grid small { display: block; color: var(--v933-muted); font-size: .6rem; }
 .v933-fact-grid strong { display: block; margin: 7px 0 3px; color: #fff; font-size: 1rem; }
-.v933-notes-list { display: grid; gap: 7px; margin-top: 12px; }
+.v933-notes-list { gap: 7px; margin-top: 12px; }
 .v933-notes-list p { display: grid; grid-template-columns: 19px minmax(0,1fr); gap: 7px; align-items: start; color: #bfcedd; font-size: .68rem; line-height: 1.46; }
 .v933-notes-list .v933-icon { width: 17px; height: 17px; color: var(--v933-green); }
 .v933-event-list { display: grid; margin-top: 12px; border: 1px solid rgba(132,171,213,.14); border-radius: var(--v933-radius-sm); overflow: hidden; }
@@ -1097,8 +1097,8 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
   opacity: .96;
   filter: drop-shadow(0 0 44px rgba(30,170,255,.48)) saturate(1.12) brightness(1.08);
 }
-.v933-shark-answer { min-height: 120px; display: grid; grid-template-columns: 42px minmax(0,1fr); align-items: start; gap: 13px; padding: 15px; border: 1px solid rgba(25,213,255,.24); border-radius: var(--v933-radius-sm); color: #d7e8f8; background: rgba(25,213,255,.055); }
-.v933-shark-answer .v933-icon { width: 40px; height: 40px; padding: 8px; border: 1px solid rgba(25,213,255,.25); border-radius: 50%; color: var(--v933-cyan); }
+.v933-shark-answer { min-height: 120px; display: grid; grid-template-columns: 42px minmax(0,1fr); align-items: start; gap: 13px; padding: 15px; border: 1px solid rgba(157,122,255,.28); border-radius: var(--v933-radius-sm); color: #d7e8f8; background: linear-gradient(135deg,rgba(54,220,129,.07),rgba(157,122,255,.09)); }
+.v933-shark-answer .v933-icon { width: 40px; height: 40px; padding: 8px; border: 1px solid rgba(25,213,255,.25); border-radius: 50%; color: var(--v933-purple); }
 .v933-shark-answer p { font-size: .73rem; line-height: 1.6; white-space: pre-line; }
 .v933-telegram-hero { grid-template-columns: minmax(0,1fr) auto; }
 .v933-telegram-mark { width: 94px; height: 94px; display: grid; place-items: center; border: 1px solid rgba(25,213,255,.38); border-radius: 50%; color: #65e6ff; background: rgba(25,213,255,.09); box-shadow: 0 0 34px rgba(25,213,255,.18); }
@@ -1407,8 +1407,8 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
 .v934-realtime-state dd { margin: 3px 0 0; color: #fff; font-size: .95rem; font-weight: 850; }
 .v934-realtime-meta { min-width: 0; display: grid; justify-items: end; gap: 2px; color: var(--v933-muted); font-size: .56rem; text-align: right; }
 .v934-realtime-meta > span { color: #83c9ff; font-weight: 800; text-transform: uppercase; }
-.v934-realtime-state.is-live { border-color: rgba(47,224,126,.32); background: linear-gradient(105deg,rgba(47,224,126,.07),rgba(4,15,28,.94) 42%,rgba(25,213,255,.045)); }
-.v934-realtime-state.is-live .v934-realtime-primary > i { background: var(--v933-green); box-shadow: 0 0 0 5px rgba(47,224,126,.11),0 0 18px rgba(47,224,126,.55); animation: v934-live-pulse 1.8s ease-in-out infinite; }
+.v934-realtime-state.is-live { border-color: rgba(255,92,112,.32); background: linear-gradient(105deg,rgba(255,92,112,.07),rgba(4,15,28,.94) 42%,rgba(25,213,255,.045)); }
+.v934-realtime-state.is-live .v934-realtime-primary > i { background: var(--status-live); box-shadow: 0 0 0 5px rgba(255,92,112,.11),0 0 18px rgba(255,92,112,.55); animation: v934-live-pulse 1.8s ease-in-out infinite; }
 .v934-realtime-state.is-stale,.v934-realtime-state.is-error { border-color: rgba(255,188,58,.32); }
 .v934-realtime-state.is-stale .v934-realtime-primary > i,.v934-realtime-state.is-error .v934-realtime-primary > i { background: var(--v933-yellow); box-shadow: 0 0 0 5px rgba(255,188,58,.1); animation: none; }
 @keyframes v934-live-pulse { 50% { opacity: .45; transform: scale(.82); } }
@@ -4575,8 +4575,7 @@ body.ns-app.ns-admin::before {
   pointer-events: none;
   clip-path: none;
   background:
-    linear-gradient(105deg, rgba(1,8,20,.72), rgba(2,12,29,.38) 65%, rgba(1,8,20,.62)),
-    url('/static/img/nemesis-ocean-depth-r5.png') center 38% / cover no-repeat;
+    radial-gradient(ellipse at 85% 0%, rgba(45,94,150,.15), transparent 48%), linear-gradient(165deg, #0c1420, #080b12 65%);
   background-size: cover;
   opacity: 1;
   filter: none;
@@ -4595,7 +4594,7 @@ body.ns-app.ns-admin::after {
   pointer-events: none;
   width: auto;
   height: auto;
-  opacity: .12;
+  opacity: .025;
   clip-path: none;
   background:
     radial-gradient(circle, rgba(121, 224, 255, .42) 0 .7px, transparent 1.15px) 7% 9% / 67px 67px,
@@ -4676,7 +4675,6 @@ body.ns-app.ns-admin .v933-page-header::before { opacity: .1; }
 body.ns-app:is([data-ns-route="/shark"],[data-ns-route="/shark-ai"],[data-ns-route="/shark-core"]) .v933-page-header::before { content: none; }
 body.ns-app .v944-match-header::before,
 body.ns-app :is(.team-center-hero,.competition-center-hero,.player-center-hero)::before { opacity: .5; }
-body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { opacity: .76; }
 body.ns-app :is(h1,h2,h3,.v933-page-header h1) { letter-spacing: 0 !important; }
 body.ns-app[data-v928-shell="true"] :is(.v933-page-header h1,.v933-public-hero h1,.v933-client-hero h1) {
   font-size: 28px !important;
@@ -4963,7 +4961,7 @@ body.ns-app .v933-product-excellence-band .v933-excellence-steps p { display: no
 body.ns-app .v933-product-excellence-band .v933-excellence-steps article { min-height: 72px; padding: 10px; }
 body.ns-app .sports-priority-client-hero { grid-template-columns: minmax(0, 1fr) auto; }
 body.ns-app .sports-priority-kpis { margin-top: -2px; }
-body.ns-app .is-live-focus { border-color: rgba(48,212,138,.35) !important; }
+body.ns-app .is-live-focus { border-color: rgba(255,92,112,.35) !important; }
 body.ns-app .v933-plan-context .v936-value-ladder p { display: none; }
 body.ns-app .v933-memberships-page > .v933-page-header { order: -10; }
 body.ns-app .v933-memberships-page #v936-plan-comparison { order: -9; }
@@ -5428,7 +5426,7 @@ body.ns-app .ns16-home-hero::before {
   right: 4px;
   width: min(30%, 180px);
   top: 55%;
-  opacity: .9;
+  opacity: .32;
   filter: saturate(1.12) brightness(1.4) contrast(1.04);
 }
 .ns16-home-hero > div { max-width: 78%; }
@@ -6094,7 +6092,7 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   body.ns-app .v944-score-widget > strong { font-size: 24px; }
   body.ns-app :is(.team-center-crest,.competition-center-logo,.player-center-photo) { max-width: 72px; max-height: 72px; }
   body.ns-app .ns16-home-hero { min-height: 88px !important; padding: 8px 9px !important; }
-  body.ns-app .ns16-home-hero::before { display: block; right: 0; top: 57%; width: 112px; opacity: .55; filter: saturate(1.3) contrast(1.08); }
+  body.ns-app .ns16-home-hero::before { display: block; right: 0; top: 57%; width: 112px; opacity: .32; filter: saturate(1.3) contrast(1.08); }
   .ns-video-empty-dashboard { min-height: 148px; padding: 10px 6px; }
   .ns-video-empty-dashboard::before { right: -92px; width: 280px; opacity: .12; }
   .ns-video-empty-actions { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 5px; }

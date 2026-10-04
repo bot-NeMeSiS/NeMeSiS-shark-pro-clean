@@ -28,6 +28,5 @@ body.ns-app .v933-plan-chip.is-eliteplus { color: #d3c3ff; background: rgba(157,
   body.ns-app :is(.v933-action,.v933-icon-button,.v933-filter-tabs a) { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto !important; }
   body.ns-app *,body.ns-app *::before,body.ns-app *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
