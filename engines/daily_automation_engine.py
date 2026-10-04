@@ -290,7 +290,7 @@ def system_health(db_path: str, app_version: str, env: Mapping[str, str] | None 
         "db_accessible": False,
         "critical_tables": {},
         "api_football_configured": bool(env.get("API_FOOTBALL_KEY") or env.get("API_FOOTBALL_API_KEY")),
-        "odds_api_configured": bool(env.get("ODDS_API_KEY") or env.get("THE_ODDS_API_KEY")),
+        "odds_api_configured": any(bool(env.get(name)) for name in ("THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY_FREE", "THE_ODDS_API_KEY", "ODDS_API_KEY")),
         "telegram_configured": bool(env.get("TELEGRAM_BOT_TOKEN") and env.get("TELEGRAM_CHAT_ID")),
         "automation_secret_configured": bool(env.get("AUTOMATION_SECRET")),
         "version": app_version,

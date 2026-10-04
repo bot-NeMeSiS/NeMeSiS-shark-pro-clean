@@ -586,6 +586,8 @@ def _configure_local_safe_environment() -> None:
             "API_FOOTBALL_KEY",
             "API_SPORTS_KEY",
             "THE_ODDS_API_KEY",
+            "THE_ODDS_API_KEY_PAID",
+            "THE_ODDS_API_KEY_FREE",
             "THESPORTSDB_API_KEY",
             "THESPORTSDB_KEY",
         ):
@@ -2581,6 +2583,8 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         compact["provider_error_type"] = quota.get("error_type") if quota.get("error_type") in {
             "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
         } else "UNKNOWN" if quota.get("error_type") else ""
+        compact["credential_tier_selected"] = quota.get("credential_tier_selected") if quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else ""
+        compact["fallback_used"] = bool(quota.get("fallback_used")) and compact["provider_observation_current"]
         compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
@@ -4429,11 +4433,17 @@ def sportsdb_live_enabled():
 
 
 def odds_enabled():
-    return bool(os.getenv("THE_ODDS_API_KEY")) and str(os.getenv("ENABLE_ODDS_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+    return odds_credentials_configured() and str(os.getenv("ENABLE_ODDS_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def odds_credentials_configured():
+    return any(env_present(name) for name in ("THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY_FREE", "THE_ODDS_API_KEY"))
 
 
 def odds_cache_minutes():
-    return max(5, as_int(os.getenv("ODDS_CACHE_MINUTES", "60"), 60))
+    from engines.odds_credentials import free_profile, positive_setting
+    minutes = max(5, as_int(os.getenv("ODDS_CACHE_MINUTES", "60"), 60))
+    return max(minutes, positive_setting("ODDS_FREE_REFRESH_MINUTES", 360)) if free_profile() else minutes
 
 
 def fetch_json_url(url, headers=None, timeout=10):
@@ -4491,47 +4501,25 @@ def odds_api_get(path, params=None):
     return odds_api_request(path, params=params).get("payload")
 
 
-def odds_api_request(path, params=None):
-    api_key = os.getenv("THE_ODDS_API_KEY", "").strip()
-    if not api_key:
-        return {"ok": False, "payload": {}, "http_status": 0, "quota": {}, "error": "missing_key"}
-    payload = dict(params or {})
-    payload["apiKey"] = api_key
-    url = "https://api.the-odds-api.com/v4/" + path.strip("/")
-    url += "?" + urllib.parse.urlencode(payload)
+def odds_free_refresh_allowed():
+    from engines.odds_credentials import positive_setting
+    last = odds_last_sync()
+    quota = last.get("quota") or {}
+    stamp = quota.get("last_free_refresh_at")
+    if not stamp:
+        return True
     try:
-        response = fetch_json_response(url, timeout=12)
-        return {
-            "ok": True,
-            "payload": response.get("payload"),
-            "http_status": response.get("http_status"),
-            "quota": response.get("headers") or {},
-            "error": "",
-        }
-    except Exception as exc:
-        from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
-        error_code = ""
-        if isinstance(exc, urllib.error.HTTPError):
-            try:
-                # Existing response only: no retry, bounded read, no message/URL retention.
-                code = json.loads(exc.read(2048).decode("utf-8")).get("error_code")
-                if code in KNOWN_ODDS_ERROR_CODES:
-                    error_code = code
-            except Exception:
-                pass
-        return {
-            "ok": False,
-            "payload": {},
-            "http_status": int(getattr(exc, "code", 0) or 0),
-            "quota": {
-                label: as_int((getattr(exc, "headers", None) or {}).get(header), None)
-                for label, header in (("requests_used", "x-requests-used"),
-                                      ("requests_remaining", "x-requests-remaining"),
-                                      ("requests_last", "x-requests-last"))
-            },
-            "error": type(exc).__name__,
-            "error_code": error_code,
-        }
+        observed = datetime.fromisoformat(stamp)
+        if observed.tzinfo is None:
+            observed = observed.replace(tzinfo=TZ)
+        return (datetime.now(TZ) - observed).total_seconds() >= positive_setting("ODDS_FREE_REFRESH_MINUTES", 360) * 60
+    except (ValueError, TypeError):
+        return True
+
+
+def odds_api_request(path, params=None):
+    from engines.odds_credentials import request as credential_request
+    return credential_request(path, params, fetch_json_response, odds_free_refresh_allowed)
 
 
 def sync_log_start(source, sync_type):
@@ -6748,6 +6736,12 @@ def _odds_systemic_failure_response(response):
     )
 
 def fetch_odds_events(limit=250):
+    from engines.odds_credentials import refresh_selection
+    with refresh_selection():
+        return _fetch_odds_events_selected(limit)
+
+
+def _fetch_odds_events_selected(limit=250):
     events = []
     errors = []
     quota = {
@@ -6762,7 +6756,16 @@ def fetch_odds_events(limit=250):
         "stopped_early": False,
     }
     from engines.cron_request_budget import exhausted
+    from engines.odds_credentials import free_profile, positive_setting
+    last_free = (odds_last_sync().get("quota") or {}).get("last_free_refresh_at") if odds_credentials_configured() else None
+    if last_free:
+        quota["last_free_refresh_at"] = last_free
+    competitions_called = 0
     for sport in odds_competitions():
+        if free_profile() and competitions_called >= positive_setting("ODDS_FREE_MAX_COMPETITIONS", 1):
+            quota["controlled_deferrals"] = ["FREE_FANOUT"]
+            quota["stopped_early"] = True
+            break
         if exhausted():
             quota["controlled_deferrals"] = ["TIME_BUDGET"]
             quota["stopped_early"] = True
@@ -6779,7 +6782,22 @@ def fetch_odds_events(limit=250):
                     "dateFormat": "iso",
                 },
             )
-            quota["observed_calls"] += 1
+            competitions_called += 1
+            quota["observed_calls"] += as_int(response.get("external_calls"), 1)
+            tier = response.get("credential_tier_selected")
+            if tier in {"PAID", "FREE", "LEGACY"}:
+                quota["credential_tier_selected"] = tier
+                quota["fallback_used"] = bool(quota.get("fallback_used") or response.get("fallback_used"))
+                if free_profile(tier) and not response.get("controlled_deferrals"):
+                    quota["last_free_refresh_at"] = now_iso()
+            if response.get("controlled_deferrals"):
+                quota["controlled_deferrals"] = response["controlled_deferrals"]
+                quota["stopped_early"] = True
+                quota["http_status"] = as_int(response.get("http_status"), 0)
+                quota["error_code"] = response.get("error_code") or ""
+                for field in ("requests_used", "requests_remaining", "requests_last"):
+                    quota[field] = as_int((response.get("quota") or {}).get(field), None)
+                break
             quota["http_status"] = as_int(response.get("http_status"), quota["http_status"])
             observed = response.get("quota") or {}
             quota["requests_last_total"] += as_int(observed.get("requests_last"), 0)
@@ -6811,7 +6829,7 @@ def fetch_odds_events(limit=250):
 
 def sync_odds_events(limit=250, force=False):
     seed_core()
-    if not os.getenv("THE_ODDS_API_KEY"):
+    if not odds_credentials_configured():
         return {"ok": False, "sin_key": True, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THE_ODDS_API_KEY."]}
     if not odds_enabled():
         return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no está activo."]}
@@ -7010,8 +7028,8 @@ def odds_diagnostics():
     last_sync = odds_last_sync()
     visibility = odds_client_visibility_diagnostics()
     return {
-        "key_present": bool(os.getenv("THE_ODDS_API_KEY")),
-        "key_masked": masked_key(os.getenv("THE_ODDS_API_KEY", "")),
+        "key_present": odds_credentials_configured(),
+        "key_masked": "configured" if odds_credentials_configured() else "",
         "enabled": odds_enabled(),
         "cache_minutes": odds_cache_minutes(),
         "cached_matches": cached,
@@ -7069,8 +7087,8 @@ def match_calendar_diagnostics():
         "active_data_source": active_source,
         "sportsdb_key_present": bool(thesportsdb_key()),
         "sportsdb_configured": bool(thesportsdb_key()),
-        "odds_key_present": bool(os.getenv("THE_ODDS_API_KEY")),
-        "odds_configured": env_present("THE_ODDS_API_KEY"),
+        "odds_key_present": odds_credentials_configured(),
+        "odds_configured": odds_credentials_configured(),
         "enable_live_api": sportsdb_live_enabled(),
         "enable_odds_api": odds_enabled(),
         "sportsdb": sportsdb,
@@ -18449,7 +18467,7 @@ def v932_admin_sports_diagnostics(sports):
         "latest_sync": {"started_at": last_sync} if last_sync else {},
         "errors_recent": [],
         "sportsdb_configured": bool(sports.get("provider_configured")),
-        "odds_configured": env_present("THE_ODDS_API_KEY"),
+        "odds_configured": odds_credentials_configured(),
         "incomplete_matches": int(sports.get("incomplete_matches_count") or 0),
         "storage_status": sports.get("storage_status") or "read_unavailable",
         "next_action": sports.get("admin_next_action") or "review_provider_configuration",
@@ -22496,7 +22514,7 @@ def v945_provider_direct_check(provider):
             "API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"
         ))
     elif provider == "the_odds":
-        configured = env_present("THE_ODDS_API_KEY")
+        configured = odds_credentials_configured()
     else:
         configured = bool(thesportsdb_key())
 
@@ -22542,6 +22560,9 @@ def v945_provider_direct_check(provider):
             raw = odds_api_request("sports") or {}
             payload = raw.get("payload")
             result.update({
+                "external_calls": as_int(raw.get("external_calls"), 1),
+                "credential_tier_selected": raw.get("credential_tier_selected") if raw.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else "",
+                "fallback_used": raw.get("fallback_used") is True,
                 "ok": bool(raw.get("ok")),
                 "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
                 "http_status": as_int(raw.get("http_status"), 0),
@@ -22592,7 +22613,7 @@ def v945_provider_health_snapshot():
 
     api_football_configured = any(env_present(name) for name in ("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
     sportsdb_configured = any(env_present(name) for name in ("THESPORTSDB_API_KEY", "THESPORTSDB_KEY"))
-    odds_configured = env_present("THE_ODDS_API_KEY")
+    odds_configured = odds_credentials_configured()
 
     def provider_card(key, label, configured, observed, *, plan_value=None, observed_at="", quota_data=None, billing_hint=""):
         observed = observed if isinstance(observed, dict) else {}
@@ -22916,7 +22937,7 @@ def _v888_runtime_autopilot_state():
         "openai_configured": bool(str(os.getenv("OPENAI_API_KEY") or "").strip()),
         "telegram_configured": bool(str(os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()),
         "api_sports_configured": bool(str(os.getenv("API_SPORTS_KEY") or os.getenv("APISPORTS_KEY") or os.getenv("API_FOOTBALL_KEY") or "").strip()),
-        "the_odds_configured": bool(str(os.getenv("THE_ODDS_API_KEY") or "").strip()),
+        "the_odds_configured": odds_credentials_configured(),
         "automation_secret_configured": automation_secret_configured(),
         "stripe_configured": bool(str(os.getenv("STRIPE_SECRET_KEY") or "").strip()),
         "payments_configured": bool(str(os.getenv("STRIPE_SECRET_KEY") or "").strip()),
@@ -25482,7 +25503,7 @@ def v822_runtime_stability_snapshot():
         "last_sync": api_sports_status.get("last_sync"),
         "last_error": last_provider_error,
         "usage_guard": api_sports_status.get("usage_guard"),
-        "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
+        "the_odds_configured": odds_credentials_configured() or env_present("ODDS_API_KEY"),
         "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
         "crest_engine_loaded": True,
         "logo_routes_ok": True,
@@ -28361,7 +28382,7 @@ def api_runtime_version():
             "api_sports_configured": runtime_stability.get("api_sports_configured"),
             "api_sports_provider_available": runtime_stability.get("api_sports_provider_available"),
             "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
-            "the_odds_configured": env_present("THE_ODDS_API_KEY") or env_present("ODDS_API_KEY"),
+            "the_odds_configured": odds_credentials_configured() or env_present("ODDS_API_KEY"),
             "automation_secret_configured": automation_secret_configured(),
             "openai_configured": openai_ready,
         },

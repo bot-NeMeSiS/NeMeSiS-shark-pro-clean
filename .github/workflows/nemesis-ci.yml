@@ -32,6 +32,7 @@ jobs:
         run: |
           pip install pytest
           python -m pytest tests/test_cron_incident_hotfix.py tests/test_render_cron_master_tick.py tests/test_sports_pipeline_stage_truth.py -q
+          python -m pytest tests/test_odds_credentials.py tests/test_odds_cache_credit_guard.py tests/test_odds_admin_pipeline.py -q
 
       - name: Project checks
         run: |

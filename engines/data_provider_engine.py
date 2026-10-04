@@ -33,7 +33,7 @@ PROVIDER_ENV_KEYS = {
     "api_football": ["API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY"],
     "sportmonks": ["SPORTMONKS_API_KEY", "SPORTMONKS_TOKEN"],
     "sportradar": ["SPORTRADAR_API_KEY"],
-    "the_odds_api": ["THE_ODDS_API_KEY"],
+    "the_odds_api": ["THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY_FREE", "THE_ODDS_API_KEY"],
 }
 
 DEFAULT_PROVIDER_ORDER = ["thesportsdb", "api_football", "sportmonks", "sportradar"]

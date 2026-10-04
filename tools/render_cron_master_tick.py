@@ -497,6 +497,9 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             result["provider_error_code"] = code if code in KNOWN_ODDS_ERROR_CODES else ""
             result["provider_observation_current"] = payload.get("provider_observation_current") is True
             result["provider_http"] = safe_count(payload.get("provider_http"))
+            tier = payload.get("credential_tier_selected")
+            result["credential_tier_selected"] = tier if tier in {"PAID", "FREE", "LEGACY"} else ""
+            result["fallback_used"] = payload.get("fallback_used") is True
             error_type = payload.get("provider_error_type")
             result["provider_error_type"] = error_type if error_type in {
                 "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError", "UNKNOWN",

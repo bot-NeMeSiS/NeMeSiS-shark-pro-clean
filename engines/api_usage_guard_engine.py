@@ -126,7 +126,7 @@ def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> di
         "remaining_estimated": {provider: None for provider in budgets},
         "configured": {
             "api_football": bool(env.get("API_FOOTBALL_KEY") or env.get("API_FOOTBALL_API_KEY")),
-            "odds_api": bool(env.get("ODDS_API_KEY") or env.get("THE_ODDS_API_KEY")),
+            "odds_api": any(bool(env.get(name)) for name in ("THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY_FREE", "THE_ODDS_API_KEY", "ODDS_API_KEY")),
             "thesportsdb": bool(env.get("THESPORTSDB_KEY") or env.get("THESPORTSDB_API_KEY")),
         },
         "usage_scope": "LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA",
