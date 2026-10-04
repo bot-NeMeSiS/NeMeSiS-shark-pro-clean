@@ -73,8 +73,8 @@ La caché resuelve a lo sumo hasta el próximo deadline real, kickoff o 60 s. LR
 
 ## 6. Verificación
 
-- 333 pruebas relevantes aprobadas en la revisión final: Fase 3, dominio/contexto, evidencia, odds, Calendar, single-source, identidad SportsDB, backoff API-Football, #186/Cron, backup, highlights y postmatch/entrega Telegram con transports simulados.
-- Después de los refuerzos finales (raw independiente, memo por evidence hash y dedupe por grupo), 50 pruebas del resolver/dominio/identidad SportsDB aprobadas. El preflight remoto detectó después una incompatibilidad con stats de la caché live legacy; se incorporaron sus rows ya adquiridas con captured_at independiente. Tras esa corrección, 71 pruebas del resolver/dominio/contexto/identidad aprobadas, incluido el rechazo de clocks rejuvenecidos.
+- 338 pruebas relevantes aprobadas en la revisión final: Fase 3, dominio/contexto, evidencia, odds, Calendar, single-source, identidad SportsDB, backoff API-Football, #186/Cron, backup, highlights y postmatch/entrega Telegram con transports simulados.
+- Después de los refuerzos finales (raw independiente, memo por evidence hash y dedupe por grupo), 50 pruebas del resolver/dominio/identidad SportsDB aprobadas. El preflight remoto detectó después una incompatibilidad con stats de la caché live legacy; se incorporaron sus rows ya adquiridas con captured_at independiente. Tras esa corrección y la renovación conjunta del envelope de detalle, 72 pruebas del resolver/dominio/contexto/identidad aprobadas, incluido el rechazo de clocks rejuvenecidos.
 - Suite amplia inicial: 4.267 aprobadas, 36 fallos. Contraste exacto de esos 36 nodos en main base: 26 fallos reproducidos y 10 aprobados. Los diez correspondientes a compatibilidad de Fase 3 fueron corregidos y están incluidos en la revisión relevante verde. La suite amplia completa no se declara certificada sobre el SHA final.
 - Los 26 fallos de base incluyen encoding cp1252, login/token local, autorización/guardas de endpoints administrativos, aislamiento Stripe en el harness y Gunicorn/fcntl no disponible en Windows. No se modifican esas guardas para hacer pasar pruebas.
 - QA real Flask HTTP/Chrome: cinco rutas × 1366×900 y 390×844; diez respuestas 200, sin overflow de documento, pageerror, raw technical copy comprobado ni duplicación de main. Conflicto sintético AF live 1–0 / TSDB FT 3–2; el mismo match queda live 1–0 en las cinco superficies. No sustituye una observación de producción ni una prueba de todos los estados posibles.
@@ -83,15 +83,15 @@ La caché resuelve a lo sumo hasta el próximo deadline real, kickoff o 60 s. LR
 
 ## 7. Benchmark antes/después
 
-Windows, SQLite local desechable, 30 fixtures sintéticos, siete requests calientes por ruta, misma herramienta y base. Cuenta SELECT/PRAGMA en todas las conexiones Python. Cero llamadas de proveedor. Estos resultados miden server rendering con test client, no red/Render ni p95 de producción.
+Windows, SQLite local desechable, 30 fixtures sintéticos, siete requests calientes por ruta, misma herramienta y base. Medición después del fix de profundidad legacy en 2f802c5d; el ajuste posterior de renovación de envelope no añade consultas y cubre sólo expiración. Cuenta SELECT/PRAGMA en todas las conexiones Python. Cero llamadas de proveedor. Estos resultados miden server rendering con test client, no red/Render ni p95 de producción.
 
 | Ruta | Mediana antes → después | Consultas antes → después |
 |---|---|---|
-| Home | 51,22 → 77,48 ms | 30 → 31 |
-| Calendar | 93,77 → 105,38 ms | 32 → 33 |
-| Live | 68,68 → 82,47 ms | 31 → 32 |
-| Match Center | 64,74 → 97,13 ms | 58 → 59 |
-| SHARK | 77,69 → 113,27 ms | 46 → 48 |
+| Home | 51,22 → 70,81 ms | 30 → 31 |
+| Calendar | 93,77 → 101,06 ms | 32 → 33 |
+| Live | 68,68 → 81,49 ms | 31 → 32 |
+| Match Center | 64,74 → 93,07 ms | 58 → 59 |
+| SHARK | 77,69 → 113,59 ms | 46 → 48 |
 
 La trazabilidad añade coste: no es una mejora neta de latencia. Las pruebas de bulk read y memo verifican coste acotado, sin una consulta por partido. El benchmark de rutas utiliza fixtures legacy; volumen real de receipts, múltiples workers y carga simultánea deben medirse después del gate. JSON conserva tiempos fríos, máximos y status codes.
 

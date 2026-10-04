@@ -137,6 +137,19 @@ def test_legacy_live_depth_uses_its_own_capture_clock(age, stale):
     assert canonical["resolved"]["events"]["observed_at"] == captured
 
 
+def test_expired_detail_refreshes_nested_match_and_statistics_together():
+    af_stats = {"available": True, "items": [{"label": "Tiros", "home": 3, "away": 2}]}
+    db_stats = {"available": True, "items": [{"label": "Tiros", "home": 4, "away": 2}]}
+    canonical = resolve(receipt(stats=af_stats), receipt("thesportsdb", age=0, stats=db_stats))
+    detail = {"match": legacy_projection({"id": "stable"}, canonical), "unified_sports_truth": canonical,
+              "cached_statistics": af_stats, "media": {"rights_state": "BLOCKED"}}
+    renewed = refresh_payload_truth(detail, now=NOW+timedelta(seconds=115))
+    assert renewed["match"]["unified_sports_truth"]["resolved"]["stats"]["provider"] == "thesportsdb"
+    assert renewed["cached_statistics"] == db_stats
+    assert renewed["unified_sports_truth"] == renewed["match"]["unified_sports_truth"]
+    assert renewed["media"] == detail["media"]
+
+
 @pytest.mark.parametrize("date,hour,offset", [("2026-01-15T20:00:00Z", "21:00", "+01:00"), ("2026-07-15T20:00:00Z", "22:00", "+02:00")])
 def test_kickoff_madrid_winter_summer(date, hour, offset):
     canonical = resolve(receipt(kickoff_iso=date))

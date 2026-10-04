@@ -471,6 +471,17 @@ def refresh_payload_truth(payload, *, now=None):
         if isinstance(canonical, dict) and canonical.get("contract") == CONTRACT:
             if instant(canonical["evaluated_at"]) <= evaluated < instant(canonical["valid_until"]):
                 return value
+            if isinstance(value.get("match"), dict):
+                # A detail envelope is not a match row. Renew its nested match
+                # and selected sections together, retaining media policy.
+                result = {**value, "match": visit(value["match"])}
+                renewed = result["match"].get("unified_sports_truth") or canonical
+                result["unified_sports_truth"] = renewed
+                for group, key in (("stats", "cached_statistics"), ("lineups", "lineups"),
+                                   ("events", "timeline"), ("h2h", "head_to_head"), ("standings", "standings")):
+                    if renewed["values"].get(group) is not None:
+                        result[key] = renewed["values"][group]
+                return result
             # Same snapshot may appear in several lanes. Resolve it once.
             evidence_hash = hashlib.sha256(json.dumps(canonical["provider_evidence"], sort_keys=True, default=str).encode()).hexdigest()
             key = (canonical["canonical_match_id"], canonical["evaluated_at"], evidence_hash)
