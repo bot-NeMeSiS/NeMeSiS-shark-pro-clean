@@ -59,12 +59,12 @@ def test_account_center_preserves_rendered_counts_from_loaded_lists():
 def test_account_template_contract_matches_light_payload():
     template = (ROOT / "templates" / "account_center.html").read_text(encoding="utf-8")
     for marker in (
-        "data.account_center.plan",
+        "account = data.account_center",
         "data.get('membership')",
         "data.payments_client",
-        "data.session_user",
+        "data.get('session_user')",
         "data.get('client_activity')",
-        "data.telegram_state",
+        "data.get('telegram_state')",
     ):
         assert marker in template
     for marker in (

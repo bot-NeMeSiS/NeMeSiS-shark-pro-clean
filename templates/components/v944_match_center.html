@@ -19,7 +19,7 @@
 {% endif %}{%- endmacro %}
 
 {% macro transparency_meta(context, key) -%}
-{% if request.path.startswith('/admin') %}
+{% if request is defined and request.path.startswith('/admin') %}
 {% set item = (context.get('transparency') or {}).get(key) or {} %}
 <details class="v944-transparency-disclosure">
   <summary>{{ ui("Calidad del dato") }}</summary>

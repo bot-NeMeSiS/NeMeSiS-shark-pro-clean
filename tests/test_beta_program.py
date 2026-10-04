@@ -183,7 +183,7 @@ def test_first10_account_and_founder_surfaces_make_inviting_easy_without_auto_se
     founder = (__import__("pathlib").Path(__file__).resolve().parents[1] / "templates" / "admin_founder_dashboard.html").read_text(encoding="utf-8")
 
     assert 'data-first10-account-invite' in account
-    assert 'href="/beta#first10-share"' in account
+    assert "action_button('Invitar a alguien', '/beta#first10-share')" in account
     assert "Invitar a alguien" in account
 
     assert 'data-first10-founder-actions' in founder

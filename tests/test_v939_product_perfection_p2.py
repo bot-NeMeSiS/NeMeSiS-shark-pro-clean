@@ -238,7 +238,7 @@ def test_pqv939_006_client_copy_contract_separates_client_and_admin_audiences():
     assert "Datos confirmados disponibles. La información se mantiene accesible entre actualizaciones." in engine
     assert "Actualización temporalmente no disponible. Se conserva la última información confirmada." in engine
     assert "se conserva el ultimo cache seguro" not in engine
-    assert "technical_message if technical else client_message" in shared_template
+    assert "technical_message if technical else safe_client_message" in shared_template
     assert "var message = technical" in polling
     assert "DB y caché durante render" not in live_template
     assert "Los últimos datos confirmados siguen accesibles" in live_template
@@ -359,6 +359,8 @@ def _visible_text(html: str) -> str:
 def _timestamp_contract_environment() -> Environment:
     environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
     environment.filters["sync_madrid_label"] = format_madrid_sync_label
+    from types import SimpleNamespace
+    environment.globals["request"] = SimpleNamespace(path="/admin/dashboard")
     environment.globals["ui"] = lambda source, **values: str(source).format(**values) if values else str(source)
     return environment
 
@@ -585,3 +587,12 @@ def test_realtime_cache_single_flight_prevents_duplicate_builds():
         assert all(payload == {"ok": True, "source": "LOCAL_QA"} for payload in payloads)
     finally:
         invalidate_realtime_cache(cache_key)
+
+
+def test_requestless_realtime_component_keeps_diagnostics_out_of_client_copy():
+    environment = _timestamp_contract_environment()
+    environment.globals.pop("request")
+    module = environment.get_template("components/v933_ui.html").module
+    rendered = str(module.realtime_state_bar({}, "all", True))
+    assert 'data-v934-technical="false"' in rendered
+    assert "DB/caché:" not in _visible_text(rendered)

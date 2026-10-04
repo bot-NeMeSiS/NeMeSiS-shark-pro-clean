@@ -22,7 +22,7 @@ def test_navigation_badge_matches_supported_access(plan):
     env.globals.update(ui=lambda text: text, request=SimpleNamespace(path="/app"))
     module = env.get_template("components/v933_navigation.html").module
     html = module.v933_client_navigation(plan)
-    expected = plan if plan in {"ADMIN", "ELITE"} else "FREE"
+    expected = "ELITE" if plan in {"ADMIN", "ELITE"} else "FREE"
     assert f"<strong>{expected}</strong>" in html
     assert "<strong>ELITE+" not in html
 

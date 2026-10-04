@@ -65,7 +65,7 @@
 {%- endmacro %}
 
 {% macro data_provenance_badge(source='', updated='', state='') -%}
-{% if request.path.startswith('/admin') %}<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
+{% if request is defined and request.path.startswith('/admin') %}<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
 {% endif %}
 {%- endmacro %}
 
@@ -187,7 +187,7 @@
 {%- endmacro %}
 
 {% macro realtime_state_bar(realtime, scope='all', technical=false) -%}
-{% set technical = technical and (request.path == '/admin' or request.path.startswith('/admin/')) %}
+{% set technical = technical and request is defined and (request.path == '/admin' or request.path.startswith('/admin/')) %}
 {% set realtime = realtime or {} %}{% set counts = realtime.get('counts') or {} %}
 {% set raw_sync = realtime.get('last_safe_sync') or '' %}
 {% set client_sync = realtime.get('last_safe_sync_label') or (raw_sync|sync_madrid_label) %}
