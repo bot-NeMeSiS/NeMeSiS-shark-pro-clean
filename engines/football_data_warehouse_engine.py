@@ -307,7 +307,8 @@ def _api_football_get(path: str, params: Optional[Mapping[str, Any]] = None, tim
         url += "?" + query
     req = urllib.request.Request(url, headers={"x-apisports-key": key, "User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        from engines.cron_request_budget import request_timeout
+        with urllib.request.urlopen(req, timeout=request_timeout(timeout)) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         return {"ok": not bool(payload.get("errors")), "payload": payload, "response": payload.get("response") or [], "errors": payload.get("errors") or []}
     except Exception as exc:

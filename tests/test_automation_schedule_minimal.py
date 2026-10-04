@@ -37,7 +37,7 @@ def test_automation_center_lists_only_actual_recurring_jobs():
     assert "data_backup" in summary["jobs"][0]["included_flows"]
     assert "highlights" in summary["jobs"][0]["included_flows"]
     assert "postmatch" in summary["jobs"][0]["included_flows"]
-    assert {d["key"] for d in summary["domains"]} == {"sports", "media", "postmatch", "delivery", "maintenance"}
+    assert {d["key"] for d in summary["domains"]} == {"sports", "odds", "media", "postmatch", "delivery", "maintenance"}
 
 
 def test_legacy_admin_page_does_not_claim_old_jobs_are_render_scheduled():

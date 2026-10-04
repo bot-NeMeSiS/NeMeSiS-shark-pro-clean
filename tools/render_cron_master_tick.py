@@ -3,7 +3,7 @@
 
 The runner owns all production recurrence and keeps no local state:
 
-1. Telegram/sports automation tick.
+1. Independent Sports, Odds and Telegram automation lanes.
 2. Continuous Evolution tick on the persistent web service.
 3. Data Vault backup only inside the daily UTC maintenance window.
 
@@ -29,6 +29,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from engines.automation_domains import production_endpoint
 
 RUNNER_NAME = "nemesis_master_tick"
+SPORTS_ENDPOINT = production_endpoint('sports')
+ODDS_ENDPOINT = production_endpoint('odds')
+PROVIDER_LANE_TIMEOUT_SECONDS = 24
 TELEGRAM_ENDPOINT = production_endpoint('delivery')
 CONTINUOUS_EVOLUTION_ENDPOINT = production_endpoint('maintenance', 'evolution')
 BACKUP_ENDPOINT = production_endpoint('maintenance')
@@ -451,6 +454,51 @@ def telegram_tick(base_url: str, secret: str) -> dict:
         return request_error_result("telegram", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
+def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dict:
+    """One POST only; provider deferrals are distinct from technical failure."""
+    started = time.perf_counter()
+    request = urllib.request.Request(
+        f"{base_url}{endpoint}", data=b"{}", method="POST",
+        headers={"X-Automation-Secret": secret, "X-NeMeSiS-Cron-Runner": "render-cron",
+                 "Accept": "application/json", "Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=PROVIDER_LANE_TIMEOUT_SECONDS) as response:
+            http_status = int(response.status)
+            payload = decode_json(response.read(30000))
+        if payload is None:
+            return request_error_result(prefix, started, "INVALID_JSON_RESPONSE", http_status)
+        reason = safe_label(payload.get("status"), secret)
+        technical = bool(payload.get("error") or payload.get("errors_count") or payload.get("technical_errors"))
+        if http_status != 200 or technical or payload.get("ok") is not True:
+            status = "FAIL"
+        elif reason in {"PARTIAL", "TIME_BUDGET", "PARTIAL_PROVIDER_ERRORS"} or payload.get("controlled_deferrals"):
+            status = "PARTIAL"
+        else:
+            status = "PASS"
+        result = {f"{prefix}_http": http_status, f"{prefix}_status": status,
+                f"{prefix}_result": reason, "processed": safe_count(payload.get("processed")),
+                "external_calls": safe_count(payload.get("external_calls")),
+                f"{prefix}_duration_ms": max(0, round((time.perf_counter()-started)*1000))}
+        if prefix == "sports":
+            pipeline = sanitized_sports_pipeline(payload, secret)
+            if pipeline:
+                result["sports_pipeline"] = pipeline
+        return result
+    except urllib.error.HTTPError as exc:
+        return request_error_result(prefix, started, f"HTTP_{exc.code}", int(exc.code))
+    except Exception as exc:
+        return request_error_result(prefix, started, type(exc).__name__)
+
+
+def sports_tick(base_url: str, secret: str) -> dict:
+    return provider_tick(base_url, secret, "sports", SPORTS_ENDPOINT)
+
+
+def odds_tick(base_url: str, secret: str) -> dict:
+    return provider_tick(base_url, secret, "odds", ODDS_ENDPOINT)
+
+
 def highlights_tick(base_url: str, secret: str) -> dict:
     """Run media enrichment independently so a slow provider cannot kill sports/Telegram."""
     started = time.perf_counter()
@@ -713,6 +761,8 @@ def readiness_failure(readiness: dict, utc_now: str, madrid_now: str) -> dict:
     return {
         "runner": RUNNER_NAME,
         "web_readiness": readiness,
+        "sports_status": "NOT_EXECUTED",
+        "odds_status": "NOT_EXECUTED",
         "telegram_status": "NOT_EXECUTED",
         "continuous_evolution_status": "NOT_EXECUTED",
         "highlights_status": "NOT_EXECUTED",
@@ -818,19 +868,25 @@ def main() -> int:
         print_event(payload)
         return 2
 
-    telegram = isolated_tick(telegram_tick, "telegram", base_url, automation_secret)
+    sports = readiness_guarded_tick(sports_tick, "sports", base_url, automation_secret)
+    odds = readiness_guarded_tick(odds_tick, "odds", base_url, automation_secret)
+    telegram = readiness_guarded_tick(telegram_tick, "telegram", base_url, automation_secret)
     highlights = readiness_guarded_tick(highlights_tick, "highlights", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
     postmatch = readiness_guarded_tick(postmatch_tick, "postmatch", base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
     # Controlled deferrals remain visible without failing an otherwise healthy run.
-    statuses = [overall, telegram.get('telegram_status'), continuous.get('continuous_status'),
+    statuses = [overall, sports.get('sports_status'), odds.get('odds_status'), telegram.get('telegram_status'), continuous.get('continuous_status'),
                 backup.get('backup_status'), postmatch.get('postmatch_status'), highlights.get('highlights_status')]
     overall = 'FAIL' if 'FAIL' in statuses else 'PARTIAL' if 'PARTIAL' in statuses else 'PASS'
     print_event({
         "runner": RUNNER_NAME,
         "web_readiness": readiness,
+        "sports": sports,
+        "odds": odds,
+        "sports_status": sports.get("sports_status"),
+        "odds_status": odds.get("odds_status"),
         "telegram_status": telegram.get("telegram_status"),
         "continuous_evolution_status": continuous.get("continuous_status"),
         "highlights_status": highlights.get("highlights_status"),

@@ -37,6 +37,8 @@ def run_master(monkeypatch, capsys, outcomes, secret: str = "pytest-master-secre
     calls = []
 
     def fake_urlopen(request, timeout):
+        if request.full_url.endswith((master.SPORTS_ENDPOINT, master.ODDS_ENDPOINT)):
+            return MockResponse({"ok": True, "status": "OK"})
         if request.full_url.endswith(master.READINESS_ENDPOINT):
             return MockResponse({"ok": True, "version": "SIMULATED_QA"})
         if master.HIGHLIGHTS_ENDPOINT in request.full_url:
@@ -641,6 +643,8 @@ def test_highlights_failure_is_reported_without_stopping_other_lanes(monkeypatch
         "readiness_attempts": 1,
         "readiness_duration_ms": 1,
     })
+    monkeypatch.setattr(master, "sports_tick", lambda *_a: {"sports_status": "PASS"})
+    monkeypatch.setattr(master, "odds_tick", lambda *_a: {"odds_status": "PASS"})
     monkeypatch.setattr(master, "telegram_tick", lambda *_a: {
         "telegram_status": "PASS", "telegram_result": "QUEUE_EMPTY", "telegram_duration_ms": 1,
     })

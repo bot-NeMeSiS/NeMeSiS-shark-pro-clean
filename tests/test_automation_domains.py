@@ -9,4 +9,4 @@ def test_production_domain_adapters_resolve_and_routes_exist(app_module):
             assert importlib.util.find_spec(module) is not None, module
         assert domain['endpoint'] in routes
         assert domain['diagnostic'].split('#')[0] in routes
-    assert len(DOMAINS) == 5
+    assert len(DOMAINS) == 6

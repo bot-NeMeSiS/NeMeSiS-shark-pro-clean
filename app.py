@@ -1348,6 +1348,9 @@ def sports_sync_window_state():
 
 
 def _safe_sports_sync_call(label, callback, *args, **kwargs):
+    from engines.cron_request_budget import exhausted
+    if exhausted():
+        return {"ok": True, "status": "TIME_BUDGET", "skipped": True, "external_calls": 0}
     try:
         result = callback(*args, **kwargs)
         if isinstance(result, dict):
@@ -1355,6 +1358,9 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
         return {"ok": False, "status": "INVALID_RESPONSE", "processed": 0,
                 "error": f"{label}_INVALID_RESPONSE", "result_type": type(result).__name__}
     except Exception as exc:
+        from engines.cron_request_budget import CronTimeBudget
+        if isinstance(exc, CronTimeBudget):
+            return {"ok": True, "status": "TIME_BUDGET", "skipped": True, "external_calls": 0}
         return {
             "ok": False,
             "status": "ERROR",
@@ -1404,7 +1410,7 @@ def _api_football_deep_enrichment_candidates(limit=1):
     return fixture_ids
 
 
-def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
+def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=True):
     """Refresh sports cache without Telegram, payments or render-time provider calls."""
     started_at = now_iso()
     before = sports_sync_window_state()
@@ -1454,7 +1460,8 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron"):
         fixture_ids=deep_candidates or None,
         deep_limit=1,
     )
-    odds = _safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
+    odds = (_safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
+            if include_odds else {"ok": True, "status": "INDEPENDENT_LANE", "skipped": True, "external_calls": 0})
     grading = _safe_sports_sync_call(
         "pick_grading",
         run_pick_grading,
@@ -2191,54 +2198,74 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
 
 
 def telegram_cron_with_sports_sync(force=False):
-    """Reuse the proven Telegram Cron trigger without coupling sports to delivery."""
-    sports_result = {}
+    """Compatibility adapter: delivery only; Sports and Odds have separate lanes."""
+    return telegram_cron_delivery_tick(force=force)
+
+
+def telegram_cron_delivery_tick(force=False):
+    """Preserve existing scheduled delivery and founder alerts without provider work."""
+    result = _safe_sports_sync_call("telegram_scheduler", telegram_scheduler_tick, force=force)
     try:
-        sports_result = run_sports_sync_cycle(force=False, trigger_type="shared_telegram_cron")
+        result["founder_alerts"] = founder_alert_tick(DB_PATH)
     except Exception as exc:
-        sports_result = {
-            "status": "CONTROLLED_ERROR",
-            "ok": False,
-            "safe_error": type(exc).__name__,
+        result["founder_alerts"] = {
+            "ok": False, "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__, "sent": 0,
         }
-        automation_safe_set("sports_sync_operational_state", {
-            "status": "CONTROLLED_ERROR",
-            "ok": False,
-            "trigger_type": "shared_telegram_cron",
-            "finished_at": now_iso(),
-            "errors_count": 1,
-            "safe_error": type(exc).__name__,
-            "next_action": "review_sports_sync_logs",
-        })
-    if not isinstance(sports_result, dict):
-        sports_result = {"ok": False, "status": "INVALID_RESPONSE", "error": "sports_INVALID_RESPONSE"}
-    telegram_result = _safe_sports_sync_call("telegram_scheduler", telegram_scheduler_tick, force=force)
-    deep = sports_result.get("deep_enrichment")
-    deep = deep if isinstance(deep, dict) else {}
-    deep_history = {}
-    if not deep.get("account") or not deep.get("capabilities"):
-        try:
-            deep_history = api_exploitation_summary(DB_PATH) or {}
-        except Exception:
-            deep_history = {}
-    try:
-        telegram_result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
-            sports_result, deep_history, _sports_entity_freshness_snapshot(),
-        )
-    except Exception as exc:
-        telegram_result["sports_pipeline"] = {
-            "ok": False, "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
-        }
-    try:
-        telegram_result["founder_alerts"] = founder_alert_tick(DB_PATH)
-    except Exception as exc:
-        telegram_result["founder_alerts"] = {
-            "ok": False,
-            "status": "CONTROLLED_ERROR",
-            "safe_error": type(exc).__name__,
-            "sent": 0,
-        }
-    return telegram_result
+    return result
+
+
+def bounded_sports_sync(force=False):
+    from engines.cron_request_budget import CronRequestBudget
+    with CronRequestBudget() as budget:
+        result = run_sports_sync_cycle(force=force, include_odds=False)
+        controlled, technical = [], []
+        restricted = {"FREE_PLAN_RESTRICTED", "FREE_PLAN_SEASON_RESTRICTED", "SEASON_UNAVAILABLE",
+                      "ENDPOINT_RESTRICTED", "COVERAGE_UNAVAILABLE", "SUBSCRIPTION_RESTRICTED",
+                      "ACCESS_RESTRICTED", "PLAN_OR_COVERAGE_OTHER"}
+        for label in ("fixtures", "fallback", "live", "deep_enrichment", "grading"):
+            stage = result.get(label) or {}
+            status = str(stage.get("status") or "").upper()
+            failure = bool(stage.get("error") or stage.get("errors") or stage.get("ok") is False)
+            deferral = status in {"TIME_BUDGET", "REQUEST_BUDGET", "DAILY_BUDGET", "TICK_BUDGET", "SOURCE_COOLDOWN"}
+            stage_errors = ([stage["error"]] if stage.get("error") else []) + list(stage.get("errors") or [])
+            deferral = deferral or bool(stage_errors and all(error == "TIME_BUDGET" for error in stage_errors))
+            deferral = deferral or status in {
+                prefix + reason for prefix in ("CACHE_PROVIDER_FAILURE_", "PROVIDER_FAILURE_BACKOFF_")
+                for reason in restricted}
+            if deferral:
+                controlled.append(status)
+            elif failure:
+                technical.append(label + "_" + (status or "ERROR"))
+        result["technical_errors"] = technical
+        result["controlled_deferrals"] = controlled
+        if controlled or budget.deferred:
+            result["status"] = "PARTIAL"
+            result["ok"] = not technical
+            if budget.deferred and "TIME_BUDGET" not in controlled:
+                result["controlled_deferrals"].append("TIME_BUDGET")
+        if budget.remaining() >= 1:
+            deep = result.get("deep_enrichment") or {}
+            history = {}
+            if not deep.get("account") or not deep.get("capabilities"):
+                try:
+                    history = api_exploitation_summary(DB_PATH) or {}
+                except Exception:
+                    history = {}
+            # Cached provider history only; no entity-wide scan or provider calls.
+            try:
+                result["sports_pipeline"] = _build_sports_pipeline_diagnostics(result, history)
+            except Exception as exc:
+                result["sports_pipeline"] = {
+                    "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
+                }
+        return result
+
+
+def bounded_odds_sync(force=False):
+    from engines.cron_request_budget import CronRequestBudget
+    with CronRequestBudget():
+        return sync_odds_events(limit=80, force=force)
+
 
 
 def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False):
@@ -2299,7 +2326,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         "called_at": called_at,
         "finished_at": finished_at,
     }
-    if endpoint == "telegram_tick" and isinstance(result.get("sports_pipeline"), dict):
+    if endpoint in {"telegram_tick", "sports_sync"} and isinstance(result.get("sports_pipeline"), dict):
         raw_pipeline = result["sports_pipeline"]
         raw_quota = raw_pipeline.get("quota") if isinstance(raw_pipeline.get("quota"), dict) else {}
         raw_capabilities = raw_pipeline.get("capabilities") if isinstance(raw_pipeline.get("capabilities"), dict) else {}
@@ -2540,10 +2567,14 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             "no_fake_data": True,
             "next_action": result.get("next_action") or "wait_for_next_cron_tick",
         })
+    if endpoint in {"sports_sync", "odds_sync"}:
+        compact["controlled_deferrals"] = result.get("controlled_deferrals") or []
+        compact["external_calls"] = as_int(result.get("external_calls"), 0)
+        compact["technical_errors"] = result.get("technical_errors") or []
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
     if result.get("errors"):
-        compact["errors_count"] = len(result.get("errors") or [])
+        compact["errors_count"] = len(result.get("technical_errors", result.get("errors") or []))
     return compact
 
 
@@ -4396,14 +4427,16 @@ def odds_cache_minutes():
 
 def fetch_json_url(url, headers=None, timeout=10):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as res:
+    from engines.cron_request_budget import request_timeout
+    with urllib.request.urlopen(req, timeout=request_timeout(timeout)) as res:
         return json.loads(res.read().decode("utf-8", errors="replace"))
 
 
 def fetch_json_response(url, headers=None, timeout=10):
     """Return payload plus non-sensitive transport metadata."""
     req = urllib.request.Request(url, headers=headers or {"User-Agent": "NeMeSiS-SHARK-PRO/1.0"})
-    with urllib.request.urlopen(req, timeout=timeout) as res:
+    from engines.cron_request_budget import request_timeout
+    with urllib.request.urlopen(req, timeout=request_timeout(timeout)) as res:
         payload = json.loads(res.read().decode("utf-8", errors="replace"))
         return {
             "payload": payload,
@@ -6706,7 +6739,12 @@ def fetch_odds_events(limit=250):
         "systemic_http_status": 0,
         "stopped_early": False,
     }
+    from engines.cron_request_budget import exhausted
     for sport in odds_competitions():
+        if exhausted():
+            quota["controlled_deferrals"] = ["TIME_BUDGET"]
+            quota["stopped_early"] = True
+            break
         if len(events) >= int(limit):
             break
         try:
@@ -6806,6 +6844,9 @@ def sync_odds_events(limit=250, force=False):
             result["status"] = "PARTIAL_PROVIDER_ERRORS"
         else:
             result["status"] = "OK"
+        result["controlled_deferrals"] = quota.get("controlled_deferrals") or []
+        if result["controlled_deferrals"] and not errors:
+            result["status"] = "PARTIAL"
         result["provider_failure_systemic"] = bool(quota.get("systemic_failure"))
         result["source"] = "The Odds API"
         result["sync_type"] = "events"
@@ -29328,13 +29369,23 @@ def api_automation_daily_run():
 
 @app.route("/api/automation/sports/sync", methods=["POST"])
 def api_automation_sports_sync():
-    if not automation_cron_access_allowed():
-        return automation_json_forbidden()
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
     return automation_cron_result(
         "sports_sync",
         ("last_cron_sports_call", "cron_sports_sync_last_call"),
-        run_sports_sync_cycle,
+        bounded_sports_sync,
         force=cron_force_requested(),
+    )
+
+
+@app.route("/api/automation/odds/sync", methods=["POST"])
+def api_automation_odds_sync():
+    if not automation_header_secret_status().get("ok"):
+        return automation_header_json_forbidden()
+    return automation_cron_result(
+        "odds_sync", ("last_cron_odds_call", "cron_odds_sync_last_call"),
+        bounded_odds_sync, force=cron_force_requested(),
     )
 
 
@@ -29350,7 +29401,7 @@ def api_automation_telegram_tick():
     return automation_cron_result(
         "telegram_tick",
         ("last_cron_telegram_call", "cron_telegram_tick_last_call"),
-        telegram_cron_with_sports_sync if is_render_cron and not dry_run else telegram_scheduler_tick,
+        telegram_cron_delivery_tick if is_render_cron and not dry_run else telegram_scheduler_tick,
         force=force,
     )
 
