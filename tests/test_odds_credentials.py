@@ -194,6 +194,11 @@ def test_compact_metadata_is_safe_and_current(app_module):
                   "http_status": 200, "requests_remaining": 44}}, "start", "end")
     assert result["credential_tier_selected"] == "FREE" and result["fallback_used"]
     assert result["provider_http"] == 200 and result["provider_observation_current"]
+    cached = app_module._cron_compact_payload("odds_sync", {
+        "ok": True, "status": "CACHE_REUSED", "external_calls": 0,
+        "quota": {"credential_tier_selected": "FREE", "fallback_used": True,
+                  "http_status": 200, "requests_remaining": 44}}, "start", "end")
+    assert not cached["fallback_used"] and not cached["provider_observation_current"]
 
 
 def test_configurable_free_limits_and_invalid_defaults(monkeypatch):

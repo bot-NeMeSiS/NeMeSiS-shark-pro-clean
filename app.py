@@ -2584,7 +2584,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
         } else "UNKNOWN" if quota.get("error_type") else ""
         compact["credential_tier_selected"] = quota.get("credential_tier_selected") if quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else ""
-        compact["fallback_used"] = bool(quota.get("fallback_used"))
+        compact["fallback_used"] = bool(quota.get("fallback_used")) and compact["provider_observation_current"]
         compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
@@ -22560,6 +22560,9 @@ def v945_provider_direct_check(provider):
             raw = odds_api_request("sports") or {}
             payload = raw.get("payload")
             result.update({
+                "external_calls": as_int(raw.get("external_calls"), 1),
+                "credential_tier_selected": raw.get("credential_tier_selected") if raw.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else "",
+                "fallback_used": raw.get("fallback_used") is True,
                 "ok": bool(raw.get("ok")),
                 "status": "CONNECTED" if raw.get("ok") else "PROVIDER_REJECTED",
                 "http_status": as_int(raw.get("http_status"), 0),
