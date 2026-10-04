@@ -174,4 +174,5 @@ def test_broadcast_refresh_is_cron_owned_and_product_read_is_local_only():
     assert "urllib.request.urlopen" in engine
     assert "data-sportsdb-broadcasts" in template
     assert "urlopen" not in template
-    assert "No se inventa disponibilidad." in template
+    assert "La programación de este partido todavía no está disponible." in template
+    assert "consulta automática guardada en memoria local" not in template

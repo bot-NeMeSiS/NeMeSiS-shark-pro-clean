@@ -64,7 +64,7 @@
     <article class="card" data-sportsdb-broadcasts data-broadcast-available="{{ 'true' if broadcast.get('available') else 'false' }}">
       <h3>Dónde verlo</h3>
       {% if broadcast.get('available') and broadcast.get('channels') %}
-        <p class="small">Canales confirmados por TheSportsDB. España aparece primero cuando existe una señal identificada para ese país.</p>
+        <p class="small">Programación disponible por país. Consulta las condiciones de acceso del canal.</p>
         <div class="stack">
           {% for channel in broadcast.get('channels')[:8] %}
           <div class="list-row">
@@ -74,9 +74,9 @@
           {% endfor %}
         </div>
       {% else %}
-        <p class="small">TheSportsDB no confirma todavía un canal para este partido. No se inventa disponibilidad.</p>
+        <p class="small">La programación de este partido todavía no está disponible.</p>
       {% endif %}
-      <p class="small">Fuente: TheSportsDB · consulta automática guardada en memoria local · {{ broadcast.get('observed_at')|madrid_datetime_label if broadcast.get('observed_at') else 'hora pendiente' }}.</p>
+      <p class="small">Fuente: TheSportsDB · Actualizado {{ broadcast.get('observed_at')|madrid_datetime_label if broadcast.get('observed_at') else 'en fecha pendiente de confirmar' }}.</p>
     </article>
   {% endif %}
   <div class="grid compact-grid">{{ team_history(history.home, 'Local') }}{{ team_history(history.away, 'Visitante') }}</div>
