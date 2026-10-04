@@ -347,3 +347,27 @@ def test_successful_backup_reports_storage_preflight(backup_source):
     assert result["ok"] is True
     assert result["storage"]["ok"] is True
     assert result["storage"]["required_bytes"] > result["storage"]["snapshot_bytes"]
+
+
+def test_capacity_preflight_keeps_manifest_valid_history_when_none_can_be_verified(backup_source, monkeypatch):
+    source, root = backup_source
+    saved = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+    assert saved["ok"] is True
+    monkeypatch.setattr(vault, "_sqlite_snapshot_estimate_bytes", lambda _path: 1024)
+    monkeypatch.setattr(
+        vault.shutil,
+        "disk_usage",
+        lambda _path: type("Disk", (), {"free": 1024, "total": 512 * 1024 * 1024})(),
+    )
+    monkeypatch.setattr(
+        vault,
+        "validate_backup",
+        lambda *_a, **_k: {"ok": False, "validated": 1, "results": []},
+    )
+
+    result = vault.ensure_backup_capacity(source, root)
+    assert result["ok"] is False
+    assert result["error"] == "backup_storage_insufficient"
+    assert result["removed"] == []
+    assert Path(saved["path"]).exists()
+    assert Path(saved["path"]).with_suffix(".json").exists()
