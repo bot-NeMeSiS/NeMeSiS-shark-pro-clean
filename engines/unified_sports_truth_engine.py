@@ -63,6 +63,11 @@ def provider_name(value):
     return "local_cache"
 
 
+def _utc_now():
+    """Single injectable clock seam; production still uses the real UTC clock."""
+    return datetime.now(timezone.utc)
+
+
 def instant(value):
     if isinstance(value, datetime):
         dt = value
@@ -178,7 +183,7 @@ def _freshness(evidence, group, now):
 
 def resolve_match(match_id, evidence, *, now=None):
     """Bounded reusable materialization; every caller owns its returned graph."""
-    evaluated = instant(now) or datetime.now(timezone.utc)
+    evaluated = instant(now) or _utc_now()
     evidence = list(evidence)
     digest = hashlib.sha256(json.dumps(evidence, sort_keys=True, default=str).encode()).hexdigest()
     key = (str(match_id), digest)
@@ -198,7 +203,7 @@ def resolve_match(match_id, evidence, *, now=None):
 
 def _resolve_match(match_id, evidence, *, now=None):
     """Deterministic field winners with reasons and rejected alternatives."""
-    now = instant(now) or datetime.now(timezone.utc)
+    now = instant(now) or _utc_now()
     receipts = clone_snapshot(list(evidence))
     fingerprints = {id(r): hashlib.sha256(json.dumps(r, sort_keys=True, default=str).encode()).hexdigest() for r in receipts}
     freshness = {(id(r), group): _freshness(r, group, now) for r in receipts for group in GROUPS}
@@ -460,7 +465,7 @@ def canonicalize_detail(detail, *, now=None):
 
 def refresh_payload_truth(payload, *, now=None):
     """Renew cached field decisions at their deadlines without database reads."""
-    evaluated = instant(now) or datetime.now(timezone.utc)
+    evaluated = instant(now) or _utc_now()
     refreshed = {}
     def visit(value):
         if isinstance(value, list):
