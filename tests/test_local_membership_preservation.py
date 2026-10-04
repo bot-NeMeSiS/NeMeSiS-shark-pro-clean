@@ -61,6 +61,7 @@ def test_active_cancel_at_period_end_does_not_cancel_early(account):
 
 
 def test_local_safe_checkout_does_not_contact_stripe_or_write(account,monkeypatch):
+    monkeypatch.setenv('NEMESIS_LOCAL_SAFE_MODE', '1')
     def forbidden(*args,**kwargs):
         raise AssertionError('Stripe SDK must remain disconnected')
     monkeypatch.setattr(billing,'stripe_sdk',forbidden)

@@ -9,13 +9,13 @@
 <div class="v933-page ns-combis" data-v933-template="combis" data-combi-contract="NEMESIS-COMBI-ADVICE-V1">
 {{ page_header('Combinadas', 'Elige próximos partidos, consulta sus cuotas y revisa tu selección.', 'target') }}
 {% include 'components/picks_workspace_nav.html' %}
-<nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendario">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav>
+<details class="v933-home-more"><summary>Ayuda y contexto</summary><nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendario">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav></details>
 {% if form_state.entry_message %}<p class="ns-combi-warning" role="status">{{ form_state.entry_message }}</p>{% endif %}
 {% if error %}<p class="ns-combi-error" role="alert">{{ error }}</p>{% endif %}
 {% if request.args.get('guardado') == '1' %}<p role="status">Consulta tus borradores guardados abajo. No se ha colocado ninguna apuesta.</p>{% endif %}
-<section class="ns-combi-panel ns-market-intro"><h2>Tu espacio de combinadas</h2>
+<section class="ns-combi-panel ns-market-intro"><h2>Prepara tu combinada</h2>
 <p>{{ cap.plan }} · Selecciona próximos encuentros y consulta la información sin salir del constructor.</p>
-<details><summary>Cómo funciona y qué necesitas</summary><p>Fútbol 1X2: local (1), empate (X) o visitante (2), partidos distintos y cuotas recientes de la misma casa. No hace falta un pronóstico editorial y no se completa con relleno.</p></details>
+<details><summary>Cómo funciona y qué necesitas</summary><p>Elige local (1), empate (X) o visitante (2) en partidos distintos, con cuotas recientes de la misma casa. Puedes revisar cada partido antes de guardar tu borrador.</p></details>
 {% if not center.signed_in %}<a href="/cliente-login">Iniciar sesión</a>
 {% elif not cap.can_build %}<p>La creación pertenece a PRO; la propuesta automática y hasta 15 selecciones, a ELITE. Las combinadas largas no se consideran seguras.</p><a href="/membresias">Consultar tu plan</a>{% endif %}
 </section>

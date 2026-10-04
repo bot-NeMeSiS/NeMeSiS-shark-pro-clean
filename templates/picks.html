@@ -27,7 +27,8 @@
   </section>
 
   <section class="v933-panel v933-filter-panel">
-    {{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'},{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}
+    {{ filter_tabs([{'key':'featured','label':'Destacados','href':'/picks?filter=featured'},{'key':'active','label':'Activos','href':'/picks?filter=active'},{'key':'closed','label':'Cerrados','href':'/picks?filter=closed'}], active_filter) }}
+    <details class="v933-home-more"{% if active_filter in ['conservative','value'] %} open{% endif %}><summary>{{ ui('Más filtros') }}</summary>{{ filter_tabs([{'key':'conservative','label':'Conservadores','href':'/picks?filter=conservative'},{'key':'value','label':'Valor','href':'/picks?filter=value'}], active_filter) }}</details>
   </section>
 
   <section class="v933-two-col">
