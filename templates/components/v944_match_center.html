@@ -1,4 +1,4 @@
-{% from "components/v933_ui.html" import action_button, icon, status_chip, team_logo %}
+{% from "components/v933_ui.html" import action_button, icon, status_chip, team_logo, client_message %}
 
 {% macro canonical_state(value) -%}
 {%- set states = ['loading', 'ready', 'partial', 'finished', 'error', 'offline', 'unknown'] -%}
@@ -6,7 +6,7 @@
 {%- endmacro %}
 
 {% macro state_label(value) -%}
-{{- ui({'loading':'Cargando','ready':'Disponible','partial':'Parcial','finished':'Finalizado','error':'No disponible','offline':'Sin conexión'}.get(value,'Pendiente')) -}}
+{{- ui({'loading':'Cargando','ready':'Disponible','partial':'Información limitada','finished':'Finalizado','error':'No disponible','offline':'Sin conexión'}.get(value,'Pendiente')) -}}
 {%- endmacro %}
 
 {% macro state_notice(component, fallback='No disponible todavía.') -%}
@@ -14,11 +14,12 @@
 {% if state not in ['ready', 'finished'] %}
 <div class="v944-state-notice is-{{ state }}" role="status">
   {{ icon('info') }}
-  <span>{{ ui(component.get('message') or fallback) }}</span>
+  <span>{{ client_message(component.get('message'), fallback) }}</span>
 </div>
 {% endif %}{%- endmacro %}
 
 {% macro transparency_meta(context, key) -%}
+{% if request is defined and request.path.startswith('/admin') %}
 {% set item = (context.get('transparency') or {}).get(key) or {} %}
 <details class="v944-transparency-disclosure">
   <summary>{{ ui("Calidad del dato") }}</summary>
@@ -33,7 +34,7 @@
     {% for limitation in item.get('limitations')[:2] %}<li>{{ limitation }}</li>{% endfor %}
   </ul>
   {% endif %}
-</details>{%- endmacro %}
+</details>{% endif %}{%- endmacro %}
 
 {% macro panel_start(name, component, title, subtitle='', region='') -%}
 {% set state = canonical_state(component.get('state') or 'unknown')|trim %}
@@ -189,7 +190,7 @@
     {% if postmatch.get('video_available') %}
     <p><a class="v933-action is-primary" href="#match-section-video">▶ {{ ui("Ver resumen en vídeo") }}</a></p>
     {% endif %}
-    <small>{{ ui("Resumen factual construido con datos confirmados del partido; sin narración generativa.") }}</small>
+    <small>{{ ui("Resumen basado en la información confirmada del partido.") }}</small>
   </section>
   {% endif %}
   {% if recent_form.get('available') %}
@@ -217,7 +218,7 @@
   {{ transparency_meta(context, 'context_intelligence') }}
   {% if context.get('limitations') %}
   <details class="v944-story-detail"><summary>{{ ui('Limitaciones de los datos') }}</summary><ul class="v944-limitations" aria-label="{{ ui('Limitaciones de los datos') }}">
-    {% for limitation in context.get('limitations')[:4] %}<li>{{ ui(limitation) }}</li>{% endfor %}
+    {% for limitation in context.get('limitations')[:4] %}<li>{{ client_message(limitation, 'Todavía faltan datos para completar este apartado.') }}</li>{% endfor %}
   </ul></details>
   {% endif %}
   {{ state_notice(component) }}
@@ -440,7 +441,7 @@
 {% set picks = context.get('picks') or {} %}
 {% set primary = picks.get('primary') or {} %}
 {% set lifecycle = context.get('lifecycle') or {} %}
-{{ panel_start('PickPanel', component, 'Pick del partido', 'Selección relacionada solo cuando existe evidencia publicada.', 'pick') }}
+{{ panel_start('PickPanel', component, 'Pick del partido', 'Pronóstico disponible para este partido.', 'pick') }}
   {% if picks.get('available') %}
   <div class="v944-experience-grid"
        data-match-pick-contract="{{ picks.get('contract') or '' }}"

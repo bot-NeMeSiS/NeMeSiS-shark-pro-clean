@@ -12,7 +12,10 @@ def stylesheet_loaded(base_source, asset):
     if base_source.count('product-system.css') != 1:
         return False
     sources = json.loads((ROOT / 'tools/visual_css_sources.json').read_text(encoding='utf-8'))
-    if asset not in sources or len(sources) != len(set(sources)):
+    origins_path = ROOT / 'tools/visual_css_origins.json'
+    origins = json.loads(origins_path.read_text(encoding='utf-8')) if origins_path.exists() else {}
+    owner = origins.get(asset, asset)
+    if owner not in sources or len(sources) != len(set(sources)):
         return False
     content = '\n'.join((ROOT / 'static' / name).read_text(encoding='utf-8') for name in sources)
     digest = hashlib.sha256(content.encode('utf-8')).hexdigest()

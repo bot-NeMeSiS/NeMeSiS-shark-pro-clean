@@ -2,7 +2,7 @@
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip %}
 {% from "components/v936_product.html" import executive_focus %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='admin-master-control.css') }}?v={{ app_version }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='admin-master-control.css') }}?v={{ app_version }}-core-control-2">
 <script defer src="{{ url_for('static', filename='admin-master-control.js') }}?v={{ app_version }}"></script>
 {% set users = data.get('users') or [] %}
 {% set admin = data.get('membership_admin') or {} %}

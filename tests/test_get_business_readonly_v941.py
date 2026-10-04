@@ -650,7 +650,7 @@ def test_account_center_reflects_existing_telegram_link_without_generating_code(
 @pytest.mark.parametrize("plan,source,granted,stripe_status,expected",[
     ("FREE","free_signup",0,"","Plan gratuito"),
     ("PRO","admin_manual",1,"","Acceso concedido"),
-    ("ELITE","stripe",0,"active","Suscripción Stripe: Activa"),
+    ("ELITE","stripe",0,"active","Suscripción: Activa"),
 ])
 def test_account_center_explains_real_plan_origin(app_module,monkeypatch,tmp_path,plan,source,granted,stripe_status,expected):
     a,db=isolated(app_module,monkeypatch,tmp_path)
@@ -671,5 +671,7 @@ def test_account_center_explains_real_plan_origin(app_module,monkeypatch,tmp_pat
     before=snapshot(db)
     response=client.get("/mi-cuenta")
     assert response.status_code==200
-    assert expected in response.get_data(as_text=True)
+    import re
+    visible = re.sub(r'<[^>]+>', '', response.get_data(as_text=True))
+    assert expected in visible
     assert snapshot(db)==before

@@ -1,0 +1,1580 @@
+{
+  "method": "CSS-only A/B on identical current templates and empty offline database; 3 samples per route/version, 390x844. Not a full historical backend benchmark.",
+  "summary": [
+    {
+      "route": "/app",
+      "before": {
+        "medianLoadMs": 297.6,
+        "medianResources": 11
+      },
+      "after": {
+        "medianLoadMs": 254.1,
+        "medianResources": 10
+      }
+    },
+    {
+      "route": "/calendario",
+      "before": {
+        "medianLoadMs": 331.5,
+        "medianResources": 12
+      },
+      "after": {
+        "medianLoadMs": 280.1,
+        "medianResources": 11
+      }
+    },
+    {
+      "route": "/directo",
+      "before": {
+        "medianLoadMs": 248.8,
+        "medianResources": 11
+      },
+      "after": {
+        "medianLoadMs": 231.7,
+        "medianResources": 10
+      }
+    },
+    {
+      "route": "/shark",
+      "before": {
+        "medianLoadMs": 287.3,
+        "medianResources": 13
+      },
+      "after": {
+        "medianLoadMs": 284.6,
+        "medianResources": 12
+      }
+    },
+    {
+      "route": "/mi-cuenta",
+      "before": {
+        "medianLoadMs": 319.5,
+        "medianResources": 10
+      },
+      "after": {
+        "medianLoadMs": 280.1,
+        "medianResources": 9
+      }
+    }
+  ],
+  "samples": [
+    {
+      "version": "before",
+      "route": "/app",
+      "loadMs": 313.0,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "loadMs": 399.4,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "loadMs": 329.3,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "loadMs": 339.6,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "loadMs": 396.9,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "loadMs": 312.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "loadMs": 410.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "loadMs": 237.6,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "loadMs": 284.6,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "loadMs": 326.8,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "loadMs": 254.1,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "loadMs": 280.1,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "loadMs": 223.0,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "loadMs": 300.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "loadMs": 280.1,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "loadMs": 274.4,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "loadMs": 331.5,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "loadMs": 248.8,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "loadMs": 266.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "loadMs": 292.9,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "loadMs": 297.6,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "loadMs": 317.2,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "loadMs": 238.6,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "loadMs": 287.3,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "loadMs": 319.5,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249414
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-ocean-depth-r5.png",
+          "bytes": 1725319
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "loadMs": 245.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "loadMs": 262.0,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/calendar-discovery.css",
+          "bytes": 5037
+        },
+        {
+          "url": "/static/v940-calendar.js",
+          "bytes": 6917
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "loadMs": 231.7,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "loadMs": 255.2,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/platform-help.css",
+          "bytes": 2755
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/combinadas.css",
+          "bytes": 5380
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        },
+        {
+          "url": "/static/img/nemesis-shark-atmosphere-v2.webp",
+          "bytes": 142828
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "loadMs": 257.2,
+      "resources": [
+        {
+          "url": "/static/pwa-install.css",
+          "bytes": 3827
+        },
+        {
+          "url": "/static/product-system.css",
+          "bytes": 1249577
+        },
+        {
+          "url": "/static/v930-icons.js",
+          "bytes": 5516
+        },
+        {
+          "url": "/static/ui-localization.js",
+          "bytes": 4212
+        },
+        {
+          "url": "/static/v934-realtime.js",
+          "bytes": 29487
+        },
+        {
+          "url": "/static/img/app-icons/app-icon-96.png",
+          "bytes": 10022
+        },
+        {
+          "url": "/static/pwa-install.js",
+          "bytes": 7242
+        },
+        {
+          "url": "/static/v937-product-client.js",
+          "bytes": 9320
+        },
+        {
+          "url": "/static/v937-sports-lifecycle.js",
+          "bytes": 638
+        }
+      ]
+    }
+  ]
+}

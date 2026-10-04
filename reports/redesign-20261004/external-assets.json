@@ -1,0 +1,85 @@
+[
+  {
+    "surface": "public",
+    "route": "/",
+    "blockedExternalAssets": [
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      }
+    ]
+  },
+  {
+    "surface": "client",
+    "route": "/calendario",
+    "blockedExternalAssets": [
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      }
+    ]
+  },
+  {
+    "surface": "client",
+    "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "blockedExternalAssets": [
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      }
+    ]
+  },
+  {
+    "surface": "client",
+    "route": "/match/sportsdb-7c11bc365f563d85f5",
+    "blockedExternalAssets": [
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      }
+    ]
+  },
+  {
+    "surface": "client",
+    "route": "/match/sportsdb-22f9acca23e1cc306a",
+    "blockedExternalAssets": [
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      },
+      {
+        "type": "image",
+        "host": "r2.thesportsdb.com"
+      }
+    ]
+  },
+  {
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "blockedExternalAssets": []
+  }
+]

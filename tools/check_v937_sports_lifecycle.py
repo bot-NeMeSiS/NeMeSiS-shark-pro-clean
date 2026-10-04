@@ -79,7 +79,7 @@ template_markers = {
     "templates/picks.html": "data_confidence_panel",
     "templates/match_detail.html": "data_confidence_panel",
     "templates/track_record.html": "learning_receipt",
-    "templates/shark.html": "SHARK espera evidencia suficiente",
+    "templates/shark.html": "Todavía no hay un pronóstico destacado",
     "templates/admin_data_trust_center.html": "Índice de Confianza NeMeSiS",
 }
 for path, marker in template_markers.items():

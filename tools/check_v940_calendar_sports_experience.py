@@ -27,7 +27,7 @@ def main() -> int:
 
     app_source = read("app.py")
     template = read("templates/calendar.html")
-    css = read("static/v933-product.css")
+    css = read("static/design-system.css")
     javascript = read("static/v940-calendar.js")
     specification = ROOT / "reports" / "V940_CALENDAR_SPORTS_EXPERIENCE_TECHNICAL_SPECIFICATION.md"
 

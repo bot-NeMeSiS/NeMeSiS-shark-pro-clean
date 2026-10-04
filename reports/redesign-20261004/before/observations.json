@@ -1,0 +1,2284 @@
+[
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "screenshot": "desktop-public-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 6,
+    "heading": "Tu jornada deportiva.",
+    "plan": "FREE",
+    "visibleButtons": 10
+  },
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/precios",
+    "status": 200,
+    "finalPath": "/precios",
+    "screenshot": "desktop-public-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "FREE, PRO y ELITE sin letra pequena",
+    "plan": "FREE",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "desktop-public-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "desktop-public-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "desktop-client-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 4,
+    "heading": "Buenas noches, Revisión",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "desktop-client-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "desktop-client-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "desktop-client-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "desktop-client-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "desktop-client-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "desktop-client-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "desktop-client-7.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "desktop-client-8.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/team/Real%20Madrid",
+    "status": 200,
+    "finalPath": "/team/Real%20Madrid",
+    "screenshot": "desktop-client-9.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/team-history.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Real Madrid",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/match/unavailable",
+    "status": 404,
+    "finalPath": "/match/unavailable",
+    "screenshot": "desktop-client-10.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Este partido ya no está disponible",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "desktop-admin-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/matches",
+    "status": 200,
+    "finalPath": "/admin/matches",
+    "screenshot": "desktop-admin-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Resultados y calendario",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/picks",
+    "status": 200,
+    "finalPath": "/admin/picks",
+    "screenshot": "desktop-admin-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Pronósticos y partidos",
+    "plan": "ADMIN",
+    "visibleButtons": 8
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/telegram/command-center",
+    "status": 200,
+    "finalPath": "/admin/telegram/command-center",
+    "screenshot": "desktop-admin-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de mando de Telegram",
+    "plan": "ADMIN",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/users",
+    "status": 200,
+    "finalPath": "/admin/users",
+    "screenshot": "desktop-admin-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Usuarios",
+    "plan": "ADMIN",
+    "visibleButtons": 8
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/memberships",
+    "status": 200,
+    "finalPath": "/admin/memberships",
+    "screenshot": "desktop-admin-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Planes y accesos",
+    "plan": "ADMIN",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/data-center",
+    "status": 200,
+    "finalPath": "/admin/data-center",
+    "screenshot": "desktop-admin-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de datos",
+    "plan": "ADMIN",
+    "visibleButtons": 12
+  },
+  {
+    "profile": "laptop",
+    "surface": "public",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "screenshot": "laptop-public-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 6,
+    "heading": "Tu jornada deportiva.",
+    "plan": "FREE",
+    "visibleButtons": 10
+  },
+  {
+    "profile": "laptop",
+    "surface": "public",
+    "route": "/precios",
+    "status": 200,
+    "finalPath": "/precios",
+    "screenshot": "laptop-public-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "FREE, PRO y ELITE sin letra pequena",
+    "plan": "FREE",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "laptop",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "laptop-public-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "laptop",
+    "surface": "public",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "laptop-public-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "laptop-client-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 4,
+    "heading": "Buenas noches, Revisión",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "laptop-client-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "laptop-client-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "laptop-client-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "laptop-client-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "laptop-client-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "laptop-client-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "laptop-client-7.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "laptop-client-8.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/team/Real%20Madrid",
+    "status": 200,
+    "finalPath": "/team/Real%20Madrid",
+    "screenshot": "laptop-client-9.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/team-history.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Real Madrid",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "laptop",
+    "surface": "client",
+    "route": "/match/unavailable",
+    "status": 404,
+    "finalPath": "/match/unavailable",
+    "screenshot": "laptop-client-10.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Este partido ya no está disponible",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "laptop-admin-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/matches",
+    "status": 200,
+    "finalPath": "/admin/matches",
+    "screenshot": "laptop-admin-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Resultados y calendario",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/picks",
+    "status": 200,
+    "finalPath": "/admin/picks",
+    "screenshot": "laptop-admin-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Pronósticos y partidos",
+    "plan": "ADMIN",
+    "visibleButtons": 8
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/telegram/command-center",
+    "status": 200,
+    "finalPath": "/admin/telegram/command-center",
+    "screenshot": "laptop-admin-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de mando de Telegram",
+    "plan": "ADMIN",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/users",
+    "status": 200,
+    "finalPath": "/admin/users",
+    "screenshot": "laptop-admin-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Usuarios",
+    "plan": "ADMIN",
+    "visibleButtons": 8
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/memberships",
+    "status": 200,
+    "finalPath": "/admin/memberships",
+    "screenshot": "laptop-admin-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Planes y accesos",
+    "plan": "ADMIN",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "laptop",
+    "surface": "admin",
+    "route": "/admin/data-center",
+    "status": 200,
+    "finalPath": "/admin/data-center",
+    "screenshot": "laptop-admin-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de datos",
+    "plan": "ADMIN",
+    "visibleButtons": 12
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "screenshot": "mobile-public-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 6,
+    "heading": "Tu jornada deportiva.",
+    "plan": "FREE",
+    "visibleButtons": 10
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/precios",
+    "status": 200,
+    "finalPath": "/precios",
+    "screenshot": "mobile-public-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "FREE, PRO y ELITE sin letra pequena",
+    "plan": "FREE",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "mobile-public-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "mobile-public-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "mobile-client-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 4,
+    "heading": "Buenas noches, Revisión",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "mobile-client-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "A.",
+      "A."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "mobile-client-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "mobile-client-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "mobile-client-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "mobile-client-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "mobile-client-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "mobile-client-7.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "mobile-client-8.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/team/Real%20Madrid",
+    "status": 200,
+    "finalPath": "/team/Real%20Madrid",
+    "screenshot": "mobile-client-9.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/team-history.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Real Madrid",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/match/unavailable",
+    "status": 404,
+    "finalPath": "/match/unavailable",
+    "screenshot": "mobile-client-10.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Este partido ya no está disponible",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "mobile-admin-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "SPAN.sr-only",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "TD.",
+      "TR.",
+      "TD.",
+      "TD."
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/matches",
+    "status": 200,
+    "finalPath": "/admin/matches",
+    "screenshot": "mobile-admin-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Resultados y calendario",
+    "plan": "ADMIN",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/picks",
+    "status": 200,
+    "finalPath": "/admin/picks",
+    "screenshot": "mobile-admin-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Pronósticos y partidos",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/telegram/command-center",
+    "status": 200,
+    "finalPath": "/admin/telegram/command-center",
+    "screenshot": "mobile-admin-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "TR.",
+      "TD.",
+      "TR.",
+      "TD."
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de mando de Telegram",
+    "plan": "ADMIN",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/users",
+    "status": 200,
+    "finalPath": "/admin/users",
+    "screenshot": "mobile-admin-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Usuarios",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/memberships",
+    "status": 200,
+    "finalPath": "/admin/memberships",
+    "screenshot": "mobile-admin-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Planes y accesos",
+    "plan": "ADMIN",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/data-center",
+    "status": 200,
+    "finalPath": "/admin/data-center",
+    "screenshot": "mobile-admin-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "TD."
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de datos",
+    "plan": "ADMIN",
+    "visibleButtons": 10
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "public",
+    "route": "/",
+    "status": 200,
+    "finalPath": "/",
+    "screenshot": "small-mobile-public-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 6,
+    "heading": "Tu jornada deportiva.",
+    "plan": "FREE",
+    "visibleButtons": 10
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "public",
+    "route": "/precios",
+    "status": 200,
+    "finalPath": "/precios",
+    "screenshot": "small-mobile-public-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "FREE, PRO y ELITE sin letra pequena",
+    "plan": "FREE",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "small-mobile-public-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "public",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "small-mobile-public-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 4
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "small-mobile-client-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 4,
+    "heading": "Buenas noches, Revisión",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "small-mobile-client-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "A.",
+      "A.",
+      "A.",
+      "A."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "small-mobile-client-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "A."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "small-mobile-client-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "small-mobile-client-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "small-mobile-client-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "small-mobile-client-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "small-mobile-client-7.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/soporte",
+    "status": 200,
+    "finalPath": "/soporte",
+    "screenshot": "small-mobile-client-8.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Soporte",
+    "plan": "FREE",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/team/Real%20Madrid",
+    "status": 200,
+    "finalPath": "/team/Real%20Madrid",
+    "screenshot": "small-mobile-client-9.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/team-history.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Real Madrid",
+    "plan": "FREE",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "client",
+    "route": "/match/unavailable",
+    "status": 404,
+    "finalPath": "/match/unavailable",
+    "screenshot": "small-mobile-client-10.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Este partido ya no está disponible",
+    "plan": "FREE",
+    "visibleButtons": 0
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "small-mobile-admin-0.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "SPAN.sr-only",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "TD.",
+      "TR.",
+      "TD.",
+      "TD."
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/matches",
+    "status": 200,
+    "finalPath": "/admin/matches",
+    "screenshot": "small-mobile-admin-1.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Resultados y calendario",
+    "plan": "ADMIN",
+    "visibleButtons": 3
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/picks",
+    "status": 200,
+    "finalPath": "/admin/picks",
+    "screenshot": "small-mobile-admin-2.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Pronósticos y partidos",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/telegram/command-center",
+    "status": 200,
+    "finalPath": "/admin/telegram/command-center",
+    "screenshot": "small-mobile-admin-3.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "SPAN.v933-status-chip is-neutral",
+      "TD.",
+      "TR.",
+      "TD.",
+      "SPAN.v933-status-chip is-neutral"
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de mando de Telegram",
+    "plan": "ADMIN",
+    "visibleButtons": 2
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/users",
+    "status": 200,
+    "finalPath": "/admin/users",
+    "screenshot": "small-mobile-admin-4.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "heading": "Usuarios",
+    "plan": "ADMIN",
+    "visibleButtons": 6
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/memberships",
+    "status": 200,
+    "finalPath": "/admin/memberships",
+    "screenshot": "small-mobile-admin-5.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "heading": "Planes y accesos",
+    "plan": "ADMIN",
+    "visibleButtons": 1
+  },
+  {
+    "profile": "small-mobile",
+    "surface": "admin",
+    "route": "/admin/data-center",
+    "status": 200,
+    "finalPath": "/admin/data-center",
+    "screenshot": "small-mobile-admin-6.png",
+    "jsErrors": [],
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TH.",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "SPAN.v933-status-chip is-warning"
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 2,
+    "heading": "Centro de datos",
+    "plan": "ADMIN",
+    "visibleButtons": 10
+  }
+]

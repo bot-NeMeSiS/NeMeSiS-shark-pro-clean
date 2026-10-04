@@ -82,7 +82,7 @@
       {% endif %}
       {% if not (lineups.get('confirmed') and events.get('available') and statistics.get('available') and head_to_head.get('available') and standings.get('available')) %}
       <details class="v944-coverage-details">
-        <summary>{{ ui("Cobertura pendiente") }}</summary>
+        <summary>{{ ui("Más información del partido") }}</summary>
         {% if not lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
         {% if not events.get('available') %}{{ timeline(match_context) }}{% endif %}
         {% if not statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
@@ -90,13 +90,13 @@
         {% if not standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
       </details>
       {% endif %}
-      {{ data_quality_panel(match_context) }}
+      {% if request.path.startswith('/admin') %}{{ data_quality_panel(match_context) }}{% endif %}
     </section>
 
     <aside class="v944-match-rail" aria-label="{{ ui("Contexto y continuidad del partido") }}">
       {% if not shark.get('available') %}{{ quick_actions(match_context) }}{% endif %}
       {{ competition_panel(match_context) }}
-      {{ data_confidence_panel(match_context.get('match', {}), 'match') }}
+      {% if request.path.startswith('/admin') %}{{ data_confidence_panel(match_context.get('match', {}), 'match') }}{% endif %}
       {% if not shark.get('available') %}{{ shark_panel(match_context) }}{% endif %}
       <details class="v944-coverage-details"><summary>{{ ui('Seguimiento y gestión') }}</summary>
         {{ telegram_panel(match_context) }}
@@ -105,11 +105,11 @@
     </aside>
   </div>
 
-  <footer class="v944-match-evidence" aria-label="{{ ui("Evidencia del contexto del partido") }}">
+  {% if request.path.startswith('/admin') %}<footer class="v944-match-evidence" aria-label="{{ ui("Evidencia del contexto del partido") }}">
     <span>{{ ui("Fuente:") }} {{ match_context.get('evidence', {}).get('source') or 'No identificada' }}</span>
     <span>{{ ui("Actualización:") }} {{ match_context.get('evidence', {}).get('updated_at')|sync_madrid_label }}</span>
     <span>{{ 'Contexto coherente' if match_context.get('diagnostics', {}).get('single_snapshot') else 'Contexto parcial' }}</span>
-  </footer>
+  </footer>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

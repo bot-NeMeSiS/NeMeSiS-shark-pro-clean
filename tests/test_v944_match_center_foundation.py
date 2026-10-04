@@ -194,8 +194,8 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     assert 'data-match-contract="MATCH-CENTER-LIFECYCLE-STORY-V1"' in html
     assert 'data-v944-match-center-foundation="phase-1"' in html
     assert 'data-sports-domain-model="SPORTS-CORE-UNIFIED-DOMAIN-MODEL-V1"' in html
-    assert 'data-match-region="evidence-quality"' in html
-    assert 'data-match-transparency="score"' in html
+    assert 'data-match-region="evidence-quality"' not in html
+    assert 'data-match-transparency="score"' not in html
     assert html.count("data-match-component=") == len(MATCH_CENTER_COMPONENTS)
     assert "v933-match-hero" not in html
     assert "v933-detail-tabs" not in html
@@ -292,7 +292,7 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     assert 'data-timeline-event-contract=' in components
     assert 'data-sports-domain-model="unified-v1"' in components
     assert 'data-postmatch-factual-summary=' in components
-    assert 'Resumen factual construido con datos confirmados del partido; sin narración generativa.' in components
+    assert 'Resumen basado en la información confirmada del partido.' in components
     assert all(name in components for name in MATCH_CENTER_COMPONENTS)
     assert all(f"'{state}'" in components for state in CANONICAL_COMPONENT_STATES)
     assert "@media (max-width: 1080px)" in css

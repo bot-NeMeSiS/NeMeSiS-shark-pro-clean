@@ -25,11 +25,11 @@
 {% set hero_match = priority_pool[0] if priority_pool else none %}
 {% if live_matches %}
   {% set hero_title = 'En directo ahora' %}
-  {% set hero_summary = 'Marcador, estado y minuto real cuando el proveedor lo confirma.' %}
+  {% set hero_summary = 'Marcador, estado y minuto actualizados cuando están disponibles.' %}
   {% set hero_board_title = 'Partido en directo' %}
 {% elif important_matches %}
   {% set hero_title = 'Lo importante de hoy' %}
-  {% set hero_summary = 'Partidos relevantes primero. SHARK aparece después, solo con evidencia.' %}
+  {% set hero_summary = 'Los partidos de tu jornada y los análisis SHARK disponibles.' %}
   {% set hero_board_title = 'Destacado hoy' %}
 {% elif favorite_matches %}
   {% set hero_title = 'Tus favoritos, primero' %}
@@ -106,7 +106,7 @@
         {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
       </div>
     {% else %}
-      {{ empty_state('No hay partidos destacados en directo', 'Cuando exista directo real con evidencia fresca aparecerá arriba automáticamente.', 'Ver agenda', '/calendario?lane=week', 'live') }}
+      {{ empty_state('No hay partidos destacados en directo', 'Los partidos en juego aparecerán aquí cuando haya información actualizada.', 'Ver agenda', '/calendario?lane=week', 'live') }}
     {% endif %}
   </section>
 
@@ -163,7 +163,7 @@
         {% if picks %}
           {{ pick_card(picks[0], true) }}
         {% else %}
-          {{ empty_state('Sin oportunidad SHARK publicable', 'Sin pronóstico completo no hay señal. El deporte sigue arriba igualmente.', 'Revisar pronósticos', '/picks', 'shark') }}
+          {{ empty_state('Todavía no hay un pronóstico destacado', 'Consulta la agenda mientras preparamos nuevos análisis.', 'Revisar pronósticos', '/picks', 'shark') }}
         {% endif %}
       </section>
 
@@ -224,7 +224,7 @@
   <section class="v933-panel v933-responsible-band">
     <div class="v933-three-col">
       <div><strong>Deporte primero</strong><p>Directo, importancia y favoritos mandan.</p></div>
-      <div><strong>SHARK con evidencia</strong><p>Sin datos suficientes, no hay señal inventada.</p></div>
+      <div><strong>Análisis SHARK</strong><p>Análisis basados en la información disponible.</p></div>
       <div><strong>{{ ui("Juego responsable") }}</strong><p>+18. No somos casa de apuestas.</p></div>
     </div>
   </section>

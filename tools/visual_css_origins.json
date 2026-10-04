@@ -1,0 +1,10 @@
+{
+  "app.css": "design-system.css",
+  "v928-canonical.css": "design-system.css",
+  "v930-canonical.css": "design-system.css",
+  "v933_design_tokens.css": "design-tokens.css",
+  "v936-commercial.css": "design-system.css",
+  "v937-product-client.css": "design-system.css",
+  "v937-sports-lifecycle.css": "design-system.css",
+  "v933-product.css": "design-system.css"
+}

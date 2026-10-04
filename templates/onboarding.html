@@ -1,28 +1,30 @@
 {% extends "base.html" %}
+{% from 'components/v933_ui.html' import action_button, section_header, status_chip with context %}
 {% block content %}
 {% set onboarding = data.onboarding or {} %}
 {% set first_value_ready = onboarding.get('first_value_ready') %}
-<section class="app-hero compact-hero onboarding-hero" data-first-value-onboarding="true">
+<div class="v933-page v933-onboarding-page">
+<section class="v933-client-hero onboarding-hero" data-first-value-onboarding="true">
   <div>
     {% if first_value_ready %}
-    <div class="kicker">Primer valor alcanzado</div>
-    <h1>Ya has encontrado utilidad. Ahora personaliza solo lo que te sirva.</h1>
+    <div class="v933-eyebrow">Tu NeMeSiS</div>
+    <h1>El deporte, a tu manera.</h1>
     <p class="lead">No necesitas completar todo. SHARK, favoritos y Telegram son opciones para adaptar NeMeSiS a tu forma de seguir el fútbol.</p>
     {% else %}
-    <div class="kicker">Tu primer objetivo</div>
-    <h1>Abre un partido real y descubre qué te aporta NeMeSiS.</h1>
-    <p class="lead">No configures cinco cosas antes de empezar. Elige un partido que te interese, revisa su contexto y decide después qué quieres personalizar.</p>
+    <div class="v933-eyebrow">Bienvenido a NeMeSiS</div>
+    <h1>Tu próxima jornada empieza aquí.</h1>
+    <p class="lead">Descubre los partidos disponibles y guarda tus equipos favoritos. Personaliza tu experiencia cuando quieras.</p>
     {% endif %}
     <div class="actions">
-      <a class="btn primary" href="{{ onboarding.next_step.href }}">{{ onboarding.next_step.label }}</a>
-      <a class="btn" href="/app">Ir a Inicio</a>
+      {{ action_button(onboarding.next_step.label, onboarding.next_step.href, true) }}
+      {{ action_button('Ir a Inicio', '/app') }}
     </div>
   </div>
-  <aside class="hero-panel">
-    <span class="pill">Primer valor</span>
+  <aside class="v933-panel">
+    <span class="pill">Tu progreso</span>
     <div class="big-score">{{ onboarding.core_score }}%</div>
     <p class="small">{{ onboarding.core_done }} de {{ onboarding.core_total }} pasos esenciales completados.</p>
-    <div class="signal"><span>Esencial</span><i style="width:{{ onboarding.core_score }}%"></i></div>
+    <progress class="v933-progress" max="100" value="{{ onboarding.core_score }}" aria-label="Progreso de bienvenida">{{ onboarding.core_score }}%</progress>
   </aside>
 </section>
 
@@ -41,11 +43,11 @@
 {% endif %}
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Primero lo esencial</h2><span class="pill">{{ onboarding.membership }}</span></div>
-  <div class="grid compact-grid onboarding-grid">
+  {{ section_header('Hazlo tuyo', 'Elige lo que te interesa.') }}
+  <div class="v933-two-col onboarding-grid">
     {% for step in onboarding.steps %}
-    <a class="card step-card {% if step.done %}done{% endif %}" href="{{ step.href }}" data-onboarding-step="{{ step.key }}">
-      <span class="badge">{% if step.done %}OK{% elif step.optional %}Opcional{% else %}Esencial{% endif %}</span>
+    <a class="v933-panel step-card {% if step.done %}done{% endif %}" href="{{ step.href }}" data-onboarding-step="{{ step.key }}">
+      {{ status_chip('Completado' if step.done else ('Opcional' if step.optional else 'Empieza aquí'), 'blue') }}
       <h3>{{ step.label }}</h3>
       <p class="small">{{ step.body }}{% if step.key == 'telegram' %} NeMeSiS no te pide tu número de teléfono para vincularlo: la conexión usa un código temporal al abrir el bot.{% endif %}</p>
     </a>
@@ -53,4 +55,5 @@
   </div>
   <p class="small muted">Completar opciones no es un objetivo en sí mismo. Quédate solo con lo que te aporte valor.</p>
 </section>
+</div>
 {% endblock %}

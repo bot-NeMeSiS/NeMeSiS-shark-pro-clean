@@ -465,7 +465,9 @@ def build_customer_trust_icon_contract_snapshot(
 ) -> dict[str, Any]:
     """Inspect the PQV939-005 visual contract without rendering or writes."""
     project_root = Path(root) if root is not None else Path(__file__).resolve().parents[1]
-    css_path = project_root / "static" / "v933-product.css"
+    css_path = project_root / "static" / "design-system.css"
+    if not css_path.exists():
+        css_path = project_root / "static" / "v933-product.css"
     template_path = project_root / "templates" / "components" / "v933_ui.html"
     try:
         css = css_path.read_text(encoding="utf-8", errors="replace")
@@ -601,7 +603,9 @@ def build_client_copy_audience_contract_snapshot(
     )
     shared_macro_contract = (
         client_fallback in shared_template
-        and "technical_message if technical else client_message" in shared_template
+        and "technical_message if technical else safe_client_message" in shared_template
+        and "safe_client_message = client_message(" in shared_template
+        and "request.path.startswith('/admin/')" in shared_template
         and "DB/caché:" in shared_template
     )
     polling_contract = (

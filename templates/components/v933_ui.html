@@ -3,6 +3,18 @@
 
 {% macro status_chip(label, tone='neutral') -%}<span class="v933-status-chip is-{{ tone or 'neutral' }}">{{ ui(label or 'Pendiente') }}</span>{%- endmacro %}
 
+{# Presentation boundary: diagnostic strings must never become client copy. #}
+{% macro client_message(value, fallback='La información estará disponible cuando haya datos confirmados.') -%}
+{% set original = value|string|trim if value else '' %}
+{% set translations = {'NO_STATISTICS':'Estadísticas todavía no disponibles.', 'NO_LINEUPS':'Alineaciones todavía no disponibles.', 'NO_EVENTS':'Todavía no hay jugadas confirmadas.', 'PROVIDER_UNAVAILABLE':'Datos temporalmente limitados.', 'NO_DATA':'Todavía no hay información disponible.', 'OFFLINE':'Sin conexión. Vuelve a intentarlo cuando recuperes la conexión.', 'LOADING':'Cargando información del partido.'} %}
+{% set message = translations.get(original|upper, original) %}
+{% set check = namespace(technical=false) %}
+{% for term in ['runtime','cron','storage','provider','cache','caché','backfill','sentinel','partial','pass','fail','pipeline','sports truth','db_path','admin'] %}
+{% if term in message|lower %}{% set check.technical = true %}{% endif %}
+{% endfor %}
+{{- ui(fallback if not message or check.technical else message) -}}
+{%- endmacro %}
+
 {% macro canonical_match_state(match, complete=true) -%}
 {%- set match = match or {} -%}
 {%- set status_info = match.get('status_info') or {} -%}
@@ -19,10 +31,10 @@
 {%- elif canonical_status == 'ABANDONED' -%}{{- status_chip('Abandonado', 'warning') -}}
 {%- elif match.get('is_stale') or canonical_status == 'STALE' -%}{{- status_chip('Datos retrasados', 'warning') -}}
 {%- elif canonical_status == 'HALFTIME' and canonical_live -%}{{- status_chip('Descanso', 'warning') -}}
-{%- elif canonical_status == 'LIVE' and canonical_live -%}{{- status_chip('En directo', 'success') -}}
+{%- elif canonical_status == 'LIVE' and canonical_live -%}{{- status_chip('En directo', 'live') -}}
 {%- elif canonical_status in ['UPCOMING','SCHEDULED','PREMATCH','NOT_STARTED','NS'] -%}{{- status_chip('Programado', 'blue') -}}
-{%- elif canonical_live -%}{{- status_chip('En directo', 'success') -}}
-{%- else -%}{{- status_chip(raw_status, 'blue') -}}
+{%- elif canonical_live -%}{{- status_chip('En directo', 'live') -}}
+{%- else -%}{{- status_chip(client_message(raw_status, 'Estado pendiente de confirmar'), 'blue') -}}
 {%- endif -%}
 {%- endmacro %}
 
@@ -31,10 +43,10 @@
 {{- {
   'VERIFIED': 'Confirmado',
   'CONFIRMADO': 'Confirmado',
-  'PARTIALLY_VERIFIED': 'Verificación parcial',
-  'NOT_CERTIFIED': 'No certificado',
-  'NO_CERTIFICADO': 'No certificado',
-  'NOT_CONFIGURED': 'No configurado',
+  'PARTIALLY_VERIFIED': 'Información limitada',
+  'NOT_CERTIFIED': 'Pendiente de confirmar',
+  'NO_CERTIFICADO': 'Pendiente de confirmar',
+  'NOT_CONFIGURED': 'Todavía no disponible',
   'STALE': 'Datos desactualizados',
   'BLOCKED_BY_ACCESS': 'Bloqueado por acceso',
   'BLOQUEADO_POR_ACCESO': 'Bloqueado por acceso',
@@ -43,7 +55,7 @@
   'INSUFFICIENT_DATA': 'Sin muestra',
   'REQUIRES_REVIEW': 'Requiere revisión',
   'BLOCKED': 'Bloqueado'
-}.get(code, code|replace('_', ' ')|title) -}}
+}.get(code, 'Información no disponible') -}}
 {%- endmacro %}
 
 {% macro evidence_chip(value) -%}
@@ -53,14 +65,15 @@
 {%- endmacro %}
 
 {% macro data_provenance_badge(source='', updated='', state='') -%}
-<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
+{% if request is defined and request.path.startswith('/admin') %}<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
+{% endif %}
 {%- endmacro %}
 
 {% macro customer_trust_panel(trust) -%}
 {% set trust = trust or {} %}
 <aside class="v935-customer-trust" aria-label="{{ ui("Confianza de datos") }}">
   <div class="v935-customer-trust-main">{{ icon('shield') }}<span><strong>{{ ui(trust.get('source_label') or 'Datos deportivos trazables') }}</strong><small>{{ ui(trust.get('freshness_label') or 'Sin sincronización confirmada') }}</small></span></div>
-  <p>{{ ui(trust.get('safe_message') or 'Solo se muestran datos reales o un estado seguro.') }}</p>
+  <p>{{ client_message(trust.get('safe_message'), 'La información disponible se mostrará aquí.') }}</p>
   <div class="v935-customer-trust-rules"><span>{{ icon('target') }} {{ ui("Pronósticos completos") }}</span><span>{{ icon('history') }} {{ ui("Histórico evaluable") }}</span><span>{{ icon('shield') }} {{ ui("Sin beneficio garantizado") }}</span></div>
 </aside>
 {%- endmacro %}
@@ -170,18 +183,19 @@
 {% macro data_table(headers) -%}<div class="v933-table-shell"><table class="v933-data-table"><thead><tr>{% for header in headers %}<th scope="col">{{ ui(header) }}</th>{% endfor %}</tr></thead><tbody>{{ caller() }}</tbody></table></div>{%- endmacro %}
 
 {% macro provider_state(has_real_data=false, last_sync='', safe_message='') -%}
-<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>{{ ui("Datos deportivos") }}</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ ui(safe_message or ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.')) }}</p>{% if last_sync %}<small>{{ ui("Última actualización segura:") }} <time datetime="{{ last_sync }}" data-v939-sync-timestamp data-v939-sync-raw="{{ last_sync }}">{{ last_sync|sync_madrid_label }}</time></small>{% endif %}</aside>
+<aside class="v933-provider-state"><header><div>{{ icon('database') }}<strong>{{ ui("Datos deportivos") }}</strong></div>{{ status_chip('Actualizados' if has_real_data else 'Esperando datos', 'success' if has_real_data else 'warning') }}</header><p>{{ client_message(safe_message, ('Datos reales disponibles.' if has_real_data else 'La app seguirá operativa y se actualizará cuando haya información confirmada.')) }}</p>{% if last_sync %}<small>{{ ui("Última actualización segura:") }} <time datetime="{{ last_sync }}" data-v939-sync-timestamp data-v939-sync-raw="{{ last_sync }}">{{ last_sync|sync_madrid_label }}</time></small>{% endif %}</aside>
 {%- endmacro %}
 
 {% macro realtime_state_bar(realtime, scope='all', technical=false) -%}
+{% set technical = technical and request is defined and (request.path == '/admin' or request.path.startswith('/admin/')) %}
 {% set realtime = realtime or {} %}{% set counts = realtime.get('counts') or {} %}
 {% set raw_sync = realtime.get('last_safe_sync') or '' %}
 {% set client_sync = realtime.get('last_safe_sync_label') or (raw_sync|sync_madrid_label) %}
-{% set client_message = ui(realtime.get('safe_message') or 'La información confirmada sigue disponible entre actualizaciones.') %}
+{% set safe_client_message = client_message(realtime.get('safe_message'), 'La información confirmada sigue disponible entre actualizaciones.') %}
 {% set technical_message = 'DB/caché: ' ~ (realtime.get('cache_state') or realtime.get('cache_status') or 'estado seguro') ~ '. Render sin llamada directa al proveedor.' %}
 {% set visible_live = counts.get('live', 0) if technical else realtime.get('confirmed_live_count', realtime.get('live_confirmed', counts.get('live_confirmed', 0))) %}
 <aside class="v934-realtime-state{% if realtime.get('realtime_live_status') == 'stale' %} is-stale{% endif %}" data-v934-realtime="{{ scope }}" data-v934-technical="{{ 'true' if technical else 'false' }}" data-v934-endpoint="{{ realtime.get('endpoint') or '/api/realtime/sports' }}" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}">
-  <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ ui('En directo' if visible_live else 'Partidos disponibles' if counts.get('matches') else 'Esperando datos deportivos') }}</strong><small data-v934-realtime-message>{{ technical_message if technical else client_message }}</small></span></div>
+  <div class="v934-realtime-primary"><i aria-hidden="true"></i><span><strong data-v934-realtime-title>{{ ui('En directo' if visible_live else 'Partidos disponibles' if counts.get('matches') else 'Esperando datos deportivos') }}</strong><small data-v934-realtime-message>{{ technical_message if technical else safe_client_message }}</small></span></div>
   <dl><div><dt>{{ ui("Partidos") }}</dt><dd data-v934-count="matches">{{ counts.get('matches', 0) }}</dd></div><div><dt>{{ ui("En directo") }}</dt><dd data-v934-count="live">{{ visible_live }}</dd></div><div><dt>{{ ui("Pronósticos") }}</dt><dd data-v934-count="picks">{{ counts.get('picks', 0) }}</dd></div></dl>
   <div class="v934-realtime-meta"><span data-v934-cache-state>{{ (realtime.get('cache_state') or realtime.get('cache_status') or 'cache seguro') if technical else ui('Estado confirmado') }}</span>{% if raw_sync %}<time datetime="{{ raw_sync }}" data-v934-last-sync data-v934-last-sync-raw="{{ raw_sync }}">{{ raw_sync if technical else client_sync }}</time>{% endif %}{% if technical %}<small data-v934-next-refresh>Próxima revisión en {{ realtime.get('poll_after_seconds') or 180 }} s</small>{% endif %}</div>
 </aside>

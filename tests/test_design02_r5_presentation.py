@@ -83,8 +83,8 @@ def test_r5_catalogue_and_single_master_contract():
     root = Path(__file__).resolve().parents[1]
     master = (root/'static/img/app-icons/official_app_icon_master.svg').read_text(encoding='utf-8')
     assert 'nemesis-shark-atmosphere-v2.webp' in master
-    css = (root/'static/v933-product.css').read_text(encoding='utf-8')
-    assert 'nemesis-ocean-depth-r5.png' in css
+    css = (root/'static/design-system.css').read_text(encoding='utf-8')
+    assert 'nemesis-ocean-depth-r5.png' not in css
     assert '.v933-match-center [hidden] { display: none !important; }' in css
     assert 'body.ns-app.ns-admin::before { opacity: .18; }' in css
     chip = css.split('body.ns-app .v933-status-chip {\n  max-width: 100%;', 1)[1].split('}', 1)[0]

@@ -30,7 +30,7 @@
         {{ section_header('Conexión de Telegram', 'Opcional. Vincula tu cuenta con un código temporal; NeMeSiS no necesita pedir tu número de teléfono.') }}
         {% if state.get('linked') %}
         <div class="v933-linked-state">
-          <div>{{ status_chip('Cuenta vinculada','success') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div>
+          <div>{{ status_chip('Cuenta vinculada','blue') }}<p>{% if state.get('username') %}@{{ state.get('username') }}{% else %}Identidad Telegram protegida{% endif %}</p></div>
           <form method="post" action="/telegram/desvincular"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action is-danger" type="submit">{{ ui("Desvincular") }}</button></form>
         </div>
         {% else %}
@@ -139,6 +139,6 @@
     </aside>
   </section>
 
-  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>{{ ui("Estado de entrega") }}</strong><small>{{ ui("Esta pantalla no envía mensajes por sí sola. Los envíos dependen de vinculación, automatización y contenido elegible.") }}</small></span>{{ status_chip('Listo' if telegram_ready else 'En espera','success' if telegram_ready else 'warning') }}</aside>
+  <aside class="ns-video-safety-note" data-top100-improvement="5">{{ icon('shield') }}<span><strong>{{ ui("Estado de entrega") }}</strong><small>{{ ui("Recibe avisos según tu vinculación, tus preferencias y la información disponible para tu plan.") }}</small></span>{{ status_chip('Listo' if telegram_ready else 'En espera','blue' if telegram_ready else 'warning') }}</aside>
 </div>
 {% endblock %}

@@ -344,7 +344,7 @@ def test_onboarding_after_first_value_moves_to_optional_value_and_feedback(app_m
     assert 'data-first-value-onboarding="true"' in template
     assert 'data-first10-feedback-prompt="true"' in template
     assert 'href="/beta#beta-feedback-form"' in template
-    assert "No configures cinco cosas antes de empezar." in template
+    assert "No necesitas completar todo." in template
     assert "no te pide tu número de teléfono" in template
 
 
