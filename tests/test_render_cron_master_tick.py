@@ -668,3 +668,38 @@ def test_highlights_failure_is_reported_without_stopping_other_lanes(monkeypatch
     assert payload["highlights_status"] == "FAIL"
     assert payload["highlights"]["highlights_result"] == "TIMEOUT"
     assert payload["continuous_evolution_status"] == "PASS"
+
+
+def test_backup_storage_failure_is_sanitized_and_capacity_is_visible(monkeypatch, capsys):
+    failure = MockResponse({
+        "ok": False,
+        "backup_created": False,
+        "error": "database or disk is full",
+        "storage": {
+            "required_bytes": 900,
+            "free_before": 500,
+            "free_after": 700,
+            "removed": ["old-a.db", "old-b.db"],
+        },
+    })
+    code, payload, _calls, output = run_master(
+        monkeypatch,
+        capsys,
+        [telegram_ok(), evolution_ok(), failure],
+        backup_is_due=True,
+    )
+    assert code != 0
+    assert payload["backup"]["backup_status"] == "FAIL"
+    assert payload["backup"]["backup_error_code"] == "STORAGE_CAPACITY"
+    assert payload["backup"]["backup_storage_required_bytes"] == 900
+    assert payload["backup"]["backup_storage_free_before"] == 500
+    assert payload["backup"]["backup_storage_free_after"] == 700
+    assert payload["backup"]["backup_storage_removed_count"] == 2
+    assert "database or disk is full" not in output
+
+
+def test_backup_error_classifier_never_echoes_secret():
+    secret = "super-sensitive-backup-secret"
+    assert master.backup_error_code(secret, secret) == "BACKUP_FAILED"
+    assert master.backup_error_code("backup_storage_insufficient", secret) == "STORAGE_CAPACITY"
+    assert master.backup_error_code("database is locked", secret) == "DATABASE_BUSY"
