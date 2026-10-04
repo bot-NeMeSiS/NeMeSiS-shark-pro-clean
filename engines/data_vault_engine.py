@@ -176,12 +176,117 @@ def list_backups(root: str | Path, *, directory: str | Path | None = None) -> li
     return items
 
 
+def _sqlite_snapshot_estimate_bytes(db_path: str | Path) -> int:
+    """Estimate the logical SQLite snapshot size, including WAL-visible pages."""
+    path = Path(db_path)
+    physical = path.stat().st_size if path.exists() else 0
+    try:
+        with closing(connect_readonly(path)) as conn:
+            page_count = int(conn.execute("PRAGMA page_count").fetchone()[0] or 0)
+            page_size = int(conn.execute("PRAGMA page_size").fetchone()[0] or 0)
+        return max(physical, page_count * page_size)
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        return physical
+
+
+def _delete_backup_item(item: dict) -> bool:
+    """Delete one known backup pair. The caller decides what is safe to remove."""
+    try:
+        path = Path(str(item.get("path") or ""))
+        if not path.name:
+            return False
+        path.unlink(missing_ok=True)
+        path.with_suffix(".json").unlink(missing_ok=True)
+        return True
+    except OSError:
+        return False
+
+
+def ensure_backup_capacity(
+    db_path: str | Path,
+    root: str | Path,
+    *,
+    directory: str | Path | None = None,
+) -> dict:
+    """Reserve enough filesystem headroom for one atomic SQLite backup.
+
+    When space is tight, remove only known older backup pairs. A verified
+    recovery copy is always preserved. Invalid/orphan backup files are safe to
+    remove before verified history. The live database is never modified.
+    """
+    src = Path(db_path)
+    bdir = Path(directory) if directory is not None else backup_dir(root)
+    bdir.mkdir(parents=True, exist_ok=True)
+    snapshot_bytes = max(0, _sqlite_snapshot_estimate_bytes(src))
+    margin_bytes = max(64 * 1024 * 1024, snapshot_bytes // 10)
+    required_bytes = snapshot_bytes + margin_bytes
+
+    def capacity():
+        usage = shutil.disk_usage(bdir)
+        return int(usage.free), int(usage.total)
+
+    free_before, total_bytes = capacity()
+    result = {
+        "ok": free_before >= required_bytes,
+        "snapshot_bytes": snapshot_bytes,
+        "required_bytes": required_bytes,
+        "free_before": free_before,
+        "free_after": free_before,
+        "total_bytes": total_bytes,
+        "removed": [],
+        "preserved_verified": "",
+    }
+    if result["ok"]:
+        return result
+
+    backups = list_backups(root, directory=bdir)
+    verified = None
+    for item in backups:
+        if item.get("valid") and validate_backup(root, item["name"], directory=bdir).get("ok"):
+            verified = item
+            result["preserved_verified"] = item["name"]
+            break
+
+    # Invalid/orphan files first; then oldest verified-history copies. The
+    # newest independently verified backup is never removed for capacity.
+    candidates = [item for item in reversed(backups) if not item.get("valid")]
+    candidates.extend(
+        item for item in reversed(backups)
+        if item.get("valid") and (verified is None or item["name"] != verified["name"])
+    )
+    seen = set()
+    for item in candidates:
+        name = str(item.get("name") or "")
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        if _delete_backup_item(item):
+            result["removed"].append(name)
+        free_now, _ = capacity()
+        result["free_after"] = free_now
+        if free_now >= required_bytes:
+            result["ok"] = True
+            return result
+
+    result["ok"] = False
+    result["error"] = "backup_storage_insufficient"
+    return result
+
+
 def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
+    storage = ensure_backup_capacity(src, root, directory=bdir)
+    if not storage.get("ok"):
+        return {
+            "ok": False,
+            "backup_created": False,
+            "error": storage.get("error") or "backup_storage_insufficient",
+            "storage": storage,
+        }
     stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
     manifest_path = out.with_suffix(".json")
@@ -235,7 +340,7 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             finally:
                 os.close(directory_fd)
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
-        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention}
+        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention, "storage": storage}
     except Exception as exc:
         result = {"ok": False, "backup_created": published, "error": str(exc)[:300]}
         if published:
