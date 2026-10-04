@@ -28,6 +28,11 @@ jobs:
           python -m py_compile app.py
           python -m compileall app.py engines tools automation_workforce
 
+      - name: Cron incident regression tests (mocked transports)
+        run: |
+          pip install pytest
+          python -m pytest tests/test_cron_incident_hotfix.py tests/test_render_cron_master_tick.py tests/test_sports_pipeline_stage_truth.py -q
+
       - name: Project checks
         run: |
           python -m unittest discover -s tests -p test_sports_history.py -v

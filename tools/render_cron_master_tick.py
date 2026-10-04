@@ -429,7 +429,9 @@ def telegram_tick(base_url: str, secret: str) -> dict:
             payload = decode_json(response.read(30000))
             if payload is None:
                 return request_error_result("telegram", started, "INVALID_JSON_RESPONSE", http_status)
-            ok = http_status == 200 and payload.get("ok") is not False
+            ok = (http_status == 200 and payload.get("ok") is True
+                  and not payload.get("error") and not payload.get("errors")
+                  and not payload.get("errors_count") and not safe_count(payload.get("failed")))
             result = safe_label(payload.get("status") or payload.get("result"), secret, "PASS" if ok else "FAIL")
             response = {
                 "telegram_http": http_status,
@@ -666,7 +668,14 @@ def overall_status(telegram: dict, continuous: dict, backup: dict) -> str:
 def isolated_tick(call, prefix: str, base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     try:
-        return call(base_url, secret)
+        result = call(base_url, secret)
+        if not isinstance(result, dict):
+            return request_error_result(prefix, started, "INVALID_RESPONSE")
+        if result.get(f"{prefix}_http") in TRANSIENT_READINESS_HTTP:
+            # POST effects are uncertain. Recover readiness for the next lane;
+            # never replay a delivery or provider mutation after a gateway error.
+            result["web_recovery"] = wait_for_web_ready(base_url)
+        return result
     except Exception as exc:
         return request_error_result(prefix, started, type(exc).__name__)
 
@@ -785,7 +794,7 @@ def main() -> int:
     highlights = isolated_tick(highlights_tick, "highlights", base_url, automation_secret)
     continuous = isolated_tick(continuous_evolution_tick, "continuous", base_url, automation_secret)
     backup = isolated_tick(backup_tick, "backup", base_url, automation_secret) if backup_due(utc_now) else skipped_backup()
-    postmatch = postmatch_tick(base_url, automation_secret)
+    postmatch = isolated_tick(postmatch_tick, "postmatch", base_url, automation_secret)
     overall = overall_status(telegram, continuous, backup)
     # Controlled deferrals remain visible without failing an otherwise healthy run.
     statuses = [overall, telegram.get('telegram_status'), continuous.get('continuous_status'),
