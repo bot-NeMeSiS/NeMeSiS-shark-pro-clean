@@ -61,7 +61,7 @@
     </div>
     <section class="ns16-section ns16-featured-pick">
       {{ section_header('Pronóstico destacado', '', 'Combinadas', '/combinadas') }}
-      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay pronósticos publicados', 'SHARK espera evidencia completa.', '', '', 'shark') }}{% endif %}
+      {% if picks %}{{ pick_card(picks[0], true, 'summary') }}{% else %}{{ empty_state('Todavía no hay pronósticos publicados', 'Los nuevos pronósticos aparecerán aquí cuando estén disponibles.', '', '', 'shark') }}{% endif %}
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui("Accesos rápidos") }}">
     {{ quick_action('Favoritos', 'Tu selección', '/favoritos', 'star') }}

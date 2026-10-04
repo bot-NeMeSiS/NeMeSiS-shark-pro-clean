@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes, competition_logo with context %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, match_card, filter_tabs, empty_state, provider_state, icon, action_button, realtime_state_bar, sports_contract_attributes, competition_logo, client_message with context %}
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
@@ -44,7 +44,7 @@
   <section class="v933-kpi-grid" aria-label="{{ ui("Resumen deportivo") }}">
     {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendario?lane=today') }}
     {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendario?lane=week') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/directo') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
     {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendario?lane=with_pick') }}
   </section>
 
@@ -55,7 +55,7 @@
       <div>
         <span class="v933-eyebrow">{{ ui("Prioridad deportiva") }}</span>
         <h2>{{ ui(selected.get('title') or 'Calendario') }}</h2>
-        <p>{{ ui(calendar.get('source_summary') or 'Estado de la agenda deportiva.') }}</p>
+        <p>{{ client_message(calendar.get('source_summary'), 'Consulta los partidos y sus horarios.') }}</p>
       </div>
       <div class="v940-calendar-result-summary" aria-label="{{ ui("Resultados visibles") }}">
         <strong>{{ counts.get('visible', 0) }}</strong>

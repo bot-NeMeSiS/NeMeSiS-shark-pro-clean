@@ -1,50 +1,67 @@
 {% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, section_header, profile_card, quick_action, kpi_card, action_button, empty_state, client_message with context %}
 {% block content %}
-{% set plan = data.account_center.plan %}
+{% set account = data.account_center %}
+{% set plan = 'ELITE' if account.plan == 'ADMIN' else account.plan %}
+{% set user = data.get('session_user') or {} %}
 {% set membership = data.get('membership') or {} %}
 {% set pay = data.payments_client or {} %}
-{% set user_name = data.session_user.name or data.session_user.username or 'Cliente' %}
+{% set telegram = data.get('telegram_state') or {} %}
 {% set activity = data.get('client_activity') or [] %}
-{% set membership_source = (data.session_user.membership_source or '')|lower %}
-{% set admin_granted = data.session_user.membership_admin_granted %}
+{% set membership_source = (user.get('membership_source') or '')|lower %}
+{% set admin_granted = user.get('membership_admin_granted') %}
 {% set stripe_status = pay.stripe_subscription_status or '' %}
-{% set stripe_label = {'active':'Activa','trialing':'En prueba','past_due':'Pago pendiente','canceled':'Cancelada','cancelled':'Cancelada','unpaid':'Impagada'}.get(stripe_status, stripe_status|replace('_',' ')|title if stripe_status else '') %}
-<section class="v799-screen v799-account-screen">
-  <div class="v799-appbar">
-    <div><span class="v799-kicker">Perfil cliente · sesión segura</span><h1>Mi cuenta</h1><p>Plan, Telegram, favoritos, pagos y salida de sesión en una pantalla clara.</p></div>
-    <div class="v799-appbar-actions"><a href="/telegram">Telegram</a><a class="danger" href="/logout">Cerrar sesión</a></div>
-  </div>
-
-  <section class="v799-profile-hero">
-    <div class="v799-avatar">◥</div>
-    <div><span class="v799-kicker">{{ plan }}</span><h2>{{ user_name }}</h2><p>Miembro desde · {{ data.session_user.created_at|madrid_datetime_label if data.session_user.created_at else 'activo' }}</p></div>
-    <div class="v799-profile-stats"><span><b>{{ data.account_center.activity }}</b><small>Actividad</small></span><span><b>{{ data.account_center.favorites }}</b><small>Favoritos</small></span><span><b>{{ data.account_center.alerts }}</b><small>Alertas</small></span></div>
+{% set stripe_label = {'active':'Activa','trialing':'En prueba','past_due':'Pago pendiente','canceled':'Cancelada','cancelled':'Cancelada','unpaid':'Pago pendiente'}.get(stripe_status, 'Estado pendiente de confirmar') %}
+<div class="v933-page v933-profile-page ns16-account" data-v933-template="account_center">
+  {{ page_header('Mi cuenta', 'Tu plan, tus favoritos y tus preferencias.', 'user', [{'label':'Gestionar plan','href':'/membresias','icon':'plan'}]) }}
+  {{ profile_card(user, plan) }}
+  <section class="v933-kpi-grid" aria-label="Resumen de tu cuenta">
+    {{ kpi_card('Favoritos', account.favorites, 'Tu radar', 'blue', 'star', '/favoritos') }}
+    {{ kpi_card('Actividad', account.activity, 'Guardada', 'neutral', 'history', '/actividad') }}
+    {{ kpi_card('Alertas', account.alerts, 'Tus avisos', 'blue', 'bell', '/notificaciones') }}
   </section>
-
-  <section class="v800-account-safe" aria-label="Acciones seguras de cuenta">
-    <a href="/telegram"><span>Telegram</span><strong>{{ 'Vinculado' if data.telegram_state and data.telegram_state.linked else 'Pendiente' }}</strong></a>
-    <a href="/membresias"><span>Plan</span><strong>{{ plan }}</strong></a>
-    <a href="/favoritos"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong></a>
-    <a class="danger" href="/logout"><span>Sesión</span><strong>Cerrar sesión</strong></a>
-  </section>
-
-  <section class="v799-account-layout">
-    <div class="v799-account-main">
-      <section class="v799-account-grid">
-        <article class="v799-card"><span>Plan actual</span><strong>{{ plan }}</strong><p>{{ membership.get('headline') or 'Acceso activo a tu plan.' }}</p><a class="v799-button" href="/membresias">Gestionar plan</a></article>
-        <article class="v799-card"><span>Telegram</span><strong>@{{ data.telegram_state.username if data.telegram_state and data.telegram_state.username else 'pendiente' }}</strong><p>Alertas, pronósticos y resúmenes según tu plan.</p><a class="v799-button" href="/telegram">Configurar</a></article>
-        <article class="v799-card">{% if plan == 'FREE' %}<span>Facturación</span><strong>Plan gratuito</strong><p>No hay renovación de pago activa.</p><a class="v799-button" href="/membresias">Comparar planes</a>{% elif admin_granted or membership_source == 'admin_manual' %}<span>Origen del plan</span><strong>Acceso concedido</strong><p>Este plan fue asignado por administración y no implica una renovación Stripe.</p><a class="v799-button" href="/membresias">Ver prestaciones</a>{% elif stripe_status %}<span>Renovación</span><strong>{{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Fecha pendiente' }}</strong><p>Suscripción Stripe: {{ stripe_label }}.</p>{% if pay.portal_ready %}<form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v799-button" type="submit">Gestionar suscripción</button></form>{% else %}<a class="v799-button" href="/membresias">Gestionar plan</a>{% endif %}{% else %}<span>Facturación</span><strong>Sin renovación automática</strong><p>No hay una suscripción Stripe activa asociada a esta cuenta.</p><a class="v799-button" href="/membresias">Gestionar plan</a>{% endif %}</article>
-        <article class="v799-card"><span>Favoritos</span><strong>{{ data.account_center.favorites }}</strong><p>Partidos, equipos o selecciones guardadas.</p><a class="v799-button" href="/favoritos">Abrir favoritos</a></article>
-        <article class="v799-card" data-first10-account-invite><span>Beta privada</span><strong>FIRST 10</strong><p>Si NeMeSiS te resulta útil, puedes invitar a una persona adulta a probarla y ayudarnos a mejorar.</p><a class="v799-button" href="/beta#first10-share">Invitar a alguien</a></article>
+  <div class="v933-two-col ns16-account-layout">
+    <div class="v933-main-stack">
+      <section class="v933-panel">
+        {{ section_header('Cuenta y servicios') }}
+        <div class="v933-quick-actions ns16-account-actions">
+          {{ quick_action('Tu plan', plan, '/membresias', 'plan', 'gold') }}
+          {{ quick_action('Telegram', 'Vinculado' if telegram.get('linked') else 'Vincula tus avisos', '/telegram', 'telegram') }}
+          {{ quick_action('Favoritos', 'Equipos, competiciones y partidos', '/favoritos', 'star') }}
+          {{ quick_action('Notificaciones', 'Elige qué quieres recibir', '/notificaciones', 'bell') }}
+        </div>
       </section>
-
-      <article class="v799-card"><div class="v799-section-head"><div><span>Actividad de cuenta</span><h2>Últimas acciones guardadas</h2></div><a href="/actividad">Ver todo →</a></div><div class="v799-activity-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ item.label or 'Actividad registrada' }}</strong></div>{% else %}<div class="v799-empty">No hay acciones guardadas todavía. Abrir páginas o consultar pronósticos no añade un registro de navegación.</div>{% endfor %}</div></article>
+      <section class="v933-panel">
+        {{ section_header('Plan y facturación') }}
+        <p>{{ client_message(membership.get('headline'), 'Consulta lo que incluye tu plan.') }}</p>
+        {% if plan == 'FREE' %}<p>Tu plan es gratuito. No hay renovación de pago activa.</p>
+        {% elif admin_granted or membership_source == 'admin_manual' %}<p>Tienes un acceso concedido, sin renovación automática de pago.</p>
+        {% elif stripe_status %}<p>Suscripción: <strong>{{ stripe_label }}</strong>.</p><p>Renovación: {{ pay.stripe_current_period_end|madrid_datetime_label if pay.stripe_current_period_end else 'Fecha pendiente de confirmar' }}.</p>
+        {% else %}<p>No hay una renovación automática asociada a esta cuenta.</p>{% endif %}
+        {% if plan != 'FREE' and not admin_granted and membership_source != 'admin_manual' and stripe_status and pay.portal_ready %}
+        <form method="post" action="/pagos/portal"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="v933-action" type="submit">Gestionar suscripción</button></form>
+        {% else %}{{ action_button('Ver prestaciones', '/membresias') }}{% endif %}
+      </section>
+      <section class="v933-panel">
+        {{ section_header('Tu actividad', '', 'Ver todo', '/actividad') }}
+        {% if activity %}<div class="v933-truth-list">{% for item in activity[:7] %}<div><span>{{ item.created_at|madrid_datetime_label if item.created_at else 'Reciente' }}</span><strong>{{ client_message(item.label, 'Actividad guardada') }}</strong></div>{% endfor %}</div>
+        {% else %}{{ empty_state('Todavía no hay actividad guardada', 'Tus acciones guardadas aparecerán aquí.', 'Explorar partidos', '/calendario', 'history') }}{% endif %}
+      </section>
     </div>
-
-    <aside class="v799-context-panel">
-      <article class="v799-card"><div class="v799-section-head"><div><span>Accesos</span><h2>Cuenta</h2></div></div><div class="v799-action-stack"><a href="/password-reset"><strong>Cambiar contraseña</strong><small>Seguridad</small></a><a href="/notificaciones"><strong>Notificaciones</strong><small>Preferencias</small></a><a href="/soporte"><strong>Soporte</strong><small>Ayuda</small></a><a class="danger" href="/logout"><strong>Cerrar sesión</strong><small>Salir de forma segura</small></a></div></article>
-      <article class="v799-mobile-preview mini"><div class="v799-phone-top"><span>Cuenta</span><strong>{{ plan }}</strong></div><div class="v799-phone-hero"><b>{{ data.account_center.favorites }}</b><span>favoritos</span></div><div class="v799-phone-list compact"><a href="/telegram"><strong>Telegram</strong><small>configurar</small><em>→</em></a><a href="/membresias"><strong>Plan</strong><small>{{ plan }}</small><em>→</em></a><a href="/logout"><strong>Salir</strong><small>sesión segura</small><em>⏻</em></a></div></article>
+    <aside class="v933-side-stack">
+      <section class="v933-panel">
+        {{ section_header('Preferencias y seguridad') }}
+        <div class="v933-quick-actions">
+          {{ quick_action('Cambiar contraseña', 'Protege tu cuenta', '/password-reset', 'shield') }}
+          {{ quick_action('Soporte', 'Te ayudamos con tu cuenta', '/soporte', 'support') }}
+          {{ quick_action('Cerrar sesión', 'Salir de este dispositivo', '/logout', 'logout') }}
+        </div>
+      </section>
+      <section class="v933-panel" data-first10-account-invite>
+        {{ section_header('Comparte NeMeSiS') }}<p>Invita a una persona adulta a conocer la beta y ayudarnos a mejorar.</p>
+        {{ action_button('Invitar a alguien', '/beta#first10-share') }}
+      </section>
     </aside>
-  </section>
-</section>
+  </div>
+</div>
 {% endblock %}

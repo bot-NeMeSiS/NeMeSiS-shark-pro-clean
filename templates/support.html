@@ -2,7 +2,7 @@
 {% from "components/v933_ui.html" import page_header, icon %}
 {% from 'components/platform_faq.html' import platform_faq %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-help-1">
+<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-core-2">
 <div class="v933-page v933-support-page" data-v933-template="support" data-top100-improvement="9,10">
   {{ page_header('Soporte', 'NeMeSiS SHARK PRO', 'support', [{'label':'Inicio','href':'/app','icon':'home'}]) }}
   {% if data.error %}<div class="premium-alert danger" role="alert">{{ ui(data.error) }}</div>{% endif %}

@@ -5,8 +5,11 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
-
+import sys
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tools.run_autonomous_product_qa import inspect_text_geometry
+
 ROUTES = {
     'public': ['/', '/precios', '/cliente-login', '/registro', '/soporte'],
     'client': ['/app', '/calendario', '/directo', '/picks', '/shark', '/telegram',
@@ -38,13 +41,13 @@ INSPECT = '''() => {
 }'''
 
 
-def run(output, profiles=None):
-    meta = json.loads((ROOT / 'data/local_dev/visual-preview.json').read_text())
+def run(output, profiles=None, metadata_path=None, include_matches=True):
+    meta = json.loads((metadata_path or ROOT / 'data/local_dev/visual-preview.json').read_text(encoding='utf-8'))
     base = 'http://127.0.0.1:' + str(meta['port'])
     output.mkdir(parents=True, exist_ok=True)
     rows = []
     routes_by_surface = {key: list(value) for key, value in ROUTES.items()}
-    if 'client' in routes_by_surface:
+    if 'client' in routes_by_surface and include_matches:
         routes_by_surface['client'].extend('/match/' + value for value in meta.get('match_ids', [])[:3])
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
@@ -80,6 +83,7 @@ def run(output, profiles=None):
                            'requestCount': len(requests), 'serverErrors': list(server_errors),
                            'externalRequests': sum(urlparse(url).hostname not in ('127.0.0.1', 'localhost', None) for url in requests),
                            **page.evaluate(INSPECT)}
+                    row['geometry'] = inspect_text_geometry(page)
                     rows.append(row)
                     print(json.dumps({k:row[k] for k in ('profile','surface','route','status','overflow','duplicateIds','jsErrors')},ensure_ascii=False),flush=True)
                 if surface == 'client' and profile == 'mobile' and routes:
@@ -96,7 +100,7 @@ def run(output, profiles=None):
                 context.close()
         browser.close()
     (output / 'observations.json').write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding='utf-8')
-    failures = [r for r in rows if r['overflow'] or r['duplicateIds'] or r['jsErrors'] or r['serverErrors'] or r['brokenImages'] or r['clientTextViolations']
+    failures = [r for r in rows if r.get('geometry', {}).get('heading_status') == 'FAIL' or r.get('geometry', {}).get('match_text_status') == 'FAIL' or r['overflow'] or r['duplicateIds'] or r['jsErrors'] or r['serverErrors'] or r['brokenImages'] or r['clientTextViolations']
                 or r['status'] != (404 if r['route'] == '/match/unavailable' else 200) or r['mainCount'] != 1]
     print(f'{len(rows)} captures, {len(failures)} failures')
     return 1 if failures else 0
@@ -106,5 +110,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--profiles', nargs='+', choices=PROFILES)
+    parser.add_argument('--metadata', type=Path)
+    parser.add_argument('--skip-match-routes', action='store_true')
     args = parser.parse_args()
-    raise SystemExit(run(args.output, args.profiles))
+    raise SystemExit(run(args.output, args.profiles, args.metadata, not args.skip_match_routes))

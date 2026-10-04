@@ -1,0 +1,3738 @@
+[
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "000-desktop-public.jpg",
+    "jsErrors": [],
+    "loadMs": 1050.1,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 161,
+          "right": 232.9375,
+          "top": 209,
+          "bottom": 244
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "public",
+    "route": "/registro",
+    "status": 200,
+    "finalPath": "/registro",
+    "screenshot": "001-desktop-public.jpg",
+    "jsErrors": [],
+    "loadMs": 238.6,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 217,
+    "clientTextViolations": [],
+    "heading": "Acceso cliente SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 107,
+          "right": 368.359375,
+          "top": 209,
+          "bottom": 244
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "002-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 679.3,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 654,
+    "clientTextViolations": [],
+    "heading": "Buenas noches",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 26,
+          "right": 214.328125,
+          "top": 107.375,
+          "bottom": 144.375
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "003-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 3076.4,
+    "requestCount": 18,
+    "serverErrors": [],
+    "externalRequests": 4,
+    "overflow": false,
+    "overflowing": [
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL."
+    ],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3199779,
+    "domNodes": 9324,
+    "clientTextViolations": [],
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 335,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 147,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "004-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 2382.6,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 219,
+    "clientTextViolations": [],
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 5,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 136.484375,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "005-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 947.2,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3193196,
+    "domNodes": 251,
+    "clientTextViolations": [],
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 272.03125,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/combinadas",
+    "status": 200,
+    "finalPath": "/combinadas",
+    "screenshot": "006-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 492.3,
+    "requestCount": 14,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3195428,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Combinadas",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 160,
+          "right": 300.8125,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "007-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 1079.4,
+    "requestCount": 14,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3195948,
+    "domNodes": 236,
+    "clientTextViolations": [],
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 136.78125,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "008-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 527.6,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 381,
+    "clientTextViolations": [],
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 4,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 159.015625,
+          "top": 93.484375,
+          "bottom": 130.484375
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "009-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 3078.4,
+    "requestCount": 11,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3044997,
+    "domNodes": 290,
+    "clientTextViolations": [],
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 45,
+          "right": 350.078125,
+          "top": 186.390625,
+          "bottom": 288.390625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "010-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 382.7,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 345,
+    "clientTextViolations": [],
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 5,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 192.015625,
+          "top": 86,
+          "bottom": 123
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/onboarding",
+    "status": 200,
+    "finalPath": "/onboarding",
+    "screenshot": "011-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 483.7,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 218,
+    "clientTextViolations": [],
+    "heading": "Abre un partido real y descubre qué te aporta NeMeSiS.",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 35,
+          "right": 753.84375,
+          "top": 138.78125,
+          "bottom": 214.78125
+        },
+        {
+          "left": 35,
+          "right": 579.78125,
+          "top": 192.90625,
+          "bottom": 268.90625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "status": 200,
+    "finalPath": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "screenshot": "012-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 948.1,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 649,
+    "clientTextViolations": [],
+    "heading": "Chicago Stars vs Denver Summit",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 641.875,
+          "right": 678.125,
+          "top": 226.953125,
+          "bottom": 265.953125
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 588.453125,
+          "right": 731.53125,
+          "top": 268.71875,
+          "bottom": 283.71875
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 600.015625,
+          "right": 719.984375,
+          "top": 206.609375,
+          "bottom": 222.609375
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/match/sportsdb-7c11bc365f563d85f5",
+    "status": 200,
+    "finalPath": "/match/sportsdb-7c11bc365f563d85f5",
+    "screenshot": "013-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 569.6,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 650,
+    "clientTextViolations": [],
+    "heading": "Real Sociedad B vs Granada",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 636.859375,
+          "right": 683.140625,
+          "top": 226.953125,
+          "bottom": 265.953125
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 588.453125,
+          "right": 731.53125,
+          "top": 268.71875,
+          "bottom": 283.71875
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 630.40625,
+          "right": 689.59375,
+          "top": 206.609375,
+          "bottom": 222.609375
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "client",
+    "route": "/match/sportsdb-22f9acca23e1cc306a",
+    "status": 200,
+    "finalPath": "/match/sportsdb-22f9acca23e1cc306a",
+    "screenshot": "014-desktop-client.jpg",
+    "jsErrors": [],
+    "loadMs": 387.7,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-desktop"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 646,
+    "clientTextViolations": [],
+    "heading": "Girona vs Mallorca",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 636.859375,
+          "right": 683.140625,
+          "top": 226.953125,
+          "bottom": 265.953125
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 588.453125,
+          "right": 731.53125,
+          "top": 268.71875,
+          "bottom": 283.71875
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 590.03125,
+          "right": 729.953125,
+          "top": 206.609375,
+          "bottom": 222.609375
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "015-desktop-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 1216.8,
+    "requestCount": 17,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3094957,
+    "domNodes": 861,
+    "clientTextViolations": [],
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 254,
+          "right": 516.65625,
+          "top": 99,
+          "bottom": 143
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/founder-os",
+    "status": 200,
+    "finalPath": "/admin/founder-os",
+    "screenshot": "016-desktop-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 452.2,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 297,
+          "right": 504.609375,
+          "top": 145.671875,
+          "bottom": 180.671875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "desktop",
+    "surface": "admin",
+    "route": "/admin/founder-control",
+    "status": 200,
+    "finalPath": "/admin/founder-control",
+    "screenshot": "017-desktop-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 347.7,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-sidebar",
+      "admin-topbar"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 297,
+          "right": 504.609375,
+          "top": 145.671875,
+          "bottom": 180.671875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 56,
+          "bottom": 78,
+          "left": 0,
+          "right": 1440
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "018-tablet-public.jpg",
+    "jsErrors": [],
+    "loadMs": 340.6,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 35,
+          "right": 96.03125,
+          "top": 197,
+          "bottom": 227
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "public",
+    "route": "/registro",
+    "status": 200,
+    "finalPath": "/registro",
+    "screenshot": "019-tablet-public.jpg",
+    "jsErrors": [],
+    "loadMs": 326.6,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 217,
+    "clientTextViolations": [],
+    "heading": "Acceso cliente SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 27,
+          "right": 248.765625,
+          "top": 197,
+          "bottom": 227
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "020-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 766.3,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 654,
+    "clientTextViolations": [],
+    "heading": "Buenas noches",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 22,
+          "right": 210.328125,
+          "top": 111.375,
+          "bottom": 148.375
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "021-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 7617.4,
+    "requestCount": 18,
+    "serverErrors": [],
+    "externalRequests": 4,
+    "overflow": false,
+    "overflowing": [
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL.",
+      "A.",
+      "SMALL."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3199779,
+    "domNodes": 9324,
+    "clientTextViolations": [],
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 335,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 147,
+          "top": 90,
+          "bottom": 127
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "022-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 1957.0,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 219,
+    "clientTextViolations": [],
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 3,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 136.484375,
+          "top": 90,
+          "bottom": 127
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "023-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 931.2,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3193196,
+    "domNodes": 251,
+    "clientTextViolations": [],
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 272.03125,
+          "top": 98,
+          "bottom": 135
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/combinadas",
+    "status": 200,
+    "finalPath": "/combinadas",
+    "screenshot": "024-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 307.2,
+    "requestCount": 14,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3195428,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Combinadas",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 196.8125,
+          "top": 98,
+          "bottom": 135
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "025-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 860.3,
+    "requestCount": 14,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3195948,
+    "domNodes": 236,
+    "clientTextViolations": [],
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 136.78125,
+          "top": 98,
+          "bottom": 135
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "026-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 471.2,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 381,
+    "clientTextViolations": [],
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 159.015625,
+          "top": 98,
+          "bottom": 135
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "027-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 630.1,
+    "requestCount": 11,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3044997,
+    "domNodes": 290,
+    "clientTextViolations": [],
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 31.421875,
+          "right": 214.46875,
+          "top": 151.703125,
+          "bottom": 213.703125
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "028-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 228.4,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 345,
+    "clientTextViolations": [],
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 3,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 56,
+          "right": 192.015625,
+          "top": 98,
+          "bottom": 135
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/onboarding",
+    "status": 200,
+    "finalPath": "/onboarding",
+    "screenshot": "029-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 365.7,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 218,
+    "clientTextViolations": [],
+    "heading": "Ya has encontrado utilidad. Ahora personaliza solo lo que te sirva.",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 31,
+          "right": 495.546875,
+          "top": 145.78125,
+          "bottom": 192.78125
+        },
+        {
+          "left": 31,
+          "right": 458.390625,
+          "top": 178.5625,
+          "bottom": 225.5625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "status": 200,
+    "finalPath": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "screenshot": "030-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 546.3,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 649,
+    "clientTextViolations": [],
+    "heading": "Chicago Stars vs Denver Summit",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 365.875,
+          "right": 402.125,
+          "top": 227.140625,
+          "bottom": 266.140625
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 324.21875,
+          "right": 443.765625,
+          "top": 269.90625,
+          "bottom": 281.90625
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 330.5,
+          "right": 437.5,
+          "top": 208.78125,
+          "bottom": 222.78125
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/match/sportsdb-7c11bc365f563d85f5",
+    "status": 200,
+    "finalPath": "/match/sportsdb-7c11bc365f563d85f5",
+    "screenshot": "031-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 460.5,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 650,
+    "clientTextViolations": [],
+    "heading": "Real Sociedad B vs Granada",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 360.859375,
+          "right": 407.140625,
+          "top": 227.140625,
+          "bottom": 266.140625
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 324.21875,
+          "right": 443.765625,
+          "top": 269.90625,
+          "bottom": 281.90625
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 357.609375,
+          "right": 410.390625,
+          "top": 208.78125,
+          "bottom": 222.78125
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "client",
+    "route": "/match/sportsdb-22f9acca23e1cc306a",
+    "status": 200,
+    "finalPath": "/match/sportsdb-22f9acca23e1cc306a",
+    "screenshot": "032-tablet-client.jpg",
+    "jsErrors": [],
+    "loadMs": 451.9,
+    "requestCount": 16,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3190097,
+    "domNodes": 646,
+    "clientTextViolations": [],
+    "heading": "Girona vs Mallorca",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 360.859375,
+          "right": 407.140625,
+          "top": 227.140625,
+          "bottom": 266.140625
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 324.21875,
+          "right": 443.765625,
+          "top": 269.90625,
+          "bottom": 281.90625
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 321.59375,
+          "right": 446.390625,
+          "top": 208.78125,
+          "bottom": 222.78125
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "033-tablet-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 968.6,
+    "requestCount": 17,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3094957,
+    "domNodes": 861,
+    "clientTextViolations": [],
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 0,
+          "right": 276.609375,
+          "top": 163,
+          "bottom": 210
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "admin",
+    "route": "/admin/founder-os",
+    "status": 200,
+    "finalPath": "/admin/founder-os",
+    "screenshot": "034-tablet-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 232.0,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 43,
+          "right": 317.296875,
+          "top": 207.671875,
+          "bottom": 254.671875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "tablet",
+    "surface": "admin",
+    "route": "/admin/founder-control",
+    "status": 200,
+    "finalPath": "/admin/founder-control",
+    "screenshot": "035-tablet-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 255.1,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 43,
+          "right": 317.296875,
+          "top": 207.671875,
+          "bottom": 254.671875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 768
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 768
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/cliente-login",
+    "status": 200,
+    "finalPath": "/cliente-login",
+    "screenshot": "036-mobile-public.jpg",
+    "jsErrors": [],
+    "loadMs": 228.0,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Entrar",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 37,
+          "right": 98.03125,
+          "top": 199,
+          "bottom": 229
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "public",
+    "route": "/registro",
+    "status": 200,
+    "finalPath": "/registro",
+    "screenshot": "037-mobile-public.jpg",
+    "jsErrors": [],
+    "loadMs": 200.5,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "public-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 217,
+    "clientTextViolations": [],
+    "heading": "Acceso cliente SHARK",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 29,
+          "right": 250.765625,
+          "top": 199,
+          "bottom": 229
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/app",
+    "status": 200,
+    "finalPath": "/app",
+    "screenshot": "038-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 557.1,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [
+      "ARTICLE.v933-match-card is-compact",
+      "HEADER.v933-match-card-header",
+      "DIV.",
+      "A.v933-entity-inline is-competition",
+      "DIV.v937-card-trust",
+      "TIME.",
+      "DIV.v933-match-teams",
+      "DIV.",
+      "A.v933-entity-inline is-team",
+      "SPAN.crest v933-team-logo is-md crest-image-error",
+      "EM.",
+      "STRONG."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 654,
+    "clientTextViolations": [],
+    "heading": "Buenas noches",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 21,
+          "right": 155.515625,
+          "top": 110.390625,
+          "bottom": 137.390625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/calendario",
+    "status": 200,
+    "finalPath": "/calendario",
+    "screenshot": "039-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 3202.2,
+    "requestCount": 17,
+    "serverErrors": [],
+    "externalRequests": 4,
+    "overflow": false,
+    "overflowing": [
+      "A.",
+      "A."
+    ],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/calendar-discovery.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3056951,
+    "domNodes": 9324,
+    "clientTextViolations": [],
+    "heading": "Partidos",
+    "plan": "FREE",
+    "visibleButtons": 335,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 51,
+          "right": 122.5,
+          "top": 97.15625,
+          "bottom": 127.15625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/directo",
+    "status": 200,
+    "finalPath": "/directo",
+    "screenshot": "040-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 2231.8,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 219,
+    "clientTextViolations": [],
+    "heading": "Directo",
+    "plan": "FREE",
+    "visibleButtons": 3,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 50,
+          "right": 113.234375,
+          "top": 91,
+          "bottom": 121
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/picks",
+    "status": 200,
+    "finalPath": "/picks",
+    "screenshot": "041-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 630.9,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3193196,
+    "domNodes": 251,
+    "clientTextViolations": [],
+    "heading": "Pronósticos SHARK",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 51,
+          "right": 220.75,
+          "top": 97.15625,
+          "bottom": 127.15625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/combinadas",
+    "status": 200,
+    "finalPath": "/combinadas",
+    "screenshot": "042-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 257.4,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3052600,
+    "domNodes": 211,
+    "clientTextViolations": [],
+    "heading": "Combinadas",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 50,
+          "right": 160.640625,
+          "top": 91,
+          "bottom": 121
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/shark",
+    "status": 200,
+    "finalPath": "/shark",
+    "screenshot": "043-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 853.0,
+    "requestCount": 14,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/platform-help.css",
+      "/static/combinadas.css"
+    ],
+    "emptyStates": 1,
+    "brokenImages": [],
+    "transferBytes": 3195948,
+    "domNodes": 236,
+    "clientTextViolations": [],
+    "heading": "SHARK",
+    "plan": "FREE",
+    "visibleButtons": 5,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 50,
+          "right": 113.46875,
+          "top": 91,
+          "bottom": 121
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/telegram",
+    "status": 200,
+    "finalPath": "/telegram",
+    "screenshot": "044-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 449.6,
+    "requestCount": 11,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3044997,
+    "domNodes": 381,
+    "clientTextViolations": [],
+    "heading": "Telegram",
+    "plan": "FREE",
+    "visibleButtons": 2,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 51,
+          "right": 131.9375,
+          "top": 97.15625,
+          "bottom": 127.15625
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/mi-cuenta",
+    "status": 200,
+    "finalPath": "/mi-cuenta",
+    "screenshot": "045-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 502.8,
+    "requestCount": 11,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3044997,
+    "domNodes": 290,
+    "clientTextViolations": [],
+    "heading": "Mi cuenta",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 26,
+          "right": 178.546875,
+          "top": 130.234375,
+          "bottom": 181.234375
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/membresias",
+    "status": 200,
+    "finalPath": "/membresias",
+    "screenshot": "046-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 300.3,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3044997,
+    "domNodes": 345,
+    "clientTextViolations": [],
+    "heading": "Elige tu plan",
+    "plan": "FREE",
+    "visibleButtons": 3,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 50,
+          "right": 156.875,
+          "top": 91,
+          "bottom": 121
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/onboarding",
+    "status": 200,
+    "finalPath": "/onboarding",
+    "screenshot": "047-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 402.5,
+    "requestCount": 12,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3187825,
+    "domNodes": 218,
+    "clientTextViolations": [],
+    "heading": "Ya has encontrado utilidad. Ahora personaliza solo lo que te sirva.",
+    "plan": "FREE",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 31,
+          "right": 344.4375,
+          "top": 146.78125,
+          "bottom": 193.78125
+        },
+        {
+          "left": 344.4375,
+          "right": 358.546875,
+          "top": 146.78125,
+          "bottom": 193.78125
+        },
+        {
+          "left": 31,
+          "right": 350.09375,
+          "top": 179.765625,
+          "bottom": 226.765625
+        },
+        {
+          "left": 31,
+          "right": 295.75,
+          "top": 212.75,
+          "bottom": 259.75
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "status": 200,
+    "finalPath": "/match/sportsdb-ae6b4725f87f9b98dc",
+    "screenshot": "048-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 426.9,
+    "requestCount": 15,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3047269,
+    "domNodes": 649,
+    "clientTextViolations": [],
+    "heading": "Chicago Stars vs Denver Summit",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 180.375,
+          "right": 209.609375,
+          "top": 283.09375,
+          "bottom": 315.09375
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 162.78125,
+          "right": 227.21875,
+          "top": 318.09375,
+          "bottom": 332.09375
+        },
+        {
+          "left": 162.84375,
+          "right": 227.140625,
+          "top": 331.59375,
+          "bottom": 345.59375
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 167.96875,
+          "right": 222.015625,
+          "top": 246,
+          "bottom": 261
+        },
+        {
+          "left": 167.8125,
+          "right": 222.171875,
+          "top": 263.046875,
+          "bottom": 278.046875
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/match/sportsdb-7c11bc365f563d85f5",
+    "status": 200,
+    "finalPath": "/match/sportsdb-7c11bc365f563d85f5",
+    "screenshot": "049-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 536.8,
+    "requestCount": 15,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3047269,
+    "domNodes": 650,
+    "clientTextViolations": [],
+    "heading": "Real Sociedad B vs Granada",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 176.34375,
+          "right": 213.65625,
+          "top": 268.296875,
+          "bottom": 300.296875
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 162.78125,
+          "right": 227.21875,
+          "top": 303.296875,
+          "bottom": 317.296875
+        },
+        {
+          "left": 162.84375,
+          "right": 227.140625,
+          "top": 316.796875,
+          "bottom": 330.796875
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 167.5,
+          "right": 222.484375,
+          "top": 248.25,
+          "bottom": 263.25
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "client",
+    "route": "/match/sportsdb-22f9acca23e1cc306a",
+    "status": 200,
+    "finalPath": "/match/sportsdb-22f9acca23e1cc306a",
+    "screenshot": "050-mobile-client.jpg",
+    "jsErrors": [],
+    "loadMs": 434.8,
+    "requestCount": 15,
+    "serverErrors": [],
+    "externalRequests": 2,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "client-mobile",
+      "client-bottom"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3047269,
+    "domNodes": 646,
+    "clientTextViolations": [],
+    "heading": "Girona vs Mallorca",
+    "plan": "FREE",
+    "visibleButtons": 6,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [
+        {
+          "left": 176.34375,
+          "right": 213.65625,
+          "top": 283.09375,
+          "bottom": 315.09375
+        }
+      ],
+      "date_rects": [
+        {
+          "left": 162.78125,
+          "right": 227.21875,
+          "top": 318.09375,
+          "bottom": 332.09375
+        },
+        {
+          "left": 162.84375,
+          "right": 227.140625,
+          "top": 331.59375,
+          "bottom": 345.59375
+        }
+      ],
+      "phase_rects": [
+        {
+          "left": 158.703125,
+          "right": 231.296875,
+          "top": 246,
+          "bottom": 261
+        },
+        {
+          "left": 167.8125,
+          "right": 222.171875,
+          "top": 263.046875,
+          "bottom": 278.046875
+        }
+      ],
+      "legacy_status_circle": false,
+      "match_text_status": "PASS",
+      "heading_status": "NOT_RUN",
+      "title_rects": [],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/dashboard",
+    "status": 200,
+    "finalPath": "/admin/dashboard",
+    "screenshot": "051-mobile-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 803.8,
+    "requestCount": 17,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [
+      "THEAD.",
+      "TR.",
+      "TH.",
+      "TH.",
+      "SPAN.sr-only",
+      "TBODY.",
+      "TR.",
+      "TD.",
+      "TD.",
+      "TR.",
+      "TD.",
+      "TD."
+    ],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/admin-master-control.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3094957,
+    "domNodes": 861,
+    "clientTextViolations": [],
+    "heading": "Centro de mando",
+    "plan": "ADMIN",
+    "visibleButtons": 14,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 12,
+          "right": 218.1875,
+          "top": 164,
+          "bottom": 199
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/founder-os",
+    "status": 200,
+    "finalPath": "/admin/founder-os",
+    "screenshot": "052-mobile-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 256.0,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 39,
+          "right": 284.359375,
+          "top": 192.1875,
+          "bottom": 234.1875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  },
+  {
+    "profile": "mobile",
+    "surface": "admin",
+    "route": "/admin/founder-control",
+    "status": 200,
+    "finalPath": "/admin/founder-control",
+    "screenshot": "053-mobile-admin.jpg",
+    "jsErrors": [],
+    "loadMs": 178.6,
+    "requestCount": 13,
+    "serverErrors": [],
+    "externalRequests": 0,
+    "overflow": false,
+    "overflowing": [],
+    "navigation": [
+      "admin-mobile"
+    ],
+    "duplicateIds": [],
+    "mainCount": 1,
+    "styles": [
+      "/static/pwa-install.css",
+      "/static/product-system.css",
+      "/static/founder-os.css"
+    ],
+    "emptyStates": 0,
+    "brokenImages": [],
+    "transferBytes": 3057509,
+    "domNodes": 305,
+    "clientTextViolations": [],
+    "heading": "Control fundador",
+    "plan": "ADMIN",
+    "visibleButtons": 0,
+    "geometry": {
+      "scroll_y": 0,
+      "score_rects": [],
+      "date_rects": [],
+      "phase_rects": [],
+      "legacy_status_circle": false,
+      "match_text_status": "NOT_RUN",
+      "heading_status": "PASS",
+      "title_rects": [
+        {
+          "left": 39,
+          "right": 284.359375,
+          "top": 192.1875,
+          "bottom": 234.1875
+        }
+      ],
+      "bar_rects": [
+        {
+          "top": 54,
+          "bottom": 76,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 0,
+          "bottom": 54,
+          "left": 0,
+          "right": 390
+        },
+        {
+          "top": 84,
+          "bottom": 138,
+          "left": 0,
+          "right": 390
+        }
+      ],
+      "match_text_overlap": false,
+      "heading_covered": false
+    }
+  }
+]

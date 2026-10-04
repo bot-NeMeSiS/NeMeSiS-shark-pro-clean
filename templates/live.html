@@ -18,7 +18,7 @@
       {{ filter_tabs([{'key':'live','label':'En directo','href':'/directo?f=live'},{'key':'break','label':'Descanso','href':'/directo?f=break'},{'key':'with_pick','label':'Directo con pronóstico','href':'/directo?f=with_pick'}], lane) }}
     </nav>
     {% if ns.matches %}<section class="v933-kpi-grid ns16-kpi-strip">
-      {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'success', 'live', '/directo?f=live') }}
+      {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo?f=live') }}
       {{ kpi_card('Descanso', counts.get('halftime', counts.get('break', 0)), 'Pausa', 'warning', 'pause', '/directo?f=break') }}
       {{ kpi_card('Finalizados', sports_metrics.get('finished_verified', 0), 'En calendario', 'blue', 'history', '/calendario?lane=results') }}
       {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/directo?f=with_pick') }}

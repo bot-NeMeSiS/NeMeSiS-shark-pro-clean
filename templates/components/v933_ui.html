@@ -5,9 +5,11 @@
 
 {# Presentation boundary: diagnostic strings must never become client copy. #}
 {% macro client_message(value, fallback='La información estará disponible cuando haya datos confirmados.') -%}
-{% set message = value|string if value else '' %}
+{% set original = value|string|trim if value else '' %}
+{% set translations = {'NO_STATISTICS':'Estadísticas todavía no disponibles.', 'NO_LINEUPS':'Alineaciones todavía no disponibles.', 'NO_EVENTS':'Todavía no hay jugadas confirmadas.', 'PROVIDER_UNAVAILABLE':'Datos temporalmente limitados.', 'NO_DATA':'Todavía no hay información disponible.', 'OFFLINE':'Sin conexión. Vuelve a intentarlo cuando recuperes la conexión.', 'LOADING':'Cargando información del partido.'} %}
+{% set message = translations.get(original|upper, original) %}
 {% set check = namespace(technical=false) %}
-{% for term in ['runtime','cron','storage','provider','cache','caché','backfill','sentinel','partial','pass','fail','pipeline','sports truth','db_path'] %}
+{% for term in ['runtime','cron','storage','provider','cache','caché','backfill','sentinel','partial','pass','fail','pipeline','sports truth','db_path','admin'] %}
 {% if term in message|lower %}{% set check.technical = true %}{% endif %}
 {% endfor %}
 {{- ui(fallback if not message or check.technical else message) -}}
@@ -63,7 +65,8 @@
 {%- endmacro %}
 
 {% macro data_provenance_badge(source='', updated='', state='') -%}
-<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
+{% if request.path.startswith('/admin') %}<span class="v935-provenance" title="{{ ui("Trazabilidad del dato") }}">{{ icon('shield') }}<span><strong>{{ nemesis_source_label(source) }}</strong>{% if updated %}<small>{{ ui_owned(updated) }}</small>{% elif state %}<small>{{ ui_owned(state) }}</small>{% endif %}</span></span>
+{% endif %}
 {%- endmacro %}
 
 {% macro customer_trust_panel(trust) -%}

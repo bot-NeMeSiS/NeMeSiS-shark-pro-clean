@@ -1,0 +1,4247 @@
+{
+  "method": "Historical b7e8aea1 templates vs canonical templates, identical current backend and 387-record public cache snapshot. Five alternating warm samples after warming each route with both template sets. Flask request rendering + actual SQLite statement counts; no production latency claim. Outbound sockets prohibited.",
+  "summary": [
+    {
+      "route": "/app",
+      "before": {
+        "medianRenderMs": 328.37,
+        "medianHtmlBytes": 56379,
+        "selectCounts": [
+          23,
+          23,
+          23,
+          23,
+          23
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 302.73,
+        "medianHtmlBytes": 51956,
+        "selectCounts": [
+          23,
+          23,
+          23,
+          23,
+          23
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/calendario",
+      "before": {
+        "medianRenderMs": 982.44,
+        "medianHtmlBytes": 594903,
+        "selectCounts": [
+          25,
+          25,
+          25,
+          25,
+          25
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 881.78,
+        "medianHtmlBytes": 555742,
+        "selectCounts": [
+          25,
+          25,
+          25,
+          25,
+          25
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/directo",
+      "before": {
+        "medianRenderMs": 448.41,
+        "medianHtmlBytes": 33159,
+        "selectCounts": [
+          24,
+          24,
+          24,
+          24,
+          24
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 493.18,
+        "medianHtmlBytes": 30336,
+        "selectCounts": [
+          24,
+          24,
+          24,
+          24,
+          24
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/picks",
+      "before": {
+        "medianRenderMs": 547.76,
+        "medianHtmlBytes": 33488,
+        "selectCounts": [
+          25,
+          25,
+          25,
+          25,
+          25
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 505.4,
+        "medianHtmlBytes": 30665,
+        "selectCounts": [
+          25,
+          25,
+          25,
+          25,
+          25
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/combinadas",
+      "before": {
+        "medianRenderMs": 71.49,
+        "medianHtmlBytes": 32411,
+        "selectCounts": [
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 78.94,
+        "medianHtmlBytes": 29584,
+        "selectCounts": [
+          15,
+          15,
+          15,
+          15,
+          15
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/shark",
+      "before": {
+        "medianRenderMs": 540.53,
+        "medianHtmlBytes": 33659,
+        "selectCounts": [
+          29,
+          29,
+          29,
+          29,
+          29
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 563.77,
+        "medianHtmlBytes": 30733,
+        "selectCounts": [
+          29,
+          29,
+          29,
+          29,
+          29
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/telegram",
+      "before": {
+        "medianRenderMs": 180.08,
+        "medianHtmlBytes": 39529,
+        "selectCounts": [
+          26,
+          26,
+          26,
+          26,
+          26
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 188.97,
+        "medianHtmlBytes": 36681,
+        "selectCounts": [
+          26,
+          26,
+          26,
+          26,
+          26
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/mi-cuenta",
+      "before": {
+        "medianRenderMs": 137.07,
+        "medianHtmlBytes": 34333,
+        "selectCounts": [
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 146.56,
+        "medianHtmlBytes": 33352,
+        "selectCounts": [
+          16,
+          16,
+          16,
+          16,
+          16
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/membresias",
+      "before": {
+        "medianRenderMs": 41.21,
+        "medianHtmlBytes": 35523,
+        "selectCounts": [
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 39.89,
+        "medianHtmlBytes": 32697,
+        "selectCounts": [
+          7,
+          7,
+          7,
+          7,
+          7
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/onboarding",
+      "before": {
+        "medianRenderMs": 146.94,
+        "medianHtmlBytes": 33022,
+        "selectCounts": [
+          17,
+          17,
+          17,
+          17,
+          17
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 145.22,
+        "medianHtmlBytes": 30441,
+        "selectCounts": [
+          17,
+          17,
+          17,
+          17,
+          17
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "before": {
+        "medianRenderMs": 80.68,
+        "medianHtmlBytes": 55317,
+        "selectCounts": [
+          29,
+          29,
+          29,
+          29,
+          29
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 71.57,
+        "medianHtmlBytes": 44788,
+        "selectCounts": [
+          29,
+          29,
+          29,
+          29,
+          29
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "before": {
+        "medianRenderMs": 63.81,
+        "medianHtmlBytes": 55530,
+        "selectCounts": [
+          28,
+          28,
+          28,
+          28,
+          28
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 61.44,
+        "medianHtmlBytes": 45133,
+        "selectCounts": [
+          28,
+          28,
+          28,
+          28,
+          28
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "before": {
+        "medianRenderMs": 67.05,
+        "medianHtmlBytes": 55424,
+        "selectCounts": [
+          27,
+          27,
+          27,
+          27,
+          27
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 63.2,
+        "medianHtmlBytes": 44985,
+        "selectCounts": [
+          27,
+          27,
+          27,
+          27,
+          27
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/dashboard",
+      "before": {
+        "medianRenderMs": 529.21,
+        "medianHtmlBytes": 69452,
+        "selectCounts": [
+          57,
+          57,
+          57,
+          57,
+          57
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 638.67,
+        "medianHtmlBytes": 67060,
+        "selectCounts": [
+          57,
+          57,
+          57,
+          57,
+          57
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/matches",
+      "before": {
+        "medianRenderMs": 354.29,
+        "medianHtmlBytes": 41055,
+        "selectCounts": [
+          67,
+          67,
+          67,
+          67,
+          67
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 385.42,
+        "medianHtmlBytes": 38688,
+        "selectCounts": [
+          67,
+          67,
+          67,
+          67,
+          67
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/picks",
+      "before": {
+        "medianRenderMs": 2995.39,
+        "medianHtmlBytes": 43831,
+        "selectCounts": [
+          980,
+          980,
+          980,
+          980,
+          980
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 3034.93,
+        "medianHtmlBytes": 41464,
+        "selectCounts": [
+          980,
+          980,
+          980,
+          980,
+          980
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/telegram/command-center",
+      "before": {
+        "medianRenderMs": 3347.59,
+        "medianHtmlBytes": 41918,
+        "selectCounts": [
+          1071,
+          1071,
+          1071,
+          1071,
+          1071
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 2889.4,
+        "medianHtmlBytes": 39551,
+        "selectCounts": [
+          1071,
+          1071,
+          1071,
+          1071,
+          1071
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/users",
+      "before": {
+        "medianRenderMs": 2836.05,
+        "medianHtmlBytes": 42131,
+        "selectCounts": [
+          983,
+          983,
+          983,
+          983,
+          983
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 2857.62,
+        "medianHtmlBytes": 39764,
+        "selectCounts": [
+          983,
+          1618,
+          983,
+          983,
+          983
+        ],
+        "writeCounts": [
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/memberships",
+      "before": {
+        "medianRenderMs": 3313.59,
+        "medianHtmlBytes": 38603,
+        "selectCounts": [
+          985,
+          985,
+          1620,
+          985,
+          985
+        ],
+        "writeCounts": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 3424.84,
+        "medianHtmlBytes": 36236,
+        "selectCounts": [
+          985,
+          985,
+          985,
+          985,
+          985
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/data-center",
+      "before": {
+        "medianRenderMs": 3627.72,
+        "medianHtmlBytes": 49267,
+        "selectCounts": [
+          1067,
+          1067,
+          1067,
+          1067,
+          1067
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 4638.53,
+        "medianHtmlBytes": 46901,
+        "selectCounts": [
+          1067,
+          1067,
+          1702,
+          1067,
+          1067
+        ],
+        "writeCounts": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/founder-os",
+      "before": {
+        "medianRenderMs": 10.73,
+        "medianHtmlBytes": 35734,
+        "selectCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 10.33,
+        "medianHtmlBytes": 33367,
+        "selectCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "route": "/admin/founder-control",
+      "before": {
+        "medianRenderMs": 9.29,
+        "medianHtmlBytes": 35749,
+        "selectCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      },
+      "after": {
+        "medianRenderMs": 9.08,
+        "medianHtmlBytes": 33382,
+        "selectCounts": [
+          4,
+          4,
+          4,
+          4,
+          4
+        ],
+        "writeCounts": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "externalAttempts": 0,
+        "statuses": [
+          200,
+          200,
+          200,
+          200,
+          200
+        ]
+      }
+    }
+  ],
+  "samples": [
+    {
+      "version": "before",
+      "route": "/app",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 326.8,
+      "htmlBytes": 56379,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 320.21,
+      "htmlBytes": 51956,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 272.78,
+      "htmlBytes": 51956,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 328.37,
+      "htmlBytes": 56379,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 271.04,
+      "htmlBytes": 56379,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 302.73,
+      "htmlBytes": 51956,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 334.7,
+      "htmlBytes": 51956,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 342.57,
+      "htmlBytes": 56379,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/app",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 379.42,
+      "htmlBytes": 56379,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/app",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 295.95,
+      "htmlBytes": 51956,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 23,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 889.5,
+      "htmlBytes": 594903,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 819.5,
+      "htmlBytes": 555742,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 654.96,
+      "htmlBytes": 555742,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 920.32,
+      "htmlBytes": 594903,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 982.44,
+      "htmlBytes": 594903,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 881.78,
+      "htmlBytes": 555742,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 1078.57,
+      "htmlBytes": 555742,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 1039.49,
+      "htmlBytes": 594903,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/calendario",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 1249.0,
+      "htmlBytes": 594903,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/calendario",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 1077.81,
+      "htmlBytes": 555742,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 728.6,
+      "htmlBytes": 33159,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 551.48,
+      "htmlBytes": 30336,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 436.17,
+      "htmlBytes": 30336,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 563.3,
+      "htmlBytes": 33159,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 438.62,
+      "htmlBytes": 33159,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 586.99,
+      "htmlBytes": 30336,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 481.46,
+      "htmlBytes": 30336,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 400.51,
+      "htmlBytes": 33159,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/directo",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 448.41,
+      "htmlBytes": 33159,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/directo",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 493.18,
+      "htmlBytes": 30336,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 24,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/picks",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 509.07,
+      "htmlBytes": 33488,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/picks",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 609.37,
+      "htmlBytes": 30665,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/picks",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 505.4,
+      "htmlBytes": 30665,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/picks",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 563.51,
+      "htmlBytes": 33488,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/picks",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 453.69,
+      "htmlBytes": 33488,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/picks",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 515.07,
+      "htmlBytes": 30665,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/picks",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 487.69,
+      "htmlBytes": 30665,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/picks",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 547.76,
+      "htmlBytes": 33488,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/picks",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 569.5,
+      "htmlBytes": 33488,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/picks",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 424.73,
+      "htmlBytes": 30665,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 25,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/combinadas",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 118.39,
+      "htmlBytes": 32411,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/combinadas",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 107.41,
+      "htmlBytes": 29584,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/combinadas",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 78.94,
+      "htmlBytes": 29584,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/combinadas",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 71.49,
+      "htmlBytes": 32411,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/combinadas",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 81.38,
+      "htmlBytes": 32411,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/combinadas",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 78.15,
+      "htmlBytes": 29584,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/combinadas",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 79.06,
+      "htmlBytes": 29584,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/combinadas",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 68.71,
+      "htmlBytes": 32411,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/combinadas",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 70.84,
+      "htmlBytes": 32411,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/combinadas",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 63.16,
+      "htmlBytes": 29584,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "BEGIN": 1,
+        "SELECT": 15
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 659.16,
+      "htmlBytes": 33659,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 574.7,
+      "htmlBytes": 30733,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 564.49,
+      "htmlBytes": 30733,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 539.71,
+      "htmlBytes": 33659,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 525.22,
+      "htmlBytes": 33659,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 553.39,
+      "htmlBytes": 30733,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 563.77,
+      "htmlBytes": 30733,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 674.6,
+      "htmlBytes": 33659,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/shark",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 540.53,
+      "htmlBytes": 33659,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/shark",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 561.47,
+      "htmlBytes": 30733,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 29,
+        "CREATE": 3,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/telegram",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 172.52,
+      "htmlBytes": 39529,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/telegram",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 167.74,
+      "htmlBytes": 36681,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/telegram",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 202.16,
+      "htmlBytes": 36681,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/telegram",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 180.08,
+      "htmlBytes": 39529,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/telegram",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 178.02,
+      "htmlBytes": 39529,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/telegram",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 188.97,
+      "htmlBytes": 36681,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/telegram",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 187.31,
+      "htmlBytes": 36681,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/telegram",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 185.74,
+      "htmlBytes": 39529,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/telegram",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 186.39,
+      "htmlBytes": 39529,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/telegram",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 217.29,
+      "htmlBytes": 36681,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 26
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 132.31,
+      "htmlBytes": 34333,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 145.87,
+      "htmlBytes": 33352,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 164.79,
+      "htmlBytes": 33352,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 137.07,
+      "htmlBytes": 34333,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 133.02,
+      "htmlBytes": 34333,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 138.74,
+      "htmlBytes": 33352,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 146.56,
+      "htmlBytes": 33352,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 148.29,
+      "htmlBytes": 34333,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/mi-cuenta",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 143.2,
+      "htmlBytes": 34333,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/mi-cuenta",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 149.97,
+      "htmlBytes": 33352,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 16
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/membresias",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 43.24,
+      "htmlBytes": 35523,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/membresias",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 42.95,
+      "htmlBytes": 32697,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/membresias",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 38.51,
+      "htmlBytes": 32697,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/membresias",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 41.21,
+      "htmlBytes": 35523,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/membresias",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 44.22,
+      "htmlBytes": 35523,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/membresias",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 39.89,
+      "htmlBytes": 32697,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/membresias",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 39.17,
+      "htmlBytes": 32697,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/membresias",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 39.81,
+      "htmlBytes": 35523,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/membresias",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 41.01,
+      "htmlBytes": 35523,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/membresias",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 41.94,
+      "htmlBytes": 32697,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 7
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/onboarding",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 148.91,
+      "htmlBytes": 33022,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/onboarding",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 171.84,
+      "htmlBytes": 30441,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/onboarding",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 145.22,
+      "htmlBytes": 30441,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/onboarding",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 131.65,
+      "htmlBytes": 33022,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/onboarding",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 149.7,
+      "htmlBytes": 33022,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/onboarding",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 133.5,
+      "htmlBytes": 30441,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/onboarding",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 142.8,
+      "htmlBytes": 30441,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/onboarding",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 146.94,
+      "htmlBytes": 33022,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/onboarding",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 146.31,
+      "htmlBytes": 33022,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/onboarding",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 150.35,
+      "htmlBytes": 30441,
+      "sqlStatements": {
+        "PRAGMA": 3,
+        "SELECT": 17
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 92.63,
+      "htmlBytes": 55317,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 66.58,
+      "htmlBytes": 44788,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 79.95,
+      "htmlBytes": 44788,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 81.71,
+      "htmlBytes": 55317,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 80.68,
+      "htmlBytes": 55317,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 104.16,
+      "htmlBytes": 44788,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 71.57,
+      "htmlBytes": 44788,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 65.74,
+      "htmlBytes": 55317,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 67.62,
+      "htmlBytes": 55317,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-ae6b4725f87f9b98dc",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 61.77,
+      "htmlBytes": 44788,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 29,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 63.58,
+      "htmlBytes": 55530,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 61.44,
+      "htmlBytes": 45133,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 61.86,
+      "htmlBytes": 45133,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 63.81,
+      "htmlBytes": 55530,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 58.45,
+      "htmlBytes": 55530,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 61.19,
+      "htmlBytes": 45133,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 60.96,
+      "htmlBytes": 45133,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 73.57,
+      "htmlBytes": 55530,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 64.99,
+      "htmlBytes": 55530,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-7c11bc365f563d85f5",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 67.22,
+      "htmlBytes": 45133,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 28,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 60.15,
+      "htmlBytes": 55424,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 61.92,
+      "htmlBytes": 44985,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 58.62,
+      "htmlBytes": 44985,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 67.13,
+      "htmlBytes": 55424,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 70.55,
+      "htmlBytes": 55424,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 63.2,
+      "htmlBytes": 44985,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 65.0,
+      "htmlBytes": 44985,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 67.05,
+      "htmlBytes": 55424,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 60.96,
+      "htmlBytes": 55424,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/match/sportsdb-22f9acca23e1cc306a",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 67.32,
+      "htmlBytes": 44985,
+      "sqlStatements": {
+        "PRAGMA": 8,
+        "SELECT": 27,
+        "BEGIN": 2,
+        "ROLLBACK": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/dashboard",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 524.3,
+      "htmlBytes": 69452,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/dashboard",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 557.09,
+      "htmlBytes": 67060,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/dashboard",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 781.16,
+      "htmlBytes": 67060,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/dashboard",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 727.99,
+      "htmlBytes": 69452,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/dashboard",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 795.35,
+      "htmlBytes": 69452,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/dashboard",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 747.58,
+      "htmlBytes": 67060,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/dashboard",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 638.67,
+      "htmlBytes": 67060,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/dashboard",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 516.5,
+      "htmlBytes": 69452,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/dashboard",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 529.21,
+      "htmlBytes": 69452,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/dashboard",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 370.39,
+      "htmlBytes": 67060,
+      "sqlStatements": {
+        "PRAGMA": 16,
+        "SELECT": 57,
+        "BEGIN": 4,
+        "ROLLBACK": 2
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/matches",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 354.29,
+      "htmlBytes": 41055,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/matches",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 400.46,
+      "htmlBytes": 38688,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/matches",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 353.65,
+      "htmlBytes": 38688,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/matches",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 344.14,
+      "htmlBytes": 41055,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/matches",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 345.99,
+      "htmlBytes": 41055,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/matches",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 385.42,
+      "htmlBytes": 38688,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/matches",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 365.04,
+      "htmlBytes": 38688,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/matches",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 544.71,
+      "htmlBytes": 41055,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/matches",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 489.97,
+      "htmlBytes": 41055,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/matches",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 471.95,
+      "htmlBytes": 38688,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 67
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/picks",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3083.67,
+      "htmlBytes": 43831,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/picks",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3034.93,
+      "htmlBytes": 41464,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/picks",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 2871.99,
+      "htmlBytes": 41464,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/picks",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 2794.97,
+      "htmlBytes": 43831,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/picks",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 2995.39,
+      "htmlBytes": 43831,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/picks",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 3453.07,
+      "htmlBytes": 41464,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/picks",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3148.98,
+      "htmlBytes": 41464,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/picks",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 2782.51,
+      "htmlBytes": 43831,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/picks",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 3021.24,
+      "htmlBytes": 43831,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/picks",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 2871.3,
+      "htmlBytes": 41464,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 980
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/telegram/command-center",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3048.26,
+      "htmlBytes": 41918,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/telegram/command-center",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3009.92,
+      "htmlBytes": 39551,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/telegram/command-center",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 2703.12,
+      "htmlBytes": 39551,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/telegram/command-center",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 3347.59,
+      "htmlBytes": 41918,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/telegram/command-center",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 3040.55,
+      "htmlBytes": 41918,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/telegram/command-center",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 2889.4,
+      "htmlBytes": 39551,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/telegram/command-center",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3073.04,
+      "htmlBytes": 39551,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/telegram/command-center",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3350.77,
+      "htmlBytes": 41918,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/telegram/command-center",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 4211.75,
+      "htmlBytes": 41918,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/telegram/command-center",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 2875.48,
+      "htmlBytes": 39551,
+      "sqlStatements": {
+        "PRAGMA": 33,
+        "SELECT": 1071,
+        "BEGIN": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/users",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 2519.1,
+      "htmlBytes": 42131,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/users",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 2683.79,
+      "htmlBytes": 39764,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/users",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 4371.18,
+      "htmlBytes": 39764,
+      "sqlStatements": {
+        "PRAGMA": 17,
+        "SELECT": 1618,
+        "BEGIN": 1,
+        "INSERT": 1,
+        "COMMIT": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/users",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 2836.05,
+      "htmlBytes": 42131,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/users",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 2701.64,
+      "htmlBytes": 42131,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/users",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 2605.93,
+      "htmlBytes": 39764,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/users",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3653.48,
+      "htmlBytes": 39764,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/users",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3848.32,
+      "htmlBytes": 42131,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/users",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 3079.73,
+      "htmlBytes": 42131,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/users",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 2857.62,
+      "htmlBytes": 39764,
+      "sqlStatements": {
+        "PRAGMA": 11,
+        "SELECT": 983
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/memberships",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3313.59,
+      "htmlBytes": 38603,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/memberships",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3424.84,
+      "htmlBytes": 36236,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/memberships",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 4136.05,
+      "htmlBytes": 36236,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/memberships",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 4019.34,
+      "htmlBytes": 38603,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/memberships",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 6097.94,
+      "htmlBytes": 38603,
+      "sqlStatements": {
+        "PRAGMA": 13,
+        "SELECT": 1620,
+        "BEGIN": 1,
+        "INSERT": 1,
+        "COMMIT": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/memberships",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 4382.21,
+      "htmlBytes": 36236,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/memberships",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 3213.69,
+      "htmlBytes": 36236,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/memberships",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 2724.1,
+      "htmlBytes": 38603,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/memberships",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 3127.02,
+      "htmlBytes": 38603,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/memberships",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 3120.09,
+      "htmlBytes": 36236,
+      "sqlStatements": {
+        "PRAGMA": 7,
+        "SELECT": 985
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/data-center",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 3996.62,
+      "htmlBytes": 49267,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/data-center",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 4106.78,
+      "htmlBytes": 46901,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/data-center",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 6797.31,
+      "htmlBytes": 46913,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/data-center",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 3627.72,
+      "htmlBytes": 49267,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/data-center",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 3638.19,
+      "htmlBytes": 49267,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/data-center",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 5721.43,
+      "htmlBytes": 46901,
+      "sqlStatements": {
+        "PRAGMA": 12,
+        "SELECT": 1702,
+        "BEGIN": 1,
+        "INSERT": 1,
+        "COMMIT": 1
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/data-center",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 4638.53,
+      "htmlBytes": 46913,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/data-center",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 2939.62,
+      "htmlBytes": 49267,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/data-center",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 2659.33,
+      "htmlBytes": 49267,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/data-center",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 2763.08,
+      "htmlBytes": 46901,
+      "sqlStatements": {
+        "PRAGMA": 6,
+        "SELECT": 1067
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-os",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 27.16,
+      "htmlBytes": 35734,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-os",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 9.87,
+      "htmlBytes": 33367,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-os",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 8.11,
+      "htmlBytes": 33367,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-os",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 8.25,
+      "htmlBytes": 35734,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-os",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 11.05,
+      "htmlBytes": 35734,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-os",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 10.33,
+      "htmlBytes": 33367,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-os",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 12.99,
+      "htmlBytes": 33367,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-os",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 10.73,
+      "htmlBytes": 35734,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-os",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 9.58,
+      "htmlBytes": 35734,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-os",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 19.35,
+      "htmlBytes": 33367,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-control",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 9.29,
+      "htmlBytes": 35749,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-control",
+      "repeat": 0,
+      "status": 200,
+      "renderMs": 9.05,
+      "htmlBytes": 33382,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-control",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 7.78,
+      "htmlBytes": 33382,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-control",
+      "repeat": 1,
+      "status": 200,
+      "renderMs": 9.78,
+      "htmlBytes": 35749,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-control",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 8.75,
+      "htmlBytes": 35749,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-control",
+      "repeat": 2,
+      "status": 200,
+      "renderMs": 12.45,
+      "htmlBytes": 33382,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-control",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 29.53,
+      "htmlBytes": 33382,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-control",
+      "repeat": 3,
+      "status": 200,
+      "renderMs": 11.36,
+      "htmlBytes": 35749,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "before",
+      "route": "/admin/founder-control",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 8.66,
+      "htmlBytes": 35749,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    },
+    {
+      "version": "after",
+      "route": "/admin/founder-control",
+      "repeat": 4,
+      "status": 200,
+      "renderMs": 9.08,
+      "htmlBytes": 33382,
+      "sqlStatements": {
+        "PRAGMA": 5,
+        "SELECT": 4
+      },
+      "externalAttempts": 0
+    }
+  ],
+  "note": "Client and admin measurements were collected separately. Final minor client text changes and removal of inactive CSS selectors do not add DB operations. Browser capture loadMs includes screenshot preparation and is not used as a speed benchmark."
+}
