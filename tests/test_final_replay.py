@@ -47,6 +47,8 @@ def replay(app_module, tmp_path, monkeypatch):
     monkeypatch.setattr(app, '_SEEDING_DB_PATH', None)
     app.init_db()
     clock = [datetime.fromisoformat(CLOCKS[1])]
+    from engines import unified_sports_truth_engine
+    monkeypatch.setattr(unified_sports_truth_engine, "_utc_now", lambda: clock[0])
     original_now = truth.madrid_now
     monkeypatch.setattr(truth, 'madrid_now', lambda value=None: original_now(value or clock[0]))
     from engines import realtime_state_engine, v934_realtime_sports_engine
