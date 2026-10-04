@@ -58,6 +58,27 @@
   <details><summary>Identidades enlazadas (muestra de hasta 100)</summary>{% for identity in history.ids %}<p>{{ identity.kind }} · {{ identity.source }} · {{ identity.external_id }} → {{ identity.canonical_id }}</p>{% endfor %}</details>
   {% else %}
   <p class="small">Temporada {{ history.season or 'sin confirmar' }} · Resultados anteriores al inicio de este partido</p>
+  {% set broadcast_rows = (history.get('details') or {}).get('broadcasts') or [] %}
+  {% if broadcast_rows %}
+    {% set broadcast = (broadcast_rows[-1].get('payload') or {}) %}
+    <article class="card" data-sportsdb-broadcasts data-broadcast-available="{{ 'true' if broadcast.get('available') else 'false' }}">
+      <h3>Dónde verlo</h3>
+      {% if broadcast.get('available') and broadcast.get('channels') %}
+        <p class="small">Programación disponible por país. Consulta las condiciones de acceso del canal.</p>
+        <div class="stack">
+          {% for channel in broadcast.get('channels')[:8] %}
+          <div class="list-row">
+            <span><strong>{{ channel.get('channel') }}</strong>{% if channel.get('country') %} · {{ channel.get('country') }}{% endif %}</span>
+            {% if channel.get('time') %}<span class="time">{{ channel.get('time') }}</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="small">La programación de este partido todavía no está disponible.</p>
+      {% endif %}
+      <p class="small">Fuente: TheSportsDB · Actualizado {{ broadcast.get('observed_at')|madrid_datetime_label if broadcast.get('observed_at') else 'en fecha pendiente de confirmar' }}.</p>
+    </article>
+  {% endif %}
   <div class="grid compact-grid">{{ team_history(history.home, 'Local') }}{{ team_history(history.away, 'Visitante') }}</div>
   <p>H2H en esta competición y temporada: {{ history.h2h.played }} resultados guardados. Cobertura parcial.</p>
   {% for previous in history.previous_seasons or [] %}<details><summary>Temporada {{ previous.season }}</summary><div class="grid compact-grid">{{ team_history(previous.home, 'Local') }}{{ team_history(previous.away, 'Visitante') }}</div></details>{% endfor %}
