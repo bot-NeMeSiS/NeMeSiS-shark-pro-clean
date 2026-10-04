@@ -250,10 +250,11 @@ def ensure_backup_capacity(
     # Invalid/orphan files first; then oldest verified-history copies. The
     # newest independently verified backup is never removed for capacity.
     candidates = [item for item in reversed(backups) if not item.get("valid")]
-    candidates.extend(
-        item for item in reversed(backups)
-        if item.get("valid") and (verified is None or item["name"] != verified["name"])
-    )
+    if verified is not None:
+        candidates.extend(
+            item for item in reversed(backups)
+            if item.get("valid") and item["name"] != verified["name"]
+        )
     seen = set()
     for item in candidates:
         name = str(item.get("name") or "")
