@@ -60,6 +60,15 @@ def test_finished_and_stale_states_cannot_be_pre_match_recommendations(app_modul
         assert result['evidence']['facts']['status'] == app_module.canonical_match_status(row)
 
 
+def test_fresh_live_signal_for_tomorrow_cannot_be_a_waiting_recommendation(app_module):
+    row = match()
+    row.update(status='LIVE', updated_at=datetime.now(ZoneInfo('Europe/Madrid')).isoformat())
+    result = app_module.v565_recommendation_for_match(row)
+    assert result['evidence']['facts']['status']['status_conflict']
+    assert result['decision'] == 'NO_BET'
+    assert result['can_publish'] is False
+
+
 @pytest.mark.parametrize('path', ['/api/betting/convert-to-pick', '/api/v565/convert-recommendation'])
 def test_wait_cannot_be_published_and_get_does_not_write(app_module, monkeypatch, path):
     client = app_module.app.test_client()

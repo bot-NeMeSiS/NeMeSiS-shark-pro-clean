@@ -30926,7 +30926,12 @@ def v565_recommendation_for_match(match):
         for key, name in (("home", match.get("home_team")), ("draw", "Empate"),
                           ("away", match.get("away_team"))) if odds[key] > 1 and name
     ]
-    decision = "WAIT" if truth.get("is_upcoming") else "NO_BET"
+    safe_upcoming = (
+        truth.get("is_upcoming")
+        and not truth.get("status_conflict")
+        and not truth.get("is_stale")
+    )
+    decision = "WAIT" if safe_upcoming else "NO_BET"
     return {
         "id": match.get("id"),
         "match_id": match.get("id"),
