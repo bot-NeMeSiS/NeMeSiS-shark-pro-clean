@@ -217,3 +217,20 @@ def test_master_observes_all_lanes_after_uncertain_odds_post(monkeypatch, capsys
     for index,(method,url) in enumerate(calls):
         if method=='POST' and any(url.endswith(endpoint) for endpoint in [master.SPORTS_ENDPOINT,master.ODDS_ENDPOINT,master.TELEGRAM_ENDPOINT]):
             assert calls[index-1][0] == 'GET'
+
+
+def test_sports_failure_summary_preserves_safe_stage_and_no_secret(monkeypatch):
+    payload = {'ok': False, 'status': 'PARTIAL', 'errors_count': 3,
+               'technical_errors': ['fixtures_ERROR', 'deep_enrichment_PROVIDER_UNAVAILABLE',
+                                    'https://provider.invalid/private-key'],
+               'controlled_deferrals': ['TIME_BUDGET', 'private-key']}
+    monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(payload))
+    result = master.sports_tick('https://qa.invalid', 'private-key')
+    assert result['sports_status'] == 'FAIL'
+    assert result['sports_technical_errors'] == [
+        {'stage': 'fixtures', 'reason': 'ERROR'},
+        {'stage': 'deep_enrichment', 'reason': 'PROVIDER_UNAVAILABLE'},
+        {'stage': 'UNKNOWN', 'reason': 'UNCLASSIFIED'}]
+    assert result['sports_errors_count'] == 3
+    assert result['sports_controlled_deferrals'] == ['TIME_BUDGET']
+    assert 'private-key' not in json.dumps(result) and 'provider.invalid' not in json.dumps(result)
