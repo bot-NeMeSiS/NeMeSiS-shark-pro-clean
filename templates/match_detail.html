@@ -48,6 +48,7 @@
   {% set picks = match_context.get('picks') or {} %}
   <nav class="v944-match-sections" aria-label="{{ ui("Secciones disponibles del partido") }}">
     <a href="#match-section-story" data-match-section-link="story">{{ ui("Resumen") }}</a>
+    {% if (match_context.get('broadcasts') or {}).get('available') %}<a href="#match-section-tv">{{ ui('TV') }}</a>{% endif %}
     {% if (match_context.get('odds') or {}).get('available') %}<a href="#match-section-odds" data-match-section-link="odds">{{ ui("Cuotas") }}</a>{% endif %}
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">{{ ui("Alineaciones") }}</a>{% endif %}
     {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">{{ ui("Eventos") }}</a>{% endif %}
@@ -62,6 +63,16 @@
   <div class="v944-match-layout">
     <section class="v944-match-main" id="match-story" aria-label="{{ ui("Historia y datos del partido") }}">
       {{ match_story(match_context) }}
+      {% set broadcast = match_context.get('broadcasts') or {} %}
+      <section class="v944-match-panel v944-match-panel--tv" id="match-section-tv" aria-label="Dónde verlo" data-sportsdb-broadcasts>
+        <h2>{{ ui('Dónde verlo') }}</h2>
+        {% if broadcast.get('available') %}
+        <p>{{ ui('Programación por país. Consulta las condiciones de acceso del canal.') }}</p>
+        {% for channel in broadcast.get('channels') %}<p><strong>{{ channel.channel }}</strong>{% if channel.country %} · {{ channel.country }}{% endif %}</p>{% endfor %}
+        <p class="small">TheSportsDB · {{ broadcast.get('updated_at')|madrid_datetime_label }}</p>
+        {% elif broadcast.get('stale') %}<p>{{ ui('La programación está pendiente de actualizarse.') }}</p>
+        {% else %}<p>{{ ui('La programación de este partido todavía no está disponible.') }}</p>{% endif %}
+      </section>
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
       {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}

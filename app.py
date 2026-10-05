@@ -21113,6 +21113,8 @@ def match_detail_page(match_id):
     )
     from engines.sports_history_engine import match_history
     match_context["historical_memory"] = match_history(DB_PATH, match_id)
+    from engines.match_broadcast_presentation import broadcast_presentation
+    match_context["broadcasts"] = broadcast_presentation(match_context["historical_memory"])
     data = {
         "match_detail": detail,
         "v934_detail_refresh": {
