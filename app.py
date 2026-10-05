@@ -4925,7 +4925,7 @@ def sportsdb_event_id(event):
     return "sportsdb-" + hashlib.md5(str(raw).encode("utf-8")).hexdigest()[:18]
 
 
-def cache_sportsdb_event_team(name, external_id="", logo_url="", country="", league=""):
+def cache_sportsdb_event_team(name, external_id="", logo_url="", country="", league="", *, connection=None):
     name = str(name or "").strip()
     if not name:
         return
@@ -4938,12 +4938,16 @@ def cache_sportsdb_event_team(name, external_id="", logo_url="", country="", lea
         "source": "TheSportsDB Event Feed",
         "legal_note": "Equipo/escudo obtenido desde API permitida TheSportsDB; cache SQLite propio, sin scraping.",
     }
-    current = one("SELECT * FROM teams WHERE key=?", (canonical_team_key(name),))
+    current = (connection.execute("SELECT * FROM teams WHERE key=?", (canonical_team_key(name),)).fetchone()
+               if connection is not None else one("SELECT * FROM teams WHERE key=?", (canonical_team_key(name),)))
     if logo_url or not current:
-        cache_team_identity(name, identity)
+        if connection is None:
+            cache_team_identity(name, identity)
+        else:
+            cache_team_identity(name, identity, connection=connection)
 
 
-def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", cache_teams=False):
+def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", cache_teams=False, team_connection=None):
     fallback = fallback or {}
     sport = str(event.get("strSport") or event.get("sport") or "Soccer").lower()
     if sport and sport not in {"soccer", "football"}:
@@ -4985,8 +4989,9 @@ def sportsdb_event_to_match(event, fallback=None, *, provider_observed_at="", ca
     away_score = "" if raw_away_score in {None, ""} else str(raw_away_score)
     country = spanish_country_name(event.get("strCountry") or fallback.get("country") or "")
     if cache_teams:
-        cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name)
-        cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name)
+        kwargs = {"connection": team_connection} if team_connection is not None else {}
+        cache_sportsdb_event_team(raw_home, home_id, home_badge, country, comp_name, **kwargs)
+        cache_sportsdb_event_team(raw_away, away_id, away_badge, country, comp_name, **kwargs)
     return {
         "id": sportsdb_event_id(event),
         "external_id": event.get("idEvent") or event.get("idLiveScore") or "",
@@ -5527,17 +5532,26 @@ def sync_sportsdb_feed(limit=220):
         match_rows = []
         seen = set()
         provider_observed_at = now_iso()
-        for event, fallback in fetched:
-            match = sportsdb_event_to_match(
-                event,
-                fallback=fallback,
-                provider_observed_at=provider_observed_at,
-                cache_teams=True,
-            )
-            if not match or match["id"] in seen:
-                continue
-            seen.add(match["id"])
-            match_rows.append(match)
+        team_conn = db()
+        try:
+            for event, fallback in fetched:
+                match = sportsdb_event_to_match(
+                    event,
+                    fallback=fallback,
+                    provider_observed_at=provider_observed_at,
+                    cache_teams=True,
+                    team_connection=team_conn,
+                )
+                if not match or match["id"] in seen:
+                    continue
+                seen.add(match["id"])
+                match_rows.append(match)
+            team_conn.commit()
+        except Exception:
+            team_conn.rollback()
+            raise
+        finally:
+            team_conn.close()
         result = upsert_sportsdb_matches(match_rows)
         observed_external_ids = {
             str(item.get("external_id") or "").strip()
@@ -7143,9 +7157,9 @@ def thesportsdb_diagnostics(team_name="Real Madrid"):
     }
 
 
-def cache_team_identity(name, identity):
+def cache_team_identity(name, identity, *, connection=None):
     key = canonical_team_key(name)
-    conn = db()
+    conn = connection if connection is not None else db()
     cur = conn.cursor()
     cur.execute(
         """INSERT OR REPLACE INTO teams
@@ -7165,8 +7179,9 @@ def cache_team_identity(name, identity):
             now_iso(),
         ),
     )
-    conn.commit()
-    conn.close()
+    if connection is None:
+        conn.commit()
+        conn.close()
 
 
 def resolve_team(name, refresh=False):
