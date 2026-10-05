@@ -186,35 +186,64 @@ def persist_api_section(conn, fixture_id, group, payload, *, observed_at, availa
 
 
 def rehome_receipts(conn, old_id, new_id):
-    """Called only after existing exact-identity dedupe has selected a keeper."""
+    """Move latest truth after exact-identity dedupe without increasing storage."""
     if str(old_id) == str(new_id):
-        return
+        return True
     ensure_schema(conn)
-    for provider, encoded, observed in conn.execute("SELECT provider,evidence_json,observed_at FROM sports_truth_receipts WHERE match_id=?", (str(old_id),)).fetchall():
-        previous = conn.execute("SELECT observed_at,evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider=?", (str(new_id), provider)).fetchone()
-        if previous:
-            incoming, retained = _json(encoded), _json(previous[1])
-            for group, fields in GROUPS.items():
-                a, b = incoming.get("groups", {}).get(group, {}), retained.get("groups", {}).get(group, {})
-                available = any(_present(incoming.get("values", {}).get(field)) for field in fields) or a.get("state") != "AVAILABLE"
-                retained_available = any(_present(retained.get("values", {}).get(field)) for field in fields) or b.get("state", "AVAILABLE") != "AVAILABLE"
-                older = retained_available and instant(b.get("observed_at")) and (not instant(a.get("observed_at")) or instant(a["observed_at"]) < instant(b["observed_at"]))
-                if not available or older:
-                    incoming["groups"][group] = clone_snapshot(b)
-                    for field in fields:
-                        incoming["values"][field] = clone_snapshot(retained.get("values", {}).get(field))
-                    if group in retained.get("raw", {}):
-                        incoming["raw"][group] = clone_snapshot(retained["raw"][group])
-                    if group == "state":
-                        incoming["values"]["_status_signals"] = clone_snapshot(retained.get("values", {}).get("_status_signals", {}))
-            encoded = json.dumps(incoming, ensure_ascii=False)
+    old_rows = conn.execute(
+        "SELECT provider,evidence_json,observed_at FROM sports_truth_receipts WHERE match_id=?",
+        (str(old_id),),
+    ).fetchall()
+    for provider, encoded, observed in old_rows:
+        previous = conn.execute(
+            "SELECT observed_at,evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider=?",
+            (str(new_id), provider),
+        ).fetchone()
+        if not previous:
+            # Primary-key rewrite keeps the same evidence bytes and does not
+            # allocate a second latest receipt.
+            conn.execute(
+                "UPDATE sports_truth_receipts SET match_id=? WHERE match_id=? AND provider=?",
+                (str(new_id), str(old_id), provider),
+            )
+            continue
+
+        incoming, retained = _json(encoded), _json(previous[1])
+        for group, fields in GROUPS.items():
+            a, b = incoming.get("groups", {}).get(group, {}), retained.get("groups", {}).get(group, {})
+            available = any(_present(incoming.get("values", {}).get(field)) for field in fields) or a.get("state") != "AVAILABLE"
+            retained_available = any(_present(retained.get("values", {}).get(field)) for field in fields) or b.get("state", "AVAILABLE") != "AVAILABLE"
+            older = retained_available and instant(b.get("observed_at")) and (not instant(a.get("observed_at")) or instant(a["observed_at"]) < instant(b["observed_at"]))
+            if not available or older:
+                incoming["groups"][group] = clone_snapshot(b)
+                for field in fields:
+                    incoming["values"][field] = clone_snapshot(retained.get("values", {}).get(field))
+                if group in retained.get("raw", {}):
+                    incoming["raw"][group] = clone_snapshot(retained["raw"][group])
+                if group == "state":
+                    incoming["values"]["_status_signals"] = clone_snapshot(retained.get("values", {}).get("_status_signals", {}))
+
+        bounded = _encode_bounded_receipt(incoming)
+        # The target receipt is already usable. If the merged factual snapshot
+        # cannot fit the bounded latest cache, discard only the old duplicate's
+        # latest-cache row; append-only match_record_archive still owns history.
+        conn.execute(
+            "DELETE FROM sports_truth_receipts WHERE match_id=? AND provider=?",
+            (str(old_id), provider),
+        )
+        if bounded is not None:
             observed = incoming["groups"]["state"].get("observed_at")
-        conn.execute("INSERT OR REPLACE INTO sports_truth_receipts VALUES(?,?,?,?)", (str(new_id), provider, encoded, observed))
+            conn.execute(
+                "UPDATE sports_truth_receipts SET evidence_json=?,observed_at=? WHERE match_id=? AND provider=?",
+                (bounded, observed, str(new_id), provider),
+            )
+
     conn.execute("UPDATE sports_truth_mappings SET canonical_id=?, proof='EXISTING_EXACT_FIXTURE_DEDUPE' WHERE entity_type='match' AND canonical_id=?", (str(new_id), str(old_id)))
     bind_identity(conn, "match", "local_cache", old_id, new_id, proof="EXISTING_ROUTE_ALIAS")
+    # Covers legacy/partial states where a receipt lacked a provider row above.
     conn.execute("DELETE FROM sports_truth_receipts WHERE match_id=?", (str(old_id),))
     conn.execute("UPDATE sports_truth_generation SET revision=revision+1 WHERE id=1")
-
+    return True
 
 def project_rows(conn, rows, *, now=None, tables=None, cache=None):
     """One bulk read per table per batch. Never write or migrate on public reads."""
