@@ -3,7 +3,7 @@
 {% from "components/v936_product.html" import customer_decision %}
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-2">
 {# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
 {% set pending_copy = {'es': 'Cambios sin aplicar. Pulsa Encontrar partidos.', 'en': 'Changes not applied. Select Find matches.', 'fr': 'Modifications non appliquées. Choisissez Trouver des matchs.'} %}
 {% set calendar = data.get('calendar') or {} %}
@@ -36,17 +36,10 @@
       {'key':'week','label':'Próximos','href':'/calendario?lane=week'},
       {'key':'with_pick','label':'Con pronóstico','href':'/calendario?lane=with_pick'}
     ], results_center_lane) }}
-    <div class="client-sports-subviews" aria-label="Explorar datos deportivos"><a href="/competiciones">{{ ui('Competiciones') }}</a><a href="/mercados">{{ ui('Mercados') }}</a></div>
   </nav>
 
 
 
-  <section class="v933-kpi-grid" aria-label="{{ ui("Resumen deportivo") }}">
-    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendario?lane=today') }}
-    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendario?lane=week') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
-    {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendario?lane=with_pick') }}
-  </section>
 
   <section class="v933-panel v933-filter-panel v940-calendar-command"
            id="v933-calendar-filters"
@@ -121,10 +114,11 @@
       <button class="v933-action is-primary is-blue" type="submit">{{ icon('search') }}{{ ui('Encontrar partidos') }}</button>
     </form>
 
-    <div class="v940-calendar-command-section">
-      <span>{{ ui("Qué quieres ver") }}</span>
+    <details class="v940-calendar-command-section ns-calendar-more-views">
+      <summary>{{ ui('Más opciones') }}</summary>
       {{ filter_tabs((calendar.get('tabs') or [])|rejectattr('key', 'in', ['today', 'tomorrow'])|list, lane) }}
-    </div>
+      <div class="client-sports-subviews" aria-label="{{ ui('Explorar datos deportivos') }}"><a href="/competiciones">{{ ui('Competiciones') }}</a><a href="/mercados">{{ ui('Mercados') }}</a></div>
+    </details>
 
     <div class="v940-calendar-command-section">
       <span>{{ ui("Cambiar de día") }}</span>
@@ -268,6 +262,14 @@
       </section>
     </section>
   </div>
+<details class="v933-home-more ns-calendar-overview"><summary>{{ ui('Resumen de la jornada') }}</summary>
+  <section class="v933-kpi-grid" aria-label="{{ ui("Resumen deportivo") }}">
+    {{ kpi_card('Hoy', sports_metrics.get('matches_today', 0), 'Agenda', 'blue', 'calendar', '/calendario?lane=today') }}
+    {{ kpi_card('Semana', counts.get('week', 0), 'Próximos', 'cyan', 'calendar', '/calendario?lane=week') }}
+    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
+    {{ kpi_card('Con pronóstico', sports_metrics.get('matches_with_picks', 0), 'SHARK', 'gold', 'target', '/calendario?lane=with_pick') }}
+  </section>
+</details>
 </div>
 <script src="{{ url_for('static', filename='v940-calendar.js') }}?v={{ app_version }}-client-discovery-1" defer></script>
 {% endblock %}

@@ -29,13 +29,13 @@ def prepare(port=54910, db_name="sentinel_preview.sqlite", allow_browser=False):
     from automation_workforce.common import python_executable
     # The existing boundary permits exactly this supervised, fixed, static worker.
     command = [python_executable(), "-B", str(ROOT / "automation_workforce/product_experience_worker.py"), "--static-only", "--no-write", "--dry-run"]
-    audit_command = list(subprocess.list2cmdline(command)) if os.name == "nt" else command
+    audit_command = command
     browser_commands = []
     if allow_browser:
         from playwright._impl._driver import compute_driver_executable
         node, cli = compute_driver_executable()
         driver = [str(node), str(cli), "run-driver"]
-        browser_commands.append(list(subprocess.list2cmdline(driver)) if os.name == "nt" else driver)
+        browser_commands.append(driver)
     # Audit hooks cannot be removed from a running Python process. The standalone
     # LOCAL SAFE supervisor installs the boundary, while pytest validates the same
     # boundary in isolation and must not leak it into unrelated tests.

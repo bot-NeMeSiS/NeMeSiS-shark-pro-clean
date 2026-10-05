@@ -24,9 +24,9 @@ def test_backup_is_not_published_until_manifest_and_database_are_complete(backup
     source,root=backup_source
     original=vault.sha256_file
     observed=[]
-    def digest(path):
+    def digest(path, **kwargs):
         observed.extend(vault.list_backups(root))
-        return original(path)
+        return original(path, **kwargs)
     monkeypatch.setattr(vault,"sha256_file",digest)
     result=vault.create_sqlite_backup(source,root,"SIMULATED_QA")
     assert result["ok"] is True,result
@@ -68,10 +68,10 @@ def test_failed_manifest_does_not_publish_partial_backup_or_prune(backup_source,
 def test_manifest_counts_describe_snapshot_not_later_source(backup_source,monkeypatch):
     source,root=backup_source
     original=vault.sha256_file
-    def digest(path):
+    def digest(path, **kwargs):
         with sqlite3.connect(source) as conn:
             conn.execute("INSERT OR IGNORE INTO users VALUES('qa-later','QA Later')")
-        return original(path)
+        return original(path, **kwargs)
     monkeypatch.setattr(vault,"sha256_file",digest)
     result=vault.create_sqlite_backup(source,root,"SIMULATED_QA")
     assert result["ok"] is True
@@ -371,3 +371,48 @@ def test_capacity_preflight_keeps_manifest_valid_history_when_none_can_be_verifi
     assert result["removed"] == []
     assert Path(saved["path"]).exists()
     assert Path(saved["path"]).with_suffix(".json").exists()
+
+
+def test_busy_snapshot_times_out_without_publication_or_source_changes(backup_source, monkeypatch):
+    source, root = backup_source
+    original = source.read_bytes()
+    # Skip the independent capacity probe so the test exercises SQLite backup
+    # under a real exclusive write lock, in disposable storage only.
+    monkeypatch.setattr(vault, 'ensure_backup_capacity', lambda *a, **k: {'ok': True})
+    locked = sqlite3.connect(source)
+    try:
+        locked.execute('BEGIN EXCLUSIVE')
+        started = vault.time.monotonic()
+        result = vault.create_sqlite_backup(source, root, 'SIMULATED_QA', snapshot_timeout=0.1)
+        assert vault.time.monotonic() - started < 2
+        assert result['ok'] is False and result['backup_created'] is False
+        assert result['error'] == 'backup_snapshot_timeout'
+        assert vault.list_backups(root) == []
+        assert list(vault.backup_dir(root).iterdir()) == []
+    finally:
+        locked.rollback()
+        locked.close()
+    assert source.read_bytes() == original
+
+
+def test_backup_metadata_does_not_use_admin_dashboard_scans(backup_source, monkeypatch):
+    source, root = backup_source
+    monkeypatch.setattr(vault, 'db_vault_status', lambda *a, **k: pytest.fail('dashboard scan'))
+    result = vault.create_sqlite_backup(source, root, 'SIMULATED_QA')
+    assert result['ok'] is True
+    assert result['records_summary']['users'] == 1
+    assert vault.validate_backup(root)['ok'] is True
+
+
+def test_hash_deadline_stops_publication_and_preserves_source(backup_source, monkeypatch):
+    source, root = backup_source
+    original_bytes = source.read_bytes()
+    original_hash = vault.sha256_file
+    def expired_hash(path, **kwargs):
+        return original_hash(path, deadline=vault.time.monotonic() - 1)
+    monkeypatch.setattr(vault, 'sha256_file', expired_hash)
+    result = vault.create_sqlite_backup(source, root, 'SIMULATED_QA')
+    assert result['ok'] is False and result['backup_created'] is False
+    assert result['error'] == 'backup_snapshot_timeout'
+    assert list(vault.backup_dir(root).iterdir()) == []
+    assert source.read_bytes() == original_bytes

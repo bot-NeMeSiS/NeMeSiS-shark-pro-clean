@@ -8751,7 +8751,9 @@ def annotate_match(match, favs=None, include_timeline=True):
     match["real_time_state"] = real_time_state(match)
     match["timeline"] = match_timeline(match) if include_timeline else []
     match["live_depth"] = live_depth(match)
-    if match["status_info"].get("is_result_pending"):
+    if match["status_info"].get("key") == "STALE":
+        match["live_depth"].update(state="STALE", label="Datos retrasados", badge="stale", minute="")
+    elif match["status_info"].get("is_result_pending"):
         match["live_depth"]["state"] = "RESULT_PENDING"
         match["live_depth"]["label"] = "Resultado pendiente"
         match["live_depth"]["badge"] = "result_pending"
@@ -11250,13 +11252,15 @@ def client_match_display_context(match, now_madrid=None):
         status_label = "Abandonado"
     elif status_key == "INCOMPLETE":
         status_label = "Estado pendiente"
+    elif status_key == "STALE":
+        status_label = "Datos retrasados"
     else:
         status_label = "Próximo"
     temporal_label = status_label if (
         status_info.get("is_live")
         or status_info.get("is_finished")
         or status_info.get("is_result_pending")
-        or status_key in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE"}
+        or status_key in {"POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "INCOMPLETE", "STALE"}
     ) else schedule_label
     item.update({
         "client_timezone_label": "Hora oficial de España",
@@ -11281,6 +11285,9 @@ def client_match_display_context(match, now_madrid=None):
         "client_detail_datetime_label": detail_label or "Fecha pendiente",
         "client_status_label": status_label,
         "client_short_status_label": status_label,
+        "display_status_label": status_label,
+        "display_datetime": schedule_label,
+        "madrid_display": temporal_label,
         "client_temporal_label": temporal_label,
         "client_has_confirmed_kickoff": bool(instant and time_label),
         "client_temporal_contract": "MATCH-TEMPORAL-CONTEXT-V1",
@@ -18655,7 +18662,12 @@ def v931_live_context(summary, lane="live", query=""):
     if lane == "all":
         selected = today_matches
     elif lane in {"finished", "finalizados"}:
-        selected = [item for item in today_matches if item.get("v935_lifecycle") == "FINISHED" or canonical_match_status(item).get("is_finished")]
+        # Confirmed late-night finals retain their original kickoff date.
+        # Use the bounded persisted results window rather than dropping them at midnight.
+        result_candidates = list(summary.get("finished_matches") or []) + today_matches
+        selected = dedupe_matches_list([
+            item for item in result_candidates if canonical_match_status(item).get("is_finished")
+        ])
     elif lane in {"break", "halftime", "descanso"}:
         selected = [item for item in today_matches if canonical_match_status(item).get("key") == "HT"]
     elif lane in {"with_pick", "picks"}:
@@ -21101,6 +21113,8 @@ def match_detail_page(match_id):
     )
     from engines.sports_history_engine import match_history
     match_context["historical_memory"] = match_history(DB_PATH, match_id)
+    from engines.match_broadcast_presentation import broadcast_presentation
+    match_context["broadcasts"] = broadcast_presentation(match_context["historical_memory"])
     data = {
         "match_detail": detail,
         "v934_detail_refresh": {
@@ -27647,12 +27661,19 @@ def api_runtime_version():
     # The master cron only needs a cheap liveness/readiness identity every five
     # minutes. Keep the full certification payload as the default for deploy QA.
     if str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}:
+        identity = get_safe_runtime_identity_for_admin()
+        commit = str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or os.getenv("COMMIT_SHA") or "").strip()
+        # Only an actual platform identity can certify this worker's commit.
+        # Never substitute a historical release manifest or return arbitrary env text.
+        commit = commit.lower() if re.fullmatch(r"[0-9a-fA-F]{40}", commit) else "unavailable"
         return jsonify({
             "ok": True,
             "status": "READY",
             "version": APP_VERSION,
             "runtime_checked_at_madrid": now_iso(),
             "compact": True,
+            "git_commit_hint": commit,
+            "version_files_match": identity["version_files_match"],
         })
 
     version_txt = ""
@@ -30905,7 +30926,12 @@ def v565_recommendation_for_match(match):
         for key, name in (("home", match.get("home_team")), ("draw", "Empate"),
                           ("away", match.get("away_team"))) if odds[key] > 1 and name
     ]
-    decision = "WAIT" if truth.get("is_upcoming") else "NO_BET"
+    safe_upcoming = (
+        truth.get("is_upcoming")
+        and not truth.get("status_conflict")
+        and not truth.get("is_stale")
+    )
+    decision = "WAIT" if safe_upcoming else "NO_BET"
     return {
         "id": match.get("id"),
         "match_id": match.get("id"),
@@ -33852,6 +33878,7 @@ def v818_evening_recap():
 
 
 def v818_master_callbacks():
+    from engines.sportsdb_broadcast_engine import sync_upcoming_broadcasts
     return {
         "daily_close_previous_day": v818_daily_close_previous_day,
         "daily_data_backup_maintenance": v818_backup_maintenance,
@@ -33863,6 +33890,7 @@ def v818_master_callbacks():
             daily_budget=as_int(os.getenv("THESPORTSDB_DAILY_CALL_BUDGET", "24"), 24),
         ),
         "morning_odds_and_pick_candidates": v818_odds_and_candidates,
+        "sports_broadcasts_sync": lambda: sync_upcoming_broadcasts(DB_PATH, env=os.environ),
         "telegram_daily_top_agenda": v818_telegram_daily_top_agenda,
         "live_tracker_smart_sync": v818_live_tracker_smart_sync,
         "results_sync_and_telegram_top_results": v818_results_sync_and_top_results,

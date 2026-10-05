@@ -113,7 +113,9 @@ def _assess_selection(pick, match, odds_record, user, *, now=None, editorial=Tru
     if not sport or not (sport.startswith('soccer') or sport in {'football', 'futbol', 'fútbol'}):
         issues.append('Esta versión del constructor solo admite fútbol.')
     kickoff = match_kickoff_madrid(match) if match else None
-    if truth.get('lifecycle') != 'UPCOMING' or not kickoff or kickoff <= now:
+    # A corrected display label cannot authorize a draft when the source reports play.
+    conflicting_live = truth.get('conflict_type') == 'LIVE_FUTURE_KICKOFF'
+    if truth.get('lifecycle') != 'UPCOMING' or conflicting_live or not kickoff or kickoff <= now:
         issues.append('El encuentro no está confirmado como próximo.')
     selection = outcome(pick, match)
     if not selection:

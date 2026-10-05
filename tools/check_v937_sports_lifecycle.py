@@ -107,13 +107,14 @@ for event, expected in status_cases:
 if app_module.sportsdb_score(0, 1) != "0-1":
     errors.append("sportsdb_zero_score_lost")
 
+current_test_kickoff = datetime.now(app_module.TZ) - timedelta(minutes=30)
 generic_live = {
     "id": "v937-generic-live",
     "home_team": "Regression Home",
     "away_team": "Regression Away",
     "competition_name": "Regression League",
-    "match_date": app_module.today_iso(),
-    "kickoff_time": "20:00",
+    "match_date": current_test_kickoff.date().isoformat(),
+    "kickoff_time": current_test_kickoff.strftime("%H:%M"),
     "source": "isolated_test_fixture",
     "updated_at": app_module.now_iso(),
     "status": "LIVE",
@@ -206,9 +207,9 @@ try:
         match = {
             "id": "sportsdb-regression-live",
             "external_id": "regression-live",
-            "match_date": app_module.today_iso(),
-            "kickoff_time": "20:00",
-            "match_time": "20:00",
+            "match_date": current_test_kickoff.date().isoformat(),
+            "kickoff_time": current_test_kickoff.strftime("%H:%M"),
+            "match_time": current_test_kickoff.strftime("%H:%M"),
             "competition_name": "Regression League",
             "league_name": "Regression League",
             "home_team": "Regression Home",

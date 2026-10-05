@@ -93,12 +93,12 @@ def test_support_escapes_user_message_and_has_csrf(app_module):
     assert '&lt;script&gt;subject&lt;/script&gt;' in html
 
 
-def test_match_intelligence_precedes_details_without_duplicate_region():
+def test_match_sports_precedes_intelligence_without_duplicate_region():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]
     template=(root/'templates/match_detail.html').read_text(encoding='utf-8')
-    assert template.index('v944-match-intelligence-priority') < template.index('class="v944-match-main"')
-    assert "if not shark.get('available')" in template
+    assert template.index('class="v944-match-main"') < template.index('shark_panel(match_context)')
+    assert template.count('shark_panel(match_context)') == 1
     css=(root/'static/v933-product.css').read_text(encoding='utf-8')
     assert 'body.ns-app .v944-match-team, body.ns-app .v944-match-team.is-away' in css
 

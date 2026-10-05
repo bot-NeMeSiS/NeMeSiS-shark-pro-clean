@@ -37,6 +37,7 @@ def _live_match(now: datetime, match_id: str = "single-truth-live") -> dict:
         "match_id": match_id,
         "match_date": now.date().isoformat(),
         "kickoff_time": "20:00",
+        "kickoff_iso": (now - timedelta(minutes=45)).isoformat(),
         "home_team": "Equipo local",
         "away_team": "Equipo visitante",
         "competition_name": "Liga de prueba",

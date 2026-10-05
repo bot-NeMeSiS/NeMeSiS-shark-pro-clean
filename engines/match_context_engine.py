@@ -30,6 +30,7 @@ from engines.spanish_localization_engine import (
     spanish_pick_selection_name,
 )
 from engines.v935_launch_trust_engine import match_status_truth
+from engines.match_odds_presentation import cached_match_odds
 from engines.realtime_state_engine import observed_live_minute, observed_period_label
 from engines.sports_entity_navigation_engine import entity_href as _entity_href
 
@@ -144,7 +145,10 @@ def _match_facts(match: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _stat_value(value: Any) -> str | None:
-    candidate = _text(value)
+    # Zero is a measured result, not an absence of provider evidence.
+    if value is None or isinstance(value, bool):
+        return None
+    candidate = str(value).strip()
     if candidate in {"", "-", "—", "None", "null"}:
         return None
     return candidate
@@ -155,6 +159,10 @@ def _stat_label(value: Any) -> str:
     labels = {
         "ball possession": "Posesión",
         "total shots": "Tiros",
+        "shots": "Tiros",
+        "shots on target": "Tiros a puerta",
+        "possession": "Posesión",
+        "corners": "Córners",
         "shots on goal": "Tiros a puerta",
         "shots off goal": "Tiros fuera",
         "blocked shots": "Tiros bloqueados",
@@ -1573,6 +1581,7 @@ class MatchContext:
     context_intelligence: dict[str, Any]
     summaries: dict[str, Any]
     media: dict[str, Any]
+    odds: dict[str, Any]
     facts: dict[str, Any]
     intelligence: dict[str, Any]
     shark_context: dict[str, Any]
@@ -2104,6 +2113,7 @@ def build_match_context(
         context_intelligence=context_intelligence,
         summaries=summaries,
         media=media,
+        odds=cached_match_odds(match, now=evaluation_time),
         facts=facts,
         intelligence=intelligence,
         shark_context=shark_context,

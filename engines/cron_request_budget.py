@@ -20,6 +20,7 @@ class CronRequestBudget:
         self.deferred = False
 
     def __enter__(self):
+        self.parent = _CURRENT.get()
         self.token = _CURRENT.set(self)
         return self
 
@@ -27,7 +28,9 @@ class CronRequestBudget:
         _CURRENT.reset(self.token)
 
     def remaining(self):
-        return max(0, self.deadline - self.clock())
+        own_remaining = max(0, self.deadline - self.clock())
+        parent = getattr(self, 'parent', None)
+        return min(own_remaining, parent.remaining()) if parent is not None else own_remaining
 
 
 def exhausted():

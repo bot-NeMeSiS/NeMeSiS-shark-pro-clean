@@ -89,7 +89,7 @@ def test_shark_page_get_never_consumes_free_form_quota(client,app_module,monkeyp
     monkeypatch.setattr(app_module,"consume_shark_question",lambda *_: (_ for _ in ()).throw(AssertionError("GET page must not consume quota")))
     response=client.get("/shark?q=consulta-personalizada-no-permitida")
     assert response.status_code==200
-    assert "enlace antiguo no ejecutó una consulta" in response.get_data(as_text=True)
+    assert "Escribe tu pregunta y pulsa Consultar SHARK." in response.get_data(as_text=True)
 
 
 def test_shark_quick_get_is_read_only(client,app_module,monkeypatch):

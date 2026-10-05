@@ -113,7 +113,11 @@ with sync_playwright() as pw:
      assert page.locator('[data-lineup-state="confirmed"]').count()==1
      assert page.get_by_text(LINEUP['strPlayer'],exact=True).count()>=1
     assert page.locator('#match-section-video').count()==1
-    assert page.get_by_text('Estadísticas recuperadas después del partido · fuentes').count()==1, content[-1800:]
+    evidence=page.locator('[data-postmatch-statistics-evidence]')
+    assert evidence.count()==1 and evidence.is_visible(), content[-1800:]
+    assert evidence.locator('summary').inner_text()=='Estadísticas del partido · datos recuperados'
+    assert 'Córners: 3 / 0' in evidence.inner_text()
+    assert 'thesportsdb:event:' not in evidence.inner_text()
     assert page.locator('#match-section-video iframe').count()==0
     assert not page.locator('[data-video-mount]').is_visible()
     button=page.locator('[data-video-activate]');assert button.count()==1, content[-1800:]

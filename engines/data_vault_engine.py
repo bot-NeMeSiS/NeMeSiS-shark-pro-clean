@@ -47,10 +47,12 @@ def now_stamp() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
-def sha256_file(path: str | Path) -> str:
+def sha256_file(path: str | Path, *, deadline: float | None = None) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as fh:
         for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            if deadline is not None and time.monotonic() >= deadline:
+                raise sqlite3.OperationalError("backup_snapshot_timeout")
             h.update(chunk)
     return h.hexdigest()
 
@@ -274,7 +276,7 @@ def ensure_backup_capacity(
     return result
 
 
-def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
+def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -300,23 +302,43 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         os.close(handle)
         temporary = Path(temporary_name)
         with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
-            source.backup(dest)
+            # SQLite retries BUSY/LOCKED indefinitely unless progress aborts it.
+            # Keep the synchronous request below the web worker's timeout.
+            source.execute("PRAGMA busy_timeout=50")
+            dest.execute("PRAGMA busy_timeout=50")
+            deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
+            def progress(status_code, remaining, total):
+                if time.monotonic() >= deadline:
+                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+            source.backup(dest, pages=256, progress=progress, sleep=0.05)
+            dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
+            # Inspect the verified snapshot on this same deadline-bound connection.
+            # The admin dashboard helper opens new connections and scans backup
+            # history; neither is necessary to describe this snapshot.
+            tables = [row[0] for row in dest.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+            counts = {}
+            for table in CRITICAL_TABLES:
+                if time.monotonic() >= deadline:
+                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+                if table in tables:
+                    counts[table] = int(dest.execute(
+                        f'SELECT COUNT(*) FROM "{table}"').fetchone()[0])
         with temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
-        digest = sha256_file(temporary)
-        status = db_vault_status(temporary, root, app_version)
-        if not status.get("ok"):
-            raise sqlite3.DatabaseError("backup_snapshot_unreadable")
+        digest = sha256_file(temporary, deadline=deadline)
+        if time.monotonic() >= deadline:
+            raise sqlite3.OperationalError("backup_snapshot_timeout")
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
             "db_path_source": str(src),
             "size_bytes": temporary.stat().st_size,
             "sha256": digest,
-            "tables_included": status.get("tables", []),
-            "records_summary": status.get("counts", {}),
+            "tables_included": tables,
+            "records_summary": counts,
             "type": backup_type,
             "environment": "production" if str(src).startswith("/data") else "local",
             "created_by": created_by,
@@ -341,7 +363,7 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             finally:
                 os.close(directory_fd)
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
-        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": status.get("counts", {}), "retention": retention, "storage": storage}
+        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
     except Exception as exc:
         result = {"ok": False, "backup_created": published, "error": str(exc)[:300]}
         if published:

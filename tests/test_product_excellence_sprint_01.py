@@ -11,7 +11,7 @@ def test_product_excellence_top100_markers_are_present():
     checks = {
         "templates/home.html": ['data-top100-improvement="2,3,19"', "Primer valor en menos de un minuto", "Abrir calendario", "Abrir resumen del día"],
         "templates/shark.html": ['data-top100-improvement="4"', "C\u00f3mo leer SHARK", "Riesgo visible"],
-        "templates/membership.html": ['data-top100-improvement="5,6"', "Elige por lo que quieres resolver", "Comparar ELITE"],
+        "templates/membership.html": ['data-top100-improvement="5,6"', "Ver prestaciones", "checkout_ready", "csrf_token()"],
         "templates/telegram.html": ['data-top100-improvement="5"', "Estado de entrega", "según tu vinculación, tus preferencias y la información disponible para tu plan"],
         "templates/picks.html": ['data-top100-improvement="8"', "Antes de decidir", "unidades recomendadas son orientativas"],
         "templates/action_platform.html": ["state_labels", "Verificaci\u00f3n parcial", "tu d\u00eda deportivo"],

@@ -525,6 +525,25 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             remaining = payload.get("provider_requests_remaining")
             result["provider_requests_remaining"] = safe_count(remaining) if remaining is not None else None
         if prefix == "sports":
+            # Fixed operational codes only: never emit provider URLs or messages.
+            stages = {"fixtures", "fallback", "live", "deep_enrichment", "grading"}
+            reasons = {"ERROR", "TIME_BUDGET", "REQUEST_BUDGET", "DAILY_BUDGET",
+                       "TICK_BUDGET", "SOURCE_COOLDOWN", "PROVIDER_UNAVAILABLE",
+                       "PARTIAL_PROVIDER_ERRORS", "INVALID_RESPONSE"}
+            diagnostics = []
+            for value in (payload.get("technical_errors") or [])[:8]:
+                label = str(value)
+                stage, _, reason = label.partition("_")
+                # deep_enrichment has an underscore in its canonical name.
+                if label.startswith("deep_enrichment_"):
+                    stage, reason = "deep_enrichment", label[len("deep_enrichment_"):]
+                diagnostics.append({"stage": stage if stage in stages else "UNKNOWN",
+                                    "reason": reason if reason in reasons else "UNCLASSIFIED"})
+            result["sports_technical_errors"] = diagnostics
+            result["sports_errors_count"] = safe_count(payload.get("errors_count"))
+            result["sports_controlled_deferrals"] = [
+                value for value in (payload.get("controlled_deferrals") or [])[:8]
+                if isinstance(value, str) and value in reasons]
             pipeline = sanitized_sports_pipeline(payload, secret)
             if pipeline:
                 result["sports_pipeline"] = pipeline
