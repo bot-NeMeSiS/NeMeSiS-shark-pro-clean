@@ -8,6 +8,8 @@ from collections import OrderedDict
 from datetime import datetime, timezone
 import hashlib
 import json
+from pathlib import Path
+import shutil
 import sqlite3
 import threading
 
@@ -19,6 +21,40 @@ from engines.unified_sports_truth_engine import (
 
 _STORE_REVISIONS = OrderedDict()
 _CACHE_LOCK = threading.RLock()
+
+# Latest-decision receipts are a bounded cache, not a second unbounded archive.
+# match_record_archive owns historical raw observations; this store keeps only
+# the current resolvable evidence needed by Unified Sports Truth.
+MAX_RECEIPT_BYTES = 256 * 1024
+MIN_FREE_DISK_BYTES = 128 * 1024 * 1024
+
+
+def _disk_free_bytes(conn):
+    """Best-effort free bytes for the SQLite filesystem; memory DBs are unbounded QA."""
+    try:
+        for _seq, name, filename in conn.execute("PRAGMA database_list").fetchall():
+            if name == "main" and filename:
+                return int(shutil.disk_usage(Path(filename).resolve().parent).free)
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        return None
+    return None
+
+
+def _encode_bounded_receipt(receipt):
+    """Prefer full evidence, compact diagnostics first, never truncate factual values."""
+    encoded = json.dumps(receipt, ensure_ascii=False, separators=(",", ":"))
+    if len(encoded.encode("utf-8")) <= MAX_RECEIPT_BYTES:
+        return encoded
+    compact = clone_snapshot(receipt)
+    compact["raw"] = {}
+    compact["raw_compacted"] = True
+    encoded = json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
+    return encoded if len(encoded.encode("utf-8")) <= MAX_RECEIPT_BYTES else None
+
+
+def _receipt_capacity_available(conn, encoded_size):
+    free = _disk_free_bytes(conn)
+    return free is None or free - int(encoded_size) >= MIN_FREE_DISK_BYTES
 
 def ensure_schema(conn):
     # execute, never executescript: caller retains transaction ownership.
@@ -74,18 +110,6 @@ def bind_identity(conn, entity_type, provider, provider_id, canonical_id, *, pro
 def persist_receipt(conn, match_id, row, *, provider=None):
     ensure_schema(conn)
     receipt = evidence_from_row(row, provider=provider)
-    if receipt["provider_id"] and not bind_identity(conn, "match", receipt["provider"], receipt["provider_id"], match_id, proof="EXPLICIT_INGEST_TARGET"):
-        return False
-    if provider is not None:
-        for kind, fields in (("team", ("home_team_id", "away_team_id")), ("competition", ("competition_id",))):
-            for field in fields:
-                identifier = receipt["values"].get(field)
-                if _present(identifier):
-                    bind_identity(conn, kind, receipt["provider"], identifier, f"{receipt['provider']}:{kind}:{identifier}", proof="NAMESPACED_PROVIDER_ID")
-        for player in row.get("players") or []:
-            identifier = player.get("id") or player.get("player_id") if isinstance(player, dict) else None
-            if identifier:
-                bind_identity(conn, "player", receipt["provider"], identifier, f"{receipt['provider']}:player:{identifier}", proof="NAMESPACED_PROVIDER_ID")
     observed = receipt["groups"]["state"]["observed_at"]
     prior = conn.execute("SELECT observed_at,evidence_json FROM sports_truth_receipts WHERE match_id=? AND provider=?", (str(match_id), receipt["provider"])).fetchone()
     if prior:
@@ -105,13 +129,35 @@ def persist_receipt(conn, match_id, row, *, provider=None):
                 if group == "state":
                     receipt["values"]["_status_signals"] = clone_snapshot(previous.get("values", {}).get("_status_signals", {}))
         observed = receipt["groups"]["state"].get("observed_at")
-    encoded = json.dumps(receipt, ensure_ascii=False)
+
+    # Never let this latest-decision cache compete with /data recovery headroom.
+    # Raw diagnostics are expendable because the append-only match_record_archive
+    # retains authorized provider history. Factual normalized values are never
+    # silently truncated: an oversized receipt simply is not persisted.
+    encoded = _encode_bounded_receipt(receipt)
+    if encoded is None or not _receipt_capacity_available(conn, len(encoded.encode("utf-8"))):
+        return False
+
+    # Identity mappings are written only after the receipt is known to be safe to
+    # store; a rejected oversized/low-disk receipt must not mutate canonical IDs.
+    if receipt["provider_id"] and not bind_identity(conn, "match", receipt["provider"], receipt["provider_id"], match_id, proof="EXPLICIT_INGEST_TARGET"):
+        return False
+    if provider is not None:
+        for kind, fields in (("team", ("home_team_id", "away_team_id")), ("competition", ("competition_id",))):
+            for field in fields:
+                identifier = receipt["values"].get(field)
+                if _present(identifier):
+                    bind_identity(conn, kind, receipt["provider"], identifier, f"{receipt['provider']}:{kind}:{identifier}", proof="NAMESPACED_PROVIDER_ID")
+        for player in row.get("players") or []:
+            identifier = player.get("id") or player.get("player_id") if isinstance(player, dict) else None
+            if identifier:
+                bind_identity(conn, "player", receipt["provider"], identifier, f"{receipt['provider']}:player:{identifier}", proof="NAMESPACED_PROVIDER_ID")
+
     if not prior or prior[1] != encoded:
         conn.execute("INSERT OR REPLACE INTO sports_truth_receipts VALUES(?,?,?,?)",
                      (str(match_id), receipt["provider"], encoded, observed))
         conn.execute("UPDATE sports_truth_generation SET revision=revision+1 WHERE id=1")
     return True
-
 
 def persist_api_section(conn, fixture_id, group, payload, *, observed_at, availability="AVAILABLE"):
     """Persist an already authorized section, resolving only explicit local IDs."""
@@ -134,10 +180,9 @@ def persist_api_section(conn, fixture_id, group, payload, *, observed_at, availa
     if group == "stats" and isinstance(payload, dict) and not payload.get("available") and availability == "AVAILABLE":
         has_values = isinstance(raw_payload, list) and any(s.get("value") is not None for b in raw_payload if isinstance(b, dict) for s in b.get("statistics", []) if isinstance(s, dict))
         availability = "UNRESOLVED_IDENTITY" if has_values else "EMPTY_CONFIRMED"
-    persist_receipt(conn, mapping[0], {"source": "api_football", "external_id": str(fixture_id),
+    return bool(persist_receipt(conn, mapping[0], {"source": "api_football", "external_id": str(fixture_id),
         group: payload, "last_synced_at": observed_at, "coverage": {group: availability},
-        "raw_json": json.dumps({group: raw_payload}, ensure_ascii=False), "context_status": context.get("status")}, provider="api_football")
-    return True
+        "raw_json": json.dumps({group: raw_payload}, ensure_ascii=False), "context_status": context.get("status")}, provider="api_football"))
 
 
 def rehome_receipts(conn, old_id, new_id):
