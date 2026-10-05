@@ -511,3 +511,67 @@ def test_receipt_storage_preserves_disk_reserve_and_existing_truth(monkeypatch):
     ).fetchone()
     assert mapping == ("disk-guard",)
 
+def test_rehome_receipt_rewrites_id_without_creating_a_second_copy():
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    row = {
+        "source": "api_football",
+        "external_id": "42004",
+        "status": "FT",
+        "home_score": 2,
+        "away_score": 1,
+        "last_synced_at": NOW.isoformat(),
+    }
+    assert persist_receipt(conn, "old-route", row, provider="api_football")
+    assert rehome_receipts(conn, "old-route", "keeper-route")
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_receipts WHERE match_id='old-route'"
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_receipts WHERE match_id='keeper-route'"
+    ).fetchone()[0] == 1
+    assert conn.execute(
+        "SELECT canonical_id FROM sports_truth_mappings WHERE provider_id='42004'"
+    ).fetchone() == ("keeper-route",)
+
+
+def test_rehome_oversized_collision_keeps_bounded_target_and_moves_mapping(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    keeper = {
+        "source": "api_football",
+        "external_id": "42005",
+        "status": "2H",
+        "home_score": 1,
+        "away_score": 0,
+        "last_synced_at": (NOW - timedelta(seconds=30)).isoformat(),
+    }
+    oversized = {
+        "source": "api_football",
+        "external_id": "42006",
+        "status": "2H",
+        "home_score": 1,
+        "away_score": 0,
+        "last_synced_at": NOW.isoformat(),
+        "stats": {"available": True, "items": [{"name": "payload", "value": "x" * 40_000}]},
+    }
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 128_000)
+    assert persist_receipt(conn, "keeper-route", keeper, provider="api_football")
+    assert persist_receipt(conn, "old-route", oversized, provider="api_football")
+    target_before = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='keeper-route' AND provider='api_football'"
+    ).fetchone()[0]
+
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 8_000)
+    assert rehome_receipts(conn, "old-route", "keeper-route")
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_receipts WHERE match_id='old-route'"
+    ).fetchone()[0] == 0
+    target_after = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='keeper-route' AND provider='api_football'"
+    ).fetchone()[0]
+    assert target_after == target_before
+    assert conn.execute(
+        "SELECT canonical_id FROM sports_truth_mappings WHERE provider_id='42006'"
+    ).fetchone() == ("keeper-route",)
+
