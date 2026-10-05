@@ -27659,12 +27659,19 @@ def api_runtime_version():
     # The master cron only needs a cheap liveness/readiness identity every five
     # minutes. Keep the full certification payload as the default for deploy QA.
     if str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}:
+        identity = get_safe_runtime_identity_for_admin()
+        commit = str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or os.getenv("COMMIT_SHA") or "").strip()
+        # Only an actual platform identity can certify this worker's commit.
+        # Never substitute a historical release manifest or return arbitrary env text.
+        commit = commit.lower() if re.fullmatch(r"[0-9a-fA-F]{40}", commit) else "unavailable"
         return jsonify({
             "ok": True,
             "status": "READY",
             "version": APP_VERSION,
             "runtime_checked_at_madrid": now_iso(),
             "compact": True,
+            "git_commit_hint": commit,
+            "version_files_match": identity["version_files_match"],
         })
 
     version_txt = ""
