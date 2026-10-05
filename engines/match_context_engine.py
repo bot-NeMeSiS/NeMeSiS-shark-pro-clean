@@ -145,7 +145,10 @@ def _match_facts(match: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _stat_value(value: Any) -> str | None:
-    candidate = _text(value)
+    # Zero is a measured result, not an absence of provider evidence.
+    if value is None or isinstance(value, bool):
+        return None
+    candidate = str(value).strip()
     if candidate in {"", "-", "—", "None", "null"}:
         return None
     return candidate
@@ -156,6 +159,10 @@ def _stat_label(value: Any) -> str:
     labels = {
         "ball possession": "Posesión",
         "total shots": "Tiros",
+        "shots": "Tiros",
+        "shots on target": "Tiros a puerta",
+        "possession": "Posesión",
+        "corners": "Córners",
         "shots on goal": "Tiros a puerta",
         "shots off goal": "Tiros fuera",
         "blocked shots": "Tiros bloqueados",
