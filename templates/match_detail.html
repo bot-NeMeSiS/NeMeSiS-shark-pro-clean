@@ -85,7 +85,7 @@
       {% if recovery.get('items') %}
       <details class="v944-coverage-details" open data-postmatch-statistics-evidence><summary>{{ ui('Estadísticas del partido · datos recuperados') }}</summary>
         <p>{{ ui('Estos datos se obtuvieron después del encuentro; no formaban parte de los pronósticos previos. No sustituyen correcciones ya registradas.') }}</p>
-        {% for metric in recovery.get('items') %}<p><strong>{{ metric.label }}</strong>: {{ metric.home if metric.home is not none else '—' }} / {{ metric.away if metric.away is not none else '—' }} · {{ 'Incluye prórroga' if metric.scope == 'INCLUDING_EXTRA_TIME' else 'Tiempo reglamentario' }}</p>{% endfor %}
+        {% for metric in recovery.get('items') %}<p><strong>{{ metric.label }}</strong>: {{ metric.home if metric.home is not none else '—' }} / {{ metric.away if metric.away is not none else '—' }} · {% if metric.source == 'thesportsdb' %}<a href="https://www.thesportsdb.com" target="_blank" rel="noopener noreferrer">TheSportsDB</a> · {% endif %}{{ 'Incluye prórroga' if metric.scope == 'INCLUDING_EXTRA_TIME' else 'Tiempo reglamentario' }}</p>{% endfor %}
         <p>{{ ui('Recuperado:') }} {{ recovery.get('recovered_at')|madrid_datetime_label }}</p>
       </details>
       {% endif %}
