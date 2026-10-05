@@ -274,7 +274,7 @@ def ensure_backup_capacity(
     return result
 
 
-def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
+def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -300,7 +300,16 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         os.close(handle)
         temporary = Path(temporary_name)
         with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
-            source.backup(dest)
+            # SQLite retries BUSY/LOCKED indefinitely unless progress aborts it.
+            # Keep the synchronous request below the web worker's timeout.
+            source.execute("PRAGMA busy_timeout=50")
+            dest.execute("PRAGMA busy_timeout=50")
+            deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
+            def progress(status_code, remaining, total):
+                if time.monotonic() >= deadline:
+                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+            source.backup(dest, pages=256, progress=progress, sleep=0.05)
+            dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
         with temporary.open("rb+") as handle:

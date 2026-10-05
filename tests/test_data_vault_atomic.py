@@ -371,3 +371,25 @@ def test_capacity_preflight_keeps_manifest_valid_history_when_none_can_be_verifi
     assert result["removed"] == []
     assert Path(saved["path"]).exists()
     assert Path(saved["path"]).with_suffix(".json").exists()
+
+
+def test_busy_snapshot_times_out_without_publication_or_source_changes(backup_source, monkeypatch):
+    source, root = backup_source
+    original = source.read_bytes()
+    # Skip the independent capacity probe so the test exercises SQLite backup
+    # under a real exclusive write lock, in disposable storage only.
+    monkeypatch.setattr(vault, 'ensure_backup_capacity', lambda *a, **k: {'ok': True})
+    locked = sqlite3.connect(source)
+    try:
+        locked.execute('BEGIN EXCLUSIVE')
+        started = vault.time.monotonic()
+        result = vault.create_sqlite_backup(source, root, 'SIMULATED_QA', snapshot_timeout=0.1)
+        assert vault.time.monotonic() - started < 2
+        assert result['ok'] is False and result['backup_created'] is False
+        assert result['error'] == 'backup_snapshot_timeout'
+        assert vault.list_backups(root) == []
+        assert list(vault.backup_dir(root).iterdir()) == []
+    finally:
+        locked.rollback()
+        locked.close()
+    assert source.read_bytes() == original
