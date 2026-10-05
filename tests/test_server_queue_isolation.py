@@ -64,10 +64,14 @@ def _get(port, path, *, token=None, method='GET'):
         conn.close()
 
 
-@pytest.mark.parametrize('backend', ['werkzeug', 'gunicorn'])
-@pytest.mark.parametrize('threaded', [False, True], ids=['serial', 'concurrent'])
+@pytest.mark.parametrize('backend,threaded', [
+    ('werkzeug', False), ('werkzeug', True),
+    ('gunicorn', False), ('gunicorn', True), ('production_config', True),
+])
 def test_ordinary_navigation_order_during_synthetic_sports_task(tmp_path, backend, threaded):
-    if backend == 'gunicorn' and importlib.util.find_spec('gunicorn') is None:
+    if backend in {'gunicorn', 'production_config'} and os.name == 'nt':
+        pytest.skip('Gunicorn requires POSIX; these cases run in Linux CI')
+    if backend in {'gunicorn', 'production_config'} and importlib.util.find_spec('gunicorn') is None:
         if os.getenv('CI'):
             pytest.fail('CI must provide the pinned production Gunicorn dependency')
         pytest.skip('Gunicorn unavailable locally; this experiment must also pass unchanged in CI')
@@ -88,6 +92,9 @@ def test_ordinary_navigation_order_during_synthetic_sports_task(tmp_path, backen
             '--threads='+('2' if threaded else '1'), '--timeout=20', '--bind=127.0.0.1:'+str(port),
             '--config=python:queue_probe_settings', 'queue_probe_app:application']
            if backend=='gunicorn' else [sys.executable,str(script)])
+    if backend == 'production_config':
+        cmd = [sys.executable, '-m', 'gunicorn', '--bind=127.0.0.1:'+str(port),
+               '--config='+str(ROOT/'gunicorn.conf.py'), 'queue_probe_app:application']
     # Explicit empty config avoids accidentally using an unrelated project/server config.
     (tmp_path/'queue_probe_settings.py').write_text('# Synthetic test configuration only\n', encoding='utf-8')
     log_path = tmp_path/'server.log'
