@@ -224,9 +224,18 @@ def rehome_receipts(conn, old_id, new_id):
                     incoming["values"]["_status_signals"] = clone_snapshot(retained.get("values", {}).get("_status_signals", {}))
 
         bounded = _encode_bounded_receipt(incoming)
+        if bounded is not None:
+            old_bytes = len(str(encoded).encode("utf-8"))
+            target_bytes = len(str(previous[1]).encode("utf-8"))
+            merged_bytes = len(bounded.encode("utf-8"))
+            net_growth = max(0, merged_bytes - old_bytes - target_bytes)
+            if net_growth and not _receipt_capacity_available(conn, net_growth):
+                bounded = None
+
         # The target receipt is already usable. If the merged factual snapshot
-        # cannot fit the bounded latest cache, discard only the old duplicate's
-        # latest-cache row; append-only match_record_archive still owns history.
+        # cannot fit the bounded latest cache or would consume reserved disk,
+        # discard only the old duplicate's latest-cache row; append-only
+        # match_record_archive still owns history.
         conn.execute(
             "DELETE FROM sports_truth_receipts WHERE match_id=? AND provider=?",
             (str(old_id), provider),
