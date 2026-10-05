@@ -624,7 +624,8 @@ def test_activity_templates_state_navigation_is_not_logged():
     account=(root/"templates/account_center.html").read_text(encoding="utf-8")
     assert "Abrir una pantalla no crea un registro de navegación" in activity
     assert "La navegación normal no se registra en este historial" in activity
-    assert "Abrir páginas o consultar pronósticos no añade un registro de navegación" in account
+    assert "Tus acciones guardadas aparecerán aquí." in account
+    assert "registro de navegación" not in account
     assert "item.target_type or item.activity_type" not in account
 
 
