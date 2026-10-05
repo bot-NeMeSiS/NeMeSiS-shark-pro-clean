@@ -295,7 +295,7 @@ def sync_upcoming_broadcasts(
                                 'SPORTSDB_AUTH_ERROR', 'SPORTSDB_RATE_LIMIT',
                                 'SPORTSDB_NETWORK_ERROR', 'SPORTSDB_INVALID_JSON',
                                 'invalid_event_id', 'TIME_BUDGET',
-                            } or (str(exc).startswith('SPORTSDB_HTTP_') and str(exc)[16:].isdigit()) else 'SPORTSDB_BROADCAST_ERROR',
+                            } or (str(exc).startswith('SPORTSDB_HTTP_') and len(str(exc).removeprefix('SPORTSDB_HTTP_')) == 3 and str(exc).removeprefix('SPORTSDB_HTTP_').isdigit()) else 'SPORTSDB_BROADCAST_ERROR',
                         }
                     )
         return {

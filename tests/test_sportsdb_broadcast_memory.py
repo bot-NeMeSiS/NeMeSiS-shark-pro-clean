@@ -216,3 +216,14 @@ def test_time_budget_defers_without_provider_call(tmp_path, monkeypatch):
     assert result['external_calls'] == 0
     assert result['controlled_deferral'] == 'TIME_BUDGET'
     assert result['result'] == 'PARTIAL'
+
+
+def test_provider_diagnostic_never_returns_arbitrary_exception_text(tmp_path):
+    db = tmp_path / 'history.sqlite'
+    now = datetime.now(timezone.utc)
+    _seed_match(db, now+timedelta(hours=1))
+    def failure(*args):
+        raise RuntimeError('SPORTSDB_HTTP_private123')
+    result = sync_upcoming_broadcasts(str(db), env={'THESPORTSDB_KEY': 'test'}, now=now, fetcher=failure)
+    assert result['errors'][0]['code'] == 'SPORTSDB_BROADCAST_ERROR'
+    assert 'private' not in str(result)
