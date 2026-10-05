@@ -12,6 +12,8 @@ Flujo: proveedor → ingestor existente → receipts/mappings SQLite → resolve
 
 Las tablas son aditivas, creadas sólo durante escrituras autorizadas: `sports_truth_receipts` (último receipt por partido/proveedor con relojes independientes por grupo), `sports_truth_mappings` (mapping único conservador y prueba), `sports_truth_generation` (invalidación entre workers). No se cambian DB_PATH, tablas de negocio ni datos existentes en bloque. Una lectura de una DB antigua funciona sin migrarla.
 
+Protección de almacenamiento añadida durante la preparación del rebase: `sports_truth_receipts` es un cache de decisión actual, no un segundo archivo histórico ilimitado. Cada receipt persistido queda limitado a 256 KiB; si excede el límite se descarta primero sólo `raw` diagnóstico duplicado, nunca valores factuales. Si los valores normalizados siguen excediendo el límite, la escritura se rechaza sin alterar mappings ni la verdad previa. En SQLite persistente se preservan al menos 128 MiB libres antes de escribir. El historial raw autorizado sigue siendo responsabilidad de `match_record_archive` en el `main` actual tras el futuro rebase.
+
 ## 2. Archivos
 
 - `engines/unified_sports_truth_engine.py`: resolver, frescura, evidencia, contratos y adaptadores puros.
@@ -103,6 +105,7 @@ La trazabilidad añade coste: no es una mejora neta de latencia. Las pruebas de 
 - La profundidad depende del plan/cobertura real. Un contrato admite players/injuries/standings/H2H cuando ya existe evidencia; no promete nuevas capturas de todos esos grupos.
 - Se conserva sólo el último receipt/grupo por proveedor, no un event log ilimitado. La decisión audita las alternativas retenidas, no todas las versiones históricas.
 - El incremento de latencia y los 26 fallos reproducidos de base exigen revisión y CI Linux antes de autorizar merge. La compatibilidad se verificó con SQLite local y transports simulados; no se probaron pagos/sesiones reales en LIVE.
+- El guard de receipts limita crecimiento y preserva reserva de disco, pero no sustituye la certificación de capacidad real de `/data`. Tras el rebase deben medirse bytes de `sports_truth_receipts` con volumen representativo y confirmar que el backup automático conserva margen suficiente.
 
 ## 9. Revisión
 
