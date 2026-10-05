@@ -33873,6 +33873,7 @@ def v818_evening_recap():
 
 
 def v818_master_callbacks():
+    from engines.sportsdb_broadcast_engine import sync_upcoming_broadcasts
     return {
         "daily_close_previous_day": v818_daily_close_previous_day,
         "daily_data_backup_maintenance": v818_backup_maintenance,
@@ -33884,6 +33885,7 @@ def v818_master_callbacks():
             daily_budget=as_int(os.getenv("THESPORTSDB_DAILY_CALL_BUDGET", "24"), 24),
         ),
         "morning_odds_and_pick_candidates": v818_odds_and_candidates,
+        "sports_broadcasts_sync": lambda: sync_upcoming_broadcasts(DB_PATH, env=os.environ),
         "telegram_daily_top_agenda": v818_telegram_daily_top_agenda,
         "live_tracker_smart_sync": v818_live_tracker_smart_sync,
         "results_sync_and_telegram_top_results": v818_results_sync_and_top_results,
