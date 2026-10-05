@@ -13,7 +13,7 @@
 
 <div class="v933-page v933-sports-board v933-live-board ns16-live" data-v933-template="live" data-v934-directo="inplace-v1" data-v934-realtime="matches" data-v934-endpoint="/api/realtime/sports" data-v934-poll="{{ realtime.get('poll_after_seconds') or 180 }}" data-directo-lane="{{ lane }}" data-live-surface-contract="{{ surface.contract }}" data-directo-evaluated-at="{{ realtime.get('generated_at_madrid') or '' }}" data-v933-reference="official-ref-09" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="ns16-live-overview" aria-label="{{ ui("Resumen del directo") }}">
-    {{ page_header('Resultados' if surface.historical else 'Directo', 'Vista histórica; consulta Directo para los partidos en juego.' if surface.historical else 'Marcadores y minutos confirmados.', 'live', [{'label':'Calendario','href':'/calendario','icon':'calendar'}]) }}
+    {{ page_header('Resultados' if surface.historical else 'Directo', 'Vista histórica; consulta Directo para los partidos en juego.' if surface.historical else 'Marcadores y minutos confirmados. Los últimos datos confirmados siguen accesibles.', 'live', [{'label':'Calendario','href':'/calendario','icon':'calendar'}]) }}
     <nav class="v933-panel v933-filter-panel ns16-filter-strip">
       {{ filter_tabs([{'key':'live','label':'En directo','href':'/directo?f=live'},{'key':'break','label':'Descanso','href':'/directo?f=break'},{'key':'with_pick','label':'Directo con pronóstico','href':'/directo?f=with_pick'}], lane) }}
     </nav>
