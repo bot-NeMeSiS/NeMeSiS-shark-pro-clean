@@ -5,6 +5,7 @@ import sqlite3
 
 import pytest
 
+import engines.unified_sports_truth_store as truth_store
 from engines.unified_sports_truth_store import bind_identity, ensure_schema, persist_receipt, persist_api_section, project_rows, rehome_receipts
 from engines.unified_sports_truth_engine import CONTRACT, evidence_from_row, legacy_projection, resolve_match, refresh_payload_truth
 from engines.v935_launch_trust_engine import match_status_truth
@@ -430,3 +431,83 @@ def test_real_route_contexts_share_winners(app_module, monkeypatch, tmp_path):
     finally:
         template_rendered.disconnect(capture, app_module.app)
         invalidate_realtime_cache()
+
+def test_receipt_storage_compacts_large_raw_diagnostics_without_losing_truth(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 12_000)
+    row = {
+        "source": "api_football",
+        "external_id": "42001",
+        "status": "2H",
+        "home_score": 1,
+        "away_score": 0,
+        "last_synced_at": NOW.isoformat(),
+        "raw_json": json.dumps({"provider_diagnostics": "x" * 50_000}),
+    }
+    assert truth_store.persist_receipt(conn, "bounded", row, provider="api_football")
+    encoded = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='bounded'"
+    ).fetchone()[0]
+    evidence = json.loads(encoded)
+    assert evidence["values"]["status"] == "2H"
+    assert evidence["values"]["home_score"] == 1
+    assert evidence["raw"] == {}
+    assert evidence["raw_compacted"] is True
+    assert len(encoded.encode("utf-8")) <= truth_store.MAX_RECEIPT_BYTES
+
+
+def test_receipt_storage_rejects_oversized_factual_values_without_mapping_mutation(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 8_000)
+    row = {
+        "source": "api_football",
+        "external_id": "42002",
+        "status": "2H",
+        "last_synced_at": NOW.isoformat(),
+        "stats": {"available": True, "items": [{"name": "payload", "value": "x" * 40_000}]},
+    }
+    assert not truth_store.persist_receipt(conn, "oversized", row, provider="api_football")
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_receipts WHERE match_id='oversized'"
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_mappings WHERE provider_id='42002'"
+    ).fetchone()[0] == 0
+
+
+def test_receipt_storage_preserves_disk_reserve_and_existing_truth(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    baseline = {
+        "source": "api_football",
+        "external_id": "42003",
+        "status": "1H",
+        "home_score": 0,
+        "away_score": 0,
+        "last_synced_at": (NOW - timedelta(seconds=30)).isoformat(),
+    }
+    assert truth_store.persist_receipt(conn, "disk-guard", baseline, provider="api_football")
+    before = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='disk-guard'"
+    ).fetchone()[0]
+
+    monkeypatch.setattr(truth_store, "_disk_free_bytes", lambda _conn: 1024)
+    monkeypatch.setattr(truth_store, "MIN_FREE_DISK_BYTES", 128 * 1024 * 1024)
+    newer = {
+        **baseline,
+        "status": "2H",
+        "home_score": 2,
+        "last_synced_at": NOW.isoformat(),
+    }
+    assert not truth_store.persist_receipt(conn, "disk-guard", newer, provider="api_football")
+    after = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='disk-guard'"
+    ).fetchone()[0]
+    assert after == before
+    mapping = conn.execute(
+        "SELECT canonical_id FROM sports_truth_mappings WHERE provider_id='42003'"
+    ).fetchone()
+    assert mapping == ("disk-guard",)
+
