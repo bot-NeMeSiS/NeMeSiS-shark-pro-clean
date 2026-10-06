@@ -219,6 +219,7 @@ def rehome_receipts(conn, old_id, new_id):
             continue
 
         incoming, retained = _json(encoded), _json(previous[1])
+        incoming_original = clone_snapshot(incoming)
         for group, fields in GROUPS.items():
             a, b = incoming.get("groups", {}).get(group, {}), retained.get("groups", {}).get(group, {})
             available = any(_present(incoming.get("values", {}).get(field)) for field in fields) or a.get("state") != "AVAILABLE"
@@ -247,7 +248,7 @@ def rehome_receipts(conn, old_id, new_id):
             # because a merged deep section is too large. Pick the most recent
             # whole receipt that itself fits the bounded cache.
             candidates = []
-            for candidate in (incoming, retained):
+            for candidate in (incoming_original, retained):
                 candidate_encoded = _encode_bounded_receipt(candidate)
                 if candidate_encoded is None:
                     continue
