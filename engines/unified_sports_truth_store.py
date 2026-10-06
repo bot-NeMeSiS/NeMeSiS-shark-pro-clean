@@ -30,14 +30,20 @@ MIN_FREE_DISK_BYTES = 128 * 1024 * 1024
 
 
 def _disk_free_bytes(conn):
-    """Best-effort free bytes for the SQLite filesystem; memory DBs are unbounded QA."""
+    """Free bytes for persistent SQLite; in-memory QA has no filesystem reserve."""
     try:
         for _seq, name, filename in conn.execute("PRAGMA database_list").fetchall():
-            if name == "main" and filename:
+            if name != "main":
+                continue
+            if not filename:
+                return None
+            try:
                 return int(shutil.disk_usage(Path(filename).resolve().parent).free)
-    except (OSError, sqlite3.Error, TypeError, ValueError):
-        return None
-    return None
+            except (OSError, TypeError, ValueError):
+                return -1
+    except sqlite3.Error:
+        return -1
+    return -1
 
 
 def _encode_bounded_receipt(receipt):
@@ -54,7 +60,11 @@ def _encode_bounded_receipt(receipt):
 
 def _receipt_capacity_available(conn, encoded_size):
     free = _disk_free_bytes(conn)
-    return free is None or free - int(encoded_size) >= MIN_FREE_DISK_BYTES
+    if free is None:  # in-memory/local QA only
+        return True
+    if free < 0:  # persistent capacity could not be verified
+        return False
+    return free - int(encoded_size) >= MIN_FREE_DISK_BYTES
 
 def ensure_schema(conn):
     # execute, never executescript: caller retains transaction ownership.
@@ -232,16 +242,33 @@ def rehome_receipts(conn, old_id, new_id):
             if net_growth and not _receipt_capacity_available(conn, net_growth):
                 bounded = None
 
-        # The target receipt is already usable. If the merged factual snapshot
-        # cannot fit the bounded latest cache or would consume reserved disk,
-        # discard only the old duplicate's latest-cache row; append-only
-        # match_record_archive still owns history.
+        if bounded is None:
+            # Never replace coherent truth with an arbitrary keeper merely
+            # because a merged deep section is too large. Pick the most recent
+            # whole receipt that itself fits the bounded cache.
+            candidates = []
+            for candidate in (incoming, retained):
+                candidate_encoded = _encode_bounded_receipt(candidate)
+                if candidate_encoded is None:
+                    continue
+                state_clock = instant((candidate.get("groups", {}).get("state") or {}).get("observed_at"))
+                candidates.append((state_clock or datetime.min.replace(tzinfo=timezone.utc), candidate_encoded, candidate))
+            if candidates:
+                _clock, bounded, selected = max(candidates, key=lambda item: item[0])
+                observed = (selected.get("groups", {}).get("state") or {}).get("observed_at")
+            else:
+                bounded = None
+                observed = previous[0]
+        else:
+            observed = incoming["groups"]["state"].get("observed_at")
+
+        # Delete the duplicate first. The replacement cannot consume more net
+        # bytes than the two rows that existed before this exact-identity merge.
         conn.execute(
             "DELETE FROM sports_truth_receipts WHERE match_id=? AND provider=?",
             (str(old_id), provider),
         )
         if bounded is not None:
-            observed = incoming["groups"]["state"].get("observed_at")
             conn.execute(
                 "UPDATE sports_truth_receipts SET evidence_json=?,observed_at=? WHERE match_id=? AND provider=?",
                 (bounded, observed, str(new_id), provider),
