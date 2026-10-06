@@ -1617,14 +1617,22 @@ def build_match_context(
 
     detail_data = _mapping(detail)
     match = _mapping(detail_data.get("match"))
+    if match.get("unified_sports_truth"):
+        from engines.unified_sports_truth_engine import canonicalize_detail, refresh_payload_truth
+        if not detail_data.get("unified_sports_truth"):
+            detail_data = canonicalize_detail(detail_data, now=evaluation_time)
+        else:
+            detail_data = refresh_payload_truth(detail_data, now=evaluation_time)
+        match = _mapping(detail_data.get("match"))
     display = _mapping(madrid_context)
     live = _mapping(live_context or detail_data.get("api_football_live_tracker"))
     lineups = _lineups_context(detail_data.get("lineups") or [])
     media = _mapping(detail_data.get("media"))
-    live_events = _items(live.get("events"))
+    event_truth = _mapping(match.get("unified_sports_truth"))
+    live_events = _items(event_truth.get("values", {}).get("events")) if event_truth else _items(live.get("events"))
     raw_timeline_total = len(live_events)
     if live_events:
-        provider = _text(live.get("provider"))
+        provider = _text(event_truth.get("resolved", {}).get("events", {}).get("provider")) if event_truth else _text(live.get("provider"))
         raw_timeline = [
             {**event, "source": _text(event.get("source")) or provider}
             for event in live_events
@@ -1680,10 +1688,16 @@ def build_match_context(
     }
     shell_state = _shell_state(shell_identity, lifecycle, offline=offline)
     statistics = _real_statistics(
-        live,
+        {} if match.get("unified_sports_truth") else live,
         lifecycle,
         _mapping(detail_data.get("cached_statistics")),
     )
+    unified = _mapping(match.get("unified_sports_truth"))
+    if unified:
+        statistics["provenance"] = unified.get("resolved", {}).get("stats", {})
+        if statistics["provenance"].get("stale_reason") and statistics.get("available"):
+            statistics["status"] = "stale"
+            statistics["usable_for_current_intelligence"] = False
     picks = _picks_context(related_picks, lifecycle)
 
     teams = _teams_from_domain(canonical_match)
