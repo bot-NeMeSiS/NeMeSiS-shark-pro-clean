@@ -575,3 +575,65 @@ def test_rehome_oversized_collision_keeps_bounded_target_and_moves_mapping(monke
         "SELECT canonical_id FROM sports_truth_mappings WHERE provider_id='42006'"
     ).fetchone() == ("keeper-route",)
 
+def test_persistent_capacity_unknown_fails_closed(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    monkeypatch.setattr(truth_store, "_disk_free_bytes", lambda _conn: -1)
+    row = {
+        "source": "api_football",
+        "external_id": "42007",
+        "status": "1H",
+        "last_synced_at": NOW.isoformat(),
+    }
+    assert not truth_store.persist_receipt(conn, "capacity-unknown", row, provider="api_football")
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_receipts WHERE match_id='capacity-unknown'"
+    ).fetchone()[0] == 0
+    assert conn.execute(
+        "SELECT COUNT(*) FROM sports_truth_mappings WHERE provider_id='42007'"
+    ).fetchone()[0] == 0
+
+
+def test_rehome_oversized_merge_keeps_newest_coherent_receipt(monkeypatch):
+    conn = sqlite3.connect(":memory:")
+    ensure_schema(conn)
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 20_000)
+
+    keeper = {
+        "source": "api_football",
+        "external_id": "42008",
+        "status": "1H",
+        "home_score": 0,
+        "away_score": 0,
+        "last_synced_at": (NOW - timedelta(seconds=60)).isoformat(),
+        "events": [{"type": "event", "detail": "a" * 6_000}],
+    }
+    newer = {
+        "source": "api_football",
+        "external_id": "42009",
+        "status": "2H",
+        "home_score": 2,
+        "away_score": 1,
+        "last_synced_at": NOW.isoformat(),
+        "stats": {"available": True, "items": [{"name": "shots", "value": "b" * 6_000}]},
+    }
+    assert persist_receipt(conn, "keeper-route", keeper, provider="api_football")
+    assert persist_receipt(conn, "old-route", newer, provider="api_football")
+
+    # Each whole receipt fits; their merged deep sections do not.
+    monkeypatch.setattr(truth_store, "MAX_RECEIPT_BYTES", 9_000)
+    assert rehome_receipts(conn, "old-route", "keeper-route")
+
+    encoded = conn.execute(
+        "SELECT evidence_json FROM sports_truth_receipts WHERE match_id='keeper-route' AND provider='api_football'"
+    ).fetchone()[0]
+    evidence = json.loads(encoded)
+    assert evidence["values"]["status"] == "2H"
+    assert evidence["values"]["home_score"] == 2
+    assert evidence["values"]["away_score"] == 1
+    assert evidence["values"].get("stats")
+    assert not evidence["values"].get("events")
+    assert conn.execute(
+        "SELECT canonical_id FROM sports_truth_mappings WHERE provider_id='42009'"
+    ).fetchone() == ("keeper-route",)
+
