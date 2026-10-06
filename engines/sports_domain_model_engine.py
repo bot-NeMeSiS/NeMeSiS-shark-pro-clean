@@ -51,6 +51,7 @@ MATCH_PHASES = (
     "suspended",
     "cancelled",
     "finished",
+    "stale",
     "unknown",
 )
 
@@ -686,6 +687,14 @@ def normalize_match_entity(
 ) -> dict[str, Any]:
     data = _mapping(row)
     live = _mapping(live_context)
+    unified = _mapping(data.get("unified_sports_truth"))
+    if unified:
+        from engines.unified_sports_truth_engine import refresh_payload_truth
+        data = refresh_payload_truth(data, now=_parse_datetime(now_madrid) if now_madrid else None)
+        unified = _mapping(data.get("unified_sports_truth"))
+        # Evidence has already been resolved at the sports repository boundary.
+        # Adapter capability or a later live context cannot replace its facts.
+        live = {}
     # An unavailable adapter describes its capability, not this match's evidence.
     if live.get("available") is False:
         live = {}
@@ -695,6 +704,10 @@ def normalize_match_entity(
     home = normalize_team_entity(data, side="home", provider=provider_name)
     away = normalize_team_entity(data, side="away", provider=provider_name)
     competition = normalize_competition_entity(data, provider=provider_name)
+    if unified:
+        home = unified.get("teams", {}).get("home") or home
+        away = unified.get("teams", {}).get("away") or away
+        competition = unified.get("competition") or competition
     kickoff = data.get("kickoff_at") or data.get("kickoff_iso") or data.get("commence_time") or data.get("match_date")
     explicit_timestamp = next(
         (
@@ -757,12 +770,21 @@ def normalize_match_entity(
             away.get("canonical_team_id"),
         ),
     )
+    if unified:
+        identity["canonical_id"] = unified["canonical_match_id"]
+        identity["provider_ids"] = {receipt["provider"]: provider_identifier(receipt["provider"], "match", receipt["provider_id"])
+                                    for receipt in unified.get("provider_evidence", []) if receipt.get("provider_id")}
+        identity["identity_state"] = "VERIFIED"
+        identity["identity_method"] = "explicit_existing_canonical_record"
+        if unified.get("phase") == "stale":
+            status.update(status="stale", phase="stale", minute=None)
+    canonical_events = unified.get("values", {}).get("events") if unified else None
     events = normalize_timeline_events(
-        timeline_events if timeline_events is not None else live.get("events"),
+        canonical_events if canonical_events is not None else timeline_events if timeline_events is not None else live.get("events"),
         match_id=identity["canonical_id"],
         home_team=home.get("display_name"),
         away_team=away.get("display_name"),
-        provider=provider_name,
+        provider=unified.get("resolved", {}).get("events", {}).get("provider") or provider_name,
     )
     score = normalize_score(data)
     limitations = list(identity["limitations"])
@@ -773,6 +795,9 @@ def normalize_match_entity(
         limitations.extend(freshness.get("limitations") or [])
     return {
         "contract": "SPORTS-CORE-MATCH-ENTITY-V1",
+        "unified_sports_truth": unified,
+        "field_provenance": unified.get("resolved", {}),
+        "odds_snapshot": unified.get("odds_snapshot", {}),
         "canonical_match_id": identity["canonical_id"],
         "provider_match_ids": identity["provider_ids"],
         "sport": _text(data.get("sport") or data.get("sport_key") or "soccer", 40),

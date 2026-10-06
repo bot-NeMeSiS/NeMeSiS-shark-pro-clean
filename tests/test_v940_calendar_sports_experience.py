@@ -1050,8 +1050,10 @@ def test_p0_home_sections_reuse_preclassified_catalog(app_module, monkeypatch):
 
 
 def test_p0_public_sports_cache_ignores_unrelated_database_writes(app_module, monkeypatch, tmp_path):
+    import sqlite3
     db_path = tmp_path / "performance-cache.db"
-    db_path.write_bytes(b"baseline")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("CREATE TABLE unrelated_business (value TEXT)")
     monkeypatch.setattr(app_module, "DB_PATH", str(db_path))
     cache_key = app_module._public_sports_cache_key()
     app_module.invalidate_v934_realtime_cache(cache_key)
@@ -1067,7 +1069,8 @@ def test_p0_public_sports_cache_ignores_unrelated_database_writes(app_module, mo
             builder,
             ttl_seconds=60,
         )
-        db_path.write_bytes(b"unrelated-business-write")
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("INSERT INTO unrelated_business VALUES ('business-write')")
         second, second_status = app_module.cached_v934_realtime_snapshot(
             app_module._public_sports_cache_key(),
             builder,

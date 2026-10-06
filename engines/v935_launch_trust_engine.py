@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import re
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
@@ -354,6 +354,15 @@ def _live_freshness_truth(
 def match_status_truth(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     """Fail-closed status and freshness truth shared by every sports surface."""
     source = dict(item or {})
+    canonical = source.get("unified_sports_truth")
+    if isinstance(canonical, dict) and canonical.get("contract") == "NEMESIS-UNIFIED-SPORTS-TRUTH-V1":
+        from engines.unified_sports_truth_engine import resolve_match, instant
+        evaluated = instant(canonical.get("evaluated_at"))
+        deadline = instant(canonical.get("valid_until"))
+        current = madrid_now(now).astimezone(timezone.utc)
+        if evaluated and deadline and evaluated <= current < deadline:
+            return dict(canonical["status_truth"])
+        return resolve_match(canonical.get("canonical_match_id"), canonical.get("provider_evidence") or [], now=now)["status_truth"]
     signals = _status_values(source)
     kinds = [_status_kind(key) for _source, key in signals]
     terminal_kinds = {

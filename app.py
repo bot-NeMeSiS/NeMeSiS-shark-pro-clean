@@ -3867,7 +3867,28 @@ def rows(query, params=()):
     try:
         cur = conn.cursor()
         cur.execute(query, params)
-        return [dict(r) for r in cur.fetchall()]
+        result = [dict(r) for r in cur.fetchall()]
+        # Only full sports records cross this boundary; aggregates, joined picks,
+        # administration and persistence continue to receive their SQL contract.
+        if (result and re.search(r"\bFROM\s+matches\b", query, re.I)
+                and re.search(r"SELECT\s+(?:\w+\.)?\*\s+FROM", query, re.I)
+                and all({"id", "home_team", "away_team", "status", "source"} <= r.keys() for r in result)):
+            from engines.unified_sports_truth_store import project_rows
+            truth_cache = None
+            tables = None
+            if has_request_context() and request.method in {"GET", "HEAD"}:
+                caches = getattr(g, "nemesis_sports_truth_cache", None)
+                if caches is None:
+                    caches = g.nemesis_sports_truth_cache = {}
+                truth_cache = caches.setdefault(str(DB_PATH), {})
+                schemas = getattr(g, "nemesis_sports_truth_tables", None)
+                if schemas is None:
+                    schemas = g.nemesis_sports_truth_tables = {}
+                if str(DB_PATH) not in schemas:
+                    schemas[str(DB_PATH)] = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                tables = schemas[str(DB_PATH)]
+            result = project_rows(conn, result, cache=truth_cache, tables=tables)
+        return result
     finally:
         if owns_connection:
             conn.close()
@@ -5245,7 +5266,19 @@ def live_matches_from_live_table(limit=120):
         ORDER BY lm.updated_at DESC
         LIMIT ?
     """
-    for row in rows(sql, (cutoff, int(limit))):
+    from engines.unified_sports_truth_store import project_rows
+    from engines.unified_sports_truth_engine import evidence_from_row, resolve_match, legacy_projection
+    live_rows = rows(sql, (cutoff, int(limit)))
+    conn = request_read_db()
+    owns_connection = conn is None
+    if owns_connection:
+        conn = db()
+    try:
+        live_rows = project_rows(conn, live_rows)
+    finally:
+        if owns_connection:
+            conn.close()
+    for row in live_rows:
         item = dict(row)
         payload_match = None
         if not item.get("id") and item.get("lm_payload_json"):
@@ -5267,6 +5300,16 @@ def live_matches_from_live_table(limit=120):
         item["away_score"] = item.get("lm_away_score") if item.get("lm_away_score") not in {None, ""} else item.get("away_score")
         if not item.get("score") and (item.get("home_score") not in {None, ""} or item.get("away_score") not in {None, ""}):
             item["score"] = sportsdb_score(item.get("home_score"), item.get("away_score"))
+        # The legacy live table is another receipt, not permission to overwrite
+        # a canonical decision or borrow half a score from a different source.
+        live_receipt = evidence_from_row({
+            "source": item.get("lm_source"), "status": item.get("lm_status"),
+            "minute": item.get("lm_minute"), "home_score": item.get("lm_home_score"),
+            "away_score": item.get("lm_away_score"), "live_updated_at": item.get("lm_updated_at"),
+            "kickoff_iso": item.get("kickoff_iso"),
+        })
+        evidence = list((row.get("unified_sports_truth") or {}).get("provider_evidence") or [])
+        item = legacy_projection(item, resolve_match(item["id"], evidence + [live_receipt]))
         try:
             item = annotate_match(item)
         except Exception:
@@ -5320,6 +5363,11 @@ def _sportsdb_existing_provider_rows(cur, item):
 
     external_id = str(item.get("external_id") or "").strip()
     if external_id:
+        mapped = cur.execute("SELECT canonical_id FROM sports_truth_mappings WHERE entity_type='match' AND provider='thesportsdb' AND provider_id=?", (external_id,)).fetchone()
+        if mapped:
+            canonical_row = cur.execute("SELECT * FROM matches WHERE id=?", (mapped[0],)).fetchone()
+            if canonical_row:
+                found[str(mapped[0])] = dict(canonical_row)
         provider_rows = cur.execute(
             """SELECT * FROM matches
                WHERE external_id=?
@@ -5337,6 +5385,8 @@ def _sportsdb_existing_provider_rows(cur, item):
 def _write_sportsdb_match_snapshot(cur, item, target_id):
     """Persist one provider observation under a stable existing/internal match ID."""
     item = dict(item)
+    from engines.unified_sports_truth_store import persist_receipt
+    persist_receipt(cur.connection, target_id, item, provider="thesportsdb")
     existing = cur.execute("SELECT bookmaker,odds_h2h_json,odds_updated_at FROM matches WHERE id=?", (target_id,)).fetchone()
     if existing and str(item.get("odds_h2h_json") or "").strip() in ("", "{}", "null"):
         for field in ("bookmaker", "odds_h2h_json", "odds_updated_at"):
@@ -5413,6 +5463,8 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     from engines.realtime_state_engine import older_match_observation
     cur = conn.cursor()
     conn.execute("BEGIN IMMEDIATE")
+    from engines.unified_sports_truth_store import ensure_schema
+    ensure_schema(conn)
     imported = 0
     updated = 0
     skipped = 0
@@ -6060,6 +6112,12 @@ def _attach_odds_snapshot(cur, target, snapshot):
         newer = not old_stamp
     if not newer:
         return False
+    from engines.unified_sports_truth_store import persist_receipt
+    persist_receipt(cur.connection, target["id"], {
+        "source": "The Odds API", "odds_h2h_json": json.dumps(snapshot, ensure_ascii=False),
+        "odds_updated_at": observed, "last_synced_at": observed,
+        "bookmaker": snapshot.get("bookmaker"), "fetched_at": now_iso(),
+    }, provider="the_odds_api")
     cur.execute("UPDATE matches SET bookmaker=?, odds_h2h_json=?, odds_updated_at=? WHERE id=?",
                 (snapshot.get("bookmaker") or "", json.dumps(snapshot, ensure_ascii=False), observed, target["id"]))
     return True
@@ -11177,6 +11235,8 @@ def canonical_match_surface_contract(match):
     competition = competition_identity["display_name"]
     return {
         "contract": "MATCH-SURFACE-CONSISTENCY-V1",
+        "sports_truth_contract": (item.get("unified_sports_truth") or {}).get("contract"),
+        "provenance": (item.get("unified_sports_truth") or {}).get("resolved", {}),
         "id": str(item.get("id") or item.get("match_id") or ""),
         "home": str(home or "").strip(),
         "away": str(away or "").strip(),
@@ -11204,6 +11264,9 @@ def canonical_match_surface_contract(match):
 def canonical_match_for_domain_context(match):
     """Adapt cached match state for read-only domain presentation."""
     item = dict(match or {})
+    if not item.get("unified_sports_truth"):
+        from engines.unified_sports_truth_engine import evidence_from_row, resolve_match, legacy_projection
+        item = legacy_projection(item, resolve_match(item.get("id") or item.get("match_id") or "", [evidence_from_row(item)]))
     status_info = canonical_match_status(item)
     surface_contract = canonical_match_surface_contract(item)
     domain_status = {
@@ -15808,7 +15871,15 @@ def match_quality_score(match):
 
 def merge_match_payload(primary, duplicate):
     from engines.realtime_state_engine import merge_match_observations
-    return merge_match_observations(primary, duplicate)
+    merged = merge_match_observations(primary, duplicate)
+    if primary.get("unified_sports_truth") or duplicate.get("unified_sports_truth"):
+        from engines.unified_sports_truth_engine import evidence_from_row, resolve_match, legacy_projection
+        receipts = []
+        for item in (primary, duplicate):
+            truth = item.get("unified_sports_truth") or {}
+            receipts.extend(truth.get("provider_evidence") or [evidence_from_row(item)])
+        merged = legacy_projection(merged, resolve_match(merged.get("id") or primary.get("id"), receipts))
+    return merged
 
 
 def dedupe_matches_list(matches):
@@ -15908,6 +15979,9 @@ def cleanup_duplicate_matches(cur=None, match_dates=None):
             groups += 1
             # Keep existing links stable; observation selection is separate.
             keeper = max(items, key=match_quality_score)
+            from engines.unified_sports_truth_store import persist_receipt, rehome_receipts
+            for evidence_row in items:
+                persist_receipt(cur.connection, evidence_row["id"], evidence_row)
             merged = dict(keeper)
             for item in items:
                 if item.get("id") != keeper.get("id"):
@@ -15920,6 +15994,7 @@ def cleanup_duplicate_matches(cur=None, match_dates=None):
                 cur.execute("DELETE FROM live_matches WHERE match_id=? OR id=?",
                             (duplicate_id, "live-" + duplicate_id))
                 if duplicate_id != keeper["id"]:
+                    rehome_receipts(cur.connection, duplicate_id, keeper["id"])
                     cur.execute("UPDATE picks SET match_id=? WHERE match_id=?", (keeper["id"], duplicate_id))
                     cur.execute("DELETE FROM matches WHERE id=?", (duplicate_id,))
                     removed += 1
@@ -16850,6 +16925,9 @@ def _v931_read_table_rows(table, limit=600):
                 (int(limit),),
             ).fetchall()
         ]
+        if table == "matches":
+            from engines.unified_sports_truth_store import project_rows
+            records = project_rows(conn, records)
         return records, {
             "status": "ok",
             "error_type": "",
@@ -18021,7 +18099,18 @@ def _build_public_home_sports_summary():
 
 def _public_sports_cache_key():
     db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
-    return f"v934:sports:public-summary:{db_cache_key}"
+    key = f"v934:sports:public-summary:{db_cache_key}"
+    from engines.unified_sports_truth_store import invalidate_changed_store
+    conn = request_read_db()
+    owns_connection = conn is None
+    if owns_connection:
+        conn = db()
+    try:
+        invalidate_changed_store(conn, key)
+    finally:
+        if owns_connection:
+            conn.close()
+    return key
 
 def get_public_home_sports_summary():
     """Cached DB/WAL sports truth; synchronization invalidates it without provider calls."""
@@ -18032,6 +18121,8 @@ def get_public_home_sports_summary():
         _build_public_home_sports_summary,
         ttl_seconds=300,
     )
+    from engines.unified_sports_truth_engine import refresh_payload_truth
+    result = refresh_payload_truth(result)
     # The DB snapshot may remain useful for five minutes, but LIVE evidence has a
     # much shorter freshness window. Reconcile it in memory so cards and counters
     # cannot retain an event that became stale while the snapshot was cached.
@@ -21120,6 +21211,8 @@ def match_detail_page(match_id):
     attach_archived_sports_details(DB_PATH, detail)
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
+    from engines.unified_sports_truth_engine import canonicalize_detail
+    canonicalize_detail(detail)
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}
     match_context = build_match_context(
         context_detail,
