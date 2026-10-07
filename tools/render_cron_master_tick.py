@@ -532,7 +532,7 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
                        "PARTIAL_PROVIDER_ERRORS", "INVALID_RESPONSE", "AUTH_OR_ACCESS",
                        "RATE_OR_QUOTA", "NETWORK_OR_TIMEOUT", "LOCAL_DB_OR_SCHEMA",
                        "LOCAL_PRECALL_ERROR", "PROVIDER_ERROR", "CACHED_PROVIDER_ERROR",
-                       "NOT_CONFIGURED", "DISABLED"}
+                       "NOT_CONFIGURED", "DISABLED", "NOT_CONFIGURED_OR_DISABLED"}
             diagnostics = []
             for value in (payload.get("technical_errors") or [])[:8]:
                 label = str(value)
