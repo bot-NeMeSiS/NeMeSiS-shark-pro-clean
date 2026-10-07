@@ -2237,8 +2237,17 @@ def bounded_sports_sync(force=False):
             deferral = deferral or status in {
                 prefix + reason for prefix in ("CACHE_PROVIDER_FAILURE_", "PROVIDER_FAILURE_BACKOFF_")
                 for reason in restricted}
+            # A positively classified plan/coverage limit is partial coverage,
+            # including the first rejected observation. Ambiguous access errors
+            # and fresh authentication/network failures remain technical FAIL.
+            plan_limit = (
+                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED"}
+                and status.startswith("PARTIAL_")
+                and _sports_stage_reason_code(stage) not in {"AUTH_OR_ACCESS", "NETWORK_OR_TIMEOUT", "RATE_OR_QUOTA"}
+            )
+            deferral = deferral or plan_limit
             if deferral:
-                controlled.append(status)
+                controlled.append("PROVIDER_PLAN_LIMIT" if plan_limit else status)
             elif failure:
                 # Provider statuses include composite labels and must not escape
                 # the fixed, secret-safe operational reason vocabulary.

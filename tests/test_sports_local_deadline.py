@@ -104,3 +104,25 @@ def test_expired_provider_skips_post_fetch_scans(app_module, monkeypatch):
     assert calls == ["window"]
     assert result["live"]["status"] == "TIME_BUDGET"
     assert result["deep_enrichment"]["status"] == "TIME_BUDGET"
+
+
+@pytest.mark.parametrize("category,error,partial", [
+    ("FREE_PLAN_RESTRICTED", "Free plan does not provide live coverage", True),
+    ("SUBSCRIPTION_RESTRICTED", "Endpoint unavailable for this subscription", True),
+    ("AUTH_OR_ACCESS", "HTTP 403 forbidden", False),
+    ("ACCESS_RESTRICTED", "Access rejected", False),
+    ("SUBSCRIPTION_RESTRICTED", "HTTP 403 forbidden", False),
+])
+def test_fresh_plan_limit_is_partial_but_access_rejection_is_fail(app_module, monkeypatch, category, error, partial):
+    monkeypatch.setattr(app_module, "run_sports_sync_cycle", lambda **kwargs: {
+        "ok": True, "status": "PARTIAL", "live": {
+            "ok": True, "status": "partial_" + category,
+            "failure_category": category, "errors": [error], "external_calls": 1,
+        },
+    })
+    monkeypatch.setattr(app_module, "api_exploitation_summary", lambda *args: {})
+    monkeypatch.setattr(app_module, "_build_sports_pipeline_diagnostics", lambda *args: {})
+    result = app_module.bounded_sports_sync()
+    assert result["ok"] is partial
+    assert bool(result["technical_errors"]) is not partial
+    assert result["controlled_deferrals"] == (["PROVIDER_PLAN_LIMIT"] if partial else [])
