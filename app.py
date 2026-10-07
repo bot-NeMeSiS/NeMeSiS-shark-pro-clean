@@ -1353,7 +1353,7 @@ def sports_sync_window_state():
 def _log_sports_stage_duration(label, started):
     if not has_request_context() or request.path != "/api/automation/sports/sync":
         return
-    safe_labels = {"runtime_initialize", "api_football_match_window", "sportsdb_calendar",
+    safe_labels = {"runtime_initialize", "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
                    "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
@@ -1433,7 +1433,9 @@ def _api_football_deep_enrichment_candidates(limit=1):
 def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=True):
     """Refresh sports cache without Telegram, payments or render-time provider calls."""
     started_at = now_iso()
+    window_started = time.monotonic()
     before = sports_sync_window_state()
+    _log_sports_stage_duration("window_before", window_started)
     if has_request_context():
         close_request_read_db()
     fixtures = _safe_sports_sync_call(
@@ -1453,7 +1455,9 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
     if has_request_context():
         close_request_read_db()
     from engines.cron_request_budget import exhausted
+    window_started = time.monotonic()
     after_fixtures = before if exhausted() else sports_sync_window_state()
+    _log_sports_stage_duration("window_after", window_started)
     if has_request_context():
         close_request_read_db()
     if after_fixtures.get("live_refresh_required"):
