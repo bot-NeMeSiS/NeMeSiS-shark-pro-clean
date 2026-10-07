@@ -204,6 +204,25 @@ def _delete_backup_item(item: dict) -> bool:
         return False
 
 
+def _compact_snapshot_capacity(db_path: Path, directory: Path) -> dict:
+    """Read logical allocation; VACUUM INTO changes only a new recovery file."""
+    try:
+        with closing(connect_readonly(db_path)) as conn:
+            pages = int(conn.execute("PRAGMA page_count").fetchone()[0])
+            free_pages = int(conn.execute("PRAGMA freelist_count").fetchone()[0])
+            page_size = int(conn.execute("PRAGMA page_size").fetchone()[0])
+        compact_bytes = max(1, pages - free_pages) * page_size
+        margin = max(64 * 1024 * 1024, compact_bytes // 10)
+        available = int(shutil.disk_usage(directory).free)
+        return {"ok": free_pages > 0 and available >= compact_bytes + margin,
+                "compact_snapshot_bytes": compact_bytes,
+                "reusable_page_bytes": free_pages * page_size,
+                "required_bytes": compact_bytes + margin,
+                "free_after": available, "method": "vacuum_into"}
+    except (OSError, sqlite3.Error, TypeError, ValueError):
+        return {"ok": False, "method": "vacuum_into"}
+
+
 def ensure_backup_capacity(
     db_path: str | Path,
     root: str | Path,
@@ -283,13 +302,21 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
     bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
     storage = ensure_backup_capacity(src, root, directory=bdir)
+    compact = False
     if not storage.get("ok"):
-        return {
-            "ok": False,
-            "backup_created": False,
-            "error": storage.get("error") or "backup_storage_insufficient",
-            "storage": storage,
-        }
+        candidate = _compact_snapshot_capacity(src, bdir)
+        storage["compact_candidate"] = candidate
+        if not candidate.get("ok"):
+            return {"ok": False, "backup_created": False,
+                    "error": storage.get("error") or "backup_storage_insufficient",
+                    "storage": storage}
+        compact = True
+        storage.pop("error", None)
+        storage.update(ok=True, method="vacuum_into",
+                       allocated_snapshot_bytes=storage.get("snapshot_bytes"),
+                       snapshot_bytes=candidate["compact_snapshot_bytes"],
+                       required_bytes=candidate["required_bytes"],
+                       free_after=candidate["free_after"])
     stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
     manifest_path = out.with_suffix(".json")
@@ -301,16 +328,38 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         handle, temporary_name = tempfile.mkstemp(prefix=".backup-", suffix=".partial", dir=bdir)
         os.close(handle)
         temporary = Path(temporary_name)
+        deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
+        if compact:
+            # The source connection is read-only. No VACUUM, checkpoints or
+            # deletion run against the live DB; only the destination is rebuilt.
+            with closing(connect_readonly(src)) as source:
+                source.execute("PRAGMA busy_timeout=50")
+                last_capacity_check = [0.0]
+                def compact_progress():
+                    now = time.monotonic()
+                    if now >= deadline:
+                        return 1
+                    if now - last_capacity_check[0] >= 0.05:
+                        last_capacity_check[0] = now
+                        if shutil.disk_usage(bdir).free < 64 * 1024 * 1024:
+                            return 1
+                    return 0
+                source.set_progress_handler(compact_progress, 1000)
+                source.execute("VACUUM INTO ?", (str(temporary),))
+            actual_size = temporary.stat().st_size
+            margin = max(64 * 1024 * 1024, actual_size // 10)
+            if shutil.disk_usage(bdir).free < margin:
+                raise sqlite3.OperationalError("backup_storage_insufficient")
         with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
             # SQLite retries BUSY/LOCKED indefinitely unless progress aborts it.
             # Keep the synchronous request below the web worker's timeout.
             source.execute("PRAGMA busy_timeout=50")
             dest.execute("PRAGMA busy_timeout=50")
-            deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
             def progress(status_code, remaining, total):
                 if time.monotonic() >= deadline:
                     raise sqlite3.OperationalError("backup_snapshot_timeout")
-            source.backup(dest, pages=256, progress=progress, sleep=0.05)
+            if not compact:
+                source.backup(dest, pages=256, progress=progress, sleep=0.05)
             dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
@@ -343,7 +392,8 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             "environment": "production" if str(src).startswith("/data") else "local",
             "created_by": created_by,
             "valid": True,
-            "notes": "Backup SQLite creado con API sqlite backup. No incluir en ZIP.",
+            "notes": "Backup SQLite verificado. No incluir en ZIP.",
+            "snapshot_method": "vacuum_into" if compact else "sqlite_backup",
         }
         handle, manifest_name = tempfile.mkstemp(prefix=".backup-", suffix=".json.partial", dir=bdir)
         os.close(handle)
@@ -365,7 +415,7 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
         return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
     except Exception as exc:
-        result = {"ok": False, "backup_created": published, "error": str(exc)[:300]}
+        result = {"ok": False, "backup_created": published, "error": str(exc)[:300], "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
         return result
