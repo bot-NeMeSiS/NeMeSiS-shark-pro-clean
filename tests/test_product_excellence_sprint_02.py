@@ -40,9 +40,9 @@ def test_product_excellence_sprint_02_top100_markers_are_present():
         ],
         "templates/home.html": [
             'data-top100-improvement="17"',
-            "Estado de datos deportivos",
+            "Consulta los partidos de hoy",
             "sports_contract_attributes(sports_metrics)",
-            "esperando sincronización",
+            "sigue los resultados de la jornada",
         ],
         "templates/favorites.html": [
             'data-top100-improvement="18"',
