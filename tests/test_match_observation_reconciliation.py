@@ -15,12 +15,15 @@ MADRID = ZoneInfo('Europe/Madrid')
 
 def snapshot(identifier, *, age=None, status='LIVE', score=(0, 1), **extra):
     now = datetime.now(MADRID)
+    # A LIVE snapshot must have kicked off already, including before 10:00
+    # and across midnight. Keep production clocks and freshness rules intact.
+    kickoff = now - timedelta(minutes=71)
     return {
         'id': identifier, 'external_id': 'provider-event-2440438',
         'source': 'TheSportsDB API', 'home_team': 'Tartu Kalev',
         'away_team': 'Jõhvi Phoenix', 'competition_name': 'Estonian Esiliiga B',
-        'match_date': now.date().isoformat(), 'kickoff_time': '10:00',
-        'match_time': '10:00', 'kickoff_iso': now.replace(hour=10, minute=0, second=0, microsecond=0).isoformat(),
+        'match_date': kickoff.date().isoformat(), 'kickoff_time': kickoff.strftime('%H:%M'),
+        'match_time': kickoff.strftime('%H:%M'), 'kickoff_iso': kickoff.isoformat(),
         'status': status, 'minute': '71' if status == 'LIVE' else '',
         'score': f'{score[0]}-{score[1]}', 'home_score': score[0], 'away_score': score[1],
         'raw_json': json.dumps({'strStatus': status, 'intHomeScore': score[0], 'intAwayScore': score[1]}),
