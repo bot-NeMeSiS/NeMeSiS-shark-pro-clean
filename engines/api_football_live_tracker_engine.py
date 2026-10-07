@@ -104,9 +104,14 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
             "User-Agent": "NeMeSiS-SHARK-PRO/1.0",
         },
     )
+    attempted = False
+    deadline_limited = False
     try:
         from engines.cron_request_budget import request_timeout
-        with urllib.request.urlopen(req, timeout=request_timeout(timeout)) as resp:
+        allowed_timeout = request_timeout(timeout)
+        deadline_limited = allowed_timeout < min(float(timeout), 4.0)
+        attempted = True
+        with urllib.request.urlopen(req, timeout=allowed_timeout) as resp:
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         errors = payload.get("errors") or []
         if not isinstance(payload.get("response"), list):
@@ -119,6 +124,14 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
             "requests": payload.get("paging") or {},
         }
     except Exception as exc:  # pragma: no cover - network dependent
+        from engines.cron_request_budget import CronTimeBudget, exhausted
+        if isinstance(exc, CronTimeBudget):
+            raise
+        is_timeout = isinstance(exc, TimeoutError) or isinstance(getattr(exc, 'reason', None), TimeoutError)
+        if is_timeout and deadline_limited and exhausted():
+            # This socket was limited by the local Cron allowance, not proof
+            # that the provider is unavailable. Do not stamp a fresh sync.
+            raise CronTimeBudget(external_calls=int(attempted)) from None
         return {"ok": False, "response": [], "error": str(exc)[:300]}
 
 

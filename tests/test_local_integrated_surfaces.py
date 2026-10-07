@@ -13,7 +13,7 @@ def test_live_renders_all_supplied_rows_without_mutating_evidence(app_module, lo
     now = datetime.now(ZoneInfo('Europe/Madrid'))
     rows = [normalize_match(dict(id=f'qa-{i}',home_team=f'Local QA {i}',away_team='Visitante QA',
         competition_name='Liga QA',source='SIMULATED_QA',match_date=now.date().isoformat(),
-        kickoff_time='12:00',status='LIVE',minute=0,home_score=0,away_score=0,
+        kickoff_time=now.strftime('%H:%M'),status='LIVE',minute=0,home_score=0,away_score=0,
         last_synced_at=(now-timedelta(seconds=10)).isoformat()),now=now) for i in range(12)]
     original=deepcopy(rows)
     from flask import g, render_template

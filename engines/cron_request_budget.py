@@ -10,7 +10,9 @@ _CURRENT = ContextVar('cron_request_budget', default=None)
 
 
 class CronTimeBudget(RuntimeError):
-    pass
+    def __init__(self, message='TIME_BUDGET', *, external_calls=0):
+        super().__init__(message)
+        self.external_calls = max(0, int(external_calls))
 
 
 class CronRequestBudget:

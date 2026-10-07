@@ -1363,7 +1363,8 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
     except Exception as exc:
         from engines.cron_request_budget import CronTimeBudget
         if isinstance(exc, CronTimeBudget):
-            return {"ok": True, "status": "TIME_BUDGET", "skipped": True, "external_calls": 0}
+            return {"ok": True, "status": "TIME_BUDGET", "skipped": True,
+                    "external_calls": as_int(exc.external_calls, 0)}
         return {
             "ok": False,
             "status": "ERROR",
