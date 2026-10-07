@@ -1350,6 +1350,19 @@ def sports_sync_window_state():
     }
 
 
+def _log_sports_stage_duration(label, started):
+    if not has_request_context() or request.path != "/api/automation/sports/sync":
+        return
+    safe_labels = {"runtime_initialize", "api_football_match_window", "sportsdb_calendar",
+                   "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
+    if label in safe_labels:
+        try:
+            print(json.dumps({"event": "sports_stage", "stage": label,
+                              "duration_ms": max(0, int((time.monotonic() - started) * 1000))}), flush=True)
+        except (OSError, ValueError):
+            pass
+
+
 def _safe_sports_sync_call(label, callback, *args, **kwargs):
     from engines.cron_request_budget import exhausted
     if exhausted():
@@ -1373,15 +1386,7 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
             "safe_message": "La sincronización fallo de forma controlada. Revisa el diagnóstico interno.",
         }
     finally:
-        if has_request_context() and request.path == "/api/automation/sports/sync":
-            safe_labels = {"api_football_match_window", "sportsdb_calendar", "api_football_live_tracker",
-                           "api_football_deep_enrichment", "pick_grading", "odds"}
-            if label in safe_labels:
-                try:
-                    print(json.dumps({"event": "sports_stage", "stage": label,
-                                      "duration_ms": max(0, int((time.monotonic() - stage_started) * 1000))}), flush=True)
-                except (OSError, ValueError):
-                    pass
+        _log_sports_stage_duration(label, stage_started)
 
 
 def _api_football_deep_enrichment_candidates(limit=1):
@@ -4071,6 +4076,7 @@ def ensure_runtime_ready_for_request():
                 return None
         except Exception:
             pass
+    started = time.monotonic()
     try:
         initialize_once()
     except Exception as exc:
@@ -4078,6 +4084,8 @@ def ensure_runtime_ready_for_request():
             print("[STARTUP] initialize_once failed:", str(exc)[:240])
         except Exception:
             pass
+    finally:
+        _log_sports_stage_duration("runtime_initialize", started)
     return None
 
 
