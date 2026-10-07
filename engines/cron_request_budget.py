@@ -50,3 +50,13 @@ def request_timeout(default):
     if exhausted():
         raise CronTimeBudget('TIME_BUDGET')
     return min(float(default), 4., scope.remaining())
+
+
+def sqlite_busy_timeout(default_ms):
+    """Keep lock contention below the Cron transport deadline, without changing other jobs."""
+    scope = _CURRENT.get()
+    if scope is None:
+        return default_ms
+    if exhausted():
+        raise CronTimeBudget('TIME_BUDGET')
+    return max(1, min(int(default_ms), 500, int(scope.remaining() * 1000)))
