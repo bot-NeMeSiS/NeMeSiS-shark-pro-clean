@@ -2251,7 +2251,7 @@ def bounded_sports_sync(force=False):
             elif failure:
                 # Provider statuses include composite labels and must not escape
                 # the fixed, secret-safe operational reason vocabulary.
-                reason = _sports_stage_reason_code(stage)
+                reason = "INVALID_RESPONSE" if status == "INVALID_RESPONSE" else _sports_stage_reason_code(stage)
                 if reason in {"UNKNOWN", "NONE"}:
                     reason = "ERROR"
                 technical.append(label + "_" + reason)
