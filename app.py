@@ -1354,6 +1354,7 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
     from engines.cron_request_budget import exhausted
     if exhausted():
         return {"ok": True, "status": "TIME_BUDGET", "skipped": True, "external_calls": 0}
+    stage_started = time.monotonic()
     try:
         result = callback(*args, **kwargs)
         if isinstance(result, dict):
@@ -1371,6 +1372,16 @@ def _safe_sports_sync_call(label, callback, *args, **kwargs):
             "error": f"{label}_{type(exc).__name__}",
             "safe_message": "La sincronización fallo de forma controlada. Revisa el diagnóstico interno.",
         }
+    finally:
+        if has_request_context() and request.path == "/api/automation/sports/sync":
+            safe_labels = {"api_football_match_window", "sportsdb_calendar", "api_football_live_tracker",
+                           "api_football_deep_enrichment", "pick_grading", "odds"}
+            if label in safe_labels:
+                try:
+                    print(json.dumps({"event": "sports_stage", "stage": label,
+                                      "duration_ms": max(0, int((time.monotonic() - stage_started) * 1000))}), flush=True)
+                except (OSError, ValueError):
+                    pass
 
 
 def _api_football_deep_enrichment_candidates(limit=1):
@@ -5328,7 +5339,23 @@ def upsert_sportsdb_matches(match_rows):
         conn.close()
 
 
-def _sportsdb_existing_provider_rows(cur, item):
+def _sportsdb_provider_ids_for_batch(cur, match_rows):
+    """Resolve provider identities once per bounded batch, never once per fixture."""
+    keys = list(dict.fromkeys(str(item.get("external_id") or "").strip()
+                             for item in match_rows if item and item.get("external_id")))
+    found = {}
+    for start in range(0, len(keys), 500):
+        chunk = keys[start:start + 500]
+        placeholders = ",".join("?" for _ in chunk)
+        for row in cur.execute(
+            "SELECT id,external_id FROM matches WHERE external_id IN (" + placeholders + ") "
+            "AND source LIKE 'TheSportsDB%'", tuple(chunk),
+        ).fetchall():
+            found.setdefault(str(row["external_id"]), []).append(str(row["id"]))
+    return found
+
+
+def _sportsdb_existing_provider_rows(cur, item, provider_ids=None):
     """Resolve one SportsDB provider event across current and legacy internal IDs."""
     found = {}
     direct = cur.execute("SELECT * FROM matches WHERE id=?", (item["id"],)).fetchone()
@@ -5338,12 +5365,21 @@ def _sportsdb_existing_provider_rows(cur, item):
 
     external_id = str(item.get("external_id") or "").strip()
     if external_id:
-        provider_rows = cur.execute(
-            """SELECT * FROM matches
-               WHERE external_id=?
-                 AND source LIKE 'TheSportsDB%'""",
-            (external_id,),
-        ).fetchall()
+        if provider_ids is None:
+            provider_rows = cur.execute(
+                "SELECT * FROM matches WHERE external_id=? AND source LIKE 'TheSportsDB%'",
+                (external_id,),
+            ).fetchall()
+        else:
+            ids = provider_ids.get(external_id) or []
+            placeholders = ",".join("?" for _ in ids)
+            # Fetch current rows through primary keys so earlier writes in this
+            # transaction still participate in observation ordering and identity.
+            provider_rows = cur.execute(
+                "SELECT * FROM matches WHERE id IN (" + placeholders + ") "
+                "AND external_id=? AND source LIKE 'TheSportsDB%'",
+                (*ids, external_id),
+            ).fetchall() if ids else []
         for row in provider_rows:
             row_item = dict(row)
             row_id = str(row_item.get("id") or "").strip()
@@ -5431,6 +5467,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     from engines.realtime_state_engine import older_match_observation
     cur = conn.cursor()
     conn.execute("BEGIN IMMEDIATE")
+    provider_ids = _sportsdb_provider_ids_for_batch(cur, match_rows)
     imported = 0
     updated = 0
     skipped = 0
@@ -5447,7 +5484,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
             for offset in (-1, 0, 1):
                 touched_match_dates.add((parsed_touched_date + timedelta(days=offset)).isoformat())
 
-        existing_rows = _sportsdb_existing_provider_rows(cur, item)
+        existing_rows = _sportsdb_existing_provider_rows(cur, item, provider_ids=provider_ids)
         if any(older_match_observation(existing, item) for existing in existing_rows):
             skipped += 1
             continue
@@ -5459,6 +5496,10 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
 
         for target_id in target_ids:
             _write_sportsdb_match_snapshot(cur, item, target_id)
+        external_id = str(item.get("external_id") or "").strip()
+        if external_id:
+            known_ids = provider_ids.setdefault(external_id, [])
+            known_ids.extend(target_id for target_id in target_ids if target_id not in known_ids)
 
         if existing_rows:
             updated += 1
