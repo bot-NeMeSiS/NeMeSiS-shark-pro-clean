@@ -570,7 +570,7 @@ def test_p0_live_without_real_minute_uses_honest_label_and_no_fake_score(app_mod
         "live-no-minute",
         "Primeira Liga",
         date_offset=0,
-        kickoff="20:00",
+        kickoff="00:00",
         status="LIVE",
         home="Benfica",
         away="Porto",

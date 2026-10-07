@@ -44,7 +44,7 @@ def _match(app_module, match_id: str, *, lifecycle: str = "UPCOMING", score: boo
         "home_team": f"Local {match_id}",
         "away_team": f"Visitante {match_id}",
         "competition_name": "Competicion real",
-        "kickoff_time": "20:00",
+        "kickoff_time": "00:00" if lifecycle == "LIVE" else "20:00",
         "source": "fixture-test",
         "updated_at": app_module.now_iso(),
         "last_synced_at": app_module.now_iso(),
