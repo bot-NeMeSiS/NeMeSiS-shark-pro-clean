@@ -18,7 +18,7 @@
 {% set live_count = sports_metrics.get('live_confirmed', 0) %}
 {% set pick_count = sports_metrics.get('picks_ready', counts.get('picks', 0)) %}
 {% set incomplete_count = counts.get('incomplete', 0) or 0 %}
-{% set safe_message = summary.get('safe_message') or summary.get('message') or 'Sin agenda real completa disponible.' %}
+{% set safe_message = 'La agenda no está disponible temporalmente. Vuelve a intentarlo en unos minutos.' if summary.get('storage_status') == 'database_locked' else 'Todavía no hay partidos disponibles para esta jornada.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set simulated_evidence = evidence_origin == 'SIMULATED_QA' %}
 {% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
@@ -70,7 +70,7 @@
         {{ action_button('Calendario', '/calendario', false, 'blue', false, 'calendar') }}
       </div>
       {% endif %}
-      <span class="sr-only" data-top100-improvement="17">Entiende NeMeSiS en 30 segundos. Primer valor en menos de un minuto. Estado de datos deportivos: esperando sincronización. Continúa sin buscar otra vez. Abrir calendario. Abrir resumen del día.</span>
+      <span class="sr-only" data-top100-improvement="17">Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.</span>
       <div class="v933-hero-proof sports-priority-proof">
         <span>{{ icon('live') }} {{ live_count }} en directo</span>
         <span>{{ icon('calendar') }} {{ today_count }} hoy</span>
@@ -88,7 +88,7 @@
     <aside class="v933-today-board sports-priority-main-card" aria-label="Prioridad deportiva de hoy">
       <header>
         <h2>{{ hero_board_title }}</h2>
-        {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Estado seguro'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
+        {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Agenda pendiente'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
       </header>
       {% if hero_match %}
         {{ match_card(hero_match, true, true) }}
@@ -116,7 +116,7 @@
         {{ section_header('Importantes hoy', '', 'Todos los partidos', '/calendario', 'Relevancia deportiva') }}
         {% if important_matches %}
           <div class="v933-match-grid sports-priority-grid">
-            {% for match in important_matches[:6] %}{{ match_card(match, false, true) }}{% endfor %}
+            {% for match in important_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
         {% else %}
           {{ empty_state('Sin destacados hoy', safe_message, 'Ver semana', '/calendario?lane=week', 'calendar') }}
@@ -130,7 +130,7 @@
             {% for match in favorite_matches[:4] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
         {% else %}
-          {{ empty_state('Sin favoritos todavía', 'Guarda equipos, ligas o partidos para subirlos en tu experiencia sin ocultar el catálogo completo.', 'Elegir favoritos', '/favoritos', 'star') }}
+          {{ empty_state('Sin favoritos todavía', 'Guarda tus equipos, ligas y partidos para encontrarlos aquí.', 'Elegir favoritos', '/favoritos', 'star') }}
         {% endif %}
       </section>
 
@@ -138,10 +138,10 @@
         {{ section_header('Próximos importantes', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
         {% if upcoming_matches %}
           <div class="v933-match-grid sports-priority-grid is-compact">
-            {% for match in upcoming_matches[:6] %}{{ match_card(match, true, true) }}{% endfor %}
+            {% for match in upcoming_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
         {% else %}
-          {{ empty_state('Esperando próximos partidos', 'No hay próximos completos en la base local. NeMeSiS no fabrica calendario.', 'Actualizar vista', '/calendario?lane=week', 'calendar') }}
+          {{ empty_state('Próximos partidos todavía no disponibles', 'Consulta la agenda para ver los partidos de los próximos días.', 'Ver agenda', '/calendario?lane=week', 'calendar') }}
         {% endif %}
       </section>
 
