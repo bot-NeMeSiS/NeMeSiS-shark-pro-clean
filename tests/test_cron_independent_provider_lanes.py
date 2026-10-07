@@ -92,7 +92,7 @@ def test_sports_diagnostic_failure_preserves_execution(app_module, monkeypatch):
     ({'ok':True,'status':'PROVIDER_FAILURE_BACKOFF_ACCESS_RESTRICTED','errors':['provider_failure_backoff']}, []),
     ({'ok':False,'status':'ERROR','errors':['TIME_BUDGET']}, []),
     ({'ok':False,'status':'INVALID_RESPONSE','error':'invalid'}, ['fixtures_INVALID_RESPONSE']),
-    ({'ok':False,'status':'ERROR','error':'TimeoutError'}, ['fixtures_ERROR']),
+    ({'ok':False,'status':'ERROR','error':'TimeoutError'}, ['fixtures_NETWORK_OR_TIMEOUT']),
 ])
 def test_sports_deferral_never_hides_technical_error(app_module, monkeypatch, stage, expected_errors):
     monkeypatch.setattr(app_module, 'run_sports_sync_cycle', lambda **k: {

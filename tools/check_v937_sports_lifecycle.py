@@ -155,10 +155,15 @@ if int((forced_snapshot.get("counts") or {}).get("live") or 0) != 0:
     errors.append("v934_summary_force_live_without_evidence")
 
 snapshot_now = datetime(2026, 7, 14, 20, 0, tzinfo=timezone.utc)
+snapshot_kickoff = (snapshot_now - timedelta(minutes=30)).astimezone(app_module.TZ)
 fresh_confirmed_live = {
     **generic_live,
     "id": "v937-fresh-confirmed-live",
     "match_date": "2026-07-14",
+    # Keep every fixture timestamp in the same isolated scenario. Inheriting
+    # today's kickoff made this guard change result with the CI execution hour.
+    "kickoff_time": snapshot_kickoff.strftime("%H:%M"),
+    "kickoff_iso": snapshot_kickoff.isoformat(),
     "home_score": 0,
     "away_score": 0,
     "last_synced_at": (snapshot_now - timedelta(seconds=30)).isoformat(),
@@ -167,6 +172,8 @@ stale_confirmed_live = {
     **generic_live,
     "id": "v937-stale-confirmed-live",
     "match_date": "2026-07-14",
+    "kickoff_time": snapshot_kickoff.strftime("%H:%M"),
+    "kickoff_iso": snapshot_kickoff.isoformat(),
     "home_score": 1,
     "away_score": 0,
     "last_synced_at": (snapshot_now - timedelta(seconds=121)).isoformat(),

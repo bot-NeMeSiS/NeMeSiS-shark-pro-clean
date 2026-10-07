@@ -1436,7 +1436,8 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
     # Reopen the request read snapshot after provider writers committed.
     if has_request_context():
         close_request_read_db()
-    after_fixtures = sports_sync_window_state()
+    from engines.cron_request_budget import exhausted
+    after_fixtures = before if exhausted() else sports_sync_window_state()
     if has_request_context():
         close_request_read_db()
     if after_fixtures.get("live_refresh_required"):
@@ -1456,7 +1457,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
             "fixtures_count": 0,
             "safe_message": "Sin live ni kickoff cercano: no se consumen creditos.",
         }
-    deep_candidates = _api_football_deep_enrichment_candidates(limit=1)
+    deep_candidates = [] if exhausted() else _api_football_deep_enrichment_candidates(limit=1)
     deep = _safe_sports_sync_call(
         "api_football_deep_enrichment",
         run_api_exploitation_if_due,
@@ -2236,11 +2237,27 @@ def bounded_sports_sync(force=False):
             deferral = deferral or status in {
                 prefix + reason for prefix in ("CACHE_PROVIDER_FAILURE_", "PROVIDER_FAILURE_BACKOFF_")
                 for reason in restricted}
+            # A positively classified plan/coverage limit is partial coverage,
+            # including the first rejected observation. Ambiguous access errors
+            # and fresh authentication/network failures remain technical FAIL.
+            plan_limit = (
+                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED"}
+                and status.startswith("PARTIAL_")
+                and _sports_stage_reason_code(stage) not in {"AUTH_OR_ACCESS", "NETWORK_OR_TIMEOUT", "RATE_OR_QUOTA"}
+            )
+            deferral = deferral or plan_limit
             if deferral:
-                controlled.append(status)
+                controlled.append("PROVIDER_PLAN_LIMIT" if plan_limit else status)
             elif failure:
-                technical.append(label + "_" + (status or "ERROR"))
+                # Provider statuses include composite labels and must not escape
+                # the fixed, secret-safe operational reason vocabulary.
+                reason = "INVALID_RESPONSE" if status == "INVALID_RESPONSE" else _sports_stage_reason_code(stage)
+                if reason in {"UNKNOWN", "NONE"}:
+                    reason = "ERROR"
+                technical.append(label + "_" + reason)
         result["technical_errors"] = technical
+        if technical:
+            result["ok"] = False
         result["controlled_deferrals"] = controlled
         if controlled or budget.deferred:
             result["status"] = "PARTIAL"
