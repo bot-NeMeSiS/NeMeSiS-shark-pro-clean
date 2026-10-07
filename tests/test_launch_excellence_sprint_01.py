@@ -12,8 +12,8 @@ def test_launch_excellence_home_guidance_is_present():
     required = [
         'data-launch-excellence="home-start"',
         'data-launch-onboarding="first-run"',
-        'Entiende NeMeSiS en 30 segundos',
-        'Continúa sin buscar otra vez',
+        'Entiende NeMeSiS rápido',
+        "section_header('Continuar'",
         'data-launch-continue="last-route"',
         'data-launch-last-match="true"',
         '/daily-briefing',

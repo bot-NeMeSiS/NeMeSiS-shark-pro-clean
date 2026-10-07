@@ -9,7 +9,7 @@ def read_text(path: str) -> str:
 
 def test_product_excellence_top100_markers_are_present():
     checks = {
-        "templates/home.html": ['data-top100-improvement="2,3,19"', "Primer valor en menos de un minuto", "Abrir calendario", "Abrir resumen del día"],
+        "templates/home.html": ['data-top100-improvement="2,3,19"', "Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.", "/calendario", "/daily-briefing"],
         "templates/shark.html": ['data-top100-improvement="4"', "C\u00f3mo leer SHARK", "Riesgo visible"],
         "templates/membership.html": ['data-top100-improvement="5,6"', "Ver prestaciones", "checkout_ready", "csrf_token()"],
         "templates/telegram.html": ['data-top100-improvement="5"', "Estado de entrega", "según tu vinculación, tus preferencias y la información disponible para tu plan"],
