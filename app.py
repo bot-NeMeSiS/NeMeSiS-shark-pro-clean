@@ -11824,7 +11824,9 @@ def set_ui_language_headers(response):
     return response
 
 
-app.jinja_env.globals.update(ui=ui_text, ns_ui=ui_text, ui_match_datetime=ui_match_datetime, ui_match_clock=jinja_match_time_short, ui_calendar_date=ui_calendar_date,
+from engines.app_navigation import navigation_matches
+
+app.jinja_env.globals.update(navigation_matches=navigation_matches, ui=ui_text, ns_ui=ui_text, ui_match_datetime=ui_match_datetime, ui_match_clock=jinja_match_time_short, ui_calendar_date=ui_calendar_date,
                             ui_value=lambda value: localize_identity_value(value, current_ui_locale()),
                             ui_owned=lambda value: localize_owned_text(value, current_ui_locale()),
                             ui_entity_copy=lambda detail, kind: localize_entity_copy(detail, kind, current_ui_locale(), ui_match_datetime),
@@ -11849,6 +11851,7 @@ def inject_session_user():
             "Partidos disponibles", "Esperando datos deportivos", "Estado confirmado", "Sin sincronización confirmada",
             "La información confirmada sigue disponible entre actualizaciones.", "Estado actualizado", "Última registrada",
             "Continuar", "Volver al partido", "Cuenta", "Inicio", "Calendario", "Directo", "Picks", "Favoritos",
+            "{count} secciones disponibles",
             "Actualización en directo", "Datos deportivos sincronizados", "Esperando datos reales", "Actualización segura",
             "Próxima revisión en {seconds} s",
             "Resultado pendiente", "Estado pendiente", "Cancelado", "Abandonado", "Pendiente de confirmar",
@@ -31428,6 +31431,16 @@ def v566_client_menu_page():
     if not current_session_user():
         return redirect("/cliente-login")
     return render_template("client_menu.html", items=v566_client_menu_items())
+
+
+@app.route("/explorar")
+@app.route("/admin/explorar")
+def app_navigation_page():
+    """A lightweight directory; opening it never builds the operational dashboard."""
+    if request.path.startswith("/admin/") and not is_admin_session():
+        return redirect("/admin-login?next=/admin/explorar")
+    return render_template("app_navigation.html", data={},
+                           navigation_query=request.args.get("q", "")[:90])
 
 
 @app.route("/live-depth")

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "components/app_navigation.html" import navigation_content with context %}
+{% block content %}
+<section class="app-explore-page">
+  <h1>{{ ui('Explorar Admin' if show_admin_nav else 'Explorar NeMeSiS') }}</h1>
+  {{ navigation_content('admin' if show_admin_nav else ('client' if current_user else 'public'), true, navigation_query|default('')) }}
+</section>
+{% endblock %}

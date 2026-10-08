@@ -41,7 +41,7 @@
   ('Telegram','/admin/telegram/command-center','telegram'),
   ('Usuarios','/admin/users','users'),
   ('Pronósticos','/admin/picks','target'),
-  ('Más','/admin/dashboard?commands=1','routes')
+  ('Más','/admin/explorar','routes')
 ] %}
 
 {% set CLIENT_MOBILE_LINKS = CLIENT_LINKS %}
@@ -51,6 +51,32 @@
   ('Directo','/directo','live'),
   ('Pronósticos','/picks','target'),
   ('Entrar','/cliente-login','user')
+] %}
+
+{# Discovery extends canonical destinations and never includes mutations. #}
+{% set DISCOVERY_SPORTS = [
+  ('Partidos','/calendario?lane=today','calendar'),
+  ('Directo','/directo','live'),
+  ('Resultados','/calendario?lane=finished','history'),
+  ('Competiciones','/competiciones','trophy'),
+  ('Pronósticos','/picks','target'),
+  ('Combinadas','/combinadas','target'),
+  ('Historial','/historico','history'),
+  ('SHARK','/shark','shark')
+] %}
+{% set DISCOVERY_ACCOUNT = [
+  ('Favoritos','/favoritos','star'),
+  ('Actividad','/actividad','history'),
+  ('Notificaciones','/notificaciones','bell'),
+  ('Telegram','/telegram','telegram'),
+  ('Mi cuenta','/mi-cuenta','user'),
+  ('Membresías','/membresias','star')
+] %}
+{% set DISCOVERY_HELP = [('Ayuda y preguntas','/faq','help'),('Soporte','/soporte','help'),('Estado del servicio','/service-status','shield')] %}
+{% set DISCOVERY_ADMIN_EXTRA = [
+  ('Copias de seguridad','/admin/backups','database'),
+  ('Jornada operativa','/admin/operations-center','calendar'),
+  ('Control general','/admin/founder-os','home')
 ] %}
 
 {% macro is_active(href, path, scope='client') -%}

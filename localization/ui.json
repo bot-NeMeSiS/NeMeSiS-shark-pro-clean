@@ -1,4 +1,94 @@
 {
+  "app_navigation": {
+    "Buscar secciones": {
+      "en": "Find sections",
+      "fr": "Rechercher des rubriques"
+    },
+    "¿Dónde quieres ir?": {
+      "en": "Where would you like to go?",
+      "fr": "Où souhaitez-vous aller ?"
+    },
+    "Usuarios, copias, datos…": {
+      "en": "Users, backups, data…",
+      "fr": "Utilisateurs, sauvegardes, données…"
+    },
+    "Partidos, favoritos, cuenta…": {
+      "en": "Matches, favorites, account…",
+      "fr": "Matchs, favoris, compte…"
+    },
+    "Busca una pantalla. Los cambios se realizan desde su sección.": {
+      "en": "Find a screen. Make changes in the corresponding section.",
+      "fr": "Trouvez une page. Les modifications se font dans la rubrique correspondante."
+    },
+    "Abre una sección o busca un equipo en el calendario.": {
+      "en": "Open a section or find a team in the calendar.",
+      "fr": "Ouvrez une rubrique ou recherchez une équipe dans le calendrier."
+    },
+    "Buscar partidos en el calendario": {
+      "en": "Find matches in the calendar",
+      "fr": "Rechercher des matchs dans le calendrier"
+    },
+    "No hay secciones con ese nombre. Prueba con otra palabra.": {
+      "en": "No sections match that name. Try another word.",
+      "fr": "Aucune rubrique ne correspond à ce nom. Essayez un autre mot."
+    },
+    "Usa las flechas para recorrer los resultados y Escape para cerrar.": {
+      "en": "Use arrow keys to browse results and Escape to close.",
+      "fr": "Utilisez les flèches pour parcourir les résultats et Échap pour fermer."
+    },
+    "Explorar Admin": {
+      "en": "Explore Admin",
+      "fr": "Explorer l’administration"
+    },
+    "Explorar NeMeSiS": {
+      "en": "Explore NeMeSiS",
+      "fr": "Explorer NeMeSiS"
+    },
+    "Cerrar explorador": {
+      "en": "Close explorer",
+      "fr": "Fermer l’explorateur"
+    },
+    "Explorar la app": {
+      "en": "Explore the app",
+      "fr": "Explorer l’application"
+    },
+    "Tu espacio": {
+      "en": "Your space",
+      "fr": "Votre espace"
+    },
+    "Ayuda y preguntas": {
+      "en": "Help and questions",
+      "fr": "Aide et questions"
+    },
+    "Estado del servicio": {
+      "en": "Service status",
+      "fr": "État du service"
+    },
+    "Copias de seguridad": {
+      "en": "Backups",
+      "fr": "Sauvegardes"
+    },
+    "Jornada operativa": {
+      "en": "Daily operations",
+      "fr": "Opérations quotidiennes"
+    },
+    "{count} secciones disponibles": {
+      "en": "{count} sections available",
+      "fr": "{count} rubriques disponibles"
+    },
+    "Administración": {
+      "en": "Administration",
+      "fr": "Administration"
+    },
+    "Operaciones": {
+      "en": "Operations",
+      "fr": "Opérations"
+    },
+    "Buscar en Admin": {
+      "en": "Search Admin",
+      "fr": "Rechercher dans Admin"
+    }
+  },
   "betting_evidence": {
     "Revisión de apuestas": {"en":"Betting review","fr":"Analyse des paris"},
     "Hechos y cuotas observadas, separados del análisis y la decisión.": {"en":"Observed facts and odds, separate from analysis and decisions.","fr":"Faits et cotes observés, distincts de l'analyse et de la décision."},

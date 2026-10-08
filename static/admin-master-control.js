@@ -354,9 +354,9 @@
   proposalDialog.addEventListener('close', () => { if (!state.executing) state.proposal = null; $('[data-proposal-cancel]').textContent = 'Cancelar'; });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && commandDialog.open) { event.preventDefault(); event.stopPropagation(); commandDialog.close(); return; }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (!proposalDialog.open) openCommand(); }
+    if (!window.NemesisNavigation && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if (!proposalDialog.open) openCommand(); }
   }, true);
-  document.querySelector('.v933-admin-topbar form[role="search"]')?.addEventListener('submit', (event) => { event.preventDefault(); const query = event.currentTarget.querySelector('input')?.value || ''; $('[data-command-search]').value = query; openCommand(); });
+  document.querySelector('.v933-admin-topbar form[role="search"]')?.addEventListener('submit', (event) => { if (window.NemesisNavigation) return; event.preventDefault(); const query = event.currentTarget.querySelector('input')?.value || ''; $('[data-command-search]').value = query; openCommand(); });
   document.querySelector('.v933-admin-topbar [data-master-command-link]')?.addEventListener('click', (event) => { event.preventDefault(); openCommand(); });
   try { renderSnapshot(JSON.parse($('#admin-master-data').textContent || '{}')); } catch (_error) { describe('La lectura inicial no está disponible. Actualiza para volver a comprobarla.'); }
   const initialQuery = new URLSearchParams(location.search);

@@ -1,0 +1,39 @@
+{% import "components/navigation_contracts.html" as navigation %}
+{% macro navigation_content(scope, inline=false, query='') -%}
+{% set prefix = 'explore-page' if inline else 'explore-dialog' %}
+{% set admin = scope == 'admin' %}
+{% set groups = [('Administración', navigation.ADMIN_LINKS), ('Operaciones', navigation.DISCOVERY_ADMIN_EXTRA)] if admin else [('Deporte', [('Inicio', '/app' if scope == 'client' else '/', 'home')] + navigation.DISCOVERY_SPORTS), ('Tu espacio', navigation.DISCOVERY_ACCOUNT if scope == 'client' else [('Entrar', '/cliente-login', 'user'), ('Crear cuenta', '/registro', 'user'), ('Planes', '/membresias', 'star')]), ('Ayuda', navigation.DISCOVERY_HELP)] %}
+<div class="app-explore" data-app-explore data-scope="{{ scope }}">
+  <form method="get" action="{{ '/admin/explorar' if admin else '/explorar' }}" role="search" aria-label="{{ ui('Buscar secciones') }}" data-explore-form>
+    <label for="{{ prefix }}-query">{{ ui('Buscar en Admin' if admin else '¿Dónde quieres ir?') }}</label>
+    <div class="app-explore-search">
+      <input id="{{ prefix }}-query" data-explore-query type="search" name="q" maxlength="90" value="{{ query }}" autocomplete="off" enterkeyhint="search" placeholder="{{ ui('Usuarios, copias, datos…' if admin else 'Partidos, favoritos, cuenta…') }}" aria-controls="{{ prefix }}-results" aria-describedby="{{ prefix }}-help">
+      <button type="submit">{{ ui('Buscar') }}</button>
+    </div>
+    <p id="{{ prefix }}-help" class="app-explore-help">{{ ui('Busca una pantalla. Los cambios se realizan desde su sección.' if admin else 'Abre una sección o busca un equipo en el calendario.') }}</p>
+  </form>
+  <p class="app-explore-count" data-explore-count role="status" aria-live="polite" aria-atomic="true"></p>
+  <div id="{{ prefix }}-results" class="app-explore-results" data-explore-results>
+    {% set found = namespace(count=0) %}
+    {% for heading, entries in groups %}
+    {% set group = namespace(count=0) %}
+    {% for label, href, icon in entries %}{% if navigation_matches(ui(label), query) %}{% set group.count = group.count + 1 %}{% endif %}{% endfor %}
+    <section data-explore-group{% if not group.count %} hidden{% endif %} aria-labelledby="{{ prefix }}-group-{{ loop.index }}">
+      <h3 id="{{ prefix }}-group-{{ loop.index }}">{{ ui(heading) }}</h3>
+      <div class="app-explore-links">
+        {% for label, href, icon in entries %}
+        {% set matches = navigation_matches(ui(label), query) %}
+        {% if matches %}{% set found.count = found.count + 1 %}{% endif %}
+        <a href="{{ href }}" data-explore-item data-explore-label="{{ ui(label) }}"{% if not matches %} hidden{% endif %}><span>{{ ui(label) }}</span><span aria-hidden="true">→</span></a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    <p data-explore-empty{% if found.count %} hidden{% endif %}>{{ ui('No hay secciones con ese nombre. Prueba con otra palabra.') }}</p>
+  </div>
+  {% if not admin %}
+  <a class="app-explore-match" data-explore-match href="/calendario?lane=week&amp;q={{ query|urlencode }}"{% if not query.strip() %} hidden{% endif %}>{{ ui('Buscar partidos en el calendario') }} <span data-explore-match-query>{{ query }}</span> →</a>
+  {% endif %}
+  <p class="app-explore-help" data-explore-keyboard hidden>{{ ui('Usa las flechas para recorrer los resultados y Escape para cerrar.') }}</p>
+</div>
+{%- endmacro %}
