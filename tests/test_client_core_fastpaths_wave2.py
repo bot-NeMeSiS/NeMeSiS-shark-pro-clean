@@ -7,15 +7,28 @@ def _boom(*_args, **_kwargs):
 
 def test_global_competitions_does_not_build_dashboard(app_module, monkeypatch):
     captured = {}
+    local_reads = []
+
+    def recorded_competitions(sql):
+        local_reads.append(sql)
+        assert "SELECT DISTINCT competition_id" in sql
+        assert "FROM matches" in sql
+        return []
+
     monkeypatch.setattr(app_module, "dashboard_data", _boom)
     monkeypatch.setattr(app_module, "competitions", lambda: [{"id": "laliga", "name": "LaLiga"}])
+    monkeypatch.setattr(app_module, "rows", recorded_competitions)
     monkeypatch.setattr(app_module, "render_template", lambda name, **ctx: captured.update(name=name, **ctx) or "ok")
 
     with app_module.app.test_request_context("/global"):
         assert app_module.global_football() == "ok"
 
     assert captured["name"] == "global.html"
-    assert captured["data"] == {"competitions": [{"id": "laliga", "name": "LaLiga"}]}
+    assert len(local_reads) == 1
+    assert captured["data"] == {
+        "competitions": [{"id": "laliga", "name": "LaLiga", "has_matches": False}],
+        "countries": [], "query": "", "country": "",
+    }
 
 
 def test_markets_page_reuses_one_local_input_bundle(app_module, monkeypatch):

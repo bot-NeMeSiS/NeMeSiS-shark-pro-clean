@@ -1,29 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div class="kicker">Competiciones globales</div>
-  <h1>El mapa mundial de NeMeSiS</h1>
-  <p class="lead">La app ordena el fútbol por importancia: Mundial, torneos internacionales, UEFA, ligas top, España, directo y pronósticos reales.</p>
-</section>
-<section class="band">
-  <div class="section-head"><h2>{{ data.competitions|length }} competiciones</h2><span class="pill">Prioridad inteligente</span></div>
-  <div class="grid">
+<link rel="stylesheet" href="{{ url_for('static', filename='competition-directory.css') }}?v={{ app_version }}-1">
+<div class="competition-directory">
+  <header class="competition-directory-heading">
+    <p class="competition-directory-eyebrow">{{ ui('Explorar fútbol') }}</p>
+    <h1>{{ ui('Encuentra tu competición') }}</h1>
+    <p>{{ ui('Abre una competición para consultar sus partidos, resultados y equipos.') }}</p>
+  </header>
+  <form class="competition-directory-filters" action="/competiciones" method="get" role="search" aria-label="{{ ui('Buscar competiciones') }}">
+    <label for="competition-query">{{ ui('Nombre de la competición') }}
+      <input id="competition-query" type="search" name="q" maxlength="90" value="{{ data.query }}" placeholder="{{ ui('Liga, copa o país…') }}">
+    </label>
+    <label for="competition-country">{{ ui('País o región') }}
+      <select id="competition-country" name="country">
+        <option value="">{{ ui('Todos los países y regiones') }}</option>
+        {% for country in data.countries %}<option value="{{ country }}" {% if country == data.country %}selected{% endif %}>{{ country }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">{{ ui('Buscar') }}</button>
+    {% if data.query or data.country %}<a href="/competiciones">{{ ui('Limpiar filtros') }}</a>{% endif %}
+  </form>
+  <div class="competition-directory-summary">
+    <h2>{{ ui_plural('{count} competición', '{count} competiciones', data.competitions|length) }}</h2>
+    <p>{{ ui('La cobertura puede ser parcial. Cada ficha muestra la información disponible.') }}</p>
+  </div>
+  <div class="competition-directory-grid">
     {% for c in data.competitions %}
-    <article class="card">
-      <div class="comp-top">
-        <div>
-          <div class="name">{{ c.name or 'Competición no disponible' }}</div>
-          <div class="small">
-            {{ c.scope|competition_es if c.scope else 'Competición' }}
-            {% if c.country %} · {{ c.country }}{% endif %}
-            {% if c.region %} · {{ c.region }}{% endif %}
-          </div>
-        </div>
-        <div class="tier">{{ c.tier or 0 }}</div>
-      </div>
-      <p class="small">{{ c.source_strategy or 'Estrategia de datos pendiente de confirmar.' }}</p>
+    <article class="competition-directory-card">
+      <p class="competition-directory-country">{{ c.country or ui('Sin país confirmado') }}{% if c.region and c.region != c.country %} · {{ c.region }}{% endif %}</p>
+      <h3><a href="/competition/{{ c.key|urlencode }}">{{ c.name }}</a></h3>
+      <p>{{ ui('Con partidos registrados' if c.has_matches else 'Sin partidos asociados todavía') }}</p>
+      <a class="competition-directory-open" href="/competition/{{ c.key|urlencode }}">{{ ui('Explorar competición') }} <span class="sr-only">{{ c.name }}</span><span aria-hidden="true"> →</span></a>
     </article>
+    {% else %}
+    <div class="competition-directory-empty">
+      <h3>{{ ui('No encontramos esa competición') }}</h3>
+      <p>{{ ui('Prueba con otro nombre o elimina el filtro de país.') }}</p>
+      <a href="/competiciones">{{ ui('Ver todas las competiciones') }}</a>
+    </div>
     {% endfor %}
   </div>
-</section>
+</div>
 {% endblock %}

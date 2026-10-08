@@ -304,7 +304,7 @@ def test_client_visible_copy_stays_spanish_after_final_polish():
         ">pronósticos visibles<",
         "pronósticos candidatos",
         ">Ver pronósticos<",
-        "pronósticos reales.",
+        "Abre una competición para consultar sus partidos, resultados y equipos.",
         "Un pronóstico o una recomendación",
         "Importe máximo por pronóstico",
         "pronósticos publicados",

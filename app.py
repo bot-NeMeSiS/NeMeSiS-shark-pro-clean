@@ -40,6 +40,7 @@ from engines.security_engine import (
     validate_csrf,
 )
 from engines.cache_engine import cache_health
+from engines.competition_read_model import competition_contains, competition_identity, provider_family, season_key, select_season
 from engines.crest_engine import (
     crest_status,
     ensure_crest_logo_schema,
@@ -9552,6 +9553,45 @@ def _cached_match_media(match, limit=6):
     return video_highlights_snapshot(classified, preclassified=True)
 
 
+def _team_journey_matches(team, team_id, *, recent=False, limit=80):
+    """Read registered aliases without merging homonyms or provider ID conflicts."""
+    name = str(team.get("name") or team_id)
+    key = canonical_team_key(name)
+    aliases = {name.lower(), str(team_id).lower(), key, key.replace("-", " ")}
+    for alias, canonical in TEAM_ALIASES.items():
+        if canonical == key:
+            aliases.update((alias, alias.replace("-", " ")))
+    placeholders = ",".join("?" for _ in aliases)
+    comparison, ordering = ("<", "DESC") if recent else (">=", "ASC")
+    candidates = rows(
+        f"""SELECT * FROM matches
+            WHERE (lower(home_team) IN ({placeholders}) OR lower(away_team) IN ({placeholders}))
+              AND match_date{comparison}?
+            ORDER BY match_date {ordering}, kickoff_time {ordering} LIMIT ?""",
+        tuple(sorted(aliases)) * 2 + (today_iso(), int(limit) * 2),
+    )
+    country = spanish_country_name(team.get("country") or "").casefold()
+    regional = {"global", "europa", "sudamérica", "áfrica", "asia", "internacional", "mundial"}
+    result = []
+    for item in candidates:
+        match_country = spanish_country_name(item.get("country") or "").casefold()
+        if country and match_country and country != match_country and match_country not in regional:
+            continue
+        related = False
+        for side in ("home", "away"):
+            if canonical_team_key(item.get(f"{side}_team")) != key:
+                continue
+            identifier = str(item.get(f"{side}_team_id") or "")
+            source = provider_family(team.get("source"))
+            if source in {"sportsdb", "api-football"} and source == provider_family(item.get("source")) and identifier and team.get("external_id"):
+                if identifier != str(team["external_id"]):
+                    continue
+            related = True
+        if related and not is_fake_match(item):
+            result.append(item)
+    return result[:int(limit)]
+
+
 def team_page_data(team_id, limit=80):
     team = team_lookup(team_id)
     if not team:
@@ -9567,20 +9607,10 @@ def team_page_data(team_id, limit=80):
         identity["crest_url"] = team.get("logo_url")
         identity["crest_mode"] = "logo"
     favorites = favorite_sets()
-    upcoming = [annotate_match(m, favorites, include_timeline=False) for m in rows(
-        """SELECT * FROM matches
-           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
-             AND match_date>=?
-           ORDER BY match_date, kickoff_time LIMIT ?""",
-        (name, name, today_iso(), int(limit)),
-    ) if not is_fake_match(m)]
-    recent = [annotate_match(m, favorites, include_timeline=False) for m in rows(
-        """SELECT * FROM matches
-           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
-             AND match_date<?
-           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
-        (name, name, today_iso(), int(limit//2)),
-    ) if not is_fake_match(m)]
+    upcoming = [annotate_match(m, favorites, include_timeline=False)
+                for m in _team_journey_matches(team, team_id, limit=limit)]
+    recent = [annotate_match(m, favorites, include_timeline=False)
+              for m in _team_journey_matches(team, team_id, recent=True, limit=max(1, limit//2))]
     # Date bounds limit the read; the existing canonical state owns presentation.
     team_matches = upcoming + recent
     live = [m for m in team_matches if (m.get("status_info") or {}).get("is_live")]
@@ -9664,7 +9694,7 @@ def competition_lookup(competition_id):
                    country,
                    competition_id AS external_id,
                    source,
-                   updated_at
+                   updated_at, raw_json
                FROM matches
                WHERE lower(COALESCE(competition_id,''))=lower(?)
                   OR lower(COALESCE(competition_key,''))=lower(?)
@@ -9674,6 +9704,10 @@ def competition_lookup(competition_id):
             (candidate, candidate, candidate, candidate),
         )
         if sample:
+            from engines.spanish_localization_engine import provider_competition_facts
+            facts = provider_competition_facts({**sample, "competition_id": sample.get("external_id")})
+            if facts.get("name"):
+                sample["name"] = facts["name"]
             sample["key"] = sample.get("key") or slug(sample.get("name") or candidate)
             sample["name"] = spanish_competition_name(sample.get("name")) or sample.get("name")
             sample["country"] = spanish_country_name(sample.get("country")) or sample.get("country")
@@ -9703,8 +9737,9 @@ def _competition_matches_for(competition, competition_id, limit=260):
                    OR lower(COALESCE(competition_name,'')) IN ({placeholders})
                 ORDER BY match_date DESC, kickoff_time DESC
                 LIMIT ?"""
-    result = rows(query, tuple(params + params + params + params + [int(limit)]))
-    return [annotate_match(match) for match in result if not is_fake_match(match)]
+    result = rows(query, tuple(params + params + params + params + [int(limit) * 4]))
+    selected = [match for match in result if competition_contains(competition, match) and not is_fake_match(match)]
+    return [annotate_match(match, include_timeline=False) for match in selected[:int(limit)]]
 
 
 def _competition_teams_for(matches, competition):
@@ -9899,28 +9934,38 @@ def _competition_standings_for(
 
 
 def _competition_picks_for(competition, matches, limit=30):
-    names = {
-        str((competition or {}).get("name") or "").lower(),
-        str((competition or {}).get("key") or "").lower(),
-        str((competition or {}).get("external_id") or "").lower(),
-    }
-    match_ids = {str(match.get("id") or match.get("external_id") or "") for match in matches}
+    match_ids = {str(match.get("id")) for match in matches if match.get("id")}
+    if not match_ids:
+        return []
     related = []
     for pick in get_picks(limit=160):
-        pick_competition = str(pick.get("competition_name") or pick.get("league_name") or pick.get("competition_key") or "").lower()
-        pick_match_id = str(pick.get("match_id") or pick.get("id") or "")
-        if (pick_competition and pick_competition in names) or (pick_match_id and pick_match_id in match_ids):
+        pick_match_id = str(pick.get("match_id") or "")
+        if pick_match_id in match_ids:
             related.append(pick)
     return related[: int(limit)]
 
 
-def competition_page_data(competition_id, limit=260):
+def competition_page_data(competition_id, limit=260, *, season=""):
     competition = competition_lookup(competition_id)
     if not competition:
         return None
-    matches = _competition_matches_for(competition, competition_id, limit=limit)
+    available_matches = _competition_matches_for(competition, competition_id, limit=limit)
+    matches, selected_season, seasons = select_season(available_matches, season)
+    competition = {**competition, "season": selected_season}
     teams = _competition_teams_for(matches, competition)
-    standings = _competition_standings_for(competition, competition_id)
+    # Standings store API-Football IDs. SportsDB numbers cannot select that table.
+    identity = competition_identity(competition)
+    api_ids = {str(item["competition_id"]) for item in matches
+               if item.get("competition_id") and provider_family(item.get("source")) == "api-football"}
+    if identity["provider"] == "api-football" and identity["id"]:
+        api_ids.add(identity["id"])
+    standings = []
+    if selected_season and len(api_ids) == 1:
+        api_id = next(iter(api_ids))
+        standings = _competition_standings_for(
+            {**competition, "external_id": api_id}, api_id,
+            season=season_key(selected_season), strict_identity=True,
+        )
     picks = _competition_picks_for(competition, matches)
     detail = {
         "competition": competition,
@@ -9928,6 +9973,10 @@ def competition_page_data(competition_id, limit=260):
         "teams": teams,
         "standings": standings,
         "picks": picks,
+        "seasons": seasons,
+        "selected_season": selected_season,
+        "season_unavailable": bool(season and not selected_season),
+        "unscoped_matches": sum(1 for item in available_matches if not item.get("season")),
         "stats": {
             "matches": len(matches),
             "teams": len(teams),
@@ -9937,7 +9986,7 @@ def competition_page_data(competition_id, limit=260):
     }
     detail["competition_center"] = build_competition_center_context(
         detail,
-        observed_at_madrid=today_iso(),
+        observed_at_madrid=now_iso(),
     )
     return detail
 
@@ -11852,6 +11901,7 @@ def inject_session_user():
             "La información confirmada sigue disponible entre actualizaciones.", "Estado actualizado", "Última registrada",
             "Continuar", "Volver al partido", "Cuenta", "Inicio", "Calendario", "Directo", "Picks", "Favoritos",
             "{count} secciones disponibles",
+            "{count} sección disponible",
             "Actualización en directo", "Datos deportivos sincronizados", "Esperando datos reales", "Actualización segura",
             "Próxima revisión en {seconds} s",
             "Resultado pendiente", "Estado pendiente", "Cancelado", "Abandonado", "Pendiente de confirmar",
@@ -20889,7 +20939,19 @@ def v741_calendar_experience_context():
 @app.route("/global")
 @app.route("/competiciones")
 def global_football():
-    return render_template("global.html", data={"competitions": competitions()})
+    catalog = competitions()
+    query = str(request.args.get("q", ""))[:90].strip()
+    country = str(request.args.get("country", ""))[:80].strip()
+    countries = sorted({item.get("country") for item in catalog if item.get("country")})
+    recorded = rows("""SELECT DISTINCT competition_id, competition_key, competition_name,
+                       league_name, country, source FROM matches""")
+    for item in catalog:
+        item["has_matches"] = any(competition_contains(item, match) for match in recorded)
+    visible = [item for item in catalog
+               if (not country or item.get("country") == country)
+               and navigation_matches(" ".join(str(item.get(key) or "") for key in ("name", "country", "region", "key")), query)]
+    return render_template("global.html", data={"competitions": visible, "countries": countries,
+                                               "query": query, "country": country})
 
 
 def _v940_hydrate_selected_date_results(summary, date_value):
@@ -21240,7 +21302,7 @@ def team_page(team_id):
 @app.route("/competition/<competition_id>")
 @app.route("/competicion/<competition_id>")
 def competition_center_contract_page(competition_id):
-    detail = competition_page_data(competition_id)
+    detail = competition_page_data(competition_id, season=request.args.get("season", "")[:30])
     if not detail:
         detail = {
             "competition": {
@@ -29033,7 +29095,7 @@ def api_team_detail(team_id):
 
 @app.route("/api/competitions/<competition_id>/detail")
 def api_competition_detail(competition_id):
-    detail = competition_page_data(competition_id)
+    detail = competition_page_data(competition_id, season=request.args.get("season", "")[:30])
     if not detail:
         return jsonify({"ok": False, "error": "Competicion no encontrada"}), 404
     return jsonify({"ok": True, "competition": detail})

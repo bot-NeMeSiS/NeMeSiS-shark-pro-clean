@@ -226,7 +226,7 @@ def test_competition_center_route_skips_global_dashboard_context(client, app_mod
         observed_at_madrid="2026-07-28T10:00:00+02:00",
     )
 
-    monkeypatch.setattr(app_module, "competition_page_data", lambda _competition_id: detail)
+    monkeypatch.setattr(app_module, "competition_page_data", lambda _competition_id, **_kwargs: detail)
     monkeypatch.setattr(
         app_module,
         "v932_safe_dashboard_data",
