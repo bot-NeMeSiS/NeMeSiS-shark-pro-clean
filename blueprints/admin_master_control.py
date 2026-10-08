@@ -105,7 +105,7 @@ def master_snapshot(a):
     except (OSError,ValueError,TypeError):
         pass
     jobs = automation.get("jobs") if type(automation.get("jobs")) is list else []
-    job_failures = sum(1 for job in jobs if type(job) is dict and job.get("last_result") in ("ERROR","FAILED","FAILURE"))
+    job_failures = sum(1 for job in jobs if type(job) is dict and job.get("last_result") in ("ERROR","FAILED","FAILURE","FAIL"))
     today = sports.get("valid_matches_today_count")
     today = today if type(today) is int and 0 <= today <= 10**9 else None
     live = len(sports["valid_live_events"]) if isinstance(sports.get("valid_live_events"), list) else None
@@ -147,7 +147,9 @@ def master_snapshot(a):
     if not settings_readable:
         areas.append({"key":"settings","label":"Configuración","state":"SIN DATOS",
                       "detail":"Lectura no válida; banner y highlights desactivados por seguridad hasta recuperar el ajuste.","href":"/admin/dashboard"})
-    recommendations = [{"title":x["label"],"evidence":x["detail"],"href":x["href"]} for x in areas if x["state"] == "ATENCIÓN"][:6]
+    from engines.admin_daily_priorities import build_daily_priorities
+    recommendations = build_daily_priorities(areas, providers,
+        sentinel_at=sentinel.get("last_scan"))
     audit = _safe_call(lambda:control_store(a).list_audit(20), [])
     for event in audit:
         event["reversible"] = event.get("action_id") in ("settings.update","settings.rollback") and event.get("verification") == "VERIFIED"
