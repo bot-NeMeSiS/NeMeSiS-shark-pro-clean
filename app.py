@@ -20,7 +20,7 @@ import urllib.request
 import urllib.error
 from datetime import date, datetime, timedelta
 from email.message import EmailMessage
-from functools import wraps
+from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
@@ -1354,7 +1354,10 @@ def sports_sync_window_state():
 def _log_sports_stage_duration(label, started):
     if not has_request_context() or request.path != "/api/automation/sports/sync":
         return
-    safe_labels = {"runtime_initialize", "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
+    safe_labels = {"runtime_initialize", "startup_database", "startup_schema", "startup_cleanup",
+                   "startup_time_normalization", "startup_memory_schema", "startup_automation_schema",
+                   "startup_admin", "startup_seed_catalog", "startup_telegram_settings",
+                   "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
                    "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
@@ -2241,8 +2244,20 @@ def telegram_cron_delivery_tick(force=False):
 
 
 def bounded_sports_sync(force=False):
-    from engines.cron_request_budget import CronRequestBudget
-    with CronRequestBudget() as budget:
+    from engines.cron_request_budget import CronRequestBudget, exhausted
+    request_started = getattr(g, "sports_request_started", None) if has_request_context() else None
+    with CronRequestBudget(started_at=request_started) as budget:
+        # Initialization and lock waiting are part of this HTTP request. Do not
+        # start another provider window after they consumed the work deadline.
+        # automation_cron_result has already required seed_core to succeed.
+        if exhausted():
+            return {
+                "ok": True, "status": "PARTIAL", "skipped": True,
+                "processed": 0, "external_calls": 0, "technical_errors": [],
+                "controlled_deferrals": ["TIME_BUDGET"],
+                "next_action": "wait_for_next_cron_tick",
+                "no_telegram": True, "no_payments": True, "no_fake_data": True,
+            }
         result = run_sports_sync_cycle(force=force, include_odds=False)
         controlled, technical = [], []
         restricted = {"FREE_PLAN_RESTRICTED", "FREE_PLAN_SEASON_RESTRICTED", "SEASON_UNAVAILABLE",
@@ -2830,13 +2845,16 @@ def cleanup_fake_matches(cur):
         match_rows = cur.execute("SELECT id, home_team, away_team, source FROM matches").fetchall()
     except sqlite3.OperationalError:
         return 0
+    # Local and bounded: teams/sources repeat across fixtures, while the exact
+    # Unicode-aware predicate and the caller's transaction remain unchanged.
+    normalize = lru_cache(maxsize=4096)(normalized_label)
     delete_ids = []
     for row in match_rows:
         row_id = row["id"] if hasattr(row, "keys") else row[0]
         home_team = row["home_team"] if hasattr(row, "keys") else row[1]
         away_team = row["away_team"] if hasattr(row, "keys") else row[2]
         source = row["source"] if hasattr(row, "keys") else row[3]
-        if is_fake_team_name(home_team) or is_fake_team_name(away_team) or normalized_label(source) == "seed estructural":
+        if normalize(home_team) in FAKE_TEAM_NAMES or normalize(away_team) in FAKE_TEAM_NAMES or normalize(source) == "seed estructural":
             delete_ids.append(row_id)
     if delete_ids:
         placeholders = ",".join("?" for _ in delete_ids)
@@ -3198,6 +3216,14 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_recommendations_match ON historical_recommendations(match_id, created_at)")
     except sqlite3.OperationalError:
         pass
+
+
+def _startup_step(label, callback, *args):
+    started = time.monotonic()
+    try:
+        return callback(*args)
+    finally:
+        _log_sports_stage_duration(label, started)
 
 
 def init_db():
@@ -3634,9 +3660,9 @@ def init_db():
             applied_at TEXT
         )"""
     )
-    run_schema_migrations(conn)
-    cleanup_fake_matches(cur)
-    normalize_existing_match_times_to_madrid(conn)
+    _startup_step("startup_schema", run_schema_migrations, conn)
+    _startup_step("startup_cleanup", cleanup_fake_matches, cur)
+    _startup_step("startup_time_normalization", normalize_existing_match_times_to_madrid, conn)
     cur.execute(
         """INSERT OR IGNORE INTO telegram_settings
            (id,auto_daily_matches,auto_daily_picks,auto_live_alerts,daily_matches_time,daily_picks_time,max_messages_per_hour,enabled,updated_at)
@@ -3653,9 +3679,9 @@ def init_db():
             now_iso(),
         ),
     )
-    ensure_data_memory_schema(conn)
-    ensure_automation_schema_conn(conn)
-    bootstrap_admin_from_env(conn)
+    _startup_step("startup_memory_schema", ensure_data_memory_schema, conn)
+    _startup_step("startup_automation_schema", ensure_automation_schema_conn, conn)
+    _startup_step("startup_admin", bootstrap_admin_from_env, conn)
     conn.commit()
     conn.close()
 
@@ -3751,7 +3777,8 @@ TEAM_ALIASES = {
 
 
 def _seed_core_unlocked():
-    init_db()
+    _startup_step("startup_database", init_db)
+    catalog_started = time.monotonic()
     conn = db()
     cur = conn.cursor()
     for key, name, scope, country, region, tier, strategy, tags in COMPETITION_SEEDS:
@@ -3832,9 +3859,9 @@ def _seed_core_unlocked():
                WHERE key=?""",
             (team.get("league", ""), team.get("external_id", ""), team["key"]),
         )
-    cleanup_fake_matches(cur)
+    # init_db already checked matches; the catalog below creates no matches.
     seed_matches = []
-    for raw_id, day, time, comp_key, comp_name, country, home, away, status in seed_matches:
+    for raw_id, day, match_time, comp_key, comp_name, country, home, away, status in seed_matches:
         match_id = "seed-" + raw_id + "-" + today_iso(day)
         cur.execute(
             """INSERT OR IGNORE INTO matches
@@ -3843,7 +3870,7 @@ def _seed_core_unlocked():
             (
                 match_id,
                 today_iso(day),
-                time,
+                match_time,
                 comp_key,
                 comp_name,
                 country,
@@ -3861,6 +3888,8 @@ def _seed_core_unlocked():
         )
     conn.commit()
     conn.close()
+
+    _log_sports_stage_duration("startup_seed_catalog", catalog_started)
 
 
 def seed_core():
@@ -3885,7 +3914,7 @@ def seed_core():
             try:
                 syncer = globals().get("_telegram_sync_env_on_startup")
                 if callable(syncer):
-                    syncer()
+                    _startup_step("startup_telegram_settings", syncer)
             except Exception as exc:
                 try:
                     print("[TELEGRAM] startup env sync skipped:", str(exc)[:220])
@@ -4064,6 +4093,8 @@ def v935_begin_route_budget_measurement():
     """Request-local timing only; it performs no I/O and stores no user data."""
     if request.method == "GET":
         g.v935_route_started = time.perf_counter()
+    elif request.method == "POST" and request.endpoint == "api_automation_sports_sync":
+        g.sports_request_started = time.monotonic()
 
 
 @app.before_request
