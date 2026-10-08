@@ -221,6 +221,31 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
             return item
 
         try:
+            if locator.get_attribute("data-open-explore") is not None:
+                # Progressive navigation opens a finder first. Verify that
+                # interaction, then follow a real, safe destination from it.
+                origin_url = page.url
+                locator.click(timeout=timeout)
+                dialog = page.locator("#app-navigation-dialog")
+                dialog.wait_for(state="visible", timeout=timeout)
+                if page.url != origin_url:
+                    raise AssertionError("Section finder unexpectedly changed the current page")
+                search = dialog.locator("[data-explore-query]")
+                if not search.evaluate("el => el === document.activeElement"):
+                    raise AssertionError("Section finder did not focus its search field")
+                choices = dialog.locator("[data-explore-item]:visible")
+                destination = None
+                for index in range(choices.count()):
+                    choice = choices.nth(index)
+                    href = choice.get_attribute("href") or ""
+                    if _safe_internal_target(href) and urlsplit(href).path != urlsplit(page.url).path:
+                        destination = choice
+                        item["selected_navigation_target"] = href
+                        break
+                if destination is None:
+                    raise AssertionError("Section finder has no safe destination to verify")
+                item["interaction"] = "navigation_dialog"
+                locator = destination
             with page.expect_navigation(wait_until="domcontentloaded", timeout=timeout) as nav:
                 locator.click(timeout=timeout)
             click_response = nav.value

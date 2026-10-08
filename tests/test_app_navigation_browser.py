@@ -156,3 +156,35 @@ def test_queued_close_does_not_clear_a_reopened_search(browser,app_module):
         assert not errors and all(method=='GET' for method,_ in calls)
     finally:
         context.close()
+
+
+@pytest.mark.parametrize('scope',['public','client','admin'])
+def test_canonical_click_audit_follows_a_destination_inside_finder(browser,app_module,scope):
+    from tools.run_v929_click_navigation_qa import _click_one
+    context,page,errors,calls = mount(browser,app_module,scope)
+    try:
+        origin = '/admin/explorar' if scope == 'admin' else '/explorar'
+        result = _click_one(page,'https://navigation.invalid',origin,
+                            {'tag':'a','target':origin,'text':'Explorar'},5000,scope)
+        assert result['result'] == 'OK', result
+        assert result['interaction'] == 'navigation_dialog'
+        assert result['selected_navigation_target']
+        assert result['final_path'] == urlsplit(result['selected_navigation_target']).path
+        assert result['final_path'] != origin
+        assert not errors and all(method=='GET' for method,_ in calls)
+    finally:
+        context.close()
+
+
+def test_canonical_click_audit_still_rejects_broken_finder_destinations(browser,app_module):
+    from tools.run_v929_click_navigation_qa import _click_one
+    context,page,errors,calls = mount(browser,app_module)
+    try:
+        page.route('https://navigation.invalid/app', lambda route: route.fulfill(
+            status=404,content_type='text/html',body='<p>Ruta no encontrada</p>'))
+        result = _click_one(page,'https://navigation.invalid','/explorar',
+                            {'tag':'a','target':'/explorar','text':'Explorar'},5000,'client')
+        assert result['result'] == 'ROTA_404'
+        assert result['selected_navigation_target'] == '/app'
+    finally:
+        context.close()
