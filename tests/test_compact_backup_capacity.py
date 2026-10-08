@@ -62,7 +62,7 @@ def test_compact_copy_rejects_insufficient_margin(tmp_path, monkeypatch):
     assert not result["ok"] and not result["backup_created"]
     assert result["error"] == "backup_storage_insufficient"
     assert source.read_bytes() == original
-    assert not list(folder.iterdir())
+    assert {p.name for p in folder.iterdir()} == {".backup.lock"}
 
 
 def test_compact_copy_timeout_never_publishes(tmp_path, monkeypatch):
@@ -76,7 +76,7 @@ def test_compact_copy_timeout_never_publishes(tmp_path, monkeypatch):
     result = vault.create_sqlite_backup(source, tmp_path, "SIMULATED_QA", directory=folder, snapshot_timeout=0.000001)
     assert not result["ok"] and not result["backup_created"]
     assert source.read_bytes() == original
-    assert not list(folder.iterdir())
+    assert {p.name for p in folder.iterdir()} == {".backup.lock"}
 
 
 def test_compact_copy_includes_committed_wal_and_schema(tmp_path, monkeypatch):

@@ -703,3 +703,29 @@ def test_backup_error_classifier_never_echoes_secret():
     assert master.backup_error_code(secret, secret) == "BACKUP_FAILED"
     assert master.backup_error_code("backup_storage_insufficient", secret) == "STORAGE_CAPACITY"
     assert master.backup_error_code("database is locked", secret) == "DATABASE_BUSY"
+    assert master.backup_error_code("backup_snapshot_timeout", secret) == "BACKUP_TIMEOUT"
+    assert master.backup_error_code("backup_temporary_recovery_failed", secret) == "BACKUP_CLEANUP"
+
+
+def test_backup_recovery_telemetry_preserves_failure_and_excludes_paths(monkeypatch):
+    secret = "private-qa-secret"
+    payload = {"ok": False, "backup_created": True, "error": "backup_temporary_cleanup_failed",
+               "failure_stage": "CLEANUP", "storage": {
+                   "temporary_cleanup_ok": False, "temporary_recovery": {
+                       "recovered_count": 2, "recovered_bytes": 123456, "skipped_count": 1,
+                       "failed_count": 0, "paths": ["/private/" + secret]}}}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *a, **k: MockResponse(payload))
+    result = master.backup_tick("https://example.invalid", secret)
+    assert result["backup_status"] == "FAIL" and result["backup_created"] is True
+    assert result["backup_failure_stage"] == "CLEANUP"
+    assert result["backup_error_code"] == "BACKUP_CLEANUP"
+    assert result["backup_temporary_recovered_count"] == 2
+    assert result["backup_temporary_recovered_bytes"] == 123456
+    assert result["backup_temporary_skipped_count"] == 1
+    assert result["backup_temporary_cleanup_ok"] is False
+    assert "private" not in json.dumps(result)
+    payload["failure_stage"] = secret
+    payload["storage"]["temporary_cleanup_ok"] = secret
+    result = master.backup_tick("https://example.invalid", secret)
+    assert result["backup_failure_stage"] == ""
+    assert result["backup_temporary_cleanup_ok"] is None
