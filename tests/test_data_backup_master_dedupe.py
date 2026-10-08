@@ -38,7 +38,11 @@ def test_backup_endpoint_uses_atomic_claim_before_copy(monkeypatch):
     assert payload["backup_created"] is False
 
 
-def test_backup_claim_is_committed_and_released_after_completed_failure(monkeypatch):
+@pytest.mark.parametrize("outcome", [
+    {"ok": False, "backup_created": False, "error": "backup_storage_insufficient"},
+    {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"},
+])
+def test_backup_claim_is_released_without_recording_success_when_no_copy_is_created(monkeypatch, outcome):
     app, client = _client(monkeypatch)
     monkeypatch.setattr(app, "automation_get", lambda *_a, **_k: {})
     monkeypatch.setattr(app, "ensure_automation_schema_conn", lambda conn: None)
@@ -46,9 +50,10 @@ def test_backup_claim_is_committed_and_released_after_completed_failure(monkeypa
     monkeypatch.setattr(
         app,
         "create_sqlite_backup",
-        lambda *_a, **_k: {"ok": False, "backup_created": False, "error": "backup_storage_insufficient"},
+        lambda *_a, **_k: outcome,
     )
-    monkeypatch.setattr(app, "automation_safe_set", lambda *_a, **_k: None)
+    recorded = []
+    monkeypatch.setattr(app, "automation_safe_set", lambda key, value: recorded.append(key))
 
     created = []
     class DummyConn:
@@ -76,8 +81,8 @@ def test_backup_claim_is_committed_and_released_after_completed_failure(monkeypa
     payload = response.get_json()
 
     assert response.status_code == 200
-    assert payload["ok"] is False
-    assert payload["error"] == "backup_storage_insufficient"
+    assert all(payload[key] == value for key, value in outcome.items())
+    assert "last_successful_data_backup_call" not in recorded
     assert len(created) == 2
     assert created[0].commits == 1
     assert created[1].commits == 1

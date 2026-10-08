@@ -14,6 +14,10 @@ from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
+from engines.backup_staging import (BackupInProgress, backup_directory_lock,
+                                    new_workspace, recover_abandoned_workspaces,
+                                    remove_workspace)
+
 CRITICAL_TABLES = [
     "users", "matches", "picks", "favorites", "api_sync_runs",
     "match_snapshots", "odds_memory_snapshots", "live_memory_snapshots",
@@ -296,6 +300,32 @@ def ensure_backup_capacity(
 
 
 def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0) -> dict:
+    """Serialize capacity, crash recovery, snapshot publication and retention."""
+    src = Path(db_path)
+    if not src.exists():
+        return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
+    bdir = Path(directory) if directory is not None else backup_dir(root)
+    try:
+        bdir.mkdir(parents=True, exist_ok=True)
+        with backup_directory_lock(bdir):
+            recovery = recover_abandoned_workspaces(bdir, src)
+            if recovery["failed_count"]:
+                return {"ok": False, "backup_created": False,
+                        "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
+                        "storage": {"temporary_recovery": recovery}}
+            result = _create_sqlite_backup_locked(src, root, app_version, backup_type, created_by,
+                                                  directory=bdir, max_files=max_files,
+                                                  snapshot_timeout=snapshot_timeout)
+            result.setdefault("storage", {})["temporary_recovery"] = recovery
+            return result
+    except BackupInProgress:
+        return {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"}
+    except OSError as exc:
+        return {"ok": False, "backup_created": False, "error": str(exc)[:300],
+                "failure_stage": "PREPARATION"}
+
+
+def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -309,7 +339,7 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         if not candidate.get("ok"):
             return {"ok": False, "backup_created": False,
                     "error": storage.get("error") or "backup_storage_insufficient",
-                    "storage": storage}
+                    "failure_stage": "CAPACITY", "storage": storage}
         compact = True
         storage.pop("error", None)
         storage.update(ok=True, method="vacuum_into",
@@ -322,12 +352,15 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
     manifest_path = out.with_suffix(".json")
     temporary = None
     manifest_temporary = None
+    workspace = None
     manifest_published = False
     published = False
+    result = {}
+    stage = "SNAPSHOT"
     try:
-        handle, temporary_name = tempfile.mkstemp(prefix=".backup-", suffix=".partial", dir=bdir)
-        os.close(handle)
-        temporary = Path(temporary_name)
+        workspace = new_workspace(bdir)
+        temporary = workspace / "snapshot.partial"
+        temporary.touch(mode=0o600, exist_ok=False)
         deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
         if compact:
             # The source connection is read-only. No VACUUM, checkpoints or
@@ -360,12 +393,14 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                     raise sqlite3.OperationalError("backup_snapshot_timeout")
             if not compact:
                 source.backup(dest, pages=256, progress=progress, sleep=0.05)
+            stage = "INTEGRITY"
             dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
             # Inspect the verified snapshot on this same deadline-bound connection.
             # The admin dashboard helper opens new connections and scans backup
             # history; neither is necessary to describe this snapshot.
+            stage = "METADATA"
             tables = [row[0] for row in dest.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
             counts = {}
@@ -377,9 +412,11 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                         f'SELECT COUNT(*) FROM "{table}"').fetchone()[0])
         with temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
+        stage = "HASH"
         digest = sha256_file(temporary, deadline=deadline)
         if time.monotonic() >= deadline:
             raise sqlite3.OperationalError("backup_snapshot_timeout")
+        stage = "MANIFEST"
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
@@ -395,13 +432,13 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
             "notes": "Backup SQLite verificado. No incluir en ZIP.",
             "snapshot_method": "vacuum_into" if compact else "sqlite_backup",
         }
-        handle, manifest_name = tempfile.mkstemp(prefix=".backup-", suffix=".json.partial", dir=bdir)
-        os.close(handle)
-        manifest_temporary = Path(manifest_name)
+        manifest_temporary = workspace / "manifest.json.partial"
+        manifest_temporary.touch(mode=0o600, exist_ok=False)
         manifest_temporary.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         with manifest_temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
         # Publish the manifest first; readers only discover the final DB name.
+        stage = "PUBLICATION"
         os.replace(manifest_temporary, manifest_path)
         manifest_published = True
         os.replace(temporary, out)
@@ -412,19 +449,31 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
+        stage = "RETENTION"
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
-        return {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
+        result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
+        if not result["ok"]:
+            result["failure_stage"] = stage
+        return result
     except Exception as exc:
-        result = {"ok": False, "backup_created": published, "error": str(exc)[:300], "storage": storage}
+        result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
+                  "failure_stage": stage, "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
         return result
     finally:
-        for temporary_path in (temporary, manifest_temporary):
-            if temporary_path is not None:
-                temporary_path.unlink(missing_ok=True)
+        if workspace is not None:
+            cleanup = remove_workspace(workspace, bdir, src)
+            storage["temporary_cleanup_ok"] = cleanup["removed"]
+            if not cleanup["removed"]:
+                result.update(ok=False, error=result.get("error") or "backup_temporary_cleanup_failed")
+                result.setdefault("failure_stage", "CLEANUP")
         if manifest_published and not published:
-            manifest_path.unlink(missing_ok=True)
+            try:
+                manifest_path.unlink(missing_ok=True)
+            except OSError:
+                result.update(ok=False, error=result.get("error") or "backup_manifest_cleanup_failed")
+                result.setdefault("failure_stage", "CLEANUP")
 
 
 def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:
@@ -497,7 +546,7 @@ def restore_sqlite_backup(db_path: str | Path, root: str | Path, backup_name: st
                 return {"ok": False, "error": "backup_validation_failed"}
             safety = create_sqlite_backup(target, root, app_version, backup_type="pre_restore_" + backup_name,
                                            directory=folder, max_files=max_files)
-            if not safety.get("ok"):
+            if not safety.get("ok") or safety.get("backup_created") is not True:
                 return {"ok": False, "error": "safety_backup_failed", "safety": safety}
             # File replacement bypasses SQLite's WAL/locking protocol. The backup API
             # applies a transaction to the live database and existing connections.

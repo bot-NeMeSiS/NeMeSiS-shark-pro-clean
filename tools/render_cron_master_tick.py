@@ -110,6 +110,10 @@ def backup_error_code(value: object, secret: str) -> str:
         return ""
     if "database or disk is full" in label or "backup_storage_insufficient" in label or "no space left" in label:
         return "STORAGE_CAPACITY"
+    if "backup_snapshot_timeout" in label:
+        return "BACKUP_TIMEOUT"
+    if "backup_temporary_" in label or "backup_manifest_cleanup_failed" in label:
+        return "BACKUP_CLEANUP"
     if "locked" in label or "busy" in label:
         return "DATABASE_BUSY"
     if "permission" in label or "readonly" in label or "read-only" in label:
@@ -690,12 +694,22 @@ def backup_tick(base_url: str, secret: str) -> dict:
             result = safe_label(candidate, secret, "PASS" if payload.get("ok") is not False else "FAIL")
             ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
             storage = payload.get("storage") if isinstance(payload.get("storage"), dict) else {}
+            recovery = storage.get("temporary_recovery") if isinstance(storage.get("temporary_recovery"), dict) else {}
+            stage = safe_label(payload.get("failure_stage"), secret, "")
+            allowed_stages = {"PREPARATION", "RECOVERY", "CAPACITY", "SNAPSHOT", "INTEGRITY",
+                              "METADATA", "HASH", "MANIFEST", "PUBLICATION", "RETENTION", "CLEANUP"}
             return {
                 "backup_http": http_status,
                 "backup_status": "PASS" if ok else "FAIL",
                 "backup_result": result,
                 "backup_created": bool(payload.get("backup_created")),
                 "backup_error_code": backup_error_code(payload.get("error"), secret),
+                "backup_failure_stage": stage if stage in allowed_stages else "",
+                "backup_temporary_recovered_count": safe_count(recovery.get("recovered_count")),
+                "backup_temporary_recovered_bytes": safe_count(recovery.get("recovered_bytes")),
+                "backup_temporary_skipped_count": safe_count(recovery.get("skipped_count")),
+                "backup_temporary_failed_count": safe_count(recovery.get("failed_count")),
+                "backup_temporary_cleanup_ok": storage.get("temporary_cleanup_ok") if isinstance(storage.get("temporary_cleanup_ok"), bool) else None,
                 "backup_storage_required_bytes": safe_count(storage.get("required_bytes")),
                 "backup_storage_free_before": safe_count(storage.get("free_before")),
                 "backup_storage_free_after": safe_count(storage.get("free_after")),

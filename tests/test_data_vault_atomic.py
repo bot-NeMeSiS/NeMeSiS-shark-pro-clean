@@ -62,7 +62,7 @@ def test_failed_manifest_does_not_publish_partial_backup_or_prune(backup_source,
     assert result["ok"] is False
     assert result["backup_created"] is False
     assert vault.list_backups(root)==[]
-    assert list(vault.backup_dir(root).iterdir())==[]
+    assert {p.name for p in vault.backup_dir(root).iterdir()} == {".backup.lock"}
 
 
 def test_manifest_counts_describe_snapshot_not_later_source(backup_source,monkeypatch):
@@ -124,7 +124,7 @@ def test_failed_database_publication_removes_its_manifest(backup_source,monkeypa
     monkeypatch.setattr(os,"replace",fail_database)
     result=vault.create_sqlite_backup(source,root,"SIMULATED_QA")
     assert not result["ok"] and not result["backup_created"]
-    assert list(vault.backup_dir(root).iterdir())==[]
+    assert {p.name for p in vault.backup_dir(root).iterdir()} == {".backup.lock"}
 
 
 def test_retention_failure_is_reported_without_losing_completed_backup(backup_source,monkeypatch):
@@ -176,7 +176,7 @@ def test_legacy_backup_manifest_failure_does_not_publish_or_prune(backup_source,
     monkeypatch.setattr(Path, "write_text", fail_manifest)
     result = app_module.create_database_backup("admin_manual")
     assert result["ok"] is False and not result["backup_created"]
-    assert list(folder.iterdir()) == []
+    assert {p.name for p in folder.iterdir()} == {".backup.lock"}
 
 
 def test_legacy_backup_listing_is_readonly(backup_source, app_module, monkeypatch):
@@ -388,7 +388,7 @@ def test_busy_snapshot_times_out_without_publication_or_source_changes(backup_so
         assert result['ok'] is False and result['backup_created'] is False
         assert result['error'] == 'backup_snapshot_timeout'
         assert vault.list_backups(root) == []
-        assert list(vault.backup_dir(root).iterdir()) == []
+        assert {p.name for p in vault.backup_dir(root).iterdir()} == {".backup.lock"}
     finally:
         locked.rollback()
         locked.close()
@@ -414,5 +414,5 @@ def test_hash_deadline_stops_publication_and_preserves_source(backup_source, mon
     result = vault.create_sqlite_backup(source, root, 'SIMULATED_QA')
     assert result['ok'] is False and result['backup_created'] is False
     assert result['error'] == 'backup_snapshot_timeout'
-    assert list(vault.backup_dir(root).iterdir()) == []
+    assert {p.name for p in vault.backup_dir(root).iterdir()} == {".backup.lock"}
     assert source.read_bytes() == original_bytes
