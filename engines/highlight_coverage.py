@@ -120,13 +120,13 @@ class Coverage:
         return conn
 
     @staticmethod
-    def projection(conn, alias='m'):
+    def projection(conn, alias='m', fields=FIELDS):
         cols = {row[1] for row in conn.execute('PRAGMA table_info(matches)')}
         return 'json_object(' + ','.join("'%s',%s.%s" % (k, alias, k)
-                                         for k in FIELDS if k in cols) + ')'
+                                         for k in fields if k in cols) + ')'
 
     def prepare(self, batch=200):
-        """Bounded inventory; anti-join also notices old rows becoming finalized.
+        """Bounded inventory and cyclic recheck of existing match identities.
 
         No provider calls and no writes to matches. Row cursor survives deployment.
         Identity changes invalidate checked evidence before another lookup.
@@ -141,6 +141,8 @@ class Coverage:
             cursor_cols = {row[1] for row in conn.execute('PRAGMA table_info(highlight_coverage_cursor)')}
             if 'media_row_cursor' not in cursor_cols:
                 conn.execute('ALTER TABLE highlight_coverage_cursor ADD COLUMN media_row_cursor INTEGER NOT NULL DEFAULT 0')
+            if 'recheck_row_cursor' not in cursor_cols:
+                conn.execute('ALTER TABLE highlight_coverage_cursor ADD COLUMN recheck_row_cursor INTEGER NOT NULL DEFAULT 0')
             cursor = conn.execute('SELECT row_cursor FROM highlight_coverage_cursor').fetchone()[0]
             expr = self.projection(conn)
             rows = conn.execute(f'SELECT m.rowid AS inventory_row,{expr} AS payload FROM matches m '
@@ -148,11 +150,29 @@ class Coverage:
             if rows:
                 conn.execute('UPDATE highlight_coverage_cursor SET row_cursor=?,updated_at=?',
                              (rows[-1]['inventory_row'], self.now))
-            # Changed identity and newly final matches below the inventory cursor.
-            extra = conn.execute(f'SELECT {expr} AS payload FROM matches m '
+            # Check eligibility only AFTER selecting a bounded set. The previous
+            # WHERE UDF evaluated lifecycle/raw payloads for the entire catalogue
+            # before ORDER BY/LIMIT, even on a nominal 200-row run.
+            identity_expr = self.projection(conn, fields=(
+                'id','home_team','away_team','match_date','kickoff_time',
+                'external_id','source','competition_name','league_name','league_id'))
+            extra = conn.execute(f'SELECT {expr} AS payload FROM '
+                '(SELECT * FROM matches ORDER BY match_date DESC,id LIMIT ?) m '
                 'LEFT JOIN highlight_coverage c ON c.match_id=m.id '
-                f'WHERE coverage_eligible({expr}) AND (c.match_id IS NULL OR c.identity<>coverage_identity({expr})) '
-                'ORDER BY m.match_date DESC,m.id LIMIT ?', (batch,)).fetchall()
+                f'WHERE c.match_id IS NULL OR c.identity<>coverage_identity({identity_expr}) '
+                'ORDER BY m.match_date DESC,m.id', (batch,)).fetchall()
+            # Non-final recent candidates must not starve a changed old match.
+            # This independent durable traversal wraps and eventually rechecks
+            # every row, including a match finalized after its first inventory.
+            recheck_cursor = conn.execute('SELECT recheck_row_cursor FROM highlight_coverage_cursor').fetchone()[0]
+            def recheck_rows(after):
+                return conn.execute(f'SELECT m.rowid AS inventory_row,{expr} AS payload FROM matches m '
+                    'WHERE m.rowid>? ORDER BY m.rowid LIMIT ?', (after,batch)).fetchall()
+            rechecked = recheck_rows(recheck_cursor)
+            if not rechecked and recheck_cursor:
+                rechecked = recheck_rows(0)
+            conn.execute('UPDATE highlight_coverage_cursor SET recheck_row_cursor=?',
+                         (rechecked[-1]['inventory_row'] if rechecked else 0,))
             # Catalogue evidence has its own bounded persistent traversal. A
             # linked historical match need not wait behind the inventory scan.
             # Missing/ambiguous associations are excluded; payloads are verified
@@ -169,8 +189,12 @@ class Coverage:
             if catalogue:
                 conn.execute('UPDATE highlight_coverage_cursor SET media_row_cursor=?',
                              (catalogue[-1]['media_row'],))
-            for raw in list(rows) + list(extra) + list(catalogue):
+            visited = set()
+            for raw in list(rows) + list(extra) + list(rechecked) + list(catalogue):
                 match = json.loads(raw['payload'])
+                if match['id'] in visited:
+                    continue
+                visited.add(match['id'])
                 if not eligible(match, self.now):
                     continue
                 conn.execute('INSERT INTO highlight_coverage(match_id,identity,state,event_id,due_at,updated_at,priority) '
