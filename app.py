@@ -1355,9 +1355,12 @@ def _log_sports_stage_duration(label, started):
     if not has_request_context() or request.path != "/api/automation/sports/sync":
         return
     safe_labels = {"runtime_initialize", "startup_database", "startup_schema", "startup_cleanup",
+                   "startup_cleanup_read", "startup_cleanup_predicate",
                    "startup_time_normalization", "startup_memory_schema", "startup_automation_schema",
                    "startup_admin", "startup_seed_catalog", "startup_telegram_settings",
                    "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
+                   "sportsdb_candidates", "sportsdb_fetch", "sportsdb_transform", "sportsdb_persist",
+                   "sportsdb_reconciliation",
                    "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
@@ -2841,14 +2844,18 @@ def is_fake_match(match):
 
 
 def cleanup_fake_matches(cur):
+    read_started = time.monotonic()
     try:
         match_rows = cur.execute("SELECT id, home_team, away_team, source FROM matches").fetchall()
     except sqlite3.OperationalError:
         return 0
+    finally:
+        _log_sports_stage_duration("startup_cleanup_read", read_started)
     # Local and bounded: teams/sources repeat across fixtures, while the exact
     # Unicode-aware predicate and the caller's transaction remain unchanged.
     normalize = lru_cache(maxsize=4096)(normalized_label)
     delete_ids = []
+    predicate_started = time.monotonic()
     for row in match_rows:
         row_id = row["id"] if hasattr(row, "keys") else row[0]
         home_team = row["home_team"] if hasattr(row, "keys") else row[1]
@@ -2856,6 +2863,7 @@ def cleanup_fake_matches(cur):
         source = row["source"] if hasattr(row, "keys") else row[3]
         if normalize(home_team) in FAKE_TEAM_NAMES or normalize(away_team) in FAKE_TEAM_NAMES or normalize(source) == "seed estructural":
             delete_ids.append(row_id)
+    _log_sports_stage_duration("startup_cleanup_predicate", predicate_started)
     if delete_ids:
         placeholders = ",".join("?" for _ in delete_ids)
         cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(delete_ids))
@@ -5391,9 +5399,12 @@ def _sportsdb_provider_ids_for_batch(cur, match_rows):
     for start in range(0, len(keys), 500):
         chunk = keys[start:start + 500]
         placeholders = ",".join("?" for _ in chunk)
+        # Filter references through the existing covering index before loading
+        # IDs from the table; preserve this transaction's latest row contents.
         for row in cur.execute(
-            "SELECT id,external_id FROM matches WHERE external_id IN (" + placeholders + ") "
-            "AND source LIKE 'TheSportsDB%'", tuple(chunk),
+            "SELECT id,external_id FROM matches WHERE rowid IN ("
+            "SELECT rowid FROM matches WHERE external_id IN (" + placeholders + ") "
+            "AND source LIKE 'TheSportsDB%')", tuple(chunk),
         ).fetchall():
             found.setdefault(str(row["external_id"]), []).append(str(row["id"]))
     return found
@@ -5596,9 +5607,10 @@ def sportsdb_reconciliation_status(external_ids):
     placeholders = ",".join("?" for _ in requested)
     try:
         matched_rows = rows(
-            f"""SELECT * FROM matches
-                WHERE source LIKE 'TheSportsDB%'
-                  AND external_id IN ({placeholders})""",
+            f"""SELECT * FROM matches WHERE rowid IN (
+                    SELECT rowid FROM matches WHERE source LIKE 'TheSportsDB%'
+                      AND external_id IN ({placeholders})
+                )""",
             tuple(requested),
         )
     except Exception:
@@ -5627,11 +5639,16 @@ def sync_sportsdb_feed(limit=220):
         return result
     log_id = sync_log_start("TheSportsDB", "matches")
     try:
+        stage_started = time.monotonic()
         priority_external_ids = sportsdb_stale_external_ids(limit=min(5, max(1, int(limit or 1))))
+        _log_sports_stage_duration("sportsdb_candidates", stage_started)
+        stage_started = time.monotonic()
         fetched, errors, external_calls = fetch_sportsdb_feed_events(
             limit=limit,
             priority_external_ids=priority_external_ids,
         )
+        _log_sports_stage_duration("sportsdb_fetch", stage_started)
+        stage_started = time.monotonic()
         match_rows = []
         seen = set()
         provider_observed_at = now_iso()
@@ -5655,7 +5672,10 @@ def sync_sportsdb_feed(limit=220):
             raise
         finally:
             team_conn.close()
+        _log_sports_stage_duration("sportsdb_transform", stage_started)
+        stage_started = time.monotonic()
         result = upsert_sportsdb_matches(match_rows)
+        _log_sports_stage_duration("sportsdb_persist", stage_started)
         observed_external_ids = {
             str(item.get("external_id") or "").strip()
             for item in match_rows
@@ -5663,7 +5683,9 @@ def sync_sportsdb_feed(limit=220):
         }
         priority_set = {str(value or "").strip() for value in priority_external_ids if str(value or "").strip()}
         result["errors"] = errors[:12]
+        stage_started = time.monotonic()
         reconciliation = sportsdb_reconciliation_status(priority_set)
+        _log_sports_stage_duration("sportsdb_reconciliation", stage_started)
         result["external_calls"] = external_calls
         result["stale_reconciliation_candidates"] = len(priority_set)
         result["stale_reconciliation_observed"] = len(priority_set & observed_external_ids)
