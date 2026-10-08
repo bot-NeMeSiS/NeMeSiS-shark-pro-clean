@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta
@@ -578,7 +579,28 @@ def reconcile_cached_highlight_links(db_path, *, days_back=7, limit=250):
     return changed
 
 
+_MEDIA_STAGES = ('schema', 'associations', 'inventory', 'save', 'enrichment', 'total')
+
+
 def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, historical_only=False, priority=None):
+    """Measure whole collection, including local preparation, without payloads."""
+    timings = {}
+    started = time.monotonic()
+    try:
+        result = _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only, priority, timings)
+        result['stage_durations_ms'] = timings
+        return result
+    finally:
+        timings['total'] = max(0, round((time.monotonic() - started) * 1000))
+        for label in _MEDIA_STAGES:
+            if label in timings:
+                try:
+                    print(json.dumps({'event':'media_stage', 'stage':label, 'duration_ms':timings[label]}), flush=True)
+                except (OSError, ValueError):
+                    pass
+
+
+def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only, priority, timings):
     """Bounded collection with league partitioning when the 50-row feed saturates.
 
     Uses the current worker/rights pipeline. No network under a SQLite write
@@ -594,11 +616,41 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         capacity = max(1, min(int(limit), 1000))
     except (ValueError, TypeError, OverflowError):
         return {'ok': False, 'status': 'INVALID_LIMIT', 'external_calls': 0}
-    ensure_sportsdb_highlights_schema(db_path)
-    associations_reconciled = reconcile_cached_highlight_links(db_path, days_back=days, limit=capacity)
     from engines.highlight_coverage import Coverage, HISTORY_BATCH, run_one, sportsdb_query_date, retry_delay
     coverage = Coverage(db_path, datetime.fromisoformat(_now()).timestamp(), priority=priority)
-    coverage.prepare()
+    historical_phase = [False]
+    # Start before schema, reconciliation and inventory. This is cooperative:
+    # a transaction already in progress may finish, but no new unit starts late.
+    scope = SportsDBBudget(max_calls=12, max_seconds=16,
+                          before_call=lambda: coverage.reserve_media_call(historical_phase[0]))
+
+    def check_budget():
+        if scope.remaining() < .25:
+            scope.stopped = 'TIME_BUDGET'
+            raise SportsDBStopped('TIME_BUDGET')
+
+    def step(label, callback, *args, **kwargs):
+        check_budget()
+        started = time.monotonic()
+        try:
+            return callback(*args, **kwargs)
+        finally:
+            timings[label] = timings.get(label, 0) + max(0, round((time.monotonic() - started) * 1000))
+
+    associations_reconciled = 0
+    try:
+        step('schema', ensure_sportsdb_highlights_schema, db_path)
+        associations_reconciled = step('associations', reconcile_cached_highlight_links,
+                                       db_path, days_back=days, limit=capacity)
+        step('inventory', coverage.prepare)
+        check_budget()
+    except SportsDBStopped as exc:
+        if str(exc) != 'TIME_BUDGET':
+            raise
+        return {'ok':False, 'status':'PARTIAL', 'errors':['TIME_BUDGET'], 'retryable':True,
+                'days_back':days, 'enrichment_updated':0,
+                'highlights_found':0, 'linked_matches':0, 'associations_reconciled':associations_reconciled,
+                'provider_coverage_complete':False, 'playback_verified':False, **scope.metrics()}
     historical = {'processed': 0, 'state': 'NOT_RUN'}
     run_id, start = uuid.uuid4().hex[:22], _now()
     with _connect(db_path) as conn:
@@ -608,8 +660,6 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
     found = linked = 0
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
-    historical_phase = [False]
-    scope = SportsDBBudget(max_calls=12, before_call=lambda: coverage.reserve_media_call(historical_phase[0]))
     persistent_cache_hits = 0
     profile_links_reused = 0
     v2_event_lookups = 0
@@ -618,6 +668,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
 
     def acquire(day, league=None):
         nonlocal persistent_cache_hits
+        check_budget()
         params = {'d': day, 's': 'Soccer'}
         if league:
             params['l'] = league
@@ -657,6 +708,9 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         return values or []
 
     def save(items, observe=True):
+        return step('save', save_batch, items, observe)
+
+    def save_batch(items, observe=True):
         nonlocal found, linked
         pending, batch_seen, stopped = [], set(), False
         for item in items:
@@ -671,6 +725,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         batch_found = batch_linked = 0
         with _connect(db_path) as conn:
             for sid, item in pending:
+                check_budget()
                 saved = _upsert_highlight(conn, item)
                 if saved:
                     batch_found += 1
@@ -681,6 +736,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         linked += batch_linked
         if observe:
             for sid, item in pending:
+                check_budget()
                 coverage.observe(sid, [item])
         if stopped:
             raise SportsDBStopped('ITEM_BUDGET')
@@ -699,6 +755,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
 
     def v2_candidates(max_items=4):
         """Finished SportsDB matches with a provider event ID and no stored video."""
+        check_budget()
         with _connect(db_path) as conn:
             if not _table_exists(conn, 'matches'):
                 return []
@@ -757,6 +814,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
 
     def acquire_v2_event(event_id):
         nonlocal v2_event_lookups, v2_cache_hits
+        check_budget()
         cache_key = 'v2:event_highlights:' + str(event_id)
         cached = None
         if not force:
@@ -813,6 +871,7 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
     profile_items = []
     profiles_saved = False
     try:
+        check_budget()
         # Reuse provider payloads already acquired by enrichment. No extra HTTP.
         with _connect(db_path) as conn:
             profiles = []
@@ -943,9 +1002,12 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
     except (sqlite3.Error, OSError):
         errors.append('STORAGE_UNAVAILABLE')
     try:
-        enrich = rebuild_match_enrichment(db_path, limit=capacity)
+        enrich = step('enrichment', rebuild_match_enrichment, db_path, limit=capacity)
         if not enrich.get('ok'):
             errors.append('ENRICHMENT_PENDING')
+    except SportsDBStopped:
+        enrich = {}
+        errors.extend(['TIME_BUDGET', 'ENRICHMENT_PENDING'])
     except (sqlite3.Error, OSError):
         enrich = {}
         errors.append('STORAGE_UNAVAILABLE')
