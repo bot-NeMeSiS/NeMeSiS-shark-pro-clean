@@ -374,9 +374,21 @@ def _find_match(conn, item):
     cols = _cols(conn, 'matches')
     if 'id' not in cols:
         return None
+    # Filter row references before loading identity fields. The existing
+    # (source, external_id) and (match_date, status) indexes can cover these
+    # inner scans without reading every match's large provider payload.
+    # Both steps are one SQL statement on the caller's transaction: no cached
+    # identities survive a change, and duplicate candidates stay ambiguous.
+    fields = ('id', 'external_id', 'source', 'provider', 'home_team', 'away_team',
+              'match_date', 'competition_name', 'league_name', 'league_id', 'league')
+    projection = ','.join(name for name in fields if name in cols)
+    def candidates_for(predicate, args, limit=''):
+        return [dict(row) for row in conn.execute(
+            f'SELECT {projection} FROM matches WHERE rowid IN '
+            f'(SELECT rowid FROM matches WHERE {predicate}{limit})', args)]
     sid = str(item.get('idEvent') or item.get('event_id') or '').strip()
     if sid and 'external_id' in cols:
-        candidates = _rows(conn, 'SELECT * FROM matches WHERE external_id=? OR external_id=?', (sid, 'sportsdb-' + sid))
+        candidates = candidates_for('external_id=? OR external_id=?', (sid, 'sportsdb-' + sid))
         qualified = []
         for row in candidates:
             source = _norm(row.get('source') or row.get('provider'))
@@ -411,7 +423,7 @@ def _find_match(conn, item):
             date = event_time.astimezone(TZ).date().isoformat()
         except (TypeError, ValueError):
             return None
-    candidates = _rows(conn, 'SELECT * FROM matches WHERE substr(match_date,1,10)=? LIMIT 501', (date,))
+    candidates = candidates_for('substr(match_date,1,10)=?', (date,), ' LIMIT 501')
     if len(candidates) > 500:
         return None
     matched = []
