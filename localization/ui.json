@@ -1,5 +1,9 @@
 {
   "personal_home": {
+    "Los partidos seleccionados aparecen en tu seguimiento.": {
+      "en": "The selected matches appear in your following.",
+      "fr": "Les matchs sélectionnés figurent dans votre suivi."
+    },
     "Tu seguimiento": {
       "en": "Your following",
       "fr": "Votre suivi"

@@ -60,6 +60,7 @@
         {% set spotlight = featured_matches[:3] + ([last_result] if last_result and featured_matches|length < 3 else []) %}
         {{ section_header('Partidos destacados', '', 'Ver todos', '/calendario', '' if last_result else ('HOY' if important_matches else 'PRÓXIMOS')) }}
         {% if spotlight %}<div class="ns16-match-row{% if spotlight|length == 2 %} is-two{% endif %}" data-home-match-previews role="region" aria-label="{{ ui('Partidos destacados') }}" tabindex="0">{% for match in spotlight %}{{ match_card(match, true, true) }}{% endfor %}</div>
+        {% elif personal_ids %}<p>{{ ui('Los partidos seleccionados aparecen en tu seguimiento.') }} <a href="#personal-home-title">{{ ui('Lo que sigues, primero') }} →</a></p>
         {% elif safe.get('provider_status') == 'temporarily_unavailable' %}<div data-home-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', '/app', 'calendar') }}</div>
         {% else %}{{ empty_state('Sin partidos destacados ahora', 'La agenda aparecerá cuando existan encuentros completos.', 'Abrir calendario', '/calendario', 'calendar') }}{% endif %}
       </section>

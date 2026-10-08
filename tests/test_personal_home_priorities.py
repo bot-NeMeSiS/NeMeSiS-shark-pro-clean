@@ -89,6 +89,37 @@ def test_admin_priorities_show_missing_core_reads_without_inventing_incidents():
     assert areas==before
 
 
+@pytest.mark.parametrize("template", ["home.html", "client_app_center.html"])
+@pytest.mark.parametrize("language", ["es", "en", "fr"])
+def test_all_available_cards_in_following_do_not_claim_empty_agenda(app_module, template, language):
+    from jinja2 import ChoiceLoader, DictLoader
+    from engines.ui_localization_engine import translate
+    from test_design02_calendar_presentation import Structure
+    live = fixture("live", days=0, status="live")
+    upcoming = fixture("next")
+    finished = fixture("finished", days=-1, status="finished")
+    sports = {"live_now": [live], "important_today": [upcoming],
+              "upcoming": [upcoming], "recent_results": [finished]}
+    personal = {"state": "READY", "saved_count": 3, "matches": [
+        {**row, "personal_reason": "Partido guardado"} for row in (live, upcoming, finished)]}
+    env = app_module.app.jinja_env.overlay(loader=ChoiceLoader([
+        DictLoader({"base.html": "{% block content %}{% endblock %}"}), app_module.app.jinja_env.loader]))
+    with app_module.app.test_request_context("/", headers={"Accept-Language": language}):
+        html = env.get_template(template).render(
+            data={"personal_home": personal, "home_summary": {"sports_home": sports}},
+            current_user={"membership": "FREE"}, greeting={"label": "QA", "name": ""})
+    assert translate("Los partidos seleccionados aparecen en tu seguimiento.", language) in html
+    dom = Structure(html)
+    assert any(n["attrs"].get("href") == "#personal-home-title" for n in dom.nodes)
+    if template == "home.html":
+        assert not any(n["attrs"].get("data-sports-priority") in
+                       ("live-now", "important-today", "upcoming", "recent-results") for n in dom.nodes)
+        cards = [n for n in dom.nodes if "data-v934-match-id" in n["attrs"]]
+        assert len(cards) == 3
+    else:
+        assert translate("Sin partidos destacados ahora", language) not in html
+
+
 def test_admin_never_uses_untrusted_link_or_unknown_timestamp():
     result=build_daily_priorities([{"key":"jobs","state":"ATENCIÓN","href":"https://evil.invalid"}],job_at="yesterday")
     assert result[0]["href"]=="/admin/daily-automation"
