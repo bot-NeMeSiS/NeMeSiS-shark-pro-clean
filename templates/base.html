@@ -104,9 +104,9 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   <main id="main-content" tabindex="-1" class="shell shark-shell ns-main-shell v928-main-shell{% if show_admin_nav %} v930-admin-shell v933-admin-shell{% elif is_client_area %} v930-client-desktop-shell v930-client-mobile-shell v933-client-shell{% else %} v930-public-shell v933-public-shell{% endif %}" data-v933-surface="{% if show_admin_nav %}admin{% elif is_client_area %}client{% else %}public{% endif %}" data-v934-shell="true">
     {% if show_admin_nav %}
     <aside class="v933-inline-notice" role="status" data-master-storage-lock>
-      <strong>Master Finalization Program bloqueado.</strong>
-      Certificación de almacenamiento pendiente. La revisión visual no autoriza cerrar el programa ni desplegar.
-      <a href="/admin/data-center">Revisar almacenamiento</a>
+      <strong>Validación del respaldo pendiente.</strong>
+      Falta comprobar la copia automática y su restauración aislada.
+      <a href="/admin/backups">Consultar copias de seguridad</a>
     </aside>
     {% endif %}
     {% if not is_admin_area and admin_operational_settings is defined and admin_operational_settings.get('banner_enabled') and admin_operational_settings.get('banner_text') %}
