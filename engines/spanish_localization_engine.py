@@ -6,6 +6,7 @@ They do not perform network calls or persistence.
 
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from datetime import datetime, timedelta
@@ -505,6 +506,37 @@ def spanish_datetime_label(value: object, fallback_date: object = "", fallback_t
     return f"{weekday} {dt:%d/%m} · {dt:%H:%M}"
 
 
+def provider_competition_facts(match: dict | None) -> dict:
+    """Recover display facts from the matching persisted provider payload only.
+
+    Older rows may contain a lossy translated league name. The original payload
+    is evidence only when its provider and league ID match the row. No writes.
+    """
+    item = match or {}
+    provider = str(item.get("source") or item.get("provider") or "").lower()
+    if "sportsdb" not in provider and "api_football" not in provider and "api-football" not in provider:
+        return {}
+    raw = item.get("raw_json") or {}
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (ValueError, TypeError):
+            return {}
+    if not isinstance(raw, dict):
+        return {}
+    if "sportsdb" in provider:
+        identifier, name, country = raw.get("idLeague"), raw.get("strLeague"), raw.get("strCountry")
+    else:
+        league = raw.get("league")
+        if not isinstance(league, dict):
+            return {}
+        identifier, name, country = league.get("id"), league.get("name"), league.get("country")
+    stored = str(item.get("competition_id") or item.get("league_id") or "").strip()
+    if not stored or str(identifier or "").strip() != stored:
+        return {}
+    return {"name": str(name or "").strip(), "country": str(country or "").strip()}
+
+
 def apply_match_localization(match: dict | None) -> dict:
     item = dict(match or {})
     if not item:
@@ -512,7 +544,8 @@ def apply_match_localization(match: dict | None) -> dict:
     item = normalize_kickoff_for_display(item)
     raw_home = item.get("_raw_home_team") or item.get("home_team") or item.get("home") or ""
     raw_away = item.get("_raw_away_team") or item.get("away_team") or item.get("away") or ""
-    raw_comp = item.get("_raw_competition_name") or item.get("competition_name") or item.get("league_name") or item.get("competition") or item.get("league") or ""
+    provider_facts = provider_competition_facts(item)
+    raw_comp = provider_facts.get("name") or item.get("_raw_competition_name") or item.get("competition_name") or item.get("league_name") or item.get("competition") or item.get("league") or ""
     raw_country = item.get("_raw_country") or item.get("country") or ""
     item["_raw_home_team"] = raw_home
     item["_raw_away_team"] = raw_away
@@ -521,7 +554,7 @@ def apply_match_localization(match: dict | None) -> dict:
     item["home_team"] = spanish_team_name(raw_home) or "Equipo local"
     item["away_team"] = spanish_team_name(raw_away) or "Equipo visitante"
     item["competition_name"] = spanish_competition_name(raw_comp) or "Competición"
-    item["league_name"] = spanish_competition_name(item.get("league_name") or raw_comp) or item["competition_name"]
+    item["league_name"] = spanish_competition_name(provider_facts.get("name") or item.get("league_name") or raw_comp) or item["competition_name"]
     item["country"] = spanish_country_name(raw_country) or raw_country
     values = madrid_values_from_datetime(item.get("madrid_dt_iso") or item.get("kickoff_iso") or item.get("commence_time") or "", item.get("match_date"), item.get("kickoff_time") or item.get("match_time"))
     # For timezone-aware API timestamps, update visible date/time to Madrid. For rows without a real timestamp, keep the fallback date/time.

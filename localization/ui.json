@@ -4298,5 +4298,139 @@
       "en": "Unavailable: there is not enough recent sporting evidence.",
       "fr": "Indisponible : les données sportives récentes sont insuffisantes."
     }
+  },
+  "competition_journey": {
+    "{count} sección disponible": {
+      "en": "{count} section available",
+      "fr": "{count} rubrique disponible"
+    },
+    "Explorar fútbol": {
+      "en": "Explore football",
+      "fr": "Explorer le football"
+    },
+    "Encuentra tu competición": {
+      "en": "Find your competition",
+      "fr": "Trouvez votre compétition"
+    },
+    "Abre una competición para consultar sus partidos, resultados y equipos.": {
+      "en": "Open a competition to explore its matches, results and teams.",
+      "fr": "Ouvrez une compétition pour consulter ses matchs, résultats et équipes."
+    },
+    "Buscar competiciones": {
+      "en": "Search competitions",
+      "fr": "Rechercher des compétitions"
+    },
+    "Nombre de la competición": {
+      "en": "Competition name",
+      "fr": "Nom de la compétition"
+    },
+    "Liga, copa o país…": {
+      "en": "League, cup or country…",
+      "fr": "Championnat, coupe ou pays…"
+    },
+    "País o región": {
+      "en": "Country or region",
+      "fr": "Pays ou région"
+    },
+    "Todos los países y regiones": {
+      "en": "All countries and regions",
+      "fr": "Tous les pays et régions"
+    },
+    "Limpiar filtros": {
+      "en": "Clear filters",
+      "fr": "Effacer les filtres"
+    },
+    "{count} competición": {
+      "en": "{count} competition",
+      "fr": "{count} compétition"
+    },
+    "{count} competiciones": {
+      "en": "{count} competitions",
+      "fr": "{count} compétitions"
+    },
+    "La cobertura puede ser parcial. Cada ficha muestra la información disponible.": {
+      "en": "Coverage may be partial. Each page shows the available information.",
+      "fr": "La couverture peut être partielle. Chaque fiche présente les informations disponibles."
+    },
+    "Sin país confirmado": {
+      "en": "Country not confirmed",
+      "fr": "Pays non confirmé"
+    },
+    "Con partidos registrados": {
+      "en": "Recorded matches available",
+      "fr": "Matchs enregistrés disponibles"
+    },
+    "Sin partidos asociados todavía": {
+      "en": "No linked matches yet",
+      "fr": "Aucun match associé pour le moment"
+    },
+    "Explorar competición": {
+      "en": "Explore competition",
+      "fr": "Explorer la compétition"
+    },
+    "No encontramos esa competición": {
+      "en": "No matching competition found",
+      "fr": "Aucune compétition correspondante"
+    },
+    "Prueba con otro nombre o elimina el filtro de país.": {
+      "en": "Try another name or clear the country filter.",
+      "fr": "Essayez un autre nom ou retirez le filtre de pays."
+    },
+    "Ver todas las competiciones": {
+      "en": "View all competitions",
+      "fr": "Voir toutes les compétitions"
+    },
+    "Ver temporada": {
+      "en": "View season",
+      "fr": "Voir la saison"
+    },
+    "Temporada no disponible": {
+      "en": "Season unavailable",
+      "fr": "Saison indisponible"
+    },
+    "Los totales corresponden a los partidos cargados de la temporada seleccionada.": {
+      "en": "Totals reflect the loaded matches for the selected season.",
+      "fr": "Les totaux correspondent aux matchs chargés de la saison sélectionnée."
+    },
+    "No hay datos para la temporada solicitada. Selecciona una de las temporadas disponibles.": {
+      "en": "No data for the requested season. Choose an available season.",
+      "fr": "Aucune donnée pour la saison demandée. Choisissez une saison disponible."
+    },
+    "Los partidos sin temporada confirmada no se incluyen en estos totales.": {
+      "en": "Matches without a confirmed season are excluded from these totals.",
+      "fr": "Les matchs sans saison confirmée sont exclus de ces totaux."
+    },
+    "Pendientes de actualización": {
+      "en": "Awaiting an update",
+      "fr": "En attente de mise à jour"
+    },
+    "sin resultado confirmado": {
+      "en": "without a confirmed result",
+      "fr": "sans résultat confirmé"
+    },
+    "Aquí aparecen encuentros sin resultado confirmado, aplazados o cancelados. No forman parte de los próximos partidos.": {
+      "en": "These matches have no confirmed result, or were postponed or cancelled. They are not listed as upcoming.",
+      "fr": "Ces matchs sont sans résultat confirmé, reportés ou annulés. Ils ne figurent pas parmi les prochains matchs."
+    },
+    "Cobertura de la competición": {
+      "en": "Competition coverage",
+      "fr": "Couverture de la compétition"
+    },
+    "Sigue explorando": {
+      "en": "Keep exploring",
+      "fr": "Continuez à explorer"
+    },
+    "No hay pronóstico publicado para este partido.": {
+      "en": "No prediction has been published for this match.",
+      "fr": "Aucun pronostic publié pour ce match."
+    },
+    "Torneo internacional": {
+      "en": "International tournament",
+      "fr": "Tournoi international"
+    },
+    "Torneo regional": {
+      "en": "Regional tournament",
+      "fr": "Tournoi régional"
+    }
   }
 }

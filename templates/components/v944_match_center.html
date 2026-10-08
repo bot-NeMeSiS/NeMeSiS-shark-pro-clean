@@ -454,7 +454,7 @@
 {% set picks = context.get('picks') or {} %}
 {% set primary = picks.get('primary') or {} %}
 {% set lifecycle = context.get('lifecycle') or {} %}
-{{ panel_start('PickPanel', component, 'Pick del partido', 'Pronóstico disponible para este partido.', 'pick') }}
+{{ panel_start('PickPanel', component, 'Pick del partido', 'Pronóstico disponible para este partido.' if picks.get('available') else 'No hay pronóstico publicado para este partido.', 'pick') }}
   {% if picks.get('available') %}
   <div class="v944-experience-grid"
        data-match-pick-contract="{{ picks.get('contract') or '' }}"

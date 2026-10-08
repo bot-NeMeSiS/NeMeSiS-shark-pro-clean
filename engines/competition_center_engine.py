@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
+from engines.competition_read_model import normalized, provider_family
+from engines.spanish_localization_engine import parse_datetime_to_madrid, spanish_country_name, spanish_team_name
+from engines.v935_launch_trust_engine import match_status_truth, match_kickoff_madrid, madrid_now
+
 from engines.match_intelligence_engine import build_match_intelligence
 from engines.sports_domain_model_engine import (
     SPORTS_DOMAIN_MODEL_CONTRACT,
@@ -106,6 +110,8 @@ def _competition_route_id(competition: Mapping[str, Any]) -> str:
 
 
 def _result_for_team(match: Mapping[str, Any], team_name: str) -> str:
+    if not match_status_truth(dict(match))["is_finished"]:
+        return ""
     home = _text(match.get("home_team") or match.get("safe_home"), 160).casefold()
     away = _text(match.get("away_team") or match.get("safe_away"), 160).casefold()
     target = _text(team_name, 160).casefold()
@@ -154,11 +160,6 @@ def _team_recent_form(matches: Iterable[Mapping[str, Any]], team_name: str) -> d
 
 def _team_catalog_from_matches(matches: Iterable[Mapping[str, Any]], teams: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
     catalog: dict[str, dict[str, Any]] = {}
-    for raw in _items(teams):
-        canonical = normalize_team_entity(raw, provider=raw.get("source") or "local_cache")
-        key = canonical.get("canonical_team_id") or canonical.get("display_name")
-        if key:
-            catalog[str(key)] = {"canonical": canonical, "matches": []}
     for match in _items(matches):
         for side in ("home", "away"):
             name = match.get(f"{side}_team") or match.get(f"safe_{side}")
@@ -173,11 +174,41 @@ def _team_catalog_from_matches(matches: Iterable[Mapping[str, Any]], teams: Iter
                 "logo": match.get(f"{side}_logo"),
                 "source": match.get("source") or "matches",
             }
-            canonical = normalize_team_entity(raw_team, provider=raw_team.get("source"))
+            canonical = normalize_team_entity(raw_team, provider=provider_family(raw_team.get("source")))
             key = canonical.get("canonical_team_id") or canonical.get("display_name")
             if not key:
                 continue
             catalog.setdefault(str(key), {"canonical": canonical, "matches": []})["matches"].append(match)
+    # A weak name-only identity can join one unambiguous provider identity.
+    # Distinct IDs in the same namespace must remain separate even if named alike.
+    for key, item in list(catalog.items()):
+        canonical = item["canonical"]
+        if canonical.get("provider_team_ids"):
+            continue
+        candidates = [other for other in catalog.values()
+                      if other["canonical"].get("provider_team_ids")
+                      and normalized(other["canonical"].get("display_name")) == normalized(canonical.get("display_name"))
+                      and normalized(other["canonical"].get("country")) == normalized(canonical.get("country"))]
+        if len(candidates) == 1:
+            candidates[0]["matches"].extend(item["matches"])
+            del catalog[key]
+    # Persisted team metadata must not add
+    # a second card for the same team under a different source namespace.
+    for raw in _items(teams):
+        name = normalized(spanish_team_name(raw.get("name") or raw.get("display_name")))
+        country = normalized(spanish_country_name(raw.get("country")))
+        candidates = [item for item in catalog.values()
+                      if normalized(spanish_team_name(item["canonical"].get("display_name"))) == name
+                      and (not country or country == normalized(spanish_country_name(item["canonical"].get("country"))))]
+        if len(candidates) == 1:
+            continue
+        if candidates:
+            continue  # Ambiguous metadata cannot resolve homonymous teams.
+        if not matches:
+            canonical = normalize_team_entity({**raw, "team_id": raw.get("team_id") or raw.get("external_id")}, provider=provider_family(raw.get("source")))
+            key = canonical.get("canonical_team_id") or canonical.get("display_name")
+            if key:
+                catalog.setdefault(str(key), {"canonical": canonical, "matches": []})
     result: list[dict[str, Any]] = []
     for item in catalog.values():
         canonical = item["canonical"]
@@ -259,36 +290,46 @@ def _standings_rows(
     }
 
 
-def _calendar(matches: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+def _calendar(matches: Iterable[Mapping[str, Any]], *, observed_at_madrid="") -> dict[str, Any]:
     items = _items(matches)
-    upcoming = [
-        item for item in items
-        if _text(_mapping(item.get("status_info")).get("label") or item.get("status"), 60).casefold() not in {"finalizado", "ft", "finished", "final"}
-    ]
-    recent = [
-        item for item in items
-        if item not in upcoming
-    ]
+    now = madrid_now(parse_datetime_to_madrid(observed_at_madrid))
+    upcoming, recent, live, pending = [], [], [], []
+    for item in items:
+        truth = match_status_truth(item, now=now)
+        kickoff = match_kickoff_madrid(item)
+        if truth["is_finished"] and _score_number(item.get("home_score")) is not None and _score_number(item.get("away_score")) is not None:
+            recent.append(item)
+        elif truth["is_live"]:
+            live.append(item)
+        elif truth["lifecycle"] == "UPCOMING" and kickoff and kickoff >= now:
+            upcoming.append(item)
+        else:
+            pending.append(item)
+    by_date = lambda item: match_kickoff_madrid(item) or now
+    upcoming.sort(key=by_date)
+    recent.sort(key=by_date, reverse=True)
+    pending.sort(key=by_date, reverse=True)
     rounds: dict[str, int] = {}
     for item in items:
         label = _text(item.get("round") or item.get("round_name"), 120)
         if label:
             rounds[label] = rounds.get(label, 0) + 1
-    current_round = next(iter(sorted(rounds, key=lambda key: (-rounds[key], key))), "")
+    nearest = live or upcoming or recent
+    current_round = _text(nearest[0].get("round") or nearest[0].get("round_name"), 120) if nearest else ""
     return {
         "current_round": current_round or "No disponible",
-        "upcoming": sorted(upcoming, key=lambda item: (item.get("match_date") or "", item.get("kickoff_time") or ""))[:12],
-        "recent": sorted(recent, key=lambda item: (item.get("match_date") or "", item.get("kickoff_time") or ""), reverse=True)[:12],
+        "upcoming": upcoming[:12],
+        "recent": recent[:12],
+        "live": live[:12],
+        "pending": pending[:12],
+        "counts": {"upcoming": len(upcoming), "recent": len(recent), "live": len(live), "pending": len(pending)},
         "rounds": [{"label": key, "matches": value} for key, value in sorted(rounds.items())[:12]],
         "limitations": [] if items else ["No hay partidos reales asociados a esta competicion."],
     }
 
 
-def _competition_state(matches: Iterable[Mapping[str, Any]], competition: Mapping[str, Any]) -> str:
-    items = _items(matches)
-    live = [item for item in items if _mapping(item.get("status_info")).get("is_live")]
-    upcoming = [item for item in items if _mapping(item.get("status_info")).get("is_upcoming")]
-    recent = [item for item in items if _mapping(item.get("status_info")).get("is_finished")]
+def _competition_state(calendar: Mapping[str, Any], competition: Mapping[str, Any]) -> str:
+    live, upcoming, recent = (calendar.get(key) for key in ("live", "upcoming", "recent"))
     if live:
         return "Con partidos en directo"
     if upcoming and recent:
@@ -305,14 +346,15 @@ def _competition_state(matches: Iterable[Mapping[str, Any]], competition: Mappin
 def _shark_competition_context(
     *,
     matches: Iterable[Mapping[str, Any]],
+    calendar: Mapping[str, Any],
     standings: Mapping[str, Any],
     season: Any = "",
     round_label: Any = "",
 ) -> dict[str, Any]:
     items = _items(matches)
-    live_count = sum(1 for item in items if _mapping(item.get("status_info")).get("is_live"))
-    upcoming_count = sum(1 for item in items if _mapping(item.get("status_info")).get("is_upcoming"))
-    recent_count = sum(1 for item in items if _mapping(item.get("status_info")).get("is_finished"))
+    live_count = calendar["counts"]["live"]
+    upcoming_count = calendar["counts"]["upcoming"]
+    recent_count = calendar["counts"]["recent"]
     signals: list[str] = []
     if live_count:
         signals.append(f"{live_count} partidos en directo confirmados en la muestra local.")
@@ -423,7 +465,7 @@ def build_competition_center_context(
         },
     }
     standings = _standings_rows(standings_input, fallback_teams=teams)
-    calendar = _calendar(matches)
+    calendar = _calendar(matches, observed_at_madrid=observed_at_madrid)
     graph = build_sports_graph_relationships(
         team_entities=canonical_teams,
         match_entities=canonical_matches,
@@ -441,6 +483,7 @@ def build_competition_center_context(
     round_label = calendar.get("current_round") or competition.get("stage")
     shark = _shark_competition_context(
         matches=matches,
+        calendar=calendar,
         standings=standings,
         season=season,
         round_label=round_label,
@@ -456,7 +499,8 @@ def build_competition_center_context(
         missing.extend(standings.get("limitations") or [])
     if not matches:
         missing.append("No hay partidos asociados a esta competicion.")
-    state = _competition_state(matches, competition)
+    state = _competition_state(calendar, competition)
+    related = calendar["live"] or calendar["upcoming"] or calendar["recent"]
     return {
         "ok": True,
         "contract": COMPETITION_CENTER_CONTRACT,
@@ -471,7 +515,7 @@ def build_competition_center_context(
             "country": competition.get("country") or raw_competition.get("country") or "No disponible",
             "season": season or "No disponible",
             "type": competition.get("competition_type") or "No disponible",
-            "stage": competition.get("stage") or round_label or "No disponible",
+            "stage": round_label or "No disponible",
             "state": state,
             "logo": competition.get("logo"),
             "logo_source": competition.get("logo_source") or "No disponible",
@@ -481,8 +525,9 @@ def build_competition_center_context(
         "metrics": {
             "teams": len(teams),
             "matches": len(matches),
-            "upcoming": len(calendar.get("upcoming") or []),
-            "recent": len(calendar.get("recent") or []),
+            "upcoming": calendar["counts"]["upcoming"],
+            "recent": calendar["counts"]["recent"],
+            "pending": calendar["counts"]["pending"],
             "standings": len(standings.get("rows") or []),
             "picks": len(picks),
             "graph_edges": graph.get("edge_count", 0),
@@ -513,12 +558,12 @@ def build_competition_center_context(
         "data_quality": {
             "source": competition.get("source") or raw_competition.get("source") or "local_cache",
             "freshness": _mapping(anchor_match.get("freshness")),
-            "certification_state": competition_knowledge.get("certification_state") or "PARTIALLY_VERIFIED",
+            "certification_state": "PARTIALLY_VERIFIED" if matches else "INSUFFICIENT_DATA",
             "limitations": sorted(set((competition_knowledge.get("limitations") or []) + missing)),
         },
         "links": {
             "calendar": "/calendar",
-            "match_center": "/match/" + _text(matches[0].get("id"), 160) if matches else "",
+            "match_center": "/match/" + _text(related[0].get("id"), 160) if related else "",
             "team_center": entity_href("team", teams[0].get("route_id"), teams[0].get("name")) if teams else "",
             "sports_graph": "",
         },

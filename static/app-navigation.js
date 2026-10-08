@@ -16,7 +16,7 @@
       items.forEach(item => { item.hidden = !terms.every(term => normalize(item.dataset.exploreLabel).includes(term)); });
       root.querySelectorAll('[data-explore-group]').forEach(group => { group.hidden = !group.querySelector('[data-explore-item]:not([hidden])'); });
       const count = items.filter(item => !item.hidden).length;
-      root.querySelector('[data-explore-count]').textContent = text('{count} secciones disponibles', { count });
+      root.querySelector('[data-explore-count]').textContent = text(count === 1 ? '{count} sección disponible' : '{count} secciones disponibles', { count });
       root.querySelector('[data-explore-empty]').hidden = count > 0;
       if (match) {
         match.hidden = !query;
