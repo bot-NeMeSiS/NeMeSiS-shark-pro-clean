@@ -29,7 +29,7 @@ def test_competition_get_journey_layout(browser,app_module,monkeypatch,width,sur
             markup=render_template('competition_detail.html',detail=detail)
     # Keep styles and semantic GET controls; isolate unrelated realtime jobs.
     markup=re.sub(r'<script\b[^>]*>.*?</script>','',markup,flags=re.S|re.I)
-    context=browser.new_context(viewport={'width':width,'height':850},java_script_enabled=False)
+    context=browser.new_context(viewport={'width':width,'height':850})
     page=context.new_page()
     calls=[]
     def serve(route):
