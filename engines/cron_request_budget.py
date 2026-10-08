@@ -16,9 +16,11 @@ class CronTimeBudget(RuntimeError):
 
 
 class CronRequestBudget:
-    def __init__(self, seconds=16, clock=None):
+    def __init__(self, seconds=16, clock=None, *, started_at=None):
         self.clock = clock or time.monotonic
-        self.deadline = self.clock() + seconds
+        # An HTTP caller may have spent time initializing before entering the
+        # provider scope. Keep that elapsed work inside the original deadline.
+        self.deadline = (self.clock() if started_at is None else started_at) + seconds
         self.deferred = False
 
     def __enter__(self):
