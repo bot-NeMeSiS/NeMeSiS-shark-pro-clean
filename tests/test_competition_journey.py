@@ -156,3 +156,19 @@ def test_empty_directory_and_search_input_are_safe(app_module,monkeypatch):
         html=app_module.global_football()
     assert 'No encontramos esa competición' in html
     assert '<script>alert(1)</script>' not in html and '&lt;script&gt;' in html
+
+
+def test_team_journey_retains_registered_aliases_without_country_or_id_collisions(app_module,monkeypatch):
+    team={'name':'FC Barcelona','external_id':'133739','country':'Spain','source':'sportsdb'}
+    fixtures=[match('short'), {**match('long'),'home_team':'FC Barcelona'},
+              {**match('homonym'),'country':'Ecuador'},
+              {**match('conflict'),'home_team_id':'other'},
+              {**match('continental'),'country':'Europe'}]
+    with sqlite3.connect(':memory:') as connection:
+        connection.row_factory=sqlite3.Row
+        keys=list(fixtures[0])
+        connection.execute('CREATE TABLE matches ('+','.join('"'+k+'" TEXT' for k in keys)+')')
+        connection.executemany('INSERT INTO matches VALUES ('+','.join('?' for _ in keys)+')',[[row[k] for k in keys] for row in fixtures])
+        monkeypatch.setattr(app_module,'today_iso',lambda:'2026-10-08')
+        monkeypatch.setattr(app_module,'rows',lambda sql,args=():[dict(row) for row in connection.execute(sql,args)])
+        assert {row['id'] for row in app_module._team_journey_matches(team,'Barcelona')} == {'short','long','continental'}

@@ -9553,6 +9553,45 @@ def _cached_match_media(match, limit=6):
     return video_highlights_snapshot(classified, preclassified=True)
 
 
+def _team_journey_matches(team, team_id, *, recent=False, limit=80):
+    """Read registered aliases without merging homonyms or provider ID conflicts."""
+    name = str(team.get("name") or team_id)
+    key = canonical_team_key(name)
+    aliases = {name.lower(), str(team_id).lower(), key, key.replace("-", " ")}
+    for alias, canonical in TEAM_ALIASES.items():
+        if canonical == key:
+            aliases.update((alias, alias.replace("-", " ")))
+    placeholders = ",".join("?" for _ in aliases)
+    comparison, ordering = ("<", "DESC") if recent else (">=", "ASC")
+    candidates = rows(
+        f"""SELECT * FROM matches
+            WHERE (lower(home_team) IN ({placeholders}) OR lower(away_team) IN ({placeholders}))
+              AND match_date{comparison}?
+            ORDER BY match_date {ordering}, kickoff_time {ordering} LIMIT ?""",
+        tuple(sorted(aliases)) * 2 + (today_iso(), int(limit) * 2),
+    )
+    country = spanish_country_name(team.get("country") or "").casefold()
+    regional = {"global", "europa", "sudamérica", "áfrica", "asia", "internacional", "mundial"}
+    result = []
+    for item in candidates:
+        match_country = spanish_country_name(item.get("country") or "").casefold()
+        if country and match_country and country != match_country and match_country not in regional:
+            continue
+        related = False
+        for side in ("home", "away"):
+            if canonical_team_key(item.get(f"{side}_team")) != key:
+                continue
+            identifier = str(item.get(f"{side}_team_id") or "")
+            source = provider_family(team.get("source"))
+            if source in {"sportsdb", "api-football"} and source == provider_family(item.get("source")) and identifier and team.get("external_id"):
+                if identifier != str(team["external_id"]):
+                    continue
+            related = True
+        if related and not is_fake_match(item):
+            result.append(item)
+    return result[:int(limit)]
+
+
 def team_page_data(team_id, limit=80):
     team = team_lookup(team_id)
     if not team:
@@ -9568,20 +9607,10 @@ def team_page_data(team_id, limit=80):
         identity["crest_url"] = team.get("logo_url")
         identity["crest_mode"] = "logo"
     favorites = favorite_sets()
-    upcoming = [annotate_match(m, favorites, include_timeline=False) for m in rows(
-        """SELECT * FROM matches
-           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
-             AND match_date>=?
-           ORDER BY match_date, kickoff_time LIMIT ?""",
-        (name, name, today_iso(), int(limit)),
-    ) if not is_fake_match(m)]
-    recent = [annotate_match(m, favorites, include_timeline=False) for m in rows(
-        """SELECT * FROM matches
-           WHERE (lower(home_team)=lower(?) OR lower(away_team)=lower(?))
-             AND match_date<?
-           ORDER BY match_date DESC, kickoff_time DESC LIMIT ?""",
-        (name, name, today_iso(), int(limit//2)),
-    ) if not is_fake_match(m)]
+    upcoming = [annotate_match(m, favorites, include_timeline=False)
+                for m in _team_journey_matches(team, team_id, limit=limit)]
+    recent = [annotate_match(m, favorites, include_timeline=False)
+              for m in _team_journey_matches(team, team_id, recent=True, limit=max(1, limit//2))]
     # Date bounds limit the read; the existing canonical state owns presentation.
     team_matches = upcoming + recent
     live = [m for m in team_matches if (m.get("status_info") or {}).get("is_live")]
