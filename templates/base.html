@@ -36,6 +36,8 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app-navigation.css') }}?v=1">
+  <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
   {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}
@@ -113,6 +115,14 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     {% block content %}{% endblock %}
   </main>
   {% block admin_page_navigation %}{% endblock %}
+
+  {% if show_admin_nav or not is_admin_surface %}
+  {% from "components/app_navigation.html" import navigation_content with context %}
+  <dialog id="app-navigation-dialog" class="app-navigation-dialog" aria-labelledby="app-navigation-title">
+    <header><h2 id="app-navigation-title">{{ ui('Explorar Admin' if show_admin_nav else 'Explorar NeMeSiS') }}</h2><form method="dialog"><button type="submit" aria-label="{{ ui('Cerrar explorador') }}">×</button></form></header>
+    {{ navigation_content('admin' if show_admin_nav else ('client' if current_user else 'public')) }}
+  </dialog>
+  {% endif %}
 
 
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">

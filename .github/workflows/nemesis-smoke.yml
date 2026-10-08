@@ -97,3 +97,5 @@ jobs:
           python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-project-control tests/test_project_control_http.py
           python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-sentinel-http tests/test_sentinel_jobs_http.py
           python -m pytest -q -p no:cacheprovider --basetemp=data/local_dev/ci-sentinel-browser tests/test_sentinel_operational_browser.py
+      - name: Full local HTTP navigation journeys
+        run: python tools/check_app_navigation_browser.py

@@ -5,11 +5,11 @@
 {% set ai = master.get('ai') or {} %}
 {% set settings = master.get('settings') or {} %}
 <link rel="stylesheet" href="{{ url_for('static', filename='admin-master-control.css') }}?v={{ app_version }}-core-control-2">
-<script defer src="{{ url_for('static', filename='admin-master-control.js') }}?v={{ app_version }}"></script>
+<script defer src="{{ url_for('static', filename='admin-master-control.js') }}?v={{ app_version }}-navigation-1"></script>
 <div class="v933-page v933-admin-command-center v933-admin-dashboard admin-master" data-admin-master-control>
   <header class="master-heading">
     <div><span class="master-eyebrow">NeMeSiS · Operaciones</span><h1>Centro de mando</h1><p>Observa, decide y verifica desde un mismo lugar.</p></div>
-    <div class="master-toolbar"><a href="#reliability">Fiabilidad</a><button type="button" data-action="master-control" data-open-command id="master-command-search">{{ icon('search') }} Buscar <kbd>Ctrl K</kbd></button><button type="button" data-action="master-control" data-master-refresh>{{ icon('history') }} Actualizar lectura</button></div>
+    <div class="master-toolbar"><a href="#reliability">Fiabilidad</a><button type="button" data-action="master-control" data-open-command id="master-command-search">{{ icon('search') }} Buscar acciones</button><button type="button" data-action="master-control" data-master-refresh>{{ icon('history') }} Actualizar lectura</button></div>
   </header>
   <div class="master-reading"><span>Lectura local · <time data-master-timestamp>{{ master.get('generated_at')|madrid_datetime_label if master.get('generated_at') else 'Hora no disponible' }}</time></span><span>Sin consultas nuevas a proveedores al abrir</span><details><summary>Versión</summary><span data-master-version>{{ master.get('version') or app_version }}</span></details></div>
   <details class="master-panel"><summary>Diagnostico deportivo detallado</summary>{% if data.get('v934_realtime') %}{{ realtime_state_bar(data.get('v934_realtime'), 'all', true) }}{% else %}<p>Sin lectura deportiva detallada disponible.</p>{% endif %}</details>
