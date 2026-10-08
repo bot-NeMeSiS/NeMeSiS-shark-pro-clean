@@ -1,0 +1,18 @@
+{% set personal = data.get('personal_home') %}
+{% if personal %}
+<section class="v933-panel personal-home-agenda" aria-labelledby="personal-home-title" data-personal-home="{{ personal.state }}">
+  <header><div><span class="v933-eyebrow">{{ ui('Tu seguimiento') }}</span><h2 id="personal-home-title">{{ ui('Lo que sigues, primero') }}</h2></div><a href="/favoritos">{{ ui('Gestionar favoritos') }} →</a></header>
+  {% if personal.saved_count is not none %}<p>{{ ui('{count} favorito guardado' if personal.saved_count == 1 else '{count} favoritos guardados', count=personal.saved_count) }}</p>{% endif %}
+  {% if personal.state == 'READY' %}
+  <p>{{ ui('Directo confirmado, próximos partidos y resultados de tus favoritos, según la agenda disponible.') }}</p>
+  <div class="personal-home-matches">{% for match in personal.matches %}<div><span class="personal-home-reason">{{ ui(match.personal_reason) }}</span>{{ match_card(match, true, true) }}</div>{% endfor %}</div>
+  {% elif personal.state == 'UNAVAILABLE' %}
+  <p role="status">{{ ui('No hemos podido comprobar tu seguimiento. Tus favoritos no se han cambiado.') }}</p>
+  {% elif personal.state == 'EMPTY' %}
+  <p>{{ ui('Elige equipos, competiciones o partidos y encontrarás aquí su próxima actividad.') }}</p>
+  {% else %}
+  <p>{{ ui('Tus favoritos están guardados, pero no hay encuentros confirmados para ellos en la agenda disponible.') }}</p>
+  {% endif %}
+  <nav aria-label="{{ ui('Continuar tu seguimiento') }}"><a href="/calendario">{{ ui('Explorar calendario') }} →</a><a href="/daily-briefing">{{ ui('Ver mi resumen diario') }} →</a></nav>
+</section>
+{% endif %}

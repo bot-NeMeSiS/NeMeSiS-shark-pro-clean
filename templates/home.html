@@ -2,6 +2,7 @@
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes with context %}
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% block content %}
+{% if data.get('personal_home') %}<link rel="stylesheet" href="{{ url_for('static', filename='personal-home-agenda.css') }}?v={{ app_version }}">{% endif %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
 {% set sports_home = summary.get('sports_home') or (data.get('match_hub') or {}).get('sports_home') or {} %}
@@ -21,6 +22,12 @@
 {% set safe_message = 'La agenda no está disponible temporalmente. Vuelve a intentarlo en unos minutos.' if summary.get('storage_status') == 'database_locked' else 'Todavía no hay partidos disponibles para esta jornada.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set simulated_evidence = evidence_origin == 'SIMULATED_QA' %}
+{% set personal_ids = (data.get('personal_home') or {}).get('matches', [])|map(attribute='id')|list %}
+{% set live_matches = live_matches|rejectattr('id', 'in', personal_ids)|list %}
+{% set important_matches = important_matches|rejectattr('id', 'in', personal_ids)|list %}
+{% set favorite_matches = favorite_matches|rejectattr('id', 'in', personal_ids)|list %}
+{% set upcoming_matches = upcoming_matches|rejectattr('id', 'in', personal_ids)|list %}
+{% set recent_results = recent_results|rejectattr('id', 'in', personal_ids)|list %}
 {% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
 {% set hero_match = priority_pool[0] if priority_pool else none %}
 {% if live_matches %}
@@ -99,6 +106,8 @@
     </aside>
   </section>
 
+  {% include "components/personal_home_agenda.html" %}
+
   <section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/directo', 'Directo') }}
     {% if live_matches %}
@@ -123,7 +132,7 @@
         {% endif %}
       </section>
 
-      <section class="v933-panel sports-priority-section" data-sports-priority="favorites">
+      {% if not data.get('personal_home') %}<section class="v933-panel sports-priority-section" data-sports-priority="favorites">
         {{ section_header('Favoritos', '', 'Abrir favoritos', '/favoritos', 'Personal') }}
         {% if favorite_matches %}
           <div class="v933-match-grid sports-priority-grid">
@@ -134,6 +143,7 @@
         {% endif %}
       </section>
 
+      {% endif %}
       <section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
         {{ section_header('Próximos importantes', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
         {% if upcoming_matches %}

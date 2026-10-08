@@ -15,7 +15,18 @@
   <details class="master-panel"><summary>Diagnostico deportivo detallado</summary>{% if data.get('v934_realtime') %}{{ realtime_state_bar(data.get('v934_realtime'), 'all', true) }}{% else %}<p>Sin lectura deportiva detallada disponible.</p>{% endif %}</details>
   <p class="master-notice" data-master-feedback role="status" aria-live="polite" hidden></p>
   {% if not master %}<p class="master-notice">No se ha podido obtener la lectura del centro. Los accesos a los paneles siguen disponibles.</p>{% endif %}
-      <section class="master-panel" aria-labelledby="master-recommendations-title"><header><div><h2 id="master-recommendations-title">Recomendaciones SHARK</h2><p>Prioridades con evidencia.</p></div></header><div class="master-recommendations" data-master-recommendations>{% for item in master.get('recommendations') or [] %}<article><strong>{{ item.get('title') }}</strong><p>{{ item.get('evidence') or 'Evidencia no disponible.' }}</p>{% if item.get('href','').startswith('/admin/') %}<a href="{{ item.get('href') }}">Revisar →</a>{% endif %}</article>{% else %}<p class="master-empty">Esta lectura no aporta recomendaciones. No certifica ausencia de incidencias.</p>{% endfor %}</div></section>
+  <section class="master-panel" aria-labelledby="master-recommendations-title">
+    <header><div><h2 id="master-recommendations-title">Qué necesita atención</h2><p>Lecturas pendientes y hallazgos guardados. Abrir el detalle no ejecuta cambios.</p></div><a href="/admin/operations-center#operations-incidents">Todas las tareas →</a></header>
+    <div class="master-recommendations" data-master-recommendations>
+      {% for item in master.get('recommendations') or [] %}<article>
+        {% if item.get('category') %}<span class="master-chip">{{ item.category }}</span>{% endif %}
+        <strong>{{ item.get('title') }}</strong><p>{{ item.get('evidence') or 'Evidencia no disponible.' }}</p>
+        {% if item.get('next_step') %}<p>Siguiente paso: {{ item.next_step }}</p>
+        <small class="master-muted">{% if item.get('observed_at') %}Evidencia: <time datetime="{{ item.observed_at }}">{{ item.observed_at|madrid_datetime_label }}</time>{% else %}Fecha de evidencia no disponible. Comprueba el detalle antes de actuar.{% endif %}</small>{% endif %}
+        {% if item.get('href','').startswith('/admin/') %}<a href="{{ item.get('href') }}">Revisar →</a>{% endif %}
+      </article>{% else %}<p class="master-empty">Esta lectura no aporta recomendaciones. No certifica ausencia de incidencias.</p>{% endfor %}
+    </div>
+  </section>
   <section class="master-facts" data-master-facts aria-label="Datos operativos">
     {% for fact in master.get('facts') or [] %}<article><span>{{ fact.get('label') }}</span><strong>{{ fact.get('value') if fact.get('value') is not none else 'Sin datos' }}</strong></article>{% else %}<p class="master-empty">Sin métricas verificables en esta lectura.</p>{% endfor %}
   </section>

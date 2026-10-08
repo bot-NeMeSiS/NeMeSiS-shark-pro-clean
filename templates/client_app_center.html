@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes with context %}
 {% block content %}
+{% if data.get('personal_home') %}<link rel="stylesheet" href="{{ url_for('static', filename='personal-home-agenda.css') }}?v={{ app_version }}">{% endif %}
 {% set plan_name = (current_user.membership or 'FREE')|trim|upper %}
 {% if plan_name == 'ADMIN' %}{% set plan_name = 'ELITE' %}{% endif %}
 {% if plan_name not in ['FREE', 'PRO', 'ELITE'] %}{% set plan_name = 'FREE' %}{% endif %}
@@ -13,7 +14,9 @@
 {% set important_matches = sports_home.get('important_today', hub.get('today') or []) or [] %}
 {% set favorite_matches = sports_home.get('favorites', hub.get('favorites') or []) or [] %}
 {% set upcoming_matches = sports_home.get('upcoming', hub.get('upcoming') or []) or [] %}
-{% set visible_live_ids = live_matches[:3]|map(attribute='id')|list %}
+{% set personal_ids = (data.get('personal_home') or {}).get('matches', [])|map(attribute='id')|list %}
+{% set live_matches = live_matches|rejectattr('id', 'in', personal_ids)|list %}
+{% set visible_live_ids = (live_matches[:3]|map(attribute='id')|list) + personal_ids %}
 {% set featured_matches = (important_matches|rejectattr('id', 'in', visible_live_ids)|list) or (upcoming_matches|rejectattr('id', 'in', visible_live_ids)|list) %}
 {% set recent_results = sports_home.get('recent_results', hub.get('finished') or []) or [] %}
 {% set last_result = (recent_results|rejectattr('id', 'in', featured_matches|map(attribute='id')|list)|rejectattr('id', 'in', visible_live_ids)|list)|first %}
@@ -35,6 +38,8 @@
     </div>
   </section>
 
+  {% include "components/personal_home_agenda.html" %}
+
   {% if live_matches %}
   <section class="ns16-section ns16-live-priority" data-sports-priority="live-now">
     {{ section_header('En directo', '', 'Abrir Directo', '/directo', 'DIRECTO') }}
@@ -46,7 +51,7 @@
     {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendario') }}
     {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
     {{ kpi_card('Pronósticos activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
-    {{ kpi_card('Favoritos', favorite_matches|length, 'Tu radar', 'gold', 'star', '/favoritos') }}
+    {{ kpi_card('Favoritos', (data.get('personal_home') or {}).get('saved_count', favorite_matches|length), 'Tu selección', 'gold', 'star', '/favoritos') }}
   </section>
 
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">

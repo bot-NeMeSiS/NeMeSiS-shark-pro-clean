@@ -1,0 +1,11 @@
+.personal-home-agenda{margin-block:1rem;min-width:0}
+.personal-home-agenda>header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+.personal-home-agenda h2{margin:.35rem 0;font-size:1.35rem}
+.personal-home-agenda>p{color:var(--text-muted,#aab7cd);line-height:1.5}
+.personal-home-agenda a{color:var(--accent,#77dbe7);text-underline-offset:4px;overflow-wrap:anywhere}
+.personal-home-agenda a:focus-visible{outline:2px solid currentColor;outline-offset:5px;border-radius:3px}
+.personal-home-matches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.personal-home-matches>div{min-width:0}
+.personal-home-reason{display:block;color:var(--text-muted,#aab7cd);margin-block:.4rem;font-size:.8rem}
+.personal-home-agenda>nav{display:flex;flex-wrap:wrap;gap:1rem;margin-top:1rem}
+@media(max-width:900px){.personal-home-matches{grid-template-columns:1fr}.personal-home-agenda>nav a{padding-block:.5rem}}

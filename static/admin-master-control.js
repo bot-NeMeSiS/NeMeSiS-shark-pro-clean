@@ -119,8 +119,13 @@
   function recommendations(target, items) {
     target.replaceChildren();
     if (!Array.isArray(items) || !items.length) { target.append(node('p', 'Esta lectura no aporta recomendaciones. No certifica ausencia de incidencias.', 'master-empty')); return; }
-    items.slice(0, 8).forEach((item) => {
+    items.slice(0, 12).forEach((item) => {
       const article = node('article'); article.append(node('strong', item.title), node('p', item.evidence || item.detail || 'Evidencia no disponible.'));
+      if (item.category) article.prepend(node('span', item.category, 'master-chip'));
+      if (item.next_step) {
+        article.append(node('p', 'Siguiente paso: ' + item.next_step));
+        article.append(node('small', item.observed_at ? 'Evidencia: ' + stamp(item.observed_at) : 'Fecha de evidencia no disponible. Comprueba el detalle antes de actuar.', 'master-muted'));
+      }
       const href = safeAdminHref(item.href);
       if (href) { const link = node('a', 'Revisar →'); link.href = href; article.append(link); }
       target.append(article);

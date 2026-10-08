@@ -1,4 +1,66 @@
 {
+  "personal_home": {
+    "Tu seguimiento": {
+      "en": "Your following",
+      "fr": "Votre suivi"
+    },
+    "Lo que sigues, primero": {
+      "en": "What you follow comes first",
+      "fr": "Vos favoris en premier"
+    },
+    "Gestionar favoritos": {
+      "en": "Manage favorites",
+      "fr": "Gérer les favoris"
+    },
+    "{count} favorito guardado": {
+      "en": "{count} saved favorite",
+      "fr": "{count} favori enregistré"
+    },
+    "{count} favoritos guardados": {
+      "en": "{count} saved favorites",
+      "fr": "{count} favoris enregistrés"
+    },
+    "Directo confirmado, próximos partidos y resultados de tus favoritos, según la agenda disponible.": {
+      "en": "Confirmed live games, upcoming matches and results for your favorites, from the available schedule.",
+      "fr": "Directs confirmés, prochains matchs et résultats de vos favoris, selon le calendrier disponible."
+    },
+    "No hemos podido comprobar tu seguimiento. Tus favoritos no se han cambiado.": {
+      "en": "We could not check your following. Your favorites have not been changed.",
+      "fr": "Nous ne pouvons pas vérifier votre suivi. Vos favoris sont inchangés."
+    },
+    "Elige equipos, competiciones o partidos y encontrarás aquí su próxima actividad.": {
+      "en": "Choose teams, competitions or matches to see their next activity here.",
+      "fr": "Choisissez des équipes, des compétitions ou des matchs pour retrouver leur prochaine activité ici."
+    },
+    "Tus favoritos están guardados, pero no hay encuentros confirmados para ellos en la agenda disponible.": {
+      "en": "Your favorites are saved, but there are no confirmed matches for them in the available schedule.",
+      "fr": "Vos favoris sont enregistrés, mais aucun match confirmé ne leur correspond dans le calendrier disponible."
+    },
+    "Continuar tu seguimiento": {
+      "en": "Continue following",
+      "fr": "Poursuivre votre suivi"
+    },
+    "Explorar calendario": {
+      "en": "Explore the schedule",
+      "fr": "Explorer le calendrier"
+    },
+    "Ver mi resumen diario": {
+      "en": "View my daily briefing",
+      "fr": "Voir mon résumé quotidien"
+    },
+    "Partido guardado": {
+      "en": "Saved match",
+      "fr": "Match enregistré"
+    },
+    "Sigues a un equipo": {
+      "en": "You follow a team",
+      "fr": "Vous suivez une équipe"
+    },
+    "Sigues esta competición": {
+      "en": "You follow this competition",
+      "fr": "Vous suivez cette compétition"
+    }
+  },
   "app_navigation": {
     "Buscar secciones": {
       "en": "Find sections",
