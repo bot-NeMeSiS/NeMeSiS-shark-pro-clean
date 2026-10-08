@@ -136,3 +136,23 @@ def test_no_javascript_fallback_exposes_links_and_a_get_form(browser,app_module)
         assert page.locator('[data-open-explore]:visible').first.get_attribute('href')=='/explorar'
     finally:
         context.close()
+
+
+def test_queued_close_does_not_clear_a_reopened_search(browser,app_module):
+    context,page,errors,calls = mount(browser,app_module)
+    try:
+        page.keyboard.press('Control+k')
+        state = page.evaluate("""() => new Promise(resolve => {
+          const dialog = document.getElementById('app-navigation-dialog');
+          const input = dialog.querySelector('[data-explore-query]');
+          dialog.addEventListener('close', () => resolve({
+            open: dialog.open, query: input.value, focused: input === document.activeElement,
+            links: [...dialog.querySelectorAll('[data-explore-item]:not([hidden])')].map(a => a.getAttribute('href'))
+          }), {once: true});
+          dialog.close();
+          window.NemesisNavigation.open(document.querySelector('[data-open-explore]'), 'competicion');
+        })""")
+        assert state == {'open':True,'query':'competicion','focused':True,'links':['/competiciones']}
+        assert not errors and all(method=='GET' for method,_ in calls)
+    finally:
+        context.close()

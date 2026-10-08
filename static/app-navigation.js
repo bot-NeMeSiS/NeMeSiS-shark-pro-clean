@@ -75,6 +75,8 @@
     }
   });
   dialog.addEventListener('close', () => {
+    // The browser queues this event; a new search may already be open.
+    if (dialog.open) return;
     if (opener?.isConnected && opener.getClientRects().length) opener.focus();
     // Do not retain typed names in a closed overlay.
     control.input.value = ''; control.filter();
