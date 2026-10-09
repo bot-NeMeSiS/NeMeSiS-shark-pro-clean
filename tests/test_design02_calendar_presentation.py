@@ -72,7 +72,8 @@ def assert_calendar_structure(html):
 
 @pytest.mark.parametrize('route', ['/calendar', '/calendario', '/calendario-global', '/partidos', '/partidos/calendario'])
 @pytest.mark.parametrize('query', ['', 'SIMULATED_QA'])
-def test_calendar_disclosure_never_hides_header_or_collection(client, app_module, monkeypatch, route, query):
+@pytest.mark.parametrize('league', ['', 'Liga QA'])
+def test_calendar_disclosure_never_hides_header_or_collection(client, app_module, monkeypatch, route, query, league):
     match = {'id': 'design02-simulated', 'home_team': 'SIMULATED_QA Local',
              'away_team': 'SIMULATED_QA Visitante', 'competition_name': 'Liga QA',
              'match_date': app_module.today_iso(), 'kickoff_time': '18:00',
@@ -83,11 +84,12 @@ def test_calendar_disclosure_never_hides_header_or_collection(client, app_module
                'incident_matches': [], 'incomplete_matches': [], 'raw_matches_count': 1}
     metrics = app_module.build_sports_metrics_contract(summary)
     monkeypatch.setattr(app_module, 'v932_safe_dashboard_data', lambda *a, **kw: ({'sports_metrics': metrics}, summary))
-    response = client.get(route, query_string={'lane': 'week', 'q': query})
+    response = client.get(route, query_string={'lane': 'week', 'q': query, 'league': league})
     assert response.status_code == 200
     html = response.get_data(as_text=True)
     advanced = assert_calendar_structure(html)
-    assert ('open' in advanced['attrs']) is bool(query)
+    # Search stays outside the disclosure; only a selected facet opens it.
+    assert ('open' in advanced['attrs']) is bool(league)
     assert 'data-v934-match-id="design02-simulated"' in html
 
 

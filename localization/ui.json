@@ -4785,5 +4785,197 @@
       "en": "Type at least two letters.",
       "fr": "Saisissez au moins deux lettres."
     }
+  },
+  "calendar_clarity": {
+    "Orden de partidos": {
+      "en": "Match order",
+      "fr": "Ordre des matchs"
+    },
+    "Destacados primero": {
+      "en": "Featured first",
+      "fr": "À la une en premier"
+    },
+    "Por hora": {
+      "en": "By time",
+      "fr": "Par horaire"
+    },
+    "Por competición": {
+      "en": "By competition",
+      "fr": "Par compétition"
+    },
+    "Con pronóstico primero": {
+      "en": "With predictions first",
+      "fr": "Avec pronostic en premier"
+    },
+    "Dentro de cada competición": {
+      "en": "Within each competition",
+      "fr": "Dans chaque compétition"
+    },
+    "En esta parte": {
+      "en": "In this section",
+      "fr": "Dans cette section"
+    },
+    "Partidos disponibles por día y competición. Horarios de Madrid.": {
+      "en": "Available matches by day and competition. Madrid time.",
+      "fr": "Matchs disponibles par jour et compétition. Heure de Madrid."
+    }
+  },
+  "company_execution_truth": {
+    "Responsabilidades configuradas": {
+      "en": "Configured responsibilities",
+      "fr": "Responsabilités configurées"
+    },
+    "Este catálogo describe qué revisar en cada área. No acredita ejecuciones ni vigilancia continua.": {
+      "en": "This catalogue describes what to review in each area. It does not establish completed runs or continuous monitoring.",
+      "fr": "Ce catalogue décrit les points à vérifier dans chaque domaine. Il ne prouve ni exécution ni surveillance continue."
+    },
+    "Ejecución": {
+      "en": "Execution",
+      "fr": "Exécution"
+    },
+    "Sin ejecución acreditada": {
+      "en": "No verified execution",
+      "fr": "Aucune exécution attestée"
+    },
+    "Las responsabilidades no incluyen recibos de ejecución.": {
+      "en": "Responsibilities do not include execution records.",
+      "fr": "Les responsabilités ne comprennent pas de justificatifs d’exécution."
+    },
+    "Sin llamadas externas desde este panel": {
+      "en": "No external calls from this panel",
+      "fr": "Aucun appel externe depuis ce panneau"
+    },
+    "Configuración del contexto": {
+      "en": "Context configuration",
+      "fr": "Configuration du contexte"
+    },
+    "Requiere configuración real": {
+      "en": "Configuration required",
+      "fr": "Configuration requise"
+    },
+    "Alcance previsto": {
+      "en": "Intended scope",
+      "fr": "Périmètre prévu"
+    },
+    "Revisión sugerida": {
+      "en": "Suggested review",
+      "fr": "Vérification suggérée"
+    },
+    "Sin responsabilidades visibles": {
+      "en": "No responsibilities shown",
+      "fr": "Aucune responsabilité affichée"
+    },
+    "No hay responsabilidades listadas en este resumen.": {
+      "en": "No responsibilities are listed in this summary.",
+      "fr": "Aucune responsabilité n’est répertoriée dans ce résumé."
+    },
+    "Herramientas de comprobación": {
+      "en": "Verification tools",
+      "fr": "Outils de vérification"
+    },
+    "Disponibilidad de componentes y resultados guardados. Este inventario no acredita vigilancia continua.": {
+      "en": "Component availability and saved results. This inventory does not establish continuous monitoring.",
+      "fr": "Disponibilité des composants et résultats enregistrés. Cet inventaire ne prouve pas une surveillance continue."
+    },
+    "Revisar evidencia guardada": {
+      "en": "Review saved evidence",
+      "fr": "Examiner les éléments enregistrés"
+    },
+    "Hay capturas y datos de cola guardados. Revisa su fecha, versión y alcance antes de decidir.": {
+      "en": "Screenshots and queue data are saved. Check their date, version and scope before deciding.",
+      "fr": "Des captures et des données de file sont enregistrées. Vérifiez leur date, leur version et leur périmètre avant de décider."
+    },
+    "Pendiente de revisión": {
+      "en": "Awaiting review",
+      "fr": "En attente de vérification"
+    },
+    "Componentes base": {
+      "en": "Core components",
+      "fr": "Composants de base"
+    },
+    "Disponibilidad por comprobar": {
+      "en": "Availability not verified",
+      "fr": "Disponibilité à vérifier"
+    },
+    "{count} componentes listados": {
+      "en": "{count} listed components",
+      "fr": "{count} composants répertoriés"
+    },
+    "La presencia del componente no acredita una revisión.": {
+      "en": "The component’s presence does not establish a completed review.",
+      "fr": "La présence du composant ne prouve pas qu’une vérification a eu lieu."
+    },
+    "Componentes configurados": {
+      "en": "Configured components",
+      "fr": "Composants configurés"
+    },
+    "Un componente disponible puede ejecutarse; su presencia no demuestra que se haya ejecutado.": {
+      "en": "An available component can be run; its presence does not mean it has run.",
+      "fr": "Un composant disponible peut être exécuté ; sa présence ne signifie pas qu’il l’a été."
+    },
+    "Componente": {
+      "en": "Component",
+      "fr": "Composant"
+    },
+    "Archivo": {
+      "en": "File",
+      "fr": "Fichier"
+    },
+    "Estado de preparación": {
+      "en": "Readiness",
+      "fr": "État de préparation"
+    },
+    "Sin componentes listados": {
+      "en": "No components listed",
+      "fr": "Aucun composant répertorié"
+    },
+    "No hay inventario de componentes disponible en esta lectura.": {
+      "en": "No component inventory is available in this reading.",
+      "fr": "Aucun inventaire des composants n’est disponible pour cette lecture."
+    },
+    "Resultado guardado": {
+      "en": "Saved result",
+      "fr": "Résultat enregistré"
+    },
+    "El resultado pertenece a su fecha y versión; no acredita el estado actual de producción.": {
+      "en": "The result applies to its recorded date and version; it does not establish the current production state.",
+      "fr": "Le résultat correspond à sa date et à sa version enregistrées ; il ne prouve pas l’état actuel de la production."
+    },
+    "Resultado registrado": {
+      "en": "Recorded result",
+      "fr": "Résultat consigné"
+    },
+    "Fecha registrada": {
+      "en": "Recorded date",
+      "fr": "Date enregistrée"
+    },
+    "Fecha de evidencia no disponible": {
+      "en": "Evidence date unavailable",
+      "fr": "Date des éléments de preuve indisponible"
+    },
+    "Versión registrada": {
+      "en": "Recorded version",
+      "fr": "Version enregistrée"
+    },
+    "Alcance registrado": {
+      "en": "Recorded scope",
+      "fr": "Périmètre enregistré"
+    },
+    "Comprobación dry-run": {
+      "en": "Dry-run check",
+      "fr": "Vérification en mode simulation"
+    },
+    "No especificado": {
+      "en": "Not specified",
+      "fr": "Non précisé"
+    },
+    "Archivos de comprobación disponibles; su presencia no acredita resultados en GitHub.": {
+      "en": "Check files are available; their presence does not establish results on GitHub.",
+      "fr": "Les fichiers de vérification sont disponibles ; leur présence ne prouve pas l’existence de résultats sur GitHub."
+    },
+    "Disponibilidad": {
+      "en": "Availability",
+      "fr": "Disponibilité"
+    }
   }
 }

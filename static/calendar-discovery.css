@@ -49,3 +49,52 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
   [data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action { width: 100%; }
   [data-calendar-discovery="v1"] .v940-calendar-facets { grid-template-columns: minmax(0,1fr); }
 }
+
+/* Selection, ordering and location answer different questions. */
+[data-calendar-discovery="v1"] .v940-calendar-filter-form {
+  grid-template-columns: minmax(0,1fr) minmax(175px,220px) auto !important;
+}
+[data-calendar-discovery="v1"] .v940-calendar-sort {
+  grid-column: 2; grid-row: 1; display: grid; gap: 5px; min-width: 0;
+  color: var(--ns-text); font-size: 13px; font-weight: 700;
+}
+[data-calendar-discovery="v1"] .v940-calendar-sort select { width: 100%; max-width: 100%; font-size: 16px; }
+[data-calendar-discovery="v1"] .v940-calendar-sort small { font-size: 11px; font-weight: 400; color: var(--ns-text-muted); }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action { grid-column: 3; grid-row: 1; align-self: center; }
+[data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action { grid-column: 3; grid-row: 1; width: auto; }
+[data-calendar-discovery="v1"] .v940-calendar-context .v940-calendar-totals { display: grid; gap: 2px; }
+[data-calendar-discovery="v1"] .v940-calendar-totals > span:last-child { font-size: 11px; }
+[data-calendar-discovery="v1"] .v940-calendar-active-filters { gap: 6px; }
+[data-calendar-discovery="v1"] .v940-calendar-layer { gap: 5px; font-size: 12px; min-height: 44px; }
+[data-calendar-discovery="v1"] .v940-calendar-layer-state { border-radius: 10px; padding: 6px 10px; }
+[data-calendar-discovery="v1"] .v940-calendar-position { display: block; font-size: 11px; color: var(--ns-text-muted); margin-top: 3px; }
+[data-calendar-discovery="v1"] .v940-calendar-position[hidden] { display: none; }
+@media (min-width: 761px) {
+  body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v940-calendar-command { grid-template-columns: minmax(0,1fr) auto; }
+  [data-calendar-discovery="v1"] .ns-calendar-more-views { grid-column: 2 !important; grid-row: 2 !important; }
+  [data-calendar-discovery="v1"] .ns-calendar-more-views[open] { grid-column: 1 / -1 !important; grid-row: 3 !important; }
+}
+@media (max-width: 760px) {
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form { grid-template-columns: minmax(0,1fr) auto !important; }
+  [data-calendar-discovery="v1"] .v940-calendar-search-field { grid-column: 1 / -1; }
+  [data-calendar-discovery="v1"] .v940-calendar-sort { grid-column: 1; grid-row: 2; }
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action,
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action { grid-column: 2; grid-row: 2; align-self: center; }
+  [data-calendar-discovery="v1"] .v940-calendar-advanced { grid-row: 3; }
+  [data-calendar-discovery="v1"] .v940-calendar-context { flex-wrap: wrap; gap: 4px 10px; }
+  [data-calendar-discovery="v1"] .v940-calendar-context strong { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  [data-calendar-discovery="v1"] .v940-calendar-context .v940-calendar-totals { display: flex !important; flex-direction: column !important; align-items: flex-start; gap: 4px; }
+  [data-calendar-discovery="v1"] .v940-calendar-active-filters { display: flex; flex-wrap: wrap; overflow: visible; }
+  [data-calendar-discovery="v1"] .v940-calendar-layer { max-width: 100%; white-space: normal; }
+  [data-calendar-discovery="v1"] .v940-calendar-layer strong { overflow-wrap: anywhere; }
+  [data-calendar-discovery="v1"] .v940-calendar-position { max-width: 190px; overflow-wrap: anywhere; }
+}
+@media (max-width: 480px) {
+  [data-calendar-discovery="v1"] .v940-calendar-sort { grid-column: 1 / -1; }
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action,
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action {
+    grid-column: 1 / -1; grid-row: 3; justify-self: stretch; width: 100%;
+  }
+  [data-calendar-discovery="v1"] .v940-calendar-advanced { grid-row: 4; }
+  [data-calendar-discovery="v1"] .v940-calendar-advanced[open] { grid-row: 4; }
+}

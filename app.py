@@ -20374,7 +20374,7 @@ def _calendar_sort(matches, sort_key):
         return 2
 
     if sort_key == "time":
-        return sorted(ranked, key=lambda item: (normalize_kickoff_for_display(item).get("madrid_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
+        return sorted(ranked, key=time_key)
     if sort_key == "league":
         return sorted(ranked, key=lambda item: (int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
@@ -20407,7 +20407,7 @@ def _calendar_facets(matches):
 
 
 
-def _calendar_group(matches):
+def _calendar_group(matches, sort_key="importance"):
     date_buckets = []
     by_date = {}
     for item in matches:
@@ -20442,7 +20442,8 @@ def _calendar_group(matches):
         leagues.sort(key=lambda g: (g["rank"], g["name"]))
         for league in leagues:
             league["count"] = len(league.get("matches") or [])
-            league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
+            if sort_key != "time":
+                league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
         bucket["leagues"] = leagues
         date_buckets.append(bucket)
     return date_buckets
@@ -20871,6 +20872,31 @@ def _v940_calendar_tabs(filters, counts):
     ]
 
 
+def _v940_calendar_primary_tabs(filters):
+    """Keep Calendar filters; leave live updates on their dedicated route."""
+    selected_date = filters.get("date") or today_iso()
+    current_lane = {"results": "finished", "picks": "with_pick"}.get(
+        filters.get("lane"), filters.get("lane")
+    )
+    tabs = [{"key": "live", "label": "Directo", "href": "/directo"}]
+    for key, label in (
+        ("finished", "Resultados"),
+        ("today", "Calendario"),
+        ("week", "Próximos"),
+        ("with_pick", "Con pronóstico"),
+    ):
+        changes = {
+            "lane": key,
+            "date": selected_date if key in {"today", "finished"} else today_iso(),
+        }
+        # A state tab replaces a previous text status filter. Broad collections
+        # still honor it, and reselecting the same state never clears it.
+        if key == "finished" and key != current_lane:
+            changes["status"] = None
+        tabs.append({"key": key, "label": label, "href": _v940_calendar_href(filters, **changes)})
+    return tabs
+
+
 def _v940_calendar_date_chips(filters, date_counts):
     selected_date = filters.get("date") or today_iso()
     dates = [today_iso(offset) for offset in range(7)]
@@ -20898,13 +20924,15 @@ def _design02_calendar_date_navigation(filters):
     """Navigate dates; past days may hydrate persisted results without provider calls."""
     selected = _safe_date_value(filters.get("date"), today_iso())
     selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
+    lane = filters.get("lane") if filters.get("lane") in {"finished", "results"} else "today"
     return {
         "selected": selected,
-        "previous": _v940_calendar_href(filters, lane="today", date=(selected_day - timedelta(days=1)).isoformat()),
-        "next": _v940_calendar_href(filters, lane="today", date=(selected_day + timedelta(days=1)).isoformat()),
+        "lane": lane,
+        "previous": _v940_calendar_href(filters, lane=lane, date=(selected_day - timedelta(days=1)).isoformat()),
+        "next": _v940_calendar_href(filters, lane=lane, date=(selected_day + timedelta(days=1)).isoformat()),
         "shortcuts": [
             {"label": label, "key": today_iso(offset),
-             "href": _v940_calendar_href(filters, lane="today", date=today_iso(offset))}
+             "href": _v940_calendar_href(filters, lane=lane, date=today_iso(offset))}
             for offset, label in ((-1, "Ayer"), (0, "Hoy"), (1, "Mañana"))
         ],
     }
@@ -20948,7 +20976,7 @@ def v940_calendar_context(summary, lane="today", date_value=None):
     sorted_matches = _calendar_sort(filtered, filters.get("sort"))
     if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
         sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
-    day_groups = _calendar_group(sorted_matches)
+    day_groups = _calendar_group(sorted_matches, filters.get("sort"))
     day_navigation = _v940_calendar_group_navigation(day_groups)
     facets = _calendar_facets(source_matches)
 
@@ -21002,12 +21030,8 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "source": "Datos reales confirmados" if counts["visible"] else "Sin partidos confirmados para estas capas",
     }
     default_context = selected_summary["title"]
-    if day_groups:
-        first_day = day_groups[0]
-        first_league = (first_day.get("leagues") or [{}])[0]
-        default_context = first_league.get("context_label") or first_day.get("context_label") or default_context
     if counts["visible"]:
-        source_summary = "Agenda confirmada y ordenada por día, competición y hora Madrid."
+        source_summary = "Partidos disponibles por día y competición. Horarios de Madrid."
     elif counts["all"]:
         source_summary = "Ningún partido confirmado coincide con todas las capas activas."
     else:
@@ -21021,9 +21045,11 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "day_groups": day_groups,
         "groups": day_groups,
         "counts": counts,
+        "competition_count": counts["leagues"],
         "sports_metrics": sports_metrics,
         "facets": facets,
         "tabs": _v940_calendar_tabs(filters, counts),
+        "primary_tabs": _v940_calendar_primary_tabs(filters),
         "date_chips": _v940_calendar_date_chips(filters, date_counts),
         "date_navigation": _design02_calendar_date_navigation(filters),
         "day_navigation": day_navigation,
