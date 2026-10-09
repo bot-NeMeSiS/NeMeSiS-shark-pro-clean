@@ -1,7 +1,7 @@
 """Real code, fake transports, temporary stores; never calls paid providers."""
 import ast
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import sqlite3
 import urllib.error
@@ -322,10 +322,21 @@ def test_timeout_never_exposes_raw_exception(db,monkeypatch):
     assert result['errors']==['NETWORK'] and result['external_calls']==1
 
 
-def test_null_events_is_valid_empty_not_coverage_certificate(db,monkeypatch):
+@pytest.mark.parametrize('age_days', [0, 8, 100])
+def test_null_events_is_valid_empty_not_coverage_certificate(db,monkeypatch,age_days):
+    # A fixed date silently moves a fixture into historical reconciliation.
+    # Exercise both paths offline: an empty feed is valid, but a historical
+    # event absent from the identity response must remain pending (NO_EVENT).
+    day = (datetime.now(timezone.utc) - timedelta(days=age_days)).date().isoformat()
+    with sqlite3.connect(db) as conn:
+        conn.execute('UPDATE matches SET match_date=?', (day,))
     monkeypatch.setattr(media,'_sportsdb_v1',lambda *a:{'events':None})
+    monkeypatch.setattr(media,'_sportsdb_v2',lambda *a:{'lookup':None})
     result=media.sync_sportsdb_highlights(db,days_back=0)
-    assert result['ok'] is True and result['highlights_found']==0
+    assert result['highlights_found'] == 0
+    assert result['status'] == ('OK' if age_days == 0 else 'PARTIAL'), result['errors']
+    assert result['ok'] is (age_days == 0)
+    assert result['errors'] == ([] if age_days == 0 else ['NO_EVENT'])
     assert result['provider_coverage_complete'] is False
 
 
