@@ -1,74 +1,56 @@
 {% extends "base.html" %}
 {% block content %}
+<div class="backup-evidence">
 <section class="app-hero compact-hero admin-hero">
   <div>
-    <div class="kicker">Admin · Seguridad</div>
-    <h1>Copias de seguridad</h1>
-    <p class="lead">Protege usuarios, membresías, Telegram, picks, favoritos, Warehouse, ROI, SHARK e históricos. Retención automática: {{ data.backup_retention }} copias.</p>
-    <div class="actions">
-      <form method="post" action="/admin/backups">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="hidden" name="action" value="create">
-        <button class="primary" type="submit">Crear backup ahora</button>
-      </form>
-      <a class="btn" href="/admin/observability">Observabilidad</a>
-      <a class="btn" href="/admin/data-center">Centro de datos</a>
-    </div>
+    <div class="kicker">{{ ui('Admin · Seguridad') }}</div>
+    <h1>{{ ui('Copias de seguridad') }}</h1>
+    <p class="lead">{{ ui('Consulta los archivos disponibles y el resultado del último intento automático.') }}</p>
+    <div class="actions"><a class="btn" href="/admin/observability">{{ ui('Ver diagnóstico') }}</a><a class="btn" href="/admin/data-center">{{ ui('Centro de datos') }}</a></div>
   </div>
-  <aside class="hero-panel">
-    <span class="pill">Carpeta</span>
-    <p class="small">{{ data.backup_dir }}</p>
-    <div class="big-score">{{ data.backups|length }}</div>
-    <p class="small">backups disponibles</p>
-  </aside>
+  <aside class="hero-panel"><span class="pill">{{ ui('Archivos disponibles') }}</span><div class="big-score">{{ data.backups|length }}</div><p class="small">{{ ui('La disponibilidad de un archivo no demuestra que se haya probado su restauración.') }}</p></aside>
 </section>
-
-{% if message %}
-<section class="band compact-band"><p class="notice">{{ message }}</p></section>
-{% endif %}
-
+{% if message %}<section class="band compact-band"><p class="notice" role="status">{{ message }}</p></section>{% endif %}
+{% set observation = data.backup_observation %}
+<section class="band compact-band" aria-labelledby="backup-observation-title">
+  <div class="section-head"><h2 id="backup-observation-title">{{ ui('Última observación automática') }}</h2></div>
+  <article class="card backup-observation" data-tone="{{ observation.tone }}">
+    <strong>{{ ui(observation.label) }}</strong><p>{{ ui(observation.detail) }}</p>
+    {% if observation.time %}<p class="small">{{ observation.time|madrid_datetime_label }} · {{ ui('Hora de la observación registrada') }}</p>{% endif %}
+  </article>
+</section>
 <section class="band compact-band">
-  <div class="section-head"><h2>Backups disponibles</h2><span class="pill">{{ data.backups|length }}</span></div>
+  <div class="section-head"><h2>{{ ui('Copias disponibles') }}</h2><span class="pill">{{ data.backups|length }}</span></div>
+  <p class="small">{{ ui('El manifiesto recoge comprobaciones realizadas al crear la copia. Esta pantalla no vuelve a comprobar los archivos ni acredita una restauración.') }}</p>
   <div class="stack">
     {% for backup in data.backups %}
     <article class="card backup-row">
-      <div>
-        <strong>{{ backup.name }}</strong>
-        <p class="small">{{ (backup.created_at)|madrid_datetime_label }} · {{ backup.size_mb }} MB</p>
-      </div>
-      <div class="backup-actions">
-        <a class="btn" href="/admin/backups/download/{{ backup.name }}">Descargar</a>
-        <form method="post" action="/admin/backups">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="action" value="delete">
-          <input type="hidden" name="name" value="{{ backup.name }}">
-          <button class="danger small-btn" type="submit">Eliminar</button>
-        </form>
-        <form method="post" action="/admin/backups" onsubmit="return confirm('Se creará un backup de seguridad actual y después se restaurará está copia. ¿Continuar');">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="hidden" name="action" value="restore">
-          <input type="hidden" name="name" value="{{ backup.name }}">
-          <button class="small-btn" type="submit">Restaurar</button>
-        </form>
-      </div>
+      <div><strong>{{ backup.name }}</strong><p class="small">{{ backup.created_at|madrid_datetime_label }} · {{ backup.size_mb }} MB</p><span class="pill">{{ ui('Verificación de creación registrada' if backup.valid else 'Sin verificación de creación registrada') }}</span></div>
+      <div class="backup-actions"><a class="btn" href="/admin/backups/download/{{ backup.name }}">{{ ui('Descargar') }}</a></div>
+      <details>
+        <summary>{{ ui('Restaurar o eliminar esta copia') }}</summary>
+        <p class="small">{{ ui('Restaurar sustituye la base de datos actual. Eliminar retira este archivo de la lista.') }}</p>
+        <div class="backup-actions">
+          <form method="post" action="/admin/backups" onsubmit="return confirm({{ ui('¿Eliminar esta copia de seguridad?')|tojson|forceescape }});">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="name" value="{{ backup.name }}"><button class="danger small-btn" type="submit">{{ ui('Eliminar') }}</button>
+          </form>
+          <form method="post" action="/admin/backups" onsubmit="return confirm({{ ui('Se intentará crear una copia previa y después restaurar la seleccionada. ¿Continuar?')|tojson|forceescape }});">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="restore"><input type="hidden" name="name" value="{{ backup.name }}"><button class="small-btn" type="submit">{{ ui('Restaurar') }}</button>
+          </form>
+        </div>
+      </details>
     </article>
     {% else %}
-    <div class="empty premium-empty">Aún no hay backups. Crea uno ahora para proteger la plataforma antes de cambios o despliegues.</div>
+    <div class="empty premium-empty"><strong>{{ ui('No hay copias disponibles en esta carpeta.') }}</strong><p>{{ ui('Revisa el último intento automático. Todavía no hay un archivo disponible para descargar o restaurar aquí.') }}</p></div>
     {% endfor %}
   </div>
 </section>
-
 <section class="band compact-band">
-  <div class="section-head"><h2>Auditoría reciente</h2><span class="pill">backup</span></div>
-  <div class="stack">
-    {% for event in data.backup_events %}
-    <div class="list-row">
-      <span>{{ (event.created_at)|madrid_datetime_label }} · {{ event.event_type }}<small>{{ event.username or 'system' }} · {{ event.reason }}</small></span>
-      <strong>{{ 'OK' if event.success else 'ERROR' }}</strong>
-    </div>
-    {% else %}
-    <div class="empty premium-empty">Sin operaciones registradas todavía.</div>
-    {% endfor %}
-  </div>
+  <details class="card"><summary>{{ ui('Ubicación y creación manual') }}</summary>
+    <p class="small">{{ ui('Carpeta') }}: <span style="overflow-wrap:anywhere">{{ data.backup_dir }}</span></p>
+    <p>{{ ui('Retención máxima: {count} copias.', count=data.backup_retention) }}</p>
+    <form method="post" action="/admin/backups"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="create"><button type="submit">{{ ui('Crear copia ahora') }}</button></form>
+  </details>
 </section>
+</div>
 {% endblock %}

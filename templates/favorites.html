@@ -10,21 +10,64 @@
     {{ kpi_card('Partidos', data.favorite_insights.by_kind.match|length, 'Guardados', 'success', 'matches') }}
     {{ kpi_card('Relacionados', data.favorite_feed|length, 'En tu radar', 'gold', 'target') }}
   </section>
+  <nav class="collection-jumps" aria-label="{{ ui('En esta página') }}">
+    <a class="btn" href="#saved-favorites">{{ ui('Organizar guardados') }}</a>
+    <a class="btn" href="#related-favorites">{{ ui('Partidos relacionados') }}</a>
+  </nav>
 
 
+<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
+  {% set saved = data.saved_favorites|default({'items': data.favorites, 'total': data.favorites|length, 'query': '', 'kind': '', 'filtered': false}) %}
+  <div class="section-head" id="saved-favorites"><h2>{{ ui("Guardados") }}</h2><span class="pill">{{ saved.total }}</span></div>
+  <form class="collection-toolbar" method="get" action="/favoritos#saved-favorites" role="search" aria-label="{{ ui('Buscar en mis favoritos') }}">
+    <div class="field"><label for="favorite-query">{{ ui('Buscar en mis favoritos') }}</label><input type="search" id="favorite-query" name="q" value="{{ saved.query }}" maxlength="90" placeholder="{{ ui('Equipo, liga o partido') }}"></div>
+    <div class="field"><label for="favorite-kind">{{ ui('Tipo') }}</label><select id="favorite-kind" name="kind">
+      {% for value, label in [('', 'Todos'), ('team', 'Equipos'), ('league', 'Ligas'), ('match', 'Partidos')] %}
+      <option value="{{ value }}"{% if saved.kind == value %} selected{% endif %}>{{ ui(label) }}</option>
+      {% endfor %}
+    </select></div>
+    <button class="primary" type="submit">{{ ui('Filtrar') }}</button>
+    {% if saved.filtered %}<a class="btn" href="/favoritos#saved-favorites">{{ ui('Quitar filtros') }}</a>{% endif %}
+  </form>
+  <p class="small">{{ ui_plural('{count} favorito encontrado', '{count} favoritos encontrados', saved['items']|length) }} · {{ ui('Los filtros solo afectan a tus guardados.') }}</p>
+  {% if saved['items'] %}
+  <div class="grid dense-grid">
+    {% for f in saved['items'] %}
+    <article class="card favorite-item">
+      <div>
+        <div class="ok">{{ ui('Equipo' if f.kind == 'team' else ('Liga' if f.kind == 'league' else 'Partido')) }}</div>
+        <strong>{{ f.label or f.value }}</strong>
+        <div class="small">{{ f.value }}</div>
+      </div>
+      <form method="post" action="/favoritos">
+        <input type="hidden" name="action" value="remove">
+        <input type="hidden" name="kind" value="{{ f.kind }}">
+        <input type="hidden" name="value" value="{{ f.value }}">
+        <button class="danger small-btn" type="submit" aria-label="{{ ui('Quitar de favoritos: {name}', name=f.label or f.value) }}">{{ ui("Quitar") }}</button>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty premium-empty">
+    {% if saved.total %}<strong>{{ ui('Ningún favorito coincide con estos filtros.') }}</strong><p>{{ ui('Prueba otro nombre o vuelve a ver todos tus guardados.') }}</p><a class="btn" href="/favoritos#saved-favorites">{{ ui('Quitar filtros') }}</a>
+    {% else %}<strong>{{ ui("Todavía no tienes favoritos guardados.") }}</strong><p>{{ ui('Pulsa la estrella junto a un partido o añade tu favorito desde esta página.') }}</p><a class="btn primary" href="/calendario">{{ ui('Buscar partido') }}</a>{% endif %}
+  </div>
+  {% endif %}
+</section>
 <details class="ns-favorites-help"{% if not (data.favorite_insights.by_kind.team or data.favorite_insights.by_kind.league or data.favorite_insights.by_kind.match) %} open{% endif %}>
 <summary>{{ ui("Añadir favoritos") }}</summary>
 <section class="band compact-band" data-top100-improvement="18">
   <div class="section-head"><h2>{{ ui("Guarda lo que sigues") }}</h2></div>
   <div class="grid dense-grid">
     <article class="card"><span class="badge">1</span><strong>{{ ui("Elige un equipo, liga o partido") }}</strong><p class="small">{{ ui("Empieza por lo que más revisas. Un favorito basta para ordenar la jornada.") }}</p></article>
-    <article class="card"><span class="badge">2</span><strong>{{ ui("Usa una estrella o el alta manual") }}</strong><p class="small">{{ ui('Cuando exista ID seguro, NeMeSiS lo reutiliza; si no, guarda una etiqueta honesta.') }}</p></article>
+    <article class="card"><span class="badge">2</span><strong>{{ ui("Usa una estrella o el alta manual") }}</strong><p class="small">{{ ui('Pulsa la estrella junto a un partido o añade tu favorito desde esta página.') }}</p></article>
     <article class="card"><span class="badge">3</span><strong>{{ ui("Vuelve al radar") }}</strong><p class="small">{{ ui("Favoritos alimenta calendario, directo, pronósticos relacionados y resumen sin inventar datos.") }}</p></article>
   </div>
   <div class="actions"><a class="btn primary" href="/calendario">{{ ui("Buscar partido") }}</a><a class="btn" href="#add-favorite-manual">{{ ui("Añadir manualmente") }}</a></div>
 </section>
 </details>
-<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
+<section id="related-favorites" class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <div class="section-head"><h2>{{ ui("Partidos relacionados") }}</h2><span class="pill">{{ data.favorite_feed|length }}</span></div>
   {% if data.favorite_feed %}
   <div class="sports-list v701-match-list">
@@ -67,39 +110,16 @@
   </div>
 </section>
 
-<section class="band compact-band v826-certified-screen" data-v826-template="favorites">
-  <div class="section-head"><h2>{{ ui("Guardados") }}</h2><span class="pill">{{ data.favorites|length }}</span></div>
-  {% if data.favorites %}
-  <div class="grid dense-grid">
-    {% for f in data.favorites %}
-    <article class="card favorite-item">
-      <div>
-        <div class="ok">{{ ui('Equipo' if f.kind == 'team' else ('Liga' if f.kind == 'league' else 'Partido')) }}</div>
-        <strong>{{ f.label or f.value }}</strong>
-        <div class="small">{{ f.value }}</div>
-      </div>
-      <form method="post" action="/favoritos">
-        <input type="hidden" name="action" value="remove">
-        <input type="hidden" name="kind" value="{{ f.kind }}">
-        <input type="hidden" name="value" value="{{ f.value }}">
-        <button class="danger small-btn" type="submit">{{ ui("Quitar") }}</button>
-      </form>
-    </article>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div class="empty premium-empty">{{ ui("Todavía no tienes favoritos guardados.") }}</div>
-  {% endif %}
-</section>
+
 
 <section class="band compact-band v826-certified-screen" data-v826-template="favorites">
   <details class="card" id="add-favorite-manual">
     <summary><strong>{{ ui("Añadir favorito manualmente") }}</strong></summary>
     <form method="post" action="/favoritos" style="margin-top:12px">
       <input type="hidden" name="action" value="add">
-      <div class="field"><label>{{ ui("Tipo") }}</label><select name="kind"><option value="team">{{ ui("Equipo") }}</option><option value="league">{{ ui("Liga / competición") }}</option><option value="match">{{ ui("Partido") }}</option></select></div>
-      <div class="field"><label>{{ ui("Nombre o ID") }}</label><input name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>
-      <div class="field"><label>{{ ui("Etiqueta visible") }}</label><input name="label" placeholder="{{ ui('Mi equipo, liga favorita...') }}"></div>
+      <div class="field"><label for="add-favorite-kind">{{ ui("Tipo") }}</label><select id="add-favorite-kind" name="kind"><option value="team">{{ ui("Equipo") }}</option><option value="league">{{ ui("Liga / competición") }}</option><option value="match">{{ ui("Partido") }}</option></select></div>
+      <div class="field"><label for="add-favorite-value">{{ ui("Nombre o ID") }}</label><input id="add-favorite-value" name="value" placeholder="Real Madrid, LaLiga, Premier League..."></div>
+      <div class="field"><label for="add-favorite-label">{{ ui("Etiqueta visible") }}</label><input id="add-favorite-label" name="label" placeholder="{{ ui('Mi equipo, liga favorita...') }}"></div>
       <button type="submit">{{ ui("Guardar favorito") }}</button>
     </form>
   </details>

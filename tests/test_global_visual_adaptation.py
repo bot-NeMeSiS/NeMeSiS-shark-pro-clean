@@ -26,7 +26,7 @@ def test_favorites_help_does_not_replace_existing_sports_content(app_module, sav
     nodes=Elements(html).nodes
     help_node=next(attrs for tag,attrs in nodes if tag=='details' and attrs.get('class')=='ns-favorites-help')
     assert ('open' in help_node) is not saved
-    assert html.index('</details>') < html.index('Partidos relacionados')
+    assert html.index('</details>') < html.index('id="related-favorites"')
     assert any(tag=='form' and attrs.get('action')=='/favoritos' and attrs.get('method')=='post' for tag,attrs in nodes)
     assert 'Crea tu primer favorito' not in html
 
