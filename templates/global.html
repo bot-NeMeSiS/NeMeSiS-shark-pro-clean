@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/sports_search.html" import suggestions with context %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='competition-directory.css') }}?v={{ app_version }}-1">
 <div class="competition-directory">
@@ -9,7 +10,7 @@
   </header>
   <form class="competition-directory-filters" action="/competiciones" method="get" role="search" aria-label="{{ ui('Buscar competiciones') }}">
     <label for="competition-query">{{ ui('Nombre de la competición') }}
-      <input id="competition-query" type="search" name="q" maxlength="90" value="{{ data.query }}" placeholder="{{ ui('Liga, copa o país…') }}">
+      <input id="competition-query" type="search" name="q" data-sports-search="competition-sports-search" maxlength="90" value="{{ data.query }}" placeholder="{{ ui('Liga, copa o país…') }}">
     </label>
     <label for="competition-country">{{ ui('País o región') }}
       <select id="competition-country" name="country">
@@ -20,6 +21,7 @@
     <button type="submit">{{ ui('Buscar') }}</button>
     {% if data.query or data.country %}<a href="/competiciones">{{ ui('Limpiar filtros') }}</a>{% endif %}
   </form>
+  {{ suggestions('competition-sports-search', kind='league') }}
   <div class="competition-directory-summary">
     <h2>{{ ui_plural('{count} competición', '{count} competiciones', data.competitions|length) }}</h2>
     <p>{{ ui('La cobertura puede ser parcial. Cada ficha muestra la información disponible.') }}</p>

@@ -4689,5 +4689,67 @@
       "en": "A new file was recorded, but the process did not finish successfully. Review diagnostics.",
       "fr": "Un nouveau fichier a été enregistré, mais le processus ne s'est pas terminé correctement. Consultez le diagnostic."
     }
+  },
+  "sports_search": {
+    "Coincidencias deportivas": {
+      "en": "Sports matches",
+      "fr": "Résultats sportifs"
+    },
+    "Ver ficha": {
+      "en": "View details",
+      "fr": "Voir la fiche"
+    },
+    "Ya está en favoritos": {
+      "en": "Already in favourites",
+      "fr": "Déjà dans les favoris"
+    },
+    "Buscando coincidencias…": {
+      "en": "Searching…",
+      "fr": "Recherche en cours…"
+    },
+    "{count} coincidencia": {
+      "en": "{count} result",
+      "fr": "{count} résultat"
+    },
+    "{count} coincidencias": {
+      "en": "{count} results",
+      "fr": "{count} résultats"
+    },
+    "La búsqueda no ha terminado. Prueba con un nombre más concreto.": {
+      "en": "The search could not finish. Try a more specific name.",
+      "fr": "La recherche n’a pas pu aboutir. Essayez un nom plus précis."
+    },
+    "Hay más coincidencias. Añade otra palabra para afinar.": {
+      "en": "There are more results. Add another word to narrow the search.",
+      "fr": "Il y a d’autres résultats. Ajoutez un mot pour préciser la recherche."
+    },
+    "Sin coincidencias entre los datos disponibles. Prueba con otro nombre.": {
+      "en": "No results in the available data. Try another name.",
+      "fr": "Aucun résultat dans les données disponibles. Essayez un autre nom."
+    },
+    "No se ha podido buscar. Vuelve a intentarlo o pulsa Buscar.": {
+      "en": "Search is unavailable. Try again or select Search.",
+      "fr": "La recherche est indisponible. Réessayez ou choisissez Rechercher."
+    },
+    "Encuentra y guarda tus favoritos": {
+      "en": "Find and save your favourites",
+      "fr": "Trouvez et enregistrez vos favoris"
+    },
+    "Escribe al menos dos letras y elige un equipo, competición o partido. Añade palabras para afinar.": {
+      "en": "Type at least two letters and choose a team, competition or match. Add words to narrow the search.",
+      "fr": "Saisissez au moins deux lettres et choisissez une équipe, une compétition ou un match. Ajoutez des mots pour préciser la recherche."
+    },
+    "Buscar para añadir favoritos": {
+      "en": "Search to add favourites",
+      "fr": "Rechercher pour ajouter des favoris"
+    },
+    "Por ejemplo: Granada": {
+      "en": "For example: Granada",
+      "fr": "Par exemple : Granada"
+    },
+    "Escribe al menos dos letras.": {
+      "en": "Type at least two letters.",
+      "fr": "Saisissez au moins deux lettres."
+    }
   }
 }

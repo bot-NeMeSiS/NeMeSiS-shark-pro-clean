@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/team_identity.html" import crest %}
 {% from "components/v933_ui.html" import page_header, kpi_card, match_card with context %}
+{% from "components/sports_search.html" import suggestions, favorite_result with context %}
 {% block content %}
 <div class="v933-page v933-favorites-page" data-v933-template="favorites">
   {{ page_header('Favoritos', 'Equipos, competiciones y partidos guardados.', 'star') }}
@@ -9,6 +10,32 @@
     {{ kpi_card('Ligas', data.favorite_insights.by_kind.league|length, 'Guardadas', 'cyan', 'calendar') }}
     {{ kpi_card('Partidos', data.favorite_insights.by_kind.match|length, 'Guardados', 'success', 'matches') }}
     {{ kpi_card('Relacionados', data.favorite_feed|length, 'En tu radar', 'gold', 'target') }}
+  </section>
+  {% set discovery = data.favorite_discovery|default({'items':[], 'query':'', 'kind':'', 'status':'TYPE_MORE', 'complete':true, 'has_more':false}) %}
+  <section class="band compact-band" id="find-favorite">
+    <div class="section-head"><h2>{{ ui('Encuentra y guarda tus favoritos') }}</h2></div>
+    <p class="sports-search-help">{{ ui('Escribe al menos dos letras y elige un equipo, competición o partido. Añade palabras para afinar.') }}</p>
+    <form class="sports-search-toolbar" method="get" action="/favoritos#find-favorite" role="search" aria-label="{{ ui('Buscar para añadir favoritos') }}">
+      <div class="field"><label for="favorite-find">{{ ui('Equipo, liga o partido') }}</label><input id="favorite-find" name="find" type="search" maxlength="90" value="{{ discovery.query }}" data-sports-search="favorite-discovery" data-sports-kind="favorite-find-kind" placeholder="{{ ui('Por ejemplo: Granada') }}" autocomplete="off"></div>
+      <div class="field"><label for="favorite-find-kind">{{ ui('Tipo') }}</label><select id="favorite-find-kind" name="find_kind">{% for value,label in [('', 'Todos'), ('team','Equipos'), ('league','Ligas'), ('match','Partidos')] %}<option value="{{ value }}"{% if discovery.kind == value %} selected{% endif %}>{{ ui(label) }}</option>{% endfor %}</select></div>
+      <button class="primary" type="submit">{{ ui('Buscar') }}</button>
+    </form>
+    {{ suggestions('favorite-discovery', 'favorite') }}
+    <article class="sports-search-result sports-search-selection" data-sports-selection="favorite-discovery" hidden>
+      <span class="sports-search-kind" data-selection-kind></span><strong data-selection-label></strong><p data-selection-context></p>
+      <div class="sports-search-actions"><a class="btn" data-selection-link href="/favoritos">{{ ui('Ver ficha') }}</a>
+        <form method="post" action="/favoritos"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="add"><input type="hidden" name="kind"><input type="hidden" name="value"><input type="hidden" name="label"><button class="primary" type="submit" disabled>{{ ui('Guardar favorito') }}</button></form>
+      </div>
+    </article>
+    <div data-sports-server-results="favorite-discovery">
+      {% if discovery.query %}
+        {% if not discovery.complete %}<p role="status">{{ ui('La búsqueda no ha terminado. Prueba con un nombre más concreto.') }}</p>
+        {% elif discovery.status == 'TYPE_MORE' %}<p>{{ ui('Escribe al menos dos letras.') }}</p>
+        {% elif not discovery['items'] %}<p role="status">{{ ui('Sin coincidencias entre los datos disponibles. Prueba con otro nombre.') }}</p>{% endif %}
+        {% if discovery.has_more %}<p>{{ ui('Hay más coincidencias. Añade otra palabra para afinar.') }}</p>{% endif %}
+        {% for item in discovery['items'] %}{{ favorite_result(item) }}{% endfor %}
+      {% endif %}
+    </div>
   </section>
   <nav class="collection-jumps" aria-label="{{ ui('En esta página') }}">
     <a class="btn" href="#saved-favorites">{{ ui('Organizar guardados') }}</a>
@@ -20,7 +47,7 @@
   {% set saved = data.saved_favorites|default({'items': data.favorites, 'total': data.favorites|length, 'query': '', 'kind': '', 'filtered': false}) %}
   <div class="section-head" id="saved-favorites"><h2>{{ ui("Guardados") }}</h2><span class="pill">{{ saved.total }}</span></div>
   <form class="collection-toolbar" method="get" action="/favoritos#saved-favorites" role="search" aria-label="{{ ui('Buscar en mis favoritos') }}">
-    <div class="field"><label for="favorite-query">{{ ui('Buscar en mis favoritos') }}</label><input type="search" id="favorite-query" name="q" value="{{ saved.query }}" maxlength="90" placeholder="{{ ui('Equipo, liga o partido') }}"></div>
+    <div class="field"><label for="favorite-query">{{ ui('Buscar en mis favoritos') }}</label><input type="search" id="favorite-query" name="q" data-sports-search="saved-favorite-search" data-sports-kind="favorite-kind" value="{{ saved.query }}" maxlength="90" placeholder="{{ ui('Equipo, liga o partido') }}"></div>
     <div class="field"><label for="favorite-kind">{{ ui('Tipo') }}</label><select id="favorite-kind" name="kind">
       {% for value, label in [('', 'Todos'), ('team', 'Equipos'), ('league', 'Ligas'), ('match', 'Partidos')] %}
       <option value="{{ value }}"{% if saved.kind == value %} selected{% endif %}>{{ ui(label) }}</option>
@@ -29,6 +56,7 @@
     <button class="primary" type="submit">{{ ui('Filtrar') }}</button>
     {% if saved.filtered %}<a class="btn" href="/favoritos#saved-favorites">{{ ui('Quitar filtros') }}</a>{% endif %}
   </form>
+  {{ suggestions('saved-favorite-search', scope='saved') }}
   <p class="small">{{ ui_plural('{count} favorito encontrado', '{count} favoritos encontrados', saved['items']|length) }} · {{ ui('Los filtros solo afectan a tus guardados.') }}</p>
   {% if saved['items'] %}
   <div class="grid dense-grid">
@@ -37,7 +65,7 @@
       <div>
         <div class="ok">{{ ui('Equipo' if f.kind == 'team' else ('Liga' if f.kind == 'league' else 'Partido')) }}</div>
         <strong>{{ f.label or f.value }}</strong>
-        <div class="small">{{ f.value }}</div>
+        {% if not f.value.startswith('@team:') %}<div class="small">{{ f.value }}</div>{% endif %}
       </div>
       <form method="post" action="/favoritos">
         <input type="hidden" name="action" value="remove">

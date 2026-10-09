@@ -40,7 +40,9 @@
   {% if request.endpoint in ['favorites_page', 'admin_backups_page'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='account-collections.css') }}?v=1">
   {% endif %}
-  <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=1"></script>
+  <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=2"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='sports-search.css') }}?v=1">
+  <script defer src="{{ url_for('static', filename='sports-search.js') }}?v=1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
   {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}

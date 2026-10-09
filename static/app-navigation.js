@@ -30,7 +30,7 @@
       if (input.value.trim()) results()[0]?.click();
     });
     root.addEventListener('keydown', event => {
-      if (event.isComposing || event.altKey || event.ctrlKey || event.metaKey || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+      if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
       const choices = results();
       const index = choices.indexOf(document.activeElement);
       if (document.activeElement !== input && index < 0) return;
@@ -53,6 +53,7 @@
       control.input.value = query.slice(0, 90);
       control.filter();
       dialog.showModal();
+      control.input.dispatchEvent(new Event('sports:query'));
     }
     control.input.focus();
   }
@@ -80,6 +81,7 @@
     if (opener?.isConnected && opener.getClientRects().length) opener.focus();
     // Do not retain typed names in a closed overlay.
     control.input.value = ''; control.filter();
+    control.input.dispatchEvent(new Event('sports:query'));
   });
   dialog.addEventListener('keydown', event => {
     // Search inputs consume Escape to clear themselves in some browsers.

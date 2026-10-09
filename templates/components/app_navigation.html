@@ -1,4 +1,5 @@
 {% import "components/navigation_contracts.html" as navigation %}
+{% from "components/sports_search.html" import suggestions with context %}
 {% macro navigation_content(scope, inline=false, query='') -%}
 {% set prefix = 'explore-page' if inline else 'explore-dialog' %}
 {% set admin = scope == 'admin' %}
@@ -7,11 +8,12 @@
   <form method="get" action="{{ '/admin/explorar' if admin else '/explorar' }}" role="search" aria-label="{{ ui('Buscar secciones') }}" data-explore-form>
     <label for="{{ prefix }}-query">{{ ui('Buscar en Admin' if admin else '¿Dónde quieres ir?') }}</label>
     <div class="app-explore-search">
-      <input id="{{ prefix }}-query" data-explore-query type="search" name="q" maxlength="90" value="{{ query }}" autocomplete="off" enterkeyhint="search" placeholder="{{ ui('Usuarios, copias, datos…' if admin else 'Partidos, favoritos, cuenta…') }}" aria-controls="{{ prefix }}-results" aria-describedby="{{ prefix }}-help">
+      <input id="{{ prefix }}-query" data-explore-query {% if not admin %}data-sports-search="{{ prefix }}-sports"{% endif %}type="search" name="q" maxlength="90" value="{{ query }}" autocomplete="off" enterkeyhint="search" placeholder="{{ ui('Usuarios, copias, datos…' if admin else 'Partidos, favoritos, cuenta…') }}" aria-controls="{{ prefix }}-results" aria-describedby="{{ prefix }}-help">
       <button type="submit">{{ ui('Buscar') }}</button>
     </div>
     <p id="{{ prefix }}-help" class="app-explore-help">{{ ui('Busca una pantalla. Los cambios se realizan desde su sección.' if admin else 'Abre una sección o busca un equipo en el calendario.') }}</p>
   </form>
+  {% if not admin %}{{ suggestions(prefix ~ '-sports') }}{% endif %}
   <p class="app-explore-count" data-explore-count role="status" aria-live="polite" aria-atomic="true"></p>
   <div id="{{ prefix }}-results" class="app-explore-results" data-explore-results>
     {% set found = namespace(count=0) %}

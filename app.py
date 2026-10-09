@@ -4079,6 +4079,7 @@ def enforce_local_safe_request_boundary():
     return None
 
 LIGHT_STARTUP_ENDPOINTS = {
+    "api_sports_search",  # Suggestions never initialize or seed production data.
     "health",
     "api_runtime_version",
     "api_startup_check",
@@ -8913,9 +8914,34 @@ def get_favorites(kind=None, user_id=None):
     return rows("SELECT * FROM favorites WHERE user_id=? ORDER BY created_at DESC", (user_id,))
 
 
+def _scoped_team_favorite(match, favorites):
+    # Explicit selections retain identity; legacy name-based favorites still work.
+    for team in favorites.get("team_refs") or []:
+        country = spanish_country_name(team.get("country") or "").casefold()
+        match_country = spanish_country_name(match.get("country") or "").casefold()
+        for side in ("home", "away"):
+            provider = provider_family(team.get("source"))
+            identifier = str(match.get(side + "_team_id") or "")
+            if provider in {"sportsdb", "api-football"} and provider == provider_family(match.get("source")) and identifier and team.get("external_id"):
+                if identifier == str(team["external_id"]):
+                    return True
+                continue
+            if country and match_country and country != match_country and match_country not in {"global", "europa", "sudamérica", "áfrica", "asia", "internacional", "mundial"}:
+                continue
+            if canonical_team_key(match.get(side + "_team")) == canonical_team_key(team.get("name")):
+                return True
+    return False
+
+
 def favorite_sets(user_id=None):
     favs = get_favorites(user_id=user_id)
+    keys = [f["value"][6:] for f in favs if f.get("kind") == "team" and str(f.get("value") or "").startswith("@team:")]
+    references = []
+    for offset in range(0, len(keys), 400):
+        batch = keys[offset:offset+400]
+        references.extend(rows("SELECT key,name,country,external_id,source FROM teams WHERE key IN (" + ",".join("?" for _ in batch) + ")", tuple(batch)))
     return {
+        "team_refs": references,
         "team": {f["value"].lower() for f in favs if f.get("kind") == "team"},
         "league": {f["value"].lower() for f in favs if f.get("kind") == "league"},
         "match": {f["value"].lower() for f in favs if f.get("kind") == "match"},
@@ -8931,7 +8957,8 @@ def annotate_match(match, favs=None, include_timeline=True):
     home = str(match.get("home_team") or "").lower()
     away = str(match.get("away_team") or "").lower()
     match["is_favorite"] = (
-        match_key in favs["match"]
+        _scoped_team_favorite(match, favs)
+        or match_key in favs["match"]
         or comp_key in favs["league"]
         or comp_name in favs["league"]
         or home in favs["team"]
@@ -9110,7 +9137,7 @@ def favorite_insights(user_id=None, favorites=None, bundle=None):
 
 def team_lookup(team_id):
     key = canonical_team_key(team_id)
-    team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
+    team = one("SELECT * FROM teams WHERE key=? OR key=? OR external_id=? OR lower(name)=lower(?) ORDER BY CASE WHEN key=? THEN 0 ELSE 1 END LIMIT 1", (str(team_id or ""), key, str(team_id or ""), str(team_id or ""), str(team_id or "")))
     if team:
         return team
     # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
@@ -9737,7 +9764,10 @@ def team_page_data(team_id, limit=80):
     for pick in get_picks(limit=120):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
-    is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    scoped_value = "@team:" + str(team.get("key") or "")
+    is_scoped_favorite = scoped_value.lower() in favorites.get("team", set())
+    is_favorite = is_scoped_favorite or name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    favorite_value = scoped_value if is_scoped_favorite or (not is_favorite and team.get("key") and team.get("source") != "matches") else name
     players = _sports_history_players_for_team(team)
     if not players:
         players = _cached_players_for_team(team, team_matches)
@@ -9753,6 +9783,7 @@ def team_page_data(team_id, limit=80):
         "players": players,
         "pending": pending,
         "is_favorite": is_favorite,
+        "favorite_value": favorite_value,
         "stats": {
             "upcoming": len(upcoming),
             "recent": len(recent),
@@ -17743,6 +17774,7 @@ def _normalized_sports_favorites(favorites=None):
         "team": frozenset(normalized_label(value) for value in favorites.get("team") or set()),
         "league": frozenset(normalized_label(value) for value in favorites.get("league") or set()),
         "match": frozenset(normalized_label(value) for value in favorites.get("match") or set()),
+        "team_refs": favorites.get("team_refs") or [],
         "_sports_normalized": True,
     }
 
@@ -17757,7 +17789,8 @@ def _sports_match_favorite(match, favorites=None):
     home = normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
     away = normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
     return bool(
-        (match_id and match_id in favorites["match"])
+        _scoped_team_favorite(item, favorites)
+        or (match_id and match_id in favorites["match"])
         or (competition and competition in favorites["league"])
         or (home and home in favorites["team"])
         or (away and away in favorites["team"])
@@ -20666,6 +20699,7 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
     item["has_pick"] = match_id in pick_ids
     item["is_favorite"] = bool(
         item.get("is_favorite")
+        or _scoped_team_favorite(item, favorites)
         or match_id.lower() in favorite_matches
         or str(item.get("competition_key") or "").lower() in favorite_leagues
         or str(competition).lower() in favorite_leagues
@@ -21515,6 +21549,8 @@ def favorites_page():
     }
     from engines.account_collection_views import favorite_collection
     data["saved_favorites"] = favorite_collection(favorites, request.args.get("q"), request.args.get("kind"))
+    from engines.sports_search import search_sports, mark_saved
+    data["favorite_discovery"] = mark_saved(search_sports(DB_PATH, request.args.get("find"), request.args.get("find_kind"), today=today_iso(), excluded_names=FAKE_TEAM_NAMES), favorites)
     return render_template("favorites.html", data=data)
 
 # ===================== V785 MEMBERSHIP / STRIPE FLOW POLISH =====================
@@ -28938,6 +28974,24 @@ def api_real_time_state():
     if request.args.get("refresh") in {"1", "true", "yes", "on"}:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_not_allowed_on_read", "database_writes": 0}), 405
     return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=False)})
+
+
+@app.get("/api/sports-search")
+def api_sports_search():
+    from engines.sports_search import search_sports, search_saved, mark_saved, clean_query
+    query = clean_query(request.args.get("q"))
+    user = current_session_user()
+    saved_scope = request.args.get("scope") == "saved"
+    if saved_scope and not user:
+        return jsonify({"ok": False, "error": "login_required"}), 401
+    favorites = get_favorites(user_id=user.get("id")) if user else []
+    if saved_scope:
+        result = search_saved(favorites, query, request.args.get("kind"))
+    else:
+        result = mark_saved(search_sports(DB_PATH, query, request.args.get("kind"), today=today_iso(), excluded_names=FAKE_TEAM_NAMES), favorites)
+    response = jsonify({"ok": True, **result})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
