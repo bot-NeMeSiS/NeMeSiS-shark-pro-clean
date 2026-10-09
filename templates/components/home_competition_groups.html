@@ -1,0 +1,14 @@
+{% from "components/v933_ui.html" import match_card with context %}
+{% macro competition_groups(groups, show_date=false) -%}
+<div class="home-competition-list">
+{% for group in groups %}
+<section class="home-competition-group" aria-label="{{ group.competition or ui('Competición pendiente') }}">
+  <header><h3>{{ group.competition or ui('Competición pendiente') }}</h3><span>{% if group.country %}{{ group.country }}{% endif %}{% if show_date %} · {{ ui_calendar_date(group.date, detail=true) }}{% endif %}</span></header>
+  <div class="home-agenda-matches">{% for match in group.matches %}{{ match_card(match, true, true) }}{% endfor %}</div>
+</section>
+{% endfor %}
+</div>
+{%- endmacro %}
+{% macro remaining(lane, href) -%}
+{% if lane and lane.has_more %}<p class="home-agenda-more">{{ ui('Mostrando {shown} de {total} partidos disponibles.', shown=lane.shown, total=lane.total) }} <a href="{{ href }}">{{ ui('Ver todos') }} →</a></p>{% endif %}
+{%- endmacro %}

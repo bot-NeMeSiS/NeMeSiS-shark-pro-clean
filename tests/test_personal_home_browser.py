@@ -49,6 +49,7 @@ def test_personal_home_get_navigation_and_layout(browser,app_module,width):
         "client_schedule_label":kickoff.strftime('%d/%m/%Y %H:%M'),
         "competition_name":"Competición de prueba", "personal_reason":"Sigues a un equipo",
         "source":"SIMULATED_QA"} for i in range(3)]}}
+    data['home_matchday']=app_module.home_matchday_context({'all_valid_matches':data['personal_home']['matches']})
     with app_module.app.test_request_context('/app'):
         markup=render_template('client_app_center.html',data=data,current_user={'id':'qa','membership':'FREE'},greeting={'label':'Hola','name':'QA'})
     markup=re.sub(r'<script\b[^>]*>.*?</script>','',markup,flags=re.S|re.I)
@@ -66,14 +67,16 @@ def test_personal_home_get_navigation_and_layout(browser,app_module,width):
     page.route('**/*',serve)
     try:
         page.goto('https://personal.invalid/app')
-        panel=page.locator('[data-personal-home]')
-        assert panel.get_by_text('1 favorito guardado',exact=True).is_visible()
+        assert page.locator('[data-personal-home]').count()==0
+        panel=page.locator('[data-sports-priority="upcoming"]')
+        assert panel.locator('[data-v934-match-id]').count()==3
+        assert not panel.locator('details').count()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         if width in (390,1440):
             output=ROOT/'data/local_dev/personal-home-qa'
             output.mkdir(parents=True,exist_ok=True)
             page.screenshot(path=str(output/f'home-{width}.png'))
-        panel.get_by_role('link',name='Ver mi resumen diario',exact=False).click()
-        page.wait_for_url('**/daily-briefing')
+        panel.locator('a[href="/match/personal-qa-0"]').last.click()
+        page.wait_for_url('**/match/personal-qa-0')
         assert all(method=='GET' for method in calls)
     finally: context.close()

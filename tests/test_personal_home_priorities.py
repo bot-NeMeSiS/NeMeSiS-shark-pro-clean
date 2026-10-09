@@ -68,10 +68,10 @@ def test_personal_section_does_not_duplicate_main_cards_or_fake_empty(app_module
     match=fixture("favorite")
     personal={"state":"READY","saved_count":1,"matches":[{**match,"personal_reason":"Partido guardado"}]}
     dom=Structure(render_home(app_module,{"personal_home":personal,"match_hub":{"today":[match],"live":[match]}},language))
-    personal_section,=[n for n in dom.nodes if "data-personal-home" in n["attrs"]]
+    assert not any("data-personal-home" in n["attrs"] for n in dom.nodes)
     cards=[n for n in dom.nodes if n["attrs"].get("data-v934-match-id")=="favorite"]
-    assert len(cards)==1 and personal_section in cards[0]["parents"]
-    assert translate("{count} favorito guardado",language,count=1) in render_home(app_module,{"personal_home":personal},language)
+    assert len(cards)==1
+    assert any(p['attrs'].get('data-sports-priority')=='live-now' for p in cards[0]['parents'])
 
 
 def test_admin_priorities_show_missing_core_reads_without_inventing_incidents():
@@ -108,16 +108,13 @@ def test_all_available_cards_in_following_do_not_claim_empty_agenda(app_module, 
         html = env.get_template(template).render(
             data={"personal_home": personal, "home_summary": {"sports_home": sports}},
             current_user={"membership": "FREE"}, greeting={"label": "QA", "name": ""})
-    assert translate("Los partidos seleccionados aparecen en tu seguimiento.", language) in html
+    assert translate("Los partidos seleccionados aparecen en tu seguimiento.", language) not in html
     dom = Structure(html)
-    assert any(n["attrs"].get("href") == "#personal-home-title" for n in dom.nodes)
-    if template == "home.html":
-        assert not any(n["attrs"].get("data-sports-priority") in
-                       ("live-now", "important-today", "upcoming", "recent-results") for n in dom.nodes)
-        cards = [n for n in dom.nodes if "data-v934-match-id" in n["attrs"]]
-        assert len(cards) == 3
-    else:
-        assert translate("Sin partidos destacados ahora", language) not in html
+    assert not any(n["attrs"].get("href") == "#personal-home-title" for n in dom.nodes)
+    cards = [n for n in dom.nodes if "data-v934-match-id" in n["attrs"]]
+    assert {'live','next','finished'} <= {n['attrs']['data-v934-match-id'] for n in cards}
+    assert not any('data-personal-home' in n['attrs'] for n in dom.nodes)
+    assert translate("Sin partidos destacados ahora", language) not in html
 
 
 def test_admin_never_uses_untrusted_link_or_unknown_timestamp():
