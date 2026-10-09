@@ -37,8 +37,10 @@ def provider_stage_evidence(stage):
     categories = safe_failure_categories(values)
     reused = "CACHE" in state or "BACKOFF" in state or stage.get("cached_provider_failure") is True
     calls = stage.get("external_calls")
+    whole_calls = ((isinstance(calls, int) and not isinstance(calls, bool))
+                   or (isinstance(calls, float) and calls.is_integer()))
     current = (stage.get("provider_observation_current") is True
-               and isinstance(calls, (int, float)) and not isinstance(calls, bool)
+               and whole_calls
                and calls > 0 and not reused)
     observed_at = ""
     stamp = stage.get("provider_observed_at")

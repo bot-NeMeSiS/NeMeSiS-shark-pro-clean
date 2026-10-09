@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from engines.automation_domains import production_endpoint
 from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
+from engines.provider_access_evidence import provider_stage_evidence
 
 RUNNER_NAME = "nemesis_master_tick"
 SPORTS_ENDPOINT = production_endpoint('sports')
@@ -268,6 +269,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "source_scope": safe_label(raw_current_sync.get("source_scope"), secret, "MATCH_WINDOW_PRIMARY_FALLBACK"),
             "selected_source": safe_label(raw_current_sync.get("selected_source"), secret),
             "api_football_primary": {
+                **provider_stage_evidence(raw_current_sync.get("api_football_primary")),
                 "state": safe_label((raw_current_sync.get("api_football_primary") or {}).get("state"), secret),
                 "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
                 "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
@@ -298,6 +300,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
             },
             "live_refresh": {
+                **provider_stage_evidence(raw_current_sync.get("live_refresh")),
                 "state": safe_label((raw_current_sync.get("live_refresh") or {}).get("state"), secret),
                 "reason_code": safe_label((raw_current_sync.get("live_refresh") or {}).get("reason_code"), secret),
                 "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,

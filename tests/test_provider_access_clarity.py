@@ -152,6 +152,7 @@ def test_provider_health_api_remains_admin_only(app_module, monkeypatch):
 
 
 def test_receipt_survives_pipeline_compaction_without_raw_error(app_module):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
     stage = {"ok": False, "status": "PARTIAL_ACCOUNT_SUSPENDED", "external_calls": 5,
         "failure_categories": ["ACCOUNT_SUSPENDED", "FREE_PLAN_RESTRICTED", "PRIVATE_CANARY"],
         "provider_observation_current": True, "provider_observed_at": "2026-10-09T10:00:00Z",
@@ -164,6 +165,17 @@ def test_receipt_survives_pipeline_compaction_without_raw_error(app_module):
         assert evidence["provider_observation_current"] is True
         assert evidence["provider_observed_at"] == "2026-10-09T10:00:00+00:00"
     assert "PRIVATE_CANARY" not in json.dumps(compact)
+    logged = sanitized_sports_pipeline(compact, "PRIVATE_CANARY")
+    for lane in ("api_football_primary", "live_refresh"):
+        assert logged["current_sync"][lane]["failure_categories"] == ["ACCOUNT_SUSPENDED", "FREE_PLAN_RESTRICTED"]
+        assert logged["current_sync"][lane]["provider_observation_current"] is True
+    assert "PRIVATE_CANARY" not in json.dumps(logged)
+
+
+@pytest.mark.parametrize('calls', [True, "1", float('inf'), float('nan'), 1.5, -1, None])
+def test_invalid_call_counts_cannot_claim_a_new_observation(calls):
+    evidence = provider_stage_evidence({"state":"OK", "external_calls":calls, "provider_observation_current":True})
+    assert evidence["provider_observation_current"] is False
 
 
 def test_new_calendar_success_cannot_hide_or_refresh_an_older_live_restriction(app_module, monkeypatch):
