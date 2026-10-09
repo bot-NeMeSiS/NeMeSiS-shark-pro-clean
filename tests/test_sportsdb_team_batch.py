@@ -11,7 +11,7 @@ def prepare(app, tmp_path, monkeypatch):
     monkeypatch.setattr(app, 'seed_core', lambda: None)
     monkeypatch.setattr(app, 'thesportsdb_key', lambda: 'synthetic-test-key')
     monkeypatch.setattr(app, 'sportsdb_stale_external_ids', lambda **kwargs: [])
-    monkeypatch.setattr(app, 'sportsdb_reconciliation_status', lambda ids: dict(resolved=0, remaining=0, missing=0))
+    monkeypatch.setattr(app, 'sportsdb_reconciliation_status', lambda ids, **kwargs: dict(resolved=0, remaining=0, missing=0))
     events = [({'idEvent': str(i), 'strSport': 'Soccer',
                 'strHomeTeam': 'Real Madrid', 'strAwayTeam': 'Barcelona',
                 'idHomeTeam': '133738', 'idAwayTeam': '133739',
