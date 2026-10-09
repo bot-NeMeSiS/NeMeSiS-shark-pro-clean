@@ -16,5 +16,6 @@ def post_worker_init(worker):
         'components/v933_shells.html', 'partials/brand_logo.html',
         'components/navigation_contracts.html', 'components/v933_navigation.html',
         'components/app_navigation.html', 'components/personal_home_agenda.html',
+        'components/sports_search.html',
     ):
         app.jinja_env.get_template(name)
