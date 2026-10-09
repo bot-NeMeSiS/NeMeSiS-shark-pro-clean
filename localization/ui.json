@@ -4691,6 +4691,14 @@
     }
   },
   "sports_search": {
+    "Buscar": {
+      "en": "Search",
+      "fr": "Rechercher"
+    },
+    "Filtrar": {
+      "en": "Filter",
+      "fr": "Filtrer"
+    },
     "Coincidencias deportivas": {
       "en": "Sports matches",
       "fr": "Résultats sportifs"

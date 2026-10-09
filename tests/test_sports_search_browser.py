@@ -67,6 +67,8 @@ def test_progressive_selection_explicit_save_and_saved_search(browser, app_modul
         search.fill('granáda fem')
         expect(options).to_have_count(1)
         expect(options.first).to_contain_text('Granada Femenino')
+        from engines.ui_localization_engine import translate
+        expect(page.locator('#favorite-discovery [data-sports-status]')).to_have_text(translate('{count} coincidencia', language, count=1))
         assert all(method == 'GET' for method,_,_ in calls)
         search.press('ArrowDown')
         expect(search).to_have_attribute('aria-activedescendant','favorite-discovery-list-0')
@@ -75,6 +77,9 @@ def test_progressive_selection_explicit_save_and_saved_search(browser, app_modul
         expect(selection).to_be_visible()
         assert selection.locator('[name=value]').input_value() == '@team:granada-fem'
         assert selection.locator('[name=csrf_token]').input_value()
+        expect(selection.locator('button[type=submit]')).to_have_text(translate('Guardar favorito',language))
+        expect(selection.locator('[data-selection-kind]')).to_have_text(translate('Equipo',language))
+        expect(page.locator('.sports-search-toolbar button')).to_have_text(translate('Buscar',language))
         assert app_module.get_favorites(user_id='search-owner') == []
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         page.screenshot(path=str(tmp_path/f'search-{width}-{language}.png'), full_page=True)
