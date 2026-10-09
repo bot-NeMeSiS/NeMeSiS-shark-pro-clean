@@ -32984,7 +32984,9 @@ def v757_client_app_center_page():
     # presentation contexts that are not consumed by this template or base.
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
     data["membership"] = v566_membership_ui(user)
-    data["home_matchday"] = home_matchday_context(summary, favorites=favorite_sets())
+    home_favorites = ({} if summary.get("storage_status") == "database_locked"
+                      else favorite_sets())
+    data["home_matchday"] = home_matchday_context(summary, favorites=home_favorites)
     data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])

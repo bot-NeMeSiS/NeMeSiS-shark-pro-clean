@@ -125,3 +125,15 @@ def test_home_route_does_not_build_following_or_change_favorites(app_module,monk
         result=app_module.v757_client_app_center_page()
     assert result['data']['home_matchday']['today']['shown']==0
     assert 'personal_home' not in result['data']
+
+
+def test_degraded_home_does_not_retry_favorites_after_storage_preflight(app_module,monkeypatch):
+    monkeypatch.setattr(app_module,'current_session_user',lambda:{'id':'qa','membership':'FREE'})
+    monkeypatch.setattr(app_module,'v932_safe_dashboard_data',lambda *a,**kw: (
+        {'picks':[]},{'storage_status':'database_locked','provider_status':'temporarily_unavailable'}))
+    monkeypatch.setattr(app_module,'favorite_sets',lambda:pytest.fail('must not retry locked storage'))
+    monkeypatch.setattr(app_module,'render_template',lambda template,**kw:kw)
+    with app_module.app.test_request_context('/app'):
+        result=app_module.v757_client_app_center_page()
+    assert result['data']['home_matchday']['today']['shown']==0
+    assert result['data']['v925_calendar']['provider_status']=='temporarily_unavailable'
