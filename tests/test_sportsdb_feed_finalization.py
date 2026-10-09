@@ -168,6 +168,24 @@ def test_partial_team_transform_rolls_back_and_closes(feed, monkeypatch, failure
     assert stored['matches'] == stored['teams'] == 0 and not stored['imports']
 
 
+def test_expiry_during_transform_does_not_start_the_match_batch(feed, monkeypatch):
+    app, path = feed
+    now = [0.0]
+    original = app.sportsdb_event_to_match
+    def expires(event, **kwargs):
+        result = original(event, **kwargs)
+        now[0] = 16.0
+        return result
+    monkeypatch.setattr(app, 'sportsdb_event_to_match', expires)
+    monkeypatch.setattr(app, '_upsert_sportsdb_matches_transaction', lambda *args: pytest.fail('new batch after deadline'))
+    with CronRequestBudget(seconds=16, clock=lambda: now[0]):
+        result = app.sync_sportsdb_feed(limit=20)
+    stored = receipt(path)
+    assert result['processed'] == 0 and result['external_calls'] == 7
+    assert_closed(stored, 0, 7, 'TIME_BUDGET')
+    assert stored['matches'] == stored['teams'] == 0 and not stored['imports']
+
+
 def test_receipt_write_failure_rolls_back_matches_and_records_failure(feed):
     app, path = feed
     with sqlite3.connect(path) as conn:

@@ -5710,6 +5710,8 @@ def sync_sportsdb_feed(limit=220):
             seen.add(match["id"])
             match_rows.append(match)
         _log_sports_stage_duration("sportsdb_transform", stage_started)
+        if exhausted():
+            raise CronTimeBudget()
         stage_started = time.monotonic()
         result = _upsert_sportsdb_matches_transaction(conn, match_rows)
         _log_sports_stage_duration("sportsdb_persist", stage_started)
