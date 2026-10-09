@@ -4499,4 +4499,195 @@
       "fr": "Tournoi régional"
     }
   }
+,
+  "account_collections": {
+    "En esta página": {
+      "en": "On this page",
+      "fr": "Sur cette page"
+    },
+    "Organizar guardados": {
+      "en": "Organize saved favorites",
+      "fr": "Organiser les favoris"
+    },
+    "Buscar en mis favoritos": {
+      "en": "Search my favorites",
+      "fr": "Rechercher dans mes favoris"
+    },
+    "Equipo, liga o partido": {
+      "en": "Team, league or match",
+      "fr": "Équipe, ligue ou match"
+    },
+    "{count} favorito encontrado": {
+      "en": "{count} favorite found",
+      "fr": "{count} favori trouvé"
+    },
+    "{count} favoritos encontrados": {
+      "en": "{count} favorites found",
+      "fr": "{count} favoris trouvés"
+    },
+    "Los filtros solo afectan a tus guardados.": {
+      "en": "Filters only apply to your saved favorites.",
+      "fr": "Les filtres concernent uniquement vos favoris enregistrés."
+    },
+    "Quitar de favoritos: {name}": {
+      "en": "Remove from favorites: {name}",
+      "fr": "Retirer des favoris : {name}"
+    },
+    "Ningún favorito coincide con estos filtros.": {
+      "en": "No favorites match these filters.",
+      "fr": "Aucun favori ne correspond à ces filtres."
+    },
+    "Prueba otro nombre o vuelve a ver todos tus guardados.": {
+      "en": "Try another name or view all your favorites.",
+      "fr": "Essayez un autre nom ou affichez tous vos favoris."
+    },
+    "Pulsa la estrella junto a un partido o añade tu favorito desde esta página.": {
+      "en": "Select the star next to a match or add a favorite from this page.",
+      "fr": "Sélectionnez l'étoile à côté d'un match ou ajoutez un favori depuis cette page."
+    },
+    "Admin · Seguridad": {
+      "en": "Admin · Security",
+      "fr": "Admin · Sécurité"
+    },
+    "Consulta los archivos disponibles y el resultado del último intento automático.": {
+      "en": "View available files and the outcome of the latest automatic attempt.",
+      "fr": "Consultez les fichiers disponibles et le résultat de la dernière tentative automatique."
+    },
+    "Ver diagnóstico": {
+      "en": "View diagnostics",
+      "fr": "Voir le diagnostic"
+    },
+    "Archivos disponibles": {
+      "en": "Available files",
+      "fr": "Fichiers disponibles"
+    },
+    "La disponibilidad de un archivo no demuestra que se haya probado su restauración.": {
+      "en": "An available file does not prove that its restoration has been tested.",
+      "fr": "La présence d'un fichier ne prouve pas que sa restauration a été testée."
+    },
+    "Última observación automática": {
+      "en": "Latest automatic observation",
+      "fr": "Dernière observation automatique"
+    },
+    "Hora de la observación registrada": {
+      "en": "Time of the recorded observation",
+      "fr": "Heure de l'observation enregistrée"
+    },
+    "Copias disponibles": {
+      "en": "Available backups",
+      "fr": "Sauvegardes disponibles"
+    },
+    "El manifiesto recoge comprobaciones realizadas al crear la copia. Esta pantalla no vuelve a comprobar los archivos ni acredita una restauración.": {
+      "en": "The manifest records checks performed when the backup was created. This page does not recheck files or confirm a restoration.",
+      "fr": "Le manifeste consigne les contrôles réalisés à la création. Cette page ne revérifie pas les fichiers et ne confirme pas une restauration."
+    },
+    "Verificación de creación registrada": {
+      "en": "Creation verification recorded",
+      "fr": "Vérification à la création enregistrée"
+    },
+    "Sin verificación de creación registrada": {
+      "en": "No creation verification recorded",
+      "fr": "Aucune vérification à la création enregistrée"
+    },
+    "Restaurar o eliminar esta copia": {
+      "en": "Restore or delete this backup",
+      "fr": "Restaurer ou supprimer cette sauvegarde"
+    },
+    "Restaurar sustituye la base de datos actual. Eliminar retira este archivo de la lista.": {
+      "en": "Restoring replaces the current database. Deleting removes this file from the list.",
+      "fr": "La restauration remplace la base actuelle. La suppression retire ce fichier de la liste."
+    },
+    "¿Eliminar esta copia de seguridad?": {
+      "en": "Delete this backup?",
+      "fr": "Supprimer cette sauvegarde ?"
+    },
+    "Se intentará crear una copia previa y después restaurar la seleccionada. ¿Continuar?": {
+      "en": "A backup will be attempted before restoring the selected copy. Continue?",
+      "fr": "Une sauvegarde sera tentée avant de restaurer la copie sélectionnée. Continuer ?"
+    },
+    "No hay copias disponibles en esta carpeta.": {
+      "en": "No backups are available in this folder.",
+      "fr": "Aucune sauvegarde disponible dans ce dossier."
+    },
+    "Revisa el último intento automático. Todavía no hay un archivo disponible para descargar o restaurar aquí.": {
+      "en": "Review the latest automatic attempt. There is no file available to download or restore here yet.",
+      "fr": "Consultez la dernière tentative automatique. Aucun fichier n'est encore disponible ici pour téléchargement ou restauration."
+    },
+    "Ubicación y creación manual": {
+      "en": "Location and manual creation",
+      "fr": "Emplacement et création manuelle"
+    },
+    "Retención máxima: {count} copias.": {
+      "en": "Maximum retention: {count} backups.",
+      "fr": "Conservation maximale : {count} sauvegardes."
+    },
+    "Crear copia ahora": {
+      "en": "Create backup now",
+      "fr": "Créer une sauvegarde"
+    },
+    "Sin observación disponible": {
+      "en": "No observation available",
+      "fr": "Aucune observation disponible"
+    },
+    "No hay un resultado automático legible para mostrar.": {
+      "en": "No readable automatic result is available.",
+      "fr": "Aucun résultat automatique lisible n'est disponible."
+    },
+    "Último intento sin copia creada": {
+      "en": "Latest attempt created no backup",
+      "fr": "Dernière tentative sans sauvegarde créée"
+    },
+    "El intento no disponía del espacio necesario.": {
+      "en": "The attempt did not have enough available space.",
+      "fr": "L'espace disponible était insuffisant lors de la tentative."
+    },
+    "La creación de la copia no terminó.": {
+      "en": "Backup creation did not finish.",
+      "fr": "La création de la sauvegarde n'a pas abouti."
+    },
+    "La comprobación de integridad no terminó correctamente.": {
+      "en": "The integrity check did not finish successfully.",
+      "fr": "Le contrôle d'intégrité ne s'est pas terminé correctement."
+    },
+    "El cálculo de la huella de la copia no terminó.": {
+      "en": "The backup checksum calculation did not finish.",
+      "fr": "Le calcul de l'empreinte de la sauvegarde n'a pas abouti."
+    },
+    "Revisa el diagnóstico del último intento antes de dar la copia por válida.": {
+      "en": "Review the latest attempt's diagnostics before treating the backup as valid.",
+      "fr": "Consultez le diagnostic de la dernière tentative avant de considérer la sauvegarde comme valide."
+    },
+    "Creación automática registrada": {
+      "en": "Automatic creation recorded",
+      "fr": "Création automatique enregistrée"
+    },
+    "El proceso registró una copia creada. Comprueba su disponibilidad en la lista.": {
+      "en": "The process recorded a created backup. Check its availability in the list.",
+      "fr": "Le processus a enregistré la création d'une sauvegarde. Vérifiez sa présence dans la liste."
+    },
+    "Última ejecución sin copia nueva": {
+      "en": "Latest execution created no new backup",
+      "fr": "Dernière exécution sans nouvelle sauvegarde"
+    },
+    "Una ejecución omitida no acredita una copia nueva.": {
+      "en": "A skipped execution does not prove a new backup exists.",
+      "fr": "Une exécution ignorée ne prouve pas l'existence d'une nouvelle sauvegarde."
+    },
+    "Copia automática desactivada": {
+      "en": "Automatic backup disabled",
+      "fr": "Sauvegarde automatique désactivée"
+    },
+    "La última ejecución indicó que la copia automática estaba desactivada.": {
+      "en": "The latest execution reported automatic backup as disabled.",
+      "fr": "La dernière exécution indiquait que la sauvegarde automatique était désactivée."
+    },
+    "Copia creada con incidencias": {
+      "en": "Backup created with issues",
+      "fr": "Sauvegarde créée avec des incidents"
+    },
+    "Se registró un archivo nuevo, pero el proceso no terminó correctamente. Revisa el diagnóstico.": {
+      "en": "A new file was recorded, but the process did not finish successfully. Review diagnostics.",
+      "fr": "Un nouveau fichier a été enregistré, mais le processus ne s'est pas terminé correctement. Consultez le diagnostic."
+    }
+  }
 }

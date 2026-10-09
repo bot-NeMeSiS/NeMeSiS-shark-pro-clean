@@ -21513,6 +21513,8 @@ def favorites_page():
             "no_render_api_call": True,
         },
     }
+    from engines.account_collection_views import favorite_collection
+    data["saved_favorites"] = favorite_collection(favorites, request.args.get("q"), request.args.get("kind"))
     return render_template("favorites.html", data=data)
 
 # ===================== V785 MEMBERSHIP / STRIPE FLOW POLISH =====================
@@ -22673,11 +22675,11 @@ def admin_backups_page():
         elif action == "restore":
             result = restore_database_backup(name)
             message = f"Backup restaurado: {result.get('restored')}" if result.get("ok") else f"No se pudo restaurar: {result.get('error')}"
-    data = dashboard_data()
-    data["backups"] = list_backups()
+    from engines.account_collection_views import backup_observation
+    data = {"backups": list_backups()}
     data["backup_dir"] = backup_dir()
     data["backup_retention"] = BACKUP_RETENTION_MAX
-    data["backup_events"] = []
+    data["backup_observation"] = backup_observation(automation_get_bounded("last_cron_data_backup_call", {}))
     return render_template("admin_backups.html", data=data, message=message)
 
 
