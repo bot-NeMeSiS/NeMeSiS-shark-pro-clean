@@ -23978,3 +23978,30 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
 .client-sports-subviews a:hover { color:var(--v933-cyan); }
 
 .client-sports-subviews a:focus-visible { outline:2px solid var(--v933-cyan); outline-offset:3px; }
+
+/* Home is a visible matchday agenda; shared cards and other surfaces are unchanged. */
+body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
+.home-agenda-focus > * { margin-block-end: 20px; }
+.home-agenda-focus .ns16-home-command { display: flex !important; flex-direction: column; gap: 20px; }
+.home-agenda-focus .ns16-home-primary { display: grid !important; gap: 20px; width: 100%; min-width: 0; }
+.home-agenda-focus .ns16-kpi-strip { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+.home-agenda-focus .home-competition-group { margin-top: 16px; min-width: 0; }
+.home-agenda-focus .home-competition-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; align-items: start; }
+.home-agenda-focus .home-competition-group > header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; padding: 10px 0; border-bottom: 1px solid var(--v933-border); margin-bottom: 10px; }
+.home-agenda-focus .home-competition-group h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+.home-agenda-focus .home-competition-group header > span { color: var(--v933-text-soft); font-size: .85rem; }
+.home-agenda-focus .home-agenda-matches { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
+.home-agenda-focus .home-agenda-matches > .v933-match-card { width: 100%; min-width: 0; margin: 0; }
+.home-agenda-focus .home-agenda-note, .home-agenda-focus .home-agenda-more { color: var(--v933-text-soft); line-height: 1.6; }
+.home-agenda-focus .home-agenda-more a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v933-cyan); }
+.home-agenda-focus .ns16-featured-pick { max-width: 760px; width: 100%; }
+@media(min-width: 1101px) {
+  body.ns-app .ns16-home.home-agenda-focus { display: grid !important; }
+}
+@media(max-width: 760px) {
+  .home-agenda-focus .home-competition-list { grid-template-columns: minmax(0,1fr); }
+  .home-agenda-focus .home-agenda-matches { grid-template-columns: minmax(0,1fr); }
+  .home-agenda-focus .ns16-home-sports .ns16-match-row[data-home-match-previews] { grid-auto-flow: row; grid-template-columns: minmax(0,1fr); grid-auto-columns: auto; overflow: visible; }
+  body.ns-app .home-agenda-focus .ns16-home-hero > div { max-width: 100%; }
+  .home-agenda-focus .ns16-home-sports { order: 0; }
+}

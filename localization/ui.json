@@ -4690,6 +4690,32 @@
       "fr": "Un nouveau fichier a été enregistré, mais le processus ne s'est pas terminé correctement. Consultez le diagnostic."
     }
   },
+  "home_matchday": {
+    "Partidos, directos y resultados": {
+      "en": "Matches, live scores and results",
+      "fr": "Matchs, direct et résultats"
+    },
+    "Partidos de hoy": {
+      "en": "Today's matches",
+      "fr": "Matchs du jour"
+    },
+    "Calendario completo": {
+      "en": "Full calendar",
+      "fr": "Calendrier complet"
+    },
+    "Mostrando {shown} de {total} partidos disponibles.": {
+      "en": "Showing {shown} of {total} available matches.",
+      "fr": "{shown} matchs affichés sur {total} disponibles."
+    },
+    "Ver todos en el calendario": {
+      "en": "View all in the calendar",
+      "fr": "Tout voir dans le calendrier"
+    },
+    "No hay más partidos programados para hoy entre los datos disponibles.": {
+      "en": "No further matches are scheduled today in the available data.",
+      "fr": "Aucun autre match n’est prévu aujourd’hui dans les données disponibles."
+    }
+  },
   "sports_search": {
     "Buscar": {
       "en": "Search",

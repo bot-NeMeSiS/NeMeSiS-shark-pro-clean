@@ -241,7 +241,8 @@ def test_finished_and_favorite_cards_survive_together():
     html = _render_home(_compact_data(snapshot))
     assert 'data-test-match="favorite-card"' in html
     assert 'data-test-match="finished-card"' in html
-    assert 'data-test-kpi="Favoritos">1</b>' in html
+    assert 'data-test-kpi="Favoritos"' not in html
+    assert 'href="/favoritos"' in html
 
 
 def test_template_reuse_does_not_mutate_inputs_or_leak_favorites():

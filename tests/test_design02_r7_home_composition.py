@@ -67,7 +67,8 @@ def test_home_presentation_is_scoped_without_new_navigation_or_artist_changes():
     assert '.ns16-home-sports .ns16-match-row[data-home-match-previews]' in css
     assert 'grid-auto-columns: 86%' in css and 'scroll-snap-type: x proximity' in css
     assert '.ns16-featured-pick .v933-pick-card dl > div' in css
-    assert "pick_card(picks[0], true, 'summary')" in home
+    assert "pick_card(picks[0], true)" in home
+    assert '<details' not in home  # Home analysis and agenda are visible by default.
     assert 'ns16-journey' not in home and 'data-home-match-previews' not in (ROOT/'templates/calendar.html').read_text(encoding='utf-8')
     assert catalogue_issues()==[]
     for source in ['Contexto y riesgos','Resultado final','Cuota actual','Última cuota registrada','MEDIO']:
