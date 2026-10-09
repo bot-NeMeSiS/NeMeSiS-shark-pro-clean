@@ -1360,7 +1360,7 @@ def _log_sports_stage_duration(label, started):
                    "startup_admin", "startup_seed_catalog", "startup_telegram_settings",
                    "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
                    "sportsdb_candidates", "sportsdb_fetch", "sportsdb_transform", "sportsdb_persist",
-                   "sportsdb_reconciliation",
+                   "sportsdb_reconciliation", "sportsdb_finalize",
                    "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
@@ -4603,29 +4603,35 @@ def odds_api_request(path, params=None):
     return credential_request(path, params, fetch_json_response, odds_free_refresh_allowed)
 
 
-def sync_log_start(source, sync_type):
+def sync_log_start(source, sync_type, *, connection=None):
     log_id = hashlib.md5(f"{source}:{sync_type}:{datetime.now(TZ).isoformat(timespec='microseconds')}:{secrets.token_hex(4)}".encode("utf-8")).hexdigest()[:18]
-    conn = db()
+    conn = connection if connection is not None else db()
     try:
         conn.execute(
             """INSERT INTO api_sync_logs(id,source,sync_type,started_at,finished_at,status,total_items,error_message)
                VALUES (?,?,?,?,?,?,?,?)""",
             (log_id, source, sync_type, now_iso(), "", "RUNNING", 0, ""),
         )
-        conn.commit()
+        if connection is None:
+            conn.commit()
     finally:
-        conn.close()
+        if connection is None:
+            conn.close()
     return log_id
 
 
-def sync_log_finish(log_id, status="OK", total_items=0, error_message=""):
-    conn = db()
-    conn.execute(
-        "UPDATE api_sync_logs SET finished_at=?, status=?, total_items=?, error_message=? WHERE id=?",
-        (now_iso(), status, int(total_items or 0), str(error_message or "")[:500], log_id),
-    )
-    conn.commit()
-    conn.close()
+def sync_log_finish(log_id, status="OK", total_items=0, error_message="", *, connection=None):
+    conn = connection if connection is not None else db()
+    try:
+        conn.execute(
+            "UPDATE api_sync_logs SET finished_at=?, status=?, total_items=?, error_message=? WHERE id=?",
+            (now_iso(), status, int(total_items or 0), str(error_message or "")[:500], log_id),
+        )
+        if connection is None:
+            conn.commit()
+    finally:
+        if connection is None:
+            conn.close()
 
 
 def fetch_thesportsdb_team(team_name):
@@ -5201,8 +5207,8 @@ def fetch_sportsdb_feed_events(limit=220, priority_external_ids=None):
         slug=slug, collect=sportsdb_event_collection,
         priority_external_ids=priority_external_ids,
     )
-    if errors:
-        save_thesportsdb_error('; '.join(errors))
+    # The feed owner records errors with its result; no connection after the
+    # provider deadline can discard the already-observed request count.
     return selected, errors, external_calls
 
 
@@ -5521,7 +5527,8 @@ def _write_sportsdb_match_snapshot(cur, item, target_id):
 def _upsert_sportsdb_matches_transaction(conn, match_rows):
     from engines.realtime_state_engine import older_match_observation
     cur = conn.cursor()
-    conn.execute("BEGIN IMMEDIATE")
+    if not conn.in_transaction:
+        conn.execute("BEGIN IMMEDIATE")
     provider_ids = _sportsdb_provider_ids_for_batch(cur, match_rows)
     imported = 0
     updated = 0
@@ -5592,7 +5599,7 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     return summary
 
 
-def sportsdb_reconciliation_status(external_ids):
+def sportsdb_reconciliation_status(external_ids, *, connection=None):
     """Read-only bounded truth after provider persistence."""
     requested = []
     for value in external_ids or []:
@@ -5605,20 +5612,24 @@ def sportsdb_reconciliation_status(external_ids):
         return {"requested": 0, "resolved": 0, "remaining": 0, "missing": 0}
 
     placeholders = ",".join("?" for _ in requested)
-    try:
-        matched_rows = rows(
-            f"""SELECT * FROM matches WHERE rowid IN (
-                    SELECT rowid FROM matches WHERE source LIKE 'TheSportsDB%'
-                      AND external_id IN ({placeholders})
-                )""",
-            tuple(requested),
-        )
-    except Exception:
-        return {"requested": len(requested), "resolved": 0, "remaining": 0, "missing": len(requested)}
+    sql = f"""SELECT * FROM matches WHERE rowid IN (
+                 SELECT rowid FROM matches WHERE source LIKE 'TheSportsDB%'
+                   AND external_id IN ({placeholders})
+             )"""
+    if connection is not None:
+        # Read our uncommitted observations without opening a second connection.
+        # A transaction error must reach the owner and roll back the whole feed.
+        matched_rows = connection.execute(sql, tuple(requested)).fetchall()
+    else:
+        try:
+            matched_rows = rows(sql, tuple(requested))
+        except Exception:
+            return {"requested": len(requested), "resolved": 0, "remaining": 0, "missing": len(requested)}
 
     grouped = {}
     for row in matched_rows:
-        grouped.setdefault(str(row.get("external_id") or "").strip(), []).append(dict(row))
+        row = dict(row)
+        grouped.setdefault(str(row.get("external_id") or "").strip(), []).append(row)
 
     resolved = remaining = missing = 0
     for external_id in requested:
@@ -5632,88 +5643,134 @@ def sportsdb_reconciliation_status(external_ids):
     return {"requested": len(requested), "resolved": resolved, "remaining": remaining, "missing": missing}
 
 
+def _record_sportsdb_feed_result(conn, log_id, result, match_rows=None):
+    """Stage the feed receipt alongside its rows; only the owner commits."""
+    status = result.get("status") or ("PARTIAL" if result.get("errors") else "OK")
+    errors = result.get("errors") or []
+    sync_log_finish(log_id, status, result.get("processed", 0), "; ".join(errors[:3]), connection=conn)
+    conn.execute(
+        "INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",
+        ("sportsdb_feed_sync", json.dumps(result, ensure_ascii=False), now_iso()),
+    )
+    if errors:
+        conn.execute(
+            "INSERT OR REPLACE INTO automation_state(key,value_json,updated_at) VALUES (?,?,?)",
+            ("thesportsdb_last_error", json.dumps({"error": "; ".join(errors[:3]), "time": now_iso()}), now_iso()),
+        )
+    if match_rows is not None:
+        import_id = hashlib.md5(f"sportsdb-feed-{log_id}".encode("utf-8")).hexdigest()[:18]
+        conn.execute(
+            """INSERT INTO imports(id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (import_id, "matches", "TheSportsDB API", "https://www.thesportsdb.com/documentation",
+             "API permitida TheSportsDB; cache SQLite sin scraping.", result.get("processed", 0), "IMPORTED",
+             json.dumps(match_rows[:3], ensure_ascii=False)[:2000], now_iso()),
+        )
+
+
 def sync_sportsdb_feed(limit=220):
+    from engines.cron_request_budget import CronTimeBudget, exhausted
     seed_core()
     if not thesportsdb_key():
-        result = {"ok": False, "sin_key": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
-        return result
-    log_id = sync_log_start("TheSportsDB", "matches")
+        return {"ok": False, "sin_key": True, "imported": 0, "updated": 0, "processed": 0,
+                "errors": ["Falta THESPORTSDB_API_KEY o THESPORTSDB_KEY."]}
+    # Open within the existing budget. Keep no transaction open during network
+    # calls, but retain this connection to close the receipt even after expiry.
+    conn = db()
+    log_id = None
+    external_calls = 0
+    errors = []
+    committed = False
+    result = None
     try:
+        log_id = sync_log_start("TheSportsDB", "matches", connection=conn)
+        conn.commit()
         stage_started = time.monotonic()
         priority_external_ids = sportsdb_stale_external_ids(limit=min(5, max(1, int(limit or 1))))
         _log_sports_stage_duration("sportsdb_candidates", stage_started)
         stage_started = time.monotonic()
         fetched, errors, external_calls = fetch_sportsdb_feed_events(
-            limit=limit,
-            priority_external_ids=priority_external_ids,
+            limit=limit, priority_external_ids=priority_external_ids,
         )
         _log_sports_stage_duration("sportsdb_fetch", stage_started)
+        if exhausted():
+            raise CronTimeBudget()
         stage_started = time.monotonic()
+        conn.execute("BEGIN IMMEDIATE")
         match_rows = []
         seen = set()
         provider_observed_at = now_iso()
-        team_conn = db()
-        try:
-            for event, fallback in fetched:
-                match = sportsdb_event_to_match(
-                    event,
-                    fallback=fallback,
-                    provider_observed_at=provider_observed_at,
-                    cache_teams=True,
-                    team_connection=team_conn,
-                )
-                if not match or match["id"] in seen:
-                    continue
-                seen.add(match["id"])
-                match_rows.append(match)
-            team_conn.commit()
-        except Exception:
-            team_conn.rollback()
-            raise
-        finally:
-            team_conn.close()
+        for event, fallback in fetched:
+            match = sportsdb_event_to_match(
+                event, fallback=fallback, provider_observed_at=provider_observed_at,
+                cache_teams=True, team_connection=conn,
+            )
+            if not match or match["id"] in seen:
+                continue
+            seen.add(match["id"])
+            match_rows.append(match)
         _log_sports_stage_duration("sportsdb_transform", stage_started)
+        if exhausted():
+            raise CronTimeBudget()
         stage_started = time.monotonic()
-        result = upsert_sportsdb_matches(match_rows)
+        result = _upsert_sportsdb_matches_transaction(conn, match_rows)
         _log_sports_stage_duration("sportsdb_persist", stage_started)
-        observed_external_ids = {
-            str(item.get("external_id") or "").strip()
-            for item in match_rows
-            if str(item.get("external_id") or "").strip()
-        }
+        observed_external_ids = {str(item.get("external_id") or "").strip() for item in match_rows
+                                 if str(item.get("external_id") or "").strip()}
         priority_set = {str(value or "").strip() for value in priority_external_ids if str(value or "").strip()}
-        result["errors"] = errors[:12]
+        result.update(errors=errors[:12], external_calls=external_calls,
+                      stale_reconciliation_candidates=len(priority_set),
+                      stale_reconciliation_observed=len(priority_set & observed_external_ids),
+                      live_enabled=sportsdb_live_enabled(), sin_key=False)
+        if not exhausted():
+            stage_started = time.monotonic()
+            reconciliation = sportsdb_reconciliation_status(priority_set, connection=conn)
+            _log_sports_stage_duration("sportsdb_reconciliation", stage_started)
+            for field in ("resolved", "remaining", "missing"):
+                result["stale_reconciliation_" + field] = reconciliation[field]
+        else:
+            result["stale_reconciliation_status"] = "TIME_BUDGET"
+        if exhausted():
+            result["status"] = "PARTIAL"
+            result["controlled_deferrals"] = ["TIME_BUDGET"]
+        # Match observations, teams, counts, import receipt and completed log
+        # become visible together. No new connection is opened after commit.
         stage_started = time.monotonic()
-        reconciliation = sportsdb_reconciliation_status(priority_set)
-        _log_sports_stage_duration("sportsdb_reconciliation", stage_started)
-        result["external_calls"] = external_calls
-        result["stale_reconciliation_candidates"] = len(priority_set)
-        result["stale_reconciliation_observed"] = len(priority_set & observed_external_ids)
-        result["stale_reconciliation_resolved"] = reconciliation["resolved"]
-        result["stale_reconciliation_remaining"] = reconciliation["remaining"]
-        result["stale_reconciliation_missing"] = reconciliation["missing"]
-        result["live_enabled"] = sportsdb_live_enabled()
-        result["sin_key"] = False
-        sync_log_finish(log_id, "OK" if not errors else "PARTIAL", result.get("processed", 0), "; ".join(errors[:3]))
+        _record_sportsdb_feed_result(conn, log_id, result, match_rows)
+        conn.commit()
+        committed = True
+        _log_sports_stage_duration("sportsdb_finalize", stage_started)
+        if result["inserted"] or result["updated"]:
+            invalidate_v934_realtime_cache('v934:sports:')
+        return result
     except Exception as exc:
-        save_thesportsdb_error(exc)
-        sync_log_finish(log_id, "ERROR", 0, str(exc))
-        return {"ok": False, "sin_key": False, "imported": 0, "updated": 0, "processed": 0, "errors": [str(exc)[:200]]}
-    conn = db()
-    conn.execute(
-        """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
-           VALUES (?,?,?)""",
-        ("sportsdb_feed_sync", json.dumps(result, ensure_ascii=False), now_iso()),
-    )
-    import_id = hashlib.md5(f"sportsdb-feed-{datetime.now(TZ).isoformat(timespec='microseconds')}-{result.get('processed')}".encode("utf-8")).hexdigest()[:18]
-    conn.execute(
-        """INSERT INTO imports(id,kind,source_name,source_url,legal_note,rows_count,status,payload_preview,created_at)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
-        (import_id, "matches", "TheSportsDB API", "https://www.thesportsdb.com/documentation", "API permitida TheSportsDB; cache SQLite sin scraping.", result.get("processed", 0), "IMPORTED", json.dumps(match_rows[:3], ensure_ascii=False)[:2000], now_iso()),
-    )
-    conn.commit()
-    conn.close()
-    return result
+        if committed:
+            # A later in-memory cache error cannot erase durable import counts.
+            return {**result, "ok": False, "status": "ERROR",
+                    "errors": result.get("errors", []) + ["CACHE_INVALIDATION_ERROR"]}
+        conn.rollback()
+        deferred = isinstance(exc, CronTimeBudget)
+        external_calls = max(external_calls, as_int(getattr(exc, "external_calls", 0), 0))
+        reason = "TIME_BUDGET" if deferred else "LOCAL_" + type(exc).__name__
+        clean_deferral = deferred and all(error in {"TIME_BUDGET", "REQUEST_BUDGET"} for error in errors)
+        result = {"ok": clean_deferral, "sin_key": False, "status": "TIME_BUDGET" if clean_deferral else "ERROR",
+                  "imported": 0, "inserted": 0, "updated": 0, "processed": 0,
+                  "external_calls": external_calls, "errors": list(dict.fromkeys(errors[:11] + [reason]))}
+        if deferred:
+            result["controlled_deferrals"] = ["TIME_BUDGET"]
+        if log_id is not None:
+            try:
+                _record_sportsdb_feed_result(conn, log_id, result)
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                # Failed bookkeeping remains a technical failure, never a
+                # fabricated closed log or a clean budget deferral.
+                result.update(ok=False, status="ERROR", finalization_error="LOCAL_DB_OR_SCHEMA")
+                result["errors"].append("LOCAL_DB_OR_SCHEMA")
+        return result
+    finally:
+        conn.close()
 
 
 def sportsdb_feed_status():
