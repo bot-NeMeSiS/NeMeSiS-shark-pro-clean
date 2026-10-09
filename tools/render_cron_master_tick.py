@@ -697,7 +697,13 @@ def backup_tick(base_url: str, secret: str) -> dict:
             recovery = storage.get("temporary_recovery") if isinstance(storage.get("temporary_recovery"), dict) else {}
             stage = safe_label(payload.get("failure_stage"), secret, "")
             allowed_stages = {"PREPARATION", "RECOVERY", "CAPACITY", "SNAPSHOT", "INTEGRITY",
-                              "METADATA", "HASH", "MANIFEST", "PUBLICATION", "RETENTION", "CLEANUP"}
+                              "METADATA", "SYNC", "HASH", "MANIFEST", "PUBLICATION", "RETENTION", "CLEANUP"}
+            raw_durations = payload.get("stage_durations_ms")
+            durations = {
+                name: min(value, 86400000)
+                for name, value in (raw_durations.items() if isinstance(raw_durations, dict) else ())
+                if name in allowed_stages and type(value) is int and value >= 0
+            }
             return {
                 "backup_http": http_status,
                 "backup_status": "PASS" if ok else "FAIL",
@@ -705,6 +711,7 @@ def backup_tick(base_url: str, secret: str) -> dict:
                 "backup_created": bool(payload.get("backup_created")),
                 "backup_error_code": backup_error_code(payload.get("error"), secret),
                 "backup_failure_stage": stage if stage in allowed_stages else "",
+                "backup_stage_durations_ms": durations,
                 "backup_temporary_recovered_count": safe_count(recovery.get("recovered_count")),
                 "backup_temporary_recovered_bytes": safe_count(recovery.get("recovered_bytes")),
                 "backup_temporary_skipped_count": safe_count(recovery.get("skipped_count")),
