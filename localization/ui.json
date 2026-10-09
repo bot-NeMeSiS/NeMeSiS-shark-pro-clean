@@ -4689,5 +4689,127 @@
       "en": "A new file was recorded, but the process did not finish successfully. Review diagnostics.",
       "fr": "Un nouveau fichier a été enregistré, mais le processus ne s'est pas terminé correctement. Consultez le diagnostic."
     }
+  },
+  "provider_access": {
+    "Suspensión comunicada": {
+      "en": "Suspension reported",
+      "fr": "Suspension signalée"
+    },
+    "Motivo sin confirmar: revisar el aviso y el consumo en la cuenta del proveedor.": {
+      "en": "Reason unconfirmed: review the notice and usage in the provider account.",
+      "fr": "Motif non confirmé : consultez le message et la consommation du compte fournisseur."
+    },
+    "Acceso rechazado": {
+      "en": "Access rejected",
+      "fr": "Accès refusé"
+    },
+    "Revisar el aviso de acceso del proveedor; no se ha confirmado un problema de pago.": {
+      "en": "Review the provider access notice; no payment issue has been confirmed.",
+      "fr": "Consultez le message d’accès du fournisseur ; aucun problème de paiement n’a été confirmé."
+    },
+    "Límite de consultas": {
+      "en": "Request limit",
+      "fr": "Limite de requêtes"
+    },
+    "Revisar el consumo y la hora de renovación del cupo antes de cambiar de plan.": {
+      "en": "Review usage and the quota reset time before changing plans.",
+      "fr": "Vérifiez la consommation et l’heure de renouvellement du quota avant de changer d’offre."
+    },
+    "Problema de conexión": {
+      "en": "Connection issue",
+      "fr": "Problème de connexion"
+    },
+    "Comprobar el resultado del siguiente ciclo automático.": {
+      "en": "Check the result of the next automatic cycle.",
+      "fr": "Vérifiez le résultat du prochain cycle automatique."
+    },
+    "Cobertura o plan limitado": {
+      "en": "Limited coverage or plan",
+      "fr": "Couverture ou offre limitée"
+    },
+    "Revisar fechas, competiciones y acceso incluidos en la suscripción; el rechazo no demuestra impago.": {
+      "en": "Review dates, competitions and access included in the subscription; rejection does not prove non-payment.",
+      "fr": "Vérifiez les dates, compétitions et accès inclus dans l’abonnement ; un refus ne prouve pas un impayé."
+    },
+    "Respuesta del proveedor pendiente de revisión": {
+      "en": "Provider response awaiting review",
+      "fr": "Réponse du fournisseur à examiner"
+    },
+    "Revisar el resultado registrado; no se ha confirmado la causa.": {
+      "en": "Review the recorded result; the cause has not been confirmed.",
+      "fr": "Examinez le résultat enregistré ; la cause n’a pas été confirmée."
+    },
+    "Calendario y resultados": {
+      "en": "Fixtures and results",
+      "fr": "Calendrier et résultats"
+    },
+    "Consultado durante el ciclo registrado": {
+      "en": "Checked during the recorded cycle",
+      "fr": "Vérifié lors du cycle enregistré"
+    },
+    "Observación reutilizada; sin comprobar de nuevo": {
+      "en": "Reused observation; not checked again",
+      "fr": "Observation réutilisée ; aucune nouvelle vérification"
+    },
+    "Sin observación nueva acreditada": {
+      "en": "No new observation confirmed",
+      "fr": "Aucune nouvelle observation confirmée"
+    },
+    "Detalles y comprobación": {
+      "en": "Details and check",
+      "fr": "Détails et vérification"
+    },
+    "Esta comprobación consulta al proveedor y puede consumir una solicitud.": {
+      "en": "This check contacts the provider and may use a request.",
+      "fr": "Cette vérification contacte le fournisseur et peut consommer une requête."
+    },
+    "Plan / pago": {
+      "en": "Plan / billing",
+      "fr": "Offre / paiement"
+    },
+    "Última evidencia": {
+      "en": "Last evidence",
+      "fr": "Dernière observation"
+    },
+    "Uso observado": {
+      "en": "Observed usage",
+      "fr": "Utilisation observée"
+    },
+    "Restante diario": {
+      "en": "Daily remaining",
+      "fr": "Solde quotidien"
+    },
+    "Sin uso confirmado": {
+      "en": "No confirmed usage",
+      "fr": "Aucune utilisation confirmée"
+    },
+    "Datos aportados": {
+      "en": "Data supplied",
+      "fr": "Données fournies"
+    },
+    "Sin observación reciente": {
+      "en": "No recent observation",
+      "fr": "Aucune observation récente"
+    },
+    "No verificable automáticamente": {
+      "en": "Not automatically verifiable",
+      "fr": "Non vérifiable automatiquement"
+    },
+    "No verificada manualmente": {
+      "en": "Not manually checked",
+      "fr": "Aucune vérification manuelle"
+    },
+    "Verificar ahora": {
+      "en": "Check now",
+      "fr": "Vérifier maintenant"
+    },
+    "reutilizado": {
+      "en": "reused",
+      "fr": "réutilisé"
+    },
+    "elementos": {
+      "en": "items",
+      "fr": "éléments"
+    }
   }
 }

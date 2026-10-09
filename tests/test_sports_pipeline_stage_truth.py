@@ -50,6 +50,11 @@ def test_diagnostics_identify_sportsdb_fallback_without_forwarding_provider_erro
 
     assert current["selected_source"] == "SPORTSDB_FALLBACK"
     assert current["api_football_primary"] == {
+        "failure_categories": [],
+        "failure_category": "",
+        "provider_observed_at": "",
+        "provider_observation_current": False,
+        "observation_scope": "NOT_ESTABLISHED",
         "state": "ERROR",
         "reason_code": "PROVIDER_ERROR",
         "failure_class": "",

@@ -146,6 +146,11 @@ from engines.api_exploitation_engine import (
     probe_api_football_account,
     run_api_exploitation_if_due,
 )
+from engines.provider_access_evidence import (
+    provider_stage_evidence as _provider_stage_evidence,
+    provider_failure_advice,
+    safe_failure_categories,
+)
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
@@ -1591,6 +1596,8 @@ def _sports_stage_reason_code(stage):
         return "NOT_CONFIGURED_OR_DISABLED"
     if stage.get("cached_provider_failure") is True:
         return "CACHED_PROVIDER_ERROR"
+    if _provider_stage_evidence(stage)["failure_category"] == "ACCOUNT_SUSPENDED":
+        return "AUTH_OR_ACCESS"
     raw = json.dumps(
         {"error": stage.get("error"), "errors": stage.get("errors")},
         ensure_ascii=True,
@@ -1991,6 +1998,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         "source_scope": "MATCH_WINDOW_PRIMARY_FALLBACK",
         "selected_source": selected_source,
         "api_football_primary": {
+            **_provider_stage_evidence(fixtures_stage),
             "state": _sports_diagnostic_text(fixtures_stage.get("status"), 80) or "UNKNOWN",
             "used": bool(primary_ok or primary_has_data),
             "data_contributed": primary_has_data,
@@ -2024,6 +2032,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "error_present": bool(fallback_stage.get("error") or fallback_stage.get("errors")),
         },
         "live_refresh": {
+            **_provider_stage_evidence(live_stage),
             "state": _sports_diagnostic_text(live_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(live_stage),
             "ok": live_stage.get("ok") if isinstance(live_stage.get("ok"), bool) else None,
@@ -2265,7 +2274,7 @@ def bounded_sports_sync(force=False):
         controlled, technical = [], []
         restricted = {"FREE_PLAN_RESTRICTED", "FREE_PLAN_SEASON_RESTRICTED", "SEASON_UNAVAILABLE",
                       "ENDPOINT_RESTRICTED", "COVERAGE_UNAVAILABLE", "SUBSCRIPTION_RESTRICTED",
-                      "ACCESS_RESTRICTED", "PLAN_OR_COVERAGE_OTHER"}
+                      "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "PLAN_OR_COVERAGE_OTHER"}
         for label in ("fixtures", "fallback", "live", "deep_enrichment", "grading"):
             stage = result.get(label) or {}
             status = str(stage.get("status") or "").upper()
@@ -2280,7 +2289,7 @@ def bounded_sports_sync(force=False):
             # including the first rejected observation. Ambiguous access errors
             # and fresh authentication/network failures remain technical FAIL.
             plan_limit = (
-                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED"}
+                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED"}
                 and status.startswith("PARTIAL_")
                 and _sports_stage_reason_code(stage) not in {"AUTH_OR_ACCESS", "NETWORK_OR_TIMEOUT", "RATE_OR_QUOTA"}
             )
@@ -2515,6 +2524,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "source_scope": _sports_diagnostic_text(raw_current_sync.get("source_scope"), 80) or "MATCH_WINDOW_PRIMARY_FALLBACK",
                 "selected_source": _sports_diagnostic_text(raw_current_sync.get("selected_source"), 80) or "UNKNOWN",
                 "api_football_primary": {
+                    **_provider_stage_evidence(raw_current_sync.get("api_football_primary")),
                     "state": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("state"), 80) or "UNKNOWN",
                     "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
                     "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
@@ -2545,6 +2555,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
                 },
                 "live_refresh": {
+                    **_provider_stage_evidence(raw_current_sync.get("live_refresh")),
                     "state": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
@@ -22897,6 +22908,7 @@ def v945_provider_health_snapshot():
     pipeline = compact.get("sports_pipeline") if isinstance(compact, dict) and isinstance(compact.get("sports_pipeline"), dict) else {}
     current = pipeline.get("current_sync") if isinstance(pipeline.get("current_sync"), dict) else {}
     api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
+    api_live = current.get("live_refresh") if isinstance(current.get("live_refresh"), dict) else {}
     sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
     odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
     access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
@@ -22916,17 +22928,23 @@ def v945_provider_health_snapshot():
         joined = f"{state} {reason}".upper()
         contributed = bool(observed.get("data_contributed")) or as_int(observed.get("processed"), 0) > 0 or as_int(observed.get("fixtures_count"), 0) > 0
         ok_value = observed.get("ok") if isinstance(observed.get("ok"), bool) else None
-        restricted = any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
+        failure_evidence = _provider_stage_evidence(observed)
+        failure = failure_evidence["failure_category"]
+        restricted = bool(failure) or any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
         if not configured and key != "sportsdb":
             status = "NO_CONFIGURADA"
             label_status = "No configurada"
             severity = "danger"
             action = "Configurar credenciales en Render"
+        elif failure in {"ACCOUNT_SUSPENDED", "AUTH_OR_ACCESS", "ACCESS_RESTRICTED", "RATE_OR_QUOTA", "NETWORK_OR_TIMEOUT", "PROVIDER_RESPONSE", "UNKNOWN_PROVIDER_ERROR"}:
+            status = "REVISAR_" + failure
+            label_status, action = provider_failure_advice(failure)
+            severity = "warning"
         elif restricted:
             status = "REVISAR_PLAN_ACCESO"
             label_status = "Revisar acceso/plan"
             severity = "warning"
-            action = "Revisar suscripción, plan y permisos del proveedor"
+            action = provider_failure_advice(failure or "PLAN_OR_COVERAGE")[1]
         elif "CACHE" in joined:
             status = "CACHE"
             label_status = "Usando caché"
@@ -22945,9 +22963,8 @@ def v945_provider_health_snapshot():
         billing_status = billing_hint or "No verificable automáticamente"
         if plan_value:
             billing_status = f"Plan observado: {plan_value}"
-        elif restricted:
-            billing_status = "Acceso limitado; revisar suscripción"
         return {
+            **failure_evidence,
             "key": key,
             "label": label,
             "configured": bool(configured),
@@ -22967,9 +22984,31 @@ def v945_provider_health_snapshot():
         }
 
     plan_value = plan.get("value") if str(plan.get("state") or "").upper() == "OBSERVED" else None
+    observations = []
+    for lane_label, lane in (("Calendario y resultados", api_football), ("Directo", api_live)):
+        if not lane:
+            continue
+        evidence = _provider_stage_evidence(lane)
+        evidence["lane_label"] = lane_label
+        evidence["issues"] = [provider_failure_advice(category)[0] for category in evidence["failure_categories"]]
+        evidence["scope_label"] = {
+            "CURRENT_CYCLE": "Consultado durante el ciclo registrado",
+            "REUSED": "Observación reutilizada; sin comprobar de nuevo",
+            "NOT_ESTABLISHED": "Sin observación nueva acreditada",
+        }[evidence["observation_scope"]]
+        observations.append(evidence)
+    combined_failures = safe_failure_categories([
+        category for item in observations for category in item["failure_categories"]
+    ])
     api_card = provider_card(
-        "api_football", "API-Football / API-Sports", api_football_configured, api_football,
+        "api_football", "API-Football / API-Sports", api_football_configured,
+        {**api_football, "failure_categories": combined_failures},
         plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
+    )
+    api_card["observations"] = observations
+    # A fresh calendar receipt cannot refresh an older live-access rejection.
+    api_card["provider_observation_current"] = bool(observations) and all(
+        item["provider_observation_current"] for item in observations
     )
     if access:
         api_card["access_state"] = access.get("state") or "UNKNOWN"
@@ -23007,7 +23046,7 @@ def v945_provider_health_snapshot():
             )
     alerts = [
         {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
-        for item in providers if item["status"] in {"NO_CONFIGURADA", "REVISAR_PLAN_ACCESO"}
+        for item in providers if item["status"] == "NO_CONFIGURADA" or item["status"].startswith("REVISAR_")
     ]
     selected_source = current.get("selected_source") or "NO_CONFIRMED_SOURCE"
     return {

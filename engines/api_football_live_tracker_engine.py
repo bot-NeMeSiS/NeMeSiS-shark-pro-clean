@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
 from engines.match_record_archive import record_observation, utc_stamp, archive_health
+from engines.provider_access_evidence import FAILURE_PRIORITY, safe_failure_categories, provider_stage_evidence
 
 API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TIMEZONE = "Europe/Madrid"
@@ -146,6 +147,9 @@ def _safe_provider_failure_category(payload: Mapping[str, Any] | None) -> str:
         ensure_ascii=True,
         default=str,
     ).lower()[:2000]
+    if re.search(r"\baccount (?:is|has been) suspended\b", raw):
+        # The provider does not say why. Do not infer quota, billing or abuse.
+        return "ACCOUNT_SUSPENDED"
     if any(token in raw for token in ("401", "403", "unauthor", "forbidden", "invalid key", "api key", "api_key", "access denied", "authentication")):
         return "AUTH_OR_ACCESS"
     if any(token in raw for token in ("429", "quota", "rate limit", "too many", "request limit", "daily limit")):
@@ -212,6 +216,36 @@ def _safe_provider_error_shape(payload: Mapping[str, Any] | None) -> str:
     if data.get("error"):
         return "ERROR_EXCEPTION_OR_HTTP"
     return ""
+
+
+def _provider_failure_labels(payload):
+    """Keep simultaneous access and plan rejections instead of only one label."""
+    labels = [_safe_provider_state_label(payload)]
+    if payload.get("ok") is not True and isinstance(payload.get("errors"), Mapping):
+        for key, value in payload["errors"].items():
+            labels.append(_safe_provider_state_label({"ok": False, "errors": {key: value}}))
+    return safe_failure_categories(labels)
+
+
+def _cached_failure_evidence(row, error):
+    recorded = {}
+    if row:
+        try:
+            parsed = json.loads(row["evidence_json"] or "{}")
+            recorded = parsed if isinstance(parsed, dict) else {}
+        except (TypeError, ValueError):
+            pass
+    # Closed persisted labels survive truncation of the legacy error summary.
+    labels = provider_stage_evidence({**recorded, "status": row["status"] if row else ""})["failure_categories"]
+    if error:
+        labels += _provider_failure_labels({"ok": False, "error": error})
+    labels = safe_failure_categories(labels)
+    return {
+        "failure_categories": labels,
+        "failure_category": labels[0] if labels else "",
+        "provider_observed_at": str(row["last_sync_at"] or "") if row else "",
+        "provider_observation_current": False,
+    }
 
 
 def _as_int(value: Any, default: int = 0) -> int:
@@ -613,15 +647,12 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             state["matches"] = live_tracker_matches(db_path, limit=80)
             return state
         cached_live_row = conn.execute(
-            "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key='live'"
+            "SELECT status, fixtures_count, error, last_sync_at, substr(payload_json,1,16384) AS evidence_json FROM api_football_live_sync_state WHERE key='live'"
         ).fetchone()
         cached_live_status = str((cached_live_row["status"] if cached_live_row else "") or "").strip().upper()
         cached_live_error = str((cached_live_row["error"] if cached_live_row else "") or "")
-        cached_live_failure = (
-            _safe_provider_state_label({"ok": False, "error": cached_live_error})
-            if cached_live_error
-            else ""
-        )
+        cached_evidence = _cached_failure_evidence(cached_live_row, cached_live_error)
+        cached_live_failure = cached_evidence["failure_category"]
         plan_failure_labels = {
             "FREE_PLAN_SEASON_RESTRICTED",
             "SEASON_UNAVAILABLE",
@@ -634,7 +665,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         cached_live_shape = "ERROR_KEY_ACCESS" if "ERROR_KEY_ACCESS" in cached_live_status else ""
         restricted_failure_category = (
             cached_live_failure
-            if cached_live_failure in plan_failure_labels
+            if cached_live_failure in plan_failure_labels | {"ACCOUNT_SUSPENDED"}
             else "ACCESS_RESTRICTED"
             if cached_live_shape == "ERROR_KEY_ACCESS"
             else ""
@@ -656,6 +687,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         ):
             matches = _live_tracker_matches_from_conn(conn, limit=100)
             return {
+                **cached_evidence,
                 "ok": True,
                 "configured": True,
                 "enabled": True,
@@ -678,7 +710,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             }
         if not force and age < cache_seconds:
             matches = _live_tracker_matches_from_conn(conn, limit=100)
-            return {"ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "matches": matches, "fixtures_count": len(matches), "external_calls": 0, "message": "Caché live API-Football reutilizada."}
+            return {**cached_evidence, "ok": True, "configured": True, "enabled": True, "status": "cache", "cache_age_seconds": age, "matches": matches, "fixtures_count": len(matches), "external_calls": 0, "message": "Caché live API-Football reutilizada."}
 
         deep_limit = deep_limit if deep_limit is not None else _as_int(os.getenv("API_FOOTBALL_LIVE_DEEP_LIMIT", "8"), 8)
         timezone_name = os.getenv("APP_TIMEZONE") or os.getenv("TZ") or DEFAULT_TIMEZONE
@@ -693,7 +725,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
         provider_failure_categories: list[str] = []
         if not live_payload.get("ok"):
             errors.append(str(live_payload.get("error") or live_payload.get("errors") or "Error API-Football live")[:220])
-            provider_failure_categories.append(_safe_provider_state_label(live_payload))
+            provider_failure_categories.extend(_provider_failure_labels(live_payload))
         for item in fixtures:
             fixtures_count += _upsert_fixture(conn, item)
         conn.commit()
@@ -710,7 +742,7 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
                 events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
             else:
                 errors.append(str(ev_payload.get("error") or ev_payload.get("errors") or "Eventos no disponibles")[:180])
-                provider_failure_categories.append(_safe_provider_state_label(ev_payload))
+                provider_failure_categories.extend(_provider_failure_labels(ev_payload))
             # Persist the previous received section before provider I/O.
             conn.commit()
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
@@ -719,24 +751,9 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
                 stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
             else:
                 errors.append(str(st_payload.get("error") or st_payload.get("errors") or "Estadísticas no disponibles")[:180])
-                provider_failure_categories.append(_safe_provider_state_label(st_payload))
-        failure_priority = (
-            "AUTH_OR_ACCESS",
-            "RATE_OR_QUOTA",
-            "NETWORK_OR_TIMEOUT",
-            "FREE_PLAN_SEASON_RESTRICTED",
-            "SEASON_UNAVAILABLE",
-            "FREE_PLAN_RESTRICTED",
-            "ENDPOINT_RESTRICTED",
-            "COVERAGE_UNAVAILABLE",
-            "SUBSCRIPTION_RESTRICTED",
-            "PLAN_OR_COVERAGE_OTHER",
-            "PLAN_OR_COVERAGE",
-            "PROVIDER_RESPONSE",
-            "UNKNOWN_PROVIDER_ERROR",
-        )
+                provider_failure_categories.extend(_provider_failure_labels(st_payload))
         safe_failure_category = next(
-            (category for category in failure_priority if category in provider_failure_categories),
+            (category for category in FAILURE_PRIORITY if category in provider_failure_categories),
             "",
         )
         safe_error_shape = _safe_provider_error_shape(live_payload) if not live_payload.get("ok") else ""
@@ -758,6 +775,9 @@ def sync_api_football_live_tracker(db_path: str, force: bool = False, deep_limit
             "external_calls": external_calls,
             "cache_age_seconds": 0,
             "failure_category": safe_failure_category,
+            "failure_categories": safe_failure_categories(provider_failure_categories),
+            "provider_observed_at": _now_iso(),
+            "provider_observation_current": external_calls > 0,
             "failure_shape": safe_error_shape,
             "errors": errors[:8],
             "message": "API-Football live sincronizado con caché y límites." if fixtures_count else "Sin partidos live devueltos por API-Football ahora mismo.",
@@ -1419,19 +1439,17 @@ def sync_api_football_match_window(
         age = _last_sync_age_for_key(conn, _state_key_for_window())
         if not force and age < cache_seconds:
             cached_row = conn.execute(
-                "SELECT status, fixtures_count, error FROM api_football_live_sync_state WHERE key=?",
+                "SELECT status, fixtures_count, error, last_sync_at, substr(payload_json,1,16384) AS evidence_json FROM api_football_live_sync_state WHERE key=?",
                 (_state_key_for_window(),),
             ).fetchone()
             cached_status = str((cached_row["status"] if cached_row else "") or "").strip().upper()
             cached_fixtures = _as_int(cached_row["fixtures_count"] if cached_row else 0, 0)
             cached_error = str((cached_row["error"] if cached_row else "") or "")
-            cached_failure_category = (
-                _safe_provider_state_label({"ok": False, "error": cached_error})
-                if cached_error
-                else ""
-            )
+            cached_evidence = _cached_failure_evidence(cached_row, cached_error)
+            cached_failure_category = cached_evidence["failure_category"]
             if cached_status == "OK":
                 return {
+                    **cached_evidence,
                     "ok": True,
                     "configured": True,
                     "enabled": True,
@@ -1442,6 +1460,7 @@ def sync_api_football_match_window(
                     "message": "Ventana API-Football reutilizada para proteger créditos.",
                 }
             return {
+                **cached_evidence,
                 "ok": False,
                 "configured": True,
                 "enabled": True,
@@ -1470,7 +1489,7 @@ def sync_api_football_match_window(
             calls += 1
             if not payload.get("ok"):
                 errors.append(str(payload.get("error") or payload.get("errors") or f"error_fixtures_{date_value}")[:220])
-                provider_failure_categories.append(_safe_provider_state_label(payload))
+                provider_failure_categories.extend(_provider_failure_labels(payload))
                 continue
             for item in payload.get("response") or []:
                 fixtures_count += _upsert_fixture(conn, item)
@@ -1500,7 +1519,7 @@ def sync_api_football_match_window(
                 events_count += _upsert_events(conn, fixture_id, ev_payload.get("response") or [])
             else:
                 errors.append("Eventos no disponibles")
-                provider_failure_categories.append(_safe_provider_state_label(ev_payload))
+                provider_failure_categories.extend(_provider_failure_labels(ev_payload))
             # Persist the previous received section before provider I/O.
             conn.commit()
             st_payload = _api_get("fixtures/statistics", {"fixture": fixture_id})
@@ -1509,7 +1528,7 @@ def sync_api_football_match_window(
                 stats_count += _upsert_statistics(conn, fixture_id, st_payload.get("response") or [])
             else:
                 errors.append("Estadísticas no disponibles")
-                provider_failure_categories.append(_safe_provider_state_label(st_payload))
+                provider_failure_categories.extend(_provider_failure_labels(st_payload))
             deep_done += 1
         state = {
             "ok": not bool(errors),
@@ -1521,21 +1540,7 @@ def sync_api_football_match_window(
                 else "PARTIAL_" + next(
                     (
                         category
-                        for category in (
-                            "AUTH_OR_ACCESS",
-                            "RATE_OR_QUOTA",
-                            "NETWORK_OR_TIMEOUT",
-                            "FREE_PLAN_SEASON_RESTRICTED",
-                            "SEASON_UNAVAILABLE",
-                            "FREE_PLAN_RESTRICTED",
-                            "ENDPOINT_RESTRICTED",
-                            "COVERAGE_UNAVAILABLE",
-                            "SUBSCRIPTION_RESTRICTED",
-                            "PLAN_OR_COVERAGE_OTHER",
-                            "PLAN_OR_COVERAGE",
-                            "PROVIDER_RESPONSE",
-                            "UNKNOWN_PROVIDER_ERROR",
-                        )
+                        for category in FAILURE_PRIORITY
                         if category in provider_failure_categories
                     ),
                     "PROVIDER_RESPONSE",
@@ -1547,6 +1552,9 @@ def sync_api_football_match_window(
             "stats_count": stats_count,
             "external_calls": calls,
             "cache_seconds": cache_seconds,
+            "failure_categories": safe_failure_categories(provider_failure_categories),
+            "provider_observed_at": _now_iso(),
+            "provider_observation_current": calls > 0,
             "dates": dates,
             "message": "Ventana API-Football sincronizada: resultados/minutos/caché actualizados sin inventar datos.",
             "errors": errors[:8],
