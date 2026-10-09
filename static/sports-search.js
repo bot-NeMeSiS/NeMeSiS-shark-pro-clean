@@ -112,7 +112,13 @@
       }
       if (event.key === 'Enter' && active >= 0) { event.preventDefault(); event.stopPropagation(); choose(items[active]); }
     });
-    input.addEventListener('blur', () => setTimeout(close, 0));
+    input.addEventListener('blur', () => {
+      const blurredSequence = sequence;
+      setTimeout(() => {
+        // Returning to edit invalidates a queued departure from the old query.
+        if (blurredSequence === sequence && document.activeElement !== input) close();
+      }, 0);
+    });
     input.closest('dialog')?.addEventListener('close', close);
     document.addEventListener('pointerdown', event => { if (event.target !== input && !panel.contains(event.target)) close(); });
   });

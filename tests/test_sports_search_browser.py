@@ -155,6 +155,39 @@ def test_keyboard_navigation_explorer_error_and_selection_invalidation(browser, 
         context.close()
 
 
+def test_queued_blur_cannot_cancel_a_new_query_after_selection(browser,app_module,monkeypatch,sports_catalogue):
+    context,page,errors,calls = mount(browser,app_module,monkeypatch,sports_catalogue)
+    try:
+        search = page.locator('#favorite-find')
+        search.fill('granada fem')
+        options = page.locator('#favorite-discovery [role=option]')
+        expect(options).to_have_count(1)
+        # Reproduce the event ordering without waiting or changing the clock:
+        # selection focuses Save, then editing returns before its queued blur runs.
+        page.evaluate('''() => {
+          const input = document.getElementById('favorite-find');
+          const button = document.querySelector('[data-sports-selection="favorite-discovery"] button[type="submit"]');
+          button.addEventListener('focus', () => {
+            input.focus();
+            input.value = 'zzmissing';
+            input.dispatchEvent(new Event('input', {bubbles:true}));
+          }, {once:true});
+        }''')
+        search.press('ArrowDown'); search.press('Enter')
+        expect(search).to_be_focused()
+        expect(page.locator('[data-sports-selection="favorite-discovery"]')).to_be_hidden()
+        panel = page.locator('#favorite-discovery')
+        expect(panel).to_be_visible()
+        expect(panel).to_contain_text('Sin coincidencias')
+        assert any(path == '/api/sports-search' and 'q=zzmissing' in query for _,path,query in calls)
+        # A real departure still closes the panel.
+        search.press('Tab')
+        expect(panel).to_be_hidden()
+        assert not errors and all(method == 'GET' for method,_,_ in calls)
+    finally:
+        context.close()
+
+
 def test_stale_response_and_composition_do_not_replace_current_results(browser,app_module,monkeypatch,sports_catalogue):
     context,page,errors,calls = mount(browser,app_module,monkeypatch,sports_catalogue)
     try:
