@@ -105,7 +105,9 @@ def test_telegram_preferences_remain_operable(browser, page_html, width, plan, j
         assert submit.is_visible(), "Mobile CSS must not hide the preferences submit action"
         submit.scroll_into_view_if_needed()
         submit.click(trial=True)  # Actionability only; never submit or write data.
-        assert submit.bounding_box()["height"] >= 44
+        # Chromium's transformed bounding box can report 43.999969 for a
+        # 44px control. Allow only numeric rounding, not a smaller touch target.
+        assert submit.bounding_box()["height"] >= 44 - 0.0001
 
         checks = form.locator('input[type="checkbox"]')
         assert checks.count() >= 2
@@ -114,7 +116,7 @@ def test_telegram_preferences_remain_operable(browser, page_html, width, plan, j
             assert 16 <= rect["width"] <= 24, rect
             assert 16 <= rect["height"] <= 24, rect
             label = checkbox.locator("xpath=ancestor::label")
-            assert label.bounding_box()["height"] >= 44
+            assert label.bounding_box()["height"] >= 44 - 0.0001
             assert label.inner_text().strip()
 
         pause = form.locator('input[name="pause_all"]')

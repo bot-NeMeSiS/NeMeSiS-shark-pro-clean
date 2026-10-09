@@ -37,6 +37,9 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='app-navigation.css') }}?v=1">
+  {% if request.endpoint in ['favorites_page', 'admin_backups_page'] %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='account-collections.css') }}?v=1">
+  {% endif %}
   <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=1"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
