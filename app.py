@@ -19997,7 +19997,7 @@ def home():
         return Response("", status=200)
     summary = get_public_home_sports_summary()
     data = home_light_data(summary, include_payments=False)
-    data["personal_home"] = personal_home_agenda(summary)
+    # Favorites remain available on their own page; Home opens with the agenda.
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v934_realtime"] = get_v934_realtime_context(summary)
     return render_template("home.html", data=data, title="NeMeSiS SHARK PRO | Deporte con contexto", meta_description="Partidos, equipos, competiciones y SHARK con datos reales, evidencia y limites visibles.", canonical_url=url_for("home", _external=True))
@@ -20017,6 +20017,25 @@ def personal_home_agenda(summary):
                                 status_for=canonical_match_status,
                                 kickoff_for=match_kickoff_madrid_dt,
                                 now=datetime.now(MADRID_TZ))
+
+
+def home_matchday_context(summary, favorites=None):
+    """Present the full existing snapshot without new reads or provider calls."""
+    from engines.home_matchday import build_matchday
+    source = []
+    for key in ('valid_live_events', 'all_valid_matches', 'valid_matches_today',
+                'valid_upcoming_matches', 'finished_matches'):
+        source.extend(summary.get(key) or [])
+    result = build_matchday(source, now=datetime.now(MADRID_TZ),
+        status_for=canonical_match_status, kickoff_for=match_kickoff_madrid_dt,
+        priority_for=sports_competition_priority)
+    favorites = _normalized_sports_favorites(favorites)
+    for lane in ('live', 'today', 'upcoming', 'results'):
+        for group in result[lane]['groups']:
+            for match in group['matches']:
+                match['is_favorite'] = _sports_match_favorite(
+                    {**match, 'is_favorite': False}, favorites=favorites)
+    return result
 
 
 @app.route("/favicon.ico")
@@ -32965,7 +32984,7 @@ def v757_client_app_center_page():
     # presentation contexts that are not consumed by this template or base.
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
     data["membership"] = v566_membership_ui(user)
-    data["personal_home"] = personal_home_agenda(summary)
+    data["home_matchday"] = home_matchday_context(summary, favorites=favorite_sets())
     data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
