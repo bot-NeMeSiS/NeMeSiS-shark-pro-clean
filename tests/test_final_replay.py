@@ -47,6 +47,13 @@ def replay(app_module, tmp_path, monkeypatch):
     monkeypatch.setattr(app, '_SEEDING_DB_PATH', None)
     app.init_db()
     clock = [datetime.fromisoformat(CLOCKS[1])]
+    # Every date-sensitive presentation must use this historical replay's clock,
+    # including Home's recent-results window. Production clocks are untouched.
+    class ReplayDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return clock[0].astimezone(tz) if tz else clock[0].replace(tzinfo=None)
+    monkeypatch.setattr(app, 'datetime', ReplayDateTime)
     original_now = truth.madrid_now
     monkeypatch.setattr(truth, 'madrid_now', lambda value=None: original_now(value or clock[0]))
     from engines import realtime_state_engine, v934_realtime_sports_engine
