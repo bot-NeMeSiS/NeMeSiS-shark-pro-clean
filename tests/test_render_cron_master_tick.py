@@ -707,6 +707,25 @@ def test_backup_error_classifier_never_echoes_secret():
     assert master.backup_error_code("backup_temporary_recovery_failed", secret) == "BACKUP_CLEANUP"
 
 
+def test_backup_timings_are_closed_numeric_and_keep_timeout_failure(monkeypatch):
+    secret = "private-timing-secret"
+    payload = {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+               "failure_stage": "INTEGRITY", "stage_durations_ms": {
+                   "SNAPSHOT": 2150, "INTEGRITY": 12850, "CLEANUP": 900,
+                   "HASH": secret, "METADATA": True, "SYNC": -1,
+                   secret: 15, "PRIVATE_PATH": "/data/private", "RETENTION": 999999999,
+               }}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *a, **k: MockResponse(payload))
+    result = master.backup_tick("https://example.invalid", secret)
+    assert result["backup_stage_durations_ms"] == {
+        "SNAPSHOT": 2150, "INTEGRITY": 12850, "CLEANUP": 900, "RETENTION": 86400000}
+    assert result["backup_status"] == "FAIL" and not result["backup_created"]
+    assert result["backup_error_code"] == "BACKUP_TIMEOUT"
+    assert secret not in json.dumps(result) and "/data/private" not in json.dumps(result)
+    payload["stage_durations_ms"] = [secret]
+    assert master.backup_tick("https://example.invalid", secret)["backup_stage_durations_ms"] == {}
+
+
 def test_backup_recovery_telemetry_preserves_failure_and_excludes_paths(monkeypatch):
     secret = "private-qa-secret"
     payload = {"ok": False, "backup_created": True, "error": "backup_temporary_cleanup_failed",
