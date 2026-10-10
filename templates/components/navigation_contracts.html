@@ -59,11 +59,20 @@
   ('Directo','/directo','live'),
   ('Resultados','/calendario?lane=finished','history'),
   ('Competiciones','/competiciones','trophy'),
+  ('Ver resumen en vídeo','/resumenes','play')
+] %}
+{% set DISCOVERY_ANALYSIS = [
   ('Pronósticos','/picks','target'),
   ('Combinadas','/combinadas','target'),
   ('Historial','/historico','history'),
   ('SHARK','/shark','shark')
 ] %}
+{# Search aliases are app-owned terms only; provider names are never rewritten. #}
+{% set DISCOVERY_SEARCH = {
+  '/resumenes': 'resúmenes resumen vídeo vídeos video videos highlights goles mejores jugadas',
+  '/picks': 'picks pick pronósticos pronóstico',
+  '/historico': 'historial pronósticos rendimiento acierto rentabilidad ROI track record'
+} %}
 {% set DISCOVERY_ACCOUNT = [
   ('Favoritos','/favoritos','star'),
   ('Actividad','/actividad','history'),
@@ -90,11 +99,11 @@
 {%- set results_center = clean_href == '/calendario' and ('lane=finished' in href or 'lane=today' in href) -%}
 {%- if (not contextual or results_center) and (
        path == clean_href
-       or (clean_href == '/calendario' and (path in calendar_aliases or path in ['/directo','/live','/resultados','/equipos','/competiciones','/mercados'] or path.startswith(('/team/','/equipo/','/competition/','/competicion/','/match/'))))
+       or (clean_href == '/calendario' and (path in calendar_aliases or (path in ['/resultados','/equipos','/competiciones','/mercados','/highlights','/resumenes','/resumenes-partidos'] or (scope == 'client' and path in ['/directo','/live'])) or path.startswith(('/team/','/equipo/','/competition/','/competicion/','/match/','/resumen/','/resumenes/','/highlight/'))))
        or (clean_href == '/directo' and path in live_aliases)
        or (clean_href == '/historico' and path in history_aliases)
-       or (clean_href == '/picks' and (path in picks_aliases or path in ['/historico','/track-record']))
-       or (clean_href == '/mi-cuenta' and (path in account_aliases or path in ['/telegram','/membresias','/favoritos','/alertas']))
+       or (clean_href == '/picks' and (path in picks_aliases or (scope == 'client' and path in ['/historico','/track-record'])))
+       or (clean_href == '/mi-cuenta' and (path in account_aliases or path in ['/telegram','/membresias','/memberships','/favoritos','/favorites','/alertas','/notificaciones','/actividad','/user-intelligence']))
        or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
        or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/'))
     ) -%}1{%- endif -%}
