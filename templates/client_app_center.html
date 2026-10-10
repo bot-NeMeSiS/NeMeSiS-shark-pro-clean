@@ -31,7 +31,7 @@
   {% if (day and day.live.shown) or (not day and live_matches) %}
   <section class="ns16-section ns16-live-priority" data-sports-priority="live-now">
     {{ section_header('En directo', '', 'Abrir Directo', '/directo', 'DIRECTO') }}
-    {% if day %}{{ competition_groups(day.live.groups) }}{{ remaining(day.live, '/directo') }}
+    {% if day %}{{ competition_groups(day.live.groups, section='live') }}{{ remaining(day.live, '/directo') }}
     {% else %}<div class="ns16-match-row">{% for match in live_matches[:3] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
   </section>
   {% endif %}
@@ -46,8 +46,8 @@
     <div class="ns16-home-primary">
       <section class="ns16-section ns16-home-sports" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
         {% if day %}
-          {{ section_header('Partidos de hoy', '', 'Calendario completo', '/calendario') }}
-          {% if day.today.shown %}{{ competition_groups(day.today.groups) }}{{ remaining(day.today, '/calendario') }}
+          {{ section_header('Partidos de hoy', 'Por liga · Hora Madrid', 'Calendario completo', '/calendario') }}
+          {% if day.today.shown %}{{ competition_groups(day.today.groups, section='today') }}{{ remaining(day.today, '/calendario') }}
           {% elif safe.get('provider_status') == 'temporarily_unavailable' %}<div data-home-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', '/app', 'calendar') }}</div>
           {% else %}<p class="home-agenda-note">{{ ui('No hay más partidos programados para hoy entre los datos disponibles.') }}</p>{% endif %}
         {% else %}
@@ -63,7 +63,7 @@
       <section class="ns16-section" data-sports-priority="upcoming">
         {{ section_header('Próximos partidos', '', 'Semana completa', '/calendario?lane=week') }}
         {% if day %}
-          {% if day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true) }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
+          {% if day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='upcoming') }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
           {% else %}<p class="home-agenda-note">{{ ui('Los próximos encuentros aparecerán aquí cuando estén disponibles.') }}</p>{% endif %}
         {% elif upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% endif %}
       </section>
@@ -71,7 +71,7 @@
       <section class="ns16-section" data-sports-priority="recent-results">
         {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished') }}
         {% if day %}
-          {% if day.results.shown %}{{ competition_groups(day.results.groups, true) }}{{ remaining(day.results, '/calendario?lane=finished') }}
+          {% if day.results.shown %}{{ competition_groups(day.results.groups, true, section='results') }}{{ remaining(day.results, '/calendario?lane=finished') }}
           {% else %}<p class="home-agenda-note">{{ ui('Sin resultados recientes verificados') }}</p>{% endif %}
         {% elif recent_results or favorite_matches %}<div class="ns16-match-row is-two">{% for match in (recent_results + favorite_matches)[:4] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% endif %}
       </section>
