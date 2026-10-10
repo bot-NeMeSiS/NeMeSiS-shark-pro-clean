@@ -14,8 +14,12 @@ from pathlib import Path
 from typing import Any
 
 
-PUBLIC_NAV = ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
-MOBILE_NAV = ("/", "/calendario", "/directo", "/picks", "/cliente-login")
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+PUBLIC_NAV = ("/", "/calendario?lane=finished", "/directo", "/picks", "/historico", "/shark")
+MOBILE_NAV = ("/", "/calendario?lane=finished", "/directo", "/picks", "/cliente-login")
 CRITICAL_PAGES = ("/", "/calendar", "/live", "/picks", "/shark", "/track-record")
 ENTITY_PATH_PREFIXES = ("/match/", "/team/", "/competition/", "/player/")
 MOJIBAKE = re.compile(r"(?:Actualizaci\?n|Ã.|Â.|â€|�)")
@@ -221,6 +225,80 @@ def build_post_deploy_result(
     }
 
 
+def _navigation_url_matches(actual_url: str, target: str, base_url: str) -> bool:
+    """Compare origin, path AND query; never accept a different calendar lane."""
+    if not actual_url or not target or not base_url:
+        return False
+    try:
+        base = urllib.parse.urlsplit(base_url)
+        actual = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, actual_url))
+        expected = urllib.parse.urlsplit(urllib.parse.urljoin(base_url, target))
+        if base.scheme not in {"http", "https"} or not base.netloc:
+            return False
+        if (actual.scheme, actual.netloc) != (base.scheme, base.netloc):
+            return False
+        if (expected.scheme, expected.netloc) != (base.scheme, base.netloc):
+            return False
+        return (
+            actual.path == expected.path
+            and sorted(urllib.parse.parse_qsl(actual.query, keep_blank_values=True))
+            == sorted(urllib.parse.parse_qsl(expected.query, keep_blank_values=True))
+            and actual.fragment == expected.fragment
+        )
+    except (ValueError, TypeError):
+        return False
+
+
+def _stylesheet_evidence(
+    metrics: dict[str, Any],
+    markup: str,
+    base_url: str,
+    expected_version: str,
+    expected_href: str,
+) -> dict[str, Any]:
+    """Require the exact canonical link, active CSSOM and observed HTTP 200 delivery."""
+    from engines.canonical_assets import CSS_PATH, canonical_css_href
+
+    href = canonical_css_href(markup, expected_version) if expected_version else ""
+    resolved = urllib.parse.urljoin(base_url, href) if href else ""
+    expected_url = urllib.parse.urljoin(base_url, expected_href) if expected_href else ""
+    links = [
+        item for item in metrics.get("stylesheetLinks") or []
+        if urllib.parse.urlsplit(str(item.get("href") or "")).path == CSS_PATH
+    ]
+    link = links[0] if len(links) == 1 else {}
+    # A CSSOM object can exist even for a CSS response carrying an HTTP error.
+    # Only response events from this navigation may prove successful delivery.
+    http_statuses = [
+        item.get("status") for item in metrics.get("stylesheetResponses") or []
+        if item.get("url") == resolved
+    ]
+    http_ok = bool(http_statuses) and all(status == 200 for status in http_statuses)
+    loaded = (
+        bool(resolved)
+        and resolved in (metrics.get("resources") or [])
+        and link.get("href") == resolved
+        and link.get("sheetLoaded") is True
+        and link.get("disabled") is False
+        and link.get("mediaMatches") is True
+    )
+    version_matches = (
+        bool(href and expected_href)
+        and _navigation_url_matches(resolved, expected_href, base_url)
+    )
+    return {
+        "pass": bool(version_matches and loaded and http_ok),
+        "expected_href": expected_href,
+        "observed_href": href,
+        "expected_url": expected_url,
+        "version_matches": bool(version_matches),
+        "active_loaded_sheet": bool(loaded),
+        "http_delivery_verified": http_ok,
+        "http_statuses": http_statuses,
+        "canonical_links": len(links),
+    }
+
+
 def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) -> list[dict[str, Any]]:
     page._sentinel_phase = "QA_NAVIGATION"
     results: list[dict[str, Any]] = []
@@ -229,19 +307,28 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
         locator = page.locator(f'[data-nav-zone="{zone}"] a[href="{path}"]').first
         found = locator.count() == 1 and locator.is_visible()
         final_path = ""
+        final_query = ""
+        final_url = ""
         error = ""
         if found:
             try:
                 locator.click(timeout=10_000)
-                page.wait_for_load_state("domcontentloaded", timeout=30_000)
-                final_path = urllib.parse.urlparse(page.url).path
+                page.wait_for_url(
+                    lambda url: _navigation_url_matches(str(url), path, base_url),
+                    wait_until="domcontentloaded", timeout=30_000,
+                )
+                final_url = page.url
+                destination = urllib.parse.urlsplit(final_url)
+                final_path, final_query = destination.path, destination.query
             except Exception as exc:
                 error = type(exc).__name__
         results.append({
             "href": path,
             "found": found,
             "final_path": final_path,
-            "pass": found and final_path == path and not error,
+            "final_query": final_query,
+            "final_url": final_url,
+            "pass": bool(found and not error and _navigation_url_matches(final_url, path, base_url)),
             "error": error,
         })
     return results
@@ -249,12 +336,22 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
 
 def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     page._sentinel_phase = "CRITICAL_PAGE"
+    stylesheet_responses: list[dict[str, Any]] = []
+
+    def record_stylesheet_response(resource: Any) -> None:
+        if resource.request.resource_type == "stylesheet":
+            stylesheet_responses.append({"url": resource.url, "status": resource.status})
+
+    page.on("response", record_stylesheet_response)
     started = time.perf_counter()
-    response = page.goto(
-        urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
-        wait_until="networkidle",
-        timeout=45_000,
-    )
+    try:
+        response = page.goto(
+            urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
+            wait_until="networkidle",
+            timeout=45_000,
+        )
+    finally:
+        page.remove_listener("response", record_stylesheet_response)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     metrics = page.evaluate(
         """() => ({
@@ -283,7 +380,12 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           }),
           text: document.body ? document.body.innerText : '',
           shell: Boolean(document.querySelector('[data-v933-surface]')),
-          cssVersioned: [...document.querySelectorAll('link[rel="stylesheet"]')].some((link) => /app\\.css\\?v=/.test(link.href)),
+          stylesheetLinks: [...document.querySelectorAll('link[rel~="stylesheet"]')].map((link) => ({
+            href: link.href,
+            sheetLoaded: Boolean(link.sheet),
+            disabled: Boolean(link.disabled || (link.sheet && link.sheet.disabled)),
+            mediaMatches: !link.media || window.matchMedia(link.media).matches,
+          })),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
           officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-app-icon"]')].map((img) => ({
             url: img.currentSrc || img.src,
@@ -310,6 +412,13 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           }).filter((item) => item.matchId),
         })"""
     )
+    from engines.canonical_assets import template_css_href
+    version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+    expected_href = template_css_href((ROOT / "templates/base.html").read_text(encoding="utf-8"), version)
+    metrics["stylesheetResponses"] = stylesheet_responses
+    css_contract = _stylesheet_evidence(metrics, page.content(), base_url, version, expected_href)
+    metrics["cssVersioned"] = css_contract["pass"]
+    metrics["css_contract"] = css_contract
     text = str(metrics.pop("text", ""))
     metrics.update({
         "path": path,
@@ -470,7 +579,7 @@ def run_gate(
         and mobile_layout.get("overflow") is False
         and all(item.get("height", 0) >= 44 for item in mobile_layout.get("targets") or [])
     )
-    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in pages) and visual_assets_pass
+    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in [*pages, mobile_evidence]) and visual_assets_pass
     temporal_missing = sum(int(item.get("missingTemporalCards") or 0) for item in pages)
     temporal_observed = sum(int(item.get("temporalCards") or 0) for item in pages)
     temporal_by_match: dict[str, set[str]] = {}
