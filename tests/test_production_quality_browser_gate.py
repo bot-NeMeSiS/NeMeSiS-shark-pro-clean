@@ -78,6 +78,7 @@ def test_cancelled_old_document_image_is_not_a_failed_new_page(page, started, ex
 def test_broken_or_unobserved_fallback_never_passes(fallback, expected):
     block, request, console, image = resource_case(fallback=fallback)
     result = classify_browser_resources("https://example.invalid", [block], [request], [console], [image])
+    assert result["unexplained_console"] == []
     assert result["subresources_and_fallbacks"] == expected
 
 
@@ -245,7 +246,14 @@ def test_official_brand_capture_and_all_surfaces_gate_are_wired():
 
 
 def test_production_quality_gate_uses_current_public_navigation_contract():
+    from jinja2 import Environment, FileSystemLoader
     from tools.run_production_quality_browser_gate import MOBILE_NAV, PUBLIC_NAV
 
-    assert PUBLIC_NAV == ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
-    assert MOBILE_NAV == ("/", "/calendario", "/directo", "/picks", "/cliente-login")
+    templates = Path(__file__).parents[1] / "templates"
+    navigation = Environment(loader=FileSystemLoader(templates)).get_template(
+        "components/navigation_contracts.html"
+    ).module
+    assert PUBLIC_NAV == tuple(entry[1] for entry in navigation.PUBLIC_LINKS)
+    assert MOBILE_NAV == tuple(entry[1] for entry in navigation.PUBLIC_MOBILE_LINKS)
+    assert "/calendario?lane=finished" in PUBLIC_NAV
+    assert "/calendario?lane=finished" in MOBILE_NAV
