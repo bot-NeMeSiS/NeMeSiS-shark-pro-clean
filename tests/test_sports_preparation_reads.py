@@ -70,11 +70,12 @@ def test_batch_identities_cross_chunk_boundary_and_see_transaction_changes(app_m
 def test_stage_diagnostics_are_closed_and_do_not_include_record_content(app_module, capsys):
     with app_module.app.test_request_context('/api/automation/sports/sync', method='POST'):
         for stage in ('startup_cleanup_read', 'startup_cleanup_predicate', 'sportsdb_candidates',
-                      'sportsdb_fetch', 'sportsdb_transform', 'sportsdb_persist', 'sportsdb_reconciliation', 'sportsdb_finalize'):
+                      'sportsdb_fetch', 'sportsdb_transform', 'sportsdb_persist', 'sportsdb_reconciliation', 'sportsdb_finalize',
+                      'sportsdb_identity_read', 'sportsdb_snapshot_write', 'sportsdb_dedupe', 'sportsdb_odds_reconcile'):
             app_module._log_sports_stage_duration(stage, app_module.time.monotonic())
         app_module._log_sports_stage_duration('unknown-sensitive-value', app_module.time.monotonic())
     records = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
-    assert len(records) == 8
+    assert len(records) == 12
     assert all(set(record) == {'event', 'stage', 'duration_ms'} for record in records)
     assert all(record['duration_ms'] >= 0 for record in records)
     with app_module.app.test_request_context('/app'):

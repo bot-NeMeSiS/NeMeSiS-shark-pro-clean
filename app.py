@@ -1365,6 +1365,7 @@ def _log_sports_stage_duration(label, started):
                    "startup_admin", "startup_seed_catalog", "startup_telegram_settings",
                    "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
                    "sportsdb_candidates", "sportsdb_fetch", "sportsdb_transform", "sportsdb_persist",
+                   "sportsdb_identity_read", "sportsdb_snapshot_write", "sportsdb_dedupe", "sportsdb_odds_reconcile",
                    "sportsdb_reconciliation", "sportsdb_finalize",
                    "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
@@ -5541,13 +5542,16 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
     cur = conn.cursor()
     if not conn.in_transaction:
         conn.execute("BEGIN IMMEDIATE")
+    stage_started = time.monotonic()
     provider_ids = _sportsdb_provider_ids_for_batch(cur, match_rows)
+    _log_sports_stage_duration("sportsdb_identity_read", stage_started)
     imported = 0
     updated = 0
     skipped = 0
     provider_identity_rows_reconciled = 0
     touched_match_dates = set()
 
+    stage_started = time.monotonic()
     for item in match_rows:
         if not item or is_fake_team_name(item.get("home_team")) or is_fake_team_name(item.get("away_team")):
             skipped += 1
@@ -5583,8 +5587,13 @@ def _upsert_sportsdb_matches_transaction(conn, match_rows):
         else:
             imported += 1
 
+    _log_sports_stage_duration("sportsdb_snapshot_write", stage_started)
+    stage_started = time.monotonic()
     dedupe_result = cleanup_duplicate_matches(cur, match_dates=touched_match_dates)
+    _log_sports_stage_duration("sportsdb_dedupe", stage_started)
+    stage_started = time.monotonic()
     _reconcile_cached_odds(cur, touched_match_dates)
+    _log_sports_stage_duration("sportsdb_odds_reconcile", stage_started)
     conn.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     summary = {
         "ok": True,
@@ -6267,6 +6276,9 @@ def _reconcile_cached_odds(cur, match_dates):
     upper = (date.fromisoformat(max(match_dates)) + timedelta(days=1)).isoformat()
     snapshots = cur.execute("SELECT * FROM odds_snapshots WHERE substr(commence_time,1,10) BETWEEN ? AND ? ORDER BY created_at",
                             (lower, upper)).fetchall()
+    # Identity is stable after dedupe within this transaction. Cache only the
+    # small public identity projection, never mutable prices or raw payloads.
+    candidate_reader = lru_cache(maxsize=32)(lambda lo, hi: _odds_fixture_candidates(cur, lo, hi))
     for record in snapshots:
         stored = dict(record)
         try:
@@ -6277,7 +6289,7 @@ def _reconcile_cached_odds(cur, match_dates):
             continue
         sport = next((sport for sport in IMPORTANT_COMPETITIONS if sport.get("odds_key") == stored.get("sport_key")),
                      {"key": stored.get("sport_key"), "name": stored.get("league_name")})
-        target = _odds_fixture_target(cur, sport, event)
+        target = _odds_fixture_target(cur, sport, event, candidate_reader=candidate_reader)
         snapshot = h2h_price_snapshot(event)
         if not target or not snapshot:
             continue
@@ -6287,44 +6299,83 @@ def _reconcile_cached_odds(cur, match_dates):
             cur.execute("UPDATE odds_snapshots SET match_id=? WHERE id=?", (target["id"], stored["id"]))
 
 
-def _odds_fixture_target(cur, sport, event):
-    """Resolve by fixture identity, never by equality of provider IDs."""
+def _odds_fixture_instant(value):
+    try:
+        stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return stamp if stamp.tzinfo else stamp.replace(tzinfo=TZ)
+    except (ValueError, TypeError):
+        return None
+
+
+def _odds_fixture_team(value):
+    return normalized_label(spanish_team_name(value))
+
+
+def _odds_fixture_competition(row):
+    labels = {normalized_label(row.get(k)) for k in ("competition_key", "competition_name", "league_name") if row.get(k)}
+    for known in IMPORTANT_COMPETITIONS:
+        if labels & {normalized_label(known["key"]), normalized_label(known["name"]), normalized_label(spanish_competition_name(known["name"]))}:
+            labels.add(normalized_label(known["key"]))
+    return labels
+
+
+def _odds_fixture_candidates(cur, lower, upper):
+    """Transaction-local identities grouped by ordered, translated team pair."""
+    grouped = {}
+    team = lru_cache(maxsize=4096)(_odds_fixture_team)
+    competition_fields = ("competition_key", "competition_name", "league_name")
+    competition = lru_cache(maxsize=256)(
+        lambda values: _odds_fixture_competition(dict(zip(competition_fields, values))))
+    for record in cur.execute("""SELECT id,home_team,away_team,competition_key,competition_name,
+            league_name,kickoff_iso,source FROM matches WHERE match_date BETWEEN ? AND ?""", (lower, upper)).fetchall():
+        row = dict(record)
+        pair = (team(row.get("home_team")), team(row.get("away_team")))
+        grouped.setdefault(pair, []).append((row["id"], row.get("source"),
+            _odds_fixture_instant(row.get("kickoff_iso")),
+            competition(tuple(row.get(field) for field in competition_fields))))
+    return grouped
+
+
+def _odds_fixture_target(cur, sport, event, *, candidate_reader=None):
+    """Resolve by fixture identity; always reread mutable odds in this transaction."""
     match = odds_event_to_match(sport, event)
     if not match:
         return None
-    def instant(value):
-        try:
-            stamp = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-            return stamp if stamp.tzinfo else stamp.replace(tzinfo=TZ)
-        except (ValueError, TypeError):
-            return None
-    kickoff = instant(match.get("kickoff_iso"))
+    kickoff = _odds_fixture_instant(match.get("kickoff_iso"))
     if kickoff is None:
         return None
-    def team(value):
-        return normalized_label(spanish_team_name(value))
-    def competition(row):
-        labels = {normalized_label(row.get(k)) for k in ("competition_key", "competition_name", "league_name") if row.get(k)}
-        for known in IMPORTANT_COMPETITIONS:
-            if labels & {normalized_label(known["key"]), normalized_label(known["name"]), normalized_label(spanish_competition_name(known["name"]))}:
-                labels.add(normalized_label(known["key"]))
-        return labels
-    candidates = []
     lower = (kickoff.astimezone(TZ).date() - timedelta(days=1)).isoformat()
     upper = (kickoff.astimezone(TZ).date() + timedelta(days=1)).isoformat()
-    for record in cur.execute("SELECT * FROM matches WHERE match_date BETWEEN ? AND ?", (lower, upper)).fetchall():
-        row = dict(record)
-        if team(row.get("home_team")) != team(match["home_team"]) or team(row.get("away_team")) != team(match["away_team"]):
+    pair = (_odds_fixture_team(match["home_team"]), _odds_fixture_team(match["away_team"]))
+    competition = _odds_fixture_competition(match)
+    if candidate_reader is None:
+        # One-off callers retain one coherent full-row read, including prices.
+        # Only the batch reconciliation owns a stable identity cache.
+        candidates = []
+        for record in cur.execute("SELECT * FROM matches WHERE match_date BETWEEN ? AND ?", (lower, upper)).fetchall():
+            row = dict(record)
+            if _odds_fixture_team(row.get("home_team")) != pair[0] or _odds_fixture_team(row.get("away_team")) != pair[1]:
+                continue
+            if not _odds_fixture_competition(row) & competition:
+                continue
+            stamp = _odds_fixture_instant(row.get("kickoff_iso"))
+            if stamp is not None and abs((stamp - kickoff).total_seconds()) <= 1200:
+                candidates.append(row)
+        sporting = [row for row in candidates if row.get("source") != "The Odds API"]
+        candidates = sporting or candidates
+        return candidates[0] if len(candidates) == 1 else None
+    grouped = candidate_reader(lower, upper)
+    candidates = []
+    for row_id, source, stamp, labels in grouped.get(pair, ()):
+        if not labels & competition or stamp is None or abs((stamp - kickoff).total_seconds()) > 1200:
             continue
-        if not competition(row) & competition(match):
-            continue
-        stamp = instant(row.get("kickoff_iso"))
-        if stamp is None or abs((stamp - kickoff).total_seconds()) > 1200:
-            continue
-        candidates.append(row)
-    sporting = [row for row in candidates if row.get("source") != "The Odds API"]
+        candidates.append((row_id, source))
+    sporting = [row for row in candidates if row[1] != "The Odds API"]
     candidates = sporting or candidates
-    return candidates[0] if len(candidates) == 1 else None
+    if len(candidates) != 1:
+        return None
+    row = cur.execute("SELECT * FROM matches WHERE id=?", (candidates[0][0],)).fetchone()
+    return dict(row) if row is not None else None
 
 
 def upsert_odds_snapshots(events):
