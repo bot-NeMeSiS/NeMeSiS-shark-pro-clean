@@ -187,7 +187,12 @@ def main() -> int:
     page = client.get("/admin/automation-workforce")
     require(page.status_code == 200, "admin workforce page not 200 with admin session", failures)
     html = page.get_data(as_text=True)
-    require("Automation Workforce" in html or "Equipo automático" in html, "admin workforce page missing title", failures)
+    require(
+        bool(re.search(r"<h1\b[^>]*>\s*Herramientas de comprobación\s*</h1>", html)),
+        "admin workforce page missing current title",
+        failures,
+    )
+    require("data-workforce-execution" in html, "admin workforce page missing execution evidence panel", failures)
     require("TELEGRAM_BOT_TOKEN" not in html and "RENDER_DEPLOY_HOOK_URL" not in html, "admin workforce page leaks secret names", failures)
     require('data-nav-zone="client-bottom"' not in html, "admin workforce leaks client bottom nav", failures)
     require("v825-public-floating-shark" not in html, "admin workforce leaks public floating SHARK", failures)

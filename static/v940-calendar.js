@@ -23,7 +23,9 @@
     updatePending();
   }
 
-  const currentContext = root.querySelector("[data-v940-current-context]");
+  // The selected collection is stable. Scroll position is a separate hint.
+  const currentPosition = root.querySelector("[data-v940-current-position]");
+  const positionRow = root.querySelector("[data-v940-position]");
   const sections = Array.from(root.querySelectorAll("[data-v940-calendar-section]"));
   const currentUrl = `${window.location.pathname}${window.location.search}`;
   const storageKey = `nemesis:v940:calendar:${document.documentElement.lang}:${currentUrl}`;
@@ -75,8 +77,8 @@
         // Labels always come from this response, not a cached sports observation.
         const section = sections.find((element) => element.id === state.sectionId);
         const label = section ? section.getAttribute("data-v940-context-label") : "";
-        if (currentContext && label) {
-          currentContext.textContent = label;
+        if (currentPosition && label) {
+          currentPosition.textContent = label;
           sectionId = section.id;
         }
         const maximum = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
@@ -87,7 +89,7 @@
 
   const visibleSections = new Map();
   function updateCurrentContext(entries) {
-    if (!currentContext) return;
+    if (!currentPosition) return;
     entries.forEach((entry) => {
       if (entry.isIntersecting) visibleSections.set(entry.target, entry.intersectionRatio);
       else visibleSections.delete(entry.target);
@@ -95,7 +97,8 @@
     const visible = Array.from(visibleSections).sort((left, right) => right[1] - left[1]);
     const target = visible.length ? visible[0][0] : null;
     const label = target ? target.getAttribute("data-v940-context-label") : "";
-    if (label) { currentContext.textContent = label; sectionId = target.id || ""; }
+    if (label) { currentPosition.textContent = label; sectionId = target.id || ""; }
+    if (positionRow) positionRow.hidden = !label || window.scrollY < 160;
   }
   if ("IntersectionObserver" in window && sections.length) {
     const observer = new IntersectionObserver(updateCurrentContext, {
@@ -103,6 +106,9 @@
     });
     sections.forEach((section) => observer.observe(section));
   }
+  window.addEventListener("scroll", () => {
+    if (positionRow && window.scrollY < 160) positionRow.hidden = true;
+  }, {passive: true});
 
   ["pointerdown", "touchstart", "wheel"].forEach((name) => {
     document.addEventListener(name, () => { userInteracted = true; }, {capture: true, passive: true});

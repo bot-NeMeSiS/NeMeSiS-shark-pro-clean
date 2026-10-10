@@ -36,7 +36,7 @@
       <form method="post" action="/favoritos">
         <input type="hidden" name="action" value="{{ 'remove' if t.is_favorite else 'add' }}">
         <input type="hidden" name="kind" value="team">
-        <input type="hidden" name="value" value="{{ t.name }}">
+        <input type="hidden" name="value" value="{{ t.favorite_value|default(t.name) }}">
         <input type="hidden" name="label" value="{{ t.name }}">
         <button class="team-center-action {{ 'is-danger' if t.is_favorite else 'is-primary' }}" type="submit">{{ ui('Quitar favorito' if t.is_favorite else 'Guardar equipo') }}</button>
       </form>

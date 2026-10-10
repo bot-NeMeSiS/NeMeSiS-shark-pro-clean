@@ -2,14 +2,14 @@
 {% from "components/v933_ui.html" import page_header, kpi_card, status_chip, data_table, empty_state, next_action, icon %}
 {% from "components/v936_product.html" import executive_focus %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='company-context.css') }}?v=company-context-1">
 {% set summary = workforce.summary or {} %}
-{% set full_run = workforce.full_run or {} %}
 {% set post_deploy = workforce.post_deploy or {} %}
 {% set browser_gate = workforce.browser_gate or {} %}
 {% set artifact_gate = workforce.artifact_gate or {} %}
 {% set v921_gate = workforce.v921_gate or {} %}
 {% set v933_state = workforce.v933_state or {} %}
-{% set latest_run = workforce.latest_run or {} %}
+{% set latest_run = workforce.latest_run if workforce.latest_run is mapping else {} %}
 {% set queue_total = v921_gate.v921_visual_queue_total or artifact_gate.v920_visual_queue_total or browser_gate.v919_visual_queue_total or 0 %}
 {% set queue_blocked = v921_gate.v921_visual_queue_blocked or artifact_gate.v920_visual_queue_blocked or browser_gate.v919_visual_queue_blocked or 0 %}
 {% set queue_ready = v921_gate.v921_visual_queue_ready or artifact_gate.v920_visual_queue_ready or browser_gate.v919_visual_queue_ready or 0 %}
@@ -18,39 +18,67 @@
 {% set next_step = v921_gate.v921_next_required_action or artifact_gate.v920_next_required_action or browser_gate.v919_next_required_action or post_deploy.v918_next_required_action or workforce.next_action or 'run_browser_qa_or_upload_artifacts' %}
 
 <div class="v933-page v933-admin-command-center v933-admin-workforce" data-v933-template="admin_automation_workforce" data-v933-reference="canonical-admin-automation">
-  {{ page_header('Equipo automático', 'Release, deploy seguro, Browser QA, Sentinel y cola visual en un único centro operativo.', 'automation', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Navegación','href':'/admin/navigation-integrity','primary':true,'icon':'routes'}]) }}
+  {{ page_header(ui('Herramientas de comprobación'), ui('Disponibilidad de componentes y resultados guardados. Este inventario no acredita vigilancia continua.'), 'automation', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Navegación','href':'/admin/navigation-integrity','primary':true,'icon':'routes'}]) }}
 
   {% if not screenshots %}
     {{ executive_focus('Obtener evidencia visual antes de certificar', 'Los workers pueden estar instalados y los checks en verde, pero la decisión de release necesita capturas reales revisables.', 'Revisar Browser QA', '#v936-browser-qa', 'Evidencia pendiente', 'warning', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
   {% elif queue_blocked %}
     {{ executive_focus('Convertir capturas en una cola accionable', 'Asocia evidencia válida a cada gap y mantén bloqueado cualquier item sin screenshot.', 'Revisar cola visual', '#v936-browser-qa', 'Acción requerida', 'warning', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
   {% else %}
-    {{ executive_focus('Preparar la decisión de release', 'Workforce, evidencias y cola visual están consolidados. Verifica runtime y Sentinel antes de autorizar deploy.', 'Verificar runtime', '/api/runtime-version', 'Listo para revisión', 'success', 'Abrir lanzamiento', '/admin/launch-certification') }}
+    {{ executive_focus(ui('Revisar evidencia guardada'), ui('Hay capturas y datos de cola guardados. Revisa su fecha, versión y alcance antes de decidir.'), 'Verificar runtime', '/api/runtime-version', ui('Pendiente de revisión'), 'warning', 'Abrir lanzamiento', '/admin/launch-certification') }}
   {% endif %}
 
   <span id="v936-browser-qa"></span>
 
   <section class="v933-kpi-grid is-six">
-    {{ kpi_card('Core Workforce', 'Listo' if summary.v916_workforce_core_ready or workforce.workers else 'Revisar', (workforce.workers|length|string) ~ ' workers detectados', 'success' if summary.v916_workforce_core_ready or workforce.workers else 'warning', 'automation') }}
+    {{ kpi_card(ui('Componentes base'), ui('Disponibles') if summary.v916_workforce_core_ready is sameas true else ui('Disponibilidad por comprobar'), ui('{count} componentes listados', count=workforce.workers|length), 'blue' if summary.v916_workforce_core_ready is sameas true else 'warning', 'automation') }}
     {{ kpi_card('Deploy hook', 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente', 'Solo desde entorno seguro', 'success' if summary.v916_deploy_hook_configured else 'warning', 'rocket') }}
     {{ kpi_card('Browser QA', browser_status, (screenshots|string) ~ ' capturas válidas', 'success' if screenshots else 'warning', 'image') }}
     {{ kpi_card('Cola visual', queue_blocked, 'bloqueados de ' ~ queue_total, 'warning' if queue_blocked else 'success', 'target') }}
     {{ kpi_card('Listo para Codex', queue_ready, 'Con evidencia asociada', 'cyan', 'check') }}
-    {{ kpi_card('Secret Guard', 'Listo' if summary.v916_secret_guard_ready else 'Revisar', 'Sin secretos visibles', 'success' if summary.v916_secret_guard_ready else 'warning', 'shield') }}
+    {{ kpi_card('Secret Guard', ui('Disponible') if summary.v916_secret_guard_ready is sameas true else ui('Disponibilidad por comprobar'), ui('La presencia del componente no acredita una revisión.'), 'blue' if summary.v916_secret_guard_ready is sameas true else 'warning', 'shield') }}
   </section>
 
   <section class="v933-admin-layout">
     <div class="v933-main-stack">
       <section class="v933-admin-panel">
-        <header><div><h2>Estado por worker</h2><p>Última ejecución consolidada, sin exponer secretos.</p></div>{{ status_chip(full_run.v917_workforce_last_run_status or latest_run.overall_status or 'not_run','success' if (full_run.v917_workforce_last_run_status or latest_run.overall_status) == 'ok' else 'warning') }}</header>
+        <header><div><h2>{{ ui('Componentes configurados') }}</h2><p>{{ ui('Un componente disponible puede ejecutarse; su presencia no demuestra que se haya ejecutado.') }}</p></div></header>
         <div class="v933-admin-panel-body">
-          {% if workforce.workers %}{% call data_table(['Worker','Archivo','Estado']) %}{% for worker in workforce.workers %}<tr><td><strong>{{ worker.name }}</strong></td><td><code>{{ worker.file }}</code></td><td>{{ status_chip(worker.status,'success' if worker.status in ['ok','ready','installed'] else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin workers detectados', 'Revisa la instalación de automation_workforce.', '', '', 'automation') }}{% endif %}
+          {% if workforce.workers %}
+          <ul class="company-inventory" role="list">
+            {% for worker in workforce.workers %}<li>
+              <div><strong>{{ worker.name }}</strong><code>{{ worker.file }}</code></div>
+              <div><small>{{ ui('Estado de preparación') }}</small>{{ status_chip(ui('Disponible') if worker.status in ['ready','installed'] else ui('No disponible') if worker.status == 'missing' else worker.status or ui('Disponibilidad por comprobar'),'blue' if worker.status in ['ready','installed'] else 'warning') }}</div>
+            </li>{% endfor %}
+          </ul>
+          {% else %}{{ empty_state(ui('Sin componentes listados'), ui('No hay inventario de componentes disponible en esta lectura.'), '', '', 'automation') }}{% endif %}
+        </div>
+      </section>
+
+      <section class="v933-admin-panel" data-workforce-execution>
+        <header><div><h2>{{ ui('Resultado guardado') }}</h2><p>{{ ui('El resultado pertenece a su fecha y versión; no acredita el estado actual de producción.') }}</p></div></header>
+        <div class="v933-admin-panel-body">
+          {% if latest_run.overall_status is string and latest_run.overall_status|trim and latest_run.overall_status != 'not_run' %}
+          <p>{{ ui('Resultado registrado') }}: <strong>{{ latest_run.overall_status }}</strong></p>
+          <p>{{ ui('Fecha registrada') }}: {% if latest_run.generated_at_madrid %}<time datetime="{{ latest_run.generated_at_madrid }}">{{ latest_run.generated_at_madrid|madrid_datetime_label }}</time>{% else %}{{ ui('Fecha de evidencia no disponible') }}{% endif %}</p>
+          <p>{{ ui('Versión registrada') }}: {{ latest_run.version or ui('No disponible') }}</p>
+          <p>{{ ui('Alcance registrado') }}: {{ ui('Comprobación dry-run') if latest_run.dry_run is sameas true else ui('No especificado') }}</p>
+          {% else %}<p>{{ ui('Sin ejecución acreditada') }}</p>{% endif %}
         </div>
       </section>
 
       <section class="v933-admin-panel">
-        <header><div><h2>GitHub Actions</h2><p>CI, deploy y Browser QA sin secretos en el repositorio.</p></div>{{ status_chip((workforce.workflows|length|string) ~ ' workflows','blue') }}</header>
-        <div class="v933-admin-panel-body">{% if workforce.workflows %}{% call data_table(['Workflow','Ruta','Estado']) %}{% for flow in workforce.workflows %}<tr><td>{{ flow.name }}</td><td><code>{{ flow.path }}</code></td><td>{{ status_chip(flow.status,'success' if flow.status in ['ok','ready','installed'] else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin workflows detectados', 'Revisa .github/workflows.', '', '', 'automation') }}{% endif %}</div>
+        <header><div><h2>GitHub Actions</h2><p>{{ ui('Archivos de comprobación disponibles; su presencia no acredita resultados en GitHub.') }}</p></div>{{ status_chip((workforce.workflows|length|string) ~ ' workflows','blue') }}</header>
+        <div class="v933-admin-panel-body">
+          {% if workforce.workflows %}
+          <ul class="company-inventory" role="list">
+            {% for flow in workforce.workflows %}<li>
+              <div><strong>{{ flow.name }}</strong><code>{{ flow.path }}</code></div>
+              <div><small>{{ ui('Disponibilidad') }}</small>{{ status_chip(ui('Disponible') if flow.status in ['ready','installed'] else ui('No disponible') if flow.status == 'missing' else flow.status or ui('Disponibilidad por comprobar'),'blue' if flow.status in ['ready','installed'] else 'warning') }}</div>
+            </li>{% endfor %}
+          </ul>
+          {% else %}{{ empty_state('Sin workflows detectados', 'Revisa .github/workflows.', '', '', 'automation') }}{% endif %}
+        </div>
       </section>
 
       <section class="v933-admin-panel">
@@ -62,7 +90,7 @@
     <aside class="v933-side-stack">
       <section class="v933-admin-panel"><header><div><h2>Browser QA</h2><p>Evidencia visual real.</p></div>{{ status_chip(browser_status,'success' if screenshots else 'warning') }}</header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('image') }}<span><strong>Capturas válidas</strong><small>{{ screenshots }}</small></span></div><div>{{ icon('target') }}<span><strong>Cola total</strong><small>{{ queue_total }} items</small></span></div><div>{{ icon('alert') }}<span><strong>Bloqueados</strong><small>{{ queue_blocked }} sin evidencia</small></span></div><div>{{ icon('check') }}<span><strong>Listos</strong><small>{{ queue_ready }} con screenshot</small></span></div></div><p class="v933-safe-copy">Pixel-perfect permanece bloqueado hasta tener capturas reales, comparación humana y cero gaps corregibles.</p></div></section>
 
-      <section class="v933-admin-panel"><header><div><h2>Deploy y seguridad</h2><p>Estados separados.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('rocket') }}<span><strong>Deploy automático</strong><small>{{ 'Habilitado' if summary.v915_automated_deploy_enabled else 'Desactivado' }}</small></span>{{ status_chip('Activo' if summary.v915_automated_deploy_enabled else 'Seguro','warning' if summary.v915_automated_deploy_enabled else 'success') }}</div><div>{{ icon('lock') }}<span><strong>Deploy hook</strong><small>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Secret Guard</strong><small>{{ 'Listo' if summary.v916_secret_guard_ready else 'Revisar' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Post-deploy Sentinel</strong><small>{{ 'Listo' if summary.v916_post_deploy_sentinel_ready else 'Revisar' }}</small></span></div></div></div></section>
+      <section class="v933-admin-panel"><header><div><h2>Deploy y seguridad</h2><p>Estados separados.</p></div></header><div class="v933-admin-panel-body"><div class="v933-truth-list"><div>{{ icon('rocket') }}<span><strong>Deploy automático</strong><small>{{ 'Habilitado' if summary.v915_automated_deploy_enabled else 'Desactivado' }}</small></span>{{ status_chip('Activo' if summary.v915_automated_deploy_enabled else 'Seguro','warning' if summary.v915_automated_deploy_enabled else 'success') }}</div><div>{{ icon('lock') }}<span><strong>Deploy hook</strong><small>{{ 'Configurado' if summary.v916_deploy_hook_configured else 'Pendiente' }}</small></span></div><div>{{ icon('shield') }}<span><strong>Secret Guard</strong><small>{{ ui('Disponible') if summary.v916_secret_guard_ready is sameas true else ui('Disponibilidad por comprobar') }}</small></span></div><div>{{ icon('shield') }}<span><strong>Post-deploy Sentinel</strong><small>{{ ui('Disponible') if summary.v916_post_deploy_sentinel_ready is sameas true else ui('Disponibilidad por comprobar') }}</small></span></div></div></div></section>
 
       {{ next_action('Ejecutar la siguiente acción real', next_step|replace('_',' ')|capitalize, '/admin/automation-workforce', 'Mantener estado') }}
     </aside>

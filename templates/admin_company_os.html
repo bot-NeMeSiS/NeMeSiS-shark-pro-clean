@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='company-context.css') }}?v=company-context-1">
 <section class="v857-company-os v858-visual-lock v860-admin-board">
   <header class="v857-company-hero">
-    <span>Empresa OS · Visual Lock V860</span>
+    <span>{{ ui('Responsabilidades configuradas') }}</span>
     <h1>Sistema operativo de NeMeSiS SHARK PRO</h1>
-    <p>Procesos internos para revisar producto, datos reales, SHARK, Telegram, planes, rutas, administración, cliente y publicación sin tocar secretos ni llamar proveedores.</p>
+    <p>{{ ui('Este catálogo describe qué revisar en cada área. No acredita ejecuciones ni vigilancia continua.') }}</p>
     <div class="v857-company-actions">
       {{ action_button('Panel', '/admin/dashboard', 'neutral') }}
       {{ action_button('Revisión de producto', '/admin/company-audit', 'brand') }}
@@ -18,30 +19,32 @@
   </header>
 
   <section class="v857-company-summary v860-kpi-row">
-    {{ stat_card('Estado global', summary.global_status|replace('_', ' '), 'Modo seguro: ' ~ ('activo' if summary.safe_mode else 'revisar'), 'brand') }}
-    {{ stat_card('Procesos', summary.workers|length, 'Sin llamadas externas desde este panel', 'info') }}
+    {{ stat_card(ui('Ejecución'), ui('Sin ejecución acreditada'), ui('Las responsabilidades no incluyen recibos de ejecución.'), 'neutral') }}
+    {{ stat_card(ui('Responsabilidades configuradas'), summary.workers|length, ui('Sin llamadas externas desde este panel'), 'info') }}
     {{ stat_card('Datos', 'No inventar' if not summary.data_invention_allowed else 'Revisar', 'Estados premium si falta proveedor', 'warning') }}
     {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Diagnóstico administrativo protegido', 'success') }}
   </section>
 
-  <section class="v857-workers-grid" aria-label="Procesos internos">
+  <section class="v857-workers-grid" aria-label="{{ ui('Responsabilidades configuradas') }}">
     {% for worker in summary.workers %}
     <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
       <div>
-        {{ status_chip(worker.area, 'neutral') }}
-        <h2>{{ worker.worker_name }}</h2>
+        {{ status_chip(ui('Responsabilidad'), 'neutral') }}
+        <h2>{{ ui(worker.area) }}</h2>
       </div>
-      <strong>{{ worker.status }}</strong>
-      <ul>
+      <strong>{{ ui(worker.status) }}</strong>
+      {% if worker.configuration_status %}<p>{{ ui('Configuración del contexto') }}: {{ ui(worker.configuration_status) }}</p>{% endif %}
+      <p>{{ ui('Alcance previsto') }}</p>
+      <ul aria-label="{{ ui('Alcance previsto') }}">
         {% for finding in worker.findings %}
         <li>{{ finding }}</li>
         {% endfor %}
       </ul>
-      <p>{{ worker.safe_next_step }}</p>
+      <p>{{ ui('Revisión sugerida') }}: {{ worker.safe_next_step }}</p>
       <a href="{{ worker.href }}">Abrir área</a>
     </article>
     {% else %}
-    {{ empty_state('Sin procesos visibles', 'No hay procesos listados en este resumen.', '', '', 'muted') }}
+    {{ empty_state(ui('Sin responsabilidades visibles'), ui('No hay responsabilidades listadas en este resumen.'), '', '', 'muted') }}
     {% endfor %}
   </section>
 

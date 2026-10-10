@@ -1,6 +1,6 @@
 """V857 Company Operating System.
 
-Internal product/QA operating layer. It describes specialized workers and safe
+Internal product/QA responsibility catalog. It describes roles and safe
 next steps without calling external providers, reading secrets, or inventing
 business/data facts.
 """
@@ -45,6 +45,8 @@ class CompanyWorker:
     risk_level: str
     safe_next_step: str
     href: str
+    configuration_status: str = ""
+    execution_state: str = "UNVERIFIED"
 
 
 WORKER_BLUEPRINTS = [
@@ -156,13 +158,13 @@ WORKER_BLUEPRINTS = [
 ]
 
 
-def _status_for(area: str, runtime: dict[str, Any] | None) -> str:
+def _configuration_status_for(area: str, runtime: dict[str, Any] | None) -> str:
     runtime = runtime or {}
     if area == "API-SPORTS y live" and not (runtime.get("api_sports_configured") or runtime.get("api_football_configured")):
         return "Requiere configuración real"
     if area == "Telegram" and not runtime.get("telegram_configured"):
         return "No configurado"
-    return "Operativo con revisión continua"
+    return ""
 
 
 def _risk_for(status: str) -> str:
@@ -174,17 +176,19 @@ def _risk_for(status: str) -> str:
 def build_company_workers(runtime: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     workers: list[CompanyWorker] = []
     for name, area, href, findings, actions in WORKER_BLUEPRINTS:
-        status = _status_for(area, runtime)
+        configuration_status = _configuration_status_for(area, runtime)
         workers.append(
             CompanyWorker(
                 worker_name=name,
                 area=area,
-                status=status,
+                # These blueprints carry responsibilities, not execution receipts.
+                status="Sin ejecución acreditada",
                 findings=findings,
                 recommended_actions=actions,
-                risk_level=_risk_for(status),
+                risk_level=_risk_for(configuration_status),
                 safe_next_step=actions[0],
                 href=href,
+                configuration_status=configuration_status,
             )
         )
     return [asdict(worker) for worker in workers]
@@ -192,10 +196,11 @@ def build_company_workers(runtime: dict[str, Any] | None = None) -> list[dict[st
 
 def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None = None) -> dict[str, Any]:
     workers = build_company_workers(runtime)
-    medium_or_high = [worker for worker in workers if worker["risk_level"] != "bajo"]
     return {
         "version": version,
-        "global_status": "operativo_con_revision" if not medium_or_high else "operativo_con_pendientes",
+        "global_status": "responsabilidades_configuradas",
+        "execution_state": "UNVERIFIED",
+        "configuration_attention_count": sum(bool(worker["configuration_status"]) for worker in workers),
         "safe_mode": True,
         "secrets_exposed": False,
         "external_calls": False,

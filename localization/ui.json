@@ -4715,5 +4715,389 @@
       "en": "No further matches are scheduled today in the available data.",
       "fr": "Aucun autre match n’est prévu aujourd’hui dans les données disponibles."
     }
+  },
+  "sports_search": {
+    "Buscar": {
+      "en": "Search",
+      "fr": "Rechercher"
+    },
+    "Filtrar": {
+      "en": "Filter",
+      "fr": "Filtrer"
+    },
+    "Coincidencias deportivas": {
+      "en": "Sports matches",
+      "fr": "Résultats sportifs"
+    },
+    "Ver ficha": {
+      "en": "View details",
+      "fr": "Voir la fiche"
+    },
+    "Ya está en favoritos": {
+      "en": "Already in favourites",
+      "fr": "Déjà dans les favoris"
+    },
+    "Buscando coincidencias…": {
+      "en": "Searching…",
+      "fr": "Recherche en cours…"
+    },
+    "{count} coincidencia": {
+      "en": "{count} result",
+      "fr": "{count} résultat"
+    },
+    "{count} coincidencias": {
+      "en": "{count} results",
+      "fr": "{count} résultats"
+    },
+    "La búsqueda no ha terminado. Prueba con un nombre más concreto.": {
+      "en": "The search could not finish. Try a more specific name.",
+      "fr": "La recherche n’a pas pu aboutir. Essayez un nom plus précis."
+    },
+    "Hay más coincidencias. Añade otra palabra para afinar.": {
+      "en": "There are more results. Add another word to narrow the search.",
+      "fr": "Il y a d’autres résultats. Ajoutez un mot pour préciser la recherche."
+    },
+    "Sin coincidencias entre los datos disponibles. Prueba con otro nombre.": {
+      "en": "No results in the available data. Try another name.",
+      "fr": "Aucun résultat dans les données disponibles. Essayez un autre nom."
+    },
+    "No se ha podido buscar. Vuelve a intentarlo o pulsa Buscar.": {
+      "en": "Search is unavailable. Try again or select Search.",
+      "fr": "La recherche est indisponible. Réessayez ou choisissez Rechercher."
+    },
+    "Encuentra y guarda tus favoritos": {
+      "en": "Find and save your favourites",
+      "fr": "Trouvez et enregistrez vos favoris"
+    },
+    "Escribe al menos dos letras y elige un equipo, competición o partido. Añade palabras para afinar.": {
+      "en": "Type at least two letters and choose a team, competition or match. Add words to narrow the search.",
+      "fr": "Saisissez au moins deux lettres et choisissez une équipe, une compétition ou un match. Ajoutez des mots pour préciser la recherche."
+    },
+    "Buscar para añadir favoritos": {
+      "en": "Search to add favourites",
+      "fr": "Rechercher pour ajouter des favoris"
+    },
+    "Por ejemplo: Granada": {
+      "en": "For example: Granada",
+      "fr": "Par exemple : Granada"
+    },
+    "Escribe al menos dos letras.": {
+      "en": "Type at least two letters.",
+      "fr": "Saisissez au moins deux lettres."
+    }
+  },
+  "calendar_clarity": {
+    "Orden de partidos": {
+      "en": "Match order",
+      "fr": "Ordre des matchs"
+    },
+    "Destacados primero": {
+      "en": "Featured first",
+      "fr": "À la une en premier"
+    },
+    "Por hora": {
+      "en": "By time",
+      "fr": "Par horaire"
+    },
+    "Por competición": {
+      "en": "By competition",
+      "fr": "Par compétition"
+    },
+    "Con pronóstico primero": {
+      "en": "With predictions first",
+      "fr": "Avec pronostic en premier"
+    },
+    "Dentro de cada competición": {
+      "en": "Within each competition",
+      "fr": "Dans chaque compétition"
+    },
+    "En esta parte": {
+      "en": "In this section",
+      "fr": "Dans cette section"
+    },
+    "Partidos disponibles por día y competición. Horarios de Madrid.": {
+      "en": "Available matches by day and competition. Madrid time.",
+      "fr": "Matchs disponibles par jour et compétition. Heure de Madrid."
+    }
+  },
+  "company_execution_truth": {
+    "Responsabilidades configuradas": {
+      "en": "Configured responsibilities",
+      "fr": "Responsabilités configurées"
+    },
+    "Este catálogo describe qué revisar en cada área. No acredita ejecuciones ni vigilancia continua.": {
+      "en": "This catalogue describes what to review in each area. It does not establish completed runs or continuous monitoring.",
+      "fr": "Ce catalogue décrit les points à vérifier dans chaque domaine. Il ne prouve ni exécution ni surveillance continue."
+    },
+    "Ejecución": {
+      "en": "Execution",
+      "fr": "Exécution"
+    },
+    "Sin ejecución acreditada": {
+      "en": "No verified execution",
+      "fr": "Aucune exécution attestée"
+    },
+    "Las responsabilidades no incluyen recibos de ejecución.": {
+      "en": "Responsibilities do not include execution records.",
+      "fr": "Les responsabilités ne comprennent pas de justificatifs d’exécution."
+    },
+    "Sin llamadas externas desde este panel": {
+      "en": "No external calls from this panel",
+      "fr": "Aucun appel externe depuis ce panneau"
+    },
+    "Configuración del contexto": {
+      "en": "Context configuration",
+      "fr": "Configuration du contexte"
+    },
+    "Requiere configuración real": {
+      "en": "Configuration required",
+      "fr": "Configuration requise"
+    },
+    "Alcance previsto": {
+      "en": "Intended scope",
+      "fr": "Périmètre prévu"
+    },
+    "Revisión sugerida": {
+      "en": "Suggested review",
+      "fr": "Vérification suggérée"
+    },
+    "Sin responsabilidades visibles": {
+      "en": "No responsibilities shown",
+      "fr": "Aucune responsabilité affichée"
+    },
+    "No hay responsabilidades listadas en este resumen.": {
+      "en": "No responsibilities are listed in this summary.",
+      "fr": "Aucune responsabilité n’est répertoriée dans ce résumé."
+    },
+    "Herramientas de comprobación": {
+      "en": "Verification tools",
+      "fr": "Outils de vérification"
+    },
+    "Disponibilidad de componentes y resultados guardados. Este inventario no acredita vigilancia continua.": {
+      "en": "Component availability and saved results. This inventory does not establish continuous monitoring.",
+      "fr": "Disponibilité des composants et résultats enregistrés. Cet inventaire ne prouve pas une surveillance continue."
+    },
+    "Revisar evidencia guardada": {
+      "en": "Review saved evidence",
+      "fr": "Examiner les éléments enregistrés"
+    },
+    "Hay capturas y datos de cola guardados. Revisa su fecha, versión y alcance antes de decidir.": {
+      "en": "Screenshots and queue data are saved. Check their date, version and scope before deciding.",
+      "fr": "Des captures et des données de file sont enregistrées. Vérifiez leur date, leur version et leur périmètre avant de décider."
+    },
+    "Pendiente de revisión": {
+      "en": "Awaiting review",
+      "fr": "En attente de vérification"
+    },
+    "Componentes base": {
+      "en": "Core components",
+      "fr": "Composants de base"
+    },
+    "Disponibilidad por comprobar": {
+      "en": "Availability not verified",
+      "fr": "Disponibilité à vérifier"
+    },
+    "{count} componentes listados": {
+      "en": "{count} listed components",
+      "fr": "{count} composants répertoriés"
+    },
+    "La presencia del componente no acredita una revisión.": {
+      "en": "The component’s presence does not establish a completed review.",
+      "fr": "La présence du composant ne prouve pas qu’une vérification a eu lieu."
+    },
+    "Componentes configurados": {
+      "en": "Configured components",
+      "fr": "Composants configurés"
+    },
+    "Un componente disponible puede ejecutarse; su presencia no demuestra que se haya ejecutado.": {
+      "en": "An available component can be run; its presence does not mean it has run.",
+      "fr": "Un composant disponible peut être exécuté ; sa présence ne signifie pas qu’il l’a été."
+    },
+    "Componente": {
+      "en": "Component",
+      "fr": "Composant"
+    },
+    "Archivo": {
+      "en": "File",
+      "fr": "Fichier"
+    },
+    "Estado de preparación": {
+      "en": "Readiness",
+      "fr": "État de préparation"
+    },
+    "Sin componentes listados": {
+      "en": "No components listed",
+      "fr": "Aucun composant répertorié"
+    },
+    "No hay inventario de componentes disponible en esta lectura.": {
+      "en": "No component inventory is available in this reading.",
+      "fr": "Aucun inventaire des composants n’est disponible pour cette lecture."
+    },
+    "Resultado guardado": {
+      "en": "Saved result",
+      "fr": "Résultat enregistré"
+    },
+    "El resultado pertenece a su fecha y versión; no acredita el estado actual de producción.": {
+      "en": "The result applies to its recorded date and version; it does not establish the current production state.",
+      "fr": "Le résultat correspond à sa date et à sa version enregistrées ; il ne prouve pas l’état actuel de la production."
+    },
+    "Resultado registrado": {
+      "en": "Recorded result",
+      "fr": "Résultat consigné"
+    },
+    "Fecha registrada": {
+      "en": "Recorded date",
+      "fr": "Date enregistrée"
+    },
+    "Fecha de evidencia no disponible": {
+      "en": "Evidence date unavailable",
+      "fr": "Date des éléments de preuve indisponible"
+    },
+    "Versión registrada": {
+      "en": "Recorded version",
+      "fr": "Version enregistrée"
+    },
+    "Alcance registrado": {
+      "en": "Recorded scope",
+      "fr": "Périmètre enregistré"
+    },
+    "Comprobación dry-run": {
+      "en": "Dry-run check",
+      "fr": "Vérification en mode simulation"
+    },
+    "No especificado": {
+      "en": "Not specified",
+      "fr": "Non précisé"
+    },
+    "Archivos de comprobación disponibles; su presencia no acredita resultados en GitHub.": {
+      "en": "Check files are available; their presence does not establish results on GitHub.",
+      "fr": "Les fichiers de vérification sont disponibles ; leur présence ne prouve pas l’existence de résultats sur GitHub."
+    },
+    "Disponibilidad": {
+      "en": "Availability",
+      "fr": "Disponibilité"
+    }
+  },
+  "provider_access": {
+    "Suspensión comunicada": {
+      "en": "Suspension reported",
+      "fr": "Suspension signalée"
+    },
+    "Motivo sin confirmar: revisar el aviso y el consumo en la cuenta del proveedor.": {
+      "en": "Reason unconfirmed: review the notice and usage in the provider account.",
+      "fr": "Motif non confirmé : consultez le message et la consommation du compte fournisseur."
+    },
+    "Acceso rechazado": {
+      "en": "Access rejected",
+      "fr": "Accès refusé"
+    },
+    "Revisar el aviso de acceso del proveedor; no se ha confirmado un problema de pago.": {
+      "en": "Review the provider access notice; no payment issue has been confirmed.",
+      "fr": "Consultez le message d’accès du fournisseur ; aucun problème de paiement n’a été confirmé."
+    },
+    "Límite de consultas": {
+      "en": "Request limit",
+      "fr": "Limite de requêtes"
+    },
+    "Revisar el consumo y la hora de renovación del cupo antes de cambiar de plan.": {
+      "en": "Review usage and the quota reset time before changing plans.",
+      "fr": "Vérifiez la consommation et l’heure de renouvellement du quota avant de changer d’offre."
+    },
+    "Problema de conexión": {
+      "en": "Connection issue",
+      "fr": "Problème de connexion"
+    },
+    "Comprobar el resultado del siguiente ciclo automático.": {
+      "en": "Check the result of the next automatic cycle.",
+      "fr": "Vérifiez le résultat du prochain cycle automatique."
+    },
+    "Cobertura o plan limitado": {
+      "en": "Limited coverage or plan",
+      "fr": "Couverture ou offre limitée"
+    },
+    "Revisar fechas, competiciones y acceso incluidos en la suscripción; el rechazo no demuestra impago.": {
+      "en": "Review dates, competitions and access included in the subscription; rejection does not prove non-payment.",
+      "fr": "Vérifiez les dates, compétitions et accès inclus dans l’abonnement ; un refus ne prouve pas un impayé."
+    },
+    "Respuesta del proveedor pendiente de revisión": {
+      "en": "Provider response awaiting review",
+      "fr": "Réponse du fournisseur à examiner"
+    },
+    "Revisar el resultado registrado; no se ha confirmado la causa.": {
+      "en": "Review the recorded result; the cause has not been confirmed.",
+      "fr": "Examinez le résultat enregistré ; la cause n’a pas été confirmée."
+    },
+    "Calendario y resultados": {
+      "en": "Fixtures and results",
+      "fr": "Calendrier et résultats"
+    },
+    "Consultado durante el ciclo registrado": {
+      "en": "Checked during the recorded cycle",
+      "fr": "Vérifié lors du cycle enregistré"
+    },
+    "Observación reutilizada; sin comprobar de nuevo": {
+      "en": "Reused observation; not checked again",
+      "fr": "Observation réutilisée ; aucune nouvelle vérification"
+    },
+    "Sin observación nueva acreditada": {
+      "en": "No new observation confirmed",
+      "fr": "Aucune nouvelle observation confirmée"
+    },
+    "Detalles y comprobación": {
+      "en": "Details and check",
+      "fr": "Détails et vérification"
+    },
+    "Esta comprobación consulta al proveedor y puede consumir una solicitud.": {
+      "en": "This check contacts the provider and may use a request.",
+      "fr": "Cette vérification contacte le fournisseur et peut consommer une requête."
+    },
+    "Plan / pago": {
+      "en": "Plan / billing",
+      "fr": "Offre / paiement"
+    },
+    "Última evidencia": {
+      "en": "Last evidence",
+      "fr": "Dernière observation"
+    },
+    "Uso observado": {
+      "en": "Observed usage",
+      "fr": "Utilisation observée"
+    },
+    "Restante diario": {
+      "en": "Daily remaining",
+      "fr": "Solde quotidien"
+    },
+    "Sin uso confirmado": {
+      "en": "No confirmed usage",
+      "fr": "Aucune utilisation confirmée"
+    },
+    "Datos aportados": {
+      "en": "Data supplied",
+      "fr": "Données fournies"
+    },
+    "Sin observación reciente": {
+      "en": "No recent observation",
+      "fr": "Aucune observation récente"
+    },
+    "No verificable automáticamente": {
+      "en": "Not automatically verifiable",
+      "fr": "Non vérifiable automatiquement"
+    },
+    "No verificada manualmente": {
+      "en": "Not manually checked",
+      "fr": "Aucune vérification manuelle"
+    },
+    "Verificar ahora": {
+      "en": "Check now",
+      "fr": "Vérifier maintenant"
+    },
+    "reutilizado": {
+      "en": "reused",
+      "fr": "réutilisé"
+    },
+    "elementos": {
+      "en": "items",
+      "fr": "éléments"
+    }
   }
 }

@@ -1,0 +1,23 @@
+{% macro suggestions(identifier, mode='open', kind='', scope='all') -%}
+<div id="{{ identifier }}" class="sports-suggestions" data-sports-suggestions data-mode="{{ mode }}" data-kind="{{ kind }}" data-scope="{{ scope }}" hidden>
+  <p class="sports-search-status" role="status" aria-live="polite" aria-atomic="true" data-sports-status></p>
+  <ul id="{{ identifier }}-list" class="sports-search-options" role="listbox" aria-label="{{ ui('Coincidencias deportivas') }}" data-sports-options></ul>
+</div>
+{%- endmacro %}
+
+{% macro favorite_result(item) -%}
+<article class="sports-search-result">
+  <div><span class="sports-search-kind">{{ ui({'team':'Equipo','league':'Liga / competición','match':'Partido'}.get(item.kind, 'Favorito')) }}</span><strong>{{ item.label }}</strong><p>{{ item.context }}</p></div>
+  <div class="sports-search-actions">
+    <a class="btn" href="{{ item.href }}">{{ ui('Ver ficha') }}</a>
+    <form method="post" action="/favoritos">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="add">
+      <input type="hidden" name="kind" value="{{ item.kind }}">
+      <input type="hidden" name="value" value="{{ item.value }}">
+      <input type="hidden" name="label" value="{{ item.label }}">
+      <button class="primary" type="submit"{% if item.saved %} disabled{% endif %}>{{ ui('Ya está en favoritos' if item.saved else 'Guardar favorito') }}</button>
+    </form>
+  </div>
+</article>
+{%- endmacro %}

@@ -22,12 +22,16 @@ def test_favorites_help_does_not_replace_existing_sports_content(app_module, sav
     data={'favorite_insights':{'by_kind':{'team':[{'name':'QA'}] if saved else [],'league':[],'match':[]}},
           'favorite_feed':[],'favorite_bundle':{'live':[],'picks':[]},'favorites':[]}
     with app_module.app.test_request_context('/favoritos'):
-        html=env.get_template('favorites.html').render(data=data)
+        context={'data':data}
+        # Include the same security/context helpers as Flask.render_template.
+        app_module.app.update_template_context(context)
+        html=env.get_template('favorites.html').render(**context)
     nodes=Elements(html).nodes
     help_node=next(attrs for tag,attrs in nodes if tag=='details' and attrs.get('class')=='ns-favorites-help')
     assert ('open' in help_node) is not saved
     assert html.index('</details>') < html.index('id="related-favorites"')
     assert any(tag=='form' and attrs.get('action')=='/favoritos' and attrs.get('method')=='post' for tag,attrs in nodes)
+    assert any(tag=='input' and attrs.get('name')=='csrf_token' and attrs.get('value') for tag,attrs in nodes)
     assert 'Crea tu primer favorito' not in html
 
 

@@ -1,0 +1,17 @@
+/* Readable inventory and evidence on the two existing company screens. */
+.v857-company-os .v857-company-hero { padding: 24px; }
+.v857-company-os .v857-company-hero h1 { font-size: clamp(24px, 3vw, 36px); line-height: 1.2; margin-block: 12px; }
+.v857-company-os .v857-worker-card > strong { font-size: 16px; line-height: 1.4; }
+.v857-company-os .v857-worker-card h2 { font-size: 20px; line-height: 1.3; }
+.v933-admin-workforce [data-workforce-execution] p { line-height: 1.5; overflow-wrap: anywhere; }
+.v933-admin-workforce .company-inventory { list-style: none; margin: 0; padding: 0; }
+.v933-admin-workforce .company-inventory li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--v933-border); }
+.v933-admin-workforce .company-inventory li:last-child { border-bottom: 0; }
+.v933-admin-workforce .company-inventory li > div { display: grid; justify-items: start; gap: 6px; min-width: 0; }
+.v933-admin-workforce .company-inventory code { font-size: 12px; overflow-wrap: anywhere; white-space: normal; }
+.v933-admin-workforce .company-inventory small { color: var(--v933-text-soft); }
+@media (max-width: 600px) {
+  body.ns-app .v933-admin-workforce > .v933-kpi-grid { grid-template-columns: minmax(0, 1fr) !important; }
+  .v933-admin-workforce .company-inventory li { grid-template-columns: minmax(0, 1fr); }
+  .v857-company-os .v857-company-hero { padding: 16px; }
+}

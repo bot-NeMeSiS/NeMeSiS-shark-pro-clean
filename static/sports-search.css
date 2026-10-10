@@ -1,0 +1,17 @@
+.sports-suggestions{position:relative;z-index:5;width:100%;max-width:100%;margin:8px 0;padding:8px;border:1px solid #3d6177;border-radius:12px;background:#0d2030;color:#e7f2fb;box-sizing:border-box}
+.sports-suggestions[hidden],.sports-search-selection[hidden]{display:none!important}
+.sports-search-options{list-style:none;margin:0;padding:0;max-height:320px;overflow:auto;overscroll-behavior:contain}
+.sports-search-options [role=option]{display:block;cursor:pointer;padding:12px;min-height:44px;border-radius:8px;border:1px solid transparent;box-sizing:border-box;overflow-wrap:anywhere}
+.sports-search-options [aria-selected=true]{background:#183f55;border-color:#82d5f4}
+.sports-search-options strong,.sports-search-options small{display:block;line-height:1.5}
+.sports-search-options small,.sports-search-kind,.sports-search-status{font-size:.85rem;color:#bfd1dd}
+.sports-search-status{margin:5px 8px 9px;line-height:1.5}
+.sports-search-kind{display:block;margin-bottom:4px}
+.sports-search-result{padding:16px;border:1px solid #3d6177;border-radius:12px;margin:12px 0;overflow-wrap:anywhere}
+.sports-search-result strong{display:block;font-size:1rem}.sports-search-result p{margin:6px 0;line-height:1.5}
+.sports-search-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center}
+.sports-search-actions form{margin:0}.sports-search-actions button,.sports-search-actions a{min-height:44px;white-space:normal;max-width:100%}
+.sports-search-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end}.sports-search-toolbar .field{flex:1 1 220px;min-width:0}.sports-search-toolbar input,.sports-search-toolbar select{width:100%;max-width:100%;min-height:44px}
+.sports-search-toolbar button{min-height:44px}.sports-search-help{line-height:1.5;font-size:.9rem}
+.sports-search-selection{border-left:3px solid #82d5f4}
+[data-sports-search]:focus-visible{outline:2px solid #82d5f4;outline-offset:2px}

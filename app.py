@@ -146,6 +146,11 @@ from engines.api_exploitation_engine import (
     probe_api_football_account,
     run_api_exploitation_if_due,
 )
+from engines.provider_access_evidence import (
+    provider_stage_evidence as _provider_stage_evidence,
+    provider_failure_advice,
+    safe_failure_categories,
+)
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
 from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
@@ -1591,6 +1596,8 @@ def _sports_stage_reason_code(stage):
         return "NOT_CONFIGURED_OR_DISABLED"
     if stage.get("cached_provider_failure") is True:
         return "CACHED_PROVIDER_ERROR"
+    if _provider_stage_evidence(stage)["failure_category"] == "ACCOUNT_SUSPENDED":
+        return "AUTH_OR_ACCESS"
     raw = json.dumps(
         {"error": stage.get("error"), "errors": stage.get("errors")},
         ensure_ascii=True,
@@ -1991,6 +1998,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         "source_scope": "MATCH_WINDOW_PRIMARY_FALLBACK",
         "selected_source": selected_source,
         "api_football_primary": {
+            **_provider_stage_evidence(fixtures_stage),
             "state": _sports_diagnostic_text(fixtures_stage.get("status"), 80) or "UNKNOWN",
             "used": bool(primary_ok or primary_has_data),
             "data_contributed": primary_has_data,
@@ -2024,6 +2032,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "error_present": bool(fallback_stage.get("error") or fallback_stage.get("errors")),
         },
         "live_refresh": {
+            **_provider_stage_evidence(live_stage),
             "state": _sports_diagnostic_text(live_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(live_stage),
             "ok": live_stage.get("ok") if isinstance(live_stage.get("ok"), bool) else None,
@@ -2265,7 +2274,7 @@ def bounded_sports_sync(force=False):
         controlled, technical = [], []
         restricted = {"FREE_PLAN_RESTRICTED", "FREE_PLAN_SEASON_RESTRICTED", "SEASON_UNAVAILABLE",
                       "ENDPOINT_RESTRICTED", "COVERAGE_UNAVAILABLE", "SUBSCRIPTION_RESTRICTED",
-                      "ACCESS_RESTRICTED", "PLAN_OR_COVERAGE_OTHER"}
+                      "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "PLAN_OR_COVERAGE_OTHER"}
         for label in ("fixtures", "fallback", "live", "deep_enrichment", "grading"):
             stage = result.get(label) or {}
             status = str(stage.get("status") or "").upper()
@@ -2280,7 +2289,7 @@ def bounded_sports_sync(force=False):
             # including the first rejected observation. Ambiguous access errors
             # and fresh authentication/network failures remain technical FAIL.
             plan_limit = (
-                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED"}
+                str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED"}
                 and status.startswith("PARTIAL_")
                 and _sports_stage_reason_code(stage) not in {"AUTH_OR_ACCESS", "NETWORK_OR_TIMEOUT", "RATE_OR_QUOTA"}
             )
@@ -2515,6 +2524,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "source_scope": _sports_diagnostic_text(raw_current_sync.get("source_scope"), 80) or "MATCH_WINDOW_PRIMARY_FALLBACK",
                 "selected_source": _sports_diagnostic_text(raw_current_sync.get("selected_source"), 80) or "UNKNOWN",
                 "api_football_primary": {
+                    **_provider_stage_evidence(raw_current_sync.get("api_football_primary")),
                     "state": _sports_diagnostic_text((raw_current_sync.get("api_football_primary") or {}).get("state"), 80) or "UNKNOWN",
                     "used": bool((raw_current_sync.get("api_football_primary") or {}).get("used")),
                     "data_contributed": bool((raw_current_sync.get("api_football_primary") or {}).get("data_contributed")),
@@ -2545,6 +2555,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "error_present": bool((raw_current_sync.get("sportsdb_fallback") or {}).get("error_present")),
                 },
                 "live_refresh": {
+                    **_provider_stage_evidence(raw_current_sync.get("live_refresh")),
                     "state": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("live_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
                     "ok": (raw_current_sync.get("live_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("live_refresh") or {}).get("ok"), bool) else None,
@@ -4079,6 +4090,7 @@ def enforce_local_safe_request_boundary():
     return None
 
 LIGHT_STARTUP_ENDPOINTS = {
+    "api_sports_search",  # Suggestions never initialize or seed production data.
     "health",
     "api_runtime_version",
     "api_startup_check",
@@ -8913,9 +8925,34 @@ def get_favorites(kind=None, user_id=None):
     return rows("SELECT * FROM favorites WHERE user_id=? ORDER BY created_at DESC", (user_id,))
 
 
+def _scoped_team_favorite(match, favorites):
+    # Explicit selections retain identity; legacy name-based favorites still work.
+    for team in favorites.get("team_refs") or []:
+        country = spanish_country_name(team.get("country") or "").casefold()
+        match_country = spanish_country_name(match.get("country") or "").casefold()
+        for side in ("home", "away"):
+            provider = provider_family(team.get("source"))
+            identifier = str(match.get(side + "_team_id") or "")
+            if provider in {"sportsdb", "api-football"} and provider == provider_family(match.get("source")) and identifier and team.get("external_id"):
+                if identifier == str(team["external_id"]):
+                    return True
+                continue
+            if country and match_country and country != match_country and match_country not in {"global", "europa", "sudamérica", "áfrica", "asia", "internacional", "mundial"}:
+                continue
+            if canonical_team_key(match.get(side + "_team")) == canonical_team_key(team.get("name")):
+                return True
+    return False
+
+
 def favorite_sets(user_id=None):
     favs = get_favorites(user_id=user_id)
+    keys = [f["value"][6:] for f in favs if f.get("kind") == "team" and str(f.get("value") or "").startswith("@team:")]
+    references = []
+    for offset in range(0, len(keys), 400):
+        batch = keys[offset:offset+400]
+        references.extend(rows("SELECT key,name,country,external_id,source FROM teams WHERE key IN (" + ",".join("?" for _ in batch) + ")", tuple(batch)))
     return {
+        "team_refs": references,
         "team": {f["value"].lower() for f in favs if f.get("kind") == "team"},
         "league": {f["value"].lower() for f in favs if f.get("kind") == "league"},
         "match": {f["value"].lower() for f in favs if f.get("kind") == "match"},
@@ -8931,7 +8968,8 @@ def annotate_match(match, favs=None, include_timeline=True):
     home = str(match.get("home_team") or "").lower()
     away = str(match.get("away_team") or "").lower()
     match["is_favorite"] = (
-        match_key in favs["match"]
+        _scoped_team_favorite(match, favs)
+        or match_key in favs["match"]
         or comp_key in favs["league"]
         or comp_name in favs["league"]
         or home in favs["team"]
@@ -9110,7 +9148,7 @@ def favorite_insights(user_id=None, favorites=None, bundle=None):
 
 def team_lookup(team_id):
     key = canonical_team_key(team_id)
-    team = one("SELECT * FROM teams WHERE key=? OR external_id=? OR lower(name)=lower(?) LIMIT 1", (key, str(team_id or ""), str(team_id or "")))
+    team = one("SELECT * FROM teams WHERE key=? OR key=? OR external_id=? OR lower(name)=lower(?) ORDER BY CASE WHEN key=? THEN 0 ELSE 1 END LIMIT 1", (str(team_id or ""), key, str(team_id or ""), str(team_id or ""), str(team_id or "")))
     if team:
         return team
     # Crear vista virtual mínima si el equipo aparece en partidos pero todavía no existe en teams.
@@ -9737,7 +9775,10 @@ def team_page_data(team_id, limit=80):
     for pick in get_picks(limit=120):
         if str(pick.get("home_team") or "").lower() == name.lower() or str(pick.get("away_team") or "").lower() == name.lower():
             related.append(pick)
-    is_favorite = name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    scoped_value = "@team:" + str(team.get("key") or "")
+    is_scoped_favorite = scoped_value.lower() in favorites.get("team", set())
+    is_favorite = is_scoped_favorite or name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
+    favorite_value = scoped_value if is_scoped_favorite or (not is_favorite and team.get("key") and team.get("source") != "matches") else name
     players = _sports_history_players_for_team(team)
     if not players:
         players = _cached_players_for_team(team, team_matches)
@@ -9753,6 +9794,7 @@ def team_page_data(team_id, limit=80):
         "players": players,
         "pending": pending,
         "is_favorite": is_favorite,
+        "favorite_value": favorite_value,
         "stats": {
             "upcoming": len(upcoming),
             "recent": len(recent),
@@ -12012,6 +12054,12 @@ def inject_session_user():
             "Continuar", "Volver al partido", "Cuenta", "Inicio", "Calendario", "Directo", "Picks", "Favoritos",
             "{count} secciones disponibles",
             "{count} sección disponible",
+            "Equipo", "Liga / competición", "Partido", "Favorito", "Guardar favorito", "Ya está en favoritos",
+            "Buscando coincidencias…", "{count} coincidencia", "{count} coincidencias",
+            "La búsqueda no ha terminado. Prueba con un nombre más concreto.",
+            "Hay más coincidencias. Añade otra palabra para afinar.",
+            "Sin coincidencias entre los datos disponibles. Prueba con otro nombre.",
+            "No se ha podido buscar. Vuelve a intentarlo o pulsa Buscar.",
             "Actualización en directo", "Datos deportivos sincronizados", "Esperando datos reales", "Actualización segura",
             "Próxima revisión en {seconds} s",
             "Resultado pendiente", "Estado pendiente", "Cancelado", "Abandonado", "Pendiente de confirmar",
@@ -17743,6 +17791,7 @@ def _normalized_sports_favorites(favorites=None):
         "team": frozenset(normalized_label(value) for value in favorites.get("team") or set()),
         "league": frozenset(normalized_label(value) for value in favorites.get("league") or set()),
         "match": frozenset(normalized_label(value) for value in favorites.get("match") or set()),
+        "team_refs": favorites.get("team_refs") or [],
         "_sports_normalized": True,
     }
 
@@ -17757,7 +17806,8 @@ def _sports_match_favorite(match, favorites=None):
     home = normalized_label(item.get("safe_home") or item.get("client_home") or item.get("home_team") or "")
     away = normalized_label(item.get("safe_away") or item.get("client_away") or item.get("away_team") or "")
     return bool(
-        (match_id and match_id in favorites["match"])
+        _scoped_team_favorite(item, favorites)
+        or (match_id and match_id in favorites["match"])
         or (competition and competition in favorites["league"])
         or (home and home in favorites["team"])
         or (away and away in favorites["team"])
@@ -20335,7 +20385,7 @@ def _calendar_sort(matches, sort_key):
         return 2
 
     if sort_key == "time":
-        return sorted(ranked, key=lambda item: (normalize_kickoff_for_display(item).get("madrid_date") or "9999-99-99", lifecycle_order(item), time_key(item)))
+        return sorted(ranked, key=time_key)
     if sort_key == "league":
         return sorted(ranked, key=lambda item: (int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80), item.get("calendar_competition") or "", item.get("match_date") or "", lifecycle_order(item), item.get("calendar_time") or ""))
     if sort_key == "picks":
@@ -20368,7 +20418,7 @@ def _calendar_facets(matches):
 
 
 
-def _calendar_group(matches):
+def _calendar_group(matches, sort_key="importance"):
     date_buckets = []
     by_date = {}
     for item in matches:
@@ -20403,7 +20453,8 @@ def _calendar_group(matches):
         leagues.sort(key=lambda g: (g["rank"], g["name"]))
         for league in leagues:
             league["count"] = len(league.get("matches") or [])
-            league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
+            if sort_key != "time":
+                league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
         bucket["leagues"] = leagues
         date_buckets.append(bucket)
     return date_buckets
@@ -20685,6 +20736,7 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
     item["has_pick"] = match_id in pick_ids
     item["is_favorite"] = bool(
         item.get("is_favorite")
+        or _scoped_team_favorite(item, favorites)
         or match_id.lower() in favorite_matches
         or str(item.get("competition_key") or "").lower() in favorite_leagues
         or str(competition).lower() in favorite_leagues
@@ -20831,6 +20883,31 @@ def _v940_calendar_tabs(filters, counts):
     ]
 
 
+def _v940_calendar_primary_tabs(filters):
+    """Keep Calendar filters; leave live updates on their dedicated route."""
+    selected_date = filters.get("date") or today_iso()
+    current_lane = {"results": "finished", "picks": "with_pick"}.get(
+        filters.get("lane"), filters.get("lane")
+    )
+    tabs = [{"key": "live", "label": "Directo", "href": "/directo"}]
+    for key, label in (
+        ("finished", "Resultados"),
+        ("today", "Calendario"),
+        ("week", "Próximos"),
+        ("with_pick", "Con pronóstico"),
+    ):
+        changes = {
+            "lane": key,
+            "date": selected_date if key in {"today", "finished"} else today_iso(),
+        }
+        # A state tab replaces a previous text status filter. Broad collections
+        # still honor it, and reselecting the same state never clears it.
+        if key == "finished" and key != current_lane:
+            changes["status"] = None
+        tabs.append({"key": key, "label": label, "href": _v940_calendar_href(filters, **changes)})
+    return tabs
+
+
 def _v940_calendar_date_chips(filters, date_counts):
     selected_date = filters.get("date") or today_iso()
     dates = [today_iso(offset) for offset in range(7)]
@@ -20858,13 +20935,15 @@ def _design02_calendar_date_navigation(filters):
     """Navigate dates; past days may hydrate persisted results without provider calls."""
     selected = _safe_date_value(filters.get("date"), today_iso())
     selected_day = datetime.strptime(selected, "%Y-%m-%d").date()
+    lane = filters.get("lane") if filters.get("lane") in {"finished", "results"} else "today"
     return {
         "selected": selected,
-        "previous": _v940_calendar_href(filters, lane="today", date=(selected_day - timedelta(days=1)).isoformat()),
-        "next": _v940_calendar_href(filters, lane="today", date=(selected_day + timedelta(days=1)).isoformat()),
+        "lane": lane,
+        "previous": _v940_calendar_href(filters, lane=lane, date=(selected_day - timedelta(days=1)).isoformat()),
+        "next": _v940_calendar_href(filters, lane=lane, date=(selected_day + timedelta(days=1)).isoformat()),
         "shortcuts": [
             {"label": label, "key": today_iso(offset),
-             "href": _v940_calendar_href(filters, lane="today", date=today_iso(offset))}
+             "href": _v940_calendar_href(filters, lane=lane, date=today_iso(offset))}
             for offset, label in ((-1, "Ayer"), (0, "Hoy"), (1, "Mañana"))
         ],
     }
@@ -20908,7 +20987,7 @@ def v940_calendar_context(summary, lane="today", date_value=None):
     sorted_matches = _calendar_sort(filtered, filters.get("sort"))
     if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
         sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
-    day_groups = _calendar_group(sorted_matches)
+    day_groups = _calendar_group(sorted_matches, filters.get("sort"))
     day_navigation = _v940_calendar_group_navigation(day_groups)
     facets = _calendar_facets(source_matches)
 
@@ -20962,12 +21041,8 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "source": "Datos reales confirmados" if counts["visible"] else "Sin partidos confirmados para estas capas",
     }
     default_context = selected_summary["title"]
-    if day_groups:
-        first_day = day_groups[0]
-        first_league = (first_day.get("leagues") or [{}])[0]
-        default_context = first_league.get("context_label") or first_day.get("context_label") or default_context
     if counts["visible"]:
-        source_summary = "Agenda confirmada y ordenada por día, competición y hora Madrid."
+        source_summary = "Partidos disponibles por día y competición. Horarios de Madrid."
     elif counts["all"]:
         source_summary = "Ningún partido confirmado coincide con todas las capas activas."
     else:
@@ -20981,9 +21056,11 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "day_groups": day_groups,
         "groups": day_groups,
         "counts": counts,
+        "competition_count": counts["leagues"],
         "sports_metrics": sports_metrics,
         "facets": facets,
         "tabs": _v940_calendar_tabs(filters, counts),
+        "primary_tabs": _v940_calendar_primary_tabs(filters),
         "date_chips": _v940_calendar_date_chips(filters, date_counts),
         "date_navigation": _design02_calendar_date_navigation(filters),
         "day_navigation": day_navigation,
@@ -21534,6 +21611,8 @@ def favorites_page():
     }
     from engines.account_collection_views import favorite_collection
     data["saved_favorites"] = favorite_collection(favorites, request.args.get("q"), request.args.get("kind"))
+    from engines.sports_search import search_sports, mark_saved
+    data["favorite_discovery"] = mark_saved(search_sports(DB_PATH, request.args.get("find"), request.args.get("find_kind"), today=today_iso(), excluded_names=FAKE_TEAM_NAMES), favorites)
     return render_template("favorites.html", data=data)
 
 # ===================== V785 MEMBERSHIP / STRIPE FLOW POLISH =====================
@@ -22916,6 +22995,7 @@ def v945_provider_health_snapshot():
     pipeline = compact.get("sports_pipeline") if isinstance(compact, dict) and isinstance(compact.get("sports_pipeline"), dict) else {}
     current = pipeline.get("current_sync") if isinstance(pipeline.get("current_sync"), dict) else {}
     api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
+    api_live = current.get("live_refresh") if isinstance(current.get("live_refresh"), dict) else {}
     sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
     odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
     access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
@@ -22935,17 +23015,23 @@ def v945_provider_health_snapshot():
         joined = f"{state} {reason}".upper()
         contributed = bool(observed.get("data_contributed")) or as_int(observed.get("processed"), 0) > 0 or as_int(observed.get("fixtures_count"), 0) > 0
         ok_value = observed.get("ok") if isinstance(observed.get("ok"), bool) else None
-        restricted = any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
+        failure_evidence = _provider_stage_evidence(observed)
+        failure = failure_evidence["failure_category"]
+        restricted = bool(failure) or any(token in joined for token in ("RESTRICTED", "ACCESS_FAILED", "INACCESSIBLE", "FREE_PLAN", "PAYMENT", "SUBSCRIPTION"))
         if not configured and key != "sportsdb":
             status = "NO_CONFIGURADA"
             label_status = "No configurada"
             severity = "danger"
             action = "Configurar credenciales en Render"
+        elif failure in {"ACCOUNT_SUSPENDED", "AUTH_OR_ACCESS", "ACCESS_RESTRICTED", "RATE_OR_QUOTA", "NETWORK_OR_TIMEOUT", "PROVIDER_RESPONSE", "UNKNOWN_PROVIDER_ERROR"}:
+            status = "REVISAR_" + failure
+            label_status, action = provider_failure_advice(failure)
+            severity = "warning"
         elif restricted:
             status = "REVISAR_PLAN_ACCESO"
             label_status = "Revisar acceso/plan"
             severity = "warning"
-            action = "Revisar suscripción, plan y permisos del proveedor"
+            action = provider_failure_advice(failure or "PLAN_OR_COVERAGE")[1]
         elif "CACHE" in joined:
             status = "CACHE"
             label_status = "Usando caché"
@@ -22964,9 +23050,8 @@ def v945_provider_health_snapshot():
         billing_status = billing_hint or "No verificable automáticamente"
         if plan_value:
             billing_status = f"Plan observado: {plan_value}"
-        elif restricted:
-            billing_status = "Acceso limitado; revisar suscripción"
         return {
+            **failure_evidence,
             "key": key,
             "label": label,
             "configured": bool(configured),
@@ -22986,9 +23071,31 @@ def v945_provider_health_snapshot():
         }
 
     plan_value = plan.get("value") if str(plan.get("state") or "").upper() == "OBSERVED" else None
+    observations = []
+    for lane_label, lane in (("Calendario y resultados", api_football), ("Directo", api_live)):
+        if not lane:
+            continue
+        evidence = _provider_stage_evidence(lane)
+        evidence["lane_label"] = lane_label
+        evidence["issues"] = [provider_failure_advice(category)[0] for category in evidence["failure_categories"]]
+        evidence["scope_label"] = {
+            "CURRENT_CYCLE": "Consultado durante el ciclo registrado",
+            "REUSED": "Observación reutilizada; sin comprobar de nuevo",
+            "NOT_ESTABLISHED": "Sin observación nueva acreditada",
+        }[evidence["observation_scope"]]
+        observations.append(evidence)
+    combined_failures = safe_failure_categories([
+        category for item in observations for category in item["failure_categories"]
+    ])
     api_card = provider_card(
-        "api_football", "API-Football / API-Sports", api_football_configured, api_football,
+        "api_football", "API-Football / API-Sports", api_football_configured,
+        {**api_football, "failure_categories": combined_failures},
         plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
+    )
+    api_card["observations"] = observations
+    # A fresh calendar receipt cannot refresh an older live-access rejection.
+    api_card["provider_observation_current"] = bool(observations) and all(
+        item["provider_observation_current"] for item in observations
     )
     if access:
         api_card["access_state"] = access.get("state") or "UNKNOWN"
@@ -23026,7 +23133,7 @@ def v945_provider_health_snapshot():
             )
     alerts = [
         {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
-        for item in providers if item["status"] in {"NO_CONFIGURADA", "REVISAR_PLAN_ACCESO"}
+        for item in providers if item["status"] == "NO_CONFIGURADA" or item["status"].startswith("REVISAR_")
     ]
     selected_source = current.get("selected_source") or "NO_CONFIRMED_SOURCE"
     return {
@@ -28957,6 +29064,24 @@ def api_real_time_state():
     if request.args.get("refresh") in {"1", "true", "yes", "on"}:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "refresh_not_allowed_on_read", "database_writes": 0}), 405
     return jsonify({"ok": True, "version": APP_VERSION, "real_time": real_time_global_state(date, refresh=False)})
+
+
+@app.get("/api/sports-search")
+def api_sports_search():
+    from engines.sports_search import search_sports, search_saved, mark_saved, clean_query
+    query = clean_query(request.args.get("q"))
+    user = current_session_user()
+    saved_scope = request.args.get("scope") == "saved"
+    if saved_scope and not user:
+        return jsonify({"ok": False, "error": "login_required"}), 401
+    favorites = get_favorites(user_id=user.get("id")) if user else []
+    if saved_scope:
+        result = search_saved(favorites, query, request.args.get("kind"))
+    else:
+        result = mark_saved(search_sports(DB_PATH, query, request.args.get("kind"), today=today_iso(), excluded_names=FAKE_TEAM_NAMES), favorites)
+    response = jsonify({"ok": True, **result})
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
