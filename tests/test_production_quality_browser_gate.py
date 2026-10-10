@@ -58,7 +58,7 @@ def test_chromium_inspector_suffix_still_requires_recorded_policy_abort():
     ("QA_NAVIGATION", 200, 1, "FAIL"),
 ])
 def test_navigation_abort_requires_proven_subsequent_success(phase, status, received, expected):
-    url = "https://example.invalid/static/brand.webp"
+    url = "https://example.invalid/static/background.webp"
     request = {"url": url, "method": "GET", "error": "net::ERR_ABORTED", "type": "image", "phase": phase, "failed_at": 2}
     response = {"url": url, "status": status, "received_at": received}
     result = classify_browser_resources("https://example.invalid", [], [request], [], [], [response])
@@ -247,5 +247,13 @@ def test_official_brand_capture_and_all_surfaces_gate_are_wired():
 def test_production_quality_gate_uses_current_public_navigation_contract():
     from tools.run_production_quality_browser_gate import MOBILE_NAV, PUBLIC_NAV
 
-    assert PUBLIC_NAV == ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
-    assert MOBILE_NAV == ("/", "/calendario", "/directo", "/picks", "/cliente-login")
+    assert PUBLIC_NAV == ("/", "/calendario?lane=finished", "/directo", "/picks", "/historico", "/shark")
+    assert MOBILE_NAV == ("/", "/calendario?lane=finished", "/directo", "/picks", "/cliente-login")
+
+
+    # Keep the explicit destinations aligned with the shipped navigation, including filters.
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(loader=FileSystemLoader(Path(__file__).parents[1] / "templates"))
+    contract = env.get_template("components/navigation_contracts.html").module
+    assert PUBLIC_NAV == tuple(href for _, href, _ in contract.PUBLIC_LINKS)
+    assert MOBILE_NAV == tuple(href for _, href, _ in contract.PUBLIC_MOBILE_LINKS)

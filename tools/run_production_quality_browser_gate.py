@@ -14,8 +14,14 @@ from pathlib import Path
 from typing import Any
 
 
-PUBLIC_NAV = ("/", "/calendario", "/directo", "/picks", "/historico", "/shark")
-MOBILE_NAV = ("/", "/calendario", "/directo", "/picks", "/cliente-login")
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from engines.canonical_assets import canonical_css_href
+
+ACTIVE_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
+PUBLIC_NAV = ("/", "/calendario?lane=finished", "/directo", "/picks", "/historico", "/shark")
+MOBILE_NAV = ("/", "/calendario?lane=finished", "/directo", "/picks", "/cliente-login")
 CRITICAL_PAGES = ("/", "/calendar", "/live", "/picks", "/shark", "/track-record")
 ENTITY_PATH_PREFIXES = ("/match/", "/team/", "/competition/", "/player/")
 MOJIBAKE = re.compile(r"(?:Actualizaci\?n|Ã.|Â.|â€|�)")
@@ -221,27 +227,64 @@ def build_post_deploy_result(
     }
 
 
+def _navigation_destination_matches(base_url: str, href: str, actual_url: str) -> bool:
+    """The correct page with the wrong filter or an external origin must fail."""
+    try:
+        expected = urllib.parse.urlsplit(urllib.parse.urljoin(base_url.rstrip("/") + "/", href))
+        actual = urllib.parse.urlsplit(actual_url)
+        return (
+            (actual.scheme, actual.netloc, actual.path, actual.fragment)
+            == (expected.scheme, expected.netloc, expected.path, expected.fragment)
+            and sorted(urllib.parse.parse_qsl(actual.query, keep_blank_values=True))
+            == sorted(urllib.parse.parse_qsl(expected.query, keep_blank_values=True))
+        )
+    except ValueError:
+        return False
+
+
+def _active_css_contract(markup: str, metrics: dict[str, Any], base_url: str, version: str) -> tuple[bool, str]:
+    """Share canonical URL validation and require a loaded, enabled DOM stylesheet."""
+    href = canonical_css_href(markup, version)
+    if not href:
+        return False, ""
+    expected_url = urllib.parse.urljoin(base_url.rstrip("/") + "/", href)
+    sheets = [item for item in metrics.get("stylesheets") or [] if item.get("href") == href]
+    passed = (
+        len(sheets) == 1
+        and sheets[0].get("url") == expected_url
+        and sheets[0].get("active") is True
+        and expected_url in (metrics.get("resources") or [])
+    )
+    return bool(passed), href
+
+
 def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) -> list[dict[str, Any]]:
     page._sentinel_phase = "QA_NAVIGATION"
     results: list[dict[str, Any]] = []
     for path in paths:
         page.goto(base_url, wait_until="domcontentloaded", timeout=30_000)
-        locator = page.locator(f'[data-nav-zone="{zone}"] a[href="{path}"]').first
+        locator = page.locator(f'[data-nav-zone="{zone}"] a[href="{path}"]')
         found = locator.count() == 1 and locator.is_visible()
         final_path = ""
+        final_url = ""
         error = ""
         if found:
             try:
                 locator.click(timeout=10_000)
-                page.wait_for_load_state("domcontentloaded", timeout=30_000)
-                final_path = urllib.parse.urlparse(page.url).path
+                page.wait_for_url(
+                    lambda url: _navigation_destination_matches(base_url, path, str(url)),
+                    wait_until="domcontentloaded", timeout=30_000,
+                )
             except Exception as exc:
                 error = type(exc).__name__
+            final_url = page.url
+            final_path = urllib.parse.urlsplit(final_url).path
         results.append({
             "href": path,
             "found": found,
             "final_path": final_path,
-            "pass": found and final_path == path and not error,
+            "final_url": final_url,
+            "pass": found and _navigation_destination_matches(base_url, path, final_url) and not error,
             "error": error,
         })
     return results
@@ -283,7 +326,14 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           }),
           text: document.body ? document.body.innerText : '',
           shell: Boolean(document.querySelector('[data-v933-surface]')),
-          cssVersioned: [...document.querySelectorAll('link[rel="stylesheet"]')].some((link) => /app\\.css\\?v=/.test(link.href)),
+          stylesheets: [...document.querySelectorAll('link[rel~="stylesheet"]')].map((link) => {
+            let active = false;
+            try {
+              active = !link.disabled && Boolean(link.sheet) && !link.sheet.disabled
+                && window.matchMedia(link.media || 'all').matches && link.sheet.cssRules.length > 0;
+            } catch (_) { active = false; }
+            return {href: link.getAttribute('href') || '', url: link.href, active};
+          }),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
           officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-app-icon"]')].map((img) => ({
             url: img.currentSrc || img.src,
@@ -311,8 +361,11 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
         })"""
     )
     text = str(metrics.pop("text", ""))
+    css_pass, css_href = _active_css_contract(page.content(), metrics, base_url, ACTIVE_VERSION)
     metrics.update({
         "path": path,
+        "cssVersioned": css_pass,
+        "canonical_css_href": css_href,
         "http": response.status if response else 0,
         "elapsed_ms": elapsed_ms,
         "mojibake": sorted(set(MOJIBAKE.findall(text)))[:20],
@@ -470,7 +523,7 @@ def run_gate(
         and mobile_layout.get("overflow") is False
         and all(item.get("height", 0) >= 44 for item in mobile_layout.get("targets") or [])
     )
-    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in pages) and visual_assets_pass
+    visual_pass = all(item.get("shell") and item.get("cssVersioned") for item in [*pages, mobile_evidence]) and visual_assets_pass
     temporal_missing = sum(int(item.get("missingTemporalCards") or 0) for item in pages)
     temporal_observed = sum(int(item.get("temporalCards") or 0) for item in pages)
     temporal_by_match: dict[str, set[str]] = {}
