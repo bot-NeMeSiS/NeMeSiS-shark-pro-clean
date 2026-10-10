@@ -1,0 +1,11 @@
+{# Fixed Home dimensions: do not inherit the shared 28px competition badge.
+   Keep the existing crest loader/fallback contract and the canonical CSS bundle. #}
+{% macro home_league_badge(name, logo='', source='fallback') -%}
+{% set label = name or 'Competición' %}
+<span class="v933-competition-logo" data-logo-kind="competition" data-logo-source="{{ source }}" style="height:50px">
+  <span class="crest v933-team-logo is-sm" data-fallback="{{ label[:2]|upper }}" title="{{ label }}" style="--sports-crest-size:50px">
+    {% if logo %}<img src="{{ logo }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}
+    <em aria-hidden="true" style="font-size:14px">{{ label[:2]|upper }}</em>
+  </span>
+</span>
+{%- endmacro %}
