@@ -256,7 +256,7 @@ def _stylesheet_evidence(
     expected_version: str,
     expected_href: str,
 ) -> dict[str, Any]:
-    """Require the exact canonical link, an active CSSOM sheet and a loaded resource."""
+    """Require the exact canonical link, active CSSOM and observed HTTP 200 delivery."""
     from engines.canonical_assets import CSS_PATH, canonical_css_href
 
     href = canonical_css_href(markup, expected_version) if expected_version else ""
@@ -267,6 +267,13 @@ def _stylesheet_evidence(
         if urllib.parse.urlsplit(str(item.get("href") or "")).path == CSS_PATH
     ]
     link = links[0] if len(links) == 1 else {}
+    # A CSSOM object can exist even for a CSS response carrying an HTTP error.
+    # Only response events from this navigation may prove successful delivery.
+    http_statuses = [
+        item.get("status") for item in metrics.get("stylesheetResponses") or []
+        if item.get("url") == resolved
+    ]
+    http_ok = bool(http_statuses) and all(status == 200 for status in http_statuses)
     loaded = (
         bool(resolved)
         and resolved in (metrics.get("resources") or [])
@@ -280,12 +287,14 @@ def _stylesheet_evidence(
         and _navigation_url_matches(resolved, expected_href, base_url)
     )
     return {
-        "pass": bool(version_matches and loaded),
+        "pass": bool(version_matches and loaded and http_ok),
         "expected_href": expected_href,
         "observed_href": href,
         "expected_url": expected_url,
         "version_matches": bool(version_matches),
         "active_loaded_sheet": bool(loaded),
+        "http_delivery_verified": http_ok,
+        "http_statuses": http_statuses,
         "canonical_links": len(links),
     }
 
@@ -327,12 +336,22 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
 
 def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     page._sentinel_phase = "CRITICAL_PAGE"
+    stylesheet_responses: list[dict[str, Any]] = []
+
+    def record_stylesheet_response(resource: Any) -> None:
+        if resource.request.resource_type == "stylesheet":
+            stylesheet_responses.append({"url": resource.url, "status": resource.status})
+
+    page.on("response", record_stylesheet_response)
     started = time.perf_counter()
-    response = page.goto(
-        urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
-        wait_until="networkidle",
-        timeout=45_000,
-    )
+    try:
+        response = page.goto(
+            urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
+            wait_until="networkidle",
+            timeout=45_000,
+        )
+    finally:
+        page.remove_listener("response", record_stylesheet_response)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     metrics = page.evaluate(
         """() => ({
@@ -396,6 +415,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     from engines.canonical_assets import template_css_href
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
     expected_href = template_css_href((ROOT / "templates/base.html").read_text(encoding="utf-8"), version)
+    metrics["stylesheetResponses"] = stylesheet_responses
     css_contract = _stylesheet_evidence(metrics, page.content(), base_url, version, expected_href)
     metrics["cssVersioned"] = css_contract["pass"]
     metrics["css_contract"] = css_contract

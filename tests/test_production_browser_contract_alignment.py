@@ -49,6 +49,7 @@ def css_case():
             "href": BASE+HREF, "sheetLoaded": True, "disabled": False, "mediaMatches": True,
         }],
         "resources": [BASE+HREF],
+        "stylesheetResponses": [{"url": BASE+HREF, "status": 200}],
     }
     return markup, metrics
 
@@ -60,6 +61,8 @@ def test_canonical_css_requires_actual_loaded_sheet():
     assert evidence["pass"] is True
     assert evidence["active_loaded_sheet"] is True
     assert evidence["version_matches"] is True
+    assert evidence["http_delivery_verified"] is True
+    assert evidence["http_statuses"] == [200]
     assert metrics == before
 
 
@@ -67,7 +70,8 @@ def test_canonical_css_requires_actual_loaded_sheet():
     "old_file", "old_version", "old_suffix", "offsite", "duplicate",
     "comment_only", "disabled", "print_only", "resource_missing",
     "sheet_missing", "sheet_disabled", "media_inactive", "links_missing",
-    "empty_version", "empty_expected_href",
+    "empty_version", "empty_expected_href", "http_404", "http_500",
+    "http_missing", "http_wrong_resource", "http_conflicting",
 ])
 def test_bad_or_unproven_stylesheet_never_passes(case):
     markup, metrics = css_case()
@@ -81,6 +85,7 @@ def test_bad_or_unproven_stylesheet_never_passes(case):
         markup = f'<link rel="stylesheet" href="{wrong}">'
         metrics["stylesheetLinks"][0]["href"] = BASE+wrong
         metrics["resources"] = [BASE+wrong]
+        metrics["stylesheetResponses"][0]["url"] = BASE+wrong
     elif case == "offsite":
         markup = markup.replace(HREF, "https://other.invalid"+HREF)
     elif case == "duplicate":
@@ -102,6 +107,16 @@ def test_bad_or_unproven_stylesheet_never_passes(case):
         metrics["stylesheetLinks"][0]["mediaMatches"] = False
     elif case == "links_missing":
         metrics["stylesheetLinks"] = []
+    elif case == "http_404":
+        metrics["stylesheetResponses"][0]["status"] = 404
+    elif case == "http_500":
+        metrics["stylesheetResponses"][0]["status"] = 500
+    elif case == "http_missing":
+        metrics["stylesheetResponses"] = []
+    elif case == "http_wrong_resource":
+        metrics["stylesheetResponses"][0]["url"] = BASE+"/static/unrelated.css"
+    elif case == "http_conflicting":
+        metrics["stylesheetResponses"].append({"url": BASE+HREF, "status": 404})
     elif case == "empty_version":
         version = ""
     elif case == "empty_expected_href":
@@ -183,5 +198,11 @@ def test_browser_cssom_and_resource_evidence(browser, variant, expected):
         metrics = _page_evidence(context.new_page(), BASE, "/")
         assert metrics["cssVersioned"] is expected, metrics["css_contract"]
         assert metrics["http"] == 200
+        if variant == "missing":
+            assert metrics["css_contract"]["http_statuses"] == [404]
+            assert metrics["css_contract"]["http_delivery_verified"] is False
+        elif variant == "current":
+            assert metrics["css_contract"]["http_statuses"] == [200]
+            assert metrics["css_contract"]["http_delivery_verified"] is True
     finally:
         context.close()
