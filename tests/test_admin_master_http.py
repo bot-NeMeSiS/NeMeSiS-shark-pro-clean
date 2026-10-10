@@ -139,6 +139,61 @@ def test_snapshot_no_raw_secrets_or_provider_calls(admin,monkeypatch):
     assert "MUST_NOT_ESCAPE" not in response.get_data(as_text=True)
     assert response.get_json()["external_calls"]==0
 
+@pytest.mark.parametrize("status,label", [
+    ("REVISAR_ACCOUNT_SUSPENDED", "Suspensión comunicada"),
+    ("REVISAR_AUTH_OR_ACCESS", "Acceso rechazado"),
+    ("REVISAR_ACCESS_RESTRICTED", "Acceso rechazado"),
+    ("REVISAR_RATE_OR_QUOTA", "Límite de consultas"),
+    ("REVISAR_NETWORK_OR_TIMEOUT", "Problema de conexión"),
+    ("REVISAR_PROVIDER_RESPONSE", "Respuesta del proveedor pendiente de revisión"),
+    ("REVISAR_UNKNOWN_PROVIDER_ERROR", "Respuesta del proveedor pendiente de revisión"),
+    ("REVISAR_PLAN_ACCESO", "Revisar acceso/plan"),
+])
+def test_provider_rejection_survives_master_adapter_and_visible_priority(admin, monkeypatch, status, label):
+    a, c, _ = admin
+    observed_at = "2026-10-09T10:00:00+00:00"
+    monkeypatch.setattr(a, "v945_provider_health_snapshot", lambda: {"providers": [{
+        "key": "api_football", "configured": True, "status": status, "observed_at": observed_at,
+        "status_label": "PRIVATE_PROVIDER_CANARY", "next_action": "PRIVATE_PROVIDER_CANARY",
+        "error": "PRIVATE_PROVIDER_CANARY", "label": "PRIVATE_PROVIDER_CANARY",
+    }]})
+    response = c.get("/api/admin/master-control")
+    assert response.status_code == 200
+    data = response.get_json()
+    provider, = data["providers"]
+    assert provider["status"] == status and provider["status_label"] == label
+    area, = [item for item in data["areas"] if item["key"] == "api_football"]
+    assert area["state"] == "ATENCIÓN"
+    priority, = [item for item in data["recommendations"] if item["key"] == "api_football"]
+    assert priority["title"] == "Revisar API-Football"
+    assert label in priority["evidence"]
+    assert priority["observed_at"] == observed_at
+    assert priority["href"] == "/admin/data-center"
+    assert data["external_calls"] == 0
+    assert "PRIVATE_PROVIDER_CANARY" not in response.get_data(as_text=True)
+    page = c.get("/admin/dashboard")
+    assert page.status_code == 200
+    # Scope the assertion to visible recommendations, not embedded JSON.
+    priorities_html = page.get_data(as_text=True).split('data-master-recommendations>', 1)[1].split('</section>', 1)[0]
+    assert "Revisar API-Football" in priorities_html and label in priorities_html
+    assert 'href="/admin/data-center"' in priorities_html
+    assert "PRIVATE_PROVIDER_CANARY" not in page.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("status", ["REVISAR_PRIVATE_PROVIDER_CANARY", "REVISAR_", {"status":"REVISAR_ACCOUNT_SUSPENDED"}])
+def test_unknown_provider_warning_code_does_not_create_a_priority(admin, monkeypatch, status):
+    a, c, _ = admin
+    monkeypatch.setattr(a, "v945_provider_health_snapshot", lambda: {"providers": [{
+        "key": "api_football", "status": status, "status_label": "PRIVATE_PROVIDER_CANARY",
+    }]})
+    response = c.get("/api/admin/master-control")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["providers"][0]["status"] == "SIN_VERIFICACION_RECIENTE"
+    assert not any(item["key"] == "api_football" for item in data["recommendations"])
+    assert "PRIVATE_PROVIDER_CANARY" not in response.get_data(as_text=True)
+
+
 def test_unknown_preview_and_write_blocked(admin):
     _,c,h=admin
     assert c.get("/admin/client-preview/frame?page=../app.py").status_code==400

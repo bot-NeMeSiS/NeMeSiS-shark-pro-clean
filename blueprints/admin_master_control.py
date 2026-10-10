@@ -130,8 +130,17 @@ def master_snapshot(a):
     ]
     providers = []
     provider_names = {"api_football":"API-Football / API-Sports", "sportsdb":"TheSportsDB", "the_odds":"The Odds API"}
-    status_names = {"NO_CONFIGURADA":"No configurada", "REVISAR_PLAN_ACCESO":"Revisar acceso/plan",
-                    "OPERATIVA":"Última respuesta operativa", "CACHE":"Usando caché",
+    # Keep the provider receipt's closed warning codes. Do not admit arbitrary
+    # REVISAR_* values or forward provider-supplied labels into the dashboard.
+    attention_names = {"NO_CONFIGURADA":"No configurada", "REVISAR_PLAN_ACCESO":"Revisar acceso/plan",
+                       "REVISAR_ACCOUNT_SUSPENDED":"Suspensión comunicada",
+                       "REVISAR_AUTH_OR_ACCESS":"Acceso rechazado",
+                       "REVISAR_ACCESS_RESTRICTED":"Acceso rechazado",
+                       "REVISAR_RATE_OR_QUOTA":"Límite de consultas",
+                       "REVISAR_NETWORK_OR_TIMEOUT":"Problema de conexión",
+                       "REVISAR_PROVIDER_RESPONSE":"Respuesta del proveedor pendiente de revisión",
+                       "REVISAR_UNKNOWN_PROVIDER_ERROR":"Respuesta del proveedor pendiente de revisión"}
+    status_names = {**attention_names, "OPERATIVA":"Última respuesta operativa", "CACHE":"Usando caché",
                     "SIN_VERIFICACION_RECIENTE":"Sin verificación reciente", "OPERATIVA_FALLBACK":"Fallback operativo"}
     for p in (provider.get("providers") if type(provider.get("providers")) is list else [])[:3]:
         if type(p) is not dict or type(p.get("key")) is not str or p["key"] not in provider_names:
@@ -141,8 +150,11 @@ def master_snapshot(a):
         processed = p.get("processed") if type(p.get("processed")) is int and 0 <= p["processed"] <= 10**9 else None
         providers.append({"key":key,"label":provider_names[key],"configured":p.get("configured") if type(p.get("configured")) is bool else None,
                           "status":status,"status_label":status_names[status],"observed_at":_safe_stamp(p.get("observed_at")),"processed":processed})
-        areas.append({"key":key,"label":provider_names[key],"state":"ATENCIÓN" if status in ("NO_CONFIGURADA","REVISAR_PLAN_ACCESO") else "SIN DATOS",
-                      "detail":"Última evidencia persistida; abrir APIs para fecha, caché y cuota.","href":"/admin/data-center"})
+        detail = "Última evidencia persistida; abrir APIs para fecha, caché y cuota."
+        if status in attention_names:
+            detail = attention_names[status] + ". " + detail
+        areas.append({"key":key,"label":provider_names[key],"state":"ATENCIÓN" if status in attention_names else "SIN DATOS",
+                      "detail":detail,"href":"/admin/data-center"})
     values, settings_readable = _settings_snapshot(a)
     if not settings_readable:
         areas.append({"key":"settings","label":"Configuración","state":"SIN DATOS",
