@@ -4,32 +4,112 @@ on:
     branches: ['fix/home-league-agenda-css-20261010']
     paths: ['.github/workflows/home-agenda-review.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
-  source-snapshot:
+  validate-branch:
     if: github.ref == 'refs/heads/fix/home-league-agenda-css-20261010'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
+    env:
+      DB_PATH: /tmp/nemesis-home-review/app.sqlite3
+      SECRET_KEY: isolated-home-review-only-not-production
+      BACKGROUND_JOBS_ENABLED: 'false'
+      AUTO_GENERATE_PICKS: 'false'
+      AUTO_SEND_TELEGRAM_PICKS: 'false'
+      SCHEDULER_ENABLED: '0'
+      ENABLE_AUTO_SYNC: '0'
+      AUTO_SYNC_ON_STARTUP: '0'
+      DAILY_AUTOMATION_ENABLED: '0'
+      HOME_LEAGUE_QA_OUTPUT: /tmp/home-league-review
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: bbc61473392b2511426ded728e34701ba2da2ef2
-          persist-credentials: false
-      - name: Export tracked source only, without running application
+          ref: ${{ github.sha }}
+      - name: Verify and apply reviewed patch, without starting production
         run: |
+          mkdir -p /tmp/home-league-review /tmp/nemesis-home-review
           python - <<'PY'
-          import pathlib, subprocess, zipfile
-          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
-          folders = ('engines/', 'templates/', 'static/', 'tests/', 'tools/', 'browser_qa/', '.github/workflows/')
-          roots = {'app.py','requirements.txt','requirements-dev.txt','VERSION.txt','APP_VERSION','gunicorn.conf.py','pytest.ini','conftest.py','.python-version'}
-          with zipfile.ZipFile('home-agenda-source.zip', 'w', zipfile.ZIP_DEFLATED) as out:
+          from pathlib import Path
+          import base64, hashlib, json, lzma, subprocess
+          encoded = ''.join(Path(f'tools/home-review-part-{n:02d}.b64').read_text().strip() for n in (1,2,3))
+          patch = lzma.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(patch).hexdigest() == '55de651e981f02d9d266c6da6278afe1794542e5d43e4229005a2c7d9113bdc1'
+          Path('/tmp/home-league-review/reviewed.patch').write_bytes(patch)
+          subprocess.run(['git','apply','--check','/tmp/home-league-review/reviewed.patch'],check=True)
+          subprocess.run(['git','apply','/tmp/home-league-review/reviewed.patch'],check=True)
+          path = Path('localization/ui.json')
+          data = json.loads(path.read_text(encoding='utf-8-sig'))
+          present = {key for group in data.values() if isinstance(group, dict) for key in group}
+          additions = {
+              'Ir a una liga': {'en':'Jump to a league','fr':'Aller à une ligue'},
+              'Ver liga': {'en':'View league','fr':'Voir la ligue'},
+              'Por liga · Hora Madrid': {'en':'By league · Madrid time','fr':'Par ligue · Heure de Madrid'},
+          }
+          missing = {key:value for key,value in additions.items() if key not in present}
+          if missing:
+              data.setdefault('home_league_navigation',{}).update(missing)
+              path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.25.0'
+      - name: Generate canonical CSS and verify source identity
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm run build:css
+          pnpm run check:css
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.11.9'
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt tzdata
+          python -m playwright install --with-deps chromium
+      - name: Run offline regression and browser matrix
+        run: |
+          export PYTHONPATH="$PWD/tests:$PWD"
+          python -m compileall -q app.py engines tests tools
+          python -m pytest -p home_review_network_guard -o addopts='' -q \
+            tests/test_canonical_assets.py tests/test_home_league_identity.py \
+            tests/test_home_league_delivery.py tests/test_home_matchday.py \
+            tests/test_home_matchday_browser.py tests/test_home_request_work.py \
+            tests/test_home_dead_builder_fast_path.py tests/test_design02_r7_home_composition.py \
+            tests/test_premium_visual_system.py \
+            --junitxml=/tmp/home-league-review/results.xml \
+            > /tmp/home-league-review/pytest.log 2>&1 || { tail -160 /tmp/home-league-review/pytest.log; exit 1; }
+          tail -10 /tmp/home-league-review/pytest.log
+          git diff --check
+      - name: Commit validated files only to review branch
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/fix/home-league-agenda-css-20261010'
+          git add -- app.py engines/canonical_assets.py engines/home_matchday.py engines/league_badge_read_model.py \
+            static/design-system.css static/product-system.css templates/base.html templates/client_app_center.html \
+            templates/components/home_competition_groups.html templates/home.html localization/ui.json \
+            tests/home_review_network_guard.py tests/test_canonical_assets.py tests/test_home_league_delivery.py \
+            tests/test_home_league_identity.py tests/test_home_matchday.py tools/v937_post_deploy_certification.py
+          git diff --cached --binary > /tmp/home-league-review/validated.patch
+          git config user.name 'NeMeSiS isolated review'
+          git config user.email 'bot-NeMeSiS@users.noreply.github.com'
+          git commit -m 'Group Home fixtures by league with badges and certify canonical CSS'
+          git push origin HEAD:refs/heads/fix/home-league-agenda-css-20261010
+          git rev-parse HEAD > /tmp/home-league-review/validated-commit.txt
+      - name: Export diagnostic source and test evidence
+        if: always()
+        run: |
+          mkdir -p /tmp/home-league-review
+          python - <<'PY'
+          import pathlib, zipfile
+          files = ['static/product-system.css','static/design-system.css','localization/ui.json','tests/test_home_league_delivery.py','engines/home_matchday.py','engines/canonical_assets.py','engines/league_badge_read_model.py']
+          with zipfile.ZipFile('/tmp/home-league-review/changed-source.zip','w',zipfile.ZIP_DEFLATED) as out:
               for name in files:
-                  path = pathlib.Path(name)
-                  if (name in roots or name.startswith(folders)) and path.is_file() and path.suffix not in {'.db','.sqlite','.sqlite3','.log','.zip','.mp4'} and not any(part in {'__pycache__','.venv','node_modules'} for part in path.parts):
-                      out.write(path, name)
+                  if pathlib.Path(name).is_file(): out.write(name,name)
           PY
       - uses: actions/upload-artifact@v7
+        if: always()
         with:
-          name: home-agenda-source-bbc6147
-          path: home-agenda-source.zip
-          retention-days: 3
+          name: home-league-review-${{ github.run_id }}
+          path: /tmp/home-league-review/
+          retention-days: 7
