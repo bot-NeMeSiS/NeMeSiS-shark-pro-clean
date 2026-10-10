@@ -50,6 +50,7 @@ jobs:
               data.setdefault('home_league_navigation',{}).update(missing)
               path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
           PY
+          python tools/home-review-refinements.py
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
@@ -72,6 +73,12 @@ jobs:
         run: |
           export PYTHONPATH="$PWD/tests:$PWD"
           python -m compileall -q app.py engines tests tools
+          python - <<'PY'
+          import home_review_network_guard
+          home_review_network_guard.pytest_configure(None)
+          import app
+          app.init_db()
+          PY
           python -m pytest -p home_review_network_guard -o addopts='' -q \
             tests/test_canonical_assets.py tests/test_home_league_identity.py \
             tests/test_home_league_delivery.py tests/test_home_matchday.py \
