@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes with context %}
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
+{% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% block content %}
+{% set day = data.get("home_matchday") %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
 {% set sports_home = summary.get('sports_home') or (data.get('match_hub') or {}).get('sports_home') or {} %}
@@ -101,9 +103,10 @@
   </section>
 
 
-  {% if live_matches or not original_sections.live %}<section class="v933-panel sports-priority-section" data-sports-priority="live-now">
+  {% if day or live_matches or not original_sections.live %}<section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/directo', 'Directo') }}
-    {% if live_matches %}
+{% if day and day.live.shown %}{{ competition_groups(day.live.groups, false, section='public-live') }}{{ remaining(day.live, '/directo') }}
+        {% elif not day and live_matches %}
       <div class="v933-match-grid sports-priority-grid is-live">
         {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
       </div>
@@ -115,9 +118,10 @@
   {% endif %}
   <section class="v933-two-col sports-priority-layout">
     <div class="v933-main-stack">
-      {% if important_matches or not original_sections.important %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
-        {{ section_header('Importantes hoy', '', 'Todos los partidos', '/calendario', 'Relevancia deportiva') }}
-        {% if important_matches %}
+      {% if day or important_matches or not original_sections.important %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
+        {{ section_header('Partidos de hoy' if day else 'Importantes hoy', 'Por liga · Hora Madrid' if day else '', 'Todos los partidos', '/calendario') }}
+{% if day and day.today.shown %}{{ competition_groups(day.today.groups, false, section='public-today') }}{{ remaining(day.today, '/calendario') }}
+        {% elif not day and important_matches %}
           <div class="v933-match-grid sports-priority-grid">
             {% for match in important_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
@@ -127,9 +131,10 @@
       </section>
 
       {% endif %}
-      {% if upcoming_matches or not original_sections.upcoming %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
-        {{ section_header('Próximos importantes', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
-        {% if upcoming_matches %}
+      {% if day or upcoming_matches or not original_sections.upcoming %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
+        {{ section_header('Próximos partidos', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
+{% if day and day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='public-upcoming') }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
+        {% elif not day and upcoming_matches %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in upcoming_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>
@@ -139,9 +144,10 @@
       </section>
 
       {% endif %}
-      {% if recent_results or not original_sections.results %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
+      {% if day or recent_results or not original_sections.results %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
         {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished', 'Resultados') }}
-        {% if recent_results %}
+{% if day and day.results.shown %}{{ competition_groups(day.results.groups, true, section='public-results') }}{{ remaining(day.results, '/calendario?lane=finished') }}
+        {% elif not day and recent_results %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in recent_results[:4] %}{{ match_card(match, true, true) }}{% endfor %}
           </div>

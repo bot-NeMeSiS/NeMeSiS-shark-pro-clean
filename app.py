@@ -20098,7 +20098,8 @@ def home():
         return Response("", status=200)
     summary = get_public_home_sports_summary()
     data = home_light_data(summary, include_payments=False)
-    # Favorites remain available on their own page; Home opens with the agenda.
+    # Reuse the same cached matchday agenda on public and signed-in Home.
+    data["home_matchday"] = home_matchday_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v934_realtime"] = get_v934_realtime_context(summary)
     return render_template("home.html", data=data, title="NeMeSiS SHARK PRO | Deporte con contexto", meta_description="Partidos, equipos, competiciones y SHARK con datos reales, evidencia y limites visibles.", canonical_url=url_for("home", _external=True))
@@ -20129,7 +20130,8 @@ def home_matchday_context(summary, favorites=None):
         source.extend(summary.get(key) or [])
     result = build_matchday(source, now=datetime.now(MADRID_TZ),
         status_for=canonical_match_status, kickoff_for=match_kickoff_madrid_dt,
-        priority_for=sports_competition_priority)
+        priority_for=sports_competition_priority,
+        identity_for=canonical_competition_surface_contract)
     favorites = _normalized_sports_favorites(favorites)
     for lane in ('live', 'today', 'upcoming', 'results'):
         for group in result[lane]['groups']:
@@ -28254,24 +28256,10 @@ def api_runtime_version():
     logo_cache_state = "Cache de logos disponible" if logo_cache_count else "Fallback premium activo"
     version_files_match = bool(version_txt == APP_VERSION and (not app_version_file or app_version_file == APP_VERSION))
     deployment_alignment_status = "aligned_local_files" if version_files_match else "version_file_mismatch"
-    static_css_cache_busting = bool(
-        "filename='app.css'" in base_template
-        and "?v={{ app_version }}" in base_template
-        and 'data-cache-version="{{ app_version }}"' in base_template
-        and "filename='v928-canonical.css'" in base_template
-        and 'data-v928-cache-version="{{ app_version }}"' in base_template
-        and "filename='v930-canonical.css'" in base_template
-        and 'data-v930-cache-version="{{ app_version }}"' in base_template
-        and "filename='v933_design_tokens.css'" in base_template
-        and 'data-v933-token-version="{{ app_version }}"' in base_template
-        and "filename='v933-product.css'" in base_template
-        and 'data-v933-product-version="{{ app_version }}"' in base_template
-        and "filename='v936-commercial.css'" in base_template
-        and 'data-v936-commercial-version="{{ app_version }}"' in base_template
-        and "filename='v937-product-client.css'" in base_template
-        and "filename='v937-sports-lifecycle.css'" in base_template
-        and 'data-v937-sports-lifecycle-version="{{ app_version }}"' in base_template
-    )
+    from engines.canonical_assets import template_css_href, source_bundle_valid, css_digest
+    canonical_css_href = template_css_href(base_template, APP_VERSION)
+    canonical_css_sha256 = css_digest(BASE_DIR)
+    static_css_cache_busting = bool(canonical_css_href and source_bundle_valid(BASE_DIR))
     service_worker_cache_name = f"NEMESIS_CACHE_{APP_VERSION.split('_', 1)[0]}"
     service_worker_no_stale_html_css = bool(
         service_worker_cache_name in app_py_text
@@ -28821,6 +28809,8 @@ def api_runtime_version():
         "has_v819_dedup": "data-v819-shell" in base_template and "V819 REFERENCE UI DEDUP LAYER PURGE START" in css_text,
         "has_v818_automation": "/api/automation/master-tick" in app_py_text and "daily_automation_engine" in app_py_text,
         "static_css_cache_busting": static_css_cache_busting,
+        "canonical_css_asset": "/static/product-system.css",
+        "canonical_css_sha256": canonical_css_sha256,
         "crest_engine_loaded": runtime_stability.get("crest_engine_loaded"),
         "logo_cache_tables_ok": runtime_stability.get("logo_cache_tables_ok"),
         "team_logo_cache_count": runtime_stability.get("team_logo_cache_count"),
@@ -29252,25 +29242,31 @@ def asset_team_logo(team_key):
 
 @app.route("/asset/league-logo/<league_key>")
 def asset_league_logo(league_key):
-    name = request.args.get("name") or league_key.replace("-", " ").title()
+    from engines.league_badge_read_model import badge_url, cached_profile_badge
+    name = (request.args.get("name") or league_key.replace("-", " ").title())[:200]
+    country = (request.args.get("country") or "")[:100]
     conn = None
     try:
-        conn = sqlite3.connect(DB_PATH, timeout=0.2)
+        # GET must never create a missing database or initialize a schema.
+        conn = sqlite3.connect(Path(DB_PATH).resolve().as_uri() + "?mode=ro", uri=True, timeout=0.2)
         conn.row_factory = sqlite3.Row
-        found = safe_get_league_logo(conn, league_name=name, league_key=league_key)
-        logo = safe_crest_logo_url(found.get("logo_url") or found.get("crest_url"))
-        if logo and logo.startswith("https://"):
+        logo = cached_profile_badge(conn, name=name, country=country,
+            provider=(request.args.get("provider") or "")[:100],
+            league_id=(request.args.get("league_id") or "")[:100])
+        if not logo and not country:
+            # Backward-compatible unscoped callers; new Home requests include
+            # country so generic names never borrow another country's badge.
+            found = safe_get_league_logo(conn, league_name=name, league_key=league_key)
+            logo = badge_url(found.get("logo_url"))
+        if logo:
             response = redirect(logo, code=302)
             response.headers.setdefault("Cache-Control", "public, max-age=3600")
             return response
-    except Exception:
+    except (sqlite3.Error, OSError, ValueError):
         pass
     finally:
-        try:
-            if conn is not None:
-                conn.close()
-        except Exception:
-            pass
+        if conn is not None:
+            conn.close()
     response = redirect(fallback_crest_url(name), code=302)
     response.headers.setdefault("Cache-Control", "public, max-age=300")
     return response
