@@ -35,6 +35,7 @@
   {% endif %}
   {% if h.safe_url %}<p><a class="btn primary" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Abrir fuente</a> <span class="small">Se abre en otra pestaña. Si el reproductor no funciona, prueba este enlace.</span></p>{% endif %}
   <details><summary>Fuente y permisos del vídeo</summary><p class="small">{{ h.rights_note }}</p></details>
+  <p class="small">Para consultar los resultados de los pronósticos, abre el <a href="/historico">Historial</a>.</p>
 </section>
 {% set mc = data.get('match_context') or {} %}
 {% set summaries = mc.get('summaries') or {} %}
@@ -82,6 +83,10 @@
   {% endif %}
 
   <p class="small muted" data-postmatch-recap-policy>Esta información acompaña al vídeo. Solo recoge datos confirmados; no completa resultados ni jugadas que faltan.</p>
+  <details data-postmatch-recap-method>
+    <summary>Cómo se prepara este resumen</summary>
+    <p class="small">Se elabora con los datos confirmados que ya tenemos del partido: 0 llamadas de IA generativa y 0 llamadas externas durante la lectura. La reproducción del vídeo es independiente y se conecta con su plataforma cuando la solicitas.</p>
+  </details>
 </section>
 {% endif %}
 {% endif %}
