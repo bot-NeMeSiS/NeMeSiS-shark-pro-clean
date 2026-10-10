@@ -1,6 +1,7 @@
 """Bounded, read-only discovery of public sports entities already stored locally."""
 from __future__ import annotations
 
+from bisect import insort
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
@@ -15,7 +16,10 @@ TEAM_REFERENCE_PREFIX = '@team:'
 
 @lru_cache(maxsize=4096)
 def fold(value):
-    return ' '.join(''.join(c for c in unicodedata.normalize('NFD', str(value or ''))
+    value = str(value or '')
+    if value.isascii():
+        return ' '.join(value.casefold().split())
+    return ' '.join(''.join(c for c in unicodedata.normalize('NFD', value)
                            if unicodedata.category(c) != 'Mn').casefold().split())
 
 
@@ -28,7 +32,132 @@ def _like(value):
 
 
 def _terms_clause(expression, terms):
-    return ' AND '.join(f"sports_fold({expression}) LIKE ? ESCAPE '\\'" for _ in terms), tuple('%'+_like(t)+'%' for t in terms)
+    # A cheap candidate pass only. Unicode matching below remains authoritative.
+    return ' AND '.join(f"{expression} LIKE ? ESCAPE '\\'" for _ in terms), tuple('%'+_like(t)+'%' for t in terms)
+
+
+_ASCII_LOWER = str.maketrans('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')
+
+
+def _sqlite_text(value, nocase=False):
+    text = str(value or '')
+    return value is not None, text.translate(_ASCII_LOWER) if nocase else text
+
+
+class _Descending:
+    """Reverse a SQLite text sort key, including its NULL placement."""
+    __slots__ = ('value',)
+
+    def __init__(self, value):
+        self.value = value
+
+    def __lt__(self, other):
+        return self.value > other.value
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+
+class _Candidates:
+    """Keep only the best limit+1 public rows; no response or account cache."""
+    def __init__(self, kind, query, today, capacity):
+        self.kind, self.query, self.today, self.capacity = kind, query, today, capacity
+        self.entries = []
+        self.identities = set()
+
+    def add(self, row):
+        identity = row['id' if self.kind == 'match' else 'key']
+        if identity in self.identities:
+            return
+        if self.kind == 'match':
+            historical = row['match_date'] < self.today
+            stamp, clock = _sqlite_text(row['match_date']), _sqlite_text(row['kickoff_time'])
+            rank = (historical, _Descending(stamp) if historical else stamp,
+                    _Descending(clock) if historical else clock, _sqlite_text(identity))
+        else:
+            name = fold(row['name'])
+            rank = (0 if name == self.query else 1 if name.startswith(self.query) else 2,
+                    _sqlite_text(row['name'], True), _sqlite_text(row['country']), _sqlite_text(identity))
+        insort(self.entries, (rank, str(identity), row))
+        self.identities.add(identity)
+        if len(self.entries) > self.capacity:
+            removed = self.entries.pop()[2]
+            self.identities.remove(removed['id' if self.kind == 'match' else 'key'])
+
+
+def _matches(kind, row, terms, excluded):
+    if kind == 'match':
+        names = (row['home_team'], row['away_team'])
+        competition = row['competition_name'] if row['competition_name'] is not None else row['league_name']
+        fields = (*names, competition, row['country'])
+    else:
+        names = (row['name'],)
+        fields = (row['name'], row['country'], row['league' if kind == 'team' else 'region'])
+    # Folding fields separately is equivalent to folding their space-joined
+    # text, and reuses common countries, leagues and team names in match history.
+    text = ' '.join(filter(None, (fold(value) for value in fields)))
+    return (all(term in text for term in terms)
+            and all(str(name or '').strip() and fold(name) not in excluded for name in names))
+
+
+def _search_sql(kind, today, *, terms=(), history=False, native=False, capacity=9):
+    if kind == 'match':
+        expression = "coalesce(home_team,'') || ' ' || coalesce(away_team,'') || ' ' || coalesce(competition_name,league_name,'') || ' ' || coalesce(country,'')"
+        comparison, order = ('<', 'DESC') if history else ('>=', 'ASC')
+        sql = f"""SELECT id,home_team,away_team,competition_name,league_name,country,match_date,kickoff_time
+            FROM matches WHERE match_date {comparison} ?
+            AND lower(coalesce(source,''))<>'seed estructural'"""
+        args = (today,)
+        ordering = f' ORDER BY match_date {order}, kickoff_time {order}, id'
+    else:
+        table, extra = ('teams', 'league') if kind == 'team' else ('competitions', 'region')
+        expression = f"coalesce(name,'') || ' ' || coalesce(country,'') || ' ' || coalesce({extra},'')"
+        sql, args, ordering = f'SELECT key,name,country,{extra} FROM {table} WHERE 1', (), ''
+    if native:
+        clause, values = _terms_clause(expression, terms)
+        sql += ' AND ' + clause
+        args += values
+    sql += ordering
+    if native:
+        sql += ' LIMIT ?'
+        args += (capacity,)
+    return sql, args
+
+
+def _scan(conn, sql, args, *, deadline, kind, terms, excluded, candidates, stop_after=None):
+    """Yield after each examined row so Unicode scans can share the deadline."""
+    if time.monotonic() >= deadline:
+        raise sqlite3.OperationalError('search deadline')
+    conn.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+    remaining = max(0, deadline - time.monotonic())
+    conn.execute(f'PRAGMA busy_timeout={int(min(.15, remaining) * 1000)}')
+    cursor = conn.execute(sql, args)
+    accepted = 0
+    try:
+        while time.monotonic() < deadline:
+            row = cursor.fetchone()
+            if row is None:
+                return accepted
+            if _matches(kind, row, terms, excluded):
+                candidates.add(row)
+                accepted += 1
+                if stop_after is not None and accepted >= stop_after:
+                    return accepted
+            yield
+        raise sqlite3.OperationalError('search deadline')
+    finally:
+        cursor.close()
+
+
+def _scan_category(conn, kind, today, *, deadline, terms, excluded, candidates, capacity):
+    sql, args = _search_sql(kind, today)
+    found = yield from _scan(conn, sql, args, deadline=deadline, kind=kind, terms=terms,
+                             excluded=excluded, candidates=candidates,
+                             stop_after=capacity if kind == 'match' else None)
+    if kind == 'match' and found < capacity:
+        sql, args = _search_sql(kind, today, history=True)
+        yield from _scan(conn, sql, args, deadline=deadline, kind=kind, terms=terms,
+                         excluded=excluded, candidates=candidates, stop_after=capacity-found)
 
 
 def _text(value, limit=180):
@@ -55,14 +184,16 @@ def _item(kind, row):
 def search_sports(db_path, query='', kind='', *, today=None, limit=8, excluded_names=(), budget_seconds=.6):
     """Never initialize schemas, fetch providers, or persist a user's query.
 
-    Every SQL projection omits raw payloads; the SQLite progress deadline bounds
-    broad searches. An interrupted/missing catalogue is explicit, not 'no hits'.
+    Native candidates improve a cold first response; only the Unicode pass can
+    certify completeness. All phases share one deadline, including connection
+    waits, and an interrupted category retains its verified partial candidates.
     """
     query = clean_query(query)
     kind = kind if kind in KINDS else ''
     result = {'query':query, 'kind':kind, 'items':[], 'has_more':False, 'complete':True, 'status':'READY'}
-    terms = fold(query).split()
-    if len(fold(query)) < 2 or not any(c.isalnum() for c in query):
+    folded_query = fold(query)
+    terms = folded_query.split()
+    if len(folded_query) < 2 or not any(c.isalnum() for c in query):
         result['status'] = 'TYPE_MORE'
         return result
     if len(terms) > 8:
@@ -70,57 +201,57 @@ def search_sports(db_path, query='', kind='', *, today=None, limit=8, excluded_n
         return result
     limit = max(1, min(int(limit), 12))
     today = str(today or date.today().isoformat())[:10]
+    budget_seconds = min(.6, max(0, float(budget_seconds)))
+    deadline = time.monotonic() + budget_seconds
     excluded = {fold(str(name)) for name in excluded_names}
+    kinds = (kind,) if kind else KINDS
+    candidates = {current: _Candidates(current, folded_query, today, limit+1) for current in kinds}
+    completed = set()
+    scans = {}
     conn = None
     try:
-        conn = sqlite3.connect(Path(db_path).resolve().as_uri()+'?mode=ro', uri=True, timeout=.15)
+        if time.monotonic() >= deadline:
+            raise sqlite3.OperationalError('search deadline')
+        conn = sqlite3.connect(Path(db_path).resolve().as_uri()+'?mode=ro', uri=True,
+                               timeout=min(.15, max(0, deadline - time.monotonic())))
         conn.row_factory = sqlite3.Row
         conn.execute('PRAGMA query_only=ON')
-        conn.create_function('sports_fold', 1, fold, deterministic=True)
-        conn.create_function('sports_real_name', 1, lambda v: int(bool(str(v or '').strip()) and fold(v) not in excluded), deterministic=True)
-        deadline = time.monotonic() + budget_seconds
-        conn.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
-        for current in (kind,) if kind else KINDS:
-            if time.monotonic() > deadline:
-                raise sqlite3.OperationalError('search deadline')
-            if current in {'team','league'}:
-                table = 'teams' if current == 'team' else 'competitions'
-                extra = 'league' if current == 'team' else 'region'
-                clause, args = _terms_clause(f"coalesce(name,'') || ' ' || coalesce(country,'') || ' ' || coalesce({extra},'')", terms)
-                data = conn.execute(f"""SELECT key,name,country,{extra} FROM {table}
-                    WHERE sports_real_name(name) AND {clause}
-                    ORDER BY CASE WHEN sports_fold(name)=? THEN 0
-                                  WHEN sports_fold(name) LIKE ? ESCAPE '\\' THEN 1 ELSE 2 END,
-                             name COLLATE NOCASE, country, key LIMIT ?""",
-                    args+(fold(query), _like(fold(query))+'%', limit+1)).fetchall()
-                data = [r for r in data if fold(r['name']) not in excluded]
-            else:
-                clause, args = _terms_clause("coalesce(home_team,'') || ' ' || coalesce(away_team,'') || ' ' || coalesce(competition_name,league_name,'') || ' ' || coalesce(country,'')", terms)
-                data = []
-                for comparison, order in (('>=','ASC'), ('<','DESC')):
-                    try:
-                        if time.monotonic() > deadline:
-                            raise sqlite3.OperationalError('search deadline')
-                        rows = conn.execute(f"""SELECT id,home_team,away_team,competition_name,league_name,country,match_date,kickoff_time
-                            FROM matches WHERE match_date {comparison} ? AND {clause}
-                            AND sports_real_name(home_team) AND sports_real_name(away_team)
-                            AND lower(coalesce(source,''))<>'seed estructural'
-                            ORDER BY match_date {order}, kickoff_time {order}, id LIMIT ?""",
-                            (today,)+args+(limit+1-len(data),)).fetchall()
-                    except sqlite3.Error:
-                        # Keep available upcoming matches if historical search times out.
-                        result['items'].extend(_item(current, row) for row in data[:limit])
-                        raise
-                    data.extend(r for r in rows if fold(r['home_team']) not in excluded and fold(r['away_team']) not in excluded)
-                    if len(data) > limit:
-                        break
-            result['has_more'] |= len(data) > limit
-            result['items'].extend(_item(current, row) for row in data[:limit])
+        # Both passes must observe the same catalogue, even if a writer commits.
+        conn.execute('BEGIN')
+        for current in kinds:
+            try:
+                sql, args = _search_sql(current, today, terms=terms, native=True, capacity=limit+1)
+                for _ in _scan(conn, sql, args, deadline=min(deadline, time.monotonic()+budget_seconds*.2/len(kinds)),
+                               kind=current, terms=terms, excluded=excluded, candidates=candidates[current]):
+                    pass
+            except sqlite3.Error:
+                pass  # The authoritative pass can still complete this category.
+        scans = {current: _scan_category(conn, current, today, deadline=deadline, terms=terms,
+                                        excluded=excluded, candidates=candidates[current], capacity=limit+1)
+                 for current in kinds}
+        while scans and time.monotonic() < deadline:
+            for current, scan in list(scans.items()):
+                try:
+                    for _ in range(64):
+                        next(scan)
+                except StopIteration:
+                    completed.add(current)
+                    del scans[current]
+                except sqlite3.Error:
+                    del scans[current]
     except (sqlite3.Error, OSError, ValueError):
-        result.update(complete=False, status='PARTIAL' if result['items'] else 'UNAVAILABLE')
+        pass
     finally:
+        for scan in scans.values():
+            scan.close()
         if conn is not None:
             conn.close()
+    for current in kinds:
+        data = candidates[current].entries
+        result['has_more'] |= len(data) > limit
+        result['items'].extend(_item(current, entry[2]) for entry in data[:limit])
+    if len(completed) != len(kinds):
+        result.update(complete=False, status='PARTIAL' if result['items'] else 'UNAVAILABLE')
     return result
 
 
