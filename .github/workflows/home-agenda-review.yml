@@ -1,0 +1,35 @@
+name: Home agenda isolated review
+on:
+  push:
+    branches: ['fix/home-league-agenda-css-20261010']
+    paths: ['.github/workflows/home-agenda-review.yml']
+permissions:
+  contents: read
+jobs:
+  source-snapshot:
+    if: github.ref == 'refs/heads/fix/home-league-agenda-css-20261010'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: bbc61473392b2511426ded728e34701ba2da2ef2
+          persist-credentials: false
+      - name: Export tracked source only, without running application
+        run: |
+          python - <<'PY'
+          import pathlib, subprocess, zipfile
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          folders = ('engines/', 'templates/', 'static/', 'tests/', 'tools/', 'browser_qa/', '.github/workflows/')
+          roots = {'app.py','requirements.txt','requirements-dev.txt','VERSION.txt','APP_VERSION','gunicorn.conf.py','pytest.ini','conftest.py','.python-version'}
+          with zipfile.ZipFile('home-agenda-source.zip', 'w', zipfile.ZIP_DEFLATED) as out:
+              for name in files:
+                  path = pathlib.Path(name)
+                  if (name in roots or name.startswith(folders)) and path.is_file() and path.suffix not in {'.db','.sqlite','.sqlite3','.log','.zip','.mp4'} and not any(part in {'__pycache__','.venv','node_modules'} for part in path.parts):
+                      out.write(path, name)
+          PY
+      - uses: actions/upload-artifact@v7
+        with:
+          name: home-agenda-source-bbc6147
+          path: home-agenda-source.zip
+          retention-days: 3
