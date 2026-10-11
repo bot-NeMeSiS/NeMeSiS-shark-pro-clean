@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
+<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=2-controls"></script>
 {% set h = data.highlight if data.highlight is defined else {} %}
 {% if not h %}
 <section class="scoreboard-hero v701-scoreboard">

@@ -9,10 +9,21 @@
     const input = root.querySelector('[data-explore-query]');
     const items = [...root.querySelectorAll('[data-explore-item]')];
     const match = root.querySelector('[data-explore-match]');
+    const form = root.querySelector('[data-explore-form]');
+    if (!input || !form || root.dataset.exploreReady === 'true') return;
+    root.dataset.exploreReady = 'true';
+    let composing = false;
+    const clear = document.createElement('button');
+    clear.type = 'button'; clear.className = 'v933-action';
+    clear.dataset.exploreClear = '';
+    clear.textContent = text('Limpiar filtros', {});
+    clear.hidden = true;
+    form.insertAdjacentElement('afterend', clear);
     const results = () => [...items.filter(item => !item.hidden), ...(match && !match.hidden ? [match] : [])];
     function filter() {
       const query = input.value.trim().slice(0, 90);
       const terms = normalize(query).split(/\s+/).filter(Boolean);
+      clear.hidden = !query;
       items.forEach(item => { item.hidden = !terms.every(term => normalize(item.dataset.exploreLabel).includes(term)); });
       root.querySelectorAll('[data-explore-group]').forEach(group => { group.hidden = !group.querySelector('[data-explore-item]:not([hidden])'); });
       const count = items.filter(item => !item.hidden).length;
@@ -25,9 +36,28 @@
       }
     }
     input.addEventListener('input', filter);
-    root.querySelector('[data-explore-form]').addEventListener('submit', event => {
-      event.preventDefault(); filter();
-      if (input.value.trim()) results()[0]?.click();
+    input.addEventListener('compositionstart', () => { composing = true; });
+    input.addEventListener('compositionend', () => { composing = false; filter(); });
+    clear.addEventListener('click', () => {
+      input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('sports:query')); input.focus();
+    });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      if (composing) return;
+      filter();
+      const query = normalize(input.value.trim().slice(0, 90));
+      if (!query) return;
+      const visible = items.filter(item => !item.hidden);
+      const exact = visible.filter(item => normalize(item.querySelector('span')?.textContent.trim() || '') === query);
+      // Do not send an ambiguous search to the first section by accident.
+      const destination = exact.length === 1 ? exact[0] : visible.length === 1 ? visible[0]
+        : visible.length === 0 && match && !match.hidden ? match : null;
+      if (destination) destination.click();
+      else {
+        root.querySelector('[data-explore-count]').textContent = text('{count} secciones disponibles', { count: visible.length });
+        visible[0]?.focus();
+      }
     });
     root.addEventListener('keydown', event => {
       if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || !['ArrowDown', 'ArrowUp'].includes(event.key)) return;
@@ -44,6 +74,7 @@
   });
   if (!dialog || typeof dialog.showModal !== 'function') return;
   const control = controls.get(dialog.querySelector('[data-app-explore]'));
+  if (!control) return;
   let opener = null;
   function open(source, query = '') {
     // Never replace a confirmation or another active modal.
