@@ -15,7 +15,7 @@ def _worker_response(app_module, monkeypatch=None, revision=None):
 def test_service_worker_uses_deploy_revision_for_cache_invalidation(app_module, monkeypatch):
     response = _worker_response(app_module, monkeypatch, "deadbeef1234")
     script = response.get_data(as_text=True)
-    assert "NEMESIS_CACHE_deadbeef1234_ICON_" in script
+    assert "NEMESIS_CACHE_V941_ICON_" in script and "deadbeef1234" in script
     assert "const NEMESIS_APP_VERSION=" in script
 
 
