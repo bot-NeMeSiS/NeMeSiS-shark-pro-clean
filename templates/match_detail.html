@@ -5,7 +5,7 @@
 {% from "components/v944_match_center.html" import odds_panel %}
 {% block content %}
 {% from 'components/sports_history.html' import history_panel %}
-<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
+<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=2-controls"></script>
 {% if not detail or not match_context %}
 <div class="v933-page v933-match-detail" data-v933-template="match_detail">
   {{ page_header('Partido no disponible', 'No se encontró un registro real para este identificador.', 'matches') }}
