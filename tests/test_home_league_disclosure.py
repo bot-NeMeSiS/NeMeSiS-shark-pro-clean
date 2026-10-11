@@ -257,5 +257,22 @@ def test_real_flask_home_loads_disclosure_once_on_every_home_alias(app_module,pa
     assert len(primary)==6 and len(secondary)==30
     assert html.count('home-league-disclosure.css')==1
     assert html.count('home-league-disclosure.js')==1
-    assert all(any(p['attrs'].get('data-home-more-leagues') is not None for p in n['parents']) for n in secondary)
+    assert all(any('data-home-more-leagues' in p['attrs'] for p in n['parents']) for n in secondary)
     assert not any(any(p['tag']=='details' for p in n['parents']) for n in primary)
+
+
+@pytest.mark.parametrize('empty_value',[False,True])
+def test_hierarchy_detector_accepts_boolean_attributes_without_losing_structure(empty_value):
+    from test_design02_calendar_presentation import Structure
+    html=markup()
+    if empty_value:
+        html=html.replace('data-home-more-leagues>', 'data-home-more-leagues="">')
+    dom=Structure(html)
+    secondary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='secondary']
+    primary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='primary']
+    assert len(secondary)==30 and len(primary)==6
+    assert all(any('data-home-more-leagues' in p['attrs'] for p in n['parents']) for n in secondary)
+    assert all(not any(p['tag']=='details' for p in n['parents']) for n in primary)
+    # A secondary row detached from the disclosure must still fail this detector.
+    detached=Structure('<details data-home-importance="secondary"><summary>QA</summary></details>').nodes[0]
+    assert not any('data-home-more-leagues' in p['attrs'] for p in detached['parents'])
