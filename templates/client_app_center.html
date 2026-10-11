@@ -18,6 +18,11 @@
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 {% set safe = data.get('v925_calendar') or {} %}
+{# Count the same request-local lane rendered below, including undisplayed rows. #}
+{% if day is mapping %}
+  {% set sports_metrics = dict(sports_metrics, live_confirmed=day.live.total) %}
+{% endif %}
+
 
 <div class="v933-page v933-client-dashboard ns16-home home-agenda-focus" data-v933-template="client_app_center" data-v933-reference="official-ref-08" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-client-hero ns16-home-hero">
