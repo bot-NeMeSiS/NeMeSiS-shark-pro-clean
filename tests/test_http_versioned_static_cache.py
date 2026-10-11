@@ -19,7 +19,7 @@ def test_service_worker_keeps_private_navigation_out_of_cache_storage():
     assert "await cache.put(req,response.clone()).catch(()=>{})" in route
     assert "url.pathname.startsWith('/static/')" in route
     assert "url.searchParams.has('v')" in route
-    assert "cache:'force-cache'" in route
+    assert "fetch(req,{cache:'reload'})" in route
 
 
 def test_versioned_css_gets_long_lived_immutable_http_cache(app_module):
