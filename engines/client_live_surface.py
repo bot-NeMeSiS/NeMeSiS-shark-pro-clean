@@ -4,6 +4,7 @@ Pure projection of the existing read model; no provider, DB or inferred scores.
 Explicit historical bookmarks remain labelled historical, never 'Ahora mismo'.
 """
 from engines.v935_launch_trust_engine import match_status_truth
+from engines.client_competition_order import live_display_key
 
 
 def live_surface(data, lane='live', *, now=None):
@@ -38,6 +39,9 @@ def live_surface(data, lane='live', *, now=None):
         if allowed:
             seen.add(identity)
             accepted.append(dict(row))
+    # Rank only accepted observations; a Spanish stale/future row remains excluded.
+    if lane != 'finished':
+        accepted.sort(key=live_display_key)
     return {'contract':'NEMESIS-DIRECTO-LIVE-ONLY-V1','lane':lane, 'matches':accepted,
             'title':'Resultados finalizados' if lane == 'finished' else 'Ahora mismo',
             'historical':lane == 'finished','external_calls':0}
