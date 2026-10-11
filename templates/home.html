@@ -23,6 +23,18 @@
 {% set safe_message = 'La agenda no está disponible temporalmente. Vuelve a intentarlo en unos minutos.' if summary.get('storage_status') == 'database_locked' else 'Todavía no hay partidos disponibles para esta jornada.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set simulated_evidence = evidence_origin == 'SIMULATED_QA' %}
+{# The request-local agenda owns both featured cards and LIVE counts. An empty
+   canonical lane must never fall back to a stale cached promotional list. #}
+{% if day is mapping %}
+  {% set live_matches = day.live.groups|map(attribute='matches')|sum(start=[]) %}
+  {% set important_matches = day.today.groups|map(attribute='matches')|sum(start=[]) %}
+  {% set upcoming_matches = day.upcoming.groups|map(attribute='matches')|sum(start=[]) %}
+  {% set recent_results = day.results.groups|map(attribute='matches')|sum(start=[]) %}
+  {% set favorite_matches = (important_matches + upcoming_matches + recent_results)|selectattr('is_favorite')|list %}
+  {% set live_count = day.live.total %}
+  {% set sports_metrics = dict(sports_metrics, live_confirmed=live_count) %}
+{% endif %}
+
 {% set original_sections = {'live': live_matches|length, 'important': important_matches|length, 'upcoming': upcoming_matches|length, 'results': recent_results|length} %}
 {% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
 {% set hero_match = priority_pool[0] if priority_pool else none %}
@@ -90,7 +102,7 @@
 
     <aside class="v933-today-board sports-priority-main-card" aria-label="Prioridad deportiva de hoy">
       <header>
-        <h2>{{ hero_board_title }}</h2>
+        <h2 data-home-featured-title>{{ hero_board_title }}</h2>
         {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Agenda pendiente'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
       </header>
       {% if hero_match %}
