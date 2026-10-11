@@ -8,9 +8,12 @@ from zoneinfo import ZoneInfo
 
 from engines.crest_engine import normalize_logo_key
 from engines.league_badge_read_model import badge_url, match_badge
+from engines.client_competition_order import competition_display_rank, spanish_first_enabled
 
 MADRID = ZoneInfo('Europe/Madrid')
 DEFAULT_LIMITS = {'live': 12, 'today': 48, 'upcoming': 12, 'results': 12}
+HOME_PRIMARY_GROUP_LIMIT = 6
+HOME_PRIMARY_RANK_MAX = 25
 
 
 def _local(value):
@@ -86,6 +89,7 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
         rank = priority_for(match).get('rank', 95)
         group = lanes[lane].setdefault(group_key, dict(metadata, date=day, rank=rank, rows=[]))
         group['rank'] = min(group['rank'], rank)
+        group['display_rank'] = min(group.get('display_rank', 999), competition_display_rank(match, rank))
         # A later fixture may carry the badge missing from the first fixture.
         group['logo_url'] = group['logo_url'] or match_badge(match)
         stamp = kickoff.timestamp() if kickoff else 0
@@ -100,9 +104,14 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
             keys = [key for key in groups if key[0] == day]
             for key in keys:
                 groups[key]['rows'].sort(key=lambda row: (-row[0] if lane == 'results' else row[0], row[1]))
-            for rank in sorted({groups[key]['rank'] for key in keys}):
-                peers = sorted((key for key in keys if groups[key]['rank'] == rank),
-                               key=lambda key: (groups[key]['competition'].casefold(), key))
+            # Reserve one slot across major peers before filling another league.
+            # Spain-first must not let a large domestic schedule consume every slot.
+            def band(key):
+                rank = groups[key]['rank']
+                return 0 if spanish_first_enabled() and 0 <= rank <= HOME_PRIMARY_RANK_MAX else rank
+            for rank in sorted({band(key) for key in keys}):
+                peers = sorted((key for key in keys if band(key) == rank),
+                               key=lambda key: (groups[key]['display_rank'], groups[key]['competition'].casefold(), key))
                 queues = {key: deque(groups[key]['rows']) for key in peers}
                 while any(queues.values()) and shown < limits[lane]:
                     for key in peers:
@@ -114,17 +123,29 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
         sections = []
         for day in sorted({key[0] for key in selected}, reverse=lane == 'results'):
             for key in sorted((key for key in selected if key[0] == day),
-                              key=lambda key: (groups[key]['rank'], groups[key]['competition'].casefold(), key)):
+                              key=lambda key: (groups[key]['display_rank'], groups[key]['competition'].casefold(), key)):
                 group = groups[key]
-                section = {k: v for k, v in group.items() if k not in {'rows', 'rank'}}
+                section = {k: v for k, v in group.items() if k not in {'rows', 'rank', 'display_rank'}}
                 section['matches'] = []
                 for _, _, match, status in selected[key]:
                     item = deepcopy(match)
                     item['status_info'] = status
                     section['matches'].append(item)
-                section.update(shown=len(section['matches']), total=len(group['rows']))
+                section.update(shown=len(section['matches']), total=len(group['rows']),
+                               home_priority_rank=group['rank'],
+                               home_favorite=any(item.get('is_favorite') is True for item in section['matches']))
                 section['logo_url'] = badge_url(section['logo_url'])
                 sections.append(section)
+        # Progressive disclosure changes presentation only. A day without major
+        # leagues must not promote unknown/minor competitions just to fill space.
+        # Reuse the existing scoped competition ranking; never guess from names.
+        primary_count = 0
+        for section in sections:
+            rank = section['home_priority_rank']
+            eligible = (isinstance(rank, (int, float)) and not isinstance(rank, bool)
+                        and 0 <= rank <= HOME_PRIMARY_RANK_MAX) or section['home_favorite']
+            section['home_primary'] = bool(eligible and primary_count < HOME_PRIMARY_GROUP_LIMIT)
+            primary_count += int(section['home_primary'])
         result[lane] = {'groups': sections, 'shown': shown, 'total': total,
                         'has_more': total > shown, 'limit': limits[lane],
                         'competition_count': len(groups)}
