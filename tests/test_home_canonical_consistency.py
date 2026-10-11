@@ -136,6 +136,38 @@ def test_flask_templates_keep_home_consistent(app_module,template,state):
     if template=='home.html':assert ('Partido en directo' in html) is (state=='LIVE')
 
 
+@pytest.mark.parametrize('case,expected', [
+    ('current', 'PRIORITY'), ('wrong_match', None), ('wrong_state', None),
+    ('stale', None), ('conflict', None), ('unrecognized', None),
+    ('canonical_has_bucket', 'STANDARD'),
+])
+def test_featured_priority_preserves_only_same_fixture_current_metadata(case,expected):
+    fixture=row('current','UPCOMING')
+    if case=='canonical_has_bucket':fixture['sports_relevance_bucket']='STANDARD'
+    data=data_for([fixture],old_count=0)
+    candidate={**fixture,'home_team':'OLD TEAM LABEL MUST NOT LEAK',
+        'home_score':99,'away_score':99,'kickoff_time':'00:00',
+        'sports_relevance_bucket':'PRIORITY',
+        'sports_relevance':{'bucket':'PRIORITY','is_live':False,'is_upcoming':True,
+                           'is_finished':False,'is_stale':False,'status_conflict':False}}
+    if case=='wrong_match':candidate['id']='other-match'
+    elif case=='wrong_state':candidate['sports_relevance'].update(is_live=True,is_upcoming=False)
+    elif case=='stale':candidate['sports_relevance']['is_stale']=True
+    elif case=='conflict':candidate['sports_relevance']['status_conflict']=True
+    elif case=='unrecognized':candidate['sports_relevance_bucket']='<script>unsafe</script>'
+    data['home_summary']['sports_home']['upcoming']=[candidate]
+    before=deepcopy(data)
+    html=render('home.html',data)
+    board=html.split('<aside class="v933-today-board',1)[1].split('</aside>',1)[0]
+    assert 'data-v934-match-id="current"' in board
+    if expected:assert f'data-sports-relevance="{expected}"' in board
+    else:assert 'data-sports-relevance=' not in board
+    assert 'OLD TEAM LABEL MUST NOT LEAK' not in html
+    assert 'other-match' not in html and 'Partido en directo' not in html
+    assert 'unsafe' not in html
+    assert data==before
+
+
 @pytest.fixture(scope='module')
 def consistency_browser():
     from playwright.sync_api import sync_playwright
