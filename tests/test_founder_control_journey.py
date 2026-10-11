@@ -129,7 +129,9 @@ def test_existing_manifests_worker_and_private_cache_contract(app_module):
     script = worker.get_data(as_text=True)
     assert worker.headers['Service-Worker-Allowed'] == '/'
     assert "fetch(req,{cache:'no-store'})" in script
-    assert 'caches.put' not in script and 'cache.put' not in script and 'caches.match' not in script
+    assert 'caches.put' not in script and 'caches.match' not in script
+    assert "assetVersion.startsWith(NEMESIS_APP_VERSION)" in script
+    assert "await cache.put(req,response.clone()).catch(()=>{})" in script
     assert 'no-store' in client.get('/api/admin/founder-os').headers.get('Cache-Control', '')
 
 
