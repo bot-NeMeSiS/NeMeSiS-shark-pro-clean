@@ -37,6 +37,10 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='app-navigation.css') }}?v=1">
+  {% if request.endpoint in ['home', 'v757_client_app_center_page'] %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='home-league-disclosure.css') }}?v=1">
+  <script defer src="{{ url_for('static', filename='home-league-disclosure.js') }}?v=1"></script>
+  {% endif %}
   {% if request.endpoint in ['favorites_page', 'admin_backups_page'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='account-collections.css') }}?v=1">
   {% endif %}
@@ -505,7 +509,6 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
 </html>
-
 
 
 

@@ -11,6 +11,8 @@ from engines.league_badge_read_model import badge_url, match_badge
 
 MADRID = ZoneInfo('Europe/Madrid')
 DEFAULT_LIMITS = {'live': 12, 'today': 48, 'upcoming': 12, 'results': 12}
+HOME_PRIMARY_GROUP_LIMIT = 6
+HOME_PRIMARY_RANK_MAX = 25
 
 
 def _local(value):
@@ -122,9 +124,21 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
                     item = deepcopy(match)
                     item['status_info'] = status
                     section['matches'].append(item)
-                section.update(shown=len(section['matches']), total=len(group['rows']))
+                section.update(shown=len(section['matches']), total=len(group['rows']),
+                               home_priority_rank=group['rank'],
+                               home_favorite=any(item.get('is_favorite') is True for item in section['matches']))
                 section['logo_url'] = badge_url(section['logo_url'])
                 sections.append(section)
+        # Progressive disclosure changes presentation only. A day without major
+        # leagues must not promote unknown/minor competitions just to fill space.
+        # Reuse the existing scoped competition ranking; never guess from names.
+        primary_count = 0
+        for section in sections:
+            rank = section['home_priority_rank']
+            eligible = (isinstance(rank, (int, float)) and not isinstance(rank, bool)
+                        and 0 <= rank <= HOME_PRIMARY_RANK_MAX) or section['home_favorite']
+            section['home_primary'] = bool(eligible and primary_count < HOME_PRIMARY_GROUP_LIMIT)
+            primary_count += int(section['home_primary'])
         result[lane] = {'groups': sections, 'shown': shown, 'total': total,
                         'has_more': total > shown, 'limit': limits[lane],
                         'competition_count': len(groups)}
