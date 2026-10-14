@@ -112,3 +112,15 @@ def test_rejected_paid_campaign_requires_explicit_refund_state(db):
     ok, _ = ads.review_campaign(campaign_id, "mark_refunded", db)
     assert ok
     assert ads.campaign_by_id(campaign_id, db)["status"] == "refunded"
+
+def test_checkout_requires_explicit_tax_code_and_signed_webhook(db, monkeypatch):
+    data, _ = ads.validate_campaign_form(valid_form())
+    monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_synthetic_only")
+    monkeypatch.setenv("ADS_STRIPE_TAX_READY", "true")
+    monkeypatch.setenv("STRIPE_ADS_WEBHOOK_SECRET", "whsec_synthetic_only")
+    monkeypatch.delenv("ADS_STRIPE_TAX_CODE", raising=False)
+    first = ads.create_campaign(data, True, db)
+    assert ads.campaign_by_id(first, db)["status"] == "awaiting_payment_setup"
+    monkeypatch.setenv("ADS_STRIPE_TAX_CODE", "txcd_test_placeholder")
+    second = ads.create_campaign(data, True, db)
+    assert ads.campaign_by_id(second, db)["status"] == "pending_payment"
