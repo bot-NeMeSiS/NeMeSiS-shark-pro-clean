@@ -1,5 +1,19 @@
 # PRODUCTION TRUTH & CONSOLIDATION
 
+## Operational recheck (2026-10-14)
+
+This dated update supersedes earlier statements below only where explicitly noted; the 2026-10-02 observations remain historical evidence.
+
+- Current audited GitHub main: `f3fe100a432a92a4e8f7ee2f679f9883d6662d8d`; Render auto-deploys from main. Do not treat a PR head or green CI as deployed production.
+- Current Blueprint declares web health check `/api/health` and a persistent disk mounted at `/data` with 2 GB. Earlier references below to a 1 GB disk and an empty health-check field are historical and no longer describe the current Blueprint/Render metadata observed in this audit.
+- The natural Master Cron observations on 2026-10-14 continue to show API-Football access failures (`ACCOUNT_SUSPENDED` / `FREE_PLAN_RESTRICTED`) and SportsDB fallback contribution. At 14:45 Madrid, the live refresh produced a current `ACCOUNT_SUSPENDED` observation and the sports lane returned technical FAIL. Do not call API-Football healthy until the provider account itself is confirmed and a later authorized natural observation succeeds.
+- Odds cycles frequently report `CACHE_REUSED` with `provider_observation_current=false`; this is not proof of fresh prices. Highlights and postmatch frequently remain `PARTIAL`. Telegram `PASS` with `OLD_MATCH` is not proof of a new delivery; no manual Telegram test was performed during this recheck.
+- Backup certification remains PENDING REAL. The audit did not read files on the persistent disk or execute the backup endpoint. Repeated timeout evidence therefore does not prove whether the latest backup is valid. PR #236 adds isolated stage diagnostics but is not merged or deployed; do not claim resolution until a natural backup yields file + manifest + SHA-256 + SQLite integrity evidence and a restore rehearsal succeeds in isolated storage.
+- API-Football provider recovery requires the owner to check the provider dashboard/plan and support status. No API key was read, replaced or exposed; no extra paid provider request was made by this audit.
+- Keep user/data continuity, Stripe live configuration/webhook delivery, the postmatch backlog and 5xx/deploy correlations as separate release gates. No secrets, users, production database, payments or Render settings were changed.
+
+Historical statements in this file are retained to preserve incident chronology. Use the dated update above for current operational status and continue to mark unknowns as pending real evidence.
+
 ## Final closure continuation (2026-10-02)
 
 Canonical coordination is chat 01a0fcbe-ee48-7533-b951-01b806a3f2c2.
