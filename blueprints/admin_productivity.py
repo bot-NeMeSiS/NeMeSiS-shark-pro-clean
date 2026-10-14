@@ -67,11 +67,11 @@ def _stripe_client():
     if not secret:
         return None
     import stripe
-    return stripe.StripeClient(secret)
+    return stripe.StripeClient(secret, stripe_version='2026-08-26.dahlia')
 
 
 def _ads_tax_ready():
-    return os.environ.get('ADS_STRIPE_TAX_READY', '').lower() == 'true'
+    return os.environ.get('ADS_STRIPE_TAX_READY', '').lower() == 'true' and bool(os.environ.get('ADS_STRIPE_TAX_CODE'))
 
 
 def _confirm_stripe_payment(campaign, stripe_session):
@@ -134,7 +134,7 @@ def create_admin_productivity_blueprint(is_admin):
                 else:
                     campaign_id = ads.create_campaign(data, True)
                     stripe = _stripe_client()
-                    if stripe is None or not _ads_tax_ready() or not os.environ.get('STRIPE_ADS_WEBHOOK_SECRET'):
+                    if stripe is None or not _ads_tax_ready() or not os.environ.get('STRIPE_ADS_WEBHOOK_SECRET') or not os.environ.get('ADS_STRIPE_TAX_CODE'):
                         message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online seguirá bloqueado hasta configurar Stripe y confirmar una inscripción fiscal activa y los datos de producto correctos en Stripe Tax.'
                     else:
                         try:
@@ -147,6 +147,7 @@ def create_admin_productivity_blueprint(is_admin):
                                         'unit_amount': data['amount_cents'],
                                         'tax_behavior': 'exclusive',
                                         'product_data': {
+                                            'tax_code': os.environ['ADS_STRIPE_TAX_CODE'],
                                             'name': f"Publicidad NeMeSiS · {data['package_days']} días",
                                             'description': data['title'][:200],
                                         },
