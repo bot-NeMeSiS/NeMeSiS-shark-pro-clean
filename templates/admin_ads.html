@@ -2,6 +2,9 @@
 {% block content %}
 <section class="ns-ad-admin-page">
   <header class="ns-ad-admin-hero"><span class="ns-ad-eyebrow">MONETIZACIÓN</span><h1>Publicidad y anunciantes</h1><p>Control de campañas directas para usuarios FREE. Solo se publican anuncios pagados y aprobados manualmente.</p></header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}<div class="ns-ad-notice" role="status">{% for category, message in messages %}<p>{{ message }}</p>{% endfor %}</div>{% endif %}
+  {% endwith %}
   <div class="ns-ad-admin-stats">
     <article><span>Campañas</span><strong>{{ campaigns|length }}</strong></article>
     <article><span>Cobros brutos confirmados</span><strong>{{ '%.2f'|format(revenue_cents / 100) }} €</strong><small>Incluye campañas pendientes de reembolso.</small></article>
