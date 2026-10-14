@@ -254,4 +254,14 @@ def review_campaign(campaign_id, action, path=None):
                 return False, "Solo se pueden pausar campañas activas."
             conn.execute("UPDATE ad_campaigns SET status='paused' WHERE id=? AND status='active'", (int(campaign_id),))
             return True, "Campaña pausada."
+        if action == "reject":
+            if row["status"] != "paid_pending_review":
+                return False, "Solo se pueden rechazar campañas pagadas pendientes de revisión."
+            conn.execute("UPDATE ad_campaigns SET status='refund_required' WHERE id=? AND status='paid_pending_review'", (int(campaign_id),))
+            return True, "Campaña rechazada. Tramita el reembolso en Stripe y márcalo como confirmado solo después de verificarlo."
+        if action == "mark_refunded":
+            if row["status"] != "refund_required":
+                return False, "La campaña no está pendiente de reembolso."
+            conn.execute("UPDATE ad_campaigns SET status='refunded' WHERE id=? AND status='refund_required'", (int(campaign_id),))
+            return True, "Reembolso marcado como confirmado. Debes haberlo verificado previamente en Stripe."
         return False, "Acción no permitida."
