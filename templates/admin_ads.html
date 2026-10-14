@@ -7,7 +7,7 @@
   {% endwith %}
   <div class="ns-ad-admin-stats">
     <article><span>Campañas</span><strong>{{ campaigns|length }}</strong></article>
-    <article><span>Cobros brutos confirmados</span><strong>{{ '%.2f'|format(revenue_cents / 100) }} €</strong><small>Incluye campañas pendientes de reembolso.</small></article>
+    <article><span>Subtotal vendido confirmado (sin impuestos)</span><strong>{{ '%.2f'|format(revenue_cents / 100) }} €</strong><small>Excluye impuestos; incluye reembolsos pendientes.</small></article>
     <article><span>Impresiones</span><strong>{{ impressions }}</strong></article>
     <article><span>Clics</span><strong>{{ clicks }}</strong></article><article><span>Reembolsos pendientes</span><strong>{{ refunds_pending }}</strong></article>
   </div>
@@ -20,7 +20,7 @@
   <div class="ns-ad-campaign-list">
     {% for c in campaigns %}
     <article class="ns-ad-campaign">
-      <div class="ns-ad-campaign-head"><div><span class="ns-ad-status status-{{ c.status|replace('_','-') }}">{{ c.status|replace('_',' ')|upper }}</span><h2>{{ c.title }}</h2><p>{{ c.company_name }} · {{ c.advertiser_name }} · {{ c.contact_email }}</p></div><strong>{{ '%.2f'|format(c.amount_cents / 100) }} €</strong></div>
+      <div class="ns-ad-campaign-head"><div><span class="ns-ad-status status-{{ c.status|replace('_','-') }}">{{ c.status|replace('_',' ')|upper }}</span><h2>{{ c.title }}</h2><p>{{ c.company_name }} · {{ c.advertiser_name }} · {{ c.contact_email }}</p></div><strong>{{ '%.2f'|format(c.amount_cents / 100) }} €</strong><small>Precio base, sin impuestos</small></div>
       <p>{{ c.body }}</p><p>Sesión de pago: <code>{{ c.stripe_session_id or 'Sin sesión de Stripe' }}</code></p><p><a href="{{ c.destination_url }}" target="_blank" rel="noopener noreferrer">{{ c.destination_url }}</a></p>
       <div class="ns-ad-campaign-metrics"><span>{{ c.package_days }} días</span><span>{{ c.impressions }} impresiones</span><span>{{ c.clicks }} clics</span><span>CTR: {{ '%.2f'|format((c.clicks * 100 / c.impressions) if c.impressions else 0) }}%</span></div>
       {% if c.status == 'paid_pending_review' or c.status == 'active' %}
