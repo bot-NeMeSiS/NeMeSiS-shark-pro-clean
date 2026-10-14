@@ -8,11 +8,6 @@ from engines import ads_monetization_engine as ads
 
 PAGES = frozenset(('/admin/operations-center','/admin/operations','/admin/company-operations',
                    '/admin/centro-operaciones','/admin/sala-control'))
-AD_CLIENT_PATHS = frozenset(('/', '/app', '/sports-hub', '/calendar', '/partidos', '/live',
-    '/picks', '/track-record', '/historico', '/seguimiento', '/shark', '/shark-core',
-    '/telegram', '/profile', '/plans', '/membership', '/favorites', '/favoritos',
-    '/combis', '/combinadas', '/match', '/partido'))
-
 
 def _is_admin(is_admin):
     try:
