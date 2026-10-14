@@ -25,11 +25,11 @@ API admin:
 
 ## Cron de backup
 
-Endpoint:
+El Master Cron usa `POST /api/automation/data-backup/run` con autenticación en la cabecera `X-Automation-Secret` y cuerpo JSON `{}`. Nunca envíes el secreto en la URL, query string, logs, capturas ni documentación.
 
-- `GET /api/automation/data-backup/run?secret=VALOR_REAL`
+No invoques manualmente el endpoint de producción para probar, recuperar o certificar un backup: puede crear archivos, cambiar la retención y actualizar el estado de deduplicación. La certificación requiere una ejecución natural del Cron y evidencia del archivo, manifiesto, SHA-256 e integridad. Una respuesta HTTP 200 por sí sola no acredita que se haya creado una copia válida.
 
-Si `DATA_BACKUP_ENABLED` no está activo, responde 200 en modo `DISABLED`.
+Si `DATA_BACKUP_ENABLED` no está activo, el comportamiento depende del estado de configuración comunicado por el endpoint; no interpretes automáticamente cualquier HTTP 200 como backup correcto.
 
 ## Restauración
 
