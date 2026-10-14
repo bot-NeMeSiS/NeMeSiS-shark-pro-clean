@@ -189,10 +189,11 @@ def save_checkout_session(campaign_id, session_id, path=None):
         raise ValueError("Sesión de pago no válida.")
     ensure_schema(path)
     with connect(path) as conn:
-        conn.execute(
-            "UPDATE ad_campaigns SET stripe_session_id=?, status='pending_payment' WHERE id=? AND status IN ('pending_payment','awaiting_payment_setup')",
+        cur = conn.execute(
+            "UPDATE ad_campaigns SET stripe_session_id=?, status='pending_payment' WHERE id=? AND status='pending_payment' AND stripe_session_id IS NULL",
             (str(session_id), int(campaign_id)),
         )
+        return cur.rowcount == 1
 
 
 def mark_paid(campaign_id, session_id, payment_intent=None, path=None):
