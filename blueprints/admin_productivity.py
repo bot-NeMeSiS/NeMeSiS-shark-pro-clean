@@ -141,6 +141,7 @@ def create_admin_productivity_blueprint(is_admin):
                                     'price_data': {
                                         'currency': 'eur',
                                         'unit_amount': data['amount_cents'],
+                                        'tax_behavior': 'exclusive',
                                         'product_data': {
                                             'name': f"Publicidad NeMeSiS · {data['package_days']} días",
                                             'description': data['title'][:200],
@@ -150,10 +151,16 @@ def create_admin_productivity_blueprint(is_admin):
                                 }],
                                 automatic_tax={'enabled': True},
                                 tax_id_collection={'enabled': True},
+                                customer_creation='always',
+                                invoice_creation={'enabled': True, 'invoice_data': {
+                                    'description': f\"Campaña publicitaria NeMeSiS · {data['package_days']} días\",
+                                    'metadata': {'campaign_id': str(campaign_id), 'company_name': data['company_name'][:100]},
+                                }},
                                 billing_address_collection='required',
                                 customer_email=data['contact_email'],
                                 client_reference_id=str(campaign_id),
-                                metadata={'campaign_id': str(campaign_id), 'package_days': str(data['package_days'])},
+                                metadata={'campaign_id': str(campaign_id), 'package_days': str(data['package_days']),
+                                          'company_name': data['company_name'][:100], 'advertiser_name': data['advertiser_name'][:100]},
                                 success_url=url_for('admin_productivity.advertiser_payment_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                                 cancel_url=url_for('admin_productivity.advertiser_portal', _external=True) + '?cancelled=1',
                             )
