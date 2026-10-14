@@ -10,13 +10,13 @@ Este módulo prepara campañas vendidas directamente por NeMeSiS. No utiliza una
 - 30 días: 149 EUR de precio base.
 - 90 días: 349 EUR de precio base.
 
-Los precios son una propuesta comercial inicial, no una promesa de alcance. No se garantizan impresiones, clics, conversiones ni ventas. El checkout activa Stripe Tax automáticamente; si Stripe Tax no está disponible o no está configurado, el sistema debe fallar cerrado y no cobrar. Antes de producción, confirmar con asesoría fiscal la configuración de IVA, datos del emisor, factura y conservación de registros.
+Los precios son una propuesta comercial inicial, no una promesa de alcance. No se garantizan impresiones, clics, conversiones ni ventas. El checkout activa Stripe Tax automáticamente, pero Stripe solo calcula impuestos donde existe una inscripción activa. Si Stripe Tax no está disponible o no se ha verificado una inscripción activa y el código fiscal correcto, el sistema debe fallar cerrado y no cobrar. No establezcas `ADS_STRIPE_TAX_READY=true` hasta confirmarlo en el Dashboard y con tu asesor fiscal. Antes de producción, confirmar con asesoría fiscal la configuración de IVA, datos del emisor, factura y conservación de registros.
 
 ## Flujo de contratación
 
 1. El anunciante presenta contacto, empresa/facturación, titular, texto, URL HTTPS y duración.
-2. La solicitud se guarda como pendiente de pago. Si falta `STRIPE_SECRET_KEY`, no se realiza ningún cargo y la solicitud queda como `awaiting_payment_setup`.
-3. Si Stripe está configurado, se crea un Checkout de pago único en EUR con dirección de facturación, recogida de NIF/IVA y cálculo automático de impuestos. El pago debe verificarse consultando el Checkout Session en Stripe; el navegador por sí solo nunca marca un pago como pagado.
+2. La solicitud se guarda como pendiente de pago. Si falta `STRIPE_SECRET_KEY` o `ADS_STRIPE_TAX_READY` no es `true`, no se realiza ningún cargo y la solicitud queda como `awaiting_payment_setup`.
+3. Si Stripe y la preparación fiscal están verificados, se crea un Checkout de pago único en EUR con recogida de datos fiscales, impuestos automáticos y solicitud de factura. El pago se confirma mediante webhook firmado y también puede reconciliarse consultando el Checkout Session desde el servidor; el navegador por sí solo nunca marca un pago como pagado.
 4. El retorno de Checkout confirma el pago solo si coinciden ID de sesión, metadatos, moneda, estado y subtotal.
 5. El panel `/admin/ads` permite reconciliar sesiones pendientes contra Stripe. Es útil si el comprador paga y no vuelve a la página.
 6. Una campaña pagada queda en `paid_pending_review`; un administrador debe revisar la creatividad y activar manualmente. Si se rechaza, pasa a `refund_required`: tramita el reembolso en Stripe Dashboard y marca `refunded` solo después de verificarlo. No se sirve publicidad pendiente, impagada, pausada, rechazada o caducada.
@@ -26,17 +26,20 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 
 - Portal de anunciantes: `/publicidad`.
 - Administración privada: `/admin/ads`.
-- Prepara en Render la variable `STRIPE_SECRET_KEY` usando el modo apropiado y configura Stripe Tax, datos fiscales y métodos de pago antes de cobrar.
+- Prepara en Render `STRIPE_SECRET_KEY` y `STRIPE_ADS_WEBHOOK_SECRET`. Configura en Stripe el endpoint `https://bot-apuestas-crgf.onrender.com/api/stripe/ads-webhook` para `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`.
+- Establece `ADS_STRIPE_TAX_READY=true` solo después de verificar la configuración de Stripe Tax, una inscripción activa en la jurisdicción que corresponda y el código fiscal del producto. Stripe puede cobrar cero impuestos sin error cuando no hay una inscripción activa; consulta [Stripe Tax](https://docs.stripe.com/tax/checkout.md) y a tu asesor fiscal.
 - No copies secretos a GitHub, tickets, capturas o este documento.
-- El MVP verifica pagos al volver del Checkout y permite reconciliar manualmente sesiones pendientes. No depende de un webhook de ads; para operación de mayor volumen, añadir un webhook verificado por firma y una conciliación contable antes de escalar.
+- El webhook firmado es obligatorio y procesa finalización, pagos asíncronos y expiración/fallo de Checkout. La página de retorno es solo UX; la conciliación manual en `/admin/ads` es una salvaguarda secundaria.
 - El panel no sustituye la contabilidad ni la emisión/archivo de facturas fiscales. Checkout solicita creación de factura; confirmar en modo de prueba que la cuenta Stripe genera una factura válida con los datos fiscales requeridos antes de vender campañas. Los reembolsos se ejecutan manualmente en Stripe y se registran en el panel tras verificar el resultado.
 - No se admiten anuncios de apuestas, casinos, tipsters, promesas de beneficios, productos ilegales u otras categorías restringidas. Toda creatividad requiere revisión humana.
 
 ## Puesta en marcha segura
 
 1. Revisar PR y ejecutar todos los controles CI.
-2. Probar en Stripe test mode con impuestos de prueba; verificar rechazo de pagos no confirmados, importes manipulados y URLs no HTTPS.
-3. Confirmar que FREE ve el anuncio y PRO/ELITE no.
-4. Confirmar contadores, pausa, caducidad y que una campaña impagada no se sirve.
-5. Confirmar la factura y tratamiento de IVA con un asesor.
-6. Solo después, configurar credenciales live en Render y hacer una compra real pequeña autorizada por el titular. No activar campañas reales antes de la revisión de contenido.
+2. En un entorno de prueba, configurar un webhook independiente y verificar la firma usando `STRIPE_ADS_WEBHOOK_SECRET`. No reutilices automáticamente el secreto de otra URL de webhook.
+3. En Stripe Dashboard, verificar Tax Settings, inscripción activa y código fiscal del producto; no marques la variable de readiness hasta confirmarlo.
+4. Probar en Stripe test mode con impuestos de prueba; verificar rechazo de pagos no confirmados, importes manipulados y URLs no HTTPS.
+5. Confirmar que FREE ve el anuncio y PRO/ELITE no.
+6. Confirmar contadores, pausa, caducidad y que una campaña impagada no se sirve.
+7. Confirmar la factura y tratamiento de IVA con un asesor.
+8. Solo después, configurar credenciales live en Render y hacer una compra real pequeña autorizada por el titular. No activar campañas reales antes de la revisión de contenido.
