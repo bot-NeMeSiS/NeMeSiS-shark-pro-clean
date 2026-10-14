@@ -153,7 +153,7 @@ def create_admin_productivity_blueprint(is_admin):
                                 tax_id_collection={'enabled': True},
                                 customer_creation='always',
                                 invoice_creation={'enabled': True, 'invoice_data': {
-                                    'description': f\"Campaña publicitaria NeMeSiS · {data['package_days']} días\",
+                                    'description': f"Campaña publicitaria NeMeSiS · {data['package_days']} días",
                                     'metadata': {'campaign_id': str(campaign_id), 'company_name': data['company_name'][:100]},
                                 }},
                                 billing_address_collection='required',
