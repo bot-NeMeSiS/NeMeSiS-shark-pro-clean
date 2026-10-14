@@ -58,7 +58,7 @@ def test_integrity_deadline_is_reported_and_no_later_phase_runs(backup_case, mon
     assert_unpublished(backup_case, result)
     assert result["error"] == "backup_snapshot_timeout"
     assert result["failure_stage"] == "INTEGRITY"
-    assert set(result["stage_durations_ms"]) == {"SNAPSHOT", "INTEGRITY", "CLEANUP"}
+    assert set(result["stage_durations_ms"]) == {"CAPACITY", "SNAPSHOT", "INTEGRITY", "CLEANUP"}
 
 
 def test_unrelated_sqlite_interrupt_is_not_claimed_as_deadline(backup_case, monkeypatch):
@@ -105,7 +105,7 @@ def test_snapshot_overrun_does_not_start_integrity(backup_case, monkeypatch):
     assert_unpublished(backup_case, result)
     assert result["error"] == "backup_snapshot_timeout"
     assert result["failure_stage"] == "SNAPSHOT"
-    assert set(result["stage_durations_ms"]) == {"SNAPSHOT", "CLEANUP"}
+    assert set(result["stage_durations_ms"]) == {"CAPACITY", "SNAPSHOT", "CLEANUP"}
 
 
 def test_manifest_deadline_prevents_publication_even_without_sql_callback(backup_case, monkeypatch):
@@ -133,7 +133,7 @@ def test_stage_metrics_do_not_replace_integrity_hash_manifest_or_restore(backup_
     result = vault.create_sqlite_backup(source, source.parent, "QA", directory=folder)
     assert result["ok"] and result["backup_created"]
     assert set(result["stage_durations_ms"]) == {
-        "SNAPSHOT", "INTEGRITY", "METADATA", "SYNC", "HASH", "MANIFEST",
+        "CAPACITY", "SNAPSHOT", "INTEGRITY", "METADATA", "SYNC", "HASH", "MANIFEST",
         "PUBLICATION", "RETENTION", "CLEANUP",
     }
     assert all(type(v) is int and v >= 0 for v in result["stage_durations_ms"].values())
@@ -151,3 +151,28 @@ def test_stage_metrics_do_not_replace_integrity_hash_manifest_or_restore(backup_
         assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 2000
     assert source.read_bytes() == original
     assert vault.sha256_file(previous["path"]) == previous["sha256"]
+
+
+def test_capacity_validation_timeout_fails_closed_without_deleting_backup(backup_case, monkeypatch):
+    source, folder, original, previous = backup_case
+    monkeypatch.setattr(vault, "_sqlite_snapshot_estimate_bytes", lambda _path: 10**9)
+    class Usage:
+        free = 1
+        total = 2 * 10**9
+    monkeypatch.setattr(vault.shutil, "disk_usage", lambda _path: Usage())
+    monkeypatch.setattr(
+        vault, "validate_backup",
+        lambda *args, **kwargs: {"ok": False, "deadline_exceeded": True, "validated": 0, "results": []},
+    )
+
+    result = vault.ensure_backup_capacity(
+        source, source.parent, directory=folder,
+        validation_deadline=vault.time.monotonic() + 1,
+    )
+
+    assert result["ok"] is False
+    assert result["error"] == "backup_capacity_validation_timeout"
+    assert result["removed"] == []
+    assert Path(previous["path"]).exists()
+    assert Path(previous["path"]).with_suffix(".json").exists()
+    assert source.read_bytes() == original
