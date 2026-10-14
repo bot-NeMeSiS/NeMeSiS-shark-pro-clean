@@ -156,46 +156,154 @@
     }
   },
   "betting_evidence": {
-    "Revisión de apuestas": {"en":"Betting review","fr":"Analyse des paris"},
-    "Hechos y cuotas observadas, separados del análisis y la decisión.": {"en":"Observed facts and odds, separate from analysis and decisions.","fr":"Faits et cotes observés, distincts de l'analyse et de la décision."},
-    "Partidos en revisión": {"en":"Matches under review","fr":"Matchs à examiner"},
-    "Sin partidos en revisión": {"en":"No matches under review","fr":"Aucun match à examiner"},
-    "Apuesta": {"en":"Betting","fr":"Pari"},
-    "Cuotas observadas": {"en":"Observed odds","fr":"Cotes observées"},
-    "Observación": {"en":"Observation","fr":"Observation"},
-    "Vigencia no verificada": {"en":"Validity not verified","fr":"Validité non vérifiée"},
-    "Sin cuota observada": {"en":"No observed odds","fr":"Aucune cote observée"},
-    "Esperar": {"en":"Wait","fr":"Attendre"},
-    "No apostar": {"en":"No bet","fr":"Ne pas parier"},
-    "Datos insuficientes para recomendar una apuesta.": {"en":"Insufficient evidence to recommend a bet.","fr":"Données insuffisantes pour recommander un pari."},
-    "Una cuota observada no demuestra valor ni probabilidad de ganar.": {"en":"Observed odds do not establish value or a probability of winning.","fr":"Une cote observée ne prouve ni valeur ni probabilité de gain."},
-    "Actualizar revisión": {"en":"Refresh review","fr":"Actualiser l'analyse"}
+    "Revisión de apuestas": {
+      "en": "Betting review",
+      "fr": "Analyse des paris"
+    },
+    "Hechos y cuotas observadas, separados del análisis y la decisión.": {
+      "en": "Observed facts and odds, separate from analysis and decisions.",
+      "fr": "Faits et cotes observés, distincts de l'analyse et de la décision."
+    },
+    "Partidos en revisión": {
+      "en": "Matches under review",
+      "fr": "Matchs à examiner"
+    },
+    "Sin partidos en revisión": {
+      "en": "No matches under review",
+      "fr": "Aucun match à examiner"
+    },
+    "Apuesta": {
+      "en": "Betting",
+      "fr": "Pari"
+    },
+    "Cuotas observadas": {
+      "en": "Observed odds",
+      "fr": "Cotes observées"
+    },
+    "Observación": {
+      "en": "Observation",
+      "fr": "Observation"
+    },
+    "Vigencia no verificada": {
+      "en": "Validity not verified",
+      "fr": "Validité non vérifiée"
+    },
+    "Sin cuota observada": {
+      "en": "No observed odds",
+      "fr": "Aucune cote observée"
+    },
+    "Esperar": {
+      "en": "Wait",
+      "fr": "Attendre"
+    },
+    "No apostar": {
+      "en": "No bet",
+      "fr": "Ne pas parier"
+    },
+    "Datos insuficientes para recomendar una apuesta.": {
+      "en": "Insufficient evidence to recommend a bet.",
+      "fr": "Données insuffisantes pour recommander un pari."
+    },
+    "Una cuota observada no demuestra valor ni probabilidad de ganar.": {
+      "en": "Observed odds do not establish value or a probability of winning.",
+      "fr": "Une cote observée ne prouve ni valeur ni probabilité de gain."
+    },
+    "Actualizar revisión": {
+      "en": "Refresh review",
+      "fr": "Actualiser l'analyse"
+    }
   },
   "directo_inplace": {
-    "Marcador actualizado: {score}. No confirma un evento de gol.": {"en":"Score updated: {score}. This does not confirm a goal event.","fr":"Score mis à jour : {score}. Cela ne confirme pas un événement de but."},
-    "Actualizar lista manteniendo filtros": {"en":"Refresh list keeping filters","fr":"Actualiser la liste en conservant les filtres"},
-    "Actualización no disponible. Las lecturas conservan su vencimiento original.": {"en":"Update unavailable. Observations retain their original expiry.","fr":"Mise à jour indisponible. Les observations conservent leur échéance initiale."},
-    "Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.": {"en":"Some observations no longer confirm live play. Minutes and results are not inferred.","fr":"Certaines observations ne confirment plus le direct. Aucune minute ni aucun résultat ne sont déduits."},
-    "Cambio sin observación nueva": {"en":"Change without a new observation","fr":"Changement sans nouvelle observation"},
-    "Datos retrasados · Última lectura": {"en":"Delayed data · Last observation","fr":"Données retardées · Dernière observation"},
-    "Estado de la observación. No mide probabilidad de ganar.": {"en":"Observation status. Not a probability of winning.","fr":"État de l'observation. Ce n'est pas une probabilité de gain."},
-    "Fuera de la última lectura confirmada": {"en":"Not in the latest confirmed observation","fr":"Absent de la dernière observation confirmée"},
-    "Fuera del filtro actual. Se conserva la última lectura y el acceso al partido.": {"en":"Outside the current filter. The last observation and match link are retained.","fr":"Hors du filtre actuel. La dernière observation et le lien du match sont conservés."},
-    "Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.": {"en":"There are matches outside this view. Refresh the list to apply your filters.","fr":"Des matchs ne figurent pas dans cette vue. Actualisez la liste pour appliquer vos filtres."},
-    "Identidad pendiente de confirmar": {"en":"Identity awaiting confirmation","fr":"Identité à confirmer"},
-    "Información sin confirmar": {"en":"Unconfirmed information","fr":"Information non confirmée"},
-    "Información sin confirmar · Última lectura": {"en":"Unconfirmed information · Last observation","fr":"Information non confirmée · Dernière observation"},
-    "Observación registrada": {"en":"Recorded observation","fr":"Observation enregistrée"},
-    "Observación vigente": {"en":"Current observation","fr":"Observation actuelle"},
-    "Pendiente de confirmar": {"en":"Awaiting confirmation","fr":"À confirmer"},
-    "Resultado pendiente": {"en":"Result pending","fr":"Résultat en attente"}
+    "Marcador actualizado: {score}. No confirma un evento de gol.": {
+      "en": "Score updated: {score}. This does not confirm a goal event.",
+      "fr": "Score mis à jour : {score}. Cela ne confirme pas un événement de but."
+    },
+    "Actualizar lista manteniendo filtros": {
+      "en": "Refresh list keeping filters",
+      "fr": "Actualiser la liste en conservant les filtres"
+    },
+    "Actualización no disponible. Las lecturas conservan su vencimiento original.": {
+      "en": "Update unavailable. Observations retain their original expiry.",
+      "fr": "Mise à jour indisponible. Les observations conservent leur échéance initiale."
+    },
+    "Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.": {
+      "en": "Some observations no longer confirm live play. Minutes and results are not inferred.",
+      "fr": "Certaines observations ne confirment plus le direct. Aucune minute ni aucun résultat ne sont déduits."
+    },
+    "Cambio sin observación nueva": {
+      "en": "Change without a new observation",
+      "fr": "Changement sans nouvelle observation"
+    },
+    "Datos retrasados · Última lectura": {
+      "en": "Delayed data · Last observation",
+      "fr": "Données retardées · Dernière observation"
+    },
+    "Estado de la observación. No mide probabilidad de ganar.": {
+      "en": "Observation status. Not a probability of winning.",
+      "fr": "État de l'observation. Ce n'est pas une probabilité de gain."
+    },
+    "Fuera de la última lectura confirmada": {
+      "en": "Not in the latest confirmed observation",
+      "fr": "Absent de la dernière observation confirmée"
+    },
+    "Fuera del filtro actual. Se conserva la última lectura y el acceso al partido.": {
+      "en": "Outside the current filter. The last observation and match link are retained.",
+      "fr": "Hors du filtre actuel. La dernière observation et le lien du match sont conservés."
+    },
+    "Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.": {
+      "en": "There are matches outside this view. Refresh the list to apply your filters.",
+      "fr": "Des matchs ne figurent pas dans cette vue. Actualisez la liste pour appliquer vos filtres."
+    },
+    "Identidad pendiente de confirmar": {
+      "en": "Identity awaiting confirmation",
+      "fr": "Identité à confirmer"
+    },
+    "Información sin confirmar": {
+      "en": "Unconfirmed information",
+      "fr": "Information non confirmée"
+    },
+    "Información sin confirmar · Última lectura": {
+      "en": "Unconfirmed information · Last observation",
+      "fr": "Information non confirmée · Dernière observation"
+    },
+    "Observación registrada": {
+      "en": "Recorded observation",
+      "fr": "Observation enregistrée"
+    },
+    "Observación vigente": {
+      "en": "Current observation",
+      "fr": "Observation actuelle"
+    },
+    "Pendiente de confirmar": {
+      "en": "Awaiting confirmation",
+      "fr": "À confirmer"
+    },
+    "Resultado pendiente": {
+      "en": "Result pending",
+      "fr": "Résultat en attente"
+    }
   },
   "design_r7": {
-    "Contexto y riesgos": {"en": "Context and risks", "fr": "Contexte et risques"},
-    "Resultado final": {"en": "Match result", "fr": "Résultat du match"},
-    "Cuota actual": {"en": "Current odds", "fr": "Cote actuelle"},
-    "Última cuota registrada": {"en": "Last recorded odds", "fr": "Dernière cote enregistrée"},
-    "MEDIO": {"en": "MEDIUM", "fr": "MODÉRÉ"}
+    "Contexto y riesgos": {
+      "en": "Context and risks",
+      "fr": "Contexte et risques"
+    },
+    "Resultado final": {
+      "en": "Match result",
+      "fr": "Résultat du match"
+    },
+    "Cuota actual": {
+      "en": "Current odds",
+      "fr": "Cote actuelle"
+    },
+    "Última cuota registrada": {
+      "en": "Last recorded odds",
+      "fr": "Dernière cote enregistrée"
+    },
+    "MEDIO": {
+      "en": "MEDIUM",
+      "fr": "MODÉRÉ"
+    }
   },
   "factual_summary": {
     "{home} y {away} finalizaron.": {
@@ -3342,14 +3450,38 @@
     }
   },
   "design_r6": {
-    "Agenda temporalmente no disponible": {"en": "Schedule temporarily unavailable", "fr": "Calendrier temporairement indisponible"},
-    "No se pudo consultar la agenda. Vuelve a intentarlo.": {"en": "The schedule could not be loaded. Please try again.", "fr": "Le calendrier n'a pas pu être chargé. Veuillez réessayer."},
-    "No hay partidos que coincidan": {"en": "No matching matches", "fr": "Aucun match correspondant"},
-    "Prueba otra fecha o ajusta los filtros.": {"en": "Try another date or adjust the filters.", "fr": "Essayez une autre date ou modifiez les filtres."},
-    "No hay partidos para esta fecha": {"en": "No matches for this date", "fr": "Aucun match à cette date"},
-    "Consulta otra fecha de la agenda disponible.": {"en": "Check another date in the available schedule.", "fr": "Consultez une autre date du calendrier disponible."},
-    "Agenda pendiente de actualización": {"en": "Schedule awaiting an update", "fr": "Calendrier en attente de mise à jour"},
-    "Todavía no hay encuentros completos disponibles.": {"en": "Complete match information is not available yet.", "fr": "Les informations complètes sur les matchs ne sont pas encore disponibles."}
+    "Agenda temporalmente no disponible": {
+      "en": "Schedule temporarily unavailable",
+      "fr": "Calendrier temporairement indisponible"
+    },
+    "No se pudo consultar la agenda. Vuelve a intentarlo.": {
+      "en": "The schedule could not be loaded. Please try again.",
+      "fr": "Le calendrier n'a pas pu être chargé. Veuillez réessayer."
+    },
+    "No hay partidos que coincidan": {
+      "en": "No matching matches",
+      "fr": "Aucun match correspondant"
+    },
+    "Prueba otra fecha o ajusta los filtros.": {
+      "en": "Try another date or adjust the filters.",
+      "fr": "Essayez une autre date ou modifiez les filtres."
+    },
+    "No hay partidos para esta fecha": {
+      "en": "No matches for this date",
+      "fr": "Aucun match à cette date"
+    },
+    "Consulta otra fecha de la agenda disponible.": {
+      "en": "Check another date in the available schedule.",
+      "fr": "Consultez une autre date du calendrier disponible."
+    },
+    "Agenda pendiente de actualización": {
+      "en": "Schedule awaiting an update",
+      "fr": "Calendrier en attente de mise à jour"
+    },
+    "Todavía no hay encuentros completos disponibles.": {
+      "en": "Complete match information is not available yet.",
+      "fr": "Les informations complètes sur les matchs ne sont pas encore disponibles."
+    }
   },
   "design_r5": {
     "Resultado disponible": {
@@ -4498,8 +4630,7 @@
       "en": "Regional tournament",
       "fr": "Tournoi régional"
     }
-  }
-,
+  },
   "account_collections": {
     "En esta página": {
       "en": "On this page",
@@ -5098,6 +5229,20 @@
     "elementos": {
       "en": "items",
       "fr": "éléments"
+    }
+  },
+  "home_league_navigation": {
+    "Ir a una liga": {
+      "en": "Jump to a league",
+      "fr": "Aller à une ligue"
+    },
+    "Ver liga": {
+      "en": "View league",
+      "fr": "Voir la ligue"
+    },
+    "Por liga · Hora Madrid": {
+      "en": "By league · Madrid time",
+      "fr": "Par ligue · Heure de Madrid"
     }
   }
 }

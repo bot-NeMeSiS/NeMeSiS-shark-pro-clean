@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=1"></script>
+<script defer src="{{ url_for('static', filename='postmatch-media.js') }}?v=2-controls"></script>
 {% set h = data.highlight if data.highlight is defined else {} %}
 {% if not h %}
 <section class="scoreboard-hero v701-scoreboard">
-  <div><div class="kicker">Resumen no encontrado</div><h1>No hemos encontrado este vídeo</h1><p class="lead">Puede que la API haya cambiado el enlace. Vuelve al centro de resúmenes.</p></div>
+  <div><div class="kicker">Resumen no encontrado</div><h1>No hemos encontrado este vídeo</h1><p class="lead">El vídeo puede haber cambiado de dirección o dejar de estar disponible. Vuelve al centro de resúmenes.</p></div>
   <div class="actions"><a class="btn primary" href="/resumenes">Volver a resúmenes</a></div>
 </section>
 {% else %}
@@ -16,7 +16,7 @@
     <div class="v750-live-actions">
       {% if h.match_url %}<a class="btn primary" href="{{ h.match_url }}">Ver partido</a>{% endif %}
       <a class="btn" href="/calendario?lane=results">Resultados</a>
-      <a class="btn" href="/historico">Historial</a>
+      <a class="btn" href="/resumenes">Volver a resúmenes</a>
       {% if h.safe_url %}<a class="btn" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Abrir fuente</a>{% endif %}
     </div>
   </div>
@@ -25,14 +25,17 @@
 <section class="band compact-band v769-highlight-detail" data-postmatch-video>
   {% if h.can_embed %}
   <div class="v769-video-frame xl" data-video-mount hidden style="display:none"></div>
-  <button type="button" class="btn primary" data-video-activate="{{ h.embed_url }}">Cargar reproductor externo</button>
+  <button type="button" class="btn primary" data-video-activate="{{ h.embed_url }}">Ver vídeo aquí</button>
   <p class="small muted" data-video-notice role="status">Al cargar el reproductor se conectará con la plataforma del vídeo. No se inicia la reproducción automáticamente.</p>
+  <noscript><p>Para cargar el reproductor aquí necesitas JavaScript. También puedes abrir el vídeo en su plataforma original.</p></noscript>
   {% elif h.thumbnail_url %}
   <a href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer"><img loading="lazy" src="{{ h.thumbnail_url }}" alt="{{ h.title }}"></a>
   {% else %}
-  <div class="empty premium-empty">Este proveedor no permite incrustar el vídeo aquí. Usa el botón de fuente externa.</div>
+  <div class="empty premium-empty">Este vídeo se abre en su plataforma original. Usa «Abrir fuente» para verlo.</div>
   {% endif %}
-  <p class="small">{{ h.rights_note }}</p>
+  {% if h.safe_url %}<p><a class="btn primary" href="{{ h.safe_url }}" target="_blank" rel="noopener noreferrer">Abrir fuente</a> <span class="small">Se abre en otra pestaña. Si el reproductor no funciona, prueba este enlace.</span></p>{% endif %}
+  <details><summary>Fuente y permisos del vídeo</summary><p class="small">{{ h.rights_note }}</p></details>
+  <p class="small">Para consultar los resultados de los pronósticos, abre el <a href="/historico">Historial</a>.</p>
 </section>
 {% set mc = data.get('match_context') or {} %}
 {% set summaries = mc.get('summaries') or {} %}
@@ -43,7 +46,7 @@
 {% if mc %}
 <section class="band compact-band v769-highlight-recap" data-factual-postmatch-recap data-summary-contract="{{ summaries.get('contract') or 'NEMESIS-FACTUAL-MATCH-SUMMARIES-V1' }}">
   <div class="section-head">
-    <div><h2>Así terminó el partido</h2><p class="small">Resumen factual construido con datos deportivos persistidos y confirmados.</p></div>
+    <div><h2>Así terminó el partido</h2><p class="small">Marcador, jugadas y estadísticas confirmadas del partido.</p></div>
     {% if score.get('confirmed') %}<span class="pill">{{ score.get('label') }}</span>{% endif %}
   </div>
 
@@ -79,7 +82,11 @@
   </div>
   {% endif %}
 
-  <p class="small muted" data-postmatch-recap-policy>Este resumen no genera hechos nuevos: 0 llamadas de IA generativa, 0 llamadas externas durante la lectura y {{ recap_meta.get('unsupported_claims', 0) }} afirmaciones sin evidencia.</p>
+  <p class="small muted" data-postmatch-recap-policy>Esta información acompaña al vídeo. Solo recoge datos confirmados; no completa resultados ni jugadas que faltan.</p>
+  <details data-postmatch-recap-method>
+    <summary>Cómo se prepara este resumen</summary>
+    <p class="small">Se elabora con los datos confirmados que ya tenemos del partido: 0 llamadas de IA generativa y 0 llamadas externas durante la lectura. La reproducción del vídeo es independiente y se conecta con su plataforma cuando la solicitas.</p>
+  </details>
 </section>
 {% endif %}
 {% endif %}

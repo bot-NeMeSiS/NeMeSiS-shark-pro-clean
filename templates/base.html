@@ -31,19 +31,23 @@
   {% endfor %}
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-2-canonical-core-3" data-product-system="premium-1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-2-canonical-core-4-home-leagues" data-product-system="premium-1">
   <script defer src="{{ url_for('static', filename='v930-icons.js') }}?v={{ app_version }}-core-icons-2" data-v930-icon-version="{{ app_version }}"></script>
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='app-navigation.css') }}?v=1">
+  {% if request.endpoint in ['home', 'v757_client_app_center_page'] %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='home-league-disclosure.css') }}?v=1">
+  <script defer src="{{ url_for('static', filename='home-league-disclosure.js') }}?v=1"></script>
+  {% endif %}
   {% if request.endpoint in ['favorites_page', 'admin_backups_page'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='account-collections.css') }}?v=1">
   {% endif %}
-  <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=2"></script>
+  <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=3-intent"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='sports-search.css') }}?v=1">
   <script defer src="{{ url_for('static', filename='sports-search.js') }}?v=2"></script>
-  <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1" data-v934-realtime-version="{{ app_version }}"></script>
+  <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1-feedback-2" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
   {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}-core-founder-2">
@@ -505,7 +509,6 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   <script src="{{ url_for('static', filename='v937-sports-lifecycle.js') }}?v={{ app_version }}" defer></script>
 </body>
 </html>
-
 
 
 

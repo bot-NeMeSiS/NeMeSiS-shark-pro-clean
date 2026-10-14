@@ -166,6 +166,32 @@
     function live(entry) {
       return Boolean(entry && entry.state.is_live && !entry.withheld && remaining(entry) > 0);
     }
+    function belongsToLane(entry, id) {
+      var lane = root.getAttribute('data-directo-lane');
+      if (!entry || entry.withheld) return false;
+      if (lane === 'finished') return entry.state.is_finished && !entry.state.status_conflict;
+      if (!live(entry)) return false;
+      if (lane === 'break') return entry.state.status_canonical === 'HALFTIME';
+      // Membership in the pick-filtered set is only known for server-rendered
+      // cards. The public matches snapshot must not invent a published pick.
+      if (lane === 'with_pick') return wrappers.has(id);
+      return lane === 'live';
+    }
+    function kpis(key) {
+      var paths = {
+        live: ['/directo?f=live', '/live?f=live'],
+        break: ['/directo?f=break', '/live?f=break'],
+        finished: ['/calendario?lane=results', '/calendario?lane=finished', '/live?f=finished'],
+        with_pick: ['/directo?f=with_pick', '/live?f=with_pick']
+      };
+      return root.querySelectorAll(paths[key].map(function (path) {
+        return '.v933-kpi[href="' + path + '"]';
+      }).join(','));
+    }
+    function delayedNotice() {
+      return root.getAttribute('data-directo-lane') !== 'finished' &&
+        root.getAttribute('data-directo-delayed') === 'true';
+    }
     function sameIdentity(a, b) {
       if (a.fixture_id !== b.fixture_id || a.provider !== b.provider) return false;
       return ['competition_id', 'season', 'home_team_id', 'away_team_id'].every(function (key) {
@@ -284,7 +310,7 @@
       });
       article.querySelectorAll('.v935-provenance small').forEach(function (node) { text(node, label); });
       var lane = root.getAttribute('data-directo-lane');
-      var outside = (lane === 'live' && !isLive) || (lane === 'break' && (!isLive || status !== 'HALFTIME')) ||
+      var outside = (['live', 'with_pick'].includes(lane) && !isLive) || (lane === 'break' && (!isLive || status !== 'HALFTIME')) ||
         (lane === 'finished' && !state.is_finished);
       wrapper.setAttribute('data-directo-filter-match', String(!outside));
       var detail = wrapper.querySelector('[data-directo-card-notice]');
@@ -313,13 +339,15 @@
         } else if (entry.state.is_live) degraded = true;
         if (wrappers.has(id)) draw(wrappers.get(id), entry);
       });
-      function count(selector, value) {
-        var kpi = root.querySelector(selector);
-        if (kpi) { text(kpi.querySelector('strong'), value); text(kpi.querySelector('small'), completeCount ? 'Ahora' : 'Pendiente de confirmar'); }
+      function count(key, value) {
+        kpis(key).forEach(function (kpi) {
+          text(kpi.querySelector('strong'), value);
+          text(kpi.querySelector('small'), completeCount ? 'Ahora' : 'Pendiente de confirmar');
+        });
       }
       if (completeCount || degraded || hasResponse) {
-        count('.v933-kpi[href="/live?f=live"]', completeCount ? liveCount : '—');
-        count('.v933-kpi[href="/live?f=break"]', completeCount ? halftimeCount : '—');
+        count('live', completeCount ? liveCount : '—');
+        count('break', completeCount ? halftimeCount : '—');
         if (completeCount) root.setAttribute('data-sports-live-confirmed', String(liveCount));
         else root.removeAttribute('data-sports-live-confirmed');
       }
@@ -327,6 +355,7 @@
       root.setAttribute('data-directo-live-count-scope', 'snapshot');
       root.setAttribute('data-directo-live-count-state', completeCount ? 'OBSERVED' : 'NOT_ESTABLISHED');
       if (degraded) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', true);
+      else if (delayedNotice()) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', false);
       if (!stopped && Number.isFinite(delay)) expiryTimer = window.setTimeout(tick, Math.max(1, Math.ceil(delay)));
     }
     root.querySelectorAll('[data-realtime-consumer="directo-v1"]').forEach(function (wrapper) {
@@ -369,8 +398,9 @@
           if (!row || typeof row.id !== 'string' || !row.id || seen.has(row.id)) { safe = false; return; }
           seen.add(row.id);
           if (valid(row.realtime_state) && row.realtime_state.is_live) declaredLive += 1;
-          if (!accept(row.id, row.realtime_state, serverNow)) safe = false;
-          if (!wrappers.has(row.id)) newItems = true;
+          var accepted = accept(row.id, row.realtime_state, serverNow);
+          if (!accepted) safe = false;
+          if (accepted && !wrappers.has(row.id) && belongsToLane(records.get(row.id), row.id)) newItems = true;
         });
         // Omitted records do not become finished or 0-0. Keep the focused DOM
         // and its actions, but withdraw any claim that they are still LIVE.
@@ -385,12 +415,14 @@
             var key = pair[0] === 'finished' ? 'finished' : 'matches_with_picks';
             var value = payload.counts[key];
             if (!Number.isInteger(value) || value < 0) return;
-            var kpi = root.querySelector('.v933-kpi[href="/live?f=' + pair[0] + '"] strong');
-            text(kpi, value);
+            kpis(pair[0]).forEach(function (kpi) { text(kpi.querySelector('strong'), value); });
             root.setAttribute('data-sports-' + pair[1].replace(/_/g, '-'), String(value));
           });
         }
         completeCount = safe && payload.counts && Number.isInteger(payload.counts.live) && declaredLive === payload.counts.live;
+        root.setAttribute('data-directo-delayed', String(safe && payload.realtime_live_status === 'stale' &&
+          payload.counts && payload.counts.live === 0 && Number.isInteger(payload.counts.stale_live) && payload.counts.stale_live > 0));
+        newItems = Boolean(safe && newItems);
         notice(newItems ? 'Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.' : '', newItems);
         tick();
       },
@@ -424,7 +456,7 @@
     var message = technical
       ? 'DB/caché: ' + (payload.cache_state || payload.cache_status || 'estado seguro') + '. Render sin llamada directa al proveedor.'
       : clientMessage(payload.safe_message);
-    setText(bar, '[data-v934-realtime-title]', text(hasLive ? 'Actualización en directo' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
+    setText(bar, '[data-v934-realtime-title]', text(hasLive ? 'Actualización en directo' : payload.realtime_live_status === 'stale' ? 'Datos retrasados' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
     setText(bar, '[data-v934-realtime-message]', message);
     setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : text('Actualización segura'));
     updateSyncTimestamp(bar, payload, technical);

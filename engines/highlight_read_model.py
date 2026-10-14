@@ -10,6 +10,7 @@ import sqlite3
 
 SUMMARY_LIMIT = 250
 MATCH_LIMIT = 8
+MATCH_CANDIDATE_LIMIT = 250
 
 
 class _Unavailable(Exception):
@@ -123,13 +124,25 @@ def read_highlights_for_match(db_path, match_id):
         return _match_unavailable('MATCH_ID_MISSING')
     try:
         with _reader(db_path) as conn:
-            stored = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC,id LIMIT ?', (local_id, MATCH_LIMIT))
+            # Limit displayed videos AFTER rights classification. Eight blocked or
+            # unreviewed rows must not hide a later authorized video for this match.
+            candidates = _rows(conn, 'SELECT * FROM sportsdb_match_highlights WHERE match_id=? ORDER BY updated_at DESC,id LIMIT ?', (local_id, MATCH_CANDIDATE_LIMIT + 1))
+            truncated = len(candidates) > MATCH_CANDIDATE_LIMIT
+            stored = candidates[:MATCH_CANDIDATE_LIMIT]
             enrichment_available = _table(conn, 'sportsdb_match_enrichment')
             enrichments = _rows(conn, 'SELECT * FROM sportsdb_match_enrichment WHERE match_id=? LIMIT 1', (local_id,)) if enrichment_available else []
         classified, visible = _classified(stored)
         enrich = enrichments[0] if enrichments else {}
+        # A bounded read with no approved hit is not proof that no video exists.
+        if truncated and not visible:
+            return {**_match_unavailable('READ_LIMIT_REACHED'),
+                    'candidate_sampled': len(stored),
+                    'candidate_sample_limit': MATCH_CANDIDATE_LIMIT,
+                    'candidate_sample_truncated': True}
         return {
-            'ok': True, 'read_state': 'VERIFIED', 'highlights': visible, 'all_highlights': classified,
+            'ok': True, 'read_state': 'VERIFIED', 'highlights': visible[:MATCH_LIMIT], 'all_highlights': classified,
+            'candidate_sampled': len(stored), 'candidate_sample_limit': MATCH_CANDIDATE_LIMIT,
+            'candidate_sample_truncated': truncated,
             'rights_warnings': sum(row.get('decision') in {'REVIEW_REQUIRED', 'BLOCKED'} for row in classified),
             'enrichment': enrich, 'enrichment_available': enrichment_available,
             'summary_text': enrich.get('summary_text') or '', 'sample_limit': MATCH_LIMIT,

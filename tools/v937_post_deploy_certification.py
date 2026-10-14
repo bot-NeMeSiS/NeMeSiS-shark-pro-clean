@@ -17,6 +17,10 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from engines.canonical_assets import canonical_css_href, css_digest
+from hashlib import sha256
 ACTIVE_VERSION = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
 ACTIVE_VERSION_TAG = re.match(r"^(V\d+)", ACTIVE_VERSION)
 if ACTIVE_VERSION_TAG is None:
@@ -255,8 +259,19 @@ def _probe(
         errors.append(f"five_xx:{five_xx}")
 
     home = _request(base_url, "/")
-    if f"app.css?v={expected_version}" not in home["body"]:
+    css_href = canonical_css_href(home["body"], expected_version)
+    if not css_href:
         errors.append("home_css_asset_version_mismatch")
+    else:
+        css_response = _request(base_url, css_href)
+        expected_digest = css_digest(ROOT)
+        actual_digest = sha256(css_response["body"].encode("utf-8")).hexdigest()
+        if css_response["status"] != 200:
+            errors.append("canonical_css_asset_http_failure")
+        if not expected_digest or actual_digest != expected_digest:
+            errors.append("canonical_css_asset_content_mismatch")
+        if runtime.get("canonical_css_sha256") != expected_digest:
+            errors.append("runtime_css_asset_digest_mismatch")
     service_worker = _request(base_url, "/service-worker.js")
     if EXPECTED_CACHE not in service_worker["body"]:
         errors.append("service_worker_asset_mismatch")

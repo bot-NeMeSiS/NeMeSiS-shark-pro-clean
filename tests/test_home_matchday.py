@@ -37,7 +37,7 @@ def items(result,lane):
 def test_spanish_volume_does_not_displace_other_major_leagues():
     rows=[match('es'+str(i)) for i in range(30)] + [match(l[0],l) for l in LEAGUES[1:]]
     original=deepcopy(rows)
-    result=build(rows)
+    result=build(rows,limit=12)
     assert {m['competition_key'] for m in items(result,'today')}=={l[0] for l in LEAGUES}
     assert result['today']['total']==35 and result['today']['shown']==12 and result['today']['has_more']
     assert rows==original

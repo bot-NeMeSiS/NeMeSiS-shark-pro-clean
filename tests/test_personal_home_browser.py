@@ -70,7 +70,19 @@ def test_personal_home_get_navigation_and_layout(browser,app_module,width):
         assert page.locator('[data-personal-home]').count()==0
         panel=page.locator('[data-sports-priority="upcoming"]')
         assert panel.locator('[data-v934-match-id]').count()==3
-        assert not panel.locator('details').count()
+        # The owner now asks for secondary leagues to start folded. This fixture
+        # is deliberately unknown, not a major league or an explicit favorite.
+        assert panel.locator('[data-home-importance="primary"]').count()==0
+        more=panel.locator('[data-home-more-leagues]')
+        assert more.count()==1 and more.get_attribute('open') is None
+        assert panel.locator('[data-v934-match-id]:visible').count()==0
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+        more.locator(':scope > summary').focus();page.keyboard.press('Enter')
+        league=more.locator('[data-home-importance="secondary"]')
+        assert league.count()==1 and league.get_attribute('open') is None
+        assert panel.locator('[data-v934-match-id]:visible').count()==0
+        league.locator(':scope > summary').focus();page.keyboard.press('Space')
+        assert panel.locator('[data-v934-match-id]:visible').count()==3
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         if width in (390,1440):
             output=ROOT/'data/local_dev/personal-home-qa'
