@@ -137,6 +137,16 @@ def main() -> int:
         "routes_total": snapshot.get("routes_total", 0),
         "links_audited": snapshot.get("links_audited", 0),
         "broken_links": snapshot.get("broken_links", 0),
+        "broken_details": [
+            {
+                "origin_screen": item.get("origin_screen"),
+                "line": item.get("line"),
+                "selector": item.get("selector"),
+                "result": item.get("result"),
+                "detail": item.get("detail"),
+            }
+            for item in snapshot.get("broken", [])
+        ],
         "redirect_loops": snapshot.get("redirect_loops", 0),
         "buttons_without_action": snapshot.get("buttons_without_action", 0),
         "dangerous_actions_executed": False,
