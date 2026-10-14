@@ -214,13 +214,14 @@ def create_admin_productivity_blueprint(is_admin):
         if not _is_admin(is_admin):
             abort(403)
         campaigns = ads.list_campaigns()
-        paid_states = {'paid_pending_review', 'active', 'paused', 'expired'}
+        paid_states = {'paid_pending_review', 'active', 'paused', 'expired', 'refund_required'}
         return render_template(
             'admin_ads.html',
             campaigns=campaigns,
             revenue_cents=sum(c['amount_cents'] for c in campaigns if c['status'] in paid_states),
             impressions=sum(c['impressions'] for c in campaigns),
             clicks=sum(c['clicks'] for c in campaigns),
+            refunds_pending=sum(1 for c in campaigns if c['status'] == 'refund_required'),
         )
 
     @bp.route('/admin/ads/<int:campaign_id>/action', methods=['POST'])
