@@ -134,7 +134,7 @@ def create_admin_productivity_blueprint(is_admin):
                 else:
                     campaign_id = ads.create_campaign(data, True)
                     stripe = _stripe_client()
-                    if stripe is None or not _ads_tax_ready():
+                    if stripe is None or not _ads_tax_ready() or not os.environ.get('STRIPE_ADS_WEBHOOK_SECRET'):
                         message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online seguirá bloqueado hasta configurar Stripe y confirmar una inscripción fiscal activa y los datos de producto correctos en Stripe Tax.'
                     else:
                         try:
