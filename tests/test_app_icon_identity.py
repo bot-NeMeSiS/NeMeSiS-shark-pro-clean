@@ -138,7 +138,9 @@ def test_service_worker_versions_identity_without_offline_private_cache(client):
     assert 'NEMESIS_CACHE_' + runtime_prefix + '_ICON_' + metadata()['fingerprint'] in body
     assert '/static/img/app-icons/' in body and "cache:'reload'" in body
     assert "req.mode==='navigate'" in body and "cache:'no-store'" in body
-    assert 'cache.put' not in body and 'cache.add' not in body
+    assert "assetVersion.startsWith(NEMESIS_APP_VERSION)" in body
+    assert "await cache.put(req,response.clone()).catch(()=>{})" in body
+    assert 'cache.add' not in body
     assert 'no-store' in response.headers['Cache-Control']
 
 
