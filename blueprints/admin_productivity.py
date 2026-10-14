@@ -135,7 +135,7 @@ def create_admin_productivity_blueprint(is_admin):
                     campaign_id = ads.create_campaign(data, True)
                     stripe = _stripe_client()
                     if stripe is None or not _ads_tax_ready() or not os.environ.get('STRIPE_ADS_WEBHOOK_SECRET') or not os.environ.get('ADS_STRIPE_TAX_CODE'):
-                        message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online seguirá bloqueado hasta configurar Stripe y confirmar una inscripción fiscal activa y los datos de producto correctos en Stripe Tax.'
+                        message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online seguirá bloqueado hasta configurar Stripe, el webhook firmado, el código fiscal exacto del producto y confirmar una inscripción fiscal activa.'
                     else:
                         try:
                             integration_suffix = ''.join(secrets.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(8))
