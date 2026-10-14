@@ -144,7 +144,7 @@ def create_campaign(data, terms_accepted, path=None):
         raise ValueError("Paquete publicitario no válido.")
     ensure_schema(path)
     now = stamp()
-    status = "pending_payment" if os.environ.get("STRIPE_SECRET_KEY") else "awaiting_payment_setup"
+    status = "pending_payment" if os.environ.get("STRIPE_SECRET_KEY") and os.environ.get("ADS_STRIPE_TAX_READY", "").lower() == "true" else "awaiting_payment_setup"
     with connect(path) as conn:
         cur = conn.execute("""
             INSERT INTO ad_campaigns
@@ -201,6 +201,18 @@ def mark_paid(campaign_id, session_id, payment_intent=None, path=None):
             (stamp(), str(payment_intent or "")[:255] or None, int(campaign_id), session_id),
         )
         return True
+
+
+def mark_payment_failed(campaign_id, session_id, status="payment_failed", path=None):
+    if status not in {"payment_failed", "payment_expired"}:
+        return False
+    ensure_schema(path)
+    with connect(path) as conn:
+        cur = conn.execute(
+            "UPDATE ad_campaigns SET status=? WHERE id=? AND stripe_session_id=? AND status='pending_payment'",
+            (status, int(campaign_id), str(session_id)),
+        )
+        return cur.rowcount == 1
 
 
 def list_campaigns(path=None, limit=100):
