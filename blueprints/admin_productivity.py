@@ -165,6 +165,7 @@ def create_admin_productivity_blueprint(is_admin):
                                     'metadata': {'campaign_id': str(campaign_id), 'company_name': data['company_name'][:100]},
                                 }},
                                 'billing_address_collection': 'required',
+                                'name_collection': {'business': {'enabled': True}, 'individual': {'enabled': True}},
                                 'customer_email': data['contact_email'],
                                 'client_reference_id': str(campaign_id),
                                 'metadata': {'campaign_id': str(campaign_id), 'package_days': str(data['package_days']),
