@@ -104,7 +104,15 @@ def create_admin_productivity_blueprint(is_admin):
         result = {}
         if request.path in PAGES and _is_admin(is_admin):
             result['admin_workbench'] = build_admin_workbench
-        if request.path in AD_CLIENT_PATHS and request.method == 'GET':
+        public_or_nonclient_prefixes = (
+            '/admin', '/api', '/static', '/publicidad', '/ads', '/stripe', '/webhook',
+            '/login', '/iniciar-sesion', '/registro', '/recuperar', '/restablecer',
+            '/logout', '/salir', '/privacidad', '/cookies', '/terminos', '/legal',
+            '/soporte', '/faq', '/landing', '/precios', '/membresias',
+            '/juego-responsable', '/no-somos-casa-de-apuestas', '/instalar',
+            '/roadmap', '/service-status', '/estado', '/contacto', '/sitemap', '/robots.txt',
+        )
+        if request.method == 'GET' and not request.path.startswith(public_or_nonclient_prefixes):
             result['ad_campaign'] = ads.active_campaign(placement=_placement(request.path))
         return result
 
