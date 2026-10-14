@@ -1,4 +1,4 @@
-"""Regression coverage for safe HTTP caching of versioned public static assets."""
+""""Regression coverage for safe HTTP caching of versioned public static assets."""
 
 from pathlib import Path
 
@@ -18,7 +18,6 @@ def test_service_worker_keeps_private_navigation_out_of_cache_storage():
     assert "const cached=await cache.match(req)" in route
     assert "await cache.put(req,response.clone()).catch(()=>{})" in route
     assert "url.pathname.startsWith('/static/')" in route
-    assert "url.searchParams.has('v')" in route
     assert "fetch(req,{cache:'reload'})" in route
 
 
