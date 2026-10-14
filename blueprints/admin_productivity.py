@@ -175,7 +175,8 @@ def create_admin_productivity_blueprint(is_admin):
                             })
                             if not str(checkout.url or '').startswith('https://checkout.stripe.com/'):
                                 raise ValueError('Unexpected Checkout URL')
-                            ads.save_checkout_session(campaign_id, checkout.id)
+                            if not ads.save_checkout_session(campaign_id, checkout.id):
+                                raise ValueError('Could not persist checkout mapping')
                             return redirect(checkout.url, code=303)
                         except Exception:
                             # Never expose provider responses, keys, or account configuration details.
