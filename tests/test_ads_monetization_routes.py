@@ -14,6 +14,9 @@ def client(tmp_path, monkeypatch):
     db_path = tmp_path / "ads-routes.db"
     monkeypatch.setenv("DB_PATH", str(db_path))
     monkeypatch.delenv("STRIPE_SECRET_KEY", raising=False)
+    monkeypatch.delenv("STRIPE_ADS_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("STRIPE_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("ADS_STRIPE_TAX_READY", raising=False)
     app = Flask(__name__)
     app.secret_key = "synthetic-test-only"
     app.jinja_loader = DictLoader({
@@ -86,3 +89,15 @@ def test_payment_return_fails_closed_without_stripe(client):
     response = c.get("/publicidad/pago-completado?session_id=cs_test_fake")
     assert response.status_code == 400
     assert b"No hemos podido verificar el pago" in response.data
+
+def test_ads_webhook_requires_its_own_signature_secret(client, monkeypatch):
+    c, _ = client
+    monkeypatch.delenv("STRIPE_ADS_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "another-endpoint-secret")
+    response = c.post(
+        "/api/stripe/ads-webhook",
+        data=b'{"type":"checkout.session.completed"}',
+        content_type="application/json",
+        headers={"Stripe-Signature": "invalid"},
+    )
+    assert response.status_code == 503
