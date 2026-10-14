@@ -87,7 +87,7 @@ def ensure_schema(path=None):
     return True
 
 def validate_https_url(value):
-    if not isinstance(value, str) or len(value) > 2048:
+    if not isinstance(value, str) or len(value) > 2048 or any(ord(char) < 32 or ord(char) == 127 for char in value):
         return None
     try:
         parsed = urlparse(value.strip())
