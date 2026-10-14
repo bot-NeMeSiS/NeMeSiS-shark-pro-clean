@@ -35,6 +35,12 @@
       <small>Pregunta por un partido, tus favoritos o tu plan.</small>
     </form>
     <details class="v933-home-more"><summary>{{ ui('Explorar') }}</summary><nav class="ns-shark-question-links" aria-label="Explorar con SHARK"><a href="/directo">Directo</a><a href="/calendario">Calendario</a><a href="/membresias">Mi plan</a><a href="/faq">Ayuda y preguntas frecuentes</a></nav></details>
+    {% if not openai_ready %}
+    <div class="ns-shark-answer ns-shark-safe-mode" data-shark-safe-mode="openai-unconfigured" role="status" aria-live="polite">
+      <strong>{{ icon('shield') }} SHARK está en modo seguro</strong>
+      <p>La IA generativa externa no está configurada. SHARK utiliza únicamente el contexto disponible en la plataforma; puede ofrecer respuestas limitadas y no inventará partidos, cuotas ni resultados.</p>
+    </div>
+    {% endif %}
     {% if data.get('shark_question_active') %}<div class="ns-shark-answer" role="status">{{ answer.get('answer') or 'No hay una respuesta verificable para esta consulta. Revisa la información disponible o contacta con soporte.' }}</div>{% endif %}
     {% if data.get('shark_legacy_get_ignored') %}<small>Escribe tu pregunta y pulsa Consultar SHARK.</small>{% endif %}
     <small>SHARK analiza la información disponible. Sus recomendaciones no garantizan resultados.</small>
