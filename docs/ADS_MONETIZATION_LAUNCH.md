@@ -10,7 +10,7 @@ Este módulo prepara campañas vendidas directamente por NeMeSiS. No utiliza una
 - 30 días: 149 EUR de precio base.
 - 90 días: 349 EUR de precio base.
 
-Los precios son una propuesta comercial inicial, no una promesa de alcance. No se garantizan impresiones, clics, conversiones ni ventas. El checkout activa Stripe Tax automáticamente, pero Stripe solo calcula impuestos donde existe una inscripción activa. Si Stripe Tax no está disponible o no se ha verificado una inscripción activa y el código fiscal correcto, el sistema debe fallar cerrado y no cobrar. No establezcas `ADS_STRIPE_TAX_READY=true` hasta confirmarlo en el Dashboard y con tu asesor fiscal. Antes de producción, confirmar con asesoría fiscal la configuración de IVA, datos del emisor, factura y conservación de registros.
+Los precios son una propuesta comercial inicial, no una promesa de alcance. No se garantizan impresiones, clics, conversiones ni ventas. El checkout activa Stripe Tax automáticamente, pero Stripe solo calcula impuestos donde existe una inscripción activa. Si Stripe Tax no está disponible o no se ha verificado una inscripción activa y el código fiscal correcto, el sistema debe fallar cerrado y no cobrar. No establezcas `ADS_STRIPE_TAX_READY=true` hasta confirmarlo en el Dashboard y con tu asesor fiscal. `ADS_STRIPE_TAX_CODE` debe contener el código de producto exacto elegido con asesoría fiscal; no uses un código genérico inventado. Antes de producción, confirmar con asesoría fiscal la configuración de IVA, datos del emisor, factura y conservación de registros.
 
 ## Flujo de contratación
 
@@ -27,7 +27,7 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 - Portal de anunciantes: `/publicidad`.
 - Administración privada: `/admin/ads`.
 - Prepara en Render `STRIPE_SECRET_KEY` y `STRIPE_ADS_WEBHOOK_SECRET`. Configura en Stripe el endpoint `https://bot-apuestas-crgf.onrender.com/api/stripe/ads-webhook` para `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`.
-- Establece `ADS_STRIPE_TAX_READY=true` solo después de verificar la configuración de Stripe Tax, una inscripción activa en la jurisdicción que corresponda y el código fiscal del producto. Stripe puede cobrar cero impuestos sin error cuando no hay una inscripción activa; consulta [Stripe Tax](https://docs.stripe.com/tax/checkout.md) y a tu asesor fiscal.
+- Configura `ADS_STRIPE_TAX_CODE` con el código de producto exacto acordado con tu asesor fiscal y establece `ADS_STRIPE_TAX_READY=true` solo después de verificar la configuración de Stripe Tax, una inscripción activa en la jurisdicción que corresponda y ese código fiscal. Stripe puede cobrar cero impuestos sin error cuando no hay una inscripción activa; consulta [Stripe Tax](https://docs.stripe.com/tax/checkout.md) y a tu asesor fiscal.
 - No copies secretos a GitHub, tickets, capturas o este documento.
 - El webhook firmado es obligatorio y procesa finalización, pagos asíncronos y expiración/fallo de Checkout. La página de retorno es solo UX; la conciliación manual en `/admin/ads` es una salvaguarda secundaria.
 - El panel no sustituye la contabilidad ni la emisión/archivo de facturas fiscales. Checkout solicita creación de factura; confirmar en modo de prueba que la cuenta Stripe genera una factura válida con los datos fiscales requeridos antes de vender campañas. Los reembolsos se ejecutan manualmente en Stripe y se registran en el panel tras verificar el resultado.
