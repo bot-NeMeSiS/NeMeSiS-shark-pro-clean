@@ -2321,9 +2321,12 @@ def bounded_sports_sync(force=False):
                     history = api_exploitation_summary(DB_PATH) or {}
                 except Exception:
                     history = {}
-            # Cached provider history only; no entity-wide scan or provider calls.
+            # Bounded read-only sample of canonical matches; never calls a provider.
             try:
-                result["sports_pipeline"] = _build_sports_pipeline_diagnostics(result, history)
+                entity_freshness = _sports_entity_freshness_snapshot(limit=200)
+                result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
+                    result, history, entity_freshness
+                )
             except Exception as exc:
                 result["sports_pipeline"] = {
                     "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
