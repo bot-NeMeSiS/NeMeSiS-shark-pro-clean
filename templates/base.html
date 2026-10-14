@@ -122,7 +122,7 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     {% if not is_admin_area and admin_operational_settings is defined and admin_operational_settings.get('banner_enabled') and admin_operational_settings.get('banner_text') %}
     <aside class="v933-inline-notice" role="status">{{ admin_operational_settings.get('banner_text') }}</aside>
     {% endif %}
-    {% if is_client_area and current_user is defined and current_user and (current_user.is_authenticated|default(false)) and (current_user.membership|default('FREE', true)|upper == 'FREE') and ad_campaign is defined and ad_campaign %}
+    {% if is_client_area and current_user is defined and current_user and (current_user.membership|default('FREE', true)|upper == 'FREE') and ad_campaign is defined and ad_campaign %}
     <aside class="ns-ad-slot" aria-label="Publicidad patrocinada" data-ad-campaign="{{ ad_campaign.id }}">
       <div class="ns-ad-slot-main">
         <span class="ns-ad-slot-label">PUBLICIDAD · PATROCINADO</span>
