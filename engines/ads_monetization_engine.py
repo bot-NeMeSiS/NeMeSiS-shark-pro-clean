@@ -7,6 +7,7 @@ import ipaddress
 import os
 import re
 import sqlite3
+import threading
 from urllib.parse import urlparse
 
 PACKAGES = {
@@ -16,6 +17,8 @@ PACKAGES = {
 }
 EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 ALLOWED_PLACEMENTS = {"home", "live", "calendar", "all"}
+_SCHEMA_LOCK = threading.Lock()
+_SCHEMA_READY = set()
 
 
 def utc_now():
@@ -44,38 +47,44 @@ def connect(path=None):
 
 
 def ensure_schema(path=None):
-    with connect(path) as conn:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS ad_campaigns (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            advertiser_name TEXT NOT NULL,
-            company_name TEXT NOT NULL,
-            contact_email TEXT NOT NULL,
-            title TEXT NOT NULL,
-            body TEXT NOT NULL,
-            destination_url TEXT NOT NULL,
-            placement TEXT NOT NULL DEFAULT 'all',
-            package_days INTEGER NOT NULL,
-            amount_cents INTEGER NOT NULL,
-            currency TEXT NOT NULL DEFAULT 'eur',
-            status TEXT NOT NULL DEFAULT 'awaiting_payment_setup',
-            stripe_session_id TEXT,
-            stripe_payment_intent TEXT,
-            terms_accepted_at TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            paid_at TEXT,
-            starts_at TEXT,
-            ends_at TEXT,
-            impressions INTEGER NOT NULL DEFAULT 0,
-            clicks INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_ad_campaigns_stripe_session
-            ON ad_campaigns(stripe_session_id) WHERE stripe_session_id IS NOT NULL;
-        CREATE INDEX IF NOT EXISTS idx_ad_campaigns_delivery
-            ON ad_campaigns(status, placement, starts_at, ends_at);
-        """)
+    db_path = str(path or database_path())
+    if db_path in _SCHEMA_READY:
+        return True
+    with _SCHEMA_LOCK:
+        if db_path in _SCHEMA_READY:
+            return True
+        with connect(db_path) as conn:
+            conn.executescript("""
+            CREATE TABLE IF NOT EXISTS ad_campaigns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                advertiser_name TEXT NOT NULL,
+                company_name TEXT NOT NULL,
+                contact_email TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                destination_url TEXT NOT NULL,
+                placement TEXT NOT NULL DEFAULT 'all',
+                package_days INTEGER NOT NULL,
+                amount_cents INTEGER NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'eur',
+                status TEXT NOT NULL DEFAULT 'awaiting_payment_setup',
+                stripe_session_id TEXT,
+                stripe_payment_intent TEXT,
+                terms_accepted_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                paid_at TEXT,
+                starts_at TEXT,
+                ends_at TEXT,
+                impressions INTEGER NOT NULL DEFAULT 0,
+                clicks INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_ad_campaigns_stripe_session
+                ON ad_campaigns(stripe_session_id) WHERE stripe_session_id IS NOT NULL;
+            CREATE INDEX IF NOT EXISTS idx_ad_campaigns_delivery
+                ON ad_campaigns(status, placement, starts_at, ends_at);
+            """)
+        _SCHEMA_READY.add(db_path)
     return True
-
 
 def validate_https_url(value):
     if not isinstance(value, str) or len(value) > 2048:
