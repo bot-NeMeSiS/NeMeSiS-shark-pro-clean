@@ -306,12 +306,35 @@ def test_sports_lane_exposes_only_sanitized_pipeline_evidence(app_module, monkey
         },
     )
     monkeypatch.setattr(app_module, "telegram_scheduler_tick", lambda **_kwargs: {"ok": True, "status": "PASS"})
+    monkeypatch.setattr(
+        app_module,
+        "_sports_entity_freshness_snapshot",
+        lambda limit=200: {
+            "state": "PARTIAL",
+            "entity_timestamps_evaluated": True,
+            "scope": "MATCH_ROWS_CANONICAL_PROVIDER_CLOCKS",
+            "total": 12,
+            "fresh": 5,
+            "observed": 2,
+            "stale": 3,
+            "not_established": 2,
+            "reason": "Muestra local con datos stale o sin reloj válido.",
+            "stale_samples": [],
+        },
+    )
 
     result = app_module.bounded_sports_sync()
+    freshness = result["sports_pipeline"]["data_freshness"]
 
     assert result["sports_pipeline"]["provider_authenticated"] is True
     assert result["sports_pipeline"]["provider_plan"] == "Free"
     assert result["sports_pipeline"]["capabilities"]["lineups"]["persisted"] == 2
+    assert freshness["state"] == "PARTIAL"
+    assert freshness["entity_timestamps_evaluated"] is True
+    assert freshness["total"] == 12
+    assert freshness["fresh"] == 5
+    assert freshness["stale"] == 3
+    assert freshness["not_established"] == 2
     assert "secret" not in json.dumps(result).lower()
 
 
