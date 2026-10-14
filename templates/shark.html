@@ -36,7 +36,7 @@
     </form>
     <details class="v933-home-more"><summary>{{ ui('Explorar') }}</summary><nav class="ns-shark-question-links" aria-label="Explorar con SHARK"><a href="/directo">Directo</a><a href="/calendario">Calendario</a><a href="/membresias">Mi plan</a><a href="/faq">Ayuda y preguntas frecuentes</a></nav></details>
     {% if not openai_ready %}
-    <div class="ns-shark-safe-mode" data-shark-safe-mode="openai-unconfigured" role="status" aria-live="polite">
+    <div class="ns-shark-answer ns-shark-safe-mode" data-shark-safe-mode="openai-unconfigured" role="status" aria-live="polite">
       <strong>{{ icon('shield') }} SHARK está en modo seguro</strong>
       <p>La IA generativa externa no está configurada. SHARK utiliza únicamente el contexto disponible en la plataforma; puede ofrecer respuestas limitadas y no inventará partidos, cuotas ni resultados.</p>
     </div>
