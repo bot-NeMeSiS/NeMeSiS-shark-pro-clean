@@ -144,7 +144,7 @@ def create_campaign(data, terms_accepted, path=None):
         raise ValueError("Paquete publicitario no válido.")
     ensure_schema(path)
     now = stamp()
-    status = "pending_payment" if os.environ.get("STRIPE_SECRET_KEY") and os.environ.get("ADS_STRIPE_TAX_READY", "").lower() == "true" else "awaiting_payment_setup"
+    status = "pending_payment" if os.environ.get("STRIPE_SECRET_KEY") and os.environ.get("ADS_STRIPE_TAX_READY", "").lower() == "true" and os.environ.get("STRIPE_ADS_WEBHOOK_SECRET") else "awaiting_payment_setup"
     with connect(path) as conn:
         cur = conn.execute("""
             INSERT INTO ad_campaigns
