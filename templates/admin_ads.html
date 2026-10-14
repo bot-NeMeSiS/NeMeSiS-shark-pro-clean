@@ -4,9 +4,9 @@
   <header class="ns-ad-admin-hero"><span class="ns-ad-eyebrow">MONETIZACIÓN</span><h1>Publicidad y anunciantes</h1><p>Control de campañas directas para usuarios FREE. Solo se publican anuncios pagados y aprobados manualmente.</p></header>
   <div class="ns-ad-admin-stats">
     <article><span>Campañas</span><strong>{{ campaigns|length }}</strong></article>
-    <article><span>Ingresos confirmados</span><strong>{{ '%.2f'|format(revenue_cents / 100) }} €</strong><small>No incluye pagos pendientes.</small></article>
+    <article><span>Cobros brutos confirmados</span><strong>{{ '%.2f'|format(revenue_cents / 100) }} €</strong><small>Incluye campañas pendientes de reembolso.</small></article>
     <article><span>Impresiones</span><strong>{{ impressions }}</strong></article>
-    <article><span>Clics</span><strong>{{ clicks }}</strong></article>
+    <article><span>Clics</span><strong>{{ clicks }}</strong></article><article><span>Reembolsos pendientes</span><strong>{{ refunds_pending }}</strong></article>
   </div>
   <form method="post" action="{{ url_for('admin_productivity.ads_reconcile') }}" class="ns-ad-reconcile">
     {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
@@ -18,12 +18,19 @@
     {% for c in campaigns %}
     <article class="ns-ad-campaign">
       <div class="ns-ad-campaign-head"><div><span class="ns-ad-status status-{{ c.status|replace('_','-') }}">{{ c.status|replace('_',' ')|upper }}</span><h2>{{ c.title }}</h2><p>{{ c.company_name }} · {{ c.advertiser_name }} · {{ c.contact_email }}</p></div><strong>{{ '%.2f'|format(c.amount_cents / 100) }} €</strong></div>
-      <p>{{ c.body }}</p><p><a href="{{ c.destination_url }}" target="_blank" rel="noopener noreferrer">{{ c.destination_url }}</a></p>
+      <p>{{ c.body }}</p><p>Sesión de pago: <code>{{ c.stripe_session_id or 'Sin sesión de Stripe' }}</code></p><p><a href="{{ c.destination_url }}" target="_blank" rel="noopener noreferrer">{{ c.destination_url }}</a></p>
       <div class="ns-ad-campaign-metrics"><span>{{ c.package_days }} días</span><span>{{ c.impressions }} impresiones</span><span>{{ c.clicks }} clics</span><span>CTR: {{ '%.2f'|format((c.clicks * 100 / c.impressions) if c.impressions else 0) }}%</span></div>
       {% if c.status == 'paid_pending_review' or c.status == 'active' %}
       <form method="post" action="{{ url_for('admin_productivity.ads_campaign_action', campaign_id=c.id) }}" class="ns-ad-actions">
         {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
-        {% if c.status == 'paid_pending_review' %}<button name="action" value="activate">Aprobar y activar</button>{% else %}<button name="action" value="pause" class="is-secondary">Pausar campaña</button>{% endif %}
+        {% if c.status == 'paid_pending_review' %}<button name="action" value="activate">Aprobar y activar</button><button name="action" value="reject" class="is-secondary">Rechazar y tramitar reembolso</button>{% else %}<button name="action" value="pause" class="is-secondary">Pausar campaña</button>{% endif %}
+      </form>
+      {% endif %}
+      {% if c.status == 'refund_required' %}
+      <form method="post" action="{{ url_for('admin_productivity.ads_campaign_action', campaign_id=c.id) }}" class="ns-ad-actions">
+        {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+        <p class="ns-ad-form-note">Debes reembolsar el pago en Stripe Dashboard. Marca el reembolso como confirmado solo después de comprobar que Stripe lo completó.</p>
+        <button name="action" value="mark_refunded" class="is-secondary">Marcar reembolso confirmado</button>
       </form>
       {% endif %}
     </article>
