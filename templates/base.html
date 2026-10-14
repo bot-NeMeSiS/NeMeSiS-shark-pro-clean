@@ -54,6 +54,7 @@
   {% endif %}
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
   {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ads.css') }}?v=1">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
 {% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
@@ -120,6 +121,18 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     {% endif %}
     {% if not is_admin_area and admin_operational_settings is defined and admin_operational_settings.get('banner_enabled') and admin_operational_settings.get('banner_text') %}
     <aside class="v933-inline-notice" role="status">{{ admin_operational_settings.get('banner_text') }}</aside>
+    {% endif %}
+    {% if is_client_area and current_user is defined and current_user and (current_user.membership|default('FREE', true)|upper == 'FREE') and ad_campaign is defined and ad_campaign %}
+    <aside class="ns-ad-slot" aria-label="Publicidad patrocinada" data-ad-campaign="{{ ad_campaign.id }}">
+      <div class="ns-ad-slot-main">
+        <span class="ns-ad-slot-label">PUBLICIDAD · PATROCINADO</span>
+        <h2>{{ ad_campaign.title }}</h2>
+        <p>{{ ad_campaign.body }}</p>
+        <small>{{ ad_campaign.company_name }}</small>
+      </div>
+      <a class="ns-ad-slot-link" href="{{ url_for('admin_productivity.ad_click', campaign_id=ad_campaign.id) }}" target="_blank" rel="sponsored nofollow noopener noreferrer">Visitar patrocinador <span aria-hidden="true">↗</span></a>
+      <img src="{{ url_for('admin_productivity.ad_impression', campaign_id=ad_campaign.id) }}" width="1" height="1" alt="" aria-hidden="true" class="ns-ad-impression-pixel">
+    </aside>
     {% endif %}
     {% block content %}{% endblock %}
   </main>
