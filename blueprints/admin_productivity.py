@@ -134,8 +134,8 @@ def create_admin_productivity_blueprint(is_admin):
                 else:
                     campaign_id = ads.create_campaign(data, True)
                     stripe = _stripe_client()
-                    if stripe is None:
-                        message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online aún no está habilitado; contactaremos contigo cuando esté configurado.'
+                    if stripe is None or not _ads_tax_ready():
+                        message = 'Hemos guardado tu solicitud, pero no se ha realizado ningún cargo. El cobro online seguirá bloqueado hasta configurar Stripe y confirmar una inscripción fiscal activa y los datos de producto correctos en Stripe Tax.'
                     else:
                         try:
                             integration_suffix = ''.join(secrets.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(8))
@@ -285,7 +285,7 @@ def create_admin_productivity_blueprint(is_admin):
             try:
                 checkout = stripe.v1.checkout.sessions.retrieve(campaign['stripe_session_id'])
                 checked += 1
-                if _confirm_stripe_payment(stripe, campaign, checkout):
+                if _confirm_stripe_payment(campaign, checkout):
                     confirmed += 1
             except Exception:
                 continue
