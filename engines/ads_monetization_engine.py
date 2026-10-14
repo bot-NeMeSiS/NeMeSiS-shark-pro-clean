@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import ipaddress
 import os
 import re
 import sqlite3
@@ -85,8 +86,15 @@ def validate_https_url(value):
         return None
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         return None
-    if parsed.hostname.lower() in {"localhost", "127.0.0.1", "::1"}:
+    host = parsed.hostname.rstrip(".").lower()
+    if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
         return None
+    try:
+        ip = ipaddress.ip_address(host)
+        if not ip.is_global:
+            return None
+    except ValueError:
+        pass
     return value.strip()
 
 
