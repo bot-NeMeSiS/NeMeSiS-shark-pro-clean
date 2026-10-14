@@ -15,7 +15,7 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 ## Flujo de contratación
 
 1. El anunciante presenta contacto, empresa/facturación, titular, texto, URL HTTPS y duración.
-2. La solicitud se guarda como pendiente de pago. Si falta `STRIPE_SECRET_KEY` o `ADS_STRIPE_TAX_READY` no es `true`, no se realiza ningún cargo y la solicitud queda como `awaiting_payment_setup`.
+2. La solicitud se guarda como pendiente de pago. Si falta `STRIPE_SECRET_KEY`, `STRIPE_ADS_WEBHOOK_SECRET` o `ADS_STRIPE_TAX_READY` no es `true`, no se realiza ningún cargo y la solicitud queda como `awaiting_payment_setup`.
 3. Si Stripe y la preparación fiscal están verificados, se crea un Checkout de pago único en EUR con recogida de datos fiscales, impuestos automáticos y solicitud de factura. El pago se confirma mediante webhook firmado y también puede reconciliarse consultando el Checkout Session desde el servidor; el navegador por sí solo nunca marca un pago como pagado.
 4. El retorno de Checkout confirma el pago solo si coinciden ID de sesión, metadatos, moneda, estado y subtotal.
 5. El panel `/admin/ads` permite reconciliar sesiones pendientes contra Stripe. Es útil si el comprador paga y no vuelve a la página.
