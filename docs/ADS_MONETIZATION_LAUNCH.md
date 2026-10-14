@@ -19,7 +19,7 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 3. Si Stripe está configurado, se crea un Checkout de pago único en EUR con dirección de facturación, recogida de NIF/IVA y cálculo automático de impuestos. El pago debe verificarse consultando el Checkout Session en Stripe; el navegador por sí solo nunca marca un pago como pagado.
 4. El retorno de Checkout confirma el pago solo si coinciden ID de sesión, metadatos, moneda, estado y subtotal.
 5. El panel `/admin/ads` permite reconciliar sesiones pendientes contra Stripe. Es útil si el comprador paga y no vuelve a la página.
-6. Una campaña pagada queda en `paid_pending_review`; un administrador debe revisar la creatividad y activar manualmente. No se sirve publicidad pendiente, impagada, pausada o caducada.
+6. Una campaña pagada queda en `paid_pending_review`; un administrador debe revisar la creatividad y activar manualmente. Si se rechaza, pasa a `refund_required`: tramita el reembolso en Stripe Dashboard y marca `refunded` solo después de verificarlo. No se sirve publicidad pendiente, impagada, pausada, rechazada o caducada.
 7. El periodo contratado empieza cuando la campaña se aprueba y activa. Las impresiones y clics son contadores agregados con deduplicación por sesión/día; no se recopilan perfiles publicitarios.
 
 ## Operación
@@ -29,7 +29,7 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 - Prepara en Render la variable `STRIPE_SECRET_KEY` usando el modo apropiado y configura Stripe Tax, datos fiscales y métodos de pago antes de cobrar.
 - No copies secretos a GitHub, tickets, capturas o este documento.
 - El MVP verifica pagos al volver del Checkout y permite reconciliar manualmente sesiones pendientes. No depende de un webhook de ads; para operación de mayor volumen, añadir un webhook verificado por firma y una conciliación contable antes de escalar.
-- El panel no sustituye la contabilidad ni la emisión/archivo de facturas fiscales. Confirmar la función de invoice creation en la cuenta Stripe antes de vender campañas.
+- El panel no sustituye la contabilidad ni la emisión/archivo de facturas fiscales. Checkout solicita creación de factura; confirmar en modo de prueba que la cuenta Stripe genera una factura válida con los datos fiscales requeridos antes de vender campañas. Los reembolsos se ejecutan manualmente en Stripe y se registran en el panel tras verificar el resultado.
 - No se admiten anuncios de apuestas, casinos, tipsters, promesas de beneficios, productos ilegales u otras categorías restringidas. Toda creatividad requiere revisión humana.
 
 ## Puesta en marcha segura
