@@ -348,6 +348,11 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     )
     stage_durations_ms["CAPACITY"] = max(0, round((time.perf_counter() - capacity_started) * 1000))
     compact = False
+    if not storage.get("ok") and storage.get("validation_deadline_exceeded"):
+        return {"ok": False, "backup_created": False,
+                "error": "backup_capacity_validation_timeout",
+                "failure_stage": "CAPACITY", "storage": storage,
+                "stage_durations_ms": stage_durations_ms}
     if not storage.get("ok"):
         candidate = _compact_snapshot_capacity(src, bdir)
         storage["compact_candidate"] = candidate
