@@ -17,7 +17,7 @@ Los precios son una propuesta comercial inicial, no una promesa de alcance. No s
 1. El anunciante presenta contacto, empresa/facturación, titular, texto, URL HTTPS y duración.
 2. La solicitud se guarda como pendiente de pago. Si falta `STRIPE_SECRET_KEY`, `STRIPE_ADS_WEBHOOK_SECRET` o `ADS_STRIPE_TAX_READY` no es `true`, no se realiza ningún cargo y la solicitud queda como `awaiting_payment_setup`.
 3. Si Stripe y la preparación fiscal están verificados, se crea un Checkout de pago único en EUR con recogida de datos fiscales, impuestos automáticos y solicitud de factura. El pago se confirma mediante webhook firmado y también puede reconciliarse consultando el Checkout Session desde el servidor; el navegador por sí solo nunca marca un pago como pagado.
-4. El retorno de Checkout confirma el pago solo si coinciden ID de sesión, metadatos, moneda, estado y subtotal.
+4. El webhook firmado confirma el pago solo si coinciden ID de sesión, metadatos, moneda, estado y subtotal. La página de retorno solo ofrece confirmación secundaria al cliente; nunca es la única fuente de verdad.
 5. El panel `/admin/ads` permite reconciliar sesiones pendientes contra Stripe. Es útil si el comprador paga y no vuelve a la página.
 6. Una campaña pagada queda en `paid_pending_review`; un administrador debe revisar la creatividad y activar manualmente. Si se rechaza, pasa a `refund_required`: tramita el reembolso en Stripe Dashboard y marca `refunded` solo después de verificarlo. No se sirve publicidad pendiente, impagada, pausada, rechazada o caducada.
 7. El periodo contratado empieza cuando la campaña se aprueba y activa. Las impresiones y clics son contadores agregados con deduplicación por sesión/día; no se recopilan perfiles publicitarios.
