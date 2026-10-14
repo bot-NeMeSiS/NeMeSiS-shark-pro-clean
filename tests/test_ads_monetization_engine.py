@@ -35,6 +35,8 @@ def test_prices_and_https_validation():
     assert ads.PACKAGES[90]["amount_cents"] == 34900
     assert ads.validate_https_url("http://example.com") is None
     assert ads.validate_https_url("https://user:pass@example.com") is None
+    assert ads.validate_https_url("https://192.168.1.1/admin") is None
+    assert ads.validate_https_url("https://printer.local") is None
     assert ads.validate_https_url("https://example.com/path") == "https://example.com/path"
 
 
@@ -97,3 +99,16 @@ def test_payment_must_match_campaign_checkout_session(db):
         conn.execute("UPDATE ad_campaigns SET status='pending_payment', stripe_session_id='cs_test_1' WHERE id=?", (campaign_id,))
     assert not ads.mark_paid(campaign_id, "cs_other", path=db)
     assert ads.campaign_by_id(campaign_id, db)["status"] == "pending_payment"
+
+def test_rejected_paid_campaign_requires_explicit_refund_state(db):
+    data, _ = ads.validate_campaign_form(valid_form())
+    campaign_id = ads.create_campaign(data, True, db)
+    with ads.connect(db) as conn:
+        conn.execute("UPDATE ad_campaigns SET status='pending_payment', stripe_session_id='cs_test_refund' WHERE id=?", (campaign_id,))
+    assert ads.mark_paid(campaign_id, "cs_test_refund", path=db)
+    ok, _ = ads.review_campaign(campaign_id, "reject", db)
+    assert ok
+    assert ads.campaign_by_id(campaign_id, db)["status"] == "refund_required"
+    ok, _ = ads.review_campaign(campaign_id, "mark_refunded", db)
+    assert ok
+    assert ads.campaign_by_id(campaign_id, db)["status"] == "refunded"
