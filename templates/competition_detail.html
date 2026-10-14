@@ -79,6 +79,11 @@
   <div class="competition-center-layout">
     <section class="competition-center-panel competition-center-wide" data-competition-center-section="standings">
       <div class="competition-center-section-head"><span>{{ ui("Clasificación") }}</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
+      {% if standings.provisional %}
+      <p class="competition-coverage-note" role="status" data-standings-state="provisional">{{ ui("Clasificación provisional calculada con resultados finalizados disponibles. Puede estar incompleta y no sustituye la tabla oficial de la liga.") }}</p>
+      {% elif standings.available %}
+      <p class="competition-coverage-note" data-standings-state="provider">{{ ui("Clasificación recibida de la fuente deportiva sincronizada.") }}</p>
+      {% endif %}
       {% if standings.rows %}
       <div class="competition-center-table-wrap">
         <table class="competition-center-table">
