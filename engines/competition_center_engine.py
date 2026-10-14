@@ -243,10 +243,14 @@ def _computed_standings_from_matches(
     """Build a provisional table from confirmed finished results only."""
     team_catalog: dict[str, dict[str, Any]] = {}
     route_by_name: dict[str, str] = {}
+    crest_by_name: dict[str, str] = {}
     for team in _items(fallback_teams):
         name = _text(team.get("name") or team.get("team_name") or team.get("display_name"), 160)
         if name:
-            route_by_name[normalized(name)] = _text(team.get("route_id") or team.get("team_route_id"), 160) or name
+            key = normalized(name)
+            route_by_name[key] = _text(team.get("route_id") or team.get("team_route_id"), 160) or name
+            canonical = _mapping(team.get("canonical"))
+            crest_by_name[key] = _text(team.get("crest") or canonical.get("crest") or canonical.get("logo"), 500)
 
     for match in _items(matches):
         if not match_status_truth(dict(match)).get("is_finished"):
@@ -301,6 +305,7 @@ def _computed_standings_from_matches(
             "position": None,
             "team_name": item["team_name"],
             "team_route_id": route_by_name.get(normalized(item["team_name"]), item["team_name"]),
+            "team_logo": crest_by_name.get(normalized(item["team_name"])) or None,
             "points": item["points"],
             "played": item["played"],
             "wins": item["wins"],
@@ -359,6 +364,7 @@ def _standings_rows(
             "position": _as_int(raw.get("rank") or raw.get("position")),
             "team_name": team_name,
             "team_route_id": _text(raw.get("team_route_id") or raw.get("team_id"), 160) or team_name,
+            "team_logo": _text(raw.get("team_logo") or raw.get("logo") or raw.get("crest"), 500) or None,
             "points": _as_int(raw.get("points")),
             "played": _as_int(raw.get("played")),
             "wins": _as_int(raw.get("wins")),
