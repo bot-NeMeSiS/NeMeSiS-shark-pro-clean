@@ -199,7 +199,7 @@ def create_admin_productivity_blueprint(is_admin):
 
     @bp.route('/api/stripe/ads-webhook', methods=['POST'])
     def ads_stripe_webhook():
-        webhook_secret = os.environ.get('STRIPE_ADS_WEBHOOK_SECRET') or os.environ.get('STRIPE_WEBHOOK_SECRET')
+        webhook_secret = os.environ.get('STRIPE_ADS_WEBHOOK_SECRET')
         signature = request.headers.get('Stripe-Signature', '')
         if not webhook_secret or not signature:
             return make_response('Webhook not configured', 503)
