@@ -54,12 +54,121 @@ def test_admin_pause_is_not_removed_by_historical_recovery(app_module, monkeypat
     assert badge['has_highlights'] is False and badge['client_highlight_label'] == ''
 
 
+def test_recent_form_exposes_only_authorized_video_links(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'v766_highlight_map_snapshot', lambda ids, **_k: {
+        'ok': True, 'read_state': 'VERIFIED', 'map': {
+            'past-approved': [{'id': 'video-1', 'can_link': True,
+                               'video_url': 'https://www.youtube.com/watch?v=synthetic'}],
+            'past-review': [{'id': 'video-2', 'can_link': False, 'can_embed': False,
+                             'video_url': ''}],
+            'past-embed': [{'id': 'video-3', 'can_link': False, 'can_embed': True,
+                            'video_url': ''}],
+        },
+    })
+    result = app_module.v766_attach_recent_form_highlights({
+        'home': {'matches': [{'match_id': 'past-approved'}, {'match_id': 'past-review'}]},
+        'away': {'matches': [{'match_id': 'past-embed'}]},
+    })
+    assert result['historical_highlights_contract'] == 'NEMESIS-RECENT-RESULT-HIGHLIGHTS-V1'
+    assert result['historical_highlights_external_calls'] == 0
+    assert result['home']['matches'][0]['authorized_highlights'][0]['can_link'] is True
+    assert result['home']['matches'][1]['authorized_highlights'] == []
+    assert result['away']['matches'][0]['authorized_highlights'][0]['can_embed'] is True
+
+
+def test_recent_form_respects_admin_pause_and_unknown_reads(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'is_admin_session', lambda: False)
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda: {
+        'highlights_enabled': False, 'settings_readable': True,
+    })
+    monkeypatch.setattr(app_module, 'v766_highlight_map_snapshot', lambda *_a, **_k: pytest.fail('Paused media must not be queried'))
+    with app_module.app.test_request_context('/match/current'):
+        paused = app_module.v766_attach_recent_form_highlights({
+            'home': {'matches': [{'match_id': 'past'}]},
+        })
+    assert paused['highlight_read_state'] == 'DISABLED_BY_ADMIN'
+    assert paused['home']['matches'][0]['authorized_highlights'] == []
+
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda: {
+        'highlights_enabled': True, 'settings_readable': True,
+    })
+    monkeypatch.setattr(app_module, 'v766_highlight_map_snapshot', lambda *_a, **_k: {
+        'ok': False, 'read_state': 'READ_UNAVAILABLE', 'map': {},
+    })
+    with app_module.app.test_request_context('/match/current'):
+        unknown = app_module.v766_attach_recent_form_highlights({
+            'home': {'matches': [{'match_id': 'past'}]},
+        })
+    assert unknown['highlight_read_state'] == 'READ_UNAVAILABLE'
+    assert unknown['home']['matches'][0]['authorized_highlights'] == []
+
+
+def test_match_story_renders_authorized_recent_video_and_unknown_state(app_module):
+    context = {
+        'components': {'MatchStory': {'state': 'ready'}},
+        'story': {'phase': 'finished'},
+        'summaries': {},
+        'context_intelligence': {'evidence': [], 'label': 'Contexto deportivo insuficiente'},
+        'recent_form': {
+            'available': True,
+            'contract': 'NEMESIS-MATCH-RECENT-FORM-CACHE-V1',
+            'highlight_read_state': 'VERIFIED',
+            'home': {'team': 'Granada', 'available': True, 'sample_size': 1, 'form': ['W'], 'matches': [{
+                'match_id': 'past-1', 'href': '/match/past-1', 'home_team': 'Granada',
+                'score': '2-1', 'away_team': 'Sevilla', 'match_date': '2026-10-01',
+                'authorized_highlights': [{'can_link': True,
+                    'video_url': 'https://www.youtube.com/watch?v=synthetic'}],
+            }]},
+            'away': {'team': 'Sevilla', 'available': False, 'sample_size': 0, 'form': [], 'matches': []},
+        },
+        'limitations': [], 'transparency': {},
+    }
+    with app_module.app.test_request_context('/match/current'):
+        macro = app_module.app.jinja_env.get_template('components/v944_match_center.html').module.match_story
+        html = str(macro(context))
+    assert 'Ver resumen autorizado' in html
+    assert 'https://www.youtube.com/watch?v=synthetic' in html
+    assert 'past-1' in html
+
+    context['recent_form']['highlight_read_state'] = 'READ_UNAVAILABLE'
+    context['recent_form']['home']['matches'][0]['authorized_highlights'] = []
+    with app_module.app.test_request_context('/match/current'):
+        html = str(macro(context))
+    assert 'disponibilidad de vídeos no se pudo comprobar' in html.lower()
+    assert 'youtube.com/watch' not in html
+
+
 def test_match_video_query_uses_only_local_identity(app_module, monkeypatch):
-    seen=[]
-    monkeypatch.setattr(app_module, 'db_table_exists', lambda *_a:True)
-    monkeypatch.setattr(app_module, 'rows', lambda sql, params: seen.append(params) or [])
-    app_module._cached_match_media({'id':'local-a','external_id':'foreign-b'})
-    assert seen == [('local-a',6)]
+    seen = []
+    monkeypatch.setattr(app_module, 'sportsdb_highlights_for_match', lambda _db, match_id: seen.append(match_id) or {
+        'ok': True, 'read_state': 'VERIFIED',
+        'highlights': [{'id': 'approved', 'show_block': True, 'can_link': True,
+                        'original_url': 'https://www.youtube.com/watch?v=synthetic'}],
+    })
+    result = app_module._cached_match_media({'id': 'local-a', 'external_id': 'foreign-b'})
+    assert seen == ['local-a']
+    assert result['read_state'] == 'VERIFIED'
+    assert result['visible_count'] == 1
+    assert result['visible_videos'][0]['id'] == 'approved'
+
+
+def test_match_video_read_failure_is_unknown_and_admin_pause_hides_cached_videos(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'sportsdb_highlights_for_match', lambda *_a: {
+        'ok': False, 'read_state': 'READ_UNAVAILABLE', 'highlights': [],
+    })
+    failed = app_module._cached_match_media({'id': 'local-a'})
+    assert failed['ok'] is False and failed['read_state'] == 'READ_UNAVAILABLE'
+    assert failed['visible_count'] == 0
+
+    monkeypatch.setattr(app_module, 'is_admin_session', lambda: False)
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda: {
+        'highlights_enabled': False, 'settings_readable': True,
+    })
+    monkeypatch.setattr(app_module, 'sportsdb_highlights_for_match', lambda *_a: pytest.fail('Paused media must not be queried'))
+    with app_module.app.test_request_context('/match/current'):
+        paused = app_module._cached_match_media({'id': 'local-a'})
+    assert paused['ok'] is True and paused['read_state'] == 'DISABLED_BY_ADMIN'
+    assert paused['visible_count'] == 0
 
 
 def test_legacy_map_and_detail_do_not_initialize_storage(app_module, tmp_path, monkeypatch):

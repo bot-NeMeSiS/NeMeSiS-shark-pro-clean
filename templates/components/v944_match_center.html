@@ -206,6 +206,34 @@
         {{ ui('No hay resultados finalizados confirmados') }}
         {% endif %}
       </dd>
+      {% if form.get('matches') %}
+      <dd>
+        <ul class="v944-recent-results" aria-label="{{ ui('Últimos partidos de') }} {{ form.get('team') or ('Local' if side == 'home' else 'Visitante') }}" data-recent-results-side="{{ side }}">
+          {% for previous in form.get('matches')[:5] %}
+          <li data-recent-result-match="{{ previous.get('match_id') or '' }}">
+            <a href="{{ previous.get('href') or ('/match/' ~ previous.get('match_id')) }}">
+              <strong>{{ previous.get('home_team') }} {{ previous.get('score') }} {{ previous.get('away_team') }}</strong>
+              <small>{{ previous.get('match_date') or ui('Fecha pendiente') }}{% if previous.get('competition_identity', {}).get('name') %} · {{ previous.get('competition_identity', {}).get('name') }}{% endif %}</small>
+            </a>
+            {% for video in previous.get('authorized_highlights') or [] %}
+              {% if video.get('can_link') and video.get('video_url') %}
+              <a class="v944-recent-result-highlight" href="{{ video.get('video_url') }}" target="_blank" rel="noopener noreferrer">▶ {{ ui('Ver resumen autorizado') }}</a>
+              {% elif video.get('can_embed') and previous.get('href') %}
+              <a class="v944-recent-result-highlight" href="{{ previous.get('href') }}#match-section-video">▶ {{ ui('Ver resumen en vídeo') }}</a>
+              {% endif %}
+            {% endfor %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% if recent_form.get('highlight_read_state') == 'DISABLED_BY_ADMIN' %}
+        <small class="muted" role="status">{{ ui('Los resúmenes están en pausa; los resultados siguen disponibles.') }}</small>
+        {% elif recent_form.get('highlight_read_state') != 'VERIFIED' %}
+        <small class="muted" role="status">{{ ui('Los resultados están disponibles; la disponibilidad de vídeos no se pudo comprobar.') }}</small>
+        {% elif not form.get('matches')|selectattr('authorized_highlights')|list %}
+        <small class="muted">{{ ui('Solo se enlazan vídeos con permisos de publicación verificados.') }}</small>
+        {% endif %}
+      </dd>
+      {% endif %}
     </div>
     {% endfor %}
   </dl>
@@ -295,7 +323,9 @@
     {% if video.get('attribution') %}<small>{{ ui("Fuente:") }} {{ video.get('attribution') }}</small>{% endif %}
   </article>
   {% else %}
-    {% if context.get('lifecycle', {}).get('is_finished') %}<p role="status">{{ ui('Resumen todavía no disponible. Solo aparecerá un vídeo asociado a este encuentro y con publicación permitida.') }}</p>
+    {% if media.get('read_state') == 'DISABLED_BY_ADMIN' %}<p role="status">{{ ui('Los resúmenes están temporalmente en pausa. El resto de información del partido sigue disponible.') }}</p>
+    {% elif media.get('read_state') != 'VERIFIED' %}<p role="status">{{ ui('No se pudo comprobar ahora la disponibilidad del resumen. Esto no significa que el partido carezca de vídeo.') }}</p>
+    {% elif context.get('lifecycle', {}).get('is_finished') %}<p role="status">{{ ui('Resumen todavía no disponible. Solo aparecerá un vídeo asociado a este encuentro y con publicación permitida.') }}</p>
     {% else %}<p role="status">{{ ui('Todavía no hay resumen de este encuentro. La disponibilidad depende de la publicación de la fuente.') }}</p>{% endif %}
   {% endfor %}
 </section>

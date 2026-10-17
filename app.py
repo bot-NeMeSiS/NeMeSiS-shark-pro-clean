@@ -9807,21 +9807,47 @@ def _cached_players_for_team(team, matches, limit=160):
 
 def _cached_match_media(match, limit=6):
     """Classify cached highlight metadata without provider calls or GET writes."""
-    if not match or not db_table_exists("sportsdb_match_highlights"):
-        return video_highlights_snapshot([])
+    empty = video_highlights_snapshot([])
+    if not match:
+        return {**empty, "ok": False, "read_state": "MATCH_ID_MISSING"}
+    if has_request_context() and not is_admin_session():
+        try:
+            settings = admin_operational_settings()
+        except Exception:
+            return {**empty, "ok": False, "read_state": "READ_UNAVAILABLE"}
+        if settings.get("settings_readable") is not True:
+            return {**empty, "ok": False, "read_state": "READ_UNAVAILABLE"}
+        if settings.get("highlights_enabled") is False:
+            return {**empty, "ok": True, "read_state": "DISABLED_BY_ADMIN"}
     # match_id stores the canonical local match, never an unscoped provider ID.
     # Legacy external associations must be reconciled during ingestion/review,
     # not guessed while rendering a client's match page.
     raw_local_id = match.get("id")
     local_id = str(raw_local_id).strip() if raw_local_id is not None else ""
     if not local_id:
-        return video_highlights_snapshot([])
-    items = rows(
-        "SELECT * FROM sportsdb_match_highlights WHERE COALESCE(match_id,'') = ? ORDER BY COALESCE(updated_at,'') DESC LIMIT ?",
-        (local_id, int(limit)),
-    )
-    classified = [classify_stored_highlight(item) for item in items]
-    return video_highlights_snapshot(classified, preclassified=True)
+        return {**empty, "ok": False, "read_state": "MATCH_ID_MISSING"}
+    try:
+        snapshot = sportsdb_highlights_for_match(DB_PATH, local_id)
+    except Exception:
+        snapshot = {"ok": False, "read_state": "READ_UNAVAILABLE", "highlights": []}
+    if not isinstance(snapshot, dict) or snapshot.get("ok") is not True or snapshot.get("read_state") != "VERIFIED":
+        state = snapshot.get("read_state") if isinstance(snapshot, dict) else None
+        return {**empty, "ok": False, "read_state": state or "READ_UNAVAILABLE"}
+    # The read model applies rights before limiting the client-visible sample.
+    # This prevents newer blocked/review rows from hiding an older approved clip.
+    try:
+        display_limit = max(1, min(int(limit or 6), 8))
+    except (TypeError, ValueError):
+        display_limit = 6
+    approved = [item for item in (snapshot.get("highlights") or []) if isinstance(item, dict)]
+    result = video_highlights_snapshot(approved[:display_limit], preclassified=True)
+    return {
+        **result,
+        "ok": True,
+        "read_state": "VERIFIED",
+        "candidate_sampled": snapshot.get("candidate_sampled"),
+        "candidate_sample_truncated": snapshot.get("candidate_sample_truncated", False),
+    }
 
 
 def _team_journey_matches(team, team_id, *, recent=False, limit=80):
@@ -19600,6 +19626,58 @@ def v766_highlight_map_snapshot(match_ids, limit_per_match=2):
     return result if isinstance(result, dict) else {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
 
 
+def v766_attach_recent_form_highlights(recent_form):
+    """Attach rights-approved links to prior results using the local catalogue only."""
+    result = dict(recent_form or {})
+    sides = {}
+    match_ids = []
+    for side in ("home", "away"):
+        form = dict(result.get(side) or {})
+        matches = [dict(item) for item in (form.get("matches") or []) if isinstance(item, dict)]
+        form["matches"] = matches
+        sides[side] = form
+        match_ids.extend(item.get("match_id") for item in matches if item.get("match_id") is not None)
+
+    if has_request_context() and not is_admin_session():
+        try:
+            settings = admin_operational_settings()
+        except Exception:
+            snapshot = {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
+        else:
+            if settings.get("settings_readable") is not True:
+                snapshot = {"ok": False, "read_state": "READ_UNAVAILABLE", "map": {}}
+            elif settings.get("highlights_enabled") is False:
+                snapshot = {"ok": False, "read_state": "DISABLED_BY_ADMIN", "map": {}}
+            elif match_ids:
+                snapshot = v766_highlight_map_snapshot(match_ids, limit_per_match=2)
+            else:
+                snapshot = {"ok": True, "read_state": "VERIFIED", "map": {}}
+    elif match_ids:
+        snapshot = v766_highlight_map_snapshot(match_ids, limit_per_match=2)
+    else:
+        snapshot = {"ok": True, "read_state": "VERIFIED", "map": {}}
+
+    state = str(snapshot.get("read_state") or "READ_UNAVAILABLE")
+    verified = snapshot.get("ok") is True and state == "VERIFIED"
+    if not verified and state == "VERIFIED":
+        state = "READ_UNAVAILABLE"
+    highlight_map = snapshot.get("map") if verified and isinstance(snapshot.get("map"), dict) else {}
+    for form in sides.values():
+        for item in form["matches"]:
+            match_id = str(item.get("match_id") or "").strip()
+            candidates = highlight_map.get(match_id) or []
+            item["authorized_highlights"] = (
+                [video for video in candidates if isinstance(video, dict) and (video.get("can_link") or video.get("can_embed"))]
+                if verified else []
+            )
+            item["highlight_read_state"] = state
+    result.update(sides)
+    result["highlight_read_state"] = state
+    result["historical_highlights_contract"] = "NEMESIS-RECENT-RESULT-HIGHLIGHTS-V1"
+    result["historical_highlights_external_calls"] = 0
+    return result
+
+
 @before_render_template.connect_via(app)
 def enrich_canonical_highlight_surfaces(sender, template, context, **extra):
     if not has_request_context() or request.path.startswith(('/admin','/api/admin')):
@@ -21610,6 +21688,12 @@ def match_detail_page(match_id):
         context_detail,
         madrid_context=client_match_display_context(detail.get("match") or {}),
         live_context=live_context,
+    )
+    # The match-center builder validates and normalizes recent results. Attach
+    # catalogue videos afterwards so that this presentation-only data survives
+    # the domain projection without changing its factual result contract.
+    match_context["recent_form"] = v766_attach_recent_form_highlights(
+        match_context.get("recent_form")
     )
     from engines.sports_history_engine import match_history
     match_context["historical_memory"] = match_history(DB_PATH, match_id)
