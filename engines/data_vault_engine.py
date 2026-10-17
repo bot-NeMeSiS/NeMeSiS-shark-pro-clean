@@ -232,6 +232,7 @@ def ensure_backup_capacity(
     root: str | Path,
     *,
     directory: str | Path | None = None,
+    validation_deadline: float | None = None,
 ) -> dict:
     """Reserve enough filesystem headroom for one atomic SQLite backup.
 
@@ -267,7 +268,16 @@ def ensure_backup_capacity(
     backups = list_backups(root, directory=bdir)
     verified = None
     for item in backups:
-        if item.get("valid") and validate_backup(root, item["name"], directory=bdir).get("ok"):
+        if validation_deadline is not None and time.monotonic() >= validation_deadline:
+            result.update(ok=False, error="backup_capacity_validation_timeout", validation_deadline_exceeded=True)
+            return result
+        if not item.get("valid"):
+            continue
+        validation = validate_backup(root, item["name"], directory=bdir, deadline=validation_deadline)
+        if validation.get("deadline_exceeded"):
+            result.update(ok=False, error="backup_capacity_validation_timeout", validation_deadline_exceeded=True)
+            return result
+        if validation.get("ok"):
             verified = item
             result["preserved_verified"] = item["name"]
             break
@@ -331,15 +341,26 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
-    storage = ensure_backup_capacity(src, root, directory=bdir)
+    stage_durations_ms = {}
+    capacity_started = time.perf_counter()
+    storage = ensure_backup_capacity(
+        src, root, directory=bdir, validation_deadline=time.monotonic() + 30.0
+    )
+    stage_durations_ms["CAPACITY"] = max(0, round((time.perf_counter() - capacity_started) * 1000))
     compact = False
+    if not storage.get("ok") and storage.get("validation_deadline_exceeded"):
+        return {"ok": False, "backup_created": False,
+                "error": "backup_capacity_validation_timeout",
+                "failure_stage": "CAPACITY", "storage": storage,
+                "stage_durations_ms": stage_durations_ms}
     if not storage.get("ok"):
         candidate = _compact_snapshot_capacity(src, bdir)
         storage["compact_candidate"] = candidate
         if not candidate.get("ok"):
             return {"ok": False, "backup_created": False,
                     "error": storage.get("error") or "backup_storage_insufficient",
-                    "failure_stage": "CAPACITY", "storage": storage}
+                    "failure_stage": "CAPACITY", "storage": storage,
+                    "stage_durations_ms": stage_durations_ms}
         compact = True
         storage.pop("error", None)
         storage.update(ok=True, method="vacuum_into",
@@ -357,6 +378,28 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     published = False
     result = {}
     stage = "SNAPSHOT"
+    stage_started = time.perf_counter()
+    deadline_exceeded = False
+
+    def record_stage(next_stage):
+        nonlocal stage, stage_started
+        now = time.perf_counter()
+        stage_durations_ms[stage] = max(0, round((now - stage_started) * 1000))
+        stage, stage_started = next_stage, now
+
+    def check_deadline():
+        nonlocal deadline_exceeded
+        if time.monotonic() >= deadline:
+            deadline_exceeded = True
+            raise sqlite3.OperationalError("backup_snapshot_timeout")
+
+    def sql_progress():
+        nonlocal deadline_exceeded
+        if time.monotonic() >= deadline:
+            deadline_exceeded = True
+            return 1
+        return 0
+
     try:
         workspace = new_workspace(bdir)
         temporary = workspace / "snapshot.partial"
@@ -370,7 +413,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 last_capacity_check = [0.0]
                 def compact_progress():
                     now = time.monotonic()
-                    if now >= deadline:
+                    if sql_progress():
                         return 1
                     if now - last_capacity_check[0] >= 0.05:
                         last_capacity_check[0] = now
@@ -389,34 +432,36 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             source.execute("PRAGMA busy_timeout=50")
             dest.execute("PRAGMA busy_timeout=50")
             def progress(status_code, remaining, total):
-                if time.monotonic() >= deadline:
-                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+                check_deadline()
             if not compact:
                 source.backup(dest, pages=256, progress=progress, sleep=0.05)
-            stage = "INTEGRITY"
-            dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            check_deadline()
+            record_stage("INTEGRITY")
+            dest.set_progress_handler(sql_progress, 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
+            check_deadline()
             # Inspect the verified snapshot on this same deadline-bound connection.
             # The admin dashboard helper opens new connections and scans backup
             # history; neither is necessary to describe this snapshot.
-            stage = "METADATA"
+            record_stage("METADATA")
             tables = [row[0] for row in dest.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
             counts = {}
             for table in CRITICAL_TABLES:
-                if time.monotonic() >= deadline:
-                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+                check_deadline()
                 if table in tables:
                     counts[table] = int(dest.execute(
                         f'SELECT COUNT(*) FROM "{table}"').fetchone()[0])
+            check_deadline()
+        record_stage("SYNC")
         with temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
-        stage = "HASH"
+        check_deadline()
+        record_stage("HASH")
         digest = sha256_file(temporary, deadline=deadline)
-        if time.monotonic() >= deadline:
-            raise sqlite3.OperationalError("backup_snapshot_timeout")
-        stage = "MANIFEST"
+        check_deadline()
+        record_stage("MANIFEST")
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
@@ -437,8 +482,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         manifest_temporary.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         with manifest_temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
+        check_deadline()
         # Publish the manifest first; readers only discover the final DB name.
-        stage = "PUBLICATION"
+        record_stage("PUBLICATION")
         os.replace(manifest_temporary, manifest_path)
         manifest_published = True
         os.replace(temporary, out)
@@ -449,19 +495,27 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        stage = "RETENTION"
-        retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
+        record_stage("RETENTION")
+        retention = apply_backup_retention(
+            root, directory=bdir, max_files=max_files,
+            validation_deadline=time.monotonic() + 30.0,
+        )
         result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
         if not result["ok"]:
             result["failure_stage"] = stage
         return result
     except Exception as exc:
-        result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
+        error = str(exc)[:300]
+        if (deadline_exceeded and isinstance(exc, sqlite3.OperationalError)
+                and getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_INTERRUPT):
+            error = "backup_snapshot_timeout"
+        result = {"ok": False, "backup_created": published, "error": error,
                   "failure_stage": stage, "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
         return result
     finally:
+        record_stage("CLEANUP")
         if workspace is not None:
             cleanup = remove_workspace(workspace, bdir, src)
             storage["temporary_cleanup_ok"] = cleanup["removed"]
@@ -474,9 +528,12 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             except OSError:
                 result.update(ok=False, error=result.get("error") or "backup_manifest_cleanup_failed")
                 result.setdefault("failure_stage", "CLEANUP")
+        stage_durations_ms["CLEANUP"] = max(0, round((time.perf_counter() - stage_started) * 1000))
+        result["stage_durations_ms"] = stage_durations_ms
 
 
-def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:
+def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None,
+                    deadline: float | None = None) -> dict:
     backups = list_backups(root, directory=directory)
     if backup_name:
         backups = [b for b in backups if b["name"] == backup_name]
@@ -484,26 +541,51 @@ def validate_backup(root: str | Path, backup_name: str = "", *, directory: str |
     for item in backups:
         path = Path(item["path"])
         expected = item.get("sha256")
-        actual = sha256_file(path) if path.exists() else ""
+        if deadline is not None and time.monotonic() >= deadline:
+            return {"ok": False, "validated": len(results), "results": results, "deadline_exceeded": True}
+        try:
+            actual = sha256_file(path, deadline=deadline) if path.exists() else ""
+        except (OSError, sqlite3.Error):
+            if deadline is not None and time.monotonic() >= deadline:
+                return {"ok": False, "validated": len(results), "results": results, "deadline_exceeded": True}
+            actual = ""
         integrity = False
         if actual and item.get("valid") and expected == actual:
             try:
                 with closing(connect_readonly(path)) as conn:
+                    if deadline is not None:
+                        conn.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                     integrity = [row[0] for row in conn.execute("PRAGMA integrity_check")] == ["ok"]
+                    if deadline is not None and time.monotonic() >= deadline:
+                        return {"ok": False, "validated": len(results), "results": results, "deadline_exceeded": True}
             except sqlite3.Error:
+                if deadline is not None and time.monotonic() >= deadline:
+                    return {"ok": False, "validated": len(results), "results": results, "deadline_exceeded": True}
                 integrity = False
         results.append({"name": item["name"], "ok": integrity, "expected": expected, "actual": actual})
     return {"ok": all(r["ok"] for r in results) if results else False, "validated": len(results), "results": results}
 
 
-def apply_backup_retention(root: str | Path, *, directory: str | Path | None = None, max_files: int | None = None) -> dict:
+def apply_backup_retention(root: str | Path, *, directory: str | Path | None = None, max_files: int | None = None,
+                           validation_deadline: float | None = None) -> dict:
     max_files = int(os.getenv("DATA_BACKUP_MAX_FILES", "30") or 30) if max_files is None else int(max_files)
     backups = list_backups(root, directory=directory)
     removed = []
     if len(backups) <= max_files or max_files < 1:
         return {"ok": True, "removed": removed, "kept": len(backups)}
     # A newer incomplete file must never displace the newest verified copy.
-    verified = next((item for item in backups if item["valid"] and validate_backup(root, item["name"], directory=directory)["ok"]), None)
+    verified = None
+    for item in backups:
+        if not item["valid"]:
+            continue
+        if validation_deadline is not None and time.monotonic() >= validation_deadline:
+            return {"ok": False, "removed": [], "kept": len(backups), "error": "backup_retention_validation_timeout"}
+        validation = validate_backup(root, item["name"], directory=directory, deadline=validation_deadline)
+        if validation.get("deadline_exceeded"):
+            return {"ok": False, "removed": [], "kept": len(backups), "error": "backup_retention_validation_timeout"}
+        if validation.get("ok"):
+            verified = item
+            break
     if verified is None:
         return {"ok": False, "removed": [], "kept": len(backups), "error": "no_verified_backup_to_preserve"}
     ordered = [verified] + [item for item in backups if item["name"] != verified["name"]]
