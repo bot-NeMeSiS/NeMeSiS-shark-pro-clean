@@ -78,7 +78,13 @@ def test_available_match_sections_stay_open_and_missing_sections_remain_accessib
         panels = [n for n in dom.nodes if n['attrs'].get('data-match-component') == component]
     panel, = panels
     in_disclosure = any('v944-coverage-details' in n['attrs'].get('class', '') for n in panel['parents'])
-    assert in_disclosure is not available
+    if key == 'statistics':
+        assert not in_disclosure
+        navigation = [n for n in dom.nodes
+                      if n['tag'] == 'a' and n['attrs'].get('href') == '#match-section-stats']
+        assert len(navigation) == 1
+    else:
+        assert in_disclosure is not available
     assert len(panels) == 1
 
 

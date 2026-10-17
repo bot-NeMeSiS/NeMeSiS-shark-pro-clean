@@ -348,6 +348,11 @@ def test_recent_failure_cooldown_avoids_hammering():
 
 
 def test_force_keeps_the_call_budget(db,monkeypatch):
+    # Keep the 2026-10-01 fixture inside the requested recent window so this
+    # always exercises the reserved event lookup before exhausting feed calls.
+    now = datetime(2026, 10, 2, 12, tzinfo=media.TZ)
+    monkeypatch.setattr(media, '_today', lambda: now.date())
+    monkeypatch.setattr(media, '_now', lambda: now.isoformat(timespec='seconds'))
     calls=[]
     event_calls=[]
     monkeypatch.setattr(media,'_sportsdb_v1',lambda *a:(calls.append(True) or {'events':None}))
