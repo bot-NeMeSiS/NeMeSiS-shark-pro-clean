@@ -34,6 +34,15 @@ jobs:
           python -m pytest tests/test_cron_incident_hotfix.py tests/test_render_cron_master_tick.py tests/test_sports_pipeline_stage_truth.py -q
           python -m pytest tests/test_odds_credentials.py tests/test_odds_cache_credit_guard.py tests/test_odds_admin_pipeline.py -q
 
+      - name: API-Football statistics regressions (mocked provider)
+        env:
+          BACKGROUND_JOBS_ENABLED: 'false'
+          AUTO_GENERATE_PICKS: 'false'
+          AUTO_SEND_TELEGRAM_PICKS: 'false'
+          DB_PATH: /tmp/nemesis_statistics_ci.db
+        run: |
+          python -m pytest tests/test_api_football_statistics_refresh.py tests/test_statistics_refresh_integration.py tests/test_match_statistics_zero.py -q
+
       - name: Project checks
         run: |
           python -m unittest discover -s tests -p test_sports_history.py -v

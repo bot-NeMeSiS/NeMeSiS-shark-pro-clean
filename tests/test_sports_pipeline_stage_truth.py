@@ -337,6 +337,12 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
             "fixtures_count": 0,
             "errors": ["partial live response"],
         },
+        "api_football_statistics": {
+            "ok": True,
+            "status": "AVAILABLE",
+            "external_calls": 1,
+            "processed": 2,
+        },
         "api_football_deep_enrichment": {
             "ok": True,
             "status": "OK",
@@ -376,7 +382,7 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
 
     assert result["ok"] is True
     assert result["status"] == "PARTIAL"
-    assert result["external_calls"] == 21
+    assert result["external_calls"] == 22
     assert any(str(item).startswith("odds_PARTIAL") for item in result["errors"])
     assert any(str(item).startswith("live_partial") for item in result["errors"])
 

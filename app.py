@@ -134,6 +134,10 @@ from engines.api_football_live_tracker_engine import (
     sync_api_football_live_tracker,
     sync_api_football_match_window,
 )
+from engines.api_football_statistics_engine import (
+    refresh_api_football_statistics_if_due,
+    statistics_refresh_state_for_match,
+)
 from engines.api_sports_provider_engine import (
     explain_api_sports_provider_state,
     get_api_sports_status,
@@ -1367,7 +1371,7 @@ def _log_sports_stage_duration(label, started):
                    "sportsdb_candidates", "sportsdb_fetch", "sportsdb_transform", "sportsdb_persist",
                    "sportsdb_identity_read", "sportsdb_snapshot_write", "sportsdb_dedupe", "sportsdb_odds_reconcile",
                    "sportsdb_reconciliation", "sportsdb_finalize",
-                   "api_football_live_tracker", "api_football_deep_enrichment", "pick_grading", "odds"}
+                   "api_football_live_tracker", "api_football_statistics", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
             print(json.dumps({"event": "sports_stage", "stage": label,
@@ -1490,6 +1494,9 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
             "fixtures_count": 0,
             "safe_message": "Sin live ni kickoff cercano: no se consumen creditos.",
         }
+    statistics = _safe_sports_sync_call(
+        "api_football_statistics", refresh_api_football_statistics_if_due, DB_PATH,
+    )
     deep_candidates = [] if exhausted() else _api_football_deep_enrichment_candidates(limit=1)
     deep = _safe_sports_sync_call(
         "api_football_deep_enrichment",
@@ -1511,17 +1518,17 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
 
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
-    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("deep", deep), ("odds", odds), ("grading", grading)):
+    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("statistics", statistics), ("deep", deep), ("odds", odds), ("grading", grading)):
         if result.get("ok") is False or result.get("error") or result.get("errors"):
             errors.append(result.get("error") or f"{label}_{result.get('status') or 'provider_error'}")
     processed = sum(
         as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
-        for result in (fixtures, fallback, live, deep, odds)
+        for result in (fixtures, fallback, live, statistics, deep, odds)
     )
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, fallback, live, deep, odds)
+        for result in (fixtures, fallback, live, statistics, deep, odds)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1531,6 +1538,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         "processed": processed,
         "matches_synced": as_int(fixtures.get("fixtures_count"), 0) + as_int(fallback.get("processed"), 0),
         "live_synced": as_int(live.get("fixtures_count"), 0),
+        "statistics_refreshed": as_int(statistics.get("refreshed_fixtures"), 0),
         "deep_status": deep.get("status") or "UNKNOWN",
         "deep_fixture_ids": (deep.get("selected_fixture_ids") or deep_candidates)[:1],
         "deep_external_calls": as_int(deep.get("external_calls") or (deep.get("metrics") or {}).get("external_calls"), 0),
@@ -1538,6 +1546,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         "fixtures": fixtures,
         "fallback": fallback,
         "live": live,
+        "statistics": statistics,
         "deep_enrichment": deep,
         "odds": odds,
         "grading": grading,
@@ -1560,6 +1569,8 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         "processed": processed,
         "matches_synced": result["matches_synced"],
         "live_synced": result["live_synced"],
+        "statistics_refreshed": result["statistics_refreshed"],
+        "statistics_status": str(statistics.get("status") or "UNKNOWN")[:80],
         "deep_status": result["deep_status"],
         "deep_fixture_ids": result["deep_fixture_ids"],
         "deep_external_calls": result["deep_external_calls"],
@@ -1756,6 +1767,25 @@ def _sports_entity_freshness_snapshot(limit=200):
         "reason": reason,
         "stale_samples": stale_samples,
     }
+
+
+def _sports_statistics_diagnostic(stage):
+    """Persist a bounded statistics receipt, without payloads or provider errors."""
+    stage = stage if isinstance(stage, dict) else {}
+    result = {
+        **_provider_stage_evidence(stage),
+        "state": _sports_diagnostic_text(stage.get("state") or stage.get("status"), 80) or "UNKNOWN",
+        "reason_code": _sports_diagnostic_text(stage.get("reason_code"), 80) or _sports_stage_reason_code(stage),
+        "transport": stage.get("transport") if stage.get("transport") in {"batch", "individual"} else "UNKNOWN",
+        "data_contributed": bool(stage.get("data_contributed")),
+        "error_present": bool(stage.get("error_present") or stage.get("error") or stage.get("errors")),
+    }
+    for key in ("ok", "configured", "enabled"):
+        result[key] = stage.get(key) if isinstance(stage.get(key), bool) else None
+    for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
+                "no_data_count", "failed_count", "eligible_count", "due_count"):
+        result[key] = max(0, as_int(stage.get(key), 0))
+    return result
 
 
 def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_freshness=None):
@@ -2041,6 +2071,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "fixtures_count": as_int(live_stage.get("fixtures_count"), 0),
             "error_present": bool(live_stage.get("error") or live_stage.get("errors")),
         },
+        "statistics_refresh": _sports_statistics_diagnostic(sports_result.get("statistics")),
         "odds_refresh": {
             "state": _sports_diagnostic_text(odds_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(odds_stage),
@@ -2276,7 +2307,7 @@ def bounded_sports_sync(force=False):
         restricted = {"FREE_PLAN_RESTRICTED", "FREE_PLAN_SEASON_RESTRICTED", "SEASON_UNAVAILABLE",
                       "ENDPOINT_RESTRICTED", "COVERAGE_UNAVAILABLE", "SUBSCRIPTION_RESTRICTED",
                       "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "PLAN_OR_COVERAGE_OTHER"}
-        for label in ("fixtures", "fallback", "live", "deep_enrichment", "grading"):
+        for label in ("fixtures", "fallback", "live", "statistics", "deep_enrichment", "grading"):
             stage = result.get(label) or {}
             status = str(stage.get("status") or "").upper()
             failure = bool(stage.get("error") or stage.get("errors") or stage.get("ok") is False)
@@ -2291,7 +2322,12 @@ def bounded_sports_sync(force=False):
             # and fresh authentication/network failures remain technical FAIL.
             plan_limit = (
                 str(stage.get("failure_category") or "").upper() in restricted - {"ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED"}
-                and status.startswith("PARTIAL_")
+                and (
+                    status.startswith("PARTIAL_")
+                    or (label == "statistics" and status in {"PARTIAL", "PROVIDER_FAILURE"}
+                        and set(safe_failure_categories(stage.get("failure_categories"))) <=
+                        restricted - {"ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED"})
+                )
                 and _sports_stage_reason_code(stage) not in {"AUTH_OR_ACCESS", "NETWORK_OR_TIMEOUT", "RATE_OR_QUOTA"}
             )
             deferral = deferral or plan_limit
@@ -2567,6 +2603,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "fixtures_count": as_int((raw_current_sync.get("live_refresh") or {}).get("fixtures_count"), 0),
                     "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
                 },
+                "statistics_refresh": _sports_statistics_diagnostic(raw_current_sync.get("statistics_refresh")),
                 "odds_refresh": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
@@ -9278,24 +9315,56 @@ def _cached_lineups_for_match(match, limit=120):
     )
 
 
+def _cached_statistics_fixture_identity(match):
+    """A numeric ID from another provider is not an API-Football identity."""
+    source = str(match.get("source") or match.get("provider") or "").lower().replace("-", "_")
+    internal_id = str(match.get("id") or match.get("match_id") or "").strip()
+    fixture_ids = []
+    if internal_id.startswith("af-") and internal_id[3:].isdigit():
+        fixture_ids.append(internal_id[3:])
+    if source in {"api_football", "api_football_live", "api_sports", "api_sports_api_football"}:
+        for key in ("fixture_id", "external_id"):
+            value = str(match.get(key) or "").strip()
+            if value.isdigit() and value not in fixture_ids:
+                fixture_ids.append(value)
+    identity = {}
+    if db_table_exists("api_football_fixture_index"):
+        # The internal mapping also supports canonical matches merged from sources.
+        if internal_id:
+            identity = one(
+                "SELECT * FROM api_football_fixture_index WHERE internal_match_id=? ORDER BY last_seen_at DESC LIMIT 1",
+                (internal_id,),
+            ) or {}
+        if not identity and fixture_ids:
+            placeholders = ",".join("?" for _ in fixture_ids)
+            identity = one(
+                f"SELECT * FROM api_football_fixture_index WHERE fixture_id IN ({placeholders}) ORDER BY last_seen_at DESC LIMIT 1",
+                tuple(fixture_ids),
+            ) or {}
+    mapped_id = str(identity.get("fixture_id") or "").strip()
+    if mapped_id.isdigit():
+        fixture_ids = [mapped_id]
+    return identity, fixture_ids
+
+
 def _cached_match_statistics(match):
     """Return the latest complete persisted statistics snapshot for one match."""
     empty = {"available": False, "items": [], "source": None, "external_calls": 0}
     if not match or not db_table_exists("api_football_match_stats_history"):
         return empty
-    identity, identifiers = _cached_fixture_identifiers(match)
-    fixture_ids = [
-        value
-        for value in identifiers
-        if value and value != identity.get("internal_match_id")
-    ]
+    identity, fixture_ids = _cached_statistics_fixture_identity(match)
     if not fixture_ids:
         return empty
     placeholders = ",".join(["?"] * len(fixture_ids))
     latest = one(
-        f"""SELECT MAX(captured_at) AS captured_at
+        f"""SELECT captured_at
             FROM api_football_match_stats_history
-            WHERE COALESCE(fixture_id,'') IN ({placeholders})""",
+            WHERE COALESCE(fixture_id,'') IN ({placeholders})
+              AND trim(COALESCE(stat_name,''))<>''
+              AND lower(trim(COALESCE(stat_value,''))) NOT IN ('','-','—','none','null','n/a','nan')
+              AND julianday(captured_at) IS NOT NULL
+            ORDER BY julianday(captured_at) DESC, captured_at DESC
+            LIMIT 1""",
         tuple(fixture_ids),
     ) or {}
     captured_at = str(latest.get("captured_at") or "").strip()
@@ -21535,6 +21604,7 @@ def match_detail_page(match_id):
     attach_archived_sports_details(DB_PATH, detail)
     live_context = live_tracker_for_match(DB_PATH, match_id) or {}
     detail["api_football_live_tracker"] = live_context
+    detail["statistics_refresh"] = statistics_refresh_state_for_match(DB_PATH, detail.get("match") or {})
     context_detail = {**detail, "match": canonical_match_for_domain_context(detail.get("match") or {})}
     match_context = build_match_context(
         context_detail,
@@ -23052,6 +23122,7 @@ def v945_provider_health_snapshot():
     current = pipeline.get("current_sync") if isinstance(pipeline.get("current_sync"), dict) else {}
     api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
     api_live = current.get("live_refresh") if isinstance(current.get("live_refresh"), dict) else {}
+    api_statistics = current.get("statistics_refresh") if isinstance(current.get("statistics_refresh"), dict) else {}
     sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
     odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
     access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
@@ -23128,7 +23199,7 @@ def v945_provider_health_snapshot():
 
     plan_value = plan.get("value") if str(plan.get("state") or "").upper() == "OBSERVED" else None
     observations = []
-    for lane_label, lane in (("Calendario y resultados", api_football), ("Directo", api_live)):
+    for lane_label, lane in (("Calendario y resultados", api_football), ("Directo", api_live), ("Estadísticas", api_statistics)):
         if not lane:
             continue
         evidence = _provider_stage_evidence(lane)
@@ -23149,6 +23220,7 @@ def v945_provider_health_snapshot():
         plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
     )
     api_card["observations"] = observations
+    api_card["statistics_refresh"] = _sports_statistics_diagnostic(api_statistics)
     # A fresh calendar receipt cannot refresh an older live-access rejection.
     api_card["provider_observation_current"] = bool(observations) and all(
         item["provider_observation_current"] for item in observations
@@ -29198,7 +29270,18 @@ def api_match_statistics(match_id):
     detail = match_detail(match_id)
     if not detail:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Partido no encontrado"}), 404
-    return jsonify({"ok": True, "version": APP_VERSION, "match": detail["match"], "statistics": detail.get("statistics"), "momentum": detail.get("momentum"), "state": detail.get("state")})
+    match = detail.get("match") or {}
+    detail["cached_statistics"] = _cached_match_statistics(match)
+    detail["statistics_refresh"] = statistics_refresh_state_for_match(DB_PATH, match)
+    context = build_match_context(
+        detail, live_context=live_tracker_for_match(DB_PATH, match_id) or {},
+    )
+    return jsonify({
+        "ok": True, "version": APP_VERSION, "match": match,
+        "statistics": detail.get("statistics"),
+        "statistics_context": context["statistics"],
+        "momentum": detail.get("momentum"), "state": detail.get("state"),
+    })
 
 
 @app.route("/team-crest.svg")

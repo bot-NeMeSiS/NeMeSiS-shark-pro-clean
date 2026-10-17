@@ -334,7 +334,7 @@
 {% set component = context.get('components', {}).get('StatsPanel') or {} %}
 {% set statistics = context.get('statistics') or {} %}
 {% set teams = context.get('teams') or {} %}
-{{ panel_start('StatsPanel', component, 'Estadísticas disponibles', 'Comparativa confirmada del partido.', 'stats') }}
+{{ panel_start('StatsPanel', component, 'Estadísticas', 'Datos del partido y estado de actualización.', 'stats') }}
   {% if statistics.get('available') %}
   <div class="v944-stats" role="table" aria-label="Estadísticas del partido" data-stat-source="{{ statistics.get('source') or '' }}">
     <div class="v944-stats__header" role="row">
@@ -352,6 +352,9 @@
   </div>
   {% else %}
   {{ state_notice(component, 'No disponible.') }}
+  {% endif %}
+  {% if statistics.get('available') %}
+  <p class="v944-panel-footnote">{{ ui(statistics.get('message') or 'Estadísticas del partido disponibles.') }}{% if statistics.get('updated_at') %} {{ ui('Actualizadas:') }} <time datetime="{{ statistics.get('updated_at') }}">{{ statistics.get('updated_at')|madrid_datetime_label }}</time>{% endif %}</p>
   {% endif %}
   {{ transparency_meta(context, 'statistics') }}
 </section>{%- endmacro %}

@@ -165,6 +165,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw_coverage_capabilities = raw_coverage.get("capabilities") if isinstance(raw_coverage.get("capabilities"), dict) else {}
     raw_freshness = raw.get("data_freshness") if isinstance(raw.get("data_freshness"), dict) else {}
     raw_current_sync = raw.get("current_sync") if isinstance(raw.get("current_sync"), dict) else {}
+    raw_statistics = raw_current_sync.get("statistics_refresh") if isinstance(raw_current_sync.get("statistics_refresh"), dict) else {}
     fixture_ids = [
         safe_label(value, secret, "")
         for value in list(raw_sample.get("fixture_ids") or [])[:1]
@@ -307,6 +308,23 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 "external_calls": safe_count((raw_current_sync.get("live_refresh") or {}).get("external_calls")),
                 "fixtures_count": safe_count((raw_current_sync.get("live_refresh") or {}).get("fixtures_count")),
                 "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
+            },
+            "statistics_refresh": {
+                **provider_stage_evidence(raw_statistics),
+                "state": safe_label(raw_statistics.get("state"), secret),
+                "reason_code": safe_label(raw_statistics.get("reason_code"), secret),
+                "transport": raw_statistics.get("transport") if raw_statistics.get("transport") in {"batch", "individual"} else "UNKNOWN",
+                "data_contributed": bool(raw_statistics.get("data_contributed")),
+                "error_present": bool(raw_statistics.get("error_present")),
+                **{
+                    key: raw_statistics.get(key) if isinstance(raw_statistics.get(key), bool) else None
+                    for key in ("ok", "configured", "enabled")
+                },
+                **{
+                    key: safe_count(raw_statistics.get(key))
+                    for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
+                                "no_data_count", "failed_count", "eligible_count", "due_count")
+                },
             },
             "odds_refresh": {
                 "state": safe_label((raw_current_sync.get("odds_refresh") or {}).get("state"), secret),

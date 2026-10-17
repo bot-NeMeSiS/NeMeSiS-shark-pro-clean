@@ -51,7 +51,7 @@
     {% if (match_context.get('odds') or {}).get('available') %}<a href="#match-section-odds" data-match-section-link="odds">{{ ui("Cuotas") }}</a>{% endif %}
     {% if lineups.get('confirmed') %}<a href="#match-section-lineups" data-match-section-link="lineups">{{ ui("Alineaciones") }}</a>{% endif %}
     {% if events.get('available') %}<a href="#match-section-timeline" data-match-section-link="timeline">{{ ui("Eventos") }}</a>{% endif %}
-    {% if statistics.get('available') %}<a href="#match-section-stats" data-match-section-link="stats">{{ ui("Estadísticas") }}</a>{% endif %}
+    <a href="#match-section-stats" data-match-section-link="stats">{{ ui("Estadísticas") }}</a>
     {% if head_to_head.get('available') %}<a href="#match-section-h2h" data-match-section-link="h2h">H2H</a>{% endif %}
     {% if standings.get('available') %}<a href="#match-section-standings" data-match-section-link="standings">{{ ui("Clasificación") }}</a>{% endif %}
     {% if media.get('visible_count') %}<a href="#match-section-video" data-match-section-link="video">{{ ui("Vídeo") }}</a>{% endif %}
@@ -76,7 +76,7 @@
       {% if not broadcast.get('available') %}</details>{% endif %}
       {% if lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
       {% if events.get('available') %}{{ timeline(match_context) }}{% endif %}
-      {% if statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
+      {{ stats_panel(match_context) }}
       {% if head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
       {% if standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
       {% if (match_context.get('odds') or {}).get('available') %}{{ odds_panel(match_context) }}{% endif %}
@@ -89,12 +89,11 @@
         <p>{{ ui('Recuperado:') }} {{ recovery.get('recovered_at')|madrid_datetime_label }}</p>
       </details>
       {% endif %}
-      {% if not (lineups.get('confirmed') and events.get('available') and statistics.get('available') and head_to_head.get('available') and standings.get('available') and (match_context.get('odds') or {}).get('available') and media.get('visible_count')) %}
+      {% if not (lineups.get('confirmed') and events.get('available') and head_to_head.get('available') and standings.get('available') and (match_context.get('odds') or {}).get('available') and media.get('visible_count')) %}
       <details class="v944-coverage-details">
         <summary>{{ ui("Más información del partido") }}</summary>
         {% if not lineups.get('confirmed') %}{{ lineups_panel(match_context) }}{% endif %}
         {% if not events.get('available') %}{{ timeline(match_context) }}{% endif %}
-        {% if not statistics.get('available') %}{{ stats_panel(match_context) }}{% endif %}
         {% if not head_to_head.get('available') %}{{ head_to_head_panel(match_context) }}{% endif %}
         {% if not standings.get('available') %}{{ standings_panel(match_context) }}{% endif %}
         {% if not (match_context.get('odds') or {}).get('available') %}{{ odds_panel(match_context) }}{% endif %}
