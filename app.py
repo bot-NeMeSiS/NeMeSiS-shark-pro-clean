@@ -1323,15 +1323,67 @@ def _sports_sync_match_datetime(match):
 
 
 def sports_sync_window_state():
-    """Read DB/cache only and decide whether the live provider deserves a call."""
-    try:
-        matches = rows("SELECT * FROM matches ORDER BY COALESCE(kickoff_iso, match_date, updated_at) DESC LIMIT 600")
-    except Exception:
-        try:
-            matches = rows("SELECT * FROM matches LIMIT 600")
-        except Exception:
-            matches = []
+    """Read relevant live/near-kickoff rows without sorting the whole matches table."""
     now_madrid = datetime.now(TZ)
+    window_start = (now_madrid - timedelta(days=3)).date().isoformat()
+    window_end = (now_madrid + timedelta(days=3)).date().isoformat()
+    live_statuses = tuple(sorted(SPORTS_SYNC_LIVE_STATUSES))
+    placeholders = ",".join("?" for _ in live_statuses)
+
+    # The previous COALESCE-based ORDER BY forced SQLite to sort the full table
+    # just to find up to 600 rows. Read live fixtures and the nearby date window
+    # separately, with no global sort; current/live fixtures take priority.
+    live_matches = []
+    window_matches = []
+    live_query_ok = window_query_ok = True
+    try:
+        live_matches = rows(
+            f"""SELECT * FROM matches
+                WHERE lower(COALESCE(status,'')) IN ({placeholders})
+                   OR lower(COALESCE(status_short,'')) IN ({placeholders})
+                LIMIT 600""",
+            live_statuses + live_statuses,
+        )
+    except Exception:
+        live_query_ok = False
+    try:
+        window_matches = rows(
+            """SELECT * FROM matches
+               WHERE substr(COALESCE(kickoff_iso,''),1,10) BETWEEN ? AND ?
+                  OR substr(COALESCE(match_date,''),1,10) BETWEEN ? AND ?
+               LIMIT 600""",
+            (window_start, window_end, window_start, window_end),
+        )
+    except Exception:
+        window_query_ok = False
+
+    candidates = list(live_matches) + list(window_matches)
+    # Retain a bounded compatibility fallback if either targeted query is
+    # unavailable on an older schema. Never sort the complete table here.
+    if not live_query_ok or not window_query_ok:
+        try:
+            candidates.extend(rows("SELECT * FROM matches LIMIT 600"))
+        except Exception:
+            pass
+
+    matches = []
+    seen = set()
+    for match in candidates:
+        if not isinstance(match, dict):
+            continue
+        identity = str(match.get("id") or match.get("match_id") or match.get("external_id") or "").strip()
+        if not identity:
+            identity = tuple(
+                str(match.get(key) or "").strip()
+                for key in ("home_team", "away_team", "kickoff_iso", "match_date", "match_time", "competition_name", "league_name")
+            )
+        if identity in seen:
+            continue
+        seen.add(identity)
+        matches.append(match)
+        if len(matches) >= 600:
+            break
+
     live_count = 0
     near_kickoff_count = 0
     complete_count = 0

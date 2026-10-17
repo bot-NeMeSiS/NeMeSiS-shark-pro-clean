@@ -126,3 +126,45 @@ def test_fresh_plan_limit_is_partial_but_access_rejection_is_fail(app_module, mo
     assert result["ok"] is partial
     assert bool(result["technical_errors"]) is not partial
     assert result["controlled_deferrals"] == (["PROVIDER_PLAN_LIMIT"] if partial else [])
+
+def test_sports_sync_window_uses_live_and_nearby_candidates_without_global_sort(app_module, monkeypatch):
+    now = app_module.datetime.now(app_module.TZ)
+    live = {
+        "id": "live-1",
+        "home_team": "Local Test FC",
+        "away_team": "Visitor Test FC",
+        "competition_name": "QA League",
+        "kickoff_iso": (now - app_module.timedelta(minutes=20)).isoformat(),
+        "source": "API-Football",
+        "status": "LIVE",
+    }
+    nearby = {
+        "id": "near-1",
+        "home_team": "North Test FC",
+        "away_team": "South Test FC",
+        "competition_name": "QA League",
+        "kickoff_iso": (now + app_module.timedelta(hours=1)).isoformat(),
+        "source": "API-Football",
+        "status": "PROGRAMADO",
+    }
+    queries = []
+
+    def fake_rows(query, params=()):
+        queries.append((query, params))
+        if "lower(COALESCE(status,''))" in query:
+            return [live]
+        if "substr(COALESCE(kickoff_iso,''),1,10)" in query:
+            return [nearby, live]
+        pytest.fail("Unexpected full-table fallback query")
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+    result = app_module.sports_sync_window_state()
+
+    assert len(queries) == 2
+    assert all("ORDER BY COALESCE(kickoff_iso" not in query for query, _ in queries)
+    assert all("LIMIT 600" in query for query, _ in queries)
+    assert result["live_cached_matches"] == 1
+    assert result["near_kickoff_matches"] == 1
+    assert result["complete_cached_matches"] == 2
+    assert result["live_refresh_required"] is True
+    assert result["no_external_calls"] is True
