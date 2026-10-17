@@ -203,6 +203,53 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     assert "Unión Deportiva Visitante" in html
 
 
+def test_match_detail_surfaces_authorized_videos_for_prior_team_results(
+    client,
+    app_module,
+    monkeypatch,
+):
+    fixture = _detail()
+    monkeypatch.setattr(app_module, "match_detail", lambda *_a, **_k: fixture)
+    monkeypatch.setattr(app_module, "v935_enrich_match_lifecycle", lambda match: match)
+    monkeypatch.setattr(app_module, "admin_operational_settings", lambda: {
+        "settings_readable": True, "highlights_enabled": True,
+    })
+    monkeypatch.setattr(app_module, "recent_team_form", lambda team, **_k: {
+        "contract": "NEMESIS-MATCH-RECENT-FORM-CACHE-V1",
+        "available": True, "team": team, "matches": [{
+            "match_id": "past-local-1", "href": "/match/past-local-1",
+            "home_team": "Real Club Deportivo Local", "away_team": "Club Visitante",
+            "home_score": 2, "away_score": 1, "status": "FT",
+            "score": "2-1", "form_result": "W", "match_date": "2026-07-20",
+            "kickoff_iso": "2026-07-20T20:00:00+02:00", "source": "synthetic-test",
+            "competition_identity": {"name": "Liga de prueba"},
+        }], "form": ["W"], "sample_size": 1, "external_calls": 0,
+    })
+    monkeypatch.setattr(app_module, "sportsdb_highlights_for_match", lambda *_a: {
+        "ok": True, "read_state": "VERIFIED", "highlights": [],
+        "all_highlights": [], "candidate_sampled": 0,
+    })
+    monkeypatch.setattr(app_module, "v766_highlight_map_snapshot", lambda ids, **_k: {
+        "ok": True, "read_state": "VERIFIED", "map": {
+            "past-local-1": [{
+                "id": "licensed-video-1", "show_block": True, "can_link": True,
+                "can_embed": False,
+                "video_url": "https://www.youtube.com/watch?v=synthetic",
+            }],
+        },
+    })
+
+    response = client.get("/match/v944-match-1")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'data-recent-result-match="past-local-1"' in html
+    assert "Real Club Deportivo Local" in html and "Club Visitante" in html
+    assert "Ver resumen autorizado" in html
+    assert 'href="https://www.youtube.com/watch?v=synthetic"' in html
+    assert 'data-recent-form-contract="NEMESIS-MATCH-RECENT-FORM-CACHE-V1"' in html
+
+
 def test_match_detail_loader_reuses_timeline_and_picks(app_module, monkeypatch):
     calls = {
         "one": 0,

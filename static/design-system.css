@@ -18647,6 +18647,32 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
 
 .v944-context-list dd { margin: 0; color: #fff; font-size: .67rem; font-weight: 750; text-align: right; overflow-wrap: anywhere; }
 
+.v944-recent-results {
+  display: grid;
+  gap: 7px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.v944-recent-results li {
+  display: grid;
+  gap: 4px;
+  padding: 8px 9px;
+  border: 1px solid var(--v944-line);
+  border-radius: 10px;
+  background: rgba(255,255,255,.035);
+}
+
+.v944-recent-results li > a:first-child { display: grid; gap: 3px; }
+
+.v944-recent-results strong { color: #edf5ff; font-size: .68rem; }
+
+.v944-recent-results small { color: var(--v944-muted); font-size: .6rem; }
+
+.v944-recent-results .v944-recent-result-highlight { color: var(--v933-cyan); font-size: .63rem; font-weight: 800; }
+
 .v944-related-teams {
   display: grid;
   gap: 5px;
