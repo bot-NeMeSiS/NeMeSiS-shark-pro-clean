@@ -182,6 +182,7 @@ def _real_statistics(
     live: Mapping[str, Any],
     lifecycle: Mapping[str, Any],
     cached: Mapping[str, Any] | None = None,
+    refresh: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     provider = _text(live.get("provider"))
     stale = bool(lifecycle.get("is_stale") or live.get("is_stale"))
@@ -200,7 +201,10 @@ def _real_statistics(
             "leader": _text(raw.get("leader")) or "even",
         })
     recovered_final = bool((cached or {}).get('postmatch_recovered') and lifecycle.get('is_finished'))
-    if provider and live_rows and not stale and not recovered_final:
+    # The dedicated collection has its own clock. A refreshed scoreboard must
+    # not make an older statistics receipt look newly observed.
+    dedicated_snapshot = bool((refresh or {}).get("last_success_at") and (cached or {}).get("available"))
+    if provider and live_rows and not stale and not recovered_final and not dedicated_snapshot:
         return {
             "available": True,
             "item_count": len(live_rows),
@@ -242,6 +246,40 @@ def _real_statistics(
         "updated_at": cached_data.get("updated_at") if available else None,
         "snapshot_kind": "persisted" if available else None,
     }
+
+
+def _statistics_refresh_context(statistics, lifecycle, raw):
+    """Project safe collection evidence and actionable client copy, without I/O."""
+    raw = _mapping(raw)
+    status = _text(raw.get("status")).upper()
+    known = {"AVAILABLE", "STALE", "NO_DATA", "FETCHING", "PENDING", "IDENTITY_UNAVAILABLE",
+             "READ_UNAVAILABLE", "NOT_CONFIGURED", "DISABLED", "TIME_BUDGET", "DEFERRED_PROVIDER_FAILURE"}
+    provider_failure = status.startswith("PROVIDER_FAILURE_")
+    refresh = {"status": status if status in known else "PROVIDER_FAILURE" if provider_failure else "UNKNOWN"}
+    for key in ("last_attempt_at", "last_success_at", "next_due_at", "provider_observed_at"):
+        value = _text(raw.get(key))
+        refresh[key] = value if value and parse_datetime_to_madrid(value) is not None else None
+    if statistics.get("available"):
+        message = "Estadísticas del partido disponibles."
+        if status == "STALE":
+            message = "Se muestran las últimas estadísticas guardadas; la actualización está pendiente."
+        elif provider_failure or status == "DEFERRED_PROVIDER_FAILURE":
+            message = "Se muestran las últimas estadísticas guardadas; la actualización está temporalmente interrumpida."
+    elif lifecycle.get("is_upcoming") or lifecycle.get("key") == "UPCOMING":
+        message = "Las estadísticas se consultan después del inicio, según la cobertura disponible."
+    elif status == "NO_DATA":
+        message = "El proveedor todavía no ha publicado estadísticas para este partido."
+    elif provider_failure or status == "DEFERRED_PROVIDER_FAILURE":
+        message = "La actualización de estadísticas está temporalmente interrumpida."
+    elif status == "FETCHING":
+        message = "Actualizando las estadísticas de este partido."
+    elif statistics.get("status") == "stale":
+        message = "Las últimas estadísticas están pendientes de actualización."
+    elif status in {"IDENTITY_UNAVAILABLE", "NOT_CONFIGURED", "DISABLED", "READ_UNAVAILABLE"}:
+        message = "Las estadísticas de este partido todavía no están disponibles."
+    else:
+        message = "Las estadísticas están pendientes de actualización."
+    return refresh, message
 
 
 def _head_to_head_context(
@@ -1683,6 +1721,10 @@ def build_match_context(
         live,
         lifecycle,
         _mapping(detail_data.get("cached_statistics")),
+        _mapping(detail_data.get("statistics_refresh")),
+    )
+    statistics["refresh"], statistics["message"] = _statistics_refresh_context(
+        statistics, lifecycle, detail_data.get("statistics_refresh"),
     )
     picks = _picks_context(related_picks, lifecycle)
 
@@ -1852,11 +1894,7 @@ def build_match_context(
         ),
         "StatsPanel": _component(
             stats_state,
-            "Estadísticas reales del proveedor disponibles."
-            if statistics["available"]
-            else "No disponible: la última instantánea está fuera de la ventana de frescura."
-            if statistics["status"] == "stale"
-            else "No disponible.",
+            statistics["message"],
             available=statistics["available"],
         ),
         "HeadToHeadPanel": _component(

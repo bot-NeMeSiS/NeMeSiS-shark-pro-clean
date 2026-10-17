@@ -46,6 +46,15 @@
             {% if observation.get('provider_observed_at') %}<time datetime="{{ observation.get('provider_observed_at') }}">{{ observation.get('provider_observed_at')|madrid_datetime_label }}</time>{% endif %}
           </section>
           {% endfor %}
+          {% set statistics_receipt = provider.get('statistics_refresh') or {} %}
+          {% if statistics_receipt.get('state') and statistics_receipt.get('state') != 'UNKNOWN' %}
+          <section class="provider-observation" data-statistics-refresh>
+            <h4>{{ ui('Recogida de estadísticas') }}</h4>
+            <p>{{ statistics_receipt.get('refreshed_fixtures', 0) }} {{ ui('partidos actualizados') }} · {{ statistics_receipt.get('stats_inserted', 0) }} {{ ui('datos guardados') }}</p>
+            <p>{{ statistics_receipt.get('no_data_count', 0) }} {{ ui('partidos sin datos del proveedor') }} · {{ statistics_receipt.get('failed_count', 0) }} {{ ui('partidos con error') }}</p>
+            <p>{{ statistics_receipt.get('external_calls', 0) }} {{ ui('solicitudes en el ciclo registrado') }} · <code>{{ statistics_receipt.get('state') }}</code></p>
+          </section>
+          {% endif %}
           <dl class="provider-health-facts">
             <div><dt>{{ ui('Plan / pago') }}</dt><dd>{{ ui(provider.get('billing_status') or 'No verificable automáticamente') }}</dd></div>
             <div><dt>{{ ui('Última evidencia') }}</dt><dd>{{ provider.get('observed_at')|madrid_datetime_label if provider.get('observed_at') else ui('Sin observación reciente') }}</dd></div>

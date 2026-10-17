@@ -79,7 +79,7 @@ def _env_bool(name: str, default: bool = True) -> bool:
 
 
 def api_key_configured() -> bool:
-    return bool(os.getenv("API_FOOTBALL_KEY") or os.getenv("API_FOOTBALL_API_KEY"))
+    return bool(_api_key())
 
 
 def tracker_enabled() -> bool:
@@ -87,7 +87,8 @@ def tracker_enabled() -> bool:
 
 
 def _api_key() -> str:
-    return str(os.getenv("API_FOOTBALL_KEY") or os.getenv("API_FOOTBALL_API_KEY") or "").strip()
+    from engines.api_sports_provider_engine import _provider_key
+    return _provider_key()
 
 
 def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int = 18) -> dict[str, Any]:
