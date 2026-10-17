@@ -18,6 +18,7 @@ def test_unavailable_catalogue_does_not_guess_pending_count(app_module, monkeypa
     monkeypatch.setattr(app_module, 'v769_pending_highlight_snapshot', lambda **_k: pytest.fail('Unexpected pending query'))
     result = app_module.v769_highlights_content_center({}, {'membership':'FREE'})
     assert result['counts']['videos'] is None and result['counts']['pending'] is None
+    assert result['counts']['stored_unlinked_records'] is None
     assert 'Disponibilidad sin comprobar' in result['headline']
 
 
@@ -26,6 +27,32 @@ def test_verified_empty_catalogue_keeps_real_zero(app_module, monkeypatch):
     monkeypatch.setattr(app_module, 'v769_pending_highlight_snapshot', lambda **_k: {'ok':True,'read_state':'VERIFIED','matches':[]})
     result = app_module.v769_highlights_content_center({}, {'membership':'FREE'})
     assert result['counts']['videos'] == 0 and result['counts']['pending'] == 0
+    assert result['counts']['stored_unlinked_records'] is None
+
+
+def test_admin_catalogue_counts_explain_empty_client_without_approving_media(app_module, monkeypatch):
+    base = {
+        'ok': True, 'read_state': 'VERIFIED', 'status': 'REVIEW_REQUIRED',
+        'stored_media_total': 560, 'stored_linked_matches': 0,
+        'rights_warnings': 250, 'sampled_media': 250, 'sample_truncated': True,
+        'latest': [], 'recent_runs': [],
+    }
+    monkeypatch.setattr(app_module, 'v766_highlights_context', lambda **_k: base)
+    monkeypatch.setattr(app_module, 'v769_pending_highlight_snapshot', lambda **_k: {
+        'ok': True, 'read_state': 'VERIFIED', 'matches': [],
+    })
+
+    result = app_module.v769_highlights_content_center({}, {'membership': 'FREE'})
+
+    assert result['counts']['stored'] == 560
+    assert result['counts']['stored_linked_records'] == 0
+    assert result['counts']['stored_unlinked_records'] == 560
+    assert result['counts']['videos'] == 0
+    assert result['counts']['rights_warnings'] == 250
+    assert result['counts']['rights_sampled'] == 250
+    assert result['counts']['rights_sample_truncated'] is True
+    assert not result['available']
+    assert all(action['label'] != 'Sincronizar ahora' for action in result['admin_actions'])
 
 
 def test_known_empty_batch_does_not_query_per_match(app_module, monkeypatch):

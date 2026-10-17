@@ -1,6 +1,7 @@
 """Admin activation and isolated HTTP boundaries; no real users or provider calls."""
 from pathlib import Path
 
+from jinja2 import ChoiceLoader, DictLoader, Environment, FileSystemLoader
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +31,49 @@ def test_existing_admin_highlights_center_links_to_rights_review():
     template = (ROOT / "templates" / "admin_highlights_center.html").read_text(encoding="utf-8")
     assert 'href="/admin/highlights-review"' in template
     assert "Revisar derechos" in template
+    assert "Qué hay realmente en el catálogo" in template
+    assert "Sin asociación" in template
+    assert "force=1" not in template
+    assert 'method="post"' not in template
+
+
+def test_admin_highlights_center_renders_catalogue_counts_separately_from_approval():
+    env = Environment(loader=ChoiceLoader([
+        DictLoader({"base.html": "{% block content %}{% endblock %}"}),
+        FileSystemLoader(str(ROOT / "templates")),
+    ]))
+    center = {
+        "read_ok": True,
+        "status": "REVIEW_REQUIRED",
+        "key_present": True,
+        "counts": {
+            "videos": 0,
+            "stored": 560,
+            "stored_linked_records": 0,
+            "stored_unlinked_records": 560,
+            "rights_warnings": 250,
+            "rights_sampled": 250,
+            "rights_sample_truncated": True,
+            "pending": 0,
+            "linked_matches": 0,
+            "embeddable": 0,
+        },
+        "last_run": {},
+        "available": [],
+        "pending_matches": [],
+    }
+
+    html = env.get_template("admin_highlights_center.html").render(
+        data={"v769_highlights_center": center},
+    )
+
+    assert "Registros guardados:" in html
+    assert "Con partido asociado:" in html
+    assert "Sin asociación:" in html
+    assert ">560</strong>" in html
+    assert "Avisos de derechos en la muestra" in html
+    assert "hay más registros fuera de la muestra" in html
+    assert 'href="/admin/highlights-review?association=missing"' in html
 
 
 def test_activation_does_not_mount_client_player_or_telegram_delivery():

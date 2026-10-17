@@ -20003,6 +20003,12 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
     pending_verified = bool(pending_snapshot.get("ok") is True and pending_snapshot.get("read_state") == "VERIFIED")
     recent_runs = base.get("recent_runs") or []
     last_run = recent_runs[0] if recent_runs else {}
+    stored_total = base.get("stored_media_total") if verified else None
+    stored_linked_records = base.get("stored_linked_matches") if verified else None
+    stored_unlinked_records = None
+    if (type(stored_total) is int and type(stored_linked_records) is int
+            and stored_total >= stored_linked_records >= 0):
+        stored_unlinked_records = stored_total - stored_linked_records
     if base.get("status") == "DISABLED_BY_ADMIN":
         status = "DISABLED_BY_ADMIN"
         headline = "Resúmenes en pausa"
@@ -20043,8 +20049,12 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
             "videos": len(available) if verified else None,
             "embeddable": len(embedded) if verified else None,
             "pending": len(pending) if pending_verified else None,
-            "stored": base.get("stored_media_total") if verified else None,
+            "stored": stored_total,
+            "stored_linked_records": stored_linked_records if type(stored_linked_records) is int else None,
+            "stored_unlinked_records": stored_unlinked_records,
             "rights_warnings": base.get("rights_warnings") if verified else None,
+            "rights_sampled": base.get("sampled_media") if verified else None,
+            "rights_sample_truncated": base.get("sample_truncated") if verified else None,
             "linked_matches": base.get("linked_matches") if verified else None,
             "enriched_matches": base.get("enriched_matches") if verified else None,
         },
@@ -20055,7 +20065,8 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
         ],
         "admin_actions": [
             {"label": "Panel admin", "href": "/admin/highlights-center"},
-            {"label": "Sincronizar ahora", "href": "/api/admin/highlights/sync?force=1&days_back=7&limit=300"},
+            {"label": "Revisar derechos", "href": "/admin/highlights-review"},
+            {"label": "Estado de sincronización", "href": "/api/admin/highlights/status"},
         ],
         "cron": {
             "endpoint": "/api/automation/highlights/sync",
