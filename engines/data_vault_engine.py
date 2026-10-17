@@ -357,6 +357,29 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     published = False
     result = {}
     stage = "SNAPSHOT"
+    stage_started = time.perf_counter()
+    stage_durations_ms = {}
+    deadline_exceeded = False
+
+    def record_stage(next_stage):
+        nonlocal stage, stage_started
+        now = time.perf_counter()
+        stage_durations_ms[stage] = max(0, round((now - stage_started) * 1000))
+        stage, stage_started = next_stage, now
+
+    def check_deadline():
+        nonlocal deadline_exceeded
+        if time.monotonic() >= deadline:
+            deadline_exceeded = True
+            raise sqlite3.OperationalError("backup_snapshot_timeout")
+
+    def sql_progress():
+        nonlocal deadline_exceeded
+        if time.monotonic() >= deadline:
+            deadline_exceeded = True
+            return 1
+        return 0
+
     try:
         workspace = new_workspace(bdir)
         temporary = workspace / "snapshot.partial"
@@ -370,7 +393,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 last_capacity_check = [0.0]
                 def compact_progress():
                     now = time.monotonic()
-                    if now >= deadline:
+                    if sql_progress():
                         return 1
                     if now - last_capacity_check[0] >= 0.05:
                         last_capacity_check[0] = now
@@ -389,34 +412,38 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             source.execute("PRAGMA busy_timeout=50")
             dest.execute("PRAGMA busy_timeout=50")
             def progress(status_code, remaining, total):
-                if time.monotonic() >= deadline:
-                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+                check_deadline()
             if not compact:
                 source.backup(dest, pages=256, progress=progress, sleep=0.05)
-            stage = "INTEGRITY"
-            dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            check_deadline()
+            record_stage("INTEGRITY")
+            dest.set_progress_handler(sql_progress, 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
+            # SQLite's progress hook runs between VM instructions, not during
+            # every operation. A completed query can also overrun the deadline.
+            check_deadline()
             # Inspect the verified snapshot on this same deadline-bound connection.
             # The admin dashboard helper opens new connections and scans backup
             # history; neither is necessary to describe this snapshot.
-            stage = "METADATA"
+            record_stage("METADATA")
             tables = [row[0] for row in dest.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
             counts = {}
             for table in CRITICAL_TABLES:
-                if time.monotonic() >= deadline:
-                    raise sqlite3.OperationalError("backup_snapshot_timeout")
+                check_deadline()
                 if table in tables:
                     counts[table] = int(dest.execute(
                         f'SELECT COUNT(*) FROM "{table}"').fetchone()[0])
+            check_deadline()
+        record_stage("SYNC")
         with temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
-        stage = "HASH"
+        check_deadline()
+        record_stage("HASH")
         digest = sha256_file(temporary, deadline=deadline)
-        if time.monotonic() >= deadline:
-            raise sqlite3.OperationalError("backup_snapshot_timeout")
-        stage = "MANIFEST"
+        check_deadline()
+        record_stage("MANIFEST")
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
@@ -437,8 +464,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         manifest_temporary.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         with manifest_temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
+        check_deadline()
         # Publish the manifest first; readers only discover the final DB name.
-        stage = "PUBLICATION"
+        record_stage("PUBLICATION")
         os.replace(manifest_temporary, manifest_path)
         manifest_published = True
         os.replace(temporary, out)
@@ -449,19 +477,26 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        stage = "RETENTION"
+        record_stage("RETENTION")
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
         result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
         if not result["ok"]:
             result["failure_stage"] = stage
         return result
     except Exception as exc:
-        result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
+        # Only our own deadline-triggered SQLite interruption is a timeout.
+        # An unrelated interruption or failed integrity result stays distinct.
+        error = str(exc)[:300]
+        if (deadline_exceeded and isinstance(exc, sqlite3.OperationalError)
+                and getattr(exc, "sqlite_errorcode", None) == sqlite3.SQLITE_INTERRUPT):
+            error = "backup_snapshot_timeout"
+        result = {"ok": False, "backup_created": published, "error": error,
                   "failure_stage": stage, "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
         return result
     finally:
+        record_stage("CLEANUP")
         if workspace is not None:
             cleanup = remove_workspace(workspace, bdir, src)
             storage["temporary_cleanup_ok"] = cleanup["removed"]
@@ -474,6 +509,8 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             except OSError:
                 result.update(ok=False, error=result.get("error") or "backup_manifest_cleanup_failed")
                 result.setdefault("failure_stage", "CLEANUP")
+        stage_durations_ms["CLEANUP"] = max(0, round((time.perf_counter() - stage_started) * 1000))
+        result["stage_durations_ms"] = stage_durations_ms
 
 
 def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:
