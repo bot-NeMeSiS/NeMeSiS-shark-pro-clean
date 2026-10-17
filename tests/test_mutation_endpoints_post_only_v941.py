@@ -96,7 +96,6 @@ def test_sentinel_action_names_cannot_be_read_as_issue_ids(app_module, monkeypat
 
 def test_admin_run_ui_uses_post_or_explicit_post_fetch():
     templates = {
-        "admin_highlights_center.html": "/api/admin/highlights/sync",
         "admin_sentinel_autopilot.html": "/api/admin/sentinel-autopilot/run",
         "admin_visual_worker.html": "/api/admin/visual-worker/run",
         "admin_daily_automation.html": "/api/admin/daily-automation/dry-run",
@@ -106,6 +105,12 @@ def test_admin_run_ui_uses_post_or_explicit_post_fetch():
         assert endpoint in text
         assert f'href="{endpoint}' not in text
         assert 'method="post"' in text
+
+    # Highlight synchronization is scheduled by the existing Cron. The admin
+    # center must not expose a manual provider-sync action that can bypass it.
+    highlights=(ROOT/"templates"/"admin_highlights_center.html").read_text(encoding="utf-8")
+    assert "/api/admin/highlights/sync" not in highlights
+    assert "Sincronizar ahora" not in highlights
 
     company=(ROOT/"templates"/"admin_autonomous_company_sentinel.html").read_text(encoding="utf-8")
     assert "/api/admin/autonomous-company-sentinel/run" in company
