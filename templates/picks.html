@@ -4,6 +4,7 @@
 {% from "components/v937_sports_lifecycle.html" import data_confidence_panel %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=core-constructor-2">
+<link rel="stylesheet" href="{{ url_for('static', filename='picks-readiness.css') }}?v=20261018-1">
 {% set stats = data.get('pick_stats') or {} %}
 {% set safe = data.get('v925_picks') or {} %}
 {% set odds_state = data.get('v925_odds') or {} %}
@@ -13,6 +14,7 @@
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set customer_trust = data.get('v935_customer_trust') or {} %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set readiness = data.get('pick_readiness') or {} %}
 
 <div class="v933-page v933-sports-board v933-picks-board" data-v933-template="picks" data-v933-reference="official-ref-11" data-top100-improvement="8" {{ sports_contract_attributes(sports_metrics) }}>
   {{ page_header('Pronósticos SHARK', 'Selecciones reales con mercado, cuota y riesgo visibles.', 'target', [{'label':'Historial','href':'/historico','icon':'history'},{'label':'Consultar SHARK','href':'/shark','primary':true,'icon':'shark'}]) }}
@@ -69,11 +71,39 @@
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-picks-empty" data-empty-dashboard="resolved">
-    {{ empty_state('Todavía no hay pronósticos publicados', 'SHARK publicará una selección cuando partido, mercado, cuota y riesgo estén completos.', '', '', 'target') }}
+    {{ empty_state('No hay pronósticos vigentes para mostrar', readiness.get('message') or 'SHARK solo publicará una selección con partido, mercado, cuota y riesgo reales verificados.', 'Ver calendario', '/calendario', 'target') }}
+  </section>
+  <section class="v933-panel v933-pick-readiness" data-pick-readiness="{{ readiness.get('state') or 'waiting_for_real_data' }}" aria-label="{{ ui('Estado de pronósticos y partidos en observación') }}">
+    {{ section_header('Partidos reales en observación', 'Contexto de calendario; estos partidos no son apuestas ni pronósticos aprobados.') }}
+    <div class="v933-kpi-grid">
+      {{ kpi_card('Pronósticos vigentes', readiness.get('active_count', 0), 'Que superan las validaciones', 'cyan', 'target') }}
+      {{ kpi_card('Próximos partidos verificados', readiness.get('upcoming_count', 0), 'Desde la agenda local validada', 'blue', 'matches') }}
+      {{ kpi_card('Con cuota reciente verificada', readiness.get('fresh_odds_match_count', 0), 'Fuente y hora comprobables', 'warning', 'odds') }}
+    </div>
+    {% if data.get('pick_watchlist') %}
+    <div class="v933-truth-list v933-pick-watchlist" aria-label="Partidos próximos en observación">
+      {% for candidate in data.get('pick_watchlist') %}
+      <article class="v933-pick-watch-item" data-match-id="{{ candidate.get('id') }}">
+        <span aria-hidden="true">{{ icon('matches') }}</span>
+        <div class="v933-pick-watch-copy">
+          <strong>{{ candidate.get('home_team') }} <small>vs</small> {{ candidate.get('away_team') }}</strong>
+          <small>{{ candidate.get('competition_name') }} · {{ candidate.get('match_date') }}{% if candidate.get('schedule_label') %} · {{ candidate.get('schedule_label') }}{% endif %}</small>
+          <small>{{ candidate.get('reason') }}</small>
+        </div>
+        <div class="v933-pick-watch-status">{{ status_chip(candidate.get('decision_label') or 'En observación', 'blue') }}{{ status_chip(candidate.get('odds_label') or 'Cuota pendiente', 'warning') }}</div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="v933-safe-copy">{{ ui('No hay partidos próximos completos para revisar ahora mismo.') }}</p>
+    {% endif %}
+    <div class="v933-page-actions v933-inline-actions">
+      {{ quick_action('Abrir calendario', 'Consulta partidos reales y su horario.', '/calendario', 'matches', 'blue') }}
+      {{ action_button('Consultar SHARK', '/shark', false, 'cyan', false, 'shark') }}
+      {% if readiness.get('locked_count') %}{{ action_button('Ver membresías', '/membresias', false, 'gold', false, 'membership') }}{% endif %}
+    </div>
   </section>
   <nav class="v933-quick-actions ns-video-empty-actions" aria-label="Continuar desde Pronósticos">
-    {{ quick_action('Abrir calendario', 'Encuentra el próximo partido.', '/calendario', 'matches', 'cyan') }}
-    {{ quick_action('Consultar SHARK', 'Abre el análisis deportivo.', '/shark', 'shark', 'blue') }}
     {{ quick_action('Ver historial', 'Consulta resultados evaluables.', '/historico', 'history', 'green') }}
   </nav>
   {% endif %}
