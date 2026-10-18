@@ -258,6 +258,13 @@
 {{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados para este partido.', 'lineups') }}
   {% if lineups.get('confirmed') %}
   <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
+    <p class="v944-lineup-grid-note v944-lineup-observation">
+      {% if lineups.get('updated_at') %}
+      {{ ui('Última observación guardada:') }} <time datetime="{{ lineups.get('updated_at') }}">{{ lineups.get('updated_at')|sync_madrid_label }}</time>
+      {% else %}
+      {{ ui('No hay una hora de observación confirmada; estos datos no se presentan como un directo.') }}
+      {% endif %}
+    </p>
     {% if lineups.get('grid_pitch_available') %}<p class="v944-lineup-grid-note" data-lineup-grid-contract="{{ lineups.get('grid_pitch_contract') }}">{{ ui('La cuadrícula muestra las posiciones de salida confirmadas por el proveedor; no representa recorridos, posesión por zonas ni un mapa de calor.') }}</p>{% endif %}
     {% for team in lineups.get('teams') or [] %}
     <section class="v944-lineup-team">

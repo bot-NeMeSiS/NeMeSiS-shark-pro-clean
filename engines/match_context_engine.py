@@ -1118,10 +1118,23 @@ def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]
         "grid_pitch_available": any(team.get("grid_pitch_available") for team in teams),
         "grid_pitch_contract": "API_FOOTBALL_LINEUP_GRID_V1",
         "source": ", ".join(sources) if sources else None,
-        "updated_at": max(captured) if captured else None,
+        "updated_at": _latest_lineup_observation(captured),
         "external_calls": 0,
         "fake_players_created": 0,
     }
+
+
+def _latest_lineup_observation(values: Iterable[str]) -> str | None:
+    """Return the latest valid observation by instant, preserving its source text."""
+    parsed = [
+        (observed, parse_datetime_to_madrid(observed))
+        for observed in values
+        if _text(observed)
+    ]
+    valid = [(observed, instant) for observed, instant in parsed if instant is not None]
+    if not valid:
+        return None
+    return max(valid, key=lambda item: item[1])[0]
 
 
 def _factual_summaries(

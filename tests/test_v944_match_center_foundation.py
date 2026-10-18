@@ -397,6 +397,78 @@ def test_confirmed_provider_grid_renders_safe_real_lineup_cells():
     assert "no representa recorridos, posesión por zonas ni un mapa de calor" in html
 
 
+def test_lineup_observation_uses_latest_instant_and_is_visible_to_the_client():
+    lineups = _lineups_context([
+        {
+            "team_id": "home",
+            "team_name": "Granada",
+            "player_id": "1",
+            "player_name": "Portero",
+            "position": "Goalkeeper",
+            "is_starting": 1,
+            "captured_at": "2026-10-17T10:00:00+02:00",
+        },
+        {
+            "team_id": "home",
+            "team_name": "Granada",
+            "player_id": "2",
+            "player_name": "Defensa",
+            "position": "Defender",
+            "is_starting": 1,
+            "captured_at": "2026-10-17T09:30:00Z",
+        },
+    ])
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals.update(ui=lambda value: value)
+    environment.filters["sync_madrid_label"] = lambda value: f"Madrid: {value}"
+    render = environment.from_string(
+        "{% from 'components/v944_match_center.html' import lineups_panel %}"
+        "{{ lineups_panel(context) }}"
+    )
+
+    context = {
+        "components": {"LineupsPanel": {"state": "ready"}},
+        "lineups": lineups,
+        "transparency": {},
+    }
+    html = render.render(context=context)
+
+    # 09:30Z is later than 10:00 at UTC+2 (08:00Z), even though it sorts earlier as text.
+    assert lineups["updated_at"] == "2026-10-17T09:30:00Z"
+    assert "Última observación guardada:" in html
+    assert 'datetime="2026-10-17T09:30:00Z"' in html
+    assert "Madrid: 2026-10-17T09:30:00Z" in html
+
+
+def test_lineup_without_observation_time_is_not_presented_as_live():
+    lineups = _lineups_context([{
+        "team_id": "home",
+        "team_name": "Granada",
+        "player_id": "1",
+        "player_name": "Portero",
+        "position": "Goalkeeper",
+        "is_starting": 1,
+    }])
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals.update(ui=lambda value: value)
+    environment.filters["sync_madrid_label"] = str
+    render = environment.from_string(
+        "{% from 'components/v944_match_center.html' import lineups_panel %}"
+        "{{ lineups_panel(context) }}"
+    )
+
+    html = render.render(context={
+        "components": {"LineupsPanel": {"state": "ready"}},
+        "lineups": lineups,
+        "transparency": {},
+    })
+
+    assert lineups["confirmed"] is True
+    assert lineups["updated_at"] is None
+    assert "No hay una hora de observación confirmada" in html
+    assert "no se presentan como un directo" in html
+
+
 def _sentinel_fixture(
     tmp_path: Path,
     *,
