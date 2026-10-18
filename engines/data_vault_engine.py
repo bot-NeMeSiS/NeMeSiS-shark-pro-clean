@@ -61,6 +61,17 @@ def sha256_file(path: str | Path, *, deadline: float | None = None) -> str:
     return h.hexdigest()
 
 
+def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = None,
+                       error_type: str = "") -> None:
+    """Write low-cardinality backup timing without paths, data, or secrets."""
+    event = {"event": "data_backup_stage", "stage": str(stage), "status": str(status)}
+    if started_at is not None:
+        event["duration_ms"] = max(0, int((time.monotonic() - started_at) * 1000))
+    if error_type:
+        event["error_type"] = str(error_type)[:48]
+    print(json.dumps(event, ensure_ascii=True, sort_keys=True), flush=True)
+
+
 def backup_dir(default_root: str | Path) -> Path:
     configured = os.getenv("DATA_BACKUP_DIR")
     if configured:
@@ -305,11 +316,23 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = Path(directory) if directory is not None else backup_dir(root)
+    attempt_started = time.monotonic()
+    _emit_backup_stage("ATTEMPT", "started")
     try:
         bdir.mkdir(parents=True, exist_ok=True)
+        lock_started = time.monotonic()
+        _emit_backup_stage("LOCK", "started")
         with backup_directory_lock(bdir):
+            _emit_backup_stage("LOCK", "finished", started_at=lock_started)
+            recovery_started = time.monotonic()
+            _emit_backup_stage("RECOVERY", "started")
             recovery = recover_abandoned_workspaces(bdir, src)
+            _emit_backup_stage("RECOVERY", "finished" if not recovery["failed_count"] else "failed",
+                               started_at=recovery_started,
+                               error_type="recovery_failed" if recovery["failed_count"] else "")
             if recovery["failed_count"]:
+                _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
+                                   error_type="recovery_failed")
                 return {"ok": False, "backup_created": False,
                         "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
                         "storage": {"temporary_recovery": recovery}}
@@ -317,10 +340,19 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                                                   directory=bdir, max_files=max_files,
                                                   snapshot_timeout=snapshot_timeout)
             result.setdefault("storage", {})["temporary_recovery"] = recovery
+            _emit_backup_stage("ATTEMPT", "finished" if result.get("ok") else "failed",
+                               started_at=attempt_started,
+                               error_type=("backup_failed" if not result.get("ok") else ""))
             return result
     except BackupInProgress:
+        _emit_backup_stage("LOCK", "skipped", started_at=lock_started)
+        _emit_backup_stage("ATTEMPT", "skipped", started_at=attempt_started)
         return {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"}
     except OSError as exc:
+        _emit_backup_stage("PREPARATION", "failed", started_at=locals().get("lock_started"),
+                           error_type=type(exc).__name__)
+        _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
+                           error_type=type(exc).__name__)
         return {"ok": False, "backup_created": False, "error": str(exc)[:300],
                 "failure_stage": "PREPARATION"}
 
@@ -331,10 +363,18 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
+    capacity_started = time.monotonic()
+    _emit_backup_stage("CAPACITY_PREFLIGHT", "started")
     storage = ensure_backup_capacity(src, root, directory=bdir)
+    _emit_backup_stage("CAPACITY_PREFLIGHT", "finished" if storage.get("ok") else "rejected",
+                       started_at=capacity_started)
     compact = False
     if not storage.get("ok"):
+        compact_capacity_started = time.monotonic()
+        _emit_backup_stage("COMPACT_CAPACITY_PREFLIGHT", "started")
         candidate = _compact_snapshot_capacity(src, bdir)
+        _emit_backup_stage("COMPACT_CAPACITY_PREFLIGHT", "finished" if candidate.get("ok") else "rejected",
+                           started_at=compact_capacity_started)
         storage["compact_candidate"] = candidate
         if not candidate.get("ok"):
             return {"ok": False, "backup_created": False,
@@ -356,12 +396,24 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     manifest_published = False
     published = False
     result = {}
-    stage = "SNAPSHOT"
+    stage = "WORKSPACE"
+    stage_started_at = None
+
+    def advance_stage(next_stage: str) -> None:
+        nonlocal stage, stage_started_at
+        if stage_started_at is not None:
+            _emit_backup_stage(stage, "finished", started_at=stage_started_at)
+        stage = next_stage
+        stage_started_at = time.monotonic()
+        _emit_backup_stage(stage, "started")
+
     try:
+        advance_stage("WORKSPACE")
         workspace = new_workspace(bdir)
         temporary = workspace / "snapshot.partial"
         temporary.touch(mode=0o600, exist_ok=False)
         deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
+        advance_stage("SNAPSHOT")
         if compact:
             # The source connection is read-only. No VACUUM, checkpoints or
             # deletion run against the live DB; only the destination is rebuilt.
@@ -383,6 +435,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             margin = max(64 * 1024 * 1024, actual_size // 10)
             if shutil.disk_usage(bdir).free < margin:
                 raise sqlite3.OperationalError("backup_storage_insufficient")
+        advance_stage("INTEGRITY")
         with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
             # SQLite retries BUSY/LOCKED indefinitely unless progress aborts it.
             # Keep the synchronous request below the web worker's timeout.
@@ -400,7 +453,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             # Inspect the verified snapshot on this same deadline-bound connection.
             # The admin dashboard helper opens new connections and scans backup
             # history; neither is necessary to describe this snapshot.
-            stage = "METADATA"
+            advance_stage("METADATA")
             tables = [row[0] for row in dest.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
             counts = {}
@@ -412,11 +465,11 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                         f'SELECT COUNT(*) FROM "{table}"').fetchone()[0])
         with temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
-        stage = "HASH"
+        advance_stage("HASH")
         digest = sha256_file(temporary, deadline=deadline)
         if time.monotonic() >= deadline:
             raise sqlite3.OperationalError("backup_snapshot_timeout")
-        stage = "MANIFEST"
+        advance_stage("MANIFEST")
         manifest = {
             "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "version": app_version,
@@ -438,7 +491,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         with manifest_temporary.open("rb+") as handle:
             os.fsync(handle.fileno())
         # Publish the manifest first; readers only discover the final DB name.
-        stage = "PUBLICATION"
+        advance_stage("PUBLICATION")
         os.replace(manifest_temporary, manifest_path)
         manifest_published = True
         os.replace(temporary, out)
@@ -449,19 +502,27 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 os.fsync(directory_fd)
             finally:
                 os.close(directory_fd)
-        stage = "RETENTION"
+        advance_stage("RETENTION")
         retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
         result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
         if not result["ok"]:
             result["failure_stage"] = stage
+        _emit_backup_stage(stage, "finished", started_at=stage_started_at)
+        stage_started_at = None
         return result
     except Exception as exc:
+        if stage_started_at is not None:
+            error_type = "BACKUP_TIMEOUT" if "timeout" in str(exc).lower() else type(exc).__name__
+            _emit_backup_stage(stage, "failed", started_at=stage_started_at, error_type=error_type)
+            stage_started_at = None
         result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
                   "failure_stage": stage, "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)
         return result
     finally:
+        cleanup_started = time.monotonic()
+        _emit_backup_stage("CLEANUP", "started")
         if workspace is not None:
             cleanup = remove_workspace(workspace, bdir, src)
             storage["temporary_cleanup_ok"] = cleanup["removed"]
@@ -474,6 +535,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             except OSError:
                 result.update(ok=False, error=result.get("error") or "backup_manifest_cleanup_failed")
                 result.setdefault("failure_stage", "CLEANUP")
+        _emit_backup_stage("CLEANUP", "finished" if result.get("ok") else "failed",
+                           started_at=cleanup_started,
+                           error_type=("cleanup_failed" if not result.get("ok") else ""))
 
 
 def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:

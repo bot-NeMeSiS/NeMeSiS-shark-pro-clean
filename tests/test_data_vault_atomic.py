@@ -34,6 +34,48 @@ def test_backup_is_not_published_until_manifest_and_database_are_complete(backup
     assert vault.validate_backup(root)["ok"] is True
 
 
+def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monkeypatch, capsys):
+    source, root = backup_source
+    monkeypatch.setenv("AUTOMATION_SECRET", "do-not-log-this")
+
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+
+    assert result["ok"] is True, result
+    output = capsys.readouterr().out
+    events = [json.loads(line) for line in output.splitlines()]
+    assert all(event["event"] == "data_backup_stage" for event in events)
+    started = {event["stage"] for event in events if event["status"] == "started"}
+    finished = {event["stage"] for event in events if event["status"] == "finished"}
+    assert {"ATTEMPT", "LOCK", "RECOVERY", "CAPACITY_PREFLIGHT", "WORKSPACE", "SNAPSHOT",
+            "INTEGRITY", "METADATA", "HASH", "MANIFEST", "PUBLICATION",
+            "RETENTION", "CLEANUP"} <= started
+    assert started <= finished
+    assert all(isinstance(event.get("duration_ms"), int) for event in events
+               if event["status"] in {"finished", "failed", "skipped", "rejected"})
+    assert "do-not-log-this" not in output
+    assert str(source) not in output
+
+
+def test_backup_stage_logs_identify_timeout_without_logging_error_text(backup_source, monkeypatch, capsys):
+    source, root = backup_source
+    def fail_hash(*args, **kwargs):
+        raise sqlite3.OperationalError("backup_snapshot_timeout do-not-log-this")
+
+    monkeypatch.setattr(vault, "sha256_file", fail_hash)
+
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+
+    assert result["ok"] is False and result["backup_created"] is False
+    output = capsys.readouterr().out
+    events = [json.loads(line) for line in output.splitlines()]
+    hash_failure = next(event for event in events
+                        if event["stage"] == "HASH" and event["status"] == "failed")
+    assert hash_failure["error_type"] == "BACKUP_TIMEOUT"
+    assert "do-not-log-this" not in output
+    assert str(source) not in output
+    assert vault.list_backups(root) == []
+
+
 def test_two_backups_in_same_second_never_replace_each_other(backup_source,monkeypatch):
     source,root=backup_source
     monkeypatch.setattr(vault,"now_stamp",lambda:"20260927_120000")
