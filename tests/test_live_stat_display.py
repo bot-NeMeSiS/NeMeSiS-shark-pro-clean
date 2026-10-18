@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
+
+from jinja2 import ChoiceLoader, DictLoader, Environment, FileSystemLoader
 
 from engines.api_football_live_tracker_engine import (
     _field_state,
@@ -9,6 +12,7 @@ from engines.api_football_live_tracker_engine import (
     _stats_for_fixture,
     ensure_live_tracker_schema,
     live_tracker_summaries_for_matches,
+    summarize_live_statistics_coverage,
 )
 from engines.match_context_engine import _real_statistics
 
@@ -117,6 +121,9 @@ def test_field_keeps_possession_separate_from_derived_pressure_and_keeps_real_ze
     assert "Posesión 0-100%" in field["chips"]
     assert pressure["home_pct"] != field["home_possession_pct"]
     assert field["spatial_map_available"] is False
+    assert field["activity_index_available"] is True
+    assert field["activity_index_method"] == "weighted_provider_statistics"
+    assert field["home_activity_index_pct"] + field["away_activity_index_pct"] == 100
     assert field["home_possession_bar_pct"] == 0
     assert field["away_possession_bar_pct"] == 100
 
@@ -146,6 +153,105 @@ def test_field_hides_incoherent_possession_pair_and_normalizes_only_bar_widths()
     assert invalid["possession_available"] is False
     assert invalid["home_possession_pct"] is None
     assert invalid["away_possession_pct"] is None
+
+
+def test_activity_index_is_unavailable_without_provider_statistics():
+    field = _field_state({}, [], {"available": False}, "Local", "Visitante")
+    assert field["activity_index_available"] is False
+    assert field["home_activity_index_pct"] is None
+    assert field["away_activity_index_pct"] is None
+
+
+def test_activity_index_preserves_a_real_zero_side_without_using_a_neutral_fallback():
+    stats = {
+        "available": True,
+        "teams": [
+            _team("10", "Local", {"possession": ("Ball Possession", "0%", 0)}),
+            _team("20", "Visitante", {"possession": ("Ball Possession", "100%", 100)}),
+        ],
+    }
+    pressure = _pressure_from_stats(stats, "Local", "Visitante", "10", "20")
+    field = _field_state(stats, [], pressure, "Local", "Visitante", "10", "20")
+
+    assert pressure["home_pct"] == 0 and pressure["away_pct"] == 100
+    assert field["home_activity_index_pct"] == 0
+    assert field["away_activity_index_pct"] == 100
+    assert field["home_activity_index_pct"] + field["away_activity_index_pct"] == 100
+
+
+def test_admin_live_stats_coverage_matches_cached_fixtures_without_calls():
+    result = summarize_live_statistics_coverage(
+        [
+            {"id": "af-101"},
+            {"id": "af-202"},
+            {"id": "af-303"},
+        ],
+        {
+            "101": {"stats": {"available": True}, "external_calls": 0},
+            "af-202": {"stats": {"available": False}, "external_calls": 0},
+        },
+    )
+    assert result == {
+        "observed": 1,
+        "total": 3,
+        "external_calls": 0,
+        "read_only": True,
+    }
+
+
+def test_direct_card_renders_the_derived_index_as_estimated_not_provider_data():
+    root = Path(__file__).resolve().parents[1]
+    environment = Environment(
+        loader=ChoiceLoader([
+            DictLoader({
+                "components/v933_ui.html": (
+                    "{% macro match_card(match, a=false, b=false, score='') %}"
+                    "<article>{{ match.home_team }} vs {{ match.away_team }}</article>{% endmacro %}"
+                    "{% macro live_card(match) %}<article>{{ match.home_team }}</article>{% endmacro %}"
+                ),
+            }),
+            FileSystemLoader(str(root / "templates")),
+        ]),
+        autoescape=True,
+    )
+    environment.globals["ui"] = lambda value, **kwargs: value
+    environment.filters["sync_madrid_label"] = lambda value: f"Madrid: {value}"
+    render = environment.from_string(
+        "{% from 'components/realtime_live_card.html' import live_card %}"
+        "{{ live_card(match) }}"
+    )
+    tracker = {
+        "statistics_updated_at": "2026-10-18T10:15:00Z",
+        "stats": {"available": True},
+        "stat_cards": [],
+        "field_state": {
+            "possession_available": False,
+            "activity_index_available": True,
+            "activity_index_method": "weighted_provider_statistics",
+            "home_activity_index_pct": 63,
+            "away_activity_index_pct": 37,
+        },
+    }
+    html = render.render(match={
+        "home_team": "Local QA",
+        "away_team": "Visitante QA",
+        "api_football_live_tracker": tracker,
+        "realtime_state": {
+            "contract": "NEMESIS-REALTIME-STATE-V1",
+            "sports_truth_contract": "MATCH-STATUS-TRUTH-V2",
+            "is_live": True,
+            "is_stale": False,
+            "status_conflict": False,
+            "status_canonical": "LIVE",
+            "minute": 15,
+            "provider_observed_at": "2026-10-18T10:15:00Z",
+        },
+    })
+
+    assert 'data-activity-index="weighted-provider-statistics"' in html
+    assert 'data-provider-metric="false"' in html
+    assert "Local QA 63%, Visitante QA 37%." in html
+    assert "ni zonas del campo" in html
 
 
 def test_match_context_never_invents_missing_or_one_sided_possession():

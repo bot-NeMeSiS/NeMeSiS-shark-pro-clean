@@ -1009,7 +1009,7 @@ def _game_flow(
     recent = [e for e in (events or []) if latest and _event_minute(e) >= max(0, latest - 15)]
     title = pressure.get("label") or "Lectura pendiente"
     if pressure.get("available"):
-        diff = abs(int(pressure.get("home_pct") or 50) - int(pressure.get("away_pct") or 50))
+        diff = abs(_as_int(pressure.get("home_pct"), 50) - _as_int(pressure.get("away_pct"), 50))
         phase = "Dominio claro" if diff >= 24 else "Presión ligera" if diff >= 10 else "Equilibrado"
     elif event_count:
         phase = "Eventos sincronizados"
@@ -1113,8 +1113,8 @@ def _field_state(
     possession, provider statistics, events and pressure signals without drawing
     an invented pitch location.
     """
-    home_p = int(pressure.get("home_pct") or 50)
-    away_p = int(pressure.get("away_pct") or 50)
+    home_p = _as_int(pressure.get("home_pct"), 50)
+    away_p = _as_int(pressure.get("away_pct"), 50)
     dominant = home_name if home_p >= away_p else away_name
     side = "home" if home_p >= away_p else "away"
     diff = abs(home_p - away_p)
@@ -1166,6 +1166,7 @@ def _field_state(
         chips.append(f"{len(events)} eventos reales")
     if pressure.get("available"):
         chips.append(f"Presión {home_p}-{away_p}")
+    pressure_available = bool(pressure.get("available"))
     return {
         "available": bool(chips or pressure.get("available") or events),
         "mode": mode,
@@ -1174,6 +1175,12 @@ def _field_state(
         "dominant_side": side,
         "home_pressure_pct": home_p,
         "away_pressure_pct": away_p,
+        # Local weighted index from provider statistics; it is neither a
+        # provider metric nor a spatial/coordinate map.
+        "activity_index_available": pressure_available,
+        "activity_index_method": "weighted_provider_statistics" if pressure_available else None,
+        "home_activity_index_pct": home_p if pressure_available else None,
+        "away_activity_index_pct": away_p if pressure_available else None,
         "last_event_label": latest,
         "dangerous_attacks_available": da_home is not None or da_away is not None,
         "attacks_available": attacks_home is not None or attacks_away is not None,
@@ -1401,6 +1408,34 @@ def live_tracker_summaries_for_matches(db_path: str, matches: Iterable[Mapping[s
         return {}
     finally:
         conn.close()
+
+
+def summarize_live_statistics_coverage(
+    matches: Iterable[Mapping[str, Any]],
+    cached_trackers: Mapping[str, Mapping[str, Any]] | None,
+) -> dict[str, Any]:
+    """Count current live fixtures with saved stats; never implies a provider call."""
+    selected = [dict(item) for item in (matches or []) if isinstance(item, Mapping)][:40]
+    trackers = cached_trackers if isinstance(cached_trackers, Mapping) else {}
+    observed = 0
+    for match in selected:
+        aliases = [
+            str(match.get(key) or "").strip()
+            for key in ("id", "match_id", "external_id", "fixture_id")
+        ]
+        aliases += [value[3:] for value in aliases if value.startswith("af-")]
+        tracker = next(
+            (trackers.get(value) for value in aliases if value and trackers.get(value)),
+            {},
+        )
+        if isinstance(tracker, Mapping) and (tracker.get("stats") or {}).get("available") is True:
+            observed += 1
+    return {
+        "observed": observed,
+        "total": len(selected),
+        "external_calls": 0,
+        "read_only": True,
+    }
 
 
 def live_tracker_for_match(db_path: str, match_id: str) -> dict[str, Any]:

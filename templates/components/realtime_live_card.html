@@ -62,6 +62,17 @@
         <small class="v944-possession__note">{{ ui('Reparto total de posesión; no es un mapa de zonas ni la ubicación del balón.') }}</small>
       </div>
       {% endif %}
+      {% if field.get('activity_index_available') %}
+      <section class="v934-live-activity" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
+        <div class="v934-live-activity__heading"><strong>{{ ui('Actividad estadística orientativa') }}</strong><span>{{ ui('Estimación NeMeSiS · no es un dato del proveedor') }}</span></div>
+        <div class="v934-live-activity__bar" role="img" aria-label="{{ ui('Índice estadístico orientativo:') }} {{ home_name }} {{ field.get('home_activity_index_pct') }}%, {{ away_name }} {{ field.get('away_activity_index_pct') }}%.">
+          <span class="is-home" style="width: {{ field.get('home_activity_index_pct') }}%"></span>
+          <span class="is-away" style="width: {{ field.get('away_activity_index_pct') }}%"></span>
+        </div>
+        <div class="v934-live-activity__teams"><span>{{ home_name }} <b>{{ field.get('home_activity_index_pct') }}%</b></span><span>{{ away_name }} <b>{{ field.get('away_activity_index_pct') }}%</b></span></div>
+        <small>{{ ui('Cálculo orientativo basado en las estadísticas disponibles. No representa posesión oficial, ubicación del balón ni zonas del campo.') }}</small>
+      </section>
+      {% endif %}
       <div class="v934-live-stats__ribbon" aria-label="Resumen de estadísticas del proveedor">
         {% for stat in tracker.get('stat_cards') or [] if stat.get('key') in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] %}
         <span><strong>{{ ui(stat.get('label')) }}</strong><b>{{ stat.get('home') }}–{{ stat.get('away') }}</b></span>

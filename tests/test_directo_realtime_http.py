@@ -122,6 +122,10 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
             'possession_available': True,
             'home_possession_pct': 61,
             'away_possession_pct': 39,
+            'activity_index_available': True,
+            'activity_index_method': 'weighted_provider_statistics',
+            'home_activity_index_pct': 64,
+            'away_activity_index_pct': 36,
         },
     }
     monkeypatch.setattr(
@@ -140,6 +144,10 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     assert 'data-visualization="aggregate-share"' in html
     assert 'data-spatial-map-available="false"' in html
     assert 'no es un mapa de zonas ni la ubicación del balón' in html
+    assert 'data-activity-index="weighted-provider-statistics"' in html
+    assert 'data-provider-metric="false"' in html
+    assert 'Local QA 64%, Visitante QA 36%.' in html
+    assert 'no es un dato del proveedor' in html
     assert 'Tiros a puerta' in html and 'Faltas' in html and 'Córners' in html and 'Saques de banda' in html
     assert 'data-live-statistics-more' in html
     assert 'Ver todas las estadísticas disponibles' in html

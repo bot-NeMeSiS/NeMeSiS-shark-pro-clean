@@ -387,6 +387,17 @@
 {% set possession = statistics.get('possession') or {} %}
 {{ panel_start('StatsPanel', component, 'Estadísticas', 'Datos del partido y estado de actualización.', 'stats') }}
   {% if statistics.get('available') %}
+  {% set activity = statistics.get('activity_index') or {} %}
+  {% if activity.get('available') %}
+  <section class="v944-activity-index" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
+    <div class="v934-live-activity__heading"><strong>{{ ui('Actividad estadística orientativa') }}</strong><span>{{ ui('Estimación NeMeSiS · no es un dato del proveedor') }}</span></div>
+    <div class="v934-live-activity__bar" role="img" aria-label="{{ ui('Índice estadístico orientativo:') }} {{ teams.get('home', {}).get('name') or ui('Local') }} {{ activity.get('home_pct') }}%, {{ teams.get('away', {}).get('name') or ui('Visitante') }} {{ activity.get('away_pct') }}%.">
+      <span class="is-home" style="width: {{ activity.get('home_pct') }}%"></span><span class="is-away" style="width: {{ activity.get('away_pct') }}%"></span>
+    </div>
+    <div class="v934-live-activity__teams"><span>{{ teams.get('home', {}).get('name') or ui('Local') }} <b>{{ activity.get('home_pct') }}%</b></span><span>{{ teams.get('away', {}).get('name') or ui('Visitante') }} <b>{{ activity.get('away_pct') }}%</b></span></div>
+    <small>{{ ui('Estimación calculada con estadísticas guardadas. No es posesión oficial, un pronóstico ni un mapa de zonas.') }}{% if activity.get('observed_at') %} {{ ui('Estadísticas observadas:') }} <time datetime="{{ activity.get('observed_at') }}">{{ activity.get('observed_at')|sync_madrid_label }}</time>{% endif %}</small>
+  </section>
+  {% endif %}
   <section class="v944-possession" data-possession-source="{{ possession.get('source') or '' }}" data-possession-available="{{ 'true' if possession.get('available') else 'false' }}" data-visualization="aggregate-share" data-spatial-map-available="false" aria-label="{{ ui('Reparto total de posesión') }}">
     <div class="v944-possession__heading">
       <strong>{{ ui('Posesión del balón') }}</strong>

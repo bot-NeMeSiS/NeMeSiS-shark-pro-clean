@@ -129,6 +129,7 @@ from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
     live_tracker_matches,
     live_tracker_summaries_for_matches,
+    summarize_live_statistics_coverage,
     live_tracker_quality_summary,
     live_tracker_status,
     sync_api_football_fixture_detail,
@@ -27780,6 +27781,15 @@ def v934_admin_realtime_status(summary=None) -> dict:
         provider = get_api_sports_status(DB_PATH) or {}
     except Exception:
         provider = {}
+    live_matches = list(snapshot.get("live") or [])[:40]
+    try:
+        cached_trackers = (
+            live_tracker_summaries_for_matches(DB_PATH, live_matches)
+            if live_matches else {}
+        )
+    except Exception:
+        cached_trackers = {}
+    live_stats = summarize_live_statistics_coverage(live_matches, cached_trackers)
     return {
         "status": "operational" if snapshot.get("matches") or snapshot.get("picks") else "waiting_for_real_data",
         "generated_at_madrid": snapshot.get("generated_at_madrid"),
@@ -27792,6 +27802,10 @@ def v934_admin_realtime_status(summary=None) -> dict:
         "cache_entries": v934_realtime_cache_status().get("entries", 0),
         "matches": int((snapshot.get("counts") or {}).get("matches") or 0),
         "live": int((snapshot.get("counts") or {}).get("live") or 0),
+        "live_stats_observed": live_stats["observed"],
+        "live_stats_total": live_stats["total"],
+        "live_stats_external_calls": live_stats["external_calls"],
+        "live_stats_read_only": live_stats["read_only"],
         "stale_live": int((snapshot.get("counts") or {}).get("stale_live") or 0),
         "picks": int((snapshot.get("counts") or {}).get("picks") or 0),
         "incomplete": int((snapshot.get("counts") or {}).get("incomplete") or 0),

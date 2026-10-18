@@ -304,6 +304,47 @@ def _real_statistics(
     }
 
 
+def _activity_index_context(live: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Expose the local derived index only when its explicit contract is present."""
+    unavailable = {
+        "contract": "NEMESIS-DERIVED-ACTIVITY-INDEX-V1",
+        "available": False,
+        "method": None,
+        "home_pct": None,
+        "away_pct": None,
+        "observed_at": None,
+    }
+    tracker = _mapping(live)
+    field = _mapping(tracker.get("field_state"))
+    if (
+        field.get("activity_index_available") is not True
+        or field.get("activity_index_method") != "weighted_provider_statistics"
+    ):
+        return unavailable
+    raw_home = field.get("home_activity_index_pct")
+    raw_away = field.get("away_activity_index_pct")
+    if isinstance(raw_home, bool) or isinstance(raw_away, bool):
+        return unavailable
+    try:
+        home = float(raw_home)
+        away = float(raw_away)
+    except (TypeError, ValueError):
+        return unavailable
+    if not (0 <= home <= 100 and 0 <= away <= 100 and abs(home + away - 100) <= 0.01):
+        return unavailable
+    observed_at = _text(tracker.get("statistics_updated_at") or tracker.get("updated_at"))
+    return {
+        **unavailable,
+        "available": True,
+        "method": "weighted_provider_statistics",
+        "home_pct": round(home),
+        "away_pct": round(away),
+        "observed_at": observed_at or None,
+        "provider_metric": False,
+        "spatial_map_available": False,
+    }
+
+
 def _statistics_refresh_context(statistics, lifecycle, raw):
     """Project safe collection evidence and actionable client copy, without I/O."""
     raw = _mapping(raw)
@@ -1829,6 +1870,7 @@ def build_match_context(
         _mapping(detail_data.get("cached_statistics")),
         _mapping(detail_data.get("statistics_refresh")),
     )
+    statistics["activity_index"] = _activity_index_context(live)
     statistics["refresh"], statistics["message"] = _statistics_refresh_context(
         statistics, lifecycle, detail_data.get("statistics_refresh"),
     )

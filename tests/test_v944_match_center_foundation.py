@@ -131,6 +131,79 @@ def test_match_context_is_one_pure_snapshot_for_all_foundation_components():
     assert context["statistics"]["item_count"] == 0
 
 
+def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
+    tracker = {
+        "provider": "api_football",
+        "statistics_updated_at": "2026-10-18T10:15:00Z",
+        "stat_cards": [
+            {"key": "shots_on_goal", "label": "Tiros a puerta", "home": "4", "away": "2"},
+        ],
+        "field_state": {
+            "activity_index_available": True,
+            "activity_index_method": "weighted_provider_statistics",
+            "home_activity_index_pct": 63,
+            "away_activity_index_pct": 37,
+        },
+    }
+    context = _context(_detail(), live_context=tracker)
+    activity = context["statistics"]["activity_index"]
+
+    assert activity == {
+        "contract": "NEMESIS-DERIVED-ACTIVITY-INDEX-V1",
+        "available": True,
+        "method": "weighted_provider_statistics",
+        "home_pct": 63,
+        "away_pct": 37,
+        "observed_at": "2026-10-18T10:15:00Z",
+        "provider_metric": False,
+        "spatial_map_available": False,
+    }
+
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals.update(ui=lambda value, **kwargs: value)
+    environment.filters["sync_madrid_label"] = lambda value: f"Madrid: {value}"
+    environment.filters["madrid_datetime_label"] = lambda value: f"Madrid: {value}"
+    render = environment.from_string(
+        "{% from 'components/v944_match_center.html' import stats_panel %}"
+        "{{ stats_panel(context) }}"
+    )
+    html = render.render(context=context)
+    assert 'data-activity-index="weighted-provider-statistics"' in html
+    assert 'data-provider-metric="false"' in html
+    assert "Local 63%" in html and "Visitante 37%" in html
+    assert "ni un mapa de zonas" in html
+    assert "2026-10-18T10:15:00Z" in html
+
+
+def test_activity_index_rejects_invalid_or_uncontracted_values():
+    tracker = {
+        "field_state": {
+            "activity_index_available": True,
+            "activity_index_method": "weighted_provider_statistics",
+            "home_activity_index_pct": 70,
+            "away_activity_index_pct": 25,
+        },
+    }
+    context = _context(_detail(), live_context=tracker)
+    assert context["statistics"]["activity_index"]["available"] is False
+
+
+def test_activity_index_is_optional_in_client_templates_and_admin_coverage_is_explicit():
+    components = (ROOT / "templates/components/v944_match_center.html").read_text(encoding="utf-8")
+    live_card = (ROOT / "templates/components/realtime_live_card.html").read_text(encoding="utf-8")
+    admin = (ROOT / "templates/admin_realtime_center.html").read_text(encoding="utf-8")
+    activity_css = (ROOT / "static/v934-live-activity.css").read_text(encoding="utf-8")
+    base = (ROOT / "templates/base.html").read_text(encoding="utf-8")
+    assert components.count('data-activity-index="weighted-provider-statistics"') == 1
+    assert live_card.count('data-activity-index="weighted-provider-statistics"') == 1
+    assert "ni un mapa de zonas" in components
+    assert "ni zonas del campo" in live_card
+    assert "live_stats_observed" in admin and "live_stats_total" in admin
+    assert "live_stats_external_calls" in admin
+    assert ".v934-live-activity__bar" in activity_css
+    assert "v934-live-activity.css" in base
+
+
 def test_match_context_preserves_zero_zero_and_safe_partial_offline_states():
     finished = _context(_detail(finished=True, with_score=True))
     assert finished["state"] == "finished"
