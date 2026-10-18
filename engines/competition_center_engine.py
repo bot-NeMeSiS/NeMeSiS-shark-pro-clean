@@ -253,9 +253,11 @@ def _standings_rows(
         description = _text(raw.get("description"), 160)
         state = "Confirmado"
         lowered = description.casefold()
-        if "champion" in lowered or "campe" in lowered:
+        if "champions league" in lowered or "champions" in lowered:
+            state = "Zona Champions"
+        elif "champion" in lowered or "campe" in lowered:
             state = "Campeon"
-        elif "europa" in lowered or "champions" in lowered:
+        elif "europa" in lowered:
             state = "Europa"
         elif "play" in lowered:
             state = "Playoff"

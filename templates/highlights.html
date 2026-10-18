@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% set center = data.get('v769_highlights_center') or {} %}
-{% set hi = data.get('v766_highlights') or {} %}
-{% set paused = center.get('status') == 'DISABLED_BY_ADMIN' or hi.get('status') == 'DISABLED_BY_ADMIN' %}
+{% set paused = center.get('status') == 'DISABLED_BY_ADMIN' %}
 {% set readable = center.get('read_ok') == true and center.get('read_state') == 'VERIFIED' %}
 {% set available = (center.get('available') or []) if readable and not paused else [] %}
 {% set pending = center.get('pending_matches') or [] %}
@@ -19,7 +18,7 @@
   {% elif available %}
   <section class="v933-panel" data-highlights-state="available">
     <header class="v933-section-header"><div><h2>Resúmenes disponibles</h2><p>Agrupados por competición. La reproducción depende de la plataforma original.</p></div></header>
-    <p class="small">{{ available|length }} en esta selección{% if hi.get('sample_truncated') %} · Selección de los registros más recientes, no de todo el historial{% endif %}.</p>
+    <p class="small">{{ available|length }} en esta selección{% if center.get('sample_truncated') %} · Selección de los registros más recientes, no de todo el historial{% endif %}.</p>
     {% for league, videos in available|groupby('competition_label') %}
     <section class="v933-panel" aria-label="{{ league }}" data-highlight-league="{{ league }}">
       <div class="section-head"><h2>{{ league }}</h2><span class="pill">{{ videos|length }}</span></div>

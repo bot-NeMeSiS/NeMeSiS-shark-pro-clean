@@ -54,6 +54,9 @@ def test_combi_page_exposes_only_each_plan_entitlement(webapp,owner,manual,autom
     body=c.get('/combinadas').get_data(as_text=True)
     assert ('id="combi-manual-builder"' in body) is manual
     assert ('Propuesta automática, sin apostar' in body) is automatic
+    if owner == 'f':
+        assert 'Con el plan FREE, el constructor manual no está disponible.' in body
+        assert 'hasta 0 partidos' not in body
     if automatic:
         assert 'Criterio de ordenación' in body
         assert 'no significa menor riesgo' in body

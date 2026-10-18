@@ -197,21 +197,25 @@
       {% if center.missing_information %}<ul class="team-center-evidence-list">{% for item in center.missing_information %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Sin ausencias relevantes detectadas.") }}</p>{% endif %}
     </section>
 
+    {% if center.sports_graph.relationships %}
     <section class="team-center-panel" data-team-center-section="sports-graph">
-      <div class="team-center-section-head"><span>{{ ui("Grafo deportivo") }}</span><strong>{{ metrics.graph_edges or 0 }}</strong></div>
-      <p>{{ ui("Relaciones confirmadas entre equipo, partidos y competición.") }}</p>
-      {% if center.sports_graph.relationships %}<ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>{% else %}<p class="team-center-empty">{{ ui("Información pendiente.") }}</p>{% endif %}
+      <div class="team-center-section-head"><span>{{ ui("Conexiones confirmadas") }}</span><strong>{{ center.sports_graph.relationships|length }}</strong></div>
+      <p>{{ ui("Vínculos confirmados entre el equipo, sus partidos y la competición.") }}</p>
+      <ul class="team-center-evidence-list">{% for item in center.sports_graph.relationships[:8] %}<li>{{ ui_owned(item) }}</li>{% endfor %}</ul>
     </section>
+    {% endif %}
 
+    {% if links.competition_center or links.player_center or links.match_center or links.sports_graph %}
     <section class="team-center-panel" data-team-center-section="future-links">
-      <div class="team-center-section-head"><span>{{ ui("Conexiones") }}</span><strong>{{ ui("Disponibles") }}</strong></div>
-      <nav class="team-center-link-grid" aria-label="Centros deportivos preparados">
-        {% if links.competition_center %}<a href="{{ links.competition_center }}">{{ ui("Centro de la competicion") }}</a>{% else %}<span>{{ ui("Centro de la competicion · No disponible") }}</span>{% endif %}
-        {% if links.player_center %}<a href="{{ links.player_center }}">{{ ui("Centro del jugador") }}</a>{% else %}<span>{{ ui("Centro del jugador · Información pendiente") }}</span>{% endif %}
-        {% if links.match_center %}<a href="{{ links.match_center }}">{{ ui("Centro del partido") }}</a>{% else %}<span>{{ ui("Centro del partido · No disponible") }}</span>{% endif %}
-        {% if links.sports_graph %}<a href="{{ links.sports_graph }}">{{ ui("Grafo deportivo") }}</a>{% else %}<span>{{ ui("Grafo deportivo · Contrato interno") }}</span>{% endif %}
+      <div class="team-center-section-head"><span>{{ ui("Secciones relacionadas") }}</span><strong>{{ ui("Disponibles") }}</strong></div>
+      <nav class="team-center-link-grid" aria-label="Centros deportivos disponibles">
+        {% if links.competition_center %}<a href="{{ links.competition_center }}">{{ ui("Centro de la competicion") }}</a>{% endif %}
+        {% if links.player_center %}<a href="{{ links.player_center }}">{{ ui("Centro del jugador") }}</a>{% endif %}
+        {% if links.match_center %}<a href="{{ links.match_center }}">{{ ui("Centro del partido") }}</a>{% endif %}
+        {% if links.sports_graph %}<a href="{{ links.sports_graph }}">{{ ui("Conexiones deportivas") }}</a>{% endif %}
       </nav>
     </section>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

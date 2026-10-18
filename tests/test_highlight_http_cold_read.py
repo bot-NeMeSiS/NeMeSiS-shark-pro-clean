@@ -40,6 +40,32 @@ def test_cold_http_detail_does_not_initialize_or_misclassify_catalogue(app_modul
     assert 'Traceback' not in html
 
 
+def test_highlights_page_skips_global_dashboard_and_optional_pending_scan(app_module, monkeypatch, tmp_path):
+    from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
+
+    path = tmp_path / 'catalogue.sqlite'
+    ensure_sportsdb_highlights_schema(path)
+    before = path.read_bytes()
+    monkeypatch.setattr(app_module, 'DB_PATH', str(path))
+    monkeypatch.setattr(app_module, 'APP_INITIALIZED', False)
+    monkeypatch.setattr(app_module, '_SEEDED_DB_PATH', '')
+    monkeypatch.setattr(app_module, 'admin_operational_settings', lambda: {
+        'highlights_enabled': True, 'settings_readable': True,
+    })
+
+    def forbidden(*_a, **_k):
+        raise AssertionError('The highlights page must not build the global dashboard or scan pending fixtures')
+
+    for name in ('initialize_once', 'seed_core', 'dashboard_data', 'v769_pending_highlight_snapshot'):
+        monkeypatch.setattr(app_module, name, forbidden)
+
+    response = app_module.app.test_client().get('/resumenes')
+
+    assert response.status_code == 200
+    assert 'Todavía no hay vídeos listos para mostrar' in response.get_data(as_text=True)
+    assert path.read_bytes() == before
+
+
 @pytest.mark.parametrize('prefix',['/highlight/','/resumen/','/resumenes/'])
 @pytest.mark.parametrize('role',[None,'PRO','ADMIN'])
 def test_authorized_http_video_renders_without_startup_or_dashboard(app_module, monkeypatch, tmp_path, prefix, role):

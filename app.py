@@ -20293,7 +20293,7 @@ def v769_pending_highlight_matches(days_back=10, limit=80):
     return v769_pending_highlight_snapshot(days_back=days_back, limit=limit).get("matches") or []
 
 
-def v769_highlights_content_center(data=None, user=None, limit=24):
+def v769_highlights_content_center(data=None, user=None, limit=24, include_pending=True):
     """Client/admin highlights center with explicit catalogue-read truth."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     base = v766_highlights_context(limit=limit)
@@ -20304,10 +20304,12 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
         if card:
             available.append(card)
     embedded = [h for h in available if h.get("can_embed")]
-    pending_snapshot = (
-        v769_pending_highlight_snapshot(days_back=10, limit=36)
-        if verified else {"ok": False, "read_state": base.get("read_state") or "READ_UNAVAILABLE", "matches": []}
-    )
+    if verified and include_pending:
+        pending_snapshot = v769_pending_highlight_snapshot(days_back=10, limit=36)
+    elif verified:
+        pending_snapshot = {"ok": False, "read_state": "NOT_REQUESTED", "matches": []}
+    else:
+        pending_snapshot = {"ok": False, "read_state": base.get("read_state") or "READ_UNAVAILABLE", "matches": []}
     pending = pending_snapshot.get("matches") or []
     pending_verified = bool(pending_snapshot.get("ok") is True and pending_snapshot.get("read_state") == "VERIFIED")
     recent_runs = base.get("recent_runs") or []
@@ -20344,6 +20346,7 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
         "read_state": base.get("read_state") or "READ_UNAVAILABLE",
         "read_ok": verified,
         "pending_read_state": pending_snapshot.get("read_state") or "READ_UNAVAILABLE",
+        "sample_truncated": bool(base.get("sample_truncated")) if verified else False,
         "playback_verified": False,
         "headline": headline,
         "description": description,
@@ -20390,10 +20393,14 @@ def v769_highlights_content_center(data=None, user=None, limit=24):
 @app.route("/resumenes-partidos")
 def highlights_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    data = dashboard_data("results", today_iso())
-    data["v766_highlights"] = v766_highlights_context(limit=24)
-    data["v769_highlights_center"] = v769_highlights_content_center(data, user, limit=24)
-    data["dynamic_mode"] = build_v764_dynamic_competition_mode(data, user, "highlights")
+    # This catalogue page only needs the media read model. Building the entire
+    # sports dashboard here repeats expensive provider/cache reads and can make
+    # a simple GET exceed the web request budget.
+    data = {
+        "v769_highlights_center": v769_highlights_content_center(
+            user=user, limit=24, include_pending=False
+        )
+    }
     return render_template("highlights.html", data=data)
 
 

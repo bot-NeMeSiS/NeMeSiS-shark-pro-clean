@@ -154,6 +154,23 @@ def test_competition_center_uses_sports_core_knowledge_and_graph():
     assert "shark_context_analyzes_match" in relationships
 
 
+def test_standings_distinguish_champions_qualification_from_champion_title():
+    result = competition_center_module._standings_rows(
+        [
+            {"rank": 1, "team_name": "Club A", "description": "Promotion - Champions League"},
+            {"rank": 2, "team_name": "Club B", "description": "Promotion - UEFA Europa League"},
+            {"rank": 3, "team_name": "Club C", "description": "Champion"},
+        ],
+        fallback_teams=[],
+    )
+
+    assert [row["state"] for row in result["rows"]] == [
+        "Zona Champions",
+        "Europa",
+        "Campeon",
+    ]
+
+
 def test_competition_center_does_not_invent_missing_competition_data():
     detail = _detail()
     detail["competition"] = {"key": "liga-real", "name": "Liga Real", "source": "local_cache"}
