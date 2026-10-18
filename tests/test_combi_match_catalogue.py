@@ -22,6 +22,19 @@ def quotes(db, ids=(1,2), **kw):
             conn.execute('INSERT INTO odds_snapshots VALUES ('+','.join('?' for _ in row)+')',list(row.values()))
 
 
+def provider_quote_clock(db, ids=(1,2), observed_at=None):
+    observed_at = observed_at or NOW.isoformat()
+    with sqlite3.connect(db) as conn:
+        cols = {row[1] for row in conn.execute('PRAGMA table_info(odds_snapshots)')}
+        if 'payload_json' not in cols:
+            conn.execute('ALTER TABLE odds_snapshots ADD COLUMN payload_json TEXT')
+        for i in ids:
+            payload = {'bookmakers': [{'title': 'Casa QA', 'key': 'casa qa', 'last_update': observed_at,
+                'markets': [{'key': 'h2h', 'last_update': observed_at}]}]}
+            conn.execute('UPDATE odds_snapshots SET payload_json=? WHERE id=?',
+                          (json.dumps(payload), 'q'+str(i)))
+
+
 def catalogue(db, filters=None, user='a'):
     return store.read_center(db,user,now=NOW,catalogue_filters=filters or {})['catalogue']
 
@@ -41,6 +54,8 @@ def test_catalogue_independent_of_picks_and_writes(db):
     assert len(available)==2
     assert [p['selection'] for p in available[0]['groups'][0]['choices']]==['1','X','2']
     assert all(p['selection_origin']=='customer_market_choice' for p in available[0]['groups'][0]['choices'])
+    assert not available[0]['groups'][0]['market_reading']['available']
+    assert all('market_implied_probability_pct' not in p for p in available[0]['groups'][0]['choices'])
     assert open(db,'rb').read()==before
     assert not any('published' in p for p in cat['matches'])
 
@@ -138,6 +153,78 @@ def test_mixed_bookmaker_and_permission_rules_unchanged(db):
     quotes(db,ids=(1,));quotes(db,ids=(2,),bookmaker='Otra casa')
     with pytest.raises(CombiError,match='misma casa'):store.make_preview(db,'a',{'pick_ids':ids_for_two(db),'stake':'0.10'},now=NOW)
     assert all(not p['eligible'] for m in catalogue(db,user='f')['matches'] for g in m['groups'] for p in g['choices'])
+
+
+def test_paid_combi_tiers_see_verified_market_reading_but_free_does_not(db):
+    quotes(db, ids=(1,))
+    provider_quote_clock(db, ids=(1,))
+
+    pro_group = next(m for m in catalogue(db, user='b')['matches'] if m['id']=='m1')['groups'][0]
+    elite_group = next(m for m in catalogue(db, user='a')['matches'] if m['id']=='m1')['groups'][0]
+    free_group = next(m for m in catalogue(db, user='f')['matches'] if m['id']=='m1')['groups'][0]
+
+    for group in (pro_group, elite_group):
+        reading = group['market_reading']
+        assert reading['available'] and reading['state']=='CURRENT'
+        assert reading['source']=='The Odds API' and reading['bookmaker']=='Casa QA'
+        assert sum(reading['probabilities'].values())==100.0
+        assert all(p['market_implied_probability_pct'] is not None for p in group['choices'])
+        assert all(p['eligible'] for p in group['choices'])
+    assert free_group['market_reading']['state']=='PLAN_LOCKED'
+    assert all(not p['eligible'] for p in free_group['choices'])
+
+
+@pytest.mark.parametrize('field,value', [
+    ('quote_id', 'another-snapshot'),
+    ('observed_at', (NOW + timedelta(seconds=1)).isoformat()),
+    ('bookmaker', 'Otra casa'),
+])
+def test_market_reference_rejects_sides_from_different_quotes(field,value):
+    from engines.combi_match_catalogue import _market_reading
+
+    choices = [
+        {'selection': selection, 'eligible': True, 'quote_clock_scope': 'PROVIDER_QUOTE_TIME',
+         'odds_source': 'The Odds API', 'quote_id': 'snapshot-1', 'observed_at': NOW.isoformat(),
+         'bookmaker': 'Casa QA', 'odds': price}
+        for selection, price in [('1', '1.80'), ('X', '3.00'), ('2', '4.00')]
+    ]
+    choices[2][field] = value
+
+    reading = _market_reading(choices, {'membership': 'PRO'})
+
+    assert reading['available'] is False
+    assert reading['state'] == 'INCONSISTENT_QUOTES'
+    assert reading['probabilities'] == {}
+
+
+def test_current_market_reference_is_read_only_and_uses_no_provider_calls(db):
+    quotes(db, ids=(1,))
+    provider_quote_clock(db, ids=(1,))
+    before = open(db, 'rb').read()
+
+    center = store.read_center(db, 'b', now=NOW, catalogue_filters={'q': 'Local 1'})
+    group = next(match for match in center['catalogue']['matches'] if match['id'] == 'm1')['groups'][0]
+
+    assert group['market_reading']['available'] is True
+    assert center['external_calls'] == 0
+    assert open(db, 'rb').read() == before
+
+
+def test_market_reading_explains_when_provider_quote_time_is_not_verified(db):
+    quotes(db, ids=(1,))
+    group = next(m for m in catalogue(db, user='b')['matches'] if m['id']=='m1')['groups'][0]
+    assert group['market_reading']['state']=='PROVIDER_TIME_UNVERIFIED'
+    assert 'hora original confirmada' in group['market_reading']['message']
+
+
+def test_preview_retains_market_probability_from_the_same_provider_quote(db):
+    quotes(db)
+    provider_quote_clock(db)
+    ids=ids_for_two(db)
+    result=store.make_preview(db,'b',{'pick_ids':ids,'stake':'0.10'},now=NOW)
+    assert all(leg['quote_clock_scope']=='PROVIDER_QUOTE_TIME' for leg in result['legs'])
+    assert all(leg['market_implied_probability_pct'] is not None for leg in result['legs'])
+    assert result['probability'] is None and result['not_a_bet']
 
 
 def test_deleted_observation_is_not_replaced_by_an_arbitrary_choice(db):

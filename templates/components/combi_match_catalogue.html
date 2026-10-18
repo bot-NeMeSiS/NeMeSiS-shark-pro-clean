@@ -18,6 +18,9 @@
 <div class="ns-market-book"><strong>{{ group.bookmaker }}</strong><div class="ns-market-prices" role="group" aria-label="Resultado final en {{ group.bookmaker }}">
 {% for leg in group.choices %}<label class="ns-market-price{% if not leg.eligible %} is-unavailable{% endif %}"><input type="checkbox" name="pick_ids" value="{{ leg.id }}" data-market-choice data-market-event="{{ leg.event_key }}"{% if leg.id in selected %} checked{% endif %}{% if not leg.eligible %} disabled{% endif %}><span><b>{{ leg.selection }}</b><strong>{{ leg.odds or '—' }}</strong><small>{{ leg.selection_label }}</small></span></label>{% endfor %}
 </div>
+{% if group.market_reading and group.market_reading.available %}
+<p class="ns-market-reading" data-market-reading="current"><strong>Lectura implícita 1X2</strong> · Local {{ '%.1f'|format(group.market_reading.probabilities.home) }}% · Empate {{ '%.1f'|format(group.market_reading.probabilities.draw) }}% · Visitante {{ '%.1f'|format(group.market_reading.probabilities.away) }}%<br><small>{{ group.market_reading.method }} No es un pronóstico de SHARK ni una garantía. Fuente: {{ group.market_reading.source }} · {{ group.market_reading.bookmaker }} · hora confirmada por proveedor: {{ group.market_reading.observed_at|madrid_datetime_label }}.</small></p>
+{% elif group.market_reading and group.market_reading.state != 'PLAN_LOCKED' %}<p class="ns-market-unavailable" data-market-reading="unavailable">{{ group.market_reading.message }}</p>{% endif %}
 {% set first=group.choices[0] if group.choices else {} %}
 {% if first.observed_at %}<small>{{ 'Recibida' if first.quote_clock_scope == 'RECEIPT_ONLY' else 'Hora de cuota' }}: {{ first.observed_at|madrid_datetime_label }} · {{ first.odds_source }}</small>{% endif %}
 {% if not (group.choices|selectattr('eligible')|list) %}<p class="ns-market-unavailable">Cuotas no utilizables ahora. <span>Comprueba vigencia, estado del partido y acceso de tu plan.</span></p>{% endif %}

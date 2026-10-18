@@ -13,6 +13,39 @@ REQUIRED_OUTCOMES = {"home", "draw", "away"}
 SUPPORTED_SOURCE = "the odds api"
 
 
+def normalized_market_probabilities(prices):
+    """Normalize a complete decimal-odds 1X2 market, without calling it SHARK confidence."""
+    if not isinstance(prices, dict) or set(prices) != REQUIRED_OUTCOMES:
+        return None
+    inverse_prices = {}
+    try:
+        for key, value in prices.items():
+            price = Decimal(str(value))
+            if not price.is_finite() or price <= Decimal("1"):
+                return None
+            inverse_prices[key] = Decimal("1") / price
+    except (InvalidOperation, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        return None
+
+    total = sum(inverse_prices.values(), Decimal("0"))
+    if not total.is_finite() or total <= Decimal("0"):
+        return None
+    raw = {key: value * Decimal("100") / total for key, value in inverse_prices.items()}
+    try:
+        rounded = {key: value.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
+                   for key, value in raw.items()}
+    except (InvalidOperation, OverflowError):
+        return None
+    target = max(raw, key=raw.get)
+    rounded[target] += Decimal("100.0") - sum(rounded.values(), Decimal("0"))
+    leader = max(raw.values())
+    leaders = [key for key, value in raw.items() if value == leader]
+    return {
+        "probabilities": {key: float(rounded[key]) for key in REQUIRED_OUTCOMES},
+        "favorite_key": leaders[0] if len(leaders) == 1 else None,
+    }
+
+
 def market_implied_forecast(match, *, is_upcoming, now=None):
     match = match if isinstance(match, dict) else {}
     base = {
@@ -51,42 +84,22 @@ def market_implied_forecast(match, *, is_upcoming, now=None):
     if quote_view.get("current") is not True or any(item.get("freshness") != "FRESH" for item in by_key.values()):
         return {**base, "state": "STALE_MARKET", "message": "Las cuotas guardadas no son actuales; no se muestra una estimación porcentual."}
 
-    inverse_prices = {}
-    for key, item in by_key.items():
-        try:
-            price = Decimal(str(item.get("price")))
-            if not price.is_finite() or price <= Decimal("1"):
-                raise InvalidOperation
-            inverse_prices[key] = Decimal("1") / price
-        except (InvalidOperation, TypeError, ValueError, ZeroDivisionError):
-            return {**base, "state": "INCOMPLETE_MARKET", "message": "No se calcula una lectura porcentual: una cuota 1X2 no es válida."}
-
-    total = sum(inverse_prices.values(), Decimal("0"))
-    if not total.is_finite() or total <= Decimal("0"):
-        return {**base, "state": "INCOMPLETE_MARKET", "message": "No se calcula una lectura porcentual: el mercado no es válido."}
+    normalized = normalized_market_probabilities({key: by_key[key].get("price") for key in REQUIRED_OUTCOMES})
+    if normalized is None:
+        return {**base, "state": "INCOMPLETE_MARKET", "message": "No se calcula una lectura porcentual: una cuota 1X2 no es válida."}
 
     definitions = (("home", "1", "Local"), ("draw", "X", "Empate"), ("away", "2", "Visitante"))
-    raw_percentages = {key: value * Decimal("100") / total for key, value in inverse_prices.items()}
-    rounded = {
-        key: value.quantize(Decimal("0.1"), rounding=ROUND_HALF_UP)
-        for key, value in raw_percentages.items()
-    }
-    rounding_remainder = Decimal("100.0") - sum(rounded.values(), Decimal("0"))
-    rounding_target = max(raw_percentages, key=raw_percentages.get)
-    rounded[rounding_target] += rounding_remainder
     outcomes = [
         {
             "key": key,
             "short_label": short_label,
             "label": str(by_key[key].get("label") or fallback_label),
             "odds": float(by_key[key]["price"]),
-            "probability_pct": float(rounded[key]),
+            "probability_pct": normalized["probabilities"][key],
         }
         for key, short_label, fallback_label in definitions
     ]
-    leader = max(raw_percentages.values())
-    leaders = [outcome for outcome in outcomes if raw_percentages[outcome["key"]] == leader]
-    favorite = leaders[0] if len(leaders) == 1 else None
+    favorite = next((item for item in outcomes if item["key"] == normalized["favorite_key"]), None)
     return {
         **base,
         "state": "CURRENT",

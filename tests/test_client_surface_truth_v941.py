@@ -318,7 +318,7 @@ def test_client_visible_copy_stays_spanish_after_final_polish():
         "Partidos y directo",
         "Importar pronósticos",
         "Pronóstico en revisión",
-        "Calidad datos/pronósticos",
+        "Calidad de datos",
         'ui("Aún no hay pronósticos publicados para este equipo.")',
     ):
         assert required in combined, required

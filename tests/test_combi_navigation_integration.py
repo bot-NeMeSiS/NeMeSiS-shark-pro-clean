@@ -215,7 +215,7 @@ def test_real_client_shell_workspace_is_visible_and_usable(browser,client_pages,
     for link in Elements(html).find('link',rel='stylesheet'):
         path = urlsplit(link.attrs.get('href','')).path
         if path.startswith('/static/') and (ROOT/path.lstrip('/')).is_file():
-            css.append((ROOT/path.lstrip('/')).read_text())
+            css.append((ROOT/path.lstrip('/')).read_text(encoding='utf-8'))
     # Test-only extraction of static markup. Actual dependencies remain unchanged.
     html = re.sub(r'<script\b[^>]*>[\s\S]*?</script>', '', html)
     html = re.sub(r'<link\b[^>]*>', '', html)

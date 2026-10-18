@@ -13,6 +13,7 @@ from urllib.parse import quote
 from engines.combi_advisor_engine import (
     CombiError, assess_market_choice, capabilities, clock, key, text,
 )
+from engines.market_forecast_engine import normalized_market_probabilities
 from engines.picks_quality_engine import competition_priority
 from engines.v935_launch_trust_engine import match_kickoff_madrid, match_status_truth
 
@@ -63,6 +64,86 @@ def _market_quote(choice, match, observations):
     return price
 
 
+def _market_reading(choices, user):
+    """A PRO/ELITE market reference only when one fresh quote supports all 1X2 sides."""
+    base = {
+        'available': False,
+        'state': 'UNAVAILABLE',
+        'probabilities': {},
+        'source': '',
+        'bookmaker': '',
+        'observed_at': '',
+        'message': 'No hay una lectura 1X2 completa y verificable para este partido.',
+        'method': '',
+        'disclaimer': 'No es una probabilidad calibrada por SHARK ni una promesa de resultado.',
+    }
+    if not capabilities(user)['can_build']:
+        return {**base, 'state': 'PLAN_LOCKED',
+                'message': 'La referencia de mercado está disponible en PRO y ELITE.'}
+    by_selection = {str(choice.get('selection') or ''): choice for choice in choices}
+    if len(choices) != 3 or set(by_selection) != {'1', 'X', '2'}:
+        return {**base, 'state': 'INCOMPLETE_MARKET',
+                'message': 'No mostramos porcentajes porque falta alguna de las tres opciones 1/X/2.'}
+    legs = [by_selection[value] for value in ('1', 'X', '2')]
+    if not all(leg.get('eligible') for leg in legs):
+        return {**base, 'state': 'QUOTE_NOT_CURRENT',
+                'message': 'No mostramos porcentajes porque alguna opción no supera las comprobaciones de vigencia, partido próximo y procedencia.'}
+    if any(str(leg.get('quote_clock_scope') or '') != 'PROVIDER_QUOTE_TIME' for leg in legs):
+        return {**base, 'state': 'PROVIDER_TIME_UNVERIFIED',
+                'message': 'No mostramos porcentajes: falta la hora original confirmada por la fuente de cuotas.'}
+    if any(str(leg.get('odds_source') or '').casefold() != 'the odds api' for leg in legs):
+        return {**base, 'state': 'UNVERIFIED_SOURCE',
+                'message': 'No mostramos porcentajes porque la procedencia de las cuotas no está confirmada.'}
+    signatures = {
+        (str(leg.get('quote_id') or ''), str(leg.get('observed_at') or ''),
+         key(leg.get('bookmaker')), str(leg.get('odds_source') or '').casefold())
+        for leg in legs
+    }
+    if len(signatures) != 1 or not next(iter(signatures))[0]:
+        return {**base, 'state': 'INCONSISTENT_QUOTES',
+                'message': 'No se calcula la lectura: las tres opciones no comparten la misma revisión de cuotas.'}
+    probabilities = normalized_market_probabilities({
+        'home': by_selection['1'].get('odds'),
+        'draw': by_selection['X'].get('odds'),
+        'away': by_selection['2'].get('odds'),
+    })
+    if probabilities is None:
+        return {**base, 'state': 'INVALID_QUOTES',
+                'message': 'No mostramos porcentajes porque alguna cuota decimal no es válida.'}
+    first = legs[0]
+    return {
+        **base,
+        'available': True,
+        'state': 'CURRENT',
+        'probabilities': probabilities['probabilities'],
+        'favorite_key': probabilities['favorite_key'],
+        'source': text(first.get('odds_source')),
+        'bookmaker': text(first.get('bookmaker')),
+        'observed_at': text(first.get('observed_at'), 80),
+        'message': 'Lectura implícita calculada desde las tres cuotas 1X2 actuales de una misma revisión.',
+        'method': '1/cuota, normalizado entre local, empate y visitante.',
+    }
+
+
+def _assess_market_group(anchor, match, observations, user, now):
+    choices = []
+    for selection in ('1', 'X', '2'):
+        ident = choice_id(anchor, selection)
+        if not ident:
+            continue
+        choice = {'id': ident, 'match_id': str(match['id']), 'market': '1x2',
+                  'selection': selection, 'bookmaker': anchor.get('bookmaker'),
+                  'membership_required': 'PRO'}
+        price = _market_quote(choice, match, observations)
+        choices.append(assess_market_choice(choice, match, price, user, now=now))
+    reading = _market_reading(choices, user)
+    if reading['available']:
+        probability_key = {'1': 'home', 'X': 'draw', '2': 'away'}
+        for leg in choices:
+            leg['market_implied_probability_pct'] = reading['probabilities'][probability_key[leg['selection']]]
+    return choices, reading
+
+
 def resolve_choices(conn, user, now, ids):
     """Re-read the immutable association before resolving the newest stored price."""
     from engines import client_combi_store as store
@@ -92,6 +173,7 @@ def resolve_choices(conn, user, now, ids):
     if truncated:
         raise CombiError('QUOTE_WINDOW_LIMIT', 'Hay demasiadas revisiones de cuotas para verificarlas en esta lectura.', 503)
     output = []
+    evaluated = {}
     for ident,(sid,selection,fingerprint) in parsed.items():
         group = anchors.get(sid,[])
         if len(group) != 1 or _anchor(group[0]) != fingerprint:
@@ -102,11 +184,11 @@ def resolve_choices(conn, user, now, ids):
             continue
         if any(key(anchor.get(side+'_team')) != key(match.get(side+'_team')) for side in ('home','away')):
             continue
-        choice = {'id':ident,'match_id':str(match['id']), 'market':'1x2', 'selection':selection,
-                  'bookmaker':anchor.get('bookmaker'), 'membership_required':'PRO'}
-        # Existing resolver refuses stale provider clocks and conflicting prices.
-        market = _market_quote(choice, match, observations)
-        output.append(assess_market_choice(choice, match, market, user, now=now))
+        if sid not in evaluated:
+            evaluated[sid] = _assess_market_group(anchor, match, observations, user, now)
+        leg = next((item for item in evaluated[sid][0] if item['id'] == ident), None)
+        if leg:
+            output.append(leg)
     return output
 
 
@@ -186,17 +268,11 @@ def read_catalogue(conn, user, *, filters=None, selected=None, now=None):
                 quotes[book]=r
         groups=[]
         for book,anchor in sorted(quotes.items()):
-            choices=[]
-            for selection in ('1','X','2'):
-                ident=choice_id(anchor,selection)
-                if not ident:
-                    continue
-                choice={'id':ident,'match_id':str(m['id']),'market':'1x2','selection':selection,
-                        'bookmaker':anchor.get('bookmaker'),'membership_required':'PRO'}
-                price=_market_quote(choice,m,observations) if not truncated else {}
-                leg=assess_market_choice(choice,m,price,user,now=now)
-                choices.append(leg)
-            groups.append({'bookmaker':text(anchor.get('bookmaker')), 'choices':choices})
+            choices, reading = _assess_market_group(anchor,m,observations,user,now) if not truncated else ([], {
+                'available': False, 'state': 'QUOTE_WINDOW_LIMIT',
+                'message': 'Omitimos la lectura porcentual para mantener acotada esta consulta.'})
+            groups.append({'bookmaker':text(anchor.get('bookmaker')), 'choices':choices,
+                           'market_reading':reading})
         info={'id':str(m['id']), 'home':text(m.get('home_team')),'away':text(m.get('away_team')),
               'competition':competition,'kickoff':kickoff.isoformat(), 'featured':rank>=14,
               'source':text(m.get('source')), 'groups':groups,

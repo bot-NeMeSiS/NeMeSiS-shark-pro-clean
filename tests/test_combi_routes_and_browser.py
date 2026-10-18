@@ -11,6 +11,7 @@ from jinja2 import ChoiceLoader, DictLoader, FileSystemLoader, Environment, sele
 from playwright.sync_api import sync_playwright
 
 from test_combi_advisor_contract import db, NOW, preview_values, ready_save, fixture
+from test_combi_match_catalogue import quotes as add_quotes, provider_quote_clock
 from engines import client_combi_store as store
 from engines.security_engine import generate_csrf_token
 from blueprints.client_combis import create_client_combi_blueprint
@@ -45,6 +46,58 @@ def login(client,owner='a'):
     with client.session_transaction() as sess:
         sess['user_id']=owner
         return generate_csrf_token(sess)
+
+
+@pytest.mark.parametrize('owner,manual,automatic',[('f',False,False),('b',True,False),('a',True,True)])
+def test_combi_page_exposes_only_each_plan_entitlement(webapp,owner,manual,automatic):
+    c=webapp.test_client();login(c,owner)
+    body=c.get('/combinadas').get_data(as_text=True)
+    assert ('id="combi-manual-builder"' in body) is manual
+    assert ('Propuesta automática, sin apostar' in body) is automatic
+    if automatic:
+        assert 'Criterio de ordenación' in body
+        assert 'no significa menor riesgo' in body
+        assert 'no implica mejor pronóstico' in body
+        assert 'Perfil</label>' not in body
+
+
+def test_pro_and_elite_receive_only_fresh_provider_market_reading_in_builder(webapp,db):
+    add_quotes(db,ids=(1,))
+    provider_quote_clock(db,ids=(1,))
+    pro=webapp.test_client();login(pro,'b')
+    pro_body=pro.get('/combinadas',query_string={'q':'Local 1'}).get_data(as_text=True)
+    assert 'Lectura implícita 1X2' in pro_body
+    assert 'No es un pronóstico de SHARK' in pro_body
+    assert 'probabilidad implícita para esta selección' not in pro_body
+
+    free=webapp.test_client();login(free,'f')
+    free_body=free.get('/combinadas',query_string={'q':'Local 1'}).get_data(as_text=True)
+    assert 'Lectura implícita 1X2' not in free_body
+
+
+def test_paid_builder_explains_missing_provider_timestamp(webapp,db):
+    add_quotes(db,ids=(1,))
+    pro=webapp.test_client();login(pro,'b')
+    body=pro.get('/combinadas',query_string={'q':'Local 1'}).get_data(as_text=True)
+    assert 'No mostramos porcentajes' in body
+    assert 'hora original confirmada por la fuente de cuotas' in body
+
+
+def test_editorial_pick_preview_shows_its_published_reason_and_warning(webapp,db):
+    add_quotes(db)
+    provider_quote_clock(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute('ALTER TABLE picks ADD COLUMN reasoning TEXT')
+        conn.execute('ALTER TABLE picks ADD COLUMN warning_reason TEXT')
+        conn.execute("UPDATE picks SET reasoning='Ritmo reciente y ventaja de campo' WHERE id IN ('p1','p2')")
+        conn.execute("UPDATE picks SET warning_reason='Muestra limitada' WHERE id='p1'")
+    c=webapp.test_client();token=login(c,'a')
+    response=c.post('/combinadas',data={'csrf_token':token,'pick_ids':['p1','p2'],'stake':'0.10'})
+    body=response.get_data(as_text=True)
+    assert response.status_code==200
+    assert 'Motivo del pronóstico publicado:' in body
+    assert 'Ritmo reciente y ventaja de campo' in body
+    assert 'Aviso asociado:' in body and 'Muestra limitada' in body
 
 
 @pytest.mark.parametrize('url',['/combis','/combinadas'])
@@ -102,7 +155,7 @@ def test_preview_form_works_without_javascript(webapp):
     p=c.post('/combinadas',data={**preview_values(),'csrf_token':token})
     assert p.status_code==200
     html=p.get_data(as_text=True)
-    assert 'Revisión SHARK' in html and 'Guardar borrador privado' in html
+    assert 'Revisión de combinada' in html and 'Guardar borrador privado' in html
     assert 'name="revision"' in html and 'name="request_id"' in html
 
 

@@ -3,30 +3,30 @@
 {% from 'components/combi_draft_review.html' import draft_review %}
 {% from 'components/combi_match_catalogue.html' import match_catalogue %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=core-constructor-2">
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=market-reading-1">
 <script src="{{ url_for('static', filename='combinadas.js') }}?v=core-constructor-2" defer></script>
 {% set cap = center.capabilities %}
 <div class="v933-page ns-combis" data-v933-template="combis" data-combi-contract="NEMESIS-COMBI-ADVICE-V1">
-{{ page_header('Combinadas', 'Elige próximos partidos, consulta sus cuotas y revisa tu selección.', 'target') }}
+{{ page_header('Combinadas', 'Crea y revisa combinadas con partidos y cuotas reales. Cuando existe una lectura 1X2 completa y vigente, verás la referencia de mercado; no es una predicción de SHARK.', 'target') }}
 {% include 'components/picks_workspace_nav.html' %}
 <details class="v933-home-more"><summary>Ayuda y contexto</summary><nav class="ns-combi-links" aria-label="Secciones relacionadas"><a href="/calendario">Calendario</a><a href="/shark">Consultar SHARK</a><a href="/juego-responsable">Juego responsable</a></nav></details>
 {% if form_state.entry_message %}<p class="ns-combi-warning" role="status">{{ form_state.entry_message }}</p>{% endif %}
 {% if error %}<p class="ns-combi-error" role="alert">{{ error }}</p>{% endif %}
 {% if request.args.get('guardado') == '1' %}<p role="status">Consulta tus borradores guardados abajo. No se ha colocado ninguna apuesta.</p>{% endif %}
 <section class="ns-combi-panel ns-market-intro"><h2>Prepara tu combinada</h2>
-<p>{{ cap.plan }} · Selecciona próximos encuentros y consulta la información sin salir del constructor.</p>
-<details><summary>Cómo funciona y qué necesitas</summary><p>Elige local (1), empate (X) o visitante (2) en partidos distintos, con cuotas recientes de la misma casa. Puedes revisar cada partido antes de guardar tu borrador.</p></details>
+<p>{{ cap.plan }} · PRO permite preparar borradores manuales de hasta {{ cap.max_legs }} partidos. ELITE añade propuestas ordenadas automáticamente; no se presentan como pronósticos de acierto.</p>
+<details><summary>Cómo funciona y qué necesitas</summary><p>Elige local (1), empate (X) o visitante (2) en partidos distintos, con cuotas recientes de la misma casa. Cuando las tres opciones proceden de la misma revisión del proveedor y su hora original está verificada, se muestra una lectura implícita del mercado. Puedes revisar cada partido antes de guardar tu borrador.</p></details>
 {% if not center.signed_in %}<a href="/cliente-login">Iniciar sesión</a>
 {% elif not cap.can_build %}<p>La creación pertenece a PRO; la propuesta automática y hasta 15 selecciones, a ELITE. Las combinadas largas no se consideran seguras.</p><a href="/membresias">Consultar tu plan</a>{% endif %}
 </section>
 {% if review %}{{ draft_review(review) }}{% endif %}
 {% if preview %}
 <section class="ns-combi-panel" id="combi-preview" aria-labelledby="combi-preview-title">
-<h2 id="combi-preview-title">Revisión SHARK · borrador</h2>
+<h2 id="combi-preview-title">Revisión de combinada · borrador</h2>
 <p>{{ preview.legs|length }} selecciones · {{ preview.bookmaker }}</p>
 <dl class="ns-combi-kpis"><div><dt>Producto de cuotas orientativo</dt><dd>{{ preview.total_odds }}</dd></div><div><dt>Importe simulado</dt><dd>{{ preview.stake }} €</dd></div><div><dt>Retorno condicional ilustrado</dt><dd>{{ preview.potential_return }} €</dd></div></dl>
 <p>No es una oferta conjunta confirmada por la casa. La probabilidad conjunta no está calculada.</p>
-<ol>{% for leg in preview.legs %}<li><a href="{{ leg.match_url }}">{{ leg.match }}</a> · {{ leg.selection_label }} · {{ leg.odds }}<br><small>Hora de la cuota: {{ leg.observed_at|madrid_datetime_label }} · {{ leg.odds_source }}</small>{% if leg.id == preview.fragile_leg %}<p>Selección de cuota más alta. {{ preview.fragile_explanation }}</p>{% endif %}<a href="{{ leg.advice_url }}">Revisar evidencia con SHARK</a></li>{% endfor %}</ol>
+<ol>{% for leg in preview.legs %}<li><a href="{{ leg.match_url }}">{{ leg.match }}</a> · {{ leg.selection_label }} · {{ leg.odds }}<br><small>Hora de la cuota: {{ leg.observed_at|madrid_datetime_label }} · {{ leg.odds_source }}</small>{% if leg.market_implied_probability_pct is defined and leg.market_implied_probability_pct is not none %}<p>Referencia implícita de mercado para esta selección: {{ '%.1f'|format(leg.market_implied_probability_pct) }}%. No es una probabilidad calibrada por SHARK.</p>{% endif %}{% if leg.selection_origin == 'editorial_pick' and leg.editorial_reason %}<p><strong>Motivo del pronóstico publicado:</strong> {{ leg.editorial_reason }}</p>{% endif %}{% if leg.selection_origin == 'editorial_pick' and leg.risk_note %}<p class="ns-combi-warning"><strong>Aviso asociado:</strong> {{ leg.risk_note }}</p>{% endif %}{% if leg.id == preview.fragile_leg %}<p>Selección de cuota más alta. {{ preview.fragile_explanation }}</p>{% endif %}<a href="{{ leg.advice_url }}">Revisar evidencia con SHARK</a></li>{% endfor %}</ol>
 {% for warning in preview.warnings %}<p class="ns-combi-warning">{{ warning }}</p>{% endfor %}
 <details><summary>Copiar borrador</summary><label for="combi-copy">Texto para revisar fuera de NeMeSiS</label><textarea id="combi-copy" rows="7" readonly>{{ preview.copy_text }}</textarea><button type="button" data-action="copy-combi" data-copy-combi hidden>Copiar texto</button><p data-copy-status role="status"></p></details>
 <form method="post" action="/combinadas" data-combi-form>
@@ -51,7 +51,7 @@
 {% if cap.can_suggest %}
 <details class="ns-combi-panel"><summary>Propuesta automática a partir de pronósticos publicados</summary><h2>Propuesta automática, sin apostar</h2><p>Ordenación de pronósticos elegibles, no una predicción de acierto. Los perfiles no evitan la posibilidad de perder.</p>
 <form method="post" action="/combinadas" data-combi-form><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="mode" value="suggest">
-<div class="ns-combi-fields"><label>Partidos<select name="count">{% for n in range(2,16) %}<option value="{{ n }}"{% if n|string == form_state.count %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label><label>Perfil<select name="risk"><option value="conservador"{% if form_state.risk == 'conservador' %} selected{% endif %}>Conservador · menor cuota primero</option><option value="equilibrado"{% if form_state.risk == 'equilibrado' %} selected{% endif %}>Equilibrado · orden de inicio</option><option value="agresivo"{% if form_state.risk == 'agresivo' %} selected{% endif %}>Agresivo · mayor cuota primero</option></select></label><label>Fecha opcional<input type="date" name="date" value="{{ form_state.date }}"></label><label>Importe simulado (€)<input name="stake" value="{{ form_state.stake }}" inputmode="decimal" maxlength="32" required></label></div>
+<div class="ns-combi-fields"><label>Partidos<select name="count">{% for n in range(2,16) %}<option value="{{ n }}"{% if n|string == form_state.count %} selected{% endif %}>{{ n }}</option>{% endfor %}</select></label><label>Criterio de ordenación<select name="risk"><option value="conservador"{% if form_state.risk == 'conservador' %} selected{% endif %}>Menor cuota primero · no significa menor riesgo</option><option value="equilibrado"{% if form_state.risk == 'equilibrado' %} selected{% endif %}>Inicio más temprano · menor cuota como desempate</option><option value="agresivo"{% if form_state.risk == 'agresivo' %} selected{% endif %}>Mayor cuota primero · no implica mejor pronóstico</option></select></label><label>Fecha opcional<input type="date" name="date" value="{{ form_state.date }}"></label><label>Importe simulado (€)<input name="stake" value="{{ form_state.stake }}" inputmode="decimal" maxlength="32" required></label></div>
 <button type="submit"{% if center.candidates|length < 2 %} disabled{% endif %}>Preparar propuesta para revisar</button></form></details>
 {% endif %}
 {% if center.blocked %}<details class="ns-combi-panel"><summary>Por qué algunas selecciones no se pueden combinar ({{ center.blocked|length }})</summary>{% for leg in center.blocked[:20] %}<article><h3>{{ leg.match }}</h3>{% for reason in leg.reasons %}<p>{{ reason }}</p>{% endfor %}<a href="{{ leg.advice_url }}">Ver explicación de SHARK</a></article>{% endfor %}<p>Se muestran hasta 20 motivos; no es una auditoría de todas las ligas.</p></details>{% endif %}
