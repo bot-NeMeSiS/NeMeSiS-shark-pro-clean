@@ -352,6 +352,7 @@ from engines.legal_compliance_engine import (
     legal_admin_snapshot,
 )
 from engines.stripe_payments_engine import (
+    MAX_STRIPE_WEBHOOK_BODY_BYTES,
     client_payments_context,
     create_checkout_session,
     create_customer_portal_session,
@@ -32089,7 +32090,25 @@ def payments_cancel_page():
 
 @app.route("/api/payments/stripe-webhook", methods=["POST"])
 def api_payments_stripe_webhook():
-    payload_bytes = request.get_data() or b""
+    if request.content_length is not None and request.content_length > MAX_STRIPE_WEBHOOK_BODY_BYTES:
+        return jsonify({
+            "version": APP_VERSION,
+            "ok": False,
+            "verified": False,
+            "processed": False,
+            "error": "payload_too_large",
+            "status": "payload_too_large",
+        }), 413
+    payload_bytes = request.stream.read(MAX_STRIPE_WEBHOOK_BODY_BYTES + 1) or b""
+    if len(payload_bytes) > MAX_STRIPE_WEBHOOK_BODY_BYTES:
+        return jsonify({
+            "version": APP_VERSION,
+            "ok": False,
+            "verified": False,
+            "processed": False,
+            "error": "payload_too_large",
+            "status": "payload_too_large",
+        }), 413
     signature = request.headers.get("Stripe-Signature", "")
     result = process_stripe_webhook(DB_PATH, payload_bytes, signature)
     status_code = 200 if result.get("ok") else 400

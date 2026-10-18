@@ -21,6 +21,7 @@ ACTIVE_STATUSES = {"active", "trialing"}
 KEEP_ACCESS_STATUSES = {"active", "trialing", "past_due"}
 CANCEL_STATUSES = {"canceled", "unpaid", "incomplete_expired", "paused"}
 VALID_PAID_PLANS = {"PRO", "ELITE"}
+MAX_STRIPE_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024
 
 def local_safe_payments_blocked() -> bool:
     return str(os.getenv("NEMESIS_LOCAL_SAFE_MODE") or "").strip().lower() in {"1", "true", "yes", "on"}
@@ -727,24 +728,41 @@ def parse_webhook_event(payload_bytes: bytes, signature: str) -> Dict[str, Any]:
 def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -> Dict[str, Any]:
     if local_safe_payments_blocked():
         return local_safe_payment_result()
-    ensure_stripe_schema(db_path)
-    verified = False
+    payload_bytes = payload_bytes or b""
+    try:
+        if len(payload_bytes) > MAX_STRIPE_WEBHOOK_BODY_BYTES:
+            return {
+                "ok": False,
+                "verified": False,
+                "processed": False,
+                "error": "payload_too_large",
+                "status": "payload_too_large",
+            }
+    except TypeError:
+        return {
+            "ok": False,
+            "verified": False,
+            "processed": False,
+            "error": "invalid_payload",
+            "status": "invalid_signature",
+        }
     try:
         event = parse_webhook_event(payload_bytes, signature)
         if not isinstance(event, dict):
             event = dict(event)
         verified = True
-    except Exception as exc:
-        conn = connect(db_path)
-        try:
-            fallback = json.loads((payload_bytes or b"{}").decode("utf-8") or "{}")
-        except Exception:
-            fallback = {"type": "unreadable"}
-        record_event(conn, fallback, False, "invalid_signature", reason=str(exc), processed=False)
-        conn.commit()
-        conn.close()
-        return {"ok": False, "verified": False, "processed": False, "error": str(exc), "status": "invalid_signature"}
+    except Exception:
+        # Unverified requests are untrusted input: don't create schema or store
+        # their body/event ID, and keep malformed payloads on the rejection path.
+        return {
+            "ok": False,
+            "verified": False,
+            "processed": False,
+            "error": "webhook_verification_failed",
+            "status": "invalid_signature",
+        }
 
+    ensure_stripe_schema(db_path)
     event_type = str(event.get("type") or "unknown")
     obj = ((event.get("data") or {}).get("object") or {}) if isinstance(event.get("data"), dict) else {}
     metadata = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
