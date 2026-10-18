@@ -60,10 +60,13 @@ def test_real_possession_is_rendered_as_a_labeled_pitch_share(app_module):
             'home': {'name': 'Granada'}, 'away': {'name': 'Visitante'},
         }})
     assert 'v944-possession__pitch' in rendered
-    assert 'Granada: 61%. Visitante: 39%.' in rendered
+    assert 'Reparto porcentual de posesión: Granada 61%, Visitante 39%.' in rendered
     assert '61%' in rendered and '39%' in rendered
     assert 'Faltas' in rendered and 'Saques de banda' in rendered
     assert 'Dato real del proveedor' in rendered
+    assert 'data-visualization="aggregate-share"' in rendered
+    assert 'data-spatial-map-available="false"' in rendered
+    assert 'no es un mapa de zonas ni la ubicación del balón' in rendered
 
 
 def test_match_panel_explains_unavailable_possession_instead_of_guessing(app_module):
@@ -78,3 +81,21 @@ def test_match_panel_explains_unavailable_possession_instead_of_guessing(app_mod
         }})
     assert 'El proveedor no ha entregado la posesión de este partido.' in rendered
     assert 'v944-possession__pitch' not in rendered
+
+
+def test_finished_match_uses_saved_possession_without_claiming_spatial_map(app_module):
+    stats = _real_statistics({}, {'is_finished': True}, {
+        'available': True, 'postmatch_recovered': True,
+        'source': 'api_football_stats_cache', 'updated_at': '2026-10-17T16:01:00Z',
+        'items': [{'key': 'possession', 'label': 'Posesión', 'home': '57%', 'away': '43%'}],
+    })
+    with app_module.app.test_request_context():
+        template = app_module.app.jinja_env.from_string(
+            "{% from 'components/v944_match_center.html' import stats_panel %}{{ stats_panel(context) }}")
+        rendered = template.render(context={'statistics': stats, 'teams': {
+            'home': {'name': 'Local'}, 'away': {'name': 'Visitante'},
+        }})
+    assert 'data-stat-source="api_football_stats_cache"' in rendered
+    assert 'Local 57%' in rendered and 'Visitante 43%' in rendered
+    assert 'data-spatial-map-available="false"' in rendered
+    assert '2026-10-17T16:01:00Z' in rendered

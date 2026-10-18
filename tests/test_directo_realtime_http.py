@@ -136,7 +136,10 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     shipped_css = (Path(__file__).resolve().parents[1] / 'static' / 'product-system.css').read_text(encoding='utf-8')
     assert '.v934-live-stats__all-row' in shipped_css
     assert 'v934-live-stats' in html
-    assert 'Local QA: 61%. Visitante QA: 39%.' in html
+    assert 'Reparto porcentual de posesión: Local QA 61%, Visitante QA 39%.' in html
+    assert 'data-visualization="aggregate-share"' in html
+    assert 'data-spatial-map-available="false"' in html
+    assert 'no es un mapa de zonas ni la ubicación del balón' in html
     assert 'Tiros a puerta' in html and 'Faltas' in html and 'Córners' in html and 'Saques de banda' in html
     assert 'data-live-statistics-more' in html
     assert 'Ver todas las estadísticas disponibles' in html

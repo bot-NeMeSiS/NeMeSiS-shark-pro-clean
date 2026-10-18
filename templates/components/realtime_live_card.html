@@ -48,17 +48,18 @@
     {% endfor %}
     <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or tracker.get('updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
       {% if field.get('possession_available') %}
-      <div class="v944-possession v944-possession--compact">
+      <div class="v944-possession v944-possession--compact" data-visualization="aggregate-share" data-spatial-map-available="false">
         <div class="v944-possession__heading"><strong>{{ ui('Posesión del balón') }}</strong><span>{{ ui('Porcentaje real del proveedor') }}</span></div>
-        <div class="v944-possession__pitch" role="img" aria-label="{{ home_name }}: {{ field.get('home_possession_pct') }}%. {{ away_name }}: {{ field.get('away_possession_pct') }}%.">
-          <span class="v944-possession__share is-home" style="width: {{ field.get('home_possession_pct') }}%"></span>
-          <span class="v944-possession__share is-away" style="width: {{ field.get('away_possession_pct') }}%"></span>
+        <div class="v944-possession__pitch" role="img" aria-label="{{ ui('Reparto porcentual de posesión:') }} {{ home_name }} {{ field.get('home_possession_pct') }}%, {{ away_name }} {{ field.get('away_possession_pct') }}%.">
+          <span class="v944-possession__share is-home" style="width: {{ field.get('home_possession_bar_pct', field.get('home_possession_pct')) }}%"></span>
+          <span class="v944-possession__share is-away" style="width: {{ field.get('away_possession_bar_pct', field.get('away_possession_pct')) }}%"></span>
           <span class="v944-possession__midline" aria-hidden="true"></span>
         </div>
         <div class="v944-possession__teams">
           <span><strong>{{ home_name }}</strong><b>{{ field.get('home_possession_pct') }}%</b></span>
           <span><strong>{{ away_name }}</strong><b>{{ field.get('away_possession_pct') }}%</b></span>
         </div>
+        <small class="v944-possession__note">{{ ui('Reparto total de posesión; no es un mapa de zonas ni la ubicación del balón.') }}</small>
       </div>
       {% endif %}
       <div class="v934-live-stats__ribbon" aria-label="Resumen de estadísticas del proveedor">

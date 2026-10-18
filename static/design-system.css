@@ -24084,8 +24084,8 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
   height: 34px;
   overflow: hidden;
   border: 1px solid rgba(188, 235, 246, .55);
-  border-radius: 8px;
-  background: repeating-linear-gradient(90deg, rgba(54, 160, 130, .22) 0 12.5%, rgba(54, 160, 130, .34) 12.5% 25%);
+  border-radius: 999px;
+  background: rgba(135, 158, 184, .16);
 }
 .v944-possession__share { display: block; height: 100%; transition: width .2s ease; }
 .v944-possession__share.is-home { border-inline-end: 1px solid rgba(255,255,255,.75); background: rgba(46, 191, 204, .48); }
@@ -24096,6 +24096,7 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
 .v944-possession__teams strong { min-width: 0; overflow-wrap: anywhere; color: var(--v944-muted); font-size: .67rem; }
 .v944-possession__teams b { flex: 0 0 auto; color: #f4fcff; font-size: .86rem; }
 .v944-possession__unavailable { margin: 0; line-height: 1.45; }
+.v944-possession__note { color: var(--v944-muted); font-size: .68rem; line-height: 1.4; }
 .v934-live-stats { display: grid; gap: 7px; min-width: 0; margin: 8px 0 2px; padding: 0 10px 10px; }
 .v944-possession--compact { gap: 7px; margin: 0; padding: 9px; }
 .v944-possession--compact .v944-possession__pitch { height: 25px; }

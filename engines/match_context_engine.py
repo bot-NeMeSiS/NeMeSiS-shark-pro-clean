@@ -206,16 +206,29 @@ def _possession_meter(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
     home_pct = percentage(item.get("home"))
     away_pct = percentage(item.get("away"))
-    if home_pct is None or away_pct is None:
-        return {"available": False, "source": "API-Football"}
+    total = (home_pct or 0) + (away_pct or 0)
+    if (
+        home_pct is None or away_pct is None or total <= 0
+        or abs(total - 100) > 1
+    ):
+        return {
+            "available": False,
+            "source": "API-Football",
+            "spatial_map_available": False,
+            "visualization": "aggregate_share",
+        }
     return {
         "available": True,
         "home_pct": home_pct,
         "away_pct": away_pct,
+        "home_bar_pct": home_pct / total * 100,
+        "away_bar_pct": away_pct / total * 100,
         "home_display": str(item.get("home")),
         "away_display": str(item.get("away")),
         "label": "Posesión de balón",
         "source": "API-Football",
+        "spatial_map_available": False,
+        "visualization": "aggregate_share",
     }
 
 

@@ -367,7 +367,7 @@
 {% set possession = statistics.get('possession') or {} %}
 {{ panel_start('StatsPanel', component, 'Estadísticas', 'Datos del partido y estado de actualización.', 'stats') }}
   {% if statistics.get('available') %}
-  <section class="v944-possession" data-possession-source="{{ possession.get('source') or '' }}" data-possession-available="{{ 'true' if possession.get('available') else 'false' }}" aria-label="{{ ui('Posesión del balón') }}">
+  <section class="v944-possession" data-possession-source="{{ possession.get('source') or '' }}" data-possession-available="{{ 'true' if possession.get('available') else 'false' }}" data-visualization="aggregate-share" data-spatial-map-available="false" aria-label="{{ ui('Reparto total de posesión') }}">
     <div class="v944-possession__heading">
       <strong>{{ ui('Posesión del balón') }}</strong>
       <span>{{ ui('Dato real del proveedor') }}</span>
@@ -375,15 +375,16 @@
     {% if possession.get('available') %}
     {% set home_name = teams.get('home', {}).get('name') or ui('Local') %}
     {% set away_name = teams.get('away', {}).get('name') or ui('Visitante') %}
-    <div class="v944-possession__pitch" role="img" aria-label="{{ home_name }}: {{ possession.get('home_display') }}. {{ away_name }}: {{ possession.get('away_display') }}.">
-      <span class="v944-possession__share is-home" style="width: {{ possession.get('home_pct') }}%"></span>
-      <span class="v944-possession__share is-away" style="width: {{ possession.get('away_pct') }}%"></span>
+    <div class="v944-possession__pitch" role="img" aria-label="{{ ui('Reparto porcentual de posesión:') }} {{ home_name }} {{ possession.get('home_display') }}, {{ away_name }} {{ possession.get('away_display') }}.">
+      <span class="v944-possession__share is-home" style="width: {{ possession.get('home_bar_pct') }}%"></span>
+      <span class="v944-possession__share is-away" style="width: {{ possession.get('away_bar_pct') }}%"></span>
       <span class="v944-possession__midline" aria-hidden="true"></span>
     </div>
     <div class="v944-possession__teams">
       <span><strong>{{ home_name }}</strong><b>{{ possession.get('home_display') }}</b></span>
       <span><strong>{{ away_name }}</strong><b>{{ possession.get('away_display') }}</b></span>
     </div>
+    <small class="v944-possession__note">{{ ui('Reparto total de posesión; no es un mapa de zonas ni la ubicación del balón.') }}</small>
     {% else %}
     <p class="v944-possession__unavailable">{{ ui('El proveedor no ha entregado la posesión de este partido.') }}</p>
     {% endif %}

@@ -116,6 +116,36 @@ def test_field_keeps_possession_separate_from_derived_pressure_and_keeps_real_ze
     assert "Córners 0-2" in field["chips"]
     assert "Posesión 0-100%" in field["chips"]
     assert pressure["home_pct"] != field["home_possession_pct"]
+    assert field["spatial_map_available"] is False
+    assert field["home_possession_bar_pct"] == 0
+    assert field["away_possession_bar_pct"] == 100
+
+
+def test_field_hides_incoherent_possession_pair_and_normalizes_only_bar_widths():
+    rounded_stats = {
+        "available": True,
+        "teams": [
+            _team("10", "Local", {"possession": ("Ball Possession", "61%", 61)}),
+            _team("20", "Visitante", {"possession": ("Ball Possession", "38%", 38)}),
+        ],
+    }
+    rounded = _field_state(rounded_stats, [], {}, "Local", "Visitante", "10", "20")
+    assert rounded["possession_available"] is True
+    assert rounded["home_possession_pct"] == 61
+    assert rounded["away_possession_pct"] == 38
+    assert rounded["home_possession_bar_pct"] + rounded["away_possession_bar_pct"] == 100
+
+    invalid_stats = {
+        "available": True,
+        "teams": [
+            _team("10", "Local", {"possession": ("Ball Possession", "61%", 61)}),
+            _team("20", "Visitante", {"possession": ("Ball Possession", "20%", 20)}),
+        ],
+    }
+    invalid = _field_state(invalid_stats, [], {}, "Local", "Visitante", "10", "20")
+    assert invalid["possession_available"] is False
+    assert invalid["home_possession_pct"] is None
+    assert invalid["away_possession_pct"] is None
 
 
 def test_match_context_never_invents_missing_or_one_sided_possession():
@@ -130,6 +160,38 @@ def test_match_context_never_invents_missing_or_one_sided_possession():
 
     assert one_sided["possession"]["available"] is False
     assert no_possession["possession"]["available"] is False
+
+
+def test_match_context_rejects_incoherent_possession_and_scales_rounded_bar():
+    rounded = _real_statistics({"provider": "api_football", "stat_cards": [
+        {"key": "possession", "label": "Posesión", "home": "61%", "away": "38%"},
+    ]}, {})["possession"]
+    assert rounded["available"] is True
+    assert rounded["home_pct"] == 61
+    assert rounded["away_pct"] == 38
+    assert rounded["home_bar_pct"] + rounded["away_bar_pct"] == 100
+    assert rounded["spatial_map_available"] is False
+
+    inconsistent = _real_statistics({"provider": "api_football", "stat_cards": [
+        {"key": "possession", "label": "Posesión", "home": "61%", "away": "20%"},
+    ]}, {})["possession"]
+    assert inconsistent["available"] is False
+
+
+def test_finished_match_can_render_persisted_provider_possession():
+    stats = _real_statistics({}, {"is_finished": True}, {
+        "available": True,
+        "postmatch_recovered": True,
+        "source": "api_football_stats_cache",
+        "updated_at": "2026-10-17T16:01:00Z",
+        "items": [
+            {"key": "possession", "label": "Posesión", "home": "57%", "away": "43%"},
+        ],
+    })
+    assert stats["available"] is True
+    assert stats["snapshot_kind"] == "persisted"
+    assert stats["possession"]["available"] is True
+    assert stats["possession"]["home_display"] == "57%"
 
 
 def test_directo_summaries_use_only_cached_statistics_and_are_read_only(tmp_path):
@@ -214,7 +276,10 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
             "{% from 'components/realtime_live_card.html' import live_card %}{{ live_card(match) }}")
         rendered = template.render(match=match)
     assert "v934-live-stats" in rendered
-    assert "Granada: 61%. Rival: 39%." in rendered
+    assert "Reparto porcentual de posesión: Granada 61%, Rival 39%." in rendered
+    assert 'data-visualization="aggregate-share"' in rendered
+    assert 'data-spatial-map-available="false"' in rendered
+    assert "no es un mapa de zonas ni la ubicación del balón" in rendered
     assert "Tiros a puerta" in rendered and "Faltas" in rendered and "Córners" in rendered
     assert "API-Football" in rendered
     assert "API-Football Pro" not in rendered

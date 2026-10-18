@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import sqlite3
@@ -1106,10 +1107,11 @@ def _field_state(
     stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any],
     home_name: str, away_name: str, home_team_id: Any = "", away_team_id: Any = "",
 ) -> dict[str, Any]:
-    """Client field interpretation from real API-Football signals only.
+    """Client live interpretation from real API-Football signals only.
 
-    API-Football does not provide exact ball x/y coordinates in this integration, so
-    NeMeSiS shows pressure zone, latest real event and stat evidence instead of an invented ball marker.
+    This integration has no spatial coordinates or zone map. It exposes aggregate
+    possession, provider statistics, events and pressure signals without drawing
+    an invented pitch location.
     """
     home_p = int(pressure.get("home_pct") or 50)
     away_p = int(pressure.get("away_pct") or 50)
@@ -1121,9 +1123,12 @@ def _field_state(
     attacks_home, attacks_away = _stat_pair(stats, "attacks", home, away)
     corners_home, corners_away = _stat_pair(stats, "corners", home, away)
     possession_home, possession_away = _stat_pair(stats, "possession", home, away)
+    possession_total = (possession_home or 0) + (possession_away or 0)
     possession_available = (
         possession_home is not None and possession_away is not None
+        and math.isfinite(possession_home) and math.isfinite(possession_away)
         and 0 <= possession_home <= 100 and 0 <= possession_away <= 100
+        and possession_total > 0 and abs(possession_total - 100) <= 1
     )
     latest = _last_event_label(events)
     if da_home is not None or da_away is not None:
@@ -1176,6 +1181,10 @@ def _field_state(
         "possession_available": possession_available,
         "home_possession_pct": possession_home if possession_available else None,
         "away_possession_pct": possession_away if possession_available else None,
+        "home_possession_bar_pct": possession_home / possession_total * 100 if possession_available else None,
+        "away_possession_bar_pct": possession_away / possession_total * 100 if possession_available else None,
+        "spatial_map_available": False,
+        "possession_visualization": "aggregate_share" if possession_available else None,
         "chips": chips,
         "ball_position_available": False,
         "ball_note": "La posesión es un porcentaje, no una ubicación exacta del balón; no se dibuja un marcador inventado.",
