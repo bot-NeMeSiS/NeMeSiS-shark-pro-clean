@@ -994,13 +994,10 @@ def automation_secret_configured():
 
 
 def automation_request_secret():
-    payload = request.get_json(silent=True) or {}
+    # Automation credentials belong in headers only; URLs and request bodies are routinely logged.
     return str(
-        request.args.get("secret")
-        or request.headers.get("X-Automation-Secret")
+        request.headers.get("X-Automation-Secret")
         or request.headers.get("X-CRON-SECRET")
-        or request.form.get("secret")
-        or payload.get("secret")
         or ""
     ).strip()
 
@@ -1237,7 +1234,7 @@ def automation_secret_status():
 
 
 def automation_access_allowed():
-    # Rutas antiguas pueden seguir aceptando sesión admin o secret. Los endpoints Cron nuevos usan validación estricta.
+    # Legacy route names remain, but all automation secrets use the same header-only contract.
     return is_admin_session() or automation_secret_valid()
 
 
@@ -12654,6 +12651,25 @@ def send_email_message(to_email, subject, body):
         return {"ok": False, "mode": "smtp", "error": str(exc)[:220]}
 
 
+def password_reset_public_base_url():
+    """Return a deployment-configured origin for reset emails, never the request Host."""
+    for key in ("PUBLIC_BASE_URL", "APP_PUBLIC_URL", "BASE_URL", "RENDER_EXTERNAL_URL", "CANONICAL_URL"):
+        value = str(os.getenv(key) or "").strip()
+        if not value:
+            continue
+        try:
+            parsed = urllib.parse.urlsplit(value)
+            if parsed.scheme.lower() != "https" or not parsed.hostname or parsed.username or parsed.password:
+                continue
+            _ = parsed.port
+            if parsed.query or parsed.fragment:
+                continue
+            return urllib.parse.urlunsplit(("https", parsed.netloc, parsed.path.rstrip("/"), "", ""))
+        except (TypeError, ValueError):
+            continue
+    return ""
+
+
 def create_password_reset_token(user, scope="client"):
     token = secrets.token_urlsafe(32)
     expires = (datetime.now(TZ) + timedelta(minutes=30)).isoformat(timespec="seconds")
@@ -12702,17 +12718,30 @@ def password_reset_request(identifier, scope="client"):
     delivery = {"ok": True, "sent": False, "mode": "silent"}
     reset_url = ""
     if user and (scope != "admin" or normalize_role(user.get("role")) == "ADMIN"):
-        token = create_password_reset_token(user, scope)
         endpoint = "admin_reset_password_page" if scope == "admin" else "reset_password_page"
-        reset_url = url_for(endpoint, token=token, _external=True)
-        body = (
-            "Hola,\n\n"
-            "Hemos recibido una solicitud para restablecer tu contraseña de NeMeSiS SHARK PRO.\n"
-            "El enlace caduca en 30 minutos y solo puede usarse una vez:\n\n"
-            f"{reset_url}\n\n"
-            "Si no has solicitado este cambio, ignora este mensaje."
-        )
-        delivery = send_email_message(user.get("email"), "Restablecer contraseña - NeMeSiS SHARK PRO", body)
+        if smtp_configured():
+            public_base = password_reset_public_base_url()
+            if public_base:
+                token = create_password_reset_token(user, scope)
+                reset_url = f"{public_base}{url_for(endpoint, token=token)}"
+                body = (
+                    "Hola,\n\n"
+                    "Hemos recibido una solicitud para restablecer tu contraseña de NeMeSiS SHARK PRO.\n"
+                    "El enlace caduca en 30 minutos y solo puede usarse una vez:\n\n"
+                    f"{reset_url}\n\n"
+                    "Si no has solicitado este cambio, ignora este mensaje."
+                )
+                delivery = send_email_message(user.get("email"), "Restablecer contraseña - NeMeSiS SHARK PRO", body)
+                if not delivery.get("ok"):
+                    mark_password_reset_used(token)
+            else:
+                delivery = {"ok": False, "sent": False, "mode": "trusted_public_url_missing"}
+        elif local_safe_mode_enabled():
+            token = create_password_reset_token(user, scope)
+            reset_url = url_for(endpoint, token=token)
+            delivery = {"ok": False, "sent": False, "mode": "local_safe_diagnostic"}
+        else:
+            delivery = {"ok": False, "sent": False, "mode": "smtp_not_configured"}
     try:
         telegram_log("security", "password_reset_requested", "Solicitud de recuperación registrada.", {
             "scope": scope,
@@ -12722,7 +12751,11 @@ def password_reset_request(identifier, scope="client"):
         })
     except Exception:
         pass
-    return {"ok": True, "delivery": delivery, "diagnostic_reset_url": reset_url if not smtp_configured() else ""}
+    return {
+        "ok": True,
+        "delivery": delivery,
+        "diagnostic_reset_url": reset_url if delivery.get("mode") == "local_safe_diagnostic" else "",
+    }
 
 
 def is_admin_session():
@@ -20404,6 +20437,9 @@ def api_admin_highlights_status():
 
 @app.route("/api/growth/funnel-event", methods=["POST"])
 def api_growth_funnel_event():
+    # Public analytics accepts only a small event envelope. Reject oversized requests before JSON parsing.
+    if request.content_length is None or request.content_length > 16 * 1024:
+        return jsonify({"ok": False, "error": "request_body_too_large"}), 413
     payload = request.get_json(silent=True) or {}
     stage = str(payload.get("stage") or "").strip().upper()
     target_id = str(payload.get("target_id") or request.path or stage.lower())[:120]
@@ -22482,6 +22518,10 @@ def admin_reset_password_page(token):
 
 @app.route("/admin-bootstrap", methods=["GET", "POST"])
 def admin_bootstrap_page():
+    # First-admin setup is only available in the isolated local-safe/test setup.
+    # Production provisioning is performed through the deployment's ADMIN_* environment values.
+    if not (local_safe_mode_enabled() or app.testing):
+        abort(404)
     if admin_exists():
         return render_template("admin_bootstrap.html", data=dashboard_data(), blocked=True, result=None, error="")
     result = None
@@ -29753,12 +29793,13 @@ def api_match_statistics(match_id):
 
 @app.route("/team-crest.svg")
 def team_crest_svg():
-    name = request.args.get("name") or "Equipo"
-    text = initials(name)
+    name = str(request.args.get("name") or "Equipo")[:120]
+    text = html.escape(initials(name), quote=False)
+    label = html.escape(name, quote=True)
     hue = int(hashlib.md5(name.encode("utf-8")).hexdigest()[:2], 16)
     color_a = "#%02x%02x%02x" % (20 + hue % 60, 80 + hue % 110, 130 + hue % 90)
     color_b = "#07111f"
-    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="{name}">
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="{label}">
   <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="{color_a}"/><stop offset="1" stop-color="{color_b}"/></linearGradient></defs>
   <rect width="96" height="96" rx="22" fill="url(#g)"/>
   <path d="M48 10 78 22v22c0 20-12 34-30 42-18-8-30-22-30-42V22Z" fill="rgba(255,255,255,.08)" stroke="rgba(255,255,255,.35)" stroke-width="2"/>

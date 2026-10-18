@@ -16,6 +16,8 @@ services:
     envVars:
       - key: DB_PATH
         value: /data/database.db
+      - key: PUBLIC_BASE_URL
+        value: https://bot-apuestas-crgf.onrender.com
       - key: CONTINUOUS_EVOLUTION_SAFE_MODE
         value: "1"
       - key: CONTINUOUS_EVOLUTION_STORAGE_ROOT

@@ -52,6 +52,18 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         assert page.locator('.home-agenda-focus').evaluate('(el)=>getComputedStyle(el).display')==('grid' if width>1100 else 'block')
         assert page.locator('.home-agenda-focus .ns16-home-command').evaluate('(el)=>getComputedStyle(el).display')=='flex'
         assert page.locator('.home-competition-group header').first.evaluate('(el)=>getComputedStyle(el).display')=='flex'
+        upcoming_list=page.locator('[data-sports-priority="upcoming"] .home-competition-list').first
+        group_positions=upcoming_list.locator(':scope > .home-competition-group').evaluate_all(
+            "nodes=>nodes.slice(0,2).map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}})"
+        )
+        assert len(group_positions)==2
+        if width>1100:
+            assert group_positions[1]['x']>group_positions[0]['x']
+            assert abs(group_positions[1]['y']-group_positions[0]['y'])<=2
+            assert group_positions[0]['width']>=360
+        else:
+            assert abs(group_positions[1]['x']-group_positions[0]['x'])<=2
+            assert group_positions[1]['y']>group_positions[0]['y']
         for league in LEAGUES:
             card=page.locator('[data-v934-match-id="qa-'+league[0]+'"]')
             assert card.count()==1 and card.is_visible()

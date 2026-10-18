@@ -24061,6 +24061,16 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
 .home-agenda-note,.home-agenda-more { color: var(--v933-text-soft); line-height: 1.6; }
 .home-agenda-more a { display: inline-flex; align-items: center; min-height: 44px; color: var(--v933-cyan); }
 .home-agenda-focus .ns16-featured-pick { max-width: 760px; width: 100%; }
+@media (min-width: 1101px) {
+  .home-agenda-focus .home-competition-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
+  .home-agenda-focus .home-agenda-matches {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+  }
+}
 @media(min-width:1101px) { body.ns-app .ns16-home.home-agenda-focus { display: grid !important; } }
 @media(max-width:760px) {
   .home-league-index { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding-block: 3px 8px; scrollbar-width: thin; }
