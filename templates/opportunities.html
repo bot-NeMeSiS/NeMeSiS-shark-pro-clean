@@ -4,20 +4,20 @@
 <section class="premium-hero compact-hero">
   <div>
     <p class="eyebrow">SHARK Betting Intelligence</p>
-    <h1>Oportunidades del día</h1>
-    <p>{{ ui('Hechos y cuotas observadas, separados del análisis y la decisión.') }}</p>
+    <h1>{{ ui('Lectura de mercado') }}</h1>
+    <p>{{ ui('Estimaciones implícitas calculadas solo con cuotas 1X2 completas, recientes y procedentes de The Odds API. No son apuestas SHARK ni garantizan resultados.') }}</p>
   </div>
-  <div class="hero-metric"><strong>{{ data.v565.health.score }}</strong><span>Calidad datos/pronósticos</span></div>
+  <div class="hero-metric"><strong>{{ data.v565.health.fresh_market_forecasts }}</strong><span>{{ ui('Partidos con mercado 1X2 actual verificable') }}</span></div>
 </section>
 
 <div class="grid-3 compact-grid">
-  <div class="premium-card"><span class="muted">Próximos</span><strong>{{ data.v565.health.upcoming_matches }}</strong></div>
-  <div class="premium-card"><span class="muted">Cuotas cacheadas</span><strong>{{ data.v565.health.odds_snapshots }}</strong></div>
-  <div class="premium-card"><span class="muted">Recomendaciones</span><strong>{{ data.v565.health.recommendations }}</strong></div>
+  <div class="premium-card"><span class="muted">{{ ui('Próximos') }}</span><strong>{{ data.v565.health.upcoming_matches }}</strong></div>
+  <div class="premium-card"><span class="muted">{{ ui('Lecturas actuales') }}</span><strong>{{ data.v565.health.fresh_market_forecasts }}</strong></div>
+  <div class="premium-card"><span class="muted">{{ ui('Pronósticos SHARK aprobados') }}</span><strong>{{ data.v565.health.recommendations }}</strong></div>
 </div>
 
 <section class="premium-section">
-  <h2>Disponibles para tu plan {{ data.v565.membership }}</h2>
+  <h2>{{ ui('Partidos y mercados disponibles') }}</h2>
   {% if data.v565.allowed %}
     <div class="cards-list compact-list">
       {% for r in data.v565.allowed %}
@@ -34,7 +34,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="empty-state premium-card">SHARK está esperando partidos/cuotas suficientes. Cuando entren datos reales aparecerán oportunidades aquí.</div>
+    <div class="empty-state premium-card">{{ ui('No hay partidos próximos validados en la agenda para analizar ahora.') }}</div>
   {% endif %}
 </section>
 
@@ -45,7 +45,7 @@
     {% for r in data.v565.locked %}
     <article class="match-card locked-card">
       <div><strong>{{ r.home_team }} vs {{ r.away_team }}</strong><p>{{ r.league_name|competition_es }}</p></div>
-      <span class="lock-badge">Disponible en {{ r.membership_required }}</span>
+      <span class="lock-badge">{{ ui('Disponible en') }} {{ r.membership_required }}</span>
     </article>
     {% endfor %}
   </div>

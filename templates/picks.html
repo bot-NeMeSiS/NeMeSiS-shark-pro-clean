@@ -71,7 +71,7 @@
   </section>
   {% else %}
   <section class="ns-video-empty-dashboard ns-video-picks-empty" data-empty-dashboard="resolved">
-    {{ empty_state('No hay pronósticos vigentes para mostrar', readiness.get('message') or 'SHARK solo publicará una selección con partido, mercado, cuota y riesgo reales verificados.', 'Ver calendario', '/calendario', 'target') }}
+    {{ empty_state('No hay pronósticos SHARK aprobados', readiness.get('message') or 'SHARK solo publicará una selección con partido, mercado, cuota y riesgo reales verificados.', 'Ver lectura del mercado', '/oportunidades', 'odds') }}
   </section>
   <section class="v933-panel v933-pick-readiness" data-pick-readiness="{{ readiness.get('state') or 'waiting_for_real_data' }}" aria-label="{{ ui('Estado de pronósticos y partidos en observación') }}">
     {{ section_header('Partidos reales en observación', 'Contexto de calendario; estos partidos no son apuestas ni pronósticos aprobados.') }}
@@ -99,6 +99,7 @@
     {% endif %}
     <div class="v933-page-actions v933-inline-actions">
       {{ quick_action('Abrir calendario', 'Consulta partidos reales y su horario.', '/calendario', 'matches', 'blue') }}
+      {{ quick_action('Ver lectura del mercado', 'Probabilidades implícitas solo con cuotas actuales y completas.', '/oportunidades', 'odds', 'cyan') }}
       {{ action_button('Consultar SHARK', '/shark', false, 'cyan', false, 'shark') }}
       {% if readiness.get('locked_count') %}{{ action_button('Ver membresías', '/membresias', false, 'gold', false, 'membership') }}{% endif %}
     </div>

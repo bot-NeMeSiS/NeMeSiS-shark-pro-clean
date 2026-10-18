@@ -178,6 +178,8 @@ from engines.standings_experience_engine import standings_snapshot
 from engines.alerts_engine import alerts_foundation_snapshot
 from engines.match_engine import hub_sections, real_time_state, sync_plan
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS, h2h_price_snapshot, normalize_status as sync_normalize_status, odds_sports, sportsdb_leagues
+from engines.market_forecast_engine import market_implied_forecast
+from engines.match_odds_presentation import outcome_prices_for_match
 from engines.membership_engine import can_access_feature, get_membership_limits, get_user_membership, membership_context
 from engines.membership_experience_engine import build_membership_experience_matrix, build_membership_value
 from engines.client_screen_experience_engine import build_client_screen_state
@@ -31857,31 +31859,26 @@ def v565_extract_odds(match):
     def valid_price(value):
         price = as_float(value, 0)
         return price if math.isfinite(price) and price > 1 else 0
-    home = valid_price(parsed.get("home") or parsed.get("h2h_home") or match.get("home_price"))
-    draw = valid_price(parsed.get("draw") or parsed.get("h2h_draw") or match.get("draw_price"))
-    away = valid_price(parsed.get("away") or parsed.get("h2h_away") or match.get("away_price"))
-    outcomes = parsed.get("outcomes") or []
-    if isinstance(outcomes, list) and outcomes:
-        home_name = normalized_label(match.get("home_team") or "")
-        away_name = normalized_label(match.get("away_team") or "")
-        for outcome in outcomes:
-            if not isinstance(outcome, dict):
-                continue
-            name = normalized_label(outcome.get("name") or outcome.get("description") or "")
-            price = valid_price(outcome.get("price") or outcome.get("odds"))
-            if price <= 1:
-                continue
-            if name in {"draw", "empate", "x"}:
-                draw = draw or price
-            elif home_name and name == home_name:
-                home = home or price
-            elif away_name and name == away_name:
-                away = away or price
+    normalized_snapshot = dict(parsed)
+    for key, aliases in {
+        "home": ("h2h_home", "home_price"),
+        "draw": ("h2h_draw", "draw_price"),
+        "away": ("h2h_away", "away_price"),
+    }.items():
+        if key not in normalized_snapshot:
+            normalized_snapshot[key] = next(
+                (value for value in (parsed.get(aliases[0]), match.get(aliases[1])) if value is not None),
+                None,
+            )
+    named_prices = outcome_prices_for_match(normalized_snapshot, match)
+    home = valid_price(named_prices.get("home"))
+    draw = valid_price(named_prices.get("draw"))
+    away = valid_price(named_prices.get("away"))
     return {
         "home": home,
         "draw": draw,
         "away": away,
-        "markets": len(outcomes) if isinstance(outcomes, list) else 0,
+        "markets": len(parsed.get("outcomes") or []) if isinstance(parsed.get("outcomes") or [], list) else 0,
         "available": any(x > 1 for x in (home, draw, away)),
         "source": parsed.get("source") or match.get("odds_source") or "",
     }
@@ -31906,6 +31903,7 @@ def v565_recommendation_for_match(match):
         and not truth.get("status_conflict")
         and not truth.get("is_stale")
     )
+    market_forecast = market_implied_forecast(match, is_upcoming=safe_upcoming)
     decision = "WAIT" if safe_upcoming else "NO_BET"
     return {
         "id": match.get("id"),
@@ -31933,8 +31931,10 @@ def v565_recommendation_for_match(match):
             "context": {"competition": match.get("competition_name") or match.get("league_name") or ""},
             "analysis": {"available": False, "reason": "Datos insuficientes para recomendar una apuesta."},
             "betting": {"observations": observations, "validity": "NOT_VERIFIED",
-                        "probability": None, "ev": None, "stake": None},
+                        "probability": None, "ev": None, "stake": None,
+                        "market_forecast": market_forecast},
         },
+        "market_forecast": market_forecast,
     }
 
 
@@ -31958,7 +31958,17 @@ def v565_data_picks_health():
     finished_count = len(rows("SELECT id FROM matches WHERE lower(COALESCE(status,'')) LIKE '%finish%' OR lower(COALESCE(status,'')) LIKE '%final%' LIMIT 500"))
     odds_count = len(rows("SELECT id FROM odds_snapshots LIMIT 500"))
     published = get_picks(limit=100, status=["published", "won", "lost", "void"], include_admin=True)
-    recommendations = v565_recommendation_pool(limit=20)
+    # Count verified market readings across the same capped upcoming-match
+    # window used by the pool, not just the first 20 rows shown on the page.
+    review_candidates = v565_recommendation_pool(limit=250)
+    approved_recommendations = [
+        item for item in review_candidates
+        if item.get("decision") == "BET" and item.get("can_publish") is True
+    ]
+    fresh_market_forecasts = [
+        item for item in review_candidates
+        if (item.get("market_forecast") or {}).get("available") is True
+    ]
     logos = len(rows("SELECT key FROM teams WHERE COALESCE(logo_url,'')!='' LIMIT 1000"))
     total_teams = len(rows("SELECT key FROM teams LIMIT 1000"))
     score = 35
@@ -31966,7 +31976,7 @@ def v565_data_picks_health():
     if today_matches: score += 10
     if odds_count: score += 12
     if published: score += 12
-    if recommendations: score += 12
+    if approved_recommendations: score += 12
     if logos and total_teams: score += min(10, int((logos / max(1,total_teams)) * 10))
     score = min(100, score)
     actions = []
@@ -31975,7 +31985,7 @@ def v565_data_picks_health():
     if not odds_count:
         actions.append("Ejecutar sync de Odds para activar cuotas en recomendaciones y picks.")
     if not published:
-        if recommendations and not any(r.get("can_publish") is True and r.get("decision") == "BET" for r in recommendations):
+        if review_candidates and not approved_recommendations:
             actions.append("Hay partidos en análisis, pero no una recomendación de apuesta aprobada. Completar evidencia y validar el modelo; añadir cuotas o bajar el umbral no basta.")
         else:
             actions.append("Revisar evidencia, modelo y cuotas vigentes de los candidatos antes de publicar picks.")
@@ -31991,11 +32001,13 @@ def v565_data_picks_health():
         "finished_matches": finished_count,
         "odds_snapshots": odds_count,
         "published_picks": len(published),
-        "recommendations": len(recommendations),
+        "recommendations": len(approved_recommendations),
+        "review_candidates": len(review_candidates),
+        "fresh_market_forecasts": len(fresh_market_forecasts),
         "teams_with_logo": logos,
         "teams_total": total_teams,
         "actions": actions,
-        "top_recommendations": recommendations[:10],
+        "top_recommendations": review_candidates[:10],
     }
 
 

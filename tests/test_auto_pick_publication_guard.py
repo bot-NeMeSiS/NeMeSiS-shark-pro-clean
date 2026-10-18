@@ -98,3 +98,5 @@ def test_admin_does_not_present_missing_model_as_a_low_score(app_module, monkeyp
     report = app_module.v565_data_picks_health()
     assert any('validar el modelo' in line for line in report['actions'])
     assert not any('convertir las mejores' in line for line in report['actions'])
+    assert report['review_candidates'] == 1
+    assert report['recommendations'] == 0

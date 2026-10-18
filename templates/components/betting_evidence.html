@@ -2,11 +2,35 @@
 {% set evidence = r.evidence or {} %}
 {% set facts = evidence.get('facts') or {} %}
 {% set betting = evidence.get('betting') or {} %}
+{% set market_forecast = betting.get('market_forecast') or r.get('market_forecast') or {} %}
 <div data-betting-evidence data-betting-decision="{{ r.decision }}">
   <p><strong>{{ ui('Hechos') }}</strong> · {{ r|match_time_label }} · {{ ui((facts.get('status') or {}).get('label') or 'Estado pendiente') }}</p>
   <p><strong>{{ ui('Contexto') }}</strong> · {{ r.league_name or ui('Sin dato') }}</p>
-  <p><strong>{{ ui('Análisis') }}</strong> · {{ ui(r.reason) }}</p>
-  <p><strong>{{ ui('Apuesta') }}</strong> · {{ ui(r.selection) }}</p>
+  <p><strong>{{ ui('Análisis SHARK') }}</strong> · {{ ui(r.reason) }}</p>
+  {% if market_forecast.get('available') %}
+  <section class="market-forecast-card" data-market-forecast="current" aria-label="{{ ui('Lectura actual del mercado 1X2') }}">
+    <header><strong>{{ ui('Lectura actual del mercado 1X2') }}</strong><span>{{ ui('Estimación implícita, no pronóstico propio de SHARK') }}</span></header>
+    <div class="market-forecast-outcomes">
+      {% for outcome in market_forecast.get('outcomes') or [] %}
+      <div class="market-forecast-outcome" data-outcome="{{ outcome.get('key') }}">
+        <div class="market-forecast-outcome-heading"><strong>{{ outcome.get('short_label') }} · {{ outcome.get('label') }}</strong><b>{{ '%.1f'|format(outcome.get('probability_pct') or 0) }}%</b></div>
+        <div class="market-forecast-track" aria-hidden="true"><span style="width: {{ outcome.get('probability_pct') or 0 }}%"></span></div>
+        <small>{{ ui('Cuota observada') }} {{ '%.2f'|format(outcome.get('odds') or 0) }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    {% if market_forecast.get('favorite') %}<p class="market-forecast-favorite"><strong>{{ ui('Mayor probabilidad implícita') }}:</strong> {{ market_forecast.favorite.label }} · {{ '%.1f'|format(market_forecast.favorite.probability_pct or 0) }}%</p>{% endif %}
+    <p class="market-forecast-note">{{ ui(market_forecast.get('method')) }} {{ ui(market_forecast.get('disclaimer')) }}</p>
+    <p class="market-forecast-source">{{ ui('Fuente') }}: {{ market_forecast.get('source') }} · {{ ui('Casa') }}: {{ market_forecast.get('bookmaker') }} · {{ ui('Actualizada') }}: {{ market_forecast.get('observed_label') or market_forecast.get('observed_at') }}</p>
+  </section>
+  {% else %}
+  <p class="market-forecast-unavailable" data-market-forecast="{{ market_forecast.get('state') or 'unavailable' }}">{{ ui(market_forecast.get('message') or 'No hay cuotas actuales completas para calcular una lectura de mercado.') }}</p>
+  {% endif %}
+  {% if r.decision == 'WAIT' %}
+  <p><strong>{{ ui('Decisión de apuesta') }}</strong> · {{ ui('En observación; no hay una apuesta SHARK aprobada para este partido.') }}</p>
+  {% else %}
+  <p><strong>{{ ui('Decisión de apuesta') }}</strong> · {{ ui(r.selection) }}</p>
+  {% endif %}
   {% if betting.get('observations') %}
   <details><summary>{{ ui('Cuotas observadas') }} · {{ betting.observations|length }}</summary>
     {% for quote in betting.observations %}
@@ -16,7 +40,7 @@
       <dt>{{ ui('Observación') }}</dt><dd>{{ quote.observed_at|madrid_datetime_label if quote.observed_at else ui('Sin dato') }}</dd>
     </dl>
     {% endfor %}
-    <p>{{ ui('Vigencia no verificada') }}</p>
+    <p>{{ ui('Son observaciones guardadas; la lectura porcentual solo aparece con las tres cuotas actuales verificadas.') }}</p>
   </details>
   {% else %}<p class="muted">{{ ui('Sin cuota observada') }}</p>{% endif %}
   <p class="small">{{ ui(r.warning) }}</p>

@@ -242,6 +242,7 @@ def test_picks_page_hides_locked_selection_details_and_shows_safe_watchlist(clie
     assert "Sin cuota observada" in html
     assert "PREMIUM-LOCKED-OUTCOME" not in html
     assert 'href="/membresias"' in html
+    assert "/oportunidades" in html
 
 
 def test_picks_readiness_does_not_count_an_incomplete_stored_pick(client, app_module, monkeypatch):

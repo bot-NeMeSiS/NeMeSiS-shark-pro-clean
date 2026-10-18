@@ -37,6 +37,9 @@
   <script id="nemesis-ui-messages" type="application/json">{{ ui_messages|default({})|tojson }}</script>
   <script defer src="{{ url_for('static', filename='ui-localization.js') }}?v=design02-r3-1-client-core-1"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='app-navigation.css') }}?v=1">
+  {% if request.path in ['/oportunidades', '/recomendaciones', '/recommendations', '/admin/autonomous-picks', '/admin/betting-center', '/admin/recommendations'] %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='market-forecast.css') }}?v=20261018-1">
+  {% endif %}
   {% if request.endpoint in ['home', 'v757_client_app_center_page'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='home-league-disclosure.css') }}?v=1">
   <script defer src="{{ url_for('static', filename='home-league-disclosure.js') }}?v=1"></script>

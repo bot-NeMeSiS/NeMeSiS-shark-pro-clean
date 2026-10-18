@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
+from flask import render_template_string, session
 
 
 def match(**extra):
@@ -27,17 +28,61 @@ def test_calendar_priority_does_not_invent_confidence_stake_or_selection(app_mod
 def test_quote_is_an_observation_not_a_recommendation(app_module):
     stamp = datetime.now(ZoneInfo('Europe/Madrid')).isoformat()
     result = app_module.v565_recommendation_for_match(match(
-        odds_h2h_json=json.dumps({'home':1.90,'draw':3.2,'away':4.1}),
-        bookmaker='QA bookmaker', odds_source='SIMULATED_QA', odds_updated_at=stamp))
+        odds_h2h_json=json.dumps({
+            'source':'The Odds API', 'last_update':stamp,
+            'bookmaker':'QA bookmaker',
+            'outcomes':[
+                {'name':'Local QA','price':1.90},
+                {'name':'Draw','price':3.2},
+                {'name':'Visitante QA','price':4.1},
+            ],
+        }),
+        bookmaker='QA bookmaker', odds_source='The Odds API', odds_updated_at=stamp))
     assert result['decision'] == 'WAIT'
     assert result['confidence'] is None and result['odds_value'] is None
     quotes = result['evidence']['betting']['observations']
     assert [q['selection'] for q in quotes] == ['Local QA','Empate','Visitante QA']
     assert quotes[0]['odds'] == 1.90
-    assert quotes[0]['source'] == 'SIMULATED_QA'
+    assert quotes[0]['source'] == 'The Odds API'
     assert quotes[0]['bookmaker'] == 'QA bookmaker'
     assert quotes[0]['observed_at'] == stamp
     assert result['evidence']['betting']['validity'] == 'NOT_VERIFIED'
+    assert result['market_forecast']['available'] is True
+    assert result['market_forecast']['source'] == 'The Odds API'
+    assert sum(item['probability_pct'] for item in result['market_forecast']['outcomes']) == 100.0
+    assert result['can_publish'] is False
+
+
+def test_customer_market_card_renders_probabilities_separately_from_shark_pick(app_module):
+    stamp = datetime.now(ZoneInfo('Europe/Madrid')).isoformat()
+    row = match()
+    row['home_team'] = 'Granada CF'
+    row['odds_h2h_json'] = json.dumps({
+            'source':'The Odds API', 'last_update':stamp,
+            'bookmaker':'QA bookmaker',
+            'outcomes':[
+                {'name':'Granada C.F.','price':2.0},
+                {'name':'Draw','price':4.0},
+                {'name':'Visitante QA','price':4.0},
+            ],
+        })
+    row.update(bookmaker='QA bookmaker', odds_source='The Odds API', odds_updated_at=stamp)
+    result = app_module.v565_recommendation_for_match(row)
+
+    with app_module.app.test_request_context('/recommendations'):
+        session['ui_locale'] = 'en'
+        body = render_template_string(
+            '{% from "components/betting_evidence.html" import betting_evidence with context %}'
+            '{{ betting_evidence(result) }}', result=result,
+        )
+
+    assert 'data-market-forecast="current"' in body
+    assert '50.0%' in body and body.count('25.0%') >= 2
+    assert 'Market-implied estimate, not a SHARK forecast' in body
+    assert 'Under review; there is no SHARK-approved pick for this match.' in body
+    assert 'data-betting-decision="WAIT"' in body
+    assert result['evidence']['betting']['observations'][0]['selection'] == 'Granada CF'
+    assert result['evidence']['betting']['observations'][0]['odds'] == 2.0
 
 
 @pytest.mark.parametrize('payload', [

@@ -5244,5 +5244,135 @@
       "en": "By league · Madrid time",
       "fr": "Par ligue · Heure de Madrid"
     }
+  },
+  "market_forecast": {
+    "Lectura de mercado": {
+      "en": "Market outlook",
+      "fr": "Lecture du marché"
+    },
+    "Ver lectura del mercado": {
+      "en": "View market reading",
+      "fr": "Voir la lecture du marché"
+    },
+    "Probabilidades implícitas solo con cuotas actuales y completas.": {
+      "en": "Implied probabilities from complete, current odds only.",
+      "fr": "Probabilités implicites calculées uniquement à partir de cotes complètes et actuelles."
+    },
+    "No hay pronósticos SHARK aprobados": {
+      "en": "No approved SHARK picks",
+      "fr": "Aucun pronostic SHARK approuvé"
+    },
+    "Estimaciones implícitas calculadas solo con cuotas 1X2 completas, recientes y procedentes de The Odds API. No son apuestas SHARK ni garantizan resultados.": {
+      "en": "Implied estimates use only complete, recent 1X2 odds from The Odds API. They are not SHARK picks and do not guarantee results.",
+      "fr": "Les estimations implicites utilisent uniquement des cotes 1X2 complètes et récentes de The Odds API. Ce ne sont pas des pronostics SHARK et elles ne garantissent aucun résultat."
+    },
+    "Partidos con mercado 1X2 actual verificable": {
+      "en": "Matches with a verifiable current 1X2 market",
+      "fr": "Matchs avec un marché 1X2 actuel vérifiable"
+    },
+    "Lecturas actuales": {
+      "en": "Current market readings",
+      "fr": "Lectures actuelles du marché"
+    },
+    "Pronósticos SHARK aprobados": {
+      "en": "Approved SHARK picks",
+      "fr": "Pronostics SHARK approuvés"
+    },
+    "Partidos y mercados disponibles": {
+      "en": "Available matches and markets",
+      "fr": "Matchs et marchés disponibles"
+    },
+    "No hay partidos próximos validados en la agenda para analizar ahora.": {
+      "en": "There are no validated upcoming fixtures to analyse right now.",
+      "fr": "Aucun match à venir validé n’est disponible pour analyse actuellement."
+    },
+    "Bloqueadas por plan": {
+      "en": "Plan restricted",
+      "fr": "Restreint par l’offre"
+    },
+    "Disponible en": {
+      "en": "Available on",
+      "fr": "Disponible avec"
+    },
+    "Lectura actual del mercado 1X2": {
+      "en": "Current 1X2 market reading",
+      "fr": "Lecture actuelle du marché 1X2"
+    },
+    "Estimación implícita, no pronóstico propio de SHARK": {
+      "en": "Market-implied estimate, not a SHARK forecast",
+      "fr": "Estimation implicite du marché, pas un pronostic SHARK"
+    },
+    "Análisis SHARK": {
+      "en": "SHARK analysis",
+      "fr": "Analyse SHARK"
+    },
+    "Mayor probabilidad implícita": {
+      "en": "Highest implied probability",
+      "fr": "Probabilité implicite la plus élevée"
+    },
+    "Cuota observada": {
+      "en": "Observed odds",
+      "fr": "Cote observée"
+    },
+    "Casa": {
+      "en": "Bookmaker",
+      "fr": "Opérateur de paris"
+    },
+    "Actualizada": {
+      "en": "Updated",
+      "fr": "Mise à jour"
+    },
+    "No hay una lectura de mercado verificable para este partido.": {
+      "en": "There is no verifiable market reading for this match.",
+      "fr": "Aucune lecture de marché vérifiable n’est disponible pour ce match."
+    },
+    "No hay cuotas actuales completas para calcular una lectura de mercado.": {
+      "en": "There are no complete current odds to calculate a market reading.",
+      "fr": "Il n’y a pas de cotes actuelles complètes pour calculer une lecture de marché."
+    },
+    "No es una probabilidad calibrada por SHARK ni una promesa de resultado.": {
+      "en": "This is not a SHARK-calibrated probability or a promise of an outcome.",
+      "fr": "Il ne s’agit ni d’une probabilité calibrée par SHARK ni d’une promesse de résultat."
+    },
+    "La lectura previa solo se muestra para partidos próximos.": {
+      "en": "Pre-match readings are shown only for upcoming fixtures.",
+      "fr": "Les lectures avant-match ne sont affichées que pour les rencontres à venir."
+    },
+    "No se muestra una estimación porque la fuente de cuotas no está verificada.": {
+      "en": "No estimate is shown because the odds source is unverified.",
+      "fr": "Aucune estimation n’est affichée, car la source des cotes n’est pas vérifiée."
+    },
+    "No se calcula una lectura porcentual: faltan cuotas de una o más opciones 1X2.": {
+      "en": "No percentage reading is calculated because one or more 1X2 prices are missing.",
+      "fr": "Aucune lecture en pourcentage n’est calculée, car il manque une ou plusieurs cotes 1X2."
+    },
+    "Las cuotas guardadas no son actuales; no se muestra una estimación porcentual.": {
+      "en": "The stored odds are not current, so no percentage estimate is shown.",
+      "fr": "Les cotes enregistrées ne sont pas actuelles ; aucune estimation en pourcentage n’est affichée."
+    },
+    "No se calcula una lectura porcentual: una cuota 1X2 no es válida.": {
+      "en": "No percentage reading is calculated because an 1X2 price is invalid.",
+      "fr": "Aucune lecture en pourcentage n’est calculée, car une cote 1X2 est invalide."
+    },
+    "No se calcula una lectura porcentual: el mercado no es válido.": {
+      "en": "No percentage reading is calculated because the market is invalid.",
+      "fr": "Aucune lecture en pourcentage n’est calculée, car le marché est invalide."
+    },
+    "Lectura implícita calculada desde las tres cuotas 1X2 actuales.": {
+      "en": "Implied reading calculated from all three current 1X2 prices.",
+      "fr": "Lecture implicite calculée à partir des trois cotes 1X2 actuelles."
+    },
+    "1/cuota, normalizado entre local, empate y visitante.": {
+      "en": "1/odds, normalized across home, draw and away.",
+      "fr": "1/cote, normalisé entre domicile, nul et extérieur."
+    },
+    "En observación; no hay una apuesta SHARK aprobada para este partido.": {
+      "en": "Under review; there is no SHARK-approved pick for this match.",
+      "fr": "En observation ; aucun pronostic SHARK n’est approuvé pour ce match."
+    },
+    "Son observaciones guardadas; la lectura porcentual solo aparece con las tres cuotas actuales verificadas.": {
+      "en": "These are stored observations; percentages appear only when all three current odds are verified.",
+      "fr": "Ce sont des observations enregistrées ; les pourcentages ne s’affichent que si les trois cotes actuelles sont vérifiées."
+    }
   }
 }
