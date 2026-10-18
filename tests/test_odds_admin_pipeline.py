@@ -14,7 +14,7 @@ def odds_db(app_module, monkeypatch, tmp_path):
     target = sqlite3.connect(path)
     source.backup(target)
     source.close()
-    for table in ('matches', 'live_matches', 'odds_snapshots', 'automation_state', 'api_sync_logs'):
+    for table in ('matches', 'live_matches', 'odds_snapshots', 'market_forecast_snapshots', 'automation_state', 'api_sync_logs'):
         target.execute(f'DELETE FROM {table}')
     target.commit()
     target.close()
@@ -61,6 +61,15 @@ def test_sync_links_translated_teams_and_preserves_provider_identity(odds_db, mo
     assert snapshot['match_id'] == match['id'] and snapshot['external_id'] == event['id']
     assert app.one("SELECT value_json FROM automation_state WHERE key='sportsdb_feed_sync'") == before
     assert app.one('SELECT COUNT(*) AS n FROM matches')['n'] == 1
+    ledger = app.one('SELECT * FROM market_forecast_snapshots WHERE match_id=?', (match['id'],))
+    assert ledger is not None
+    assert ledger['contract'] == 'MARKET-IMPLIED-1X2-V1'
+    assert ledger['source'] == 'The Odds API'
+    assert ledger['bookmaker'] == 'QA bookmaker'
+    assert [ledger[key] for key in ('home_probability_pct', 'draw_probability_pct', 'away_probability_pct')] == [
+        43.9, 27.2, 28.9,
+    ]
+    assert 'payload_json' not in ledger.keys()
     app.upsert_sportsdb_matches([match])
     assert app.v565_extract_odds(app.one('SELECT * FROM matches'))['home'] == 2.1
 
@@ -158,7 +167,45 @@ def test_cached_odds_attach_when_sportsdb_arrives_later_without_api_call(odds_db
     app.upsert_sportsdb_matches([match])
     row = app.one('SELECT * FROM matches WHERE id=?', (match['id'],))
     assert app.v565_extract_odds(row)['home'] == 2.1
+    assert app.one('SELECT COUNT(*) AS n FROM market_forecast_snapshots WHERE match_id=?', (match['id'],))['n'] == 1
+
+
+def test_market_forecast_history_is_idempotent_but_keeps_changed_quote(odds_db):
+    app = odds_db
+    sport, event, match = fixture(app)
+    app.upsert_sportsdb_matches([match])
+
+    app.upsert_odds_snapshots([(sport, event)])
+    first = app.one('SELECT id,home_odds,home_probability_pct FROM market_forecast_snapshots WHERE match_id=?', (match['id'],))
+    app.upsert_odds_snapshots([(sport, event)])
+    assert app.one('SELECT COUNT(*) AS n FROM market_forecast_snapshots WHERE match_id=?', (match['id'],))['n'] == 1
+
+    event['bookmakers'][1]['markets'][0]['outcomes'][0]['price'] = 1.8
+    app.upsert_odds_snapshots([(sport, event)])
+    assert app.one('SELECT COUNT(*) AS n FROM market_forecast_snapshots WHERE match_id=?', (match['id'],))['n'] == 2
+    changed = app.one('SELECT id,home_odds,home_probability_pct FROM market_forecast_snapshots WHERE match_id=? AND home_odds=?', (match['id'], '1.8'))
+    assert changed['id'] != first['id']
+    assert changed['home_odds'] == '1.8'
     assert app.one('SELECT * FROM odds_snapshots')['match_id'] == match['id']
+
+
+@pytest.mark.parametrize('case', ['stale', 'incomplete'])
+def test_market_forecast_history_rejects_stale_or_incomplete_quotes(odds_db, case):
+    app = odds_db
+    sport, event, match = fixture(app)
+    if case == 'stale':
+        old = (datetime.now(app.TZ) - timedelta(days=2)).isoformat()
+        event['bookmakers'][1]['last_update'] = old
+        event['bookmakers'][1]['markets'][0]['last_update'] = old
+    else:
+        event['bookmakers'][1]['markets'][0]['outcomes'] = [
+            {'name': 'Atletico Madrid', 'price': 2.1},
+            {'name': 'Real Madrid', 'price': 3.2},
+        ]
+    app.upsert_sportsdb_matches([match])
+    app.upsert_odds_snapshots([(sport, event)])
+
+    assert app.one('SELECT COUNT(*) AS n FROM market_forecast_snapshots')['n'] == 0
 
 
 def test_newer_quotes_cannot_be_overwritten_by_old_observations(odds_db):

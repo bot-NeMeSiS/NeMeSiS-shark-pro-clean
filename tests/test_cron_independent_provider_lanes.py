@@ -130,7 +130,9 @@ class Response:
 
 def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, monkeypatch):
     result = {'ok':False, 'status':'PROVIDER_FAILURE_STOPPED_EARLY', 'errors':['provider'], 'external_calls':1,
-              'quota':{'http_status':401,'error_type':'HTTPError','requests_remaining':0,'error_code':'OUT_OF_USAGE_CREDITS'}}
+              'quota':{'http_status':401,'error_type':'HTTPError','requests_remaining':0,'error_code':'OUT_OF_USAGE_CREDITS',
+                       'events_received':0,'events_with_bookmakers':0,'bookmakers_received':0,'markets_received':0,'events_with_h2h':0},
+              'odds_snapshots':{'inserted':0,'updated':0,'skipped':0,'linked':0}}
     compact = app_module._cron_compact_payload('odds_sync', result, '', '')
     monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(compact))
     observed = master.odds_tick('https://example.invalid', 'test')
@@ -140,10 +142,36 @@ def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, mo
     assert observed['provider_error_type'] == 'HTTPError'
     assert observed['provider_requests_remaining'] == 0
     assert observed['provider_observation_current'] is True
+    assert observed['odds_events_received'] == 0
+    assert observed['odds_events_with_h2h'] == 0
+    assert observed['odds_snapshots_inserted'] == 0
+    assert observed['odds_snapshots_skipped'] == 0
     result['external_calls'] = 0
     assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_observation_current'] is False
     result['quota']['error_type'] = 'private-url?apiKey=secret'
     assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_error_type'] == 'UNKNOWN'
+
+
+def test_odds_cached_tick_does_not_relabel_previous_pipeline_counts_as_current(app_module):
+    result = {
+        'ok': True,
+        'status': 'CACHE_REUSED',
+        'external_calls': 0,
+        'quota': {
+            'http_status': 200,
+            'requests_remaining': 436,
+            'events_received': 16,
+            'events_with_h2h': 12,
+        },
+        'odds_snapshots': {'inserted': 12, 'updated': 0, 'skipped': 4, 'linked': 12},
+    }
+
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+
+    assert compact['provider_observation_current'] is False
+    assert compact['odds_events_received'] is None
+    assert compact['odds_events_with_h2h'] is None
+    assert compact['odds_snapshots_inserted'] is None
 
 
 @pytest.mark.parametrize('code,expected', [('OUT_OF_USAGE_CREDITS','OUT_OF_USAGE_CREDITS'),

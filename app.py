@@ -2756,8 +2756,12 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
     if endpoint == "odds_sync":
         from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
         quota = result.get("quota") or {}
+        # Do not relabel counters from an older cached sync as observations from
+        # this tick. The master Cron needs to distinguish received fixtures,
+        # usable 1X2 markets, and rows actually persisted.
+        provider_observation_current = as_int(result.get("external_calls"), 0) > 0
         compact["provider_error_code"] = quota.get("error_code") if quota.get("error_code") in KNOWN_ODDS_ERROR_CODES else ""
-        compact["provider_observation_current"] = as_int(result.get("external_calls"), 0) > 0
+        compact["provider_observation_current"] = provider_observation_current
         compact["provider_http"] = as_int(quota.get("http_status"), 0)
         compact["provider_error_type"] = quota.get("error_type") if quota.get("error_type") in {
             "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
@@ -2765,6 +2769,24 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         compact["credential_tier_selected"] = quota.get("credential_tier_selected") if quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else ""
         compact["fallback_used"] = bool(quota.get("fallback_used")) and compact["provider_observation_current"]
         compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
+        for source_key, output_key in (
+            ("events_received", "odds_events_received"),
+            ("events_with_bookmakers", "odds_events_with_bookmakers"),
+            ("bookmakers_received", "odds_bookmakers_received"),
+            ("markets_received", "odds_markets_received"),
+            ("events_with_h2h", "odds_events_with_h2h"),
+        ):
+            observed = quota.get(source_key)
+            compact[output_key] = as_int(observed, 0) if provider_observation_current and observed is not None else None
+        snapshots = result.get("odds_snapshots") if isinstance(result.get("odds_snapshots"), dict) else {}
+        for source_key, output_key in (
+            ("inserted", "odds_snapshots_inserted"),
+            ("updated", "odds_snapshots_updated"),
+            ("skipped", "odds_snapshots_skipped"),
+            ("linked", "odds_snapshots_linked"),
+        ):
+            observed = snapshots.get(source_key)
+            compact[output_key] = as_int(observed, 0) if provider_observation_current and observed is not None else None
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
     if result.get("errors"):
@@ -3326,6 +3348,8 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_competitions_name ON competitions(name)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_api_sync_logs_source ON api_sync_logs(source, sync_type, started_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_odds_snapshots_match ON odds_snapshots(match_id, created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_market_forecasts_match_observed ON market_forecast_snapshots(match_id, observed_at DESC)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_market_forecasts_quote ON market_forecast_snapshots(odds_snapshot_id, quote_fingerprint, contract)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_scheduler_locks_status ON scheduler_locks(status, next_run)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_telegram_queue_dedupe ON telegram_queue(dedupe_key) WHERE dedupe_key IS NOT NULL AND dedupe_key!=''")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_queue_status ON telegram_queue(status, scheduled_at)")
@@ -3631,6 +3655,30 @@ def init_db():
             commence_time TEXT,
             payload_json TEXT,
             created_at TEXT
+        )"""
+    )
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS market_forecast_snapshots(
+            id TEXT PRIMARY KEY,
+            match_id TEXT NOT NULL,
+            odds_snapshot_id TEXT NOT NULL,
+            contract TEXT NOT NULL,
+            quote_fingerprint TEXT NOT NULL,
+            home_team TEXT,
+            away_team TEXT,
+            competition_name TEXT,
+            kickoff_at TEXT,
+            source TEXT NOT NULL,
+            bookmaker TEXT,
+            observed_at TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            home_odds TEXT NOT NULL,
+            draw_odds TEXT NOT NULL,
+            away_odds TEXT NOT NULL,
+            home_probability_pct REAL NOT NULL,
+            draw_probability_pct REAL NOT NULL,
+            away_probability_pct REAL NOT NULL,
+            favorite_key TEXT
         )"""
     )
     cur.execute(
@@ -6378,6 +6426,70 @@ def _attach_odds_snapshot(cur, target, snapshot):
     return True
 
 
+def _record_market_forecast_snapshot(cur, match_id, odds_snapshot_id):
+    """Persist a reproducible, non-personal snapshot of a current market reading.
+
+    This records the calculation available from a verified quote at ingestion
+    time. It is not a customer-view log, a SHARK prediction, or a betting pick.
+    """
+    row = cur.execute("SELECT * FROM matches WHERE id=?", (str(match_id or ""),)).fetchone()
+    if row is None:
+        return False
+    match = dict(row)
+    recommendation = v565_recommendation_for_match(match)
+    forecast = recommendation.get("market_forecast") if isinstance(recommendation, dict) else None
+    if not isinstance(forecast, dict) or forecast.get("available") is not True or forecast.get("state") != "CURRENT":
+        return False
+    outcomes = {str(item.get("key") or ""): item for item in forecast.get("outcomes") or [] if isinstance(item, dict)}
+    if set(outcomes) != {"home", "draw", "away"}:
+        return False
+    try:
+        odds = {key: float(outcomes[key]["odds"]) for key in ("home", "draw", "away")}
+        probabilities = {key: float(outcomes[key]["probability_pct"]) for key in ("home", "draw", "away")}
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return False
+    if any(not math.isfinite(value) or value <= 1 for value in odds.values()):
+        return False
+    if any(not math.isfinite(value) or value < 0 or value > 100 for value in probabilities.values()):
+        return False
+    if abs(sum(probabilities.values()) - 100.0) > 0.11:
+        return False
+
+    contract = str(forecast.get("contract") or "MARKET-IMPLIED-1X2-V1")[:80]
+    observed_at = str(forecast.get("observed_at") or "").strip()
+    if not observed_at:
+        return False
+    odds_text = {key: format(odds[key], ".12g") for key in odds}
+    fingerprint_payload = {
+        "contract": contract,
+        "observed_at": observed_at,
+        "source": str(forecast.get("source") or "")[:80],
+        "bookmaker": str(forecast.get("bookmaker") or "")[:160],
+        "odds": odds_text,
+    }
+    fingerprint = hashlib.sha256(json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
+    record_id = hashlib.sha256(f"{match_id}\x1f{odds_snapshot_id}\x1f{fingerprint}".encode("utf-8")).hexdigest()
+    favorite = forecast.get("favorite") if isinstance(forecast.get("favorite"), dict) else {}
+    cur.execute(
+        """INSERT OR IGNORE INTO market_forecast_snapshots
+           (id,match_id,odds_snapshot_id,contract,quote_fingerprint,home_team,away_team,competition_name,kickoff_at,
+            source,bookmaker,observed_at,recorded_at,home_odds,draw_odds,away_odds,
+            home_probability_pct,draw_probability_pct,away_probability_pct,favorite_key)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            record_id, str(match_id), str(odds_snapshot_id), contract, fingerprint,
+            str(match.get("home_team") or "")[:160], str(match.get("away_team") or "")[:160],
+            str(match.get("competition_name") or match.get("league_name") or "")[:160],
+            str(match.get("kickoff_iso") or match.get("match_date") or "")[:80],
+            str(forecast.get("source") or "")[:80], str(forecast.get("bookmaker") or "")[:160],
+            observed_at[:80], now_iso(), odds_text["home"], odds_text["draw"], odds_text["away"],
+            probabilities["home"], probabilities["draw"], probabilities["away"],
+            str(favorite.get("key") or "")[:16] or None,
+        ),
+    )
+    return cur.rowcount == 1
+
+
 def _reconcile_cached_odds(cur, match_dates):
     """Attach already paid-for observations when the sporting fixture arrives later."""
     if not match_dates:
@@ -6407,6 +6519,7 @@ def _reconcile_cached_odds(cur, match_dates):
         snapshot["source"] = "The Odds API"
         if _attach_odds_snapshot(cur, target, snapshot):
             cur.execute("UPDATE odds_snapshots SET match_id=? WHERE id=?", (target["id"], stored["id"]))
+            _record_market_forecast_snapshot(cur, target["id"], stored["id"])
 
 
 def _odds_fixture_instant(value):
@@ -6509,7 +6622,8 @@ def upsert_odds_snapshots(events):
         match_id = target["id"] if target else odds_event_id(sport.get("odds_key") or sport.get("key"), event)
         snapshot.update(prices)
         snapshot["source"] = "The Odds API"
-        if target and _attach_odds_snapshot(cur, target, snapshot):
+        attached = bool(target and _attach_odds_snapshot(cur, target, snapshot))
+        if attached:
             linked += 1
         snap_id = hashlib.md5(f"{match_id}:{bookmaker}:{snapshot.get('last_update') or now_iso()}".encode("utf-8")).hexdigest()[:18]
         exists = cur.execute("SELECT id FROM odds_snapshots WHERE id=?", (snap_id,)).fetchone()
@@ -6540,6 +6654,8 @@ def upsert_odds_snapshots(events):
             updated += 1
         else:
             inserted += 1
+        if attached:
+            _record_market_forecast_snapshot(cur, match_id, snap_id)
     cur.execute("DELETE FROM persistent_cache WHERE key LIKE 'match-hub:%'")
     conn.commit()
     conn.close()
@@ -6560,6 +6676,7 @@ def data_center_summary():
             "teams_with_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NOT NULL AND logo_url!=''") or {}).get("total", 0),
             "teams_without_crests": (one("SELECT COUNT(*) AS total FROM teams WHERE logo_url IS NULL OR logo_url=''") or {}).get("total", 0),
             "odds_snapshots": (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0),
+            "market_forecast_snapshots": (one("SELECT COUNT(*) AS total FROM market_forecast_snapshots") or {}).get("total", 0),
             "last_sportsdb_sync": latest_sync_log("sportsdb") or latest_sync_log("TheSportsDB"),
             "last_odds_sync": latest_sync_log("odds") or latest_sync_log("The Odds API"),
             "recent_logs": rows("SELECT * FROM api_sync_logs ORDER BY started_at DESC LIMIT 12"),
@@ -19004,6 +19121,7 @@ def v932_admin_data_center_fallback(sports):
     diagnostics = v932_admin_sports_diagnostics(sports)
     return {
         **diagnostics,
+        "market_forecast_snapshots": None,
         "scheduler": {"enabled": False, "tasks": [], "recent_errors": []},
         "recent_logs": [],
         "matches_diagnostics": diagnostics,

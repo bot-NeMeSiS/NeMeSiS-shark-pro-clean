@@ -549,6 +549,22 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             } else ""
             remaining = payload.get("provider_requests_remaining")
             result["provider_requests_remaining"] = safe_count(remaining) if remaining is not None else None
+            # Surface the complete safe handoff from provider events to local
+            # 1X2 snapshots. Missing values remain unknown (not zero), which is
+            # especially important for CACHE_REUSED ticks.
+            for field in (
+                "odds_events_received",
+                "odds_events_with_bookmakers",
+                "odds_bookmakers_received",
+                "odds_markets_received",
+                "odds_events_with_h2h",
+                "odds_snapshots_inserted",
+                "odds_snapshots_updated",
+                "odds_snapshots_skipped",
+                "odds_snapshots_linked",
+            ):
+                value = payload.get(field)
+                result[field] = safe_count(value) if value is not None else None
         if prefix == "sports":
             # Fixed operational codes only: never emit provider URLs or messages.
             stages = {"fixtures", "fallback", "live", "deep_enrichment", "grading"}
