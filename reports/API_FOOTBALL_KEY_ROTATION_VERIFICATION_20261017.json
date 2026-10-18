@@ -1,0 +1,35 @@
+{
+  "verified_at_madrid": "2026-10-17T17:50:54+02:00",
+  "scope": "read-only Render deployment, runtime and natural Cron log inspection after owner rotated API-Football key",
+  "provider_manual_calls": false,
+  "secret_value_read_or_saved": false,
+  "timeline": {
+    "pre_deployment_natural_tick_madrid": "2026-10-17T17:45:46+02:00",
+    "pre_deployment_result": "AUTH_OR_ACCESS",
+    "web_deployment_live_madrid": "2026-10-17T17:47:46+02:00",
+    "post_deployment_natural_tick_madrid": "2026-10-17T17:50:22+02:00",
+    "runtime_observed_madrid": "2026-10-17T17:50:54+02:00"
+  },
+  "post_deployment_natural_tick": {
+    "overall": "PARTIAL",
+    "sports_status": "PASS",
+    "sports_http": 200,
+    "api_football_external_calls": 1,
+    "api_football_provider_observation_current": true,
+    "api_football_reason_code": "NONE",
+    "sports_technical_errors": 0,
+    "processed": 4045
+  },
+  "runtime": {
+    "http": 200,
+    "version_files_match": true,
+    "deployment_alignment_status": "aligned_local_files",
+    "last_sync_utc": "2026-10-17T15:50:22Z"
+  },
+  "conclusion": "A fresh natural API-Football request after the web deployment returned HTTP 200 with no provider error. This confirms the current Cron path can access the provider at that observation time; it does not certify long-term stability or every API endpoint.",
+  "limitations": [
+    "The earlier AUTH_OR_ACCESS event was before the web deployment finished and is not evidence against the rotated key.",
+    "Other provider connections, account plans, and all API-Football endpoints were not retested.",
+    "No production data, service settings, secrets, or schedules were changed by this verification."
+  ]
+}

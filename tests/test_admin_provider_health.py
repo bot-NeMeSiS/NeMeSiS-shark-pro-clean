@@ -90,6 +90,8 @@ def test_provider_health_surfaces_restricted_primary_and_real_fallback(monkeypat
     assert primary["status"] == "REVISAR_PLAN_ACCESO"
     assert primary["authenticated"] is False
     assert primary["quota"]["daily_remaining"] == 99
+    assert primary["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert primary["quota_observation"]["observed_at"] == "2026-09-10T22:20:23+00:00"
     assert "suscripción" in primary["next_action"].lower()
 
     fallback = providers["sportsdb"]
@@ -114,7 +116,11 @@ def test_provider_health_never_equates_configured_with_paid(monkeypatch):
     assert providers["the_odds"]["configured"] is True
     assert providers["the_odds"]["status"] == "SIN_VERIFICACION_RECIENTE"
     assert "no verificable" in providers["the_odds"]["billing_status"].lower()
-    assert "Configurado no equivale a pagado" in result["external_services"]["note"]
+    assert "La configuración no verifica" in result["external_services"]["note"]
+    assert result["external_services"]["telegram_runtime_state"] == "CONFIGURATION_ONLY"
+    assert result["external_services"]["stripe_runtime_state"] == "CONFIGURATION_ONLY"
+    assert result["external_services"]["render_runtime_state"] == "NOT_CHECKED"
+    assert result["external_services"]["cost_state"] == "UNKNOWN"
 
 
 def test_provider_health_missing_credentials_is_explicit(monkeypatch):

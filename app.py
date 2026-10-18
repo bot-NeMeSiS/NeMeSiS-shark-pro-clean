@@ -18930,7 +18930,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     data["v925_calendar"] = _v940_calendar_provider_context(summary)
     data["v925_live"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data["picks"])
-    data["v925_odds"] = get_safe_odds_context(data["picks"])
+    data["v925_odds"] = get_safe_odds_context(data["v925_picks"].get("picks") or [])
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
     data["sports_metrics"] = sports_metrics
     data["v931_route_guard"] = {"status": "full_context", "no_render_api_call": True}
@@ -23337,8 +23337,6 @@ def v945_provider_health_snapshot():
             severity = "warning" if configured else "neutral"
             action = "Revisar última sincronización"
         billing_status = billing_hint or "No verificable automáticamente"
-        if plan_value:
-            billing_status = f"Plan observado: {plan_value}"
         return {
             **failure_evidence,
             "key": key,
@@ -23355,7 +23353,28 @@ def v945_provider_health_snapshot():
             "external_calls": as_int(observed.get("external_calls"), 0),
             "observed_at": str(observed_at or ""),
             "billing_status": billing_status,
+            "plan_observation": {
+                "state": "OBSERVED" if plan_value else "UNKNOWN",
+                "value": _sports_diagnostic_text(plan_value, 80) if plan_value else "",
+                "observed_at": _sports_diagnostic_text(plan.get("observed_at"), 80) if key == "api_football" else "",
+                "source": _sports_diagnostic_text(plan.get("source"), 60) if key == "api_football" else "NONE",
+                "freshness": (
+                    _sports_diagnostic_text(
+                        access.get("freshness") or pipeline.get("provider_access_freshness"), 60
+                    ) or ("LAST_OBSERVED_NOT_CURRENT" if plan_value else "UNKNOWN")
+                ) if key == "api_football" else "UNKNOWN",
+            },
             "quota": _v945_provider_safe_quota(quota_data),
+            "quota_observation": {
+                "state": "OBSERVED" if quota_data else "UNKNOWN",
+                "values": _v945_provider_safe_quota(quota_data),
+                "observed_at": _sports_diagnostic_text(quota.get("observed_at"), 80) if key == "api_football" else "",
+                "source": _sports_diagnostic_text(quota.get("source"), 60) if key == "api_football" else "NONE",
+                "freshness": (
+                    _sports_diagnostic_text(quota.get("freshness"), 60)
+                    or ("LAST_OBSERVED_NOT_CURRENT" if quota_data else "UNKNOWN")
+                ) if key == "api_football" else "UNKNOWN",
+            },
             "next_action": action,
         }
 
@@ -23366,6 +23385,7 @@ def v945_provider_health_snapshot():
             continue
         evidence = _provider_stage_evidence(lane)
         evidence["lane_label"] = lane_label
+        evidence["external_calls"] = as_int(lane.get("external_calls"), 0)
         evidence["issues"] = [provider_failure_advice(category)[0] for category in evidence["failure_categories"]]
         evidence["scope_label"] = {
             "CURRENT_CYCLE": "Consultado durante el ciclo registrado",
@@ -23379,7 +23399,9 @@ def v945_provider_health_snapshot():
     api_card = provider_card(
         "api_football", "API-Football / API-Sports", api_football_configured,
         {**api_football, "failure_categories": combined_failures},
-        plan_value=plan_value, observed_at=access.get("checked_at") or job.get("finished_at"), quota_data=quota_values,
+        plan_value=plan_value,
+        observed_at=(access.get("checked_at") or api_football.get("provider_observed_at") or job.get("finished_at")),
+        quota_data=quota_values,
     )
     api_card["observations"] = observations
     api_card["statistics_refresh"] = _sports_statistics_diagnostic(api_statistics)
@@ -23394,7 +23416,8 @@ def v945_provider_health_snapshot():
 
     sportsdb_card = provider_card(
         "sportsdb", "TheSportsDB", sportsdb_configured, sportsdb,
-        observed_at=job.get("finished_at"), billing_hint="Plan/pago no expuesto por la evidencia persistida",
+        observed_at=sportsdb.get("provider_observed_at") or job.get("finished_at"),
+        billing_hint="Plan y facturación no verificables desde la evidencia de la app",
     )
     if sportsdb_card["status"] == "OPERATIVA" and sportsdb_card["data_contributed"] and not sportsdb_configured:
         sportsdb_card["status"] = "OPERATIVA_FALLBACK"
@@ -23404,23 +23427,32 @@ def v945_provider_health_snapshot():
 
     odds_card = provider_card(
         "the_odds", "The Odds API", odds_configured, odds,
-        observed_at=job.get("finished_at"), billing_hint="Pago no verificable desde la app; acceso inferido por el último ciclo",
+        observed_at=odds.get("provider_observed_at") or job.get("finished_at"),
+        billing_hint="Plan y facturación no verificables desde la evidencia de la app",
     )
 
     providers = [api_card, sportsdb_card, odds_card]
     for item in providers:
         direct = _v945_provider_direct_snapshot(item["key"])
+        direct_age = _v945_provider_direct_age_seconds(direct)
+        direct["age_seconds"] = direct_age
+        direct["freshness"] = (
+            "CURRENT_DIRECT_CHECK"
+            if direct_age is not None and direct_age <= V945_PROVIDER_DIRECT_CHECK_COOLDOWN_SECONDS
+            else "LAST_OBSERVED_NOT_CURRENT" if direct_age is not None
+            else "UNKNOWN"
+        )
         item["direct_check"] = direct
         item["direct_check_supported"] = True
-        if direct.get("plan_state") == "PAID_PLAN_VERIFIED":
-            plan_label = str(direct.get("plan") or "Plan de pago").strip()[:80]
-            item["billing_status"] = f"Plan verificado directamente: {plan_label}"
-        elif direct.get("plan_state") == "FREE_PLAN_VERIFIED":
-            item["billing_status"] = "Plan FREE verificado directamente"
+        if direct.get("plan_state") == "PAID_PLAN_VERIFIED" and direct["freshness"] == "CURRENT_DIRECT_CHECK":
+            plan_label = _sports_diagnostic_text(direct.get("plan") or "Plan de pago", 80)
+            item["billing_status"] = f"El proveedor informa el plan {plan_label}; facturación no verificada"
+        elif direct.get("plan_state") == "FREE_PLAN_VERIFIED" and direct["freshness"] == "CURRENT_DIRECT_CHECK":
+            item["billing_status"] = "El proveedor informa plan FREE; facturación no verificada"
+        elif direct.get("ok") and direct["freshness"] == "CURRENT_DIRECT_CHECK":
+            item["billing_status"] = "Conexión directa reciente; plan y facturación no verificados"
         elif direct.get("ok"):
-            item["billing_status"] = (
-                item.get("billing_status") or "Conexión directa verificada; plan no expuesto"
-            )
+            item["billing_status"] = "Comprobación directa anterior; no confirma el estado actual"
     alerts = [
         {"provider": item["label"], "status": item["status_label"], "action": item["next_action"]}
         for item in providers if item["status"] == "NO_CONFIGURADA" or item["status"].startswith("REVISAR_")
@@ -23441,7 +23473,11 @@ def v945_provider_health_snapshot():
             "telegram_configured": env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID"),
             "openai_configured": env_present("OPENAI_API_KEY"),
             "stripe_configured": env_present("STRIPE_SECRET_KEY"),
-            "note": "Configurado no equivale a pagado u operativo; solo se afirma acceso cuando hay evidencia persistida.",
+            "telegram_runtime_state": "CONFIGURATION_ONLY",
+            "stripe_runtime_state": "CONFIGURATION_ONLY",
+            "render_runtime_state": "NOT_CHECKED",
+            "cost_state": "UNKNOWN",
+            "note": "La configuración no verifica entrega, cuenta activa, pago ni coste. Este panel no consulta servicios externos al abrirse.",
         },
     }
 
@@ -24750,16 +24786,129 @@ def api_admin_production_readiness():
     return jsonify({"ok": True, "version": APP_VERSION, **production_readiness_snapshot(app_version=APP_VERSION)})
 
 
+def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_limit=6):
+    """Build a truthful client watchlist from the already validated local sports snapshot.
+
+    This is match context, never a generated bet: quotes are shown as available only
+    when their source and observation timestamp pass the existing freshness contract.
+    The helper performs no provider calls and never creates or publishes picks.
+    """
+    summary = summary if isinstance(summary, dict) else {}
+    upcoming = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
+    watchlist = []
+    fresh_odds_matches = 0
+    for match in upcoming:
+        recommendation = v565_recommendation_for_match(match)
+        odds = recommendation.get("odds") if isinstance(recommendation.get("odds"), dict) else {}
+        prices = [
+            value for value in (odds.get("home"), odds.get("draw"), odds.get("away"))
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 1
+        ]
+        freshness = v935_get_odds_freshness(
+            match.get("odds_updated_at") or "",
+            odds=prices[0] if prices else None,
+            source=odds.get("source") or "",
+            match_lifecycle="UPCOMING",
+        )
+        if freshness.get("status") == "FRESH":
+            fresh_odds_matches += 1
+        if len(watchlist) >= max(0, min(12, int(watchlist_limit or 0))):
+            continue
+        kickoff_dt = match_kickoff_madrid_dt(match)
+        schedule_label = str(match.get("client_schedule_label") or match.get("calendar_time") or "").strip()
+        if not schedule_label and kickoff_dt:
+            schedule_label = format_madrid_client_datetime_label(kickoff_dt, detail=True) or ""
+        if not odds.get("available"):
+            odds_label = "Sin cuota observada"
+            reason = "Esperando una cuota de proveedor con hora verificable."
+        elif freshness.get("status") == "FRESH":
+            odds_label = "Cuota actual verificada"
+            reason = "Hay datos de mercado, pero SHARK aún no ha aprobado una selección publicable."
+        elif freshness.get("status") == "RECORDED":
+            odds_label = "Cuota registrada; falta actualizar"
+            reason = "La última cuota es una referencia y necesita renovarse antes de valorar una selección."
+        elif freshness.get("status") == "STALE":
+            odds_label = "Cuota desactualizada"
+            reason = "No se publicará una selección usando una cuota desactualizada."
+        else:
+            odds_label = "Cuota no verificable"
+            reason = "La cuota no tiene fuente y hora verificables para publicar un pronóstico."
+        status = recommendation.get("status") if isinstance(recommendation.get("status"), dict) else {}
+        watchlist.append({
+            "id": str(match.get("id") or ""),
+            "home_team": str(match.get("home_team") or ""),
+            "away_team": str(match.get("away_team") or ""),
+            "competition_name": str(match.get("competition_name") or match.get("league_name") or ""),
+            "match_date": str(match.get("match_date") or ""),
+            "schedule_label": schedule_label,
+            "status_label": str(status.get("label") or "Próximo"),
+            "decision_label": "En observación" if recommendation.get("decision") == "WAIT" else "No publicar",
+            "odds_label": odds_label,
+            "reason": reason,
+        })
+
+    if active_count:
+        count = int(active_count)
+        noun = "pronóstico vigente" if count == 1 else "pronósticos vigentes"
+        message = f"Hay {count} {noun} que superó las comprobaciones de partido, selección y cuota." if count == 1 else f"Hay {count} {noun} que superaron las comprobaciones de partido, selección y cuota."
+        state = "available"
+    elif locked_count:
+        message = "Hay pronósticos vigentes reservados a otra membresía. Consulta las opciones de membresía para conocer el acceso disponible."
+        state = "membership_locked"
+    elif not upcoming:
+        message = "No hay próximos partidos completos y verificados en la agenda actual."
+        state = "waiting_for_matches"
+    elif fresh_odds_matches == 0:
+        count = len(upcoming)
+        match_label = "partido próximo verificado" if count == 1 else "partidos próximos verificados"
+        message = f"Hay {count} {match_label}, pero no hay cuotas actuales verificables. SHARK no publicará una apuesta sin esa evidencia."
+        state = "waiting_for_odds"
+    else:
+        message = "Hay partidos y cuotas recientes, pero ninguna selección ha superado todavía la revisión de SHARK."
+        state = "waiting_for_review"
+    return {
+        "state": state,
+        "message": message,
+        "active_count": int(active_count or 0),
+        "locked_count": int(locked_count or 0),
+        "upcoming_count": len(upcoming),
+        "fresh_odds_match_count": fresh_odds_matches,
+        "no_provider_call": True,
+    }, watchlist
+
+
+
 @app.route("/picks")
 def picks_page():
     data, summary = v932_safe_dashboard_data(request.path, compact=True)
-    data["picks"] = list(summary.get("valid_active_picks") or [])
-    data["pick_stats"] = v931_safe_context(request.path, "pick_stats", pick_stats, {"closed": 0, "graded": 0})
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    all_current_picks = list(summary.get("valid_active_picks") or [])
+    data["picks"] = [
+        item for item in all_current_picks
+        if _client_pick_membership_allows(membership, item)
+    ]
+    data["locked_pick_count"] = sum(
+        1 for item in all_current_picks
+        if not _client_pick_membership_allows(membership, item)
+    )
+    visible_history = published_picks_for_user(user, limit=200)
+    closed_statuses = {"won", "lost", "void", "win", "loss", "ganado", "perdido", "nulo", "settled", "graded"}
+    closed_count = sum(
+        1 for item in visible_history
+        if str(item.get("result_status") or item.get("status") or "").strip().lower() in closed_statuses
+    )
+    data["pick_stats"] = {"closed": closed_count, "graded": closed_count}
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
     data["v934_odds"] = get_realtime_safe_odds_context(summary)
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
+    data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
+        summary,
+        active_count=len(data["v925_picks"].get("picks") or []),
+        locked_count=data["locked_pick_count"],
+    )
     return render_template("picks.html", data=data)
 
 
@@ -29884,15 +30033,100 @@ def api_import_odds():
     return jsonify({"version": APP_VERSION, **result})
 
 
+_CLIENT_PICK_API_FIELDS = (
+    "id", "match_id", "match_date", "kickoff_time", "kickoff_iso", "timezone_label",
+    "competition_name", "league_name", "home_team", "away_team", "home_logo", "away_logo",
+    "home_team_id", "away_team_id", "market", "pick_type", "selection", "selection_display",
+    "odds", "odds_source", "odds_updated_at", "bookmaker", "risk_level", "status",
+    "result_status", "membership_required", "published_at", "source", "reasoning",
+    "warning_reason", "client_match_label", "client_match_url", "client_selection_label",
+    "client_odds_label", "display_datetime", "display_time", "madrid_date", "madrid_time",
+    "madrid_dt_iso",
+)
+
+
+def _client_pick_membership_allows(user_membership, pick):
+    """Fail closed when a stored pick requires an unsupported membership tier."""
+    if not isinstance(pick, dict):
+        return False
+    required = str(pick.get("membership_required") or "FREE").strip().upper() or "FREE"
+    if required not in VALID_ROLES:
+        return False
+    return membership_allows(user_membership or "FREE", required)
+
+
+def _current_client_picks(user=None, summary=None):
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    summary = summary if isinstance(summary, dict) else get_public_home_sports_summary()
+    eligible = [
+        item for item in (summary.get("valid_active_picks") or [])
+        if isinstance(item, dict)
+        and _client_pick_membership_allows(membership, item)
+    ]
+    return get_safe_picks_context(eligible).get("picks") or []
+
+
+def _serialize_client_pick(item):
+    return {key: item[key] for key in _CLIENT_PICK_API_FIELDS if key in item}
+
+
+def _client_visible_pick_stats(picks):
+    picks = [item for item in (picks or []) if isinstance(item, dict)]
+    odds_values = []
+    for item in picks:
+        try:
+            value = float(str(item.get("odds") or "").strip().replace(",", "."))
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(value) and value > 1:
+            odds_values.append(value)
+    count = len(picks)
+    return {
+        "total": count, "published": count, "draft": 0, "archived": 0,
+        "won": 0, "lost": 0, "void": 0, "pending_result": count,
+        "avg_odds": round(sum(odds_values) / len(odds_values), 2) if odds_values else 0,
+        # The stored confidence value is an internal analysis index, not a calibrated
+        # win probability, so a public aggregate would be misleading.
+        "avg_confidence": None, "winrate": None, "scope": "current_membership_visible",
+    }
+
+
+
+
 @app.route("/api/picks")
 def api_picks():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    include_admin = normalize_role(user.get("role")) == "ADMIN" and request.args.get("admin") in {"1", "true", "yes"}
+    limit = max(1, min(100, as_int(request.args.get("limit"), 50)))
+    include_admin = is_admin_session() and request.args.get("admin") in {"1", "true", "yes"}
     if include_admin:
-        picks = get_picks(limit=request.args.get("limit", 50), include_admin=True)
-    else:
-        picks = published_picks_for_user(user, limit=as_int(request.args.get("limit"), 50))
-    return jsonify({"ok": True, "version": APP_VERSION, "picks": picks, "stats": pick_stats()})
+        picks = get_picks(limit=limit, include_admin=True)
+        return jsonify({"ok": True, "version": APP_VERSION, "picks": picks, "stats": pick_stats()})
+
+    # Match the customer page's canonical local snapshot and truth gate. A database
+    # row marked "published" is not enough to expose an expired, incomplete, or
+    # higher-tier pick through a public JSON endpoint.
+    summary = get_public_home_sports_summary()
+    safe_picks = _current_client_picks(user, summary)
+    picks = [_serialize_client_pick(item) for item in safe_picks[:limit]]
+    stats = _client_visible_pick_stats([_serialize_client_pick(item) for item in safe_picks])
+    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
+    current_candidates = [
+        item for item in (summary.get("valid_active_picks") or []) if isinstance(item, dict)
+    ]
+    locked_count = sum(
+        1 for item in current_candidates
+        if not _client_pick_membership_allows(membership, item)
+    )
+    readiness, watchlist = client_pick_readiness(
+        summary, active_count=len(safe_picks), locked_count=locked_count,
+    )
+    readiness["count"] = len(picks)
+    readiness["available_count"] = len(safe_picks)
+    return jsonify({
+        "ok": True, "version": APP_VERSION, "picks": picks, "stats": stats,
+        "readiness": readiness, "watchlist": watchlist,
+    })
 
 
 @app.route("/api/picks/create", methods=["POST"])
@@ -29933,7 +30167,7 @@ def api_picks_archive():
 
 @app.route("/api/picks/stats")
 def api_picks_stats():
-    return jsonify({"ok": True, "version": APP_VERSION, "stats": pick_stats()})
+    return jsonify({"ok": True, "version": APP_VERSION, "stats": _client_visible_pick_stats(_current_client_picks())})
 
 
 @app.route("/api/import-picks", methods=["POST"])

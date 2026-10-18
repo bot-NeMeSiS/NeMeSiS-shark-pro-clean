@@ -1,0 +1,116 @@
+{
+  "observed_at_madrid": "2026-10-17T18:48:00+02:00",
+  "scope": "read-only local repo, provider dashboard, Render runtime/logs/metrics and official provider documentation",
+  "no_manual_provider_api_calls": true,
+  "no_production_changes": true,
+  "repository": {
+    "path": "C:/Users/aloha/OneDrive/Escritorio/NeMeSiS shark pro",
+    "branch": "codex/search-first-team-candidates",
+    "head": "f3fe100a432a92a4e8f7ee2f679f9883d6662d8d",
+    "origin_main": "09e772f51030ddb128b79aeeded247b7857e866c",
+    "behind_main_by": 2,
+    "working_tree_changes": "Existing untracked user files and prior audit artifacts; not modified by this review."
+  },
+  "api_football": {
+    "plan": "Pro",
+    "subscription_status": "Active",
+    "dashboard_requests_used_observed": 27,
+    "daily_limit": 7500,
+    "remaining_calculated": 7473,
+    "utilization_percent_calculated": 0.36,
+    "subscription_end_utc": "2026-11-17T09:49:48Z",
+    "purchase_observed": {"term_months": 1, "amount_usd": 19, "status": "Completed", "date": "2026-10-17 09:49"},
+    "dashboard_latest_activity_utc": "2026-10-17T14:45:00Z",
+    "latest_natural_tick_madrid": {
+      "at": "2026-10-17T16:45:12+02:00",
+      "overall": "PARTIAL",
+      "sports_status": "PASS",
+      "http": 200,
+      "external_calls": 1,
+      "errors": 0,
+      "live_provider_observation_current": true,
+      "calendar_primary_state": "cache",
+      "calendar_external_calls": 0,
+      "calendar_provider_observed_at_madrid": "2026-10-17T14:15:37+02:00",
+      "deep_status": "SKIPPED_NOT_DUE",
+      "deep_last_observed_at_madrid": "2026-10-17T15:25:26+02:00",
+      "deep_last_sample_calls": 7,
+      "freshness": {"state": "PARTIAL", "evaluated": 200, "observed": 195, "fresh": 0, "stale": 0, "not_established": 5}
+    },
+    "official_plan_limit_per_minute": 300,
+    "credential_value_saved": false
+  },
+  "the_odds_api": {
+    "configured_in_runtime": true,
+    "account_plan_verified": false,
+    "latest_tick_result": "CACHE_REUSED",
+    "latest_external_calls": 0,
+    "provider_observation_current": false,
+    "reported_remaining_439_is_current": false,
+    "connection_status": "not_proven_by_recent_external_call"
+  },
+  "thesportsdb": {
+    "credential_mode_in_recent_job": "CONFIGURED_KEY_NOT_PLAN_VERIFIED",
+    "account_plan_verified": false,
+    "latest_postmatch": {"processed": 2, "external_calls": 0, "pending_jobs": 36750, "deferral_reason": "DAILY_BUDGET"},
+    "latest_highlights": {"result": "retry_cooldown", "external_calls": 0, "status": "PARTIAL"},
+    "previous_highlights_tick": {"found": 50, "linked": 42, "external_calls": 0, "status": "PARTIAL"}
+  },
+  "telegram": {
+    "bot_and_destination_configured_in_runtime": true,
+    "latest_tick_result": "OLD_MATCH",
+    "internal_http": 200,
+    "fresh_delivery_receipt_verified": false
+  },
+  "stripe": {
+    "production_runtime_mode": "test",
+    "checkout_ready_reported": true,
+    "webhook_ready_reported": true,
+    "real_charge_executed_reported": false,
+    "stripe_connector": "reauthentication_required",
+    "account_data_verified": false
+  },
+  "render": {
+    "workspace_id": "tea-d7mec77lk1mc73bjf9bg",
+    "repository": "bot-NeMeSiS/NeMeSiS-shark-pro-clean",
+    "branch": "main",
+    "production_sha": "09e772f51030ddb128b79aeeded247b7857e866c",
+    "runtime_generated_at_madrid": "2026-10-17T18:46:00+02:00",
+    "runtime_http": 200,
+    "version_files_match": true,
+    "active_errors": 0,
+    "web_service_id": "srv-d7t9j2favr4c738hm0i0",
+    "web_status": "active",
+    "cron_service_id": "crn-d8mlmhq8qa3s73e9v2tg",
+    "cron_status": "active",
+    "cron_schedule": "*/5 * * * *",
+    "last_successful_cron_run_madrid": "2026-10-17T16:45:34+02:00",
+    "persistent_disk_gb": 2,
+    "memory_peak_observed_bytes": 447844350,
+    "memory_limit_bytes": 536870900,
+    "memory_peak_observed_at_madrid": "2026-10-17T16:40:00+02:00",
+    "memory_peak_percent_calculated": 83.4,
+    "render_logs_error_warning_count_last_two_hours": 0
+  },
+  "other_runtime_signals": {
+    "openai_configured": false,
+    "shark_ai_mode": "Modo seguro activo",
+    "master_tick_recorded_in_public_runtime": false,
+    "cron_tick_evidenced_in_render_logs": true
+  },
+  "limitations": [
+    "The Odds API and TheSportsDB accounts were not authenticated; their paid plans and real remaining quotas are unknown.",
+    "Stripe requires reauthentication; no account details were inspected.",
+    "A Telegram OLD_MATCH result is not a new delivery receipt.",
+    "Provider plan/configuration is not the same as live connectivity or current data freshness.",
+    "No production API calls, manual syncs, test payments, Telegram messages, secret changes, or deployment were performed."
+  ],
+  "official_sources": [
+    "https://www.api-football.com/news/post/how-to-optimize-api-sports-calls-and-quota-usage",
+    "https://www.thesportsdb.com/documentation",
+    "https://www.thesportsdb.com/docs_api",
+    "https://the-odds-api.com/guide/rate-limit.html",
+    "https://core.telegram.org/bots/api",
+    "https://docs.stripe.com/api/webhook_endpoints"
+  ]
+}

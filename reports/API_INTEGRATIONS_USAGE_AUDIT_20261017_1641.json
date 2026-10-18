@@ -1,0 +1,141 @@
+{
+  "observed_at_madrid": "2026-10-17T16:41:50+02:00",
+  "scope": "read-only provider dashboard, Render service/deploy/log/metrics connectors, and origin/main source inspection",
+  "no_manual_provider_api_calls": true,
+  "api_football": {
+    "account_plan": "Pro",
+    "subscription_status": "Active",
+    "subscription_end_utc": "2026-11-17T09:49:48Z",
+    "dashboard_requests_used": 27,
+    "dashboard_daily_limit": 7500,
+    "remaining_calculated_from_dashboard": 7473,
+    "utilization_percent_calculated": 0.36,
+    "per_minute_limit_from_official_plan": 300,
+    "current_month_transaction": {
+      "date": "2026-10-17 09:49",
+      "product": "Football (Soccer) Pro",
+      "term_months": 1,
+      "amount_usd": 19,
+      "status": "Completed"
+    },
+    "recent_dashboard_endpoints": [
+      {
+        "endpoint": "v3/fixtures?live=all&timezone=Europe/Madrid",
+        "observed_activity_times_utc": [
+          "14:40", "14:35", "14:30", "14:25", "14:20", "14:15", "14:10",
+          "14:05", "14:01", "13:55", "13:50", "13:45", "13:40", "13:35", "13:30"
+        ],
+        "count_in_visible_recent_activity": 15
+      }
+    ],
+    "recent_production_ticks_madrid": [
+      {
+        "at": "2026-10-17T16:30:36+02:00",
+        "sports_status": "PASS",
+        "sports_http": 200,
+        "sports_external_calls": 1,
+        "sports_errors": 0,
+        "live_refresh_state": "ok",
+        "live_refresh_external_calls": 1,
+        "live_refresh_current": true,
+        "live_refresh_fixtures_reported": 340,
+        "primary_state": "cache",
+        "primary_external_calls": 0,
+        "primary_last_observed_utc": "2026-10-17T12:15:37Z",
+        "deep_status": "SKIPPED_NOT_DUE"
+      },
+      {
+        "at": "2026-10-17T16:35:26+02:00",
+        "sports_status": "PASS",
+        "sports_http": 200,
+        "sports_external_calls": 1,
+        "sports_errors": 0,
+        "live_refresh_state": "ok",
+        "live_refresh_external_calls": 1,
+        "live_refresh_current": true,
+        "live_refresh_fixtures_reported": 350,
+        "primary_state": "cache",
+        "primary_external_calls": 0,
+        "primary_last_observed_utc": "2026-10-17T12:15:37Z",
+        "deep_status": "SKIPPED_NOT_DUE"
+      },
+      {
+        "at": "2026-10-17T16:40:18+02:00",
+        "sports_status": "PASS",
+        "sports_http": 200,
+        "sports_external_calls": 1,
+        "sports_errors": 0,
+        "live_refresh_state": "ok",
+        "live_refresh_external_calls": 1,
+        "live_refresh_current": true,
+        "live_refresh_fixtures_reported": 353,
+        "primary_state": "cache",
+        "primary_external_calls": 0,
+        "primary_last_observed_utc": "2026-10-17T12:15:37Z",
+        "deep_status": "SKIPPED_NOT_DUE"
+      }
+    ],
+    "last_deep_sample_madrid": "2026-10-17T15:25:26+02:00",
+    "last_deep_sample_external_calls": 7,
+    "last_deep_sample_fixture_ids_count": 1,
+    "last_deep_sample_returned": {
+      "events": 16,
+      "h2h": 10,
+      "injuries": 8,
+      "lineups": 2,
+      "standings": 1,
+      "statistics": 2
+    },
+    "last_deep_sample_quota_observation_is_historical": true,
+    "frontend_secret_scan": "No API_FOOTBALL_KEY or x-apisports-key matches in origin/main static JavaScript or templates; provider key is read from server-side environment in Python code.",
+    "plan_entitlements_source": "https://www.api-football.com/pricing"
+  },
+  "other_integrations_latest_ticks": {
+    "the_odds_api": {
+      "state": "CACHE_REUSED",
+      "external_calls": 0,
+      "provider_observation_current": false,
+      "remaining_value": 439,
+      "remaining_value_is_current": false
+    },
+    "thesportsdb": {
+      "highlights_state_latest": "PARTIAL",
+      "highlights_external_calls_latest": 0,
+      "postmatch_state_latest": "PARTIAL",
+      "postmatch_processed_latest": 2,
+      "postmatch_external_calls_latest": 0
+    },
+    "telegram": {
+      "cron_result_latest": "OLD_MATCH",
+      "internal_http": 200,
+      "fresh_telegram_delivery_receipt_verified": false
+    },
+    "stripe": {
+      "connector_result": "UNAUTHORIZED_REAUTH_REQUIRED",
+      "account_data_inspected": false
+    }
+  },
+  "render": {
+    "official_repo": "https://github.com/bot-NeMeSiS/NeMeSiS-shark-pro-clean",
+    "branch": "main",
+    "production_sha": "09e772f51030ddb128b79aeeded247b7857e866c",
+    "web_service_id": "srv-d7t9j2favr4c738hm0i0",
+    "web_deployment_status": "live",
+    "cron_service_id": "crn-d8mlmhq8qa3s73e9v2tg",
+    "cron_deployment_status": "live",
+    "cron_schedule": "*/5 * * * *",
+    "last_successful_run_utc": "2026-10-17T14:40:40Z",
+    "memory_series_end_utc": "2026-10-17T14:41:00Z",
+    "memory_latest_bytes": 447881200,
+    "memory_limit_bytes": 536870900,
+    "memory_latest_percent_calculated": 83.42,
+    "memory_series_start_bytes": 350195700,
+    "memory_series_start_utc": "2026-10-17T13:41:00Z"
+  },
+  "limitations": [
+    "The provider dashboard is the authoritative current source for the Pro subscription and request count; the app's stored quota sample is older.",
+    "The last deep-enrichment sample is historical and does not imply all endpoints returned complete data for all leagues or fixtures.",
+    "A current Pro plan permits the listed plan capacity, but per-league/season endpoint coverage still needs checking before dependent data is requested.",
+    "No provider API requests, manual sync, job trigger, payment change, production change, or deployment was performed by this audit."
+  ]
+}

@@ -781,6 +781,7 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
                 'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
     except urllib.error.HTTPError as exc:
         result = request_error_result('postmatch', started, f'HTTP_{int(exc.code)}', int(exc.code), exc)
+        result.update(postmatch_http_error_details(exc))
         result['duration_ms'] = result.pop('postmatch_duration_ms')
         return result
     except Exception as exc:
@@ -794,6 +795,58 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
             'postmatch_result': 'TIMEOUT' if is_timeout else type(exc).__name__,
             'duration_ms': max(0, round((time.perf_counter() - started) * 1000)),
         }
+
+
+def postmatch_http_error_details(http_error) -> dict:
+    """Extract only closed Postmatch diagnostics from a bounded HTTP error body."""
+    limit = 8192
+    try:
+        body = http_error.read(limit + 1)
+    except Exception:
+        return {}
+    if not isinstance(body, bytes) or len(body) > limit:
+        return {}
+    payload = decode_json(body)
+    if not isinstance(payload, dict):
+        return {}
+
+    result = {}
+    domain_result = payload.get('result')
+    if domain_result in {'IDLE', 'COMPLETE', 'PARTIAL', 'FAIL', 'STORAGE_UNAVAILABLE', 'SKIPPED_DISABLED'}:
+        result['postmatch_domain_result'] = domain_result
+    stage = payload.get('failure_stage')
+    if stage in {'INITIALIZE', 'DISCOVER', 'RECONCILE', 'PROCESS'}:
+        result['postmatch_failure_stage'] = stage
+    storage_code = payload.get('storage_code')
+    if isinstance(storage_code, str) and re.fullmatch(r'SQLITE_[A-Z0-9_]{1,48}', storage_code):
+        result['postmatch_storage_code'] = storage_code
+    for source_key, target_key in (('processed', 'postmatch_processed'), ('external_calls', 'postmatch_external_calls')):
+        value = payload.get(source_key)
+        if type(value) is int and 0 <= value <= 1000000:
+            result[target_key] = value
+
+    allowed_reasons = {
+        'ACCESS_DENIED', 'RATE_LIMIT', 'NETWORK', 'MALFORMED', 'REDIRECT_BLOCKED',
+        'MISSING_KEY', 'INVALID_STATISTIC', 'CONFLICTING_STATISTICS',
+        'INCONSISTENT_STATISTICS', 'INVALID_VIDEO_URL', 'INTERNAL_ERROR',
+        'STORAGE_UNAVAILABLE',
+    }
+    reasons = set()
+    jobs = payload.get('jobs')
+    if isinstance(jobs, list):
+        for job in jobs[:2]:
+            if not isinstance(job, dict):
+                continue
+            reason = job.get('reason')
+            if isinstance(reason, str) and reason in allowed_reasons:
+                reasons.add(reason)
+            errors = job.get('technical_errors')
+            if isinstance(errors, list):
+                reasons.update(error for error in errors[:12]
+                               if isinstance(error, str) and error in allowed_reasons)
+    if reasons:
+        result['postmatch_failure_reasons'] = sorted(reasons)
+    return result
 
 
 def skipped_backup() -> dict:

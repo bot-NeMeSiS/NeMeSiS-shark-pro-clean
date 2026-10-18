@@ -62,13 +62,15 @@ def sha256_file(path: str | Path, *, deadline: float | None = None) -> str:
 
 
 def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = None,
-                       error_type: str = "") -> None:
+                       error_type: str = "", error_code: str = "") -> None:
     """Write low-cardinality backup timing without paths, data, or secrets."""
     event = {"event": "data_backup_stage", "stage": str(stage), "status": str(status)}
     if started_at is not None:
         event["duration_ms"] = max(0, int((time.monotonic() - started_at) * 1000))
     if error_type:
         event["error_type"] = str(error_type)[:48]
+    if error_code and error_code.startswith("SQLITE_") and error_code.replace("_", "").isalnum():
+        event["error_code"] = error_code[:48]
     print(json.dumps(event, ensure_ascii=True, sort_keys=True), flush=True)
 
 
@@ -513,7 +515,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     except Exception as exc:
         if stage_started_at is not None:
             error_type = "BACKUP_TIMEOUT" if "timeout" in str(exc).lower() else type(exc).__name__
-            _emit_backup_stage(stage, "failed", started_at=stage_started_at, error_type=error_type)
+            error_code = getattr(exc, "sqlite_errorname", "")
+            _emit_backup_stage(stage, "failed", started_at=stage_started_at,
+                               error_type=error_type, error_code=error_code)
             stage_started_at = None
         result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
                   "failure_stage": stage, "storage": storage}
@@ -523,21 +527,24 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     finally:
         cleanup_started = time.monotonic()
         _emit_backup_stage("CLEANUP", "started")
+        cleanup_ok = True
         if workspace is not None:
             cleanup = remove_workspace(workspace, bdir, src)
-            storage["temporary_cleanup_ok"] = cleanup["removed"]
-            if not cleanup["removed"]:
+            cleanup_ok = bool(cleanup["removed"])
+            storage["temporary_cleanup_ok"] = cleanup_ok
+            if not cleanup_ok:
                 result.update(ok=False, error=result.get("error") or "backup_temporary_cleanup_failed")
                 result.setdefault("failure_stage", "CLEANUP")
         if manifest_published and not published:
             try:
                 manifest_path.unlink(missing_ok=True)
             except OSError:
+                cleanup_ok = False
                 result.update(ok=False, error=result.get("error") or "backup_manifest_cleanup_failed")
                 result.setdefault("failure_stage", "CLEANUP")
-        _emit_backup_stage("CLEANUP", "finished" if result.get("ok") else "failed",
+        _emit_backup_stage("CLEANUP", "finished" if cleanup_ok else "failed",
                            started_at=cleanup_started,
-                           error_type=("cleanup_failed" if not result.get("ok") else ""))
+                           error_type=("cleanup_failed" if not cleanup_ok else ""))
 
 
 def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:

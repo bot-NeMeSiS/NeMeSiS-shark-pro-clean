@@ -96,7 +96,8 @@ def test_health_snapshot_only_reads_persisted_direct_evidence(monkeypatch):
     provider = next(item for item in snapshot["providers"] if item["key"] == "api_football")
     assert snapshot["provider_calls_during_render"] == 0
     assert provider["direct_check"]["status"] == "CONNECTED"
-    assert "Plan verificado directamente" in provider["billing_status"]
+    assert provider["direct_check"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
+    assert provider["billing_status"] == "Comprobación directa anterior; no confirma el estado actual"
 
 
 def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch):

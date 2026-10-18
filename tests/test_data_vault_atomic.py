@@ -59,7 +59,9 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
 def test_backup_stage_logs_identify_timeout_without_logging_error_text(backup_source, monkeypatch, capsys):
     source, root = backup_source
     def fail_hash(*args, **kwargs):
-        raise sqlite3.OperationalError("backup_snapshot_timeout do-not-log-this")
+        error = sqlite3.OperationalError("backup_snapshot_timeout do-not-log-this")
+        error.sqlite_errorname = "SQLITE_IOERR"
+        raise error
 
     monkeypatch.setattr(vault, "sha256_file", fail_hash)
 
@@ -71,6 +73,11 @@ def test_backup_stage_logs_identify_timeout_without_logging_error_text(backup_so
     hash_failure = next(event for event in events
                         if event["stage"] == "HASH" and event["status"] == "failed")
     assert hash_failure["error_type"] == "BACKUP_TIMEOUT"
+    assert hash_failure["error_code"] == "SQLITE_IOERR"
+    cleanup = next(event for event in events
+                   if event["stage"] == "CLEANUP" and event["status"] != "started")
+    assert cleanup["status"] == "finished"
+    assert "error_type" not in cleanup
     assert "do-not-log-this" not in output
     assert str(source) not in output
     assert vault.list_backups(root) == []

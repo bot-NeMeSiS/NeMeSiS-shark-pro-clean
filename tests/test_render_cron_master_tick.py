@@ -591,6 +591,41 @@ def test_postmatch_timeout_uses_extended_budget_and_is_diagnostic(monkeypatch, c
     assert "late but healthy response" not in output
 
 
+def test_postmatch_http_503_keeps_only_closed_domain_diagnostics(monkeypatch):
+    body = json.dumps({
+        "ok": False,
+        "result": "STORAGE_UNAVAILABLE",
+        "failure_stage": "PROCESS",
+        "storage_code": "SQLITE_BUSY",
+        "processed": 1,
+        "external_calls": 0,
+        "jobs": [{"reason": "NETWORK", "technical_errors": ["ACCESS_DENIED", "raw provider response"]}],
+        "message": "private/path and provider payload",
+    }).encode()
+    error = urllib.error.HTTPError(
+        "https://app.example.invalid/api/automation/postmatch/tick",
+        503,
+        "Service Unavailable",
+        {"Server": "gunicorn"},
+        io.BytesIO(body),
+    )
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_k: (_ for _ in ()).throw(error))
+
+    result = master.postmatch_tick("https://app.example.invalid", "test-secret")
+
+    assert result["postmatch_status"] == "FAIL"
+    assert result["postmatch_http"] == 503
+    assert result["postmatch_result"] == "HTTP_503"
+    assert result["postmatch_domain_result"] == "STORAGE_UNAVAILABLE"
+    assert result["postmatch_failure_stage"] == "PROCESS"
+    assert result["postmatch_storage_code"] == "SQLITE_BUSY"
+    assert result["postmatch_failure_reasons"] == ["ACCESS_DENIED", "NETWORK"]
+    assert result["postmatch_processed"] == 1
+    assert result["postmatch_external_calls"] == 0
+    assert "private/path" not in json.dumps(result)
+    assert "provider payload" not in json.dumps(result)
+
+
 def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatch):
     seen = {}
     secret = "pytest-highlights-secret"

@@ -56,9 +56,10 @@
           </section>
           {% endif %}
           <dl class="provider-health-facts">
-            <div><dt>{{ ui('Plan / pago') }}</dt><dd>{{ ui(provider.get('billing_status') or 'No verificable automáticamente') }}</dd></div>
-            <div><dt>{{ ui('Última evidencia') }}</dt><dd>{{ provider.get('observed_at')|madrid_datetime_label if provider.get('observed_at') else ui('Sin observación reciente') }}</dd></div>
-            <div><dt>{{ ui('Uso observado') }}</dt><dd>{% if provider.get('quota') %}{{ ui('Restante diario') }}: {{ provider.get('quota').get('daily_remaining', '—') }}{% elif provider.get('processed') %}{{ provider.get('processed') }} {{ ui('elementos') }}{% elif provider.get('data_contributed') %}{{ ui('Datos aportados') }}{% else %}{{ ui('Sin uso confirmado') }}{% endif %}</dd></div>
+            {% set plan_evidence = provider.get('plan_observation') or {} %}
+            <div><dt>{{ ui('Plan / facturación') }}</dt><dd>{{ ui(provider.get('billing_status') or 'No verificable automáticamente') }}{% if plan_evidence.get('state') == 'OBSERVED' %}<small>{{ ui('Plan reportado') }}: {{ ui(plan_evidence.get('value')) }} · {% if plan_evidence.get('freshness') == 'CURRENT_DEEP_RUN' %}{{ ui('Observado en el ciclo actual') }}{% else %}{{ ui('Dato guardado; no revalidado en este ciclo') }}{% endif %}{% if plan_evidence.get('observed_at') %} · {{ plan_evidence.get('observed_at')|madrid_datetime_label }}{% endif %}</small>{% endif %}</dd></div>
+            <div><dt>{{ ui('Última evidencia de uso') }}</dt><dd>{% if provider.get('observed_at') %}{{ provider.get('observed_at')|madrid_datetime_label }}{% else %}{{ ui('Sin observación registrada') }}{% endif %}</dd></div>
+            <div><dt>{{ ui('Consumo y cuota') }}</dt><dd>{% set quota_evidence = provider.get('quota_observation') or {} %}{% if quota_evidence.get('values') %}{% if quota_evidence.get('values').get('daily_remaining') is not none %}{{ ui('Restante diario') }}: {{ quota_evidence.get('values').get('daily_remaining') }}{% elif quota_evidence.get('values').get('requests_remaining') is not none %}{{ ui('Solicitudes restantes') }}: {{ quota_evidence.get('values').get('requests_remaining') }}{% else %}{{ ui('Cuota observada') }}{% endif %} · {% if quota_evidence.get('freshness') == 'CURRENT_DEEP_RUN' %}{{ ui('Observada en el ciclo actual') }}{% else %}{{ ui('Último valor guardado; no reconsultado') }}{% endif %}{% if quota_evidence.get('observed_at') %} · {{ quota_evidence.get('observed_at')|madrid_datetime_label }}{% endif %}{% elif provider.get('external_calls') %}{{ provider.get('external_calls') }} {{ ui('solicitudes al proveedor en el último ciclo') }}{% elif provider.get('processed') %}{{ provider.get('processed') }} {{ ui('elementos del ciclo') }}{% else %}{{ ui('Sin consumo confirmado') }}{% endif %}</dd></div>
           </dl>
           <details class="provider-check-details">
             <summary>{{ ui('Detalles y comprobación') }}</summary>
@@ -66,7 +67,8 @@
             <p>{{ status_chip('Configurada' if provider.get('configured') else 'Sin credencial', 'success' if provider.get('configured') else 'warning') }}</p>
             {% set direct = provider.get('direct_check') or {} %}
             {% if direct.get('checked_at') %}
-              <p>{{ direct.get('status') or 'Registrado' }} · {{ direct.get('checked_at')|madrid_datetime_label }}{% if direct.get('reused') %} · {{ ui('reutilizado') }}{% endif %}</p>
+              <p>{{ direct.get('status') or 'Registrado' }} · {{ direct.get('checked_at')|madrid_datetime_label }} · {% if direct.get('freshness') == 'CURRENT_DIRECT_CHECK' %}{{ ui('Comprobación reciente') }}{% else %}{{ ui('Comprobación anterior; no representa el estado actual') }}{% endif %}{% if direct.get('external_calls') %} · {{ direct.get('external_calls') }} {{ ui('solicitudes externas') }}{% endif %}{% if direct.get('reused') %} · {{ ui('reutilizado') }}{% endif %}</p>
+              {% if direct.get('quota') %}<p>{{ ui('Cuota de esa comprobación') }}: {% if direct.get('quota').get('daily_remaining') is not none %}{{ ui('Restante diario') }} {{ direct.get('quota').get('daily_remaining') }}{% elif direct.get('quota').get('requests_remaining') is not none %}{{ ui('Solicitudes restantes') }} {{ direct.get('quota').get('requests_remaining') }}{% else %}{{ ui('Valores recibidos') }}{% endif %}</p>{% endif %}
             {% else %}
               <p>{{ ui('No verificada manualmente') }}</p>
             {% endif %}
@@ -93,10 +95,10 @@
 
       {% set ext = provider_health.get('external_services') or {} %}
       <div class="v928-truth-list">
-        <div><span>Telegram</span><strong>{{ 'Configurado' if ext.get('telegram_configured') else 'Revisar configuración' }}</strong></div>
-        <div><span>OpenAI</span><strong>{{ 'Configurado' if ext.get('openai_configured') else 'No configurado' }}</strong></div>
-        <div><span>Stripe</span><strong>{{ 'Configurado' if ext.get('stripe_configured') else 'No configurado' }}</strong></div>
-        <div><span>Regla</span><strong>Configurado ≠ pagado u operativo</strong></div>
+        <div><span>Telegram</span><strong>{{ 'Credenciales presentes; entrega no verificada' if ext.get('telegram_configured') else 'Credenciales no detectadas' }}</strong></div>
+        <div><span>OpenAI</span><strong>{{ 'Credencial presente; acceso no probado aquí' if ext.get('openai_configured') else 'Credencial no detectada' }}</strong></div>
+        <div><span>Stripe</span><strong>{{ 'Credencial presente; cuenta y pagos no verificados' if ext.get('stripe_configured') else 'Credencial no detectada' }}</strong></div>
+        <div><span>Render y costes</span><strong>No consultados aquí · coste no verificado</strong></div>
       </div>
     </div>
   </section>

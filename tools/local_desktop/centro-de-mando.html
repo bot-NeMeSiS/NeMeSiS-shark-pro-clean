@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#061421">
+  <title>NeMeSiS · Centro de mando</title>
+  <style>
+    :root{color-scheme:dark;--bg:#061421;--panel:#0c2031;--panel2:#10283b;--line:#25445a;--text:#edf7ff;--muted:#a8bdcc;--cyan:#47ddff;--blue:#1689ff;--green:#77edc1}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--text);background:radial-gradient(ellipse at 12% 0%,#123753 0,transparent 38%),linear-gradient(145deg,#061421,#081b2a 60%,#071521)}
+    a{color:inherit}.shell{width:min(1100px,calc(100% - 36px));margin:auto;padding:34px 0 28px}.hero{display:flex;align-items:center;gap:22px;padding:26px clamp(18px,4vw,38px);border:1px solid #28506a;border-radius:24px;background:linear-gradient(115deg,rgba(14,43,64,.96),rgba(7,24,39,.88));box-shadow:0 20px 60px #020b1280}.brand{width:158px;max-width:28vw;filter:drop-shadow(0 0 18px #16bde855)}.eyebrow{margin:0 0 5px;color:var(--cyan);font-size:.76rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}h1{margin:0;font-size:clamp(1.65rem,4vw,2.55rem);line-height:1.1;letter-spacing:-.035em}.intro{max-width:640px;margin:11px 0 0;color:var(--muted)}
+    .toolbar{display:flex;align-items:center;gap:12px;margin:26px 0 20px}.search-wrap{flex:1;min-width:0}.search{width:100%;min-width:0;padding:13px 16px;border:1px solid var(--line);border-radius:13px;background:#091a28;color:var(--text);font:inherit;outline:none}.search:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #47ddff26}.hint{color:var(--muted);font-size:.88rem}
+    .section-title{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:26px 2px 12px}.section-title h2{margin:0;font-size:1.03rem}.section-title span{color:var(--muted);font-size:.8rem}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.card{position:relative;display:flex;min-height:150px;flex-direction:column;align-items:flex-start;padding:19px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(150deg,var(--panel2),var(--panel));text-decoration:none;transition:transform .18s,border-color .18s,box-shadow .18s}.card:hover,.card:focus-visible{transform:translateY(-2px);border-color:#46cdec;box-shadow:0 12px 30px #020b1270;outline:none}.card:focus-visible{box-shadow:0 0 0 3px #47ddff40}.card-top{display:flex;width:100%;align-items:center;justify-content:space-between}.icon{display:grid;width:40px;height:40px;place-items:center;border:1px solid #3b6983;border-radius:12px;background:#0b3148;color:var(--cyan);font-size:1.2rem}.tag{padding:4px 8px;border:1px solid #2b5b70;border-radius:99px;color:#a4eafa;font-size:.69rem;font-weight:750}.card h3{margin:13px 0 4px;font-size:1rem}.card p{margin:0;color:var(--muted);font-size:.84rem}.arrow{position:absolute;right:18px;bottom:16px;color:var(--cyan);font-weight:800}.note{margin:22px 0 0;padding:15px 17px;border:1px solid #355265;border-radius:14px;background:#0a1c2a;color:var(--muted);font-size:.85rem}.note strong{color:var(--text)}footer{display:flex;justify-content:space-between;gap:12px;margin:18px 3px 0;color:#829bad;font-size:.75rem}.empty{display:none;padding:18px;color:var(--muted);text-align:center}.hidden{display:none!important}
+    @media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{align-items:flex-start}.brand{width:110px}.toolbar{align-items:stretch;flex-direction:column}.hint{font-size:.8rem}}
+    @media(max-width:480px){.shell{width:min(100% - 24px,420px);padding-top:16px}.hero{gap:12px;padding:18px 14px;border-radius:18px}.brand{width:76px}.intro{font-size:.88rem}.grid{grid-template-columns:1fr;gap:9px}.card{min-height:128px;padding:15px}.section-title{margin-top:22px}footer{flex-direction:column}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <img class="brand" src="../../static/img/nemesis-shark-official.svg" alt="NeMeSiS SHARK PRO">
+      <div><p class="eyebrow">NeMeSiS SHARK PRO</p><h1>Centro de mando</h1><p class="intro">Tus accesos de trabajo, administración y producto reunidos en un solo lugar.</p></div>
+    </header>
+
+    <div class="toolbar">
+      <label class="search-wrap" for="quick-search" aria-label="Filtrar accesos"><input id="quick-search" class="search" type="search" placeholder="Buscar: administración, partidos, Render, proyecto…" autocomplete="off"></label>
+      <span class="hint">Elige un acceso para abrirlo en una pestaña nueva.</span>
+    </div>
+
+    <section class="access-group" aria-labelledby="product-title">
+      <div class="section-title"><h2 id="product-title">Plataforma</h2><span>Experiencia y herramientas de gestión</span></div>
+      <div class="grid">
+        <a class="card" data-search="admin founder control empresa propietario panel gestión estado tareas" href="https://bot-apuestas-crgf.onrender.com/admin/founder-os" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">⌂</span><span class="tag">ADMIN</span></div><h3>Centro de control</h3><p>Operación, estado, alertas y trabajo de la empresa.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="administración completa usuarios pagos partidos configuración" href="https://bot-apuestas-crgf.onrender.com/admin/dashboard" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">▦</span><span class="tag">ADMIN</span></div><h3>Administración</h3><p>Panel principal para gestionar la plataforma.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="app pública clientes partidos directo calendario inicio" href="https://bot-apuestas-crgf.onrender.com/" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">◉</span><span class="tag">APP</span></div><h3>Abrir NeMeSiS</h3><p>Entra en la experiencia que ve el cliente.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="cliente partidos pasados highlights resúmenes vídeos autorizados resultados" href="https://bot-apuestas-crgf.onrender.com/highlights" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">▶</span><span class="tag">CLIENTE</span></div><h3>Resúmenes para clientes</h3><p>Consulta los vídeos autorizados y los resultados, aunque hoy no haya vídeos disponibles.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="admin control de resúmenes derechos catálogo vídeos pendientes sincronización" href="https://bot-apuestas-crgf.onrender.com/admin/highlights-center" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">▣</span><span class="tag">ADMIN</span></div><h3>Control de resúmenes</h3><p>Revisa el catálogo, el estado de lectura y los permisos de cada vídeo.</p><span class="arrow" aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <section class="access-group" aria-labelledby="operations-title">
+      <div class="section-title"><h2 id="operations-title">Operaciones</h2><span>Herramientas del servicio y del proyecto</span></div>
+      <div class="grid">
+        <a class="card" data-search="render web servicio despliegues" href="https://dashboard.render.com/web/srv-d7t9j2favr4c738hm0i0" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">◈</span><span class="tag">RENDER</span></div><h3>Servicio web</h3><p>Abre el panel del servicio de NeMeSiS.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="render shell consola terminal logs" href="https://dashboard.render.com/web/srv-d7t9j2favr4c738hm0i0/shell" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">⌘</span><span class="tag">AVANZADO</span></div><h3>Consola del servicio</h3><p>Herramienta técnica de Render; requiere tu sesión.</p><span class="arrow" aria-hidden="true">↗</span></a>
+          <a class="card" data-search="carpeta archivos código proyecto local" href="../../" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">▤</span><span class="tag">PC</span></div><h3>Archivos del proyecto</h3><p>Explora los archivos en el navegador. Para abrirlos en el Explorador de Windows, usa el acceso «NeMeSiS Proyecto» del Escritorio.</p><span class="arrow" aria-hidden="true">↗</span></a>
+        <a class="card" data-search="guía instrucciones acceso pc ayuda entorno local seguro" href="../../ACCESO_DESDE_EL_PC.md" target="_blank" rel="noopener noreferrer"><div class="card-top"><span class="icon" aria-hidden="true">?</span><span class="tag">AYUDA</span></div><h3>Guía de acceso</h3><p>Cómo usar los accesos y abrir la vista local segura.</p><span class="arrow" aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+
+    <p id="empty" class="empty" role="status">No hay accesos que coincidan con esa búsqueda.</p>
+    <aside class="note"><strong>Acceso protegido.</strong> Los paneles oficiales pueden pedirte iniciar sesión. Este centro no guarda contraseñas ni cambia permisos; cada herramienta aplica sus propios controles.</aside>
+    <footer><span>NeMeSiS SHARK PRO · Acceso local de escritorio</span><span>La vista local es de pruebas y no representa datos actuales de producción.</span></footer>
+  </main>
+  <script>
+    (()=>{const input=document.getElementById('quick-search');const cards=[...document.querySelectorAll('.card')];const groups=[...document.querySelectorAll('.access-group')];const empty=document.getElementById('empty');input.addEventListener('input',()=>{const q=input.value.trim().toLocaleLowerCase('es');let shown=0;for(const card of cards){const match=!q||(card.dataset.search+' '+card.textContent).toLocaleLowerCase('es').includes(q);card.classList.toggle('hidden',!match);if(match)shown++;}for(const group of groups)group.classList.toggle('hidden',!group.querySelector('.card:not(.hidden)'));empty.style.display=shown?'none':'block';});})();
+  </script>
+</body>
+</html>
