@@ -9,6 +9,7 @@ from engines.match_context_engine import (
     CANONICAL_COMPONENT_STATES,
     MATCH_CENTER_COMPONENTS,
     MATCH_CENTER_CONTRACT,
+    _lineups_context,
     _factual_summaries,
     build_match_context,
 )
@@ -327,6 +328,8 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
         ROOT / "templates/components/v944_match_center.html"
     ).read_text(encoding="utf-8")
     css = (ROOT / "static/v933-product.css").read_text(encoding="utf-8")
+    design_system = (ROOT / "static/design-system.css").read_text(encoding="utf-8")
+    product_bundle = (ROOT / "static/product-system.css").read_text(encoding="utf-8")
 
     assert template.count("match_header(match_context)") == 1
     assert template.count("score_widget(match_context)") == 0
@@ -339,6 +342,11 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     assert 'data-timeline-event-contract=' in components
     assert 'data-sports-domain-model="unified-v1"' in components
     assert 'data-postmatch-factual-summary=' in components
+    assert 'data-lineup-grid="provider-confirmed"' in components
+    assert "grid_pitch_available" in components
+    assert "no representa recorridos, posesión por zonas ni un mapa de calor" in components
+    assert ".v944-lineup-grid-pitch__players" in design_system
+    assert ".v944-lineup-grid-pitch__players" in product_bundle
     assert 'Resumen basado en la información confirmada del partido.' in components
     assert all(name in components for name in MATCH_CENTER_COMPONENTS)
     assert all(f"'{state}'" in components for state in CANONICAL_COMPONENT_STATES)
@@ -346,6 +354,47 @@ def test_v944_jinja_contracts_are_valid_and_responsive():
     assert "@media (max-width: 800px)" in css
     assert "@media (prefers-reduced-motion: reduce)" in css
     assert not (ROOT / "static/v944-match-center.js").exists()
+
+
+def test_confirmed_provider_grid_renders_safe_real_lineup_cells():
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals["ui"] = lambda value: value
+    environment.filters["sync_madrid_label"] = str
+    environment.filters["madrid_datetime_label"] = str
+    positions = [
+        ("G", "1:1"),
+        ("D", "2:1"), ("D", "2:2"), ("D", "2:3"), ("D", "2:4"),
+        ("M", "3:1"), ("M", "3:2"), ("M", "3:3"),
+        ("F", "4:1"), ("F", "4:2"), ("F", "4:3"),
+    ]
+    lineups = _lineups_context([
+        {
+            "team_id": "home",
+            "team_name": "Club <Norte>",
+            "player_id": str(index),
+            "player_name": f"Jugador {index}",
+            "position": position,
+            "grid": grid,
+            "number": index,
+            "is_starting": 1,
+        }
+        for index, (position, grid) in enumerate(positions, start=1)
+    ])
+    render = environment.from_string(
+        "{% from 'components/v944_match_center.html' import lineups_panel %}{{ lineups_panel(context) }}"
+    )
+
+    html = render.render(context={
+        "components": {"LineupsPanel": {"state": "ready"}},
+        "lineups": lineups,
+        "transparency": {},
+    })
+
+    assert 'data-lineup-grid="provider-confirmed"' in html
+    assert "grid-row: 1; grid-column: 1;" in html
+    assert "Jugador 1" in html
+    assert "Club &lt;Norte&gt;" in html
+    assert "no representa recorridos, posesión por zonas ni un mapa de calor" in html
 
 
 def _sentinel_fixture(

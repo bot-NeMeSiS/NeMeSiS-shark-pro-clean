@@ -4,7 +4,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from engines.content_rights_engine import ATTRIBUTION_REQUIRED, classify_media_asset
-from engines.match_context_engine import build_match_context
+from engines.match_context_engine import _lineups_context, build_match_context
 from engines.team_center_engine import build_team_center_context
 from engines.video_highlights_engine import classify_match_video, video_highlights_snapshot
 
@@ -70,6 +70,63 @@ def test_confirmed_lineup_links_only_real_players_and_does_not_invent_pitch():
     assert context["lineups"]["teams"][0]["starters"][0]["href"] == "/player/101"
     assert context["lineups"]["pitch_available"] is False
     assert context["lineups"]["fake_players_created"] == 0
+
+
+def test_provider_grid_renders_only_complete_unique_starting_positions():
+    positions = [
+        ("G", "1:1"),
+        ("D", "2:1"), ("D", "2:2"), ("D", "2:3"), ("D", "2:4"),
+        ("M", "3:1"), ("M", "3:2"), ("M", "3:3"),
+        ("F", "4:1"), ("F", "4:2"), ("F", "4:3"),
+    ]
+    rows = [
+        {
+            "team_id": "home",
+            "team_name": "Club Norte",
+            "player_id": str(index),
+            "player_name": f"Jugador {index}",
+            "position": position,
+            "grid": grid,
+            "is_starting": 1,
+        }
+        for index, (position, grid) in enumerate(positions, start=1)
+    ]
+
+    context = _lineups_context(rows)
+
+    team = context["teams"][0]
+    assert context["grid_pitch_available"] is True
+    assert context["grid_pitch_contract"] == "API_FOOTBALL_LINEUP_GRID_V1"
+    assert team["grid_pitch_available"] is True
+    assert (team["grid_rows"], team["grid_columns"]) == (4, 4)
+    assert (team["starters"][0]["grid_row"], team["starters"][0]["grid_column"]) == (1, 1)
+    assert team["starters"][0]["href"] == "/player/1"
+    incomplete = _lineups_context(rows[:-1])
+    assert incomplete["teams"][0]["grid_pitch_available"] is False
+
+
+def test_provider_grid_fails_closed_for_missing_duplicate_or_malformed_cells():
+    rows = [
+        {
+            "team_id": "home",
+            "team_name": "Club Norte",
+            "player_id": str(index),
+            "player_name": f"Jugador {index}",
+            "position": position,
+            "grid": grid,
+            "is_starting": 1,
+        }
+        for index, (position, grid) in enumerate([
+            ("G", "1:1"), ("D", "2:1"), ("D", "2:1"), ("D", "2:x"),
+            ("M", "3:1"), ("M", "3:2"), ("M", "3:3"), ("F", "4:1"),
+        ], start=1)
+    ]
+
+    context = _lineups_context(rows)
+
+    assert context["grid_pitch_available"] is False
+    assert context["teams"][0]["grid_pitch_available"] is False
+    assert all("grid_row" not in player for player in context["teams"][0]["starters"])
 
 
 def test_live_summary_is_factual_and_never_calls_generative_ai():

@@ -1015,6 +1015,19 @@ def _lineup_position_band(value: Any) -> str:
     return "UNKNOWN"
 
 
+def _lineup_grid_coordinates(value: Any) -> tuple[int, int] | None:
+    """Parse API-Football's documented lineup grid (row:column), never tracking XY."""
+    parts = _text(value).split(":")
+    if len(parts) != 2 or any(not part.isascii() or not part.isdigit() for part in parts):
+        return None
+    row, column = (int(part) for part in parts)
+    # A football lineup has at most eleven players, so larger coordinates are
+    # malformed for this presentation and must fall back to the factual list.
+    if not (1 <= row <= 11 and 1 <= column <= 11):
+        return None
+    return row, column
+
+
 def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     groups: dict[str, dict[str, Any]] = {}
     seen: set[tuple[str, str, bool]] = set()
@@ -1056,11 +1069,33 @@ def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]
             "number": _text(raw.get("number") or raw.get("shirt_number")) or None,
             "position": _text(raw.get("position")) or None,
             "position_band": _lineup_position_band(raw.get("position")),
+            "grid": _text(raw.get("grid")) or None,
             "href": _entity_href("player", player_id, player_name),
             "source": source,
         }
         group["starters" if is_starting else "substitutes"].append(player)
     teams = list(groups.values())
+    for team in teams:
+        cells: set[tuple[int, int]] = set()
+        grid_positions: list[tuple[int, int]] = []
+        # Draw a spatial starting-XI only when the provider returned all eleven
+        # starters with a complete, unique grid. Partial data remains a list.
+        valid_grid = len(team["starters"]) == 11
+        for player in team["starters"]:
+            coordinates = _lineup_grid_coordinates(player.get("grid"))
+            if coordinates is None or coordinates in cells:
+                valid_grid = False
+                continue
+            cells.add(coordinates)
+            grid_positions.append(coordinates)
+        team["grid_pitch_available"] = bool(valid_grid and len(grid_positions) == len(team["starters"]))
+        team["grid_rows"] = max((row for row, _column in grid_positions), default=0) if team["grid_pitch_available"] else 0
+        team["grid_columns"] = max((column for _row, column in grid_positions), default=0) if team["grid_pitch_available"] else 0
+        if team["grid_pitch_available"]:
+            for player in team["starters"]:
+                coordinates = _lineup_grid_coordinates(player.get("grid"))
+                if coordinates:
+                    player["grid_row"], player["grid_column"] = coordinates
     starters = [player for team in teams for player in team["starters"]]
     substitutes = [player for team in teams for player in team["substitutes"]]
     pitch_available = bool(
@@ -1080,6 +1115,8 @@ def _lineups_context(raw_lineups: Iterable[Mapping[str, Any]]) -> dict[str, Any]
         "starters_count": len(starters),
         "substitutes_count": len(substitutes),
         "pitch_available": pitch_available,
+        "grid_pitch_available": any(team.get("grid_pitch_available") for team in teams),
+        "grid_pitch_contract": "API_FOOTBALL_LINEUP_GRID_V1",
         "source": ", ".join(sources) if sources else None,
         "updated_at": max(captured) if captured else None,
         "external_calls": 0,

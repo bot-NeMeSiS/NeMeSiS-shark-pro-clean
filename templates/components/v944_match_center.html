@@ -258,11 +258,24 @@
 {{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados para este partido.', 'lineups') }}
   {% if lineups.get('confirmed') %}
   <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
+    {% if lineups.get('grid_pitch_available') %}<p class="v944-lineup-grid-note" data-lineup-grid-contract="{{ lineups.get('grid_pitch_contract') }}">{{ ui('La cuadrícula muestra las posiciones de salida confirmadas por el proveedor; no representa recorridos, posesión por zonas ni un mapa de calor.') }}</p>{% endif %}
     {% for team in lineups.get('teams') or [] %}
     <section class="v944-lineup-team">
       <header>{% if team.get('href') %}<a class="v944-entity-link" href="{{ team.get('href') }}" data-entity-contract="team"><strong>{{ team.get('team_name') or ui('Equipo') }}</strong></a>{% else %}<strong>{{ team.get('team_name') or ui('Equipo') }}</strong>{% endif %}<span>{{ team.get('formation') or ui('Formación no disponible') }}</span></header>
-      {% if lineups.get('pitch_available') %}
-      <div class="v944-lineup-pitch" aria-label="Once inicial por líneas">
+      {% if team.get('grid_pitch_available') %}
+      <div class="v944-lineup-grid-pitch" aria-label="{{ ui('Posiciones de salida confirmadas de') }} {{ team.get('team_name') or ui('Equipo') }}" data-lineup-grid="provider-confirmed" style="--lineup-grid-rows: {{ team.get('grid_rows') }}; --lineup-grid-columns: {{ team.get('grid_columns') }};">
+        <small class="v944-lineup-grid-pitch__orientation">{{ ui('Portería propia · posiciones de salida') }}</small>
+        <div class="v944-lineup-grid-pitch__players" role="list">
+          {% for player in team.get('starters') or [] %}
+          <a role="listitem" href="{{ player.get('href') }}" aria-label="{{ player.get('name') }} · {{ player.get('position') or ui('Posición no disponible') }}" style="grid-row: {{ player.get('grid_row') }}; grid-column: {{ player.get('grid_column') }};">
+            <b>{{ player.get('number') or '—' }}</b><span>{{ player.get('name') }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% elif lineups.get('pitch_available') %}
+      <p class="v944-lineup-grid-note">{{ ui('Vista agrupada por demarcación. La cuadrícula de salida no está completa, así que no se dibujan coordenadas.') }}</p>
+      <div class="v944-lineup-pitch" aria-label="Once inicial agrupado por demarcación">
         {% for band in ['GK','DEF','MID','FWD'] %}
         <div class="is-{{ band|lower }}">
           {% for player in team.get('starters') or [] if player.get('position_band') == band %}
