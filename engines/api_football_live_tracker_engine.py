@@ -1113,11 +1113,16 @@ def _field_state(
     possession, provider statistics, events and pressure signals without drawing
     an invented pitch location.
     """
-    home_p = _as_int(pressure.get("home_pct"), 50)
-    away_p = _as_int(pressure.get("away_pct"), 50)
-    dominant = home_name if home_p >= away_p else away_name
-    side = "home" if home_p >= away_p else "away"
-    diff = abs(home_p - away_p)
+    pressure_available = bool(pressure.get("available"))
+    if pressure_available:
+        home_p = _as_int(pressure.get("home_pct"), 50)
+        away_p = _as_int(pressure.get("away_pct"), 50)
+        dominant = home_name if home_p >= away_p else away_name
+        side = "home" if home_p >= away_p else "away"
+        diff = abs(home_p - away_p)
+    else:
+        home_p = away_p = dominant = side = None
+        diff = 0
     home, away = _team_blocks(stats, home_name, away_name, home_team_id, away_team_id)
     da_home, da_away = _stat_pair(stats, "dangerous_attacks", home, away)
     attacks_home, attacks_away = _stat_pair(stats, "attacks", home, away)
@@ -1134,10 +1139,8 @@ def _field_state(
     if da_home is not None or da_away is not None:
         if da_home is not None and da_away is not None and da_home > da_away:
             headline = f"Ataque peligroso: {home_name}"
-            side = "home"
         elif da_home is not None and da_away is not None and da_away > da_home:
             headline = f"Ataque peligroso: {away_name}"
-            side = "away"
         else:
             headline = "Ataques peligrosos equilibrados"
         mode = "danger"
@@ -1166,7 +1169,6 @@ def _field_state(
         chips.append(f"{len(events)} eventos reales")
     if pressure.get("available"):
         chips.append(f"Presión {home_p}-{away_p}")
-    pressure_available = bool(pressure.get("available"))
     return {
         "available": bool(chips or pressure.get("available") or events),
         "mode": mode,

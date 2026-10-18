@@ -179,6 +179,40 @@ def test_activity_index_preserves_a_real_zero_side_without_using_a_neutral_fallb
     assert field["home_activity_index_pct"] + field["away_activity_index_pct"] == 100
 
 
+def test_unavailable_pressure_does_not_assign_a_dominant_team_or_neutral_percentages():
+    field = _field_state({}, [], {"available": False, "home_pct": 50, "away_pct": 50}, "Local", "Visitante")
+
+    assert field["dominant_team"] is None
+    assert field["dominant_side"] is None
+    assert field["home_pressure_pct"] is None
+    assert field["away_pressure_pct"] is None
+    assert field["activity_index_available"] is False
+
+
+def test_dangerous_attack_headline_does_not_overwrite_statistical_dominance():
+    stats = {
+        "available": True,
+        "teams": [
+            _team("10", "Local", {
+                "possession": ("Ball Possession", "60%", 60),
+                "dangerous_attacks": ("Dangerous Attacks", "3", 3),
+            }),
+            _team("20", "Visitante", {
+                "possession": ("Ball Possession", "40%", 40),
+                "dangerous_attacks": ("Dangerous Attacks", "10", 10),
+            }),
+        ],
+    }
+    pressure = _pressure_from_stats(stats, "Local", "Visitante", "10", "20")
+
+    field = _field_state(stats, [], pressure, "Local", "Visitante", "10", "20")
+
+    assert field["headline"] == "Ataque peligroso: Visitante"
+    assert field["dominant_team"] == "Local"
+    assert field["dominant_side"] == "home"
+    assert field["home_pressure_pct"] + field["away_pressure_pct"] == 100
+
+
 def test_admin_live_stats_coverage_matches_cached_fixtures_without_calls():
     result = summarize_live_statistics_coverage(
         [
