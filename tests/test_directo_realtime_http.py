@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import sqlite3
 import threading
@@ -112,6 +113,10 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
             {'key': 'fouls', 'label': 'Faltas', 'home': '8', 'away': '14'},
             {'key': 'corners', 'label': 'Córners', 'home': '4', 'away': '1'},
             {'key': 'throw_ins', 'label': 'Saques de banda', 'home': '12', 'away': '9'},
+            {'key': 'total_shots', 'label': 'Tiros totales', 'home': '12', 'away': '7'},
+            {'key': 'saves', 'label': 'Paradas', 'home': '3', 'away': '5'},
+            {'key': 'yellow_cards', 'label': 'Tarjetas amarillas', 'home': '1', 'away': '2'},
+            {'key': 'offsides', 'label': 'Fueras de juego', 'home': '2', 'away': '0'},
         ],
         'field_state': {
             'possession_available': True,
@@ -127,10 +132,50 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
     html = response.get_data(as_text=True)
     assert response.status_code == 200
+    assert 'product-system.css?v=' in html and '-live-statistics-1' in html
+    shipped_css = (Path(__file__).resolve().parents[1] / 'static' / 'product-system.css').read_text(encoding='utf-8')
+    assert '.v934-live-stats__all-row' in shipped_css
     assert 'v934-live-stats' in html
     assert 'Local QA: 61%. Visitante QA: 39%.' in html
     assert 'Tiros a puerta' in html and 'Faltas' in html and 'Córners' in html and 'Saques de banda' in html
+    assert 'data-live-statistics-more' in html
+    assert 'Ver todas las estadísticas disponibles' in html
+    stat_rows = dict(re.findall(
+        r'<div class="v934-live-stats__all-row" role="row" data-stat-key="([^"]+)">(.*?)</div>',
+        html,
+        re.DOTALL,
+    ))
+    assert set(stat_rows) == {'total_shots', 'saves', 'yellow_cards', 'offsides'}
+    assert 'Tiros totales' in stat_rows['total_shots'] and '>12</span>' in stat_rows['total_shots'] and '>7</span>' in stat_rows['total_shots']
+    assert 'Paradas' in stat_rows['saves'] and '>3</span>' in stat_rows['saves'] and '>5</span>' in stat_rows['saves']
+    assert 'Tarjetas amarillas' in stat_rows['yellow_cards'] and '>1</span>' in stat_rows['yellow_cards'] and '>2</span>' in stat_rows['yellow_cards']
+    assert 'Fueras de juego' in stat_rows['offsides'] and '>2</span>' in stat_rows['offsides'] and '>0</span>' in stat_rows['offsides']
+    assert html.count('Tiros a puerta') == 1
     assert '2026-10-17T16:01:00Z' in html
+    assert attempts == []
+
+
+def test_directo_route_omits_empty_all_stats_disclosure(live_store, app_module, monkeypatch):
+    client, _put, _now, attempts = live_store
+    tracker = {
+        'stats': {'available': True},
+        'stat_cards': [
+            {'key': 'shots_on_goal', 'label': 'Tiros a puerta', 'home': '5', 'away': '2'},
+            {'key': 'fouls', 'label': 'Faltas', 'home': '8', 'away': '14'},
+        ],
+        'field_state': {'possession_available': False},
+    }
+    monkeypatch.setattr(
+        app_module,
+        'live_tracker_summaries_for_matches',
+        lambda _db, matches: {'directo-http-qa': tracker} if matches else {},
+    )
+
+    response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'Tiros a puerta' in html and 'Faltas' in html
+    assert 'data-live-statistics-more' not in html
     assert attempts == []
 
 

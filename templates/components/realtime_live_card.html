@@ -38,10 +38,16 @@
     {% set tracker_stats = tracker.get('stats') or {} %}
     {% set field = tracker.get('field_state') or {} %}
     {% if tracker_stats.get('available') %}
+    {% set home_name = item.get('home_team') or item.get('safe_home') or ui('Local') %}
+    {% set away_name = item.get('away_team') or item.get('safe_away') or ui('Visitante') %}
+    {% set extra_stats = namespace(items=[]) %}
+    {% for stat in tracker.get('stat_cards') or [] %}
+      {% if stat.get('key') not in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] and not (stat.get('key') == 'possession' and field.get('possession_available')) %}
+        {% set extra_stats.items = extra_stats.items + [stat] %}
+      {% endif %}
+    {% endfor %}
     <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or tracker.get('updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
       {% if field.get('possession_available') %}
-      {% set home_name = item.get('home_team') or item.get('safe_home') or ui('Local') %}
-      {% set away_name = item.get('away_team') or item.get('safe_away') or ui('Visitante') %}
       <div class="v944-possession v944-possession--compact">
         <div class="v944-possession__heading"><strong>{{ ui('Posesión del balón') }}</strong><span>{{ ui('Porcentaje real del proveedor') }}</span></div>
         <div class="v944-possession__pitch" role="img" aria-label="{{ home_name }}: {{ field.get('home_possession_pct') }}%. {{ away_name }}: {{ field.get('away_possession_pct') }}%.">
@@ -60,6 +66,25 @@
         <span><strong>{{ ui(stat.get('label')) }}</strong><b>{{ stat.get('home') }}–{{ stat.get('away') }}</b></span>
         {% endfor %}
       </div>
+      {% if extra_stats.items %}
+      <details class="v934-live-stats__more" data-live-statistics-more>
+        <summary>{{ ui('Ver todas las estadísticas disponibles') }} · {{ extra_stats.items|length }}</summary>
+        <div class="v934-live-stats__all" role="table" aria-label="{{ ui('Todas las estadísticas disponibles del proveedor') }}">
+          <div class="v934-live-stats__all-header" role="row">
+            <strong role="columnheader">{{ home_name }}</strong>
+            <span role="columnheader">{{ ui('Estadística') }}</span>
+            <strong role="columnheader">{{ away_name }}</strong>
+          </div>
+          {% for stat in extra_stats.items %}
+          <div class="v934-live-stats__all-row" role="row" data-stat-key="{{ stat.get('key') or '' }}">
+            <span role="cell">{{ stat.get('home') or ui('No disponible') }}</span>
+            <strong role="rowheader">{{ ui(stat.get('label') or 'Estadística') }}</strong>
+            <span role="cell">{{ stat.get('away') or ui('No disponible') }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </details>
+      {% endif %}
       <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}<time datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación no disponible') }}{% endif %}</small>
     </section>
     {% endif %}
