@@ -22192,7 +22192,7 @@ def _safe_client_next(value: str | None, default: str = "/app") -> str:
     return raw
 
 
-def _safe_admin_next(value: str | None, default: str = "/admin/import-center") -> str:
+def _safe_admin_next(value: str | None, default: str = "/admin/control-center") -> str:
     """Keep authenticated admin redirects inside the protected admin surface."""
     raw = str(value or "").strip()
     if not raw or raw.startswith(("http://", "https://", "//", "\\")):
@@ -22656,7 +22656,7 @@ def admin_logout_page():
 @app.route("/admin")
 def admin_redirect():
     if not is_admin_session():
-        return redirect("/admin-login?next=/admin/data-center")
+        return redirect("/admin-login?next=/admin/control-center")
     return redirect("/admin/control-center")
 
 
@@ -24286,8 +24286,8 @@ def api_admin_autonomous_company_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/admin/autonomous-company-sentinel/generate-codex-prompts", methods=["GET", "POST"])
-@app.route("/api/admin/autonomous-company-sentinel/export-outbox", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-company-sentinel/generate-codex-prompts", methods=["POST"])
+@app.route("/api/admin/autonomous-company-sentinel/export-outbox", methods=["POST"])
 def api_admin_autonomous_company_sentinel_generate_codex_prompts():
     if not is_admin_session():
         return admin_json_forbidden()
@@ -24346,7 +24346,7 @@ def api_admin_autonomous_sentinel_run():
     return jsonify({"ok": True, **result})
 
 
-@app.route("/api/admin/autonomous-sentinel/generate-codex-prompts", methods=["GET", "POST"])
+@app.route("/api/admin/autonomous-sentinel/generate-codex-prompts", methods=["POST"])
 def api_admin_autonomous_sentinel_generate_codex_prompts():
     if not is_admin_session():
         return admin_json_forbidden()

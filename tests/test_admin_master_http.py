@@ -35,6 +35,53 @@ def test_anonymous_protected(admin,path):
     assert response.status_code == (403 if path.startswith("/api") else 302)
 
 
+def test_admin_entry_defaults_to_control_center(admin, monkeypatch):
+    a,client,_=admin
+    monkeypatch.setattr(a,"is_admin_session",lambda:False)
+    response=client.get("/admin")
+    assert response.status_code==302
+    assert response.headers["Location"].endswith("/admin-login?next=/admin/control-center")
+    assert a._safe_admin_next(None)=="/admin/control-center"
+
+    monkeypatch.setattr(a,"is_admin_session",lambda:True)
+    response=client.get("/admin-login")
+    assert response.status_code==302
+    assert response.headers["Location"].endswith("/admin/control-center")
+
+
+@pytest.mark.parametrize(("path","runner_name"),[
+    ("/api/admin/autonomous-company-sentinel/generate-codex-prompts","_v894_run_company_sentinel"),
+    ("/api/admin/autonomous-company-sentinel/export-outbox","_v894_run_company_sentinel"),
+    ("/api/admin/autonomous-sentinel/generate-codex-prompts","_v893_run_autonomous_sentinel"),
+])
+def test_sentinel_prompt_generation_requires_post_and_csrf(admin, monkeypatch, path, runner_name):
+    a,client,headers=admin
+    monkeypatch.setattr(a,"is_admin_session",lambda:True)
+    calls=[]
+    def safe_dry_run(**kwargs):
+        calls.append(kwargs)
+        return {"outbox":{"items":[]}}
+    monkeypatch.setattr(a,runner_name,safe_dry_run)
+
+    assert client.get(path).status_code==405
+    assert client.head(path).status_code==405
+    assert client.post(path,json={}).status_code==403
+    assert calls==[]
+
+    response=client.post(path,json={"dry_run":True},headers=headers)
+    assert response.status_code==200,response.get_json()
+    assert response.get_json()["dangerous_actions_executed"] is False
+    assert len(calls)==1
+    assert calls[0]["runner"]=="admin"
+    assert calls[0]["dry_run"] is True
+
+
+def test_sentinel_outbox_regenerate_button_uses_post_with_csrf_support():
+    template=(Path(__file__).resolve().parents[1]/"templates"/"admin_sentinel_codex_outbox.html").read_text(encoding="utf-8")
+    button='data-v904-fetch="/api/admin/autonomous-company-sentinel/generate-codex-prompts" data-v904-method="POST"'
+    assert button in template
+
+
 def test_reliability_attestation_requires_proposal_and_independent_confirmation(admin, monkeypatch, tmp_path):
     from engines import sentinel_issues_engine as ledger
     a,c,h=admin
