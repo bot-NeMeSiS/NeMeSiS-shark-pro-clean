@@ -1197,7 +1197,7 @@ def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], eve
         "provider": "api_football",
         "source_label": "API-Football",
         "fixture_id": row.get("fixture_id"),
-        "updated_at": stats.get("captured_at") or row.get("last_synced_at"),
+        "updated_at": row.get("last_synced_at") or stats.get("captured_at"),
         "statistics_updated_at": stats.get("captured_at") or "",
         "fixture_updated_at": row.get("last_synced_at") or "",
         "last_synced_at": stats.get("captured_at") or row.get("last_synced_at"),
