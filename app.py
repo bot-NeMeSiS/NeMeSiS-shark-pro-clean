@@ -31951,16 +31951,18 @@ def v565_recommendation_pool(limit=40):
     return valid[: int(limit)]
 
 
-def v565_data_picks_health():
+def v565_data_picks_health(review_candidates=None):
     upcoming = get_upcoming_matches(today_iso(), days=7, limit=250)
     today_matches = get_matches(today_iso(), "today")
     live_matches = get_matches(today_iso(), "live")
     finished_count = len(rows("SELECT id FROM matches WHERE lower(COALESCE(status,'')) LIKE '%finish%' OR lower(COALESCE(status,'')) LIKE '%final%' LIMIT 500"))
     odds_count = len(rows("SELECT id FROM odds_snapshots LIMIT 500"))
     published = get_picks(limit=100, status=["published", "won", "lost", "void"], include_admin=True)
-    # Count verified market readings across the same capped upcoming-match
-    # window used by the pool, not just the first 20 rows shown on the page.
-    review_candidates = v565_recommendation_pool(limit=250)
+    # Customer pages can pass their already-built, membership-visible list so
+    # the market is parsed only once for the request. Other callers keep a
+    # small bounded review sample to avoid heavy dashboard work.
+    if not isinstance(review_candidates, list):
+        review_candidates = v565_recommendation_pool(limit=20)
     approved_recommendations = [
         item for item in review_candidates
         if item.get("decision") == "BET" and item.get("can_publish") is True
@@ -32014,12 +32016,16 @@ def v565_data_picks_health():
 @app.route("/oportunidades")
 def v565_opportunities_page():
     user = current_session_user()
-    data = dashboard_data()
     membership = normalize_role((user or {}).get("membership") or (user or {}).get("role") or "FREE")
     recs = v565_recommendation_pool(limit=30)
     allowed = [r for r in recs if membership_allows(membership, r.get("membership_required"))]
     locked = [r for r in recs if not membership_allows(membership, r.get("membership_required"))]
-    data["v565"] = {"health": v565_data_picks_health(), "allowed": allowed, "locked": locked[:8], "membership": membership}
+    data = {"v565": {
+        "health": v565_data_picks_health(review_candidates=allowed),
+        "allowed": allowed,
+        "locked": locked[:8],
+        "membership": membership,
+    }}
     return render_template("opportunities.html", data=data)
 
 

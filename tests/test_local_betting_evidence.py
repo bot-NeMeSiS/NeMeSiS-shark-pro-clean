@@ -85,6 +85,44 @@ def test_customer_market_card_renders_probabilities_separately_from_shark_pick(a
     assert result['evidence']['betting']['observations'][0]['odds'] == 2.0
 
 
+def test_market_page_uses_a_lightweight_read_only_context(app_module, monkeypatch):
+    stamp = datetime.now(ZoneInfo('Europe/Madrid')).isoformat()
+    future = datetime.now(ZoneInfo('Europe/Madrid')) + timedelta(days=1)
+    row = {
+        'id': 'market-route-qa', 'home_team': 'Local QA', 'away_team': 'Visitante QA',
+        'competition_name': 'Liga QA', 'match_date': future.date().isoformat(),
+        'kickoff_iso': future.isoformat(), 'status': 'NS',
+        'odds_h2h_json': json.dumps({
+            'source': 'The Odds API', 'bookmaker': 'QA bookmaker', 'last_update': stamp,
+            'outcomes': [
+                {'name': 'Local QA', 'price': 2.0},
+                {'name': 'Draw', 'price': 4.0},
+                {'name': 'Visitante QA', 'price': 4.0},
+            ],
+        }),
+    }
+    candidate = app_module.v565_recommendation_for_match(row)
+    monkeypatch.setattr(app_module, 'current_session_user', lambda: None)
+    monkeypatch.setattr(app_module, 'membership_allows', lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(app_module, 'v565_recommendation_pool', lambda **_kwargs: [candidate])
+    monkeypatch.setattr(app_module, 'v565_data_picks_health', lambda review_candidates: {
+        'upcoming_matches': 1,
+        'fresh_market_forecasts': sum(item['market_forecast']['available'] for item in review_candidates),
+        'recommendations': 0,
+    })
+    monkeypatch.setattr(app_module, 'dashboard_data', lambda: (_ for _ in ()).throw(
+        AssertionError('The market page must not build the full operations dashboard')))
+
+    response = app_module.app.test_client().get('/oportunidades')
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert 'data-market-forecast="current"' in body
+    assert 'market-forecast.css?v=20261018-1' in body
+    assert 'Partidos con mercado 1X2 actual verificable' in body
+    assert 'En observación; no hay una apuesta SHARK aprobada para este partido.' in body
+
+
 @pytest.mark.parametrize('payload', [
     {'outcomes':[{'name':'Unrelated club', 'price':2.0}]},
     {'home':'NaN', 'draw':'Infinity', 'away':-2},
