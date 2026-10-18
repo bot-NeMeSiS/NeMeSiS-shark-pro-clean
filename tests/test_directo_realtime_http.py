@@ -99,6 +99,41 @@ def test_actual_public_route_uses_the_canonical_card(live_store, route):
     assert 'Observación registrada' in html
 
 
+def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app_module, monkeypatch):
+    client, put, now, attempts = live_store
+    tracker = {
+        'provider': 'api_football',
+        'source_label': 'API-Football Pro',
+        'statistics_updated_at': '2026-10-17T16:01:00Z',
+        'updated_at': '2026-10-17T16:01:00Z',
+        'stats': {'available': True},
+        'stat_cards': [
+            {'key': 'shots_on_goal', 'label': 'Tiros a puerta', 'home': '5', 'away': '2'},
+            {'key': 'fouls', 'label': 'Faltas', 'home': '8', 'away': '14'},
+            {'key': 'corners', 'label': 'Córners', 'home': '4', 'away': '1'},
+            {'key': 'throw_ins', 'label': 'Saques de banda', 'home': '12', 'away': '9'},
+        ],
+        'field_state': {
+            'possession_available': True,
+            'home_possession_pct': 61,
+            'away_possession_pct': 39,
+        },
+    }
+    monkeypatch.setattr(
+        app_module,
+        'live_tracker_summaries_for_matches',
+        lambda _db, matches: {'directo-http-qa': tracker} if matches else {},
+    )
+    response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'v934-live-stats' in html
+    assert 'Local QA: 61%. Visitante QA: 39%.' in html
+    assert 'Tiros a puerta' in html and 'Faltas' in html and 'Córners' in html and 'Saques de banda' in html
+    assert '2026-10-17T16:01:00Z' in html
+    assert attempts == []
+
+
 def test_http_html_and_json_share_the_same_fixture_truth(live_store):
     client, put, now, attempts = live_store
     html = client.get('/live').get_data(as_text=True)

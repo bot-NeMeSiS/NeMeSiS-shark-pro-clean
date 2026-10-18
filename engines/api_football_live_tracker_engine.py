@@ -819,6 +819,10 @@ def _stat_key(name: str) -> str:
         "shots_on_target": "shots_on_goal",
         "shots_off_goal": "shots_off_goal",
         "shots_off_target": "shots_off_goal",
+        "throw_ins": "throw_ins",
+        "throw_in": "throw_ins",
+        "throw_ins_taken": "throw_ins",
+        "throws_in": "throw_ins",
         "total_shots": "total_shots",
         "blocked_shots": "blocked_shots",
         "shots_insidebox": "shots_inside_box",
@@ -854,11 +858,14 @@ def _stats_for_fixture(conn: sqlite3.Connection, fixture_id: str) -> dict[str, A
     for row in rows:
         r = _rowdict(row)
         team = r.get("team_name") or r.get("team_id") or "Equipo"
+        team_id = str(r.get("team_id") or "")
         key = _stat_key(r.get("stat_name") or "")
-        teams.setdefault(team, {"team": team, "stats": {}, "raw": []})
-        teams[team]["stats"][key] = {"label": r.get("stat_name"), "value": r.get("stat_value"), "numeric": r.get("numeric_value")}
-        teams[team]["raw"].append(r)
-    return {"teams": list(teams.values()), "available": bool(rows), "total": len(rows)}
+        identity = f"id:{team_id}" if team_id else f"name:{str(team).casefold()}"
+        teams.setdefault(identity, {"team": team, "team_id": team_id, "stats": {}, "raw": []})
+        teams[identity]["stats"][key] = {"label": r.get("stat_name"), "value": r.get("stat_value"), "numeric": r.get("numeric_value")}
+        teams[identity]["raw"].append(r)
+    captured_at = max((str(_rowdict(row).get("captured_at") or "") for row in rows), default="")
+    return {"teams": list(teams.values()), "available": bool(rows), "total": len(rows), "captured_at": captured_at}
 
 
 def _events_for_fixture(conn: sqlite3.Connection, fixture_id: str, limit: int = 12) -> list[dict[str, Any]]:
@@ -867,21 +874,38 @@ def _events_for_fixture(conn: sqlite3.Connection, fixture_id: str, limit: int = 
 
 
 
-def _team_blocks(stats: Mapping[str, Any], home_name: str = "", away_name: str = "") -> tuple[dict[str, Any], dict[str, Any]]:
+def _team_blocks(
+    stats: Mapping[str, Any],
+    home_name: str = "",
+    away_name: str = "",
+    home_team_id: Any = "",
+    away_team_id: Any = "",
+) -> tuple[dict[str, Any], dict[str, Any]]:
     teams = list(stats.get("teams") or [])
     if not teams:
         return {}, {}
     home = away = None
+    wanted_home_id = str(home_team_id or "")
+    wanted_away_id = str(away_team_id or "")
     for team in teams:
+        team_id = str(team.get("team_id") or "")
         name = str(team.get("team") or "").lower()
-        if home_name and name == str(home_name).lower():
+        if wanted_home_id:
+            if team_id == wanted_home_id:
+                home = team
+        elif home_name and name == str(home_name).lower():
             home = team
-        if away_name and name == str(away_name).lower():
+        if wanted_away_id:
+            if team_id == wanted_away_id:
+                away = team
+        elif away_name and name == str(away_name).lower():
             away = team
-    if home is None:
-        home = teams[0] if teams else {}
-    if away is None:
-        away = teams[1] if len(teams) > 1 else {}
+    # Preserve legacy order only when the snapshot has exactly two unambiguous
+    # teams and the fixture did not provide IDs. A mismatched ID/name must not
+    # silently swap home and away statistics.
+    if len(teams) == 2 and not wanted_home_id and not wanted_away_id:
+        home = home or teams[0]
+        away = away or teams[1]
     return dict(home or {}), dict(away or {})
 
 
@@ -905,38 +929,58 @@ def _has_stat(stats: Mapping[str, Any], key: str) -> bool:
     return False
 
 
-def _stat_cards(stats: Mapping[str, Any], home_name: str, away_name: str) -> list[dict[str, Any]]:
+def _stat_cards(
+    stats: Mapping[str, Any],
+    home_name: str,
+    away_name: str,
+    home_team_id: Any = "",
+    away_team_id: Any = "",
+) -> list[dict[str, Any]]:
     if not stats.get("available"):
         return []
-    home, away = _team_blocks(stats, home_name, away_name)
-    definitions = [
-        ("possession", "Posesión"),
-        ("shots_on_goal", "Tiros a puerta"),
-        ("total_shots", "Tiros totales"),
-        ("shots_inside_box", "Tiros en área"),
-        ("corners", "Córners"),
-        ("expected_goals", "xG"),
-        ("fouls", "Faltas"),
-        ("yellow_cards", "Amarillas"),
-        ("red_cards", "Rojas"),
-        ("saves", "Paradas"),
-        ("attacks", "Ataques"),
-        ("dangerous_attacks", "Ataques peligrosos"),
-        ("passes_accurate", "Pases buenos"),
-        ("passes_pct", "Precisión pase"),
-    ]
+    home, away = _team_blocks(stats, home_name, away_name, home_team_id, away_team_id)
+    definitions = {
+        "possession": "Posesión",
+        "shots_on_goal": "Tiros a puerta",
+        "shots_off_goal": "Tiros fuera",
+        "total_shots": "Tiros totales",
+        "blocked_shots": "Tiros bloqueados",
+        "shots_inside_box": "Tiros en área",
+        "shots_outside_box": "Tiros fuera del área",
+        "corners": "Córners",
+        "offsides": "Fueras de juego",
+        "fouls": "Faltas",
+        "yellow_cards": "Tarjetas amarillas",
+        "red_cards": "Tarjetas rojas",
+        "saves": "Paradas",
+        "total_passes": "Pases",
+        "passes_accurate": "Pases precisos",
+        "passes_pct": "Precisión de pase",
+        "expected_goals": "Goles esperados (xG)",
+        "attacks": "Ataques",
+        "dangerous_attacks": "Ataques peligrosos",
+        "throw_ins": "Saques de banda",
+    }
+    provider_keys = set((home.get("stats") or {}).keys()) | set((away.get("stats") or {}).keys())
+    ordered_keys = [key for key in definitions if key in provider_keys]
+    # API-Football can add statistic types over time. Keep displaying received
+    # values without fabricating a label or hiding a new provider metric.
+    ordered_keys.extend(sorted(provider_keys - set(definitions)))
     cards: list[dict[str, Any]] = []
-    for key, label in definitions:
+    for key in ordered_keys:
+        home_obj = _stat_obj(home, key)
+        away_obj = _stat_obj(away, key)
+        label = definitions.get(key) or str(home_obj.get("label") or away_obj.get("label") or key.replace("_", " ").capitalize())
         hv = _stat_display(home, key)
         av = _stat_display(away, key)
         if not hv and not av:
             continue
-        hn = _as_float(_stat_obj(home, key).get("numeric"), 0)
-        an = _as_float(_stat_obj(away, key).get("numeric"), 0)
+        hn = _as_float(home_obj.get("numeric"), 0)
+        an = _as_float(away_obj.get("numeric"), 0)
         leader = "even"
-        if hn > an:
+        if hv and av and hn > an:
             leader = "home"
-        elif an > hn:
+        elif hv and av and an > hn:
             leader = "away"
         cards.append({
             "key": key,
@@ -954,8 +998,11 @@ def _event_minute(event: Mapping[str, Any]) -> int:
     return _as_int(event.get("elapsed"), 0)
 
 
-def _game_flow(stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
-    cards = _stat_cards(stats, home_name, away_name)
+def _game_flow(
+    stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any],
+    home_name: str, away_name: str, home_team_id: Any = "", away_team_id: Any = "",
+) -> dict[str, Any]:
+    cards = _stat_cards(stats, home_name, away_name, home_team_id, away_team_id)
     event_count = len(events or [])
     latest = max([_event_minute(e) for e in events or []] or [0])
     recent = [e for e in (events or []) if latest and _event_minute(e) >= max(0, latest - 15)]
@@ -1044,14 +1091,21 @@ def _last_event_label(events: list[dict[str, Any]]) -> str:
     return f"{prefix}{team} · {middle}" if team else f"{prefix}{middle}"
 
 
-def _stat_pair(stats: Mapping[str, Any], key: str) -> tuple[float, float]:
-    block = stats.get(key) if isinstance(stats, Mapping) else None
-    if not isinstance(block, Mapping):
-        return 0.0, 0.0
-    return _stat_numeric((block.get("home") or {}).get("numeric")), _stat_numeric((block.get("away") or {}).get("numeric"))
+def _stat_pair(stats: Mapping[str, Any], key: str, home: Mapping[str, Any], away: Mapping[str, Any]) -> tuple[float | None, float | None]:
+    home_obj = _stat_obj(home, key)
+    away_obj = _stat_obj(away, key)
+    home_value = _stat_display(home, key)
+    away_value = _stat_display(away, key)
+    return (
+        _stat_numeric(home_obj.get("numeric")) if home_value else None,
+        _stat_numeric(away_obj.get("numeric")) if away_value else None,
+    )
 
 
-def _field_state(stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
+def _field_state(
+    stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any],
+    home_name: str, away_name: str, home_team_id: Any = "", away_team_id: Any = "",
+) -> dict[str, Any]:
     """Client field interpretation from real API-Football signals only.
 
     API-Football does not provide exact ball x/y coordinates in this integration, so
@@ -1062,21 +1116,27 @@ def _field_state(stats: Mapping[str, Any], events: list[dict[str, Any]], pressur
     dominant = home_name if home_p >= away_p else away_name
     side = "home" if home_p >= away_p else "away"
     diff = abs(home_p - away_p)
-    da_home, da_away = _stat_pair(stats, "dangerous_attacks")
-    attacks_home, attacks_away = _stat_pair(stats, "attacks")
-    corners_home, corners_away = _stat_pair(stats, "corners")
+    home, away = _team_blocks(stats, home_name, away_name, home_team_id, away_team_id)
+    da_home, da_away = _stat_pair(stats, "dangerous_attacks", home, away)
+    attacks_home, attacks_away = _stat_pair(stats, "attacks", home, away)
+    corners_home, corners_away = _stat_pair(stats, "corners", home, away)
+    possession_home, possession_away = _stat_pair(stats, "possession", home, away)
+    possession_available = (
+        possession_home is not None and possession_away is not None
+        and 0 <= possession_home <= 100 and 0 <= possession_away <= 100
+    )
     latest = _last_event_label(events)
-    if da_home or da_away:
-        if da_home > da_away:
+    if da_home is not None or da_away is not None:
+        if da_home is not None and da_away is not None and da_home > da_away:
             headline = f"Ataque peligroso: {home_name}"
             side = "home"
-        elif da_away > da_home:
+        elif da_home is not None and da_away is not None and da_away > da_home:
             headline = f"Ataque peligroso: {away_name}"
             side = "away"
         else:
             headline = "Ataques peligrosos equilibrados"
         mode = "danger"
-    elif corners_home or corners_away:
+    elif corners_home is not None or corners_away is not None:
         headline = "Córners reales disponibles"
         mode = "corner"
     elif pressure.get("available"):
@@ -1089,12 +1149,14 @@ def _field_state(stats: Mapping[str, Any], events: list[dict[str, Any]], pressur
         headline = "Tracker básico: esperando estadísticas"
         mode = "basic"
     chips = []
-    if da_home or da_away:
-        chips.append(f"Ataques peligrosos {int(da_home)}-{int(da_away)}")
-    if attacks_home or attacks_away:
-        chips.append(f"Ataques {int(attacks_home)}-{int(attacks_away)}")
-    if corners_home or corners_away:
-        chips.append(f"Córners {int(corners_home)}-{int(corners_away)}")
+    if da_home is not None or da_away is not None:
+        chips.append(f"Ataques peligrosos {int(da_home or 0)}-{int(da_away or 0)}")
+    if attacks_home is not None or attacks_away is not None:
+        chips.append(f"Ataques {int(attacks_home or 0)}-{int(attacks_away or 0)}")
+    if corners_home is not None or corners_away is not None:
+        chips.append(f"Córners {int(corners_home or 0)}-{int(corners_away or 0)}")
+    if possession_available:
+        chips.append(f"Posesión {possession_home:g}-{possession_away:g}%")
     if events:
         chips.append(f"{len(events)} eventos reales")
     if pressure.get("available"):
@@ -1108,30 +1170,37 @@ def _field_state(stats: Mapping[str, Any], events: list[dict[str, Any]], pressur
         "home_pressure_pct": home_p,
         "away_pressure_pct": away_p,
         "last_event_label": latest,
-        "dangerous_attacks_available": bool(da_home or da_away),
-        "attacks_available": bool(attacks_home or attacks_away),
-        "corners_available": bool(corners_home or corners_away),
+        "dangerous_attacks_available": da_home is not None or da_away is not None,
+        "attacks_available": attacks_home is not None or attacks_away is not None,
+        "corners_available": corners_home is not None or corners_away is not None,
+        "possession_available": possession_available,
+        "home_possession_pct": possession_home if possession_available else None,
+        "away_possession_pct": possession_away if possession_available else None,
         "chips": chips,
         "ball_position_available": False,
-        "ball_note": "Balón exacto no disponible en el feed actual: no se dibuja marcador de balón inventado.",
+        "ball_note": "La posesión es un porcentaje, no una ubicación exacta del balón; no se dibuja un marcador inventado.",
     }
 
 
 def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], events: list[dict[str, Any]], pressure: Mapping[str, Any]) -> dict[str, Any]:
     home_name = str(row.get("home_team") or "")
     away_name = str(row.get("away_team") or "")
-    cards = _stat_cards(stats, home_name, away_name)
-    flow = _game_flow(stats, events, pressure, home_name, away_name)
-    field_state = _field_state(stats, events, pressure, home_name, away_name)
+    home_team_id = row.get("home_team_id") or ""
+    away_team_id = row.get("away_team_id") or ""
+    cards = _stat_cards(stats, home_name, away_name, home_team_id, away_team_id)
+    flow = _game_flow(stats, events, pressure, home_name, away_name, home_team_id, away_team_id)
+    field_state = _field_state(stats, events, pressure, home_name, away_name, home_team_id, away_team_id)
     dangerous_available = _has_stat(stats, "dangerous_attacks")
     attacks_available = _has_stat(stats, "attacks")
     quality = _tracker_quality_payload(stats, events, pressure)
     return {
         "provider": "api_football",
-        "source_label": "API-Football Pro",
+        "source_label": "API-Football",
         "fixture_id": row.get("fixture_id"),
-        "updated_at": row.get("last_synced_at"),
-        "last_synced_at": row.get("last_synced_at"),
+        "updated_at": stats.get("captured_at") or row.get("last_synced_at"),
+        "statistics_updated_at": stats.get("captured_at") or "",
+        "fixture_updated_at": row.get("last_synced_at") or "",
+        "last_synced_at": stats.get("captured_at") or row.get("last_synced_at"),
         "stats": stats,
         "events": events,
         "pressure": pressure,
@@ -1153,7 +1222,10 @@ def _build_tracker_payload(row: Mapping[str, Any], stats: Mapping[str, Any], eve
         "legal_note": "API-Football autorizado. Campo SHARK calculado con estadísticas/eventos reales; no se inventa ubicación exacta de balón.",
     }
 
-def _pressure_from_stats(stats: Mapping[str, Any], home_name: str, away_name: str) -> dict[str, Any]:
+def _pressure_from_stats(
+    stats: Mapping[str, Any], home_name: str, away_name: str,
+    home_team_id: Any = "", away_team_id: Any = "",
+) -> dict[str, Any]:
     teams = stats.get("teams") or []
     if len(teams) < 2:
         return {"available": False, "label": "Presión pendiente", "home_pct": 50, "away_pct": 50, "source": "sin_estadisticas"}
@@ -1171,16 +1243,9 @@ def _pressure_from_stats(stats: Mapping[str, Any], home_name: str, away_name: st
         yellow = _as_float((s.get("yellow_cards") or {}).get("numeric"), 0) * -1
         return max(0.0, possession + shots + box + corners + attacks + dangerous + xg + red + yellow)
 
-    home = None
-    away = None
-    for team in teams:
-        name = str(team.get("team") or "")
-        if home_name and name.lower() == home_name.lower():
-            home = team
-        if away_name and name.lower() == away_name.lower():
-            away = team
-    home = home or teams[0]
-    away = away or teams[1]
+    home, away = _team_blocks(stats, home_name, away_name, home_team_id, away_team_id)
+    if not home or not away:
+        return {"available": False, "label": "Presión pendiente", "home_pct": 50, "away_pct": 50, "source": "equipos_no_confirmados"}
     hs, as_ = score(home), score(away)
     total = hs + as_
     if total <= 0:
@@ -1212,7 +1277,7 @@ def _live_tracker_matches_from_conn(conn: sqlite3.Connection, limit: int = 80) -
         fixture_id = str(r.get("fixture_id") or "")
         stats = _stats_for_fixture(conn, fixture_id)
         events = _events_for_fixture(conn, fixture_id, limit=10)
-        pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "")
+        pressure = _pressure_from_stats(stats, r.get("home_team") or "", r.get("away_team") or "", r.get("home_team_id") or "", r.get("away_team_id") or "")
         score = ""
         if r.get("home_score") is not None and r.get("away_score") is not None:
             score = f"{r.get('home_score')}-{r.get('away_score')}"
@@ -1269,6 +1334,66 @@ def live_tracker_matches(db_path: str, limit: int = 80) -> list[dict[str, Any]]:
         conn.close()
 
 
+def live_tracker_summaries_for_matches(db_path: str, matches: Iterable[Mapping[str, Any]], limit: int = 40) -> dict[str, dict[str, Any]]:
+    """Read cached statistic summaries for selected match rows; never calls a provider or writes."""
+    # Keep duplicated IN-clause bind parameters below SQLite's conservative
+    # 999-variable limit, even when callers supply every possible match key.
+    selected = [dict(item) for item in (matches or []) if isinstance(item, Mapping)][:max(0, min(40, int(limit)))]
+    lookup_ids: set[str] = set()
+    for item in selected:
+        for field in ("fixture_id", "external_id", "api_football_fixture_id", "match_id", "id"):
+            value = str(item.get(field) or "").strip()
+            if value:
+                lookup_ids.add(value)
+                if value.startswith("af-"):
+                    lookup_ids.add(value[3:])
+    if not lookup_ids:
+        return {}
+    try:
+        conn = _connect_readonly(db_path)
+    except (OSError, sqlite3.Error):
+        return {}
+    try:
+        keys = sorted(lookup_ids)
+        marks = ",".join("?" for _ in keys)
+        try:
+            rows = conn.execute(
+                f"SELECT * FROM api_football_live_snapshots WHERE fixture_id IN ({marks}) OR match_id IN ({marks})",
+                (*keys, *keys),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return {}
+        out: dict[str, dict[str, Any]] = {}
+        for raw_row in rows:
+            row = _rowdict(raw_row)
+            fixture_id = str(row.get("fixture_id") or "")
+            stats = _stats_for_fixture(conn, fixture_id)
+            if not stats.get("available"):
+                continue
+            # Directo needs a compact cached read model, not the raw archived payload.
+            stats["teams"] = [
+                {"team": team.get("team"), "team_id": team.get("team_id"), "stats": team.get("stats") or {}}
+                for team in stats.get("teams") or []
+            ]
+            pressure = _pressure_from_stats(
+                stats,
+                row.get("home_team") or "",
+                row.get("away_team") or "",
+                row.get("home_team_id") or "",
+                row.get("away_team_id") or "",
+            )
+            tracker = _build_tracker_payload(row, stats, [], pressure)
+            tracker.update({"available": True, "read_only": True, "external_calls": 0})
+            for alias in (fixture_id, str(row.get("match_id") or ""), f"af-{fixture_id}" if fixture_id else ""):
+                if alias:
+                    out[alias] = tracker
+        return out
+    except (OSError, sqlite3.Error):
+        return {}
+    finally:
+        conn.close()
+
+
 def live_tracker_for_match(db_path: str, match_id: str) -> dict[str, Any]:
     """Read one persisted tracker snapshot without schema writes or provider calls."""
     text = str(match_id or "")
@@ -1309,6 +1434,8 @@ def live_tracker_for_match(db_path: str, match_id: str) -> dict[str, Any]:
             stats,
             r.get("home_team") or "",
             r.get("away_team") or "",
+            r.get("home_team_id") or "",
+            r.get("away_team_id") or "",
         )
         tracker = _build_tracker_payload(r, stats, events, pressure)
         tracker.update({"available": True, "read_only": True})

@@ -80,7 +80,7 @@ from engines.football_population_engine import (
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.match_context_engine import build_match_context
 from services.sports_service import read_match_record
-from engines.live_experience_engine import build_live_experience, live_experience_snapshot
+from engines.live_experience_engine import build_live_experience, enrich_live_match, live_experience_snapshot
 from engines.v934_realtime_sports_engine import (
     LIVE_POLL_SECONDS as V934_LIVE_POLL_SECONDS,
     IDLE_POLL_SECONDS as V934_IDLE_POLL_SECONDS,
@@ -128,6 +128,7 @@ from engines.crest_logo_experience_engine import (
 from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
     live_tracker_matches,
+    live_tracker_summaries_for_matches,
     live_tracker_quality_summary,
     live_tracker_status,
     sync_api_football_fixture_detail,
@@ -21664,6 +21665,27 @@ def live_page():
         {**item, **projected.get(str(item.get("id") or item.get("match_id") or item.get("external_id") or ""), {})}
         for item in data["live_experience"]["matches"]
     ]
+    tracker_summaries = live_tracker_summaries_for_matches(
+        DB_PATH,
+        data["live_experience"].get("matches") or [],
+    )
+    tracked_matches = []
+    for raw_match in data["live_experience"].get("matches") or []:
+        match = dict(raw_match)
+        match_keys = []
+        for field in ("fixture_id", "external_id", "api_football_fixture_id", "match_id", "id"):
+            value = str(match.get(field) or "").strip()
+            if value:
+                match_keys.append(value)
+                if value.startswith("af-"):
+                    match_keys.append(value[3:])
+        tracker = next((tracker_summaries.get(key) for key in match_keys if tracker_summaries.get(key)), None)
+        if tracker:
+            match["api_football_live_tracker"] = tracker
+            match["live_tracker"] = tracker
+            match.update(enrich_live_match(match))
+        tracked_matches.append(match)
+    data["live_experience"]["matches"] = tracked_matches
     if lane in {"finished", "results", "history", "finalizados"}:
         data["live_experience"]["matches"] = v766_enrich_matches_with_highlights(
             data["live_experience"]["matches"]

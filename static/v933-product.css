@@ -1956,6 +1956,56 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
 .v944-stats__row > strong { color: var(--v944-muted); font-size: .62rem; line-height: 1.35; }
 .v944-stats__row.is-home > span:first-child,
 .v944-stats__row.is-away > span:last-child { color: var(--v933-cyan); }
+.v944-stats__observed { margin: 8px 0; color: var(--v944-muted); font-size: .62rem; line-height: 1.45; }
+.v944-possession {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 18px;
+  padding: 12px;
+  border: 1px solid var(--v944-line);
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(28, 126, 144, .12), rgba(255, 255, 255, .025));
+}
+.v944-possession__heading,
+.v944-possession__teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.v944-possession__heading strong { color: #f1fbff; font-size: .76rem; }
+.v944-possession__heading span,
+.v944-possession__unavailable { color: var(--v944-muted); font-size: .66rem; }
+.v944-possession__pitch {
+  position: relative;
+  display: flex;
+  height: 34px;
+  overflow: hidden;
+  border: 1px solid rgba(188, 235, 246, .55);
+  border-radius: 8px;
+  background: repeating-linear-gradient(90deg, rgba(54, 160, 130, .22) 0 12.5%, rgba(54, 160, 130, .34) 12.5% 25%);
+}
+.v944-possession__share { display: block; height: 100%; transition: width .2s ease; }
+.v944-possession__share.is-home { background: rgba(46, 191, 204, .48); border-inline-end: 1px solid rgba(255,255,255,.75); }
+.v944-possession__share.is-away { background: rgba(77, 127, 202, .46); margin-inline-start: auto; }
+.v944-possession__midline { position: absolute; inset-block: 0; inset-inline-start: 50%; border-inline-start: 1px solid rgba(255,255,255,.6); }
+.v944-possession__teams > span { display: flex; flex: 1; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.v944-possession__teams > span:last-child { text-align: right; }
+.v944-possession__teams strong { min-width: 0; overflow-wrap: anywhere; color: var(--v944-muted); font-size: .67rem; }
+.v944-possession__teams b { flex: 0 0 auto; color: #f4fcff; font-size: .86rem; }
+.v944-possession__unavailable { margin: 0; line-height: 1.45; }
+.v934-live-stats { display: grid; gap: 7px; margin: 8px 0 2px; padding: 0 10px 10px; }
+.v944-possession--compact { gap: 7px; margin: 0; padding: 9px; }
+.v944-possession--compact .v944-possession__pitch { height: 25px; }
+.v944-possession--compact .v944-possession__heading span { font-size: .6rem; }
+.v944-possession--compact .v944-possession__teams strong { font-size: .62rem; }
+.v944-possession--compact .v944-possession__teams b { font-size: .78rem; }
+.v934-live-stats__ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 6px; }
+.v934-live-stats__ribbon > span { display: grid; gap: 3px; min-width: 0; padding: 7px; border: 1px solid var(--v944-line); border-radius: 8px; text-align: center; }
+.v934-live-stats__ribbon strong { color: var(--v944-muted); font-size: .58rem; overflow-wrap: anywhere; }
+.v934-live-stats__ribbon b { color: #f4fcff; font-size: .74rem; }
+.v934-live-stats__source { color: var(--v944-muted); font-size: .58rem; text-align: right; }
 .v944-h2h-list { display: grid; border-top: 1px solid var(--v944-line); }
 .v944-h2h-list article {
   display: grid;
@@ -2077,6 +2127,13 @@ body.ns-app .v934-realtime-state { border-radius: 7px !important; }
   .v944-stats__header { font-size: .54rem; }
   .v944-stats__row > span { font-size: .66rem; }
   .v944-stats__row > strong { font-size: .57rem; }
+  .v944-possession { gap: 8px; padding: 10px; }
+  .v944-possession__heading span { text-align: right; }
+  .v944-possession__teams { align-items: flex-start; }
+  .v944-possession__teams > span { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .v944-possession__teams > span:last-child { align-items: flex-end; }
+  .v934-live-stats { padding-inline: 6px; }
+  .v934-live-stats__ribbon { gap: 4px; }
   .v944-h2h-list article { grid-template-columns: minmax(0, 1fr); gap: 5px; }
   .v944-h2h-list article > span { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
   .v944-lineups { grid-template-columns: minmax(0, 1fr); }

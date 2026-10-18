@@ -34,6 +34,35 @@
        data-realtime-evaluated-at="{{ state.get('evaluated_at_madrid') or '' }}"
        data-realtime-observed-at="{{ state.get('provider_observed_at') or '' }}">
     {{ match_card(item, true, true, score_label) }}
+    {% set tracker = item.get('api_football_live_tracker') or item.get('live_tracker') or {} %}
+    {% set tracker_stats = tracker.get('stats') or {} %}
+    {% set field = tracker.get('field_state') or {} %}
+    {% if tracker_stats.get('available') %}
+    <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or tracker.get('updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
+      {% if field.get('possession_available') %}
+      {% set home_name = item.get('home_team') or item.get('safe_home') or ui('Local') %}
+      {% set away_name = item.get('away_team') or item.get('safe_away') or ui('Visitante') %}
+      <div class="v944-possession v944-possession--compact">
+        <div class="v944-possession__heading"><strong>{{ ui('Posesión del balón') }}</strong><span>{{ ui('Porcentaje real del proveedor') }}</span></div>
+        <div class="v944-possession__pitch" role="img" aria-label="{{ home_name }}: {{ field.get('home_possession_pct') }}%. {{ away_name }}: {{ field.get('away_possession_pct') }}%.">
+          <span class="v944-possession__share is-home" style="width: {{ field.get('home_possession_pct') }}%"></span>
+          <span class="v944-possession__share is-away" style="width: {{ field.get('away_possession_pct') }}%"></span>
+          <span class="v944-possession__midline" aria-hidden="true"></span>
+        </div>
+        <div class="v944-possession__teams">
+          <span><strong>{{ home_name }}</strong><b>{{ field.get('home_possession_pct') }}%</b></span>
+          <span><strong>{{ away_name }}</strong><b>{{ field.get('away_possession_pct') }}%</b></span>
+        </div>
+      </div>
+      {% endif %}
+      <div class="v934-live-stats__ribbon" aria-label="Resumen de estadísticas del proveedor">
+        {% for stat in tracker.get('stat_cards') or [] if stat.get('key') in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] %}
+        <span><strong>{{ ui(stat.get('label')) }}</strong><b>{{ stat.get('home') }}–{{ stat.get('away') }}</b></span>
+        {% endfor %}
+      </div>
+      <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}<time datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación no disponible') }}{% endif %}</small>
+    </section>
+    {% endif %}
     <small class="v934-realtime-meta" data-realtime-freshness="{{ state.get('freshness_state') or 'NOT_ESTABLISHED' }}">
       {{ ui(freshness) }}{% if state.get('provider_observed_at') %} · <time datetime="{{ state.get('provider_observed_at') }}">{{ state.get('provider_observed_at')|sync_madrid_label }}</time>{% endif %}
     </small>

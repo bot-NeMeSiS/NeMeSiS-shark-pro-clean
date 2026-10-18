@@ -8,6 +8,7 @@ work. That keeps every Match Center component on one factual snapshot.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import asdict, dataclass
 from typing import Any, Iterable, Mapping
 from urllib.parse import quote
@@ -166,16 +167,56 @@ def _stat_label(value: Any) -> str:
         "shots on goal": "Tiros a puerta",
         "shots off goal": "Tiros fuera",
         "blocked shots": "Tiros bloqueados",
+        "shots insidebox": "Tiros en área",
+        "shots inside box": "Tiros en área",
+        "shots outsidebox": "Tiros fuera del área",
+        "shots outside box": "Tiros fuera del área",
         "corner kicks": "Córners",
         "fouls": "Faltas",
+        "offsides": "Fueras de juego",
+        "throw-ins": "Saques de banda",
+        "throw ins": "Saques de banda",
+        "throw-in": "Saques de banda",
+        "throw in": "Saques de banda",
         "yellow cards": "Tarjetas amarillas",
         "red cards": "Tarjetas rojas",
         "goalkeeper saves": "Paradas",
         "total passes": "Pases",
         "passes accurate": "Pases precisos",
+        "passes %": "Precisión de pase",
+        "passes percentage": "Precisión de pase",
         "expected goals": "Goles esperados",
     }
     return labels.get(raw.casefold(), raw)
+
+
+def _possession_meter(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    item = next((row for row in rows if row.get("key") == "possession" or _stat_label(row.get("label")) == "Posesión"), None)
+    if not item:
+        return {"available": False, "source": "API-Football"}
+
+    def percentage(value: Any) -> float | None:
+        if value in (None, "", "No disponible") or isinstance(value, bool):
+            return None
+        try:
+            number = float(str(value).strip().replace("%", "").replace(",", "."))
+        except (TypeError, ValueError):
+            return None
+        return number if math.isfinite(number) and 0 <= number <= 100 else None
+
+    home_pct = percentage(item.get("home"))
+    away_pct = percentage(item.get("away"))
+    if home_pct is None or away_pct is None:
+        return {"available": False, "source": "API-Football"}
+    return {
+        "available": True,
+        "home_pct": home_pct,
+        "away_pct": away_pct,
+        "home_display": str(item.get("home")),
+        "away_display": str(item.get("away")),
+        "label": "Posesión de balón",
+        "source": "API-Football",
+    }
 
 
 def _real_statistics(
@@ -209,6 +250,7 @@ def _real_statistics(
             "available": True,
             "item_count": len(live_rows),
             "items": live_rows,
+            "possession": _possession_meter(live_rows),
             "status": "available",
             "source": provider,
             "updated_at": live.get("updated_at"),
@@ -235,6 +277,7 @@ def _real_statistics(
         "available": available,
         "item_count": len(cached_rows) if available else 0,
         "items": cached_rows if available else [],
+        "possession": _possession_meter(cached_rows) if available else {"available": False, "source": "API-Football"},
         "status": (
             "available"
             if available
