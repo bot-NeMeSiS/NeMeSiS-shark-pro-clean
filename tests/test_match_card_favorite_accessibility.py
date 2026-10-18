@@ -44,15 +44,21 @@ def test_favorite_button_names_match_the_saved_state(app_module):
         assert parser.attrs["aria-pressed"] == expected_pressed
         assert parser.attrs["data-label-add"] == "Guardar favorito"
         assert parser.attrs["data-label-remove"] == "Quitar favorito"
+        assert parser.attrs["data-message-added"] == "Favorito guardado."
+        assert parser.attrs["data-message-removed"] == "Favorito quitado."
+        assert parser.attrs["data-message-error"] == "No se pudo actualizar el favorito. Inténtalo de nuevo."
 
 
-def test_favorite_toggle_updates_the_accessible_name_only_after_success():
+def test_favorite_toggle_updates_state_and_feedback_only_after_success():
     from pathlib import Path
 
     base = Path(__file__).resolve().parents[1] / "templates" / "base.html"
     source = base.read_text(encoding="utf-8")
 
-    assert "if(data.ok!==false){" in source
+    assert "if(res.ok && data.ok===true){" in source
     assert "btn.setAttribute('aria-pressed',nextActive.toString());" in source
     assert "const nextLabel=nextActive ? btn.dataset.labelRemove : btn.dataset.labelAdd;" in source
     assert "if(nextLabel) btn.title=nextLabel;" in source
+    assert "window.nsToast(nextActive ? btn.dataset.messageAdded : btn.dataset.messageRemoved,'success');" in source
+    assert "window.nsToast(btn.dataset.messageError,'error');" in source
+    assert "finally{btn.disabled=false;}" in source

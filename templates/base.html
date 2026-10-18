@@ -251,16 +251,20 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
       btn.disabled=true;
       try{
         const res=await fetch('/api/favorites',{method: active ? 'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
-        const data=await res.json();
-        if(data.ok!==false){
+        const data=await res.json().catch(()=>({ok:false}));
+        if(res.ok && data.ok===true){
           const nextActive=!active;
           btn.classList.toggle('active',nextActive);
           btn.setAttribute('aria-pressed',nextActive.toString());
           const nextLabel=nextActive ? btn.dataset.labelRemove : btn.dataset.labelAdd;
           if(nextLabel) btn.title=nextLabel;
+          if(window.nsToast) window.nsToast(nextActive ? btn.dataset.messageAdded : btn.dataset.messageRemoved,'success');
+        }else if(window.nsToast){
+          window.nsToast(btn.dataset.messageError,'error');
         }
-      }catch(e){}
-      btn.disabled=false;
+      }catch(e){
+        if(window.nsToast) window.nsToast(btn.dataset.messageError,'error');
+      }finally{btn.disabled=false;}
     }
     document.addEventListener('click',function(e){
       const btn=e.target.closest&&e.target.closest('.fav-star');

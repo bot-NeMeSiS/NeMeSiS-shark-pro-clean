@@ -1400,6 +1400,18 @@
       "en": "Save favourite",
       "fr": "Enregistrer en favori"
     },
+    "Favorito guardado.": {
+      "en": "Favourite saved.",
+      "fr": "Favori enregistré."
+    },
+    "Favorito quitado.": {
+      "en": "Favourite removed.",
+      "fr": "Favori retiré."
+    },
+    "No se pudo actualizar el favorito. Inténtalo de nuevo.": {
+      "en": "Could not update this favourite. Please try again.",
+      "fr": "Impossible de mettre à jour ce favori. Réessayez."
+    },
     "Prioridad": {
       "en": "Priority",
       "fr": "Priorité"
