@@ -253,8 +253,11 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
         const res=await fetch('/api/favorites',{method: active ? 'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
         const data=await res.json();
         if(data.ok!==false){
-          btn.classList.toggle('active',!active);
-          btn.setAttribute('aria-pressed',(!active).toString());
+          const nextActive=!active;
+          btn.classList.toggle('active',nextActive);
+          btn.setAttribute('aria-pressed',nextActive.toString());
+          const nextLabel=nextActive ? btn.dataset.labelRemove : btn.dataset.labelAdd;
+          if(nextLabel) btn.title=nextLabel;
         }
       }catch(e){}
       btn.disabled=false;
