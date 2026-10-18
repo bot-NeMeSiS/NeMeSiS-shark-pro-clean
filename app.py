@@ -1329,8 +1329,8 @@ def _sports_sync_match_datetime(match):
 def sports_sync_window_state():
     """Read relevant live/near-kickoff rows without sorting the whole matches table."""
     now_madrid = datetime.now(TZ)
-    window_start = (now_madrid - timedelta(days=3)).date().isoformat()
-    window_end = (now_madrid + timedelta(days=3)).date().isoformat()
+    window_start = now_madrid - timedelta(hours=3)
+    window_end = now_madrid + timedelta(hours=3)
     live_statuses = tuple(sorted(SPORTS_SYNC_LIVE_STATUSES))
     placeholders = ",".join("?" for _ in live_statuses)
 
@@ -1353,10 +1353,25 @@ def sports_sync_window_state():
     try:
         window_matches = rows(
             """SELECT * FROM matches
-               WHERE substr(COALESCE(kickoff_iso,''),1,10) BETWEEN ? AND ?
-                  OR substr(COALESCE(match_date,''),1,10) BETWEEN ? AND ?
+               WHERE julianday(COALESCE(kickoff_iso,'')) BETWEEN julianday(?) AND julianday(?)
+                  OR (julianday(COALESCE(kickoff_iso,'')) IS NULL
+                      AND substr(COALESCE(match_date,''),1,10) BETWEEN ? AND ?
+                      AND trim(COALESCE(match_time,'')) <> '')
+               ORDER BY CASE
+                   WHEN julianday(COALESCE(kickoff_iso,'')) IS NOT NULL
+                       THEN abs(julianday(kickoff_iso)-julianday(?))
+                   ELSE abs(julianday(substr(COALESCE(match_date,''),1,10)||' '
+                       ||COALESCE(NULLIF(trim(match_time),''),'00:00'))-julianday(?))
+               END ASC
                LIMIT 600""",
-            (window_start, window_end, window_start, window_end),
+            (
+                window_start.isoformat(timespec="seconds"),
+                window_end.isoformat(timespec="seconds"),
+                window_start.date().isoformat(),
+                window_end.date().isoformat(),
+                now_madrid.isoformat(timespec="seconds"),
+                now_madrid.replace(tzinfo=None).isoformat(timespec="seconds"),
+            ),
         )
     except Exception:
         window_query_ok = False

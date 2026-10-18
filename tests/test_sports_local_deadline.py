@@ -153,7 +153,7 @@ def test_sports_sync_window_uses_live_and_nearby_candidates_without_global_sort(
         queries.append((query, params))
         if "lower(COALESCE(status,''))" in query:
             return [live]
-        if "substr(COALESCE(kickoff_iso,''),1,10)" in query:
+        if "julianday(COALESCE(kickoff_iso,''))" in query:
             return [nearby, live]
         pytest.fail("Unexpected full-table fallback query")
 
@@ -168,3 +168,46 @@ def test_sports_sync_window_uses_live_and_nearby_candidates_without_global_sort(
     assert result["complete_cached_matches"] == 2
     assert result["live_refresh_required"] is True
     assert result["no_external_calls"] is True
+
+
+def test_near_kickoff_is_not_hidden_by_large_schedule_before_result_limit(app_module, monkeypatch, tmp_path):
+    path = tmp_path / "sports-window.sqlite"
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("""CREATE TABLE matches(
+        id TEXT PRIMARY KEY, home_team TEXT, away_team TEXT, competition_name TEXT,
+        kickoff_iso TEXT, match_date TEXT, match_time TEXT, source TEXT,
+        status TEXT, status_short TEXT)""")
+    now = app_module.datetime.now(app_module.TZ).replace(microsecond=0)
+    distant = now + app_module.timedelta(days=2)
+    conn.executemany(
+        "INSERT INTO matches VALUES(?,?,?,?,?,?,?,?,?,?)",
+        [
+            (f"distant-{index}", f"Home {index}", f"Away {index}", "QA League",
+             distant.isoformat(), distant.date().isoformat(), distant.strftime("%H:%M"),
+             "API-Football", "PROGRAMADO", "NS")
+            for index in range(650)
+        ] + [
+            ("nearby", "Nearby Home", "Nearby Away", "QA League",
+             (now + app_module.timedelta(hours=1)).isoformat(),
+             now.date().isoformat(), (now + app_module.timedelta(hours=1)).strftime("%H:%M"),
+             "API-Football", "PROGRAMADO", "NS")
+        ],
+    )
+    conn.commit()
+    conn.close()
+
+    def sqlite_rows(query, params=()):
+        read_conn = sqlite3.connect(path)
+        read_conn.row_factory = sqlite3.Row
+        try:
+            return [dict(row) for row in read_conn.execute(query, params).fetchall()]
+        finally:
+            read_conn.close()
+
+    monkeypatch.setattr(app_module, "rows", sqlite_rows)
+    result = app_module.sports_sync_window_state()
+
+    assert result["complete_cached_matches"] == 1
+    assert result["near_kickoff_matches"] == 1
+    assert result["live_refresh_required"] is True
