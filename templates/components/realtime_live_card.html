@@ -46,7 +46,7 @@
         {% set extra_stats.items = extra_stats.items + [stat] %}
       {% endif %}
     {% endfor %}
-    <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or tracker.get('updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
+    <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
       {% if field.get('possession_available') %}
       <div class="v944-possession v944-possession--compact" data-visualization="aggregate-share" data-spatial-map-available="false">
         <div class="v944-possession__heading"><strong>{{ ui('Posesión del balón') }}</strong><span>{{ ui('Porcentaje real del proveedor') }}</span></div>
@@ -97,11 +97,11 @@
         </div>
       </details>
       {% endif %}
-      <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}<time datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación no disponible') }}{% endif %}</small>
+      <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}{{ ui('Estadísticas observadas') }}: <time datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación de estadísticas no disponible') }}{% endif %}</small>
     </section>
     {% endif %}
     <small class="v934-realtime-meta" data-realtime-freshness="{{ state.get('freshness_state') or 'NOT_ESTABLISHED' }}">
-      {{ ui(freshness) }}{% if state.get('provider_observed_at') %} · <time datetime="{{ state.get('provider_observed_at') }}">{{ state.get('provider_observed_at')|sync_madrid_label }}</time>{% endif %}
+      {{ ui(freshness) }}{% if state.get('provider_observed_at') %} · <span>{{ ui('Partido observado') }}:</span> <time datetime="{{ state.get('provider_observed_at') }}">{{ state.get('provider_observed_at')|sync_madrid_label }}</time>{% endif %}
     </small>
     <small class="v934-realtime-meta" data-directo-card-notice hidden></small>
   </div>

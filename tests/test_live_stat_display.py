@@ -424,4 +424,43 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
     assert "API-Football" in rendered
     assert "API-Football Pro" not in rendered
     assert "2026-10-17T16:01:00Z" in rendered
+    assert "Estadísticas observadas" in rendered
+    assert "Partido observado" in rendered
+    assert 'data-stat-updated-at="2026-10-17T16:01:00Z"' in rendered
+    assert 'datetime="2026-10-17T16:02:00Z"' in rendered
+
+
+def test_directo_card_does_not_reuse_match_clock_as_statistics_timestamp(app_module):
+    tracker = {
+        "statistics_updated_at": "",
+        "updated_at": "2026-10-17T16:02:00Z",
+        "stats": {"available": True},
+        "stat_cards": [{"key": "fouls", "label": "Faltas", "home": "8", "away": "14"}],
+        "field_state": {"possession_available": False},
+    }
+    match = {
+        "home_team": "Granada",
+        "away_team": "Rival",
+        "api_football_live_tracker": tracker,
+        "realtime_state": {
+            "contract": "NEMESIS-REALTIME-STATE-V1",
+            "sports_truth_contract": "MATCH-STATUS-TRUTH-V2",
+            "is_live": True,
+            "is_stale": False,
+            "status_conflict": False,
+            "status_canonical": "LIVE",
+            "minute": 61,
+            "provider_observed_at": "2026-10-17T16:03:00Z",
+        },
+    }
+
+    with app_module.app.test_request_context("/directo"):
+        template = app_module.app.jinja_env.from_string(
+            "{% from 'components/realtime_live_card.html' import live_card %}{{ live_card(match) }}")
+        rendered = template.render(match=match)
+
+    assert 'data-stat-updated-at=""' in rendered
+    assert 'datetime="2026-10-17T16:03:00Z"' in rendered
+    assert "hora de observación de estadísticas no disponible" in rendered
+    assert "2026-10-17T16:02:00Z" not in rendered
 

@@ -274,6 +274,18 @@
       "en": "Current observation",
       "fr": "Observation actuelle"
     },
+    "Partido observado": {
+      "en": "Match observed",
+      "fr": "Match observé"
+    },
+    "Estadísticas observadas": {
+      "en": "Statistics observed",
+      "fr": "Statistiques observées"
+    },
+    "hora de observación de estadísticas no disponible": {
+      "en": "Statistics observation time unavailable",
+      "fr": "Heure d'observation des statistiques indisponible"
+    },
     "Pendiente de confirmar": {
       "en": "Awaiting confirmation",
       "fr": "À confirmer"
