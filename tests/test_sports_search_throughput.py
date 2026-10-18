@@ -111,6 +111,8 @@ def test_interrupted_stream_retains_candidates_and_other_categories(sports_catal
             if f'FROM {table} ' in sql:
                 if 'LIKE' in sql:
                     raise sqlite3.OperationalError('native pass unavailable')
+                if 'GLOB' in sql:
+                    return super().execute(sql, *args, **kwargs)
                 cursor = super().execute(sql, *args, **kwargs)
                 return FailingCursor(cursor, 1 if kind != 'league' else 2)
             return super().execute(sql, *args, **kwargs)
@@ -127,7 +129,7 @@ def test_native_candidates_are_partial_until_unicode_scan_finishes(unicode_catal
 
     class Connection(sqlite3.Connection):
         def execute(self, sql, *args, **kwargs):
-            if 'FROM teams ' in sql and 'LIKE' not in sql:
+            if 'FROM teams ' in sql and 'LIKE' not in sql and 'GLOB' not in sql:
                 raise sqlite3.OperationalError('interrupted')
             return super().execute(sql, *args, **kwargs)
 
@@ -166,6 +168,42 @@ def test_budget_is_shared_and_late_catalogue_hits_survive_cold_scan(sports_catal
     assert any(item['value'] == '@team:last' for item in answer['items'])
     assert {item['kind'] for item in answer['items']} == {'team', 'league', 'match'}
     assert clock[0] <= .605
+
+
+def test_prefix_seed_uses_existing_name_index_and_finds_late_teams(sports_catalogue):
+    with sqlite3.connect(sports_catalogue) as conn:
+        conn.execute('DELETE FROM teams')
+        conn.executemany('INSERT INTO teams VALUES(?,?,?,?,?,?)',
+            [(str(i), f'Club {i}', 'España', 'Liga QA', str(i), 'sportsdb') for i in range(1000)])
+        conn.execute('INSERT INTO teams VALUES(?,?,?,?,?,?)',
+                     ('late-granada', 'Granada CF', 'España', 'Segunda', 'late', 'sportsdb'))
+        plan = conn.execute('EXPLAIN QUERY PLAN SELECT key,name,country,league FROM teams '
+                            'INDEXED BY idx_teams_name WHERE name GLOB ?', ('gra*',)).fetchall()
+    assert any('idx_teams_name' in row[3] and 'name>? AND name<?' in row[3] for row in plan)
+    result = search(sports_catalogue, 'gra', 'team')
+    assert result['complete']
+    assert any(item['value'] == '@team:late-granada' for item in result['items'])
+
+
+@pytest.mark.parametrize('name,query', [
+    ('gRaNaDa CF', 'gra'), ('GRAnada Fem', 'granada fem'),
+])
+def test_prefix_seed_preserves_ascii_case_insensitive_matching(sports_catalogue, name, query):
+    with sqlite3.connect(sports_catalogue) as conn:
+        conn.execute('DELETE FROM teams')
+        conn.execute('INSERT INTO teams VALUES(?,?,?,?,?,?)',
+                     ('case-variant', name, 'España', 'Liga QA', 'case', 'sportsdb'))
+    result = search(sports_catalogue, query, 'team')
+    assert result['complete']
+    assert [item['value'] for item in result['items']] == ['@team:case-variant']
+
+
+def test_missing_prefix_index_falls_back_to_existing_search(sports_catalogue):
+    with sqlite3.connect(sports_catalogue) as conn:
+        conn.execute('DROP INDEX idx_teams_name')
+    result = search(sports_catalogue, 'granada', 'team')
+    assert result['complete']
+    assert any(item['value'] == '@team:granada-cf' for item in result['items'])
 
 
 def test_normalization_work_reuses_public_fields_without_caching_responses(sports_catalogue, monkeypatch):

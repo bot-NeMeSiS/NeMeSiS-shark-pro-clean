@@ -124,6 +124,33 @@ def _search_sql(kind, today, *, terms=(), history=False, native=False, capacity=
     return sql, args
 
 
+def _prefix_patterns(term):
+    """Return bounded ASCII case variants for an indexed name-prefix probe.
+
+    GLOB is case-sensitive in SQLite, so the variants preserve the existing
+    case-insensitive search contract while allowing the BINARY name indexes to
+    seek directly to likely early matches. Unicode folding remains authoritative
+    in the regular scan below.
+    """
+    prefix = str(term or '')[:3]
+    if len(prefix) < 2 or not prefix.isascii() or not prefix.isalnum():
+        return ()
+    variants = ['']
+    for char in prefix:
+        choices = (char.lower(), char.upper()) if char.isalpha() else (char,)
+        variants = [current + choice for current in variants for choice in choices]
+    return tuple(dict.fromkeys(value + '*' for value in variants))
+
+
+def _prefix_sql(kind):
+    """Use the catalogue's existing B-tree index without a schema change."""
+    if kind == 'team':
+        return 'SELECT key,name,country,league FROM teams INDEXED BY idx_teams_name WHERE name GLOB ?'
+    if kind == 'league':
+        return 'SELECT key,name,country,region FROM competitions INDEXED BY idx_competitions_name WHERE name GLOB ?'
+    return None
+
+
 def _scan(conn, sql, args, *, deadline, kind, terms, excluded, candidates, stop_after=None):
     """Yield after each examined row so Unicode scans can share the deadline."""
     if time.monotonic() >= deadline:
@@ -184,9 +211,10 @@ def _item(kind, row):
 def search_sports(db_path, query='', kind='', *, today=None, limit=8, excluded_names=(), budget_seconds=.6):
     """Never initialize schemas, fetch providers, or persist a user's query.
 
-    Native candidates improve a cold first response; only the Unicode pass can
-    certify completeness. All phases share one deadline, including connection
-    waits, and an interrupted category retains its verified partial candidates.
+    Indexed name-prefix seeds and native candidates improve early responses;
+    only the authoritative Unicode scan can certify completeness. All phases
+    share one deadline, including connection waits, and an interrupted category
+    retains its verified partial candidates.
     """
     query = clean_query(query)
     kind = kind if kind in KINDS else ''
@@ -218,6 +246,29 @@ def search_sports(db_path, query='', kind='', *, today=None, limit=8, excluded_n
         conn.execute('PRAGMA query_only=ON')
         # Both passes must observe the same catalogue, even if a writer commits.
         conn.execute('BEGIN')
+        prefix_specs = [(current, pattern) for current in kinds if _prefix_sql(current)
+                        for pattern in _prefix_patterns(terms[0])]
+        # Spend at most 15% of the same request budget on index seeks. Each
+        # pattern gets a fair slice so one crowded prefix cannot starve case
+        # variants or the authoritative catalogue scan.
+        prefix_deadline = min(deadline, time.monotonic() + budget_seconds * .15)
+        remaining_specs = len(prefix_specs)
+        for current, pattern in prefix_specs:
+            if time.monotonic() >= prefix_deadline:
+                break
+            remaining_time = prefix_deadline - time.monotonic()
+            slice_deadline = time.monotonic() + remaining_time / remaining_specs
+            remaining_specs -= 1
+            try:
+                sql = _prefix_sql(current)
+                for _ in _scan(conn, sql, (pattern,), deadline=slice_deadline, kind=current,
+                               terms=terms, excluded=excluded, candidates=candidates[current],
+                               stop_after=candidates[current].capacity):
+                    pass
+            except sqlite3.Error:
+                # Missing older index, locked database, or deadline: these
+                # suggestions are opportunistic and never imply completeness.
+                pass
         for current in kinds:
             try:
                 sql, args = _search_sql(current, today, terms=terms, native=True, capacity=limit+1)

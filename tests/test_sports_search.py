@@ -14,6 +14,8 @@ def sports_catalogue(tmp_path):
             CREATE TABLE competitions(key TEXT PRIMARY KEY,name TEXT,country TEXT,region TEXT);
             CREATE TABLE matches(id TEXT PRIMARY KEY,home_team TEXT,away_team TEXT,competition_name TEXT,league_name TEXT,country TEXT,match_date TEXT,kickoff_time TEXT,source TEXT);
             CREATE INDEX idx_matches_date_status ON matches(match_date);
+            CREATE INDEX idx_teams_name ON teams(name);
+            CREATE INDEX idx_competitions_name ON competitions(name);
             CREATE TABLE favorites(id TEXT PRIMARY KEY,user_id TEXT,kind TEXT,value TEXT,label TEXT,created_at TEXT);''')
         db.executemany('INSERT INTO teams VALUES(?,?,?,?,?,?)', [
             ('granada-cf','Granada CF','España','Segunda División','1','sportsdb'),
