@@ -98,7 +98,7 @@
     <p class="v933-safe-copy">{{ ui('No hay partidos próximos completos para revisar ahora mismo.') }}</p>
     {% endif %}
     <div class="v933-page-actions v933-inline-actions">
-      {{ action_button('Ver calendario real', '/calendario', true, 'blue', false, 'matches') }}
+      {{ quick_action('Abrir calendario', 'Consulta partidos reales y su horario.', '/calendario', 'matches', 'blue') }}
       {{ action_button('Consultar SHARK', '/shark', false, 'cyan', false, 'shark') }}
       {% if readiness.get('locked_count') %}{{ action_button('Ver membresías', '/membresias', false, 'gold', false, 'membership') }}{% endif %}
     </div>
