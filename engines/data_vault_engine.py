@@ -437,7 +437,6 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             margin = max(64 * 1024 * 1024, actual_size // 10)
             if shutil.disk_usage(bdir).free < margin:
                 raise sqlite3.OperationalError("backup_storage_insufficient")
-        advance_stage("INTEGRITY")
         with closing(connect_readonly(src)) as source, closing(sqlite3.connect(str(temporary), timeout=15)) as dest:
             # SQLite retries BUSY/LOCKED indefinitely unless progress aborts it.
             # Keep the synchronous request below the web worker's timeout.
@@ -448,7 +447,10 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                     raise sqlite3.OperationalError("backup_snapshot_timeout")
             if not compact:
                 source.backup(dest, pages=256, progress=progress, sleep=0.05)
-            stage = "INTEGRITY"
+            # Keep the SQLite copy separate from verification in production
+            # timings. Previously source.backup ran under INTEGRITY, making a
+            # slow snapshot indistinguishable from a slow integrity_check.
+            advance_stage("INTEGRITY")
             dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
