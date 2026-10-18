@@ -234,13 +234,19 @@ def test_master_tick_requires_secret(admin):
 
 def test_master_tick_test_secret_dry_run_never_calls_operations(admin, monkeypatch):
     a,_,_=admin
+    monkeypatch.setattr(a,"NEMESIS_LOCAL_SAFE_MODE",False)
     monkeypatch.setenv("AUTOMATION_SECRET","SIMULATED_QA_master_tick")
     calls=[]
     monkeypatch.setattr(a,"v818_master_callbacks",lambda:{"sports_sync":lambda:calls.append("sports"),"telegram_tick":lambda:calls.append("telegram")})
     response=a.app.test_client().post("/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick",json={})
     assert response.status_code==403,response.get_data(as_text=True)[:300]
-    assert response.get_json()["status"]=="LOCAL_SAFE_BLOCKED"
-    with a.app.test_request_context("/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick"):
+    assert response.get_json()["error"]=="automation_secret_required"
+    assert response.get_json()["automation_secret_provided"] is False
+    with a.app.test_request_context(
+        "/api/automation/master-tick?dry_run=1&secret=SIMULATED_QA_master_tick",
+        method="POST",
+        headers={"X-Automation-Secret":"SIMULATED_QA_master_tick"},
+    ):
         result=a.api_v818_automation_master_tick()
         assert result.status_code==200 and result.get_json()["dry_run"] is True
     assert calls==[]

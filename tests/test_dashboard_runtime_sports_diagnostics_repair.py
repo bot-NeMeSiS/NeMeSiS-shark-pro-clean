@@ -270,7 +270,7 @@ def test_same_plan_users_and_admin_never_share_session_cache(
     assert user_b["name"] == "Usuario B"
     assert admin["id"] == "qa-admin"
     assert admin["role"] == "ADMIN"
-    assert read_calls == ["qa-same-plan-a", "qa-same-plan-b"]
+    assert read_calls == ["qa-same-plan-a", "qa-same-plan-b", "qa-admin"]
     assert expiry_calls == [], "Session reads must not persist membership expiry"
 
 

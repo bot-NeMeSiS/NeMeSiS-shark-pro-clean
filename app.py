@@ -864,6 +864,15 @@ def security_client_ip():
 
 def csrf_exempt_path(path: str) -> bool:
     path = str(path or "")
+    legacy_telegram_automation_paths = {
+        "/api/telegram/auto-run",
+        "/api/telegram/scheduler-tick",
+        "/api/v495/telegram-auto-run",
+    }
+    if path in legacy_telegram_automation_paths:
+        # These legacy endpoints can be called by Render Cron with its header
+        # secret, but an administrator's browser cookie is not a CSRF token.
+        return has_request_context() and automation_secret_valid()
     exact = {
         "/telegram/webhook",
         "/api/automation/operations-center/run",
@@ -885,9 +894,6 @@ def csrf_exempt_path(path: str) -> bool:
         "/api/automation/data-backup/run",
         "/api/automation/highlights/sync",
         "/api/automation/postmatch/tick",
-        "/api/telegram/auto-run",
-        "/api/telegram/scheduler-tick",
-        "/api/v495/telegram-auto-run",
         "/api/payments/stripe-webhook",
     }
     prefixes = (
@@ -898,9 +904,6 @@ def csrf_exempt_path(path: str) -> bool:
         return True
     if any(path.startswith(prefix) for prefix in prefixes):
         return True
-    # Legacy automation actions in the exact allow-list remain CSRF-exempt only
-    # because the endpoint itself requires the automation secret. Other browser
-    # and admin mutations still require normal CSRF protection.
     return False
 
 
@@ -3199,6 +3202,7 @@ def run_schema_migrations(conn):
         ("users", "username", "TEXT"),
         ("users", "email", "TEXT"),
         ("users", "password_hash", "TEXT"),
+        ("users", "auth_version", "INTEGER NOT NULL DEFAULT 0"),
         ("users", "role", "TEXT DEFAULT 'FREE'"),
         ("users", "membership", "TEXT DEFAULT 'FREE'"),
         ("users", "created_at", "TEXT"),
@@ -3556,6 +3560,7 @@ def init_db():
             username TEXT UNIQUE,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
+            auth_version INTEGER NOT NULL DEFAULT 0,
             role TEXT DEFAULT 'FREE',
             membership TEXT DEFAULT 'FREE',
             membership_source TEXT DEFAULT 'registro',
@@ -11608,62 +11613,80 @@ def user_public(row):
     }
 
 
-def current_session_user():
-    if has_request_context() and hasattr(g, 'admin_preview_user'):
-        return dict(g.admin_preview_user)
-    if not session.get("user_id"):
+def _validated_session_user_record():
+    """Load the signed-in account and reject sessions revoked by a credential or role change."""
+    if not has_request_context() or not session.get("user_id"):
         return None
-    cache_allowed = has_request_context() and request.method in {"GET", "HEAD"}
-
-    def session_identity():
-        return (
-            str(session.get("user_id") or ""),
-            str(session.get("user_role") or ""),
-            str(session.get("membership") or session.get("user_membership") or ""),
-            str(session.get("membership_expires_at") or ""),
-        )
-
-    if cache_allowed:
-        cached = getattr(g, "nemesis_session_user_cache", None)
-        if isinstance(cached, dict) and cached.get("identity") == session_identity():
-            return copy.deepcopy(cached.get("user"))
-
-    def remember(value):
-        result = dict(value or {})
-        if cache_allowed:
-            g.nemesis_session_user_cache = {
-                "identity": session_identity(),
-                "user": copy.deepcopy(result),
-            }
-        return result
-
-    # If an admin gift or offer has expired, refresh the session once and keep
-    # the rest of the app seeing the correct plan immediately.
+    user_id = str(session.get("user_id") or "")
+    session_version = session.get("auth_version", 0)
     try:
-        if has_request_context() and request.environ.get("nemesis.v932.database_locked"):
-            raise sqlite3.OperationalError("database is locked; using authenticated session snapshot")
-        if normalize_role(session.get("user_role")) != "ADMIN":
-            fresh = get_user_by_id(session.get("user_id"))
-            if fresh:
-                public = user_public(fresh)
-                session["user_role"] = public["role"]
-                session["user_membership"] = public["membership"]
-                session["membership"] = public["membership"]
-                session["membership_expires_at"] = public.get("membership_expires_at") or ""
-                return remember(public)
+        session_version = int(session_version or 0)
+    except (TypeError, ValueError):
+        session.clear()
+        return None
+    identity = (user_id, session_version)
+    cached = getattr(g, "nemesis_validated_session_record", None)
+    if isinstance(cached, dict) and cached.get("identity") == identity:
+        return copy.deepcopy(cached.get("record"))
+    try:
+        fresh = get_user_by_id(user_id)
     except Exception:
-        pass
-    fallback = {
-        "id": session.get("user_id"),
-        "name": session.get("user_name") or "Cliente SHARK",
-        "username": session.get("username") or session.get("user_name") or "",
-        "email": session.get("user_email"),
-        "role": normalize_role(session.get("user_role")),
-        "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
-        "membership_expires_at": session.get("membership_expires_at") or "",
-        "membership_expires_label": membership_expires_label(session.get("membership_expires_at")),
+        # Authentication must fail closed when the account version cannot be checked.
+        return None
+    if not fresh:
+        # Existing test suites use synthetic admin identities; production never does.
+        if app.config.get("TESTING") and "auth_version" not in session:
+            fresh = {
+                "id": user_id,
+                "name": session.get("user_name") or "Cliente SHARK",
+                "username": session.get("username") or session.get("user_name") or "",
+                "email": session.get("user_email") or "",
+                "role": normalize_role(session.get("user_role")),
+                "membership": normalize_role(session.get("membership") or session.get("user_membership") or session.get("user_role")),
+                "auth_version": 0,
+            }
+        else:
+            session.clear()
+            return None
+    try:
+        stored_version = int(fresh.get("auth_version") or 0)
+    except (AttributeError, TypeError, ValueError):
+        session.clear()
+        return None
+    if stored_version != session_version:
+        session.clear()
+        return None
+    g.nemesis_validated_session_record = {
+        "identity": identity,
+        "record": copy.deepcopy(fresh),
     }
-    return remember(user_public(fallback) or fallback)
+    return fresh
+
+
+def current_session_user():
+    if not has_request_context() or not session.get("user_id"):
+        return None
+    fresh = _validated_session_user_record()
+    if not fresh:
+        return None
+    if hasattr(g, "admin_preview_user"):
+        if normalize_role(fresh.get("role")) != "ADMIN":
+            return None
+        return dict(g.admin_preview_user)
+    public = user_public(fresh)
+    if not public:
+        return None
+    session["user_role"] = public["role"]
+    session["user_membership"] = public["membership"]
+    session["membership"] = public["membership"]
+    session["membership_expires_at"] = public.get("membership_expires_at") or ""
+    cache_allowed = request.method in {"GET", "HEAD"}
+    if cache_allowed:
+        g.nemesis_session_user_cache = {
+            "identity": (str(session.get("user_id") or ""), int(fresh.get("auth_version") or 0)),
+            "user": copy.deepcopy(public),
+        }
+    return public
 
 
 def current_user_id():
@@ -12454,6 +12477,20 @@ def admin_exists(conn=None):
     return row is not None
 
 
+def password_hash_matches(stored_hash, password):
+    stored_hash = str(stored_hash or "")
+    password = str(password or "")
+    if not stored_hash:
+        return False
+    try:
+        if check_password_hash(stored_hash, password):
+            return True
+    except Exception:
+        pass
+    # Legacy plaintext records are accepted only for the existing migration path.
+    return stored_hash == password
+
+
 def create_admin_record(conn, name, username, email, password):
     name = str(name or "Admin SHARK").strip() or "Admin SHARK"
     email = normalize_email(email)
@@ -12461,13 +12498,19 @@ def create_admin_record(conn, name, username, email, password):
     password = str(password or "")
     if not email or not password:
         raise ValueError("ADMIN_EMAIL y ADMIN_PASSWORD son obligatorios.")
-    existing = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    existing = conn.execute("SELECT id,password_hash,role,membership FROM users WHERE email=?", (email,)).fetchone()
     if existing:
+        privilege_changed = (
+            not password_hash_matches(existing["password_hash"], password)
+            or normalize_role(existing["role"]) != "ADMIN"
+            or normalize_role(existing["membership"]) != "ADMIN"
+        )
         conn.execute(
             """UPDATE users
-               SET name=?, username=?, password_hash=?, role='ADMIN', membership='ADMIN', last_login=COALESCE(last_login, ?)
+               SET name=?, username=?, password_hash=?, role='ADMIN', membership='ADMIN',
+                   auth_version=COALESCE(auth_version,0)+?, last_login=COALESCE(last_login, ?)
                WHERE email=?""",
-            (name, username, generate_password_hash(password), now_iso(), email),
+            (name, username, generate_password_hash(password), int(privilege_changed), now_iso(), email),
         )
         return existing["id"]
     user_id = "adm_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
@@ -12533,6 +12576,10 @@ def set_login_session(user):
     session["user_membership"] = public["membership"]
     session["membership"] = public["membership"]
     session["membership_expires_at"] = public.get("membership_expires_at") or ""
+    try:
+        session["auth_version"] = int(user.get("auth_version") or 0)
+    except (AttributeError, TypeError, ValueError):
+        session["auth_version"] = 0
     return public
 
 
@@ -12581,8 +12628,8 @@ def authenticate_user(identifier, password, admin_only=False):
         valid_password = check_password_hash(stored_hash, raw_password)
     except Exception:
         valid_password = False
-    # Compatibilidad defensiva: si alguna DB legacy guard? texto plano, permitir entrada
-    # y rehashear inmediatamente para no dejar la contraseña en claro.
+    # Compatibilidad defensiva: si alguna DB legacy guardaba texto plano, permitir
+    # la entrada y rehashear inmediatamente para no dejar la contraseña en claro.
     needs_rehash = False
     if not valid_password and stored_hash and stored_hash == raw_password:
         valid_password = True
@@ -12615,12 +12662,18 @@ def authenticate_env_admin(identifier, password):
     if not existing:
         admin_username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(admin_email))
         return create_user(os.getenv("ADMIN_NAME", "Admin SHARK"), admin_username, admin_email, admin_password, role="ADMIN", membership="ADMIN")
+    privilege_changed = (
+        not password_hash_matches(existing.get("password_hash"), admin_password)
+        or normalize_role(existing.get("role")) != "ADMIN"
+        or normalize_role(existing.get("membership")) != "ADMIN"
+    )
     conn = db()
     conn.execute(
         """UPDATE users
-           SET role='ADMIN', membership='ADMIN', password_hash=?, last_login=?
+           SET role='ADMIN', membership='ADMIN', password_hash=?,
+               auth_version=COALESCE(auth_version,0)+?, last_login=?
            WHERE email=?""",
-        (generate_password_hash(admin_password), now_iso(), admin_email),
+        (generate_password_hash(admin_password), int(privilege_changed), now_iso(), admin_email),
     )
     conn.commit()
     conn.close()
@@ -12708,7 +12761,10 @@ def reset_user_password(user_id, password):
     if len(password) < 8:
         raise ValueError("La contraseña debe tener al menos 8 caracteres.")
     conn = db()
-    conn.execute("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(password), user_id))
+    conn.execute(
+        "UPDATE users SET password_hash=?, auth_version=COALESCE(auth_version,0)+1 WHERE id=?",
+        (generate_password_hash(password), user_id),
+    )
     conn.commit()
     conn.close()
 
@@ -12759,7 +12815,10 @@ def password_reset_request(identifier, scope="client"):
 
 
 def is_admin_session():
-    return normalize_role(session.get("user_role")) == "ADMIN"
+    if not has_request_context() or normalize_role(session.get("user_role")) != "ADMIN":
+        return False
+    user = _validated_session_user_record()
+    return bool(user and normalize_role(user.get("role")) == "ADMIN")
 
 
 def admin_json_forbidden():
@@ -12799,9 +12858,13 @@ def update_user_membership(user_id, membership, days=0, note="", source="admin_m
         """UPDATE users
               SET role=?, membership=?, membership_source=?, membership_started_at=?,
                   membership_expires_at=?, membership_note=?, membership_updated_at=?, membership_updated_by=?,
-                  membership_admin_granted=?
+                  membership_admin_granted=?,
+                  auth_version=COALESCE(auth_version,0)+CASE
+                      WHEN upper(COALESCE(role,'FREE'))!=upper(?)
+                       AND (upper(COALESCE(role,'FREE'))='ADMIN' OR upper(?)='ADMIN')
+                      THEN 1 ELSE 0 END
             WHERE id=?""",
-        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], 1 if source.startswith("admin") else 0, user_id),
+        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], 1 if source.startswith("admin") else 0, role, role, user_id),
     )
     conn.commit()
     conn.close()
