@@ -82,7 +82,13 @@ def test_admin_role_demotion_revokes_previously_issued_cookie(app_module, tmp_pa
     _sign_in_cookie(client, user)
     assert client.get("/api/admin/route-map").status_code == 200
 
-    app_module.update_user_membership(user["id"], "FREE", admin_id="qa-owner")
+    conn = app_module.db()
+    conn.execute(
+        "UPDATE users SET role='PRO', membership='PRO', auth_version=COALESCE(auth_version,0)+1 WHERE id=?",
+        (user["id"],),
+    )
+    conn.commit()
+    conn.close()
     response = client.get("/api/admin/route-map")
 
     assert response.status_code == 403

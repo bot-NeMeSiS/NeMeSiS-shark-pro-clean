@@ -11471,6 +11471,7 @@ MEMBERSHIP_PLANS = [
 
 
 VALID_ROLES = {"FREE", "PRO", "ELITE", "ADMIN"}
+COMMERCIAL_MEMBERSHIP_TIERS = frozenset({"FREE", "PRO", "ELITE"})
 
 
 def normalize_email(email):
@@ -12471,7 +12472,8 @@ def admin_exists(conn=None):
         seed_core()
         conn = db()
         close = True
-    row = conn.execute("SELECT id FROM users WHERE role='ADMIN' OR membership='ADMIN' LIMIT 1").fetchone()
+    # A commercial membership value is never proof of platform administrator authority.
+    row = conn.execute("SELECT id FROM users WHERE upper(COALESCE(role,''))='ADMIN' LIMIT 1").fetchone()
     if close:
         conn.close()
     return row is not None
@@ -12595,6 +12597,8 @@ def create_user(name, username, email, password, role="FREE", membership="FREE")
         raise ValueError("El nombre de usuario debe tener al menos 3 caracteres.")
     role = normalize_role(role)
     membership = normalize_role(membership)
+    if role not in COMMERCIAL_MEMBERSHIP_TIERS or membership not in COMMERCIAL_MEMBERSHIP_TIERS:
+        raise ValueError("El acceso administrativo se configura por separado de los planes comerciales.")
     user_id = "usr_" + hashlib.sha256(f"{email}:{now_iso()}".encode("utf-8")).hexdigest()[:18]
     conn = db()
     cur = conn.cursor()
@@ -12661,7 +12665,19 @@ def authenticate_env_admin(identifier, password):
     existing = get_user_by_email(admin_email)
     if not existing:
         admin_username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(admin_email))
-        return create_user(os.getenv("ADMIN_NAME", "Admin SHARK"), admin_username, admin_email, admin_password, role="ADMIN", membership="ADMIN")
+        conn = db()
+        try:
+            user_id = create_admin_record(
+                conn,
+                os.getenv("ADMIN_NAME", "Admin SHARK"),
+                admin_username,
+                admin_email,
+                admin_password,
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return get_user_by_id(user_id)
     privilege_changed = (
         not password_hash_matches(existing.get("password_hash"), admin_password)
         or normalize_role(existing.get("role")) != "ADMIN"
@@ -12838,11 +12854,10 @@ def list_users():
 
 
 def update_user_membership(user_id, membership, days=0, note="", source="admin_manual", admin_id=""):
-    membership = normalize_role(membership)
-    if membership not in VALID_ROLES or not user_id:
+    membership = str(membership or "").strip().upper()
+    if membership not in COMMERCIAL_MEMBERSHIP_TIERS or not user_id:
         return None
     days = days_from_admin_value(days)
-    role = "ADMIN" if membership == "ADMIN" else membership
     started_at = now_iso()
     expires_at = ""
     if membership in {"PRO", "ELITE"} and days > 0:
@@ -12854,20 +12869,29 @@ def update_user_membership(user_id, membership, days=0, note="", source="admin_m
         source = source or "admin_manual"
     clean_note = str(note or "").strip()[:300]
     conn = db()
-    conn.execute(
+    try:
+        existing = conn.execute(
+            "SELECT role FROM users WHERE id=?",
+            (user_id,),
+        ).fetchone()
+        if not existing or normalize_role(existing["role"]) == "ADMIN":
+            conn.rollback()
+            return None
+        role = membership
+        cursor = conn.execute(
         """UPDATE users
               SET role=?, membership=?, membership_source=?, membership_started_at=?,
                   membership_expires_at=?, membership_note=?, membership_updated_at=?, membership_updated_by=?,
-                  membership_admin_granted=?,
-                  auth_version=COALESCE(auth_version,0)+CASE
-                      WHEN upper(COALESCE(role,'FREE'))!=upper(?)
-                       AND (upper(COALESCE(role,'FREE'))='ADMIN' OR upper(?)='ADMIN')
-                      THEN 1 ELSE 0 END
-            WHERE id=?""",
-        (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], 1 if source.startswith("admin") else 0, role, role, user_id),
-    )
-    conn.commit()
-    conn.close()
+                  membership_admin_granted=?
+            WHERE id=? AND upper(COALESCE(role,'FREE'))!='ADMIN'""",
+            (role, membership, source, started_at, expires_at, clean_note, now_iso(), str(admin_id or "")[:80], 1 if source.startswith("admin") else 0, user_id),
+        )
+        if cursor.rowcount != 1:
+            conn.rollback()
+            return None
+        conn.commit()
+    finally:
+        conn.close()
     return get_user_by_id(user_id)
 
 
@@ -22671,19 +22695,27 @@ def admin_users_page():
         return redirect("/admin-login?next=/admin/users")
     message = ""
     if request.method == "POST":
-        updated = update_user_membership(
-            request.form.get("user_id"),
-            request.form.get("membership"),
-            days=request.form.get("membership_days"),
-            note=request.form.get("membership_note"),
-            source="admin_gift" if days_from_admin_value(request.form.get("membership_days")) else "admin_manual",
-            admin_id=session.get("user_id") or "admin",
-        )
-        if updated:
-            public = user_public(updated)
-            message = f"Membresía actualizada: {public['membership']} - {public.get('membership_expires_label') or 'Sin caducidad'}."
+        target_id = request.form.get("user_id")
+        requested_plan = str(request.form.get("membership") or "").strip().upper()
+        target_user = get_user_by_id(target_id)
+        if requested_plan not in COMMERCIAL_MEMBERSHIP_TIERS:
+            message = "Elige un plan comercial válido (FREE, PRO o ELITE). No se cambió ningún permiso administrativo."
+        elif target_user and normalize_role(target_user.get("role")) == "ADMIN":
+            message = "La cuenta administrativa está protegida. Cambiar un plan comercial no modifica sus permisos."
         else:
-            message = "No se pudo actualizar ese usuario."
+            updated = update_user_membership(
+                target_id,
+                requested_plan,
+                days=request.form.get("membership_days"),
+                note=request.form.get("membership_note"),
+                source="admin_gift" if days_from_admin_value(request.form.get("membership_days")) else "admin_manual",
+                admin_id=session.get("user_id") or "admin",
+            )
+            if updated:
+                public = user_public(updated)
+                message = f"Membresía actualizada: {public['membership']} - {public.get('membership_expires_label') or 'Sin caducidad'}."
+            else:
+                message = "No se pudo actualizar ese usuario."
     data, _summary = v932_safe_dashboard_data(request.path, scope="admin")
     data["users"] = v932_safe_context(request.path, "admin", "list_users", list_users, [])
     data["membership_admin"] = v932_safe_context(request.path, "admin", "membership_admin", membership_admin_summary, {})
@@ -25043,9 +25075,11 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
     upcoming = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
     watchlist = []
     fresh_odds_matches = 0
+    complete_market_matches = 0
     for match in upcoming:
         recommendation = v565_recommendation_for_match(match)
         odds = recommendation.get("odds") if isinstance(recommendation.get("odds"), dict) else {}
+        market_forecast = recommendation.get("market_forecast") if isinstance(recommendation.get("market_forecast"), dict) else {}
         prices = [
             value for value in (odds.get("home"), odds.get("draw"), odds.get("away"))
             if isinstance(value, (int, float)) and not isinstance(value, bool) and value > 1
@@ -25058,6 +25092,8 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
         )
         if freshness.get("status") == "FRESH":
             fresh_odds_matches += 1
+        if market_forecast.get("available") is True and market_forecast.get("state") == "CURRENT":
+            complete_market_matches += 1
         if len(watchlist) >= max(0, min(12, int(watchlist_limit or 0))):
             continue
         kickoff_dt = match_kickoff_madrid_dt(match)
@@ -25067,9 +25103,15 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
         if not odds.get("available"):
             odds_label = "Sin cuota observada"
             reason = "Esperando una cuota de proveedor con hora verificable."
+        elif market_forecast.get("available") is True and market_forecast.get("state") == "CURRENT":
+            odds_label = "Mercado 1X2 actual verificado"
+            reason = "Las tres cuotas 1X2 están completas y actuales; esto es una lectura de mercado, no una apuesta SHARK."
+        elif market_forecast.get("state") == "INCOMPLETE_MARKET" and freshness.get("status") == "FRESH":
+            odds_label = "Cuotas parciales actuales"
+            reason = "Hay al menos una cuota reciente, pero falta completar el mercado 1X2 antes de calcular porcentajes."
         elif freshness.get("status") == "FRESH":
             odds_label = "Cuota actual verificada"
-            reason = "Hay datos de mercado, pero SHARK aún no ha aprobado una selección publicable."
+            reason = "Hay una cuota reciente, pero no una lectura 1X2 completa ni una selección SHARK aprobada."
         elif freshness.get("status") == "RECORDED":
             odds_label = "Cuota registrada; falta actualizar"
             reason = "La última cuota es una referencia y necesita renovarse antes de valorar una selección."
@@ -25104,10 +25146,13 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
     elif not upcoming:
         message = "No hay próximos partidos completos y verificados en la agenda actual."
         state = "waiting_for_matches"
-    elif fresh_odds_matches == 0:
+    elif complete_market_matches == 0:
         count = len(upcoming)
         match_label = "partido próximo verificado" if count == 1 else "partidos próximos verificados"
-        message = f"Hay {count} {match_label}, pero no hay cuotas actuales verificables. SHARK no publicará una apuesta sin esa evidencia."
+        if fresh_odds_matches:
+            message = f"Hay {count} {match_label} y algunas cuotas recientes, pero falta completar las tres opciones 1X2. SHARK no mostrará porcentajes ni publicará una apuesta con un mercado incompleto."
+        else:
+            message = f"Hay {count} {match_label}, pero no hay cuotas actuales verificables en un mercado 1X2 completo. SHARK no publicará una apuesta sin esa evidencia."
         state = "waiting_for_odds"
     else:
         message = "Hay partidos y cuotas recientes, pero ninguna selección ha superado todavía la revisión de SHARK."
@@ -25119,6 +25164,7 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
         "locked_count": int(locked_count or 0),
         "upcoming_count": len(upcoming),
         "fresh_odds_match_count": fresh_odds_matches,
+        "complete_market_count": complete_market_matches,
         "no_provider_call": True,
     }, watchlist
 

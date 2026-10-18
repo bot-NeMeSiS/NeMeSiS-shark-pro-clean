@@ -197,6 +197,7 @@ def test_recent_provider_quote_is_reported_but_never_turns_into_a_pick(app_modul
         "status": "NS",
         "odds_h2h_json": json.dumps({
             "home": 2.1, "draw": 3.2, "away": 4.0, "source": "The Odds API",
+            "bookmaker": "Book QA",
         }),
         "odds_source": "The Odds API",
         "odds_updated_at": now.isoformat(),
@@ -208,10 +209,77 @@ def test_recent_provider_quote_is_reported_but_never_turns_into_a_pick(app_modul
 
     assert readiness["state"] == "waiting_for_review"
     assert readiness["fresh_odds_match_count"] == 1
-    assert watchlist[0]["odds_label"] == "Cuota actual verificada"
+    assert watchlist[0]["odds_label"] == "Mercado 1X2 actual verificado"
     assert watchlist[0]["decision_label"] == "En observación"
     assert "selection" not in watchlist[0]
     assert "odds" not in watchlist[0]
+
+
+def test_one_fresh_outcome_is_not_misreported_as_a_complete_market(app_module):
+    now = datetime.now(MADRID)
+    match = {
+        "id": "fixture-partial-market-qa",
+        "home_team": "Granada CF",
+        "away_team": "Visitante QA",
+        "competition_name": "Liga QA",
+        "match_date": (now.date() + timedelta(days=1)).isoformat(),
+        "kickoff_time": "20:00",
+        "status": "NS",
+        "odds_h2h_json": json.dumps({
+            "source": "The Odds API",
+            "bookmaker": "Book QA",
+            "last_update": now.isoformat(),
+            "outcomes": [{"name": "Granada C.F.", "price": 2.1}],
+        }),
+        "odds_source": "The Odds API",
+        "odds_updated_at": now.isoformat(),
+    }
+
+    readiness, watchlist = app_module.client_pick_readiness(
+        {"valid_upcoming_matches": [match]}, active_count=0,
+    )
+
+    assert readiness["state"] == "waiting_for_odds"
+    assert readiness["fresh_odds_match_count"] == 1
+    assert readiness["complete_market_count"] == 0
+    assert "falta completar las tres opciones 1X2" in readiness["message"]
+    assert watchlist[0]["odds_label"] == "Cuotas parciales actuales"
+    assert "falta completar el mercado 1X2" in watchlist[0]["reason"]
+
+
+def test_stale_complete_prices_do_not_count_as_current_market(app_module):
+    now = datetime.now(MADRID)
+    stale = now - timedelta(hours=2)
+    match = {
+        "id": "fixture-stale-market-qa",
+        "home_team": "Granada CF",
+        "away_team": "Visitante QA",
+        "competition_name": "Liga QA",
+        "match_date": (now.date() + timedelta(days=1)).isoformat(),
+        "kickoff_time": "20:00",
+        "status": "NS",
+        "odds_h2h_json": json.dumps({
+            "source": "The Odds API",
+            "bookmaker": "Book QA",
+            "last_update": stale.isoformat(),
+            "outcomes": [
+                {"name": "Granada C.F.", "price": 2.1},
+                {"name": "Draw", "price": 3.2},
+                {"name": "Visitante QA", "price": 4.0},
+            ],
+        }),
+        "odds_source": "The Odds API",
+        "odds_updated_at": stale.isoformat(),
+    }
+
+    readiness, watchlist = app_module.client_pick_readiness(
+        {"valid_upcoming_matches": [match]}, active_count=0,
+    )
+
+    assert readiness["state"] == "waiting_for_odds"
+    assert readiness["complete_market_count"] == 0
+    assert readiness["fresh_odds_match_count"] == 0
+    assert watchlist[0]["odds_label"] == "Cuota desactualizada"
 
 
 def test_picks_page_hides_locked_selection_details_and_shows_safe_watchlist(client, app_module, monkeypatch):
