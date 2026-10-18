@@ -6,6 +6,19 @@ This folder prepares real screenshot QA without storing secrets or touching prod
 
 ## Local Run
 
+For the repository's local regression tests on Windows, use the isolated setup
+and runner. They keep virtual environments and pytest temporary files under
+`%LOCALAPPDATA%`, outside the synchronized project folder:
+
+```powershell
+.\tools\setup_local_tests.ps1
+.\tools\run_local_tests.ps1 tests/test_calendar_context_clarity_browser.py
+```
+
+The browser QA pipeline below is a separate visual review workflow; its default
+target is the deployed public site. The local regression runner does not call
+Render or change production.
+
 From the project root:
 
 ```powershell

@@ -1,0 +1,147 @@
+/* Compact match presentation. Data, links, and actions remain in the canonical cards. */
+
+/* Calendar already groups rows by day and competition, so don't repeat either in every fixture. */
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
+  min-height: 68px !important;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto) !important;
+  grid-template-rows: minmax(44px, auto) !important;
+  gap: 8px !important;
+  padding: 6px 10px !important;
+}
+
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-card-header {
+  display: none !important;
+}
+
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-teams {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-card-footer {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  align-self: center;
+}
+
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-center > time {
+  font-size: 16px;
+}
+
+/* Live cards retain their competition, score, minute, status, and navigation at every width. */
+body.ns-app .ns16-live .ns16-match-row .v933-match-card {
+  min-height: 126px;
+  grid-template-rows: auto minmax(44px, 1fr) auto;
+  gap: 7px;
+  padding: 10px;
+}
+
+body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
+  min-height: 142px;
+  grid-template-rows: auto minmax(48px, 1fr) auto;
+  gap: 8px;
+  padding: 11px;
+}
+
+@media (max-width: 760px) {
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
+    min-height: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(42px, auto) auto !important;
+    gap: 3px !important;
+    padding: 6px 7px !important;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-teams {
+    grid-column: 1;
+    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
+    grid-template-columns: var(--crest-sm) minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams strong {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-team-logo {
+    --sports-crest-size: 24px;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-card-footer {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-card-actions .v933-action {
+    min-height: 44px;
+    padding: 7px 9px;
+  }
+
+  body.ns-app .ns16-live .ns16-match-row .v933-match-card,
+  body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
+    min-height: 0;
+    grid-template-rows: auto minmax(42px, auto) auto;
+    gap: 5px;
+    padding: 8px;
+  }
+
+  body.ns-app .ns16-live .v933-match-card-header {
+    align-items: center;
+    gap: 6px;
+  }
+
+  body.ns-app .ns16-live .v933-match-card-header > div:first-child:not(.v937-card-trust) {
+    min-width: 0;
+  }
+
+  body.ns-app .ns16-live .v933-match-card-header > div:first-child:not(.v937-card-trust) > span,
+  body.ns-app .ns16-live .v933-match-card-header > div:first-child:not(.v937-card-trust) > a {
+    max-width: 34vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.ns-app .ns16-live .v933-match-teams > div {
+    gap: 4px;
+  }
+
+  body.ns-app .ns16-live .v933-match-teams strong {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  body.ns-app .ns16-live .v933-team-logo {
+    --sports-crest-size: 28px;
+  }
+
+  body.ns-app .ns16-live .v933-match-card-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 380px) {
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-team-logo {
+    --sports-crest-size: 22px;
+  }
+}

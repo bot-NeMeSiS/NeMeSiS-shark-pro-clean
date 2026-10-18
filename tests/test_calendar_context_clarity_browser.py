@@ -72,6 +72,17 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
         assert groups.count()==2
         for group in groups.all():
             assert [n.get_attribute('data-v934-match-id')[-1] for n in group.locator('[data-v934-match-id]').all()]==['2','3','0','1']
+        cards=page.locator('.v933-calendar-day .v933-match-card:not(.is-incomplete)')
+        assert cards.count()==8
+        compact_card=cards.first
+        assert page.locator('link[href*="sports-match-density.css"]').count()==1
+        assert compact_card.locator('.v933-match-card-header').evaluate('(el)=>getComputedStyle(el).display')=='none'
+        assert compact_card.locator('[data-match-kickoff-clock]').is_visible()
+        if width<=760:
+            assert compact_card.bounding_box()['height']<=112
+            assert len(compact_card.locator('.v933-match-teams').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ")'))==3
+        else:
+            assert compact_card.bounding_box()['height']<=84
         # Scroll position must never rewrite the selected collection title.
         before=page.locator('[data-v940-current-context]').inner_text()
         groups.last.locator('a[href^="/match/"]').last.focus()

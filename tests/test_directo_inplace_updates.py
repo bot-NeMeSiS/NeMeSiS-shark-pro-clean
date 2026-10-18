@@ -260,13 +260,33 @@ def test_new_fixture_does_not_replace_identity_or_invent_a_card(screen):
 def test_product_styles_preserve_realtime_notice_visibility(screen, width):
     page, transport = screen
     page.set_viewport_size({'width': width, 'height': 900})
+    page.locator('body').evaluate("el => el.classList.add('ns-app')")
     page.locator('main').evaluate("el => el.classList.add('ns16-live')")
+    page.evaluate("""() => {
+      const card = document.querySelector('.v933-live-card');
+      const row = document.createElement('div');
+      row.className = 'ns16-match-row';
+      card.before(row);
+      row.append(card);
+    }""")
     page.locator('[data-directo-notice]').evaluate("el => el.classList.add('v934-realtime-meta')")
     refresh = page.locator('[data-directo-refresh-list]')
     refresh.evaluate("el => el.classList.add('v933-action')")
     page.add_style_tag(content=(ROOT/'static/v933-product.css').read_text(encoding='utf-8'))
+    page.add_style_tag(content=(ROOT/'static/product-system.css').read_text(encoding='utf-8'))
+    page.add_style_tag(content=(ROOT/'static/sports-match-density.css').read_text(encoding='utf-8'))
     assert refresh.is_hidden()
     assert page.locator('[data-directo-notice]').is_hidden()
+    card = page.locator('.ns16-match-row .v933-match-card')
+    assert card.locator('.v933-match-card-header').is_visible()
+    assert card.locator('.v933-match-teams').is_visible()
+    assert card.locator('.v933-match-card-footer').is_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+    if width <= 760:
+        assert card.evaluate('(el)=>getComputedStyle(el).paddingTop') == '8px'
+        assert card.evaluate('(el)=>getComputedStyle(el).minHeight') == '0px'
+    else:
+        assert card.evaluate('(el)=>getComputedStyle(el).minHeight') == '126px'
     instant = NOW + timedelta(seconds=45)
     deliver(page, transport, rows=[row(instant), row(instant, id='new-qa', match_id='new-qa')])
     assert refresh.is_visible()

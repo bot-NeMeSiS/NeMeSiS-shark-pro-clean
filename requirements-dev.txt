@@ -1,2 +1,4 @@
 -r requirements.txt
+-r requirements-browser.txt
 pytest==8.3.4
+tzdata==2026.5; platform_system == "Windows"
