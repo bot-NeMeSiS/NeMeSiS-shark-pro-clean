@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import time
 
 import pytest
 
@@ -50,10 +51,43 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
             "INTEGRITY", "METADATA", "HASH", "MANIFEST", "PUBLICATION",
             "RETENTION", "CLEANUP"} <= started
     assert started <= finished
+    stage_events = [(event["stage"], event["status"]) for event in events]
+    snapshot_finished = stage_events.index(("SNAPSHOT", "finished"))
+    integrity_started = stage_events.index(("INTEGRITY", "started"))
+    assert snapshot_finished < integrity_started
     assert all(isinstance(event.get("duration_ms"), int) for event in events
                if event["status"] in {"finished", "failed", "skipped", "rejected"})
     assert "do-not-log-this" not in output
     assert str(source) not in output
+
+
+def test_slow_sqlite_snapshot_time_is_attributed_to_snapshot_stage(backup_source, monkeypatch, capsys):
+    source, root = backup_source
+    original_connect = vault.connect_readonly
+
+    class SlowBackupConnection:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def __getattr__(self, name):
+            return getattr(self.connection, name)
+
+        def backup(self, destination, **kwargs):
+            time.sleep(0.1)
+            return self.connection.backup(destination, **kwargs)
+
+    def connect_readonly(path):
+        connection = original_connect(path)
+        return SlowBackupConnection(connection) if Path(path).resolve() == source.resolve() else connection
+
+    monkeypatch.setattr(vault, "connect_readonly", connect_readonly)
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+
+    assert result["ok"] is True, result
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    snapshot = next(event for event in events
+                    if event["stage"] == "SNAPSHOT" and event["status"] == "finished")
+    assert snapshot["duration_ms"] >= 80
 
 
 def test_backup_stage_logs_identify_timeout_without_logging_error_text(backup_source, monkeypatch, capsys):
