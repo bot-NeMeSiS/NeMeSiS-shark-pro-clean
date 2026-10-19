@@ -11,6 +11,8 @@ def test_launch_excellence_home_guidance_is_present():
     home = read_text("templates/home.html")
     required = [
         'data-launch-excellence="home-start"',
+        '<details class="v933-home-more" data-home-extras>',
+        'class="v933-home-more-summary"',
         'data-launch-onboarding="first-run"',
         'Entiende NeMeSiS rápido',
         "section_header('Continuar'",
@@ -22,6 +24,8 @@ def test_launch_excellence_home_guidance_is_present():
     ]
     for snippet in required:
         assert snippet in home
+    assert home.index('<summary class="v933-home-more-summary">') < home.index('data-launch-onboarding="first-run"')
+    assert home.rstrip().endswith('{% endblock %}')
     assert '/player/101' not in home
 
 
@@ -33,6 +37,8 @@ def test_launch_excellence_client_js_is_local_and_safe():
         'allowedRoutePrefixes',
         'data-launch-onboarding-dismiss',
         'data-launch-last-match',
+        'homeExtras.open = true',
+        'homeExtras.open = false',
     ]
     for snippet in required:
         assert snippet in js
@@ -55,6 +61,14 @@ def test_launch_excellence_css_accessibility_and_mobile_rules_exist():
     ]
     for snippet in required:
         assert snippet in css
+
+
+def test_home_disclosure_visual_rules_are_scoped_to_the_home_only():
+    css = read_text("static/home-league-disclosure.css")
+    assert 'details.v933-home-more[data-home-extras] > summary' in css
+    assert 'details[data-home-extras][open] .home-more-chevron' in css
+    assert 'body.ns-app .ns16-home .v933-match-teams strong' in css
+    assert '.v933-home-more > summary' not in css
 
 
 def test_launch_excellence_roadmap_and_reports_are_registered():

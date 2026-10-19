@@ -67,8 +67,8 @@ def markup(rows=None,section='public-today'):
     day=build(fixture_rows() if rows is None else rows)
     component=environment().get_template('components/home_competition_groups.html').module
     body=str(component.competition_groups(day['today']['groups'],False,section))
-    styles=(ROOT/'static/product-system.css').read_text()+'\n'+(ROOT/'static/home-league-disclosure.css').read_text()
-    script=(ROOT/'static/home-league-disclosure.js').read_text()
+    styles=(ROOT/'static/product-system.css').read_text(encoding='utf-8')+'\n'+(ROOT/'static/home-league-disclosure.css').read_text(encoding='utf-8')
+    script=(ROOT/'static/home-league-disclosure.js').read_text(encoding='utf-8')
     return '<!doctype html><html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1">'+\
         '<style>'+styles+'</style></head><body class="ns-app">'+\
         '<main class="v933-page" style="max-width:1100px;margin:0 auto;padding:20px"><p>SIMULATED_QA · Vista del componente, no producción</p>'+\
@@ -131,7 +131,7 @@ def test_native_disclosure_and_provider_text_are_safe_without_javascript():
 
 
 def test_home_assets_are_conditional_and_canonical_bundle_is_not_replaced():
-    text=(ROOT/'templates/base.html').read_text()
+    text=(ROOT/'templates/base.html').read_text(encoding='utf-8')
     start=text.index("{% if request.endpoint in ['home', 'v757_client_app_center_page'] %}")
     block=text[start:text.index('{% endif %}',start)]
     assert 'home-league-disclosure.css' in block and 'home-league-disclosure.js' in block
@@ -219,7 +219,7 @@ def test_search_clear_hash_and_input_composition(browser,width):
         page.wait_for_function('(id)=>document.getElementById(id).open',arg=target_id)
         assert target.is_visible() and target.locator('[data-v934-match-id]').is_visible()
         assert query.input_value()==''
-        page.add_script_tag(content=(ROOT/'static/home-league-disclosure.js').read_text())
+        page.add_script_tag(content=(ROOT/'static/home-league-disclosure.js').read_text(encoding='utf-8'))
         assert page.locator('[data-home-league-filter]').count()==1
         assert not errors
     finally:context.close()

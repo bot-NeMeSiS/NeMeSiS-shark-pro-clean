@@ -202,20 +202,24 @@
 
   const onboarding = document.querySelector("[data-launch-onboarding]");
   if (onboarding) {
+    const homeExtras = onboarding.closest("[data-home-extras]");
     let dismissed = false;
     if (hasStorage) {
       dismissed = window.localStorage.getItem(onboardingKey) === "1";
     }
     if (dismissed) {
       onboarding.classList.add("is-hidden");
+      if (homeExtras) homeExtras.open = false;
     } else {
       body.dataset.launchOnboarding = "visible";
+      if (homeExtras) homeExtras.open = true;
     }
     const dismissButton = onboarding.querySelector("[data-launch-onboarding-dismiss]");
     dismissButton?.addEventListener("click", () => {
       if (hasStorage) window.localStorage.setItem(onboardingKey, "1");
       onboarding.classList.add("is-hidden");
       body.dataset.launchOnboarding = "dismissed";
+      if (homeExtras) homeExtras.open = false;
     });
   }
 })();

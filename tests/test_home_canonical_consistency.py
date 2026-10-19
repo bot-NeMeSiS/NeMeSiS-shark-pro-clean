@@ -183,7 +183,7 @@ def consistency_browser():
 @pytest.mark.parametrize('state',['LIVE','UPCOMING','EMPTY'])
 def test_browser_coherent_home_with_real_templates_and_css(consistency_browser,width,javascript,state):
     html=render('home.html',data_for([] if state=='EMPTY' else [row('current',state)]))
-    css=(ROOT/'static/product-system.css').read_text()
+    css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')
     browser=consistency_browser
     context=browser.new_context(viewport={'width':width,'height':900},java_script_enabled=javascript,service_workers='block')
     page=context.new_page(); calls=[]; errors=[]

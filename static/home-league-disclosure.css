@@ -45,3 +45,140 @@
   .home-league-browser .home-featured-rail a { max-width:76vw; }
 }
 @media(prefers-reduced-motion:reduce) { .home-league-browser .home-disclosure-chevron { transition:none; } }
+
+/* Match rows: keep the same verified information while reducing vertical bulk. */
+body.ns-app .ns16-home .ns16-match-row {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  gap: 8px;
+}
+body.ns-app .ns16-home .home-agenda-matches {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+}
+body.ns-app .ns16-home .v933-match-card {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 7px;
+  padding: 9px;
+}
+body.ns-app .ns16-home .v933-match-card-header {
+  align-items: flex-start;
+  gap: 6px;
+}
+body.ns-app .ns16-home .v933-match-card-header > div:first-child,
+body.ns-app .ns16-home .v933-match-card-header .v937-card-trust {
+  min-width: 0;
+}
+body.ns-app .ns16-home .v933-match-teams {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 5px;
+}
+body.ns-app .ns16-home .v933-match-teams > div:not(.v933-match-center) {
+  display: block;
+  min-width: 0;
+}
+body.ns-app .ns16-home .v933-match-teams > div:not(.v933-match-center):not(:has(> .v933-entity-inline.is-team)) {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 6px;
+  text-align: left;
+}
+body.ns-app .ns16-home .v933-match-teams > div:last-child:not(.v933-match-center) {
+  justify-items: end;
+  text-align: right;
+}
+body.ns-app .ns16-home .v933-match-teams .v933-entity-inline.is-team {
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  justify-items: start;
+  gap: 6px;
+  text-align: left;
+}
+body.ns-app .ns16-home .v933-match-teams > div:last-child .v933-entity-inline.is-team {
+  justify-items: end;
+  text-align: right;
+}
+body.ns-app .ns16-home .v933-match-teams .v933-team-logo {
+  --sports-crest-size: 26px;
+}
+body.ns-app .ns16-home .v933-match-teams strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: .76rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+body.ns-app .ns16-home .v933-match-center {
+  min-width: 50px;
+  gap: 2px;
+}
+body.ns-app .ns16-home .v933-match-center > :is(b, time) {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+body.ns-app .ns16-home .v933-match-center > small {
+  font-size: .58rem;
+}
+
+@media (max-width: 600px) {
+  body.ns-app .ns16-home .ns16-match-row { gap: 7px; }
+  body.ns-app .ns16-home .v933-match-card { gap: 6px; padding: 8px; }
+  body.ns-app .ns16-home .v933-match-teams {
+    grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1fr);
+    gap: 3px;
+  }
+  body.ns-app .ns16-home .v933-match-teams > div:not(.v933-match-center),
+  body.ns-app .ns16-home .v933-match-teams .v933-entity-inline.is-team {
+    grid-template-columns: 23px minmax(0, 1fr);
+    gap: 4px;
+  }
+  body.ns-app .ns16-home .v933-match-teams > div:not(.v933-match-center) {
+    display: block;
+  }
+  body.ns-app .ns16-home .v933-match-teams > div:not(.v933-match-center):not(:has(> .v933-entity-inline.is-team)) {
+    display: grid;
+  }
+  body.ns-app .ns16-home .v933-match-teams .v933-team-logo { --sports-crest-size: 23px; }
+  body.ns-app .ns16-home .v933-match-teams strong { font-size: .7rem; }
+  body.ns-app .ns16-home .v933-match-center { min-width: 42px; }
+  body.ns-app .ns16-home .v933-match-center > :is(b, time) { font-size: .88rem; }
+}
+
+/* The long-tail home content is available on demand, with a clear native control. */
+details.v933-home-more[data-home-extras] { margin-top: 4px; }
+details.v933-home-more[data-home-extras] > summary {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--v933-border, #24384d);
+  border-radius: 12px;
+  color: var(--v933-text, #e7f0fa);
+  background: rgba(7, 21, 37, .72);
+  cursor: pointer;
+  list-style: none;
+}
+details.v933-home-more[data-home-extras] > summary::-webkit-details-marker { display: none; }
+details.v933-home-more[data-home-extras] > summary::marker { content: ''; }
+details[data-home-extras] > .v933-home-more-summary > span:first-child { display: grid; gap: 3px; min-width: 0; }
+details[data-home-extras] .v933-home-more-summary strong { font-size: .88rem; }
+details[data-home-extras] .v933-home-more-summary small { color: var(--v933-text-soft, #a4b9cf); font-size: .75rem; line-height: 1.35; }
+details[data-home-extras] .home-more-chevron { flex: 0 0 24px; text-align: center; font-size: 20px; transition: transform .15s ease; }
+details[data-home-extras][open] .home-more-chevron { transform: rotate(180deg); }
+details.v933-home-more[data-home-extras] > summary:focus-visible { outline: 2px solid var(--v933-cyan, #65d8ff); outline-offset: 2px; }
+details[data-home-extras] .v933-home-more-content { padding-top: 12px; }
+@media (max-width: 600px) {
+  details.v933-home-more[data-home-extras] > summary { min-height: 52px; padding: 8px; }
+  details[data-home-extras] .v933-home-more-summary small { font-size: .7rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  details[data-home-extras] .home-more-chevron { transition: none; }
+}

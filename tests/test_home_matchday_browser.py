@@ -52,6 +52,17 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         assert page.locator('.home-agenda-focus').evaluate('(el)=>getComputedStyle(el).display')==('grid' if width>1100 else 'block')
         assert page.locator('.home-agenda-focus .ns16-home-command').evaluate('(el)=>getComputedStyle(el).display')=='flex'
         assert page.locator('.home-competition-group header').first.evaluate('(el)=>getComputedStyle(el).display')=='flex'
+        compact_card=page.locator('.ns16-home .home-agenda-matches .v933-match-card').first
+        team_names=compact_card.locator('.v933-match-teams strong')
+        assert team_names.count()==2
+        team_metrics=team_names.evaluate_all('(nodes)=>nodes.map(el=>({text:el.textContent,display:getComputedStyle(el).display,visibility:getComputedStyle(el).visibility,rect:el.getBoundingClientRect().toJSON()}))')
+        assert all(name['display']!='none' and name['visibility']!='hidden' and name['rect']['width']>0 and name['rect']['height']>0 and name['text'].strip() for name in team_metrics), team_metrics
+        card_style=compact_card.evaluate('(el)=>{const style=getComputedStyle(el);return {minHeight:style.minHeight,padding:style.padding}}')
+        assert card_style['minHeight']=='0px'
+        assert card_style['padding']==('8px' if width<=600 else '9px')
+        assert page.locator('.ns16-home .home-agenda-matches .v933-match-teams').first.evaluate(
+            '(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length==3'
+        )
         upcoming_list=page.locator('[data-sports-priority="upcoming"] .home-competition-list').first
         group_positions=upcoming_list.locator(':scope > .home-competition-group').evaluate_all(
             "nodes=>nodes.slice(0,2).map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}})"
@@ -81,3 +92,42 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         assert not errors
         assert all(method=='GET' and not path.startswith('/api/') for method,path in calls)
     finally:context.close()
+
+
+def test_home_secondary_sections_stay_accessible_without_js_and_respect_first_run(browser):
+    script=(ROOT/'static/v937-product-client.js').read_text(encoding='utf-8')
+    html='''<!doctype html><html lang="es"><body class="ns-app ns-authenticated">
+      <main><details data-home-extras><summary class="v933-home-more-summary">Más opciones</summary>
+        <section data-launch-onboarding="first-run"><button data-launch-onboarding-dismiss>Omitir</button></section>
+        <nav aria-label="Herramientas secundarias"><a href="/daily-briefing">Resumen diario</a></nav>
+      </details></main></body></html>'''
+    def serve(route):
+        route.fulfill(status=200,content_type='text/html; charset=utf-8',body=html)
+
+    context=browser.new_context(viewport={'width':390,'height':844},service_workers='block')
+    page=context.new_page();context.route('**/*',serve)
+    try:
+        page.goto('https://home.invalid/')
+        page.add_script_tag(content=script)
+        details=page.locator('[data-home-extras]')
+        assert details.evaluate('(el)=>el.open') is True
+        page.locator('[data-launch-onboarding-dismiss]').click()
+        assert details.evaluate('(el)=>el.open') is False
+        assert page.locator('section[data-launch-onboarding]').get_attribute('class')=='is-hidden'
+        assert page.evaluate("localStorage.getItem('nemesis.launch.onboarding.dismissed.v1')")=='1'
+        page.reload();page.add_script_tag(content=script)
+        assert details.evaluate('(el)=>el.open') is False
+        assert page.locator('section[data-launch-onboarding]').get_attribute('class')=='is-hidden'
+    finally:
+        context.close()
+
+    no_js=browser.new_context(viewport={'width':320,'height':720},java_script_enabled=False,service_workers='block')
+    no_js_page=no_js.new_page();no_js.route('**/*',serve)
+    try:
+        no_js_page.goto('https://home.invalid/')
+        no_js_page.locator('[data-home-extras] > summary').focus()
+        no_js_page.keyboard.press('Enter')
+        assert no_js_page.locator('[data-home-extras]').evaluate('(el)=>el.open') is True
+        assert no_js_page.get_by_role('link',name='Resumen diario').is_visible()
+    finally:
+        no_js.close()

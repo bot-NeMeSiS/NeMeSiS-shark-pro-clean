@@ -213,7 +213,11 @@
     </aside>
   </section>
 
-  <div class="v933-home-more">
+  <details class="v933-home-more" data-home-extras>
+    <summary class="v933-home-more-summary">
+      <span><strong>{{ ui('Más opciones del inicio') }}</strong><small>{{ ui('Guía, actividad, análisis y planes') }}</small></span>
+      <span class="home-more-chevron" aria-hidden="true">⌄</span>
+    </summary>
     <div class="v933-home-more-content">
   <section class="v933-panel v933-launch-onboarding sports-priority-onboarding" data-launch-excellence="onboarding" data-launch-onboarding="first-run" data-top100-improvement="2,3,18,19,33" aria-labelledby="launch-onboarding-title">
     <div class="v933-launch-onboarding-head">
@@ -260,6 +264,6 @@
   </section>
   {{ evidence_receipt('Prioridad deportiva activa', 'Inicio ordena por directo, prioridad, favoritos, proximidad, frescura y datos completos. Los pronósticos son señal secundaria.', 'Sin datos ficticios', 'success', 'Mismo criterio en Inicio, Directo y Calendario') }}
     </div>
-  </div>
+  </details>
 </div>
 {% endblock %}
