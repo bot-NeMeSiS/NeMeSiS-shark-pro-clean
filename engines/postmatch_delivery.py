@@ -78,6 +78,37 @@ def safe_diagnostics(value):
         label = value.get(key)
         if isinstance(label, str) and label in allowed:
             output[key] = label
+    allowed_endpoints = {
+        'fixtures', 'fixtures/statistics', 'fixtures/events', 'fixtures/lineups',
+        'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php',
+        'lookuplineup.php', 'lookuptimeline.php',
+    }
+    allowed_stages = {
+        'TRANSPORT', 'JSON_DECODE', 'RESPONSE_ROOT_SHAPE', 'PROVIDER_ERROR',
+        'RESPONSE_FIELD_MISSING', 'RESPONSE_FIELD_SHAPE', 'STATISTICS_RESPONSE_SHAPE',
+        'STATISTICS_ROW_SHAPE',
+    }
+    allowed_reasons = {
+        'MALFORMED', 'ACCESS_DENIED', 'RATE_LIMIT', 'NETWORK', 'REDIRECT_BLOCKED',
+        'MISSING_KEY', 'SOURCE_DISABLED', 'IDENTITY_MISMATCH', 'SOURCE_NOT_FINAL',
+        'SOURCE_NOT_ALLOWED', 'TICK_BUDGET', 'UNKNOWN',
+    }
+    failures = value.get('source_failures')
+    if isinstance(failures, list):
+        closed = []
+        for failure in failures[:6]:
+            if not isinstance(failure, dict):
+                continue
+            provider, endpoint = failure.get('provider'), failure.get('endpoint')
+            stage, reason = failure.get('stage'), failure.get('reason')
+            if (provider not in {'api_football','thesportsdb','unknown'}
+                    or endpoint not in allowed_endpoints | {'unknown'}
+                    or stage not in allowed_stages
+                    or reason not in allowed_reasons):
+                continue
+            closed.append({'provider':provider,'endpoint':endpoint,'stage':stage,'reason':reason})
+        if closed:
+            output['source_failures'] = closed
     return output
 
 

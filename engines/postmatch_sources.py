@@ -39,6 +39,11 @@ STAT_NAMES = {
 }
 BY_KEY = {value[0]: value for value in STAT_NAMES.values()}
 REQUIRED = {'shots_total', 'shots_on_target', 'possession', 'corners', 'fouls', 'yellow_cards', 'red_cards'}
+SOURCE_DIAGNOSTIC_STAGES = {
+    'TRANSPORT', 'JSON_DECODE', 'RESPONSE_ROOT_SHAPE', 'PROVIDER_ERROR',
+    'RESPONSE_FIELD_MISSING', 'RESPONSE_FIELD_SHAPE', 'STATISTICS_RESPONSE_SHAPE',
+    'STATISTICS_ROW_SHAPE',
+}
 
 
 class SourceError(ValueError):
@@ -165,6 +170,28 @@ class OfficialSources:
         self.receipts = {}
         self.diagnostics = {}
 
+    def _record_source_failure(self, provider, endpoint, stage, reason):
+        """Keep only closed labels; never retain provider response text or values."""
+        failures = self.diagnostics.setdefault('source_failures', [])
+        if len(failures) >= 6:
+            return
+        endpoints = {
+            'fixtures', 'fixtures/statistics', 'fixtures/events', 'fixtures/lineups',
+            'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php',
+            'lookuplineup.php', 'lookuptimeline.php',
+        }
+        reasons = {
+            'MALFORMED', 'ACCESS_DENIED', 'RATE_LIMIT', 'NETWORK', 'REDIRECT_BLOCKED',
+            'MISSING_KEY', 'SOURCE_DISABLED', 'IDENTITY_MISMATCH', 'SOURCE_NOT_FINAL',
+            'SOURCE_NOT_ALLOWED', 'TICK_BUDGET',
+        }
+        failures.append({
+            'provider': provider if provider in {'api_football', 'thesportsdb'} else 'unknown',
+            'endpoint': endpoint if endpoint in endpoints else 'unknown',
+            'stage': stage if stage in SOURCE_DIAGNOSTIC_STAGES else 'TRANSPORT',
+            'reason': reason if reason in reasons else 'UNKNOWN',
+        })
+
     @staticmethod
     def _http(request, timeout):
         opener = urllib.request.build_opener(NoRedirect())
@@ -218,11 +245,14 @@ class OfficialSources:
         self.calls += 1
         req = urllib.request.Request(base + endpoint + '?' + urllib.parse.urlencode(params),
                 headers={**headers, 'Accept': 'application/json', 'User-Agent': 'NeMeSiS-Postmatch/1.0'})
+        failure_stage = 'TRANSPORT'
         try:
             payload = self.transport(req, min(4.0, max(.1, self.deadline - self.clock())))
             if not isinstance(payload, dict):
+                failure_stage = 'RESPONSE_ROOT_SHAPE'
                 raise SourceError('MALFORMED')
             if payload.get('errors') or payload.get('error'):
+                failure_stage = 'PROVIDER_ERROR'
                 raw = json.dumps(payload.get('errors') or payload.get('error')).lower()[:1000]
                 reason = 'RATE_LIMIT' if any(t in raw for t in ('quota','limit','429')) else 'ACCESS_DENIED'
                 raise SourceError(reason)
@@ -233,11 +263,16 @@ class OfficialSources:
             if endpoint=='eventshighlights.php':
                 field = next((key for key in ('tvhighlights','eventshighlights','highlights','events') if key in payload),None)
                 if not field:
+                    failure_stage = 'RESPONSE_FIELD_MISSING'
                     raise SourceError('MALFORMED')
-            if field and (field not in payload or (payload[field] is not None and
-                          (not isinstance(payload[field], list) or
-                           any(not isinstance(row, dict) for row in payload[field])))):
-                raise SourceError('MALFORMED')
+            if field:
+                if field not in payload:
+                    failure_stage = 'RESPONSE_FIELD_MISSING'
+                    raise SourceError('MALFORMED')
+                if payload[field] is not None and (not isinstance(payload[field], list) or
+                        any(not isinstance(row, dict) for row in payload[field])):
+                    failure_stage = 'RESPONSE_FIELD_SHAPE'
+                    raise SourceError('MALFORMED')
             observed = self.clock()
             self.store.cache_request(persistent_key, self.job, payload, observed)
             self.receipts[receipt_key] = observed
@@ -250,6 +285,9 @@ class OfficialSources:
             code = getattr(exc, 'code', None)
             reason = 'RATE_LIMIT' if code == 429 else 'ACCESS_DENIED' if code in {401, 403} else (
                      str(exc) if isinstance(exc, SourceError) else 'MALFORMED' if isinstance(exc, (ValueError, UnicodeError)) else 'NETWORK')
+            if reason == 'MALFORMED' and not isinstance(exc, SourceError):
+                failure_stage = 'JSON_DECODE'
+            self._record_source_failure(provider, endpoint, failure_stage, reason)
             self.store.circuit(provider, True, reason, self.clock())
             raise SourceError(reason if reason in {'RATE_LIMIT','ACCESS_DENIED','MALFORMED','REDIRECT_BLOCKED'} else 'NETWORK') from None
 
@@ -350,6 +388,7 @@ class OfficialSources:
                         raise SourceError('IDENTITY_MISMATCH')
                     stats = self.request(provider, 'fixtures/statistics', {'fixture': fid}).get('response')
                     if not isinstance(stats, list):
+                        self._record_source_failure(provider, 'fixtures/statistics', 'STATISTICS_RESPONSE_SHAPE', 'MALFORMED')
                         raise SourceError('MALFORMED')
                     grouped, seen = {}, set()
                     for team in stats:
@@ -380,12 +419,14 @@ class OfficialSources:
                     if stats is None:
                         stats = []
                     if not isinstance(stats, list):
+                        self._record_source_failure(provider, 'lookupeventstats.php', 'STATISTICS_RESPONSE_SHAPE', 'MALFORMED')
                         raise SourceError('MALFORMED')
                     if any(not isinstance(s, dict) or str(s.get('idEvent')) != sid for s in stats):
                         raise SourceError('IDENTITY_MISMATCH')
                     self.diagnostics['statistics_received'] = len(stats)
                     if any(not isinstance(s.get('strStat'), str) or not s['strStat'].strip()
                            or not ('intHome' in s or 'intAway' in s) for s in stats):
+                        self._record_source_failure(provider, 'lookupeventstats.php', 'STATISTICS_ROW_SHAPE', 'MALFORMED')
                         raise SourceError('MALFORMED')
                     self.diagnostics['statistics_recognized'] = sum(
                         s['strStat'].strip().casefold() in STAT_NAMES for s in stats)

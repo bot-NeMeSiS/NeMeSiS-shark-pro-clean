@@ -117,6 +117,14 @@ def test_backup_stage_logs_identify_timeout_without_logging_error_text(backup_so
     assert vault.list_backups(root) == []
 
 
+def test_sqlite_interrupt_after_deadline_is_classified_as_backup_timeout():
+    error = sqlite3.OperationalError("interrupted")
+    error.sqlite_errorname = "SQLITE_INTERRUPT"
+
+    assert vault._backup_error_type(error, deadline=time.monotonic() - 1) == "BACKUP_TIMEOUT"
+    assert vault._backup_error_type(error, deadline=time.monotonic() + 60) == "OperationalError"
+
+
 def test_two_backups_in_same_second_never_replace_each_other(backup_source,monkeypatch):
     source,root=backup_source
     monkeypatch.setattr(vault,"now_stamp",lambda:"20260927_120000")

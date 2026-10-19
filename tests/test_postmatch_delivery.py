@@ -165,6 +165,19 @@ def test_statistics_distinguish_empty_unrecognized_and_invalid(store,payload,exp
     assert result['observations']==[] and result['reasons']==[expected]
 
 
+def test_malformed_statistics_exposes_only_closed_provider_endpoint_stage(store):
+    adapter,_=source(store,{'lookupeventstats.php':{'eventstats':[{'idEvent':'101','intHome':'3'}]}})
+    result=adapter.statistics(MATCH)
+
+    assert result['reasons']==['MALFORMED']
+    assert safe_diagnostics(adapter.diagnostics)['source_failures']==[{
+        'provider':'thesportsdb','endpoint':'lookupeventstats.php',
+        'stage':'STATISTICS_ROW_SHAPE','reason':'MALFORMED',
+    }]
+    serialized=json.dumps(safe_diagnostics(adapter.diagnostics))
+    assert 'local-secret-never-expose' not in serialized and 'intHome' not in serialized
+
+
 def test_official_statistics_shape_and_zero_values_are_supported(store):
     adapter,_=source(store)
     result=adapter.statistics(MATCH)
@@ -194,6 +207,14 @@ def test_sanitizer_drops_secrets_and_unexpected_types():
         'jobs':[{'reason':'SECRET','state':'RETRY','kind':'highlights','match_id':'../../SECRET',
                  'diagnostics':bad,'raw_payload':'SECRET'}]})
     assert 'SECRET' not in json.dumps(result)
+    malformed={'source_failures':[{'provider':'api_football','endpoint':'fixtures/statistics',
+        'stage':'STATISTICS_RESPONSE_SHAPE','reason':'MALFORMED','payload':'SECRET','key':'SECRET'},
+        {'provider':'api_football','endpoint':'https://evil.example/?key=SECRET',
+         'stage':'SECRET','reason':'SECRET'}]}
+    closed=safe_diagnostics(malformed)
+    assert closed['source_failures']==[{'provider':'api_football','endpoint':'fixtures/statistics',
+        'stage':'STATISTICS_RESPONSE_SHAPE','reason':'MALFORMED'}]
+    assert 'SECRET' not in json.dumps(closed)
 
 
 def test_tick_persists_diagnostics_and_logs_only_closed_evidence(store,capsys):
@@ -216,6 +237,27 @@ def test_tick_persists_diagnostics_and_logs_only_closed_evidence(store,capsys):
     logged=capsys.readouterr().out
     assert 'postmatch_delivery' in logged and '101' in logged
     assert 'local-secret' not in logged and 'https://' not in logged and PROJECTION['strVideo'] not in logged
+
+
+def test_tick_surfaces_malformed_source_context_without_payload_or_key(store,capsys):
+    bad_stats={'eventstats':[{'idEvent':'101','intHome':'3'}]}
+    def transport(request,timeout):
+        endpoint=urllib.parse.urlsplit(request.full_url).path.rsplit('/',1)[-1]
+        return {'lookupevent.php':{'events':[EVENT]},
+                'lookupeventstats.php':bad_stats,
+                'eventshighlights.php':{'tvhighlights':[PROJECTION]}}[endpoint]
+    def factory(*args,**kwargs):
+        return OfficialSources(*args,transport=transport,**kwargs)
+
+    result=tick(store.path,clock=lambda:NOW,source_factory=factory)
+    malformed=next(job for job in result['jobs'] if job['reason']=='MALFORMED')
+    assert malformed['diagnostics']['source_failures']==[{
+        'provider':'thesportsdb','endpoint':'lookupeventstats.php',
+        'stage':'STATISTICS_ROW_SHAPE','reason':'MALFORMED',
+    }]
+    logged=capsys.readouterr().out
+    assert 'lookupeventstats.php' in logged and 'STATISTICS_ROW_SHAPE' in logged
+    assert 'local-secret-never-expose' not in logged and 'intHome' not in logged
 
 
 def test_present_result_is_read_only_and_resolves_match(store):

@@ -76,6 +76,16 @@ def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = No
     print(json.dumps(event, ensure_ascii=True, sort_keys=True), flush=True)
 
 
+def _backup_error_type(exc: Exception, *, deadline: float | None = None) -> str:
+    """Classify SQLite progress-handler interrupts as the expired deadline."""
+    if "timeout" in str(exc).lower():
+        return "BACKUP_TIMEOUT"
+    if (getattr(exc, "sqlite_errorname", "") == "SQLITE_INTERRUPT"
+            and deadline is not None and time.monotonic() >= deadline):
+        return "BACKUP_TIMEOUT"
+    return type(exc).__name__
+
+
 def backup_dir(default_root: str | Path) -> Path:
     configured = os.getenv("DATA_BACKUP_DIR")
     if configured:
@@ -518,12 +528,16 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         return result
     except Exception as exc:
         if stage_started_at is not None:
-            error_type = "BACKUP_TIMEOUT" if "timeout" in str(exc).lower() else type(exc).__name__
+            deadline = locals().get("deadline")
+            error_type = _backup_error_type(exc, deadline=deadline)
             error_code = getattr(exc, "sqlite_errorname", "")
             _emit_backup_stage(stage, "failed", started_at=stage_started_at,
                                error_type=error_type, error_code=error_code)
             stage_started_at = None
-        result = {"ok": False, "backup_created": published, "error": str(exc)[:300],
+        deadline = locals().get("deadline")
+        error_label = ("backup_snapshot_timeout" if _backup_error_type(exc, deadline=deadline) == "BACKUP_TIMEOUT"
+                       else str(exc)[:300])
+        result = {"ok": False, "backup_created": published, "error": error_label,
                   "failure_stage": stage, "storage": storage}
         if published:
             result.update(backup_file=out.name, path=str(out), manifest=manifest_path.name)

@@ -739,6 +739,8 @@ def test_backup_error_classifier_never_echoes_secret():
     assert master.backup_error_code("backup_storage_insufficient", secret) == "STORAGE_CAPACITY"
     assert master.backup_error_code("database is locked", secret) == "DATABASE_BUSY"
     assert master.backup_error_code("backup_snapshot_timeout", secret) == "BACKUP_TIMEOUT"
+    assert master.backup_error_code("interrupted", secret) == "BACKUP_TIMEOUT"
+    assert master.backup_error_code("SQLITE_INTERRUPT", secret) == "BACKUP_TIMEOUT"
     assert master.backup_error_code("backup_temporary_recovery_failed", secret) == "BACKUP_CLEANUP"
 
 

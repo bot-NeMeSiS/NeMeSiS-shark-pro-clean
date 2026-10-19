@@ -111,7 +111,7 @@ def backup_error_code(value: object, secret: str) -> str:
         return ""
     if "database or disk is full" in label or "backup_storage_insufficient" in label or "no space left" in label:
         return "STORAGE_CAPACITY"
-    if "backup_snapshot_timeout" in label:
+    if "backup_snapshot_timeout" in label or "sqlite_interrupt" in label or "interrupted" in label:
         return "BACKUP_TIMEOUT"
     if "backup_temporary_" in label or "backup_manifest_cleanup_failed" in label:
         return "BACKUP_CLEANUP"
