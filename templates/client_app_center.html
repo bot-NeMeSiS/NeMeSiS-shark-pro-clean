@@ -84,9 +84,8 @@
     <section class="ns16-section ns16-featured-pick">
       {{ section_header('Pronóstico destacado', '', 'Combinadas', '/combinadas') }}
       {% if picks %}{{ pick_card(picks[0], true) }}{% else %}
-        <div class="home-agenda-note">
-          <p>{{ ui('Todavía no hay pronósticos publicados') }}</p>
-          <a href="/picks">{{ ui('Pronósticos') }} →</a>
+        <div data-home-empty="NO_PUBLISHED_PICKS">
+          {{ empty_state('Todavía no hay pronósticos publicados', '', 'Pronósticos', '/picks', 'target') }}
         </div>
       {% endif %}
     </section>
