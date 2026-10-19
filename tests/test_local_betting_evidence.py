@@ -1,5 +1,4 @@
 import json
-import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -12,6 +11,21 @@ def match(**extra):
     return dict(id='qa-betting', home_team='Local QA', away_team='Visitante QA',
                 competition_name='Liga QA', kickoff_iso=future.isoformat(),
                 match_date=future.date().isoformat(), status='NS', priority=100, **extra)
+
+
+def _test_session(client, app_module, *, role, membership):
+    """Use Flask's explicit test-only synthetic-session support, not LOCAL SAFE."""
+    with client.session_transaction() as state:
+        state.update(
+            user_id=f"qa-betting-{role.lower()}",
+            user_name="QA Betting",
+            username=f"qa_betting_{role.lower()}",
+            user_email=f"qa-betting-{role.lower()}@example.invalid",
+            user_role=role,
+            user_membership=membership,
+            membership=membership,
+        )
+        return app_module.generate_csrf_token(state)
 
 
 def test_calendar_priority_does_not_invent_confidence_stake_or_selection(app_module):
@@ -228,14 +242,18 @@ def test_fresh_live_signal_for_tomorrow_cannot_be_a_waiting_recommendation(app_m
 @pytest.mark.parametrize('path', ['/api/betting/convert-to-pick', '/api/v565/convert-recommendation'])
 def test_wait_cannot_be_published_and_get_does_not_write(app_module, monkeypatch, path):
     client = app_module.app.test_client()
-    client.get('/local-safe/login/admin?token=' + os.environ['NEMESIS_LOCAL_ACCESS_TOKEN'])
+    csrf = _test_session(client, app_module, role='ADMIN', membership='ADMIN')
+    candidate = app_module.v565_recommendation_for_match(match())
+    candidate.update(id='local-match-2', match_id='local-match-2')
+    if path == '/api/v565/convert-recommendation':
+        monkeypatch.setattr(app_module, 'v565_recommendation_pool', lambda **_kwargs: [candidate])
+    else:
+        monkeypatch.setattr(app_module, 'v566_template_recommendations', lambda **_kwargs: [candidate])
     def forbidden(*args, **kwargs):
         raise AssertionError('A watchlist row must not create/publish a pick')
     monkeypatch.setattr(app_module, 'create_or_update_pick', forbidden)
     assert client.get(path).status_code == 405
     assert client.post(path, json={'id':'local-match-2','match_id':'local-match-2'}).status_code == 403
-    with client.session_transaction() as session:
-        csrf = session['csrf_token']
     response = client.post(path, json={'id':'local-match-2','match_id':'local-match-2','publish':True},
                            headers={'X-CSRF-Token':csrf})
     assert response.status_code == 409
@@ -243,9 +261,11 @@ def test_wait_cannot_be_published_and_get_does_not_write(app_module, monkeypatch
 
 
 @pytest.mark.parametrize('language,label', [('es','Esperar'),('en','Wait'),('fr','Attendre')])
-def test_real_client_review_and_shark_lines_have_no_fabricated_confidence(app_module, language, label):
+def test_real_client_review_and_shark_lines_have_no_fabricated_confidence(app_module, monkeypatch, language, label):
     client = app_module.app.test_client()
-    client.get('/local-safe/login/client?token=' + os.environ['NEMESIS_LOCAL_ACCESS_TOKEN'])
+    _test_session(client, app_module, role='FREE', membership='FREE')
+    candidate = app_module.v565_recommendation_for_match(match())
+    monkeypatch.setattr(app_module, 'v566_template_recommendations', lambda **_kwargs: [candidate])
     with client.session_transaction() as session:
         session['ui_locale'] = language
     response = client.get('/recommendations')
