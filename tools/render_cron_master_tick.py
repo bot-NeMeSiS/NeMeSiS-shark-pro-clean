@@ -55,6 +55,9 @@ TRANSIENT_READINESS_HTTP = {502, 503, 504}
 CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"}
 BACKUP_VALID_RESULTS = {"PASS", "OK", "SKIPPED_ALREADY_DONE", "SKIPPED_ALREADY_RUNNING"}
 ODDS_SKIP_REASONS = {"SUCCESS_CACHE", "PROVIDER_FAILURE_COOLDOWN"}
+ODDS_CONTROLLED_DEFERRALS = {
+    "TIME_BUDGET", "FREE_BUDGET", "FREE_FANOUT", "PROVIDER_FAILURE_COOLDOWN",
+}
 HIGHLIGHTS_SKIP_REASONS = {
     "already_synced_today",
     "scope_completed_with_gaps",
@@ -590,6 +593,10 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
         if prefix == "odds":
             skip_reason = payload.get("reason")
             result["odds_skip_reason"] = skip_reason if skip_reason in ODDS_SKIP_REASONS else ""
+            result["odds_controlled_deferrals"] = [
+                value for value in (payload.get("controlled_deferrals") or [])[:8]
+                if isinstance(value, str) and value in ODDS_CONTROLLED_DEFERRALS
+            ]
             result["odds_skipped"] = bool(payload.get("skipped"))
             result["odds_provider_failure_backoff"] = bool(payload.get("provider_failure_backoff"))
             result["odds_retry_after"] = safe_timestamp(payload.get("retry_after"))

@@ -12,7 +12,7 @@
 {% if catalogue.quote_truncated %}<p class="ns-combi-warning">No se han podido verificar todas las revisiones de cuotas. No se habilitan selecciones con una lectura incompleta.</p>{% endif %}
 {% for match in catalogue.matches %}
 <article class="ns-market-card" data-market-match="{{ match.id }}">
-<header><div><small>{{ match.competition }}</small><h3>{{ match.home }} <span>vs</span> {{ match.away }}</h3></div>{% if match.featured %}<span class="ns-market-featured">Destacado</span>{% endif %}</header>
+<header><div><small>{{ match.competition }}{% if match.country %} · {{ match.country }}{% endif %}</small><h3>{{ match.home }} <span>vs</span> {{ match.away }}</h3></div>{% if match.featured %}<span class="ns-market-featured">Destacado</span>{% endif %}</header>
 <time>{{ match.kickoff|madrid_datetime_label }}</time>
 {% for group in match.groups %}
 <div class="ns-market-book"><strong>{{ group.bookmaker }}</strong><div class="ns-market-prices" role="group" aria-label="Resultado final en {{ group.bookmaker }}">

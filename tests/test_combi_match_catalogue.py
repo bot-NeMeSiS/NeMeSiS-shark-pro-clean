@@ -60,6 +60,24 @@ def test_catalogue_independent_of_picks_and_writes(db):
     assert not any('published' in p for p in cat['matches'])
 
 
+def test_catalogue_keeps_stored_country_for_same_named_leagues(db):
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+
+    with sqlite3.connect(db) as conn:
+        conn.execute('ALTER TABLE matches ADD COLUMN country TEXT')
+        conn.execute("UPDATE matches SET country='Kuwait' WHERE id='m1'")
+    data = catalogue(db)
+    match = next(item for item in data['matches'] if item['id'] == 'm1')
+    assert match['competition'] == 'Liga QA'
+    assert match['country'] == 'Kuwait'
+
+    env = Environment(loader=FileSystemLoader(str(Path(__file__).parents[1] / 'templates' / 'components')))
+    env.filters['madrid_datetime_label'] = lambda value: value
+    rendered = env.get_template('combi_match_catalogue.html').module.match_catalogue(data, [])
+    assert 'Liga QA · Kuwait' in rendered
+
+
 def test_no_quote_means_no_fake_price_or_selectable_choice(db):
     cat=catalogue(db)
     assert cat['total']==17 and all(not m['groups'] for m in cat['matches'])

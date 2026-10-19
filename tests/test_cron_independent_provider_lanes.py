@@ -284,6 +284,23 @@ def test_provider_lane_distinguishes_deferral_and_failure(monkeypatch, payload, 
     assert master.odds_tick('https://example.invalid','test')['odds_status'] == expected
 
 
+def test_odds_controlled_deferrals_are_logged_without_untrusted_values(monkeypatch):
+    payload = {
+        'ok': True,
+        'status': 'PARTIAL',
+        'controlled_deferrals': ['TIME_BUDGET', 'FREE_BUDGET', 'private-secret'],
+        'external_calls': 0,
+        'provider_observation_current': False,
+    }
+    monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(payload))
+    result = master.odds_tick('https://example.invalid', 'private-secret')
+    assert result['odds_status'] == 'PARTIAL'
+    assert result['odds_controlled_deferrals'] == ['TIME_BUDGET', 'FREE_BUDGET']
+    assert result['external_calls'] == 0
+    assert result['provider_http'] is None
+    assert 'private-secret' not in json.dumps(result)
+
+
 def test_master_observes_all_lanes_after_uncertain_odds_post(monkeypatch, capsys):
     calls = []
     def transport(request, timeout):

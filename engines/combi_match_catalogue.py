@@ -15,7 +15,7 @@ from engines.combi_advisor_engine import (
 )
 from engines.market_forecast_engine import normalized_market_probabilities
 from engines.picks_quality_engine import competition_priority
-from engines.spanish_localization_engine import spanish_competition_name
+from engines.spanish_localization_engine import spanish_competition_name, spanish_country_name
 from engines.team_identity_engine import provider_team_identity_key
 from engines.v935_launch_trust_engine import match_kickoff_madrid, match_status_truth
 
@@ -352,7 +352,9 @@ def read_catalogue(conn, user, *, filters=None, selected=None, now=None):
             groups.append({'bookmaker':text(anchor.get('bookmaker')), 'choices':choices,
                            'market_reading':reading})
         info={'id':str(m['id']), 'home':text(m.get('home_team')),'away':text(m.get('away_team')),
-              'competition':competition,'kickoff':kickoff.isoformat(), 'featured':rank>=14,
+              'competition':competition,
+              'country':spanish_country_name(text(m.get('country'))) or text(m.get('country')),
+              'kickoff':kickoff.isoformat(), 'featured':rank>=14,
               'source':text(m.get('source')), 'groups':groups,
               'match_url':'/match/'+quote(str(m['id']),safe=''),
               'venue':text(m.get('venue_name') or m.get('stadium')),
