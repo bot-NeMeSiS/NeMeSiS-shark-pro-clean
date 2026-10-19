@@ -55,8 +55,13 @@ with the existing shared resolver's precedence.
 | `API_FOOTBALL_STATISTICS_EMPTY_TTL_SECONDS` | `1800` | Delay after an empty response. |
 | `API_FOOTBALL_STATISTICS_FAILURE_BACKOFF_SECONDS` | `21600` | Backoff for an observed provider restriction. |
 
-All requests remain subject to `API_FOOTBALL_DAILY_CALL_BUDGET`, the Cron deadline
-and the actual sports scheduler cadence. A TTL is a minimum reuse interval, not
+All requests remain subject to `API_FOOTBALL_DAILY_CALL_BUDGET` (local application
+guard default: 600 reserved calls/day), the Cron deadline and the actual sports
+scheduler cadence. This internal safety cap is not the provider quota and does
+not verify a subscription. An explicit Render value still overrides the default.
+A `DAILY_BUDGET` receipt identifies the local guard, includes its limit/usage and
+states that provider quota was not consulted; it must not be read as an API plan
+or account-quota rejection. A TTL is a minimum reuse interval, not
 a promise that a job ran at that exact frequency. A live-to-final transition
 makes the final statistics eligible without waiting for the prior live TTL.
 

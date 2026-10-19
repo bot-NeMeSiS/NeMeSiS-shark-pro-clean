@@ -313,6 +313,12 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                 **provider_stage_evidence(raw_statistics),
                 "state": safe_label(raw_statistics.get("state"), secret),
                 "reason_code": safe_label(raw_statistics.get("reason_code"), secret),
+                "budget_scope": safe_label(raw_statistics.get("budget_scope"), secret),
+                "provider_quota_consulted": (
+                    raw_statistics.get("provider_quota_consulted")
+                    if isinstance(raw_statistics.get("provider_quota_consulted"), bool)
+                    else None
+                ),
                 "transport": raw_statistics.get("transport") if raw_statistics.get("transport") in {"batch", "individual"} else "UNKNOWN",
                 "data_contributed": bool(raw_statistics.get("data_contributed")),
                 "error_present": bool(raw_statistics.get("error_present")),
@@ -324,6 +330,11 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                     key: safe_count(raw_statistics.get(key))
                     for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
                                 "no_data_count", "failed_count", "eligible_count", "due_count")
+                },
+                **{
+                    key: safe_count(raw_statistics.get(key))
+                    for key in ("budget_limit", "budget_used", "budget_remaining", "required_calls")
+                    if raw_statistics.get(key) is not None
                 },
             },
             "odds_refresh": {

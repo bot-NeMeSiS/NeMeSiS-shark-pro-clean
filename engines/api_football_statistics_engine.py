@@ -233,15 +233,30 @@ def _claim(conn, candidates, cfg, env, now):
         return [], None, None, len(due)
     calls = 1 if cfg["transport"] == "batch" else len(selected)
     today = now.astimezone(usage_guard.TZ).date().isoformat()
-    budget = usage_guard._budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env)
+    budget = usage_guard._budget(
+        "API_FOOTBALL_DAILY_CALL_BUDGET",
+        usage_guard.DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET,
+        env,
+    )
     used = usage_guard._recorded_estimate(conn, PROVIDER, today)
     remaining = max(0, budget - used)
+    requested_calls = 1 if cfg["transport"] == "batch" else len(selected)
     if cfg["transport"] == "individual" and remaining:
         selected = selected[:remaining]
         calls = len(selected)
     if calls > remaining:
         conn.rollback()
-        return [], None, {"status": "DAILY_BUDGET", "failure_category": "", "next_due_at": ""}, len(due)
+        return [], None, {
+            "status": "DAILY_BUDGET",
+            "failure_category": "",
+            "next_due_at": "",
+            "budget_scope": "LOCAL_APPLICATION_GUARD",
+            "budget_limit": budget,
+            "budget_used": used,
+            "budget_remaining": remaining,
+            "required_calls": max(1, requested_calls),
+            "provider_quota_consulted": False,
+        }, len(due)
     reservation = conn.execute("""INSERT INTO api_usage_guard
         (provider,window_key,job_key,estimated_calls,actual_calls,status,details_json,created_at)
         VALUES (?,?,?,?,0,'ALLOWED',?,?)""", (PROVIDER, today, "api_football_statistics_" + cfg["transport"],
@@ -395,6 +410,13 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
                 labels = safe_failure_categories(blocked.get("failure_category"))
                 failure = labels[0] if labels else ""
                 return {**result, "ok": not bool(failure), "status": "PROVIDER_FAILURE_BACKOFF_" + failure if failure else "DAILY_BUDGET" if blocked.get("status") == "DAILY_BUDGET" else "SOURCE_COOLDOWN",
+                        "reason_code": "LOCAL_APPLICATION_BUDGET_EXHAUSTED" if blocked.get("status") == "DAILY_BUDGET" else "",
+                        "budget_scope": blocked.get("budget_scope", ""),
+                        "budget_limit": blocked.get("budget_limit"),
+                        "budget_used": blocked.get("budget_used"),
+                        "budget_remaining": blocked.get("budget_remaining"),
+                        "required_calls": blocked.get("required_calls"),
+                        "provider_quota_consulted": blocked.get("provider_quota_consulted") if isinstance(blocked.get("provider_quota_consulted"), bool) else None,
                         "failure_category": failure, "failure_categories": [failure] if failure else [],
                         "provider_failure_backoff": bool(failure), "next_due_at": blocked.get("next_due_at"),
                         "provider_observed_at": blocked.get("provider_observed_at") or ""}

@@ -314,6 +314,23 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
                     "processed": 1,
                     "scope": "CURRENT_SPORTS_SYNC",
                 },
+                "current_sync": {
+                    "statistics_refresh": {
+                        "state": "DAILY_BUDGET",
+                        "reason_code": "LOCAL_APPLICATION_BUDGET_EXHAUSTED",
+                        "budget_scope": "LOCAL_APPLICATION_GUARD",
+                        "budget_limit": 600,
+                        "budget_used": 600,
+                        "budget_remaining": 0,
+                        "required_calls": 1,
+                        "provider_quota_consulted": False,
+                        "configured": True,
+                        "enabled": True,
+                        "transport": "batch",
+                        "external_calls": 0,
+                        "provider_api_key": secret,
+                    }
+                },
                 "provider_access": {
                     "provider": "API-Football",
                     "state": "AUTHENTICATED",
@@ -381,6 +398,14 @@ def test_master_logs_only_sanitized_sports_pipeline_evidence(monkeypatch, capsys
     assert pipeline["last_sample"]["fixture_ids"] == ["9001"]
     assert pipeline["last_sample"]["source"] == "LAST_PERSISTED_DEEP_SAMPLE"
     assert pipeline["job_execution"]["scope"] == "CURRENT_SPORTS_SYNC"
+    statistics = pipeline["current_sync"]["statistics_refresh"]
+    assert statistics["state"] == "DAILY_BUDGET"
+    assert statistics["budget_scope"] == "LOCAL_APPLICATION_GUARD"
+    assert statistics["budget_limit"] == statistics["budget_used"] == 600
+    assert statistics["budget_remaining"] == 0 and statistics["required_calls"] == 1
+    assert statistics["provider_quota_consulted"] is False
+    assert statistics["external_calls"] == 0
+    assert "provider_api_key" not in statistics
     assert pipeline["provider_access"]["state"] == "AUTHENTICATED"
     assert pipeline["quota_observation"]["freshness"] == "LAST_OBSERVED_NOT_CURRENT"
     assert pipeline["coverage"]["capabilities"]["lineups"]["persisted_scope"] == "STORE_TOTAL"

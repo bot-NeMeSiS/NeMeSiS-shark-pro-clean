@@ -541,6 +541,10 @@ def test_statistics_evidence_survives_compact_runner_and_read_only_provider_heal
         "transport": "batch", "external_calls": 1, "refreshed_fixtures": 1,
         "fixtures_count": 1, "stats_inserted": 8, "no_data_count": 1,
         "failed_count": 1, "eligible_count": 3, "due_count": 3,
+        "reason_code": "LOCAL_APPLICATION_BUDGET_EXHAUSTED",
+        "budget_scope": "LOCAL_APPLICATION_GUARD", "budget_limit": 600,
+        "budget_used": 600, "budget_remaining": 0, "required_calls": 1,
+        "provider_quota_consulted": False,
         "data_contributed": True, "provider_observed_at": observed,
         "provider_observation_current": True,
         "failure_categories": ["PROVIDER_RESPONSE"],
@@ -572,6 +576,10 @@ def test_statistics_evidence_survives_compact_runner_and_read_only_provider_heal
         assert stats["failure_categories"] == ["PROVIDER_RESPONSE"]
         assert stats["provider_observation_current"] is True
         assert stats["provider_observed_at"] == observed
+        assert stats["budget_scope"] == "LOCAL_APPLICATION_GUARD"
+        assert stats["budget_limit"] == stats["budget_used"] == 600
+        assert stats["budget_remaining"] == 0 and stats["required_calls"] == 1
+        assert stats["provider_quota_consulted"] is False
     assert "hidden-provider-canary" not in json.dumps(diagnostics)
     assert "hidden-provider-canary" not in json.dumps(runner_pipeline)
 
@@ -587,6 +595,7 @@ def test_statistics_evidence_survives_compact_runner_and_read_only_provider_heal
     assert observation["observation_scope"] == "CURRENT_CYCLE"
     assert provider["statistics_refresh"]["stats_inserted"] == 8
     assert provider["statistics_refresh"]["failed_count"] == 1
+    assert provider["statistics_refresh"]["budget_limit"] == 600
     assert health["provider_calls_during_render"] == 0
     assert "hidden-provider-canary" not in json.dumps(health)
 

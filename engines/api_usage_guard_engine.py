@@ -11,6 +11,7 @@ from typing import Any, Mapping
 from zoneinfo import ZoneInfo
 
 TZ = ZoneInfo("Europe/Madrid")
+DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET = 600
 
 
 def madrid_now() -> datetime:
@@ -112,7 +113,7 @@ def api_usage_snapshot(db_path: str, env: Mapping[str, str] | None = None) -> di
     now = madrid_now()
     today = now.date().isoformat()
     budgets = {
-        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
+        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET, env),
         "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
         "thesportsdb": _budget("THESPORTSDB_DAILY_CALL_BUDGET", 24, env),
     }
@@ -160,7 +161,7 @@ def allow_api_job(db_path: str, provider: str, job_key: str, estimated_calls: in
     now = madrid_now()
     today = now.date().isoformat()
     budgets = {
-        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", 120, env),
+        "api_football": _budget("API_FOOTBALL_DAILY_CALL_BUDGET", DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET, env),
         "odds_api": _budget("ODDS_API_DAILY_CALL_BUDGET", 40, env),
         "thesportsdb": _budget("THESPORTSDB_DAILY_CALL_BUDGET", 24, env),
     }

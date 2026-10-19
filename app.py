@@ -1859,6 +1859,16 @@ def _sports_statistics_diagnostic(stage):
     for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
                 "no_data_count", "failed_count", "eligible_count", "due_count"):
         result[key] = max(0, as_int(stage.get(key), 0))
+    result["budget_scope"] = _sports_diagnostic_text(stage.get("budget_scope"), 60)
+    result["reason_code"] = _sports_diagnostic_text(stage.get("reason_code"), 80) or result["reason_code"]
+    for key in ("budget_limit", "budget_used", "budget_remaining", "required_calls"):
+        value = stage.get(key)
+        result[key] = max(0, value) if type(value) is int else None
+    result["provider_quota_consulted"] = (
+        stage.get("provider_quota_consulted")
+        if isinstance(stage.get("provider_quota_consulted"), bool)
+        else None
+    )
     return result
 
 

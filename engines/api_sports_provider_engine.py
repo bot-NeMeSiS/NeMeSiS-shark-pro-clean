@@ -16,6 +16,8 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Any, Mapping
 
+from engines.api_usage_guard_engine import DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET
+
 API_SPORTS_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TTL_SECONDS = 900
 _MEMORY_CACHE: dict[str, dict[str, Any]] = {}
@@ -93,7 +95,10 @@ def usage_guard() -> dict[str, Any]:
         "dry_run_supported": True,
         "timeout_seconds": _env_int("API_SPORTS_TIMEOUT_SECONDS", 12),
         "default_ttl_seconds": _env_int("API_SPORTS_CACHE_TTL_SECONDS", DEFAULT_TTL_SECONDS),
-        "daily_call_budget": _env_int("API_FOOTBALL_DAILY_CALL_BUDGET", _env_int("API_SPORTS_DAILY_CALL_BUDGET", 100)),
+        "daily_call_budget": _env_int(
+            "API_FOOTBALL_DAILY_CALL_BUDGET",
+            _env_int("API_SPORTS_DAILY_CALL_BUDGET", DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET),
+        ),
         "network_enabled": _env_bool("ENABLE_API_SPORTS_NETWORK_CALLS", True),
     }
 

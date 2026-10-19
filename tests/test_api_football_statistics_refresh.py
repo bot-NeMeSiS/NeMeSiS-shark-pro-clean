@@ -163,6 +163,11 @@ def test_shared_daily_guard_and_denied_reservation_make_no_request(store, monkey
     monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("daily quota exceeded"))
     result = stats.refresh_api_football_statistics_if_due(db, env={**ENV, "API_FOOTBALL_DAILY_CALL_BUDGET": "1"})
     assert result["status"] == "DAILY_BUDGET" and result["external_calls"] == 0
+    assert result["budget_scope"] == "LOCAL_APPLICATION_GUARD"
+    assert result["reason_code"] == "LOCAL_APPLICATION_BUDGET_EXHAUSTED"
+    assert result["budget_limit"] == result["budget_used"] == 1
+    assert result["budget_remaining"] == 0 and result["required_calls"] == 1
+    assert result["provider_quota_consulted"] is False
     assert rows(db, "SELECT COUNT(*) FROM api_football_statistics_refresh_state") == [(0,)]
 
 

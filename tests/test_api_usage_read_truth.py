@@ -155,8 +155,16 @@ def test_explicit_empty_env_does_not_import_process_keys(db,monkeypatch):
     monkeypatch.setenv('API_FOOTBALL_KEY','synthetic-not-a-key')
     monkeypatch.setenv('API_FOOTBALL_DAILY_CALL_BUDGET','999')
     result=guard.api_usage_snapshot(str(db),env={})
-    assert result['budgets']['api_football']==120
+    assert result['budgets']['api_football']==guard.DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET==600
     assert not result['configured']['api_football']
+
+
+def test_api_football_local_budget_default_matches_provider_status(monkeypatch):
+    from engines.api_sports_provider_engine import usage_guard as provider_usage_guard
+
+    monkeypatch.setenv('API_FOOTBALL_DAILY_CALL_BUDGET', '')
+    monkeypatch.delenv('API_SPORTS_DAILY_CALL_BUDGET', raising=False)
+    assert provider_usage_guard()['daily_call_budget'] == guard.DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET == 600
 
 
 def test_current_reservation_uses_storage_even_if_display_unavailable(db,monkeypatch):
