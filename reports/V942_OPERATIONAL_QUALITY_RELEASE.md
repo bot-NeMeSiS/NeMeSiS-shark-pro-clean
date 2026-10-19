@@ -38,9 +38,13 @@ La carencia sigue registrada con su estado HTTP, URL, evidencia y gravedad `WARN
 
 Los controles de main detectaron tres fixtures administrativas que seguían confiando en cookies de rol sin un usuario persistido. El gate V915 y esas pruebas ahora crean cuentas en una SQLite temporal y establecen la sesión con los helpers actuales, incluida `auth_version`. Se conservan las denegaciones anónimas y los controles CSRF; no se modifica la autorización de producción.
 
-También se mantiene el contrato de bandas de competición apiladas en Inicio de escritorio y se corrige el espacio del reloj en las tarjetas de calendario de 320 px, conservando el tamaño de los controles táctiles. La prueba de Directo comprueba el enlace CSS canónico vigente, en lugar de exigir un sufijo histórico.
+La comprobación aislada del ciclo operativo de Sentinel descubrió el mismo supuesto en su fixture de navegador. También crea ahora cuentas persistidas para ambos administradores y los planes de cliente, con las sesiones producidas por el helper real. Sus 37 aserciones permanecen idénticas, incluidos los rechazos de permisos, CSRF y acceso a trabajos ajenos.
+
+También se mantiene el contrato de bandas de competición apiladas en la agenda de hoy de Inicio de escritorio, mientras Próximos partidos conserva sus dos columnas. La regla se aplica mediante el atributo semántico de cada agenda. Se corrige además el espacio del reloj en las tarjetas de calendario de 320 px, conservando el tamaño de los controles táctiles. La prueba de Directo comprueba el enlace CSS canónico vigente, en lugar de exigir un sufijo histórico.
 
 El ZIP conserva explícitamente los dos informes V941 exigidos por los contratos de empaquetado, sin ampliar los filtros generales de históricos, secretos o archivos regenerables.
+
+Durante la QA local, dos capturas completas de la administración agotaron el plazo de siete segundos después de aprobar las aserciones del producto, también en una ejecución aislada. Solo esas dos operaciones de guardar evidencia disponen ahora de 30 segundos. Se mantienen las 63 aserciones, los límites de siete segundos para interacción, las esperas y la ausencia de reintentos. Ambos casos aprobaron después; CI debe ejecutar el archivo completo de 100 casos con el navegador declarado por el proyecto.
 
 ## Validación local
 
@@ -54,6 +58,10 @@ Entorno aislado: Python 3.12, dependencias fijadas por el repositorio, Playwrigh
 | Fixtures administrativas y controles de acceso | 74 aprobadas; gate V915 aprobado |
 | Contratos de empaquetado tras corregir los dos informes excluidos | 60 aprobadas |
 | Calendario móvil, bandas de Inicio y HTTP de Directo sobre la base actual | 60 aprobadas; aserciones de calendario e Inicio intactas |
+| Contratos conjuntos de Inicio: agenda de hoy y Próximos partidos, tras corregir el alcance de la regla CSS | 28 aprobadas; incluidas las seis variantes que fallaron en la primera CI; aserciones intactas |
+| Límites HTTP y ciclo operativo de Sentinel en procesos separados | 18 pruebas HTTP y una prueba completa de navegador aprobadas; nueve controles operativos completos |
+| Navegación HTTP local con el runner original | 16 comprobaciones aprobadas; seis navegaciones GET reales con HTTP 200; runner y timeout intactos |
+| Casos de capturas administrativas que fallaron localmente | Dos aprobados tras separar el plazo de evidencias del límite de interacción; el archivo completo corresponde a CI |
 | Análisis sintáctico e identidad de las tres autoridades | Aprobado |
 | Diff con finales de línea CRLF preservados | Aprobado (`core.whitespace=cr-at-eol`) |
 | Clasificación de privacidad y secretos | Aprobado: 0 secretos confirmados, 0 secretos pendientes y 0 incidencias de privacidad pendientes |
@@ -61,6 +69,8 @@ Entorno aislado: Python 3.12, dependencias fijadas por el repositorio, Playwrigh
 | CI de la propuesta sobre la base actual | Consultar los checks del head exacto de la PR; las ejecuciones anteriores no certifican este head |
 
 Las selecciones se indican por separado; no representan mediciones de producción ni deben sumarse con futuras ejecuciones completas como si fueran pruebas distintas.
+
+La primera ejecución de CI de la PR, sobre `83e55545934c1bbed326db3c548124e418fef218`, ejecutó la suite estándar con Playwright 1.64.0 y Chromium 156.0.8078.4: 5.194 pruebas aprobadas y seis fallos de distribución en Próximos partidos a 1440 px. Los seis casos correspondían a la misma regla de una columna aplicada con demasiado alcance; se acotó a las agendas `today` y `public-today`, conservando las aserciones originales de ambas vistas. Los tres pasos posteriores de Smoke quedaron sin ejecutar en esa primera CI; su resultado debe comprobarse en los controles de la revisión corregida.
 
 ## Integración y límites
 

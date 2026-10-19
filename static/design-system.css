@@ -24063,10 +24063,14 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
 .home-agenda-focus .ns16-featured-pick { max-width: 760px; width: 100%; }
 @media (min-width: 1101px) {
   .home-agenda-focus .home-competition-list {
-    /* Keep each competition as a complete band in the agenda's reading order. */
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
     gap: 16px;
+  }
+  .home-competition-list[data-home-league-agenda="today"],
+  .home-competition-list[data-home-league-agenda="public-today"] {
+    /* Today's full agenda keeps each competition in one complete band. */
+    grid-template-columns: minmax(0, 1fr);
   }
   .home-agenda-focus .home-agenda-matches {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
