@@ -28,6 +28,90 @@ TECHNICAL_COPY = re.compile(
     re.IGNORECASE,
 )
 
+# The component owns the fallback; a provider hostname or URL shape cannot prove
+# that an image is optional. Keep brand/icon checks ahead of sports semantics.
+IMAGE_FAILURES_SCRIPT = """() => [...document.images]
+  .filter((img) => img.complete && img.naturalWidth === 0).map((img) => {
+    const visible = (node) => Boolean(node && node.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})
+      && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
+    const crest = img.closest('.crest, .v928-crest, .compact-crest, .v779-crest, .team-crest, .identity-crest');
+    const player = img.closest('[data-player-photo], .player-photo');
+    const sportsOwner = crest || player;
+    const owner = sportsOwner || img.parentElement;
+    const fallback = owner && owner.querySelector(':scope > em, :scope > [data-fallback-label]');
+    const bounds = owner && owner.getBoundingClientRect();
+    const fb = fallback && fallback.getBoundingClientRect();
+    const fits = Boolean(bounds && fb && fb.left >= bounds.left - 1 && fb.right <= bounds.right + 1
+      && fb.top >= bounds.top - 1 && fb.bottom <= bounds.bottom + 1);
+    const fallbackVisible = visible(fallback) && Boolean((fallback.textContent || '').trim());
+    const url = img.currentSrc || img.src;
+    const isIcon = Boolean(img.closest('[data-brand-source="official-app-icon"]')) || /favicon|apple-touch|icon-/.test(url);
+    const isBrand = Boolean(img.closest('.ns-brand, [data-brand-source]')) || /shark|wordmark/.test(url);
+    const competition = crest && crest.closest('[data-logo-kind="competition"], [data-league-logo]');
+    const kind = isIcon ? 'APP_ICON' : isBrand ? 'BRAND_ASSET' : competition ? 'LEAGUE_LOGO'
+      : crest ? 'TEAM_CREST' : player ? 'PLAYER_IMAGE' : 'OTHER';
+    return {
+      url, kind, kind_source: sportsOwner && !isIcon && !isBrand ? 'DOM_COMPONENT' : 'IDENTITY_OR_UNKNOWN',
+      image_complete: img.complete, natural_width: img.naturalWidth, natural_height: img.naturalHeight,
+      image_visible: visible(img), hidden_attribute: img.hidden, display: getComputedStyle(img).display,
+      fallback_same_owner: Boolean(sportsOwner && fallback && fallback.parentElement === sportsOwner),
+      fallback_visible: fallbackVisible, fallback_fits: fits,
+      fallback_working: !visible(img) && fallbackVisible && fits,
+    };
+  })"""
+
+
+def _image_failure_evidence(page: Any) -> list[dict[str, Any]]:
+    """Read a final DOM snapshot with the identity of this exact navigation."""
+    images = page.evaluate(IMAGE_FAILURES_SCRIPT)
+    scope = dict(getattr(page, "_sentinel_resource_scope", {}))
+    scope.update(document_url=page.url, observed_at=time.perf_counter())
+    return [dict(image, **scope) for image in images]
+
+
+def _remember_image_failures(page: Any) -> list[dict[str, Any]]:
+    capture = getattr(page, "_sentinel_capture_images", None)
+    return capture() if capture is not None else _image_failure_evidence(page)
+
+
+def _goto(page: Any, url: str, **kwargs: Any) -> Any:
+    # Journeys also load images. Capture them before departing, so a later page's
+    # working fallback can never exonerate a failure on an earlier navigation.
+    if getattr(page, "_sentinel_capture_images", None) is not None:
+        _remember_image_failures(page)
+    return page.goto(url, **kwargs)
+
+
+def _same_resource_document(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    keys = ("page_id", "document_id", "document_url")
+    return all(left.get(key) is not None and left.get(key) == right.get(key) for key in keys) and bool(left.get("document_url"))
+
+
+def _missing_sports_image_responses(
+    image: dict[str, Any], responses: list[dict[str, Any]], base_url: str,
+) -> list[dict[str, Any]]:
+    url = urllib.parse.urlsplit(str(image.get("url") or ""))
+    origin = urllib.parse.urlsplit(base_url)
+    if (url.scheme not in {"http", "https"} or not url.netloc
+            or url.netloc == origin.netloc or image.get("kind_source") != "DOM_COMPONENT"
+            or image.get("kind") not in {"TEAM_CREST", "LEAGUE_LOGO", "PLAYER_IMAGE"}
+            or image.get("image_complete") is not True or image.get("natural_width") != 0):
+        return []
+    return [response for response in responses
+        if response.get("url") == image.get("url") and response.get("method") == "GET"
+        and response.get("type") == "image" and response.get("status") in {404, 410}
+        and _same_resource_document(response, image)
+        and isinstance(response.get("received_at"), (int, float))
+        and isinstance(image.get("observed_at"), (int, float))
+        and response["received_at"] <= image["observed_at"]]
+
+
+def _sports_fallback_verified(image: dict[str, Any]) -> bool:
+    return (image.get("image_visible") is False
+        and (image.get("hidden_attribute") is True or image.get("display") == "none")
+        and all(image.get(key) is True for key in (
+            "fallback_same_owner", "fallback_visible", "fallback_fits", "fallback_working")))
+
 
 def _request_json(base_url: str, path: str) -> tuple[dict[str, Any], int]:
     url = urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
@@ -116,7 +200,11 @@ def classify_browser_resources(
     successful_resources: list[dict[str, Any]] | None = None,
     navigation_events: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Exonerate only recorded policy aborts, never an unobserved fallback."""
+    """Distinguish policy aborts and proven sports-image degradation from defects.
+
+    A real missing image remains in the report. Only a same-navigation HTTP
+    404/410 and an observed component fallback can establish graceful handling.
+    """
     origin = urllib.parse.urlsplit(base_url).netloc
     blocked = {
         (item.get("url"), item.get("method"))
@@ -157,9 +245,38 @@ def classify_browser_resources(
             else:
                 row["check"] = "NOT_RUN"
         else:
-            row["classification"] = "UNVERIFIED_RESOURCE_FAILURE"
-            row["check"] = "NOT_RUN"
+            responses = _missing_sports_image_responses(row, successful_resources or [], base_url)
+            if responses:
+                row["http_statuses"] = sorted({response["status"] for response in responses})
+                if _sports_fallback_verified(row):
+                    row["classification"] = "EXTERNAL_SPORTS_IMAGE_DEGRADED"
+                    row["severity"] = "WARNING"
+                    row["check"] = "PASS"
+                else:
+                    row["classification"] = "EXTERNAL_SPORTS_IMAGE_FALLBACK_UNVERIFIED"
+                    row["check"] = "FAIL" if row.get("fallback_working") is False else "NOT_RUN"
+            else:
+                row["classification"] = "UNVERIFIED_RESOURCE_FAILURE"
+                row["check"] = "NOT_RUN"
         images.append(row)
+    degraded_console = []
+    application_console = []
+    http_missing_message = re.compile(
+        r"Failed to load resource: the server responded with a status of (404|410)(?: \([^()\r\n]*\))?"
+    )
+    for message in unexplained_console:
+        match = http_missing_message.fullmatch(str(message.get("text") or ""))
+        same_document_images = [row for row in images
+            if row.get("url") == message.get("url") and _same_resource_document(row, message)]
+        verified = bool(match and same_document_images) and all(
+            row.get("classification") == "EXTERNAL_SPORTS_IMAGE_DEGRADED"
+            and isinstance(message.get("emitted_at"), (int, float))
+            and any(response["status"] == int(match.group(1))
+                and response["received_at"] <= message["emitted_at"] <= row["observed_at"]
+                for response in _missing_sports_image_responses(row, successful_resources or [], base_url))
+            for row in same_document_images
+        )
+        (degraded_console if verified else application_console).append(message)
     navigation_cancellations = [item for item in request_failures
         if item.get("error") == "net::ERR_ABORTED"
         and item.get("type") == "image" and isinstance(item.get("failed_at"), (int, float))
@@ -183,11 +300,13 @@ def classify_browser_resources(
     )
     return {
         "policy_console": policy_console,
-        "unexplained_console": unexplained_console,
+        "degraded_console": degraded_console,
+        "unexplained_console": application_console,
         "unclassified_requests": unclassified_requests,
         "required_asset_failures": required_asset_failures,
         "qa_navigation_cancellations": navigation_cancellations,
         "images": images,
+        "external_degradations": [row for row in images if row.get("classification") == "EXTERNAL_SPORTS_IMAGE_DEGRADED"],
         "subresources_and_fallbacks": image_check,
     }
 
@@ -216,6 +335,7 @@ def build_post_deploy_result(
         "failed_checks": failed,
         "missing_checks": missing,
         "rollback_recommended": bool(failed),
+        "external_image_degradation_count": len((evidence.get("resource_classification") or {}).get("external_degradations") or []),
         "evidence": evidence,
         "read_only": True,
         "production_mutations": 0,
@@ -303,7 +423,7 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
     page._sentinel_phase = "QA_NAVIGATION"
     results: list[dict[str, Any]] = []
     for path in paths:
-        page.goto(base_url, wait_until="domcontentloaded", timeout=30_000)
+        _goto(page, base_url, wait_until="domcontentloaded", timeout=30_000)
         locator = page.locator(f'[data-nav-zone="{zone}"] a[href="{path}"]').first
         found = locator.count() == 1 and locator.is_visible()
         final_path = ""
@@ -312,6 +432,7 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
         error = ""
         if found:
             try:
+                _remember_image_failures(page)
                 locator.click(timeout=10_000)
                 page.wait_for_url(
                     lambda url: _navigation_url_matches(str(url), path, base_url),
@@ -345,7 +466,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     page.on("response", record_stylesheet_response)
     started = time.perf_counter()
     try:
-        response = page.goto(
+        response = _goto(page,
             urllib.parse.urljoin(base_url.rstrip("/") + "/", path.lstrip("/")),
             wait_until="networkidle",
             timeout=45_000,
@@ -356,28 +477,6 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     metrics = page.evaluate(
         """() => ({
           overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
-          brokenImages: [...document.images].filter((img) => img.complete && img.naturalWidth === 0).map((img) => img.currentSrc || img.src),
-          imageFailures: [...document.images].filter((img) => img.complete && img.naturalWidth === 0).map((img) => {
-            const visible = (node) => Boolean(node && node.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})
-              && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0);
-            const owner = img.closest('.crest, .v928-crest, [data-player-photo], .player-photo') || img.parentElement;
-            const fallback = owner && owner.querySelector('em, [data-fallback-label]');
-            const bounds = owner && owner.getBoundingClientRect();
-            const fb = fallback && fallback.getBoundingClientRect();
-            const fits = Boolean(bounds && fb && fb.left >= bounds.left - 1 && fb.right <= bounds.right + 1
-              && fb.top >= bounds.top - 1 && fb.bottom <= bounds.bottom + 1);
-            const fallbackVisible = visible(fallback) && Boolean((fallback.textContent || '').trim());
-            const url = img.currentSrc || img.src;
-            return {
-              url,
-              kind: url.includes('/team/badge/') ? 'TEAM_CREST' : url.includes('/league/') ? 'LEAGUE_LOGO'
-                : url.includes('/player/') ? 'PLAYER_IMAGE' : /favicon|apple-touch|icon-/.test(url) ? 'APP_ICON'
-                : /shark|wordmark/.test(url) ? 'BRAND_ASSET' : 'OTHER',
-              image_visible: visible(img), hidden_attribute: img.hidden, display: getComputedStyle(img).display,
-              fallback_visible: fallbackVisible, fallback_fits: fits,
-              fallback_working: !visible(img) && fallbackVisible && fits,
-            };
-          }),
           text: document.body ? document.body.innerText : '',
           shell: Boolean(document.querySelector('[data-v933-surface]')),
           stylesheetLinks: [...document.querySelectorAll('link[rel~="stylesheet"]')].map((link) => ({
@@ -412,6 +511,8 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           }).filter((item) => item.matchId),
         })"""
     )
+    metrics["imageFailures"] = _remember_image_failures(page)
+    metrics["brokenImages"] = [row["url"] for row in metrics["imageFailures"]]
     from engines.canonical_assets import template_css_href
     version = (ROOT / "VERSION.txt").read_text(encoding="utf-8-sig").strip()
     expected_href = template_css_href((ROOT / "templates/base.html").read_text(encoding="utf-8"), version)
@@ -440,7 +541,7 @@ def _discover_entity_paths(page: Any, base_url: str) -> tuple[str, ...]:
         if source_path in visited:
             continue
         visited.add(source_path)
-        page.goto(
+        _goto(page,
             urllib.parse.urljoin(base_url.rstrip("/") + "/", source_path.lstrip("/")),
             wait_until="domcontentloaded",
             timeout=30_000,
@@ -476,12 +577,34 @@ def run_gate(
     successful_resources: list[dict[str, Any]] = []
     navigation_events: list[dict[str, Any]] = []
     request_starts: dict[Any, dict[str, Any]] = {}
+    image_observations: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
     page_errors: list[str] = []
 
     def attach_observers(page: Any) -> None:
         page_id = len(navigation_events)
+        page._sentinel_resource_scope = {"page_id": page_id}
+
+        def capture_images() -> list[dict[str, Any]]:
+            scope = page._sentinel_resource_scope
+            if scope.get("document_id") is None or page.url == "about:blank":
+                return []
+            snapshot = _image_failure_evidence(page)
+            for row in snapshot:
+                row["path"] = urllib.parse.urlsplit(page.url).path
+            # Keep the last observed state of each document, including journey
+            # pages. Do not borrow a successful fallback from another visit.
+            image_observations[(page_id, scope["document_id"])] = snapshot
+            return snapshot
+
+        page._sentinel_capture_images = capture_images
+
         def on_request(req: Any) -> None:
-            start = {"page_id": page_id, "started_at": time.perf_counter(), "document_url": page.url}
+            started_at = time.perf_counter()
+            if req.resource_type == "document" and req.is_navigation_request() and req.frame == page.main_frame:
+                page._sentinel_resource_scope = {
+                    "page_id": page_id, "document_id": started_at, "document_url": req.url,
+                }
+            start = {**page._sentinel_resource_scope, "started_at": started_at}
             request_starts[req] = start
             if req.resource_type == "document" and req.is_navigation_request():
                 navigation_events.append({**start, "url": req.url})
@@ -489,7 +612,11 @@ def run_gate(
         def on_console(msg: Any) -> None:
             if msg.type == "error":
                 console_errors.append(msg.text[:500])
-                console_messages.append({"text": msg.text[:500], "url": msg.location.get("url", "")})
+                console_messages.append({
+                    "text": msg.text[:500], "url": msg.location.get("url", ""),
+                    **page._sentinel_resource_scope, "document_url": page.url,
+                    "emitted_at": time.perf_counter(),
+                })
 
         page.on("console", on_console)
         page.on("request", on_request)
@@ -501,6 +628,8 @@ def run_gate(
         }))
         page.on("response", lambda response: successful_resources.append({
             "url": response.url, "status": response.status, "received_at": time.perf_counter(),
+            "method": response.request.method, "type": response.request.resource_type,
+            **request_starts.get(response.request, {}),
         }))
     playwright_module = __import__("playwright.sync_api", fromlist=["sync_playwright"])
     with playwright_module.sync_playwright() as playwright:
@@ -515,7 +644,8 @@ def run_gate(
         entity_paths = _discover_entity_paths(desktop_page, base_url)
         audited_paths = tuple(dict.fromkeys((*CRITICAL_PAGES, *entity_paths)))
         pages = [_page_evidence(desktop_page, base_url, path) for path in audited_paths]
-        desktop_page.goto(base_url, wait_until="networkidle", timeout=45_000)
+        _goto(desktop_page, base_url, wait_until="networkidle", timeout=45_000)
+        _remember_image_failures(desktop_page)
         desktop_page.screenshot(path=str(output_dir / "home_desktop.png"), full_page=False)
         desktop.close()
 
@@ -528,7 +658,7 @@ def run_gate(
         mobile_page = mobile.new_page()
         attach_observers(mobile_page)
         mobile_nav = _click_journey(mobile_page, base_url, "client-bottom", MOBILE_NAV)
-        mobile_page.goto(base_url, wait_until="networkidle", timeout=45_000)
+        _goto(mobile_page, base_url, wait_until="networkidle", timeout=45_000)
         mobile_layout = mobile_page.evaluate(
             """() => {
               const nav = document.querySelector('[data-nav-zone="client-bottom"]');
@@ -600,7 +730,7 @@ def run_gate(
         policy_blocked_requests or [],
         request_failures,
         console_messages,
-        [dict(image, path=item["path"]) for item in [*pages, mobile_evidence] for image in item.get("imageFailures") or []],
+        [image for snapshot in image_observations.values() for image in snapshot],
         successful_resources,
         navigation_events,
     )
@@ -697,7 +827,10 @@ def main() -> int:
     target = Path(args.report_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
-    print(json.dumps({"result": result["result"], "failed_checks": result.get("failed_checks", [])}, indent=2))
+    print(json.dumps({
+        "result": result["result"], "failed_checks": result.get("failed_checks", []),
+        "external_image_degradation_count": result.get("external_image_degradation_count", 0),
+    }, indent=2))
     return 0 if result["result"] in {"DRY_RUN_PASS", "PRODUCTION_CERTIFIED"} else 1
 
 

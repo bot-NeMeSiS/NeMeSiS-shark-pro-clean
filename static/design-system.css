@@ -24067,6 +24067,11 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
     align-items: start;
     gap: 16px;
   }
+  .home-competition-list[data-home-league-agenda="today"],
+  .home-competition-list[data-home-league-agenda="public-today"] {
+    /* Today's full agenda keeps each competition in one complete band. */
+    grid-template-columns: minmax(0, 1fr);
+  }
   .home-agenda-focus .home-agenda-matches {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
   }
