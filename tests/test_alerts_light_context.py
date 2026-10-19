@@ -101,6 +101,75 @@ def test_alerts_route_runtime_context(app_module, monkeypatch):
     assert calls == {"alerts": 1, "activity": 1, "favorites": 1, "retention": 1}
 
 
+def test_alert_builder_uses_validated_shared_snapshot_for_live_and_picks(app_module, monkeypatch):
+    user = {"id": "qa-alert-user", "membership": "ELITE", "role": "ELITE"}
+    summary = {
+        "valid_live_events": [{"id": "live-1"}, {"id": "live-2"}],
+        "valid_active_picks": [{"id": "current-pick", "match_id": "upcoming-1"}],
+        "valid_upcoming_matches": [
+            {"id": "upcoming-1", "home_team": "Granada", "away_team": "Almeria", "competition_name": "Liga"},
+        ],
+    }
+    monkeypatch.setattr(app_module, "current_session_user", lambda: user)
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    monkeypatch.setattr(
+        app_module,
+        "_current_client_picks",
+        lambda actual_user, actual_summary: (
+            summary["valid_active_picks"] if actual_user == user and actual_summary is summary else []
+        ),
+    )
+    monkeypatch.setattr(app_module, "match_hub", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("legacy match hub used")))
+    monkeypatch.setattr(app_module, "published_picks_for_user", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("unvalidated published picks used")))
+    monkeypatch.setattr(app_module, "get_upcoming_matches", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("legacy upcoming matches used")))
+    monkeypatch.setattr(app_module, "get_favorites", lambda **_k: [])
+    monkeypatch.setattr(app_module, "telegram_config", lambda: {"configured": True})
+
+    with app_module.app.test_request_context("/alertas"):
+        alerts = app_module.build_client_alerts(user_id=user["id"])
+
+    live_alert = next(item for item in alerts if item["type"] == "live")
+    pick_alert = next(item for item in alerts if item["type"] == "picks")
+    assert live_alert["body"].startswith("Hay 2 partidos en directo.")
+    assert pick_alert["body"] == "Pronósticos visibles según tu plan: 1."
+
+    monkeypatch.setattr(app_module, "_current_client_picks", lambda *_a, **_k: [])
+    with app_module.app.test_request_context("/alertas"):
+        no_pick_alerts = app_module.build_client_alerts(user_id=user["id"])
+    analysis_alert = next(item for item in no_pick_alerts if item["type"] == "analysis")
+    assert "no hay pronósticos SHARK vigentes" in analysis_alert["body"]
+    assert "SHARK ya puede ayudarte" not in analysis_alert["body"]
+
+
+def test_retention_counts_use_the_same_validated_snapshot(app_module, monkeypatch):
+    user = {"id": "qa-alert-user", "membership": "ELITE", "role": "ELITE"}
+    summary = {
+        "valid_upcoming_matches": [{"id": "upcoming-1"}, {"id": "upcoming-2"}],
+        "valid_active_picks": [{"id": "current-pick", "match_id": "upcoming-1"}],
+    }
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    monkeypatch.setattr(
+        app_module,
+        "_current_client_picks",
+        lambda actual_user, actual_summary: (
+            summary["valid_active_picks"] if actual_user == user and actual_summary is summary else []
+        ),
+    )
+    monkeypatch.setattr(app_module, "get_upcoming_matches", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("legacy upcoming count used")))
+    monkeypatch.setattr(app_module, "published_picks_for_user", lambda *_a, **_k: (_ for _ in ()).throw(AssertionError("legacy pick count used")))
+
+    result = app_module.client_retention_summary(
+        user=user,
+        alerts=[{"type": "picks", "href": "/picks"}],
+        activity=[],
+        favorites=[],
+        telegram={"configured": True},
+    )
+
+    assert result["upcoming_count"] == 2
+    assert result["picks_count"] == 1
+
+
 def test_alerts_route_redirects_without_session(app_module, monkeypatch):
     monkeypatch.setattr(app_module, "current_session_user", lambda: None)
     with app_module.app.test_request_context("/alertas"):

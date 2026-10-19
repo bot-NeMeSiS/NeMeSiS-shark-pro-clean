@@ -102,6 +102,21 @@ def test_home_context_is_read_only_scoped_and_does_not_change_shared_snapshot(ap
     assert not calls and summary==original
 
 
+def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
+    now=datetime.now(ZoneInfo('Europe/Madrid'))
+    accepted=match('confirmed',now=now,hours=-.25,state='live')
+    unconfirmed=match('unconfirmed',now=now,hours=-.25,state='live')
+    summary={'valid_live_events':[accepted],'all_valid_matches':[accepted,unconfirmed]}
+    monkeypatch.setattr(app_module,'canonical_match_status',lambda item: {
+        'is_live':True,'is_upcoming':False,'is_finished':False,'is_stale':False,'status_conflict':False,
+    })
+
+    result=app_module.home_matchday_context(summary)
+
+    assert result['live']['total']==1
+    assert [item['id'] for item in items(result,'live')]==['confirmed']
+
+
 @pytest.mark.parametrize('language',['es','en','fr'])
 def test_all_home_lanes_are_visible_without_disclosures(app_module,language):
     from test_design02_r7_home_composition import render_home

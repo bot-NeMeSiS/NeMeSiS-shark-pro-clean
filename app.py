@@ -9240,7 +9240,7 @@ def client_activity_feed(limit=20, user_id=None, include_internal=False):
     return "Actividad registrada en tu cuenta."
 
 
-def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=None, upcoming=None, telegram=None):
+def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=None, upcoming=None, telegram=None, summary=None):
     """Alertas visuales para cliente sin inventar datos reales.
 
     Optional inputs let focused routes reuse one request snapshot instead of
@@ -9248,19 +9248,52 @@ def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=
     historical behavior when those inputs are omitted.
     """
     user_id = user_id or current_user_id()
-    hub = hub if hub is not None else match_hub(today_iso())
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    # Home, Live and Pronósticos already use the validated local sports snapshot.
+    # Reuse it here as well so Alerts cannot announce stale hub rows or picks that
+    # the customer-facing Pronósticos page has rejected. Callers that explicitly
+    # supply a complete preloaded context keep the fast path and avoid extra reads.
+    if summary is None and (hub is None or picks is None or upcoming is None):
+        try:
+            summary = get_public_home_sports_summary()
+        except (sqlite3.Error, OSError, RuntimeError):
+            # If the validated read is unavailable, fail closed for sports
+            # counts. Falling back to the legacy hub here could resurrect the
+            # exact stale live/pick alerts this snapshot is meant to prevent.
+            summary = {}
+    if isinstance(summary, dict):
+        live_matches = summary.get("valid_live_events") or []
+        hub = {"counts": {"live": len(live_matches)}}
+        picks = _current_client_picks(user, summary)
+        validated_upcoming = summary.get("valid_upcoming_matches") or []
+        if upcoming is None:
+            upcoming = validated_upcoming
+        else:
+            allowed_ids = {
+                str(item.get("id") or item.get("match_id") or "")
+                for item in validated_upcoming if isinstance(item, dict)
+            }
+            upcoming = [
+                item for item in upcoming
+                if isinstance(item, dict)
+                and str(item.get("id") or item.get("match_id") or "") in allowed_ids
+            ]
+    else:
+        hub = hub if hub is not None else match_hub(today_iso())
+        picks = picks if picks is not None else published_picks_for_user(user, limit=6)
+        upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=3, limit=12)
     favs = favorites if favorites is not None else (get_favorites(user_id=user_id) if user_id else [])
-    picks = picks if picks is not None else published_picks_for_user(current_session_user() or {"membership": "FREE"}, limit=6)
-    upcoming = upcoming if upcoming is not None else get_upcoming_matches(today_iso(), days=3, limit=12)
     telegram = telegram if telegram is not None else telegram_config()
     alerts = []
 
-    if hub.get("counts", {}).get("live", 0):
+    live_count = int(hub.get("counts", {}).get("live", 0) or 0)
+    if live_count > 0:
+        live_noun = "partido" if live_count == 1 else "partidos"
         alerts.append({
             "type": "live",
             "priority": 95,
             "title": "Partidos en directo ahora",
-            "body": f"Hay {hub['counts']['live']} partido(s) en directo. Revisa marcador, estado y favoritos.",
+            "body": f"Hay {live_count} {live_noun} en directo. Revisa marcador, estado y favoritos.",
             "href": "/live",
             "badge": "DIRECTO",
         })
@@ -9277,8 +9310,8 @@ def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=
         alerts.append({
             "type": "analysis",
             "priority": 74,
-            "title": "Partidos próximos listos para análisis",
-            "body": "Aún no hay pronósticos publicados, pero SHARK ya puede ayudarte a revisar próximos partidos reales.",
+            "title": "Próximos partidos sin pronóstico vigente",
+            "body": "Hay partidos próximos en el calendario, pero todavía no hay pronósticos SHARK vigentes. Solo se mostrarán cuando los datos y las cuotas actuales sean verificables.",
             "href": "/picks",
             "badge": "ANÁLISIS",
         })
@@ -9327,15 +9360,16 @@ def client_retention_summary(user=None, alerts=None, activity=None, favorites=No
     user = user or current_session_user() or {}
     alerts = alerts if alerts is not None else build_client_alerts(limit=8, user_id=user.get("id"))
     activity = activity if activity is not None else (client_activity_feed(limit=8, user_id=user.get("id")) if user else [])
-    upcoming = get_upcoming_matches(today_iso(), days=7, limit=20)
-    picks = published_picks_for_user(user or {"membership": "FREE"}, limit=10)
+    sports_summary = get_public_home_sports_summary()
+    upcoming_count = len(sports_summary.get("valid_upcoming_matches") or [])
+    picks_count = len(_current_client_picks(user or {"membership": "FREE"}, sports_summary))
     favorites = favorites if favorites is not None else (get_favorites(user_id=user.get("id")) if user else [])
     telegram = telegram if telegram is not None else telegram_config()
     return {
         "alerts": alerts,
         "activity": activity,
-        "upcoming_count": len(upcoming),
-        "picks_count": len(picks),
+        "upcoming_count": upcoming_count,
+        "picks_count": picks_count,
         "favorites_count": len(favorites),
         "telegram_ready": telegram.get("configured"),
         "next_best_action": alerts[0] if alerts else None,
@@ -21148,11 +21182,29 @@ def home_matchday_context(summary, favorites=None):
     """Present the full existing snapshot without new reads or provider calls."""
     from engines.home_matchday import build_matchday
     source = []
+    status_by_object = {}
+    canonical_live_ids = {
+        _sports_match_key(item)
+        for item in summary.get("valid_live_events") or []
+        if isinstance(item, dict) and _sports_match_key(item)
+    }
     for key in ('valid_live_events', 'all_valid_matches', 'valid_matches_today',
                 'valid_upcoming_matches', 'finished_matches'):
-        source.extend(summary.get(key) or [])
+        for item in summary.get(key) or []:
+            if not isinstance(item, dict):
+                continue
+            # The shared lifecycle parser can recognize an old/raw LIVE status
+            # that did not pass the stricter freshness and provider-evidence gate
+            # used to populate valid_live_events. Never let Home promote that row
+            # back into its live count or cards.
+            status = canonical_match_status(item)
+            if status.get("is_live") and _sports_match_key(item) not in canonical_live_ids:
+                continue
+            source.append(item)
+            status_by_object[id(item)] = status
     result = build_matchday(source, now=datetime.now(MADRID_TZ),
-        status_for=canonical_match_status, kickoff_for=match_kickoff_madrid_dt,
+        status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
+        kickoff_for=match_kickoff_madrid_dt,
         priority_for=sports_competition_priority,
         identity_for=canonical_competition_surface_contract)
     favorites = _normalized_sports_favorites(favorites)
@@ -25941,6 +25993,7 @@ def daily_briefing_page():
         picks=picks,
         upcoming=upcoming,
         telegram=telegram,
+        summary=_summary,
     )
     data["briefing"] = build_daily_briefing(
         user,
