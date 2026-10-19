@@ -504,7 +504,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM'
+APP_VERSION = 'V942_HIGHLIGHTS_READ_PATH_PAYMENT_STATUS_SENTINEL'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -2905,6 +2905,14 @@ def db():
     return sqlite_connect(DB_PATH)
 
 
+MEDIA_READ_ENDPOINTS = {
+    "highlight_detail_page",
+    "highlights_page",
+    "api_client_highlights",
+    "api_client_highlights_content_center",
+}
+
+
 def request_read_db():
     """Reuse one query-only SQLite connection for the lifetime of a GET request."""
     if not has_request_context():
@@ -2916,7 +2924,7 @@ def request_read_db():
     if not db_path:
         return None
     timeout_ms = max(100, min(as_int(os.getenv("SQLITE_READ_BUSY_TIMEOUT_MS", "750"), 750), 2500))
-    media_read_only = request.endpoint == "highlight_detail_page"
+    media_read_only = request.endpoint in MEDIA_READ_ENDPOINTS
     try:
         if db_path != ":memory:" and (media_read_only or Path(db_path).exists()):
             uri = Path(db_path).resolve().as_uri() + "?mode=ro"
@@ -4265,7 +4273,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "founder_manifest_json",
     "favicon_ico",
     "apple_touch_icon",
-    "highlight_detail_page",  # Media GETs never own schema creation or seed work.
+    *MEDIA_READ_ENDPOINTS,  # Media GETs never own schema creation or seed work.
     "static",
     "home",
 }
@@ -16856,7 +16864,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V941_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V942_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -20129,6 +20137,7 @@ def v766_highlights_context(limit=12):
         "with_video": known("with_video"),
         "linked_matches": known("linked_matches"),
         "stored_media_total": known("stored_media_total"),
+        "stored_linked_matches": known("stored_linked_matches"),
         "authorized_highlights": known("authorized_highlights"),
         "blocked_highlights": known("blocked_highlights"),
         "rights_warnings": known("rights_warnings"),
@@ -20294,10 +20303,10 @@ def v769_pending_highlight_matches(days_back=10, limit=80):
     return v769_pending_highlight_snapshot(days_back=days_back, limit=limit).get("matches") or []
 
 
-def v769_highlights_content_center(data=None, user=None, limit=24, include_pending=True):
+def v769_highlights_content_center(data=None, user=None, limit=24, include_pending=True, *, highlights_context=None):
     """Client/admin highlights center with explicit catalogue-read truth."""
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    base = v766_highlights_context(limit=limit)
+    base = highlights_context if isinstance(highlights_context, dict) else v766_highlights_context(limit=limit)
     verified = bool(base.get("ok") is True and base.get("read_state") == "VERIFIED")
     available = []
     for item in (base.get("latest") or []):
@@ -20394,21 +20403,22 @@ def v769_highlights_content_center(data=None, user=None, limit=24, include_pendi
 @app.route("/resumenes-partidos")
 def highlights_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    # This catalogue page only needs the media read model. Building the entire
-    # sports dashboard here repeats expensive provider/cache reads and can make
-    # a simple GET exceed the web request budget.
+    # Only the media read model belongs on this catalogue page.
+    base = v766_highlights_context(limit=24)
     data = {
+        "session_user": user,
+        "v766_highlights": base,
         "v769_highlights_center": v769_highlights_content_center(
-            user=user, limit=24, include_pending=False
-        )
+            user=user, limit=24, include_pending=False, highlights_context=base
+        ),
     }
     return render_template("highlights.html", data=data)
 
 
 @app.route("/api/client/highlights")
 def api_client_highlights():
-    data = dashboard_data("results", today_iso())
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights": v766_highlights_context(limit=24), "content_center": v769_highlights_content_center(data, current_session_user(), limit=24)})
+    base = v766_highlights_context(limit=24)
+    return jsonify({"ok": True, "version": APP_VERSION, "highlights": base, "content_center": v769_highlights_content_center({}, current_session_user(), limit=24, highlights_context=base)})
 
 
 @app.route("/api/automation/highlights/sync", methods=["POST"])
@@ -20509,8 +20519,7 @@ def highlight_detail_page(highlight_id):
 
 @app.route("/api/client/highlights/content-center")
 def api_client_highlights_content_center():
-    data = dashboard_data("results", today_iso())
-    return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center(data, current_session_user(), limit=30)})
+    return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center({}, current_session_user(), limit=30)})
 
 
 @app.route("/admin/highlights-center")
@@ -25386,7 +25395,14 @@ def membership_page():
         )
     else:
         stripe_state = v931_safe_context(request.path, "stripe_status", lambda: stripe_runtime_status(""), {})
-        data["payments_client"] = {"checkout_ready": False, "plans": stripe_state.get("plans", {}), "blockers": []}
+        data["payments_client"] = {
+            "checkout_ready": False,
+            "checkout_configured": stripe_state.get("checkout_ready") is True,
+            "stripe_environment": stripe_state.get("stripe_environment") or "unknown",
+            "status_read_ok": stripe_state.get("ok") is True,
+            "plans": stripe_state.get("plans", {}),
+            "blockers": [],
+        }
     data["legal_compliance"] = v931_safe_context(request.path, "legal_compliance", legal_compliance_payload, {})
     data["checkout_legal"] = v931_safe_context(request.path, "checkout_legal", checkout_legal_checklist, [])
     data["v925_calendar"] = _v931_provider_context(summary)

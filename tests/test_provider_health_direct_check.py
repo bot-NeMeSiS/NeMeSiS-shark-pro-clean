@@ -1,4 +1,6 @@
 """Direct provider health checks: explicit, bounded and never implicit on render."""
+from contextlib import closing
+
 import app as app_module
 
 
@@ -100,7 +102,16 @@ def test_health_snapshot_only_reads_persisted_direct_evidence(monkeypatch):
     assert provider["billing_status"] == "Comprobación directa anterior; no confirma el estado actual"
 
 
-def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch):
+def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch,tmp_path):
+    monkeypatch.setattr(app_module, "DB_PATH", str(tmp_path / "provider-admin.sqlite3"))
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None)
+    monkeypatch.setattr(app_module, "APP_INITIALIZED", False)
+    app_module.seed_core()
+    with closing(app_module.db()) as conn, conn:
+        admin_id = app_module.create_admin_record(
+            conn, "Provider QA", "provider-qa", "provider-qa@example.invalid", "local-qa-password")
+    user = app_module.get_user_by_id(admin_id)
     _state_store(monkeypatch)
     monkeypatch.setattr(app_module, "env_present", lambda *_a, **_kw: False)
     anonymous = app_module.app.test_client()
@@ -108,8 +119,12 @@ def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch):
     assert blocked.status_code == 403
 
     admin = app_module.app.test_client()
+    with app_module.app.test_request_context():
+        app_module.set_login_session(user)
+        signed_in = dict(app_module.session)
     with admin.session_transaction() as sess:
-        sess["user_role"] = "ADMIN"
+        sess.clear()
+        sess.update(signed_in)
         valid = app_module.generate_csrf_token(sess)
 
     bad = admin.post(

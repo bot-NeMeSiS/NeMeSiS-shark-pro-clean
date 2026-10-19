@@ -24063,7 +24063,8 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
 .home-agenda-focus .ns16-featured-pick { max-width: 760px; width: 100%; }
 @media (min-width: 1101px) {
   .home-agenda-focus .home-competition-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* Keep each competition as a complete band in the agenda's reading order. */
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 16px;
   }

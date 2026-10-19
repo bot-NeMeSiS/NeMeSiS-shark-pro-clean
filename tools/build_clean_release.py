@@ -200,6 +200,8 @@ def include(path: Path) -> bool:
             "reports/CODEX_DAILY_PROMPT_CURRENT.txt",
             "reports/LOCAL_CONTINUITY_20260919.md",
             "reports/NEMESIS_OFFICIAL_VISUAL_REFERENCE_ALIGNMENT_REPORT.md",
+            "reports/V941_ADMIN_PC_MASTER_CONTROL_SHARK_AI_REPORT.md",
+            "reports/V941_RELIABILITY_LEARNING_REPORT.md",
         }
         if rel_posix in report_allowlist:
             return True

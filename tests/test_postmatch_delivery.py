@@ -4,6 +4,7 @@ Schema checked against official examples on 2026-10-01:
 /documentation, /api/v1/json/123/eventshighlights.php?d=2024-07-07
 and /api/v1/json/123/lookupeventstats.php?id=1032723 . No production I/O.
 """
+from contextlib import closing
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
@@ -256,11 +257,24 @@ def test_http_form_redirects_to_private_get_and_refresh_never_repeats_tick(store
     assert response.is_json and response.json['result']=='PARTIAL' and len(calls)==2
 
 
-def test_actual_http_result_uses_full_application_template_without_running_worker(client,app_module,monkeypatch):
+def test_actual_http_result_uses_full_application_template_without_running_worker(client,app_module,monkeypatch,tmp_path):
     import blueprints.postmatch_recovery as bp
+    monkeypatch.setattr(app_module,'DB_PATH',str(tmp_path/'postmatch-admin.sqlite3'))
+    monkeypatch.setattr(app_module,'_SEEDED_DB_PATH',None)
+    monkeypatch.setattr(app_module,'_SEEDING_DB_PATH',None)
+    monkeypatch.setattr(app_module,'APP_INITIALIZED',False)
+    app_module.seed_core()
+    with closing(app_module.db()) as conn,conn:
+        admin_id=app_module.create_admin_record(
+            conn,'Postmatch QA','postmatch-qa','postmatch-qa@example.invalid','local-qa-password')
+    admin=app_module.get_user_by_id(admin_id)
     monkeypatch.setattr(bp,'tick',lambda *a,**k:pytest.fail('GET must not execute a worker'))
+    with app_module.app.test_request_context():
+        app_module.set_login_session(admin)
+        signed_in=dict(app_module.session)
     with client.session_transaction() as sess:
-        sess.clear();sess.update(user_role='ADMIN',csrf_token='test-result-csrf',postmatch_last_result={
+        sess.clear();sess.update(signed_in)
+        sess.update(csrf_token='test-result-csrf',postmatch_last_result={
             'ok':True,'result':'PARTIAL','processed':1,'external_calls':1,
             'jobs':[{'job_id':1,'kind':'statistics','state':'RETRY','reason':'NO_STATISTICS'}]})
     response=client.get('/admin/highlights-review/workers/result')
