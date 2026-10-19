@@ -599,7 +599,18 @@ def test_postmatch_http_503_keeps_only_closed_domain_diagnostics(monkeypatch):
         "storage_code": "SQLITE_BUSY",
         "processed": 1,
         "external_calls": 0,
-        "jobs": [{"reason": "NETWORK", "technical_errors": ["ACCESS_DENIED", "raw provider response"]}],
+        "jobs": [{
+            "reason": "NETWORK",
+            "technical_errors": ["ACCESS_DENIED", "raw provider response"],
+            "diagnostics": {"source_failures": [
+                {"provider": "thesportsdb", "endpoint": "lookupeventstats.php",
+                 "stage": "RESPONSE_FIELD_SHAPE", "reason": "MALFORMED"},
+                {"provider": "thesportsdb", "endpoint": "lookupeventstats.php",
+                 "stage": "RESPONSE_FIELD_SHAPE", "reason": "raw provider response"},
+                {"provider": "https://secret.example", "endpoint": "lookupeventstats.php",
+                 "stage": "RESPONSE_FIELD_SHAPE", "reason": "MALFORMED"},
+            ]},
+        }],
         "message": "private/path and provider payload",
     }).encode()
     error = urllib.error.HTTPError(
@@ -620,10 +631,55 @@ def test_postmatch_http_503_keeps_only_closed_domain_diagnostics(monkeypatch):
     assert result["postmatch_failure_stage"] == "PROCESS"
     assert result["postmatch_storage_code"] == "SQLITE_BUSY"
     assert result["postmatch_failure_reasons"] == ["ACCESS_DENIED", "NETWORK"]
+    assert result["postmatch_source_failures"] == [{
+        "provider": "thesportsdb",
+        "endpoint": "lookupeventstats.php",
+        "stage": "RESPONSE_FIELD_SHAPE",
+        "reason": "MALFORMED",
+    }]
     assert result["postmatch_processed"] == 1
     assert result["postmatch_external_calls"] == 0
     assert "private/path" not in json.dumps(result)
     assert "provider payload" not in json.dumps(result)
+
+
+def test_postmatch_http_200_partial_keeps_safe_deferral_and_source_diagnostics(monkeypatch):
+    payload = {
+        "ok": True,
+        "result": "PARTIAL",
+        "processed": 2,
+        "external_calls": 0,
+        "jobs": [{
+            "reason": "DAILY_BUDGET",
+            "state": "RETRY",
+            "technical_errors": [],
+            "diagnostics": {
+                "source_failures": [{
+                    "provider": "api_football",
+                    "endpoint": "fixtures/statistics",
+                    "stage": "PROVIDER_ERROR",
+                    "reason": "ACCESS_DENIED",
+                    "message": "secret provider payload",
+                },
+                {"provider": [], "endpoint": "fixtures", "stage": "TRANSPORT", "reason": "NETWORK"}],
+            },
+        }],
+        "message": "raw response is not part of the cron contract",
+    }
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_k: MockResponse(payload))
+
+    result = master.postmatch_tick("https://app.example.invalid", "test-secret")
+
+    assert result["postmatch_status"] == "PARTIAL"
+    assert result["postmatch_failure_reasons"] == ["DAILY_BUDGET"]
+    assert result["postmatch_source_failures"] == [{
+        "provider": "api_football",
+        "endpoint": "fixtures/statistics",
+        "stage": "PROVIDER_ERROR",
+        "reason": "ACCESS_DENIED",
+    }]
+    assert "secret provider payload" not in json.dumps(result)
+    assert "raw response" not in json.dumps(result)
 
 
 def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatch):

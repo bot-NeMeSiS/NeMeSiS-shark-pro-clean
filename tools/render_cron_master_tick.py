@@ -792,9 +792,11 @@ def postmatch_tick(base_url: str, secret: str) -> dict:
         if label == 'PARTIAL' and isinstance(data.get('jobs'), list) and data['jobs']:
             from engines.automation_outcome import postmatch_outcome
             status = postmatch_outcome(data['jobs']) if data.get('ok') is True else 'FAIL'
-        return {'postmatch_status': status, 'postmatch_result': label,
-                'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
-                'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
+        result = {'postmatch_status': status, 'postmatch_result': label,
+                  'processed': safe_count(data.get('processed')), 'external_calls': safe_count(data.get('external_calls')),
+                  'duration_ms': max(0, round((time.perf_counter() - started) * 1000))}
+        result.update(postmatch_payload_details(data))
+        return result
     except urllib.error.HTTPError as exc:
         result = request_error_result('postmatch', started, f'HTTP_{int(exc.code)}', int(exc.code), exc)
         result.update(postmatch_http_error_details(exc))
@@ -826,12 +828,17 @@ def postmatch_http_error_details(http_error) -> dict:
     if not isinstance(payload, dict):
         return {}
 
+    return postmatch_payload_details(payload)
+
+
+def postmatch_payload_details(payload: dict) -> dict:
+    """Project safe, closed Postmatch diagnostics from a response payload."""
     result = {}
     domain_result = payload.get('result')
-    if domain_result in {'IDLE', 'COMPLETE', 'PARTIAL', 'FAIL', 'STORAGE_UNAVAILABLE', 'SKIPPED_DISABLED'}:
+    if isinstance(domain_result, str) and domain_result in {'IDLE', 'COMPLETE', 'PARTIAL', 'FAIL', 'STORAGE_UNAVAILABLE', 'SKIPPED_DISABLED'}:
         result['postmatch_domain_result'] = domain_result
     stage = payload.get('failure_stage')
-    if stage in {'INITIALIZE', 'DISCOVER', 'RECONCILE', 'PROCESS'}:
+    if isinstance(stage, str) and stage in {'INITIALIZE', 'DISCOVER', 'RECONCILE', 'PROCESS'}:
         result['postmatch_failure_stage'] = stage
     storage_code = payload.get('storage_code')
     if isinstance(storage_code, str) and re.fullmatch(r'SQLITE_[A-Z0-9_]{1,48}', storage_code):
@@ -845,9 +852,28 @@ def postmatch_http_error_details(http_error) -> dict:
         'ACCESS_DENIED', 'RATE_LIMIT', 'NETWORK', 'MALFORMED', 'REDIRECT_BLOCKED',
         'MISSING_KEY', 'INVALID_STATISTIC', 'CONFLICTING_STATISTICS',
         'INCONSISTENT_STATISTICS', 'INVALID_VIDEO_URL', 'INTERNAL_ERROR',
-        'STORAGE_UNAVAILABLE',
+        'STORAGE_UNAVAILABLE', 'DAILY_BUDGET', 'TICK_BUDGET', 'SOURCE_COOLDOWN',
+        'SOURCE_DISABLED', 'SOURCE_NOT_ALLOWED', 'MISSING_PROVIDER_ID',
+        'AMBIGUOUS_MATCH', 'IDENTITY_MISMATCH', 'SOURCE_NOT_FINAL', 'NOT_FINAL',
+        'NO_APPROVED_SOURCE', 'NO_EVENT', 'NO_VIDEO', 'NO_STATISTICS',
+        'NO_POSTMATCH_DETAILS', 'PARTIAL_COVERAGE', 'CONFLICT',
+        'UNSUPPORTED_STATISTICS', 'EMPTY_STATISTIC_VALUES', 'VIDEO_LOOKUP_UNAVAILABLE',
+        'HIGHLIGHT_RESPONSE_LIMIT', 'AMBIGUOUS_VIDEO', 'RIGHTS_REVIEW',
+        'PAUSED_OR_RECLAIMED', 'IDENTITY_CHANGED', 'ARCHIVE_BUDGET', 'MEDIA_PENDING',
+    }
+    allowed_providers = {'api_football', 'thesportsdb', 'unknown'}
+    allowed_endpoints = {
+        'fixtures', 'fixtures/statistics', 'fixtures/events', 'fixtures/lineups',
+        'lookupevent.php', 'eventsday.php', 'lookupeventstats.php', 'eventshighlights.php',
+        'lookuplineup.php', 'lookuptimeline.php', 'unknown',
+    }
+    allowed_stages = {
+        'TRANSPORT', 'JSON_DECODE', 'RESPONSE_ROOT_SHAPE', 'PROVIDER_ERROR',
+        'RESPONSE_FIELD_MISSING', 'RESPONSE_FIELD_SHAPE', 'STATISTICS_RESPONSE_SHAPE',
+        'STATISTICS_ROW_SHAPE',
     }
     reasons = set()
+    source_failures = []
     jobs = payload.get('jobs')
     if isinstance(jobs, list):
         for job in jobs[:2]:
@@ -860,8 +886,30 @@ def postmatch_http_error_details(http_error) -> dict:
             if isinstance(errors, list):
                 reasons.update(error for error in errors[:12]
                                if isinstance(error, str) and error in allowed_reasons)
+            diagnostics = job.get('diagnostics')
+            failures = diagnostics.get('source_failures') if isinstance(diagnostics, dict) else None
+            if isinstance(failures, list):
+                for failure in failures[:6 - len(source_failures)]:
+                    if not isinstance(failure, dict):
+                        continue
+                    provider = failure.get('provider')
+                    endpoint = failure.get('endpoint')
+                    stage = failure.get('stage')
+                    reason = failure.get('reason')
+                    if (isinstance(provider, str) and provider in allowed_providers
+                            and isinstance(endpoint, str) and endpoint in allowed_endpoints
+                            and isinstance(stage, str) and stage in allowed_stages
+                            and isinstance(reason, str) and reason in allowed_reasons):
+                        source_failures.append({
+                            'provider': provider,
+                            'endpoint': endpoint,
+                            'stage': stage,
+                            'reason': reason,
+                        })
     if reasons:
         result['postmatch_failure_reasons'] = sorted(reasons)
+    if source_failures:
+        result['postmatch_source_failures'] = source_failures
     return result
 
 
