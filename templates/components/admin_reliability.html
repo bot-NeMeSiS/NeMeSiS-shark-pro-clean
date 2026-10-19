@@ -2,7 +2,7 @@
   <header><div><h2 id="reliability-title">Fiabilidad</h2><p>Reparado no significa resuelto. Cada cierre necesita evidencia posterior.</p></div><a href="/admin/sentinel-issues">Memoria Sentinel →</a></header>
   <p data-reliability-summary>{{ (master.get('reliability') or {}).get('state') or 'DESCONOCIDO' }} · Evidencia local; producción sin certificar.</p>
   <h3>Risk Radar</h3>
-  <div data-reliability-radar class="master-recommendations"></div>
+  <div data-reliability-radar class="master-recommendations master-radar-grid"></div>
   <details><summary>Identidad de producción</summary><dl data-reliability-identity class="master-runtime"></dl><p class="master-muted">La candidata puede diferir de main. Coincidir en versión no prueba igualdad de SHA. Un HTTP 200 no certifica un despliegue.</p></details>
   <details><summary>Incidencias y recurrencias</summary><div data-reliability-incidents></div></details>
   <details><summary>Historial y aprendizaje</summary><div data-reliability-timeline></div><div data-reliability-learning></div></details>

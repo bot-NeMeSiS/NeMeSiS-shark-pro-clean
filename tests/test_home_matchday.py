@@ -118,6 +118,26 @@ def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
 
 
 @pytest.mark.parametrize('language',['es','en','fr'])
+def test_home_shows_three_secondary_live_competitions_without_opening_a_disclosure(app_module,language):
+    from test_design02_r7_home_composition import render_home
+    from test_design02_calendar_presentation import Structure
+
+    rows=[match(f'live-{i}',(f'league-{i}',f'Liga secundaria {i}',f'País {i}'),
+                hours=-.5,state='live') for i in range(5)]
+    dom=Structure(render_home(app_module,{'home_matchday':build(rows)},language))
+    cards=[node for node in dom.nodes if 'data-v934-match-id' in node['attrs']]
+    visible={node['attrs']['data-v934-match-id'] for node in cards
+             if not any(parent['tag']=='details' for parent in node['parents'])}
+    disclosed={node['attrs']['data-v934-match-id'] for node in cards
+                if any(parent['tag']=='details' for parent in node['parents'])}
+
+    assert len(cards)==5
+    assert len(visible)==3
+    assert len(disclosed)==2
+    assert visible.isdisjoint(disclosed)
+
+
+@pytest.mark.parametrize('language',['es','en','fr'])
 def test_all_home_lanes_are_visible_without_disclosures(app_module,language):
     from test_design02_r7_home_composition import render_home
     from test_design02_calendar_presentation import Structure

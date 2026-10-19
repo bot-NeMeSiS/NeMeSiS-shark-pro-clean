@@ -14,6 +14,13 @@
 {% macro competition_groups(groups, show_date=false, section='agenda') -%}
 {% set primary = groups|selectattr('home_primary', 'sameas', true)|list %}
 {% set secondary = groups|rejectattr('home_primary', 'sameas', true)|list %}
+{# Live matches are time-sensitive: show a small cross-competition sample immediately,
+   while keeping the rest progressive and preserving the canonical league ranking. #}
+{% if section == 'live' and secondary %}
+  {% set visible_live_groups = secondary[:3] %}
+  {% set primary = primary + visible_live_groups %}
+  {% set secondary = secondary[visible_live_groups|length:] %}
+{% endif %}
 <div class="home-league-browser" data-home-league-browser="{{ section }}">
 {% if primary|length > 1 %}
 <nav class="home-league-index home-featured-rail" aria-label="{{ ui('Ir a una liga') }}" data-home-primary-index>

@@ -1,0 +1,108 @@
+{
+  "issues": [
+    {
+      "title": "SIMULATED_QA incident",
+      "area": "admin",
+      "severity": "critical",
+      "status": "RESOLVED",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-10-20T01:14:05+02:00",
+      "updated_at_madrid": "2026-10-20T01:14:05+02:00",
+      "route": "",
+      "screen": "",
+      "file": "",
+      "function": "",
+      "evidence": "Confirmed QA reproduction only",
+      "impact": "Afecta a claridad, operacion o confianza del producto si permanece activo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Revisar causa real y corregir sin tocar secretos ni datos reales.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/run_continuous_sentinel_static.py"
+      ],
+      "tags": [
+        "admin",
+        "sentinel"
+      ],
+      "resolved_at_madrid": "2026-10-20T01:14:05+02:00",
+      "history": [
+        {
+          "at_madrid": "2026-10-20T01:14:05+02:00",
+          "event": "verification_recorded",
+          "result": "PASS",
+          "scope": "CI"
+        },
+        {
+          "at_madrid": "2026-10-20T01:14:05+02:00",
+          "event": "status_update",
+          "status": "RESOLVED",
+          "note": "Admin Master Control: cierre con verificacion vigente"
+        }
+      ],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-10-20T01:14:05+02:00",
+      "worker": "",
+      "category": "admin",
+      "viewport": "",
+      "element": "",
+      "expected": "",
+      "actual": "",
+      "screenshot": "",
+      "first_seen": "2026-10-20T01:14:05+02:00",
+      "last_seen": "2026-10-19T23:12:05.381163+00:00",
+      "seen_count": 1,
+      "production_sha": "",
+      "confidence": "UNKNOWN",
+      "priority": "P0",
+      "component": "admin",
+      "evidence_origin": "sentinel",
+      "evidence_history": [
+        {
+          "at_madrid": "2026-10-19T23:12:05.381163+00:00",
+          "evidence": "Confirmed QA reproduction only",
+          "origin": "sentinel"
+        }
+      ],
+      "worker_sources": [
+        "sentinel"
+      ],
+      "related_issue_ids": [],
+      "fix_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "verification": "",
+      "founder_feedback": [],
+      "stable_key": "qa-http",
+      "provider": "",
+      "job": "",
+      "exception_type": "",
+      "error_code": "",
+      "root_cause": "QA confirmed cause",
+      "hypothesis": "",
+      "pr": "",
+      "corrective_action": "QA fix",
+      "regression_test": "tests/test_reliability.py",
+      "prevention": "CI guard",
+      "detection": "Sentinel rule",
+      "verification_record": {
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "checked_at": "2026-10-19T23:14:05.418636+00:00",
+        "result": "PASS",
+        "scope": "CI",
+        "evidence_ref": "SIMULATED_QA/report",
+        "seen_count": 1,
+        "fingerprint": "bccaa5cbe54963af8e568d4f195179cde020b0f95d684ebdf1dc58732990b8b5",
+        "source": "ADMIN_ATTESTED_EVIDENCE"
+      },
+      "fingerprint": "bccaa5cbe54963af8e568d4f195179cde020b0f95d684ebdf1dc58732990b8b5",
+      "id": "SENT-2026-BCCAA5CB",
+      "issue_id": "SENT-2026-BCCAA5CB",
+      "evidence_sufficient": false,
+      "codex_eligible": false,
+      "codex_prompt": "",
+      "copy_text": "[CRITICAL] [admin] SIMULATED_QA incident Ruta: Sin ruta concreta Archivo probable: Por determinar Evidencia: Confirmed QA reproduction only Impacto: Afecta a claridad, operacion o confianza del producto si permanece activo. Recomendacion: Revisar causa real y corregir sin tocar secretos ni datos reales."
+    }
+  ],
+  "status_contract": "NEMESIS_ISSUE_LEDGER_V2",
+  "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
+  "updated_at_madrid": "2026-10-20T01:14:05+02:00",
+  "events": []
+}

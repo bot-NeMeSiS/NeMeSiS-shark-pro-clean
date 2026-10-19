@@ -143,6 +143,36 @@ def test_reliability_real_controls_prepare_only_and_preserve_unknown(browser,app
         context.close()
 
 
+@pytest.mark.parametrize('width',[390,1440])
+def test_risk_radar_shows_observation_date_and_compacts_more_signals(browser,app_module,width):
+    data=snapshot()
+    issue={'id':'AP-RECURRENT','title':'Ruta cliente con error','status':'OPEN_REAL',
+        'first_seen':'2026-10-09T20:00:00+02:00','last_seen':'2026-10-09T21:23:25+02:00',
+        'seen_count':3,'trend':'RECURRENTE'}
+    alerts=[{'code':'recurrence:AP-RECURRENT','state':'RIESGO ALTO',
+        'evidence':'3 observaciones de AP-RECURRENT','reason':'Identidad de fallo repetida.',
+        'impact':'Puede afectar a consumidores dependientes.','action':'Revisar evidencia',
+        'href':'/admin/sentinel-issues'}]
+    alerts.extend({'code':f'check-{index}','state':'DESCONOCIDO','evidence':f'Señal QA {index}',
+        'reason':'No hay evidencia reciente.','impact':'La actividad actual no se puede confirmar.',
+        'action':'Revisar evidencia','href':'/admin/data-center'} for index in range(4))
+    data['reliability']={'state':'RIESGO ALTO','memory_available':True,'total_issues':1,
+        'issues':[issue],'radar':{'drift':{'state':'UNKNOWN'},'alerts':alerts}}
+    context,page,calls,errors,blocked=mount(browser,app_module,width=width,data=data)
+    try:
+        radar=page.locator('[data-reliability-radar]')
+        assert 'Última observación guardada:' in radar.inner_text()
+        assert 'Madrid' in radar.inner_text()
+        assert 'Más señales del radar · 2' in radar.inner_text()
+        columns=page.locator('[data-reliability-radar]').evaluate(
+            "el => getComputedStyle(el).gridTemplateColumns.split(' ').length")
+        assert columns == (1 if width == 390 else 3)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+        assert not calls and not errors and not blocked
+    finally:
+        context.close()
+
+
 @pytest.mark.parametrize("width",[390,1440])
 def test_chat_proposal_requires_separate_approval(browser,app_module,width):
     proposal={"proposal_id":"qa-proposal","action_id":"settings.update","label":"Desactivar highlights",

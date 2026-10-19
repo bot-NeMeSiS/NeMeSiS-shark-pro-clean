@@ -87,6 +87,8 @@ def test_master_view_has_no_placeholder_navigation():
     source = read("templates/admin_dashboard.html")
     assert not re.search(r"""href\s*=\s*["'](?:#|javascript:[^"']*)["']""", source, re.I)
     assert not re.search(r"""(?:action|src)\s*=\s*["']javascript:""", source, re.I)
+    assert "Diagnóstico deportivo detallado" in source
+    assert "Diagnostico deportivo detallado" not in source
 
 
 @pytest.mark.parametrize("relative", [

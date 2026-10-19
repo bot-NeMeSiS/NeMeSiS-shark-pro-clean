@@ -1,0 +1,86 @@
+{
+  "issues": [
+    {
+      "title": "QA known failure",
+      "area": "sports",
+      "severity": "critical",
+      "status": "FIXED_PENDING_VERIFICATION",
+      "source": "sentinel",
+      "detected_at_madrid": "2026-10-20T01:16:25+02:00",
+      "updated_at_madrid": "2026-10-20T01:16:25+02:00",
+      "route": "/live",
+      "screen": "/live",
+      "file": "",
+      "function": "",
+      "evidence": "Confirmed reproducible QA failure condition",
+      "impact": "Afecta a claridad, operacion o confianza del producto si permanece activo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Revisar causa real y corregir sin tocar secretos ni datos reales.",
+      "validation": [
+        "python -m py_compile app.py",
+        "python tools/run_continuous_sentinel_static.py"
+      ],
+      "tags": [
+        "sports",
+        "sentinel"
+      ],
+      "resolved_at_madrid": null,
+      "history": [],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-10-20T01:16:25+02:00",
+      "worker": "",
+      "category": "sports",
+      "viewport": "",
+      "element": "",
+      "expected": "",
+      "actual": "",
+      "screenshot": "",
+      "first_seen": "2026-10-20T01:16:25+02:00",
+      "last_seen": "2026-10-19T23:14:25.255508+00:00",
+      "seen_count": 1,
+      "production_sha": "",
+      "confidence": "UNKNOWN",
+      "priority": "P0",
+      "component": "sports",
+      "evidence_origin": "sentinel",
+      "evidence_history": [
+        {
+          "at_madrid": "2026-10-19T23:14:25.255508+00:00",
+          "evidence": "Confirmed reproducible QA failure condition",
+          "origin": "sentinel"
+        }
+      ],
+      "worker_sources": [
+        "sentinel"
+      ],
+      "related_issue_ids": [],
+      "fix_sha": "",
+      "verification": "looks fixed",
+      "founder_feedback": [],
+      "stable_key": "qa-known-failure",
+      "provider": "",
+      "job": "",
+      "exception_type": "",
+      "error_code": "",
+      "root_cause": "",
+      "hypothesis": "",
+      "pr": "",
+      "corrective_action": "",
+      "regression_test": "",
+      "prevention": "",
+      "detection": "",
+      "verification_record": null,
+      "fingerprint": "66bb6d7203260737d1dde7f4f8f0e2cbe0e6c1508ba1c13d9febd38fbd6e9c80",
+      "id": "SENT-2026-66BB6D72",
+      "issue_id": "SENT-2026-66BB6D72",
+      "evidence_sufficient": false,
+      "codex_eligible": false,
+      "codex_prompt": "",
+      "copy_text": "[CRITICAL] [sports] QA known failure Ruta: /live Archivo probable: Por determinar Evidencia: Confirmed reproducible QA failure condition Impacto: Afecta a claridad, operacion o confianza del producto si permanece activo. Recomendacion: Revisar causa real y corregir sin tocar secretos ni datos reales.",
+      "verification_required": true
+    }
+  ],
+  "status_contract": "NEMESIS_ISSUE_LEDGER_V2",
+  "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
+  "updated_at_madrid": "2026-10-20T01:16:25+02:00"
+}

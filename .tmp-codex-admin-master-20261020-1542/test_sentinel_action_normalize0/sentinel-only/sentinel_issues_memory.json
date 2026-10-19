@@ -1,0 +1,15 @@
+{
+  "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
+  "created_at_madrid": "2026-10-20T01:15:58+02:00",
+  "updated_at_madrid": "2026-10-20T01:15:58+02:00",
+  "issues": [],
+  "events": [],
+  "status_contract": "NEMESIS_ISSUE_LEDGER_V2",
+  "last_scan_madrid": "2026-09-23T12:34:00+02:00",
+  "reliability_queue_samples": [
+    {
+      "at": "2026-10-19T23:15:58.605742+00:00",
+      "failed": 0
+    }
+  ]
+}

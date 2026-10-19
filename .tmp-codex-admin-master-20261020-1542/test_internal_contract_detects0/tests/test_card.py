@@ -1,0 +1,2 @@
+from engines import telegram_visual_card_engine as cards
+value=cards.ASSET_ROOT

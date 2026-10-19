@@ -174,9 +174,17 @@
     data = data || {};
     $('[data-reliability-summary]').textContent = `${data.state || 'DESCONOCIDO'} · ${data.memory_available ? String(data.total_issues) + ' incidencias en memoria' : 'Memoria no disponible'} · Lectura local, no certifica producción.`;
     const radar = $('[data-reliability-radar]'); radar.replaceChildren();
-    const overflow = node('details'); overflow.append(node('summary','Más señales del radar'));
-    for (const [index,item] of (data.radar?.alerts || []).entries()) {
+    const alerts = Array.isArray(data.radar?.alerts) ? data.radar.alerts.filter((item) => item && typeof item === 'object' && !Array.isArray(item)) : [];
+    const issues = Array.isArray(data.issues) ? data.issues.filter((issue) => issue && typeof issue === 'object' && !Array.isArray(issue)) : [];
+    const issuesById = new Map(issues.map((issue) => [String(issue.id || ''), issue]));
+    const overflow = node('details'); overflow.className = 'master-radar-overflow';
+    overflow.append(node('summary',`Más señales del radar · ${Math.max(0, alerts.length - 3)}`));
+    for (const [index,item] of alerts.entries()) {
       const card = node('article'); card.append(node('strong', `${item.state} · ${item.evidence}`), node('p', item.reason), node('p', item.impact));
+      card.dataset.state = String(item.state || 'DESCONOCIDO');
+      const recurrenceId = typeof item.code === 'string' && item.code.startsWith('recurrence:') ? item.code.slice('recurrence:'.length) : '';
+      const relatedIssue = recurrenceId ? issuesById.get(recurrenceId) : null;
+      if (relatedIssue?.last_seen) card.append(node('small',`Última observación guardada: ${stamp(relatedIssue.last_seen)}`,'master-muted'));
       const href = safeAdminHref(item.href); if (href) { const a = node('a', item.action || 'Revisar'); a.href = href; card.append(a); } (index < 3 ? radar : overflow).append(card);
     }
     if (overflow.childElementCount > 1) radar.append(overflow);

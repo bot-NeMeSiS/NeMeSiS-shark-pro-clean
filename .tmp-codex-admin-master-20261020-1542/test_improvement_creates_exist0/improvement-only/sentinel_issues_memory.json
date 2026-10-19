@@ -1,0 +1,87 @@
+{
+  "version": "V892_SENTINEL_ISSUES_COMMAND_CENTER_COPY_FIX_PROMPTS_FINAL",
+  "created_at_madrid": "2026-10-20T01:16:24+02:00",
+  "updated_at_madrid": "2026-10-20T01:16:24+02:00",
+  "issues": [
+    {
+      "title": "Mejora solicitada desde SHARK Admin",
+      "area": "shark_admin",
+      "severity": "low",
+      "status": "INSUFFICIENT_EVIDENCE",
+      "source": "shark_admin",
+      "detected_at_madrid": "2026-10-20T01:16:24+02:00",
+      "updated_at_madrid": "2026-10-20T01:16:24+02:00",
+      "route": "/live",
+      "screen": "/live",
+      "file": "templates/live.html",
+      "function": "",
+      "evidence": "Prepara mejora para la pantalla Live",
+      "impact": "Afecta a claridad, operacion o confianza del producto si permanece activo.",
+      "risk": "Revisar antes de dar por resuelto.",
+      "recommendation": "Reproducir la solicitud, definir criterios de aceptación y validar permisos, datos reales y experiencia móvil/PC.",
+      "validation": [
+        "pytest tests/test_admin_master_http.py",
+        "python tools/check_admin_master_control.py"
+      ],
+      "tags": [
+        "shark_admin",
+        "shark_admin"
+      ],
+      "resolved_at_madrid": null,
+      "history": [],
+      "occurrences": 1,
+      "last_seen_madrid": "2026-10-20T01:16:24+02:00",
+      "worker": "",
+      "category": "shark_admin",
+      "viewport": "",
+      "element": "",
+      "expected": "",
+      "actual": "",
+      "screenshot": "",
+      "first_seen": "2026-10-20T01:16:24+02:00",
+      "last_seen": "2026-10-20T01:16:24+02:00",
+      "seen_count": 1,
+      "production_sha": "",
+      "confidence": "UNKNOWN",
+      "priority": "P3",
+      "component": "shark_admin",
+      "evidence_origin": "shark_admin",
+      "evidence_history": [
+        {
+          "at_madrid": "2026-10-20T01:16:24+02:00",
+          "evidence": "Prepara mejora para la pantalla Live",
+          "origin": "shark_admin"
+        }
+      ],
+      "worker_sources": [
+        "shark_admin"
+      ],
+      "related_issue_ids": [],
+      "fix_sha": "",
+      "verification": "",
+      "founder_feedback": [],
+      "stable_key": "",
+      "provider": "",
+      "job": "",
+      "exception_type": "",
+      "error_code": "",
+      "root_cause": "",
+      "hypothesis": "",
+      "pr": "",
+      "corrective_action": "",
+      "regression_test": "",
+      "prevention": "",
+      "detection": "",
+      "verification_record": null,
+      "fingerprint": "1fdf217cb77d68fdaf25f45f7753b47f206da8c90b2163a743b7948d448d51aa",
+      "id": "SENT-2026-1FDF217C",
+      "issue_id": "SENT-2026-1FDF217C",
+      "evidence_sufficient": false,
+      "codex_eligible": false,
+      "codex_prompt": "Corrige esta incidencia en NeMeSiS SHARK PRO sin romper nada anterior. ID: SENT-2026-1FDF217C Area: shark_admin Severidad: low Problema: Mejora solicitada desde SHARK Admin Ruta afectada: /live Archivo probable: templates/live.html Evidencia: Prepara mejora para la pantalla Live Impacto: Afecta a claridad, operacion o confianza del producto si permanece activo. Reglas: * No inventar datos. * No tocar secretos. * No romper usuarios, sesiones, membresias, pagos, DB_PATH, Madrid Time, Render Cron ni Telegram dedupe. * Mantener navegacion cliente/admin separada. * Mantener estados seguros si faltan datos reales. Que debes hacer: Reproducir la solicitud, definir criterios de aceptación y validar permisos, datos reales y experiencia móvil/PC. Validaciones obligatorias: * pytest tests/test_admin_master_http.py * python tools/check_admin_master_control.py Entrega: * resumen de cambios; * archivos tocados; * validaciones pasadas; * limitaciones honestas; * ZIP limpio si corresponde.",
+      "copy_text": "[LOW] [shark_admin] Mejora solicitada desde SHARK Admin Ruta: /live Archivo probable: templates/live.html Evidencia: Prepara mejora para la pantalla Live Impacto: Afecta a claridad, operacion o confianza del producto si permanece activo. Recomendacion: Reproducir la solicitud, definir criterios de aceptación y validar permisos, datos reales y experiencia móvil/PC."
+    }
+  ],
+  "events": [],
+  "status_contract": "NEMESIS_ISSUE_LEDGER_V2"
+}

@@ -20,3 +20,19 @@ body.ns-admin:has([data-admin-master-control]) .v933-admin-sidebar nav a:not(.is
 .master-recommendations article>strong,.master-recommendations article>small{display:block}
 .master-recommendations article>a{display:inline-block;margin-top:8px}
 #reliability{scroll-margin-top:155px;min-width:0}#reliability details{margin:12px 0}#reliability summary{cursor:pointer;min-height:44px;padding:10px 0;overflow-wrap:anywhere}#reliability p,#reliability dd{overflow-wrap:anywhere}#reliability form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin:16px 0}#reliability label{display:grid;gap:6px;min-width:0}#reliability input,#reliability select,#reliability button{width:100%;min-width:0;min-height:44px;padding:9px;font:inherit;color:#eaf3ff;background:#0b1b2e;border:1px solid #476684;border-radius:8px}#reliability :focus-visible{outline:2px solid #67d8ff;outline-offset:3px}
+
+/* Give desktop metrics a balanced rhythm and keep the radar scannable. */
+.master-facts{grid-template-columns:repeat(5,minmax(0,1fr))}
+.master-radar-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.master-radar-grid>article,.master-radar-grid>article:last-child{display:flex;flex-direction:column;gap:4px;min-width:0;margin:0;padding:12px;border:1px solid var(--master-line);border-inline-start:3px solid #65829a;border-radius:10px;background:rgba(4,17,31,.62)}
+.master-radar-grid>article[data-state="RIESGO ALTO"],.master-radar-grid>article[data-state="INCIDENTE"]{border-inline-start-color:#f0808c}
+.master-radar-grid>article[data-state="ATENCIÓN"],.master-radar-grid>article[data-state="DESCONOCIDO"]{border-inline-start-color:#e6c36c}
+.master-radar-grid>article[data-state="OBSERVAR"]{border-inline-start-color:#73c6f4}
+.master-radar-grid>article>small{margin-top:2px;line-height:1.45}
+.master-radar-overflow{grid-column:1/-1;margin:0!important;padding-top:4px;border-top:1px solid var(--master-line)}
+.master-radar-overflow>summary{font-weight:650;color:#d7e8f6}
+.master-radar-overflow[open]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.master-radar-overflow[open]>summary{grid-column:1/-1}
+@media(max-width:1100px){.master-facts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:900px){.master-facts{grid-template-columns:repeat(3,minmax(0,1fr))}.master-radar-grid,.master-radar-overflow[open]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.master-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.master-radar-grid,.master-radar-overflow[open]{grid-template-columns:minmax(0,1fr)}}
