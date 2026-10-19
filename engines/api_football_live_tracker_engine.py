@@ -116,6 +116,7 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
         deadline_limited = allowed_timeout < min(float(timeout), 4.0)
         attempted = True
         with urllib.request.urlopen(req, timeout=allowed_timeout) as resp:
+            http_status = int(getattr(resp, "status", 200) or 200)
             payload = json.loads(resp.read().decode("utf-8", "replace"))
         errors = payload.get("errors") or []
         if not isinstance(payload.get("response"), list):
@@ -124,6 +125,7 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
             "ok": not bool(errors),
             "response": payload.get("response") or [],
             "payload": payload,
+            "http_status": http_status,
             "errors": errors,
             "requests": payload.get("paging") or {},
         }
@@ -136,7 +138,10 @@ def _api_get(path: str, params: Optional[Mapping[str, Any]] = None, timeout: int
             # This socket was limited by the local Cron allowance, not proof
             # that the provider is unavailable. Do not stamp a fresh sync.
             raise CronTimeBudget(external_calls=int(attempted)) from None
-        return {"ok": False, "response": [], "error": str(exc)[:300]}
+        status = getattr(exc, "code", None)
+        return {"ok": False, "response": [],
+                "http_status": int(status) if isinstance(status, int) and 100 <= status <= 599 else None,
+                "error": str(exc)[:300]}
 
 
 def _safe_provider_failure_category(payload: Mapping[str, Any] | None) -> str:

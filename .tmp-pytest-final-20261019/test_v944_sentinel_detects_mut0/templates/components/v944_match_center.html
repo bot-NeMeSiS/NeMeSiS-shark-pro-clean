@@ -1,0 +1,710 @@
+{% from "components/v933_ui.html" import action_button, icon, status_chip, team_logo, client_message %}
+
+{% macro canonical_state(value) -%}
+{%- set states = ['loading', 'ready', 'partial', 'finished', 'error', 'offline', 'unknown'] -%}
+{{- value if value in states else 'unknown' -}}
+{%- endmacro %}
+
+{% macro state_label(value) -%}
+{{- ui({'loading':'Cargando','ready':'Disponible','partial':'Información limitada','finished':'Finalizado','error':'No disponible','offline':'Sin conexión'}.get(value,'Pendiente')) -}}
+{%- endmacro %}
+
+{% macro state_notice(component, fallback='No disponible todavía.') -%}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% if state not in ['ready', 'finished'] %}
+<div class="v944-state-notice is-{{ state }}" role="status">
+  {{ icon('info') }}
+  <span>{{ client_message(component.get('message'), fallback) }}</span>
+</div>
+{% endif %}{%- endmacro %}
+
+{% macro transparency_meta(context, key) -%}
+{% if request is defined and request.path.startswith('/admin') %}
+{% set item = (context.get('transparency') or {}).get(key) or {} %}
+<details class="v944-transparency-disclosure">
+  <summary>{{ ui("Calidad del dato") }}</summary>
+  <div class="v944-transparency" data-match-transparency="{{ key }}">
+    <span><b>{{ ui("Procedencia") }}</b>{{ nemesis_source_label(item.get('source')) }}</span>
+    <span><b>{{ ui("Evidencia") }}</b>{{ item.get('evidence') or 'No certificado' }}</span>
+    <span><b>{{ ui("Frescura") }}</b>{{ item.get('freshness') or ui('No disponible') }}</span>
+    <span><b>{{ ui("Confianza") }}</b>{{ item.get('confidence') or 'No probabilística' }}</span>
+  </div>
+  {% if item.get('limitations') %}
+  <ul class="v944-limitations is-compact" aria-label="Limitaciones de {{ key }}">
+    {% for limitation in item.get('limitations')[:2] %}<li>{{ limitation }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</details>{% endif %}{%- endmacro %}
+
+{% macro panel_start(name, component, title, subtitle='', region='') -%}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set eyebrow = {
+  'MatchStory': 'Resumen',
+  'Timeline': 'Hechos',
+  'StatsPanel': 'Datos',
+  'HeadToHeadPanel': 'Historial',
+  'StandingsPanel': 'Tabla',
+  'SharkPanel': 'Inteligencia',
+  'PickPanel': 'Pick',
+  'TelegramPanel': 'Continuidad',
+  'BankrollPanel': 'Responsabilidad',
+  'CompetitionPanel': 'Contexto',
+  'QuickActions': 'Acciones'
+}.get(name, 'Partido') %}
+<section class="v944-match-panel v944-match-panel--{{ name|lower }}"
+         {% if region %}id="match-section-{{ region }}"{% endif %}
+         data-match-component="{{ name }}"
+         data-component-state="{{ state }}"
+         {% if region %}data-match-region="{{ region }}"{% endif %}>
+  <header class="v944-match-panel__header">
+    <div>
+      <span class="v944-match-panel__eyebrow">{{ ui(eyebrow) }}</span>
+      <h2>{{ ui(title) }}</h2>
+      {% if subtitle %}<p>{{ ui(subtitle) }}</p>{% endif %}
+    </div>
+    {% if state not in ['ready', 'finished'] %}<span class="v944-component-state is-{{ state }}">{{ state_label(state) }}</span>{% endif %}
+  </header>{%- endmacro %}
+
+{% macro match_header(context) -%}
+{% set component = context.get('components', {}).get('MatchHeader') or {} %}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set teams = context.get('teams') or {} %}
+{% set home = teams.get('home') or {} %}
+{% set away = teams.get('away') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+{% set competition = context.get('competition') or {} %}
+<header class="v944-match-header"
+        data-match-component="MatchHeader"
+        data-component-state="{{ state }}"
+        data-match-region="header">
+  <h1 class="sr-only">{{ home.get('name') or ui('No disponible') }} vs {{ away.get('name') or ui('No disponible') }}</h1>
+  <div class="v944-match-header__meta">
+    <a href="/calendar" class="v944-back-link">{{ icon('arrow') }}<span>{{ ui("Partidos") }}</span></a>
+    {% if competition.get('href') %}
+    <a class="v944-match-header__competition" href="{{ competition.get('href') }}">{{ competition.get('name') or ui('No disponible') }}</a>
+    {% else %}
+    <span>{{ competition.get('name') or ui('No disponible') }}</span>
+    {% endif %}
+    {% if context.get('favorite') %}{{ status_chip('Favorito', 'gold') }}{% endif %}
+  </div>
+  <div class="v944-match-header__identity">
+    <a class="v944-match-team v944-entity-link" href="{{ home.get('href') or '/calendar' }}" data-entity-contract="team">
+      {{ team_logo(home.get('name'), home.get('logo'), 'lg') }}
+      <strong>{{ home.get('name') or ui('No disponible') }}</strong>
+      <small>{% if home.get('flag') %}<span aria-hidden="true">{{ home.get('flag') }}</span>{% endif %} {{ ui("Local") }}</small>
+    </a>
+    <div class="v944-match-header__status">
+      <span>{{ ui(lifecycle.get('label') or ui('No disponible')) }}</span>
+      {{ score_widget(context) }}
+      <time datetime="{{ context.get('madrid_time', {}).get('iso') or '' }}" data-match-temporal-context="MATCH-TEMPORAL-CONTEXT-V1">
+        {{ ui_match_datetime(context.get('match') or {}, true) }}
+      </time>
+    </div>
+    <a class="v944-match-team v944-match-team--away is-away v944-entity-link" href="{{ away.get('href') or '/calendar' }}" data-entity-contract="team">
+      {{ team_logo(away.get('name'), away.get('logo'), 'lg') }}
+      <strong>{{ away.get('name') or ui('No disponible') }}</strong>
+      <small>{% if away.get('flag') %}<span aria-hidden="true">{{ away.get('flag') }}</span>{% endif %} {{ ui("Visitante") }}</small>
+    </a>
+  </div>
+  {{ state_notice(component, 'La identidad del partido no está disponible.') }}
+</header>{%- endmacro %}
+
+{% macro score_widget(context) -%}
+{% set component = context.get('components', {}).get('ScoreWidget') or {} %}
+{% set state = canonical_state(component.get('state') or 'unknown')|trim %}
+{% set score = context.get('score') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+<section class="v944-score-widget"
+         data-match-component="ScoreWidget"
+         data-component-state="{{ state }}"
+         data-match-region="score"
+         aria-label="{{ ui("Marcador y estado del partido") }}">
+  <span class="v944-score-widget__phase">{{ ui(lifecycle.get('label') or 'Estado pendiente') }}</span>
+  <strong>{{ score.get('label') or 'VS' }}</strong>
+  {% if lifecycle.get('minute') is not none and lifecycle.get('minute') != '' and lifecycle.get('minute') is not sameas false and lifecycle.get('minute') is not sameas true %}<small>{{ lifecycle.get('minute') }}</small>{% endif %}
+  {% if not score.get('confirmed') %}
+  <p>{{ ui("El marcador aparecerá únicamente cuando exista evidencia confirmada.") }}</p>
+  {% endif %}
+  {{ transparency_meta(context, 'score') }}
+</section>{%- endmacro %}
+
+{% macro match_story(context) -%}
+{% set component = context.get('components', {}).get('MatchStory') or {} %}
+{% set story = context.get('story') or {} %}
+{% set factual = ((context.get('summaries') or {}).get('items') or [{}])[0] %}
+{% set postmatch = (context.get('summaries') or {}).get('postmatch') or {} %}
+{% set context_intelligence = context.get('context_intelligence') or {} %}
+{% set context_text = ui_context_copy(context) %}
+{% set recent_form = context.get('recent_form') or {} %}
+{% set conclusions = (context.get('intelligence') or {}).get('conclusions') or {} %}
+{% set risk = conclusions.get('riesgo') or {} %}
+{% set risk_value = risk.get('value') or {} %}
+{{ panel_start('MatchStory', component, 'Resumen del partido', '', 'story') }}
+  <div class="v944-experience-grid"
+       data-sports-domain-model="unified-v1"
+       data-summary-contract="{{ (context.get('summaries') or {}).get('contract') or '' }}"
+       data-summary-ai-calls="{{ (context.get('summaries') or {}).get('generative_ai_calls') or 0 }}"
+       data-summary-unsupported-claims="{{ (context.get('summaries') or {}).get('unsupported_claims') or 0 }}">
+    <article>
+      <span>{{ ui("Estado actual") }}</span>
+      <strong>{{ ui(story.get('phase') or 'Cobertura parcial') }}</strong>
+      <p>{{ ui_match_summary(context) }}</p>
+    </article>
+    <article data-match-context-intelligence="{{ context_intelligence.get('contract') or '' }}">
+      <span>{{ ui("Por qué importa este partido") }}</span>
+      {% if context_intelligence.get('evidence') %}
+      <strong>{{ ui(context_intelligence.get('label') or 'Contexto deportivo insuficiente') }}</strong>
+      <p>{{ context_text.get('headline') or ui('No hay evidencia suficiente para explicar la relevancia deportiva.') }}</p>
+      {% else %}
+      <details class="v944-story-detail"><summary>{{ ui(context_intelligence.get('label') or 'Contexto deportivo insuficiente') }}</summary><p>{{ context_text.get('headline') or ui('No hay evidencia suficiente para explicar la relevancia deportiva.') }}</p></details>
+      {% endif %}
+    </article>
+    {% if risk_value.get('flags') %}<article>
+      <span>{{ ui("Riesgos") }}</span>
+      <strong>{{ ui('Riesgo confirmado') }}</strong>
+      <p>{{ ui('Se muestran solo señales con evidencia.') }}</p>
+    </article>{% endif %}
+  </div>
+  {% if postmatch.get('available') %}
+  <section class="v944-story-detail v944-postmatch-summary"
+           data-postmatch-factual-summary="{{ postmatch.get('contract') or '' }}"
+           data-summary-ai-calls="{{ postmatch.get('generative_ai_calls') or 0 }}"
+           data-summary-unsupported-claims="{{ postmatch.get('unsupported_claims') or 0 }}">
+    <span>{{ ui("Lo esencial del partido") }}</span>
+    <h3>{{ postmatch.get("headline") }}</h3>
+    {% if postmatch.get('key_events') %}
+    <div class="v944-context-list">
+      <strong>{{ ui("Momentos clave confirmados") }}</strong>
+      <ul class="v944-limitations is-compact">
+        {% for event in postmatch.get('key_events')[:6] %}<li>{{ event.get('text') }}</li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% if postmatch.get('key_stats') %}
+    <dl class="v944-context-list">
+      {% for stat in postmatch.get('key_stats')[:5] %}
+      <div><dt>{{ stat.get("label") }}</dt><dd>{{ stat.get("home") or "—" }} · {{ stat.get("away") or "—" }}</dd></div>
+      {% endfor %}
+    </dl>
+    {% endif %}
+    {% if postmatch.get('video_available') %}
+    <p><a class="v933-action is-primary" href="#match-section-video">▶ {{ ui("Ver resumen en vídeo") }}</a></p>
+    {% endif %}
+    <small>{{ ui("Resumen basado en la información confirmada del partido.") }}</small>
+  </section>
+  {% endif %}
+  {% if recent_form.get('available') %}
+  <dl class="v944-context-list v944-limitations" data-recent-form-contract="{{ recent_form.get('contract') or '' }}">
+    {% for side in ['home', 'away'] %}
+    {% set form = recent_form.get(side) or {} %}
+    <div>
+      <dt>{{ form.get('team') or ('Local' if side == 'home' else 'Visitante') }}</dt>
+      <dd>
+        {% if form.get('available') %}
+        {{ ui_form_summary(form) }} · {{ ui('muestra {count}', count=form.get('sample_size')) }}
+        {% else %}
+        {{ ui('No hay resultados finalizados confirmados') }}
+        {% endif %}
+      </dd>
+      {% if form.get('matches') %}
+      <dd>
+        <ul class="v944-recent-results" aria-label="{{ ui('Últimos partidos de') }} {{ form.get('team') or ('Local' if side == 'home' else 'Visitante') }}" data-recent-results-side="{{ side }}">
+          {% for previous in form.get('matches')[:5] %}
+          <li data-recent-result-match="{{ previous.get('match_id') or '' }}">
+            <a href="{{ previous.get('href') or ('/match/' ~ previous.get('match_id')) }}">
+              <strong>{{ previous.get('home_team') }} {{ previous.get('score') }} {{ previous.get('away_team') }}</strong>
+              <small>{{ previous.get('match_date') or ui('Fecha pendiente') }}{% if previous.get('competition_identity', {}).get('name') %} · {{ previous.get('competition_identity', {}).get('name') }}{% endif %}</small>
+            </a>
+            {% for video in previous.get('authorized_highlights') or [] %}
+              {% if video.get('can_link') and video.get('video_url') %}
+              <a class="v944-recent-result-highlight" href="{{ video.get('video_url') }}" target="_blank" rel="noopener noreferrer">▶ {{ ui('Ver resumen autorizado') }}</a>
+              {% elif video.get('can_embed') and previous.get('href') %}
+              <a class="v944-recent-result-highlight" href="{{ previous.get('href') }}#match-section-video">▶ {{ ui('Ver resumen en vídeo') }}</a>
+              {% endif %}
+            {% endfor %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% if recent_form.get('highlight_read_state') == 'DISABLED_BY_ADMIN' %}
+        <small class="muted" role="status">{{ ui('Los resúmenes están en pausa; los resultados siguen disponibles.') }}</small>
+        {% elif recent_form.get('highlight_read_state') != 'VERIFIED' %}
+        <small class="muted" role="status">{{ ui('Los resultados están disponibles; la disponibilidad de vídeos no se pudo comprobar.') }}</small>
+        {% elif not form.get('matches')|selectattr('authorized_highlights')|list %}
+        <small class="muted">{{ ui('Solo se enlazan vídeos con permisos de publicación verificados.') }}</small>
+        {% endif %}
+      </dd>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </dl>
+  {% endif %}
+  {% if (context_intelligence.get('evidence') or [])|length > 1 %}
+  <ul class="v944-limitations is-compact" aria-label="Hechos del contexto">
+    {% for fact in (context_text.get('evidence') or [])[1:4] %}<li>{{ fact }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {{ transparency_meta(context, 'context_intelligence') }}
+  {% if context.get('limitations') %}
+  <details class="v944-story-detail"><summary>{{ ui('Limitaciones de los datos') }}</summary><ul class="v944-limitations" aria-label="{{ ui('Limitaciones de los datos') }}">
+    {% for limitation in context.get('limitations')[:4] %}<li>{{ client_message(limitation, 'Todavía faltan datos para completar este apartado.') }}</li>{% endfor %}
+  </ul></details>
+  {% endif %}
+  {{ state_notice(component) }}
+</section>{%- endmacro %}
+
+{% macro lineups_panel(context) -%}
+{% set component = context.get('components', {}).get('LineupsPanel') or {} %}
+{% set lineups = context.get('lineups') or {} %}
+{{ panel_start('LineupsPanel', component, 'Alineaciones', 'Jugadores confirmados para este partido.', 'lineups') }}
+  {% if lineups.get('confirmed') %}
+  <div class="v944-lineups" data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="confirmed" data-lineup-updated-at="{{ lineups.get('updated_at') or '' }}">
+    <p class="v944-lineup-grid-note v944-lineup-observation">
+      {% if lineups.get('updated_at') %}
+      {{ ui('Última observación guardada:') }} <time datetime="{{ lineups.get('updated_at') }}">{{ lineups.get('updated_at')|sync_madrid_label }}</time>
+      {% else %}
+      {{ ui('No hay una hora de observación confirmada; estos datos no se presentan como un directo.') }}
+      {% endif %}
+    </p>
+    {% if lineups.get('grid_pitch_available') %}<p class="v944-lineup-grid-note" data-lineup-grid-contract="{{ lineups.get('grid_pitch_contract') }}">{{ ui('La cuadrícula muestra las posiciones de salida confirmadas por el proveedor; no representa recorridos, posesión por zonas ni un mapa de calor.') }}</p>{% endif %}
+    {% for team in lineups.get('teams') or [] %}
+    <section class="v944-lineup-team">
+      <header>{% if team.get('href') %}<a class="v944-entity-link" href="{{ team.get('href') }}" data-entity-contract="team"><strong>{{ team.get('team_name') or ui('Equipo') }}</strong></a>{% else %}<strong>{{ team.get('team_name') or ui('Equipo') }}</strong>{% endif %}<span>{{ team.get('formation') or ui('Formación no disponible') }}</span></header>
+      {% if team.get('grid_pitch_available') %}
+      <div class="v944-lineup-grid-pitch" aria-label="{{ ui('Posiciones de salida confirmadas de') }} {{ team.get('team_name') or ui('Equipo') }}" data-lineup-grid="provider-confirmed" style="--lineup-grid-rows: {{ team.get('grid_rows') }}; --lineup-grid-columns: {{ team.get('grid_columns') }};">
+        <small class="v944-lineup-grid-pitch__orientation">{{ ui('Portería propia · posiciones de salida') }}</small>
+        <div class="v944-lineup-grid-pitch__players" role="list">
+          {% for player in team.get('starters') or [] %}
+          <a role="listitem" href="{{ player.get('href') }}" aria-label="{{ player.get('name') }} · {{ player.get('position') or ui('Posición no disponible') }}" style="grid-row: {{ player.get('grid_row') }}; grid-column: {{ player.get('grid_column') }};">
+            <b>{{ player.get('number') or '—' }}</b><span>{{ player.get('name') }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% elif lineups.get('pitch_available') %}
+      <p class="v944-lineup-grid-note">{{ ui('Vista agrupada por demarcación. La cuadrícula de salida no está completa, así que no se dibujan coordenadas.') }}</p>
+      <div class="v944-lineup-pitch" aria-label="Once inicial agrupado por demarcación">
+        {% for band in ['GK','DEF','MID','FWD'] %}
+        <div class="is-{{ band|lower }}">
+          {% for player in team.get('starters') or [] if player.get('position_band') == band %}
+          <a href="{{ player.get('href') }}" data-entity-contract="player"><b>{{ player.get('number') or '' }}</b><span>{{ player.get('name') }}</span></a>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="v944-lineup-list">
+        {% for player in team.get('starters') or [] %}
+        <a href="{{ player.get('href') }}" data-entity-contract="player"><b>{{ player.get('number') or '—' }}</b><span>{{ player.get('name') }}</span><small>{{ player.get('position') or 'Posición no disponible' }}</small></a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if team.get('substitutes') %}
+      <details class="v944-lineup-substitutes"><summary>{{ ui("Suplentes ·") }} {{ team.get('substitutes')|length }}</summary><div>
+        {% for player in team.get('substitutes') %}<a href="{{ player.get('href') }}" data-entity-contract="player">{{ player.get('number') or '—' }} · {{ player.get('name') }}</a>{% endfor %}
+      </div></details>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div data-lineups-contract="{{ lineups.get('contract') }}" data-lineup-state="not_confirmed"></div>
+  {{ state_notice(component, 'Alineación todavía no confirmada.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'lineups') }}
+</section>{%- endmacro %}
+
+{% macro odds_panel(context) -%}
+{% set odds = context.get('odds') or {} %}
+{% set market_forecast = context.get('market_forecast') or {} %}
+<section class="v944-match-panel" id="match-section-odds" data-match-region="persisted-odds">
+  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui('Mercado 1X2') }}</span><h2>{{ ui('Cuotas del partido') }}</h2></div></header>
+  {% if odds.get('available') %}
+  <p>{{ odds.get('bookmaker') }}</p>
+  <dl class="ns-match-odds">{% for item in odds.get('items') %}<div><dt>{{ item.get('label') }}</dt><dd>{{ '%.2f'|format(item.get('price')) }}</dd></div>{% endfor %}</dl>
+  <p role="status">{{ ui(odds.get('message')) }}</p>
+  <p class="market-forecast-source">{{ ui('Fuente') }}: {{ odds.get('source') or ui('Sin dato') }} · {{ ui('Casa') }}: {{ odds.get('bookmaker') or ui('Sin dato') }}</p>
+  <small>{{ ui('Actualización:') }} <time datetime="{{ odds.get('observed_at') }}">{{ odds.get('observed_label') }}</time></small>
+  {% if market_forecast.get('available') %}
+  <section class="market-forecast-card" data-market-forecast="current" aria-label="{{ ui('Lectura actual del mercado 1X2') }}">
+    <header><strong>{{ ui('Lectura implícita del mercado 1X2') }}</strong><span>{{ ui('Referencia informativa; no es un pronóstico de SHARK.') }}</span></header>
+    <div class="market-forecast-outcomes">
+      {% for outcome in market_forecast.get('outcomes') or [] %}
+      <div class="market-forecast-outcome" data-outcome="{{ outcome.get('key') }}">
+        <div class="market-forecast-outcome-heading"><strong>{{ outcome.get('short_label') }} · {{ outcome.get('label') }}</strong><b>{{ '%.1f'|format(outcome.get('probability_pct') or 0) }}%</b></div>
+        <div class="market-forecast-track" aria-hidden="true"><span style="width: {{ outcome.get('probability_pct') or 0 }}%"></span></div>
+        <small>{{ ui('Cuota observada') }} {{ '%.2f'|format(outcome.get('odds') or 0) }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    {% if market_forecast.get('favorite') %}<p class="market-forecast-favorite"><strong>{{ ui('Mayor probabilidad implícita') }}:</strong> {{ market_forecast.favorite.label }} · {{ '%.1f'|format(market_forecast.favorite.probability_pct or 0) }}%</p>{% endif %}
+    <p class="market-forecast-note">{{ ui(market_forecast.get('method')) }} {{ ui(market_forecast.get('disclaimer')) }}</p>
+    <p class="market-forecast-source">{{ ui('Fuente') }}: {{ market_forecast.get('source') }} · {{ ui('Casa') }}: {{ market_forecast.get('bookmaker') }} · {{ ui('Actualizada') }}: {{ market_forecast.get('observed_label') or market_forecast.get('observed_at') }}</p>
+  </section>
+  {% else %}
+  <p class="market-forecast-unavailable" data-market-forecast="{{ market_forecast.get('state') or 'unavailable' }}">{{ ui(market_forecast.get('message') or 'No hay cuotas actuales completas para calcular una lectura de mercado.') }}</p>
+  {% endif %}
+  {% else %}<p role="status">{{ ui('Todavía no hay cuotas confirmadas para este partido.') }}</p>{% endif %}
+</section>
+{%- endmacro %}
+
+{% macro video_panel(context, recovery={}) -%}
+{% set media = context.get('media') or {} %}
+<section class="v944-match-panel v944-video-panel" id="match-section-video" data-match-region="{{ 'authorized-video' if media.get('visible_count') else 'video-availability' }}" data-rights-contract="NEMESIS-MEDIA-RIGHTS-GUARD-V1">
+  <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui("Vídeo") }}</span><h2>{{ ui("Resumen en vídeo") }}</h2></div></header>
+  {% for video in media.get('visible_videos') or [] %}
+  <article data-rights-decision="{{ video.get('decision') or '' }}" data-media-content-type="video" data-postmatch-video>
+    <h3>{{ video.get('title') or ui('Resumen del partido') }}</h3>
+    {% if video.get('official_source_verified') %}<p>{{ ui('Fuente oficial verificada') }}</p>{% endif %}
+    {% if video.get('can_embed') %}
+    <div class="v944-video-frame" data-video-mount hidden style="display:none"></div>
+    <button type="button" class="v933-action is-primary" data-video-activate="{{ video.get('embed_url') }}">{{ ui('Cargar reproductor externo') }}</button>
+    <p class="small muted" data-video-notice role="status">{{ ui('Al cargar el reproductor se conectará con la plataforma del vídeo. No se inicia la reproducción automáticamente.') }}</p>
+    {% endif %}
+    {% if video.get('can_link') %}<p><a class="v944-video-link" href="{{ video.get('original_url') }}" rel="noopener noreferrer" target="_blank">{{ ui("Ver en la plataforma original") }}</a></p>{% endif %}
+    {% if video.get('attribution') %}<small>{{ ui("Fuente:") }} {{ video.get('attribution') }}</small>{% endif %}
+  </article>
+  {% else %}
+    {% if media.get('read_state') == 'DISABLED_BY_ADMIN' %}<p role="status">{{ ui('Los resúmenes están temporalmente en pausa. El resto de información del partido sigue disponible.') }}</p>
+    {% elif media.get('read_state') != 'VERIFIED' %}<p role="status">{{ ui('No se pudo comprobar ahora la disponibilidad del resumen. Esto no significa que el partido carezca de vídeo.') }}</p>
+    {% elif context.get('lifecycle', {}).get('is_finished') %}<p role="status">{{ ui('Resumen todavía no disponible. Solo aparecerá un vídeo asociado a este encuentro y con publicación permitida.') }}</p>
+    {% else %}<p role="status">{{ ui('Todavía no hay resumen de este encuentro. La disponibilidad depende de la publicación de la fuente.') }}</p>{% endif %}
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{% macro timeline(context) -%}
+{% set component = context.get('components', {}).get('Timeline') or {} %}
+{% set event_summary = context.get('event_summary') or {} %}
+{{ panel_start('Timeline', component, 'Cronología', 'Hechos confirmados del partido.', 'timeline') }}
+  {% if event_summary.get('available') %}
+  <ol class="v944-timeline" data-event-source="{{ event_summary.get('source') or '' }}" data-timeline-event-contract="{{ event_summary.get('contract') or '' }}">
+    {% for event in event_summary.get('items') or [] %}
+    {% set event_label = event.get('label') or '' %}
+    <li class="is-{{ event.get('type') or 'unknown' }}" data-event-id="{{ event.get('id') or '' }}" data-canonical-timeline-event="{{ event.get('timeline_event_contract') or '' }}">
+      <time>{{ event.get('minute_label') or ui('No disponible') }}</time>
+      <span>
+        <strong>{{ ui('Evento confirmado' if event_label|lower in ['unknown', 'desconocido'] else event_label or 'Evento confirmado') }}{% if event.get('team') %} · {{ event.get('team') }}{% endif %}</strong>
+        <small>
+          {% if event.get('player') %}{% if event.get('player_href') %}<a href="{{ event.get('player_href') }}" data-entity-contract="player">{{ event.get('player') }}</a>{% else %}{{ event.get('player') }}{% endif %}{% endif %}
+          {% if event.get('related_player') %}<span> · {% if event.get('related_player_href') %}<a href="{{ event.get('related_player_href') }}" data-entity-contract="player">{{ event.get('related_player') }}</a>{% else %}{{ event.get('related_player') }}{% endif %}</span>{% endif %}
+          {% if event.get('detail') %}<span> · {{ ui(event.get('detail')) }}</span>{% endif %}
+          {% if not event.get('player') and not event.get('related_player') and not event.get('detail') %}{{ ui("No disponible") }}{% endif %}
+        </small>
+      </span>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="v944-panel-footnote">{{ ui_plural('{count} evento confirmado', '{count} eventos confirmados', event_summary.get('count')) }}{% if event_summary.get('excluded_without_evidence') %} · {{ ui_plural('{count} excluido sin evidencia suficiente', '{count} excluidos sin evidencia suficiente', event_summary.get('excluded_without_evidence')) }}{% endif %}</p>
+  {% else %}
+  {{ state_notice(component, 'No disponible.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'timeline') }}
+</section>{%- endmacro %}
+
+{% macro stats_panel(context) -%}
+{% set component = context.get('components', {}).get('StatsPanel') or {} %}
+{% set statistics = context.get('statistics') or {} %}
+{% set teams = context.get('teams') or {} %}
+{% set possession = statistics.get('possession') or {} %}
+{{ panel_start('StatsPanel', component, 'Estadísticas', 'Datos del partido y estado de actualización.', 'stats') }}
+  {% if statistics.get('available') %}
+  {% set activity = statistics.get('activity_index') or {} %}
+  {% if activity.get('available') %}
+  <section class="v944-activity-index" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
+    <div class="v934-live-activity__heading"><strong>{{ ui('Actividad estadística orientativa') }}</strong><span>{{ ui('Estimación NeMeSiS · no es un dato del proveedor') }}</span></div>
+    <div class="v934-live-activity__bar" role="img" aria-label="{{ ui('Índice estadístico orientativo:') }} {{ teams.get('home', {}).get('name') or ui('Local') }} {{ activity.get('home_pct') }}%, {{ teams.get('away', {}).get('name') or ui('Visitante') }} {{ activity.get('away_pct') }}%.">
+      <span class="is-home" style="width: {{ activity.get('home_pct') }}%"></span><span class="is-away" style="width: {{ activity.get('away_pct') }}%"></span>
+    </div>
+    <div class="v934-live-activity__teams"><span>{{ teams.get('home', {}).get('name') or ui('Local') }} <b>{{ activity.get('home_pct') }}%</b></span><span>{{ teams.get('away', {}).get('name') or ui('Visitante') }} <b>{{ activity.get('away_pct') }}%</b></span></div>
+    <small>{{ ui('Estimación calculada con estadísticas guardadas. No es posesión oficial, un pronóstico ni un mapa de zonas.') }}{% if activity.get('observed_at') %} {{ ui('Estadísticas observadas:') }} <time datetime="{{ activity.get('observed_at') }}">{{ activity.get('observed_at')|sync_madrid_label }}</time>{% endif %}</small>
+  </section>
+  {% endif %}
+  <section class="v944-possession" data-possession-source="{{ possession.get('source') or '' }}" data-possession-available="{{ 'true' if possession.get('available') else 'false' }}" data-visualization="aggregate-share" data-spatial-map-available="false" aria-label="{{ ui('Reparto total de posesión') }}">
+    <div class="v944-possession__heading">
+      <strong>{{ ui('Posesión del balón') }}</strong>
+      <span>{{ ui('Dato real del proveedor') }}</span>
+    </div>
+    {% if possession.get('available') %}
+    {% set home_name = teams.get('home', {}).get('name') or ui('Local') %}
+    {% set away_name = teams.get('away', {}).get('name') or ui('Visitante') %}
+    <div class="v944-possession__pitch" role="img" aria-label="{{ ui('Reparto porcentual de posesión:') }} {{ home_name }} {{ possession.get('home_display') }}, {{ away_name }} {{ possession.get('away_display') }}.">
+      <span class="v944-possession__share is-home" style="width: {{ possession.get('home_bar_pct') }}%"></span>
+      <span class="v944-possession__share is-away" style="width: {{ possession.get('away_bar_pct') }}%"></span>
+      <span class="v944-possession__midline" aria-hidden="true"></span>
+    </div>
+    <div class="v944-possession__teams">
+      <span><strong>{{ home_name }}</strong><b>{{ possession.get('home_display') }}</b></span>
+      <span><strong>{{ away_name }}</strong><b>{{ possession.get('away_display') }}</b></span>
+    </div>
+    <small class="v944-possession__note">{{ ui('Reparto total de posesión; no es un mapa de zonas ni la ubicación del balón.') }}</small>
+    {% else %}
+    <p class="v944-possession__unavailable">{{ ui('El proveedor no ha entregado la posesión de este partido.') }}</p>
+    {% endif %}
+  </section>
+  <div class="v944-stats" role="table" aria-label="Estadísticas del partido" data-stat-source="{{ statistics.get('source') or '' }}">
+    <div class="v944-stats__header" role="row">
+      <strong role="columnheader">{{ teams.get('home', {}).get('name') or 'Local' }}</strong>
+      <span role="columnheader">{{ ui("Dato") }}</span>
+      <strong role="columnheader">{{ teams.get('away', {}).get('name') or 'Visitante' }}</strong>
+    </div>
+    {% for stat in statistics.get('items') or [] %}
+    <div class="v944-stats__row is-{{ stat.get('leader') or 'even' }}" role="row">
+      <span role="cell">{{ stat.get('home') or ui('No disponible') }}</span>
+      <strong role="rowheader">{{ ui(stat.get('label')) }}</strong>
+      <span role="cell">{{ stat.get('away') or ui('No disponible') }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No disponible.') }}
+  {% endif %}
+  {% if statistics.get('available') %}
+  <p class="v944-panel-footnote">{{ ui(statistics.get('message') or 'Estadísticas del partido disponibles.') }}{% if statistics.get('updated_at') %} {{ ui('Actualizadas:') }} <time datetime="{{ statistics.get('updated_at') }}">{{ statistics.get('updated_at')|madrid_datetime_label }}</time>{% endif %}</p>
+  {% endif %}
+  {{ transparency_meta(context, 'statistics') }}
+</section>{%- endmacro %}
+
+{% macro head_to_head_panel(context) -%}
+{% set component = context.get('components', {}).get('HeadToHeadPanel') or {} %}
+{% set h2h = context.get('head_to_head') or {} %}
+{{ panel_start('HeadToHeadPanel', component, 'Enfrentamientos directos', 'Resultados confirmados entre ambos equipos.', 'h2h') }}
+  {% if h2h.get('available') %}
+  <div class="v944-h2h-list" data-h2h-contract="{{ h2h.get('contract') }}" data-h2h-source="{{ h2h.get('source') or '' }}">
+    {% for item in h2h.get('items') or [] %}
+    <article data-h2h-fixture="{{ item.get('fixture_id') or item.get('match_id') or '' }}">
+      <time datetime="{{ item.get('kickoff_iso') or '' }}">{{ ui_match_datetime(item) }}</time>
+      <span>
+        <b>{% set h2h_home_href = sports_entity_href('team', item.get('home_team_id') or item.get('home_team'), item.get('home_team')) %}{% if h2h_home_href %}<a class="v944-entity-link" href="{{ h2h_home_href }}" data-entity-contract="team">{{ item.get('home_team') }}</a>{% else %}{{ item.get('home_team') }}{% endif %}</b>
+        <strong>{{ item.get('score') or 'Resultado no disponible' }}</strong>
+        <b>{% set h2h_away_href = sports_entity_href('team', item.get('away_team_id') or item.get('away_team'), item.get('away_team')) %}{% if h2h_away_href %}<a class="v944-entity-link" href="{{ h2h_away_href }}" data-entity-contract="team">{{ item.get('away_team') }}</a>{% else %}{{ item.get('away_team') }}{% endif %}</b>
+      </span>
+      {% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="match">{{ ui("Ver partido") }}</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No hay enfrentamientos directos confirmados.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'head_to_head') }}
+</section>{%- endmacro %}
+
+{% macro standings_panel(context) -%}
+{% set component = context.get('components', {}).get('StandingsPanel') or {} %}
+{% set standings = context.get('standings') or {} %}
+{{ panel_start('StandingsPanel', component, 'Clasificación', 'Instantánea guardada de la competición y temporada indicadas.', 'standings') }}
+  {% if standings.get('available') %}
+  <div class="v944-standings-scroll">
+    <table class="v944-standings"
+           data-standings-contract="{{ standings.get('contract') }}"
+           data-standings-source="{{ standings.get('source') or '' }}"
+           data-standings-season="{{ standings.get('season') or '' }}"
+           data-standings-temporal-state="{{ standings.get('temporal_state') or 'unknown' }}">
+      <thead><tr><th>{{ ui("Pos.") }}</th><th>{{ ui("Equipo") }}</th><th>{{ ui("PJ") }}</th><th>{{ ui("DG") }}</th><th>{{ ui("Pts.") }}</th></tr></thead>
+      <tbody>
+      {% for item in standings.get('rows') or [] %}
+      <tr>
+        <td>{{ item.get('position') }}</td>
+        <th>{% if item.get('href') %}<a href="{{ item.get('href') }}" data-entity-contract="team">{{ item.get('team_name') }}</a>{% else %}{{ item.get('team_name') }}{% endif %}</th>
+        <td>{{ item.get('played') if item.get('played') is not none else '—' }}</td>
+        <td>
+          {% if item.get('goals_for') is not none and item.get('goals_against') is not none %}
+          {{ item.get('goals_for') - item.get('goals_against') }}
+          {% else %}—{% endif %}
+        </td>
+        <td><strong>{{ item.get('points') if item.get('points') is not none else '—' }}</strong></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="v944-panel-footnote">
+    {% if standings.get('season') %}Temporada {{ standings.get('season') }} · {% endif %}
+    Observada: {{ standings.get('updated_at')|sync_madrid_label if standings.get('updated_at') else 'momento no disponible' }}.
+    {% if standings.get('temporal_state') == 'post_match_snapshot' %}No se utiliza para explicar retrospectivamente el contexto previo.{% endif %}
+  </p>
+  {% else %}
+  {{ state_notice(component, 'No hay clasificación confirmada para esta competición.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'standings') }}
+</section>{%- endmacro %}
+
+{% macro shark_panel(context) -%}
+{% set component = context.get('components', {}).get('SharkPanel') or {} %}
+{% set shark = ui_shark_copy(context) %}
+{{ panel_start('SharkPanel', component, 'Inteligencia', 'Análisis disponible según la evidencia del partido.', 'shark') }}
+  {% if shark.get('available') %}
+  <div class="v944-shark-context"
+       data-shark-evidence="confirmed"
+       data-match-intelligence-consumer="shark"
+       data-match-intelligence-contract="{{ shark.get('contract') or '' }}">
+    <strong>{{ shark.get('headline') or 'Contexto disponible' }}</strong>
+    {% if shark.get('phase') %}<p>{{ shark.get('phase') }}</p>{% endif %}
+    {% if shark.get('signals') %}
+    <ul>{% for signal in shark.get('signals') %}<li>{{ signal }}</li>{% endfor %}</ul>
+    {% endif %}
+    <details class="v944-shark-evidence"><summary>{{ ui('Evidencia') }}</summary>
+    <small data-match-intelligence-explainability="evidence">
+      {{ shark.get('quality_label') or 'Evidencia parcial' }}
+      {% if shark.get('evidence') %} · {{ shark.get('evidence')|join(', ') }}{% endif %}
+    </small>
+    </details>
+  </div>
+  {% else %}
+  {{ state_notice(component, 'No disponible.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'intelligence') }}
+  <p class="v944-safe-copy">{{ ui("SHARK no completa conclusiones, riesgos ni recomendaciones cuando faltan datos suficientes.") }}</p>
+  {{ action_button('Abrir SHARK', '/shark?match=' ~ (context.get('match', {}).get('id') or ''), false, 'cyan', false, 'shark') }}
+</section>{%- endmacro %}
+
+{% macro pick_panel(context) -%}
+{% set component = context.get('components', {}).get('PickPanel') or {} %}
+{% set picks = context.get('picks') or {} %}
+{% set primary = picks.get('primary') or {} %}
+{% set lifecycle = context.get('lifecycle') or {} %}
+{{ panel_start('PickPanel', component, 'Pick del partido', 'Pronóstico disponible para este partido.' if picks.get('available') else 'No hay pronóstico publicado para este partido.', 'pick') }}
+  {% if picks.get('available') %}
+  <div class="v944-experience-grid"
+       data-match-pick-contract="{{ picks.get('contract') or '' }}"
+       data-match-pick-ready="{{ 'true' if primary.get('decision_ready') else 'false' }}"
+       data-match-pick-invented-fields="{{ picks.get('invented_fields') or 0 }}">
+    <article>
+      <span>{{ ui("Qué apostar") }}</span>
+      <strong>{{ primary.get('selection') or ui('Selección pendiente') }}</strong>
+      <p>{{ primary.get('market') or ui('Mercado pendiente') }}</p>
+    </article>
+    <article>
+      <span>{{ ui("Cuota") }}</span>
+      <strong>{% if primary.get('odds') is not none %}{{ primary.get('odds') }}{% else %}{{ ui('Pendiente') }}{% endif %}</strong>
+      {% if primary.get('bookmaker') %}<p>{{ primary.get('bookmaker') }}</p>{% endif %}
+    </article>
+    <article>
+      <span>{{ ui("Riesgo y confianza") }}</span>
+      <strong>
+        {% if primary.get('risk') %}{{ primary.get('risk') }}{% else %}{{ ui('Riesgo no indicado') }}{% endif %}
+      </strong>
+      {% if primary.get('confidence') is not none %}<p>{{ ui("Confianza") }}: {{ primary.get('confidence') }}/100</p>{% endif %}
+    </article>
+  </div>
+
+  {% if primary.get('stake') %}
+  <dl class="v944-context-list">
+    <div><dt>{{ ui("Stake orientativo") }}</dt><dd>{{ primary.get('stake') }}</dd></div>
+    {% if primary.get('membership_required') %}<div><dt>{{ ui("Plan") }}</dt><dd>{{ primary.get('membership_required') }}</dd></div>{% endif %}
+    {% if primary.get('result_label') %}<div><dt>{{ ui("Resultado del pick") }}</dt><dd>{{ primary.get('result_label') }}</dd></div>{% endif %}
+  </dl>
+  {% elif primary.get('result_label') %}
+  <dl class="v944-context-list"><div><dt>{{ ui("Resultado del pick") }}</dt><dd>{{ primary.get('result_label') }}</dd></div></dl>
+  {% endif %}
+
+  {% if primary.get('reasoning') %}
+  <article class="v944-story-detail" data-pick-evidence="reasoning">
+    <strong>{{ ui("Por qué sí") }}</strong>
+    <p>{{ primary.get('reasoning') }}</p>
+  </article>
+  {% endif %}
+  {% if primary.get('warning') %}
+  <article class="v944-story-detail" data-pick-evidence="warning">
+    <strong>{{ ui("Por qué no") }}</strong>
+    <p>{{ primary.get('warning') }}</p>
+  </article>
+  {% endif %}
+
+  {% if not primary.get('decision_ready') %}
+  <p class="v944-safe-copy" role="status">{{ ui("El pick relacionado no tiene selección, mercado y cuota confirmados al mismo tiempo. No se presenta como entrada lista.") }}</p>
+  {% elif lifecycle.get('is_live') %}
+  <p class="v944-safe-copy">{{ ui("Pick publicado antes o durante el encuentro: revisa el estado actual antes de tomar cualquier decisión.") }}</p>
+  {% elif lifecycle.get('is_finished') and not primary.get('result_label') %}
+  <p class="v944-safe-copy">{{ ui("El partido terminó, pero el resultado del pick todavía no está liquidado en el histórico.") }}</p>
+  {% endif %}
+  {% else %}
+  {{ state_notice(component, 'No hay pick publicado para este partido.') }}
+  {% endif %}
+  {{ transparency_meta(context, 'picks') }}
+  <p class="v944-safe-copy">{{ ui("NeMeSiS no convierte una ausencia de datos en una recomendación.") }}</p>
+  {{ action_button('Ver todos los picks', '/picks', false, 'blue', false, 'target') }}
+</section>{%- endmacro %}
+
+{% macro telegram_panel(context) -%}
+{% set component = context.get('components', {}).get('TelegramPanel') or {} %}
+{{ panel_start('TelegramPanel', component, 'Telegram', 'Gestiona tus avisos de partidos.', 'telegram') }}
+  {{ state_notice(component) }}
+  {{ action_button('Ver mis avisos', '/telegram', false, 'blue', false, 'telegram') }}
+</section>{%- endmacro %}
+
+{% macro bankroll_panel(context) -%}
+{% set component = context.get('components', {}).get('BankrollPanel') or {} %}
+{{ panel_start('BankrollPanel', component, 'Bankroll', 'Exposición voluntaria y juego responsable.', 'bankroll') }}
+  {{ state_notice(component) }}
+  <p class="v944-safe-copy">{{ ui("Ninguna cifra de gestión se calcula sin una selección y una cuota reales.") }}</p>
+</section>{%- endmacro %}
+
+{% macro competition_panel(context) -%}
+{% set component = context.get('components', {}).get('CompetitionPanel') or {} %}
+{% set competition = context.get('competition') or {} %}
+{% set teams = context.get('teams') or {} %}
+{% set facts = context.get('facts') or {} %}
+{% set context_rows = [('Jornada o fase', competition.get('round')), ('País', competition.get('country')), ('Temporada', facts.get('season')), ('Estadio', facts.get('stadium')), ('Ciudad', facts.get('city')), ('Árbitro', facts.get('referee'))] %}
+{% set absent = namespace(labels=[]) %}
+{{ panel_start('CompetitionPanel', component, 'Contexto', 'Competición, sede, equipos y responsables confirmados.', 'competition') }}
+  <dl class="v944-context-list">
+    <div><dt>{{ ui("Competición") }}</dt><dd>{% if competition.get('href') %}<a href="{{ competition.get('href') }}" data-entity-contract="competition">{{ competition.get('name') or ui('No disponible') }}</a>{% else %}{{ competition.get('name') or ui('No disponible') }}{% endif %}</dd></div>
+    {% for label, value in context_rows %}
+      {% if value is not none and value|string|trim != '' %}
+      <div><dt>{{ ui(label) }}</dt><dd>{{ ui_owned(value) if label == 'Jornada o fase' else value }}</dd></div>
+      {% else %}{% set _ = absent.labels.append(ui(label)) %}{% endif %}
+    {% endfor %}
+  </dl>
+  {% if absent.labels %}
+  <details class="v944-coverage-details" data-missing-context>
+    <summary>{{ ui('Contexto aún no disponible') }}</summary>
+    <p>{{ absent.labels|join(' · ') }}</p>
+  </details>
+  {% endif %}
+  {{ transparency_meta(context, 'data_quality') }}
+  <div class="v944-related-teams" data-match-region="related-teams">
+    <span>{{ ui("Equipos relacionados") }}</span>
+    <a href="{{ teams.get('home', {}).get('href') or '/calendar' }}" data-entity-contract="team">{{ teams.get('home', {}).get('name') or ui('No disponible') }}</a>
+    <a href="{{ teams.get('away', {}).get('href') or '/calendar' }}" data-entity-contract="team">{{ teams.get('away', {}).get('name') or ui('No disponible') }}</a>
+  </div>
+  {{ state_notice(component) }}
+</section>{%- endmacro %}
+
+{% macro quick_actions(context) -%}
+{% set component = context.get('components', {}).get('QuickActions') or {} %}
+{{ panel_start('QuickActions', component, 'Continuar', '', 'quick-actions') }}
+  <div class="v944-quick-actions">
+    {{ action_button('Volver al calendario', '/calendar', true, 'cyan', false, 'calendar') }}
+    {{ action_button('Consultar picks', '/picks', false, 'blue', false, 'target') }}
+  </div>
+</section>{%- endmacro %}
+
+{% macro data_quality_panel(context) -%}
+{% set freshness = (context.get('domain_model') or {}).get('freshness') or {} %}
+<section class="v944-match-panel v944-domain-quality" data-match-region="evidence-quality" data-sports-domain-model="unified-v1">
+  <header class="v944-match-panel__header">
+    <div>
+      <span class="v944-match-panel__eyebrow">{{ ui("Evidencia") }}</span>
+      <h2>{{ ui("Calidad, frescura e información ausente") }}</h2>
+      <p>{{ ui("Todo lo que el Centro del partido sabe, no sabe y deja pendiente.") }}</p>
+    </div>
+  </header>
+  <div class="v944-quality-grid">
+    <span><b>{{ ui("Fuente") }}</b>{{ (context.get('evidence') or {}).get('source') or 'Fuente no identificada' }}</span>
+    <span><b>{{ ui("Actualización") }}</b>{{ (context.get('evidence') or {}).get('updated_at')|sync_madrid_label }}</span>
+    <span><b>{{ ui("Frescura") }}</b>{{ ((context.get('transparency') or {}).get('data_quality') or {}).get('freshness') or ui('No disponible') }}</span>
+    <span><b>{{ ui("Grafo") }}</b>{{ (context.get('sports_graph') or {}).get('edge_count') or 0 }} {{ ui("relaciones preparadas") }}</span>
+  </div>
+  {% if context.get('absent_information') %}
+  <ul class="v944-limitations" aria-label="{{ ui("Información ausente") }}">
+    {% for item in context.get('absent_information')[:5] %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p class="v944-safe-copy">{{ ui("No hay información ausente crítica en este snapshot.") }}</p>
+  {% endif %}
+  <div class="v944-integration-strip" aria-label="Integraciones preparadas">
+    {% for item in context.get('prepared_integrations') or [] %}
+    <span><b>{{ item.get('name') }}</b>{{ item.get('state') }}</span>
+    {% endfor %}
+  </div>
+</section>{%- endmacro %}

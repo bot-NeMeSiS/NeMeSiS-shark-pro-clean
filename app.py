@@ -2871,50 +2871,79 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         compact["technical_errors"] = result.get("technical_errors") or []
     if endpoint == "odds_sync":
         from engines.odds_provider_errors import KNOWN_ODDS_ERROR_CODES
-        quota = result.get("quota") or {}
+        provider_results = result.get("provider_results") if isinstance(result.get("provider_results"), dict) else None
+        api_football = (provider_results.get("api_football") or {}) if provider_results else {}
+        the_odds_api = (provider_results.get("the_odds_api") or {}) if provider_results else {}
+        api_football_calls = as_int(api_football.get("external_calls"), 0) if provider_results else 0
+        the_odds_api_calls = as_int(the_odds_api.get("external_calls"), 0) if provider_results else 0
+        quota = (the_odds_api.get("quota") or {}) if provider_results else (result.get("quota") or {})
         # Do not relabel counters from an older cached sync as observations from
         # this tick. The master Cron needs to distinguish received fixtures,
         # usable 1X2 markets, and rows actually persisted.
-        provider_observation_current = as_int(result.get("external_calls"), 0) > 0
+        provider_observation_current = (
+            api_football_calls + the_odds_api_calls > 0
+            if provider_results else as_int(result.get("external_calls"), 0) > 0
+        )
+        quota_observation_current = (
+            the_odds_api_calls > 0 if provider_results else provider_observation_current
+        )
+        provider_name = ""
+        provider_http = None
+        if provider_results:
+            if api_football_calls and the_odds_api_calls:
+                provider_name = "MULTIPLE"
+            elif api_football_calls:
+                provider_name = "API_FOOTBALL"
+                provider_http = api_football.get("provider_http")
+            elif the_odds_api_calls:
+                provider_name = "THE_ODDS_API"
+                provider_http = quota.get("http_status")
         compact["reason"] = _SPORTS_ODDS_DIAGNOSTIC_REASONS.get(str(result.get("reason") or ""), "")
         compact["skipped"] = bool(result.get("skipped"))
         compact["provider_failure_backoff"] = bool(result.get("provider_failure_backoff"))
         compact["retry_after"] = _sports_diagnostic_timestamp(result.get("retry_after"))
+        compact["provider_observation_provider"] = provider_name
         provider_error_code = quota.get("error_code") if quota.get("error_code") in KNOWN_ODDS_ERROR_CODES else ""
         compact["provider_observation_current"] = provider_observation_current
-        compact["provider_error_is_current"] = provider_observation_current and bool(
+        compact["provider_error_is_current"] = quota_observation_current and bool(
             provider_error_code or quota.get("error_type")
         )
-        compact["provider_error_code"] = provider_error_code if provider_observation_current else ""
+        compact["provider_error_code"] = provider_error_code if quota_observation_current else ""
         compact["provider_error_type"] = (
             quota.get("error_type")
-            if provider_observation_current and quota.get("error_type") in {
+            if quota_observation_current and quota.get("error_type") in {
                 "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
             }
-            else "UNKNOWN" if provider_observation_current and quota.get("error_type")
+            else "UNKNOWN" if quota_observation_current and quota.get("error_type")
             else ""
         )
-        compact["last_provider_error_code"] = provider_error_code if not provider_observation_current else ""
+        compact["last_provider_error_code"] = provider_error_code if not quota_observation_current else ""
         compact["last_provider_error_type"] = (
             quota.get("error_type")
-            if not provider_observation_current and quota.get("error_type") in {
+            if not quota_observation_current and quota.get("error_type") in {
                 "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
             }
-            else "UNKNOWN" if not provider_observation_current and quota.get("error_type")
+            else "UNKNOWN" if not quota_observation_current and quota.get("error_type")
             else ""
         )
+        selected_provider_http = provider_http if provider_results else quota.get("http_status")
         compact["provider_http"] = (
-            as_int(quota.get("http_status"), 0) if provider_observation_current else None
+            selected_provider_http
+            if provider_observation_current
+            and (provider_name in {"API_FOOTBALL", "THE_ODDS_API"} if provider_results else quota_observation_current)
+            and type(selected_provider_http) is int
+            and 100 <= selected_provider_http <= 599
+            else None
         )
         compact["credential_tier_selected"] = (
             quota.get("credential_tier_selected")
-            if provider_observation_current and quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"}
+            if quota_observation_current and quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"}
             else ""
         )
-        compact["fallback_used"] = bool(quota.get("fallback_used")) and compact["provider_observation_current"]
+        compact["fallback_used"] = bool(quota.get("fallback_used")) and quota_observation_current
         remaining = quota.get("requests_remaining")
         compact["provider_requests_remaining"] = (
-            as_int(remaining, None) if provider_observation_current and remaining is not None else None
+            as_int(remaining, None) if quota_observation_current and remaining is not None else None
         )
         for source_key, output_key in (
             ("events_received", "odds_events_received"),
@@ -2924,8 +2953,53 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             ("events_with_h2h", "odds_events_with_h2h"),
         ):
             observed = quota.get(source_key)
-            compact[output_key] = as_int(observed, 0) if provider_observation_current and observed is not None else None
-        snapshots = result.get("odds_snapshots") if isinstance(result.get("odds_snapshots"), dict) else {}
+            compact[output_key] = as_int(observed, 0) if quota_observation_current and observed is not None else None
+        if provider_results:
+            api_http_statuses = api_football.get("provider_http_statuses")
+            compact.update({
+                "api_football_status": api_football.get("status") if api_football.get("status") in {
+                    "OK", "AVAILABLE", "NO_DATA", "NO_DUE_ODDS", "SKIPPED_NO_API_FOOTBALL_FIXTURE", "TIME_BUDGET",
+                    "PROVIDER_FAILURE", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED",
+                } else "UNKNOWN",
+                "api_football_external_calls": api_football_calls,
+                "api_football_provider_http": (
+                    api_football.get("provider_http")
+                    if type(api_football.get("provider_http")) is int
+                    and 100 <= api_football.get("provider_http") <= 599
+                    else None
+                ),
+                "api_football_http_statuses": [
+                    as_int(value, None) if type(value) is int and 100 <= value <= 599 else None
+                    for value in list(api_http_statuses or [])[:5]
+                ],
+                "api_football_provider_observation_current": api_football.get("provider_observation_current") is True,
+                "api_football_processed": as_int(api_football.get("processed"), 0),
+                "api_football_fixtures_count": as_int(api_football.get("fixtures_count"), 0),
+                "api_football_snapshots_inserted": as_int(api_football.get("snapshots_inserted"), 0),
+                "api_football_failure_categories": [
+                    value for value in list(api_football.get("failure_categories") or [])[:5]
+                    if value in {"AUTH_OR_ACCESS", "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "RATE_OR_QUOTA",
+                                 "FREE_PLAN_RESTRICTED", "ENDPOINT_RESTRICTED", "SUBSCRIPTION_RESTRICTED",
+                                 "NETWORK_OR_TIMEOUT", "PROVIDER_RESPONSE"}
+                ],
+                "the_odds_api_status": the_odds_api.get("status") if the_odds_api.get("status") in {
+                    "OK", "PARTIAL", "UNFUNDED_NOT_CONFIGURED", "NO_DUE_JOBS", "PROVIDER_FAILURE",
+                    "PROVIDER_FAILURE_STOPPED_EARLY", "PARTIAL_PROVIDER_ERRORS", "CACHE_REUSED",
+                    "DAILY_BUDGET", "TIME_BUDGET", "DISABLED",
+                } else "UNKNOWN",
+                "the_odds_api_external_calls": the_odds_api_calls,
+                "the_odds_api_provider_http": (
+                    quota.get("http_status")
+                    if the_odds_api_calls and type(quota.get("http_status")) is int
+                    and 100 <= quota.get("http_status") <= 599
+                    else None
+                ),
+                "the_odds_api_funded": the_odds_api.get("funded") is True,
+            })
+        snapshots = (
+            (the_odds_api.get("odds_snapshots") or {}) if provider_results
+            else result.get("odds_snapshots") if isinstance(result.get("odds_snapshots"), dict) else {}
+        )
         for source_key, output_key in (
             ("inserted", "odds_snapshots_inserted"),
             ("updated", "odds_snapshots_updated"),
@@ -2933,7 +3007,7 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             ("linked", "odds_snapshots_linked"),
         ):
             observed = snapshots.get(source_key)
-            compact[output_key] = as_int(observed, 0) if provider_observation_current and observed is not None else None
+            compact[output_key] = as_int(observed, 0) if quota_observation_current and observed is not None else None
     if result.get("error"):
         compact["error"] = str(result.get("error"))[:120]
     if result.get("errors"):
@@ -22509,6 +22583,11 @@ def match_detail_page(match_id):
         madrid_context=client_match_display_context(detail.get("match") or {}),
         live_context=live_context,
     )
+    # Surface the existing, read-only market projection in the match center.
+    # It is derived from the same persisted quote shown below and never creates
+    # a pick or performs a provider request while rendering the page.
+    recommendation_projection = v565_recommendation_for_match(detail.get("match") or {})
+    match_context["market_forecast"] = recommendation_projection.get("market_forecast") or {}
     # The match-center builder validates and normalizes recent results. Attach
     # catalogue videos afterwards so that this presentation-only data survives
     # the domain projection without changing its factual result contract.

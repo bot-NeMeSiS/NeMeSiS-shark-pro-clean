@@ -315,13 +315,34 @@
 
 {% macro odds_panel(context) -%}
 {% set odds = context.get('odds') or {} %}
+{% set market_forecast = context.get('market_forecast') or {} %}
 <section class="v944-match-panel" id="match-section-odds" data-match-region="persisted-odds">
   <header class="v944-match-panel__header"><div><span class="v944-match-panel__eyebrow">{{ ui('Mercado 1X2') }}</span><h2>{{ ui('Cuotas del partido') }}</h2></div></header>
   {% if odds.get('available') %}
   <p>{{ odds.get('bookmaker') }}</p>
   <dl class="ns-match-odds">{% for item in odds.get('items') %}<div><dt>{{ item.get('label') }}</dt><dd>{{ '%.2f'|format(item.get('price')) }}</dd></div>{% endfor %}</dl>
   <p role="status">{{ ui(odds.get('message')) }}</p>
+  <p class="market-forecast-source">{{ ui('Fuente') }}: {{ odds.get('source') or ui('Sin dato') }} · {{ ui('Casa') }}: {{ odds.get('bookmaker') or ui('Sin dato') }}</p>
   <small>{{ ui('Actualización:') }} <time datetime="{{ odds.get('observed_at') }}">{{ odds.get('observed_label') }}</time></small>
+  {% if market_forecast.get('available') %}
+  <section class="market-forecast-card" data-market-forecast="current" aria-label="{{ ui('Lectura actual del mercado 1X2') }}">
+    <header><strong>{{ ui('Lectura implícita del mercado 1X2') }}</strong><span>{{ ui('Referencia informativa; no es un pronóstico de SHARK.') }}</span></header>
+    <div class="market-forecast-outcomes">
+      {% for outcome in market_forecast.get('outcomes') or [] %}
+      <div class="market-forecast-outcome" data-outcome="{{ outcome.get('key') }}">
+        <div class="market-forecast-outcome-heading"><strong>{{ outcome.get('short_label') }} · {{ outcome.get('label') }}</strong><b>{{ '%.1f'|format(outcome.get('probability_pct') or 0) }}%</b></div>
+        <div class="market-forecast-track" aria-hidden="true"><span style="width: {{ outcome.get('probability_pct') or 0 }}%"></span></div>
+        <small>{{ ui('Cuota observada') }} {{ '%.2f'|format(outcome.get('odds') or 0) }}</small>
+      </div>
+      {% endfor %}
+    </div>
+    {% if market_forecast.get('favorite') %}<p class="market-forecast-favorite"><strong>{{ ui('Mayor probabilidad implícita') }}:</strong> {{ market_forecast.favorite.label }} · {{ '%.1f'|format(market_forecast.favorite.probability_pct or 0) }}%</p>{% endif %}
+    <p class="market-forecast-note">{{ ui(market_forecast.get('method')) }} {{ ui(market_forecast.get('disclaimer')) }}</p>
+    <p class="market-forecast-source">{{ ui('Fuente') }}: {{ market_forecast.get('source') }} · {{ ui('Casa') }}: {{ market_forecast.get('bookmaker') }} · {{ ui('Actualizada') }}: {{ market_forecast.get('observed_label') or market_forecast.get('observed_at') }}</p>
+  </section>
+  {% else %}
+  <p class="market-forecast-unavailable" data-market-forecast="{{ market_forecast.get('state') or 'unavailable' }}">{{ ui(market_forecast.get('message') or 'No hay cuotas actuales completas para calcular una lectura de mercado.') }}</p>
+  {% endif %}
   {% else %}<p role="status">{{ ui('Todavía no hay cuotas confirmadas para este partido.') }}</p>{% endif %}
 </section>
 {%- endmacro %}

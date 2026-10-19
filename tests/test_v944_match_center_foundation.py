@@ -5,6 +5,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
+import engines.match_context_engine as match_context_engine
 from engines.match_context_engine import (
     CANONICAL_COMPONENT_STATES,
     MATCH_CENTER_COMPONENTS,
@@ -253,6 +254,40 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     def forbidden(*_args, **_kwargs):
         raise AssertionError("legacy dashboard/write path must not run")
 
+    quote_view = {
+        "available": True,
+        "current": True,
+        "items": [
+            {"key": "home", "label": "Real Club Deportivo Local", "price": 2.0},
+            {"key": "draw", "label": "Empate", "price": 4.0},
+            {"key": "away", "label": "Unión Deportiva Visitante", "price": 4.0},
+        ],
+        "bookmaker": "Book QA",
+        "source": "API-Football",
+        "observed_at": "2026-07-23T17:45:00+00:00",
+        "observed_label": "23 jul 2026, 19:45 · Madrid",
+        "message": "Cuotas recientes de API-Football.",
+    }
+    market_forecast = {
+        "available": True,
+        "state": "CURRENT",
+        "outcomes": [
+            {"key": "home", "short_label": "1", "label": "Real Club Deportivo Local", "odds": 2.0, "probability_pct": 50.0},
+            {"key": "draw", "short_label": "X", "label": "Empate", "odds": 4.0, "probability_pct": 25.0},
+            {"key": "away", "short_label": "2", "label": "Unión Deportiva Visitante", "odds": 4.0, "probability_pct": 25.0},
+        ],
+        "favorite": {"label": "Real Club Deportivo Local", "probability_pct": 50.0},
+        "source": "API-Football",
+        "bookmaker": "Book QA",
+        "observed_label": "23 jul 2026, 19:45 · Madrid",
+        "method": "1/cuota, normalizado entre local, empate y visitante.",
+        "disclaimer": "No es una probabilidad calibrada por SHARK ni una promesa de resultado.",
+    }
+    monkeypatch.setattr(match_context_engine, "cached_match_odds", lambda *_a, **_k: quote_view)
+    monkeypatch.setattr(app_module, "v565_recommendation_for_match", lambda _match: {
+        "market_forecast": market_forecast,
+    })
+
     monkeypatch.setattr(app_module, "match_detail", load_detail)
     monkeypatch.setattr(app_module, "live_tracker_for_match", load_live)
     monkeypatch.setattr(app_module, "v935_enrich_match_lifecycle", lambda match: match)
@@ -275,6 +310,11 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     assert "v933-detail-tabs" not in html
     assert "Real Club Deportivo Local" in html
     assert "Unión Deportiva Visitante" in html
+    assert 'data-market-forecast="current"' in html
+    assert "Lectura implícita del mercado 1X2" in html
+    assert "50.0%" in html and "25.0%" in html
+    assert "Fuente: API-Football" in html
+    assert "No es una probabilidad calibrada por SHARK" in html
 
 
 def test_match_detail_surfaces_authorized_videos_for_prior_team_results(

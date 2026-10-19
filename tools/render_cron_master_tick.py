@@ -602,6 +602,12 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             result["odds_retry_after"] = safe_timestamp(payload.get("retry_after"))
             observation_current = payload.get("provider_observation_current") is True
             result["provider_observation_current"] = observation_current
+            observation_provider = payload.get("provider_observation_provider")
+            result["provider_observation_provider"] = (
+                observation_provider
+                if observation_provider in {"API_FOOTBALL", "THE_ODDS_API", "MULTIPLE"}
+                else ""
+            )
             current_code = payload.get("provider_error_code")
             current_type = payload.get("provider_error_type")
             previous_code = payload.get("last_provider_error_code")
@@ -627,6 +633,51 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             result["provider_http"] = (
                 safe_count(provider_http) if observation_current and provider_http is not None else None
             )
+            # Keep provider-specific observations distinct. API-Football calls
+            # must never make The Odds API quota or market counters look fresh.
+            api_football_statuses = {
+                "OK", "AVAILABLE", "NO_DATA", "NO_DUE_ODDS", "SKIPPED_NO_API_FOOTBALL_FIXTURE", "TIME_BUDGET",
+                "PROVIDER_FAILURE", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED", "UNKNOWN",
+            }
+            api_football_categories = {
+                "AUTH_OR_ACCESS", "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "RATE_OR_QUOTA",
+                "FREE_PLAN_RESTRICTED", "ENDPOINT_RESTRICTED", "SUBSCRIPTION_RESTRICTED",
+                "NETWORK_OR_TIMEOUT", "PROVIDER_RESPONSE",
+            }
+            odds_api_statuses = {
+                "OK", "PARTIAL", "UNFUNDED_NOT_CONFIGURED", "NO_DUE_JOBS", "PROVIDER_FAILURE",
+                "PROVIDER_FAILURE_STOPPED_EARLY", "PARTIAL_PROVIDER_ERRORS", "CACHE_REUSED",
+                "DAILY_BUDGET", "TIME_BUDGET", "DISABLED", "UNKNOWN",
+            }
+            api_status = payload.get("api_football_status")
+            result["api_football_status"] = api_status if api_status in api_football_statuses else "UNKNOWN"
+            result["api_football_external_calls"] = safe_count(payload.get("api_football_external_calls"))
+            api_http = payload.get("api_football_provider_http")
+            result["api_football_provider_http"] = (
+                safe_count(api_http) if type(api_http) is int and 100 <= api_http <= 599 else None
+            )
+            result["api_football_http_statuses"] = [
+                safe_count(value) for value in (payload.get("api_football_http_statuses") or [])[:5]
+                if type(value) is int and 100 <= value <= 599
+            ]
+            result["api_football_provider_observation_current"] = (
+                payload.get("api_football_provider_observation_current") is True
+            )
+            for field in ("api_football_processed", "api_football_fixtures_count", "api_football_snapshots_inserted"):
+                value = payload.get(field)
+                result[field] = safe_count(value) if value is not None else None
+            result["api_football_failure_categories"] = [
+                value for value in (payload.get("api_football_failure_categories") or [])[:5]
+                if value in api_football_categories
+            ]
+            odds_api_status = payload.get("the_odds_api_status")
+            result["the_odds_api_status"] = odds_api_status if odds_api_status in odds_api_statuses else "UNKNOWN"
+            result["the_odds_api_external_calls"] = safe_count(payload.get("the_odds_api_external_calls"))
+            odds_api_http = payload.get("the_odds_api_provider_http")
+            result["the_odds_api_provider_http"] = (
+                safe_count(odds_api_http) if type(odds_api_http) is int and 100 <= odds_api_http <= 599 else None
+            )
+            result["the_odds_api_funded"] = payload.get("the_odds_api_funded") is True
             remaining = payload.get("provider_requests_remaining")
             result["provider_requests_remaining"] = (
                 safe_count(remaining) if observation_current and remaining is not None else None

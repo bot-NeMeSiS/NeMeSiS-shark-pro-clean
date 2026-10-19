@@ -235,6 +235,68 @@ def test_odds_cached_tick_does_not_relabel_previous_pipeline_counts_as_current(a
     assert compact['odds_snapshots_inserted'] is None
 
 
+def test_combined_odds_tick_attributes_http_and_snapshots_to_api_football(app_module, monkeypatch):
+    result = {
+        'ok': True,
+        'status': 'OK',
+        'external_calls': 2,
+        'processed': 4,
+        'snapshots_inserted': 38,
+        'provider_results': {
+            'api_football': {
+                'ok': True,
+                'status': 'AVAILABLE',
+                'external_calls': 2,
+                'provider_http': 200,
+                'provider_http_statuses': [200, 200],
+                'provider_observation_current': True,
+                'processed': 4,
+                'fixtures_count': 4,
+                'snapshots_inserted': 38,
+                'failure_categories': [],
+            },
+            'the_odds_api': {
+                'ok': True,
+                'status': 'UNFUNDED_NOT_CONFIGURED',
+                'funded': False,
+                'external_calls': 0,
+                'quota': {'http_status': 200, 'requests_remaining': 900},
+                'odds_snapshots': {'inserted': 13, 'updated': 2, 'skipped': 1, 'linked': 13},
+            },
+        },
+    }
+
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+    assert compact['provider_observation_provider'] == 'API_FOOTBALL'
+    assert compact['provider_observation_current'] is True
+    assert compact['provider_http'] == 200
+    assert compact['api_football_provider_http'] == 200
+    assert compact['api_football_http_statuses'] == [200, 200]
+    assert compact['api_football_snapshots_inserted'] == 38
+    assert compact['the_odds_api_status'] == 'UNFUNDED_NOT_CONFIGURED'
+    assert compact['the_odds_api_external_calls'] == 0
+    assert compact['the_odds_api_provider_http'] is None
+    assert compact['the_odds_api_funded'] is False
+    assert compact['credential_tier_selected'] == ''
+    assert compact['provider_requests_remaining'] is None
+    assert compact['odds_events_received'] is None
+    assert compact['odds_snapshots_inserted'] is None
+
+    monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(compact))
+    observed = master.odds_tick('https://example.invalid', 'test')
+    assert observed['provider_observation_provider'] == 'API_FOOTBALL'
+    assert observed['api_football_status'] == 'AVAILABLE'
+    assert observed['api_football_external_calls'] == 2
+    assert observed['api_football_provider_http'] == 200
+    assert observed['api_football_http_statuses'] == [200, 200]
+    assert observed['api_football_snapshots_inserted'] == 38
+    assert observed['the_odds_api_status'] == 'UNFUNDED_NOT_CONFIGURED'
+    assert observed['the_odds_api_external_calls'] == 0
+    assert observed['the_odds_api_provider_http'] is None
+    assert observed['the_odds_api_funded'] is False
+    assert observed['provider_requests_remaining'] is None
+
+
 @pytest.mark.parametrize('code,expected', [('OUT_OF_USAGE_CREDITS','OUT_OF_USAGE_CREDITS'),
                                          ('INVALID_KEY','INVALID_KEY'), ('private-secret','')])
 def test_odds_existing_error_response_keeps_only_documented_code(app_module, monkeypatch, code, expected):

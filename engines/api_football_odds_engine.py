@@ -465,6 +465,7 @@ def refresh_api_football_odds_if_due(db_path, *, limit=None, env=None, transport
     result = {"ok": True, "status": "NO_DUE_ODDS", "configured": configured, "enabled": enabled,
               "skipped": True, "external_calls": 0, "processed": 0, "fixtures_count": 0,
               "snapshots_inserted": 0, "eligible_count": 0, "due_count": 0,
+              "provider_http": None, "provider_http_statuses": [],
               "selected_fixture_ids": [], "provider_observation_current": False,
               "provider_observed_at": "", "provider_quota_consulted": False,
               "budget_scope": "LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA", "items": [], "errors": []}
@@ -521,7 +522,9 @@ def refresh_api_football_odds_if_due(db_path, *, limit=None, env=None, transport
                         continue
                     result["external_calls"] += 1
                 except CronTimeBudget as exc:
-                    result["external_calls"] += max(0, int(getattr(exc, "external_calls", 0) or 0))
+                    attempted_calls = max(0, int(getattr(exc, "external_calls", 0) or 0))
+                    result["external_calls"] += attempted_calls
+                    result["provider_http_statuses"].extend([None] * attempted_calls)
                     with conn:
                         result["items"].append(_finish(conn, item, "TIME_BUDGET", cfg, _now(), observed=False))
                     continue
@@ -530,6 +533,18 @@ def refresh_api_football_odds_if_due(db_path, *, limit=None, env=None, transport
                     # an unexpected transport exception is conservatively charged.
                     result["external_calls"] += 1
                     payload = {"ok": False, "error": "PROVIDER_RESPONSE"}
+
+                http_status = payload.get("http_status") if isinstance(payload, dict) else None
+                if type(http_status) is not int or not 100 <= http_status <= 599:
+                    http_status = None
+                result["provider_http_statuses"].append(http_status)
+                observed_http = result["provider_http_statuses"]
+                result["provider_http"] = (
+                    observed_http[0]
+                    if observed_http and observed_http[0] is not None
+                    and all(status == observed_http[0] for status in observed_http)
+                    else None
+                )
 
                 observed_at = _now()
                 result.update(provider_observation_current=True, provider_observed_at=_stamp(observed_at))

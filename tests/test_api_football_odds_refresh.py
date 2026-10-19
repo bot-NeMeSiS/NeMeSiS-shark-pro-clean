@@ -7,6 +7,7 @@ import sqlite3
 import pytest
 
 from engines import api_football_odds_engine as odds
+from engines import api_football_live_tracker_engine as live_tracker
 from engines.v935_launch_trust_engine import get_odds_freshness
 
 
@@ -48,6 +49,7 @@ def store(tmp_path, monkeypatch):
 
 def payload(fixture_id=501, *, update=None, bookmakers=None):
     return {
+        "http_status": 200,
         "ok": True,
         "response": [{
             "fixture": {"id": fixture_id},
@@ -81,6 +83,8 @@ def test_persists_only_verified_1x2_and_reuses_provider_cooldown(store):
     assert first["status"] == "OK"
     assert first["external_calls"] == 1
     assert first["provider_observation_current"] is True
+    assert first["provider_http"] == 200
+    assert first["provider_http_statuses"] == [200]
     assert first["provider_quota_consulted"] is False
     assert first["snapshots_inserted"] == 1
     assert calls == [("odds", {"fixture": "501"}, 4)]
@@ -119,16 +123,20 @@ def test_access_failure_sets_global_backoff_without_repeating_request(store):
 
     def transport(*args, **kwargs):
         calls.append(args)
-        return {"ok": False, "response": [], "errors": {"access": "Your account is suspended"}}
+        return {"ok": False, "response": [], "http_status": 403,
+                "errors": {"access": "Your account is suspended"}}
 
     first = odds.refresh_api_football_odds_if_due(store, env=ENV, transport=transport)
     assert first["provider_observation_current"] is True
+    assert first["provider_http"] == 403
+    assert first["provider_http_statuses"] == [403]
     assert first["failure_categories"] == ["ACCOUNT_SUSPENDED"]
     assert first["external_calls"] == 1
     second = odds.refresh_api_football_odds_if_due(store, env=ENV, transport=transport)
     assert second["status"] == "PROVIDER_FAILURE_BACKOFF"
     assert second["external_calls"] == 0
     assert second["provider_observation_current"] is False
+    assert second["provider_http"] is None
     assert len(calls) == 1
 
 
@@ -189,6 +197,31 @@ def test_api_football_quote_freshness_matches_slow_provider_cadence(monkeypatch)
     assert api_quote["label"] == "Cuota reciente de API-Football"
     assert other_quote["status"] == "RECORDED"
     assert expired_api_quote["status"] == "STALE"
+
+
+def test_api_get_captures_only_safe_http_status(monkeypatch):
+    import urllib.error
+    import io
+
+    class Response:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *_args): return False
+        def read(self, *_args): return b'{"response":[],"errors":[],"paging":{}}'
+
+    monkeypatch.setenv("API_FOOTBALL_KEY", "synthetic-never-log-this")
+    monkeypatch.setattr(live_tracker.urllib.request, "urlopen", lambda *_a, **_k: Response())
+    success = live_tracker._api_get("odds", {"fixture": "501"})
+    assert success["http_status"] == 200
+    assert "synthetic-never-log-this" not in json.dumps(success)
+
+    def forbidden(*_args, **_kwargs):
+        raise urllib.error.HTTPError("https://example.invalid/odds", 403, "forbidden", {}, io.BytesIO(b"{}"))
+
+    monkeypatch.setattr(live_tracker.urllib.request, "urlopen", forbidden)
+    failure = live_tracker._api_get("odds", {"fixture": "501"})
+    assert failure["http_status"] == 403
+    assert "synthetic-never-log-this" not in json.dumps(failure)
 
 
 def test_the_odds_api_is_never_called_without_explicit_funding(monkeypatch):
