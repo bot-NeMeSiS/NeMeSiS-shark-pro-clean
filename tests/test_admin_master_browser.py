@@ -15,6 +15,8 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+# Full-page evidence capture has a separate budget from 7s UI interactions.
+SCREENSHOT_TIMEOUT_MS = 30_000
 
 
 def snapshot():
@@ -112,7 +114,7 @@ def test_layout_no_automatic_admin_api_calls_and_captures(browser,app_module,wid
         assert not errors and not blocked
         output=ROOT/"data/local_dev/admin-master-v941-qa"
         output.mkdir(parents=True,exist_ok=True)
-        page.screenshot(path=str(output/f"admin-{width}x{height}.png"),full_page=True)
+        page.screenshot(path=str(output/f"admin-{width}x{height}.png"),full_page=True,timeout=SCREENSHOT_TIMEOUT_MS)
     finally:
         context.close()
 
@@ -290,7 +292,7 @@ def test_real_client_preview_route_captures(browser,app_module,width,height,plan
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         assert not errors and not unexpected
         output=ROOT/'data/local_dev/admin-master-v941-qa';output.mkdir(parents=True,exist_ok=True)
-        page.screenshot(path=str(output/f'preview-{screen}-{plan.lower()}-{width}.png'),full_page=True)
+        page.screenshot(path=str(output/f'preview-{screen}-{plan.lower()}-{width}.png'),full_page=True,timeout=SCREENSHOT_TIMEOUT_MS)
     finally:context.close()
 
 

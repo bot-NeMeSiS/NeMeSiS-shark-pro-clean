@@ -257,3 +257,127 @@ def test_production_quality_gate_uses_current_public_navigation_contract():
     assert MOBILE_NAV == tuple(entry[1] for entry in navigation.PUBLIC_MOBILE_LINKS)
     assert "/calendario?lane=finished" in PUBLIC_NAV
     assert "/calendario?lane=finished" in MOBILE_NAV
+
+
+def missing_sports_image_case(*, status=404):
+    # Captured DOM/network shape, not a claim about a live provider response.
+    url = "https://sports-media.invalid/football/teams/28553.png"
+    scope = {"page_id": 1, "document_id": 12, "document_url": "https://example.invalid/live"}
+    image = {"url": url, "kind": "TEAM_CREST", "kind_source": "DOM_COMPONENT", **scope,
+        "image_complete": True, "natural_width": 0, "natural_height": 0,
+        "image_visible": False, "hidden_attribute": False, "display": "none",
+        "fallback_same_owner": True, "fallback_visible": True, "fallback_fits": True,
+        "fallback_working": True, "observed_at": 15}
+    response = {"url": url, "status": status, "type": "image", "method": "GET", **scope, "received_at": 13}
+    console = {"url": url, "text": f"Failed to load resource: the server responded with a status of {status} ()",
+        **scope, "emitted_at": 14}
+    return image, response, console
+
+
+@pytest.mark.parametrize("status", [404, 410])
+def test_real_missing_sports_image_records_degradation_with_verified_fallback(status):
+    image, response, console = missing_sports_image_case(status=status)
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["subresources_and_fallbacks"] == "PASS"
+    assert result["unexplained_console"] == []
+    assert result["policy_console"] == []
+    assert result["degraded_console"] == [console]
+    assert result["external_degradations"] == result["images"]
+    assert result["images"][0]["classification"] == "EXTERNAL_SPORTS_IMAGE_DEGRADED"
+    assert result["images"][0]["severity"] == "WARNING"
+    assert result["images"][0]["http_statuses"] == [status]
+    assert "classification" not in image
+    report = build_post_deploy_result(expected_sha="a" * 40, actual_sha="a" * 40,
+        checks={**CHECKS, "subresources_and_fallbacks": "PASS"}, evidence={"resource_classification": result})
+    assert report["result"] == "PRODUCTION_CERTIFIED"
+    assert report["external_image_degradation_count"] == 1
+
+
+@pytest.mark.parametrize("field,value", [
+    ("kind", "OTHER"), ("kind_source", "URL_PATTERN"), ("image_complete", False),
+    ("natural_width", 40), ("image_visible", True), ("display", "block"),
+    ("fallback_same_owner", False), ("fallback_visible", False),
+    ("fallback_fits", False), ("fallback_working", None), ("fallback_working", False),
+    ("observed_at", 12), ("document_id", None),
+])
+def test_sports_404_never_passes_without_full_component_evidence(field, value):
+    image, response, console = missing_sports_image_case()
+    image[field] = value
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["subresources_and_fallbacks"] != "PASS"
+    assert result["unexplained_console"] == [console]
+    assert not result["external_degradations"]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("url", "https://sports-media.invalid/unrelated.png"), ("method", "POST"),
+    ("type", "script"), ("status", 500), ("status", 200),
+    ("page_id", 2), ("document_id", 11), ("document_url", "https://example.invalid/"),
+    ("received_at", 16),
+])
+def test_fallback_requires_matching_http_image_failure_from_this_navigation(field, value):
+    image, response, console = missing_sports_image_case()
+    response[field] = value
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["subresources_and_fallbacks"] == "NOT_RUN"
+    assert result["unexplained_console"] == [console]
+
+
+def test_dom_fallback_alone_cannot_certify_a_real_http_failure():
+    image, _, console = missing_sports_image_case()
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image])
+    assert result["subresources_and_fallbacks"] == "NOT_RUN"
+    assert result["unexplained_console"] == [console]
+
+
+@pytest.mark.parametrize("field,value", [
+    ("page_id", 2), ("document_id", 11), ("document_url", "https://example.invalid/"),
+    ("emitted_at", 12), ("emitted_at", 16),
+    ("text", "Uncaught TypeError: broken"),
+    ("text", "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"),
+    ("text", "Failed to load resource: the server responded with a status of 500 ()"),
+    ("text", "Failed to load resource: the server responded with a status of 410 ()"),
+])
+def test_verified_fallback_does_not_exonerate_other_console_errors(field, value):
+    image, response, console = missing_sports_image_case()
+    console[field] = value
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["unexplained_console"] == [console]
+    assert result["degraded_console"] == []
+
+
+@pytest.mark.parametrize("kind", ["BRAND_ASSET", "APP_ICON"])
+def test_real_404_on_required_identity_asset_remains_failure(kind):
+    image, response, console = missing_sports_image_case()
+    image["kind"] = kind
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["subresources_and_fallbacks"] == "FAIL"
+    assert result["unexplained_console"] == [console]
+
+
+def test_same_origin_crest_404_remains_failure_even_with_fallback():
+    image, response, console = missing_sports_image_case()
+    for row in (image, response, console):
+        row["url"] = "https://example.invalid/static/crest.png"
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image], [response])
+    assert result["subresources_and_fallbacks"] == "FAIL"
+    assert result["unexplained_console"] == [console]
+
+
+def test_one_working_instance_cannot_hide_another_broken_instance_of_the_same_image():
+    image, response, console = missing_sports_image_case()
+    broken = dict(image, fallback_visible=False, fallback_working=False)
+    result = classify_browser_resources("https://example.invalid", [], [], [console], [image, broken], [response])
+    assert result["subresources_and_fallbacks"] == "FAIL"
+    assert result["unexplained_console"] == [console]
+    assert result["degraded_console"] == []
+
+
+def test_later_visit_cannot_clear_console_error_on_unobserved_earlier_visit():
+    image, response, console = missing_sports_image_case()
+    earlier_console = dict(console, document_id=10)
+    earlier_response = dict(response, document_id=10)
+    result = classify_browser_resources("https://example.invalid", [], [],
+        [earlier_console, console], [image], [earlier_response, response])
+    assert result["unexplained_console"] == [earlier_console]
+    assert result["degraded_console"] == [console]

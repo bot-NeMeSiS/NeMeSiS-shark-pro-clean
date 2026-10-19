@@ -190,6 +190,15 @@ def stripe_sdk():
         return None
 
 
+def stripe_environment() -> str:
+    """Identify the configured key environment without API calls or key exposure."""
+    key = str(os.getenv("STRIPE_SECRET_KEY") or "").strip()
+    for environment in ("test", "live"):
+        if key.startswith(tuple(kind + "_" + environment + "_" for kind in ("sk", "rk"))):
+            return environment
+    return "unknown" if key else "unconfigured"
+
+
 def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
     catalog = plan_catalog()
     flags = {
@@ -236,6 +245,7 @@ def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
     return {
         "ok": True,
         "mode": os.getenv("PAYMENTS_MODE", "stripe_real"),
+        "stripe_environment": stripe_environment(),
         "checkout_ready": bool(checkout_ready),
         "webhook_ready": bool(webhook_ready),
         "configured": bool(checkout_ready and webhook_ready),
@@ -901,6 +911,9 @@ def client_payments_context(db_path: str, user: Dict[str, Any]) -> Dict[str, Any
         "stripe_current_period_end": db_user.get("stripe_current_period_end") or user.get("membership_expires_at") or "",
         "plans": status.get("plans", {}),
         "checkout_ready": status.get("checkout_ready"),
+        "checkout_configured": status.get("checkout_ready") is True,
+        "stripe_environment": status.get("stripe_environment") or "unknown",
+        "status_read_ok": status.get("ok") is True,
         "portal_ready": bool(status.get("flags", {}).get("stripe_sdk") and status.get("flags", {}).get("secret_key") and db_user.get("stripe_customer_id")),
         "blockers": status.get("blockers", []),
         "subscriptions": subs,

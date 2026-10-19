@@ -177,6 +177,7 @@ jobs:
           name: render-preflight-${{ github.run_id }}
           path: |
             reports/V941_*
+            reports/V942_*
             reports/V929_FULL_NAVIGATION_ROUTE_MATRIX.*
             reports/V929_CLICK_NAVIGATION_MATRIX.json
             reports/V929_NAVIGATION_INTEGRITY_WORKER_REPORT.md

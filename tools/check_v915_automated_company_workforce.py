@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import ast
+from contextlib import closing
 import json
 import re
 import sys
+import tempfile
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,15 +63,18 @@ def app_version_from_source(source: str) -> str:
     return ""
 
 
-def admin_session(client) -> None:
+def admin_session(client, app_module) -> None:
+    with closing(app_module.db()) as conn, conn:
+        admin_id = app_module.create_admin_record(
+            conn, "Workforce QA", "workforce-qa", "workforce-qa@example.invalid", "local-qa-password"
+        )
+    user = app_module.get_user_by_id(admin_id)
+    with app_module.app.test_request_context():
+        app_module.set_login_session(user)
+        signed_in = dict(app_module.session)
     with client.session_transaction() as sess:
-        sess["user_id"] = "codex-v915-admin"
-        sess["user_name"] = "Admin SHARK"
-        sess["username"] = "admin"
-        sess["user_email"] = "admin@example.invalid"
-        sess["user_role"] = "ADMIN"
-        sess["user_membership"] = "ADMIN"
-        sess["membership"] = "ADMIN"
+        sess.clear()
+        sess.update(signed_in)
 
 
 def assert_zip_clean(failures: list[str]) -> None:
@@ -153,49 +159,58 @@ def main() -> int:
         sys.path.insert(0, str(ROOT))
     import app as app_module
 
-    client = app_module.app.test_client()
-    runtime_resp = client.get("/api/runtime-version")
-    runtime = runtime_resp.get_json(silent=True) or {}
-    require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-    require(runtime.get("version") == ACTIVE_VERSION, "runtime version does not match VERSION.txt", failures)
-    require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
-    require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
-    for flag in [
-        "has_v915_automated_company_workforce",
-        "has_v915_render_deploy_pipeline",
-        "has_v915_post_deploy_sentinel",
-        "has_v915_browser_qa_orchestrator",
-        "has_v915_security_secret_guard",
-    ]:
-        require(runtime.get(flag) is True, f"runtime flag false: {flag}", failures)
-    require(runtime.get("v915_automated_deploy_enabled") is False or isinstance(runtime.get("v915_automated_deploy_enabled"), bool), "automated deploy flag not boolean", failures)
-    require(runtime.get("v915_deploy_hook_state") in {"***missing***", "***configured***"}, "deploy hook state not masked", failures)
+    with tempfile.TemporaryDirectory(prefix="nemesis-v915-workforce-") as tmp:
+        with patch.multiple(
+            app_module,
+            DB_PATH=str(Path(tmp) / "workforce.sqlite3"),
+            _SEEDED_DB_PATH=None,
+            _SEEDING_DB_PATH=None,
+            APP_INITIALIZED=False,
+        ):
+            app_module.seed_core()
+            client = app_module.app.test_client()
+            runtime_resp = client.get("/api/runtime-version")
+            runtime = runtime_resp.get_json(silent=True) or {}
+            require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
+            require(runtime.get("version") == ACTIVE_VERSION, "runtime version does not match VERSION.txt", failures)
+            require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
+            require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
+            for flag in [
+                "has_v915_automated_company_workforce",
+                "has_v915_render_deploy_pipeline",
+                "has_v915_post_deploy_sentinel",
+                "has_v915_browser_qa_orchestrator",
+                "has_v915_security_secret_guard",
+            ]:
+                require(runtime.get(flag) is True, f"runtime flag false: {flag}", failures)
+            require(runtime.get("v915_automated_deploy_enabled") is False or isinstance(runtime.get("v915_automated_deploy_enabled"), bool), "automated deploy flag not boolean", failures)
+            require(runtime.get("v915_deploy_hook_state") in {"***missing***", "***configured***"}, "deploy hook state not masked", failures)
 
-    for endpoint in [
-        "/api/admin/automation-workforce/status",
-        "/api/admin/automation-workforce/run-checks",
-        "/api/admin/automation-workforce/verify-runtime",
-        "/api/admin/automation-workforce/post-deploy-sentinel",
-        "/api/admin/automation-workforce/browser-qa-status",
-        "/api/admin/automation-workforce/visual-queue-refresh",
-    ]:
-        method = client.post if endpoint != "/api/admin/automation-workforce/status" else client.get
-        response = method(endpoint)
-        require(response.status_code == 403, f"{endpoint} not protected without admin", failures)
+            for endpoint in [
+                "/api/admin/automation-workforce/status",
+                "/api/admin/automation-workforce/run-checks",
+                "/api/admin/automation-workforce/verify-runtime",
+                "/api/admin/automation-workforce/post-deploy-sentinel",
+                "/api/admin/automation-workforce/browser-qa-status",
+                "/api/admin/automation-workforce/visual-queue-refresh",
+            ]:
+                method = client.post if endpoint != "/api/admin/automation-workforce/status" else client.get
+                response = method(endpoint)
+                require(response.status_code == 403, f"{endpoint} not protected without admin", failures)
 
-    admin_session(client)
-    page = client.get("/admin/automation-workforce")
-    require(page.status_code == 200, "admin workforce page not 200 with admin session", failures)
-    html = page.get_data(as_text=True)
-    require(
-        bool(re.search(r"<h1\b[^>]*>\s*Herramientas de comprobación\s*</h1>", html)),
-        "admin workforce page missing current title",
-        failures,
-    )
-    require("data-workforce-execution" in html, "admin workforce page missing execution evidence panel", failures)
-    require("TELEGRAM_BOT_TOKEN" not in html and "RENDER_DEPLOY_HOOK_URL" not in html, "admin workforce page leaks secret names", failures)
-    require('data-nav-zone="client-bottom"' not in html, "admin workforce leaks client bottom nav", failures)
-    require("v825-public-floating-shark" not in html, "admin workforce leaks public floating SHARK", failures)
+            admin_session(client, app_module)
+            page = client.get("/admin/automation-workforce")
+            require(page.status_code == 200, "admin workforce page not 200 with admin session", failures)
+            html = page.get_data(as_text=True)
+            require(
+                bool(re.search(r"<h1\b[^>]*>\s*Herramientas de comprobación\s*</h1>", html)),
+                "admin workforce page missing current title",
+                failures,
+            )
+            require("data-workforce-execution" in html, "admin workforce page missing execution evidence panel", failures)
+            require("TELEGRAM_BOT_TOKEN" not in html and "RENDER_DEPLOY_HOOK_URL" not in html, "admin workforce page leaks secret names", failures)
+            require('data-nav-zone="client-bottom"' not in html, "admin workforce leaks client bottom nav", failures)
+            require("v825-public-floating-shark" not in html, "admin workforce leaks public floating SHARK", failures)
 
     from automation_workforce.security_secret_guard import run_security_secret_guard
     guard = run_security_secret_guard(dry_run=True)

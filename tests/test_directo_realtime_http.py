@@ -136,7 +136,10 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert 'product-system.css?v=' in html and '-live-statistics-1' in html
+    from engines.canonical_assets import canonical_css_href, template_css_href
+    root = Path(__file__).resolve().parents[1]
+    expected_css = template_css_href((root / 'templates/base.html').read_text(encoding='utf-8'), app_module.APP_VERSION)
+    assert expected_css and canonical_css_href(html, app_module.APP_VERSION) == expected_css
     shipped_css = (Path(__file__).resolve().parents[1] / 'static' / 'product-system.css').read_text(encoding='utf-8')
     assert '.v934-live-stats__all-row' in shipped_css
     assert 'v934-live-stats' in html

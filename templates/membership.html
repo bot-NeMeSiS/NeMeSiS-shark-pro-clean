@@ -3,6 +3,8 @@
 {% block content %}
 {% set pay = data.get('payments_client') or {} %}
 {% set plans = pay.get('plans') or {} %}
+{% set checkout_configured = pay.get('checkout_configured', false) %}
+{% set payment_environment = pay.get('stripe_environment') or 'unknown' %}
 {% set current_plan = (current_user.membership if current_user else 'FREE')|upper %}
 {% set legal_checks = data.get('checkout_legal') or [] %}
 {% set legal_version = (data.get('legal_compliance') or {}).get('version') or 'LEGAL_CURRENT' %}
@@ -10,6 +12,14 @@
 <div class="v933-page v933-memberships-page" data-v933-template="membership" data-v933-reference="official-ref-14" data-growth-stage="PREMIUM_INTENT" data-growth-target="memberships">
   {{ page_header('Elige tu plan', 'Compara prestaciones y decide a tu ritmo.', 'plan', [{'label':'Mi cuenta','href':'/mi-cuenta','icon':'user'}]) }}
   {% if payment_error or data.get('payment_error') %}<div class="v933-safe-copy">{{ payment_error or data.get('payment_error') }}</div>{% endif %}
+
+  <div class="v933-safe-copy" role="status" data-membership-payment-status>
+    {% if not pay.get('status_read_ok') %}{{ ui("Estado del pago temporalmente no disponible.") }}
+    {% elif not checkout_configured %}{{ ui("Pago pendiente de configuración") }}.
+    {% elif payment_environment == 'test' %}{{ ui("Modo de pruebas de pago. No se realizarán cobros reales.") }}{% if not current_user %} {{ ui("Inicia sesión para continuar con una prueba.") }}{% endif %}
+    {% elif payment_environment == 'live' %}{{ ui("Modo de pago real.") }}{% if not current_user %} {{ ui("Inicia sesión para continuar.") }}{% endif %}
+    {% else %}{{ ui("Entorno de pago sin confirmar.") }}{% endif %}
+  </div>
 
   <section class="v933-plan-grid" id="v936-plan-comparison" data-top100-improvement="5,6">
     <article class="v933-plan-card is-blue{% if current_plan == 'FREE' %} is-current{% endif %}">
@@ -30,7 +40,8 @@
       {% if current_user and pay.get('checkout_ready') and plan.get('configured') and current_plan != key %}
       <form class="v933-checkout-form" method="post" action="/pagos/checkout/{{ key }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% for item in legal_checks %}<label><input type="checkbox" name="{{ item.key }}" value="1" required><span>{{ item.label }}</span></label>{% endfor %}<input type="hidden" name="legal_version" value="{{ legal_version }}"><button class="v933-action is-primary {{ 'is-gold' if key == 'ELITE' else 'is-blue' }}" data-ns-no-loading="1" type="submit">{{ ui("Elegir") }} {{ key }}</button></form>
       {% elif current_plan == key %}{{ action_button('Plan actual','/mi-cuenta',false,'blue',true) }}
-      {% else %}{{ action_button('Configuración pendiente' if not plan.get('configured') else 'Elegir ' ~ key, '/membresias?plan=' ~ key if current_user else '/comprar/' ~ key, plan.get('configured'), 'gold' if key == 'ELITE' else 'blue', not plan.get('configured')) }}{% endif %}
+      {% elif not current_user and checkout_configured and plan.get('configured') %}{{ action_button('Iniciar sesión para elegir ' ~ key, '/comprar/' ~ key, true, 'gold' if key == 'ELITE' else 'blue') }}
+      {% else %}{{ action_button('Configuración pendiente', '/membresias?plan=' ~ key, false, 'gold' if key == 'ELITE' else 'blue', true) }}{% endif %}
     </article>
     {% endfor %}
   </section>
@@ -41,7 +52,7 @@
       <article>{{ icon('shield') }}<strong>+18</strong><p>{{ ui("Solo para mayores de edad.") }}</p></article>
       <article>{{ icon('check') }}<strong>{{ ui("Juego responsable") }}</strong><p>{{ ui("Sin beneficios garantizados.") }}</p></article>
       <article>{{ icon('data') }}<strong>{{ ui("Plataforma informativa") }}</strong><p>{{ ui("No somos casa de apuestas.") }}</p></article>
-      <article>{{ icon('payments') }}<strong>{{ ui("Pago seguro") }}</strong><p>{{ ui('Stripe disponible' if pay.get('checkout_ready') else 'Pago pendiente de configuración') }}.</p></article>
+      <article>{{ icon('payments') }}<strong>{{ ui("Pago seguro") }}</strong><p>{{ ui("Condiciones visibles antes de continuar.") }}</p></article>
     </div>
   </section>
 </div>

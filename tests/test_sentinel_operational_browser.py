@@ -1,4 +1,5 @@
 """Real Flask/SQLite/Chromium closure, with explicit negative fault injection."""
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -18,7 +19,22 @@ def test_operational_lifecycle_and_http_guards(monkeypatch):
     root = Path(module.BASE_DIR)
     output = root / "data/local_dev/sentinel-operational-close"
     output.mkdir(exist_ok=True)
-    owner = "qa-owner-" + uuid.uuid4().hex
+
+    def account(role, label):
+        username = "qa-" + label + "-" + uuid.uuid4().hex[:12]
+        email = username + "@example.invalid"
+        if role == "ADMIN":
+            with closing(module.db()) as conn, conn:
+                user_id = module.create_admin_record(
+                    conn, "Sentinel QA", username, email, "local-qa-password"
+                )
+            return module.get_user_by_id(user_id)
+        return module.create_user(
+            "Sentinel QA", username, email, "local-qa-password", role=role, membership=role
+        )
+
+    owner_user = account("ADMIN", "owner")
+    owner = owner_user["id"]
     token = uuid.uuid4().hex
     payload = {"action": "product_surface_review", "parameters": {"scope": "client_templates"}, "request_key": uuid.uuid4().hex}
     # A prior, invalidated source revision is a real terminal job, not a fake result.
@@ -35,11 +51,15 @@ def test_operational_lifecycle_and_http_guards(monkeypatch):
     worker_errors = []
     worker = None
 
-    def context(browser, role, identity):
+    def context(browser, user=None):
         ctx = browser.new_context(viewport={"width": 1366, "height": 900}, timezone_id="Asia/Tokyo", service_workers="block")
         ctx.route("**/*", lambda route: route.continue_() if route.request.url.startswith(base + "/") else route.abort())
-        if role:
-            value = module.app.session_interface.get_signing_serializer(module.app).dumps({"user_role": role, "user_id": identity, "csrf_token": token})
+        if user:
+            with module.app.test_request_context(base):
+                module.set_login_session(user)
+                module.session["csrf_token"] = token
+                signed_in = dict(module.session)
+            value = module.app.session_interface.get_signing_serializer(module.app).dumps(signed_in)
             ctx.add_cookies([{"name": module.app.config.get("SESSION_COOKIE_NAME", "session"), "value": value, "url": base, "httpOnly": True, "sameSite": "Lax"}])
         return ctx
 
@@ -55,7 +75,7 @@ def test_operational_lifecycle_and_http_guards(monkeypatch):
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=True, executable_path=os.environ["NEMESIS_QA_CHROMIUM"])
-            admin = context(browser, "ADMIN", owner)
+            admin = context(browser, owner_user)
             page = admin.new_page()
             page.on("pageerror", lambda exc: report["errors"].append(str(exc)))
             before = len(store.list(owner))
@@ -127,12 +147,12 @@ def test_operational_lifecycle_and_http_guards(monkeypatch):
             assert job_id not in page.locator('[data-job-detail]').inner_text()
             report["checks"]["unavailable_selection_never_substituted"] = True
             for role in (None, 'FREE', 'PRO', 'ELITE'):
-                denied = context(browser, role, 'qa-client')
+                denied = context(browser, account(role, 'client') if role else None)
                 assert denied.request.get(base + '/api/admin/sentinel/jobs').status == 403
                 assert denied.request.get(base + '/api/admin/sentinel/jobs/' + job_id).status == 403
                 assert submit(denied).status == 403
                 denied.close()
-            other = context(browser, 'ADMIN', 'qa-other-' + uuid.uuid4().hex)
+            other = context(browser, account('ADMIN', 'other'))
             assert other.request.get(base + '/api/admin/sentinel/jobs/' + job_id).status == 404
             assert submit(admin, csrf='invalid').status == 403
             assert submit(admin, dict(payload, action='shell')).status == 400

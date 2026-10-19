@@ -223,15 +223,28 @@ def test_corrupt_cache_json_never_causes_a_write(db):
     assert db.read_bytes()==before
 
 
-def test_main_admin_surface_preserves_unknown_budget_and_access_control(app_module,monkeypatch):
+def test_main_admin_surface_preserves_unknown_budget_and_access_control(app_module,monkeypatch,tmp_path):
     from engines import daily_automation_engine as daily
+    monkeypatch.setattr(app_module,'DB_PATH',str(tmp_path/'admin-usage.sqlite3'))
+    monkeypatch.setattr(app_module,'_SEEDED_DB_PATH',None)
+    monkeypatch.setattr(app_module,'_SEEDING_DB_PATH',None)
+    monkeypatch.setattr(app_module,'APP_INITIALIZED',False)
+    app_module.seed_core()
+    with closing(app_module.db()) as conn,conn:
+        admin_id=app_module.create_admin_record(
+            conn,'Usage QA','usage-qa','usage-qa@example.invalid','local-qa-password')
+    admin=app_module.get_user_by_id(admin_id)
     unknown=guard.api_usage_snapshot(str(Path(app_module.DB_PATH).parent/'definitely-absent-usage.db'),ENV)
     assert not unknown['ok']
     monkeypatch.setattr(daily,'api_usage_snapshot',lambda *args,**kwargs:unknown)
     client=app_module.app.test_client()
     assert client.get('/api/admin/daily-automation/status').status_code==403
+    with app_module.app.test_request_context():
+        app_module.set_login_session(admin)
+        signed_in=dict(app_module.session)
     with client.session_transaction() as sess:
-        sess['user_role']='ADMIN'
+        sess.clear()
+        sess.update(signed_in)
     page=client.get('/admin/daily-automation')
     assert page.status_code==200
     assert 'No verificable' in page.get_data(as_text=True)

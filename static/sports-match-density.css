@@ -57,7 +57,8 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-teams {
     grid-column: 1;
     grid-row: 1;
-    grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+    /* Give the kickoff clock and Madrid label their actual text width. */
+    grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr);
     gap: 5px;
   }
 
