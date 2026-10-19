@@ -18,7 +18,7 @@ import unicodedata
 import urllib.parse
 import urllib.request
 import urllib.error
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
@@ -3029,6 +3029,15 @@ def add_column_if_missing(conn, table, column, definition):
 
 
 def run_schema_migrations(conn):
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS revoked_auth_sessions(
+            session_id_hash TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            revoked_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL
+        )"""
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_revoked_auth_sessions_expiry ON revoked_auth_sessions(expires_at)")
     try:
         ensure_crest_logo_schema(conn)
     except sqlite3.OperationalError:
@@ -11616,17 +11625,33 @@ def user_public(row):
 
 
 def _validated_session_user_record():
-    """Load the signed-in account and reject sessions revoked by a credential or role change."""
+    """Load the signed-in account and reject expired or revoked signed sessions."""
     if not has_request_context() or not session.get("user_id"):
         return None
     user_id = str(session.get("user_id") or "")
+    auth_session_id = str(session.get("auth_session_id") or "").strip()
+    if not auth_session_id and not app.config.get("TESTING"):
+        # Pre-revocation cookies have no stable session identity. Expire them at
+        # the rollout boundary rather than allowing them to revoke newer sessions.
+        session.clear()
+        return None
+    if auth_session_id:
+        expiry_text = str(session.get("auth_session_expires_at") or "").strip()
+        try:
+            expiry = datetime.fromisoformat(expiry_text)
+            if expiry.tzinfo is None or expiry <= datetime.now(timezone.utc):
+                session.clear()
+                return None
+        except (TypeError, ValueError):
+            session.clear()
+            return None
     session_version = session.get("auth_version", 0)
     try:
         session_version = int(session_version or 0)
     except (TypeError, ValueError):
         session.clear()
         return None
-    identity = (user_id, session_version)
+    identity = (user_id, session_version, auth_session_id)
     cached = getattr(g, "nemesis_validated_session_record", None)
     if isinstance(cached, dict) and cached.get("identity") == identity:
         return copy.deepcopy(cached.get("record"))
@@ -11658,6 +11683,19 @@ def _validated_session_user_record():
     if stored_version != session_version:
         session.clear()
         return None
+    if auth_session_id:
+        session_hash = hashlib.sha256(auth_session_id.encode("utf-8")).hexdigest()
+        try:
+            revoked = one(
+                "SELECT 1 FROM revoked_auth_sessions WHERE session_id_hash=? AND user_id=? LIMIT 1",
+                (session_hash, user_id),
+            )
+        except Exception:
+            # A missing/unavailable revocation store must not make a signed cookie valid.
+            return None
+        if revoked:
+            session.clear()
+            return None
     g.nemesis_validated_session_record = {
         "identity": identity,
         "record": copy.deepcopy(fresh),
@@ -11685,7 +11723,11 @@ def current_session_user():
     cache_allowed = request.method in {"GET", "HEAD"}
     if cache_allowed:
         g.nemesis_session_user_cache = {
-            "identity": (str(session.get("user_id") or ""), int(fresh.get("auth_version") or 0)),
+            "identity": (
+                str(session.get("user_id") or ""),
+                int(fresh.get("auth_version") or 0),
+                str(session.get("auth_session_id") or ""),
+            ),
             "user": copy.deepcopy(public),
         }
     return public
@@ -11694,7 +11736,8 @@ def current_session_user():
 def current_user_id():
     if not has_request_context():
         return ""
-    return session.get("user_id") or ""
+    user = _validated_session_user_record()
+    return str(user.get("id") or "") if user else ""
 
 
 @app.template_filter("competition_es")
@@ -12583,7 +12626,55 @@ def set_login_session(user):
         session["auth_version"] = int(user.get("auth_version") or 0)
     except (AttributeError, TypeError, ValueError):
         session["auth_version"] = 0
+    lifetime = app.config.get("PERMANENT_SESSION_LIFETIME", timedelta(hours=12))
+    try:
+        lifetime_seconds = max(3600, min(int(lifetime.total_seconds()), 7 * 24 * 3600))
+    except (AttributeError, TypeError, ValueError, OverflowError):
+        lifetime_seconds = 12 * 3600
+    session["auth_session_id"] = secrets.token_urlsafe(32)
+    session["auth_session_expires_at"] = (
+        datetime.now(timezone.utc) + timedelta(seconds=lifetime_seconds)
+    ).isoformat(timespec="seconds")
     return public
+
+
+def _revoke_session_for_logout(user_id):
+    """Persist a revocation for the current signed session only."""
+    connection = None
+    try:
+        connection = db()
+        session_id = str(session.get("auth_session_id") or "").strip()
+        expires_at = str(session.get("auth_session_expires_at") or "").strip()
+        if not session_id or not expires_at:
+            connection.rollback()
+            return False
+        session_hash = hashlib.sha256(session_id.encode("utf-8")).hexdigest()
+        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        connection.execute("DELETE FROM revoked_auth_sessions WHERE expires_at<=?", (now,))
+        connection.execute(
+            """INSERT OR IGNORE INTO revoked_auth_sessions
+               (session_id_hash,user_id,revoked_at,expires_at) VALUES (?,?,?,?)""",
+            (session_hash, str(user_id or "").strip(), now, expires_at),
+        )
+        connection.commit()
+        return True
+    except Exception as exc:
+        if connection is not None:
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+        try:
+            print("[AUTH] logout session revocation failed:", type(exc).__name__)
+        except Exception:
+            pass
+        return False
+    finally:
+        if connection is not None:
+            try:
+                connection.close()
+            except Exception:
+                pass
 
 
 def create_user(name, username, email, password, role="FREE", membership="FREE"):
@@ -22642,16 +22733,36 @@ def admin_bootstrap_page():
     return render_template("admin_bootstrap.html", data=dashboard_data(), blocked=False, result=result, error=error)
 
 
+def _logout_with_session_revocation(destination):
+    user_id = str(session.get("user_id") or "").strip()
+    if user_id:
+        validated_user = _validated_session_user_record()
+        if not validated_user and session.get("user_id"):
+            session.clear()
+            return Response(
+                "No se pudo verificar la sesión. Este navegador se ha cerrado localmente; vuelve a intentarlo cuando el servicio esté disponible.",
+                status=503,
+                mimetype="text/plain; charset=utf-8",
+            )
+        if validated_user and not _revoke_session_for_logout(user_id):
+            session.clear()
+            return Response(
+                "No se pudo confirmar la revocación de esta sesión. Este navegador se ha cerrado localmente; vuelve a intentarlo cuando el servicio esté disponible.",
+                status=503,
+                mimetype="text/plain; charset=utf-8",
+            )
+    session.clear()
+    return redirect(destination)
+
+
 @app.route("/logout")
 def logout_page():
-    session.clear()
-    return redirect("/")
+    return _logout_with_session_revocation("/")
 
 
 @app.route("/admin/logout")
 def admin_logout_page():
-    session.clear()
-    return redirect("/admin-login")
+    return _logout_with_session_revocation("/admin-login")
 
 
 @app.route("/admin")

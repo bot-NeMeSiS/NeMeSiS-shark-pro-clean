@@ -15,6 +15,7 @@ V934_VERSION = "V934_REFERENCE_EXACTNESS_REALTIME_SPORTS_PRODUCTION_PERFECTION_F
 V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLISH_FINAL"
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
 V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
+V941_VERSION = "V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -92,17 +93,17 @@ def main() -> int:
             app_module.security_event_for_auth = original_security_event
 
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V941_VERSION},
         "client_external_next_blocked": response_client_external.status_code == 302 and response_client_external.headers.get("Location") == "/app",
         "client_internal_next_allowed": response_client_internal.status_code == 302 and response_client_internal.headers.get("Location") == "/calendar",
         "client_logout_safe": response_client_logout.status_code == 302 and response_client_logout.headers.get("Location") == "/" and client_session_cleared,
-        "admin_external_next_blocked": response_admin_external.status_code == 302 and response_admin_external.headers.get("Location") == "/admin/import-center",
+        "admin_external_next_blocked": response_admin_external.status_code == 302 and response_admin_external.headers.get("Location") == "/admin/control-center",
         "admin_internal_next_allowed": response_admin_internal.status_code == 302 and response_admin_internal.headers.get("Location") == "/admin/dashboard",
         "admin_logout_safe": response_admin_logout.status_code == 302 and response_admin_logout.headers.get("Location") == "/admin-login" and admin_session_cleared,
         "redirect_helpers_internal_only": (
             app_module._safe_client_next("//example.com") == "/app"
-            and app_module._safe_admin_next("/calendar") == "/admin/import-center"
-            and app_module._safe_admin_next("\\\\example.com") == "/admin/import-center"
+            and app_module._safe_admin_next("/calendar") == "/admin/control-center"
+            and app_module._safe_admin_next("\\\\example.com") == "/admin/control-center"
         ),
         "no_real_credentials_used": True,
     }
