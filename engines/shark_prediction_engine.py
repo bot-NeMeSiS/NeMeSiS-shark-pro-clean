@@ -1,17 +1,20 @@
-"""SHARK Prediction Evolution for NeMeSiS SHARK PRO.
+"""Experimental historical context for the future SHARK forecast pipeline.
 
-V592 adds a conservative prediction layer on top of persisted data. It does not
-invent external information and does not force API calls. It builds team ratings,
-league strength, market preference and a confidence breakdown from SQLite data so
-SHARK can explain why a forecast is strong or should be treated carefully.
+This module is not wired to customer forecast routes. It summarizes persisted,
+explicitly finished match results only. Historical ratings are not calibrated
+probabilities and cannot produce a published pick; a chronological validation
+step is required before any prediction score can be enabled.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
+import re
 import sqlite3
+import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable
 
@@ -143,44 +146,85 @@ def ensure_shark_prediction_schema(db_path: str) -> Dict[str, Any]:
 
 
 def normalize_status(value: Any) -> str:
-    text = str(value or "").strip().lower()
-    if any(token in text for token in ["final", "finished", "ft", "aet", "pen", "termin", "acab", "full"]):
+    # Statuses are provider codes or short labels. Substring checks are unsafe:
+    # for example, "pending" contains "pen" but is not a finished fixture.
+    text = re.sub(r"[\s_-]+", " ", str(value or "").strip().casefold())
+    text = "".join(char for char in unicodedata.normalize("NFKD", text) if not unicodedata.combining(char))
+    if text in {
+        "ft", "aet", "pen", "final", "finalizado", "terminado", "archived",
+        "finished", "match finished", "full time", "fulltime",
+        "completed", "complete", "after extra time", "after penalties",
+        "finalizado tras prorroga", "finalizado tras penaltis",
+        "terminado tras prorroga", "terminado tras penaltis",
+    }:
         return "finished"
-    if any(token in text for token in ["live", "1h", "2h", "half", "directo", "ht"]):
+    if text in {"live", "1h", "2h", "ht", "halftime", "half time", "directo", "in play", "inplay"}:
         return "live"
     return "scheduled"
 
 
 def _score_pair(row: Dict[str, Any]) -> tuple[int | None, int | None]:
-    home = row.get("home_score") or row.get("score_home") or row.get("home_goals") or row.get("goals_home")
-    away = row.get("away_score") or row.get("score_away") or row.get("away_goals") or row.get("goals_away")
-    try:
-        if home in (None, "") or away in (None, ""):
-            return None, None
-        return int(float(str(home).replace(",", "."))), int(float(str(away).replace(",", ".")))
-    except Exception:
-        score = str(row.get("score") or row.get("result") or "")
-        import re
-        m = re.search(r"(\d+)\s*[-:]\s*(\d+)", score)
-        if m:
-            return int(m.group(1)), int(m.group(2))
+    def first_present(*names: str) -> Any:
+        return next((row.get(name) for name in names if row.get(name) not in (None, "")), None)
+
+    def integer_score(value: Any) -> int | None:
+        if isinstance(value, bool) or value in (None, ""):
+            return None
+        try:
+            parsed = float(str(value).replace(",", "."))
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not math.isfinite(parsed) or parsed < 0 or not parsed.is_integer():
+            return None
+        return int(parsed)
+
+    home = first_present("home_score", "score_home", "home_goals", "goals_home")
+    away = first_present("away_score", "score_away", "away_goals", "goals_away")
+    home_score, away_score = integer_score(home), integer_score(away)
+    if home_score is not None and away_score is not None:
+        return home_score, away_score
+
+    score = str(first_present("score", "result") or "")
+    match = re.fullmatch(r"\s*(\d+)\s*[-:]\s*(\d+)\s*", score)
+    if match:
+        return int(match.group(1)), int(match.group(2))
     return None, None
 
 
 def _finished_matches(conn: sqlite3.Connection, limit: int) -> list[Dict[str, Any]]:
-    data = rows(conn, """SELECT * FROM matches
-                         WHERE COALESCE(home_team,'')<>'' AND COALESCE(away_team,'')<>''
-                         ORDER BY COALESCE(match_date,'') DESC, COALESCE(kickoff_time,'') DESC LIMIT ?""", (int(limit),))
-    finished = []
-    for item in data:
-        hs, aw = _score_pair(item)
-        if hs is not None and aw is not None:
-            item["_home_score"] = hs
-            item["_away_score"] = aw
+    terminal_statuses = (
+        "ft", "aet", "pen", "final", "finalizado", "terminado", "archived", "finished",
+        "match finished", "full time", "fulltime", "completed", "complete",
+        "after extra time", "after penalties", "finalizado tras prorroga",
+        "finalizado tras penaltis", "terminado tras prorroga", "terminado tras penaltis",
+        "finalizado tras prórroga", "terminado tras prórroga",
+    )
+    placeholders = ",".join("?" for _ in terminal_statuses)
+    safe_limit = max(1, int(limit))
+
+    def from_table(table: str) -> list[Dict[str, Any]]:
+        # Table names are fixed internal constants; user data only enters bound parameters.
+        order = "COALESCE(match_date,'') DESC, COALESCE(kickoff_time,'') DESC"
+        if table == "warehouse_match_facts":
+            order = "COALESCE(match_date,snapshot_at,'') DESC, COALESCE(kickoff_iso,'') DESC"
+        data = rows(conn, f"""SELECT * FROM {table}
+            WHERE COALESCE(home_team,'')<>'' AND COALESCE(away_team,'')<>''
+              AND lower(trim(COALESCE(status,''))) IN ({placeholders})
+            ORDER BY {order} LIMIT ?""", (*terminal_statuses, safe_limit))
+        finished = []
+        for item in data:
+            if normalize_status(item.get("status")) != "finished":
+                continue
+            home_score, away_score = _score_pair(item)
+            if home_score is None or away_score is None:
+                continue
+            item["_home_score"] = home_score
+            item["_away_score"] = away_score
             finished.append(item)
-    if finished:
         return finished
-    return rows(conn, "SELECT * FROM warehouse_match_facts ORDER BY COALESCE(match_date,snapshot_at,'') DESC LIMIT ?", (int(limit),))
+
+    finished = from_table("matches")
+    return finished if finished else from_table("warehouse_match_facts")
 
 
 def _blank_team() -> Dict[str, Any]:
@@ -220,10 +264,22 @@ def rebuild_shark_prediction_engine(db_path: str, limit: int = 1000) -> Dict[str
     ensure_shark_prediction_schema(db_path)
     conn = connect(db_path)
     cur = conn.cursor()
+    matches = _finished_matches(conn, limit)
+    if not matches:
+        existing_teams = as_int(scalar(conn, "SELECT COUNT(*) FROM shark_team_ratings", default=0), 0)
+        existing_profile = one(conn, "SELECT prediction_readiness FROM shark_prediction_profiles WHERE id='global'")
+        conn.close()
+        return {
+            "ok": False,
+            "rebuilt": False,
+            "state": "INSUFFICIENT_FINISHED_RESULTS",
+            "matches_analyzed": 0,
+            "preserved_existing_model": bool(existing_teams or existing_profile),
+            "summary": {},
+        }
     cur.execute("DELETE FROM shark_team_ratings")
     cur.execute("DELETE FROM shark_league_strength")
     cur.execute("DELETE FROM shark_prediction_market_scores")
-    matches = _finished_matches(conn, limit)
     teams: Dict[str, Dict[str, Any]] = {}
     leagues: Dict[str, Dict[str, Any]] = {}
     for item in matches:
@@ -283,7 +339,8 @@ def rebuild_shark_prediction_engine(db_path: str, limit: int = 1000) -> Dict[str
 
 
 def _rebuild_markets(conn: sqlite3.Connection, now: str) -> None:
-    market_rows = rows(conn, "SELECT market, sample_size, winrate, roi, confidence_adjustment, explanation FROM shark_learning_market_stats")
+    market_rows = rows(conn, """SELECT market, sample_size, winrate, roi, confidence_adjustment, explanation
+        FROM shark_learning_market_stats WHERE COALESCE(sample_size,0)>0""")
     for item in market_rows:
         market = item.get("market") or "Mercado"
         sample = as_int(item.get("sample_size"), 0)
@@ -294,28 +351,27 @@ def _rebuild_markets(conn: sqlite3.Connection, now: str) -> None:
         conn.execute("""INSERT OR REPLACE INTO shark_prediction_market_scores
             (market,score,sample_size,winrate,roi,confidence_adjustment,explanation,payload_json,rebuilt_at)
             VALUES (?,?,?,?,?,?,?,?,?)""", (market, score, sample, winrate, roi, adj, item.get("explanation") or "Mercado evaluado por histórico SHARK.", json_dumps(item), now))
-    if not market_rows:
-        for market in ["1X2", "Más de 2.5 goles", "Ambos marcan", "Doble oportunidad", "Empate no apuesta"]:
-            conn.execute("""INSERT OR REPLACE INTO shark_prediction_market_scores
-                (market,score,sample_size,winrate,roi,confidence_adjustment,explanation,payload_json,rebuilt_at)
-                VALUES (?,?,?,?,?,?,?,?,?)""", (market, 68, 0, 0, 0, 0, "Mercado preparado; falta histórico validado para aprendizaje avanzado.", "{}", now))
+    # An empty learning table means no measured market evidence. Do not seed
+    # placeholder scores that can be mistaken for learned model performance.
 
 
 def _build_summary(conn: sqlite3.Connection, matches_analyzed: int | None = None) -> Dict[str, Any]:
     teams = as_int(scalar(conn, "SELECT COUNT(*) FROM shark_team_ratings", default=0), 0)
     leagues = as_int(scalar(conn, "SELECT COUNT(*) FROM shark_league_strength", default=0), 0)
-    markets = as_int(scalar(conn, "SELECT COUNT(*) FROM shark_prediction_market_scores", default=0), 0)
-    avg_rating = as_float(scalar(conn, "SELECT ROUND(AVG(rating),2) FROM shark_team_ratings", default=70), 70)
+    markets = as_int(scalar(conn, "SELECT COUNT(*) FROM shark_prediction_market_scores WHERE sample_size>0", default=0), 0)
+    avg_rating_value = scalar(conn, "SELECT ROUND(AVG(rating),2) FROM shark_team_ratings", default=None)
+    avg_rating = as_float(avg_rating_value, None) if teams else None
     top = one(conn, "SELECT team_name, rating, reliability_score FROM shark_team_ratings ORDER BY rating DESC, reliability_score DESC LIMIT 1")
-    readiness = 25 + min(25, teams * 2) + min(20, leagues * 4) + min(15, markets * 3)
-    if as_int((top or {}).get("reliability_score"), 0) >= 50:
-        readiness += 15
-    readiness = clamp(readiness, 0, 100)
+    training_matches = max(0, as_int(matches_analyzed, 0)) if matches_analyzed is not None else as_int(scalar(conn, "SELECT SUM(matches_played) FROM shark_team_ratings", default=0), 0) // 2
+    coverage = 0 if training_matches <= 0 else min(60, teams * 2) + min(25, leagues * 5) + min(15, markets * 5)
+    coverage = clamp(coverage, 0, 100) if coverage else 0
     top_teams = rows(conn, "SELECT * FROM shark_team_ratings ORDER BY rating DESC, reliability_score DESC LIMIT 8")
     strong_leagues = rows(conn, "SELECT * FROM shark_league_strength ORDER BY strength_score DESC, reliability_score DESC LIMIT 6")
     markets_rows = rows(conn, "SELECT * FROM shark_prediction_market_scores ORDER BY score DESC, sample_size DESC LIMIT 8")
     payload = {
-        "prediction_readiness": readiness,
+        "prediction_readiness": 0,
+        "historical_data_coverage": coverage,
+        "prediction_validation_state": "NOT_VALIDATED",
         "matches_analyzed": matches_analyzed if matches_analyzed is not None else as_int(scalar(conn, "SELECT SUM(matches_played) FROM shark_team_ratings", default=0), 0),
         "teams_rated": teams,
         "leagues_rated": leagues,
@@ -325,11 +381,12 @@ def _build_summary(conn: sqlite3.Connection, matches_analyzed: int | None = None
         "top_teams": top_teams,
         "strong_leagues": strong_leagues,
         "market_scores": markets_rows,
-        "note": "Predicción basada en datos guardados, ratings internos y aprendizaje histórico; no garantiza beneficios.",
+        "readiness_type": "historical_data_coverage_not_model_accuracy",
+        "note": "La preparación mide cobertura de resultados históricos y mercados evaluados; no mide precisión ni valida pronósticos.",
     }
     conn.execute("""INSERT OR REPLACE INTO shark_prediction_profiles
         (id,matches_analyzed,teams_rated,leagues_rated,markets_rated,prediction_readiness,avg_team_rating,top_team,payload_json,rebuilt_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?)""", ("global", payload["matches_analyzed"], teams, leagues, markets, readiness, avg_rating, payload["top_team"], json_dumps(payload), utc_now()))
+        VALUES (?,?,?,?,?,?,?,?,?,?)""", ("global", payload["matches_analyzed"], teams, leagues, markets, payload["prediction_readiness"], avg_rating, payload["top_team"], json_dumps(payload), utc_now()))
     return payload
 
 
@@ -356,24 +413,20 @@ def shark_prediction_summary(db_path: str, auto_rebuild: bool = False) -> Dict[s
 
 def _team_rating(conn: sqlite3.Connection, team: Any) -> Dict[str, Any]:
     if not team:
-        return {"team_name": "", "rating": 70, "reliability_score": 0, "home_strength": 70, "away_strength": 70}
+        return {"team_name": "", "rating": None, "matches_played": 0, "reliability_score": 0, "home_strength": None, "away_strength": None}
     row = one(conn, "SELECT * FROM shark_team_ratings WHERE lower(team_name)=lower(?)", (str(team),))
-    return row or {"team_name": str(team), "rating": 70, "reliability_score": 0, "home_strength": 70, "away_strength": 70}
+    return row or {"team_name": str(team), "rating": None, "matches_played": 0, "reliability_score": 0, "home_strength": None, "away_strength": None}
 
 
 def _league_strength(conn: sqlite3.Connection, league: Any) -> Dict[str, Any]:
     if not league:
-        return {"league_name": "Competición", "strength_score": 70, "reliability_score": 0, "sample_size": 0}
+        return {"league_name": "Competición", "strength_score": None, "reliability_score": 0, "sample_size": 0}
     row = one(conn, "SELECT * FROM shark_league_strength WHERE lower(league_name)=lower(?)", (str(league),))
-    return row or {"league_name": str(league), "strength_score": 70, "reliability_score": 0, "sample_size": 0}
+    return row or {"league_name": str(league), "strength_score": None, "reliability_score": 0, "sample_size": 0}
 
 
 def _market_scores(conn: sqlite3.Connection) -> list[Dict[str, Any]]:
-    return rows(conn, "SELECT * FROM shark_prediction_market_scores ORDER BY score DESC, sample_size DESC LIMIT 10") or [
-        {"market": "1X2", "score": 68, "explanation": "Mercado base con contexto disponible."},
-        {"market": "Más de 2.5 goles", "score": 66, "explanation": "Requiere estadísticas de goles para confirmar."},
-        {"market": "Ambos marcan", "score": 65, "explanation": "Requiere señales ofensivas de ambos equipos."},
-    ]
+    return rows(conn, "SELECT * FROM shark_prediction_market_scores WHERE sample_size>0 ORDER BY score DESC, sample_size DESC LIMIT 10")
 
 
 def prediction_for_match(db_path: str, match: Dict[str, Any], value_profile: Dict[str, Any] | None = None, premium_profile: Dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -389,67 +442,39 @@ def prediction_for_match(db_path: str, match: Dict[str, Any], value_profile: Dic
     conn.close()
     hr = as_int(home_rating.get("rating"), 70)
     ar = as_int(away_rating.get("rating"), 70)
-    home_edge = hr - ar + 3  # conservative home advantage
-    league_strength = as_int(league_row.get("strength_score"), 70)
-    premium_score = as_int((premium_profile or {}).get("shark_score"), 70)
-    value_best = ((value_profile or {}).get("best") or {}) if isinstance(value_profile, dict) else {}
-    value_pct = as_float(value_best.get("value_pct"), 0.0)
-    base_score = 62 + (abs(home_edge) * 0.45) + ((league_strength - 70) * 0.12) + ((premium_score - 70) * 0.28) + min(8, max(-6, value_pct * 0.45))
-    breakdown = []
-    breakdown.append({"label": "Rating local", "impact": round((hr - 70) * 0.25, 1), "detail": f"{home}: {hr}/100"})
-    breakdown.append({"label": "Rating visitante", "impact": round((70 - ar) * 0.18, 1), "detail": f"{away}: {ar}/100"})
-    breakdown.append({"label": "Localía", "impact": 3, "detail": "Ventaja local aplicada de forma conservadora."})
-    breakdown.append({"label": "Fuerza de liga", "impact": round((league_strength - 70) * 0.12, 1), "detail": f"{league}: {league_strength}/100"})
-    breakdown.append({"label": "Lectura premium", "impact": round((premium_score - 70) * 0.28, 1), "detail": f"Contexto SHARK: {premium_score}/100"})
-    if value_pct:
-        breakdown.append({"label": "Value detectado", "impact": round(min(8, max(-6, value_pct * 0.45)), 1), "detail": f"Diferencia estimada: {value_pct}%"})
-    reliability = clamp((as_int(home_rating.get("reliability_score"), 0) + as_int(away_rating.get("reliability_score"), 0) + as_int(league_row.get("reliability_score"), 0)) / 3, 0, 100)
-    final_score = clamp(base_score + min(5, reliability / 20), 1, 100)
-    if home_edge >= 8:
-        selection = home
-        market = "1X2"
-        reason = "El rating local supera al visitante y la localía refuerza la lectura."
-    elif home_edge <= -8:
-        selection = away
-        market = "1X2"
-        reason = "El rating visitante supera al local con margen suficiente."
-    else:
-        best_market = sorted(markets, key=lambda x: as_int(x.get("score"), 0), reverse=True)[0]
-        market = best_market.get("market") or "Doble oportunidad"
-        selection = value_best.get("selection") or "Mercado prudente"
-        reason = "Partido equilibrado: SHARK prioriza mercado con mejor histórico/contexto antes que ganador puro."
-    label = "Alta" if final_score >= 82 else "Media" if final_score >= 68 else "Contextual"
-    risk = "Bajo" if final_score >= 84 and reliability >= 45 else "Medio" if final_score >= 68 else "Alto"
-    warnings = []
-    if reliability < 35:
-        warnings.append("Muestra histórica limitada: evitar stake alto.")
-    if abs(home_edge) < 5:
-        warnings.append("Ratings muy parejos: mejor buscar mercado alternativo.")
-    if value_pct < 1 and value_profile:
-        warnings.append("Sin value claro en las cuotas guardadas.")
+    home_edge = hr - ar + 3  # descriptive rating difference, not a calibrated probability
+    home_sample = as_int(home_rating.get("matches_played"), 0)
+    away_sample = as_int(away_rating.get("matches_played"), 0)
+    sample_ready = home_sample >= 5 and away_sample >= 5
+    rating_signal = "LOCAL" if home_edge >= 8 else "VISITANTE" if home_edge <= -8 else "EQUILIBRADO"
     return {
-        "available": True,
+        "available": False,
+        "historical_signal_available": sample_ready,
+        "state": "UNVALIDATED_HISTORICAL_SIGNAL" if sample_ready else "INSUFFICIENT_HISTORY",
         "version": "V592",
-        "score_v2": final_score,
-        "confidence_label": label,
-        "risk_label": risk,
-        "recommended_market": market,
-        "recommended_selection": selection,
-        "reason": reason,
-        "home_rating": {**home_rating, "rating": hr},
-        "away_rating": {**away_rating, "rating": ar},
+        "validated": False,
+        "can_publish": False,
+        "decision": "WAIT",
+        "score_v2": None,
+        "confidence_label": None,
+        "risk_label": None,
+        "recommended_market": None,
+        "recommended_selection": None,
+        "rating_signal": rating_signal if sample_ready else None,
+        "reason": ("Contexto descriptivo de ratings históricos; todavía no está validado como pronóstico ni como pick."
+                   if sample_ready else "Faltan al menos cinco resultados finalizados por equipo para mostrar una señal histórica."),
+        "home_rating": {**home_rating, "rating": hr if home_sample else None, "sample_size": home_sample},
+        "away_rating": {**away_rating, "rating": ar if away_sample else None, "sample_size": away_sample},
         "league_strength": league_row,
         "market_candidates": markets[:5],
-        "confidence_breakdown": breakdown,
-        "warnings": warnings,
-        "reliability_score": reliability,
-        "value_pct": value_pct,
-        "summary": f"Score SHARK V2 {final_score}/100 · Confianza {label} · Riesgo {risk}.",
+        "historical_rating_difference": home_edge if sample_ready else None,
+        "limitations": ["No es una probabilidad calibrada.", "No genera ni autoriza apuestas o publicaciones."],
+        "summary": "Señal histórica descriptiva; sin pronóstico validado.",
     }
 
 
 def apply_shark_prediction_adjustment(item: Dict[str, Any], db_path: str) -> Dict[str, Any]:
-    """Apply a small V592 adjustment to pick/recommendation-like payloads."""
+    """Adjust a pick only if a separately validated SHARK model is available."""
     payload = dict(item or {})
     match = {
         "home_team": payload.get("home_team"),
@@ -460,6 +485,12 @@ def apply_shark_prediction_adjustment(item: Dict[str, Any], db_path: str) -> Dic
     try:
         prediction = prediction_for_match(db_path, match, value_profile=None, premium_profile={"shark_score": payload.get("score") or payload.get("confidence") or 70})
         old_score = as_int(payload.get("score") or payload.get("confidence"), 70)
+        # An unvalidated historical signal must never alter a pick's score.
+        if prediction.get("validated") is not True or prediction.get("score_v2") is None:
+            payload["prediction_score_v2"] = None
+            payload["prediction_adjustment"] = 0
+            payload["prediction_explanation"] = prediction.get("summary")
+            return payload
         delta = clamp((as_int(prediction.get("score_v2"), old_score) - 70) / 5, -6, 6)
         new_score = clamp(old_score + delta)
         payload["prediction_score_v2"] = prediction.get("score_v2")
