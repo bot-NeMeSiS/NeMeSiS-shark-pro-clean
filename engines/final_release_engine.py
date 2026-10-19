@@ -195,7 +195,9 @@ def final_release_snapshot(db_path: str, app_version: str = "") -> dict[str, Any
     secret_ok = _env_present("SECRET_KEY", "FLASK_SECRET_KEY")
     automation_ok = _env_present("AUTOMATION_SECRET")
     telegram_ok = _env_present("TELEGRAM_BOT_TOKEN") and _env_present("TELEGRAM_CHAT_ID", "TELEGRAM_CHANNEL_ID")
-    odds_ok = _env_present("THE_ODDS_API_KEY", "ODDS_API_KEY")
+    api_football_odds_configured = _env_present("API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY")
+    odds_api_funded = os.getenv("THE_ODDS_API_FUNDED", "false").strip().lower() in {"1", "true", "yes", "on"}
+    odds_ok = api_football_odds_configured or (odds_api_funded and _env_present("THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY"))
     stripe_ready = _env_present("STRIPE_SECRET_KEY") and _env_present("STRIPE_WEBHOOK_SECRET")
     persistent_ok = db_path_text.startswith("/data/") or os.getenv("DB_PATH") == "/data/database.db"
 
@@ -253,7 +255,7 @@ def final_release_snapshot(db_path: str, app_version: str = "") -> dict[str, Any
             "Telegram, datos y memoria",
             [
                 {"label": "Telegram env completo", "ok": telegram_ok, "value": _env_label("TELEGRAM_BOT_TOKEN")},
-                {"label": "The Odds API configurada", "ok": odds_ok, "value": _env_label("THE_ODDS_API_KEY", "ODDS_API_KEY")},
+                {"label": "Proveedor de cuotas configurado", "ok": odds_ok, "value": "API-Football configurada" if api_football_odds_configured else "The Odds API financiada" if odds_ok else "No hay proveedor configurado"},
                 {"label": "Usuarios", "ok": tables.get("users"), "value": counts.get("users", 0)},
                 {"label": "Partidos", "ok": tables.get("matches"), "value": counts.get("matches", 0)},
                 {"label": "Picks", "ok": tables.get("picks"), "value": counts.get("picks", 0)},
@@ -305,7 +307,7 @@ def final_release_snapshot(db_path: str, app_version: str = "") -> dict[str, Any
                 ("AUTOMATION_SECRET", automation_ok),
                 ("TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID/CHANNEL", telegram_ok),
                 ("DB_PATH=/data/database.db", persistent_ok),
-                ("THE_ODDS_API_KEY/ODDS_API_KEY", odds_ok),
+                ("API-Football para cuotas o The Odds API financiada", odds_ok),
                 ("STRIPE env completo si se activan pagos", stripe_ready),
             ] if not ok
         ],

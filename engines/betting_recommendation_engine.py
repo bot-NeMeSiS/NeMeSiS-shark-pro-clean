@@ -58,7 +58,7 @@ def pick_best_market(match: dict, odds: dict | None = None) -> dict:
         "market": "1X2",
         "selection": label,
         "odds": round(price, 2),
-        "bookmaker": odds.get("bookmaker") or "The Odds API",
+        "bookmaker": odds.get("bookmaker") or "Proveedor de cuotas",
         "source": odds.get("source") or "odds_cache",
         "has_real_odds": True,
         "price_key": key,

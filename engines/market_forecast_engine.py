@@ -10,7 +10,7 @@ from engines.match_odds_presentation import cached_match_odds
 
 
 REQUIRED_OUTCOMES = {"home", "draw", "away"}
-SUPPORTED_SOURCE = "the odds api"
+SUPPORTED_SOURCES = frozenset({"the odds api", "api-football", "api football", "api_football"})
 
 
 def normalized_market_probabilities(prices):
@@ -74,7 +74,7 @@ def market_implied_forecast(match, *, is_upcoming, now=None):
         "observed_at": str(quote_view.get("observed_at") or ""),
         "observed_label": str(quote_view.get("observed_label") or ""),
     })
-    if source.casefold() != SUPPORTED_SOURCE:
+    if source.casefold() not in SUPPORTED_SOURCES:
         return {**base, "state": "UNVERIFIED_SOURCE", "message": "No se muestra una estimación porque la fuente de cuotas no está verificada."}
 
     items = [item for item in quote_view.get("items") or [] if isinstance(item, dict)]
@@ -110,7 +110,9 @@ def market_implied_forecast(match, *, is_upcoming, now=None):
         "bookmaker": str(quote_view.get("bookmaker") or ""),
         "observed_at": str(quote_view.get("observed_at") or ""),
         "observed_label": str(quote_view.get("observed_label") or ""),
-        "message": "Lectura implícita calculada desde las tres cuotas 1X2 actuales.",
+        "message": ("Lectura implícita calculada desde la última actualización de API-Football dentro de su ventana configurada; consulta la hora del proveedor."
+                    if source.casefold() in {"api-football", "api football", "api_football"}
+                    else "Lectura implícita calculada desde las tres cuotas 1X2 actuales."),
         "method": "1/cuota, normalizado entre local, empate y visitante.",
         "external_calls": 0,
     }

@@ -102,7 +102,8 @@ def test_provider_health_surfaces_restricted_primary_and_real_fallback(monkeypat
 
     odds = providers["the_odds"]
     assert odds["configured"] is True
-    assert odds["status"] == "CACHE"
+    assert odds["status"] == "PAUSED_UNFUNDED"
+    assert odds["funded"] is False
     assert "no verificable" in odds["billing_status"].lower()
 
 
@@ -114,7 +115,8 @@ def test_provider_health_never_equates_configured_with_paid(monkeypatch):
     providers = {item["key"]: item for item in result["providers"]}
 
     assert providers["the_odds"]["configured"] is True
-    assert providers["the_odds"]["status"] == "SIN_VERIFICACION_RECIENTE"
+    assert providers["the_odds"]["status"] == "PAUSED_UNFUNDED"
+    assert providers["the_odds"]["funded"] is False
     assert "no verificable" in providers["the_odds"]["billing_status"].lower()
     assert "La configuración no verifica" in result["external_services"]["note"]
     assert result["external_services"]["telegram_runtime_state"] == "CONFIGURATION_ONLY"

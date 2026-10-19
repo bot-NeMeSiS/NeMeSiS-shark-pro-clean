@@ -1,10 +1,24 @@
 {% set od = data.get('odds') or {} %}
 {% set oq = od.get('quota') or {} %}
 {% set ov = od.get('visibility') or {} %}
+{% set af = od.get('api_football') or {} %}
 <section class="v928-admin-panel" data-odds-diagnostics="persisted">
-<header><div><h2>The Odds API · cadena de cuotas</h2><p>Última evidencia persistida y visibilidad real del cliente; abrir Admin no consume créditos.</p></div></header>
+<header><div><h2>Cuotas prepartido · API-Football</h2><p>Estado local, última observación y consumo reservado por la aplicación. No equivale a la cuota real restante del proveedor.</p></div></header>
 <div class="v928-admin-panel-body"><div class="v928-truth-list">
-<div><span>Configuración / activación</span><strong>{{ 'Configurada' if od.get('key_present') else 'Falta clave' }} / {{ 'Activa' if od.get('enabled') else 'Desactivada' }}</strong></div>
+<div><span>Configuración / activación</span><strong>{{ 'Configurada' if af.get('configured') else 'Falta clave' }} / {{ 'Activa' if af.get('enabled') else 'Desactivada' }}</strong></div>
+<div><span>Último estado observado</span><strong>{{ af.get('last_status') or 'Sin observación' }}</strong></div>
+<div><span>Última solicitud / respuesta del proveedor</span><strong>{{ af.get('last_attempt_at')|madrid_datetime_label if af.get('last_attempt_at') else 'Sin solicitud' }} / {{ af.get('provider_observed_at')|madrid_datetime_label if af.get('provider_observed_at') else 'Sin respuesta observada' }}</strong></div>
+<div><span>Cuota más reciente guardada</span><strong>{{ af.get('last_success_at')|madrid_datetime_label if af.get('last_success_at') else 'Sin cuota válida registrada' }}</strong></div>
+<div><span>Total histórico de cuotas / fichas consideradas</span><strong>{{ af.get('snapshots_total', af.get('snapshots_inserted', 0)) }} / {{ af.get('fixtures_seen', 0) }}</strong></div>
+<div><span>Presupuesto local diario reservado / realizado</span><strong>{{ af.get('local_daily_estimated_calls') if af.get('local_daily_estimated_calls') is not none else 'Sin datos' }} / {{ af.get('local_daily_actual_calls') if af.get('local_daily_actual_calls') is not none else 'Sin datos' }} de {{ af.get('local_daily_budget', 'Sin dato') }}</strong></div>
+<div><span>Estimación local restante</span><strong>{{ af.get('local_daily_remaining_estimate') if af.get('local_daily_remaining_estimate') is not none else 'Sin datos' }}</strong></div>
+<div><span>Fuente de los límites mostrados</span><strong>Contador interno; no consulta ni confirma la cuota del proveedor</strong></div>
+<div><span>Último rechazo clasificado</span><strong>{{ af.get('failure_category') or 'Sin rechazo reciente' }}</strong></div>
+</div></div>
+<header><div><h2>The Odds API · proveedor opcional</h2><p>La integración queda pausada mientras no esté financiada; su clave, si existe, no provoca llamadas.</p></div></header>
+<div class="v928-admin-panel-body"><div class="v928-truth-list">
+<div><span>Financiación / activación</span><strong>{{ 'Financiada explícitamente' if od.get('funded') else 'Pendiente de presupuesto' }} / {{ 'Activa' if od.get('enabled') else 'Pausada' }}</strong></div>
+<div><span>Clave presente</span><strong>{{ 'Sí' if od.get('key_present') else 'No' }} · no se muestra</strong></div>
 <div><span>Última consulta</span><strong>{{ (od.get('last_sync') or {}).get('last_sync')|madrid_datetime_label if (od.get('last_sync') or {}).get('last_sync') else 'Sin evidencia' }}</strong></div>
 {% for field, label in [('http_status','Último HTTP'),('requests_used','Créditos usados'),('requests_remaining','Créditos restantes'),('requests_last','Créditos última consulta'),('events_received','Eventos recibidos'),('events_with_bookmakers','Eventos con bookmakers'),('bookmakers_received','Bookmakers recibidos'),('markets_received','Mercados recibidos'),('events_with_h2h','Eventos con 1X2')] %}
 <div><span>{{ label }}</span><strong>{{ oq.get(field) if oq.get(field) is not none else 'No disponible automáticamente' }}</strong></div>

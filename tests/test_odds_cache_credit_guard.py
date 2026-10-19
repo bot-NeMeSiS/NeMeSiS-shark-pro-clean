@@ -87,6 +87,7 @@ def test_malformed_quota_metadata_does_not_break_cache_classification(app_module
 
 def test_malformed_quota_metadata_does_not_break_failure_backoff(app_module, monkeypatch):
     monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
+    monkeypatch.setenv("THE_ODDS_API_FUNDED", "true")
     monkeypatch.setenv("ENABLE_ODDS_API", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
     monkeypatch.setattr(app_module, "odds_failure_cooldown_minutes", lambda: 10)
@@ -117,6 +118,7 @@ def test_error_result_never_becomes_last_success_even_with_ok_status(app_module)
 
 def test_failure_backoff_is_a_transparent_zero_call_deferral(app_module, monkeypatch):
     monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
+    monkeypatch.setenv("THE_ODDS_API_FUNDED", "true")
     monkeypatch.setenv("ENABLE_ODDS_API", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
     monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
@@ -142,6 +144,7 @@ def test_failure_backoff_is_a_transparent_zero_call_deferral(app_module, monkeyp
 
 def test_cached_odds_sync_makes_zero_provider_calls(app_module, monkeypatch):
     monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
+    monkeypatch.setenv("THE_ODDS_API_FUNDED", "true")
     monkeypatch.setenv("ENABLE_ODDS_API", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
     monkeypatch.setattr(app_module, "odds_sync_skip_reason", lambda: "success_cache")

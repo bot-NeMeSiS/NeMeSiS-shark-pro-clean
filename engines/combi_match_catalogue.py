@@ -152,7 +152,8 @@ def _market_reading(choices, user):
     if any(str(leg.get('quote_clock_scope') or '') != 'PROVIDER_QUOTE_TIME' for leg in legs):
         return {**base, 'state': 'PROVIDER_TIME_UNVERIFIED',
                 'message': 'No mostramos porcentajes: falta la hora original confirmada por la fuente de cuotas.'}
-    if any(str(leg.get('odds_source') or '').casefold() != 'the odds api' for leg in legs):
+    if any(str(leg.get('odds_source') or '').casefold() not in {
+            'the odds api', 'api-football', 'api football', 'api_football'} for leg in legs):
         return {**base, 'state': 'UNVERIFIED_SOURCE',
                 'message': 'No mostramos porcentajes porque la procedencia de las cuotas no está confirmada.'}
     signatures = {

@@ -186,7 +186,9 @@ def go_live_snapshot(db_path: str, app_version: str = "") -> dict[str, Any]:
     telegram_env = safe_env_present("TELEGRAM_BOT_TOKEN") and safe_env_present("TELEGRAM_CHAT_ID", ["TELEGRAM_CHANNEL_ID"])
     automation_env = safe_env_present("AUTOMATION_SECRET")
     stripe_env = safe_env_present("STRIPE_SECRET_KEY") and safe_env_present("STRIPE_WEBHOOK_SECRET") and safe_env_present("STRIPE_PRICE_PRO") and safe_env_present("STRIPE_PRICE_ELITE")
-    odds_env = safe_env_present("THE_ODDS_API_KEY") or safe_env_present("ODDS_API_KEY")
+    api_football_odds_env = safe_env_present("API_FOOTBALL_KEY") or safe_env_present("API_FOOTBALL_API_KEY") or safe_env_present("API_SPORTS_KEY") or safe_env_present("APISPORTS_KEY")
+    odds_api_funded = os.getenv("THE_ODDS_API_FUNDED", "false").strip().lower() in {"1", "true", "yes", "on"}
+    odds_env = api_football_odds_env or (odds_api_funded and (safe_env_present("THE_ODDS_API_KEY_PAID") or safe_env_present("THE_ODDS_API_KEY")))
     secret_env = safe_env_present("SECRET_KEY", ["FLASK_SECRET_KEY"])
 
     gates = [
@@ -261,7 +263,7 @@ def go_live_snapshot(db_path: str, app_version: str = "") -> dict[str, Any]:
                 {"label": "Centro público grande", "ok": project["templates"].get("public_launch")},
                 {"label": "CSS móvil", "ok": project["css"].get("mobile")},
                 {"label": "Capa V735 visual/control", "ok": project["css"].get("v735")},
-                {"label": "The Odds API configurada", "ok": odds_env, "value": "configurado" if odds_env else "pendiente"},
+                {"label": "Proveedor de cuotas configurado", "ok": odds_env, "value": "API-Football" if api_football_odds_env else "The Odds API financiada" if odds_env else "pendiente"},
             ],
             "Hacer QA real con móvil, PWA, Live, Calendar, Picks, Combis, SHARK y Match Detail.",
             critical=False,

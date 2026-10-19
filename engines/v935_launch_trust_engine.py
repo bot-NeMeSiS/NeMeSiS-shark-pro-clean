@@ -6,6 +6,7 @@ It is deliberately pure so page rendering, workers, and checks share one policy.
 from __future__ import annotations
 
 import json
+import os
 import re
 import unicodedata
 from datetime import datetime, timedelta
@@ -515,9 +516,20 @@ def get_odds_freshness(
     else:
         parsed = _parse_iso(timestamp)
         age = None if parsed is None else max(0, int((madrid_now(now) - parsed).total_seconds()))
+        source_key = re.sub(r"[^a-z0-9]+", "_", source_text.casefold()).strip("_")
+        if source_key in {"api_football", "api_sports", "api_football_live", "api_sports_api_football"}:
+            # API-Football publishes pre-match odds on a slower cadence than live odds.
+            # Keep the provider's original timestamp visible and use its documented
+            # refresh window instead of the generic 15-minute live-data threshold.
+            try:
+                fresh_window = max(900, min(21600, int(os.getenv("API_FOOTBALL_ODDS_FRESH_SECONDS", "10800"))))
+            except (TypeError, ValueError, OverflowError):
+                fresh_window = 10800
+        else:
+            fresh_window = 15 * 60
         if age is None:
             status = "INVALID"
-        elif age <= 15 * 60:
+        elif age <= fresh_window:
             status = "FRESH"
         elif age <= 60 * 60:
             status = "RECORDED"
@@ -530,6 +542,8 @@ def get_odds_freshness(
         "EXPIRED": "Mercado cerrado",
         "INVALID": "Cuota no disponible",
     }
+    if status == "FRESH" and source_key in {"api_football", "api_sports", "api_football_live", "api_sports_api_football"}:
+        labels["FRESH"] = "Cuota reciente de API-Football"
     return {
         "status": status,
         "label": labels[status],

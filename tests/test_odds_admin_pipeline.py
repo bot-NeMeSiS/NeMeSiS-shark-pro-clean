@@ -21,6 +21,7 @@ def odds_db(app_module, monkeypatch, tmp_path):
     monkeypatch.setattr(app_module, 'DB_PATH', str(path))
     monkeypatch.setattr(app_module, 'seed_core', lambda: None)
     monkeypatch.setenv('THE_ODDS_API_KEY', 'simulated-qa')
+    monkeypatch.setenv('THE_ODDS_API_FUNDED', 'true')
     monkeypatch.setenv('ENABLE_ODDS_API', 'true')
     return app_module
 

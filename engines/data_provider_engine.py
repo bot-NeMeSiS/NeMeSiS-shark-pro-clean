@@ -1,9 +1,4 @@
-"""V596 - capa profesional de proveedores de datos deportivos.
-
-Esta capa no sustituye TheSportsDB ni The Odds API. Normaliza el estado de las
-fuentes disponibles y deja preparada la aplicación para activar API-Football,
-Sportmonks o Sportradar desde Render sin rehacer la app.
-"""
+"""Provider inventory for the existing sports and market-data integrations."""
 from __future__ import annotations
 
 import json
@@ -22,7 +17,7 @@ PROVIDER_LABELS = {
 
 PROVIDER_FEATURES = {
     "thesportsdb": ["calendario", "resultados", "equipos", "escudos", "ligas", "highlights", "eventos"],
-    "api_football": ["marcador en directo", "minuto real", "eventos", "alineaciones", "estadísticas", "clasificaciones", "calendario"],
+    "api_football": ["calendario", "resultados", "directos", "eventos", "alineaciones", "estadísticas", "clasificaciones", "cuotas prepartido e in-play (según cobertura)"],
     "sportmonks": ["marcador en directo", "eventos", "alineaciones", "estadísticas", "clasificaciones", "jugadores", "históricos"],
     "sportradar": ["datos enterprise", "live avanzado", "estadísticas profundas", "calendario", "eventos", "alineaciones"],
     "the_odds_api": ["cuotas", "mercados", "bookmakers", "value", "comparativa de precios"],
@@ -106,17 +101,20 @@ def primary_provider() -> str:
 def provider_status(provider: str) -> Dict[str, Any]:
     keys = PROVIDER_ENV_KEYS.get(provider, [])
     active_key = _first_env(keys)
-    enabled = _env_flag(f"ENABLE_{provider.upper()}_PROVIDER", default=provider in {"thesportsdb", "the_odds_api"})
+    funded = provider != "the_odds_api" or _env_flag("THE_ODDS_API_FUNDED", False)
+    enabled = _env_flag(f"ENABLE_{provider.upper()}_PROVIDER", default=provider in {"thesportsdb", "api_football", "the_odds_api"})
+    enabled = enabled and funded
     configured = bool(active_key) or provider == "thesportsdb" and bool(_first_env(PROVIDER_ENV_KEYS["thesportsdb"]))
     return {
         "provider": provider,
         "name": PROVIDER_LABELS.get(provider, provider),
         "enabled": enabled,
         "configured": configured,
+        "funded": funded if provider == "the_odds_api" else None,
         "active_key": active_key or "",
         "env_keys": keys,
         "features": PROVIDER_FEATURES.get(provider, []),
-        "role": "cuotas" if provider == "the_odds_api" else "datos deportivos",
+        "role": "cuotas opcionales sin activar" if provider == "the_odds_api" and not funded else "cuotas y datos deportivos" if provider == "api_football" else "cuotas" if provider == "the_odds_api" else "datos deportivos",
         "priority": provider_order().index(provider) + 1 if provider in provider_order() else 99,
     }
 
@@ -260,7 +258,13 @@ def data_provider_summary(db_path: str) -> Dict[str, Any]:
     primary = primary_provider()
     order = provider_order()
     live_ready = any(item["configured"] and item["provider"] in {"api_football", "sportmonks", "sportradar"} for item in providers)
-    odds_ready = bool(provider_status("the_odds_api")["configured"])
+    provider_readiness = {item["provider"]: item for item in providers}
+    odds_ready = bool(
+        (provider_readiness.get("api_football") or {}).get("configured")
+        and (provider_readiness.get("api_football") or {}).get("enabled")
+        or (provider_readiness.get("the_odds_api") or {}).get("configured")
+        and (provider_readiness.get("the_odds_api") or {}).get("enabled")
+    )
     sportsdb_ready = bool(provider_status("thesportsdb")["configured"])
     ready_score = 25
     if sportsdb_ready:
@@ -315,11 +319,11 @@ def data_provider_summary(db_path: str) -> Dict[str, Any]:
 
 def provider_recommendation(live_ready: bool, sportsdb_ready: bool, odds_ready: bool) -> str:
     if live_ready and sportsdb_ready and odds_ready:
-        return "Capa profesional preparada: datos live especializados, enriquecimiento TheSportsDB y cuotas The Odds API."
+        return "Base integrada: API-Football para calendario, directo, estadísticas y cuotas disponibles; TheSportsDB complementa resultados, equipos y contenido."
     if sportsdb_ready and odds_ready:
-        return "Base sólida: TheSportsDB + The Odds API. Para acercarse a Flashscore/Sofascore falta activar API-Football, Sportmonks o Sportradar."
+        return "API-Football y TheSportsDB están configuradas; The Odds API es opcional y requiere financiación explícita."
     if sportsdb_ready:
-        return "TheSportsDB listo. Falta confirmar cuotas y proveedor live profesional."
+        return "TheSportsDB listo. Confirma acceso actual a API-Football para calendario, directo, estadísticas y cuotas con cobertura."
     return "Configura THESPORTSDB_KEY como base legal de enriquecimiento y añade un proveedor live cuando tengas licencia."
 
 

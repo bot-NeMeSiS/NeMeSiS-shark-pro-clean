@@ -400,6 +400,14 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
             "external_calls": 1,
             "processed": 2,
         },
+        "api_football_odds": {
+            "ok": True,
+            "status": "AVAILABLE",
+            "external_calls": 2,
+            "processed": 2,
+            "fixtures_count": 2,
+            "snapshots_inserted": 2,
+        },
         "api_football_deep_enrichment": {
             "ok": True,
             "status": "OK",
@@ -434,12 +442,13 @@ def test_sports_cycle_totals_all_external_provider_calls(app_module, monkeypatch
     monkeypatch.setattr(app_module, "invalidate_v934_realtime_cache", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(app_module, "automation_safe_set", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(app_module, "has_request_context", lambda: False)
+    monkeypatch.setattr(app_module, "odds_enabled", lambda: True)
 
     result = app_module.run_sports_sync_cycle(force=False, trigger_type="pytest")
 
     assert result["ok"] is True
     assert result["status"] == "PARTIAL"
-    assert result["external_calls"] == 22
+    assert result["external_calls"] == 24
     assert any(str(item).startswith("odds_PARTIAL") for item in result["errors"])
     assert any(str(item).startswith("live_partial") for item in result["errors"])
 

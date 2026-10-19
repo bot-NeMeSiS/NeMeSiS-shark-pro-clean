@@ -141,6 +141,10 @@ from engines.api_football_statistics_engine import (
     refresh_api_football_statistics_if_due,
     statistics_refresh_state_for_match,
 )
+from engines.api_football_odds_engine import (
+    refresh_api_football_odds_if_due,
+    odds_runtime_status as api_football_odds_runtime_status,
+)
 from engines.api_sports_provider_engine import (
     explain_api_sports_provider_state,
     get_api_sports_status,
@@ -1445,7 +1449,7 @@ def _log_sports_stage_duration(label, started):
                    "sportsdb_candidates", "sportsdb_fetch", "sportsdb_transform", "sportsdb_persist",
                    "sportsdb_identity_read", "sportsdb_snapshot_write", "sportsdb_dedupe", "sportsdb_odds_reconcile",
                    "sportsdb_reconciliation", "sportsdb_finalize",
-                   "api_football_live_tracker", "api_football_statistics", "api_football_deep_enrichment", "pick_grading", "odds"}
+                   "api_football_live_tracker", "api_football_statistics", "api_football_odds", "api_football_deep_enrichment", "pick_grading", "odds"}
     if label in safe_labels:
         try:
             print(json.dumps({"event": "sports_stage", "stage": label,
@@ -1579,8 +1583,16 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         fixture_ids=deep_candidates or None,
         deep_limit=1,
     )
+    api_football_odds = (_safe_sports_sync_call(
+        "api_football_odds", refresh_api_football_odds_if_due, DB_PATH, limit=2,
+        snapshot_callback=_record_market_forecast_snapshot,
+    ) if include_odds else {"ok": True, "status": "INDEPENDENT_LANE", "skipped": True, "external_calls": 0})
     odds = (_safe_sports_sync_call("odds", sync_odds_events, limit=80, force=force)
-            if include_odds else {"ok": True, "status": "INDEPENDENT_LANE", "skipped": True, "external_calls": 0})
+            if include_odds and odds_enabled() else {
+                "ok": True, "status": "UNFUNDED_NOT_CONFIGURED", "skipped": True,
+                "external_calls": 0, "processed": 0, "errors": [],
+                "funded": False, "provider_quota_consulted": False,
+            })
     grading = _safe_sports_sync_call(
         "pick_grading",
         run_pick_grading,
@@ -1592,17 +1604,19 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
 
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
-    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live), ("statistics", statistics), ("deep", deep), ("odds", odds), ("grading", grading)):
+    for label, result in (("fixtures", fixtures), ("fallback", fallback), ("live", live),
+                          ("statistics", statistics), ("api_football_odds", api_football_odds),
+                          ("deep", deep), ("odds", odds), ("grading", grading)):
         if result.get("ok") is False or result.get("error") or result.get("errors"):
             errors.append(result.get("error") or f"{label}_{result.get('status') or 'provider_error'}")
     processed = sum(
         as_int(result.get("processed") or result.get("fixtures_count") or result.get("imported"), 0)
-        for result in (fixtures, fallback, live, statistics, deep, odds)
+        for result in (fixtures, fallback, live, statistics, api_football_odds, deep, odds)
     )
     picks_graded = sum(as_int(grading.get(key), 0) for key in ("won", "lost", "voids", "auto_validated"))
     external_calls = sum(
         as_int(result.get("external_calls") or (result.get("metrics") or {}).get("external_calls"), 0)
-        for result in (fixtures, fallback, live, statistics, deep, odds)
+        for result in (fixtures, fallback, live, statistics, api_football_odds, deep, odds)
     )
     status = "OK" if primary_ok and not errors else "PARTIAL" if primary_ok else "PROVIDER_UNAVAILABLE"
     finished_at = now_iso()
@@ -1613,6 +1627,7 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         "matches_synced": as_int(fixtures.get("fixtures_count"), 0) + as_int(fallback.get("processed"), 0),
         "live_synced": as_int(live.get("fixtures_count"), 0),
         "statistics_refreshed": as_int(statistics.get("refreshed_fixtures"), 0),
+        "api_football_odds": api_football_odds,
         "deep_status": deep.get("status") or "UNKNOWN",
         "deep_fixture_ids": (deep.get("selected_fixture_ids") or deep_candidates)[:1],
         "deep_external_calls": as_int(deep.get("external_calls") or (deep.get("metrics") or {}).get("external_calls"), 0),
@@ -2117,6 +2132,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
     fallback_stage = sports_result.get("fallback") if isinstance(sports_result.get("fallback"), dict) else {}
     live_stage = sports_result.get("live") if isinstance(sports_result.get("live"), dict) else {}
     odds_stage = sports_result.get("odds") if isinstance(sports_result.get("odds"), dict) else {}
+    api_football_odds_stage = sports_result.get("api_football_odds") if isinstance(sports_result.get("api_football_odds"), dict) else {}
     highlights_stage = sports_result.get("highlights") if isinstance(sports_result.get("highlights"), dict) else {}
 
     primary_ok = fixtures_stage.get("ok") is True
@@ -2192,6 +2208,19 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
             "error_present": bool(live_stage.get("error") or live_stage.get("errors")),
         },
         "statistics_refresh": _sports_statistics_diagnostic(sports_result.get("statistics")),
+        "api_football_odds_refresh": {
+            **_provider_stage_evidence(api_football_odds_stage),
+            "state": _sports_diagnostic_text(api_football_odds_stage.get("status"), 80) or "UNKNOWN",
+            "ok": api_football_odds_stage.get("ok") if isinstance(api_football_odds_stage.get("ok"), bool) else None,
+            "configured": api_football_odds_stage.get("configured") if isinstance(api_football_odds_stage.get("configured"), bool) else None,
+            "enabled": api_football_odds_stage.get("enabled") if isinstance(api_football_odds_stage.get("enabled"), bool) else None,
+            "processed": as_int(api_football_odds_stage.get("processed"), 0),
+            "snapshots_inserted": as_int(api_football_odds_stage.get("snapshots_inserted"), 0),
+            "external_calls": as_int(api_football_odds_stage.get("external_calls"), 0),
+            "provider_quota_consulted": False,
+            "skipped": bool(api_football_odds_stage.get("skipped")),
+            "retry_after": _sports_diagnostic_timestamp(api_football_odds_stage.get("retry_after")),
+        },
         "odds_refresh": {
             "state": _sports_diagnostic_text(odds_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(odds_stage),
@@ -2506,7 +2535,7 @@ def bounded_sports_sync(force=False):
 def bounded_odds_sync(force=False):
     from engines.cron_request_budget import CronRequestBudget
     with CronRequestBudget():
-        return sync_odds_events(limit=80, force=force)
+        return sync_provider_odds(limit=2, force=force)
 
 
 
@@ -2737,6 +2766,19 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                     "error_present": bool((raw_current_sync.get("live_refresh") or {}).get("error_present")),
                 },
                 "statistics_refresh": _sports_statistics_diagnostic(raw_current_sync.get("statistics_refresh")),
+                "api_football_odds_refresh": {
+                    **_provider_stage_evidence(raw_current_sync.get("api_football_odds_refresh")),
+                    "state": _sports_diagnostic_text((raw_current_sync.get("api_football_odds_refresh") or {}).get("state"), 80) or "UNKNOWN",
+                    "ok": (raw_current_sync.get("api_football_odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("api_football_odds_refresh") or {}).get("ok"), bool) else None,
+                    "configured": (raw_current_sync.get("api_football_odds_refresh") or {}).get("configured") if isinstance((raw_current_sync.get("api_football_odds_refresh") or {}).get("configured"), bool) else None,
+                    "enabled": (raw_current_sync.get("api_football_odds_refresh") or {}).get("enabled") if isinstance((raw_current_sync.get("api_football_odds_refresh") or {}).get("enabled"), bool) else None,
+                    "processed": as_int((raw_current_sync.get("api_football_odds_refresh") or {}).get("processed"), 0),
+                    "snapshots_inserted": as_int((raw_current_sync.get("api_football_odds_refresh") or {}).get("snapshots_inserted"), 0),
+                    "external_calls": as_int((raw_current_sync.get("api_football_odds_refresh") or {}).get("external_calls"), 0),
+                    "provider_quota_consulted": False,
+                    "skipped": bool((raw_current_sync.get("api_football_odds_refresh") or {}).get("skipped")),
+                    "retry_after": _sports_diagnostic_timestamp((raw_current_sync.get("api_football_odds_refresh") or {}).get("retry_after")),
+                },
                 "odds_refresh": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
@@ -4809,7 +4851,13 @@ def sportsdb_live_enabled():
 
 
 def odds_enabled():
-    return odds_credentials_configured() and str(os.getenv("ENABLE_ODDS_API", "")).strip().lower() in {"1", "true", "yes", "on"}
+    return (odds_funded() and odds_credentials_configured()
+            and str(os.getenv("ENABLE_ODDS_API", "")).strip().lower() in {"1", "true", "yes", "on"})
+
+
+def odds_funded():
+    """The Odds API must be explicitly funded before any request is allowed."""
+    return str(os.getenv("THE_ODDS_API_FUNDED", "false")).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def odds_credentials_configured():
@@ -6788,7 +6836,7 @@ def upsert_odds_snapshots(events):
 
 
 def sync_odds_snapshots(limit=80, force=False):
-    """Keep the legacy entry point on the canonical events/odds pipeline."""
+    """Preserve the legacy The Odds API-only entry point for existing callers."""
     return sync_odds_events(limit=limit, force=force)
 
 
@@ -6859,7 +6907,7 @@ def population_warmup(force=False, limit=120):
         "competitions": sync_sportsdb_competitions(),
         "teams": sync_sportsdb_teams(limit=limit),
         "calendar": sync_sportsdb_calendar(limit=limit),
-        "odds": sync_odds_events(limit=limit, force=force),
+        "odds": sync_provider_odds(limit=min(limit, 2), force=force),
     }
     errors = []
     processed = 0
@@ -7062,7 +7110,7 @@ def run_scheduler_task(task_name, force=False, limit=None):
         elif task_name == "sports_entities":
             result = sync_sportsdb_entity_memory(limit_teams=limit or 6)
         elif task_name == "odds":
-            result = sync_odds_events(limit=limit or 250, force=force)
+            result = sync_provider_odds(limit=limit or 2, force=force)
         elif task_name == "live":
             result = refresh_live_basic(limit=limit or 160)
         elif task_name == "highlights":
@@ -7491,6 +7539,11 @@ def _fetch_odds_events_selected(limit=250):
 
 
 def sync_odds_events(limit=250, force=False):
+    if not odds_funded():
+        return {"ok": True, "status": "UNFUNDED_NOT_CONFIGURED", "funded": False,
+                "disabled": True, "skipped": True, "imported": 0, "updated": 0,
+                "processed": 0, "external_calls": 0, "errors": [],
+                "provider_quota_consulted": False}
     seed_core()
     if not odds_credentials_configured():
         return {"ok": False, "sin_key": True, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THE_ODDS_API_KEY."]}
@@ -7738,6 +7791,43 @@ def odds_client_visibility_diagnostics():
     }
 
 
+def sync_provider_odds(limit=2, force=False):
+    """Refresh due API-Football odds and consult The Odds API only when funded."""
+    safe_limit = max(0, min(5, as_int(limit, 2)))
+    api_football = refresh_api_football_odds_if_due(
+        DB_PATH, limit=safe_limit, snapshot_callback=_record_market_forecast_snapshot,
+    )
+    optional_odds_api = sync_odds_events(limit=min(80, safe_limit), force=force) if safe_limit and odds_enabled() else {
+        "ok": True, "status": "UNFUNDED_NOT_CONFIGURED", "funded": False, "skipped": True,
+        "processed": 0, "external_calls": 0, "errors": [], "provider_quota_consulted": False,
+    }
+    provider_results = {"api_football": api_football, "the_odds_api": optional_odds_api}
+    errors = []
+    for provider_name, provider_result in provider_results.items():
+        if provider_result.get("ok") is False:
+            categories = provider_result.get("errors") or provider_result.get("failure_categories") or []
+            if isinstance(categories, str):
+                categories = [categories]
+            errors.extend(f"{provider_name}_{masked_admin_text(item, 100)}" for item in categories[:4])
+            if not categories:
+                errors.append(f"{provider_name}_{provider_result.get('status') or 'PROVIDER_FAILURE'}")
+    calls = sum(as_int(item.get("external_calls"), 0) for item in provider_results.values())
+    processed = sum(as_int(item.get("processed") or item.get("fixtures_count"), 0)
+                    for item in provider_results.values())
+    inserted = as_int(api_football.get("snapshots_inserted"), 0)
+    failure = any(item.get("ok") is False for item in provider_results.values())
+    status = ("PARTIAL" if inserted or processed else "PROVIDER_FAILURE") if failure else (
+        "OK" if inserted or processed else api_football.get("status") or "NO_DUE_ODDS")
+    return {
+        "ok": not failure, "status": status, "provider_results": provider_results,
+        "api_football": api_football, "the_odds_api": optional_odds_api,
+        "processed": processed, "snapshots_inserted": inserted,
+        "external_calls": calls, "errors": errors[:8], "funded_the_odds_api": odds_funded(),
+        "provider_quota_consulted": False,
+        "next_action": "wait_for_natural_refresh" if not failure else "review_provider_state",
+    }
+
+
 def odds_diagnostics():
     cached = (one("SELECT COUNT(*) AS total FROM matches WHERE source='The Odds API'") or {}).get("total", 0)
     snapshots = (one("SELECT COUNT(*) AS total FROM odds_snapshots") or {}).get("total", 0)
@@ -7746,7 +7836,9 @@ def odds_diagnostics():
     return {
         "key_present": odds_credentials_configured(),
         "key_masked": "configured" if odds_credentials_configured() else "",
+        "funded": odds_funded(),
         "enabled": odds_enabled(),
+        "api_football": api_football_odds_runtime_status(DB_PATH),
         "cache_minutes": odds_cache_minutes(),
         "cached_matches": cached,
         "odds_snapshots": snapshots,
@@ -7779,6 +7871,8 @@ def match_calendar_diagnostics():
     odds = odds_diagnostics()
     if sportsdb.get("cached_matches"):
         active_source = "TheSportsDB cache"
+    elif (odds.get("api_football") or {}).get("snapshots_inserted"):
+        active_source = "API-Football odds cache"
     elif odds.get("cached_matches"):
         active_source = "The Odds API cache"
     elif total_matches:
@@ -23199,7 +23293,7 @@ def admin_matches_sync_page():
     if request.method == "POST":
         action = request.form.get("action") or "sportsdb"
         if action == "odds":
-            result = sync_odds_events(limit=as_int(request.form.get("limit"), 80), force=True)
+            result = sync_provider_odds(limit=as_int(request.form.get("limit"), 2), force=True)
         elif action == "crests":
             result = sync_sportsdb_crests(refresh=True, limit=as_int(request.form.get("limit"), 40))
         else:
@@ -24001,6 +24095,7 @@ def v945_provider_health_snapshot():
     api_football = current.get("api_football_primary") if isinstance(current.get("api_football_primary"), dict) else {}
     api_live = current.get("live_refresh") if isinstance(current.get("live_refresh"), dict) else {}
     api_statistics = current.get("statistics_refresh") if isinstance(current.get("statistics_refresh"), dict) else {}
+    api_football_odds = current.get("api_football_odds_refresh") if isinstance(current.get("api_football_odds_refresh"), dict) else {}
     sportsdb = current.get("sportsdb_fallback") if isinstance(current.get("sportsdb_fallback"), dict) else {}
     odds = current.get("odds_refresh") if isinstance(current.get("odds_refresh"), dict) else {}
     access = pipeline.get("provider_access") if isinstance(pipeline.get("provider_access"), dict) else {}
@@ -24109,6 +24204,17 @@ def v945_provider_health_snapshot():
             "NOT_ESTABLISHED": "Sin observación nueva acreditada",
         }[evidence["observation_scope"]]
         observations.append(evidence)
+    api_odds_evidence = _provider_stage_evidence(api_football_odds)
+    api_odds_evidence["lane_label"] = "Cuotas prepartido"
+    api_odds_evidence["external_calls"] = as_int(api_football_odds.get("external_calls"), 0)
+    api_odds_evidence["issues"] = [provider_failure_advice(category)[0] for category in api_odds_evidence["failure_categories"]]
+    api_odds_evidence["scope_label"] = {
+        "CURRENT_CYCLE": "Consultado durante el ciclo registrado",
+        "REUSED": "Observación reutilizada; sin comprobar de nuevo",
+        "NOT_ESTABLISHED": "Sin observación nueva acreditada",
+    }[api_odds_evidence["observation_scope"]]
+    if api_odds_evidence["external_calls"] > 0:
+        observations.append(api_odds_evidence)
     combined_failures = safe_failure_categories([
         category for item in observations for category in item["failure_categories"]
     ])
@@ -24121,6 +24227,7 @@ def v945_provider_health_snapshot():
     )
     api_card["observations"] = observations
     api_card["statistics_refresh"] = _sports_statistics_diagnostic(api_statistics)
+    api_card["odds_refresh"] = api_odds_evidence
     # A fresh calendar receipt cannot refresh an older live-access rejection.
     api_card["provider_observation_current"] = bool(observations) and all(
         item["provider_observation_current"] for item in observations
@@ -24146,6 +24253,10 @@ def v945_provider_health_snapshot():
         observed_at=odds.get("provider_observed_at") or job.get("finished_at"),
         billing_hint="Plan y facturación no verificables desde la evidencia de la app",
     )
+    odds_card["funded"] = odds_funded()
+    if not odds_card["funded"] and odds_configured:
+        odds_card.update(status="PAUSED_UNFUNDED", status_label="Pausada: sin financiación",
+                         severity="neutral", next_action="Mantenerla sin llamadas; reactivar solo cuando haya presupuesto.")
 
     providers = [api_card, sportsdb_card, odds_card]
     for item in providers:
@@ -30711,7 +30822,7 @@ def api_matches_sync_now():
         return admin_json_forbidden()
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
     sportsdb_result = sync_sportsdb_feed(limit=limit)
-    odds_result = sync_odds_events(limit=limit, force=request.args.get("force") in {"1", "true", "yes"})
+    odds_result = sync_provider_odds(limit=min(limit, 5), force=request.args.get("force") in {"1", "true", "yes"})
     return jsonify({"ok": True, "version": APP_VERSION, "sportsdb": sportsdb_result, "odds": odds_result, "diagnostics": match_calendar_diagnostics()})
 
 
@@ -30722,7 +30833,7 @@ def api_odds_sync_events():
         return admin_json_forbidden()
     limit = as_int(request.args.get("limit") or request.form.get("limit"), 80)
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
-    return jsonify({"version": APP_VERSION, **sync_odds_events(limit=limit, force=force), "diagnostics": odds_diagnostics()})
+    return jsonify({"version": APP_VERSION, **sync_provider_odds(limit=min(limit, 5), force=force), "diagnostics": odds_diagnostics()})
 
 
 @app.route("/api/odds/diagnostics")
