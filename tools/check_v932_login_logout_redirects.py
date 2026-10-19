@@ -16,6 +16,7 @@ V935_VERSION = "V935_LAUNCH_TRUST_REAL_DATA_LIFECYCLE_PERFORMANCE_REFERENCE_POLI
 V936_VERSION = "V936_COMMERCIAL_PRODUCT_READINESS_REFERENCE_EXCELLENCE_FINAL"
 V937_VERSION = "V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL"
 V941_VERSION = "V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM"
+V942_VERSION = "V942_HIGHLIGHTS_READ_PATH_PAYMENT_STATUS_SENTINEL"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -68,7 +69,9 @@ def main() -> int:
             response_client_internal = client_internal.post(
                 "/cliente-login", data={"login": "client@example.invalid", "password": "not-a-real-secret", "next": "/calendar", "csrf_token": client_internal_token}, follow_redirects=False,
             )
-            response_client_logout = client_internal.get("/logout", follow_redirects=False)
+            response_client_logout = client_internal.post(
+                "/logout", data={"csrf_token": csrf_for(client_internal, "/logout")}, follow_redirects=False,
+            )
             with client_internal.session_transaction() as session:
                 client_session_cleared = not bool(session.get("user_id"))
 
@@ -84,7 +87,9 @@ def main() -> int:
             response_admin_internal = admin_internal.post(
                 "/admin-login", data={"login": "admin@example.invalid", "password": "not-a-real-secret", "next": "/admin/dashboard", "csrf_token": admin_internal_token}, follow_redirects=False,
             )
-            response_admin_logout = admin_internal.get("/admin/logout", follow_redirects=False)
+            response_admin_logout = admin_internal.post(
+                "/admin/logout", data={"csrf_token": csrf_for(admin_internal, "/admin/logout")}, follow_redirects=False,
+            )
             with admin_internal.session_transaction() as session:
                 admin_session_cleared = not bool(session.get("user_id"))
         finally:
@@ -93,7 +98,7 @@ def main() -> int:
             app_module.security_event_for_auth = original_security_event
 
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V941_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V941_VERSION, V942_VERSION},
         "client_external_next_blocked": response_client_external.status_code == 302 and response_client_external.headers.get("Location") == "/app",
         "client_internal_next_allowed": response_client_internal.status_code == 302 and response_client_internal.headers.get("Location") == "/calendar",
         "client_logout_safe": response_client_logout.status_code == 302 and response_client_logout.headers.get("Location") == "/" and client_session_cleared,

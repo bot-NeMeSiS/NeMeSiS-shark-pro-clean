@@ -64,7 +64,7 @@ def test_full_first_user_funnel_is_simulated_qa_and_never_real_business(client, 
     user = app_module.get_user_by_email(email)
     assert user
 
-    client.get("/logout")
+    client.post("/logout", data={"csrf_token": _csrf(client)})
     client.get("/cliente-login")
     csrf = _csrf(client, "csrf-growth-live-login")
     login = client.post(

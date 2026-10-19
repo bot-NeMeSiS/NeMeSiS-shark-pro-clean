@@ -33,6 +33,7 @@ import uuid
 
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.security_engine import (
+    claim_rate_limit_slot,
     generate_csrf_token,
     rate_limit_status,
     record_security_event,
@@ -158,7 +159,7 @@ from engines.provider_access_evidence import (
     safe_failure_categories,
 )
 from engines.content_rights_engine import classify_media_asset, content_rights_policy_summary
-from engines.data_vault_engine import create_sqlite_backup, db_vault_status, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
+from engines.data_vault_engine import create_sqlite_backup, db_vault_status, delete_sqlite_backup, export_table_csv, list_backups as data_vault_list_backups, validate_backup as data_vault_validate_backup
 from engines.match_intelligence_engine import build_match_intelligence, match_intelligence_snapshot
 from engines.video_highlights_engine import classify_match_video, video_highlights_snapshot
 from engines.team_form_engine import team_form_snapshot
@@ -12941,6 +12942,43 @@ def admin_json_forbidden():
     return jsonify({"ok": False, "version": APP_VERSION, "error": "Acceso admin requerido."}), 403
 
 
+def manual_telegram_dispatch_guard(*, json_response=True):
+    """Share one fail-closed rate limit across every admin-triggered send path."""
+    actor_id = current_user_id()
+    limit = claim_rate_limit_slot(
+        DB_PATH,
+        scope="telegram_manual_dispatch",
+        subject=actor_id,
+        limit=4,
+        minutes=60,
+    )
+    if limit.get("allowed"):
+        return None
+    record_security_event(
+        DB_PATH,
+        event_type="telegram_manual_dispatch_limited",
+        severity="WARN",
+        ip_address=security_client_ip(),
+        user_id=actor_id,
+        path=request.path,
+        method=request.method,
+        success=False,
+        reason=str(limit.get("reason") or "rate_limited"),
+        payload={"scope": "telegram_manual_dispatch", "limit": limit.get("limit"), "window_minutes": limit.get("window_minutes")},
+    )
+    retry_after = max(1, as_int(limit.get("retry_after_seconds"), 60))
+    message = "Se alcanzó el límite de acciones manuales de Telegram. Espera antes de volver a intentarlo."
+    if json_response:
+        response = jsonify({"ok": False, "version": APP_VERSION, "error": str(limit.get("reason") or "rate_limited"), "message": message, "retry_after_seconds": retry_after})
+    else:
+        response = Response(message, status=429, mimetype="text/plain; charset=utf-8")
+        response.headers["Retry-After"] = str(retry_after)
+        return response
+    response.status_code = 429
+    response.headers["Retry-After"] = str(retry_after)
+    return response
+
+
 def list_users():
     seed_core()
     users = rows(
@@ -22764,14 +22802,32 @@ def _logout_with_session_revocation(destination):
     return redirect(destination)
 
 
-@app.route("/logout")
+@app.route("/logout", methods=["GET", "POST"])
 def logout_page():
-    return _logout_with_session_revocation("/")
+    if request.method == "POST":
+        return _logout_with_session_revocation("/")
+    if not session.get("user_id"):
+        return redirect("/")
+    return render_template(
+        "logout_confirm.html",
+        logout_path="/logout",
+        cancel_path="/app",
+        logout_area="tu cuenta",
+    )
 
 
-@app.route("/admin/logout")
+@app.route("/admin/logout", methods=["GET", "POST"])
 def admin_logout_page():
-    return _logout_with_session_revocation("/admin-login")
+    if request.method == "POST":
+        return _logout_with_session_revocation("/admin-login")
+    if not session.get("user_id"):
+        return redirect("/admin-login")
+    return render_template(
+        "logout_confirm.html",
+        logout_path="/admin/logout",
+        cancel_path="/admin/control-center",
+        logout_area="el Centro de Mando",
+    )
 
 
 @app.route("/admin")
@@ -22934,6 +22990,10 @@ def admin_telegram_page():
     result = None
     if request.method == "POST":
         action = request.form.get("action") or "diagnostics"
+        if action in {"test", "test_private", "test_channel", "daily_matches", "daily_picks", "process", "controlled_auto_test", "retry_failed", "repair"}:
+            blocked = manual_telegram_dispatch_guard(json_response=False)
+            if blocked is not None:
+                return blocked
         if action == "toggle":
             current = get_telegram_settings()
             result = {"ok": True, "settings": update_telegram_settings({"enabled": not current.get("enabled")})}
@@ -22980,27 +23040,31 @@ def admin_telegram_page():
         elif action == "daily_picks":
             result = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
         elif action == "process":
-            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 5), force=True)
+            result = process_premium_telegram_queue(limit=max(1, min(as_int(request.form.get("limit"), 5), 5)), force=True)
         elif action == "create_test_candidate":
             result = create_telegram_test_candidate()
         elif action == "controlled_auto_test":
             candidate = create_telegram_test_candidate()
             queued = enqueue_auto_pick_alerts(force=False, limit=1)
-            processed = process_premium_telegram_queue(limit=1, force=True)
+            processed = (
+                process_premium_telegram_queue(limit=1, force=True)
+                if as_int(queued.get("inserted"), 0) > 0
+                else {"processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": []}
+            )
             result = {"ok": processed.get("failed", 0) == 0, "candidate": candidate, "queued": queued, "processed": processed, "note": "Prueba automatica controlada. Usa automatic_cron y limita a 1 mensaje."}
         elif action == "retry_failed":
             conn = db()
             conn.execute("UPDATE telegram_queue SET status=?, updated_at=? WHERE lower(status)=?", (QUEUE_PENDING, now_iso(), QUEUE_FAILED))
             conn.commit()
             conn.close()
-            result = process_premium_telegram_queue(limit=as_int(request.form.get("limit"), 10), force=True)
+            result = process_premium_telegram_queue(limit=max(1, min(as_int(request.form.get("limit"), 5), 5)), force=True)
         elif action == "repair":
             update_telegram_settings({"enabled": True, "auto_daily_matches": True, "auto_daily_picks": True})
             synced = sync_telegram_subscribers_from_users()
             queued_matches = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
             queued_auto_picks = enqueue_auto_pick_alerts(force=True, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4))
             queued_picks = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
-            processed = process_premium_telegram_queue(limit=10, force=True)
+            processed = process_premium_telegram_queue(limit=5, force=True)
             result = {"ok": processed.get("failed", 0) == 0, "synced_users": synced, "queued_matches": queued_matches, "queued_auto_picks": queued_auto_picks, "queued_picks": queued_picks, "processed": processed}
         message = "Accion Telegram ejecutada."
     data = dashboard_data()
@@ -23409,6 +23473,9 @@ def api_admin_telegram_preview_next():
 def api_admin_telegram_test_send():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     text = f"Test Telegram NeMeSiS SHARK PRO - conexión correcta - hora Madrid {datetime.now(TZ).strftime('%H:%M')}"
     result = enqueue_telegram_message(
         "admin_connectivity_test",
@@ -23438,6 +23505,9 @@ def admin_automation_page():
     result = None
     message = ""
     if request.method == "POST":
+        blocked = manual_telegram_dispatch_guard(json_response=False)
+        if blocked is not None:
+            return blocked
         result = run_daily_autonomous_system(force=True)
         message = "Automatización diaria ejecutada."
     data = dashboard_data()
@@ -23458,12 +23528,16 @@ def admin_backups_page():
             result = create_database_backup(reason="admin_manual")
             message = f"Backup creado: {result.get('name')}" if result.get("ok") else f"No se pudo crear backup: {result.get('message') or result.get('error')}"
         elif action == "delete":
-            path = backup_file_path(name)
-            if path:
-                os.remove(path)
-                message = "Backup eliminado."
-            else:
-                message = "Backup no encontrado."
+            result = delete_sqlite_backup(BASE_DIR, name, directory=backup_dir())
+            messages = {
+                "last_verified_backup": "No se puede eliminar la última copia verificada.",
+                "backup_busy": "Hay una operación de copias en curso. Inténtalo más tarde.",
+                "backup_unsafe_file": "El archivo seleccionado no es una copia segura reconocida.",
+                "backup_unsafe_manifest": "El manifiesto asociado no es seguro; no se ha eliminado nada.",
+                "backup_delete_failed": "No se pudo eliminar la copia completa.",
+                "backup_not_found": "Backup no encontrado.",
+            }
+            message = "Backup eliminado con su manifiesto." if result.get("ok") else messages.get(result.get("error"), "No se pudo eliminar el backup.")
         elif action == "restore":
             result = restore_database_backup(name)
             message = f"Backup restaurado: {result.get('restored')}" if result.get("ok") else f"No se pudo restaurar: {result.get('error')}"
@@ -26648,13 +26722,16 @@ def admin_time_diagnostics_page():
 def api_telegram_repair_automatic():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     update_telegram_settings({"enabled": True, "auto_daily_matches": True, "auto_daily_picks": True})
     synced = sync_telegram_subscribers_from_users()
     default_sub = ensure_default_telegram_subscriber()
     queued_matches = enqueue_daily_matches(force=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
     queued_auto_picks = enqueue_auto_pick_alerts(force=True, limit=as_int(os.getenv("MAX_AUTO_PICKS_PER_DAY", "4"), 4))
     queued_picks = enqueue_daily_picks(force=True, force_empty=True, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))
-    processed = process_premium_telegram_queue(limit=10, force=True)
+    processed = process_premium_telegram_queue(limit=5, force=True)
     return jsonify({
         "ok": processed.get("failed", 0) == 0,
         "version": APP_VERSION,
@@ -30743,6 +30820,9 @@ def api_telegram_settings_update():
 def api_telegram_send_test():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     chat_id = request.args.get("chat_id") or request.form.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", "")
     queued = enqueue_telegram_message(
         "system_test",
@@ -30761,6 +30841,9 @@ def api_telegram_send_test():
 def api_telegram_enqueue_daily_matches():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
     return jsonify({"version": APP_VERSION, **enqueue_daily_matches(force=force, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
 
@@ -30769,6 +30852,9 @@ def api_telegram_enqueue_daily_matches():
 def api_telegram_enqueue_daily_picks():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
     force_empty = request.args.get("force_empty") in {"1", "true", "yes"} or request.form.get("force_empty") in {"1", "true", "yes"}
     return jsonify({"version": APP_VERSION, **enqueue_daily_picks(force=force, force_empty=force_empty, forced_chat_id=os.getenv("TELEGRAM_CHAT_ID", ""))})
@@ -30778,7 +30864,10 @@ def api_telegram_enqueue_daily_picks():
 def api_telegram_process_queue():
     if not is_admin_session():
         return admin_json_forbidden()
-    limit = as_int(request.args.get("limit") or request.form.get("limit"), 5)
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
+    limit = max(1, min(as_int(request.args.get("limit") or request.form.get("limit"), 5), 5))
     force = request.args.get("force") in {"1", "true", "yes"} or request.form.get("force") in {"1", "true", "yes"}
     return jsonify({"version": APP_VERSION, **process_premium_telegram_queue(limit=limit, force=force)})
 
@@ -30787,10 +30876,13 @@ def api_telegram_process_queue():
 def api_telegram_send():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     payload = request.get_json(silent=True) or dict(request.form or {})
     text = payload.get("text") or build_system_test_message()
     queued = enqueue_telegram_message(payload.get("message_type") or "manual", payload.get("title") or "Mensaje manual", text, chat_id=payload.get("chat_id") or os.getenv("TELEGRAM_CHAT_ID", ""), payload={"target_key": "manual", "source": "manual_admin", "trigger_type": "manual_send", "auto_job_key": ""}, force=True)
-    result = process_premium_telegram_queue(limit=1, force=True)
+    result = process_premium_telegram_queue(limit=1, force=True) if queued.get("queued") else {"processed": 0, "sent": 0, "failed": 0, "skipped": 1, "errors": [], "status": "NOT_QUEUED"}
     return jsonify({"version": APP_VERSION, "queued": queued, **result})
 
 
@@ -30799,6 +30891,10 @@ def api_telegram_send():
 def api_telegram_auto_run():
     if not automation_access_allowed():
         return automation_json_forbidden()
+    if is_admin_session():
+        blocked = manual_telegram_dispatch_guard()
+        if blocked is not None:
+            return blocked
     cfg = telegram_config()
     if not cfg["enabled"]:
         return jsonify({"ok": False, "version": APP_VERSION, "sent": False, "status": "AUTO_DISABLED", "telegram": cfg})
@@ -30810,6 +30906,10 @@ def api_telegram_auto_run():
 def api_telegram_scheduler_tick():
     if not automation_access_allowed():
         return automation_json_forbidden()
+    if is_admin_session():
+        blocked = manual_telegram_dispatch_guard()
+        if blocked is not None:
+            return blocked
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
     return jsonify({"version": APP_VERSION, **telegram_scheduler_tick(force=force)})
 
@@ -30940,6 +31040,9 @@ def api_telegram_queue():
 def api_telegram_scheduler_manager():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     force = request.args.get("force") in {"1", "true", "yes"} or (request.get_json(silent=True) or {}).get("force") is True
     posts = prepare_auto_posts()
     return jsonify({"ok": True, "version": APP_VERSION, "auto_posts": posts, "manager": telegram_scheduler_delivery(force=force)})
@@ -34892,6 +34995,9 @@ def api_v808_betting_convert_to_pick():
 def api_v808_telegram_enqueue_recommendations():
     if not is_admin_session():
         return admin_json_forbidden()
+    blocked = manual_telegram_dispatch_guard()
+    if blocked is not None:
+        return blocked
     recs = v566_template_recommendations(limit=as_int(request.args.get("limit"), 5))
     queued = []
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")

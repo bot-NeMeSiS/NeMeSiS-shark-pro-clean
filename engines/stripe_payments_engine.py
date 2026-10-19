@@ -63,6 +63,42 @@ def safe_json(payload: Any, limit: int = 30000) -> str:
     return text[:limit]
 
 
+STRIPE_AUDIT_OBJECT_FIELDS = (
+    "id", "object", "customer", "subscription", "status", "payment_status", "mode",
+    "currency", "amount_paid", "amount_due", "amount_total", "amount_remaining",
+    "created", "livemode", "current_period_start", "current_period_end",
+    "cancel_at_period_end", "cancel_at", "trial_end", "ended_at",
+)
+
+
+def safe_stripe_audit_object(value: Any) -> Dict[str, Any]:
+    """Keep billing identifiers/state while excluding customer/payment details."""
+    source = stripe_object_to_dict(value) if value is not None else {}
+    if not isinstance(source, dict):
+        return {}
+    snapshot: Dict[str, Any] = {}
+    for key in STRIPE_AUDIT_OBJECT_FIELDS:
+        item = source.get(key)
+        if item is None or isinstance(item, (dict, list, tuple, set)):
+            continue
+        if isinstance(item, (str, int, float, bool)):
+            snapshot[key] = str(item)[:240] if isinstance(item, str) else item
+    return snapshot
+
+
+def safe_stripe_event_snapshot(event: Dict[str, Any]) -> Dict[str, Any]:
+    data = event.get("data") if isinstance(event.get("data"), dict) else {}
+    obj = data.get("object") if isinstance(data, dict) else {}
+    result = {
+        "id": str(event.get("id") or "")[:240],
+        "type": str(event.get("type") or "unknown")[:160],
+        "created": event.get("created") if isinstance(event.get("created"), (str, int, float)) else None,
+        "livemode": bool(event.get("livemode")) if "livemode" in event else None,
+        "data": {"object": safe_stripe_audit_object(obj)},
+    }
+    return {key: value for key, value in result.items() if value is not None}
+
+
 def connect(db_path: str) -> sqlite3.Connection:
     os.makedirs(os.path.dirname(db_path) or ".", exist_ok=True)
     conn = sqlite3.connect(db_path, timeout=30, check_same_thread=False)
@@ -437,7 +473,18 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
             int(fields.get("cancel_at_period_end") or 0),
             event_type,
             utc_now(),
-            safe_json(raw or {}),
+            safe_json({
+                "id": subscription_id,
+                "object": "subscription_summary",
+                "customer": customer_id,
+                "status": status,
+                "plan": plan,
+                "price_id": str(fields.get("price_id") or "")[:240],
+                "current_period_start": str(fields.get("current_period_start") or "")[:80],
+                "current_period_end": period_end[:80],
+                "cancel_at_period_end": int(fields.get("cancel_at_period_end") or 0),
+                "source_event_type": str(event_type or "")[:160],
+            }),
         ),
     )
     current = user_by_id(conn, user_id)
@@ -520,7 +567,7 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
         session_obj = stripe.checkout.Session.retrieve(session_id, expand=["subscription"])
         session = stripe_object_to_dict(session_obj)
     except Exception as exc:
-        return {"ok": False, "reason": "stripe_session_retrieve_failed", "error": str(exc)[:500]}
+        return {"ok": False, "reason": "stripe_session_retrieve_failed", "error": "No se pudo confirmar el estado del pago. Inténtalo de nuevo más tarde.", "error_code": "stripe_session_retrieve_failed"}
 
     metadata = session.get("metadata") if isinstance(session.get("metadata"), dict) else {}
     ref_user_id = str(session.get("client_reference_id") or metadata.get("user_id") or "").strip()
@@ -658,14 +705,14 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
             """INSERT OR REPLACE INTO stripe_checkout_sessions
                (id,user_id,plan,stripe_session_id,stripe_customer_id,status,url,created_at,raw_json)
                VALUES (?,?,?,?,?,?,?,?,?)""",
-            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan, session_id, customer_id, "created", url, utc_now(), safe_json(dict(session) if hasattr(session, "keys") else {"id": session_id, "url": url})),
+            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan, session_id, customer_id, "created", url, utc_now(), safe_json(safe_stripe_audit_object(session))),
         )
         conn.commit()
         conn.close()
         return {"ok": True, "url": url, "session_id": session_id, "plan": plan}
     except Exception as exc:
         conn.close()
-        return {"ok": False, "error": f"Stripe Checkout falló: {exc}", "plan": plan}
+        return {"ok": False, "error": "No se pudo iniciar el pago. Inténtalo de nuevo más tarde.", "error_code": "stripe_checkout_unavailable", "plan": plan}
 
 
 def create_customer_portal_session(db_path: str, user: Dict[str, Any]) -> Dict[str, Any]:
@@ -690,7 +737,7 @@ def create_customer_portal_session(db_path: str, user: Dict[str, Any]) -> Dict[s
         session = stripe.billing_portal.Session.create(customer=customer_id, return_url=f"{public_base_url()}/mi-cuenta")
         return {"ok": True, "url": str(getattr(session, "url", "") or session.get("url"))}
     except Exception as exc:
-        return {"ok": False, "error": f"No se pudo abrir el portal de Stripe: {exc}"}
+        return {"ok": False, "error": "No se pudo abrir la gestión de la suscripción. Inténtalo de nuevo más tarde.", "error_code": "stripe_portal_unavailable"}
 
 
 def record_event(conn: sqlite3.Connection, event: Dict[str, Any], verified: bool, status: str, user_id: str = "", plan: str = "", amount: float = 0.0, currency: str = "eur", reason: str = "", processed: bool = False) -> None:
@@ -714,7 +761,7 @@ def record_event(conn: sqlite3.Connection, event: Dict[str, Any], verified: bool
             round(float(amount or 0), 2),
             str(currency or "eur").upper()[:10],
             reason[:500],
-            safe_json(event),
+            safe_json(safe_stripe_event_snapshot(event)),
             utc_now(),
             str(obj.get("customer") or ""),
             str(obj.get("subscription") or obj.get("id") if str(obj.get("object") or "") == "subscription" else obj.get("subscription") or ""),

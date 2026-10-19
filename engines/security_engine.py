@@ -57,6 +57,15 @@ def ensure_security_schema(db_path: str) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_security_events_type_time ON security_events(event_type, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_security_events_ip_time ON security_events(ip_address, created_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_security_events_path_time ON security_events(path, created_at)")
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS security_action_attempts(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                scope TEXT NOT NULL,
+                subject_hash TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )"""
+        )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_security_action_scope_subject_time ON security_action_attempts(scope, subject_hash, created_at)")
         conn.commit()
     finally:
         conn.close()
@@ -160,6 +169,75 @@ def count_recent_failed_events(db_path: str, *, event_type: str, ip_address: str
         return int(row[0] if row else 0)
     except Exception:
         return 0
+
+
+def claim_rate_limit_slot(
+    db_path: str,
+    *,
+    scope: str,
+    subject: str,
+    limit: int,
+    minutes: int,
+) -> Dict[str, Any]:
+    """Atomically reserve one sensitive-action attempt; fail closed on DB errors.
+
+    The actor is stored only as a scoped one-way digest. This counter tracks
+    attempts, not successes, so repeated failures cannot be used to probe a
+    provider or external-send endpoint without bound.
+    """
+    safe_scope = str(scope or "").strip()[:80]
+    safe_subject = str(subject or "").strip()
+    try:
+        max_attempts = max(1, min(int(limit), 100))
+        window_minutes = max(1, min(int(minutes), 24 * 60))
+    except (TypeError, ValueError):
+        return {"allowed": False, "reason": "invalid_rate_limit"}
+    if not safe_scope or not safe_subject or not str(db_path or "").strip():
+        return {"allowed": False, "reason": "rate_limit_identity_missing"}
+    subject_hash = hashlib.sha256((safe_scope + "\0" + safe_subject).encode("utf-8")).hexdigest()
+    now = datetime.now(timezone.utc)
+    now_text = now.isoformat(timespec="seconds")
+    since = (now - timedelta(minutes=window_minutes)).isoformat(timespec="seconds")
+    try:
+        ensure_security_schema(db_path)
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        try:
+            conn.execute("PRAGMA busy_timeout=2000")
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                "DELETE FROM security_action_attempts WHERE created_at<?",
+                ((now - timedelta(days=7)).isoformat(timespec="seconds"),),
+            )
+            rows = conn.execute(
+                "SELECT created_at FROM security_action_attempts WHERE scope=? AND subject_hash=? AND created_at>=? ORDER BY created_at",
+                (safe_scope, subject_hash, since),
+            ).fetchall()
+            if len(rows) >= max_attempts:
+                first = _parse_iso(str(rows[0][0] or ""))
+                retry_after = max(1, int((first + timedelta(minutes=window_minutes) - now).total_seconds())) if first else window_minutes * 60
+                conn.rollback()
+                return {
+                    "allowed": False,
+                    "reason": "rate_limited",
+                    "limit": max_attempts,
+                    "window_minutes": window_minutes,
+                    "retry_after_seconds": retry_after,
+                }
+            conn.execute(
+                "INSERT INTO security_action_attempts(scope,subject_hash,created_at) VALUES(?,?,?)",
+                (safe_scope, subject_hash, now_text),
+            )
+            conn.commit()
+            return {
+                "allowed": True,
+                "remaining": max_attempts - len(rows) - 1,
+                "limit": max_attempts,
+                "window_minutes": window_minutes,
+            }
+        finally:
+            conn.close()
+    except Exception:
+        return {"allowed": False, "reason": "rate_limit_store_unavailable"}
 
 
 def rate_limit_status(db_path: str, *, event_type: str, ip_address: str, path_like: str, limit: int, minutes: int) -> Dict[str, Any]:

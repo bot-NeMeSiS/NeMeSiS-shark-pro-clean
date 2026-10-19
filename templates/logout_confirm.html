@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Cerrar sesión · NeMeSiS SHARK PRO{% endblock %}
+{% block content %}
+<section class="v933-page" data-logout-confirmation>
+  <div class="v933-panel" style="max-width: 42rem; margin: clamp(1rem, 5vw, 4rem) auto;">
+    <p class="v933-eyebrow">Seguridad de la cuenta</p>
+    <h1>¿Quieres cerrar sesión?</h1>
+    <p>Se cerrará la sesión de este dispositivo en {{ logout_area }}. Tus otros dispositivos seguirán conectados.</p>
+    <div class="v933-action-row" style="display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; margin-top:1.25rem;">
+      <form method="post" action="{{ logout_path }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="v933-action" type="submit">Cerrar sesión</button>
+      </form>
+      <a class="v933-action" href="{{ cancel_path }}">Seguir conectado</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

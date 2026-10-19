@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import sqlite3
+import stat
 import tempfile
 import time
 import uuid
@@ -231,6 +232,75 @@ def _delete_backup_item(item: dict) -> bool:
         return True
     except OSError:
         return False
+
+
+def delete_sqlite_backup(root: str | Path, name: str, *, directory: str | Path | None = None) -> dict:
+    """Delete one listed backup safely, preserving the last verified copy.
+
+    Manual deletion shares the directory lock with backup creation and retention,
+    accepts only a direct regular backup file, and removes its manifest together.
+    """
+    bdir = Path(directory) if directory is not None else backup_dir(root)
+    safe_name = str(name or "")
+    if (not safe_name or Path(safe_name).name != safe_name
+            or not (safe_name.startswith("database_") and safe_name.endswith(".db")
+                    or safe_name.startswith("nemesis_backup_") and safe_name.endswith(".sqlite3"))):
+        return {"ok": False, "error": "backup_not_found"}
+    try:
+        if not bdir.is_dir() or bdir.is_symlink():
+            return {"ok": False, "error": "backup_not_found"}
+        target = bdir / safe_name
+        manifest = target.with_suffix(".json")
+        with backup_directory_lock(bdir):
+            try:
+                target_info = target.lstat()
+            except FileNotFoundError:
+                return {"ok": False, "error": "backup_not_found"}
+            if not stat.S_ISREG(target_info.st_mode) or target_info.st_nlink != 1:
+                return {"ok": False, "error": "backup_unsafe_file"}
+            try:
+                manifest_info = manifest.lstat()
+            except FileNotFoundError:
+                manifest_info = None
+            if manifest_info is not None and (
+                    not stat.S_ISREG(manifest_info.st_mode) or manifest_info.st_nlink != 1):
+                return {"ok": False, "error": "backup_unsafe_manifest"}
+
+            listed = {item.get("name"): item for item in list_backups(root, directory=bdir)}
+            item = listed.get(safe_name)
+            if not item:
+                return {"ok": False, "error": "backup_not_found"}
+            target_verified = bool(item.get("valid") and validate_backup(root, safe_name, directory=bdir).get("ok"))
+            if target_verified:
+                other_verified = False
+                for other_name, other in listed.items():
+                    if other_name == safe_name or not other.get("valid"):
+                        continue
+                    other_path = bdir / str(other_name or "")
+                    other_manifest = other_path.with_suffix(".json")
+                    try:
+                        other_info = other_path.lstat()
+                        manifest_info = other_manifest.lstat()
+                    except OSError:
+                        continue
+                    if (not stat.S_ISREG(other_info.st_mode) or other_info.st_nlink != 1
+                            or not stat.S_ISREG(manifest_info.st_mode) or manifest_info.st_nlink != 1):
+                        continue
+                    if validate_backup(root, other_name, directory=bdir).get("ok"):
+                        other_verified = True
+                        break
+                if not other_verified:
+                    return {"ok": False, "error": "last_verified_backup"}
+
+            # Delete database first: an interrupted operation can leave only an
+            # orphan manifest, never a manifest that appears to verify a missing DB.
+            target.unlink()
+            manifest.unlink(missing_ok=True)
+            return {"ok": True, "deleted": safe_name, "verified": target_verified}
+    except BackupInProgress:
+        return {"ok": False, "error": "backup_busy"}
+    except OSError:
+        return {"ok": False, "error": "backup_delete_failed"}
 
 
 def _compact_snapshot_capacity(db_path: Path, directory: Path) -> dict:

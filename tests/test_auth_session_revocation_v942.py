@@ -149,7 +149,14 @@ def test_logout_revokes_only_the_copied_signed_session(
 
     assert copied.get("/api/admin/route-map").status_code == 200
     assert unrelated.get("/api/admin/route-map").status_code == 200
-    response = browser.get(logout_path)
+    confirmation = browser.get(logout_path, headers={"Sec-Fetch-Site": "cross-site"})
+    assert confirmation.status_code == 200
+    assert b' name="csrf_token"' in confirmation.data
+    assert copied.get("/api/admin/route-map").status_code == 200
+    assert browser.post(logout_path, data={}).status_code == 403
+    assert copied.get("/api/admin/route-map").status_code == 200
+
+    response = browser.post(logout_path, data={"csrf_token": "qa-csrf-v942"})
     assert response.status_code == 302
     assert response.headers["Location"].endswith(redirect_path)
 
@@ -184,7 +191,7 @@ def test_stale_signed_cookie_cannot_revoke_a_newer_session(app_module, tmp_path,
 
     response = stale.get("/logout")
 
-    assert response.status_code == 302
+    assert response.status_code == 200
     assert current.get("/api/admin/route-map").status_code == 200
     assert app_module.get_user_by_id(user["id"])["auth_version"] == updated_user["auth_version"]
 
@@ -229,7 +236,7 @@ def test_legacy_cookie_is_expired_at_rollout_without_revoking_new_sessions(app_m
 
     monkeypatch.setitem(app_module.app.config, "TESTING", False)
     assert copied.get("/api/admin/route-map").status_code == 403
-    assert browser.get("/logout").status_code == 302
+    assert browser.get("/logout").status_code == 200
     assert current.get("/api/admin/route-map").status_code == 200
     assert app_module.get_user_by_id(user["id"])["auth_version"] == user["auth_version"]
 
@@ -260,7 +267,7 @@ def test_logout_does_not_claim_revocation_when_database_write_fails(app_module, 
     _sign_in_cookie(client, user, app_module)
     monkeypatch.setattr(app_module, "_revoke_session_for_logout", lambda _user_id: False)
 
-    response = client.get("/logout")
+    response = client.post("/logout", data={"csrf_token": "qa-csrf-v942"})
 
     assert response.status_code == 503
     assert b"No se pudo confirmar la revocaci" in response.data

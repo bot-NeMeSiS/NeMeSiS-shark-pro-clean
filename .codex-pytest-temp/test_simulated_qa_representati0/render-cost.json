@@ -1,0 +1,27 @@
+[
+  {
+    "kind": "pick",
+    "ms": 183.03,
+    "bytes": 76871
+  },
+  {
+    "kind": "combi",
+    "ms": 187.76,
+    "bytes": 93221
+  },
+  {
+    "kind": "live",
+    "ms": 162.31,
+    "bytes": 63670
+  },
+  {
+    "kind": "result",
+    "ms": 145.66,
+    "bytes": 71092
+  },
+  {
+    "kind": "highlight",
+    "ms": 151.44,
+    "bytes": 70129
+  }
+]
