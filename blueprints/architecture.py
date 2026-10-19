@@ -14,7 +14,7 @@ from flask import Blueprint, jsonify, redirect, render_template, url_for, curren
 from engines.blueprint_migration_engine import build_runtime_architecture_summary, write_route_map
 
 
-def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callback: Callable[[], bool], postmatch_priority=None) -> Blueprint:
+def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callback: Callable[[], bool], postmatch_priority=None, current_user_callback=None) -> Blueprint:
     bp = Blueprint("architecture", __name__, url_prefix="")
 
     def _admin_required():
@@ -67,7 +67,7 @@ def create_architecture_blueprint(app_version: str, db_path: str, is_admin_callb
         install_decorative_asset_cache(state.app)
 
     from blueprints.client_combis import create_client_combi_blueprint
-    bp.register_blueprint(create_client_combi_blueprint(db_path))
+    bp.register_blueprint(create_client_combi_blueprint(db_path, current_user_callback))
     from blueprints.client_surfaces import create_client_surfaces_blueprint
     bp.register_blueprint(create_client_surfaces_blueprint())
     from blueprints.admin_productivity import create_admin_productivity_blueprint

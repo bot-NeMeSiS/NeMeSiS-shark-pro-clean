@@ -32767,7 +32767,12 @@ def api_payments_stripe_webhook():
         }), 413
     signature = request.headers.get("Stripe-Signature", "")
     result = process_stripe_webhook(DB_PATH, payload_bytes, signature)
-    status_code = 200 if result.get("ok") else 400
+    if result.get("retryable") and result.get("verified"):
+        # Stripe retries 5xx responses. A transient failure to confirm the
+        # subscription must not be acknowledged as a completed membership grant.
+        status_code = 503
+    else:
+        status_code = 200 if result.get("ok") else 400
     return jsonify({"version": APP_VERSION, **result}), status_code
 
 
@@ -34766,7 +34771,8 @@ def register_optional_blueprints():
         if "architecture" not in app.blueprints:
             from blueprints.architecture import create_architecture_blueprint
             app.register_blueprint(create_architecture_blueprint(APP_VERSION, DB_PATH, is_admin_session,
-                postmatch_priority=lambda match: sports_competition_priority(match,audience=True)['weight']))
+                postmatch_priority=lambda match: sports_competition_priority(match,audience=True)['weight'],
+                current_user_callback=current_session_user))
         if "developer_center" not in app.blueprints:
             from blueprints.developer_center import create_developer_center_blueprint
             app.register_blueprint(

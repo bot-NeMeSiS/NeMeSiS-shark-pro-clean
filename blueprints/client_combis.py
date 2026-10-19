@@ -15,8 +15,27 @@ from engines.security_engine import validate_csrf
 from engines.combi_draft_review import review_draft
 
 
-def create_client_combi_blueprint(db_path):
+def create_client_combi_blueprint(db_path, current_user_resolver=None):
     bp = Blueprint('client_combis', __name__)
+
+    def current_user():
+        """Resolve identity through the application's live session validator."""
+        if not callable(current_user_resolver):
+            return None
+        try:
+            user = current_user_resolver()
+        except Exception:
+            return None
+        if not isinstance(user, dict) or not str(user.get('id') or '').strip():
+            return None
+        return user
+
+    def current_user_id(required=False):
+        user = current_user()
+        user_id = str(user.get('id') or '').strip() if user else ''
+        if required and not user_id:
+            raise CombiError('AUTH_REQUIRED', 'Inicia sesión para continuar.', 401)
+        return user_id
 
     def values():
         if request.content_length is not None and request.content_length > 65536:
@@ -31,14 +50,14 @@ def create_client_combi_blueprint(db_path):
         return data
 
     def mutation_guard(data):
-        if not session.get('user_id'):
-            raise CombiError('AUTH_REQUIRED', 'Inicia sesión para crear tu borrador.', 401)
+        user_id = current_user_id(required=True)
         token = request.headers.get('X-CSRF-Token') or request.headers.get('X-CSRFToken') or data.get('csrf_token')
         if not validate_csrf(session, token):
             raise CombiError('CSRF_REQUIRED', 'La sesión ha cambiado. Recarga la página antes de continuar.', 403)
+        return user_id
 
     def read_center(filters=None, selected=None):
-        return store.read_center(db_path, session.get('user_id',''), catalogue_filters=filters, selected=selected)
+        return store.read_center(db_path, current_user_id(), catalogue_filters=filters, selected=selected)
 
     def response_page(result=None, error='', status=200, submitted=None, review=None):
         submitted = submitted if isinstance(submitted, dict) else {}
@@ -112,7 +131,7 @@ def create_client_combi_blueprint(db_path):
         if request.method == 'GET':
             if request.args.get('borrador'):
                 try:
-                    review = review_draft(db_path, session.get('user_id', ''), request.args['borrador'])
+                    review = review_draft(db_path, current_user_id(), request.args['borrador'])
                     submitted = {'pick_ids': [p['id'] for p in review['comparisons']], 'stake': review['stake']}
                     return response_page(review['preview'], review=review, submitted=submitted)
                 except CombiError as exc:
@@ -120,13 +139,13 @@ def create_client_combi_blueprint(db_path):
             return response_page()
         data = {}
         try:
-            data = values(); mutation_guard(data)
+            data = values(); user_id = mutation_guard(data)
             if data.get('action') == 'browse' or 'page' in request.form:
                 return response_page(submitted=data)
             if data.get('action') == 'save':
-                store.save_draft(db_path,session['user_id'],data)
+                store.save_draft(db_path,user_id,data)
                 return redirect('/combinadas?guardado=1#combinadas-guardadas',code=303)
-            result = store.make_preview(db_path,session['user_id'],data)
+            result = store.make_preview(db_path,user_id,data)
             return response_page(result, submitted=data)
         except CombiError as exc:
             return response_page(error=exc.message,status=exc.status,submitted=data)
@@ -134,8 +153,7 @@ def create_client_combi_blueprint(db_path):
     @bp.get('/api/client/combinadas')
     def collection():
         try:
-            if not session.get('user_id'):
-                raise CombiError('AUTH_REQUIRED','Inicia sesión para consultar tus borradores.',401)
+            current_user_id(required=True)
             result = read_center()
             return jsonify({'ok':True, 'combis':[d['payload'] for d in result['saved'] if not d['locked']], **result})
         except CombiError as exc:
@@ -143,8 +161,8 @@ def create_client_combi_blueprint(db_path):
 
     def mutation(save=False):
         try:
-            data = values(); mutation_guard(data)
-            result = (store.save_draft if save else store.make_preview)(db_path,session['user_id'],data)
+            data = values(); user_id = mutation_guard(data)
+            result = (store.save_draft if save else store.make_preview)(db_path,user_id,data)
             return jsonify({'ok':True,'combi':result,'contract':CONTRACT}), (201 if save and not result.get('replayed') else 200)
         except CombiError as exc:
             return jsonify({'ok':False,'error':exc.code,'message':exc.message}), exc.status
@@ -160,7 +178,7 @@ def create_client_combi_blueprint(db_path):
     @bp.get('/api/client/combinadas/<draft_id>/review')
     def review_api(draft_id):
         try:
-            result = review_draft(db_path, session.get('user_id', ''), draft_id)
+            result = review_draft(db_path, current_user_id(required=True), draft_id)
             return jsonify({'ok': True, 'review': result})
         except CombiError as exc:
             return jsonify({'ok': False, 'error': exc.code, 'message': exc.message}), exc.status
@@ -168,7 +186,7 @@ def create_client_combi_blueprint(db_path):
     @bp.get('/api/shark/combi-advice')
     def advice_api():
         try:
-            result = store.read_advice(db_path, session.get('user_id',''),
+            result = store.read_advice(db_path, current_user_id(),
                      pick_id=request.args.get('pick',''),match_id=request.args.get('match_id',''))
             return jsonify({'ok':True,'advice':result})
         except CombiError as exc:
@@ -176,7 +194,7 @@ def create_client_combi_blueprint(db_path):
 
     def advice_for_template(pick_id='', match_id=''):
         cache = getattr(g, 'combi_advice_cache', {})
-        lookup = (str(pick_id),str(match_id),str(session.get('user_id','')))
+        lookup = (str(pick_id),str(match_id),current_user_id())
         if lookup not in cache:
             try:
                 cache[lookup] = store.read_advice(db_path, lookup[2],pick_id=lookup[0],match_id=lookup[1])
@@ -209,7 +227,7 @@ def create_client_combi_blueprint(db_path):
                 token = request.headers.get('X-CSRF-Token') or request.headers.get('X-CSRFToken') or data.get('csrf_token')
                 if not validate_csrf(session, token):
                     raise CombiError('CSRF_REQUIRED', 'Recarga la página para renovar la sesión.', 403)
-            result = store.make_preview(db_path, session.get('user_id',''),
+            result = store.make_preview(db_path, current_user_id(),
                 {'mode':'suggest','count':str(count),'risk':risk,'stake':'0.10','date':target_date})
             answer = result['copy_text'] + '\n\n' + '\n'.join(result['warnings'])
             answer += '\nRevisa el borrador desde Combinadas antes de guardarlo. El perfil solo ordena cuotas; no es una predicción.'

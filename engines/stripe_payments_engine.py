@@ -571,54 +571,58 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
 
     metadata = session.get("metadata") if isinstance(session.get("metadata"), dict) else {}
     ref_user_id = str(session.get("client_reference_id") or metadata.get("user_id") or "").strip()
-    if ref_user_id and ref_user_id != user_id:
-        return {"ok": False, "reason": "session_no_pertenece_usuario", "session_user_id": ref_user_id}
+    if not ref_user_id or ref_user_id != user_id:
+        return {"ok": False, "reason": "session_no_pertenece_usuario"}
+
+    payment_status = str(session.get("payment_status") or "").strip().lower()
+    if payment_status not in {"paid", "no_payment_required"}:
+        return {
+            "ok": False,
+            "pending": payment_status == "unpaid",
+            "reason": "payment_not_confirmed",
+            "status": payment_status or "unknown",
+            "session_id": session_id,
+        }
 
     subscription_obj = session.get("subscription")
-    subscription = stripe_object_to_dict(subscription_obj)
-    subscription_id = ""
     if isinstance(subscription_obj, str):
-        subscription_id = subscription_obj
+        subscription_id = subscription_obj.strip()
+        subscription = {}
     else:
+        subscription = stripe_object_to_dict(subscription_obj)
         subscription_id = str(subscription.get("id") or "")
-    customer_id = str(session.get("customer") or subscription.get("customer") or "")
-    plan = normalize_plan(metadata.get("plan"))
-    price_id = ""
-    if subscription:
-        fields = extract_subscription_fields(subscription)
-        plan = normalize_plan(fields.get("plan")) or plan
-        price_id = str(fields.get("price_id") or "")
-    elif subscription_id:
+    if not subscription_id:
+        return {"ok": False, "reason": "checkout_has_no_subscription", "session_id": session_id}
+    if isinstance(subscription_obj, str):
         try:
             sub_obj = stripe.Subscription.retrieve(subscription_id)
             subscription = stripe_object_to_dict(sub_obj)
-            fields = extract_subscription_fields(subscription)
-            plan = normalize_plan(fields.get("plan")) or plan
-            price_id = str(fields.get("price_id") or "")
         except Exception:
-            fields = {}
-    else:
-        fields = {}
+            return {"ok": False, "retryable": True, "reason": "stripe_subscription_retrieve_failed", "session_id": session_id}
+    if str(subscription.get("id") or "") != subscription_id or not subscription.get("status"):
+        return {"ok": False, "retryable": True, "reason": "stripe_subscription_confirmation_incomplete", "session_id": session_id}
 
-    plan = plan or resolve_plan_from_price(price_id)
-    status = str((subscription or {}).get("status") or session.get("payment_status") or "active").lower()
-    if not fields:
-        fields = {
-            "user_id": user_id,
-            "plan": plan,
-            "customer_id": customer_id,
-            "subscription_id": subscription_id,
-            "status": "active" if status in {"paid", "complete"} else status,
-            "price_id": price_id or plan_price_id(plan),
-            "current_period_start": "",
-            "current_period_end": "",
-            "cancel_at_period_end": 0,
-        }
-    fields["user_id"] = str(fields.get("user_id") or user_id)
-    fields["plan"] = normalize_plan(fields.get("plan")) or plan
-    fields["customer_id"] = str(fields.get("customer_id") or customer_id)
-    fields["subscription_id"] = str(fields.get("subscription_id") or subscription_id)
-    fields["status"] = str(fields.get("status") or "active").lower()
+    customer_id = str(session.get("customer") or subscription.get("customer") or "")
+    subscription_customer_id = str(subscription.get("customer") or "")
+    subscription_metadata = subscription.get("metadata") if isinstance(subscription.get("metadata"), dict) else {}
+    subscription_user_id = str(subscription_metadata.get("user_id") or "").strip()
+    if ((customer_id and subscription_customer_id and customer_id != subscription_customer_id)
+            or (subscription_user_id and subscription_user_id != user_id)):
+        return {"ok": False, "reason": "stripe_subscription_owner_mismatch", "session_id": session_id}
+
+    fields = extract_subscription_fields(subscription)
+    plan = normalize_plan(fields.get("plan")) or normalize_plan(metadata.get("plan"))
+    plan = plan or resolve_plan_from_price(fields.get("price_id"))
+    if plan not in VALID_PAID_PLANS:
+        return {"ok": False, "reason": "stripe_subscription_plan_unconfirmed", "session_id": session_id}
+    fields.update({
+        "user_id": user_id,
+        "plan": plan,
+        "customer_id": customer_id or subscription_customer_id,
+        "subscription_id": subscription_id,
+        "status": str(subscription.get("status") or "").lower(),
+        "price_id": str(fields.get("price_id") or plan_price_id(plan)),
+    })
 
     conn = connect(db_path)
     try:
@@ -851,48 +855,123 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
     applied: Dict[str, Any] = {"applied": False, "reason": "evento_solo_auditado"}
     status = "verified_stored"
     processed = False
+    retryable_error = ""
     try:
-        if event_type == "checkout.session.completed":
+        if event_type in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
             session_id = str(obj.get("id") or "")
             customer_id = str(obj.get("customer") or "")
             subscription_id = str(obj.get("subscription") or "")
-            if user_id:
+            stored_checkout = conn.execute(
+                "SELECT user_id,plan FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
+                (session_id,),
+            ).fetchone() if session_id else None
+            stored_user_id = str(stored_checkout["user_id"] or "") if stored_checkout else ""
+            stored_plan = normalize_plan(stored_checkout["plan"] if stored_checkout else "")
+            if stored_user_id and user_id and stored_user_id != user_id:
+                applied = {"applied": False, "reason": "checkout_owner_mismatch"}
+                status = "checkout_owner_mismatch"
+                processed = True
+            else:
+                user_id = stored_user_id or user_id
+                plan = plan or stored_plan
+
+            payment_status = str(obj.get("payment_status") or "").strip().lower()
+            async_success = event_type == "checkout.session.async_payment_succeeded"
+            payment_confirmed = payment_status == "paid" if async_success else payment_status in {"paid", "no_payment_required"}
+            if status == "checkout_owner_mismatch":
+                pass
+            elif not payment_confirmed:
+                applied = {"applied": False, "reason": "payment_not_confirmed", "payment_status": payment_status or "unknown"}
+                status = "async_payment_confirmation_incomplete" if async_success else "awaiting_async_payment"
+                if async_success:
+                    retryable_error = "payment_confirmation_incomplete"
+                elif session_id:
+                    conn.execute(
+                        "UPDATE stripe_checkout_sessions SET status='awaiting_async_payment' WHERE stripe_session_id=?",
+                        (session_id,),
+                    )
+            elif not session_id or not user_id:
+                applied = {"applied": False, "reason": "checkout_identity_unresolved"}
+                status = "checkout_identity_unresolved"
+                processed = True
+            elif not subscription_id:
+                # One-time Checkout payments are audited but cannot grant a
+                # subscription membership.
+                applied = {"applied": False, "reason": "checkout_has_no_subscription"}
+                status = "checkout_without_subscription"
                 conn.execute(
-                    """UPDATE users SET stripe_customer_id=COALESCE(NULLIF(?,''), stripe_customer_id),
-                                      stripe_subscription_id=COALESCE(NULLIF(?,''), stripe_subscription_id)
-                       WHERE id=?""",
-                    (customer_id, subscription_id, user_id),
+                    "UPDATE stripe_checkout_sessions SET status='completed_without_subscription', completed_at=? WHERE stripe_session_id=?",
+                    (utc_now(), session_id),
                 )
+                processed = True
+            else:
+                stripe = stripe_sdk()
+                if stripe is None or not env_present("STRIPE_SECRET_KEY"):
+                    applied = {"applied": False, "reason": "stripe_subscription_confirmation_unavailable"}
+                    status = "subscription_confirmation_retryable"
+                    retryable_error = "stripe_subscription_confirmation_unavailable"
+                else:
+                    try:
+                        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+                        sub_obj = stripe.Subscription.retrieve(subscription_id)
+                        subscription = stripe_object_to_dict(sub_obj)
+                    except Exception:
+                        subscription = {}
+                        retryable_error = "stripe_subscription_retrieve_failed"
+                    if retryable_error:
+                        applied = {"applied": False, "reason": retryable_error}
+                        status = "subscription_confirmation_retryable"
+                    elif (str(subscription.get("id") or "") != subscription_id
+                          or not str(subscription.get("status") or "").strip()):
+                        applied = {"applied": False, "reason": "stripe_subscription_confirmation_incomplete"}
+                        status = "subscription_confirmation_retryable"
+                        retryable_error = "stripe_subscription_confirmation_incomplete"
+                    else:
+                        fields = extract_subscription_fields(subscription)
+                        subscription_customer_id = str(subscription.get("customer") or "")
+                        subscription_user_id = str(fields.get("user_id") or "").strip()
+                        if ((customer_id and subscription_customer_id and customer_id != subscription_customer_id)
+                                or (subscription_user_id and subscription_user_id != user_id)):
+                            applied = {"applied": False, "reason": "stripe_subscription_owner_mismatch"}
+                            status = "stripe_subscription_owner_mismatch"
+                            processed = True
+                        else:
+                            plan = normalize_plan(fields.get("plan")) or plan or resolve_plan_from_price(fields.get("price_id"))
+                            if plan not in VALID_PAID_PLANS:
+                                applied = {"applied": False, "reason": "stripe_subscription_plan_unconfirmed"}
+                                status = "stripe_subscription_plan_unconfirmed"
+                                processed = True
+                            else:
+                                fields.update({
+                                    "user_id": user_id,
+                                    "plan": plan,
+                                    "customer_id": customer_id or subscription_customer_id,
+                                    "subscription_id": subscription_id,
+                                    "status": str(subscription.get("status") or "").lower(),
+                                    "price_id": str(fields.get("price_id") or plan_price_id(plan)),
+                                })
+                                applied = apply_subscription_to_user(conn, fields, event_type, {"checkout_session": obj, "subscription": subscription})
+                                processed = bool(applied.get("applied"))
+                                status = "processed" if processed else "verified_not_applied"
+                                if processed:
+                                    conn.execute(
+                                        """UPDATE stripe_checkout_sessions
+                                              SET status='completed', completed_at=COALESCE(completed_at, ?),
+                                                  stripe_customer_id=COALESCE(NULLIF(?,''), stripe_customer_id),
+                                                  stripe_subscription_id=COALESCE(NULLIF(?,''), stripe_subscription_id)
+                                            WHERE stripe_session_id=?""",
+                                        (utc_now(), fields.get("customer_id") or "", subscription_id, session_id),
+                                    )
+        elif event_type == "checkout.session.async_payment_failed":
+            session_id = str(obj.get("id") or "")
+            if session_id:
                 conn.execute(
-                    """UPDATE stripe_checkout_sessions SET status='completed', completed_at=?, stripe_customer_id=?, stripe_subscription_id=?
-                       WHERE stripe_session_id=?""",
-                    (utc_now(), customer_id, subscription_id, session_id),
+                    "UPDATE stripe_checkout_sessions SET status='async_payment_failed', completed_at=COALESCE(completed_at, ?) WHERE stripe_session_id=?",
+                    (utc_now(), session_id),
                 )
-            fields = {
-                "user_id": user_id,
-                "plan": plan,
-                "customer_id": customer_id,
-                "subscription_id": subscription_id,
-                "status": "active",
-                "price_id": plan_price_id(plan),
-                "current_period_end": "",
-                "current_period_start": "",
-                "cancel_at_period_end": 0,
-            }
-            # Try to retrieve the subscription for accurate period end.
-            stripe = stripe_sdk()
-            if stripe is not None and subscription_id and env_present("STRIPE_SECRET_KEY"):
-                try:
-                    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-                    subscription = stripe.Subscription.retrieve(subscription_id)
-                    fields.update(extract_subscription_fields(dict(subscription)))
-                    fields["user_id"] = fields.get("user_id") or user_id
-                    fields["plan"] = fields.get("plan") or plan
-                except Exception:
-                    pass
-            applied = apply_subscription_to_user(conn, fields, event_type, obj)
-            processed = bool(applied.get("applied"))
-            status = "processed" if processed else "verified_not_applied"
+            applied = {"applied": False, "reason": "async_payment_failed"}
+            status = "async_payment_failed"
+            processed = True
         elif event_type.startswith("customer.subscription."):  # handles customer.subscription.created/updated/deleted
             fields = extract_subscription_fields(obj)
             applied = apply_subscription_to_user(conn, fields, event_type, obj)
@@ -922,7 +1001,15 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
         conn.commit()
     finally:
         conn.close()
-    return {"ok": True, "verified": True, "processed": processed, "event_type": event_type, "status": status, "applied": applied}
+    return {
+        "ok": not bool(retryable_error),
+        "verified": True,
+        "processed": processed,
+        "retryable": bool(retryable_error),
+        "event_type": event_type,
+        "status": status,
+        "applied": applied,
+    }
 
 
 def client_payments_context(db_path: str, user: Dict[str, Any]) -> Dict[str, Any]:

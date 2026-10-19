@@ -38,7 +38,7 @@ def webapp(db, monkeypatch):
     app.add_url_rule('/api/combis','api_combis',lambda:'OLD_GLOBAL_DATA')
     app.add_url_rule('/api/combis/build','api_combis_build',lambda:'OLD_UNSAFE_SAVE',methods=['POST'])
     app.add_url_rule('/api/shark/ask','api_shark_ask',lambda:'UNCHANGED_OTHER_INTENT',methods=['GET','POST'])
-    app.register_blueprint(create_client_combi_blueprint(db))
+    app.register_blueprint(create_client_combi_blueprint(db, _test_user_resolver))
     return app
 
 
@@ -46,6 +46,12 @@ def login(client,owner='a'):
     with client.session_transaction() as sess:
         sess['user_id']=owner
         return generate_csrf_token(sess)
+
+
+def _test_user_resolver():
+    from flask import session
+    user_id = str(session.get('user_id') or '').strip()
+    return {'id': user_id} if user_id else None
 
 
 @pytest.mark.parametrize('owner,manual,automatic',[('f',False,False),('b',True,False),('a',True,True)])
@@ -183,7 +189,7 @@ def test_shared_helpers_present_and_no_binding_drift(webapp):
     assert webapp.extensions['nemesis_combi_routes']['legacy_build_is_preview_only']
     other=Flask('test-drift')
     other.add_url_rule('/wrong','combis_page',lambda:'')
-    with pytest.raises(RuntimeError,match='Unexpected'):other.register_blueprint(create_client_combi_blueprint('unused'))
+    with pytest.raises(RuntimeError,match='Unexpected'):other.register_blueprint(create_client_combi_blueprint('unused', _test_user_resolver))
 
 
 @pytest.fixture(scope='module')
@@ -263,7 +269,7 @@ def test_widget_privacy_limits_and_dispatch_guard(webapp):
     other=Flask('widget-drift')
     other.add_url_rule('/not-shark','api_shark_ask',lambda:'')
     with pytest.raises(RuntimeError,match='Unexpected legacy SHARK'):
-        other.register_blueprint(create_client_combi_blueprint('unused'))
+        other.register_blueprint(create_client_combi_blueprint('unused', _test_user_resolver))
 
 
 def test_widget_respects_date_and_leg_count_instead_of_guessing_year(webapp, monkeypatch):

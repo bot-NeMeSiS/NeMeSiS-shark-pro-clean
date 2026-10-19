@@ -222,6 +222,37 @@ def test_current_user_id_rejects_a_revoked_session(app_module, tmp_path, monkeyp
         assert "user_id" not in session
 
 
+def test_revoked_copied_cookie_cannot_access_client_combi_routes(app_module, tmp_path, monkeypatch):
+    user = _isolated_admin(app_module, tmp_path, monkeypatch, user_id="qa-revoked-combi-session")
+    original = app_module.app.test_client()
+    stale_get = app_module.app.test_client()
+    stale_post = app_module.app.test_client()
+    _sign_in_cookie(original, user, app_module)
+    _copy_signed_session(original, stale_get, app_module)
+    _copy_signed_session(original, stale_post, app_module)
+    with original.session_transaction() as state:
+        session_state = dict(state)
+    session_hash = app_module.hashlib.sha256(
+        session_state["auth_session_id"].encode("utf-8")
+    ).hexdigest()
+    conn = app_module.db()
+    conn.execute(
+        """INSERT INTO revoked_auth_sessions
+           (session_id_hash,user_id,revoked_at,expires_at) VALUES (?,?,?,?)""",
+        (session_hash, user["id"], app_module.now_iso(), session_state["auth_session_expires_at"]),
+    )
+    conn.commit()
+    conn.close()
+
+    assert stale_get.get("/api/client/combinadas").status_code == 401
+    response = stale_post.post(
+        "/api/client/combinadas/preview",
+        json={"csrf_token": session_state["csrf_token"], "pick_ids": []},
+    )
+    assert response.status_code == 401
+    assert response.get_json()["error"] == "AUTH_REQUIRED"
+
+
 def test_legacy_cookie_is_expired_at_rollout_without_revoking_new_sessions(app_module, tmp_path, monkeypatch):
     user = _isolated_admin(app_module, tmp_path, monkeypatch, user_id="qa-legacy-logout-cookie")
     browser = app_module.app.test_client()
