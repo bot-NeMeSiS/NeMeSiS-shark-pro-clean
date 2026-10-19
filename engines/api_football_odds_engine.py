@@ -176,9 +176,24 @@ def _candidates(conn, now, days_ahead):
     source_clause = "lower(replace(COALESCE(source,''),'-','_')) IN (" + ",".join("?" for _ in SOURCE_ALIASES) + ")"
     date_columns = [name for name in ("kickoff_iso", "match_date") if name in columns]
     order_expr = "COALESCE(" + ",".join(date_columns) + ")"
-    sql = f"SELECT {','.join(selected)} FROM matches WHERE {source_clause} ORDER BY {order_expr} LIMIT 3000"
-    rows = [dict(row) for row in conn.execute(sql, sorted(SOURCE_ALIASES))]
     upper = now + timedelta(days=days_ahead)
+    # Bound the SQL result by a broad calendar window before applying LIMIT.
+    # Limiting all historical provider rows first can hide upcoming fixtures
+    # once a long-running database has more than 3,000 older API-Football rows.
+    date_floor = (now - timedelta(days=1)).date().isoformat()
+    date_ceiling = (upper + timedelta(days=1)).date().isoformat()
+    date_predicates = []
+    date_params = []
+    if "kickoff_iso" in columns:
+        date_predicates.append("substr(COALESCE(kickoff_iso,''),1,10) BETWEEN ? AND ?")
+        date_params.extend((date_floor, date_ceiling))
+    if "match_date" in columns:
+        date_predicates.append("substr(COALESCE(match_date,''),1,10) BETWEEN ? AND ?")
+        date_params.extend((date_floor, date_ceiling))
+    date_clause = " AND (" + " OR ".join(date_predicates) + ")" if date_predicates else ""
+    sql = (f"SELECT {','.join(selected)} FROM matches WHERE {source_clause}{date_clause} "
+           f"ORDER BY {order_expr} LIMIT 3000")
+    rows = [dict(row) for row in conn.execute(sql, [*sorted(SOURCE_ALIASES), *date_params])]
     found = {}
     for row in rows:
         fid = _fixture_id(row)

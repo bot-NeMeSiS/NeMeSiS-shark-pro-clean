@@ -160,6 +160,22 @@ def test_only_api_football_fixtures_are_candidates(store):
     assert called == []
 
 
+def test_historical_provider_rows_do_not_hide_upcoming_odds_fixtures(store):
+    old_date = (NOW - timedelta(days=30)).date().isoformat()
+    with closing(sqlite3.connect(store)) as conn, conn:
+        conn.executemany(
+            """INSERT INTO matches(id,external_id,source,match_date,kickoff_iso,status,
+                home_team,away_team,league_name) VALUES(?,?,?,?,?,?,?,?,?)""",
+            [(f"old-{index}", str(100000 + index), "api_football_live", old_date,
+              f"{old_date}T12:00:00+00:00", "FT", "Old Home", "Old Away", "Archive")
+             for index in range(3100)],
+        )
+    with closing(sqlite3.connect(store)) as conn:
+        conn.row_factory = sqlite3.Row
+        candidates = odds._candidates(conn, NOW, 14)
+    assert [item["fixture_id"] for item in candidates] == ["501"]
+
+
 def test_api_football_quote_freshness_matches_slow_provider_cadence(monkeypatch):
     monkeypatch.setenv("API_FOOTBALL_ODDS_FRESH_SECONDS", "10800")
     now = NOW
