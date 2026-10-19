@@ -40,11 +40,111 @@ def test_odds_cache_guard_expires_old_sync(app_module, monkeypatch):
     assert app_module.odds_recently_synced() is False
 
 
+def test_recent_provider_failure_uses_short_backoff_not_success_cache(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": False,
+        "status": "PROVIDER_FAILURE",
+        "last_sync": _iso(app_module),
+        "last_attempt_at": _iso(app_module),
+        "errors": ["Liga: HTTPError"],
+        "quota": {"error_type": "HTTPError"},
+    })
+    monkeypatch.setattr(app_module, "odds_cache_minutes", lambda: 360)
+    monkeypatch.setattr(app_module, "odds_failure_cooldown_minutes", lambda: 10)
+
+    assert app_module.odds_recently_synced() is False
+    assert app_module.odds_sync_skip_reason() == "failure_backoff"
+
+
+def test_old_failed_attempt_does_not_extend_success_cache(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": False,
+        "status": "PROVIDER_FAILURE_STOPPED_EARLY",
+        "last_sync": _iso(app_module, timedelta(minutes=-20)),
+        "last_attempt_at": _iso(app_module, timedelta(minutes=-20)),
+        "last_success_at": _iso(app_module, timedelta(hours=-2)),
+        "errors": ["Liga: HTTPError"],
+    })
+    monkeypatch.setattr(app_module, "odds_cache_minutes", lambda: 60)
+    monkeypatch.setattr(app_module, "odds_failure_cooldown_minutes", lambda: 10)
+
+    assert app_module.odds_sync_skip_reason() == ""
+    assert app_module.odds_recently_synced() is False
+
+
+def test_malformed_quota_metadata_does_not_break_cache_classification(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": True,
+        "status": "OK",
+        "last_success_at": _iso(app_module),
+        "quota": ["unexpected legacy shape"],
+        "errors": [],
+    })
+    monkeypatch.setattr(app_module, "odds_cache_minutes", lambda: 60)
+
+    assert app_module.odds_sync_skip_reason() == "success_cache"
+
+
+def test_malformed_quota_metadata_does_not_break_failure_backoff(app_module, monkeypatch):
+    monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
+    monkeypatch.setenv("ENABLE_ODDS_API", "true")
+    monkeypatch.setattr(app_module, "seed_core", lambda: None)
+    monkeypatch.setattr(app_module, "odds_failure_cooldown_minutes", lambda: 10)
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": False,
+        "status": "PROVIDER_FAILURE",
+        "last_attempt_at": _iso(app_module),
+        "errors": ["provider failure"],
+        "quota": ["unexpected legacy shape"],
+    })
+    monkeypatch.setattr(app_module, "fetch_odds_events", lambda **_kwargs: pytest.fail("backoff must not call provider"))
+
+    result = app_module.sync_odds_events(force=False)
+
+    assert result["provider_failure_backoff"] is True
+    assert result["external_calls"] == 0
+    assert result["quota"]["error_type"] == ""
+
+
+def test_error_result_never_becomes_last_success_even_with_ok_status(app_module):
+    assert app_module._odds_sync_is_success({
+        "ok": True,
+        "status": "OK",
+        "errors": ["provider failure"],
+        "quota": {},
+    }) is False
+
+
+def test_failure_backoff_is_a_transparent_zero_call_deferral(app_module, monkeypatch):
+    monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
+    monkeypatch.setenv("ENABLE_ODDS_API", "true")
+    monkeypatch.setattr(app_module, "seed_core", lambda: None)
+    monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
+        "ok": False,
+        "status": "PROVIDER_FAILURE",
+        "last_sync": _iso(app_module),
+        "last_attempt_at": _iso(app_module),
+        "last_success_at": "",
+        "errors": ["Liga: HTTPError"],
+        "quota": {"error_type": "HTTPError", "error_code": "EXCEEDED_FREQ_LIMIT"},
+    })
+    monkeypatch.setattr(app_module, "fetch_odds_events", lambda **_kwargs: pytest.fail("cooldown must not call provider"))
+
+    result = app_module.sync_odds_events(force=False)
+
+    assert result["status"] == "PARTIAL"
+    assert result["reason"] == "provider_failure_cooldown"
+    assert result["controlled_deferrals"] == ["PROVIDER_FAILURE_COOLDOWN"]
+    assert result["external_calls"] == 0
+    assert result["provider_observation_current"] is False
+    assert result["quota"]["error_code"] == "EXCEEDED_FREQ_LIMIT"
+
+
 def test_cached_odds_sync_makes_zero_provider_calls(app_module, monkeypatch):
     monkeypatch.setenv("THE_ODDS_API_KEY", "qa-placeholder-not-a-real-key")
     monkeypatch.setenv("ENABLE_ODDS_API", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
-    monkeypatch.setattr(app_module, "odds_recently_synced", lambda: True)
+    monkeypatch.setattr(app_module, "odds_sync_skip_reason", lambda: "success_cache")
     monkeypatch.setattr(
         app_module,
         "odds_last_sync",

@@ -353,7 +353,8 @@ def _statistics_refresh_context(statistics, lifecycle, raw):
     raw = _mapping(raw)
     status = _text(raw.get("status")).upper()
     known = {"AVAILABLE", "STALE", "NO_DATA", "FETCHING", "PENDING", "IDENTITY_UNAVAILABLE",
-             "READ_UNAVAILABLE", "NOT_CONFIGURED", "DISABLED", "TIME_BUDGET", "DEFERRED_PROVIDER_FAILURE"}
+             "READ_UNAVAILABLE", "NOT_CONFIGURED", "DISABLED", "TIME_BUDGET", "DAILY_BUDGET",
+             "SOURCE_COOLDOWN", "DEFERRED_PROVIDER_FAILURE"}
     provider_failure = status.startswith("PROVIDER_FAILURE_")
     refresh = {"status": status if status in known else "PROVIDER_FAILURE" if provider_failure else "UNKNOWN"}
     for key in ("last_attempt_at", "last_success_at", "next_due_at", "provider_observed_at"):
@@ -365,12 +366,24 @@ def _statistics_refresh_context(statistics, lifecycle, raw):
             message = "Se muestran las últimas estadísticas guardadas; la actualización está pendiente."
         elif provider_failure or status == "DEFERRED_PROVIDER_FAILURE":
             message = "Se muestran las últimas estadísticas guardadas; la actualización está temporalmente interrumpida."
+        elif status == "DAILY_BUDGET":
+            message = "Se muestran las últimas estadísticas guardadas; la actualización está aplazada por el límite diario de consultas."
+        elif status == "SOURCE_COOLDOWN":
+            message = "Se muestran las últimas estadísticas guardadas; el proveedor está en un periodo de espera antes de otra consulta."
+        elif status == "TIME_BUDGET":
+            message = "Se muestran las últimas estadísticas guardadas; la actualización se aplazó para respetar el tiempo disponible."
     elif lifecycle.get("is_upcoming") or lifecycle.get("key") == "UPCOMING":
         message = "Las estadísticas se consultan después del inicio, según la cobertura disponible."
     elif status == "NO_DATA":
         message = "El proveedor todavía no ha publicado estadísticas para este partido."
     elif provider_failure or status == "DEFERRED_PROVIDER_FAILURE":
         message = "La actualización de estadísticas está temporalmente interrumpida."
+    elif status == "DAILY_BUDGET":
+        message = "La actualización está aplazada por el límite diario de consultas; todavía no hay estadísticas guardadas para este partido."
+    elif status == "SOURCE_COOLDOWN":
+        message = "La próxima consulta de estadísticas está en el periodo de espera del proveedor."
+    elif status == "TIME_BUDGET":
+        message = "La actualización de estadísticas se aplazó para respetar el tiempo disponible."
     elif status == "FETCHING":
         message = "Actualizando las estadísticas de este partido."
     elif statistics.get("status") == "stale":

@@ -74,6 +74,34 @@ def test_sync_links_translated_teams_and_preserves_provider_identity(odds_db, mo
     assert app.v565_extract_odds(app.one('SELECT * FROM matches'))['home'] == 2.1
 
 
+def test_failed_provider_attempt_does_not_extend_last_success_cache(odds_db, monkeypatch):
+    app = odds_db
+    monkeypatch.setattr(app, 'odds_cache_minutes', lambda: 60)
+    old_success = (datetime.now(app.TZ) - timedelta(hours=2)).isoformat(timespec='seconds')
+    monkeypatch.setattr(app, 'odds_last_sync', lambda: {
+        'ok': True, 'status': 'OK', 'last_sync': old_success,
+        'last_success_at': old_success, 'external_calls': 1,
+        'errors': [], 'quota': {'systemic_failure': False},
+    })
+    monkeypatch.setattr(app, 'fetch_odds_events', lambda **_kw: (
+        [], ['Liga: HTTPError'], {'observed_calls': 1, 'http_status': 503,
+                                  'error_type': 'HTTPError', 'systemic_failure': True},
+    ))
+
+    failed = app.sync_odds_events(force=True)
+    saved = json.loads(app.one("SELECT value_json FROM automation_state WHERE key='odds_events_sync'")["value_json"])
+
+    assert failed['status'] == 'PROVIDER_FAILURE_STOPPED_EARLY'
+    assert saved['last_success_at'] == old_success
+    assert saved['last_attempt_at'] == failed['last_attempt_at']
+    assert app.odds_sync_skip_reason(saved) == 'failure_backoff'
+
+    expired_attempt = dict(saved)
+    expired_attempt['last_attempt_at'] = (datetime.now(app.TZ) - timedelta(minutes=11)).isoformat(timespec='seconds')
+    expired_attempt['last_sync'] = expired_attempt['last_attempt_at']
+    assert app.odds_sync_skip_reason(expired_attempt) == ''
+
+
 def test_matching_tolerates_time_but_rejects_reverse_competition_and_ambiguity(odds_db):
     app = odds_db
     sport, event, match = fixture(app)

@@ -13,6 +13,20 @@ def test_context_unavailable_is_unknown_and_sanitized(app_module, monkeypatch):
     assert 'PRIVATE-PATH' not in str(result)
 
 
+def test_client_highlights_api_reports_catalogue_read_failure_as_unavailable(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, 'is_admin_session', lambda: True)
+    monkeypatch.setattr(app_module, 'v766_highlights_context', lambda **_k: {
+        'ok': False, 'read_state': 'READ_UNAVAILABLE', 'status': 'READ_UNAVAILABLE',
+    })
+    monkeypatch.setattr(app_module, 'v769_highlights_content_center', lambda *_a, **_k: {})
+
+    response = app_module.app.test_client().get('/api/client/highlights')
+
+    assert response.status_code == 200
+    assert response.get_json()['ok'] is False
+    assert response.get_json()['status'] == 'READ_UNAVAILABLE'
+
+
 def test_unavailable_catalogue_does_not_guess_pending_count(app_module, monkeypatch):
     monkeypatch.setattr(app_module, 'v766_highlights_context', lambda **_k: {'ok':False,'read_state':'READ_UNAVAILABLE'})
     monkeypatch.setattr(app_module, 'v769_pending_highlight_snapshot', lambda **_k: pytest.fail('Unexpected pending query'))

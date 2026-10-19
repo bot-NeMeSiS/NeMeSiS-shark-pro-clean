@@ -68,6 +68,12 @@ def account(app_module, path, role):
         return None
     with closing(sqlite3.connect(path)) as conn:
         conn.row_factory = sqlite3.Row
+        # Signed sessions check the revocation store on every request. Keep the
+        # isolated account fixture faithful to the migrated production schema.
+        conn.execute("""CREATE TABLE revoked_auth_sessions(
+            session_id_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL,
+            revoked_at TEXT NOT NULL, expires_at TEXT NOT NULL
+        )""")
         conn.execute("""CREATE TABLE users(
             id TEXT PRIMARY KEY, name TEXT, username TEXT, email TEXT,
             password_hash TEXT, auth_version INTEGER NOT NULL DEFAULT 0,

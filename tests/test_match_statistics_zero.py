@@ -1,4 +1,4 @@
-from engines.match_context_engine import _real_statistics
+from engines.match_context_engine import _real_statistics, _statistics_refresh_context
 
 
 def test_persisted_zero_statistics_remain_available_and_localized():
@@ -108,3 +108,26 @@ def test_finished_match_uses_saved_possession_without_claiming_spatial_map(app_m
     assert 'Local 57%' in rendered and 'Visitante 43%' in rendered
     assert 'data-spatial-map-available="false"' in rendered
     assert '2026-10-17T16:01:00Z' in rendered
+
+
+def test_statistics_budget_and_cooldown_statuses_are_explained_without_provider_io():
+    expected = {
+        'DAILY_BUDGET': 'límite diario de consultas',
+        'SOURCE_COOLDOWN': 'periodo de espera',
+        'TIME_BUDGET': 'tiempo disponible',
+    }
+    for status, copy in expected.items():
+        refresh, message = _statistics_refresh_context(
+            {'available': False}, {'is_upcoming': False}, {'status': status},
+        )
+        assert refresh['status'] == status
+        assert copy in message
+
+
+def test_cached_statistics_explain_when_refresh_is_deferred():
+    refresh, message = _statistics_refresh_context(
+        {'available': True}, {'is_upcoming': False}, {'status': 'DAILY_BUDGET'},
+    )
+    assert refresh['status'] == 'DAILY_BUDGET'
+    assert 'últimas estadísticas guardadas' in message
+    assert 'límite diario de consultas' in message

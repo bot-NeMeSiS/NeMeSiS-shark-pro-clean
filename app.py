@@ -7157,22 +7157,75 @@ def odds_last_sync():
 
 
 def odds_recently_synced():
-    last = odds_last_sync()
-    # Current syncs persist "last_sync"; older builds used "time".
-    # Accept both so the paid Odds API cache guard survives deployments and
-    # does not spend credits again every cron tick.
-    timestamp = last.get("last_sync") or last.get("time") or ""
-    if not timestamp:
+    return odds_sync_skip_reason() == "success_cache"
+
+
+def _odds_quota_metadata(result):
+    quota = result.get("quota") if isinstance(result, dict) else None
+    return quota if isinstance(quota, dict) else {}
+
+
+def _odds_sync_is_success(last):
+    """Only a completed, error-free provider observation may extend the cache."""
+    if not isinstance(last, dict) or last.get("ok") is False:
+        return False
+    status = str(last.get("status") or "").strip().upper()
+    errors = last.get("errors") or []
+    quota = _odds_quota_metadata(last)
+    if last.get("controlled_deferrals") or quota.get("systemic_failure"):
+        return False
+    if status:
+        return status == "OK" and not errors
+    # Backward compatibility for records written before the status field was
+    # introduced. Explicit failures above remain failures even in legacy data;
+    # old partial-error records with ok=True were already treated as reusable.
+    return last.get("ok") is not False and not last.get("skipped")
+
+
+def _odds_timestamp_is_recent(value, minutes):
+    text = str(value or "").strip()
+    if not text:
         return False
     try:
-        dt = datetime.fromisoformat(timestamp)
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=TZ)
         else:
             dt = dt.astimezone(TZ)
-        return (datetime.now(TZ) - dt).total_seconds() < odds_cache_minutes() * 60
-    except (TypeError, ValueError):
+        age = (datetime.now(TZ) - dt).total_seconds()
+        return 0 <= age < max(1, int(minutes)) * 60
+    except (TypeError, ValueError, OverflowError):
         return False
+
+
+def odds_failure_cooldown_minutes():
+    return max(1, min(60, as_int(os.getenv("ODDS_FAILURE_COOLDOWN_MINUTES", "10"), 10)))
+
+
+def odds_sync_skip_reason(last=None):
+    """Distinguish valid cached data from a short, transparent provider backoff."""
+    last = last if isinstance(last, dict) else odds_last_sync()
+    quota = _odds_quota_metadata(last)
+    status = str(last.get("status") or "").strip().upper()
+    has_failure = (
+        last.get("ok") is False
+        or bool(last.get("errors"))
+        or status.startswith("PROVIDER_FAILURE")
+        or status in {"PARTIAL_PROVIDER_ERRORS", "PIPELINE_ERROR"}
+        or bool(quota.get("systemic_failure"))
+    )
+    last_attempt = last.get("last_attempt_at") or last.get("last_sync") or last.get("time")
+    if has_failure and _odds_timestamp_is_recent(last_attempt, odds_failure_cooldown_minutes()):
+        return "failure_backoff"
+
+    last_success = str(last.get("last_success_at") or "").strip()
+    if not last_success and _odds_sync_is_success(last):
+        # Old deployments only recorded last_sync (or time). Reuse that value
+        # only when the stored result itself is a successful observation.
+        last_success = str(last.get("last_sync") or last.get("time") or "").strip()
+    if last_success and _odds_timestamp_is_recent(last_success, odds_cache_minutes()):
+        return "success_cache"
+    return ""
 
 
 
@@ -7342,8 +7395,10 @@ def sync_odds_events(limit=250, force=False):
         return {"ok": False, "sin_key": True, "skipped": False, "imported": 0, "updated": 0, "processed": 0, "errors": ["Falta THE_ODDS_API_KEY."]}
     if not odds_enabled():
         return {"ok": False, "sin_key": False, "disabled": True, "skipped": True, "imported": 0, "updated": 0, "processed": 0, "errors": ["ENABLE_ODDS_API no está activo."]}
-    if odds_recently_synced() and not force:
+    skip_reason = odds_sync_skip_reason() if not force else ""
+    if skip_reason == "success_cache":
         last = odds_last_sync()
+        quota = _odds_quota_metadata(last)
         # Cache reuse is a fact about this tick. Preserve historical counters
         # separately instead of replaying old calls/errors as current activity.
         return {
@@ -7357,12 +7412,47 @@ def sync_odds_events(limit=250, force=False):
             "processed": 0,
             "errors": [],
             "external_calls": 0,
-            "quota": last.get("quota") or {},
-            "last_sync": last.get("last_sync") or last.get("time") or "",
+            "quota": quota,
+            "last_sync": last.get("last_success_at") or last.get("last_sync") or last.get("time") or "",
             "cached_processed": as_int(last.get("processed"), 0),
             "cached_external_calls": as_int(last.get("external_calls"), 0),
         }
+    if skip_reason == "failure_backoff":
+        last = odds_last_sync()
+        cooldown = odds_failure_cooldown_minutes()
+        last_attempt = last.get("last_attempt_at") or last.get("last_sync") or last.get("time") or ""
+        try:
+            retry_at = datetime.fromisoformat(str(last_attempt).replace("Z", "+00:00"))
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=TZ)
+            retry_after = (retry_at + timedelta(minutes=cooldown)).astimezone(TZ).isoformat(timespec="seconds")
+        except (TypeError, ValueError, OverflowError):
+            retry_after = ""
+        quota = _odds_quota_metadata(last)
+        return {
+            "ok": True,
+            "status": "PARTIAL",
+            "skipped": True,
+            "reason": "provider_failure_cooldown",
+            "controlled_deferrals": ["PROVIDER_FAILURE_COOLDOWN"],
+            "provider_failure_backoff": True,
+            "provider_observation_current": False,
+            "last_attempt_at": last_attempt,
+            "last_success_at": last.get("last_success_at") or "",
+            "retry_after": retry_after,
+            "external_calls": 0,
+            "processed": 0,
+            "errors": [],
+            "quota": {
+                "error_type": quota.get("error_type") if quota.get("error_type") in {
+                    "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
+                } else "",
+                "error_code": quota.get("error_code") or "",
+            },
+        }
     log_id = sync_log_start("The Odds API", "events")
+    previous = odds_last_sync()
+    attempted_at = now_iso()
     try:
         fetched, errors, quota = fetch_odds_events(limit=limit)
         match_rows = []
@@ -7407,7 +7497,17 @@ def sync_odds_events(limit=250, force=False):
         result["linked_matches"] = odds_snapshot_result.get("linked", 0)
         result["external_calls"] = as_int(quota.get("observed_calls"), 0)
         result["skipped"] = False
-        result["last_sync"] = now_iso()
+        result["last_sync"] = attempted_at
+        result["last_attempt_at"] = attempted_at
+        result["last_success_at"] = (
+            attempted_at
+            if _odds_sync_is_success(result) and as_int(result.get("external_calls"), 0) > 0
+            else previous.get("last_success_at") or (
+                str(previous.get("last_sync") or previous.get("time") or "")
+                if _odds_sync_is_success(previous) else ""
+            )
+        )
+        result["provider_observation_current"] = as_int(result.get("external_calls"), 0) > 0
         conn = db()
         conn.execute(
             """INSERT OR REPLACE INTO automation_state(key,value_json,updated_at)
@@ -7422,7 +7522,13 @@ def sync_odds_events(limit=250, force=False):
         safe_error = type(exc).__name__
         failure = {"ok": False, "status": "PIPELINE_ERROR", "skipped": False,
                    "imported": 0, "updated": 0, "processed": 0,
-                   "errors": [safe_error], "last_sync": now_iso(),
+                   "errors": [safe_error], "last_sync": attempted_at,
+                   "last_attempt_at": attempted_at,
+                   "last_success_at": previous.get("last_success_at") or (
+                       str(previous.get("last_sync") or previous.get("time") or "")
+                       if _odds_sync_is_success(previous) else ""
+                   ),
+                   "provider_observation_current": as_int(locals().get("quota", {}).get("observed_calls"), 0) > 0,
                    "quota": locals().get("quota", {}),
                    "external_calls": as_int(locals().get("quota", {}).get("observed_calls"), 0)}
         app.logger.error("Odds pipeline failed: %s", safe_error)
@@ -20566,7 +20672,17 @@ def highlights_page():
 @app.route("/api/client/highlights")
 def api_client_highlights():
     base = v766_highlights_context(limit=24)
-    return jsonify({"ok": True, "version": APP_VERSION, "highlights": base, "content_center": v769_highlights_content_center({}, current_session_user(), limit=24, highlights_context=base)})
+    read_unavailable = base.get("read_state") == "READ_UNAVAILABLE" or base.get("status") == "READ_UNAVAILABLE"
+    payload = {
+        "ok": bool(base.get("ok")) and not read_unavailable,
+        "version": APP_VERSION,
+        "status": base.get("status") or base.get("read_state") or "UNKNOWN",
+        "highlights": base,
+        "content_center": v769_highlights_content_center({}, current_session_user(), limit=24, highlights_context=base),
+    }
+    # Keep the established JSON response contract for existing clients; the
+    # unavailable state is explicit in the payload and must never look healthy.
+    return jsonify(payload), 200
 
 
 @app.route("/api/automation/highlights/sync", methods=["POST"])
