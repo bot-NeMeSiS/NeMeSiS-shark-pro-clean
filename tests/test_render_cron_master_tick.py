@@ -649,6 +649,7 @@ def test_postmatch_http_200_partial_keeps_safe_deferral_and_source_diagnostics(m
         "result": "PARTIAL",
         "processed": 2,
         "external_calls": 0,
+        "pending_jobs": 44832,
         "jobs": [{
             "reason": "DAILY_BUDGET",
             "state": "RETRY",
@@ -672,6 +673,7 @@ def test_postmatch_http_200_partial_keeps_safe_deferral_and_source_diagnostics(m
 
     assert result["postmatch_status"] == "PARTIAL"
     assert result["postmatch_failure_reasons"] == ["DAILY_BUDGET"]
+    assert result["postmatch_pending_jobs"] == 44832
     assert result["postmatch_source_failures"] == [{
         "provider": "api_football",
         "endpoint": "fixtures/statistics",
@@ -680,6 +682,9 @@ def test_postmatch_http_200_partial_keeps_safe_deferral_and_source_diagnostics(m
     }]
     assert "secret provider payload" not in json.dumps(result)
     assert "raw response" not in json.dumps(result)
+    assert "postmatch_pending_jobs" not in master.postmatch_payload_details({"pending_jobs": True})
+    assert "postmatch_pending_jobs" not in master.postmatch_payload_details({"pending_jobs": -1})
+    assert "postmatch_pending_jobs" not in master.postmatch_payload_details({"pending_jobs": 1000001})
 
 
 def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatch):

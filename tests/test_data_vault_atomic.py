@@ -125,6 +125,45 @@ def test_sqlite_interrupt_after_deadline_is_classified_as_backup_timeout():
     assert vault._backup_error_type(error, deadline=time.monotonic() + 60) == "OperationalError"
 
 
+def test_integrity_deadline_timeout_is_attributed_and_never_published(backup_source, monkeypatch, capsys):
+    source, root = backup_source
+    with sqlite3.connect(source) as conn:
+        conn.execute("CREATE TABLE integrity_rows(value TEXT NOT NULL)")
+        conn.executemany("INSERT INTO integrity_rows VALUES(?)", ((f"row-{index}",) for index in range(2500)))
+    original_source = source.read_bytes()
+    original_monotonic = vault.time.monotonic
+    current_stage = {"name": ""}
+    original_emit = vault._emit_backup_stage
+
+    def expire_only_during_integrity():
+        if current_stage["name"] == "INTEGRITY":
+            return original_monotonic() + 60
+        return original_monotonic()
+
+    def track_stage(stage, status, **kwargs):
+        if status == "started":
+            current_stage["name"] = stage
+        return original_emit(stage, status, **kwargs)
+
+    monkeypatch.setattr(vault.time, "monotonic", expire_only_during_integrity)
+    monkeypatch.setattr(vault, "_emit_backup_stage", track_stage)
+
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+
+    assert result["ok"] is False
+    assert result["backup_created"] is False
+    assert result["failure_stage"] == "INTEGRITY"
+    assert result["error"] == "backup_snapshot_timeout"
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    integrity_failure = next(event for event in events
+                             if event["stage"] == "INTEGRITY" and event["status"] == "failed")
+    assert integrity_failure["error_type"] == "BACKUP_TIMEOUT"
+    assert integrity_failure["error_code"] == "SQLITE_INTERRUPT"
+    assert vault.list_backups(root) == []
+    assert {path.name for path in vault.backup_dir(root).iterdir()} == {".backup.lock"}
+    assert source.read_bytes() == original_source
+
+
 def test_two_backups_in_same_second_never_replace_each_other(backup_source,monkeypatch):
     source,root=backup_source
     monkeypatch.setattr(vault,"now_stamp",lambda:"20260927_120000")

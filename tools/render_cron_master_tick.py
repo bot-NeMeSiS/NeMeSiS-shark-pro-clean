@@ -843,7 +843,11 @@ def postmatch_payload_details(payload: dict) -> dict:
     storage_code = payload.get('storage_code')
     if isinstance(storage_code, str) and re.fullmatch(r'SQLITE_[A-Z0-9_]{1,48}', storage_code):
         result['postmatch_storage_code'] = storage_code
-    for source_key, target_key in (('processed', 'postmatch_processed'), ('external_calls', 'postmatch_external_calls')):
+    for source_key, target_key in (
+        ('processed', 'postmatch_processed'),
+        ('external_calls', 'postmatch_external_calls'),
+        ('pending_jobs', 'postmatch_pending_jobs'),
+    ):
         value = payload.get(source_key)
         if type(value) is int and 0 <= value <= 1000000:
             result[target_key] = value
