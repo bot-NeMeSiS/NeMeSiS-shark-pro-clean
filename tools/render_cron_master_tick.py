@@ -54,6 +54,19 @@ READINESS_BACKOFF_SECONDS = 5
 TRANSIENT_READINESS_HTTP = {502, 503, 504}
 CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"}
 BACKUP_VALID_RESULTS = {"PASS", "OK", "SKIPPED_ALREADY_DONE", "SKIPPED_ALREADY_RUNNING"}
+ODDS_SKIP_REASONS = {"SUCCESS_CACHE", "PROVIDER_FAILURE_COOLDOWN"}
+HIGHLIGHTS_SKIP_REASONS = {
+    "already_synced_today",
+    "scope_completed_with_gaps",
+    "fresh_sync_window",
+    "retry_cooldown",
+}
+HIGHLIGHTS_ERROR_CODES = {
+    "TIME_BUDGET", "REQUEST_BUDGET", "MEDIA_BUDGET", "ITEM_BUDGET", "PARTITION_BUDGET",
+    "LEAGUE_RESPONSE_LIMIT", "SCOPED_COVERAGE_ONLY", "ENRICHMENT_PENDING", "NO_EVENT",
+    "MALFORMED", "PROVIDER_ERROR", "RATE_LIMIT", "ACCESS_DENIED", "NETWORK", "STORAGE_UNAVAILABLE",
+    "INTERNAL_ERROR", "IDENTITY_MISMATCH", "IDENTITY_CHANGED", "AMBIGUOUS_MATCH", "RETRY_COOLDOWN",
+}
 
 
 def now_labels() -> tuple[str, str]:
@@ -102,6 +115,23 @@ def safe_count(value: object) -> int:
         return max(0, int(value or 0))
     except (TypeError, ValueError):
         return 0
+
+
+def safe_timestamp(value: object) -> str:
+    """Accept only parseable operational timestamps; never log arbitrary text."""
+    if not isinstance(value, str) or not value or len(value) > 48:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError, OverflowError):
+        return ""
+    return parsed.isoformat(timespec="seconds")
+
+
+def safe_codes(values: object, allowed: set[str]) -> list[str]:
+    if not isinstance(values, (list, tuple, set)):
+        return []
+    return list(dict.fromkeys(value for value in values if isinstance(value, str) and value in allowed))[:8]
 
 
 def backup_error_code(value: object, secret: str) -> str:
@@ -340,15 +370,26 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
             "odds_refresh": {
                 "state": safe_label((raw_current_sync.get("odds_refresh") or {}).get("state"), secret),
                 "reason_code": safe_label((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), secret),
+                "reason": ((raw_current_sync.get("odds_refresh") or {}).get("reason")
+                           if (raw_current_sync.get("odds_refresh") or {}).get("reason") in ODDS_SKIP_REASONS else ""),
+                "skipped": bool((raw_current_sync.get("odds_refresh") or {}).get("skipped")),
                 "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
                 "processed": safe_count((raw_current_sync.get("odds_refresh") or {}).get("processed")),
                 "external_calls": safe_count((raw_current_sync.get("odds_refresh") or {}).get("external_calls")),
+                "provider_observation_current": safe_count((raw_current_sync.get("odds_refresh") or {}).get("external_calls")) > 0,
+                "provider_failure_backoff": bool((raw_current_sync.get("odds_refresh") or {}).get("provider_failure_backoff")),
+                "retry_after": safe_timestamp((raw_current_sync.get("odds_refresh") or {}).get("retry_after")),
                 "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
             },
             "highlights_refresh": {
                 "state": safe_label((raw_current_sync.get("highlights_refresh") or {}).get("state"), secret),
+                "reason": ((raw_current_sync.get("highlights_refresh") or {}).get("reason")
+                           if (raw_current_sync.get("highlights_refresh") or {}).get("reason") in HIGHLIGHTS_SKIP_REASONS else ""),
                 "ok": (raw_current_sync.get("highlights_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("highlights_refresh") or {}).get("ok"), bool) else None,
                 "skipped": bool((raw_current_sync.get("highlights_refresh") or {}).get("skipped")),
+                "next_check_seconds": min(86400, safe_count((raw_current_sync.get("highlights_refresh") or {}).get("next_check_seconds"))),
+                "error_codes": safe_codes((raw_current_sync.get("highlights_refresh") or {}).get("error_codes"), HIGHLIGHTS_ERROR_CODES),
+                "last_attempt_error_codes": safe_codes((raw_current_sync.get("highlights_refresh") or {}).get("last_attempt_error_codes"), HIGHLIGHTS_ERROR_CODES),
                 "highlights_found": safe_count((raw_current_sync.get("highlights_refresh") or {}).get("highlights_found")),
                 "linked_matches": safe_count((raw_current_sync.get("highlights_refresh") or {}).get("linked_matches")),
                 "external_calls": safe_count((raw_current_sync.get("highlights_refresh") or {}).get("external_calls")),
@@ -547,19 +588,42 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
                 "external_calls": safe_count(payload.get("external_calls")),
                 f"{prefix}_duration_ms": max(0, round((time.perf_counter()-started)*1000))}
         if prefix == "odds":
-            code = payload.get("provider_error_code")
-            result["provider_error_code"] = code if code in KNOWN_ODDS_ERROR_CODES else ""
-            result["provider_observation_current"] = payload.get("provider_observation_current") is True
-            result["provider_http"] = safe_count(payload.get("provider_http"))
-            tier = payload.get("credential_tier_selected")
-            result["credential_tier_selected"] = tier if tier in {"PAID", "FREE", "LEGACY"} else ""
-            result["fallback_used"] = payload.get("fallback_used") is True
-            error_type = payload.get("provider_error_type")
-            result["provider_error_type"] = error_type if error_type in {
+            skip_reason = payload.get("reason")
+            result["odds_skip_reason"] = skip_reason if skip_reason in ODDS_SKIP_REASONS else ""
+            result["odds_skipped"] = bool(payload.get("skipped"))
+            result["odds_provider_failure_backoff"] = bool(payload.get("provider_failure_backoff"))
+            result["odds_retry_after"] = safe_timestamp(payload.get("retry_after"))
+            observation_current = payload.get("provider_observation_current") is True
+            result["provider_observation_current"] = observation_current
+            current_code = payload.get("provider_error_code")
+            current_type = payload.get("provider_error_type")
+            previous_code = payload.get("last_provider_error_code")
+            previous_type = payload.get("last_provider_error_type")
+            # Older web deployments may still return a stored error in the
+            # current fields while Odds is in cooldown. Keep it historical.
+            if not observation_current:
+                previous_code = previous_code or current_code
+                previous_type = previous_type or current_type
+            result["provider_error_is_current"] = observation_current and bool(current_code or current_type)
+            result["provider_error_code"] = current_code if observation_current and current_code in KNOWN_ODDS_ERROR_CODES else ""
+            result["provider_error_type"] = current_type if observation_current and current_type in {
                 "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError", "UNKNOWN",
-            } else ""
+            } else "UNKNOWN" if observation_current and current_type else ""
+            result["last_provider_error_code"] = previous_code if not observation_current and previous_code in KNOWN_ODDS_ERROR_CODES else ""
+            result["last_provider_error_type"] = previous_type if not observation_current and previous_type in {
+                "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError", "UNKNOWN",
+            } else "UNKNOWN" if not observation_current and previous_type else ""
+            tier = payload.get("credential_tier_selected")
+            result["credential_tier_selected"] = tier if observation_current and tier in {"PAID", "FREE", "LEGACY"} else ""
+            result["fallback_used"] = observation_current and payload.get("fallback_used") is True
+            provider_http = payload.get("provider_http")
+            result["provider_http"] = (
+                safe_count(provider_http) if observation_current and provider_http is not None else None
+            )
             remaining = payload.get("provider_requests_remaining")
-            result["provider_requests_remaining"] = safe_count(remaining) if remaining is not None else None
+            result["provider_requests_remaining"] = (
+                safe_count(remaining) if observation_current and remaining is not None else None
+            )
             # Surface the complete safe handoff from provider events to local
             # 1X2 snapshots. Missing values remain unknown (not zero), which is
             # especially important for CACHE_REUSED ticks.
@@ -649,6 +713,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
             reason = safe_label(result.get("reason") or result.get("status"), secret, "UNKNOWN")
             skipped = bool(result.get("skipped"))
             errors_present = bool(result.get("error") or result.get("errors"))
+            last = result.get("last") if isinstance(result.get("last"), dict) else {}
             if skipped:
                 status = "PASS" if reason in {"fresh_sync_window", "already_synced_today"} else "PARTIAL"
             elif result.get("ok") is True and not errors_present:
@@ -662,6 +727,14 @@ def highlights_tick(base_url: str, secret: str) -> dict:
                 "highlights_status": status,
                 "highlights_result": reason,
                 "skipped": skipped,
+                "retry_after_seconds": (
+                    safe_count(result.get("next_check_seconds"))
+                    if type(result.get("next_check_seconds")) is int
+                    and 0 <= result.get("next_check_seconds") <= 86400
+                    else 0
+                ),
+                "error_codes": safe_codes(result.get("errors"), HIGHLIGHTS_ERROR_CODES),
+                "last_attempt_error_codes": safe_codes(last.get("errors"), HIGHLIGHTS_ERROR_CODES),
                 "external_calls": safe_count(result.get("external_calls")),
                 "persistent_cache_hits": safe_count(result.get("persistent_cache_hits")),
                 "profile_links_reused": safe_count(result.get("profile_links_reused")),

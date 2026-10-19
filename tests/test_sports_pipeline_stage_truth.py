@@ -199,6 +199,63 @@ def test_current_sync_declares_match_window_scope_and_odds_calls(app_module):
     assert compact["odds_refresh"]["external_calls"] == 2
 
 
+def test_current_sync_keeps_closed_odds_and_highlights_deferral_reasons(app_module):
+    payload = _fallback_run()
+    payload["odds"] = {
+        "ok": True,
+        "status": "PARTIAL",
+        "reason": "provider_failure_cooldown",
+        "skipped": True,
+        "provider_failure_backoff": True,
+        "retry_after": "2026-10-19T16:30:00Z",
+        "external_calls": 0,
+    }
+    payload["highlights"] = {
+        "ok": False,
+        "status": "PARTIAL",
+        "reason": "retry_cooldown",
+        "skipped": True,
+        "next_check_seconds": 420,
+        "errors": ["RETRY_COOLDOWN", "PRIVATE-PROVIDER-CANARY"],
+        "last": {"errors": ["ACCESS_DENIED", "PRIVATE-PROVIDER-CANARY"]},
+        "external_calls": 0,
+    }
+    diagnostics = app_module._build_sports_pipeline_diagnostics(payload, {})
+    current = diagnostics["current_sync"]
+    assert current["odds_refresh"]["reason"] == "PROVIDER_FAILURE_COOLDOWN"
+    assert current["odds_refresh"]["provider_observation_current"] is False
+    assert current["odds_refresh"]["provider_failure_backoff"] is True
+    assert current["odds_refresh"]["retry_after"] == "2026-10-19T16:30:00+00:00"
+    assert current["highlights_refresh"]["reason"] == "retry_cooldown"
+    assert current["highlights_refresh"]["next_check_seconds"] == 420
+    assert current["highlights_refresh"]["error_codes"] == ["RETRY_COOLDOWN"]
+    assert current["highlights_refresh"]["last_attempt_error_codes"] == ["ACCESS_DENIED"]
+
+    compact = app_module._cron_compact_payload(
+        "sports_sync",
+        {**payload, "sports_pipeline": diagnostics},
+        "2026-10-19T16:20:00+00:00",
+        "2026-10-19T16:20:05+00:00",
+    )["sports_pipeline"]
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+
+    sanitized = sanitized_sports_pipeline({"sports_pipeline": compact}, "synthetic-cron-secret")
+    assert sanitized["current_sync"]["odds_refresh"]["reason"] == "PROVIDER_FAILURE_COOLDOWN"
+    assert sanitized["current_sync"]["odds_refresh"]["provider_observation_current"] is False
+    assert sanitized["current_sync"]["highlights_refresh"]["reason"] == "retry_cooldown"
+    assert sanitized["current_sync"]["highlights_refresh"]["next_check_seconds"] == 420
+    assert sanitized["current_sync"]["highlights_refresh"]["error_codes"] == ["RETRY_COOLDOWN"]
+    assert sanitized["current_sync"]["highlights_refresh"]["last_attempt_error_codes"] == ["ACCESS_DENIED"]
+    assert "PRIVATE-PROVIDER-CANARY" not in str(sanitized)
+
+    payload["odds"]["reason"] = "PRIVATE-PROVIDER-CANARY"
+    payload["highlights"]["reason"] = "PRIVATE-PROVIDER-CANARY"
+    unknown = app_module._build_sports_pipeline_diagnostics(payload, {})
+    assert unknown["current_sync"]["odds_refresh"]["reason"] == ""
+    assert unknown["current_sync"]["highlights_refresh"]["reason"] == ""
+    assert "PRIVATE-PROVIDER-CANARY" not in str(unknown)
+
+
 def test_partial_primary_with_persisted_rows_is_still_primary_source(app_module):
     payload = _fallback_run()
     payload["fixtures"] = {

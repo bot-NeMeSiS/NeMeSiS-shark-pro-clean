@@ -147,9 +147,70 @@ def test_odds_compact_and_runner_preserve_closed_failure_evidence(app_module, mo
     assert observed['odds_snapshots_inserted'] == 0
     assert observed['odds_snapshots_skipped'] == 0
     result['external_calls'] = 0
-    assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_observation_current'] is False
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+    assert compact['provider_observation_current'] is False
+    assert compact['provider_error_code'] == ''
+    assert compact['last_provider_error_code'] == 'OUT_OF_USAGE_CREDITS'
     result['quota']['error_type'] = 'private-url?apiKey=secret'
-    assert app_module._cron_compact_payload('odds_sync', result, '', '')['provider_error_type'] == 'UNKNOWN'
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+    assert compact['provider_error_type'] == ''
+    assert compact['last_provider_error_type'] == 'UNKNOWN'
+    assert 'private-url?apiKey=secret' not in json.dumps(compact)
+
+
+def test_odds_backoff_is_explained_without_reusing_old_provider_observations(app_module, monkeypatch):
+    result = {
+        'ok': True,
+        'status': 'PARTIAL',
+        'reason': 'provider_failure_cooldown',
+        'skipped': True,
+        'provider_failure_backoff': True,
+        'retry_after': '2026-10-19T18:30:00+02:00',
+        'external_calls': 0,
+        'quota': {
+            'http_status': 200,
+            'requests_remaining': 123,
+            'credential_tier_selected': 'LEGACY',
+            'error_type': 'HTTPError',
+            'error_code': 'OUT_OF_USAGE_CREDITS',
+        },
+    }
+    compact = app_module._cron_compact_payload('odds_sync', result, '', '')
+    assert compact['reason'] == 'PROVIDER_FAILURE_COOLDOWN'
+    assert compact['skipped'] is True and compact['provider_failure_backoff'] is True
+    assert compact['provider_observation_current'] is False
+    assert compact['retry_after'] == '2026-10-19T18:30:00+02:00'
+    assert compact['provider_http'] is None
+    assert compact['credential_tier_selected'] == ''
+    assert compact['provider_requests_remaining'] is None
+    assert compact['provider_error_is_current'] is False
+    assert compact['provider_error_code'] == ''
+    assert compact['provider_error_type'] == ''
+    assert compact['last_provider_error_code'] == 'OUT_OF_USAGE_CREDITS'
+    assert compact['last_provider_error_type'] == 'HTTPError'
+
+    monkeypatch.setattr(master.urllib.request, 'urlopen', lambda *a, **k: Response(compact))
+    observed = master.odds_tick('https://example.invalid', 'test')
+    assert observed['odds_status'] == 'PARTIAL'
+    assert observed['odds_skip_reason'] == 'PROVIDER_FAILURE_COOLDOWN'
+    assert observed['odds_skipped'] is True
+    assert observed['odds_provider_failure_backoff'] is True
+    assert observed['odds_retry_after'] == '2026-10-19T18:30:00+02:00'
+    assert observed['provider_observation_current'] is False
+    assert observed['provider_error_is_current'] is False
+    assert observed['provider_error_code'] == ''
+    assert observed['provider_error_type'] == ''
+    assert observed['last_provider_error_code'] == 'OUT_OF_USAGE_CREDITS'
+    assert observed['last_provider_error_type'] == 'HTTPError'
+    assert observed['provider_http'] is None
+    assert observed['credential_tier_selected'] == ''
+    assert observed['provider_requests_remaining'] is None
+
+    result['reason'] = 'private-secret-provider-message'
+    result['retry_after'] = 'private-secret-provider-message'
+    redacted = app_module._cron_compact_payload('odds_sync', result, '', '')
+    assert redacted['reason'] == '' and redacted['retry_after'] == ''
+    assert 'private-secret-provider-message' not in json.dumps(redacted)
 
 
 def test_odds_cached_tick_does_not_relabel_previous_pipeline_counts_as_current(app_module):

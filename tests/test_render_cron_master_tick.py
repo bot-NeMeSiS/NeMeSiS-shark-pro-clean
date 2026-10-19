@@ -732,6 +732,7 @@ def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatc
                 "v2_highlights_found": 1,
                 "highlights_found": 3,
                 "linked_matches": 2,
+                "next_check_seconds": 540,
                 "errors": [],
             },
         })
@@ -741,6 +742,7 @@ def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatc
 
     assert result["highlights_status"] == "PASS"
     assert result["external_calls"] == 2
+    assert result["retry_after_seconds"] == 540
     assert result["v2_event_lookups"] == 1
     assert result["v2_highlights_found"] == 1
     assert seen["timeout"] == master.HIGHLIGHTS_TIMEOUT_SECONDS == 24
@@ -752,6 +754,34 @@ def test_highlights_tick_is_separate_bounded_and_header_authenticated(monkeypatc
     assert secret not in request.full_url
     headers = {name.lower(): value for name, value in request.header_items()}
     assert headers["x-automation-secret"] == secret
+
+
+def test_highlights_retry_reports_last_closed_failure_without_free_text(monkeypatch):
+    def fake_urlopen(_request, timeout):
+        assert timeout == master.HIGHLIGHTS_TIMEOUT_SECONDS
+        return MockResponse({
+            "ok": True,
+            "highlights_sync": {
+                "ok": False,
+                "status": "PARTIAL",
+                "reason": "retry_cooldown",
+                "skipped": True,
+                "next_check_seconds": 300,
+                "external_calls": 0,
+                "errors": ["RETRY_COOLDOWN", "PRIVATE-PROVIDER-CANARY"],
+                "last": {"errors": ["ACCESS_DENIED", "PRIVATE-PROVIDER-CANARY"]},
+            },
+        })
+
+    monkeypatch.setattr(master.urllib.request, "urlopen", fake_urlopen)
+    result = master.highlights_tick("https://example.invalid", "secret")
+
+    assert result["highlights_status"] == "PARTIAL"
+    assert result["highlights_result"] == "retry_cooldown"
+    assert result["retry_after_seconds"] == 300
+    assert result["error_codes"] == ["RETRY_COOLDOWN"]
+    assert result["last_attempt_error_codes"] == ["ACCESS_DENIED"]
+    assert "PRIVATE-PROVIDER-CANARY" not in str(result)
 
 
 def test_highlights_failure_is_reported_without_stopping_other_lanes(monkeypatch, capsys):

@@ -1665,6 +1665,42 @@ def _sports_diagnostic_text(value, limit=120):
     return sanitize_http_header_value(masked_admin_text(value, limit), limit=limit)
 
 
+_SPORTS_ODDS_DIAGNOSTIC_REASONS = {
+    "cache_activa": "SUCCESS_CACHE",
+    "provider_failure_cooldown": "PROVIDER_FAILURE_COOLDOWN",
+}
+_SPORTS_HIGHLIGHTS_DIAGNOSTIC_REASONS = {
+    "already_synced_today",
+    "scope_completed_with_gaps",
+    "fresh_sync_window",
+    "retry_cooldown",
+}
+_SPORTS_HIGHLIGHTS_ERROR_CODES = {
+    "TIME_BUDGET", "REQUEST_BUDGET", "MEDIA_BUDGET", "ITEM_BUDGET", "PARTITION_BUDGET",
+    "LEAGUE_RESPONSE_LIMIT", "SCOPED_COVERAGE_ONLY", "ENRICHMENT_PENDING", "NO_EVENT",
+    "MALFORMED", "PROVIDER_ERROR", "RATE_LIMIT", "ACCESS_DENIED", "NETWORK", "STORAGE_UNAVAILABLE",
+    "INTERNAL_ERROR", "IDENTITY_MISMATCH", "IDENTITY_CHANGED", "AMBIGUOUS_MATCH", "RETRY_COOLDOWN",
+}
+
+
+def _sports_highlights_error_codes(values):
+    if not isinstance(values, (list, tuple, set)):
+        return []
+    return list(dict.fromkeys(str(value) for value in values if str(value) in _SPORTS_HIGHLIGHTS_ERROR_CODES))[:8]
+
+
+def _sports_diagnostic_timestamp(value):
+    """Keep only parseable timestamps in operational diagnostics."""
+    raw = str(value or "").strip()
+    if not raw or len(raw) > 48:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (TypeError, ValueError, OverflowError):
+        return ""
+    return parsed.isoformat(timespec="seconds")
+
+
 def _sports_stage_reason_code(stage):
     stage = dict(stage or {}) if isinstance(stage, dict) else {}
     # A stage can return usable partial data and still report a provider issue.
@@ -2159,6 +2195,8 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         "odds_refresh": {
             "state": _sports_diagnostic_text(odds_stage.get("status"), 80) or "UNKNOWN",
             "reason_code": _sports_stage_reason_code(odds_stage),
+            "reason": _SPORTS_ODDS_DIAGNOSTIC_REASONS.get(str(odds_stage.get("reason") or ""), ""),
+            "skipped": bool(odds_stage.get("skipped")),
             "ok": odds_stage.get("ok") if isinstance(odds_stage.get("ok"), bool) else None,
             "processed": as_int(
                 odds_stage.get("processed")
@@ -2167,12 +2205,23 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
                 0,
             ),
             "external_calls": as_int(odds_stage.get("external_calls"), 0),
+            "provider_observation_current": as_int(odds_stage.get("external_calls"), 0) > 0,
+            "provider_failure_backoff": bool(odds_stage.get("provider_failure_backoff")),
+            "retry_after": _sports_diagnostic_timestamp(odds_stage.get("retry_after")),
             "error_present": bool(odds_stage.get("error") or odds_stage.get("errors")),
         },
         "highlights_refresh": {
             "state": _sports_diagnostic_text(highlights_stage.get("status") or highlights_stage.get("reason"), 80) or "UNKNOWN",
+            "reason": (str(highlights_stage.get("reason") or "")
+                       if str(highlights_stage.get("reason") or "") in _SPORTS_HIGHLIGHTS_DIAGNOSTIC_REASONS else ""),
             "ok": highlights_stage.get("ok") if isinstance(highlights_stage.get("ok"), bool) else None,
             "skipped": bool(highlights_stage.get("skipped")),
+            "next_check_seconds": as_int(highlights_stage.get("next_check_seconds"), 0),
+            "error_codes": _sports_highlights_error_codes(highlights_stage.get("errors")),
+            "last_attempt_error_codes": _sports_highlights_error_codes(
+                (highlights_stage.get("last") or {}).get("errors")
+                if isinstance(highlights_stage.get("last"), dict) else []
+            ),
             "highlights_found": as_int(highlights_stage.get("highlights_found"), 0),
             "linked_matches": as_int(highlights_stage.get("linked_matches"), 0),
             "external_calls": as_int(highlights_stage.get("external_calls"), 0),
@@ -2691,15 +2740,26 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
                 "odds_refresh": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("state"), 80) or "UNKNOWN",
                     "reason_code": _sports_diagnostic_text((raw_current_sync.get("odds_refresh") or {}).get("reason_code"), 80) or "UNKNOWN",
+                    "reason": ((raw_current_sync.get("odds_refresh") or {}).get("reason")
+                               if (raw_current_sync.get("odds_refresh") or {}).get("reason") in set(_SPORTS_ODDS_DIAGNOSTIC_REASONS.values()) else ""),
+                    "skipped": bool((raw_current_sync.get("odds_refresh") or {}).get("skipped")),
                     "ok": (raw_current_sync.get("odds_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("odds_refresh") or {}).get("ok"), bool) else None,
                     "processed": as_int((raw_current_sync.get("odds_refresh") or {}).get("processed"), 0),
                     "external_calls": as_int((raw_current_sync.get("odds_refresh") or {}).get("external_calls"), 0),
+                    "provider_observation_current": as_int((raw_current_sync.get("odds_refresh") or {}).get("external_calls"), 0) > 0,
+                    "provider_failure_backoff": bool((raw_current_sync.get("odds_refresh") or {}).get("provider_failure_backoff")),
+                    "retry_after": _sports_diagnostic_timestamp((raw_current_sync.get("odds_refresh") or {}).get("retry_after")),
                     "error_present": bool((raw_current_sync.get("odds_refresh") or {}).get("error_present")),
                 },
                 "highlights_refresh": {
                     "state": _sports_diagnostic_text((raw_current_sync.get("highlights_refresh") or {}).get("state"), 80) or "UNKNOWN",
+                    "reason": ((raw_current_sync.get("highlights_refresh") or {}).get("reason")
+                               if (raw_current_sync.get("highlights_refresh") or {}).get("reason") in _SPORTS_HIGHLIGHTS_DIAGNOSTIC_REASONS else ""),
                     "ok": (raw_current_sync.get("highlights_refresh") or {}).get("ok") if isinstance((raw_current_sync.get("highlights_refresh") or {}).get("ok"), bool) else None,
                     "skipped": bool((raw_current_sync.get("highlights_refresh") or {}).get("skipped")),
+                    "next_check_seconds": as_int((raw_current_sync.get("highlights_refresh") or {}).get("next_check_seconds"), 0),
+                    "error_codes": _sports_highlights_error_codes((raw_current_sync.get("highlights_refresh") or {}).get("error_codes")),
+                    "last_attempt_error_codes": _sports_highlights_error_codes((raw_current_sync.get("highlights_refresh") or {}).get("last_attempt_error_codes")),
                     "highlights_found": as_int((raw_current_sync.get("highlights_refresh") or {}).get("highlights_found"), 0),
                     "linked_matches": as_int((raw_current_sync.get("highlights_refresh") or {}).get("linked_matches"), 0),
                     "external_calls": as_int((raw_current_sync.get("highlights_refresh") or {}).get("external_calls"), 0),
@@ -2774,15 +2834,46 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         # this tick. The master Cron needs to distinguish received fixtures,
         # usable 1X2 markets, and rows actually persisted.
         provider_observation_current = as_int(result.get("external_calls"), 0) > 0
-        compact["provider_error_code"] = quota.get("error_code") if quota.get("error_code") in KNOWN_ODDS_ERROR_CODES else ""
+        compact["reason"] = _SPORTS_ODDS_DIAGNOSTIC_REASONS.get(str(result.get("reason") or ""), "")
+        compact["skipped"] = bool(result.get("skipped"))
+        compact["provider_failure_backoff"] = bool(result.get("provider_failure_backoff"))
+        compact["retry_after"] = _sports_diagnostic_timestamp(result.get("retry_after"))
+        provider_error_code = quota.get("error_code") if quota.get("error_code") in KNOWN_ODDS_ERROR_CODES else ""
         compact["provider_observation_current"] = provider_observation_current
-        compact["provider_http"] = as_int(quota.get("http_status"), 0)
-        compact["provider_error_type"] = quota.get("error_type") if quota.get("error_type") in {
-            "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
-        } else "UNKNOWN" if quota.get("error_type") else ""
-        compact["credential_tier_selected"] = quota.get("credential_tier_selected") if quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"} else ""
+        compact["provider_error_is_current"] = provider_observation_current and bool(
+            provider_error_code or quota.get("error_type")
+        )
+        compact["provider_error_code"] = provider_error_code if provider_observation_current else ""
+        compact["provider_error_type"] = (
+            quota.get("error_type")
+            if provider_observation_current and quota.get("error_type") in {
+                "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
+            }
+            else "UNKNOWN" if provider_observation_current and quota.get("error_type")
+            else ""
+        )
+        compact["last_provider_error_code"] = provider_error_code if not provider_observation_current else ""
+        compact["last_provider_error_type"] = (
+            quota.get("error_type")
+            if not provider_observation_current and quota.get("error_type") in {
+                "HTTPError", "TimeoutError", "URLError", "CronTimeBudget", "JSONDecodeError",
+            }
+            else "UNKNOWN" if not provider_observation_current and quota.get("error_type")
+            else ""
+        )
+        compact["provider_http"] = (
+            as_int(quota.get("http_status"), 0) if provider_observation_current else None
+        )
+        compact["credential_tier_selected"] = (
+            quota.get("credential_tier_selected")
+            if provider_observation_current and quota.get("credential_tier_selected") in {"PAID", "FREE", "LEGACY"}
+            else ""
+        )
         compact["fallback_used"] = bool(quota.get("fallback_used")) and compact["provider_observation_current"]
-        compact["provider_requests_remaining"] = as_int(quota.get("requests_remaining"), None)
+        remaining = quota.get("requests_remaining")
+        compact["provider_requests_remaining"] = (
+            as_int(remaining, None) if provider_observation_current and remaining is not None else None
+        )
         for source_key, output_key in (
             ("events_received", "odds_events_received"),
             ("events_with_bookmakers", "odds_events_with_bookmakers"),
