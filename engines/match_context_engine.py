@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import asdict, dataclass
 from typing import Any, Iterable, Mapping
 from urllib.parse import quote
@@ -157,6 +158,7 @@ def _stat_value(value: Any) -> str | None:
 
 def _stat_label(value: Any) -> str:
     raw = _text(value)
+    normalized = re.sub(r"[\s_-]+", " ", raw.casefold()).strip()
     labels = {
         "ball possession": "Posesión",
         "total shots": "Tiros",
@@ -186,8 +188,9 @@ def _stat_label(value: Any) -> str:
         "passes %": "Precisión de pase",
         "passes percentage": "Precisión de pase",
         "expected goals": "Goles esperados",
+        "free kicks": "Tiros libres",
     }
-    return labels.get(raw.casefold(), raw)
+    return labels.get(normalized, raw)
 
 
 def _possession_meter(rows: list[dict[str, Any]]) -> dict[str, Any]:

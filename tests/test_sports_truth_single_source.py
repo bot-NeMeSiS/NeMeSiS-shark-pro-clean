@@ -20,6 +20,7 @@ from engines.api_football_live_tracker_engine import (
     _upsert_fixture,
     ensure_live_tracker_schema,
 )
+from engines.realtime_state_engine import build_realtime_match_evidence
 from engines.sports_domain_model_engine import normalize_match_entity
 from engines.v934_realtime_sports_engine import build_realtime_snapshot, normalize_match
 from engines.v935_launch_trust_engine import (
@@ -459,6 +460,65 @@ def test_api_football_clock_and_scores_survive_tracker_to_matches(
     assert tracker_rows["af-1001"]["score"] == "0-1"
     assert tracker_rows["af-1002"]["score"] == ""
     assert tracker_rows["af-1001"]["last_synced_at"]
+
+
+def test_fresh_live_tracker_observation_replaces_stale_live_projection_clock(
+    app_module,
+    monkeypatch,
+    tmp_path,
+):
+    db_path = tmp_path / "api-football-refreshes-live-clock.sqlite"
+    monkeypatch.setattr(app_module, "DB_PATH", str(db_path), raising=False)
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None, raising=False)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None, raising=False)
+    app_module.init_db()
+    ensure_live_tracker_schema(str(db_path))
+
+    now = datetime.now(MADRID)
+    old_clock = (now - timedelta(minutes=10)).isoformat()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("ALTER TABLE matches ADD COLUMN live_updated_at TEXT")
+        fixture_id = 1003
+        payload = {
+            "fixture": {
+                "id": fixture_id,
+                "date": (now - timedelta(minutes=45)).isoformat(),
+                "status": {"short": "2H", "long": "Second Half", "elapsed": 67},
+            },
+            "league": {"id": 140, "name": "La Liga", "country": "Spain", "season": 2026},
+            "teams": {
+                "home": {"id": 1, "name": "Equipo A", "logo": ""},
+                "away": {"id": 2, "name": "Equipo B", "logo": ""},
+            },
+            "goals": {"home": 1, "away": 0},
+        }
+        _upsert_fixture(conn, payload)
+        conn.execute("UPDATE matches SET live_updated_at=? WHERE id=?", (old_clock, f"af-{fixture_id}"))
+        conn.commit()
+
+        _upsert_fixture(conn, payload)
+        conn.commit()
+        row = dict(conn.execute("SELECT * FROM matches WHERE id=?", (f"af-{fixture_id}",)).fetchone())
+    finally:
+        conn.close()
+
+    state, truth = build_realtime_match_evidence(row, now=datetime.now(MADRID))
+
+    assert row["live_updated_at"] == row["last_synced_at"]
+    assert truth["is_live"] is True
+    assert state["is_stale"] is False
+    assert state["provider_observed_at_source"] == "live_updated_at"
+
+
+def test_public_sync_label_compares_timestamps_as_instants_across_timezones(app_module):
+    older_local = {"updated_at": "2026-10-19T14:40:27+02:00"}
+    newer_utc = {"updated_at": "2026-10-19T13:35:35Z"}
+
+    selected = app_module._latest_sports_update_at([older_local], [newer_utc])
+
+    assert selected == "2026-10-19T15:35:35+02:00"
 
 
 def test_domain_model_delegates_live_truth_and_never_uses_generic_updated_at():

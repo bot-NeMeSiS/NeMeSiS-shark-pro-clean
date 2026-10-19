@@ -22,6 +22,25 @@ def _norm(value: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+_PROVIDER_TEAM_IDENTITY_ALIASES = {
+    # Exact display-name variants observed across sports providers.
+    "tottenham hotspur": "tottenham",
+    "tottenham hotspur fc": "tottenham",
+    "coventry city": "coventry",
+    "coventry city fc": "coventry",
+}
+
+
+def provider_team_identity_key(value: Any) -> str:
+    """Return a conservative comparison key for provider display-name variants.
+
+    This is for matching records at presentation boundaries only. It does not
+    rewrite persisted team names or identifiers.
+    """
+    normalized = _norm(value)
+    return _PROVIDER_TEAM_IDENTITY_ALIASES.get(normalized, normalized)
+
+
 def _slug(value: Any) -> str:
     text = _norm(value)
     return re.sub(r"[^a-z0-9]+", "-", text).strip("-") or "equipo"

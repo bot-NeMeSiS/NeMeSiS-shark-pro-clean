@@ -368,6 +368,7 @@ from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
     merge_identity as merge_team_identity_payload,
+    provider_team_identity_key,
     safe_logo_url as safe_team_logo_url,
 )
 from engines.picks_quality_engine import (
@@ -18849,10 +18850,7 @@ def _build_public_home_sports_summary():
         item for item in valid_all
         if item.get("v935_lifecycle") in {"RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED"}
     ]
-    last_sync = max(
-        [str(item.get("updated_at") or "") for item in raw_matches + raw_picks if item.get("updated_at")],
-        default="",
-    )
+    last_sync = _latest_sports_update_at(raw_matches, raw_picks)
     storage_status = match_meta.get("status") or "read_unavailable"
     if storage_status == "ok" and valid_all:
         provider_status = "data_available"
@@ -18901,6 +18899,27 @@ def _build_public_home_sports_summary():
 def _public_sports_cache_key():
     db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
     return f"v934:sports:public-summary:{db_cache_key}"
+
+
+def _latest_sports_update_at(*row_groups):
+    """Return the newest stored update instant across mixed timezone formats."""
+    candidates = []
+    for group in row_groups:
+        for item in group or []:
+            if not isinstance(item, dict):
+                continue
+            raw = str(item.get("updated_at") or "").strip()
+            if not raw:
+                continue
+            try:
+                parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=TZ)
+            candidates.append(parsed.astimezone(TZ))
+    return max(candidates).isoformat() if candidates else ""
+
 
 def get_public_home_sports_summary():
     """Cached DB/WAL sports truth; synchronization invalidates it without provider calls."""
@@ -32476,6 +32495,57 @@ def v565_recommendation_for_match(match):
     }
 
 
+def _v565_fixture_identity(match):
+    """Conservative identity for collapsing provider aliases in customer lists."""
+    if not isinstance(match, dict):
+        return None
+    home = provider_team_identity_key(match.get("home_team"))
+    away = provider_team_identity_key(match.get("away_team"))
+    raw_competition = (
+        match.get("competition_name") or match.get("league_name")
+        or match.get("competition_key") or ""
+    )
+    competition = normalized_label(spanish_competition_name(raw_competition) or raw_competition)
+    raw_iso = str(match.get("kickoff_iso") or match.get("commence_time") or "").strip()
+    raw_time = str(match.get("kickoff_time") or match.get("match_time") or match.get("time") or "").strip()
+    # A date without an explicit kickoff is not enough evidence to merge rows.
+    if not re.search(r"[T\s]\d{2}:\d{2}", raw_iso) and not re.match(r"^\d{1,2}:\d{2}", raw_time):
+        return None
+    kickoff = match_kickoff_madrid_dt(match)
+    if not home or not away or not competition or not kickoff:
+        return None
+    minute = kickoff.astimezone(timezone.utc).replace(second=0, microsecond=0)
+    return home, away, competition, minute
+
+
+def _v565_unique_fixtures(matches):
+    """Select one existing source row per confidently identical fixture.
+
+    Rows are not merged or edited: the chosen recommendation and any quote stay
+    anchored to the same provider record, preventing cross-match price mixing.
+    Ambiguous rows without complete fixture identity remain separate.
+    """
+    groups = {}
+    unkeyed = []
+    for match in matches or []:
+        identity = _v565_fixture_identity(match)
+        if identity is None:
+            unkeyed.append(match)
+        else:
+            groups.setdefault(identity, []).append(match)
+    unique = list(unkeyed)
+    for members in groups.values():
+        unique.append(max(
+            members,
+            key=lambda row: (
+                match_quality_score(row),
+                bool(row.get("external_id")),
+                str(row.get("id") or ""),
+            ),
+        ))
+    return unique
+
+
 def v565_recommendation_pool(limit=40):
     matches = get_upcoming_matches(today_iso(), days=7, limit=250)
     valid = []
@@ -32483,14 +32553,18 @@ def v565_recommendation_pool(limit=40):
         status = v565_match_status(match)
         if status.get("is_finished") or status.get("is_live"):
             continue
+        valid.append(match)
+    valid = _v565_unique_fixtures(valid)
+    recommendations = []
+    for match in valid:
         rec = v565_recommendation_for_match(match)
-        valid.append(rec)
-    valid.sort(key=lambda r: (r["league_rank"], r.get("match_date") or "", r.get("kickoff_time") or ""))
-    return valid[: int(limit)]
+        recommendations.append(rec)
+    recommendations.sort(key=lambda r: (r["league_rank"], r.get("match_date") or "", r.get("kickoff_time") or ""))
+    return recommendations[: int(limit)]
 
 
 def v565_data_picks_health(review_candidates=None):
-    upcoming = get_upcoming_matches(today_iso(), days=7, limit=250)
+    upcoming = _v565_unique_fixtures(get_upcoming_matches(today_iso(), days=7, limit=250))
     today_matches = get_matches(today_iso(), "today")
     live_matches = get_matches(today_iso(), "live")
     finished_count = len(rows("SELECT id FROM matches WHERE lower(COALESCE(status,'')) LIKE '%finish%' OR lower(COALESCE(status,'')) LIKE '%final%' LIMIT 500"))

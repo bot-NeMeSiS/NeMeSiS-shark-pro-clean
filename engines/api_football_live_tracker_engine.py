@@ -526,6 +526,26 @@ def _upsert_match_row(
     except sqlite3.OperationalError:
         # Some legacy local DBs may have older schema; the app schema migration will handle production.
         pass
+    else:
+        # Realtime projections treat live_updated_at as the highest-priority
+        # provider clock. Keep it aligned with a fresh live-provider snapshot;
+        # otherwise an old value can mask the current last_synced_at and make
+        # a just-observed fixture look stale to clients.
+        if str(f.get("status_short") or "").strip().upper() in LIVE_STATUS_SHORT:
+            try:
+                columns = {
+                    str(row[1])
+                    for row in conn.execute("PRAGMA table_info(matches)").fetchall()
+                }
+                if "live_updated_at" in columns:
+                    conn.execute(
+                        "UPDATE matches SET live_updated_at=? WHERE id=?",
+                        (synced_at or now, f.get("match_id")),
+                    )
+            except sqlite3.OperationalError:
+                # The tracker also supports legacy schemas without the
+                # optional freshness column.
+                pass
 
 
 def _competition_key(name: Any, country: Any = "") -> str:

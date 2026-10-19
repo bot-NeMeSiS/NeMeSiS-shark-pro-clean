@@ -32,6 +32,15 @@ def test_boolean_flags_do_not_become_sport_statistics():
     assert not stats['available']
 
 
+def test_provider_stat_keys_are_shown_in_spanish_without_underscores():
+    stats = _real_statistics({'provider': 'API-Football', 'stat_cards': [
+        {'key': 'free_kicks', 'label': 'Free Kicks', 'home': 9, 'away': 12},
+        {'key': 'expected_goals', 'label': 'expected_goals', 'home': '1.20', 'away': '0.80'},
+    ]}, {})
+
+    assert [item['label'] for item in stats['items']] == ['Tiros libres', 'Goles esperados']
+
+
 def test_zero_statistics_reach_the_rendered_match_panel(app_module):
     stats = _real_statistics({}, {}, {'available': True, 'source': 'test', 'items': [
         {'label': 'Shots on Target', 'home': 0, 'away': 0},

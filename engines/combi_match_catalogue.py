@@ -15,6 +15,8 @@ from engines.combi_advisor_engine import (
 )
 from engines.market_forecast_engine import normalized_market_probabilities
 from engines.picks_quality_engine import competition_priority
+from engines.spanish_localization_engine import spanish_competition_name
+from engines.team_identity_engine import provider_team_identity_key
 from engines.v935_launch_trust_engine import match_kickoff_madrid, match_status_truth
 
 PREFIX = 'market:'
@@ -43,11 +45,70 @@ def _odds(conn, mids):
     from engines import client_combi_store as store
     if not mids or not store._table(conn, 'odds_snapshots'):
         return [], False
-    # Per page, never one lookup per fixture; overflow is explicit, not no-odds.
-    args = ','.join('?' for _ in mids)
-    rows = [dict(r) for r in conn.execute(
-        'SELECT * FROM odds_snapshots WHERE match_id IN ('+args+') ORDER BY created_at DESC,id DESC LIMIT 4001', mids)]
-    return rows[:4000], len(rows) > 4000
+    # Keep the lookup batched and below SQLite's variable limit. A visible card
+    # may represent several provider records for the same canonical fixture.
+    rows = []
+    for offset in range(0, len(mids), 400):
+        chunk = mids[offset:offset + 400]
+        args = ','.join('?' for _ in chunk)
+        remaining = 4001 - len(rows)
+        batch = [dict(r) for r in conn.execute(
+            'SELECT * FROM odds_snapshots WHERE match_id IN ('+args+') ORDER BY created_at DESC,id DESC LIMIT ?',
+            [*chunk, remaining])]
+        rows.extend(batch)
+        if len(rows) > 4000:
+            return rows[:4000], True
+    rows.sort(key=lambda row: (_quote_clock(row), str(row.get('id') or '')), reverse=True)
+    return rows, False
+
+
+def _fixture_identity(item):
+    """Conservative display identity: exact teams, Madrid minute and canonical league."""
+    match, kickoff, competition, _rank = item
+    canonical_competition = spanish_competition_name(competition) or competition
+    minute = kickoff.astimezone(timezone.utc).replace(second=0, microsecond=0)
+    home = key(match.get('home_team'))
+    away = key(match.get('away_team'))
+    return (
+        provider_team_identity_key(home),
+        provider_team_identity_key(away),
+        minute,
+        key(canonical_competition),
+    )
+
+
+def _fixture_record_score(item):
+    match, _kickoff, _competition, rank = item
+    useful_fields = (
+        'external_id', 'competition_id', 'league_id', 'home_team_id', 'away_team_id',
+        'home_logo', 'away_logo', 'venue_name', 'stadium', 'referee', 'season',
+        'round', 'round_name', 'status',
+    )
+    source = key(match.get('source'))
+    provider_preference = 2 if 'api football' in source or 'api-sports' in source else 1 if 'sportsdb' in source else 0
+    return (
+        sum(bool(text(match.get(field))) for field in useful_fields),
+        provider_preference,
+        rank,
+        str(match.get('id') or ''),
+    )
+
+
+def _group_fixtures(items):
+    """Collapse provider aliases for display without changing stored match rows."""
+    grouped = {}
+    for item in items:
+        grouped.setdefault(_fixture_identity(item), []).append(item)
+    output = []
+    for members in grouped.values():
+        primary = max(members, key=_fixture_record_score)
+        output.append({'primary': primary, 'members': members})
+    return output
+
+
+def _quote_clock(row):
+    value = clock(row.get('created_at'))
+    return value.timestamp() if value else 0.0
 
 
 def _market_quote(choice, match, observations):
@@ -247,28 +308,45 @@ def read_catalogue(conn, user, *, filters=None, selected=None, now=None):
             continue
         rank=competition_priority(competition)
         items.append((m,kickoff,competition,rank))
+    fixture_groups = _group_fixtures(items)
     target=text(filters.get('target'),180) if not q else ''
-    items.sort(key=lambda item:(bool(target) and str(item[0]['id'])!=target,-item[3],item[1],str(item[0]['id'])))
-    result.update(total=len(items),pages=max(1,(len(items)+PAGE_SIZE-1)//PAGE_SIZE),
-                  leagues=sorted({item[2] for item in items if item[2]}))
+    fixture_groups.sort(key=lambda group: (
+        bool(target) and all(str(item[0]['id']) != target for item in group['members']),
+        -group['primary'][3], group['primary'][1], str(group['primary'][0]['id']),
+    ))
+    result.update(total=len(fixture_groups),pages=max(1,(len(fixture_groups)+PAGE_SIZE-1)//PAGE_SIZE),
+                  leagues=sorted({group['primary'][2] for group in fixture_groups if group['primary'][2]}))
     result['page']=min(page,result['pages'])
-    page_items=items[(result['page']-1)*PAGE_SIZE:result['page']*PAGE_SIZE]
-    mids=[str(item[0]['id']) for item in page_items]
+    page_groups=fixture_groups[(result['page']-1)*PAGE_SIZE:result['page']*PAGE_SIZE]
+    page_items=[group['primary'] for group in page_groups]
+    member_items = {}
+    for group in page_groups:
+        for item in group['members']:
+            member_items[str(item[0]['id'])] = item
+    mids=list(member_items)
     observations, truncated=_odds(conn,mids)
     result['quote_truncated']=truncated
-    for m,kickoff,competition,rank in page_items:
+    for group in page_groups:
+        m,kickoff,competition,rank=group['primary']
+        member_ids={str(item[0]['id']) for item in group['members']}
         quotes={}
         for r in observations:
-            if str(r.get('match_id')) != str(m['id']) or key(r.get('market')) not in {'h2h','1x2'}:
+            match_id=str(r.get('match_id') or '')
+            if match_id not in member_ids or key(r.get('market')) not in {'h2h','1x2'}:
                 continue
-            if any(key(r.get(side+'_team'))!=key(m.get(side+'_team')) for side in ('home','away')):
+            quote_match=member_items.get(match_id)
+            if not quote_match:
+                continue
+            quote_match=quote_match[0]
+            if any(key(r.get(side+'_team'))!=key(quote_match.get(side+'_team')) for side in ('home','away')):
                 continue
             book=key(r.get('bookmaker'))
-            if book and book not in quotes:
+            if book and (book not in quotes or _quote_clock(r) > _quote_clock(quotes[book])):
                 quotes[book]=r
         groups=[]
         for book,anchor in sorted(quotes.items()):
-            choices, reading = _assess_market_group(anchor,m,observations,user,now) if not truncated else ([], {
+            quote_match=member_items[str(anchor.get('match_id'))][0]
+            choices, reading = _assess_market_group(anchor,quote_match,observations,user,now) if not truncated else ([], {
                 'available': False, 'state': 'QUOTE_WINDOW_LIMIT',
                 'message': 'Omitimos la lectura porcentual para mantener acotada esta consulta.'})
             groups.append({'bookmaker':text(anchor.get('bookmaker')), 'choices':choices,

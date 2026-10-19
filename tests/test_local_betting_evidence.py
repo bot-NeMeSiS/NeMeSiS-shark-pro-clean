@@ -85,6 +85,79 @@ def test_customer_market_card_renders_probabilities_separately_from_shark_pick(a
     assert result['evidence']['betting']['observations'][0]['odds'] == 2.0
 
 
+def test_opportunities_pool_collapses_provider_aliases_without_mixing_quotes(app_module, monkeypatch):
+    future = datetime.now(ZoneInfo('Europe/Madrid')) + timedelta(days=1)
+    stamp = datetime.now(ZoneInfo('Europe/Madrid')).isoformat()
+    api_row = match()
+    api_row.update({
+        'id': 'api-football-duplicate',
+        'home_team': 'Tottenham',
+        'away_team': 'Coventry',
+        'competition_name': 'LaLiga EA Sports',
+        'kickoff_iso': future.isoformat(),
+        'source': 'API-Football',
+        'external_id': 'fixture-1001',
+        'home_logo': 'https://example.test/home.png',
+        'away_logo': 'https://example.test/away.png',
+        'odds_h2h_json': json.dumps({
+            'source': 'The Odds API', 'last_update': stamp, 'bookmaker': 'Current QA',
+            'outcomes': [
+                {'name': 'Tottenham', 'price': 2.0},
+                {'name': 'Draw', 'price': 4.0},
+                {'name': 'Coventry', 'price': 4.0},
+            ],
+        }),
+        'bookmaker': 'Current QA', 'odds_source': 'The Odds API', 'odds_updated_at': stamp,
+    })
+    alias_row = match()
+    alias_row.update({
+        'id': 'sportsdb-duplicate',
+        'home_team': 'Tottenham Hotspur',
+        'away_team': 'Coventry City',
+        'competition_name': 'La Liga',
+        'kickoff_iso': future.isoformat(),
+        'source': 'TheSportsDB',
+        'odds_h2h_json': json.dumps({
+            'source': 'Unverified QA source', 'last_update': stamp, 'bookmaker': 'Other QA',
+            'outcomes': [
+                {'name': 'Tottenham Hotspur', 'price': 99.0},
+                {'name': 'Draw', 'price': 99.0},
+                {'name': 'Coventry City', 'price': 99.0},
+            ],
+        }),
+        'bookmaker': 'Other QA',
+    })
+    monkeypatch.setattr(app_module, 'get_upcoming_matches', lambda *_args, **_kwargs: [alias_row, api_row])
+
+    results = app_module.v565_recommendation_pool()
+
+    assert len(results) == 1
+    assert results[0]['match_id'] == 'api-football-duplicate'
+    assert results[0]['evidence']['betting']['observations'][0]['source'] == 'The Odds API'
+    assert results[0]['evidence']['betting']['observations'][0]['odds'] == 2.0
+
+
+@pytest.mark.parametrize('difference', ['competition', 'kickoff'])
+def test_opportunities_pool_keeps_distinct_fixtures_separate(app_module, monkeypatch, difference):
+    first = match()
+    second = match()
+    first.update(id='fixture-one', home_team='Club A', away_team='Club B')
+    second.update(id='fixture-two', home_team='Club A', away_team='Club B')
+    if difference == 'competition':
+        first['competition_name'] = 'La Liga'
+        second['competition_name'] = 'FA Cup'
+    else:
+        kickoff = datetime.fromisoformat(first['kickoff_iso'])
+        second['kickoff_iso'] = (kickoff + timedelta(minutes=1)).isoformat()
+        second['match_date'] = (kickoff + timedelta(minutes=1)).date().isoformat()
+        second['kickoff_time'] = (kickoff + timedelta(minutes=1)).strftime('%H:%M')
+    monkeypatch.setattr(app_module, 'get_upcoming_matches', lambda *_args, **_kwargs: [first, second])
+
+    results = app_module.v565_recommendation_pool()
+
+    assert len(results) == 2
+
+
 def test_market_page_uses_a_lightweight_read_only_context(app_module, monkeypatch):
     stamp = datetime.now(ZoneInfo('Europe/Madrid')).isoformat()
     future = datetime.now(ZoneInfo('Europe/Madrid')) + timedelta(days=1)

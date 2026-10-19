@@ -65,6 +65,68 @@ def test_no_quote_means_no_fake_price_or_selectable_choice(db):
     assert cat['total']==17 and all(not m['groups'] for m in cat['matches'])
 
 
+def test_provider_aliases_render_as_one_fixture_and_keep_the_quote_record(db):
+    from test_combi_advisor_contract import fixture
+
+    alias = fixture(18)
+    alias.update(home_team='Local 1', away_team='Visitante 1',
+                 competition_name='Spanish La Liga', source='API-Football',
+                 kickoff_iso=fixture(1)['kickoff_iso'])
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE matches SET competition_name='La Liga' WHERE id='m1'")
+        conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+    quotes(db, ids=(18,), home_team='Local 1', away_team='Visitante 1')
+
+    cat = catalogue(db)
+    same_fixture = [m for m in cat['matches'] if m['home'] == 'Local 1' and m['away'] == 'Visitante 1']
+
+    assert cat['total'] == 17
+    assert len(same_fixture) == 1
+    assert same_fixture[0]['groups']
+    assert all(choice['id'].startswith('market:q18:') for choice in same_fixture[0]['groups'][0]['choices'])
+
+
+@pytest.mark.parametrize(('competition','minute_offset'), [
+    ('Copa del Rey', 0),
+    ('Spanish La Liga', 1),
+])
+def test_fixture_catalogue_does_not_collapse_different_competition_or_kickoff(db, competition, minute_offset):
+    from datetime import datetime, timedelta
+    from test_combi_advisor_contract import fixture
+
+    original_kickoff = datetime.fromisoformat(fixture(1)['kickoff_iso'])
+    alias = fixture(18)
+    alias.update(home_team='Local 1', away_team='Visitante 1',
+                 competition_name=competition, source='API-Football',
+                 kickoff_iso=(original_kickoff + timedelta(minutes=minute_offset)).isoformat())
+    with sqlite3.connect(db) as conn:
+        if competition == 'Spanish La Liga':
+            conn.execute("UPDATE matches SET competition_name='La Liga' WHERE id='m1'")
+        conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+
+    assert catalogue(db)['total'] == 18
+
+
+def test_known_provider_team_name_variants_render_as_one_fixture(db):
+    from test_combi_advisor_contract import fixture
+
+    alias = fixture(18)
+    alias.update(home_team='Tottenham Hotspur', away_team='Coventry City',
+                 competition_name='Premier League', source='API-Football',
+                 kickoff_iso=fixture(1)['kickoff_iso'])
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE matches SET home_team='Tottenham', away_team='Coventry' WHERE id='m1'")
+        conn.execute("UPDATE matches SET competition_name='Premier League' WHERE id='m1'")
+        conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+
+    cat = catalogue(db)
+    variants = [m for m in cat['matches'] if m['home'] in {'Tottenham', 'Tottenham Hotspur'}
+                and m['away'] in {'Coventry', 'Coventry City'}]
+
+    assert cat['total'] == 17
+    assert len(variants) == 1
+
+
 @pytest.mark.parametrize('status',['LIVE','HT','FT','PST','CANC','ABD','SUSP'])
 def test_other_states_cannot_enter_future_catalogue(db,status):
     with sqlite3.connect(db) as conn:conn.execute('UPDATE matches SET status=? WHERE id=?',(status,'m1'))
