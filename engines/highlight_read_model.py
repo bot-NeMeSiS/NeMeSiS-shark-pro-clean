@@ -13,6 +13,27 @@ MATCH_LIMIT = 8
 MATCH_CANDIDATE_LIMIT = 250
 
 
+def _latest_refresh_signal(runs):
+    """Expose only a bounded sync state, never raw provider error text."""
+    if not runs:
+        return "NOT_OBSERVED", "NONE", None
+    latest = runs[0] or {}
+    status = str(latest.get("status") or "").strip().upper()
+    raw_errors = str(latest.get("errors") or "")
+    error_codes = {part.strip().upper() for part in raw_errors.split(";") if part.strip()}
+    if "MEDIA_BUDGET" in error_codes:
+        issue = "MEDIA_BUDGET"
+    elif error_codes.intersection({"TIME_BUDGET", "REQUEST_BUDGET", "ITEM_BUDGET"}):
+        issue = "WORK_BUDGET"
+    elif raw_errors or status != "OK" or not latest.get("finished_at"):
+        issue = "INCOMPLETE"
+    else:
+        issue = "NONE"
+    state = "COMPLETE" if issue == "NONE" else "INCOMPLETE"
+    observed_at = latest.get("finished_at") or latest.get("started_at") or None
+    return state, issue, observed_at
+
+
 class _Unavailable(Exception):
     def __init__(self, state):
         self.state = state
@@ -64,6 +85,8 @@ def _summary_unavailable(state):
         'authorized_highlights': None, 'blocked_highlights': None, 'rights_warnings': None,
         'enriched_matches': None, 'enrichment_available': None, 'runs_available': None,
         'latest_highlights': [], 'recent_runs': [],
+        'latest_refresh_state': 'NOT_VERIFIED', 'latest_refresh_issue': 'NOT_VERIFIED',
+        'latest_refresh_at': None,
         'note': 'Catálogo no verificable en esta lectura. No equivale a cero vídeos ni confirma su disponibilidad.',
     }
 
@@ -86,6 +109,7 @@ def read_highlights_summary(db_path):
                                             'v2_event_lookups', 'v2_cache_hits', 'v2_highlights_found'))
             runs = _rows(conn, f'''SELECT started_at,finished_at,status,highlights_found,linked_matches,errors,{metrics}
                 FROM sportsdb_highlight_runs ORDER BY started_at DESC,rowid DESC LIMIT 6''') if runs_available else []
+            latest_refresh_state, latest_refresh_issue, latest_refresh_at = _latest_refresh_signal(runs)
             for run in runs:
                 if run.get('errors'):
                     run['errors'] = 'Error de sincronización registrado; revisar estado desde administración.'
@@ -104,6 +128,9 @@ def read_highlights_summary(db_path):
             'authorized_highlights': len(visible), 'blocked_highlights': warnings, 'rights_warnings': warnings,
             'enriched_matches': enriched, 'enrichment_available': enrichment_available,
             'runs_available': runs_available, 'latest_highlights': visible[:8], 'recent_runs': runs,
+            'latest_refresh_state': latest_refresh_state,
+            'latest_refresh_issue': latest_refresh_issue,
+            'latest_refresh_at': latest_refresh_at,
             'note': 'Los totales guardados corresponden al catálogo; autorización y enlaces se evalúan en los últimos 250 registros. Una autorización registrada no verifica la reproducción externa.',
         }
     except _Unavailable as exc:

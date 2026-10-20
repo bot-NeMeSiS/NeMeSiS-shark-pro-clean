@@ -62,7 +62,9 @@ def test_highlights_page_skips_global_dashboard_and_optional_pending_scan(app_mo
     response = app_module.app.test_client().get('/resumenes')
 
     assert response.status_code == 200
-    assert 'Todavía no hay vídeos listos para mostrar' in response.get_data(as_text=True)
+    html = response.get_data(as_text=True)
+    assert 'data-highlights-state="refresh-unverified"' in html
+    assert 'Todavía no hay una revisión del catálogo registrada' in html
     assert path.read_bytes() == before
 
 

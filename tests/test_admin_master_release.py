@@ -9,7 +9,7 @@ import pytest
 from jinja2 import Environment
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "V943_CUSTOMER_LIVE_AND_STATUS_CONSISTENCY"
+VERSION = "V944_MEDIA_REFRESH_CLIENT_TRUTH"
 
 
 def read(relative: str) -> str:
@@ -46,7 +46,7 @@ def test_release_authorities_and_service_worker_agree():
         and isinstance(node.value, ast.Constant)
     ]
     assert versions == [VERSION]
-    assert re.search(r"const NEMESIS_CACHE=['\"]NEMESIS_CACHE_V943(?:_ICON_|['\"])", read("app.py"))
+    assert re.search(r"const NEMESIS_CACHE=['\"]NEMESIS_CACHE_V944(?:_ICON_|['\"])", read("app.py"))
 
 
 def test_all_jinja_templates_parse():

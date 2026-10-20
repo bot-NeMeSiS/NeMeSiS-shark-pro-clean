@@ -13,11 +13,12 @@
   </section>
   {% elif not readable %}
   <section class="v933-panel" data-highlights-state="unavailable" role="status">
-    <h2>Disponibilidad sin comprobar</h2><p>No hemos podido consultar los resúmenes. Vuelve a intentarlo. Esto no significa que no existan vídeos de estos partidos.</p><a class="v933-button is-primary" href="/resumenes">Volver a intentar</a><details><summary>Detalles del estado</summary><p>Catálogo no verificable: no pudimos leer los enlaces guardados. Los resultados del partido siguen disponibles.</p></details>
+    <h2>Disponibilidad sin comprobar</h2><p>No hemos podido consultar el catálogo guardado. Esto no significa que no existan vídeos de estos partidos.</p><a class="v933-button is-primary" href="/calendario?lane=finished">Ver resultados</a><details><summary>Detalles del estado</summary><p>El catálogo no pudo leerse en esta visita. No se ha lanzado una sincronización ni una consulta al proveedor.</p></details>
   </section>
   {% elif available %}
   <section class="v933-panel" data-highlights-state="available">
     <header class="v933-section-header"><div><h2>Resúmenes disponibles</h2><p>Agrupados por competición. La reproducción depende de la plataforma original.</p></div></header>
+    {% if center.get('refresh_incomplete') %}<p class="small" data-highlights-refresh="incomplete">{{ center.get('refresh_message') }}{% if center.get('latest_refresh_at') %} Última revisión: {{ center.get('latest_refresh_at')|madrid_datetime_label }}.{% endif %}</p>{% elif center.get('refresh_unverified') %}<p class="small" data-highlights-refresh="unverified">{{ center.get('refresh_message') }}</p>{% endif %}
     <p class="small">{{ available|length }} en esta selección{% if center.get('sample_truncated') %} · Selección de los registros más recientes, no de todo el historial{% endif %}.</p>
     {% for league, videos in available|groupby('competition_label') %}
     <section class="v933-panel" aria-label="{{ league }}" data-highlight-league="{{ league }}">
@@ -40,8 +41,11 @@
     {% endfor %}
   </section>
   {% else %}
-  <section class="v933-panel" data-highlights-state="empty">
-    <h2>Todavía no hay vídeos listos para mostrar</h2><p>Un partido finalizado no siempre tiene vídeo. Solo mostramos los resúmenes disponibles con permiso de uso.</p><a class="v933-button is-primary" href="/calendario?lane=finished">Ver resultados</a>
+  <section class="v933-panel" data-highlights-state="{{ 'refresh-incomplete' if center.get('refresh_incomplete') else 'refresh-unverified' if center.get('refresh_unverified') else 'empty' }}">
+    {% if center.get('refresh_incomplete') %}<h2>Catálogo pendiente de completar</h2><p data-highlights-refresh="incomplete">{{ center.get('refresh_message') }}{% if center.get('latest_refresh_at') %} Última revisión: {{ center.get('latest_refresh_at')|madrid_datetime_label }}.{% endif %}</p>
+    {% elif center.get('refresh_unverified') %}<h2>Catálogo todavía sin verificar</h2><p data-highlights-refresh="unverified">{{ center.get('refresh_message') }}</p>
+    {% else %}<h2>Todavía no hay vídeos autorizados para mostrar</h2><p>Un partido finalizado no siempre tiene vídeo. Solo mostramos resúmenes guardados con permiso de uso confirmado.</p>{% endif %}
+    <a class="v933-button is-primary" href="/calendario?lane=finished">Ver resultados</a>
   </section>
   {% endif %}
   {% if readable and not paused and center.get('pending_read_state') == 'VERIFIED' and pending %}

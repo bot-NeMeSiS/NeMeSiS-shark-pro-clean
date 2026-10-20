@@ -14,6 +14,7 @@ def test_sports_cycle_does_not_run_highlights_inline(monkeypatch):
         "api_football_match_window": _ok("CACHE", fixtures_count=2),
         "api_football_statistics": _ok("NO_DUE_STATISTICS", refreshed_fixtures=0),
         "api_football_deep_enrichment": _ok("SKIPPED_NOT_DUE"),
+        "api_football_odds": _ok("UNFUNDED_NOT_CONFIGURED"),
         "odds": _ok("CACHE_REUSED"),
         "pick_grading": _ok("OK", picks_checked=0),
     }

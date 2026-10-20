@@ -189,3 +189,21 @@ def test_historical_provider_error_is_redacted(catalogue):
         conn.commit()
     r=media.sportsdb_highlights_summary(catalogue)
     assert r['recent_runs'] and 'SYNTHETIC_PRIVATE_VALUE' not in json.dumps(r)
+    assert r['latest_refresh_state']=='INCOMPLETE'
+    assert r['latest_refresh_issue']=='INCOMPLETE'
+    assert 'SYNTHETIC_PRIVATE_VALUE' not in json.dumps(r)
+
+
+def test_latest_media_budget_deferral_is_reported_as_safe_bounded_state(catalogue):
+    with closing(sqlite3.connect(catalogue)) as conn:
+        conn.execute('''INSERT INTO sportsdb_highlight_runs
+            (id,started_at,finished_at,status,errors)
+            VALUES(?,?,?,?,?)''',
+            ('r-budget','2026-10-20T18:00:00Z','2026-10-20T18:00:05Z','PARTIAL',
+             'MEDIA_BUDGET; https://provider.invalid/?key=SYNTHETIC_PRIVATE_VALUE'))
+        conn.commit()
+    result=media.sportsdb_highlights_summary(catalogue)
+    assert result['latest_refresh_state']=='INCOMPLETE'
+    assert result['latest_refresh_issue']=='MEDIA_BUDGET'
+    assert result['latest_refresh_at']=='2026-10-20T18:00:05Z'
+    assert 'SYNTHETIC_PRIVATE_VALUE' not in json.dumps(result)

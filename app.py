@@ -511,7 +511,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V943_CUSTOMER_LIVE_AND_STATUS_CONSISTENCY'
+APP_VERSION = 'V944_MEDIA_REFRESH_CLIENT_TRUTH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17620,7 +17620,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V943_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V944_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -20985,6 +20985,9 @@ def v766_highlights_context(limit=12):
         "sample_truncated": known("sample_truncated"),
         "visible_counts_scope": summary.get("visible_counts_scope") if verified else "NOT_ESTABLISHED",
         "latest": latest if verified else [],
+        "latest_refresh_state": summary.get("latest_refresh_state") if verified else "NOT_VERIFIED",
+        "latest_refresh_issue": summary.get("latest_refresh_issue") if verified else "NOT_VERIFIED",
+        "latest_refresh_at": summary.get("latest_refresh_at") if verified else None,
         "recent_runs": (summary.get("recent_runs") or []) if verified else [],
         "note": summary.get("note") or "Los metadatos externos requieren certificación de derechos antes de mostrarse.",
         "client_note": (
@@ -21163,6 +21166,20 @@ def v769_highlights_content_center(data=None, user=None, limit=24, include_pendi
     pending_verified = bool(pending_snapshot.get("ok") is True and pending_snapshot.get("read_state") == "VERIFIED")
     recent_runs = base.get("recent_runs") or []
     last_run = recent_runs[0] if recent_runs else {}
+    refresh_state = str(base.get("latest_refresh_state") or "NOT_VERIFIED")
+    refresh_issue = str(base.get("latest_refresh_issue") or "NOT_VERIFIED")
+    refresh_incomplete = bool(verified and refresh_state == "INCOMPLETE")
+    refresh_unverified = bool(verified and refresh_state in {"NOT_OBSERVED", "NOT_VERIFIED"})
+    if refresh_issue == "MEDIA_BUDGET":
+        refresh_message = "La última revisión se limitó por el presupuesto de consultas. Solo podemos confirmar los resúmenes autorizados ya guardados; el resto del catálogo sigue sin comprobarse."
+    elif refresh_issue == "WORK_BUDGET":
+        refresh_message = "La última revisión no pudo completar todo el trabajo dentro del margen disponible. Solo podemos confirmar los resúmenes autorizados ya guardados; el resto del catálogo sigue sin comprobarse."
+    elif refresh_incomplete:
+        refresh_message = "La última revisión del catálogo quedó incompleta. Solo podemos confirmar los resúmenes autorizados ya guardados; el resto sigue sin comprobarse."
+    elif refresh_unverified:
+        refresh_message = "Todavía no hay una revisión del catálogo registrada. Solo podemos confirmar los resúmenes autorizados ya guardados."
+    else:
+        refresh_message = ""
     stored_total = base.get("stored_media_total") if verified else None
     stored_linked_records = base.get("stored_linked_matches") if verified else None
     stored_unlinked_records = None
@@ -21199,6 +21216,12 @@ def v769_highlights_content_center(data=None, user=None, limit=24, include_pendi
         "playback_verified": False,
         "headline": headline,
         "description": description,
+        "latest_refresh_state": refresh_state if verified else "NOT_VERIFIED",
+        "latest_refresh_issue": refresh_issue if verified else "NOT_VERIFIED",
+        "latest_refresh_at": base.get("latest_refresh_at") if verified else None,
+        "refresh_incomplete": refresh_incomplete,
+        "refresh_unverified": refresh_unverified,
+        "refresh_message": refresh_message,
         "now_madrid": now_madrid_label(),
         "key_present": bool(base.get("key_present")),
         "available": available if verified else [],

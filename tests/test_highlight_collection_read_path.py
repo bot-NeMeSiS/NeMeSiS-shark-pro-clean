@@ -283,7 +283,43 @@ def test_verified_empty_catalogue_is_a_real_empty_selection(
         assert center["counts"]["stored"] == 0
         assert center["playback_verified"] is False
     else:
-        assert 'data-highlights-state="empty"' in response.get_data(as_text=True)
+        html = response.get_data(as_text=True)
+        assert 'data-highlights-state="refresh-unverified"' in html
+        assert 'data-highlights-refresh="unverified"' in html
+        assert "Todavía no hay una revisión del catálogo registrada" in html
+    assert path.read_bytes() == before
+
+
+def test_incomplete_media_refresh_is_explained_without_fake_retry(
+    app_module, monkeypatch, tmp_path,
+):
+    from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
+
+    path = tmp_path / "media.sqlite"
+    settings(path)
+    ensure_sportsdb_highlights_schema(path)
+    with sqlite3.connect(path) as conn:
+        conn.execute("""INSERT INTO sportsdb_highlight_runs
+            (id,started_at,finished_at,status,errors)
+            VALUES(?,?,?,?,?)""", (
+            "partial-budget-run", "2026-10-20T18:00:00Z", "2026-10-20T18:00:05Z",
+            "PARTIAL", "MEDIA_BUDGET; SYNTHETIC_PRIVATE_VALUE",
+        ))
+        conn.commit()
+    before = path.read_bytes()
+    client, calls = configure(app_module, monkeypatch, path)
+
+    response = client.get("/resumenes")
+
+    assert calls == []
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'data-highlights-state="refresh-incomplete"' in html
+    assert 'data-highlights-refresh="incomplete"' in html
+    assert "presupuesto de consultas" in html
+    assert "SYNTHETIC_PRIVATE_VALUE" not in html
+    assert "Volver a intentar" not in html
+    assert 'href="/calendario?lane=finished"' in html
     assert path.read_bytes() == before
 
 
