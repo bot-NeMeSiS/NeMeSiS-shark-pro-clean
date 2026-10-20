@@ -2,6 +2,7 @@
 {% from "components/sports_search.html" import suggestions with context %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='competition-directory.css') }}?v={{ app_version }}-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='competition-grouping.css') }}?v={{ app_version }}-1">
 <div class="competition-directory">
   <header class="competition-directory-heading">
     <p class="competition-directory-eyebrow">{{ ui('Explorar fútbol') }}</p>
@@ -26,21 +27,36 @@
     <h2>{{ ui_plural('{count} competición', '{count} competiciones', data.competitions|length) }}</h2>
     <p>{{ ui('La cobertura puede ser parcial. Cada ficha muestra la información disponible.') }}</p>
   </div>
-  <div class="competition-directory-grid">
-    {% for c in data.competitions %}
-    <article class="competition-directory-card">
-      <p class="competition-directory-country">{{ c.country or ui('Sin país confirmado') }}{% if c.region and c.region != c.country %} · {{ c.region }}{% endif %}</p>
-      <h3><a href="/competition/{{ c.key|urlencode }}">{{ c.name }}</a></h3>
-      <p>{{ ui('Con partidos registrados' if c.has_matches else 'Sin partidos asociados todavía') }}</p>
-      <a class="competition-directory-open" href="/competition/{{ c.key|urlencode }}">{{ ui('Explorar competición') }} <span class="sr-only">{{ c.name }}</span><span aria-hidden="true"> →</span></a>
-    </article>
-    {% else %}
+  {% for section in competition_sections %}
+  <section class="competition-directory-section competition-directory-section--{{ section.kind }}" aria-labelledby="competition-section-{{ loop.index }}">
+    <header class="competition-directory-section-heading">
+      <div>
+        <p>{{ ui('Torneos internacionales') if section.kind == 'international' else (ui('País sin confirmar') if section.kind == 'unknown' else ui('Ligas por país')) }}</p>
+        <h2 id="competition-section-{{ loop.index }}">{{ ui('Torneos internacionales') if section.kind == 'international' else (ui('País sin confirmar') if section.kind == 'unknown' else section.label) }}</h2>
+      </div>
+      <span>{{ ui_plural('{count} competición', '{count} competiciones', section.count) }}</span>
+    </header>
+    <div class="competition-directory-grid">
+      {% for c in section.competitions %}
+      <article class="competition-directory-card">
+        {% if section.kind == 'international' and c.region and c.region|lower not in ['global', 'world', 'mundial'] %}
+        <p class="competition-directory-country">{{ c.region }}</p>
+        {% elif section.kind == 'country' and c.region and c.region != c.country and c.region|lower not in ['europe', 'europa', 'world', 'global', 'mundial', 'south america', 'north america'] %}
+        <p class="competition-directory-country">{{ c.region }}</p>
+        {% endif %}
+        <h3><a href="/competition/{{ c.key|urlencode }}">{{ c.name }}</a></h3>
+        <p>{{ ui('Con partidos registrados' if c.has_matches else 'Sin partidos asociados todavía') }}</p>
+        <a class="competition-directory-open" href="/competition/{{ c.key|urlencode }}">{{ ui('Explorar competición') }} <span class="sr-only">{{ c.name }}</span><span aria-hidden="true"> →</span></a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% else %}
     <div class="competition-directory-empty">
       <h3>{{ ui('No encontramos esa competición') }}</h3>
       <p>{{ ui('Prueba con otro nombre o elimina el filtro de país.') }}</p>
       <a href="/competiciones">{{ ui('Ver todas las competiciones') }}</a>
     </div>
-    {% endfor %}
-  </div>
+  {% endfor %}
 </div>
 {% endblock %}

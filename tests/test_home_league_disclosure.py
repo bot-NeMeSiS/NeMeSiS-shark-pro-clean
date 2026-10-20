@@ -56,6 +56,7 @@ def environment():
         ui_match_datetime=lambda match:match.get('kickoff_time',''),
         nemesis_data_confidence=lambda *args:{'score':0,'label':'SIMULATED_QA','tone':'neutral','disclaimer':'Datos de prueba'},
         nemesis_attention_priority=lambda *args:{'level':1,'label':'QA','disclaimer':'Datos simulados'},
+        sports_match_team_href=lambda match,side:'/'+ 'equipo/' + quote(str(match.get(f'{side}_team') or ''),safe=''),
         sports_entity_href=lambda kind,key,name:'/'+('competicion' if kind=='competition' else 'equipo')+'/'+quote(str(key),safe=''),
         url_for=lambda endpoint,**kw:'/static/'+kw.get('filename','qa-badge.svg'))
     env.filters['sync_madrid_label']=lambda value:value

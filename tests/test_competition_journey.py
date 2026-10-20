@@ -49,6 +49,24 @@ def test_team_catalog_does_not_duplicate_persisted_and_match_identities():
     assert center["teams"][0]["matches"] == 1
 
 
+def test_calendar_groups_domestic_leagues_by_country_and_continental_cups_together(app_module):
+    spain = match("spain")
+    england = {**match("england"), "competition_id": "4328", "competition_key": "premier-league",
+               "competition_name": "Premier League", "country": "England", "scope": "domestic"}
+    champions = {**match("champions", "4480", "UEFA Champions League"),
+                 "competition_key": "uefa-champions-league", "country": "Europe", "scope": "continental"}
+    europa = {**match("europa", "4481", "UEFA Europa League"),
+              "competition_key": "uefa-europa-league", "country": "Europe", "scope": "continental"}
+    groups = app_module._calendar_group([spain, england, champions, europa])
+    sections = groups[0]["league_sections"]
+    assert [(section["kind"], section["label"]) for section in sections] == [
+        ("country", "España"), ("international", "Torneos internacionales"), ("country", "Inglaterra")
+    ]
+    assert {league["name"] for league in sections[1]["leagues"]} == {
+        "Champions League", "Europa League"
+    }
+
+
 def test_localization_recovers_provider_name_without_rewriting_the_source(app_module):
     from engines.spanish_localization_engine import apply_match_localization
     row = match("second", "4400", "LaLiga EA Sports")
@@ -147,6 +165,24 @@ def test_directory_get_search_works_without_js_and_with_locales(app_module,monke
     assert title in html and count in html
     assert 'href="/competition/laliga"' in html and 'href="/competition/premier"' not in html
     assert 'method="get"' in html
+
+
+def test_directory_groups_countries_and_keeps_international_competitions_together(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "competitions", lambda: [
+        {"key":"laliga", "name":"LaLiga EA Sports", "country":"Spain", "scope":"domestic"},
+        {"key":"premier", "name":"Premier League", "country":"England", "region":"Europe", "scope":"domestic"},
+        {"key":"ucl", "name":"UEFA Champions League", "country":"Europe", "region":"UEFA", "scope":"continental"},
+        {"key":"uel", "name":"UEFA Europa League", "country":"Europe", "region":"UEFA", "scope":"continental"},
+    ])
+    monkeypatch.setattr(app_module, "rows", lambda *a, **kw: [])
+    monkeypatch.setattr(app_module, "render_template", lambda name, **kwargs: (name, kwargs["data"], kwargs["competition_sections"]))
+    with app_module.app.test_request_context("/competiciones"):
+        name, data, sections = app_module.global_football()
+    assert name == "global.html"
+    assert [(section["kind"], section["label"]) for section in sections] == [
+        ("country", "España"), ("international", "Torneos internacionales"), ("country", "Inglaterra")
+    ]
+    assert {item["key"] for item in sections[1]["competitions"]} == {"ucl", "uel"}
 
 
 def test_empty_directory_and_search_input_are_safe(app_module,monkeypatch):

@@ -82,9 +82,21 @@ def test_home_spain_first_with_secondary_leagues_kept_collapsed(state,lane):
     rows=[fixture(index,state) for index in reversed(range(len(COMPETITIONS)))]
     before=deepcopy(rows); result=agenda(rows)
     groups=result[lane]['groups']
-    assert [group['matches'][0]['id'] for group in groups]==[item[0] for item in COMPETITIONS]
+    assert [group['matches'][0]['id'] for group in groups]==[
+        'laliga', 'segunda-division', 'copa-del-rey', 'supercopa-espana',
+        'uefa-champions-league', 'premier-league', 'primera-rfef',
+        'bundesliga', 'ligue-1', 'unknown', 'serie-a',
+    ]
     assert sum(group['home_primary'] for group in groups)==6
-    assert all(not group['home_primary'] for group in groups[-2:])
+    assert all(not group['home_primary'] for group in groups[6:])
+    assert [group['presentation_group_key'] for group in groups[:6]] == [
+        'country:espana', 'country:espana', 'country:espana', 'country:espana',
+        'international', 'country:inglaterra',
+    ]
+    assert [group['presentation_group_key'] for group in groups[6:]] == [
+        'country:espana', 'country:alemania', 'country:francia',
+        'country:ghana', 'country:italia',
+    ]
     assert result[lane]['shown']==len(rows) and rows==before
 
 
@@ -93,7 +105,10 @@ def test_bounded_home_reserves_other_major_leagues_even_with_many_spanish_matche
     result=agenda(rows,limit=9)
     groups=result['today']['groups']
     assert len(groups)==9
-    assert [group['key'] for group in groups]==[item[0] for item in COMPETITIONS[:9]]
+    assert [group['key'] for group in groups]==[
+        'laliga', 'segunda-division', 'copa-del-rey', 'supercopa-espana',
+        'uefa-champions-league', 'premier-league', 'bundesliga', 'ligue-1', 'serie-a',
+    ]
     assert all(group['shown']==1 for group in groups)
     assert result['today']['total']==48 and result['today']['shown']==9
 

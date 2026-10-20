@@ -5,6 +5,7 @@
 {% from "components/sports_search.html" import suggestions with context %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-5">
+<link rel="stylesheet" href="{{ url_for('static', filename='competition-grouping.css') }}?v={{ app_version }}-1">
 {# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
 {% set pending_copy = {'es': 'Cambios sin aplicar. Pulsa Encontrar partidos.', 'en': 'Changes not applied. Select Find matches.', 'fr': 'Modifications non appliquées. Choisissez Trouver des matchs.'} %}
 {% set calendar = data.get('calendar') or {} %}
@@ -224,7 +225,13 @@
           {% endfor %}
         </nav>
         {% endif %}
-        {% for league in day.get('leagues') or [] %}
+        {% for collection in day.get('league_sections') or [] %}
+        <section class="v940-calendar-competition-section v940-calendar-competition-section--{{ collection.get('kind') }}" data-calendar-competition-group="{{ collection.get('key') }}">
+          <header class="v940-calendar-competition-heading">
+            <h3>{{ ui('Torneos internacionales') if collection.get('kind') == 'international' else (ui('País sin confirmar') if collection.get('kind') == 'unknown' else collection.get('label')) }}</h3>
+            <span>{{ ui_plural('{count} competición', '{count} competiciones', collection.get('count', 0)) }}</span>
+          </header>
+          {% for league in collection.get('leagues') or [] %}
         <section class="v933-league-group v940-calendar-league"
                  id="{{ league.get('anchor_id') }}"
                  data-v940-calendar-section="league"
@@ -237,6 +244,8 @@
             <span>{{ ui('{count} partido' if (league.get('matches') or [])|length == 1 else '{count} partidos', count=(league.get('matches') or [])|length) }}</span>
           </header>
           <div class="v933-match-grid">{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}</div>
+        </section>
+        {% endfor %}
         </section>
         {% endfor %}
       </section>

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from engines.crest_engine import normalize_logo_key
 from engines.league_badge_read_model import badge_url, match_badge
 from engines.client_competition_order import competition_display_rank, spanish_first_enabled
+from engines.competition_presentation_engine import competition_presentation_group
 
 MADRID = ZoneInfo('Europe/Madrid')
 DEFAULT_LIMITS = {'live': 12, 'today': 48, 'upcoming': 12, 'results': 12}
@@ -48,12 +49,22 @@ def _identity(match, identity_for):
     display_country = country
     if country.casefold() in {'world', 'mundial', 'global'} and competition_key.startswith('uefa-'):
         display_country = 'Europa (UEFA)'
+    presentation = competition_presentation_group({
+        **match,
+        'name': name,
+        'country': country,
+        'competition_type': supplied.get('competition_type') or supplied.get('scope') or match.get('competition_type') or match.get('scope'),
+    })
     return identity, {
         'competition': name, 'country': country, 'display_country': display_country, 'season': season,
         'key': key, 'anchor': 'league-' + digest[:14], 'tone': int(digest[:8], 16) % 6,
         'route_id': supplied.get('route_id') or match.get('competition_key') or identifier or name,
         'logo_key': normalize_logo_key(raw_name), 'logo_name': raw_name,
         'provider': provider, 'provider_id': identifier, 'logo_url': '',
+        'presentation_group_key': presentation['key'],
+        'presentation_group_label': presentation['label'],
+        'presentation_group_kind': presentation['kind'],
+        'presentation_sort': presentation['sort'],
     }
 
 
@@ -133,7 +144,9 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
             for key in sorted((key for key in selected if key[0] == day),
                               key=lambda key: (groups[key]['display_rank'], groups[key]['competition'].casefold(), key)):
                 group = groups[key]
-                section = {k: v for k, v in group.items() if k not in {'rows', 'rank', 'display_rank'}}
+                # Keep the display rank until after hierarchy sorting: it is the
+                # stable tie-breaker inside each country/international section.
+                section = {k: v for k, v in group.items() if k not in {'rows', 'rank'}}
                 section['matches'] = []
                 for _, _, match, status in selected[key]:
                     item = deepcopy(match)
@@ -154,6 +167,32 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
                         and 0 <= rank <= HOME_PRIMARY_RANK_MAX) or section['home_favorite']
             section['home_primary'] = bool(eligible and primary_count < HOME_PRIMARY_GROUP_LIMIT)
             primary_count += int(section['home_primary'])
+        section_ranks = {}
+        for section in sections:
+            presentation_key = section.get('presentation_group_key') or 'unknown-country'
+            section_key = (section['home_primary'], section.get('date', ''), presentation_key)
+            section_ranks[section_key] = min(
+                section_ranks.get(section_key, 999), int(section.get('display_rank') or 999)
+            )
+        # Keep the relevance-based primary/secondary decision intact, then make
+        # each date contiguous by country and international scope.
+        ordered_days = sorted({key[0] for key in selected}, reverse=lane == 'results')
+        day_order = {day: index for index, day in enumerate(ordered_days)}
+        sections.sort(key=lambda section: (
+            not section['home_primary'],
+            day_order.get(section.get('date', ''), 999),
+            tuple(section.get('presentation_sort') or (3, '')),
+            section_ranks[(
+                section['home_primary'], section.get('date', ''),
+                section.get('presentation_group_key') or 'unknown-country',
+            )],
+            (section.get('presentation_group_label') or '').casefold(),
+            section.get('display_rank', 999),
+            section.get('competition', '').casefold(),
+            section.get('key', ''),
+        ))
+        for section in sections:
+            section.pop('display_rank', None)
         result[lane] = {'groups': sections, 'shown': shown, 'total': total,
                         'has_more': total > shown, 'limit': limits[lane],
                         'competition_count': len(groups)}

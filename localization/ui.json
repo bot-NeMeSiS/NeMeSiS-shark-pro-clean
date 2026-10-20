@@ -5403,6 +5403,18 @@
     "Europa (UEFA)": {
       "en": "Europe (UEFA)",
       "fr": "Europe (UEFA)"
+    },
+    "Torneos internacionales": {
+      "en": "International tournaments",
+      "fr": "Tournois internationaux"
+    },
+    "País sin confirmar": {
+      "en": "Country not confirmed",
+      "fr": "Pays non confirmé"
+    },
+    "Ligas por país": {
+      "en": "Leagues by country",
+      "fr": "Ligues par pays"
     }
   }
 }

@@ -21,7 +21,7 @@ def mount(browser,app_module,*,width=390,language='es',query='',before='',run_sc
     html,_=render_calendar(app_module,query,language,summary=_summary(app_module,3))
     # The main Jinja template, main styles and scoped delivery styles; no providers.
     html=re.sub(r'<script\b[^>]*>.*?</script>','',html,flags=re.S|re.I)
-    css='\n'.join((ROOT/'static'/name).read_text() for name in ('v930-canonical.css','v933_design_tokens.css','v933-product.css','calendar-discovery.css'))
+    css='\n'.join((ROOT/'static'/name).read_text() for name in ('v930-canonical.css','v933_design_tokens.css','v933-product.css','calendar-discovery.css','competition-grouping.css'))
     page=browser.new_page(viewport={'width':width,'height':844}, reduced_motion='reduce')
     attempted=[]; errors=[]
     page.route('**/*',lambda route:(attempted.append(route.request.url),route.abort()))

@@ -68,7 +68,7 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
             '(el)=>getComputedStyle(el).gridTemplateColumns.split(" ").length==3'
         )
         upcoming_list=page.locator('[data-sports-priority="upcoming"] .home-competition-list').first
-        group_positions=upcoming_list.locator(':scope > .home-competition-group').evaluate_all(
+        group_positions=upcoming_list.locator(':scope > .home-presentation-section').evaluate_all(
             "nodes=>nodes.slice(0,2).map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}})"
         )
         assert len(group_positions)==2

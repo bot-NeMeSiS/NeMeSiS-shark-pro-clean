@@ -1,0 +1,30 @@
+/* Shared country/continental competition hierarchy for Home and Calendar. */
+.v940-calendar-competition-section{border:1px solid rgba(151,185,215,.16);border-radius:14px;margin:14px 0 18px;min-width:0;padding:12px}
+.v940-calendar-competition-section--international{border-color:rgba(106,196,232,.32)}
+.v940-calendar-competition-heading{align-items:center;border-bottom:1px solid rgba(151,185,215,.14);display:flex;gap:12px;justify-content:space-between;margin:0 0 10px;padding:0 2px 8px}
+.v940-calendar-competition-heading h3{color:#dfeefa;font-size:.86rem;font-weight:850;letter-spacing:.035em;margin:0}
+.v940-calendar-competition-section--international .v940-calendar-competition-heading h3{color:#8ddfff}
+.v940-calendar-competition-heading span{color:#a9bbcf;font-size:.7rem;font-weight:700;white-space:nowrap}
+.v940-calendar-competition-section>.v940-calendar-league{margin:0 0 8px;min-width:0}
+.v940-calendar-competition-section>.v940-calendar-league:last-child{margin-bottom:0}
+.competition-directory-section--international{position:relative}
+.competition-directory-section--international:before{background:linear-gradient(90deg,rgba(76,196,233,.12),transparent);border-radius:18px;content:"";inset:-7px -8px auto;pointer-events:none;position:absolute;z-index:-1}
+.competition-directory-section--country .competition-directory-card{min-height:146px}
+.home-presentation-section--international .home-presentation-section-heading{color:#8ddfff}
+.home-presentation-section--country .home-presentation-section-heading{color:#dfeefa}
+@media(min-width:1200px){
+  .v940-calendar-competition-section{padding:14px}
+  .v940-calendar-competition-section .v933-match-grid{gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+  .home-agenda-focus .home-presentation-section-items{gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,470px),1fr))}
+}
+@media(min-width:761px){
+  .v940-calendar-competition-section{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+  .v940-calendar-competition-heading{grid-column:1/-1;margin:0}
+  .v940-calendar-competition-section>.v940-calendar-league{margin:0}
+}
+@media(max-width:760px){
+  .v940-calendar-competition-section{border:0;border-radius:0;margin:3px 0 4px;padding:0}
+  .v940-calendar-competition-heading{margin-bottom:1px;padding:0 2px 1px}
+  .v940-calendar-competition-heading h3{font-size:.78rem}
+  .v940-calendar-competition-heading span{font-size:.64rem}
+}

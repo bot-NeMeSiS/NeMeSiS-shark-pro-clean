@@ -170,6 +170,7 @@ from engines.video_highlights_engine import classify_match_video, video_highligh
 from engines.team_form_engine import team_form_snapshot
 from engines.team_center_engine import build_team_center_context
 from engines.competition_center_engine import build_competition_center_context
+from engines.competition_presentation_engine import competition_presentation_group, competition_presentation_sections
 from engines.player_center_engine import build_player_center_context
 from engines.sports_entity_navigation_engine import entity_href as sports_entity_href, entity_navigation_contract as sports_entity_navigation_contract
 from engines.sports_domain_model_engine import normalize_competition_entity
@@ -511,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V949_SCALABLE_VECTOR_BRAND_MARK'
+APP_VERSION = 'V950_COUNTRY_COMPETITION_HIERARCHY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -11388,6 +11389,7 @@ def canonical_competition_surface_contract(match):
         "official_name": raw_name or display_name,
         "display_name": display_name,
         "country": country,
+        "competition_type": str(item.get("competition_type") or item.get("scope") or "").strip(),
         "season": str(item.get("season") or "").strip(),
         "identity_state": entity.get("data_quality") or "INSUFFICIENT_DATA",
     }
@@ -11408,6 +11410,17 @@ def group_matches_by_league(matches):
             "identity_contract": identity["contract"],
             "category": league_category(item),
             "matches": [],
+        })
+        presentation = competition_presentation_group({
+            **item,
+            "name": league,
+            "country": identity["country"],
+            "competition_type": identity["competition_type"],
+        })
+        bucket.update({
+            "presentation_group_key": presentation["key"],
+            "presentation_group_label": presentation["label"],
+            "presentation_group_kind": presentation["kind"],
         })
         bucket["matches"].append(item)
     result = list(grouped.values())
@@ -17620,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V949_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V950_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21876,6 +21889,7 @@ def _calendar_group(matches, sort_key="importance"):
             "competition_id": identity["canonical_id"],
             "route_id": identity["route_id"],
             "identity_contract": identity["contract"],
+            "competition_type": identity["competition_type"],
             "rank": int(item.get("calendar_rank") or 80),
             "category": league_category(item),
             "matches": [],
@@ -21894,6 +21908,9 @@ def _calendar_group(matches, sort_key="importance"):
             if sort_key != "time":
                 league["matches"].sort(key=lambda item: sports_relevance_sort_tuple(item, "calendar"))
         bucket["leagues"] = leagues
+        bucket["league_sections"] = competition_presentation_sections(
+            leagues, collection_key="leagues"
+        )
         date_buckets.append(bucket)
     return date_buckets
 
@@ -22611,8 +22628,10 @@ def global_football():
     visible = [item for item in catalog
                if (not country or item.get("country") == country)
                and navigation_matches(" ".join(str(item.get(key) or "") for key in ("name", "country", "region", "key")), query)]
+    presentation_sections = competition_presentation_sections(visible)
     return render_template("global.html", data={"competitions": visible, "countries": countries,
-                                               "query": query, "country": country})
+                                               "query": query, "country": country},
+                           competition_sections=presentation_sections)
 
 
 def _v940_hydrate_selected_date_results(summary, date_value):

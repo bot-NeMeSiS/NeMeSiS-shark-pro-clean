@@ -21,6 +21,10 @@
         row.hidden = !terms.every(term => normalize(row.dataset.homeLeagueSearchLabel).includes(term));
         if (!row.hidden) count++;
       });
+      more.querySelectorAll('[data-home-competition-section]').forEach(section => {
+        const entries = [...section.querySelectorAll('[data-home-importance="secondary"]')];
+        section.hidden = entries.length > 0 && entries.every(row => row.hidden);
+      });
       clear.hidden = !query;
       empty.hidden = count > 0;
       status.textContent = query ? text('{count} competiciones en esta selección', { count }) : '';
