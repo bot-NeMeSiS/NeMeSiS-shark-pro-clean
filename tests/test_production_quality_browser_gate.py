@@ -189,10 +189,10 @@ def test_production_quality_gate_can_use_an_installed_browser():
 
 # Synthetic DOM evidence: these cases do not re-certify any production report.
 def _official_brand_metrics():
-    url = "https://example.invalid/static/img/app-icons/app-icon-96.png?v=official"
+    url = "https://example.invalid/static/img/nemesis-shark-mark.svg?v=official"
     return {"resources": [url], "officialBrandImages": [{
-        "url": url, "source": "official-app-icon", "complete": True,
-        "visible": True, "naturalWidth": 96, "naturalHeight": 96,
+        "url": url, "source": "official-brand-vector", "complete": True,
+        "visible": True, "naturalWidth": 160, "naturalHeight": 96,
     }]}
 
 
@@ -209,7 +209,7 @@ def test_official_brand_requires_actual_decoded_visible_dom_evidence():
 @pytest.mark.parametrize('field,value', [
     ('visible', False), ('complete', False), ('naturalWidth', 0),
     ('naturalHeight', 0), ('naturalWidth', 'invalid'), ('source', 'other'),
-    ('url', 'https://other.invalid/static/img/app-icons/app-icon-96.png?v=official'),
+    ('url', 'https://other.invalid/static/img/nemesis-shark-mark.svg?v=official'),
     ('url', 'https://example.invalid/static/img/another-image.png'),
 ])
 def test_official_brand_rejects_unproven_or_wrong_image(field, value):
@@ -230,7 +230,7 @@ def test_official_brand_does_not_accept_an_unloaded_or_absent_icon():
     assert _official_brand_in_page(_official_brand_metrics(), '') is False
 
 
-def test_official_icon_does_not_bypass_atmosphere_or_legacy_guards():
+def test_official_mark_does_not_bypass_atmosphere_or_legacy_guards():
     icon = _official_brand_metrics()['resources'][0]
     atmosphere = 'https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp'
     legacy = 'https://example.invalid/static/img/shark-logo.svg'
@@ -240,7 +240,7 @@ def test_official_icon_does_not_bypass_atmosphere_or_legacy_guards():
 
 def test_official_brand_capture_and_all_surfaces_gate_are_wired():
     source = (Path(__file__).parents[1] / 'tools/run_production_quality_browser_gate.py').read_text()
-    assert '.ns-brand img[data-brand-source="official-app-icon"]' in source
+    assert '.ns-brand img[data-brand-source="official-brand-vector"]' in source
     assert 'for item in [*pages, mobile_evidence]' in source
     assert 'all(item["verified"] for item in official_brand_surfaces)' in source
     assert 'official_brand_verified=official_brand_verified' in source

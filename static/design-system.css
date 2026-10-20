@@ -24172,3 +24172,46 @@ body.ns-app .ns16-home.home-agenda-focus { display: block !important; }
   .v944-possession__teams > span:last-child { align-items: flex-end; }
   .v944-possession--compact { padding: 9px; }
 }
+
+/* V949: keep the app wordmark crisp at any display density. */
+body[data-ns-design="core"] .brand.v949-brand .ns-brand-mark {
+  width: 54px;
+  height: 40px;
+  flex: 0 0 54px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+body[data-ns-design="core"] .brand.v949-brand .ns-brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(76, 222, 248, .24));
+}
+body[data-ns-design="core"] .brand.v949-brand .ns-brand-name {
+  color: #f4fbff;
+  font-weight: 850;
+  letter-spacing: .035em;
+  line-height: .98;
+}
+body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro {
+  margin-top: 4px;
+  color: #7deaff;
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .22em;
+  line-height: 1;
+}
+@media(max-width:560px) {
+  body[data-ns-design="core"] .brand.v949-brand .ns-brand-mark {
+    width: 46px;
+    height: 34px;
+    flex-basis: 46px;
+  }
+  body[data-ns-design="core"] .brand.v949-brand .ns-brand-name { font-size: .94rem; }
+  body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro { font-size: .52rem; }
+}

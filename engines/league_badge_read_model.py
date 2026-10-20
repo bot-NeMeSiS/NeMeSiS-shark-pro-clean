@@ -3,6 +3,7 @@
 No network access, schema creation, download or cache write occurs here.
 """
 from collections.abc import Mapping
+import json
 import sqlite3
 from urllib.parse import urlsplit
 
@@ -35,6 +36,35 @@ def match_badge(match):
     for key in ('league', 'competition'):
         item = match.get(key)
         if isinstance(item, Mapping):
+            for field in ('logo_url', 'logo', 'badge_url', 'strBadge'):
+                candidate = badge_url(item.get(field))
+                if candidate:
+                    return candidate
+
+    # Provider fixture payloads are already persisted in raw_json by the
+    # existing sync path. Read only the competition node so its real badge is
+    # not lost when the normalized match row omits a dedicated logo column.
+    raw_payload = match.get('raw_json') or match.get('payload_json')
+    if isinstance(raw_payload, str):
+        if len(raw_payload) > 65536:
+            return ''
+        try:
+            raw_payload = json.loads(raw_payload)
+        except (TypeError, ValueError):
+            return ''
+    payloads = [raw_payload] if isinstance(raw_payload, Mapping) else []
+    if payloads:
+        for key in ('response', 'data', 'fixture'):
+            nested = raw_payload.get(key)
+            if isinstance(nested, Mapping):
+                payloads.append(nested)
+            elif isinstance(nested, (list, tuple)):
+                payloads.extend(item for item in nested[:3] if isinstance(item, Mapping))
+    for payload in payloads:
+        for key in ('league', 'competition'):
+            item = payload.get(key)
+            if not isinstance(item, Mapping):
+                continue
             for field in ('logo_url', 'logo', 'badge_url', 'strBadge'):
                 candidate = badge_url(item.get(field))
                 if candidate:

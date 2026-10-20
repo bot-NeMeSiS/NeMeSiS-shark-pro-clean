@@ -23,7 +23,8 @@
   ],
   "brand_kit": [
     {"role": "ATMOSPHERIC_SHARK", "source": "static/img/nemesis-shark-atmosphere-v2.webp", "usage": "Oceano y superficies SHARK", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
-    {"role": "BRAND_SHARK", "source": "static/img/nemesis-shark-brand.svg", "usage": "Logo compacto en topbar/rail; anatomia conjunta aun no certificada", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
+    {"role": "PRIMARY_BRAND_MARK", "source": "static/img/nemesis-shark-mark.svg", "usage": "Emblema vectorial compartido en la cabecera, junto al wordmark textual; separado del icono instalable", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
+    {"role": "BRAND_SHARK", "source": "static/img/nemesis-shark-brand.svg", "usage": "Silueta complementaria para superficies SHARK que la referencian directamente; no es el emblema primario de cabecera", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
     {"role": "APP_ICON", "source": "static/img/app-icons/official_app_icon_master.svg", "derived_from": "ATMOSPHERIC_SHARK", "usage": "Un maestro; build_app_icons.cjs genera variantes", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
     {"role": "WORDMARK", "source": "templates/partials/brand_logo.html", "usage": "NeMeSiS / SHARK PRO en texto; no otro logotipo raster", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
     {"role": "FAVICON", "source": "static/img/app-icons/app-icon.ico", "derived_from": "APP_ICON", "usage": "ICO multiresolucion y PNG 16/32 del maestro", "status": "FOUNDER_SUBJECTIVE_REVIEW"},

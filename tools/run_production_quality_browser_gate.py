@@ -157,7 +157,7 @@ def _sports_truth(payload: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
 
 
 def _official_brand_in_page(metrics: dict[str, Any], base_url: str) -> bool:
-    """Accept the official icon only with same-origin, decoded, visible DOM evidence."""
+    """Accept the vector brand mark only with same-origin, decoded, visible DOM evidence."""
     base = urllib.parse.urlsplit(base_url)
     if base.scheme not in {"http", "https"} or not base.netloc:
         return False
@@ -169,20 +169,20 @@ def _official_brand_in_page(metrics: dict[str, Any], base_url: str) -> bool:
             decoded = float(image.get("naturalWidth") or 0) > 0 and float(image.get("naturalHeight") or 0) > 0
         except (TypeError, ValueError):
             decoded = False
-        if (image.get("source") == "official-app-icon" and image.get("visible") is True
+        if (image.get("source") == "official-brand-vector" and image.get("visible") is True
                 and image.get("complete") is True and decoded and url in loaded
                 and (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)
-                and parsed.path == "/static/img/app-icons/app-icon-96.png"):
+                and parsed.path == "/static/img/nemesis-shark-mark.svg"):
             return True
     return False
 
 
 def _visual_asset_contract(resources: list[str], *, official_brand_verified: bool = False) -> tuple[bool, dict[str, Any]]:
-    # Keep the historical SVG contract, but recognize the official app-icon
-    # migration only when every sampled surface proves a visible decoded logo.
+    # Keep legacy references for old surfaces, and require visible decoded DOM
+    # evidence before accepting the current primary vector mark.
     brand_shark = any("nemesis-shark-brand.svg" in value for value in resources)
-    official_icon_loaded = any(urllib.parse.urlsplit(value).path == "/static/img/app-icons/app-icon-96.png" for value in resources)
-    brand_shark = brand_shark or (official_brand_verified is True and official_icon_loaded)
+    official_mark_loaded = any(urllib.parse.urlsplit(value).path == "/static/img/nemesis-shark-mark.svg" for value in resources)
+    brand_shark = brand_shark or (official_brand_verified is True and official_mark_loaded)
     atmospheric_shark = any("nemesis-shark-atmosphere-v2.webp" in value for value in resources)
     legacy_shark = any("shark-logo.svg" in value for value in resources)
     return brand_shark and atmospheric_shark and not legacy_shark, {
@@ -488,7 +488,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
             mediaMatches: !link.media || window.matchMedia(link.media).matches,
           })),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
-          officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-app-icon"]')].map((img) => ({
+          officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-brand-vector"]')].map((img) => ({
             url: img.currentSrc || img.src,
             source: img.getAttribute('data-brand-source'),
             complete: img.complete,

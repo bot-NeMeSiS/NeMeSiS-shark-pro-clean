@@ -109,14 +109,15 @@ def test_team_without_confirmed_form_does_not_display_zero_statistics(app_module
         assert 'No disponible. Ninguna fuente confirma una muestra suficiente.' in html
 
 
-def test_compact_brand_reuses_certified_app_icon_without_second_geometry(app_module):
+def test_compact_brand_uses_scalable_vector_mark_without_changing_the_pwa_icon(app_module):
     with app_module.app.test_request_context('/app'):
         macro = app_module.app.jinja_env.get_template('partials/brand_logo.html').make_module()
         dom = Structure(str(macro.nemesis_brand()))
     img, = [n for n in dom.nodes if n['tag'] == 'img']
-    assert img['attrs']['src'] == '/static/img/app-icons/app-icon-96.png?v=8d0ed4207e73'
-    assert img['attrs']['data-brand-source'] == 'official-app-icon'
+    assert img['attrs']['src'] == '/static/img/nemesis-shark-mark.svg?v=brand-20261020-1'
+    assert img['attrs']['data-brand-source'] == 'official-brand-vector'
     assert (ROOT / img['attrs']['src'].split('?')[0].lstrip('/')).is_file()
+    assert 'v949-brand' in dom.nodes[0]['attrs']['class']
 
 
 def test_admin_table_contract_keeps_actions_and_headers_unbroken():

@@ -1,6 +1,7 @@
 """Offline regression evidence: volume, chronology, identity and cached badges."""
 from copy import deepcopy
 from datetime import datetime, timezone
+import json
 import sqlite3
 from zoneinfo import ZoneInfo
 
@@ -53,6 +54,24 @@ def test_badge_can_come_from_a_later_fixture_or_local_static_cache():
     assert group['logo_url'] == '/static/img/qa-league.svg'
     assert match_badge({'home_logo': 'https://cdn.invalid/team.png', 'logo_url':'https://cdn.invalid/event.png'}) == ''
     assert match_badge({'league': {'logo':'https://cdn.invalid/league.png'}}) == 'https://cdn.invalid/league.png'
+
+
+def test_badge_reads_only_competition_logo_from_saved_provider_payload():
+    payload = json.dumps({
+        'fixture': {'id': 1},
+        'league': {'id': 140, 'name': 'LaLiga', 'logo': 'https://cdn.invalid/laliga.png'},
+        'teams': {
+            'home': {'logo': 'https://cdn.invalid/team-home.png'},
+            'away': {'logo': 'https://cdn.invalid/team-away.png'},
+        },
+    })
+    row = match('provider-logo')
+    row.update(raw_json=payload, home_logo='https://cdn.invalid/team-home.png')
+    assert match_badge(row) == 'https://cdn.invalid/laliga.png'
+    assert build([row])['today']['groups'][0]['logo_url'] == 'https://cdn.invalid/laliga.png'
+    assert match_badge({'raw_json': '{malformed'}) == ''
+    assert match_badge({'raw_json': json.dumps({'league': {'logo': 'javascript:alert(1)'},
+                                               'teams': {'home': {'logo': 'https://cdn.invalid/team.png'}}})}) == ''
 
 
 @pytest.mark.parametrize('value', ['javascript:alert(1)', 'data:image/svg+xml,<svg/>', '//evil.invalid/x',

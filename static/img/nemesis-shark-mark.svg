@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="96" viewBox="0 0 160 96" fill="none" role="img" aria-labelledby="nemesis-mark-title nemesis-mark-desc">
+  <title id="nemesis-mark-title">Emblema NeMeSiS SHARK PRO</title>
+  <desc id="nemesis-mark-desc">Silueta vectorial de un tiburón en azul océano y cian.</desc>
+  <defs>
+    <linearGradient id="body" x1="10" y1="28" x2="146" y2="70" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B8F8FF"/>
+      <stop offset=".26" stop-color="#45DDF4"/>
+      <stop offset=".68" stop-color="#118CC7"/>
+      <stop offset="1" stop-color="#07517F"/>
+    </linearGradient>
+    <linearGradient id="shadow" x1="58" y1="49" x2="80" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B4268"/>
+      <stop offset="1" stop-color="#031B31"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="14" y1="18" x2="151" y2="75" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8FCFF"/>
+      <stop offset=".5" stop-color="#64E8F8"/>
+      <stop offset="1" stop-color="#1688C3"/>
+    </linearGradient>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M111 40c14-2 26-10 39-24-1 13-5 23-13 31 8 7 12 17 14 31-11-12-24-19-40-22l-7-8 7-8Z" fill="url(#shadow)" stroke="url(#edge)" stroke-width="2.4"/>
+    <path d="M12 49c12-13 32-21 54-21 22 0 39 5 54 13 7 4 9 10 4 15-9 9-25 14-45 16-26 3-50-2-67-12l-8-6 8-5Z" fill="url(#body)" stroke="url(#edge)" stroke-width="2.8"/>
+    <path d="M51 30c9-5 17-15 24-27 1 12 6 22 15 31" fill="#0A6392" stroke="url(#edge)" stroke-width="2.5"/>
+    <path d="M58 69c13 1 28 7 42 19-17-2-32-7-48-16l6-3Z" fill="url(#shadow)" stroke="url(#edge)" stroke-width="2"/>
+    <path d="M26 41c15-8 31-11 47-10" stroke="#E8FDFF" stroke-opacity=".78" stroke-width="2"/>
+    <path d="M35 40c3 4 4 9 3 14m6-17c3 5 4 11 3 17m6-19c3 6 4 12 3 18" stroke="#063958" stroke-opacity=".72" stroke-width="2"/>
+    <path d="M13 52c9 4 18 5 27 4" stroke="#04243B" stroke-width="2.2"/>
+    <circle cx="25" cy="42" r="2.5" fill="#F4FFFF" stroke="none"/>
+    <circle cx="25" cy="42" r="1" fill="#03121F" stroke="none"/>
+  </g>
+</svg>
