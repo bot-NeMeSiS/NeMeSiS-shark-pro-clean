@@ -30866,14 +30866,18 @@ def api_sports_search():
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
 def api_favorites():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos por usuario."}), 401
+    user_id = str(user.get("id") or "").strip()
+    if not user_id:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos por usuario."}), 401
     if request.method == "GET":
-        return jsonify({"ok": True, "version": APP_VERSION, "favorites": get_favorites(request.args.get("kind"))})
+        return jsonify({"ok": True, "version": APP_VERSION, "favorites": get_favorites(request.args.get("kind"), user_id=user_id)})
     payload = request.get_json(silent=True) or dict(request.form or {})
     if request.method == "DELETE":
-        return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"))})
-    favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"))
+        return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"), user_id=user_id)})
+    favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"), user_id=user_id)
     _growth_maybe_activate_user(reason="favorite_saved")
     if not favorite:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
@@ -30882,9 +30886,13 @@ def api_favorites():
 
 @app.route("/api/favorites/feed")
 def api_favorites_feed():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
-    return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full()})
+    user_id = str(user.get("id") or "").strip()
+    if not user_id:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
+    return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full(user_id=user_id)})
 
 
 @app.route("/api/matches/<match_id>/timeline")
