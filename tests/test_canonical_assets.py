@@ -59,7 +59,7 @@ def test_postdeploy_probe_compares_served_css_bytes_to_checkout(monkeypatch, cor
     requests = []
     version = cert.ACTIVE_VERSION
     href = '/static/product-system.css?v=' + version + '-home-leagues-1'
-    css = (cert.ROOT/'static/product-system.css').read_text()
+    css = (cert.ROOT/'static/product-system.css').read_text(encoding='utf-8')
     runtime = {'version':version, 'git_commit_hint':'a'*40, 'version_files_match':True,
         'deployment_alignment_status':'aligned_local_files', 'static_css_cache_busting':True,
         'service_worker_cache_name':cert.EXPECTED_CACHE, 'sentinel_active_issues_count':0,

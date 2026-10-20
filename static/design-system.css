@@ -22871,7 +22871,8 @@ body.ns-app .ns16-kpi-strip .v933-kpi strong { font-size: 1.2rem !important; }
 
 body.ns-app .ns16-featured-pick { border: 0 !important; border-top: 1px solid rgba(89,185,255,.12) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 10px 0 0 !important; }
 
-body.ns-app .ns16-featured-pick .v933-empty-state { grid-template-columns: 32px minmax(0,1fr); min-height: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: 8px 0 !important; gap: 8px; }
+body.ns-app .ns16-featured-pick .v933-empty-state { grid-template-columns: 32px minmax(0,1fr); min-height: 0 !important; border: 1px solid rgba(89,185,255,.2) !important; border-radius: 12px !important; background: linear-gradient(135deg,rgba(18,74,111,.24),rgba(10,25,42,.72)) !important; padding: 12px !important; gap: 8px; }
+body.ns-app .ns16-featured-pick .v933-empty-state p:empty { display: none; }
 
 .ns16-featured-pick .v933-empty-state > .v933-action { grid-column: 1 / -1; justify-self: start; }
 
