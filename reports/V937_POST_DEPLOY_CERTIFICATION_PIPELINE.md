@@ -9,16 +9,15 @@ It waits for:
 - exact version `V937_PRODUCT_PERFECTION_FULL_ECOSYSTEM_LAUNCH_CLOSEOUT_FINAL`;
 - exact expected Git SHA;
 - aligned version files;
-- V937 CSS cache busting;
+- served CSS bytes matching the checked-out artifact;
 - `NEMESIS_CACHE_V937` service worker identity;
 - safe critical routes and safe 404 behavior;
-- Sentinel without active issues;
 - no public stale matches;
 - no false live events;
 - correct idle/live polling policy;
 - no exposed secret patterns.
 
-Possible terminal states are `DEPLOY_CONFIRMED`, `DEPLOY_TIMEOUT`, `WRONG_SHA`, `RUNTIME_ERROR`, `ASSET_MISMATCH`, and `HEALTH_FAILURE`.
+The public certifier does not query authenticated Sentinel diagnostics. Its successful terminal state is `PUBLIC_RELEASE_VERIFIED_ADMIN_REVIEW_PENDING`: this confirms only public runtime, asset, route, and sports checks. An authenticated admin review is required before claiming Sentinel health or complete operational certification. Other terminal states include `DEPLOY_TIMEOUT`, `WRONG_SHA`, `RUNTIME_ERROR`, `ASSET_MISMATCH`, and `HEALTH_FAILURE`.
 
 ## Production evidence for the current V937 hotfix
 

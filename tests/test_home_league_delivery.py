@@ -48,7 +48,12 @@ def test_public_home_get_receives_the_same_snapshot_matchday(app_module, monkeyp
 
 
 def test_runtime_asset_flag_uses_the_generated_bundle(app_module):
-    payload = app_module.app.test_client().get('/api/runtime-version').get_json()
+    client = app_module.app.test_client()
+    with client.session_transaction() as session:
+        session['user_id'] = 'pytest-home-runtime-admin'
+        session['user_role'] = 'ADMIN'
+        session['user_name'] = 'Runtime asset QA'
+    payload = client.get('/api/runtime-version').get_json()
     assert payload['static_css_cache_busting'] is True
     from engines.canonical_assets import css_digest
     assert payload['canonical_css_sha256'] == css_digest(ROOT)

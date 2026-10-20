@@ -9,7 +9,7 @@ from tools.run_production_quality_browser_gate import classify_browser_resources
 CHECKS = {
     "health": "PASS",
     "sha_alignment": "PASS",
-    "logs_recent": "PASS",
+    "browser_runtime_errors": "PASS",
     "critical_routes": "PASS",
     "topbar_click_journey": "PASS",
     "mobile_nav": "PASS",
@@ -120,14 +120,15 @@ def test_local_asset_failure_remains_failure_even_if_policy_blocked(kind):
     assert result["required_asset_failures"] == [request]
 
 
-def test_production_quality_gate_certifies_only_complete_pass():
+def test_production_quality_gate_reports_public_pass_with_admin_review_pending():
     result = build_post_deploy_result(
         expected_sha="a" * 40,
         actual_sha="a" * 40,
         checks=CHECKS,
         evidence={},
     )
-    assert result["result"] == "PRODUCTION_CERTIFIED"
+    assert result["result"] == "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"
+    assert result["admin_sentinel_review"] == "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN"
     assert result["rollback_recommended"] is False
     assert result["production_mutations"] == 0
 
@@ -147,7 +148,7 @@ def test_production_quality_gate_recommends_rollback_for_regression():
 
 def test_production_quality_gate_blocks_missing_evidence():
     checks = dict(CHECKS)
-    checks["logs_recent"] = "NOT_RUN"
+    checks["browser_runtime_errors"] = "NOT_RUN"
     result = build_post_deploy_result(
         expected_sha="a" * 40,
         actual_sha="a" * 40,
@@ -155,7 +156,7 @@ def test_production_quality_gate_blocks_missing_evidence():
         evidence={},
     )
     assert result["result"] == "BLOCKED"
-    assert result["missing_checks"] == ["logs_recent"]
+    assert result["missing_checks"] == ["browser_runtime_errors"]
 
 
 def test_production_visual_contract_requires_two_current_sharks_and_rejects_legacy():
@@ -289,7 +290,7 @@ def test_real_missing_sports_image_records_degradation_with_verified_fallback(st
     assert "classification" not in image
     report = build_post_deploy_result(expected_sha="a" * 40, actual_sha="a" * 40,
         checks={**CHECKS, "subresources_and_fallbacks": "PASS"}, evidence={"resource_classification": result})
-    assert report["result"] == "PRODUCTION_CERTIFIED"
+    assert report["result"] == "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"
     assert report["external_image_degradation_count"] == 1
 
 

@@ -52,23 +52,20 @@ def test_source_fingerprint_rejects_stale_or_empty_bundle(tmp_path):
     assert not source_bundle_valid(tmp_path)
 
 
-@pytest.mark.parametrize('corruption', ['none', 'css-bytes', 'runtime-digest', '404'])
+@pytest.mark.parametrize('corruption', ['none', 'css-bytes', '404'])
 def test_postdeploy_probe_compares_served_css_bytes_to_checkout(monkeypatch, corruption):
     from tools import v937_post_deploy_certification as cert
-    from engines.canonical_assets import css_digest
     requests = []
     version = cert.ACTIVE_VERSION
     href = '/static/product-system.css?v=' + version + '-home-leagues-1'
     css = (cert.ROOT/'static/product-system.css').read_text(encoding='utf-8')
     runtime = {'version':version, 'git_commit_hint':'a'*40, 'version_files_match':True,
-        'deployment_alignment_status':'aligned_local_files', 'static_css_cache_busting':True,
-        'service_worker_cache_name':cert.EXPECTED_CACHE, 'sentinel_active_issues_count':0,
-        'canonical_css_sha256': 'wrong' if corruption == 'runtime-digest' else css_digest(cert.ROOT)}
+        'deployment_alignment_status':'aligned_local_files', 'compact':True}
     sports = {'matches':[], 'live':[], 'counts':{'live':0}, 'no_external_calls':True,
         'poll_after_seconds':180, 'last_safe_sync':cert.datetime.now(cert.MADRID).isoformat()}
     def request(base, path, timeout=30):
         requests.append(path)
-        payload = {'/api/runtime-version':runtime, '/api/realtime/sports':sports, '/manifest.json':{'name':'QA'}}.get(path)
+        payload = {'/api/runtime-version?compact=1':runtime, '/api/realtime/sports':sports, '/manifest.json':{'name':'QA'}}.get(path)
         body = json.dumps(payload) if payload is not None else '<link rel="stylesheet" href="'+href+'">'
         if path == '/service-worker.js': body = cert.EXPECTED_CACHE
         if path == href: body = css + ('/* wrong */' if corruption == 'css-bytes' else '')
@@ -77,5 +74,8 @@ def test_postdeploy_probe_compares_served_css_bytes_to_checkout(monkeypatch, cor
     monkeypatch.setattr(cert, '_request', request)
     result = cert._probe('https://qa.invalid', 'offline', version, 'a'*40)
     assert href in requests
+    assert "/api/runtime-version?compact=1" in requests
     if corruption == 'none': assert result['errors'] == []
     else: assert any('css_asset' in error for error in result['errors'])
+    assert result['sentinel_admin_review'] == 'NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN'
+    assert 'sentinel_admin_review_required_not_checked_by_public_certifier' in result['warnings']

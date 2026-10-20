@@ -29672,15 +29672,19 @@ def get_safe_runtime_identity_for_admin() -> dict:
 
 @app.route("/api/runtime-version")
 def api_runtime_version():
-    # The master cron only needs a cheap liveness/readiness identity every five
-    # minutes. Keep the full certification payload as the default for deploy QA.
-    if str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}:
+    def runtime_json_response(payload):
+        response = jsonify(payload)
+        response.headers["Cache-Control"] = "private, no-store"
+        response.vary.add("Cookie")
+        return response
+
+    def readiness_payload():
         identity = get_safe_runtime_identity_for_admin()
         commit = str(os.getenv("RENDER_GIT_COMMIT") or os.getenv("GIT_COMMIT") or os.getenv("COMMIT_SHA") or "").strip()
         # Only an actual platform identity can certify this worker's commit.
         # Never substitute a historical release manifest or return arbitrary env text.
         commit = commit.lower() if re.fullmatch(r"[0-9a-fA-F]{40}", commit) else "unavailable"
-        return jsonify({
+        return {
             "ok": True,
             "status": "READY",
             "version": APP_VERSION,
@@ -29688,7 +29692,17 @@ def api_runtime_version():
             "compact": True,
             "git_commit_hint": commit,
             "version_files_match": identity["version_files_match"],
-        })
+            "deployment_alignment_status": identity["deployment_alignment_status"],
+        }
+
+    # The master cron and public heartbeat need only a cheap readiness identity.
+    # Keep the full certification payload behind the validated admin session so
+    # filesystem paths and operational diagnostics are never exposed publicly.
+    compact_requested = str(request.args.get("compact") or "").strip().lower() in {"1", "true", "yes"}
+    if compact_requested:
+        return runtime_json_response(readiness_payload())
+    if not is_admin_session():
+        return runtime_json_response(readiness_payload())
 
     version_txt = ""
     app_version_file = ""
@@ -29864,7 +29878,7 @@ def api_runtime_version():
         if not v932_sports_summary.get("real_matches_available") and v932_sports_summary.get("provider_available")
         else "run_authorized_authenticated_browser_qa"
     )
-    return jsonify(sanitize_runtime_value({
+    return runtime_json_response(sanitize_runtime_value({
         "ok": True,
         "app": APP_NAME,
         "expected_version": APP_VERSION,

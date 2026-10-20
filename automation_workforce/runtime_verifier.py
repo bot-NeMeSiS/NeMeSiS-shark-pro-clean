@@ -13,7 +13,7 @@ if __package__ in {None, ""}:
 from automation_workforce.common import VERSION, print_json, read_text, workflow_arg_parser, write_report
 
 
-DEFAULT_RUNTIME_URL = "https://bot-apuestas-crgf.onrender.com/api/runtime-version"
+DEFAULT_RUNTIME_URL = "https://bot-apuestas-crgf.onrender.com/api/runtime-version?compact=1"
 
 
 def fetch_runtime(url: str) -> tuple[int, dict]:
@@ -55,10 +55,7 @@ def run_runtime_verifier(dry_run: bool = True, expected_version: str | None = No
         "runtime_error": runtime.get("error"),
         "version_files_match": runtime.get("version_files_match"),
         "deployment_alignment_status": runtime.get("deployment_alignment_status"),
-        "sentinel_active_issues_count": runtime.get("sentinel_active_issues_count"),
-        "secret_masking_ok": runtime.get("secret_masking_ok"),
-        "db_path": runtime.get("db_path"),
-        "telegram_configured": runtime.get("telegram_configured"),
+        "runtime_diagnostics_scope": "public_readiness_only",
         "alignment_status": "ALIGNED" if aligned else ("NETWORK_UNAVAILABLE_FROM_SHELL" if status_code == 0 else "DEPLOY_ALIGNMENT_FAILED"),
         "status": verifier_status,
         "safe_message": "Runtime verifier no expone secretos y no modifica produccion.",

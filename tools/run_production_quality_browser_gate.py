@@ -326,9 +326,11 @@ def build_post_deploy_result(
     elif missing:
         result = "BLOCKED"
     else:
-        result = "PRODUCTION_CERTIFIED"
+        result = "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"
     return {
         "result": result,
+        "certification_scope": "public_browser_and_runtime_identity_only",
+        "admin_sentinel_review": "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN",
         "expected_sha": expected_sha,
         "actual_sha": actual_sha,
         "checks": normalized,
@@ -565,7 +567,7 @@ def run_gate(
     *,
     policy_blocked_requests: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    runtime, runtime_http = _request_json(base_url, "/api/runtime-version")
+    runtime, runtime_http = _request_json(base_url, "/api/runtime-version?compact=1")
     health, health_http = _request_json(base_url, "/api/health")
     sports, sports_http = _request_json(base_url, "/api/realtime/sports")
     sports_pass, sports_evidence = _sports_truth(sports)
@@ -739,8 +741,8 @@ def run_gate(
     actual_sha = str(runtime.get("git_commit_hint") or "")
     checks = {
         "health": "PASS" if health_http == 200 and bool(health) else "FAIL",
-        "sha_alignment": "PASS" if runtime_http == 200 and actual_sha == expected_sha else "FAIL",
-        "logs_recent": "PASS" if int(runtime.get("sentinel_active_issues_count") or 0) == 0 and not application_console and not page_errors else "FAIL",
+        "sha_alignment": "PASS" if runtime_http == 200 and actual_sha == expected_sha and runtime.get("version_files_match") is True and runtime.get("deployment_alignment_status") == "aligned_local_files" else "FAIL",
+        "browser_runtime_errors": "PASS" if not application_console and not page_errors else "FAIL",
         "critical_routes": "PASS" if routes_pass and browser_clean else "FAIL",
         "subresources_and_fallbacks": resource_classification["subresources_and_fallbacks"],
         "topbar_click_journey": "PASS" if topbar_pass else "FAIL",
@@ -778,7 +780,8 @@ def run_gate(
         "resource_responses": successful_resources,
         "navigation_events": navigation_events,
         "resource_classification": resource_classification,
-        "logs_scope": "Current browser errors and runtime issue count only; Render server logs are not queried by this runner.",
+        "runtime_scope": "Public readiness identity only; full diagnostics require an authenticated administrator.",
+        "logs_scope": "Browser console and page errors only; Render server logs and admin Sentinel issues are not queried by this public runner.",
         "page_errors": page_errors,
         "broken_images": broken_images,
         "overflow": overflow,
@@ -831,7 +834,7 @@ def main() -> int:
         "result": result["result"], "failed_checks": result.get("failed_checks", []),
         "external_image_degradation_count": result.get("external_image_degradation_count", 0),
     }, indent=2))
-    return 0 if result["result"] in {"DRY_RUN_PASS", "PRODUCTION_CERTIFIED"} else 1
+    return 0 if result["result"] in {"DRY_RUN_PASS", "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"} else 1
 
 
 if __name__ == "__main__":

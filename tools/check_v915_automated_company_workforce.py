@@ -169,22 +169,15 @@ def main() -> int:
         ):
             app_module.seed_core()
             client = app_module.app.test_client()
-            runtime_resp = client.get("/api/runtime-version")
-            runtime = runtime_resp.get_json(silent=True) or {}
-            require(runtime_resp.status_code == 200, "runtime-version not 200", failures)
-            require(runtime.get("version") == ACTIVE_VERSION, "runtime version does not match VERSION.txt", failures)
-            require(runtime.get("version_files_match") is True, "runtime version_files_match false", failures)
-            require(runtime.get("deployment_alignment_status") == "aligned_local_files", "runtime not aligned", failures)
-            for flag in [
-                "has_v915_automated_company_workforce",
-                "has_v915_render_deploy_pipeline",
-                "has_v915_post_deploy_sentinel",
-                "has_v915_browser_qa_orchestrator",
-                "has_v915_security_secret_guard",
-            ]:
-                require(runtime.get(flag) is True, f"runtime flag false: {flag}", failures)
-            require(runtime.get("v915_automated_deploy_enabled") is False or isinstance(runtime.get("v915_automated_deploy_enabled"), bool), "automated deploy flag not boolean", failures)
-            require(runtime.get("v915_deploy_hook_state") in {"***missing***", "***configured***"}, "deploy hook state not masked", failures)
+            public_runtime_resp = client.get("/api/runtime-version")
+            public_runtime = public_runtime_resp.get_json(silent=True) or {}
+            require(public_runtime_resp.status_code == 200, "public runtime readiness not 200", failures)
+            require(public_runtime.get("version") == ACTIVE_VERSION, "public runtime version does not match VERSION.txt", failures)
+            require(public_runtime.get("compact") is True, "public runtime did not use the compact contract", failures)
+            require(
+                not {"python_file_path", "db_path", "render_service_hint", "telegram_configured"} & public_runtime.keys(),
+                "public runtime leaked internal diagnostics", failures,
+            )
 
             for endpoint in [
                 "/api/admin/automation-workforce/status",
@@ -199,6 +192,23 @@ def main() -> int:
                 require(response.status_code == 403, f"{endpoint} not protected without admin", failures)
 
             admin_session(client, app_module)
+            runtime_resp = client.get("/api/runtime-version")
+            runtime = runtime_resp.get_json(silent=True) or {}
+            require(runtime_resp.status_code == 200, "admin runtime diagnostics not 200", failures)
+            require(runtime.get("version") == ACTIVE_VERSION, "admin runtime version does not match VERSION.txt", failures)
+            require(runtime.get("version_files_match") is True, "admin runtime version_files_match false", failures)
+            require(runtime.get("deployment_alignment_status") == "aligned_local_files", "admin runtime not aligned", failures)
+            for flag in [
+                "has_v915_automated_company_workforce",
+                "has_v915_render_deploy_pipeline",
+                "has_v915_post_deploy_sentinel",
+                "has_v915_browser_qa_orchestrator",
+                "has_v915_security_secret_guard",
+            ]:
+                require(runtime.get(flag) is True, f"admin runtime flag false: {flag}", failures)
+            require(runtime.get("v915_automated_deploy_enabled") is False or isinstance(runtime.get("v915_automated_deploy_enabled"), bool), "admin automated deploy flag not boolean", failures)
+            require(runtime.get("v915_deploy_hook_state") in {"***missing***", "***configured***"}, "admin deploy hook state not masked", failures)
+
             page = client.get("/admin/automation-workforce")
             require(page.status_code == 200, "admin workforce page not 200 with admin session", failures)
             html = page.get_data(as_text=True)

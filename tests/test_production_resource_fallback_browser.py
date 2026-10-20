@@ -124,7 +124,8 @@ def test_full_collector_preserves_each_navigation_and_reports_degradation(monkey
     sha = "a" * 40
     missing_url = "https://sports-media.invalid/football/teams/28553.png"
     replies = {
-        "/api/runtime-version": {"git_commit_hint": sha, "sentinel_active_issues_count": 0},
+        "/api/runtime-version?compact=1": {"git_commit_hint": sha, "version_files_match": True,
+            "deployment_alignment_status": "aligned_local_files"},
         "/api/health": {"ok": True},
         "/api/realtime/sports": {"no_external_calls": True, "live": [], "counts": {"live": 0}},
     }
@@ -181,7 +182,10 @@ def test_full_collector_preserves_each_navigation_and_reports_degradation(monkey
 
     monkeypatch.setattr(Browser, "new_context", new_context)
     report = gate.run_gate(BASE, sha, tmp_path, os.environ.get("NEMESIS_QA_CHROMIUM", ""))
-    assert report["result"] == "PRODUCTION_CERTIFIED", report
+    assert report["result"] == "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING", report
+    assert report["admin_sentinel_review"] == "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN"
+    assert report["checks"]["browser_runtime_errors"] == "PASS"
+    assert "Render server logs" in report["evidence"]["logs_scope"]
     assert report["external_image_degradation_count"] >= 2
     resources = report["evidence"]["resource_classification"]
     assert not resources["unexplained_console"]

@@ -261,7 +261,7 @@ jobs:
             --check-offsets "${{ inputs.monitor_offsets || '0,60,180,300' }}" \
             --report-path reports/V937_POST_DEPLOY_AUTOMATED_EVIDENCE.json
 
-      - name: Run production Quality Sentinel
+      - name: Run public browser release checks
         run: |
           python tools/run_production_quality_browser_gate.py \
             --mode verify \

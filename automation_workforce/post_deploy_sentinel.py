@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import sys
 import urllib.request
+from urllib.parse import urlsplit
 from pathlib import Path
 
 if __package__ in {None, ""}:
@@ -25,7 +26,8 @@ def check_url(base: str, route: str) -> dict:
 
 
 def run_post_deploy_sentinel(dry_run: bool = True) -> dict:
-    base = DEFAULT_RUNTIME_URL.replace("/api/runtime-version", "")
+    runtime_url = urlsplit(DEFAULT_RUNTIME_URL)
+    base = f"{runtime_url.scheme}://{runtime_url.netloc}"
     runtime = run_runtime_verifier(dry_run=True)
     route_results = [check_url(base, route) for route in ROUTES]
     network_blocked = bool(route_results) and all(

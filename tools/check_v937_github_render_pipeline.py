@@ -54,12 +54,16 @@ def main() -> int:
             "live evidence certification is missing", errors)
     require("POST" not in certifier and "DELETE" not in certifier,
             "post-deploy certifier must remain read-only", errors)
-    require("Run production Quality Sentinel" in workflow and QUALITY_SENTINEL.name in workflow,
-            "production Quality Sentinel is not wired after SHA certification", errors)
+    require("Run public browser release checks" in workflow and QUALITY_SENTINEL.name in workflow,
+            "public browser release checks are not wired after SHA certification", errors)
     require("playwright_requirements.txt" in workflow and "playwright install --with-deps chromium" in workflow,
             "focused post-deploy browser runtime is missing", errors)
     require("production_mutations" in quality_sentinel and "telegram_sends" in quality_sentinel,
             "production Quality Sentinel guardrail evidence is missing", errors)
+    require("PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING" in quality_sentinel,
+            "public gate does not distinguish pending admin review", errors)
+    require("NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN" in quality_sentinel,
+            "public gate does not disclose that authenticated Sentinel review is not checked", errors)
     require('method="GET"' in quality_sentinel and 'method="POST"' not in quality_sentinel,
             "production Quality Sentinel must remain read-only", errors)
 

@@ -156,7 +156,12 @@ def test_navigation_renderers_share_canonical_contract_source():
 
 
 def test_runtime_navigation_compatibility_flag_tracks_canonical_v933(app_module):
-    response=app_module.app.test_client().get("/api/runtime-version")
+    client=app_module.app.test_client()
+    with client.session_transaction() as session:
+        session["user_id"]="pytest-navigation-runtime-admin"
+        session["user_role"]="ADMIN"
+        session["user_name"]="Runtime navigation QA"
+    response=client.get("/api/runtime-version")
     assert response.status_code==200
     runtime=response.get_json() or {}
     assert runtime.get("has_v929_mobile_navigation_guard") is True

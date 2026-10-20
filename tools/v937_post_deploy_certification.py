@@ -154,7 +154,7 @@ def _wait_for_expected_runtime(
     attempts: list[dict[str, Any]] = []
     last_payload: dict[str, Any] = {}
     while True:
-        payload, response = _json_response(base_url, "/api/runtime-version")
+        payload, response = _json_response(base_url, "/api/runtime-version?compact=1")
         last_payload = payload
         attempt = {
             "status": response["status"],
@@ -185,7 +185,7 @@ def _probe(
 ) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
-    runtime, runtime_response = _json_response(base_url, "/api/runtime-version")
+    runtime, runtime_response = _json_response(base_url, "/api/runtime-version?compact=1")
     sports, sports_response = _json_response(base_url, "/api/realtime/sports")
 
     if runtime_response["status"] != 200:
@@ -198,13 +198,7 @@ def _probe(
         errors.append("version_files_mismatch")
     if runtime.get("deployment_alignment_status") != "aligned_local_files":
         errors.append("deployment_alignment_failure")
-    if runtime.get("static_css_cache_busting") is not True:
-        errors.append("css_cache_busting_disabled")
-    if runtime.get("service_worker_cache_name") != EXPECTED_CACHE:
-        errors.append("service_worker_cache_mismatch")
-    if int(runtime.get("sentinel_active_issues_count") or 0) != 0:
-        errors.append("sentinel_active_issues")
-
+    warnings.append("sentinel_admin_review_required_not_checked_by_public_certifier")
     matches = [item for item in sports.get("matches") or [] if isinstance(item, dict)]
     live = [item for item in sports.get("live") or [] if isinstance(item, dict)]
     public_stale = [item for item in matches if item.get("is_stale") is True]
@@ -270,8 +264,6 @@ def _probe(
             errors.append("canonical_css_asset_http_failure")
         if not expected_digest or actual_digest != expected_digest:
             errors.append("canonical_css_asset_content_mismatch")
-        if runtime.get("canonical_css_sha256") != expected_digest:
-            errors.append("runtime_css_asset_digest_mismatch")
     service_worker = _request(base_url, "/service-worker.js")
     if EXPECTED_CACHE not in service_worker["body"]:
         errors.append("service_worker_asset_mismatch")
@@ -283,9 +275,11 @@ def _probe(
         "label": label,
         "checked_at_madrid": datetime.now(MADRID).isoformat(timespec="seconds"),
         "status": "PASS" if not errors else "FAIL",
+        "certification_scope": "public_runtime_and_routes_only",
         "version": runtime.get("version"),
         "sha": runtime.get("git_commit_hint"),
-        "sentinel_active_issues": int(runtime.get("sentinel_active_issues_count") or 0),
+        "sentinel_admin_review": "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN",
+        "runtime_diagnostics_scope": "public_readiness_only",
         "matches": len(matches),
         "live": len(live),
         "stale_live_diagnostic": int((sports.get("counts") or {}).get("stale_live") or 0),
@@ -353,6 +347,9 @@ def main() -> int:
     )
     result: dict[str, Any] = {
         "status": deploy_status,
+        "deploy_identity_status": deploy_status,
+        "certification_scope": "public_runtime_assets_routes_and_sports_only",
+        "sentinel_admin_review": "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN",
         "expected_version": args.expected_version,
         "expected_sha": args.expected_sha,
         "actual_version": runtime.get("version"),
@@ -396,10 +393,12 @@ def main() -> int:
             )
             break
     result["completed_at_madrid"] = datetime.now(MADRID).isoformat(timespec="seconds")
+    if result["status"] == "DEPLOY_CONFIRMED":
+        result["status"] = "PUBLIC_RELEASE_VERIFIED_ADMIN_REVIEW_PENDING"
     if args.report_path:
         _write_report(args.report_path, result)
     print(json.dumps({"final_status": result["status"], "samples": len(result["samples"])}, indent=2))
-    return 0 if result["status"] == "DEPLOY_CONFIRMED" else 1
+    return 0 if result["status"] == "PUBLIC_RELEASE_VERIFIED_ADMIN_REVIEW_PENDING" else 1
 
 
 if __name__ == "__main__":
