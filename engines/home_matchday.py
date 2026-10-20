@@ -40,8 +40,16 @@ def _identity(match, identity_for):
     identity = tuple(normalize_logo_key(value) for value in (key, country, season, sport))
     digest = sha256('\x1f'.join(identity).encode()).hexdigest()
     raw_name = str(match.get('_raw_competition_name') or match.get('competition_official_name') or name)
+    competition_key = str(supplied.get('key') or match.get('competition_key') or
+                          match.get('league_key') or '').strip().casefold()
+    # Some feeds attach the generic "World" region to UEFA competitions.
+    # Keep that provider value for identity/grouping, but show the correct
+    # continental scope in the customer-facing Home label.
+    display_country = country
+    if country.casefold() in {'world', 'mundial', 'global'} and competition_key.startswith('uefa-'):
+        display_country = 'Europa (UEFA)'
     return identity, {
-        'competition': name, 'country': country, 'season': season,
+        'competition': name, 'country': country, 'display_country': display_country, 'season': season,
         'key': key, 'anchor': 'league-' + digest[:14], 'tone': int(digest[:8], 16) % 6,
         'route_id': supplied.get('route_id') or match.get('competition_key') or identifier or name,
         'logo_key': normalize_logo_key(raw_name), 'logo_name': raw_name,

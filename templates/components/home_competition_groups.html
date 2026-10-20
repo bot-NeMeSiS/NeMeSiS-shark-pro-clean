@@ -2,10 +2,11 @@
 {% from "components/home_league_badge.html" import home_league_badge %}
 {% macro league_identity(group, show_date=false) -%}
 {% set name = group.competition or ui('Competición pendiente') %}
+{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}
 {% set logo = group.logo_url or url_for('asset_league_logo', league_key=group.logo_key, name=group.logo_name, country=group.country, provider=group.provider, league_id=group.provider_id) %}
 <div class="home-league-identity">
   {{ home_league_badge(name, logo, 'provider_cache' if group.logo_url else 'cache_lookup') }}
-  <div class="home-league-title"><h3>{{ name }}</h3><p>{% if group.country %}<span>{{ group.country }}</span>{% endif %}{% if show_date %}<time datetime="{{ group.date }}">{{ ui_calendar_date(group.date, detail=true) }}</time>{% endif %}</p></div>
+  <div class="home-league-title"><h3>{{ name }}</h3><p>{% if country_label %}<span>{{ ui(country_label) }}</span>{% endif %}{% if show_date %}<time datetime="{{ group.date }}">{{ ui_calendar_date(group.date, detail=true) }}</time>{% endif %}</p></div>
 </div>
 {%- endmacro %}
 {% macro league_matches(group) -%}
@@ -24,7 +25,7 @@
 <div class="home-league-browser" data-home-league-browser="{{ section }}">
 {% if primary|length > 1 %}
 <nav class="home-league-index home-featured-rail" aria-label="{{ ui('Ir a una liga') }}" data-home-primary-index>
-  {% for group in primary %}<a class="home-league-tone-{{ group.tone }}" href="#home-{{ section }}-{{ group.date }}-{{ group.anchor }}" title="{{ group.competition }}{% if group.country %} · {{ group.country }}{% endif %}"><i aria-hidden="true"></i><span>{{ group.competition or ui('Competición pendiente') }}{% if show_date %} · {{ ui_calendar_date(group.date) }}{% endif %}</span><small>{{ group.shown }}</small></a>{% endfor %}
+{% for group in primary %}{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}<a class="home-league-tone-{{ group.tone }}" href="#home-{{ section }}-{{ group.date }}-{{ group.anchor }}" title="{{ group.competition }}{% if country_label %} · {{ country_label }}{% endif %}"><i aria-hidden="true"></i><span>{{ group.competition or ui('Competición pendiente') }}{% if show_date %} · {{ ui_calendar_date(group.date) }}{% endif %}</span><small>{{ group.shown }}</small></a>{% endfor %}
 </nav>
 {% endif %}
 <div class="home-competition-list" data-home-league-agenda="{{ section }}">
@@ -41,7 +42,7 @@
     <div class="home-secondary-list">
     {% for group in secondary %}
     {% set name = group.competition or ui('Competición pendiente') %}
-    <details class="home-competition-group home-secondary-league home-league-tone-{{ group.tone }}" name="home-other-leagues-{{ section }}" id="home-{{ section }}-{{ group.date }}-{{ group.anchor }}" data-home-competition="{{ group.key }}" data-home-importance="secondary" data-home-league-search-label="{{ name }} {{ group.country }} {{ group.date }}">
+    <details class="home-competition-group home-secondary-league home-league-tone-{{ group.tone }}" name="home-other-leagues-{{ section }}" id="home-{{ section }}-{{ group.date }}-{{ group.anchor }}" data-home-competition="{{ group.key }}" data-home-importance="secondary" data-home-league-search-label="{{ name }} {{ group.display_country or group.country }} {{ group.date }}">
       <summary class="home-competition-header">{{ league_identity(group, show_date) }}<span class="home-league-count">{{ ui('{count} partido' if group.shown == 1 else '{count} partidos', count=group.shown) }}</span><span class="home-disclosure-chevron" aria-hidden="true">⌄</span></summary>
       <div class="home-secondary-content">
         <a class="home-secondary-link" href="{{ sports_entity_href('competition', group.route_id, name) }}">{{ ui('Ver liga') }} <span aria-hidden="true">→</span></a>
@@ -56,7 +57,8 @@
 {% endif %}
 {% for group in primary %}
 {% set name = group.competition or ui('Competición pendiente') %}
-<section class="home-competition-group home-league-tone-{{ group.tone }}" id="home-{{ section }}-{{ group.date }}-{{ group.anchor }}" aria-label="{{ name }}{% if group.country %} · {{ group.country }}{% endif %}" tabindex="-1" data-home-competition="{{ group.key }}" data-home-importance="primary">
+{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}
+<section class="home-competition-group home-league-tone-{{ group.tone }}" id="home-{{ section }}-{{ group.date }}-{{ group.anchor }}" aria-label="{{ name }}{% if country_label %} · {{ country_label }}{% endif %}" tabindex="-1" data-home-competition="{{ group.key }}" data-home-importance="primary">
   <header class="home-competition-header">
     {{ league_identity(group, show_date) }}
     <div class="home-league-summary"><span class="home-league-count">{{ ui('{count} partido' if group.shown == 1 else '{count} partidos', count=group.shown) }}{% if group.total > group.shown %} / {{ group.total }}{% endif %}</span><a href="{{ sports_entity_href('competition', group.route_id, name) }}">{{ ui('Ver liga') }} <span aria-hidden="true">→</span></a></div>

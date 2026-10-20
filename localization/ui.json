@@ -5398,5 +5398,11 @@
       "en": "These are stored observations; percentages appear only when all three current odds are verified.",
       "fr": "Ce sont des observations enregistrées ; les pourcentages ne s’affichent que si les trois cotes actuelles sont vérifiées."
     }
+  },
+  "home_competition_labels": {
+    "Europa (UEFA)": {
+      "en": "Europe (UEFA)",
+      "fr": "Europe (UEFA)"
+    }
   }
 }

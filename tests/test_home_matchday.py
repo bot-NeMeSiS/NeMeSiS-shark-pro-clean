@@ -65,6 +65,30 @@ def test_upcoming_dates_and_result_dates_are_ordered_truthfully():
     assert [m['id'] for m in items(result,'results')]==['recent','older']
 
 
+@pytest.mark.parametrize(('language','expected'), [
+    ('es', 'Europa (UEFA)'), ('en', 'Europe (UEFA)'), ('fr', 'Europe (UEFA)')])
+def test_uefa_home_group_uses_europe_region_label_without_rewriting_source_country(
+        app_module, language, expected):
+    row = match('ucl', ('uefa-champions-league', 'UEFA Champions League', 'World'))
+    result = build_matchday([row], now=NOW,
+        status_for=lambda item: {'is_upcoming': True, 'is_live': False, 'is_finished': False,
+                                 'is_stale': False, 'status_conflict': False},
+        kickoff_for=lambda item: datetime.fromisoformat(item['kickoff_iso']),
+        priority_for=lambda item: {'rank': 10},
+        identity_for=lambda item: {'display_name': item['competition_name'],
+                                   'country': 'Mundial', 'key': item['competition_key'],
+                                   'group_key': 'provider:ucl', 'route_id': item['competition_key']})
+
+    group = result['today']['groups'][0]
+    assert group['country'] == 'Mundial'
+    assert group['display_country'] == 'Europa (UEFA)'
+
+    from test_design02_r7_home_composition import render_home
+    markup = render_home(app_module, {'home_matchday': result}, language)
+    assert expected in markup
+    assert '>Mundial</span>' not in markup
+
+
 def test_unknown_and_lower_tiers_do_not_displace_known_major_competitions():
     rows=[match('local'+str(i),('local','Local','Spain')) for i in range(50)]
     rows += [match(l[0],l) for l in LEAGUES]
