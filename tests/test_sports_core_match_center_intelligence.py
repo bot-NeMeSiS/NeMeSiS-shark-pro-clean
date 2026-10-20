@@ -184,7 +184,9 @@ def test_match_context_uses_only_persisted_provider_facts():
         "available": True,
         "available_count": 4,
     }
-    assert context["teams"]["home"]["href"] == "/team/Club%20Local"
+    # Canonical team navigation now preserves the provider namespace so
+    # homonymous clubs cannot be silently merged into the same public route.
+    assert context["teams"]["home"]["href"] == "/team/api_football:team:10"
     assert context["competition"]["href"] == "/competition/140"
     assert context["navigation"]["broken_links_allowed"] is False
     assert context["shark_context"]["available"] is True

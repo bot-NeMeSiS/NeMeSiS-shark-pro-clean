@@ -105,6 +105,9 @@ def test_paid_auth_can_fall_back_to_legacy(monkeypatch):
 def test_missing_key_is_controlled(app_module, monkeypatch):
     result = credentials.request("sports/soccer/odds", {}, lambda *a, **kw: pytest.fail("provider called"))
     assert not result["ok"] and result["error"] == "missing_key" and result["external_calls"] == 0
+    # Exercise the configured-but-uncredentialed path. The production default
+    # is intentionally unfunded and must short-circuit before key validation.
+    monkeypatch.setenv("THE_ODDS_API_FUNDED", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
     assert app_module.sync_odds_events()["sin_key"]
 
@@ -129,6 +132,8 @@ def test_free_profile_limits_fanout_and_keeps_configuration(app_module, monkeypa
 def test_free_cache_preserved_without_provider_call(app_module, monkeypatch):
     monkeypatch.setenv("THE_ODDS_API_KEY", "placeholder")
     monkeypatch.setenv("ENABLE_ODDS_API", "true")
+    # Funding is an explicit gate independent from key presence and tier.
+    monkeypatch.setenv("THE_ODDS_API_FUNDED", "true")
     monkeypatch.setattr(app_module, "seed_core", lambda: None)
     monkeypatch.setattr(app_module, "odds_last_sync", lambda: {
         "last_sync": (datetime.now(app_module.TZ) - timedelta(hours=2)).isoformat(),

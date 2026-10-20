@@ -202,6 +202,7 @@ def test_client_highlights_template_never_trusts_technical_headline():
     template = (root / "templates" / "highlights.html").read_text(encoding="utf-8")
     assert "center.get('headline')" not in template
     assert "Resúmenes de partidos" in template
-    assert "Catálogo no verificable" in template
+    assert "Catálogo todavía sin verificar" in template
+    assert "El catálogo no pudo leerse en esta visita" in template
     assert "Disponibilidad sin comprobar" in template
     assert "Partidos sin vídeo disponible" in template
