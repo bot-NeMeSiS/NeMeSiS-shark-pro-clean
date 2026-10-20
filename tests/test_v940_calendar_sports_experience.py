@@ -386,6 +386,62 @@ def test_sports_relevance_live_tier_a_beats_upcoming_tier_s(app_module):
     assert calendar["matches"][0]["sports_relevance"]["is_live"] is True
 
 
+def test_calendar_today_does_not_promote_unconfirmed_live_rows(app_module):
+    confirmed = _sports_relevance_match(
+        app_module,
+        "confirmed-live-calendar",
+        "UEFA Champions League",
+        date_offset=0,
+        kickoff="19:00",
+        status="1H",
+        home="Equipo confirmado",
+        away="Visitante confirmado",
+        minute="37",
+        kickoff_iso=app_module.now_iso(),
+        home_score=1,
+        away_score=0,
+        v935_lifecycle="LIVE",
+        v935_surface={"home": True, "calendar": True, "live": True},
+    )
+    unconfirmed = _sports_relevance_match(
+        app_module,
+        "unconfirmed-live-calendar",
+        "UEFA Champions League",
+        date_offset=0,
+        kickoff="19:10",
+        status="1H",
+        home="Equipo pendiente",
+        away="Visitante pendiente",
+        minute="22",
+        kickoff_iso=app_module.now_iso(),
+        home_score=0,
+        away_score=0,
+        v935_lifecycle="LIVE",
+        v935_surface={"home": True, "calendar": True, "live": True},
+    )
+    summary = _sports_relevance_summary(
+        [confirmed, unconfirmed], live=[confirmed]
+    )
+    summary = app_module._v937_live_summary_without_stale(
+        summary, {"live": [confirmed], "stale_live": []}
+    )
+
+    with app_module.app.test_request_context("/calendar?lane=today"):
+        calendar = app_module.v940_calendar_context(summary, "today", app_module.today_iso())
+        home = app_module.home_matchday_context(summary)
+
+    calendar_ids = {item["id"] for item in calendar["matches"]
+                    if item["status_info"].get("is_live")}
+    home_ids = {item["id"] for group in home["live"]["groups"]
+                for item in group["matches"]}
+    assert calendar_ids == home_ids == {"confirmed-live-calendar"}
+    assert all(
+        "unconfirmed-live-calendar" not in {item["id"] for item in summary.get(key) or []}
+        for key in ("all_valid_matches", "valid_matches_today", "valid_upcoming_matches", "valid_matches_available")
+    )
+    assert summary["unconfirmed_live_excluded"] == 1
+
+
 def test_sports_relevance_favorite_boost_is_explainable(app_module):
     plain = _sports_relevance_match(app_module, "plain-local", "Liga Local QA", home="Club Normal")
     favorite = _sports_relevance_match(app_module, "favorite-local", "Liga Local QA", home="Mi Club")

@@ -162,6 +162,43 @@ def test_home_route_does_not_build_following_or_change_favorites(app_module,monk
     assert 'personal_home' not in result['data']
 
 
+def test_home_light_data_keeps_the_canonical_finished_count(app_module, monkeypatch):
+    snapshot = {
+        'counts': {'today': 2, 'upcoming': 3, 'live': 1, 'finished': 4,
+                   'favorites': 0, 'picks': 0},
+        'sports_home': {'important_today': [], 'live_now': [], 'favorites': [],
+                        'upcoming': [], 'recent_results': []},
+        'valid_matches_available': [], 'picks': [], 'favorites': [],
+        'upcoming_matches': [], 'finished_matches': [],
+    }
+    monkeypatch.setattr(app_module, 'home_live_summary_data', lambda _summary: snapshot)
+    monkeypatch.setattr(app_module, 'get_sports_metrics_contract', lambda _summary: {
+        'contract': 'sports-metrics-v1', 'matches_today': 2, 'matches_available': 5,
+        'live_confirmed': 1, 'picks_ready': 0, 'finished_verified': 4,
+    })
+    monkeypatch.setattr(app_module, 'current_user_id', lambda: None)
+
+    result = app_module.home_light_data({'sports_metrics': {'contract': 'sports-metrics-v1'}},
+                                        include_payments=False)
+
+    assert result['match_hub']['counts']['finished'] == 4
+
+
+def test_locked_home_snapshot_preserves_unavailable_state_for_customer_copy(app_module):
+    summary = {
+        'storage_status': 'database_locked',
+        'provider_status': 'temporarily_unavailable',
+        'safe_message': 'La agenda está ocupada temporalmente.',
+        'valid_matches_today': [], 'valid_upcoming_matches': [],
+        'valid_live_events': [], 'finished_matches': [], 'valid_active_picks': [],
+    }
+
+    result = app_module.home_live_summary_data(summary)
+
+    assert result['storage_status'] == 'database_locked'
+    assert 'temporalmente' in result['safe_message'].lower()
+
+
 def test_degraded_home_does_not_retry_favorites_after_storage_preflight(app_module,monkeypatch):
     monkeypatch.setattr(app_module,'current_session_user',lambda:{'id':'qa','membership':'FREE'})
     monkeypatch.setattr(app_module,'v932_safe_dashboard_data',lambda *a,**kw: (

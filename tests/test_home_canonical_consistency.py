@@ -56,6 +56,7 @@ def component_env(path='/'):
     env.globals.update(ui=lambda value,**kw:translate(value,'es',**kw),
         ui_owned=lambda value:translate(value,'es'),
         request=SimpleNamespace(path=path),
+        sports_match_team_href=lambda match,side:f"/team/{quote(str(match.get(side+'_team') or ''))}",
         ui_calendar_date=lambda value,**kw:str(value),
         ui_match_clock=lambda m:m.get('kickoff_time') or 'Hora',
         ui_match_datetime=lambda m:m.get('client_schedule_label') or 'Hora pendiente',
@@ -105,6 +106,21 @@ def test_legacy_preview_without_matchday_is_preserved():
           'sports_metrics':{'live_confirmed':1}}
     html=render('home.html',data)
     assert 'data-v934-match-id="legacy"' in html and 'Partido en directo' in html
+
+
+def test_locked_client_home_shows_unknown_counts_instead_of_false_zeroes():
+    data = {
+        'match_hub': {},
+        'home_summary': {'storage_status': 'database_locked', 'sports_home': {}},
+        'sports_metrics': {'matches_today': 0, 'matches_available': 0,
+                           'live_confirmed': 0, 'picks_ready': 0},
+        'v925_calendar': {'storage_status': 'database_locked',
+                          'provider_status': 'temporarily_unavailable'},
+        'v925_picks': {'picks': []},
+    }
+    html = render('client_app_center.html', data)
+
+    assert html.count('<strong>—</strong>') == 3
 
 
 def test_visible_factual_method_and_history_navigation_are_preserved():

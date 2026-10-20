@@ -23,7 +23,7 @@
           {{ action_button('Contactar soporte', '/soporte', true, 'blue', false, 'arrow') }}
           {{ action_button('Ver privacidad', '/privacidad', false, 'cyan', false, 'shield') }}
         {% elif page_key == 'status' %}
-          {{ action_button('Health local', '/api/health', true, 'blue', false, 'history') }}
+          {{ action_button('Estado básico', '/api/health', true, 'blue', false, 'history') }}
           {{ action_button('Soporte', '/soporte', false, 'cyan', false, 'arrow') }}
         {% else %}
           {{ action_button('Ver roadmap', '/roadmap', true, 'blue', false, 'arrow') }}
@@ -42,7 +42,7 @@
         <div><span>Metodo</span><strong>Datos reales, evidencia y limites visibles</strong></div>
         <div><span>Producto</span><strong>Partidos, equipos, competiciones y SHARK</strong></div>
         <div><span>Actualizacion</span><strong>{{ company_updated_at }}</strong></div>
-        <div><span>Limitación</span><strong>Algunas funciones y los cobros PRO/ELITE siguen pendientes de certificación.</strong></div>
+        <div><span>Limitación</span><strong>{% if page_key == 'status' %}Esta respuesta no certifica otros sistemas.{% else %}Consulta la disponibilidad de cada función en su pantalla.{% endif %}</strong></div>
       </div>
     </aside>
   </section>
@@ -81,23 +81,23 @@
     {{ section_header('Acceso y planes', 'Empieza sin coste. Los precios de referencia se muestran con su estado real de certificación.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Calendario, directo, resultados y SHARK base para comprobar el valor del producto.</p></article>
-      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('PRO', {}) or {}).get('price_label') or 'No disponible','neutral') }}</header><h3>PRO</h3><p>Seguimiento y contexto ampliado. El cobro permanece pendiente de certificación.</p></article>
-      <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'No disponible','neutral') }}</header><h3>ELITE</h3><p>Experiencia intensiva y alertas avanzadas. El cobro permanece pendiente de certificación.</p></article>
+      <article class="company-platform-card"><header>{{ status_chip((((company_pricing.get('PRO', {}) or {}).get('price_label') ~ ' · precio configurado') if (company_pricing.get('PRO', {}) or {}).get('configured') else 'Consulta Membresías'),'neutral') }}</header><h3>PRO</h3><p>Seguimiento y contexto ampliado. Consulta el precio y las condiciones actuales en Membresías.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Ver Membresías</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip((((company_pricing.get('ELITE', {}) or {}).get('price_label') ~ ' · precio configurado') if (company_pricing.get('ELITE', {}) or {}).get('configured') else 'Consulta Membresías'),'neutral') }}</header><h3>ELITE</h3><p>Experiencia intensiva y alertas avanzadas. Consulta el precio y las condiciones actuales en Membresías.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Ver Membresías</span></a></article>
     </div>
   </section>
   {% elif page_key == 'pricing' %}
   <section class="v933-panel company-platform-section">
-    {{ section_header('Comparativa responsable', 'Ningun plan garantiza beneficios. NeMeSiS ofrece organizacion, contexto y controles de calidad.') }}
+    {{ section_header('Comparativa responsable', 'Ningún plan garantiza beneficios. NeMeSiS ofrece organización, contexto y controles de calidad. Un precio configurado no confirma que la compra esté habilitada; consulta disponibilidad y condiciones en Membresías.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip((company_pricing.get('FREE', {}) or {}).get('price_label') or '0 EUR','neutral') }}</header><h3>FREE</h3><p>Acceso inicial para entender jornada, calendario y bases de confianza.</p><a class="v933-action is-blue" href="/registro">{{ icon('arrow') }}<span>Empezar gratis</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('PRO', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('PRO', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando este certificado.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip(((company_pricing.get('ELITE', {}) or {}).get('price_label') or 'Precio no disponible') ~ (' · disponible' if (company_pricing.get('ELITE', {}) or {}).get('configured') else ' · cobro pendiente'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para maxima profundidad, siempre sujeta a datos reales y limites visibles.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Consultar</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip((((company_pricing.get('PRO', {}) or {}).get('price_label') ~ ' · precio configurado') if (company_pricing.get('PRO', {}) or {}).get('configured') else 'Precio pendiente de configurar'),'neutral') }}</header><h3>PRO</h3><p>Pensado para seguimiento, Telegram y contexto premium cuando esté disponible.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Compra en Membresías</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip((((company_pricing.get('ELITE', {}) or {}).get('price_label') ~ ' · precio configurado') if (company_pricing.get('ELITE', {}) or {}).get('configured') else 'Precio pendiente de configurar'),'neutral') }}</header><h3>ELITE</h3><p>Capa avanzada para máxima profundidad, sujeta a datos reales y límites visibles.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Compra en Membresías</span></a></article>
     </div>
   </section>
   <section class="v933-panel company-platform-section">
     {{ section_header('Reglas comerciales', 'La conversión nunca depende de presión, promesas de ganancias ni información incompleta.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Seguro','neutral') }}</header><h3>Sin cobro automático</h3><p>Esta página no ejecuta pagos ni abre procesos de compra.</p></article>
+      <article class="company-platform-card"><header>{{ status_chip('Seguro','neutral') }}</header><h3>Sin cobro automático</h3><p>Esta página no inicia compras; consulta disponibilidad y condiciones en Membresías.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Compra en Membresías</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Principio','neutral') }}</header><h3>Valor antes de venta</h3><p>El usuario debe entender el producto antes de elegir un plan.</p></article>
       <article class="company-platform-card"><header>{{ status_chip('Transparente','neutral') }}</header><h3>Condiciones visibles</h3><p>Terminos, privacidad, cookies y soporte permanecen visibles antes de contratar.</p><a class="v933-action is-blue" href="/terminos">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
@@ -140,10 +140,10 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Sistemas visibles', 'Clasificacion honesta; no se convierte falta de evidencia en PASS.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('LOCAL_ONLY','neutral') }}</header><h3>Aplicacion web</h3><p>Rutas publicas y cliente disponibles en entorno local de QA.</p><a class="v933-action is-blue" href="/">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('NO CERTIFICADO','neutral') }}</header><h3>Render</h3><p>No certificado desde esta página. Requiere evidencia read-only de producción.</p><a class="v933-action is-blue" href="/soporte">{{ icon('arrow') }}<span>Soporte</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('NO CONECTADO AQUI','neutral') }}</header><h3>Pagos</h3><p>La plataforma comercial no inicia pagos ni abre procesos de compra.</p><a class="v933-action is-blue" href="/precios">{{ icon('arrow') }}<span>Precios</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('SIN ENVIO','neutral') }}</header><h3>Telegram</h3><p>Integracion existente; esta página no envia mensajes ni modifica destinos.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Respuesta servida','neutral') }}</header><h3>Aplicación</h3><p>Respuesta servida por esta instancia. Versión {{ service_status.version }} · Consulta {{ service_status.observed_at }}. Esto confirma esta respuesta; no certifica otros sistemas.</p><a class="v933-action is-blue" href="/api/health">{{ icon('arrow') }}<span>Ver respuesta básica</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Sin comprobación externa','neutral') }}</header><h3>Datos deportivos</h3><p>Esta visita no hace llamadas a proveedores ni consume cuota. La respuesta de esta página no certifica disponibilidad ni frescura de partidos.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir calendario</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Sin compra desde aquí','neutral') }}</header><h3>Pagos</h3><p>Esta página no inicia compras. Consulta disponibilidad, entorno y condiciones en Membresías antes de continuar.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Membresías</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Sin envío desde aquí','neutral') }}</header><h3>Telegram</h3><p>Esta página no envía mensajes. La disponibilidad y la entrega se deben comprobar en el contexto correspondiente.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir Telegram</span></a></article>
     </div>
   </section>
   {% elif page_key == 'changelog' %}

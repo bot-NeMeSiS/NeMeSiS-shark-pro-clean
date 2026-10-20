@@ -20,6 +20,7 @@
 {% set live_count = sports_metrics.get('live_confirmed', 0) %}
 {% set pick_count = sports_metrics.get('picks_ready', counts.get('picks', 0)) %}
 {% set incomplete_count = counts.get('incomplete', 0) or 0 %}
+{% set agenda_unavailable = summary.get('storage_status') == 'database_locked' %}
 {% set safe_message = 'La agenda no está disponible temporalmente. Vuelve a intentarlo en unos minutos.' if summary.get('storage_status') == 'database_locked' else 'Todavía no hay partidos disponibles para esta jornada.' %}
 {% set realtime = data.get('v934_realtime') or {} %}
 {% set simulated_evidence = evidence_origin == 'SIMULATED_QA' %}
@@ -105,10 +106,10 @@
       {% endif %}
       <span class="sr-only" data-top100-improvement="17">Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.</span>
       <div class="v933-hero-proof sports-priority-proof">
-        <span>{{ icon('live') }} {{ live_count }} en directo</span>
-        <span>{{ icon('calendar') }} {{ today_count }} hoy</span>
+        <span>{{ icon('live') }} {{ '—' if agenda_unavailable else live_count }} en directo</span>
+        <span>{{ icon('calendar') }} {{ '—' if agenda_unavailable else today_count }} hoy</span>
         <span>{{ icon('shield') }} {{ relevance_counts.get('priority', 0) }} destacados</span>
-        <span>{{ icon('shark') }} {{ pick_count }} pronósticos SHARK</span>
+        <span>{{ icon('shark') }} {{ '—' if agenda_unavailable else pick_count }} pronósticos SHARK</span>
       </div>
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
         <a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>

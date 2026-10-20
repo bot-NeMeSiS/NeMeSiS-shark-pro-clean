@@ -511,7 +511,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V942_HIGHLIGHTS_READ_PATH_PAYMENT_STATUS_SENTINEL'
+APP_VERSION = 'V943_CUSTOMER_LIVE_AND_STATUS_CONSISTENCY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17620,7 +17620,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V942_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V943_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -19759,6 +19759,7 @@ def _v931_legacy_home_summary(summary):
         "sports_home": sports_home,
         "incomplete_matches": summary.get("incomplete_matches") or [],
         "provider_status": summary.get("provider_status"),
+        "storage_status": summary.get("storage_status") or "unknown",
         "last_sync": summary.get("last_sync"),
         "safe_message": summary.get("safe_message"),
         "sports_metrics": sports_metrics,
@@ -19806,7 +19807,7 @@ def home_light_data(sports_summary=None, include_payments=True):
                 "upcoming": counts.get("upcoming", 0),
                 "today": counts.get("today", 0),
                 "live": counts.get("live", 0),
-                "finished": 0,
+                "finished": counts.get("finished", sports_metrics.get("finished_verified", 0)),
                 "favorites": counts.get("favorites", 0),
                 "with_picks": counts.get("picks", 0),
             },
@@ -19842,6 +19843,7 @@ def _v931_provider_context(summary):
         "has_real_data": has_data,
         "last_sync": sports.get("last_safe_sync") or "",
         "provider_status": sports.get("provider_status") or "waiting_for_sync",
+        "storage_status": sports.get("storage_status") or "read_unavailable",
         "cache_status": sports.get("cache_status") or "empty",
         "safe_message": sports.get("safe_message") or "Sin datos deportivos completos disponibles.",
         "no_render_api_call": True,
@@ -20200,6 +20202,19 @@ def _v937_live_summary_without_stale(summary, realtime):
     }
     fresh_ids = set(fresh_by_id)
     stale_ids = {item_id(item) for item in realtime.get("stale_live") or [] if item_id(item)}
+    unconfirmed_live_ids = set()
+
+    def keep_match(item):
+        if not isinstance(item, dict):
+            return False
+        current_id = item_id(item)
+        if current_id in stale_ids:
+            return False
+        if canonical_match_status(item).get("is_live") and current_id not in fresh_ids:
+            if current_id:
+                unconfirmed_live_ids.add(current_id)
+            return False
+        return True
 
     def merge_fresh_state(item):
         current_id = item_id(item)
@@ -20216,13 +20231,18 @@ def _v937_live_summary_without_stale(summary, realtime):
         return merged
 
     filtered = dict(summary)
-    for key in ("all_valid_matches", "valid_matches_today", "valid_upcoming_matches"):
+    for key in (
+        "all_valid_matches",
+        "valid_matches_today",
+        "valid_upcoming_matches",
+        "valid_matches_available",
+    ):
         source = summary.get(key)
         if isinstance(source, list):
             filtered[key] = [
                 merge_fresh_state(item)
                 for item in source
-                if item_id(item) not in stale_ids
+                if keep_match(item)
             ]
     raw_live = summary.get("valid_live_events") or []
     filtered["valid_live_events"] = [
@@ -20230,6 +20250,7 @@ def _v937_live_summary_without_stale(summary, realtime):
         if item_id(item) in fresh_ids and item_id(item) not in stale_ids
     ]
     filtered["stale_live_excluded"] = len(stale_ids)
+    filtered["unconfirmed_live_excluded"] = len(unconfirmed_live_ids)
     return filtered
 
 
@@ -21497,7 +21518,7 @@ COMPANY_PLATFORM_PAGES = {
     "knowledge": {"title": "Conocimiento publico sin contenido inventado", "eyebrow": "Base de conocimiento", "summary": "Estructura por temas; los articulos largos se publicaran solo tras aprobacion humana.", "status": "Estructura preparada"},
     "roadmap": {"title": "Qué viene después, sin fechas inventadas", "eyebrow": "Roadmap público", "summary": "Roadmap comercial de alto nivel sujeto a certificación antes de prometer lanzamiento.", "status": "Público controlado"},
     "changelog": {"title": "Historial publico pendiente de aprobacion", "eyebrow": "Changelog", "summary": "La infraestructura esta preparada; no hay notas publicas sin revision humana.", "status": "Sin entradas publicas"},
-    "status": {"title": "Estado público con límites visibles", "eyebrow": "Estado del servicio", "summary": "Vista informativa local; producción requiere Gate antes de declararse lista.", "status": "No certifica producción"},
+    "status": {"title": "Estado público con límites visibles", "eyebrow": "Estado del servicio", "summary": "Esta página informa de su propia respuesta; no certifica el calendario, los proveedores ni los pagos.", "status": "Respuesta de esta página"},
     "partners": {"title": "Programa de partners no abierto todavía", "eyebrow": "Partners", "summary": "No se publican acuerdos, logos ni claims comerciales no confirmados.", "status": "Sin partners publicados"},
     "affiliates": {"title": "Afiliados preparado, no activado", "eyebrow": "Afiliados", "summary": "Sin campanas, comisiones ni enlaces afiliados activos desde esta infraestructura.", "status": "Programa cerrado"},
     "blog": {"title": "Blog preparado para contenido aprobado", "eyebrow": "Blog", "summary": "No se publican articulos de relleno ni contenido editorial sin revision.", "status": "Sin articulos"},
@@ -21513,6 +21534,7 @@ def render_company_platform_page(page_key: str):
     capture_growth_attribution_from_request()
     page = COMPANY_PLATFORM_PAGES.get(page_key, COMPANY_PLATFORM_PAGES["landing"])
     canonical_paths = {"landing": "/landing", "pricing": "/precios", "faq": "/faq", "help": "/help-center", "knowledge": "/knowledge-base", "roadmap": "/roadmap", "changelog": "/changelog", "status": "/service-status", "partners": "/partners", "affiliates": "/afiliados", "blog": "/blog"}
+    observed_at = now_madrid_label()
     return render_template(
         "company_platform.html",
         title=f"{page['title']} | NeMeSiS SHARK PRO",
@@ -21520,8 +21542,12 @@ def render_company_platform_page(page_key: str):
         page=page,
         company_nav=COMPANY_PLATFORM_NAV,
         company_contract=COMPANY_PLATFORM_CONTRACT,
-        company_updated_at=now_madrid_label(),
+        company_updated_at=observed_at,
         company_pricing=plan_catalog(),
+        service_status={
+            "version": APP_VERSION,
+            "observed_at": observed_at,
+        } if page_key == "status" else {},
         meta_description=page["summary"],
         canonical_url=request.url_root.rstrip("/") + canonical_paths.get(page_key, "/landing"),
     )

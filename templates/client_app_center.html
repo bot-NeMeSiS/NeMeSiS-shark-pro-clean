@@ -42,9 +42,9 @@
   {% endif %}
 
   <section class="v933-kpi-grid ns16-kpi-strip" aria-label="{{ ui('Resumen de la jornada') }}">
-    {{ kpi_card('Partidos hoy', sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendario') }}
-    {{ kpi_card('En directo', sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
-    {{ kpi_card('Pronósticos activos', sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Partidos hoy', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendario') }}
+    {{ kpi_card('En directo', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
+    {{ kpi_card('Pronósticos activos', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
   </section>
 
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">

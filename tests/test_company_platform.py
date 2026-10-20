@@ -78,6 +78,27 @@ def test_company_platform_empty_states_are_honest():
         assert snippet in template
 
 
+def test_public_status_page_reports_the_serving_instance_without_local_qa_claims():
+    html = app_module.app.test_client().get("/service-status").get_data(as_text=True)
+
+    assert "Respuesta servida por esta instancia" in html
+    assert app_module.APP_VERSION in html
+    assert "LOCAL_ONLY" not in html
+    assert "NO CERTIFICADO" not in html
+    assert "NO CONECTADO AQUI" not in html
+    assert "no certifica" in html.lower()
+
+
+def test_public_pricing_distinguishes_configured_price_from_available_purchase():
+    html = app_module.app.test_client().get("/precios").get_data(as_text=True)
+
+    assert "precio configurado" in html.lower()
+    assert "un precio configurado no confirma que la compra esté habilitada" in html.lower()
+    assert "Compra en Membresías" in html
+    assert "· disponible" not in html
+    assert "esta página no inicia compras" in html.lower()
+
+
 def test_company_platform_registry_developer_center_and_reports():
     registry = build_sports_platform_contract_registry(ROOT)
     capabilities = {item["key"]: item for item in registry["capabilities"]}
