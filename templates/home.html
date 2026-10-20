@@ -90,18 +90,14 @@
       {% if current_user %}
       <h1 data-madrid-greeting>{{ greeting.label }}{% if greeting.name %}, <span>{{ greeting.name }}</span>{% endif %}</h1>
       <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
-      <div class="v933-hero-actions">
+      <div class="v933-hero-actions" data-home-primary-action>
         {{ action_button('Abrir directo', '/directo', true, 'cyan', false, 'live') }}
-        {{ action_button('Abrir calendario', '/calendario', false, 'blue', false, 'calendar') }}
-        {{ action_button('Mis favoritos', '/favoritos', false, 'gold', false, 'star') }}
       </div>
       {% else %}
       <h1>{{ hero_title }}<span>.</span></h1>
       <p>{{ hero_summary }}</p>
-      <div class="v933-hero-actions">
+      <div class="v933-hero-actions" data-home-primary-action>
         {{ action_button('Empezar gratis', '/registro', true, 'blue', false, 'user') }}
-        {{ action_button('Directo', '/directo', false, 'cyan', false, 'live') }}
-        {{ action_button('Calendario', '/calendario', false, 'blue', false, 'calendar') }}
       </div>
       {% endif %}
       <span class="sr-only" data-top100-improvement="17">Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.</span>
@@ -111,8 +107,8 @@
         <span>{{ icon('shield') }} {{ relevance_counts.get('priority', 0) }} destacados</span>
         <span>{{ icon('shark') }} {{ '—' if agenda_unavailable else pick_count }} pronósticos SHARK</span>
       </div>
-      <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start">
-        <a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>
+      <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start" data-home-secondary-actions>
+        {% if not current_user %}<a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>{% endif %}
         <a href="/calendario">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span></a>
         <a href="/favoritos">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span></a>
         <a href="/picks">{{ icon('target') }}<span>{{ ui("Pronósticos") }}</span></a>

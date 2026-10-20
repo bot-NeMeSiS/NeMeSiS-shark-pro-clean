@@ -29,6 +29,21 @@ def test_launch_excellence_home_guidance_is_present():
     assert '/player/101' not in home
 
 
+def test_home_has_one_primary_action_without_repeating_it_in_the_access_strip():
+    home = read_text("templates/home.html")
+    signed_in, remainder = home.split("{% if current_user %}", 1)[1].split("{% else %}", 1)
+    public, remainder = remainder.split("{% endif %}", 1)
+    access_strip = remainder.split('data-home-secondary-actions>', 1)[1].split('</nav>', 1)[0]
+
+    assert signed_in.count("action_button(") == 1
+    assert public.count("action_button(") == 1
+    assert "data-home-primary-action" in home
+    assert '{% if not current_user %}<a href="/directo">' in access_strip
+    assert '<a href="/calendario">' in access_strip
+    assert '<a href="/favoritos">' in access_strip
+    assert '<a href="/picks">' in access_strip
+
+
 def test_launch_excellence_client_js_is_local_and_safe():
     js = read_text("static/v937-product-client.js")
     required = [
