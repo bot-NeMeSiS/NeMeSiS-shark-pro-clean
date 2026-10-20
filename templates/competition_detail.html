@@ -79,6 +79,11 @@
   <div class="competition-center-layout">
     <section class="competition-center-panel competition-center-wide" data-competition-center-section="standings">
       <div class="competition-center-section-head"><span>{{ ui("Clasificación") }}</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
+      {% if standings.provisional %}
+      <p class="competition-coverage-note" role="status" data-standings-state="provisional">{{ ui("Clasificación provisional calculada con resultados finalizados disponibles. Puede estar incompleta y no sustituye la tabla oficial de la liga.") }}</p>
+      {% elif standings.available %}
+      <p class="competition-coverage-note" data-standings-state="provider">{{ ui("Clasificación recibida de la fuente deportiva sincronizada.") }}</p>
+      {% endif %}
       {% if standings.rows %}
       <div class="competition-center-table-wrap">
         <table class="competition-center-table">
@@ -87,6 +92,11 @@
               <th>{{ ui("Pos") }}</th>
               <th>{{ ui("Equipo") }}</th>
               <th>{{ ui("PJ") }}</th>
+              <th>{{ ui("G") }}</th>
+              <th>{{ ui("E") }}</th>
+              <th>{{ ui("P") }}</th>
+              <th>{{ ui("GF") }}</th>
+              <th>{{ ui("GC") }}</th>
               <th>{{ ui("DG") }}</th>
               <th>{{ ui("Pts") }}</th>
               <th>{{ ui("Forma") }}</th>
@@ -97,8 +107,13 @@
             {% for row in standings.rows[:24] %}
             <tr data-competition-standings-row>
               <td>{{ row.position or ui('No disponible') }}</td>
-              <td><a href="/team/{{ row.team_route_id|urlencode }}">{{ row.team_name or ui('No disponible') }}</a></td>
+              <td><a href="/team/{{ row.team_route_id|urlencode }}">{% if row.team_logo %}<img src="{{ row.team_logo }}" alt="" loading="lazy" width="20" height="20" style="width:20px;height:20px;object-fit:contain;vertical-align:middle;margin-right:6px">{% endif %}{{ row.team_name or ui('No disponible') }}</a></td>
               <td>{{ row.played if row.played is not none else ui('No disponible') }}</td>
+              <td>{{ row.wins if row.wins is not none else ui('No disponible') }}</td>
+              <td>{{ row.draws if row.draws is not none else ui('No disponible') }}</td>
+              <td>{{ row.losses if row.losses is not none else ui('No disponible') }}</td>
+              <td>{{ row.goals_for if row.goals_for is not none else ui('No disponible') }}</td>
+              <td>{{ row.goals_against if row.goals_against is not none else ui('No disponible') }}</td>
               <td>{{ row.goal_difference if row.goal_difference is not none else ui('No disponible') }}</td>
               <td>{{ row.points if row.points is not none else ui('No disponible') }}</td>
               <td>{{ row.form or ui('No disponible') }}</td>

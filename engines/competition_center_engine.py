@@ -235,10 +235,111 @@ def _team_catalog_from_matches(matches: Iterable[Mapping[str, Any]], teams: Iter
     return sorted(result, key=lambda item: item["name"])
 
 
+def _computed_standings_from_matches(
+    matches: Iterable[Mapping[str, Any]],
+    *,
+    fallback_teams: Iterable[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build a provisional table from confirmed finished results only."""
+    team_catalog: dict[str, dict[str, Any]] = {}
+    route_by_name: dict[str, str] = {}
+    crest_by_name: dict[str, str] = {}
+    for team in _items(fallback_teams):
+        name = _text(team.get("name") or team.get("team_name") or team.get("display_name"), 160)
+        if name:
+            key = normalized(name)
+            route_by_name[key] = _text(team.get("route_id") or team.get("team_route_id"), 160) or name
+            canonical = _mapping(team.get("canonical"))
+            crest_by_name[key] = _text(team.get("crest") or canonical.get("crest") or canonical.get("logo"), 500)
+
+    for match in _items(matches):
+        if not match_status_truth(dict(match)).get("is_finished"):
+            continue
+        home = _text(match.get("home_team") or match.get("safe_home"), 160)
+        away = _text(match.get("away_team") or match.get("safe_away"), 160)
+        home_goals = _score_number(match.get("home_score"))
+        away_goals = _score_number(match.get("away_score"))
+        if not home or not away or home_goals is None or away_goals is None or home_goals < 0 or away_goals < 0:
+            continue
+        for name in (home, away):
+            key = normalized(name)
+            if key and key not in team_catalog:
+                team_catalog[key] = {
+                    "team_name": name, "played": 0, "wins": 0, "draws": 0,
+                    "losses": 0, "goals_for": 0, "goals_against": 0,
+                    "points": 0, "form_results": [],
+                }
+        home_row = team_catalog.get(normalized(home))
+        away_row = team_catalog.get(normalized(away))
+        if not home_row or not away_row:
+            continue
+        home_row["played"] += 1
+        away_row["played"] += 1
+        home_row["goals_for"] += home_goals
+        home_row["goals_against"] += away_goals
+        away_row["goals_for"] += away_goals
+        away_row["goals_against"] += home_goals
+        if home_goals > away_goals:
+            home_row["wins"] += 1
+            home_row["points"] += 3
+            away_row["losses"] += 1
+            home_result, away_result = "V", "D"
+        elif home_goals < away_goals:
+            away_row["wins"] += 1
+            away_row["points"] += 3
+            home_row["losses"] += 1
+            home_result, away_result = "D", "V"
+        else:
+            home_row["draws"] += 1
+            away_row["draws"] += 1
+            home_row["points"] += 1
+            away_row["points"] += 1
+            home_result = away_result = "E"
+        kickoff = str(match.get("kickoff_iso") or match.get("match_date") or "")
+        home_row["form_results"].append((kickoff, home_result))
+        away_row["form_results"].append((kickoff, away_result))
+
+    rows = []
+    for item in team_catalog.values():
+        rows.append({
+            "position": None,
+            "team_name": item["team_name"],
+            "team_route_id": route_by_name.get(normalized(item["team_name"]), item["team_name"]),
+            "team_logo": crest_by_name.get(normalized(item["team_name"])) or None,
+            "points": item["points"],
+            "played": item["played"],
+            "wins": item["wins"],
+            "draws": item["draws"],
+            "losses": item["losses"],
+            "goals_for": item["goals_for"],
+            "goals_against": item["goals_against"],
+            "goal_difference": item["goals_for"] - item["goals_against"],
+            "form": "".join(result for _date, result in sorted(item["form_results"], reverse=True)[:5]) or "No disponible",
+            "trend": "No disponible",
+            "state": "Provisional",
+            "source": "computed_from_confirmed_finished_results",
+            "evidence": "confirmed_finished_match_scores",
+            "limitations": [
+                "Clasificación provisional calculada con resultados finalizados cargados.",
+                "Puede faltar partidos; no sustituye la clasificación oficial del proveedor.",
+            ],
+        })
+    rows.sort(key=lambda item: (
+        -(item.get("points") or 0),
+        -(item.get("goal_difference") or 0),
+        -(item.get("goals_for") or 0),
+        normalized(item.get("team_name")),
+    ))
+    for position, row in enumerate(rows, start=1):
+        row["position"] = position
+    return rows
+
+
 def _standings_rows(
     standings: Iterable[Mapping[str, Any]],
     *,
     fallback_teams: Iterable[Mapping[str, Any]],
+    matches: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     for raw in _items(standings):
@@ -247,9 +348,7 @@ def _standings_rows(
             continue
         goals_for = _as_int(raw.get("goals_for"))
         goals_against = _as_int(raw.get("goals_against"))
-        goal_difference = None
-        if goals_for is not None and goals_against is not None:
-            goal_difference = goals_for - goals_against
+        goal_difference = goals_for - goals_against if goals_for is not None and goals_against is not None else None
         description = _text(raw.get("description"), 160)
         state = "Confirmado"
         lowered = description.casefold()
@@ -266,7 +365,8 @@ def _standings_rows(
         rows.append({
             "position": _as_int(raw.get("rank") or raw.get("position")),
             "team_name": team_name,
-            "team_route_id": _text(raw.get("team_id"), 160) or team_name,
+            "team_route_id": _text(raw.get("team_route_id") or raw.get("team_id"), 160) or team_name,
+            "team_logo": _text(raw.get("team_logo") or raw.get("logo") or raw.get("crest"), 500) or None,
             "points": _as_int(raw.get("points")),
             "played": _as_int(raw.get("played")),
             "wins": _as_int(raw.get("wins")),
@@ -278,19 +378,30 @@ def _standings_rows(
             "form": _text(raw.get("form"), 12) or "No disponible",
             "trend": "No disponible",
             "state": state,
-            "source": raw.get("source") or "api_football_standings_deep",
+            "source": raw.get("source") or "official_provider_standings",
             "evidence": "standings_row",
-            "limitations": [] if raw.get("rank") or raw.get("points") else ["Clasificacion parcial sin posicion o puntos confirmados."],
+            "limitations": [] if raw.get("rank") and raw.get("points") is not None else ["Clasificacion oficial parcial sin posicion o puntos confirmados."],
         })
-    rows = sorted(rows, key=lambda item: item.get("position") or 999)
+    if rows:
+        rows = sorted(rows, key=lambda item: item.get("position") or 999)
+        return {
+            "available": True, "rows": rows[:40], "source": "official_provider_standings",
+            "state": "OFFICIAL_PROVIDER_DATA", "provisional": False, "limitations": [],
+            "fallback_team_count": len(_items(fallback_teams)),
+        }
+
+    computed = _computed_standings_from_matches(matches, fallback_teams=fallback_teams)
     return {
-        "available": bool(rows),
-        "rows": rows[:24],
-        "source": "api_football_standings_deep" if rows else "No disponible",
-        "limitations": [] if rows else ["No hay clasificacion oficial sincronizada para esta competicion."],
+        "available": bool(computed),
+        "rows": computed[:40],
+        "source": "computed_from_confirmed_finished_results" if computed else "No disponible",
+        "state": "PROVISIONAL_FROM_RESULTS" if computed else "PENDIENTE_SINCRONIZACION",
+        "provisional": bool(computed),
+        "limitations": ["No hay clasificacion oficial sincronizada para esta competicion."] + (
+            ["La tabla provisional se calcula solo con resultados finalizados disponibles y puede estar incompleta."] if computed else []
+        ),
         "fallback_team_count": len(_items(fallback_teams)),
     }
-
 
 def _calendar(matches: Iterable[Mapping[str, Any]], *, observed_at_madrid="") -> dict[str, Any]:
     items = _items(matches)
@@ -466,7 +577,7 @@ def build_competition_center_context(
             "stripe_calls": 0,
         },
     }
-    standings = _standings_rows(standings_input, fallback_teams=teams)
+    standings = _standings_rows(standings_input, fallback_teams=teams, matches=matches)
     calendar = _calendar(matches, observed_at_madrid=observed_at_madrid)
     graph = build_sports_graph_relationships(
         team_entities=canonical_teams,
