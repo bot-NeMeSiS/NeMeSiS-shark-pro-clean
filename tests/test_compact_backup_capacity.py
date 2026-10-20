@@ -65,6 +65,33 @@ def test_compact_copy_rejects_insufficient_margin(tmp_path, monkeypatch):
     assert {p.name for p in folder.iterdir()} == {".backup.lock"}
 
 
+def test_compact_preflight_reports_when_no_pages_can_be_reused(tmp_path, monkeypatch):
+    source = tmp_path / "without-free-pages.db"
+    with sqlite3.connect(source) as conn:
+        conn.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT)")
+        conn.execute("INSERT INTO users(name) VALUES('QA')")
+    monkeypatch.setattr(vault.shutil, "disk_usage", lambda _: SimpleNamespace(free=2**31, total=2**32))
+
+    candidate = vault._compact_snapshot_capacity(source, tmp_path)
+
+    assert candidate["ok"] is False
+    assert candidate["reason_code"] == "NO_REUSABLE_PAGES"
+    assert candidate["reusable_page_bytes"] == 0
+    assert candidate["free_bytes"] == 2**31
+
+
+def test_compact_preflight_reports_insufficient_free_space(tmp_path, monkeypatch):
+    source = source_with_free_pages(tmp_path)
+    monkeypatch.setattr(vault.shutil, "disk_usage", lambda _: SimpleNamespace(free=1024, total=2**31))
+
+    candidate = vault._compact_snapshot_capacity(source, tmp_path)
+
+    assert candidate["ok"] is False
+    assert candidate["reason_code"] == "INSUFFICIENT_SPACE"
+    assert candidate["reusable_page_bytes"] > 0
+    assert candidate["required_bytes"] > candidate["free_bytes"]
+
+
 def test_compact_copy_timeout_never_publishes(tmp_path, monkeypatch):
     source = source_with_free_pages(tmp_path)
     original = source.read_bytes()

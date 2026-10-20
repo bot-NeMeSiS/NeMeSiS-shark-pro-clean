@@ -313,13 +313,17 @@ def _compact_snapshot_capacity(db_path: Path, directory: Path) -> dict:
         compact_bytes = max(1, pages - free_pages) * page_size
         margin = max(64 * 1024 * 1024, compact_bytes // 10)
         available = int(shutil.disk_usage(directory).free)
-        return {"ok": free_pages > 0 and available >= compact_bytes + margin,
+        required = compact_bytes + margin
+        reason = ("NO_REUSABLE_PAGES" if free_pages <= 0
+                  else "INSUFFICIENT_SPACE" if available < required
+                  else "READY")
+        return {"ok": reason == "READY", "reason_code": reason,
                 "compact_snapshot_bytes": compact_bytes,
                 "reusable_page_bytes": free_pages * page_size,
-                "required_bytes": compact_bytes + margin,
-                "free_after": available, "method": "vacuum_into"}
+                "required_bytes": required,
+                "free_bytes": available, "method": "vacuum_into"}
     except (OSError, sqlite3.Error, TypeError, ValueError):
-        return {"ok": False, "method": "vacuum_into"}
+        return {"ok": False, "reason_code": "CAPACITY_CHECK_FAILED", "method": "vacuum_into"}
 
 
 def ensure_backup_capacity(
@@ -470,7 +474,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                        allocated_snapshot_bytes=storage.get("snapshot_bytes"),
                        snapshot_bytes=candidate["compact_snapshot_bytes"],
                        required_bytes=candidate["required_bytes"],
-                       free_after=candidate["free_after"])
+                       free_after=candidate["free_bytes"])
     stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
     manifest_path = out.with_suffix(".json")

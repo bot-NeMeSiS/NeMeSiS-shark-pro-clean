@@ -1,0 +1,19 @@
+{
+  "created_at": "2026-10-20T16:56:03+00:00",
+  "version": "V942_HIGHLIGHTS_READ_PATH_PAYMENT_STATUS_SENTINEL",
+  "db_path_source": "C:\\Users\\aloha\\OneDrive\\Escritorio\\NeMeSiS shark pro\\.codex-pytest-temp\\backup-capacity-20261020-v2\\test_legacy_admin_backup_uses_0\\source.sqlite",
+  "size_bytes": 12288,
+  "sha256": "0793e7c4def8e9f9443762160d23e898b9a07aa264d8f9aa13cadb6da3da8530",
+  "tables_included": [
+    "users"
+  ],
+  "records_summary": {
+    "users": 1
+  },
+  "type": "admin_manual",
+  "environment": "local",
+  "created_by": "admin",
+  "valid": true,
+  "notes": "Backup SQLite verificado. No incluir en ZIP.",
+  "snapshot_method": "sqlite_backup"
+}

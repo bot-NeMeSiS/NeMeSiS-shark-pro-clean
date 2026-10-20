@@ -102,6 +102,7 @@ def test_master_calls_backup_only_when_due(monkeypatch, capsys):
     assert payload["overall"] == "PASS"
     assert payload["backup_status"] == "PASS"
     assert payload["backup"]["backup_created"] is True
+    assert payload["backup"]["backup_compact_candidate_state"] == "NOT_NEEDED"
     assert len(calls) == 4
     assert calls[2]["request"].get_method() == "POST"
     assert calls[2]["request"].full_url.endswith(master.BACKUP_ENDPOINT)
@@ -831,6 +832,16 @@ def test_backup_storage_failure_is_sanitized_and_capacity_is_visible(monkeypatch
             "free_before": 500,
             "free_after": 700,
             "removed": ["old-a.db", "old-b.db"],
+            "compact_candidate": {
+                "ok": False,
+                "reason_code": "INSUFFICIENT_SPACE",
+                "compact_snapshot_bytes": 600,
+                "reusable_page_bytes": 120,
+                "required_bytes": 660,
+                "free_bytes": 500,
+                "method": "vacuum_into",
+                "path": "/must-not-be-logged/private.db",
+            },
         },
     })
     code, payload, _calls, output = run_master(
@@ -846,7 +857,13 @@ def test_backup_storage_failure_is_sanitized_and_capacity_is_visible(monkeypatch
     assert payload["backup"]["backup_storage_free_before"] == 500
     assert payload["backup"]["backup_storage_free_after"] == 700
     assert payload["backup"]["backup_storage_removed_count"] == 2
+    assert payload["backup"]["backup_compact_candidate_state"] == "INSUFFICIENT_SPACE"
+    assert payload["backup"]["backup_compact_snapshot_bytes"] == 600
+    assert payload["backup"]["backup_compact_reusable_page_bytes"] == 120
+    assert payload["backup"]["backup_compact_required_bytes"] == 660
+    assert payload["backup"]["backup_compact_free_bytes"] == 500
     assert "database or disk is full" not in output
+    assert "must-not-be-logged" not in output
 
 
 def test_backup_error_classifier_never_echoes_secret():

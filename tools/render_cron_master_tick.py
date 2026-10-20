@@ -120,6 +120,16 @@ def safe_count(value: object) -> int:
         return 0
 
 
+def safe_optional_count(value: object) -> int | None:
+    """Keep missing measurements distinct from a measured zero."""
+    if value is None:
+        return None
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return None
+
+
 def safe_timestamp(value: object) -> str:
     """Accept only parseable operational timestamps; never log arbitrary text."""
     if not isinstance(value, str) or not value or len(value) > 48:
@@ -874,10 +884,11 @@ def backup_tick(base_url: str, secret: str) -> dict:
             ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
             storage = payload.get("storage") if isinstance(payload.get("storage"), dict) else {}
             recovery = storage.get("temporary_recovery") if isinstance(storage.get("temporary_recovery"), dict) else {}
+            compact = storage.get("compact_candidate") if isinstance(storage.get("compact_candidate"), dict) else {}
             stage = safe_label(payload.get("failure_stage"), secret, "")
             allowed_stages = {"PREPARATION", "RECOVERY", "CAPACITY", "SNAPSHOT", "INTEGRITY",
                               "METADATA", "HASH", "MANIFEST", "PUBLICATION", "RETENTION", "CLEANUP"}
-            return {
+            result_payload = {
                 "backup_http": http_status,
                 "backup_status": "PASS" if ok else "FAIL",
                 "backup_result": result,
@@ -895,6 +906,27 @@ def backup_tick(base_url: str, secret: str) -> dict:
                 "backup_storage_removed_count": len(storage.get("removed") or []) if isinstance(storage.get("removed"), list) else 0,
                 "backup_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
+            # Preserve the compact-copy preflight decision in safe operational
+            # telemetry. It explains CAPACITY failures without exposing paths,
+            # database contents, or provider credentials.
+            compact_reason = compact.get("reason_code")
+            if not isinstance(compact_reason, str):
+                compact_reason = ""
+            compact_states = {"READY", "NO_REUSABLE_PAGES", "INSUFFICIENT_SPACE", "CAPACITY_CHECK_FAILED"}
+            result_payload["backup_compact_candidate_state"] = (
+                compact_reason if compact_reason in compact_states
+                else "READY" if compact.get("ok") is True
+                else "REJECTED" if compact
+                else "NOT_NEEDED"
+            )
+            if compact:
+                result_payload.update({
+                    "backup_compact_snapshot_bytes": safe_optional_count(compact.get("compact_snapshot_bytes")),
+                    "backup_compact_reusable_page_bytes": safe_optional_count(compact.get("reusable_page_bytes")),
+                    "backup_compact_required_bytes": safe_optional_count(compact.get("required_bytes")),
+                    "backup_compact_free_bytes": safe_optional_count(compact.get("free_bytes")),
+                })
+            return result_payload
     except urllib.error.HTTPError as exc:
         return request_error_result("backup", started, f"HTTP_{int(exc.code)}", int(exc.code))
     except Exception as exc:
