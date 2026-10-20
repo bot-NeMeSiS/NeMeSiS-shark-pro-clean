@@ -101,6 +101,7 @@ def _detail() -> dict:
                 "form": "VVEVV",
                 "description": "Champion",
                 "source": "api_football_standings_deep",
+                "snapshot_at": "2026-07-28T08:00:00Z",
             },
             {
                 "rank": 2,
@@ -139,6 +140,11 @@ def test_competition_center_uses_sports_core_knowledge_and_graph():
     assert context["metrics"]["teams"] >= 2
     assert context["standings"]["available"] is True
     assert context["standings"]["rows"][0]["goal_difference"] == 14
+    assert context["standings"]["rows"][0]["wins"] == 8
+    assert context["standings"]["rows"][0]["goals_for"] == 24
+    assert context["standings"]["rows"][0]["team_logo"] == "/team-crest.svg?name=Club+Norte"
+    assert context["standings"]["provisional"] is False
+    assert context["standings"]["updated_at"] == "2026-07-28T08:00:00Z"
     assert context["calendar"]["current_round"] == "Jornada 12"
     assert context["shark_context"]["state"] == "PARTIALLY_VERIFIED"
 
@@ -171,6 +177,33 @@ def test_standings_distinguish_champions_qualification_from_champion_title():
     ]
 
 
+def test_standings_reuse_only_unambiguous_cached_team_crests():
+    rows = [
+        {"rank": 1, "team_id": "1", "team_name": "Club Norte", "played": 4, "points": 10},
+        {"rank": 2, "team_id": "2", "team_name": "Club Sur", "played": 4, "points": 7},
+    ]
+    resolved = competition_center_module._standings_rows(
+        rows,
+        fallback_teams=[
+            {"name": "Club Norte", "logo_url": "https://cdn.example/norte.png"},
+            {"name": "Club Sur", "logo_url": "https://cdn.example/sur.png"},
+        ],
+    )
+    assert [item["team_logo"] for item in resolved["rows"]] == [
+        "https://cdn.example/norte.png",
+        "https://cdn.example/sur.png",
+    ]
+
+    ambiguous = competition_center_module._standings_rows(
+        [{"rank": 1, "team_name": "Club Norte", "points": 10}],
+        fallback_teams=[
+            {"name": "Club Norte", "logo_url": "https://cdn.example/norte-a.png"},
+            {"name": "Club Norte", "logo_url": "https://cdn.example/norte-b.png"},
+        ],
+    )
+    assert ambiguous["rows"][0]["team_logo"] is None
+
+
 def test_competition_center_does_not_invent_missing_competition_data():
     detail = _detail()
     detail["competition"] = {"key": "liga-real", "name": "Liga Real", "source": "local_cache"}
@@ -200,6 +233,11 @@ def test_competition_center_template_uses_canonical_match_card_and_transparency_
     assert "data-sports-knowledge-contract" in template
     assert "data-sports-graph-contract" in template
     assert "data-competition-center-section=\"standings\"" in template
+    assert 'data-standings-extra' in template
+    assert 'competition-standings-mobile-more' in template
+    assert 'team_crest_url' in template
+    assert 'Goles a favor' in template
+    assert 'standings.updated_at|sync_madrid_label' in template
     assert "data-competition-center-section=\"teams\"" in template
     assert "match_card(match, true, true)" in template
     assert "class=\"card match-card\"" not in template

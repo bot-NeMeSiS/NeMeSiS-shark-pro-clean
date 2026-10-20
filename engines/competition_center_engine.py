@@ -241,7 +241,20 @@ def _standings_rows(
     fallback_teams: Iterable[Mapping[str, Any]],
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
-    for raw in _items(standings):
+    standing_items = _items(standings)
+    fallback_team_items = _items(fallback_teams)
+    logos_by_team_name: dict[str, list[str]] = {}
+    for team in fallback_team_items:
+        name = _text(team.get("name") or team.get("display_name") or team.get("team_name"), 160)
+        logo = _text(
+            team.get("logo_url") or team.get("crest_url") or team.get("crest") or team.get("logo"),
+            500,
+        )
+        key = normalized(name)
+        if key:
+            logos_by_team_name.setdefault(key, []).append(logo)
+
+    for raw in standing_items:
         team_name = _text(raw.get("team_name") or raw.get("name"), 160)
         if not team_name:
             continue
@@ -263,10 +276,16 @@ def _standings_rows(
             state = "Playoff"
         elif "descenso" in lowered or "releg" in lowered:
             state = "Descenso"
+        provider_logo = _text(raw.get("team_logo") or raw.get("logo") or raw.get("crest"), 500)
+        known_logos = logos_by_team_name.get(normalized(team_name), [])
+        # A crest from the competition's existing team snapshot is only safe to
+        # reuse when the display name identifies one unambiguous cached logo.
+        team_logo = provider_logo or (known_logos[0] if len(known_logos) == 1 else "")
         rows.append({
             "position": _as_int(raw.get("rank") or raw.get("position")),
             "team_name": team_name,
             "team_route_id": _text(raw.get("team_id"), 160) or team_name,
+            "team_logo": team_logo or None,
             "points": _as_int(raw.get("points")),
             "played": _as_int(raw.get("played")),
             "wins": _as_int(raw.get("wins")),
@@ -283,12 +302,20 @@ def _standings_rows(
             "limitations": [] if raw.get("rank") or raw.get("points") else ["Clasificacion parcial sin posicion o puntos confirmados."],
         })
     rows = sorted(rows, key=lambda item: item.get("position") or 999)
+    snapshot_times = [
+        _text(raw.get("snapshot_at") or raw.get("updated_at"), 80)
+        for raw in standing_items
+        if raw.get("snapshot_at") or raw.get("updated_at")
+    ]
+    snapshot_at = max(snapshot_times, default="")
     return {
         "available": bool(rows),
         "rows": rows[:24],
         "source": "api_football_standings_deep" if rows else "No disponible",
+        "provisional": False,
+        "updated_at": snapshot_at or None,
         "limitations": [] if rows else ["No hay clasificacion oficial sincronizada para esta competicion."],
-        "fallback_team_count": len(_items(fallback_teams)),
+        "fallback_team_count": len(fallback_team_items),
     }
 
 

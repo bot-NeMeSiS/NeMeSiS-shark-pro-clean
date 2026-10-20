@@ -81,28 +81,56 @@
       <div class="competition-center-section-head"><span>{{ ui("Clasificación") }}</span><strong>{{ standings.rows|length if standings.rows else 0 }}</strong></div>
       {% if standings.rows %}
       <div class="competition-center-table-wrap">
-        <table class="competition-center-table">
+        <table class="competition-center-table" aria-label="{{ ui('Clasificación de') }} {{ competition.official_name or competition.name }}">
+          <caption class="competition-standings-caption">{{ ui('Datos de la temporada') }} {{ competition.season or ui('No disponible') }} · {{ ui('Fuente deportiva sincronizada') }} · {{ ui('Actualizada') }}: {% if standings.updated_at %}<time datetime="{{ standings.updated_at }}">{{ standings.updated_at|sync_madrid_label }}</time>{% else %}{{ ui('fecha no disponible') }}{% endif %}</caption>
           <thead>
             <tr>
-              <th>{{ ui("Pos") }}</th>
-              <th>{{ ui("Equipo") }}</th>
-              <th>{{ ui("PJ") }}</th>
-              <th>{{ ui("DG") }}</th>
-              <th>{{ ui("Pts") }}</th>
-              <th>{{ ui("Forma") }}</th>
-              <th>{{ ui("Estado") }}</th>
+              <th scope="col">{{ ui("Pos") }}</th>
+              <th scope="col">{{ ui("Equipo") }}</th>
+              <th scope="col">{{ ui("PJ") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("G") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("E") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("P") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("GF") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("GC") }}</th>
+              <th scope="col">{{ ui("DG") }}</th>
+              <th scope="col">{{ ui("Pts") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("Forma") }}</th>
+              <th scope="col" data-standings-extra>{{ ui("Estado") }}</th>
             </tr>
           </thead>
           <tbody>
             {% for row in standings.rows[:24] %}
             <tr data-competition-standings-row>
-              <td>{{ row.position or ui('No disponible') }}</td>
-              <td><a href="/team/{{ row.team_route_id|urlencode }}">{{ row.team_name or ui('No disponible') }}</a></td>
-              <td>{{ row.played if row.played is not none else ui('No disponible') }}</td>
-              <td>{{ row.goal_difference if row.goal_difference is not none else ui('No disponible') }}</td>
-              <td>{{ row.points if row.points is not none else ui('No disponible') }}</td>
-              <td>{{ row.form or ui('No disponible') }}</td>
-              <td><span class="competition-center-state">{{ ui_owned(row.state or 'Confirmado') }}</span></td>
+              <td data-label="{{ ui('Pos') }}">{{ row.position if row.position is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('Equipo') }}" class="competition-standings-team-cell">
+                <a href="/team/{{ row.team_route_id|urlencode }}">
+                  <img class="competition-standings-crest" src="{{ {'home_team': row.team_name, 'home_logo': row.team_logo}|team_crest_url }}" alt="" loading="lazy" width="24" height="24">
+                  <span>{{ row.team_name or ui('No disponible') }}</span>
+                </a>
+                <details class="competition-standings-mobile-more">
+                  <summary>{{ ui('Más estadísticas') }}</summary>
+                  <dl>
+                    <div><dt>{{ ui('Ganados') }}</dt><dd>{{ row.wins if row.wins is not none else ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Empatados') }}</dt><dd>{{ row.draws if row.draws is not none else ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Perdidos') }}</dt><dd>{{ row.losses if row.losses is not none else ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Goles a favor') }}</dt><dd>{{ row.goals_for if row.goals_for is not none else ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Goles en contra') }}</dt><dd>{{ row.goals_against if row.goals_against is not none else ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Forma') }}</dt><dd>{{ row.form or ui('No disponible') }}</dd></div>
+                    <div><dt>{{ ui('Estado') }}</dt><dd>{{ ui_owned(row.state or 'Confirmado') }}</dd></div>
+                  </dl>
+                </details>
+              </td>
+              <td data-label="{{ ui('PJ') }}">{{ row.played if row.played is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('G') }}" data-standings-extra>{{ row.wins if row.wins is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('E') }}" data-standings-extra>{{ row.draws if row.draws is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('P') }}" data-standings-extra>{{ row.losses if row.losses is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('GF') }}" data-standings-extra>{{ row.goals_for if row.goals_for is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('GC') }}" data-standings-extra>{{ row.goals_against if row.goals_against is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('DG') }}">{{ row.goal_difference if row.goal_difference is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('Pts') }}">{{ row.points if row.points is not none else ui('No disponible') }}</td>
+              <td data-label="{{ ui('Forma') }}" data-standings-extra>{{ row.form or ui('No disponible') }}</td>
+              <td data-label="{{ ui('Estado') }}" data-standings-extra><span class="competition-center-state">{{ ui_owned(row.state or 'Confirmado') }}</span></td>
             </tr>
             {% endfor %}
           </tbody>

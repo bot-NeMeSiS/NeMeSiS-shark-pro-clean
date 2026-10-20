@@ -41,3 +41,69 @@
 @media(max-width:900px){.competition-directory-heading{align-items:start;flex-direction:column;gap:8px}.competition-directory-heading>p:last-child{max-width:620px}.competition-directory-filters{grid-template-columns:minmax(0,1fr) minmax(180px,.65fr)}.competition-directory-filters button{grid-column:1/-1;justify-self:start}}
 @media(max-width:600px){.competition-directory{padding:18px 12px 36px}.competition-directory-heading{margin-bottom:18px}.competition-directory-filters{gap:10px;grid-template-columns:minmax(0,1fr);padding:12px}.competition-directory-filters button{grid-column:auto;justify-self:stretch;width:100%}.competition-directory-filters>a{grid-column:auto}.competition-directory-summary{margin:16px 2px}.competition-directory-section{margin-top:20px}.competition-directory-section-heading{align-items:end;gap:8px}.competition-directory-section-heading>span{font-size:.67rem;padding:5px 8px}.competition-directory-grid{gap:8px;grid-template-columns:minmax(0,1fr)}.competition-directory-card{min-height:0;padding:12px}.competition-directory-open{min-height:40px}}
 @media(prefers-reduced-motion:reduce){.competition-directory-card{transition:none}}
+/* V951: show the complete provider table on desktop and a compact, expandable
+   summary on small screens without hiding the same facts from mobile users. */
+.competition-standings-caption {
+  padding: 0 12px 8px;
+  color: var(--competition-muted, #9fb0c5);
+  font-size: .76rem;
+  text-align: left;
+}
+
+.competition-standings-team-cell > a {
+  gap: 8px;
+  min-width: 0;
+}
+
+.competition-standings-crest {
+  display: block;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.competition-standings-mobile-more { display: none; }
+
+@media (max-width: 760px) {
+  .competition-center-table { min-width: 0; table-layout: fixed; }
+  .competition-center-table th,
+  .competition-center-table td { padding: 8px 5px; font-size: .78rem; }
+  .competition-center-table th:first-child,
+  .competition-center-table td:first-child { width: 42px; }
+  .competition-center-table th:nth-child(2),
+  .competition-center-table td:nth-child(2) { width: auto; }
+  .competition-center-table th:nth-child(3),
+  .competition-center-table td:nth-child(3),
+  .competition-center-table th:nth-child(9),
+  .competition-center-table td:nth-child(9) { width: 42px; text-align: center; }
+  .competition-center-table th:nth-child(10),
+  .competition-center-table td:nth-child(10) { width: 48px; text-align: center; }
+  .competition-center-table [data-standings-extra] { display: none; }
+  .competition-standings-team-cell { white-space: normal !important; }
+  .competition-standings-team-cell > a { overflow-wrap: anywhere; }
+  .competition-standings-mobile-more {
+    display: block;
+    margin-top: 5px;
+    color: var(--competition-muted, #9fb0c5);
+    font-size: .72rem;
+  }
+  .competition-standings-mobile-more summary {
+    min-height: 44px;
+    width: fit-content;
+    padding: 7px 0;
+    color: var(--competition-accent, #57d5ff);
+    cursor: pointer;
+    font-weight: 750;
+  }
+  .competition-standings-mobile-more dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px 12px;
+    margin: 4px 0 6px;
+    white-space: normal;
+  }
+  .competition-standings-mobile-more dl div { min-width: 0; }
+  .competition-standings-mobile-more dt { color: var(--competition-muted, #9fb0c5); }
+  .competition-standings-mobile-more dd { margin: 1px 0 0; color: #f8fafc; font-weight: 700; overflow-wrap: anywhere; }
+}
