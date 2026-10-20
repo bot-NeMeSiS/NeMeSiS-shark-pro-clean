@@ -14,7 +14,9 @@ def test_canonical_navigation_uses_resultados_and_keeps_calendar_aliases():
 
 def test_home_keeps_calendar_as_a_contextual_view_inside_results():
     home=(ROOT/"templates/home.html").read_text(encoding="utf-8")
-    assert "Abrir calendario" in home
+    # The copy is intentionally flexible; keep asserting the real destination
+    # instead of a stale label that no longer exists in the current Home.
+    assert 'href="/calendario"' in home
     assert "quick_action('Calendario'" in home
     assert "/calendar" in home
     assert "Partidos de hoy" in home or "partidos" in home.lower()

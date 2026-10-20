@@ -19,7 +19,7 @@ V941_VERSION = "V941_ADMIN_PC_MASTER_CONTROL_CENTER_SHARK_AI_OPERATING_SYSTEM"
 V942_VERSION = "V942_HIGHLIGHTS_READ_PATH_PAYMENT_STATUS_SENTINEL"
 V943_VERSION = "V943_CUSTOMER_LIVE_AND_STATUS_CONSISTENCY"
 V944_VERSION = "V944_MEDIA_REFRESH_CLIENT_TRUTH"
-V945_VERSION = "V945_HOME_ACTION_HIERARCHY"
+V946_VERSION = "V946_CALENDAR_MOBILE_DENSITY"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
@@ -101,7 +101,7 @@ def main() -> int:
             app_module.security_event_for_auth = original_security_event
 
     checks = {
-        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V941_VERSION, V942_VERSION, V943_VERSION, V944_VERSION, V945_VERSION},
+        "version_v932_or_successor": app_module.APP_VERSION in {VERSION, SUCCESSOR_VERSION, V934_VERSION, V935_VERSION, V936_VERSION, V937_VERSION, V941_VERSION, V942_VERSION, V943_VERSION, V944_VERSION, V946_VERSION},
         "client_external_next_blocked": response_client_external.status_code == 302 and response_client_external.headers.get("Location") == "/app",
         "client_internal_next_allowed": response_client_internal.status_code == 302 and response_client_internal.headers.get("Location") == "/calendar",
         "client_logout_safe": response_client_logout.status_code == 302 and response_client_logout.headers.get("Location") == "/" and client_session_cleared,
@@ -117,7 +117,7 @@ def main() -> int:
     }
     failed = [name for name, ok in checks.items() if not ok]
     payload = {
-        "version": VERSION,
+        "version": app_module.APP_VERSION,
         "ok": not failed,
         "checks": checks,
         "failed": failed,

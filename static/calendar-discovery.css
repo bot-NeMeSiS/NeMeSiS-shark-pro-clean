@@ -120,3 +120,32 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
     scrollbar-width: thin;
   }
 }
+
+/* Mid-size phones have enough room for sort and submit side by side. Keeping
+   them on one row raises the date controls and first match without hiding any
+   filter or changing the native GET form. Very narrow 320px layouts keep the
+   existing stacked controls for readability. */
+@media (min-width: 361px) and (max-width: 480px) {
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form {
+    grid-template-columns: minmax(0,1fr) auto !important;
+  }
+  [data-calendar-discovery="v1"] .v940-calendar-sort {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+  }
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form > .v933-action,
+  [data-calendar-discovery="v1"] .v940-calendar-filter-form:has(.v940-calendar-advanced[open]) > .v933-action {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    justify-self: stretch;
+    width: auto;
+    white-space: nowrap;
+  }
+  [data-calendar-discovery="v1"] .v940-calendar-advanced,
+  [data-calendar-discovery="v1"] .v940-calendar-advanced[open] {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}

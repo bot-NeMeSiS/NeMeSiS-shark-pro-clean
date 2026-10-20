@@ -90,6 +90,40 @@ def test_pending_changes_and_collapsing_filters_never_change_the_result_collecti
     finally:page.close()
 
 
+@pytest.mark.parametrize('width',[361,390,430,480])
+def test_mid_mobile_calendar_keeps_sort_and_submit_on_one_row(browser,app_module,width):
+    page,_,errors=mount(browser,app_module,width=width)
+    try:
+        sort=page.locator('.v940-calendar-sort select').bounding_box()
+        submit=page.locator('.v940-calendar-filter-form > button[type=submit]').bounding_box()
+        assert abs(sort['y']-submit['y']) < 1
+        assert submit['x'] > sort['x']
+        assert submit['y'] + submit['height'] <= 430
+        assert page.locator('[data-v940-calendar-search]').is_visible()
+        assert page.locator('.v940-calendar-advanced > summary').is_visible()
+        assert page.locator('.v933-calendar-date-navigation').is_visible()
+        first_match=page.locator('.v940-calendar-league .v933-match-card').first.bounding_box()
+        assert first_match['y'] < 740
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+        assert not errors
+    finally:page.close()
+
+
+def test_narrow_mobile_calendar_keeps_controls_stacked_and_selected_date(browser,app_module):
+    page,_,errors=mount(browser,app_module,width=320,query='?lane=week&date=2026-10-21&league=Retenida+QA')
+    try:
+        sort=page.locator('.v940-calendar-sort select').bounding_box()
+        submit=page.locator('.v940-calendar-filter-form > button[type=submit]').bounding_box()
+        assert submit['y'] > sort['y']
+        assert page.locator('[data-v940-calendar-search]').is_visible()
+        assert page.locator('.v940-calendar-advanced').get_attribute('open') is not None
+        assert page.locator('select[name=league]').input_value()=='Retenida QA'
+        assert page.locator('.v933-calendar-date-navigation').is_visible()
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+        assert not errors
+    finally:page.close()
+
+
 def test_return_to_filters_moves_keyboard_focus_without_erasing_input(browser,app_module):
     page,_,_=mount(browser,app_module)
     try:
