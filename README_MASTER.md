@@ -6,7 +6,7 @@
 
 ## Estado
 
-Versión de código actual: V952 Timeline Data Provenance. La presencia de esta
+Versión de código actual: V953 Competition Crest Identity. La presencia de esta
 versión en el repositorio no prueba que esté desplegada; producción se confirma con
 el SHA y el estado del runtime de Render.
 
@@ -47,7 +47,7 @@ No borrar la base de datos en producción. Las migraciones son seguras e increme
 - PRO: picks PRO, recomendaciones SHARK, riesgo/confianza/value básico, Telegram PRO y seguimiento.
 - ELITE: SHARK completo, Auto Picks, combinadas automáticas, value avanzado, top picks y prioridad Telegram.
 
-## V950/V951/V952
+## V950/V951/V952/V953
 
 V950 organiza competiciones por país y separa los torneos internacionales en las
 vistas de inicio, calendario y directorio.
@@ -62,6 +62,12 @@ V952 añade al cliente la procedencia de la cronología del partido y la hora de
 última captura de eventos disponible. La hora se toma de las marcas guardadas en
 los eventos; cuando no existe una marca válida, la pantalla lo indica sin usar el
 reloj del partido o la hora actual como sustituto. No añade llamadas ni escrituras.
+
+V953 resuelve escudos de la clasificación primero mediante identificadores de
+equipo exactos y namespaced del proveedor, aunque el nombre del proveedor difiera.
+Mantiene el respaldo por nombre exacto solo cuando es único en la competición;
+una identidad contradictoria o ambigua queda sin escudo antes que mostrar uno
+del equipo equivocado. No realiza llamadas ni cambia datos almacenados.
 
 ## Reglas de mantenimiento
 
