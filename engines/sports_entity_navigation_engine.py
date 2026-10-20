@@ -39,6 +39,12 @@ def public_entity_route_id(entity_type: Any, identifier: Any = "", label: Any = 
     display = _text(label, 200)
 
     if kind == "team":
+        # A provider-scoped identifier keeps homonymous teams navigable without
+        # guessing from a display name. Legacy name routes remain the fallback.
+        parts = identity.split(":", 2)
+        provider = parts[0].casefold().replace("-", "_") if len(parts) == 3 else ""
+        if len(parts) == 3 and parts[1].casefold() == "team" and provider in {"sportsdb", "api_football"} and parts[2]:
+            return f"{provider}:team:{parts[2]}"
         return display or identity
 
     if kind in {"player", "competition"} and identity:
@@ -75,7 +81,14 @@ def entity_href(
     route_id = public_entity_route_id(kind, identifier, label if allow_label_fallback else "")
     if not route_id:
         return ""
-    return f"{prefix}/{quote(route_id, safe='')}"
+    route_parts = route_id.split(":", 2)
+    safe = ":" if (
+        kind == "team"
+        and len(route_parts) == 3
+        and route_parts[0] in {"sportsdb", "api_football"}
+        and route_parts[1] == "team"
+    ) else ""
+    return f"{prefix}/{quote(route_id, safe=safe)}"
 
 
 def entity_navigation_contract(

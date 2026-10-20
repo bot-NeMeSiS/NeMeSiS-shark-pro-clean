@@ -63,9 +63,9 @@
                   {% for m in league.matches %}
                     <article class="match-row premium-row">
                       <div class="match-hour">{{ m|match_time_short }}</div>
-                      <a class="team mini-team team-link" href="/team/{{ (m._raw_home_team or m.home_team)|urlencode }}">{{ crest(m|team_identity('home'), m.safe_home or m.home_team, 'small') }}<strong>{{ m.safe_home or m.home_team }}</strong></a>
+                      <a class="team mini-team team-link" href="{{ sports_match_team_href(m, 'home') }}">{{ crest(m|team_identity('home'), m.safe_home or m.home_team, 'small') }}<strong>{{ m.safe_home or m.home_team }}</strong></a>
                       <div class="scoreline"><span class="state-badge {{ m.live_depth.badge }}">{{ m.live_depth.label }}</span><span>{{ m.live_depth.score or 'vs' }}</span></div>
-                      <a class="team mini-team away team-link" href="/team/{{ (m._raw_away_team or m.away_team)|urlencode }}">{{ crest(m|team_identity('away'), m.safe_away or m.away_team, 'small') }}<strong>{{ m.safe_away or m.away_team }}</strong></a>
+                      <a class="team mini-team away team-link" href="{{ sports_match_team_href(m, 'away') }}">{{ crest(m|team_identity('away'), m.safe_away or m.away_team, 'small') }}<strong>{{ m.safe_away or m.away_team }}</strong></a>
                       <div class="row-actions">
                         {% if m.has_highlights %}<span class="tag">▶ Resumen</span>{% endif %}
                         {% if m.bookmaker %}<span class="tag">Cuotas</span>{% endif %}

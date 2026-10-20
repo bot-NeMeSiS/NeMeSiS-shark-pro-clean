@@ -9776,8 +9776,8 @@ def _scoped_team_favorite(match, favorites):
     return False
 
 
-def favorite_sets(user_id=None):
-    favs = get_favorites(user_id=user_id)
+def favorite_sets(user_id=None, favorites=None):
+    favs = list(favorites) if favorites is not None else get_favorites(user_id=user_id)
     keys = [f["value"][6:] for f in favs if f.get("kind") == "team" and str(f.get("value") or "").startswith("@team:")]
     references = []
     for offset in range(0, len(keys), 400):
@@ -9979,6 +9979,49 @@ def favorite_insights(user_id=None, favorites=None, bundle=None):
 
 
 def team_lookup(team_id):
+    route_value = str(team_id or "").strip()
+    route_parts = route_value.split(":", 2)
+    if len(route_parts) == 3 and route_parts[1].casefold() == "team":
+        provider = provider_family(route_parts[0])
+        external_id = route_parts[2].strip()
+        if provider in {"sportsdb", "api-football"} and external_id:
+            # external_id has an existing index. Scope it by its provider so an
+            # equal numeric ID from another service cannot select the wrong club.
+            for candidate in rows("SELECT * FROM teams WHERE external_id=?", (external_id,)):
+                if provider_family(candidate.get("source")) == provider:
+                    return candidate
+
+            # Some fixture imports retain the team ID only on the match row.
+            # This read is confined to a clicked profile request; keep only rows
+            # from the same provider and exact side ID rather than guessing by name.
+            candidates = rows(
+                """SELECT home_team,away_team,home_team_id,away_team_id,home_logo,away_logo,
+                          country,competition_name,league_name,source
+                   FROM matches WHERE home_team_id=? OR away_team_id=? ORDER BY match_date DESC""",
+                (external_id, external_id),
+            )
+            for candidate in candidates:
+                if provider_family(candidate.get("source")) != provider:
+                    continue
+                for side in ("home", "away"):
+                    if str(candidate.get(f"{side}_team_id") or "").strip() != external_id:
+                        continue
+                    name = str(candidate.get(f"{side}_team") or "").strip()
+                    if not name:
+                        continue
+                    return {
+                        "id": external_id,
+                        "key": canonical_team_key(name),
+                        "name": name,
+                        "country": candidate.get("country") or "",
+                        "league": candidate.get("competition_name") or candidate.get("league_name") or "",
+                        "logo_url": candidate.get(f"{side}_logo") or "",
+                        "external_id": external_id,
+                        "source": candidate.get("source") or route_parts[0],
+                        "catalog_key_available": False,
+                    }
+            return None
+
     key = canonical_team_key(team_id)
     team = one("SELECT * FROM teams WHERE key=? OR key=? OR external_id=? OR lower(name)=lower(?) ORDER BY CASE WHEN key=? THEN 0 ELSE 1 END LIMIT 1", (str(team_id or ""), key, str(team_id or ""), str(team_id or ""), str(team_id or "")))
     if team:
@@ -10609,6 +10652,11 @@ def _team_journey_matches(team, team_id, *, recent=False, limit=80):
         tuple(sorted(aliases)) * 2 + (today_iso(), int(limit) * 2),
     )
     country = spanish_country_name(team.get("country") or "").casefold()
+    team_provider = provider_family(team.get("provider") or team.get("source"))
+    team_external_id = str(team.get("external_id") or "").strip()
+    provider_scoped_identity = bool(
+        team_external_id and team_provider in {"sportsdb", "api-football"}
+    )
     regional = {"global", "europa", "sudamérica", "áfrica", "asia", "internacional", "mundial"}
     result = []
     for item in candidates:
@@ -10620,9 +10668,13 @@ def _team_journey_matches(team, team_id, *, recent=False, limit=80):
             if canonical_team_key(item.get(f"{side}_team")) != key:
                 continue
             identifier = str(item.get(f"{side}_team_id") or "")
-            source = provider_family(team.get("source"))
-            if source in {"sportsdb", "api-football"} and source == provider_family(item.get("source")) and identifier and team.get("external_id"):
-                if identifier != str(team["external_id"]):
+            match_provider = provider_family(item.get("source"))
+            if provider_scoped_identity:
+                # A display-name match cannot bridge provider namespaces. Require
+                # the same provider and its exact team ID, including when the
+                # candidate is missing an ID; otherwise homonyms leak into the
+                # public team timeline (for example, a club from another league).
+                if match_provider != team_provider or identifier != team_external_id:
                     continue
             related = True
         if related and not is_fake_match(item):
@@ -10668,7 +10720,12 @@ def team_page_data(team_id, limit=80):
     scoped_value = "@team:" + str(team.get("key") or "")
     is_scoped_favorite = scoped_value.lower() in favorites.get("team", set())
     is_favorite = is_scoped_favorite or name.lower() in favorites.get("team", set()) or key.lower() in favorites.get("team", set())
-    favorite_value = scoped_value if is_scoped_favorite or (not is_favorite and team.get("key") and team.get("source") != "matches") else name
+    favorite_value = scoped_value if is_scoped_favorite or (
+        not is_favorite
+        and team.get("key")
+        and team.get("source") != "matches"
+        and team.get("catalog_key_available", True)
+    ) else name
     players = _sports_history_players_for_team(team)
     if not players:
         players = _cached_players_for_team(team, team_matches)
@@ -11877,10 +11934,17 @@ def match_hub(date=None, lane="today"):
     cached = cache_get(cache_key)
     if cached:
         return cached
-    favs = favorite_sets()
+    favs = favorite_sets(favorites=favorites)
     picks = get_picks(limit=200)
-    today_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_matches(date, "today")])
-    window_matches = dedupe_matches_list([annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)])
+    results_only = lane in {"results", "finished"}
+    # Results pages use only the persisted results snapshot below. Avoid two
+    # unrelated agenda reads and per-match annotations that this lane discards.
+    today_matches = [] if results_only else dedupe_matches_list(
+        [annotate_match(m, favs) for m in get_matches(date, "today")]
+    )
+    window_matches = [] if results_only else dedupe_matches_list(
+        [annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)]
+    )
     result_matches = dedupe_matches_list(get_results_matches(date, days_back=21, limit=250))
     combined = []
     seen = set()
@@ -12612,6 +12676,30 @@ def enrich_pick_client_context(pick, match=None):
 @app.template_global("sports_entity_href")
 def jinja_sports_entity_href(entity_type, identifier="", label=""):
     return sports_entity_href(entity_type, identifier, label)
+
+
+@app.template_global("sports_match_team_href")
+def jinja_sports_match_team_href(match, side="home"):
+    """Build a provider-scoped team link when the match carries a stable ID."""
+    item = dict(match or {}) if isinstance(match, dict) else {}
+    prefix = "away" if str(side).lower().startswith("away") else "home"
+    name = item.get(f"{prefix}_team") or item.get(f"safe_{prefix}") or item.get(prefix) or ""
+    identity = item.get(f"{prefix}_identity") or {}
+    route_id = str(identity.get("canonical_team_id") or "").strip()
+    route_parts = route_id.split(":", 2)
+    supported_identity = (
+        len(route_parts) == 3
+        and route_parts[1].casefold() == "team"
+        and provider_family(route_parts[0]) in {"sportsdb", "api-football"}
+    )
+    if not supported_identity:
+        provider = provider_family(item.get("source"))
+        external_id = str(item.get(f"{prefix}_team_id") or "").strip()
+        if provider in {"sportsdb", "api-football"} and external_id:
+            route_id = f"{provider}:team:{external_id}"
+        else:
+            route_id = ""
+    return sports_entity_href("team", route_id or name, name)
 
 
 @app.template_global("sports_entity_navigation")

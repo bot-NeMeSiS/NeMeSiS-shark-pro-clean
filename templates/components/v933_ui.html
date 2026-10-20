@@ -139,10 +139,8 @@
 {% set kickoff_clock = ui_match_clock(match) %}
 {% set show_kickoff = not has_score and canonical_status in ['UPCOMING', 'SCHEDULED', 'PREMATCH', 'NOT_STARTED', 'NS'] and kickoff_clock != 'Hora' %}
 {% set canonical_competition_id = match.get('client_competition_id') or match.get('calendar_competition_id') or (match.get('surface_contract') or {}).get('canonical_competition_id') or '' %}
-{% set home_entity_id = match.get('home_team_id') or (match.get('home_identity') or {}).get('canonical_team_id') or home %}
-{% set away_entity_id = match.get('away_team_id') or (match.get('away_identity') or {}).get('canonical_team_id') or away %}
-{% set home_entity_href = match.get('home_entity_href') or sports_entity_href('team', home_entity_id, home) %}
-{% set away_entity_href = match.get('away_entity_href') or sports_entity_href('team', away_entity_id, away) %}
+{% set home_entity_href = match.get('home_entity_href') or sports_match_team_href(match, 'home') %}
+{% set away_entity_href = match.get('away_entity_href') or sports_match_team_href(match, 'away') %}
 {% set competition_entity_id = match.get('client_competition_route_id') or match.get('calendar_competition_route_id') or canonical_competition_id or match.get('competition_id') or match.get('league_id') or competition %}
 {% set competition_entity_href = match.get('competition_entity_href') or sports_entity_href('competition', competition_entity_id, competition) %}
 <article class="v933-match-card{% if compact %} is-compact{% endif %}{% if not complete %} is-incomplete{% endif %}{% if match.get('is_stale') %} is-stale{% endif %}"{% if match_id %} data-v934-match-id="{{ match_id }}"{% endif %} data-v934-match-card="true" data-v939-match-card-spec="canonical-v1" data-canonical-status="{{ canonical_status }}" data-canonical-live="{{ 'true' if canonical_live else 'false' }}" data-canonical-competition-id="{{ canonical_competition_id }}" data-competition-identity-contract="{{ match.get('client_competition_identity_contract') or match.get('calendar_competition_identity_contract') or 'CROSS-SURFACE-COMPETITION-IDENTITY-V1' }}"{% if relevance_bucket %} data-sports-relevance="{{ relevance_bucket }}"{% endif %}{% if match.get('sports_relevance_score') %} data-sports-score="{{ match.get('sports_relevance_score') }}"{% endif %}>
@@ -167,8 +165,8 @@
 {% set match_id = pick.get('match_id') or '' %}
 {% set pick_id = pick.get('id') or '' %}
 {% set freshness = pick.get('v935_odds') or pick.get('odds_freshness') or {} %}
-{% set pick_home_href = pick.get('home_entity_href') or sports_entity_href('team', pick.get('home_team_id') or home, home) %}
-{% set pick_away_href = pick.get('away_entity_href') or sports_entity_href('team', pick.get('away_team_id') or away, away) %}
+{% set pick_home_href = pick.get('home_entity_href') or sports_match_team_href(pick, 'home') %}
+{% set pick_away_href = pick.get('away_entity_href') or sports_match_team_href(pick, 'away') %}
 {% set pick_competition = pick.get('competition_name') or pick.get('league_name') or pick.get('competition') or 'Pronóstico SHARK' %}
 {% set pick_competition_href = pick.get('competition_entity_href') or sports_entity_href('competition', pick.get('client_competition_route_id') or pick.get('competition_id') or pick.get('league_id') or pick.get('competition_key') or pick_competition, pick_competition) %}
 <article class="v933-pick-card{% if featured %} is-featured{% endif %}{% if not valid %} is-incomplete{% endif %}"{% if pick_id %} data-v934-pick-id="{{ pick_id }}"{% endif %}{% if match_id %} data-match-id="{{ match_id }}"{% endif %} data-v934-pick-card="true">

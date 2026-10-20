@@ -76,6 +76,45 @@ def test_resultados_alias_defaults_to_results_lane(app_module, monkeypatch):
     assert ctx["data"]["match_hub"]["lane"] == "results"
 
 
+def test_results_lane_skips_unused_today_and_upcoming_reads(app_module, monkeypatch):
+    reads = []
+    favorite_reads = []
+    result_match = {
+        "id": "result-1",
+        "match_date": "2026-10-19",
+        "home_team": "Local",
+        "away_team": "Visitante",
+        "status": "FT",
+    }
+    monkeypatch.setattr(app_module, "cache_get", lambda _key: None)
+    monkeypatch.setattr(app_module, "cache_set", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(app_module, "get_favorites", lambda *_args, **_kwargs: favorite_reads.append(True) or [])
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr(app_module, "get_picks", lambda **_kwargs: [])
+    monkeypatch.setattr(app_module, "get_matches", lambda *_args, **_kwargs: reads.append("today") or [])
+    monkeypatch.setattr(app_module, "get_upcoming_matches", lambda *_args, **_kwargs: reads.append("upcoming") or [])
+    monkeypatch.setattr(app_module, "get_results_matches", lambda *_args, **_kwargs: reads.append("results") or [result_match])
+    monkeypatch.setattr(app_module, "v766_enrich_matches_with_highlights", lambda matches: matches)
+    monkeypatch.setattr(app_module, "hub_sections", lambda *_args, **_kwargs: {
+        key: [] for key in ("today", "live", "upcoming", "finished", "top", "favorites", "with_picks")
+    })
+    monkeypatch.setattr(app_module, "split_live", lambda _matches: {"live": [], "scheduled": []})
+    monkeypatch.setattr(app_module, "sync_plan", lambda *_args, **_kwargs: {})
+    monkeypatch.setattr(app_module, "competitions", lambda: [])
+    monkeypatch.setattr(app_module, "match_lane_filter", lambda _match, _lane: True)
+    monkeypatch.setattr(app_module, "grouped_match_calendar", lambda _matches: [])
+    monkeypatch.setattr(app_module, "group_matches_by_league", lambda _matches: [])
+    monkeypatch.setattr(app_module, "today_iso", lambda offset=0: "2026-10-20")
+
+    with app_module.app.test_request_context("/resultados"):
+        hub = app_module.match_hub("2026-10-20", "results")
+
+    assert hub["lane"] == "results"
+    assert [item["id"] for item in hub["finished"]] == ["result-1"]
+    assert reads == ["results"]
+    assert len(favorite_reads) == 1
+
+
 def test_tomorrow_lane_defaults_to_tomorrow_date(app_module, monkeypatch):
     calls = []
 

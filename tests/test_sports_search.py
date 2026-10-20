@@ -163,9 +163,152 @@ def test_scoped_favorites_distinguish_provider_ids_and_keep_legacy(app_module, m
     assert app_module.team_lookup('granada-ni')['country']=='Nicaragua'
 
 
+def test_provider_scoped_team_routes_choose_the_matching_provider(app_module, monkeypatch, sports_catalogue):
+    with sqlite3.connect(sports_catalogue) as db:
+        db.execute(
+            "INSERT INTO teams(key,name,country,league,external_id,source) VALUES(?,?,?,?,?,?)",
+            ("granada-api", "Granada CF", "España", "Segunda", "4", "API-Football"),
+        )
+    monkeypatch.setattr(app_module, "DB_PATH", str(sports_catalogue))
+
+    assert app_module.team_lookup("sportsdb:team:4")["country"] == "Nicaragua"
+    assert app_module.team_lookup("api_football:team:4")["country"] == "España"
+
+
+def test_favorite_sets_can_reuse_already_loaded_favorites(app_module, monkeypatch):
+    loaded = [{"kind": "team", "value": "@team:granada-cf", "label": "Granada CF"}]
+    reads = []
+
+    def unexpected_favorites_read(**_kwargs):
+        raise AssertionError("favorite_sets should reuse the supplied list")
+
+    def team_reference_read(sql, params=()):
+        reads.append((sql, params))
+        return [{"key": "granada-cf", "name": "Granada CF", "country": "España", "external_id": "1", "source": "sportsdb"}]
+
+    monkeypatch.setattr(app_module, "get_favorites", unexpected_favorites_read)
+    monkeypatch.setattr(app_module, "rows", team_reference_read)
+
+    result = app_module.favorite_sets(favorites=loaded)
+
+    assert result["all"] == loaded
+    assert result["team"] == {"@team:granada-cf"}
+    assert result["team_refs"][0]["external_id"] == "1"
+    assert len(reads) == 1
+
+
+def test_provider_scoped_team_route_can_resolve_from_match_rows(app_module, monkeypatch):
+    candidate = {
+        "id": "fixture-1",
+        "home_team": "Local Club",
+        "away_team": "Visitor",
+        "home_team_id": "802",
+        "away_team_id": "803",
+        "home_logo": "https://example.test/local.png",
+        "country": "España",
+        "competition_name": "Primera",
+        "source": "API-Football",
+    }
+
+    def fake_rows(sql, params=()):
+        if "FROM teams WHERE external_id" in sql:
+            return []
+        if "FROM matches WHERE home_team_id" in sql:
+            return [candidate]
+        raise AssertionError(f"Unexpected lookup: {sql}")
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
+    team = app_module.team_lookup("api_football:team:802")
+
+    assert team["name"] == "Local Club"
+    assert team["external_id"] == "802"
+    assert team["source"] == "API-Football"
+    assert team["catalog_key_available"] is False
+
+
+def test_match_team_link_uses_stable_provider_identity(app_module):
+    match = {
+        "source": "API-Football Live",
+        "home_team": "Club A",
+        "home_team_id": "123",
+        "away_team": "Club B",
+        "away_team_id": "456",
+    }
+
+    href = app_module.jinja_sports_match_team_href(match, "home")
+    assert href == "/team/api_football:team:123"
+    endpoint, values = app_module.app.url_map.bind("localhost").match(href)
+    assert endpoint == "team_page"
+    assert values["team_id"] == "api_football:team:123"
+    assert app_module.jinja_sports_match_team_href({"home_team": "Club C"}, "home") == "/team/Club%20C"
+
+
+def test_team_timeline_never_merges_provider_homonyms(app_module, monkeypatch):
+    candidates = [
+        {
+            "id": "same-provider-same-team",
+            "home_team": "Sabah Baku",
+            "away_team": "Opponent",
+            "home_team_id": "42",
+            "away_team_id": "9",
+            "country": "Azerbaijan",
+            "source": "TheSportsDB API",
+            "match_date": "2026-10-21",
+            "kickoff_time": "18:00",
+        },
+        {
+            "id": "other-provider-homonym",
+            "home_team": "Sabah Baku",
+            "away_team": "Other opponent",
+            "home_team_id": "42",
+            "country": "",
+            "source": "API-Football",
+            "match_date": "2026-10-22",
+            "kickoff_time": "19:00",
+        },
+        {
+            "id": "wrong-sportsdb-id",
+            "home_team": "Sabah Baku",
+            "away_team": "Another opponent",
+            "home_team_id": "777",
+            "country": "Azerbaijan",
+            "source": "TheSportsDB Event Feed",
+            "match_date": "2026-10-23",
+            "kickoff_time": "20:00",
+        },
+        {
+            "id": "missing-provider-id",
+            "home_team": "Sabah Baku",
+            "away_team": "Unknown opponent",
+            "home_team_id": "",
+            "country": "Azerbaijan",
+            "source": "TheSportsDB API",
+            "match_date": "2026-10-24",
+            "kickoff_time": "20:00",
+        },
+    ]
+    monkeypatch.setattr(app_module, "rows", lambda *_args, **_kwargs: candidates)
+    monkeypatch.setattr(app_module, "today_iso", lambda: "2026-10-20")
+    monkeypatch.setattr(app_module, "is_fake_match", lambda _match: False)
+
+    actual = app_module._team_journey_matches(
+        {
+            "name": "Sabah Baku",
+            "key": "sabah-baku",
+            "country": "Azerbaijan",
+            "source": "TheSportsDB Event Feed",
+            "external_id": "42",
+        },
+        "Sabah Baku",
+    )
+
+    assert [item["id"] for item in actual] == ["same-provider-same-team"]
+
+
 def test_selected_favorite_saves_and_removes_only_for_current_account(app_module, monkeypatch, sports_catalogue):
     monkeypatch.setattr(app_module,'DB_PATH',str(sports_catalogue))
-    monkeypatch.setattr(app_module,'current_session_user',lambda:{'id':'owner'})
+    monkeypatch.setattr(app_module,'current_session_user',lambda:{'id':app_module.session.get('user_id')})
+    monkeypatch.setattr(app_module,'current_user_id',lambda:app_module.session.get('user_id'))
     monkeypatch.setattr(app_module,'_growth_maybe_activate_user',lambda **kw:None)
     with app_module.app.test_request_context('/favoritos',method='POST',data={'action':'add','kind':'team','value':'@team:granada-cf','label':'Granada CF','user_id':'other'}):
         app_module.session['user_id']='owner'
