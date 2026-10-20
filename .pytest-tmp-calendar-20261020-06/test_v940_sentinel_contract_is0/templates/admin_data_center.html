@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, empty_state, status_chip, data_table, quick_action, realtime_state_bar %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='provider-health.css') }}?v=1">
+{% set center = data.get('data_center') or {} %}
+{% set scheduler = center.get('scheduler') or {} %}
+{% set diagnostics = data.get('matches_diagnostics') or {} %}
+{% set sports_value = data.get('v932_sports_value') or {} %}
+{% set realtime = data.get('v934_realtime') or {} %}
+{% set provider_health = data.get('provider_health') or {} %}
+<div class="v933-page v933-admin-command-center v933-admin-data" data-v933-template="admin_data_center" data-v933-reference="canonical-admin-data">
+  {{ page_header('Centro de datos', 'Fuentes, sincronizaciones, caché y calidad de datos', 'database', [{'label':'Calendario','href':'/admin/matches-sync'},{'label':'Automatización','href':'/admin/automation-center','primary':true,'icon':'automation'}]) }}
+  {% if message %}<div class="v928-inline-safe">{{ message }}</div>{% endif %}
+  {{ realtime_state_bar(realtime, 'all', true) }}
+
+  <section class="v928-admin-panel" id="provider-health" data-provider-health="persisted">
+    <header>
+      <div>
+        <h2>Salud de proveedores</h2>
+        <p>Estado persistido del último ciclo real. Abrir esta pantalla no consume créditos ni llama a las APIs.</p>
+      </div>
+      {{ status_chip('Revisar' if provider_health.get('has_alerts') else 'Sin alertas', 'warning' if provider_health.get('has_alerts') else 'success') }}
+    </header>
+    <div class="v928-admin-panel-body">
+      <div class="v928-truth-list">
+        <div><span>Fuente del último ciclo</span><strong>{{ provider_health.get('selected_source') or 'Sin evidencia' }}</strong></div>
+        <div><span>Último ciclo</span><strong>{{ provider_health.get('job_finished_at')|madrid_datetime_label if provider_health.get('job_finished_at') else 'Sin evidencia reciente' }}</strong></div>
+        <div><span>Llamadas al abrir esta pantalla</span><strong>{{ provider_health.get('provider_calls_during_render', 0) }}</strong></div>
+        <div><span>Origen del diagnóstico</span><strong>{{ provider_health.get('source') or 'Sin dato' }}</strong></div>
+      </div>
+
+      {% if provider_health.get('providers') %}
+      <div class="provider-health-grid">
+        {% for provider in provider_health.get('providers') %}
+        <article class="provider-health-card" aria-labelledby="provider-title-{{ provider.get('key') }}">
+          <header>
+            <h3 id="provider-title-{{ provider.get('key') }}">{{ provider.get('label') }}</h3>
+            {{ status_chip(provider.get('status_label') or 'Sin dato', provider.get('severity') or 'neutral') }}
+          </header>
+          <p class="provider-next-action">{{ ui(provider.get('next_action') or 'Revisar') }}</p>
+          {% for observation in provider.get('observations') or [] %}
+          <section class="provider-observation" data-provider-observation="{{ observation.get('observation_scope') }}">
+            <h4>{{ ui(observation.get('lane_label')) }}</h4>
+            {% for issue in observation.get('issues') or [] %}<p>{{ ui(issue) }}</p>{% endfor %}
+            <p class="provider-observation-scope">{{ ui(observation.get('scope_label')) }}</p>
+            {% if observation.get('provider_observed_at') %}<time datetime="{{ observation.get('provider_observed_at') }}">{{ observation.get('provider_observed_at')|madrid_datetime_label }}</time>{% endif %}
+          </section>
+          {% endfor %}
+          {% set statistics_receipt = provider.get('statistics_refresh') or {} %}
+          {% if statistics_receipt.get('state') and statistics_receipt.get('state') != 'UNKNOWN' %}
+          <section class="provider-observation" data-statistics-refresh>
+            <h4>{{ ui('Recogida de estadísticas') }}</h4>
+            <p>{{ statistics_receipt.get('refreshed_fixtures', 0) }} {{ ui('partidos actualizados') }} · {{ statistics_receipt.get('stats_inserted', 0) }} {{ ui('datos guardados') }}</p>
+            <p>{{ statistics_receipt.get('no_data_count', 0) }} {{ ui('partidos sin datos del proveedor') }} · {{ statistics_receipt.get('failed_count', 0) }} {{ ui('partidos con error') }}</p>
+            <p>{{ statistics_receipt.get('external_calls', 0) }} {{ ui('solicitudes en el ciclo registrado') }} · <code>{{ statistics_receipt.get('state') }}</code></p>
+          </section>
+          {% endif %}
+          <dl class="provider-health-facts">
+            {% set plan_evidence = provider.get('plan_observation') or {} %}
+            <div><dt>{{ ui('Plan / facturación') }}</dt><dd>{{ ui(provider.get('billing_status') or 'No verificable automáticamente') }}{% if plan_evidence.get('state') == 'OBSERVED' %}<small>{{ ui('Plan reportado') }}: {{ ui(plan_evidence.get('value')) }} · {% if plan_evidence.get('freshness') == 'CURRENT_DEEP_RUN' %}{{ ui('Observado en el ciclo actual') }}{% else %}{{ ui('Dato guardado; no revalidado en este ciclo') }}{% endif %}{% if plan_evidence.get('observed_at') %} · {{ plan_evidence.get('observed_at')|madrid_datetime_label }}{% endif %}</small>{% endif %}</dd></div>
+            <div><dt>{{ ui('Última evidencia de uso') }}</dt><dd>{% if provider.get('observed_at') %}{{ provider.get('observed_at')|madrid_datetime_label }}{% else %}{{ ui('Sin observación registrada') }}{% endif %}</dd></div>
+            <div><dt>{{ ui('Consumo y cuota') }}</dt><dd>{% set quota_evidence = provider.get('quota_observation') or {} %}{% if quota_evidence.get('values') %}{% if quota_evidence.get('values').get('daily_remaining') is not none %}{{ ui('Restante diario') }}: {{ quota_evidence.get('values').get('daily_remaining') }}{% elif quota_evidence.get('values').get('requests_remaining') is not none %}{{ ui('Solicitudes restantes') }}: {{ quota_evidence.get('values').get('requests_remaining') }}{% else %}{{ ui('Cuota observada') }}{% endif %} · {% if quota_evidence.get('freshness') == 'CURRENT_DEEP_RUN' %}{{ ui('Observada en el ciclo actual') }}{% else %}{{ ui('Último valor guardado; no reconsultado') }}{% endif %}{% if quota_evidence.get('observed_at') %} · {{ quota_evidence.get('observed_at')|madrid_datetime_label }}{% endif %}{% elif provider.get('external_calls') %}{{ provider.get('external_calls') }} {{ ui('solicitudes al proveedor en el último ciclo') }}{% elif provider.get('processed') %}{{ provider.get('processed') }} {{ ui('elementos del ciclo') }}{% else %}{{ ui('Sin consumo confirmado') }}{% endif %}</dd></div>
+          </dl>
+          <details class="provider-check-details">
+            <summary>{{ ui('Detalles y comprobación') }}</summary>
+            <p><code>{{ provider.get('state') or 'UNKNOWN' }}{% if provider.get('reason_code') %} · {{ provider.get('reason_code') }}{% endif %}</code></p>
+            <p>{{ status_chip('Configurada' if provider.get('configured') else 'Sin credencial', 'success' if provider.get('configured') else 'warning') }}</p>
+            {% set direct = provider.get('direct_check') or {} %}
+            {% if direct.get('checked_at') %}
+              <p>{{ direct.get('status') or 'Registrado' }} · {{ direct.get('checked_at')|madrid_datetime_label }} · {% if direct.get('freshness') == 'CURRENT_DIRECT_CHECK' %}{{ ui('Comprobación reciente') }}{% else %}{{ ui('Comprobación anterior; no representa el estado actual') }}{% endif %}{% if direct.get('external_calls') %} · {{ direct.get('external_calls') }} {{ ui('solicitudes externas') }}{% endif %}{% if direct.get('reused') %} · {{ ui('reutilizado') }}{% endif %}</p>
+              {% if direct.get('quota') %}<p>{{ ui('Cuota de esa comprobación') }}: {% if direct.get('quota').get('daily_remaining') is not none %}{{ ui('Restante diario') }} {{ direct.get('quota').get('daily_remaining') }}{% elif direct.get('quota').get('requests_remaining') is not none %}{{ ui('Solicitudes restantes') }} {{ direct.get('quota').get('requests_remaining') }}{% else %}{{ ui('Valores recibidos') }}{% endif %}</p>{% endif %}
+            {% else %}
+              <p>{{ ui('No verificada manualmente') }}</p>
+            {% endif %}
+            <p id="provider-check-help-{{ provider.get('key') }}">{{ ui('Esta comprobación consulta al proveedor y puede consumir una solicitud.') }}</p>
+            <form method="post" action="/admin/provider-health/check">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="v928-button" type="submit" name="provider" value="{{ provider.get('key') }}" aria-describedby="provider-check-help-{{ provider.get('key') }}">{{ ui('Verificar ahora') }}</button>
+            </form>
+          </details>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ empty_state('Sin evidencia de proveedores', 'El próximo ciclo real añadirá el estado disponible sin ejecutar llamadas al renderizar.', '', '', 'database') }}
+      {% endif %}
+
+      {% if provider_health.get('alerts') %}
+      <div class="v928-notes-list">
+        {% for alert in provider_health.get('alerts') %}
+        <p><strong>{{ alert.get('provider') }}:</strong> {{ ui(alert.get('status')) }} · {{ ui(alert.get('action')) }}</p>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% set ext = provider_health.get('external_services') or {} %}
+      <div class="v928-truth-list">
+        <div><span>Telegram</span><strong>{{ 'Credenciales presentes; entrega no verificada' if ext.get('telegram_configured') else 'Credenciales no detectadas' }}</strong></div>
+        <div><span>OpenAI</span><strong>{{ 'Credencial presente; acceso no probado aquí' if ext.get('openai_configured') else 'Credencial no detectada' }}</strong></div>
+        <div><span>Stripe</span><strong>{{ 'Credencial presente; cuenta y pagos no verificados' if ext.get('stripe_configured') else 'Credencial no detectada' }}</strong></div>
+        <div><span>Render y costes</span><strong>No consultados aquí · coste no verificado</strong></div>
+      </div>
+    </div>
+  </section>
+  <section class="v933-kpi-grid is-six">{{ kpi_card('Competiciones', center.get('total_competitions'), 'Guardadas', 'blue', 'matches') }}{{ kpi_card('Equipos', center.get('total_teams'), 'Identidades cacheadas', 'blue', 'users') }}{{ kpi_card('Partidos', center.get('total_matches'), 'Registros reales', 'blue', 'calendar') }}{{ kpi_card('Próximos', center.get('upcoming_matches'), 'Agenda disponible', 'cyan', 'calendar') }}{{ kpi_card('En directo', center.get('live_matches'), 'Feed actual', 'success', 'live') }}{{ kpi_card('Cuotas', center.get('odds_snapshots'), 'Lecturas 1X2 guardadas: ' ~ (center.get('market_forecast_snapshots')|default('sin dato', true)|string), 'gold', 'odds') }}</section>
+  <section class="v928-layout-wide-aside"><div class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Programador interno de compatibilidad</h2><p>No es el cron de producción. Solo refleja definiciones heredadas o uso manual.</p></div>{{ status_chip('Habilitado manualmente' if scheduler.get('enabled') else 'Desactivado','success' if scheduler.get('enabled') else 'warning') }}</header><div class="v928-admin-panel-body">{% if scheduler.get('tasks') %}{% call data_table(['Definición','Última ejecución','Referencia próxima','Intervalo','Estado']) %}{% for task in scheduler.get('tasks') %}<tr><td>{{ task.get('label') or task.get('name') }}</td><td>{{ task.get('last_run') or 'Sin ejecución' }}</td><td>{{ task.get('next_run') or 'Sin programación' }}</td><td>{{ task.get('interval_seconds') if task.get('interval_seconds') is not none else 'Sin dato' }}</td><td>{{ status_chip(task.get('status') or 'Pendiente','success' if task.get('status') == 'OK' else 'warning') }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin definiciones internas activas', 'La programación recurrente real se consulta en el Centro de Automatización.', '', '', 'automation') }}{% endif %}</div></section><section class="v928-admin-panel"><header><div><h2>Actividad reciente</h2><p>Historial de sincronización</p></div></header><div class="v928-admin-panel-body">{% if center.get('recent_logs') %}{% call data_table(['Fecha','Fuente','Tipo','Estado','Elementos']) %}{% for log in center.get('recent_logs') %}<tr><td>{{ log.get('started_at')|madrid_datetime_label if log.get('started_at') else 'Sin fecha' }}</td><td>{{ log.get('source') or 'Proveedor' }}</td><td>{{ log.get('sync_type') or 'Sincronización' }}</td><td>{{ status_chip(log.get('status') or 'Registrado','success' if log.get('status') == 'OK' else 'neutral') }}</td><td>{{ log.get('total_items') if log.get('total_items') is not none else 'Sin dato' }}</td></tr>{% endfor %}{% endcall %}{% else %}{{ empty_state('Sin sincronizaciones registradas', 'La actividad aparecerá cuando se ejecuten las tareas reales.', '', '', 'database') }}{% endif %}</div></section></div><aside class="v928-stack"><section class="v928-admin-panel"><header><div><h2>Acciones de sincronización</h2><p>Solo admin autenticado</p></div></header><div class="v928-admin-panel-body"><form class="v928-sync-grid" method="post" action="/admin/data-center"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="limit" value="120">{% for action, label in [('competitions','Competiciones'),('teams','Equipos y escudos'),('calendar','Calendario'),('live','Directo'),('results','Resultados'),('odds','Cuotas'),('warmup','Preparar caché')] %}<button class="v928-button" name="action" value="{{ action }}" type="submit">{{ label }}</button>{% endfor %}</form></div></section><section class="v928-admin-panel"><header><div><h2>Fuentes</h2><p>Estado deportivo seguro</p></div></header><div class="v928-admin-panel-body"><div class="v928-truth-list"><div><span>Fuente activa</span><strong>{{ diagnostics.get('active_data_source') or 'Sin dato' }}</strong></div><div><span>Última sincronización</span><strong>{{ sports_value.get('last_safe_sync')|madrid_datetime_label if sports_value.get('last_safe_sync') else 'Sin dato' }}</strong></div><div><span>Registros válidos</span><strong>{{ sports_value.get('valid_matches_count', 0) }}</strong></div><div><span>Incompletos excluidos</span><strong>{{ sports_value.get('incomplete_matches_count', 0) }}</strong></div><div><span>Llamadas API al abrir</span><strong>No</strong></div><div><span>Siguiente acción</span><strong>{{ sports_value.get('admin_next_action') or 'Revisar configuración' }}</strong></div></div></div></section><section class="v928-admin-panel"><header><div><h2>Incidencias del programador interno</h2></div></header><div class="v928-admin-panel-body">{% if scheduler.get('recent_errors') %}<div class="v928-notes-list">{% for error in scheduler.get('recent_errors')[:8] %}<p>{{ error }}</p>{% endfor %}</div>{% else %}{{ empty_state('Sin errores recientes', 'No hay incidencias del programador interno registradas.', '', '', 'shield') }}{% endif %}</div></section></aside></section>
+</div>
+{% include 'partials/admin_odds_diagnostics.html' %}
+{% endblock %}

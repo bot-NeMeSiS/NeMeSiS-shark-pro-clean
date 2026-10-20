@@ -6,6 +6,25 @@
 @media(max-width:900px){.master-facts{grid-template-columns:repeat(3,minmax(0,1fr))}.master-toolbar button{min-height:44px}.master-facts strong{font-size:1.3rem}.master-table th,.master-table td{padding:10px 7px}.master-heading>div>p{font-size:.79rem}}
 @media(max-width:560px){.admin-master{gap:8px;font-size:14px}body.ns-app.ns-admin .admin-master .master-heading h1{font-size:26px!important}.admin-master>details.master-panel:not([open]){padding:0 10px}.admin-master>details.master-panel>summary{min-height:44px;align-content:center}.master-panel{padding:12px}.master-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.master-facts article{padding:6px 10px}.master-side,.master-recommendations{grid-template-columns:minmax(0,1fr)}.master-quick>*{flex:1 1 calc(50% - 8px)}.master-toolbar{width:100%}.master-toolbar button{flex:1;font-size:.75rem;white-space:nowrap}.master-toolbar kbd{display:none}.master-reading summary{min-height:44px;align-content:center}.master-reading{font-size:.67rem}.master-chat-form>div{align-items:stretch;flex-direction:column;gap:8px}.master-chat-form small{max-width:100%}.admin-master input,.admin-master select,.admin-master textarea{font-size:16px}.master-conversation{max-height:380px}.master-change{grid-template-columns:1fr}.master-dialog{padding:17px}.master-preview-stage{padding:8px;min-height:480px}.master-preview-stage iframe{height:620px}.master-runtime dl{grid-template-columns:1fr}.master-command-results small{max-width:105px}.master-panel>header{gap:8px}.master-table{font-size:.72rem}.master-table td:nth-child(3){min-width:160px}.master-preview-controls>button{min-height:44px;flex:1}.master-dialog footer button{flex:1}.master-suggestions{gap:6px}.master-suggestions button{flex:1 1 calc(50% - 6px);min-height:40px}}
 @media(prefers-reduced-motion:reduce){.admin-master *{scroll-behavior:auto!important}}
+
+/* A tighter working rhythm uses the Admin canvas without shrinking controls. */
+.admin-master .master-columns,
+.admin-master .master-main,
+.admin-master .master-side { gap:12px; }
+.admin-master .master-panel { padding:14px; }
+.admin-master .master-panel > header { margin-bottom:10px; }
+.admin-master .master-facts { gap:8px; }
+.admin-master .master-facts article { padding:10px 12px; }
+.admin-master .master-facts strong { font-size:1.35rem; }
+.admin-master .master-quick { gap:6px; }
+.admin-master .master-recommendations { gap:9px; }
+
+@media(max-width:560px) {
+  .admin-master .master-columns,
+  .admin-master .master-main,
+  .admin-master .master-side { gap:10px; }
+  .admin-master .master-panel { padding:12px; }
+}
 /* Local filters augment the existing directories without new endpoints. */
 .admin-list-filters{display:flex;align-items:end;flex-wrap:wrap;gap:10px;margin:12px 0 16px;padding:12px;border:1px solid var(--v933-border);border-radius:10px;background:var(--v933-surface)}
 .admin-list-filters[hidden],[data-admin-filter-item][hidden]{display:none!important}.admin-list-filters label{display:grid;gap:6px;font-size:.8rem;flex:1 1 190px}.admin-list-filters input,.admin-list-filters select,.admin-list-filters button{font:inherit;font-size:16px;min-height:44px;padding:9px 12px;border:1px solid #476684;border-radius:8px;background:#0b1b2e;color:#eff8ff;width:100%;min-width:0}.admin-list-filters button{width:auto;cursor:pointer}.admin-list-filters p{flex:1 1 100%;margin:0;color:var(--v933-text-soft);font-size:.78rem}.admin-list-filters :focus-visible{outline:2px solid #67d8ff;outline-offset:3px}

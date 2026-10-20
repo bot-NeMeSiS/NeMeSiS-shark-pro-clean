@@ -1,5 +1,6 @@
 import copy
 import csv
+import gzip
 import hashlib
 import inspect
 import ipaddress
@@ -662,6 +663,11 @@ def now_madrid_label():
 
 app = Flask(__name__)
 app.secret_key = secure_secret_key()
+# Keep inbound payloads bounded before any route or global guard parses them.
+# One extra byte is reserved as an overflow sentinel for Stripe's streaming
+# webhook reader; the shared guard enforces the exact supported size below.
+MAX_REQUEST_BODY_BYTES = MAX_STRIPE_WEBHOOK_BODY_BYTES
+app.config["MAX_CONTENT_LENGTH"] = MAX_REQUEST_BODY_BYTES + 1
 SEED_LOCK = threading.RLock()
 _SEED_LOCK = SEED_LOCK
 _SEEDED_DB_PATH = None
@@ -865,8 +871,71 @@ def scheduler_env_enabled():
 def security_client_ip():
     forwarded = request.headers.get("X-Forwarded-For", "") if has_request_context() else ""
     if forwarded:
-        return forwarded.split(",", 1)[0].strip()
+        candidate = forwarded.split(",", 1)[0].strip()
+        try:
+            return str(ipaddress.ip_address(candidate))
+        except ValueError:
+            # Render supplies the real client address as the first forwarded
+            # value. Ignore malformed values instead of using arbitrary text
+            # as a rate-limit key or writing it to the security audit table.
+            pass
     return (request.remote_addr or "local") if has_request_context() else "local"
+
+
+MAX_CSRF_JSON_TOKEN_BODY_BYTES = 16 * 1024
+REQUEST_REJECTION_AUDIT_WINDOW_SECONDS = 60 * 60
+REQUEST_REJECTION_AUDIT_MAX_EVENTS_PER_WINDOW = 30
+REQUEST_REJECTION_AUDIT_MAX_PER_IP_PER_WINDOW = 5
+_request_rejection_audit_lock = threading.Lock()
+_request_rejection_audit_events = {}
+
+
+def _allow_request_rejection_audit_write(event_type: str, client_ip: str) -> bool:
+    """Bound audit rows globally and per source without weakening rejection."""
+    now = time.monotonic()
+    cutoff = now - REQUEST_REJECTION_AUDIT_WINDOW_SECONDS
+    event_type = str(event_type or "unknown")[:80]
+    client_ip = str(client_ip or "local")[:64]
+    with _request_rejection_audit_lock:
+        for key, events in tuple(_request_rejection_audit_events.items()):
+            events[:] = [(recorded_at, source) for recorded_at, source in events if recorded_at > cutoff]
+            if not events:
+                _request_rejection_audit_events.pop(key, None)
+        events = _request_rejection_audit_events.setdefault(event_type, [])
+        if len(events) >= REQUEST_REJECTION_AUDIT_MAX_EVENTS_PER_WINDOW:
+            return False
+        if sum(1 for _, source in events if source == client_ip) >= REQUEST_REJECTION_AUDIT_MAX_PER_IP_PER_WINDOW:
+            return False
+        events.append((now, client_ip))
+        return True
+
+
+def request_too_large_response():
+    if request.path == "/api/payments/stripe-webhook":
+        return jsonify({
+            "version": APP_VERSION,
+            "ok": False,
+            "verified": False,
+            "processed": False,
+            "error": "payload_too_large",
+            "status": "payload_too_large",
+        }), 413
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify({
+            "ok": False,
+            "error": "payload_too_large",
+            "message": "El cuerpo de la petición supera el tamaño permitido.",
+        }), 413
+    return Response(
+        "El cuerpo de la petición supera el tamaño permitido.",
+        status=413,
+        mimetype="text/plain; charset=utf-8",
+    )
+
+
+@app.errorhandler(413)
+def handle_request_too_large(_error):
+    return request_too_large_response()
 
 
 def csrf_exempt_path(path: str) -> bool:
@@ -917,43 +986,67 @@ def csrf_exempt_path(path: str) -> bool:
 def request_csrf_token():
     token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token") or request.headers.get("X-CSRFToken")
     if not token and request.is_json:
+        content_length = request.content_length
+        if content_length is None:
+            # A small chunked JSON request is still supported when the server
+            # exposes a terminated input stream; the shared guard has already
+            # cached and size-checked that body before CSRF validation.
+            if not request.environ.get("wsgi.input_terminated"):
+                return ""
+            body = request.get_data(cache=True)
+            if len(body) > MAX_CSRF_JSON_TOKEN_BODY_BYTES:
+                return ""
+        elif content_length > MAX_CSRF_JSON_TOKEN_BODY_BYTES:
+            return ""
         payload = request.get_json(silent=True) or {}
         token = payload.get("csrf_token") if isinstance(payload, dict) else None
     return token or ""
 
 
 def csrf_failure_response():
-    record_security_event(
-        DB_PATH,
-        event_type="csrf_block",
-        severity="WARN",
-        ip_address=security_client_ip(),
-        path=request.path,
-        method=request.method,
-        success=False,
-        reason="token_csrf_invalido_o_ausente",
-    )
+    client_ip = security_client_ip()
+    if _allow_request_rejection_audit_write("csrf_block", client_ip):
+        record_security_event(
+            DB_PATH,
+            event_type="csrf_block",
+            severity="WARN",
+            ip_address=client_ip,
+            path=request.path,
+            method=request.method,
+            success=False,
+            reason="token_csrf_invalido_o_ausente",
+            payload={"audit_policy": "bounded_rejection_sample"},
+        )
     if request.path.startswith("/api/") or request.is_json:
         return jsonify({"ok": False, "error": "csrf_required", "message": "Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo."}), 403
     return Response("Sesión caducada o formulario no válido. Recarga la página e inténtalo de nuevo.", status=403, mimetype="text/plain; charset=utf-8")
 
 
 def rate_limit_failure_response(scope: str, status: dict):
-    record_security_event(
-        DB_PATH,
-        event_type="rate_limit_block",
-        severity="WARN",
-        ip_address=security_client_ip(),
-        path=request.path,
-        method=request.method,
-        success=False,
-        reason=f"{scope}: demasiados intentos",
-        payload={"status": status},
-    )
+    client_ip = security_client_ip()
+    if _allow_request_rejection_audit_write("rate_limit_block", client_ip):
+        record_security_event(
+            DB_PATH,
+            event_type="rate_limit_block",
+            severity="WARN",
+            ip_address=client_ip,
+            path=request.path,
+            method=request.method,
+            success=False,
+            reason=f"{scope}: demasiados intentos",
+            payload={"status": status, "audit_policy": "bounded_rejection_sample"},
+        )
     message = "Demasiados intentos seguidos. Espera unos minutos y vuelve a probar."
     if request.path.startswith("/api/") or request.is_json:
         return jsonify({"ok": False, "error": "rate_limited", "message": message, "window_minutes": status.get("window_minutes")}), 429
     return Response(message, status=429, mimetype="text/plain; charset=utf-8")
+
+
+def rate_limit_store_unavailable_response():
+    message = "No se pudo comprobar el límite de seguridad. Inténtalo de nuevo más tarde."
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify({"ok": False, "error": "rate_limit_store_unavailable", "message": message}), 503
+    return Response(message, status=503, mimetype="text/plain; charset=utf-8")
 
 
 def security_rate_limit_for_request():
@@ -971,7 +1064,24 @@ def security_rate_limit_for_request():
     ]
     for prefixes, event_type, limit, minutes, scope in rules:
         if any(path == prefix or path.startswith(prefix + "/") for prefix in prefixes):
-            status = rate_limit_status(DB_PATH, event_type=event_type, ip_address=ip, path_like=f"{prefixes[0]}%", limit=limit, minutes=minutes)
+            if scope in {"recuperacion", "cambio_password"}:
+                status = claim_rate_limit_slot(
+                    DB_PATH,
+                    scope=f"auth_{scope}",
+                    subject=ip,
+                    limit=limit,
+                    minutes=minutes,
+                )
+                if not status.get("allowed"):
+                    if status.get("reason") != "rate_limited":
+                        return rate_limit_store_unavailable_response()
+                    return rate_limit_failure_response(scope, status)
+                return None
+            # Authentication aliases share one per-IP budget. Filtering by
+            # only the first route let attempts through sibling aliases reset
+            # the apparent count.
+            path_like = "" if scope in {"login", "cambio_password"} else f"{prefixes[0]}%"
+            status = rate_limit_status(DB_PATH, event_type=event_type, ip_address=ip, path_like=path_like, limit=limit, minutes=minutes)
             if status.get("blocked"):
                 return rate_limit_failure_response(scope, status)
     return None
@@ -4546,17 +4656,29 @@ def ensure_runtime_ready_for_request():
 
 @app.before_request
 def enforce_security_guards():
+    if request.content_length is not None and request.content_length > MAX_REQUEST_BODY_BYTES:
+        return request_too_large_response()
+    if (
+        request.content_length in (None, 0)
+        and request.path != "/api/payments/stripe-webhook"
+        and request.environ.get("wsgi.input_terminated")
+    ):
+        # Chunked bodies do not carry Content-Length. Cache at most the Flask
+        # stream limit so handlers can still read form/JSON data, then enforce
+        # the exact shared boundary. Stripe keeps its own MAX+1 probe below.
+        if len(request.get_data(cache=True)) > MAX_REQUEST_BODY_BYTES:
+            return request_too_large_response()
     # Token exists before rendering pages and before validating later POSTs.
     try:
         generate_csrf_token(session)
     except Exception:
         pass
-    limited = security_rate_limit_for_request()
-    if limited is not None:
-        return limited
     if request.method in {"POST", "PUT", "PATCH", "DELETE"} and not csrf_exempt_path(request.path):
         if not validate_csrf(session, request_csrf_token()):
             return csrf_failure_response()
+    limited = security_rate_limit_for_request()
+    if limited is not None:
+        return limited
     return None
 
 
@@ -12956,13 +13078,18 @@ def password_hash_matches(stored_hash, password):
     return stored_hash == password
 
 
+MIN_PASSWORD_LENGTH = 8
+
+
 def create_admin_record(conn, name, username, email, password):
     name = str(name or "Admin SHARK").strip() or "Admin SHARK"
     email = normalize_email(email)
-    username = unique_username(conn, username or username_from_email(email))
     password = str(password or "")
     if not email or not password:
         raise ValueError("ADMIN_EMAIL y ADMIN_PASSWORD son obligatorios.")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"ADMIN_PASSWORD debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.")
+    username = unique_username(conn, username or username_from_email(email))
     existing = conn.execute("SELECT id,password_hash,role,membership FROM users WHERE email=?", (email,)).fetchone()
     if existing:
         privilege_changed = (
@@ -13104,6 +13231,8 @@ def create_user(name, username, email, password, role="FREE", membership="FREE")
     password = str(password or "")
     if not name or not username or not email or not password:
         raise ValueError("Completa nombre, usuario, email y contrasena.")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.")
     if len(username) < 3:
         raise ValueError("El nombre de usuario debe tener al menos 3 caracteres.")
     role = normalize_role(role)
@@ -13167,7 +13296,7 @@ def authenticate_env_admin(identifier, password):
     admin_email = normalize_email(os.getenv("ADMIN_EMAIL"))
     admin_username = normalize_username(os.getenv("ADMIN_USERNAME") or username_from_email(admin_email))
     admin_password = os.getenv("ADMIN_PASSWORD", "")
-    if not admin_email or not admin_password:
+    if not admin_email or len(admin_password) < MIN_PASSWORD_LENGTH:
         return None
     identifier = str(identifier or "").strip()
     identifier_ok = normalize_email(identifier) == admin_email if "@" in identifier else normalize_username(identifier) == admin_username
@@ -13285,8 +13414,8 @@ def mark_password_reset_used(token):
 
 def reset_user_password(user_id, password):
     password = str(password or "")
-    if len(password) < 8:
-        raise ValueError("La contraseña debe tener al menos 8 caracteres.")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"La contraseña debe tener al menos {MIN_PASSWORD_LENGTH} caracteres.")
     conn = db()
     conn.execute(
         "UPDATE users SET password_hash=?, auth_version=COALESCE(auth_version,0)+1 WHERE id=?",
@@ -18127,20 +18256,64 @@ def _v931_read_table_rows(table, limit=600):
         }
         order_columns = [column for column in preferred_order.get(table, ()) if column in columns]
         order_sql = ""
+        query_params = [int(limit)]
+        date_parts = []
+
+        def coalesce_sql(parts):
+            if not parts:
+                return "''"
+            if len(parts) == 1:
+                return parts[0]
+            return f"COALESCE({', '.join(parts)})"
+
+        order_parts = [
+            f'NULLIF(CAST("{column}" AS TEXT), \'\')'
+            for column in order_columns
+        ]
+        order_value = coalesce_sql(order_parts)
         if order_columns:
-            values = ", ".join(f'NULLIF(CAST("{column}" AS TEXT), \'\')' for column in order_columns)
-            order_sql = f" ORDER BY COALESCE({values}) DESC"
+            order_sql = f" ORDER BY {order_value} DESC"
+        if table == "matches":
+            date_parts = [
+                f'NULLIF(substr(CAST("{column}" AS TEXT), 1, 10), \'\')'
+                for column in ("match_date", "kickoff_iso")
+                if column in columns
+            ]
+            if date_parts:
+                # Fixture syncs can update a large future window after today's
+                # rows. Ordering only by updated_at lets the fixed read limit
+                # hide every match today, even when those rows are present.
+                # Current/upcoming dates get the bounded snapshot slots first;
+                # selected older dates use the separate read-only results path.
+                date_value = coalesce_sql(date_parts)
+                kickoff_parts = [
+                    f'NULLIF(CAST("{column}" AS TEXT), \'\')'
+                    for column in ("kickoff_iso", "kickoff_time", "match_time")
+                    if column in columns
+                ]
+                kickoff_value = coalesce_sql(kickoff_parts)
+                history_value = order_value
+                today = today_iso()
+                order_sql = (
+                    f" ORDER BY CASE WHEN {date_value} >= ? THEN 0 ELSE 1 END ASC,"
+                    f" CASE WHEN {date_value} >= ? THEN {date_value} END ASC,"
+                    f" CASE WHEN {date_value} >= ? THEN {kickoff_value} END ASC,"
+                    f" CASE WHEN {date_value} < ? THEN {date_value} END DESC,"
+                    f" {history_value} DESC"
+                )
+                query_params = [today, today, today, today, int(limit)]
         records = [
             dict(row)
             for row in conn.execute(
                 f'SELECT * FROM "{table}"{order_sql} LIMIT ?',
-                (int(limit),),
+                tuple(query_params),
             ).fetchall()
         ]
         return records, {
             "status": "ok",
             "error_type": "",
             "ordered_by": order_columns,
+            "selection_policy": "current_upcoming_then_history" if table == "matches" and date_parts else "recent_update",
         }
     except sqlite3.OperationalError as exc:
         message = str(exc).lower()
@@ -19307,7 +19480,7 @@ def _build_public_home_sports_summary():
 
 def _public_sports_cache_key():
     db_cache_key = hashlib.sha256(str(Path(DB_PATH).resolve()).encode("utf-8")).hexdigest()[:12]
-    return f"v934:sports:public-summary:{db_cache_key}"
+    return f"v934:sports:public-summary-v2:{db_cache_key}"
 
 
 def _latest_sports_update_at(*row_groups):
@@ -30410,7 +30583,15 @@ def api_calendar():
     _data, summary = v932_safe_dashboard_data("/api/calendar", "today", date_value, compact=True)
     summary = _v940_hydrate_selected_date_results(summary, date_value)
     calendar = v940_calendar_context(summary, lane, date_value)
-    return jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
+    response = jsonify({"ok": True, "version": APP_VERSION, "calendar": calendar, "matches": calendar.get("matches", [])})
+    response.vary.add("Accept-Encoding")
+    body = response.get_data()
+    if len(body) >= 32 * 1024 and request.accept_encodings.best_match(["gzip"]) == "gzip":
+        compressed = gzip.compress(body, compresslevel=5, mtime=0)
+        if len(compressed) < len(body):
+            response.set_data(compressed)
+            response.headers["Content-Encoding"] = "gzip"
+    return response
 
 
 @app.route("/api/live")

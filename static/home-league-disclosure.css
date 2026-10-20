@@ -46,6 +46,31 @@
 }
 @media(prefers-reduced-motion:reduce) { .home-league-browser .home-disclosure-chevron { transition:none; } }
 
+/* Use the first screen for fixtures, while keeping the same information and
+   touch-friendly controls at desktop, tablet, and phone widths. */
+.home-agenda-focus { row-gap:12px; }
+.home-agenda-focus > * { margin-block-end:10px; }
+.home-agenda-focus .ns16-home-command,
+.home-agenda-focus .ns16-home-primary { gap:12px; }
+.home-agenda-focus .home-competition-list { gap:14px; }
+.home-agenda-focus .home-league-index { margin-bottom:12px; }
+.home-agenda-focus .home-agenda-matches { gap:8px; padding:10px; }
+.home-agenda-focus .home-agenda-note { margin:0; padding-block:5px; line-height:1.45; }
+
+@media (min-width:1101px) {
+  .home-agenda-focus > * { margin-block-end:0; }
+  .home-agenda-focus .ns16-home-command,
+  .home-agenda-focus .ns16-home-primary { gap:14px; }
+}
+
+@media (max-width:760px) {
+  body.ns-app .home-agenda-focus .ns16-home-hero { min-height:76px !important; }
+  .home-agenda-focus .ns16-kpi-strip { gap:6px; }
+  .home-agenda-focus .home-competition-list { gap:10px; }
+  .home-agenda-focus .home-league-index { margin-bottom:8px; }
+  .home-agenda-focus .home-agenda-matches { gap:7px; padding:8px; }
+}
+
 /* Match rows: keep the same verified information while reducing vertical bulk. */
 body.ns-app .ns16-home .ns16-match-row {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));

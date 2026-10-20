@@ -364,6 +364,23 @@ def test_stripe_route_rejects_oversized_declared_body_before_engine(client, app_
     assert response.get_json()["status"] == "payload_too_large"
 
 
+def test_stripe_route_allows_exact_supported_body_size_to_reach_verifier(client, app_module, monkeypatch):
+    observed = {}
+
+    def processor(_db_path, payload, _signature):
+        observed["payload_length"] = len(payload)
+        return {"ok": False, "verified": False, "status": "invalid_signature"}
+
+    monkeypatch.setattr(app_module, "process_stripe_webhook", processor)
+    payload = b"x" * app_module.MAX_STRIPE_WEBHOOK_BODY_BYTES
+
+    response = client.post("/api/payments/stripe-webhook", data=payload)
+
+    assert response.status_code == 400
+    assert response.get_json()["status"] == "invalid_signature"
+    assert observed["payload_length"] == app_module.MAX_STRIPE_WEBHOOK_BODY_BYTES
+
+
 def test_stripe_route_bounds_unknown_length_stream_read(client, app_module, monkeypatch):
     payload_size = app_module.MAX_STRIPE_WEBHOOK_BODY_BYTES + 4096
     observed = {}

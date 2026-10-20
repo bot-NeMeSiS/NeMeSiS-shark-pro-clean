@@ -111,6 +111,11 @@ def test_layout_no_automatic_admin_api_calls_and_captures(browser,app_module,wid
         assert page.locator("[data-admin-master-control]").is_visible()
         assert page.locator("#master-chat-form").is_visible()
         assert "Sin datos" in page.locator("[data-master-facts]").inner_text()
+        rhythm=page.locator("[data-admin-master-control]").evaluate("el=>({gap:getComputedStyle(el).rowGap,panelPadding:getComputedStyle(el.querySelector('section.master-panel')).padding,quickGap:getComputedStyle(el.querySelector('.master-quick')).columnGap,controlMinHeight:getComputedStyle(el.querySelector('button')).minHeight})")
+        assert float(rhythm["gap"].removesuffix("px"))<=12
+        assert rhythm["panelPadding"]==("12px" if width<=560 else "14px")
+        assert rhythm["quickGap"]=="6px"
+        assert float(rhythm["controlMinHeight"].removesuffix("px"))>=42
         assert not errors and not blocked
         output=ROOT/"data/local_dev/admin-master-v941-qa"
         output.mkdir(parents=True,exist_ok=True)

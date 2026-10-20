@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, pick_card, sports_contract_attributes %}
+{% from 'components/combi_advice.html' import advice_card %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-core-2">
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=core-constructor-2">
+{% set assistant = data.get('shark_assistant') or {} %}
+{% set answer = assistant.get('answer') or {} %}
+{% set context = assistant.get('context') or {} %}
+{% set data_state = context.get('data_state') or {} %}
+{% set openai_ready = assistant.get('openai_configured') %}
+{% set calendar = data.get('v925_calendar') or {} %}
+{% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+{% set sports_metrics = data.get('sports_metrics') or {} %}
+{% set focus_labels = {'summary':'Resumen', 'pick':'Pronóstico', 'risk':'Riesgo', 'telegram':'Telegram', 'match':'Partido', 'membership':'Plan'} %}
+
+<div class="v933-page v933-shark-page" data-v933-template="shark" data-v933-reference="official-ref-12" {{ sports_contract_attributes(sports_metrics) }}>
+  {{ page_header('SHARK', 'Tu inteligencia deportiva', 'shark', [{'label':'Calendario','href':'/calendario','icon':'calendar'},{'label':'Ver directo','href':'/directo','icon':'live'},{'label':'Ver pronósticos','href':'/picks','icon':'target'}]) }}
+
+  <section class="ns-shark-conversation" aria-labelledby="shark-question-title" data-shark-question-entry="existing-answer-v1">
+    <h2 id="shark-question-title">Pregunta a SHARK</h2>
+    <p>Partidos, resultados, contexto y ayuda sobre la plataforma.</p>
+    <form method="post" action="/shark">
+      {% if request.values.get('pick') %}<input type="hidden" name="pick" value="{{ request.values.get('pick')[:180] }}">{% endif %}
+      {% if request.values.get('match_id') %}<input type="hidden" name="match_id" value="{{ request.values.get('match_id')[:180] }}">{% endif %}
+      <label for="shark-question">¿Qué quieres consultar?</label>
+      <textarea id="shark-question" name="q" rows="3" maxlength="1000" required placeholder="Por ejemplo: ¿qué partidos están en directo?">{{ (data.get('shark_submitted_question') or '')[:1000] }}</textarea>
+      <button class="v933-action is-primary" type="submit"{% if (data.get('shark_usage') or {}).get('login_required') or (data.get('shark_usage') or {}).get('limit_reached') %} disabled{% endif %}>Consultar SHARK</button>
+      {% set shark_usage = data.get('shark_usage') or {} %}
+      {% if shark_usage.get('login_required') %}
+      <small><a href="/cliente-login?next=/shark">Inicia sesión</a> para utilizar tus consultas SHARK.</small>
+      {% else %}
+      <small>Consultas SHARK hoy: {{ shark_usage.get('used',0) }}/{{ shark_usage.get('limit',0) }} · disponibles {{ shark_usage.get('remaining',0) }}.</small>
+      {% endif %}
+      <small>Pregunta por un partido, tus favoritos o tu plan.</small>
+    </form>
+    <details class="v933-home-more"><summary>{{ ui('Explorar') }}</summary><nav class="ns-shark-question-links" aria-label="Explorar con SHARK"><a href="/directo">Directo</a><a href="/calendario">Calendario</a><a href="/membresias">Mi plan</a><a href="/faq">Ayuda y preguntas frecuentes</a></nav></details>
+    {% if not openai_ready %}
+    <div class="ns-shark-answer ns-shark-safe-mode" data-shark-safe-mode="openai-unconfigured" role="status" aria-live="polite">
+      <strong>{{ icon('shield') }} SHARK está en modo seguro</strong>
+      <p>La IA generativa externa no está configurada. SHARK utiliza únicamente el contexto disponible en la plataforma; puede ofrecer respuestas limitadas y no inventará partidos, cuotas ni resultados.</p>
+    </div>
+    {% endif %}
+    {% if data.get('shark_question_active') %}<div class="ns-shark-answer" role="status">{{ answer.get('answer') or 'No hay una respuesta verificable para esta consulta. Revisa la información disponible o contacta con soporte.' }}</div>{% endif %}
+    {% if data.get('shark_legacy_get_ignored') %}<small>Escribe tu pregunta y pulsa Consultar SHARK.</small>{% endif %}
+    <small>SHARK analiza la información disponible. Sus recomendaciones no garantizan resultados.</small>
+  </section>
+  {% if request.values.get('pick') or request.values.get('match_id') %}
+  {{ advice_card(combi_advice(request.args.get('pick',''), request.args.get('match_id',''))) }}
+
+  {% endif %}
+  {% if picks and not (request.values.get('pick') or request.values.get('match_id')) %}{% set focus_pick = picks[0] %}
+    <a class="v933-quick-action is-cyan" href="{{ focus_pick.get('client_match_url') or ('/match/' ~ focus_pick.get('match_id') if focus_pick.get('match_id') else '/picks') }}"{% if focus_pick.get('match_id') %} data-match-id="{{ focus_pick.get('match_id') }}"{% endif %}>{{ icon('calendar') }}<span><strong>{{ focus_pick.get('client_match_label') or ui('Partido analizado') }}</strong><small>{{ focus_pick.get('client_competition') or ui('Competición') }} · <time{% if focus_pick.get('madrid_dt_iso') %} datetime="{{ focus_pick.get('madrid_dt_iso') }}"{% endif %} data-match-temporal-context="{{ focus_pick.get('client_temporal_contract') or 'MATCH-TEMPORAL-CONTEXT-V1' }}">{{ ui_match_datetime(focus_pick) }}</time></small></span>{{ icon('arrow') }}</a>
+  <section class="v933-kpi-grid">
+    {{ kpi_card('Partidos disponibles', sports_metrics.get('matches_available', 0), 'Contexto real guardado', 'blue', 'calendar', '/calendario') }}
+    {{ kpi_card('Pronósticos completos', sports_metrics.get('picks_ready', 0), 'Información disponible', 'cyan', 'target', '/picks') }}
+    {{ kpi_card('Evidencia', ui('Disponible' if picks else 'Pendiente'), 'Sin datos inventados', 'success' if picks else 'warning', 'shark') }}
+    {{ kpi_card('Garantía de resultado', ui('No'), 'Herramienta informativa', 'gold', 'shield') }}
+  </section>
+
+  <section class="v933-two-col">
+    <div class="v933-main-stack">
+      <section class="v933-panel v933-shark-analysis">
+        {{ section_header('Análisis actual', 'Selección, riesgo e información del partido.') }}
+        {% if picks %}{{ pick_card(picks[0], true) }}{% elif answer.get('answer') %}<div class="v933-shark-answer">{{ icon('shark') }}<p>{{ answer.get('answer') }}</p></div>{% else %}{{ empty_state('Todavía no hay un análisis disponible', 'Consulta un partido del calendario para explorar la información disponible.', 'Abrir calendario', '/calendario', 'shark') }}{% endif %}
+      </section>
+
+      <details class="v933-home-more ns16-shark-more" id="v936-shark-questions">
+        <summary>{{ ui("Consultas rápidas") }}</summary>
+        <div class="v933-quick-actions v933-home-more-content">
+          {{ quick_action('¿Qué hay en el calendario?', 'Agenda real disponible', '/shark?q=partidos', 'calendar') }}
+          {{ quick_action('¿Hay un pronóstico completo?', 'Mercado, selección y cuota', '/shark?q=pick', 'target') }}
+          {{ quick_action('¿Qué riesgo existe?', 'Explicación sin garantías', '/shark?q=riesgo', 'shield') }}
+          {{ quick_action('¿Qué está en directo?', 'Solo estados confirmados', '/shark?q=directo', 'live', 'success') }}
+          {{ quick_action('¿Es apto para Telegram?', 'Calidad y duplicados', '/shark?q=telegram', 'telegram', 'cyan') }}
+          {{ quick_action('¿Qué ofrece mi plan?', 'Beneficios configurados', '/shark?q=plan', 'plan', 'gold') }}
+        </div>
+      </details>
+    </div>
+
+    <aside class="v933-side-stack">
+      <section class="v933-panel" data-top100-improvement="4">
+        {{ section_header('Cómo leer SHARK', 'Dato confirmado, contexto y límites claros.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('calendar') }}<span><strong>{{ ui("Leer la agenda") }}</strong><small>{{ ui("Partidos completos disponibles") }}</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('target') }}<span><strong>{{ ui("Revisar pronósticos") }}</strong><small>{{ ui("Solo pronósticos publicados") }}</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('live') }}<span><strong>{{ ui("Consultar directo") }}</strong><small>{{ ui("Sin inventar marcador ni minuto") }}</small></span>{{ status_chip('Activo','success') }}</div>
+          <div>{{ icon('shark') }}<span><strong>{{ ui("Análisis") }}</strong><small>{{ ui('Ampliado' if openai_ready else 'Con la información disponible') }}</small></span>{{ status_chip('Listo' if picks else 'Pendiente','success' if picks else 'warning') }}</div>
+        </div>
+      </section>
+      <section class="v933-panel">
+        {{ section_header('Estado del contexto', 'Datos que puede utilizar.') }}
+        <div class="v933-truth-list">
+          <div>{{ icon('target') }}<span><strong>Pronóstico</strong><small>{{ ui(data_state.get('pick') or 'Sin pronóstico real publicado') }}</small></span></div>
+          <div>{{ icon('odds') }}<span><strong>{{ ui("Cuotas") }}</strong><small>{{ ui(data_state.get('odds') or 'Pendientes') }}</small></span></div>
+          <div>{{ icon('history') }}<span><strong>{{ ui("Resultado") }}</strong><small>{{ ui(data_state.get('result') or 'Pendiente') }}</small></span></div>
+          <div>{{ icon('shield') }}<span><strong>{{ ui("Riesgo visible") }}</strong><small>{{ ui('Análisis ampliado' if openai_ready else 'Contexto seguro') }}</small></span></div>
+        </div>
+      </section>
+      <p class="v933-safe-copy">{{ ui("Si falta un dato real, SHARK lo marca como pendiente. No promete resultados ni sustituye la decisión del usuario.") }}</p>
+    </aside>
+  </section>
+  {% elif not (request.values.get('pick') or request.values.get('match_id')) %}
+  <section class="ns-video-empty-dashboard ns-video-shark-empty" data-empty-dashboard="resolved">
+    {{ empty_state('Todavía no hay un pronóstico destacado', 'Explora los próximos partidos mientras llegan nuevos análisis.', 'Abrir calendario', '/calendario', 'shark') }}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

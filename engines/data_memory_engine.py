@@ -23,6 +23,14 @@ def _now() -> str:
     return datetime.now(TZ).isoformat(timespec="seconds")
 
 
+def _retention_days(env_name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(env_name, str(default)))
+    except (TypeError, ValueError):
+        value = default
+    return max(1, min(value, 3650))
+
+
 def _enabled() -> bool:
     return str(os.getenv("DATA_MEMORY_ENABLED", "true")).strip().lower() in {"1", "true", "yes", "on", "si", "sí"}
 
@@ -512,10 +520,11 @@ def data_memory_summary(db_path: str) -> dict[str, Any]:
     summary = {
         "enabled": _enabled(),
         "retention": {
-            "DATA_MEMORY_KEEP_DAYS": int(os.getenv("DATA_MEMORY_KEEP_DAYS", "180")),
+            "DATA_MEMORY_KEEP_DAYS": _retention_days("DATA_MEMORY_KEEP_DAYS", 180),
             "ODDS_SNAPSHOT_KEEP_DAYS": int(os.getenv("ODDS_SNAPSHOT_KEEP_DAYS", "90")),
             "LIVE_SNAPSHOT_KEEP_DAYS": int(os.getenv("LIVE_SNAPSHOT_KEEP_DAYS", "30")),
-            "TELEGRAM_LOG_KEEP_DAYS": int(os.getenv("TELEGRAM_LOG_KEEP_DAYS", "90")),
+            "TELEGRAM_LOG_KEEP_DAYS": _retention_days("TELEGRAM_LOG_KEEP_DAYS", 90),
+            "SECURITY_EVENT_KEEP_DAYS": _retention_days("SECURITY_EVENT_KEEP_DAYS", 180),
             "DATA_MEMORY_RAW_JSON": str(os.getenv("DATA_MEMORY_RAW_JSON", "false")).lower() in {"1", "true", "yes", "on"},
         },
         "counts": {item["table"]: item["rows"] for item in table_sizes},
@@ -532,30 +541,70 @@ def data_memory_summary(db_path: str) -> dict[str, Any]:
 
 
 def cleanup_old_memory(db_path: str) -> dict[str, Any]:
-    keep_days = int(os.getenv("DATA_MEMORY_KEEP_DAYS", "180"))
-    cutoff = (datetime.now(TZ) - timedelta(days=keep_days)).isoformat(timespec="seconds")
+    keep_days = _retention_days("DATA_MEMORY_KEEP_DAYS", 180)
+    telegram_keep_days = _retention_days("TELEGRAM_LOG_KEEP_DAYS", 90)
+    security_keep_days = _retention_days("SECURITY_EVENT_KEEP_DAYS", 180)
+    primary_cutoff = (datetime.now(TZ) - timedelta(days=keep_days)).isoformat(timespec="seconds")
     ensure_data_memory_schema(db_path)
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     deleted = 0
-    for table, col in (
-        ("match_snapshots", "captured_at"),
-        ("api_sync_runs", "started_at"),
-        ("pick_decisions", "created_at"),
-        ("pick_discards", "created_at"),
-        ("telegram_delivery_memory", "created_at"),
-        ("data_memory_errors", "created_at"),
-    ):
+    retention_details: dict[str, dict[str, Any]] = {}
+    failures: list[str] = []
+    retention_rules = (
+        ("match_snapshots", "captured_at", keep_days),
+        ("api_sync_runs", "started_at", keep_days),
+        ("pick_decisions", "created_at", keep_days),
+        ("pick_discards", "created_at", keep_days),
+        ("telegram_delivery_memory", "created_at", keep_days),
+        ("data_memory_errors", "created_at", keep_days),
+        ("telegram_logs", "created_at", telegram_keep_days),
+        ("security_events", "created_at", security_keep_days),
+    )
+    for table, col, table_keep_days in retention_rules:
+        cutoff = (datetime.now(TZ) - timedelta(days=table_keep_days)).isoformat(timespec="seconds")
+        exists = cur.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (table,),
+        ).fetchone()
+        if not exists:
+            retention_details[table] = {"status": "table_missing", "deleted_rows": 0, "keep_days": table_keep_days}
+            continue
         try:
-            cur.execute(f"DELETE FROM {table} WHERE {col} < ?", (cutoff,))
-            deleted += int(cur.rowcount or 0)
-        except Exception:
-            pass
+            invalid_timestamps = int(cur.execute(
+                f"SELECT COUNT(*) FROM {table} WHERE {col} IS NULL OR julianday({col}) IS NULL"
+            ).fetchone()[0] or 0)
+            cur.execute(f"DELETE FROM {table} WHERE julianday({col}) < julianday(?)", (cutoff,))
+            table_deleted = int(cur.rowcount or 0)
+            deleted += table_deleted
+            table_status = "invalid_timestamps" if invalid_timestamps else "ok"
+            if invalid_timestamps:
+                failures.append(table)
+            retention_details[table] = {
+                "status": table_status,
+                "deleted_rows": table_deleted,
+                "invalid_timestamp_rows": invalid_timestamps,
+                "keep_days": table_keep_days,
+            }
+        except Exception as exc:
+            failures.append(table)
+            retention_details[table] = {"status": "error", "deleted_rows": 0, "keep_days": table_keep_days, "error_type": type(exc).__name__}
     rid = hashlib.md5(f"retention-{_now()}".encode()).hexdigest()[:18]
     cur.execute(
         "INSERT OR REPLACE INTO data_memory_retention_runs(id,created_at,keep_days,deleted_rows,meta_json) VALUES (?,?,?,?,?)",
-        (rid, _now(), keep_days, deleted, _safe_json({"cutoff": cutoff})),
+        (rid, _now(), keep_days, deleted, _safe_json({
+            "retention_by_table": retention_details,
+            "telegram_log_keep_days": telegram_keep_days,
+            "security_event_keep_days": security_keep_days,
+        })),
     )
     conn.commit()
     conn.close()
-    return {"ok": True, "deleted_rows": deleted, "keep_days": keep_days, "cutoff": cutoff}
+    return {
+        "ok": not failures,
+        "deleted_rows": deleted,
+        "keep_days": keep_days,
+        "cutoff": primary_cutoff,
+        "retention_by_table": retention_details,
+        "failed_tables": failures,
+    }

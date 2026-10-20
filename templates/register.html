@@ -18,7 +18,7 @@
     <div class="field"><label for="register-name">{{ ui("Nombre visible") }}</label><input id="register-name" name="name" autocomplete="name" required></div>
     <div class="field"><label for="register-username">{{ ui("Nombre de usuario") }}</label><input id="register-username" name="username" autocomplete="username" pattern="[A-Za-z0-9_\-]{3,32}" required></div>
     <div class="field"><label for="register-email">{{ ui("Email") }}</label><input id="register-email" type="email" name="email" autocomplete="email" required></div>
-    <div class="field"><label for="register-password">{{ ui("Contraseña") }}</label><input id="register-password" type="password" name="password" autocomplete="new-password" required></div>
+    <div class="field"><label for="register-password">{{ ui("Contraseña") }}</label><input id="register-password" type="password" name="password" autocomplete="new-password" minlength="8" required><small class="small">{{ ui("Usa al menos 8 caracteres.") }}</small></div>
     <button type="submit">{{ ui('Crear cuenta y seguir con {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Crear cuenta') }}</button>
     <p class="small">{{ ui("El plan inicial es FREE. PRO/ELITE se activan automáticamente cuando Stripe confirma el pago.") }}</p>
   </form>

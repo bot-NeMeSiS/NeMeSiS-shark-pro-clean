@@ -51,6 +51,10 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         assert page.locator('.home-agenda-focus details').count()==0
         assert page.locator('.home-agenda-focus').evaluate('(el)=>getComputedStyle(el).display')==('grid' if width>1100 else 'block')
         assert page.locator('.home-agenda-focus .ns16-home-command').evaluate('(el)=>getComputedStyle(el).display')=='flex'
+        home_rhythm=page.locator('.home-agenda-focus').evaluate('(el)=>({rowGap:getComputedStyle(el).rowGap,childMargin:getComputedStyle(el.children[0]).marginBlockEnd})')
+        assert home_rhythm['rowGap']=='12px'
+        assert home_rhythm['childMargin']==('0px' if width>1100 else '10px')
+        assert page.locator('.home-agenda-focus .ns16-home-command').evaluate('(el)=>getComputedStyle(el).rowGap')==('14px' if width>1100 else '12px')
         assert page.locator('.home-competition-group header').first.evaluate('(el)=>getComputedStyle(el).display')=='flex'
         compact_card=page.locator('.ns16-home .home-agenda-matches .v933-match-card').first
         team_names=compact_card.locator('.v933-match-teams strong')
