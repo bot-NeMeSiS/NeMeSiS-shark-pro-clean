@@ -71,7 +71,10 @@ def test_roles_reuse_real_executors_and_do_not_register_new_workers():
 
 def test_brand_kit_has_one_app_icon_master_and_all_sources_exist():
     kit = {b["role"]: b for b in build_creative_design_status(ROOT)["brand_kit"]}
-    assert len(kit) == 7
+    assert {
+        "ATMOSPHERIC_SHARK", "PRIMARY_BRAND_MARK", "BRAND_SHARK", "APP_ICON",
+        "WORDMARK", "FAVICON", "PWA_ICONS", "APPLE_TOUCH_ICON",
+    } <= set(kit)
     assert all(b["available"] for b in kit.values())
     assert kit["APP_ICON"]["derived_from"] == "ATMOSPHERIC_SHARK"
     for role in ("FAVICON", "PWA_ICONS", "APPLE_TOUCH_ICON"):

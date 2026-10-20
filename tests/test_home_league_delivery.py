@@ -99,8 +99,17 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
         assert agenda.locator('.home-competition-header img').count() == 6
         assert agenda.locator('details').count() == 0
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
-        boxes = agenda.locator('.home-competition-group').evaluate_all('(els)=>els.map(e=>({top:e.getBoundingClientRect().top,bottom:e.getBoundingClientRect().bottom}))')
-        assert all(boxes[i+1]['top'] >= boxes[i]['bottom'] for i in range(len(boxes)-1))
+        boxes = agenda.locator('.home-competition-group').evaluate_all('(els)=>els.map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}})')
+        # Wide screens intentionally place domestic competition groups in a
+        # responsive grid; verify the cards never collide instead of requiring
+        # a single vertical column.
+        assert all(
+            boxes[i]['right'] <= boxes[j]['left']
+            or boxes[j]['right'] <= boxes[i]['left']
+            or boxes[i]['bottom'] <= boxes[j]['top']
+            or boxes[j]['bottom'] <= boxes[i]['top']
+            for i in range(len(boxes)) for j in range(i + 1, len(boxes))
+        )
         assert len(set(agenda.locator('.home-competition-group').evaluate_all('(els)=>els.map(e=>getComputedStyle(e).borderLeftColor)'))) > 1
         ids=agenda.locator('[data-v934-match-id]').evaluate_all('(els)=>els.map(e=>e.dataset.v934MatchId)')
         assert len(set(ids)) == 30

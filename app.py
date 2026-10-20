@@ -23060,11 +23060,17 @@ def favorites_page():
     if not user:
         return redirect("/cliente-login")
     if request.method == "POST":
+        # Reuse the already validated identity for the whole request. Resolving
+        # it again from the signed cookie can diverge from a valid session user
+        # (and used to turn a visible Save action into a silent no-op).
+        user_id = str(user.get("id") or "").strip()
+        if not user_id:
+            return redirect("/cliente-login")
         action = str(request.form.get("action") or "add").lower()
         if action == "remove":
-            remove_favorite(request.form.get("kind"), request.form.get("value"))
+            remove_favorite(request.form.get("kind"), request.form.get("value"), user_id=user_id)
         else:
-            add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
+            add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"), user_id=user_id)
             _growth_maybe_activate_user(reason="favorite_saved")
         return redirect("/favoritos")
 

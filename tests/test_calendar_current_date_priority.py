@@ -6,7 +6,9 @@ def test_calendar_snapshot_keeps_today_when_later_fixtures_fill_the_read_limit(
     app_module, tmp_path, monkeypatch
 ):
     """A large future sync must not push today's fixtures out of the snapshot."""
-    anchor = date(2026, 10, 20)
+    # Keep the fixture aligned with Madrid's current date; lifecycle
+    # classification intentionally uses the real application clock.
+    anchor = date.fromisoformat(app_module.today_iso())
     monkeypatch.setattr(
         app_module,
         "today_iso",
