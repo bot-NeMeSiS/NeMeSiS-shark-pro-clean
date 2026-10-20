@@ -1194,6 +1194,41 @@ def _latest_lineup_observation(values: Iterable[str]) -> str | None:
     return max(valid, key=lambda item: item[1])[0]
 
 
+def _timeline_observation(canonical_events: Iterable[Mapping[str, Any]]) -> str | None:
+    """Return the latest stored event-capture time, never the match clock."""
+    values = []
+    for event in canonical_events or []:
+        item = _mapping(event)
+        timestamp = _first_text(item.get("source_timestamp"), item.get("timestamp"))
+        if timestamp:
+            values.append(timestamp)
+    return _latest_lineup_observation(values)
+
+
+def _timeline_sources(events: Iterable[Mapping[str, Any]]) -> tuple[list[str], str]:
+    """Summarize event provenance without leaking unknown internal source IDs."""
+    raw_sources = sorted({
+        _text(_mapping(event).get("source")).lower().replace("-", "_").replace(" ", "_")
+        for event in events or []
+        if _text(_mapping(event).get("source"))
+    })
+    labels = {
+        "api_football": "API-Football",
+        "api_sports": "API-Football",
+        "api_sports_api_football": "API-Football",
+        "thesportsdb": "TheSportsDB",
+        "the_sports_db": "TheSportsDB",
+    }
+    if len(raw_sources) > 1:
+        return ["multiple_sources"], "Varias fuentes deportivas"
+    if raw_sources:
+        source = raw_sources[0]
+        if source in labels:
+            return [source], labels[source]
+        return [], "Fuente deportiva"
+    return [], "Fuente pendiente"
+
+
 def _factual_summaries(
     match: Mapping[str, Any],
     lifecycle: Mapping[str, Any],
@@ -1861,6 +1896,9 @@ def build_match_context(
     timeline = _timeline_from_domain(canonical_timeline)
     live_story = build_match_live_story(match, raw_timeline)
     latest_event = timeline[-1] if timeline else {}
+    # The canonical match provider may differ from the event-feed provider;
+    # report the source attached to the actual timeline rows.
+    timeline_sources, timeline_source_label = _timeline_sources(raw_timeline)
     event_summary = {
         "contract": "SPORTS-CORE-TIMELINE-EVENT-V1",
         "available": bool(timeline),
@@ -1869,7 +1907,10 @@ def build_match_context(
         "items": timeline,
         "raw_count": raw_timeline_total,
         "excluded_without_evidence": max(0, raw_timeline_total - len(canonical_timeline)),
-        "source": _text(canonical_match.get("source") or live.get("provider")) or None,
+        "source": timeline_sources[0] if len(timeline_sources) == 1 else "multiple_sources" if timeline_sources else None,
+        "sources": timeline_sources,
+        "source_label": timeline_source_label,
+        "observed_at": _timeline_observation(canonical_timeline),
     }
 
     lifecycle = _lifecycle_from_domain(canonical_match, raw_match=match, live=live)

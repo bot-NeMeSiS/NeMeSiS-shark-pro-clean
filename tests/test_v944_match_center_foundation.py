@@ -132,6 +132,78 @@ def test_match_context_is_one_pure_snapshot_for_all_foundation_components():
     assert context["statistics"]["item_count"] == 0
 
 
+def test_match_timeline_exposes_latest_real_event_capture_and_source_to_clients(app_module):
+    detail = _detail()
+    detail["timeline"] = [
+        {
+            "id": "event-early",
+            "minute": 12,
+            "event_type": "goal",
+            "team_name": "Real Club Deportivo Local",
+            "source": "api_football",
+            "captured_at": "2026-10-20T17:00:00Z",
+        },
+        {
+            "id": "event-late-capture",
+            "minute": 75,
+            "event_type": "yellow_card",
+            "team_name": "Unión Deportiva Visitante",
+            "source": "api_football",
+            "captured_at": "2026-10-20T18:30:00+02:00",
+        },
+    ]
+    context = _context(detail)
+
+    assert context["event_summary"]["source"] == "api_football"
+    assert context["event_summary"]["sources"] == ["api_football"]
+    assert context["event_summary"]["source_label"] == "API-Football"
+    assert context["event_summary"]["observed_at"] == "2026-10-20T17:00:00Z"
+    assert context["diagnostics"]["external_calls"] == 0
+
+    with app_module.app.test_request_context("/match/v944-match-1"):
+        template = app_module.app.jinja_env.from_string(
+            "{% from 'components/v944_match_center.html' import timeline %}"
+            "{{ timeline(context) }}"
+        )
+        html = template.render(context=context)
+
+    assert 'data-timeline-source="api_football"' in html
+    assert 'data-timeline-observed-at="2026-10-20T17:00:00Z"' in html
+    assert "Fuente: API-Football" in html
+    assert "Última captura registrada:" in html
+    assert 'datetime="2026-10-20T17:00:00Z"' in html
+
+
+def test_match_timeline_does_not_invent_capture_time_or_provider_name(app_module):
+    detail = _detail()
+    detail["timeline"] = [{
+        "id": "event-without-capture",
+        "minute": 12,
+        "event_type": "goal",
+        "team_name": "Real Club Deportivo Local",
+        "source": "unknown_private_adapter",
+    }]
+    context = _context(detail)
+
+    assert context["event_summary"]["observed_at"] is None
+    assert context["event_summary"]["source_label"] == "Fuente deportiva"
+    assert context["diagnostics"]["builder_database_queries"] == 0
+    assert context["diagnostics"]["builder_database_writes"] == 0
+    assert context["diagnostics"]["external_calls"] == 0
+
+    with app_module.app.test_request_context("/match/v944-match-1"):
+        template = app_module.app.jinja_env.from_string(
+            "{% from 'components/v944_match_center.html' import timeline %}"
+            "{{ timeline(context) }}"
+        )
+        html = template.render(context=context)
+
+    assert 'data-timeline-observed-at=""' in html
+    assert "Fuente: Fuente deportiva" in html
+    assert "Hora de observación no disponible." in html
+    assert "unknown_private_adapter" not in html
+
+
 def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
     tracker = {
         "provider": "api_football",

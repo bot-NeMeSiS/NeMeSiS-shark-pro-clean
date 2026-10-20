@@ -395,6 +395,14 @@
     {% endfor %}
   </ol>
   <p class="v944-panel-footnote">{{ ui_plural('{count} evento confirmado', '{count} eventos confirmados', event_summary.get('count')) }}{% if event_summary.get('excluded_without_evidence') %} · {{ ui_plural('{count} excluido sin evidencia suficiente', '{count} excluidos sin evidencia suficiente', event_summary.get('excluded_without_evidence')) }}{% endif %}</p>
+  <p class="v944-panel-footnote v944-timeline-provenance" data-timeline-observed-at="{{ event_summary.get('observed_at') or '' }}" data-timeline-source="{{ event_summary.get('source') or '' }}">
+    {{ ui('Fuente:') }} {{ ui(event_summary.get('source_label') or 'Fuente pendiente') }} ·
+    {% if event_summary.get('observed_at') %}
+      {{ ui('Última captura registrada:') }} <time datetime="{{ event_summary.get('observed_at') }}">{{ event_summary.get('observed_at')|madrid_datetime_label }}</time>
+    {% else %}
+      {{ ui('Hora de observación no disponible.') }}
+    {% endif %}
+  </p>
   {% else %}
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
