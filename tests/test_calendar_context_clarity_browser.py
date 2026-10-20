@@ -59,6 +59,13 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
         assert page.locator('.v940-calendar-totals').inner_text().startswith('8')
         assert '2' in page.locator('.v940-calendar-totals').inner_text()
         assert page.locator('.v940-calendar-advanced').get_attribute('open') is None
+        assert page.locator('.v940-calendar-layer-state').count()==1
+        density=page.locator('.v940-calendar-layer-state').evaluate("el=>({display:getComputedStyle(el).display,wrap:getComputedStyle(el.querySelector('.v940-calendar-active-filters')).flexWrap,helper:getComputedStyle(document.querySelector('.v940-calendar-sort small')).display,overflow:el.querySelector('.v940-calendar-active-filters').scrollWidth>el.querySelector('.v940-calendar-active-filters').clientWidth})")
+        if width<=480:
+            assert density['display']=='flex'
+            assert density['wrap']=='nowrap'
+            assert density['helper']=='none'
+            assert density['overflow']
         assert page.locator('[data-results-calendar-tabs] a[href="/directo"]').count()==1
         assert '-calendar-context-2' in page.locator('script[src*="v940-calendar.js"]').get_attribute('src')
         sort=page.locator('select[name=sort]'); assert sort.count()==1 and sort.is_visible()

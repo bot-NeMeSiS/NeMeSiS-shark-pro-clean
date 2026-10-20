@@ -97,4 +97,26 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
   }
   [data-calendar-discovery="v1"] .v940-calendar-advanced { grid-row: 4; }
   [data-calendar-discovery="v1"] .v940-calendar-advanced[open] { grid-row: 4; }
+
+  /* The helper repeats the visible sort label; keep the control, lose the duplicate row. */
+  [data-calendar-discovery="v1"] .v940-calendar-sort small { display: none; }
+
+  /* Active filters are secondary context. Keep them in one swipeable row so
+     they don't push the actual match list below the first mobile viewport. */
+  [data-calendar-discovery="v1"] .v940-calendar-layer-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    padding-top: 5px;
+  }
+  [data-calendar-discovery="v1"] .v940-calendar-layer-state > div { flex: 0 0 auto; }
+  [data-calendar-discovery="v1"] .v940-calendar-active-filters {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
 }
