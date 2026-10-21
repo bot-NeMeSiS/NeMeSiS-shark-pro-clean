@@ -1,18 +1,33 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import sqlite3
+
+from engines import v935_launch_trust_engine
 
 
 def test_calendar_snapshot_keeps_today_when_later_fixtures_fill_the_read_limit(
     app_module, tmp_path, monkeypatch
 ):
     """A large future sync must not push today's fixtures out of the snapshot."""
-    # Keep the fixture aligned with Madrid's current date; lifecycle
-    # classification intentionally uses the real application clock.
+    # Keep both the fixture date and lifecycle clock deterministic. A fixed
+    # 20:00 kickoff must remain upcoming even when CI runs after that time.
     anchor = date.fromisoformat(app_module.today_iso())
     monkeypatch.setattr(
         app_module,
         "today_iso",
         lambda offset=0: (anchor + timedelta(days=offset)).isoformat(),
+    )
+    lifecycle_now = datetime(
+        anchor.year,
+        anchor.month,
+        anchor.day,
+        12,
+        0,
+        tzinfo=v935_launch_trust_engine.MADRID_TZ,
+    )
+    monkeypatch.setattr(
+        v935_launch_trust_engine,
+        "madrid_now",
+        lambda now=None: lifecycle_now,
     )
     database = tmp_path / "calendar.sqlite3"
     connection = sqlite3.connect(database)
@@ -97,7 +112,7 @@ def test_calendar_snapshot_keeps_today_when_later_fixtures_fill_the_read_limit(
 
     summary = app_module._build_public_home_sports_summary()
     assert summary["valid_matches_today_count"] == 1
-    home_agenda = app_module.home_matchday_context(summary)
+    home_agenda = app_module.home_matchday_context(summary, now=lifecycle_now)
     assert home_agenda["today"]["total"] == 1
     assert [
         match["id"]

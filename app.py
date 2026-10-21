@@ -5445,8 +5445,8 @@ def match_is_already_kicked_off(match):
     return elapsed is not None and elapsed >= 0
 
 
-def canonical_match_status(match):
-    truth = v935_match_status_truth(dict(match or {}))
+def canonical_match_status(match, now=None):
+    truth = v935_match_status_truth(dict(match or {}), now=now)
     lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
     states = {
         "LIVE": {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
@@ -21525,9 +21525,10 @@ def personal_home_agenda(summary):
                                 now=datetime.now(MADRID_TZ))
 
 
-def home_matchday_context(summary, favorites=None):
+def home_matchday_context(summary, favorites=None, *, now=None):
     """Present the full existing snapshot without new reads or provider calls."""
     from engines.home_matchday import build_matchday
+    agenda_now = now or datetime.now(MADRID_TZ)
     source = []
     status_by_object = {}
     canonical_live_ids = {
@@ -21544,13 +21545,16 @@ def home_matchday_context(summary, favorites=None):
             # that did not pass the stricter freshness and provider-evidence gate
             # used to populate valid_live_events. Never let Home promote that row
             # back into its live count or cards.
-            status = canonical_match_status(item)
+            if now is None:
+                status = canonical_match_status(item)
+            else:
+                status = canonical_match_status(item, now=agenda_now)
             if status.get("is_live") and _sports_match_key(item) not in canonical_live_ids:
                 continue
             source.append(item)
             status_by_object[id(item)] = status
     source = _v956_unique_home_fixtures(source)
-    result = build_matchday(source, now=datetime.now(MADRID_TZ),
+    result = build_matchday(source, now=agenda_now,
         status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
         kickoff_for=match_kickoff_madrid_dt,
         priority_for=sports_competition_priority,
