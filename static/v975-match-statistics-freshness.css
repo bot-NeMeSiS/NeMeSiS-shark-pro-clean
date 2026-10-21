@@ -1,0 +1,22 @@
+.v975-stat-capture {
+  display: block;
+  margin-top: 3px;
+  color: var(--v944-muted, #9aadc1);
+  font-size: .54rem;
+  font-weight: 550;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.v975-stat-capture time {
+  display: inline;
+}
+
+@media (max-width: 600px) {
+  .v975-stat-capture {
+    font-size: .5rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}

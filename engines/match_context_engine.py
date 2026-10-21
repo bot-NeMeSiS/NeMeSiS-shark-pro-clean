@@ -244,6 +244,21 @@ def _real_statistics(
     provider = _text(live.get("provider"))
     stale = bool(lifecycle.get("is_stale") or live.get("is_stale"))
     live_rows: list[dict[str, Any]] = []
+
+    def stat_clock(value: Any) -> str | None:
+        raw = _text(value)
+        return raw if raw and parse_datetime_to_madrid(raw) is not None else None
+
+    def latest_stat_clock(rows: list[dict[str, Any]]) -> str | None:
+        dated = []
+        for row in rows:
+            for key in ("home_captured_at", "away_captured_at"):
+                raw = stat_clock(row.get(key))
+                parsed = parse_datetime_to_madrid(raw) if raw else None
+                if parsed is not None:
+                    dated.append((parsed, raw))
+        return max(dated, key=lambda item: item[0])[1] if dated else None
+
     for raw in _items(live.get("stat_cards")):
         label = _stat_label(raw.get("label"))
         home = _stat_value(raw.get("home"))
@@ -256,6 +271,8 @@ def _real_statistics(
             "home": home or "No disponible",
             "away": away or "No disponible",
             "leader": _text(raw.get("leader")) or "even",
+            "home_captured_at": stat_clock(raw.get("home_captured_at")),
+            "away_captured_at": stat_clock(raw.get("away_captured_at")),
         })
     recovered_final = bool((cached or {}).get('postmatch_recovered') and lifecycle.get('is_finished'))
     # The dedicated collection has its own clock. A refreshed scoreboard must
@@ -269,7 +286,9 @@ def _real_statistics(
             "possession": _possession_meter(live_rows),
             "status": "available",
             "source": provider,
-            "updated_at": live.get("updated_at"),
+            # Tracker.updated_at can be refreshed by a scoreboard/event receipt.
+            # Statistics keep their own clocks; never borrow that unrelated time.
+            "updated_at": latest_stat_clock(live_rows),
             "snapshot_kind": "live",
         }
 
@@ -287,6 +306,8 @@ def _real_statistics(
             "home": home or "No disponible",
             "away": away or "No disponible",
             "leader": _text(raw.get("leader")) or "even",
+            "home_captured_at": stat_clock(raw.get("home_captured_at")),
+            "away_captured_at": stat_clock(raw.get("away_captured_at")),
         })
     available = bool(cached_data.get("available") and cached_rows)
     return {
@@ -302,7 +323,7 @@ def _real_statistics(
             else "not_available"
         ),
         "source": cached_data.get("source") if available else None,
-        "updated_at": cached_data.get("updated_at") if available else None,
+        "updated_at": stat_clock(cached_data.get("updated_at")) if available else None,
         "snapshot_kind": "persisted" if available else None,
     }
 

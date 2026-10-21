@@ -253,6 +253,74 @@ def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
     assert "2026-10-18T10:15:00Z" not in html
 
 
+def test_match_statistics_keep_each_side_capture_clock_and_ignore_tracker_clock():
+    tracker_clock = "2026-10-18T10:20:00Z"
+    home_clock = "2026-10-18T10:01:00Z"
+    away_clock = "2026-10-18T10:05:00Z"
+    tracker = {
+        "provider": "API-Football",
+        "updated_at": tracker_clock,
+        "stat_cards": [
+            {
+                "key": "fouls",
+                "label": "Faltas",
+                "home": "5",
+                "away": "8",
+                "home_captured_at": home_clock,
+                "away_captured_at": away_clock,
+            },
+            {
+                "key": "corners",
+                "label": "Córners",
+                "home": "2",
+                "away": "4",
+                "home_captured_at": "invalid-clock",
+                "away_captured_at": "",
+            },
+        ],
+    }
+    context = _context(_detail(), live_context=tracker)
+    statistics = context["statistics"]
+    fouls, corners = statistics["items"]
+
+    assert fouls["home_captured_at"] == home_clock
+    assert fouls["away_captured_at"] == away_clock
+    assert corners["home_captured_at"] is None
+    assert corners["away_captured_at"] is None
+    assert statistics["updated_at"] == away_clock
+    assert statistics["snapshot_kind"] == "live"
+
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals.update(ui=lambda value, **kwargs: value)
+    environment.filters["madrid_datetime_label"] = lambda value: f"Madrid: {value}"
+    environment.filters["sync_madrid_label"] = lambda value: f"Madrid: {value}"
+    html = environment.from_string(
+        "{% from 'components/v944_match_center.html' import stats_panel %}"
+        "{{ stats_panel(context) }}"
+    ).render(context=context)
+
+    assert f'datetime="{home_clock}"' in html
+    assert f'datetime="{away_clock}"' in html
+    assert tracker_clock not in html
+    assert "Dato recibido:" in html
+    assert "Última señal observada:" in html
+
+
+def test_match_statistics_without_metric_clocks_do_not_borrow_tracker_time():
+    tracker = {
+        "provider": "API-Football",
+        "updated_at": "2026-10-18T10:20:00Z",
+        "stat_cards": [
+            {"key": "fouls", "label": "Faltas", "home": "5", "away": "8"},
+        ],
+    }
+    context = _context(_detail(), live_context=tracker)
+
+    assert context["statistics"]["updated_at"] is None
+    assert context["statistics"]["items"][0]["home_captured_at"] is None
+    assert context["statistics"]["items"][0]["away_captured_at"] is None
+
+
 def test_activity_index_does_not_borrow_latest_tracker_clock_for_untimed_inputs():
     tracker = {
         "provider": "api_football",

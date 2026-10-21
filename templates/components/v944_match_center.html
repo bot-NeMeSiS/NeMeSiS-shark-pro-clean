@@ -457,9 +457,9 @@
     </div>
     {% for stat in statistics.get('items') or [] %}
     <div class="v944-stats__row is-{{ stat.get('leader') or 'even' }}" role="row">
-      <span role="cell">{{ stat.get('home') or ui('No disponible') }}</span>
+      {% if stat.get('home_captured_at') %}<span role="cell"><span>{{ stat.get('home') or ui('No disponible') }}</span><small class="v975-stat-capture">{{ ui('Dato recibido:') }} <time datetime="{{ stat.get('home_captured_at') }}">{{ stat.get('home_captured_at')|madrid_datetime_label }}</time></small></span>{% else %}<span role="cell">{{ stat.get('home') or ui('No disponible') }}</span>{% endif %}
       <strong role="rowheader">{{ ui(stat.get('label')) }}</strong>
-      <span role="cell">{{ stat.get('away') or ui('No disponible') }}</span>
+      {% if stat.get('away_captured_at') %}<span role="cell"><span>{{ stat.get('away') or ui('No disponible') }}</span><small class="v975-stat-capture">{{ ui('Dato recibido:') }} <time datetime="{{ stat.get('away_captured_at') }}">{{ stat.get('away_captured_at')|madrid_datetime_label }}</time></small></span>{% else %}<span role="cell">{{ stat.get('away') or ui('No disponible') }}</span>{% endif %}
     </div>
     {% endfor %}
   </div>
@@ -467,7 +467,7 @@
   {{ state_notice(component, 'No disponible.') }}
   {% endif %}
   {% if statistics.get('available') %}
-  <p class="v944-panel-footnote">{{ ui(statistics.get('message') or 'Estadísticas del partido disponibles.') }}{% if statistics.get('updated_at') %} {{ ui('Actualizadas:') }} <time datetime="{{ statistics.get('updated_at') }}">{{ statistics.get('updated_at')|madrid_datetime_label }}</time>{% endif %}</p>
+  <p class="v944-panel-footnote">{{ ui(statistics.get('message') or 'Estadísticas del partido disponibles.') }}{% if statistics.get('updated_at') %} {{ ui('Última señal observada:' if statistics.get('snapshot_kind') == 'live' else 'Última sincronización guardada:') }} <time datetime="{{ statistics.get('updated_at') }}">{{ statistics.get('updated_at')|madrid_datetime_label }}</time>{% endif %}</p>
   {% endif %}
   {{ transparency_meta(context, 'statistics') }}
 </section>{%- endmacro %}
