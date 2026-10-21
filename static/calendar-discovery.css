@@ -149,3 +149,15 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
     grid-row: 3;
   }
 }
+
+/* Keep the first fixtures in reach on compact mid-size phones. These two
+   small reductions reclaim the equivalent of one short control row while
+   preserving every 44px touch target and the existing calendar hierarchy. */
+@media (min-width: 361px) and (max-width: 480px) {
+  body.ns-app .v933-page.v940-calendar-experience[data-calendar-discovery="v1"] {
+    gap: 5px;
+  }
+  body.ns-app .v933-page.v940-calendar-experience[data-calendar-discovery="v1"] .v940-calendar-command {
+    padding-block: 6px;
+  }
+}

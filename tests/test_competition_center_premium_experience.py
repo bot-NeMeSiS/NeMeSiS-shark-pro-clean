@@ -204,6 +204,76 @@ def test_standings_reuse_only_unambiguous_cached_team_crests():
     assert ambiguous["rows"][0]["team_logo"] is None
 
 
+def test_standings_resolve_cached_crest_by_exact_namespaced_provider_id():
+    rows = competition_center_module._standings_rows(
+        [{"rank": 1, "team_id": "701", "team_name": "Athletic Club", "source": "api_football_standings_deep"}],
+        fallback_teams=[
+            {
+                "name": "Athletic Bilbao",
+                "logo_url": "https://cdn.example/athletic.png",
+                "canonical": {"provider_team_ids": {"api_football": "api_football:team:701"}},
+            },
+        ],
+    )
+
+    assert rows["rows"][0]["team_logo"] == "https://cdn.example/athletic.png"
+
+
+def test_standings_do_not_match_same_numeric_id_from_another_provider():
+    rows = competition_center_module._standings_rows(
+        [{"rank": 1, "team_id": "701", "team_name": "API Club", "source": "api_football_standings_deep"}],
+        fallback_teams=[
+            {
+                "name": "SportsDB Club",
+                "logo_url": "https://cdn.example/sportsdb.png",
+                "source": "thesportsdb",
+                "team_id": "701",
+            },
+        ],
+    )
+
+    assert rows["rows"][0]["team_logo"] is None
+
+
+def test_conflicting_provider_id_blocks_exact_name_crest_fallback():
+    rows = competition_center_module._standings_rows(
+        [{"rank": 1, "team_id": "702", "team_name": "Club Norte", "source": "api_football_standings_deep"}],
+        fallback_teams=[
+            {
+                "name": "Club Norte",
+                "logo_url": "https://cdn.example/wrong-club.png",
+                "canonical": {"provider_team_ids": {"api_football": "api_football:team:701"}},
+            },
+        ],
+    )
+
+    assert rows["rows"][0]["team_logo"] is None
+
+
+def test_duplicate_provider_identity_remains_unresolved_for_safety():
+    rows = competition_center_module._standings_rows(
+        [{"rank": 1, "team_id": "701", "team_name": "Athletic Club", "source": "api_football_standings_deep"}],
+        fallback_teams=[
+            {"name": "Athletic Bilbao", "logo_url": "https://cdn.example/one.png", "canonical": {"provider_team_ids": {"api_football": "api_football:team:701"}}},
+            {"name": "Athletic Club", "logo_url": "https://cdn.example/two.png", "canonical": {"provider_team_ids": {"api_football": "api_football:team:701"}}},
+        ],
+    )
+
+    assert rows["rows"][0]["team_logo"] is None
+
+
+def test_competition_context_preserves_namespaced_team_identity_for_standings_crests():
+    detail = _detail()
+    detail["matches"][0]["home_team_id"] = "701"
+    detail["standings"][0]["team_id"] = "701"
+    detail["standings"][0]["team_name"] = "Athletic Club"
+    detail["teams"] = []
+
+    context = build_competition_center_context(detail, observed_at_madrid="2026-07-28T10:00:00+02:00")
+
+    assert context["standings"]["rows"][0]["team_logo"] == detail["matches"][0]["home_logo"]
+
+
 def test_competition_center_does_not_invent_missing_competition_data():
     detail = _detail()
     detail["competition"] = {"key": "liga-real", "name": "Liga Real", "source": "local_cache"}

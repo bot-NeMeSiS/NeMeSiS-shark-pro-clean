@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V952_TIMELINE_DATA_PROVENANCE'
+APP_VERSION = 'V953_COMPETITION_CREST_IDENTITY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V952_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V953_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -23060,11 +23060,17 @@ def favorites_page():
     if not user:
         return redirect("/cliente-login")
     if request.method == "POST":
+        # Reuse the already validated identity for the whole request. Resolving
+        # it again from the signed cookie can diverge from a valid session user
+        # (and used to turn a visible Save action into a silent no-op).
+        user_id = str(user.get("id") or "").strip()
+        if not user_id:
+            return redirect("/cliente-login")
         action = str(request.form.get("action") or "add").lower()
         if action == "remove":
-            remove_favorite(request.form.get("kind"), request.form.get("value"))
+            remove_favorite(request.form.get("kind"), request.form.get("value"), user_id=user_id)
         else:
-            add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"))
+            add_favorite(request.form.get("kind"), request.form.get("value"), request.form.get("label"), user_id=user_id)
             _growth_maybe_activate_user(reason="favorite_saved")
         return redirect("/favoritos")
 
@@ -30860,14 +30866,18 @@ def api_sports_search():
 
 @app.route("/api/favorites", methods=["GET", "POST", "DELETE"])
 def api_favorites():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos por usuario."}), 401
+    user_id = str(user.get("id") or "").strip()
+    if not user_id:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Login requerido para favoritos por usuario."}), 401
     if request.method == "GET":
-        return jsonify({"ok": True, "version": APP_VERSION, "favorites": get_favorites(request.args.get("kind"))})
+        return jsonify({"ok": True, "version": APP_VERSION, "favorites": get_favorites(request.args.get("kind"), user_id=user_id)})
     payload = request.get_json(silent=True) or dict(request.form or {})
     if request.method == "DELETE":
-        return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"))})
-    favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"))
+        return jsonify({"version": APP_VERSION, **remove_favorite(payload.get("kind"), payload.get("value"), user_id=user_id)})
+    favorite = add_favorite(payload.get("kind"), payload.get("value"), payload.get("label"), user_id=user_id)
     _growth_maybe_activate_user(reason="favorite_saved")
     if not favorite:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Favorito invalido. Usa kind team, league o match con value."}), 400
@@ -30876,9 +30886,13 @@ def api_favorites():
 
 @app.route("/api/favorites/feed")
 def api_favorites_feed():
-    if not current_session_user():
+    user = current_session_user()
+    if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
-    return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full()})
+    user_id = str(user.get("id") or "").strip()
+    if not user_id:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": "login_required"}), 401
+    return jsonify({"ok": True, "version": APP_VERSION, "feed": favorite_feed_full(user_id=user_id)})
 
 
 @app.route("/api/matches/<match_id>/timeline")

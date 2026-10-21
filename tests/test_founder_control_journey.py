@@ -170,7 +170,11 @@ def test_ack_needs_csrf_and_never_claims_unknown_id_success(app_module, tmp_path
     initialize_test_app(app_module, monkeypatch)
     client, headers = admin_post_client(app_module)
     before = business_state(db)
-    assert client.post('/admin/founder-os/alerts/qa-alert/ack', headers={'X-CSRF-Token':'invalid'}).status_code == 403
+    assert client.post(
+        '/admin/founder-os/alerts/qa-alert/ack',
+        headers={'X-CSRF-Token':'invalid'},
+        environ_overrides={'REMOTE_ADDR': '198.51.100.250'},
+    ).status_code == 403
     assert business_state(db) == before
     # A rejected CSRF may create the normal security audit event, not a business change.
     with sqlite3.connect(db) as conn:

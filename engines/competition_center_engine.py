@@ -20,6 +20,7 @@ from engines.sports_domain_model_engine import (
     build_unified_domain_snapshot,
     normalize_competition_entity,
     normalize_team_entity,
+    provider_identifier,
 )
 from engines.sports_entity_navigation_engine import entity_href, public_entity_route_id
 from engines.sports_graph_foundation_engine import (
@@ -91,6 +92,20 @@ def _team_route_id(team: Mapping[str, Any]) -> str:
         160,
     )
     return public_entity_route_id("team", team.get("canonical_team_id"), label)
+
+
+def _provider_identity_namespace(value: Any) -> str:
+    """Return a provider namespace compatible with canonical team identities."""
+    return str(provider_family(value or "")).replace("-", "_")
+
+
+def _namespaced_team_identity(namespace: Any, value: Any) -> tuple[str, str]:
+    provider = _provider_identity_namespace(namespace)
+    identifier = _text(value, 160)
+    if not provider or not identifier:
+        return "", ""
+    prefix = f"{provider}:team:"
+    return provider, identifier if identifier.startswith(prefix) else provider_identifier(provider, "team", identifier)
 
 
 def _competition_route_id(competition: Mapping[str, Any]) -> str:
@@ -243,16 +258,38 @@ def _standings_rows(
     rows: list[dict[str, Any]] = []
     standing_items = _items(standings)
     fallback_team_items = _items(fallback_teams)
-    logos_by_team_name: dict[str, list[str]] = {}
+    logos_by_team_name: dict[str, list[dict[str, Any]]] = {}
+    logos_by_provider_identity: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for team in fallback_team_items:
-        name = _text(team.get("name") or team.get("display_name") or team.get("team_name"), 160)
+        canonical = _mapping(team.get("canonical"))
+        name = _text(
+            team.get("name") or team.get("display_name") or team.get("team_name")
+            or canonical.get("display_name") or canonical.get("official_name"),
+            160,
+        )
         logo = _text(
-            team.get("logo_url") or team.get("crest_url") or team.get("crest") or team.get("logo"),
+            team.get("logo_url") or team.get("crest_url") or team.get("crest") or team.get("logo")
+            or canonical.get("crest"),
             500,
         )
+        provider_ids = _mapping(canonical.get("provider_team_ids") or team.get("provider_team_ids"))
+        direct_id = team.get("provider_team_id") or team.get("team_id") or team.get("external_id")
+        direct_source = team.get("source") or canonical.get("source")
+        if direct_id and direct_source:
+            provider_ids = {**provider_ids, _provider_identity_namespace(direct_source): direct_id}
+        candidate = {
+            "logo": logo,
+            "provider_ids": {
+                _namespaced_team_identity(source, identifier)
+                for source, identifier in provider_ids.items()
+                if _namespaced_team_identity(source, identifier)[0]
+            },
+        }
         key = normalized(name)
         if key:
-            logos_by_team_name.setdefault(key, []).append(logo)
+            logos_by_team_name.setdefault(key, []).append(candidate)
+        for identity in candidate["provider_ids"]:
+            logos_by_provider_identity.setdefault(identity, []).append(candidate)
 
     for raw in standing_items:
         team_name = _text(raw.get("team_name") or raw.get("name"), 160)
@@ -277,10 +314,33 @@ def _standings_rows(
         elif "descenso" in lowered or "releg" in lowered:
             state = "Descenso"
         provider_logo = _text(raw.get("team_logo") or raw.get("logo") or raw.get("crest"), 500)
-        known_logos = logos_by_team_name.get(normalized(team_name), [])
-        # A crest from the competition's existing team snapshot is only safe to
-        # reuse when the display name identifies one unambiguous cached logo.
-        team_logo = provider_logo or (known_logos[0] if len(known_logos) == 1 else "")
+        team_logo = provider_logo
+        if not team_logo:
+            provider_team_id = _text(raw.get("provider_team_id") or raw.get("team_id"), 160)
+            provider_namespace = _provider_identity_namespace(
+                raw.get("source") or "api_football_standings_deep"
+            )
+            row_identity = _namespaced_team_identity(provider_namespace, provider_team_id)
+            identity_matches = (
+                logos_by_provider_identity.get(row_identity, [])
+                if row_identity[0]
+                else []
+            )
+            # Provider IDs are only comparable inside their own namespace. An
+            # exact identity wins even when feeds spell the club differently.
+            if len(identity_matches) == 1:
+                team_logo = identity_matches[0]["logo"]
+            elif not identity_matches:
+                named_candidates = logos_by_team_name.get(normalized(team_name), [])
+                # A conflicting strong ID blocks name-only fallback. Otherwise,
+                # retain the existing exact-name fallback for one unique team.
+                conflict = bool(row_identity[0]) and any(
+                    any(namespace == row_identity[0] and identifier != row_identity[1]
+                        for namespace, identifier in candidate["provider_ids"])
+                    for candidate in named_candidates
+                )
+                if len(named_candidates) == 1 and not conflict:
+                    team_logo = named_candidates[0]["logo"]
         rows.append({
             "position": _as_int(raw.get("rank") or raw.get("position")),
             "team_name": team_name,
