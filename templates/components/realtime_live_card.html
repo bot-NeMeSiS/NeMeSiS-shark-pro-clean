@@ -41,41 +41,53 @@
     {% set home_name = item.get('home_team') or item.get('safe_home') or ui('Local') %}
     {% set away_name = item.get('away_team') or item.get('safe_away') or ui('Visitante') %}
     {% set extra_stats = namespace(items=[]) %}
+    {% set possession_stat = namespace(item={}) %}
+    {% set possession_chart_available = false %}
     {% for stat in tracker.get('stat_cards') or [] %}
-      {% if stat.get('key') not in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] and not (stat.get('key') == 'possession' and field.get('possession_available')) %}
+      {% if stat.get('key') == 'possession' %}{% set possession_stat.item = stat %}{% endif %}
+    {% endfor %}
+    {% if field.get('possession_available') and possession_stat.item.get('home_captured_at') and possession_stat.item.get('home_captured_at') == possession_stat.item.get('away_captured_at') and possession_stat.item.get('home') and possession_stat.item.get('away') %}
+      {% set possession_chart_available = true %}
+    {% endif %}
+    {% for stat in tracker.get('stat_cards') or [] %}
+      {% if stat.get('key') not in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] and not (stat.get('key') == 'possession' and possession_chart_available) %}
         {% set extra_stats.items = extra_stats.items + [stat] %}
       {% endif %}
     {% endfor %}
-    <section class="v934-live-stats" data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
-      {% if field.get('possession_available') %}
-      <div class="v944-possession v944-possession--compact" data-visualization="aggregate-share" data-spatial-map-available="false">
+    <section class="v934-live-stats" data-live-statistics data-stat-source="API-Football" data-stat-updated-at="{{ tracker.get('statistics_updated_at') or '' }}" aria-label="Estadísticas reales disponibles">
+      {% if possession_chart_available %}
+      <div class="v944-possession v944-possession--compact" data-live-stat-possession data-possession-captured-at="{{ possession_stat.item.get('home_captured_at') }}" data-visualization="aggregate-share" data-spatial-map-available="false">
         <div class="v944-possession__heading"><strong>{{ ui('Posesión del balón') }}</strong><span>{{ ui('Porcentaje real del proveedor') }}</span></div>
         <div class="v944-possession__pitch" role="img" aria-label="{{ ui('Reparto porcentual de posesión:') }} {{ home_name }} {{ field.get('home_possession_pct') }}%, {{ away_name }} {{ field.get('away_possession_pct') }}%.">
-          <span class="v944-possession__share is-home" style="width: {{ field.get('home_possession_bar_pct', field.get('home_possession_pct')) }}%"></span>
-          <span class="v944-possession__share is-away" style="width: {{ field.get('away_possession_bar_pct', field.get('away_possession_pct')) }}%"></span>
+          <span class="v944-possession__share is-home" data-possession-home-bar style="width: {{ field.get('home_possession_bar_pct', field.get('home_possession_pct')) }}%"></span>
+          <span class="v944-possession__share is-away" data-possession-away-bar style="width: {{ field.get('away_possession_bar_pct', field.get('away_possession_pct')) }}%"></span>
           <span class="v944-possession__midline" aria-hidden="true"></span>
         </div>
         <div class="v944-possession__teams">
-          <span><strong>{{ home_name }}</strong><b>{{ field.get('home_possession_pct') }}%</b></span>
-          <span><strong>{{ away_name }}</strong><b>{{ field.get('away_possession_pct') }}%</b></span>
+          <span><strong>{{ home_name }}</strong><b data-possession-home-value>{{ field.get('home_possession_pct') }}%</b></span>
+          <span><strong>{{ away_name }}</strong><b data-possession-away-value>{{ field.get('away_possession_pct') }}%</b></span>
+        </div>
+        <div class="v934-live-stats__capture-pair">
+          <small class="v934-live-stats__captured" data-stat-side-label="L" aria-label="{{ ui('Hora de recepción del equipo local') }}: {{ home_name }}" data-stat-home-capture {% if not possession_stat.item.get('home_captured_at') %}hidden{% endif %}>{% if possession_stat.item.get('home_captured_at') %}<time data-stat-home-time datetime="{{ possession_stat.item.get('home_captured_at') }}">{{ possession_stat.item.get('home_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small>
+          <small class="v934-live-stats__captured" data-stat-side-label="V" aria-label="{{ ui('Hora de recepción del equipo visitante') }}: {{ away_name }}" data-stat-away-capture {% if not possession_stat.item.get('away_captured_at') %}hidden{% endif %}>{% if possession_stat.item.get('away_captured_at') %}<time data-stat-away-time datetime="{{ possession_stat.item.get('away_captured_at') }}">{{ possession_stat.item.get('away_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small>
         </div>
         <small class="v944-possession__note">{{ ui('Reparto total de posesión; no es un mapa de zonas ni la ubicación del balón.') }}</small>
       </div>
       {% endif %}
       {% if field.get('activity_index_available') %}
-      <section class="v934-live-activity" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
+      <section class="v934-live-activity" data-live-stat-activity data-activity-updated-at="{{ tracker.get('statistics_updated_at') or '' }}" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
         <div class="v934-live-activity__heading"><strong>{{ ui('Actividad estadística orientativa') }}</strong><span>{{ ui('Estimación NeMeSiS · no es un dato del proveedor') }}</span></div>
         <div class="v934-live-activity__bar" role="img" aria-label="{{ ui('Índice estadístico orientativo:') }} {{ home_name }} {{ field.get('home_activity_index_pct') }}%, {{ away_name }} {{ field.get('away_activity_index_pct') }}%.">
-          <span class="is-home" style="width: {{ field.get('home_activity_index_pct') }}%"></span>
-          <span class="is-away" style="width: {{ field.get('away_activity_index_pct') }}%"></span>
+          <span class="is-home" data-activity-home-bar style="width: {{ field.get('home_activity_index_pct') }}%"></span>
+          <span class="is-away" data-activity-away-bar style="width: {{ field.get('away_activity_index_pct') }}%"></span>
         </div>
-        <div class="v934-live-activity__teams"><span>{{ home_name }} <b>{{ field.get('home_activity_index_pct') }}%</b></span><span>{{ away_name }} <b>{{ field.get('away_activity_index_pct') }}%</b></span></div>
+        <div class="v934-live-activity__teams"><span>{{ home_name }} <b data-activity-home-value>{{ field.get('home_activity_index_pct') }}%</b></span><span>{{ away_name }} <b data-activity-away-value>{{ field.get('away_activity_index_pct') }}%</b></span></div>
         <small>{{ ui('Cálculo orientativo basado en las estadísticas disponibles. No representa posesión oficial, ubicación del balón ni zonas del campo.') }}</small>
       </section>
       {% endif %}
       <div class="v934-live-stats__ribbon" aria-label="Resumen de estadísticas del proveedor">
         {% for stat in tracker.get('stat_cards') or [] if stat.get('key') in ['shots_on_goal', 'fouls', 'corners', 'throw_ins'] %}
-        <span><strong>{{ ui(stat.get('label')) }}</strong><b>{{ stat.get('home') }}–{{ stat.get('away') }}</b></span>
+        <span data-stat-key="{{ stat.get('key') or '' }}" data-stat-home="{{ stat.get('home') or '' }}" data-stat-away="{{ stat.get('away') or '' }}"><strong>{{ ui(stat.get('label')) }}</strong><b data-stat-values>{{ stat.get('home') }}–{{ stat.get('away') }}</b><small class="v934-live-stats__captured" data-stat-side-label="L" aria-label="{{ ui('Hora de recepción del equipo local') }}: {{ home_name }}" data-stat-home-capture {% if not stat.get('home_captured_at') %}hidden{% endif %}>{% if stat.get('home_captured_at') %}<time data-stat-home-time datetime="{{ stat.get('home_captured_at') }}">{{ stat.get('home_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small><small class="v934-live-stats__captured" data-stat-side-label="V" aria-label="{{ ui('Hora de recepción del equipo visitante') }}: {{ away_name }}" data-stat-away-capture {% if not stat.get('away_captured_at') %}hidden{% endif %}>{% if stat.get('away_captured_at') %}<time data-stat-away-time datetime="{{ stat.get('away_captured_at') }}">{{ stat.get('away_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small></span>
         {% endfor %}
       </div>
       {% if extra_stats.items %}
@@ -89,15 +101,15 @@
           </div>
           {% for stat in extra_stats.items %}
           <div class="v934-live-stats__all-row" role="row" data-stat-key="{{ stat.get('key') or '' }}">
-            <span role="cell">{{ stat.get('home') or ui('No disponible') }}</span>
+            <span role="cell"><span data-stat-home-value>{{ stat.get('home') or ui('No disponible') }}</span><small class="v934-live-stats__captured" data-stat-side-label="L" aria-label="{{ ui('Hora de recepción del equipo local') }}: {{ home_name }}" data-stat-home-capture {% if not stat.get('home_captured_at') %}hidden{% endif %}>{% if stat.get('home_captured_at') %}<time data-stat-home-time datetime="{{ stat.get('home_captured_at') }}">{{ stat.get('home_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small></span>
             <strong role="rowheader">{{ ui(stat.get('label') or 'Estadística') }}</strong>
-            <span role="cell">{{ stat.get('away') or ui('No disponible') }}</span>
+            <span role="cell"><span data-stat-away-value>{{ stat.get('away') or ui('No disponible') }}</span><small class="v934-live-stats__captured" data-stat-side-label="V" aria-label="{{ ui('Hora de recepción del equipo visitante') }}: {{ away_name }}" data-stat-away-capture {% if not stat.get('away_captured_at') %}hidden{% endif %}>{% if stat.get('away_captured_at') %}<time data-stat-away-time datetime="{{ stat.get('away_captured_at') }}">{{ stat.get('away_captured_at')|sync_madrid_label }}</time>{% endif %}<span data-stat-age hidden></span></small></span>
           </div>
           {% endfor %}
         </div>
       </details>
       {% endif %}
-      <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}{{ ui('Estadísticas observadas') }}: <time datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación de estadísticas no disponible') }}{% endif %}</small>
+      <small class="v934-live-stats__source">API-Football · {% if tracker.get('statistics_updated_at') %}{{ ui('Último dato recibido por NeMeSiS') }}: <time data-live-stats-latest datetime="{{ tracker.get('statistics_updated_at') }}">{{ tracker.get('statistics_updated_at')|sync_madrid_label }}</time>{% else %}{{ ui('hora de observación de estadísticas no disponible') }}{% endif %}</small>
     </section>
     {% endif %}
     <small class="v934-realtime-meta v968-realtime-meta" data-realtime-freshness="{{ state.get('freshness_state') or 'NOT_ESTABLISHED' }}">

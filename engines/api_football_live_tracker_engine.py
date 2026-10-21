@@ -273,15 +273,44 @@ def _as_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
-def _stat_numeric(value: Any) -> float:
-    if value is None:
-        return 0.0
+_SAFE_STAT_VALUE = re.compile(r"^(?:\d+(?:\.\d*)?|\.\d+)%?$")
+
+
+def safe_live_stat_value(value: Any) -> str | None:
+    """Return a provider statistic only when it is a finite scalar number.
+
+    API-Football fixture statistics are numeric values or percentages. Keep
+    legitimate zeroes and decimal percentages, while rejecting placeholders,
+    booleans, containers and non-finite values before they enter the live cache
+    or the client-facing projection.
+    """
+    if isinstance(value, bool) or value is None or isinstance(value, (list, tuple, dict, set)):
+        return None
     if isinstance(value, (int, float)):
-        return float(value)
-    text = str(value).replace("%", "").strip()
+        if not math.isfinite(float(value)) or value < 0:
+            return None
+        return str(value)
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    if not normalized or not _SAFE_STAT_VALUE.fullmatch(normalized):
+        return None
+    numeric = normalized[:-1] if normalized.endswith("%") else normalized
     try:
-        return float(text)
-    except Exception:
+        if not math.isfinite(float(numeric)) or float(numeric) < 0:
+            return None
+    except (TypeError, ValueError, OverflowError):
+        return None
+    return normalized
+
+
+def _stat_numeric(value: Any) -> float:
+    normalized = safe_live_stat_value(value)
+    if normalized is None:
+        return 0.0
+    try:
+        return float(normalized[:-1] if normalized.endswith("%") else normalized)
+    except (TypeError, ValueError, OverflowError):
         return 0.0
 
 
@@ -611,35 +640,52 @@ def persist_api_football_events(
 def _upsert_statistics(conn: sqlite3.Connection, fixture_id: str, stats_payload: Iterable[Mapping[str, Any]]) -> int:
     received = utc_stamp()
     stats_payload = list(stats_payload or [])
-    now = _now_iso()
-    inserted = 0
-    for team_block in stats_payload or []:
+    usable_rows: list[tuple[str, str, str, Any, str]] = []
+    for team_block in stats_payload:
+        if not isinstance(team_block, Mapping):
+            continue
         team = team_block.get("team") or {}
+        if not isinstance(team, Mapping):
+            team = {}
         team_id = str(team.get("id") or "")
-        team_name = team.get("name") or ""
+        team_name = str(team.get("name") or "")
         for stat in team_block.get("statistics") or []:
-            stat_name = str(stat.get("type") or "").strip()
-            if not stat_name:
+            if not isinstance(stat, Mapping):
                 continue
-            stat_value_raw = stat.get("value")
-            stat_value = "" if stat_value_raw is None else str(stat_value_raw)
-            row_id = _hash("af-live-stat", fixture_id, team_id, stat_name)
-            before = conn.total_changes
-            conn.execute(
-                """
-                INSERT INTO api_football_live_stats(id, fixture_id, team_id, team_name, stat_name, stat_value, numeric_value, payload_json, captured_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(fixture_id, team_id, stat_name) DO UPDATE SET
-                  team_name=excluded.team_name,
-                  stat_value=excluded.stat_value,
-                  numeric_value=excluded.numeric_value,
-                  payload_json=excluded.payload_json,
-                  captured_at=excluded.captured_at
-                """,
-                (row_id, fixture_id, team_id, team_name, stat_name, stat_value, _stat_numeric(stat_value_raw), _json(stat), now),
-            )
-            inserted += 1 if conn.total_changes > before else 0
+            stat_name = str(stat.get("type") or "").strip()
+            value = safe_live_stat_value(stat.get("value"))
+            if not stat_name or value is None:
+                continue
+            usable_rows.append((team_id, team_name, stat_name, value, _json(stat)))
+
+    # Record every provider receipt, but replace the current cache only when
+    # this receipt contains at least one actual value. Empty/null observations
+    # are not evidence that previously saved values disappeared.
     record_observation(conn, fixture_id, "statistics", stats_payload, received_at=received)
+    if not usable_rows:
+        return 0
+
+    # Update only values this receipt actually contains. Omitted or null
+    # metrics remain available with their original captured_at, never with the
+    # newer timestamp of an unrelated metric. The caller owns the transaction.
+    inserted = 0
+    for team_id, team_name, stat_name, stat_value_raw, payload_json in usable_rows:
+        stat_value = stat_value_raw
+        row_id = _hash("af-live-stat", fixture_id, team_id, stat_name)
+        conn.execute(
+            """
+            INSERT INTO api_football_live_stats(id, fixture_id, team_id, team_name, stat_name, stat_value, numeric_value, payload_json, captured_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(fixture_id, team_id, stat_name) DO UPDATE SET
+              team_name=excluded.team_name,
+              stat_value=excluded.stat_value,
+              numeric_value=excluded.numeric_value,
+              payload_json=excluded.payload_json,
+              captured_at=excluded.captured_at
+            """,
+            (row_id, fixture_id, team_id, team_name, stat_name, stat_value, _stat_numeric(stat_value_raw), payload_json, received),
+        )
+        inserted += 1
     return inserted
 
 
@@ -878,20 +924,97 @@ def _stat_key(name: str) -> str:
     return aliases.get(clean, clean)
 
 
-def _stats_for_fixture(conn: sqlite3.Connection, fixture_id: str) -> dict[str, Any]:
-    rows = conn.execute("SELECT * FROM api_football_live_stats WHERE fixture_id=? ORDER BY team_name, stat_name", (fixture_id,)).fetchall()
+def _captured_at_datetime(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def _stats_from_rows(rows: Iterable[Any]) -> dict[str, Any]:
+    row_dicts = [_rowdict(row) for row in rows]
+    now = datetime.now(timezone.utc)
+    selected_by_metric: dict[tuple[str, str], tuple[dict[str, Any], datetime | None]] = {}
+    for row in row_dicts:
+        safe_value = safe_live_stat_value(row.get("stat_value"))
+        if safe_value is None:
+            continue
+        captured = _captured_at_datetime(row.get("captured_at"))
+        # Future-dated rows cannot be used as current statistics.
+        if captured is not None and captured > now:
+            continue
+        team_id = str(row.get("team_id") or "")
+        team_name = str(row.get("team_name") or "Equipo")
+        team_identity = f"id:{team_id}" if team_id else f"name:{team_name.casefold()}"
+        stat_key = _stat_key(row.get("stat_name") or "")
+        identity = (team_identity, stat_key)
+        previous = selected_by_metric.get(identity)
+        if previous is None:
+            selected_by_metric[identity] = ({**row, "stat_value": safe_value}, captured)
+            continue
+        previous_row, previous_capture = previous
+        # Prefer a timestamped value over a legacy row without a trustworthy
+        # clock. Between dated values, keep the latest capture; ties are stable.
+        if captured is not None and (previous_capture is None or captured > previous_capture):
+            selected_by_metric[identity] = ({**row, "stat_value": safe_value}, captured)
+        elif captured is None and previous_capture is None:
+            selected_by_metric[identity] = ({**row, "stat_value": safe_value}, previous_capture)
+
+    selected = [row for row, _captured in selected_by_metric.values()]
+    trusted_captures = [captured for _row, captured in selected_by_metric.values() if captured is not None]
+    captured_at = ""
+    if trusted_captures:
+        latest = max(trusted_captures)
+        captured_at = next(
+            str(row.get("captured_at") or "")
+            for row, captured in selected_by_metric.values()
+            if captured == latest and row.get("captured_at")
+        )
     teams: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        r = _rowdict(row)
+    for r in selected:
         team = r.get("team_name") or r.get("team_id") or "Equipo"
         team_id = str(r.get("team_id") or "")
         key = _stat_key(r.get("stat_name") or "")
         identity = f"id:{team_id}" if team_id else f"name:{str(team).casefold()}"
         teams.setdefault(identity, {"team": team, "team_id": team_id, "stats": {}, "raw": []})
-        teams[identity]["stats"][key] = {"label": r.get("stat_name"), "value": r.get("stat_value"), "numeric": r.get("numeric_value")}
+        row_captured_at = str(r.get("captured_at") or "")
+        if not _captured_at_datetime(row_captured_at):
+            row_captured_at = ""
+        teams[identity]["stats"][key] = {
+            "label": r.get("stat_name"),
+            "value": r.get("stat_value"),
+            "numeric": _stat_numeric(r.get("stat_value")),
+            "captured_at": row_captured_at,
+        }
         teams[identity]["raw"].append(r)
-    captured_at = max((str(_rowdict(row).get("captured_at") or "") for row in rows), default="")
-    return {"teams": list(teams.values()), "available": bool(rows), "total": len(rows), "captured_at": captured_at}
+    return {"teams": list(teams.values()), "available": bool(selected), "total": len(selected), "captured_at": captured_at}
+
+
+def _stats_for_fixtures(conn: sqlite3.Connection, fixture_ids: Iterable[str]) -> dict[str, dict[str, Any]]:
+    keys = sorted({str(value or "").strip() for value in fixture_ids if str(value or "").strip()})
+    if not keys:
+        return {}
+    marks = ",".join("?" for _ in keys)
+    rows = conn.execute(
+        f"SELECT * FROM api_football_live_stats WHERE fixture_id IN ({marks}) ORDER BY fixture_id, team_name, stat_name",
+        keys,
+    ).fetchall()
+    grouped: dict[str, list[Any]] = {}
+    for row in rows:
+        fixture_id = str(_rowdict(row).get("fixture_id") or "")
+        if fixture_id:
+            grouped.setdefault(fixture_id, []).append(row)
+    return {fixture_id: _stats_from_rows(items) for fixture_id, items in grouped.items()}
+
+
+def _stats_for_fixture(conn: sqlite3.Connection, fixture_id: str) -> dict[str, Any]:
+    return _stats_for_fixtures(conn, [fixture_id]).get(str(fixture_id or ""), _stats_from_rows([]))
 
 
 def _events_for_fixture(conn: sqlite3.Connection, fixture_id: str, limit: int = 12) -> list[dict[str, Any]]:
@@ -1013,6 +1136,8 @@ def _stat_cards(
             "label": label,
             "home": hv or "—",
             "away": av or "—",
+            "home_captured_at": str(home_obj.get("captured_at") or ""),
+            "away_captured_at": str(away_obj.get("captured_at") or ""),
             "home_numeric": hn,
             "away_numeric": an,
             "leader": leader,
@@ -1406,11 +1531,18 @@ def live_tracker_summaries_for_matches(db_path: str, matches: Iterable[Mapping[s
             ).fetchall()
         except sqlite3.OperationalError:
             return {}
+        snapshot_dicts = [_rowdict(raw_row) for raw_row in rows]
+        try:
+            stats_by_fixture = _stats_for_fixtures(
+                conn,
+                [str(row.get("fixture_id") or "") for row in snapshot_dicts],
+            )
+        except sqlite3.OperationalError:
+            return {}
         out: dict[str, dict[str, Any]] = {}
-        for raw_row in rows:
-            row = _rowdict(raw_row)
+        for row in snapshot_dicts:
             fixture_id = str(row.get("fixture_id") or "")
-            stats = _stats_for_fixture(conn, fixture_id)
+            stats = stats_by_fixture.get(fixture_id) or {"teams": [], "available": False, "total": 0, "captured_at": ""}
             if not stats.get("available"):
                 continue
             # Directo needs a compact cached read model, not the raw archived payload.

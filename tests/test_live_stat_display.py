@@ -52,6 +52,40 @@ def test_fixture_stats_group_by_provider_team_id_and_keep_raw_metric_names(tmp_p
     assert {team["team_id"] for team in result["teams"]} == {"10", "20"}
 
 
+def test_fixture_stats_keep_per_metric_capture_clocks_and_reject_future_rows(tmp_path):
+    path = str(tmp_path / "capture-slices.sqlite")
+    ensure_live_tracker_schema(path)
+    with sqlite3.connect(path) as conn:
+        conn.executemany(
+            "INSERT INTO api_football_live_stats(id,fixture_id,team_id,team_name,stat_name,stat_value,numeric_value,captured_at) VALUES (?,?,?,?,?,?,?,?)",
+            [
+                ("old", "fixture-1", "10", "Granada", "Total Shots", "9", 9, "2026-09-22T18:00:00Z"),
+                ("new-home", "fixture-1", "10", "Granada", "Fouls", "0", 0, "2026-09-22T18:01:00Z"),
+                ("new-away", "fixture-1", "20", "Rival", "Fouls", "4", 4, "2026-09-22T18:01:00+00:00"),
+                ("future", "fixture-1", "10", "Granada", "Ball Possession", "99%", 99, "2999-01-01T00:00:00Z"),
+                ("invalid", "fixture-1", "20", "Rival", "Corners", "8", 8, "not-a-clock"),
+            ],
+        )
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        result = _stats_for_fixture(conn, "fixture-1")
+    finally:
+        conn.close()
+    assert result["captured_at"] == "2026-09-22T18:01:00Z"
+    assert result["total"] == 4
+    cards = _stat_cards(result, "Granada", "Rival", "10", "20")
+    by_key = {card["key"]: card for card in cards}
+    assert set(by_key) == {"fouls", "total_shots", "corners"}
+    assert by_key["fouls"]["home"] == "0" and by_key["fouls"]["away"] == "4"
+    assert by_key["fouls"]["home_captured_at"] == "2026-09-22T18:01:00Z"
+    assert by_key["fouls"]["away_captured_at"] == "2026-09-22T18:01:00+00:00"
+    assert by_key["total_shots"]["home"] == "9"
+    assert by_key["total_shots"]["home_captured_at"] == "2026-09-22T18:00:00Z"
+    assert by_key["total_shots"]["away_captured_at"] == ""
+    assert by_key["corners"]["away"] == "8" and by_key["corners"]["away_captured_at"] == ""
+
+
 def test_team_ids_win_over_alphabetical_names_and_optional_provider_stats_render():
     stats = {
         "available": True,
@@ -370,13 +404,15 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
     tracker = {
         "provider": "api_football",
         "source_label": "API-Football Pro",
-        "statistics_updated_at": "2026-10-17T16:01:00Z",
-        "updated_at": "2026-10-17T16:01:00Z",
+        "statistics_updated_at": "2026-10-17T16:05:00Z",
+        "updated_at": "2026-10-17T16:05:00Z",
         "stats": {"available": True},
         "stat_cards": [
             {"key": "shots_on_goal", "label": "Tiros a puerta", "home": "5", "away": "2"},
             {"key": "fouls", "label": "Faltas", "home": "8", "away": "14"},
             {"key": "corners", "label": "Córners", "home": "4", "away": "1"},
+            {"key": "possession", "label": "Posesión", "home": "61%", "away": "39%",
+             "home_captured_at": "2026-10-17T16:00:00Z", "away_captured_at": "2026-10-17T16:00:00Z"},
         ],
         "field_state": {
             "possession_available": True,
@@ -423,11 +459,12 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
     assert "Tiros a puerta" in rendered and "Faltas" in rendered and "Córners" in rendered
     assert "API-Football" in rendered
     assert "API-Football Pro" not in rendered
-    assert "2026-10-17T16:01:00Z" in rendered
-    assert "Estadísticas observadas" in rendered
+    assert 'data-possession-captured-at="2026-10-17T16:00:00Z"' in rendered
+    assert "2026-10-17T16:05:00Z" in rendered
+    assert "Último dato recibido por NeMeSiS" in rendered
     assert 'data-realtime-freshness-label' in rendered
     assert 'v968-realtime-meta' in rendered
-    assert 'data-stat-updated-at="2026-10-17T16:01:00Z"' in rendered
+    assert 'data-stat-updated-at="2026-10-17T16:05:00Z"' in rendered
     assert 'datetime="2026-10-17T16:02:00Z"' in rendered
 
 

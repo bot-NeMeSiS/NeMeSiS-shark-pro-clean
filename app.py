@@ -131,6 +131,7 @@ from engines.api_football_live_tracker_engine import (
     live_tracker_for_match,
     live_tracker_matches,
     live_tracker_summaries_for_matches,
+    safe_live_stat_value,
     summarize_live_statistics_coverage,
     live_tracker_quality_summary,
     live_tracker_status,
@@ -512,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V969_DIRECTO_MOBILE_CALENDAR'
+APP_VERSION = 'V970_LIVE_STAT_FRESHNESS'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17634,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V969_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V970_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -28944,6 +28945,54 @@ def get_v934_realtime_context(summary=None, force=False) -> dict:
     return snapshot
 
 
+def _v970_live_statistics_projection(tracker, fixture_id):
+    """Compact, read-only projection of saved API-Football statistics."""
+    if not isinstance(tracker, dict) or tracker.get("provider") != "api_football":
+        return None
+    if str(tracker.get("fixture_id") or "") != str(fixture_id or ""):
+        return None
+    if tracker.get("available") is not True or tracker.get("read_only") is not True:
+        return None
+    cards = []
+    for item in tracker.get("stat_cards") or []:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("key") or "")[:80]
+        if not key or not re.fullmatch(r"[a-zA-Z0-9_-]+", key):
+            continue
+        home = safe_live_stat_value(item.get("home"))
+        away = safe_live_stat_value(item.get("away"))
+        if home is None and away is None:
+            continue
+        cards.append({
+            "key": key,
+            "label": str(item.get("label") or key.replace("_", " ").capitalize())[:100],
+            "home": (home or "—")[:80],
+            "away": (away or "—")[:80],
+            "home_captured_at": str(item.get("home_captured_at") or "")[:80] if home is not None else "",
+            "away_captured_at": str(item.get("away_captured_at") or "")[:80] if away is not None else "",
+        })
+        if len(cards) >= 40:
+            break
+    if not cards:
+        return None
+    raw_field = tracker.get("field_state") if isinstance(tracker.get("field_state"), dict) else {}
+    field = {"possession_available": raw_field.get("possession_available") is True}
+    for key in ("home_possession_pct", "away_possession_pct", "home_possession_bar_pct", "away_possession_bar_pct",
+                "home_activity_index_pct", "away_activity_index_pct"):
+        value = raw_field.get(key)
+        field[key] = value if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) and 0 <= value <= 100 else None
+    field["activity_index_available"] = raw_field.get("activity_index_available") is True
+    return {
+        "fixture_id": str(fixture_id),
+        "available": True,
+        "external_calls": 0,
+        "statistics_updated_at": str(tracker.get("statistics_updated_at") or "")[:80],
+        "stat_cards": cards,
+        "field_state": field,
+    }
+
+
 def get_realtime_safe_matches_context(summary=None) -> dict:
     snapshot = get_v934_realtime_context(summary)
     return {
@@ -29066,7 +29115,25 @@ def api_v934_realtime_sports():
         "no_external_calls": True,
     }
     if scope in {"all", "matches"}:
-        payload["matches"] = snapshot.get("matches") or []
+        matches = [dict(item) for item in (snapshot.get("matches") or []) if isinstance(item, dict)]
+        live_matches = [
+            item for item in matches
+            if (item.get("realtime_state") or {}).get("is_live") is True
+        ][:40]
+        if live_matches:
+            cached = live_tracker_summaries_for_matches(DB_PATH, live_matches, limit=40)
+            for item in live_matches:
+                state = item.get("realtime_state") or {}
+                fixture_id = str(state.get("fixture_id") or "")
+                provider = str(state.get("provider") or "").casefold().replace("-", "_")
+                if not fixture_id or "api" not in provider or "football" not in provider:
+                    continue
+                aliases = (fixture_id, item.get("id"), f"af-{fixture_id}")
+                tracker = next((cached.get(str(alias)) for alias in aliases if alias and cached.get(str(alias))), None)
+                projected = _v970_live_statistics_projection(tracker, fixture_id)
+                if projected:
+                    item["live_statistics"] = projected
+        payload["matches"] = matches
     if scope in {"all", "live"}:
         payload["live"] = snapshot.get("live") or []
     if scope in {"all", "picks", "odds"}:

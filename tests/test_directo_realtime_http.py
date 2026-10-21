@@ -113,6 +113,8 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
             {'key': 'fouls', 'label': 'Faltas', 'home': '8', 'away': '14'},
             {'key': 'corners', 'label': 'Córners', 'home': '4', 'away': '1'},
             {'key': 'throw_ins', 'label': 'Saques de banda', 'home': '12', 'away': '9'},
+            {'key': 'possession', 'label': 'Posesión', 'home': '61%', 'away': '39%',
+             'home_captured_at': '2026-10-17T16:00:00Z', 'away_captured_at': '2026-10-17T16:00:00Z'},
             {'key': 'total_shots', 'label': 'Tiros totales', 'home': '12', 'away': '7'},
             {'key': 'saves', 'label': 'Paradas', 'home': '3', 'away': '5'},
             {'key': 'yellow_cards', 'label': 'Tarjetas amarillas', 'home': '1', 'away': '2'},
@@ -166,6 +168,101 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     assert 'Fueras de juego' in stat_rows['offsides'] and '>2</span>' in stat_rows['offsides'] and '>0</span>' in stat_rows['offsides']
     assert html.count('Tiros a puerta') == 1
     assert '2026-10-17T16:01:00Z' in html
+    assert attempts == []
+
+
+def test_live_statistics_projection_drops_legacy_placeholders_and_untrusted_side_clock(app_module):
+    captured_at = '2026-10-17T16:00:00Z'
+    projected = app_module._v970_live_statistics_projection({
+        'provider': 'api_football', 'fixture_id': '777', 'available': True,
+        'read_only': True, 'external_calls': 0,
+        'stat_cards': [
+            {'key': 'fouls', 'label': 'Faltas', 'home': 'N/A', 'away': '3',
+             'home_captured_at': captured_at, 'away_captured_at': captured_at},
+            {'key': 'corners', 'label': 'Córners', 'home': {'bad': 'value'}, 'away': '—'},
+        ],
+        'field_state': {},
+    }, '777')
+    assert projected is not None
+    assert projected['stat_cards'] == [{
+        'key': 'fouls', 'label': 'Faltas', 'home': '—', 'away': '3',
+        'home_captured_at': '', 'away_captured_at': captured_at,
+    }]
+
+
+def test_directo_possession_chart_uses_its_own_capture_and_hides_mixed_receipts(app_module):
+    capture = '2026-10-17T16:00:00Z'
+    tracker = {
+        'provider': 'api_football', 'statistics_updated_at': '2026-10-17T16:05:00Z',
+        'stats': {'available': True},
+        'stat_cards': [
+            {'key': 'shots_on_goal', 'label': 'Tiros a puerta', 'home': '5', 'away': '2',
+             'home_captured_at': '2026-10-17T16:05:00Z', 'away_captured_at': '2026-10-17T16:05:00Z'},
+            {'key': 'possession', 'label': 'Posesión', 'home': '61%', 'away': '39%',
+             'home_captured_at': capture, 'away_captured_at': capture},
+        ],
+        'field_state': {'possession_available': True, 'home_possession_pct': 61, 'away_possession_pct': 39},
+    }
+    match = {
+        'home_team': 'Local QA', 'away_team': 'Visitante QA', 'api_football_live_tracker': tracker,
+        'realtime_state': {'contract': 'NEMESIS-REALTIME-STATE-V1', 'sports_truth_contract': 'MATCH-STATUS-TRUTH-V2',
+            'is_live': True, 'is_stale': False, 'status_conflict': False, 'status_canonical': 'LIVE', 'minute': 15},
+    }
+    with app_module.app.test_request_context('/directo'):
+        template = app_module.app.jinja_env.from_string(
+            "{% from 'components/realtime_live_card.html' import live_card %}{{ live_card(match) }}")
+        rendered = template.render(match=match)
+    assert f'data-possession-captured-at="{capture}"' in rendered
+    assert 'data-stat-updated-at="2026-10-17T16:05:00Z"' in rendered
+
+    tracker['stat_cards'][1]['away_captured_at'] = '2026-10-17T16:01:00Z'
+    with app_module.app.test_request_context('/directo'):
+        rendered_mixed = template.render(match=match)
+    assert 'data-live-stat-possession' not in rendered_mixed
+    assert 'data-stat-key="possession"' in rendered_mixed
+    assert f'datetime="{capture}"' in rendered_mixed
+    assert 'datetime="2026-10-17T16:01:00Z"' in rendered_mixed
+
+
+def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_store, app_module, monkeypatch):
+    client, put, _now, attempts = live_store
+    put(id='af-777', match_id='af-777', external_id='777', fixture_id='777', source='api_football_live_tracker')
+    captured_at = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    current = {'home': '5'}
+    calls = []
+
+    def cached(_db, matches, limit=40):
+        calls.append((len(matches), limit))
+        return {'777': {
+            'provider': 'api_football', 'fixture_id': '777', 'available': True,
+            'read_only': True, 'external_calls': 0, 'statistics_updated_at': captured_at,
+            'stats': {'available': True, 'teams': [{'raw': {'should_never': 'leak'}}]},
+            'stat_cards': [{
+                'key': 'shots_on_goal', 'label': 'Tiros a puerta',
+                'home': current['home'], 'away': '2',
+                'home_captured_at': captured_at, 'away_captured_at': captured_at,
+            }],
+            'field_state': {'possession_available': False},
+        }}
+
+    monkeypatch.setattr(app_module, 'live_tracker_summaries_for_matches', cached)
+    first = client.get('/api/realtime/sports?scope=matches')
+    first_payload = first.get_json()
+    live = first_payload['matches'][0]['live_statistics']
+    assert live['fixture_id'] == '777'
+    assert live['external_calls'] == 0
+    assert live['stat_cards'][0]['home'] == '5'
+    assert 'stats' not in live and 'raw' not in str(live)
+    first_etag = first.headers['ETag']
+
+    current['home'] = '6'
+    second = client.get('/api/realtime/sports?scope=matches')
+    assert second.get_json()['matches'][0]['live_statistics']['stat_cards'][0]['home'] == '6'
+    assert second.headers['ETag'] != first_etag
+    assert calls == [(1, 40), (1, 40)]
+
+    live_scope = client.get('/api/realtime/sports?scope=live').get_json()
+    assert 'live_statistics' not in live_scope['live'][0]
     assert attempts == []
 
 
@@ -339,7 +436,7 @@ def test_browser_reads_the_actual_flask_live_response(live_store, tmp_path, widt
 
 
 @pytest.mark.parametrize('width,height', [(1366,768), (390,844), (430,932)])
-def test_open_actual_live_route_updates_without_reload(live_store, width, height):
+def test_open_actual_live_route_updates_without_reload(live_store, app_module, monkeypatch, width, height):
     """Real Flask-rendered page + actual JS, with local HTTP intercepted in CI.
 
     The browser clock advances; only SIMULATED_QA observations are changed.
@@ -348,6 +445,39 @@ def test_open_actual_live_route_updates_without_reload(live_store, width, height
     from playwright.sync_api import sync_playwright, expect
     import mimetypes
     client, put, now, attempts = live_store
+    def put_live(**changes):
+        return put(fixture_id='777', source='api_football_live_tracker', **changes)
+
+    put_live()
+    stats_state = {'available': False, 'home': '5', 'timestamp': (now - timedelta(minutes=11)).isoformat(),
+        'label': 'Tiros a puerta', 'activity_available': True}
+
+    def read_cached_stats(_db, matches, limit=40):
+        if not stats_state['available'] or not matches:
+            return {}
+        capture = stats_state['timestamp']
+        tracker = {
+            'provider': 'api_football', 'fixture_id': '777', 'available': True,
+            'read_only': True, 'external_calls': 0,
+            'statistics_updated_at': capture,
+            'stat_cards': [
+                {'key': 'shots_on_goal', 'label': stats_state['label'], 'home': stats_state['home'], 'away': '2',
+                 'home_captured_at': capture, 'away_captured_at': capture},
+                {'key': 'fouls', 'label': 'Faltas', 'home': '8', 'away': '14',
+                 'home_captured_at': capture, 'away_captured_at': capture},
+                {'key': 'total_shots', 'label': 'Tiros totales', 'home': '12', 'away': '7',
+                 'home_captured_at': capture, 'away_captured_at': capture},
+                {'key': 'possession', 'label': 'Posesión', 'home': '61%', 'away': '39%',
+                 'home_captured_at': capture, 'away_captured_at': capture},
+            ],
+            'field_state': {'possession_available': True, 'home_possession_pct': 61, 'away_possession_pct': 39,
+                'activity_index_available': stats_state['activity_available'],
+                'home_activity_index_pct': 64 if stats_state['activity_available'] else None,
+                'away_activity_index_pct': 36 if stats_state['activity_available'] else None},
+        }
+        return {'777': tracker}
+
+    monkeypatch.setattr(app_module, 'live_tracker_summaries_for_matches', read_cached_stats)
     root = Path(__file__).resolve().parents[1]
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=os.environ.get('NEMESIS_QA_CHROMIUM'))
@@ -382,22 +512,65 @@ def test_open_actual_live_route_updates_without_reload(live_store, width, height
             expect(calendar_action).to_have_count(1)
             expect(calendar_action).to_be_visible()
             expect(calendar_action).to_contain_text('Calendario')
-            link=card.locator('a[href="/match/directo-http-qa"]');link.focus()
+            link=card.locator('a[href^="/match/"]').first;link.focus()
             page.evaluate('window.originalCard=document.querySelector("[data-realtime-consumer]")')
-            put(home_score=2, minute=70, last_synced_at=(now+timedelta(seconds=15)).isoformat())
+            stats_state['available'] = True
+            put_live(home_score=2, minute=70)
             page.clock.run_for(45000)
             expect(card.locator('[data-v934-score]')).to_have_text('2 - 0')
             expect(card.locator('[data-v934-minute]')).to_have_text('Min 70')
+            expect(card.locator('[data-live-statistics]')).to_have_count(1)
+            expect(card.locator('[data-stat-key="shots_on_goal"] [data-stat-values]')).to_have_text('5–2')
+            expect(card.locator('[data-possession-home-value]')).to_have_text('61%')
+            expect(card.locator('[data-stat-home-capture].is-delayed [data-stat-age]').first).to_have_text('Datos retrasados')
+            expect(card.locator('[data-live-stat-activity]')).to_be_visible()
+            expect(card.locator('[data-live-stat-activity] [data-activity-home-value]')).to_have_text('64%')
+            expect(card.locator('[data-live-statistics-more] [role="columnheader"]').nth(0)).to_have_text('Local QA')
+            expect(card.locator('[data-live-statistics-more] [role="columnheader"]').nth(2)).to_have_text('Visitante QA')
+            assert 'Local QA' in card.locator('[data-live-stat-possession] .v944-possession__pitch').get_attribute('aria-label')
+            first_capture = card.locator('[data-stat-key="shots_on_goal"] [data-stat-home-time]')
+            assert first_capture.get_attribute('datetime') == stats_state['timestamp']
             assert link.evaluate('(node)=>node===document.activeElement')
             assert page.evaluate('originalCard===document.querySelector("[data-realtime-consumer]")')
             assert page.url.endswith('/live?f=live&q=Local')
-            put(status='FT', home_score=2, minute=90, last_synced_at=(now+timedelta(seconds=60)).isoformat())
+            stats_state['home'] = '6'
+            stats_state['timestamp'] = (now - timedelta(seconds=30)).isoformat()
+            put_live(home_score=2, minute=71)
+            page.clock.run_for(45000)
+            expect(card.locator('[data-stat-key="shots_on_goal"] [data-stat-values]')).to_have_text('6–2')
+            assert card.locator('[data-stat-key="shots_on_goal"] [data-stat-home-time]').get_attribute('datetime') == stats_state['timestamp']
+            expect(card.locator('[data-stat-home-capture].is-delayed')).to_have_count(0)
+            expect(card.locator('[data-stat-home-capture] [data-stat-age]').first).to_be_hidden()
+            stats_state['activity_available'] = False
+            put_live(home_score=2, minute=72)
+            page.clock.run_for(45000)
+            expect(card.locator('[data-live-stat-activity]')).to_be_hidden()
+            stats_state['activity_available'] = True
+            put_live(home_score=2, minute=73)
+            page.clock.run_for(45000)
+            expect(card.locator('[data-live-stat-activity]')).to_be_visible()
+            expect(card.locator('[data-live-stat-activity] [data-activity-away-value]')).to_have_text('36%')
+            # A same-receipt replay with altered values is ignored; hostile labels stay text.
+            stats_state['home'] = '99'
+            stats_state['label'] = '<img src=x onerror=window.__statXss=1>'
+            put_live(home_score=2, minute=74)
+            page.clock.run_for(45000)
+            expect(card.locator('[data-stat-key="shots_on_goal"] [data-stat-values]')).to_have_text('6–2')
+            assert page.locator('[data-stat-key="shots_on_goal"] img').count() == 0
+            assert page.evaluate('window.__statXss === undefined')
+            # An omitted cache projection leaves the prior value and timestamp intact.
+            stats_state['available'] = False
+            put_live(home_score=2, minute=75)
+            page.clock.run_for(45000)
+            expect(card.locator('[data-stat-key="shots_on_goal"] [data-stat-values]')).to_have_text('6–2')
+            assert card.locator('[data-stat-key="shots_on_goal"] [data-stat-home-time]').get_attribute('datetime') == stats_state['timestamp']
+            put_live(status='FT', home_score=2, minute=90)
             page.clock.run_for(45000)
             expect(card.locator('[data-canonical-live]')).to_have_attribute('data-canonical-live','false')
             expect(card.locator('[data-v934-status]')).to_contain_text('Finalizado')
             expect(card.locator('[data-v934-minute]')).to_be_hidden()
             assert seen.count('/live')==1
-            assert seen.count('/api/realtime/sports')==2
+            assert seen.count('/api/realtime/sports')==7
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
             assert errors==[] and external==[] and attempts==[]
         finally:

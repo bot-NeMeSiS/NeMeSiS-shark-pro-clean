@@ -86,6 +86,81 @@ def test_ingested_live_stats_preserve_old_values_nulls_zeros_and_restart(db,monk
     assert result['observations']==2
 
 
+def test_live_stats_keep_omitted_capture_and_ignore_empty_receipts(db, monkeypatch):
+    first = stats()
+    second = [{'team': {'id': 10, 'name': 'Norte QA'}, 'statistics': [
+        {'type': 'Fouls', 'value': 0},
+    ]}]
+    first_capture = archive.utc_stamp(T0)
+    second_capture = archive.utc_stamp(T1)
+    monkeypatch.setattr(live, 'utc_stamp', lambda: first_capture)
+    with closing(sqlite3.connect(db)) as conn:
+        with conn:
+            live._upsert_statistics(conn, '123', first)
+    monkeypatch.setattr(live, 'utc_stamp', lambda: second_capture)
+    with closing(sqlite3.connect(db)) as conn:
+        with conn:
+            live._upsert_statistics(conn, '123', second)
+    with closing(sqlite3.connect(db)) as conn:
+        current = conn.execute(
+            'SELECT team_id,stat_name,stat_value,captured_at FROM api_football_live_stats WHERE fixture_id=? ORDER BY team_id,stat_name',
+            ('123',),
+        ).fetchall()
+    by_stat = {(row[0], row[1]): (row[2], row[3]) for row in current}
+    assert len(current) == 7
+    assert by_stat[('10', 'Fouls')] == ('0', second_capture)
+    assert by_stat[('10', 'Ball Possession')] == ('55%', first_capture)
+    assert by_stat[('20', 'Ball Possession')] == ('45%', first_capture)
+
+    monkeypatch.setattr(live, 'utc_stamp', lambda: archive.utc_stamp(T2))
+    empty_receipts = [[], [{'team': {'id': 10, 'name': 'Norte QA'}, 'statistics': [
+        {'type': 'Fouls', 'value': None}, {'type': 'Corner Kicks', 'value': ''},
+    ]}]]
+    for receipt in empty_receipts:
+        with closing(sqlite3.connect(db)) as conn:
+            with conn:
+                live._upsert_statistics(conn, '123', receipt)
+    with closing(sqlite3.connect(db)) as conn:
+        preserved = conn.execute(
+            'SELECT team_id,stat_name,stat_value,captured_at FROM api_football_live_stats WHERE fixture_id=? ORDER BY team_id,stat_name',
+            ('123',),
+        ).fetchall()
+    assert preserved == current
+
+
+@pytest.mark.parametrize("invalid", [None, "", "—", "N/A", "NaN", "Infinity", "-", "7/10", True, False, [], {}, float("nan"), float("inf"), -1])
+def test_live_statistics_cache_rejects_placeholders_and_non_finite_values(db, monkeypatch, invalid):
+    first_capture = archive.utc_stamp(T0)
+    next_capture = archive.utc_stamp(T1)
+    monkeypatch.setattr(live, "utc_stamp", lambda: first_capture)
+    with closing(sqlite3.connect(db)) as conn:
+        with conn:
+            live._upsert_statistics(conn, "123", stats())
+
+    receipt = [{"team": {"id": 10, "name": "Norte QA"}, "statistics": [
+        {"type": "Ball Possession", "value": invalid},
+        {"type": "Corner Kicks", "value": 0},
+        {"type": "Passes Percentage", "value": "55.5%"},
+    ]}]
+    monkeypatch.setattr(live, "utc_stamp", lambda: next_capture)
+    with closing(sqlite3.connect(db)) as conn:
+        conn.row_factory = sqlite3.Row
+        with conn:
+            live._upsert_statistics(conn, "123", receipt)
+        rows = conn.execute(
+            "SELECT stat_name, stat_value, captured_at FROM api_football_live_stats WHERE fixture_id=? AND team_id='10'",
+            ("123",),
+        ).fetchall()
+        by_stat = {row[0]: (row[1], row[2]) for row in rows}
+        assert by_stat["Ball Possession"] == ("55%", first_capture)
+        assert by_stat["Corner Kicks"] == ("0", next_capture)
+        assert by_stat["Passes Percentage"] == ("55.5%", next_capture)
+        projected = live._stats_for_fixture(conn, "123")
+        norte = next(team for team in projected["teams"] if team["team_id"] == "10")
+        assert norte["stats"]["corners"]["numeric"] == 0
+        assert norte["stats"]["passes_pct"]["numeric"] == 55.5
+
+
 def test_event_corrections_and_empty_response_survive_old_cache_insert_ignore(db,monkeypatch):
     for stamp,payload in [(T0,events()),(T1,events('Corrección QA')),(T2,[])]:
         monkeypatch.setattr(live,'utc_stamp',lambda:archive.utc_stamp(stamp))
