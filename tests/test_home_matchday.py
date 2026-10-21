@@ -82,10 +82,15 @@ def test_uefa_home_group_uses_europe_region_label_without_rewriting_source_count
     group = result['today']['groups'][0]
     assert group['country'] == 'Mundial'
     assert group['display_country'] == 'Europa (UEFA)'
+    assert items(result, 'today')[0]['country'] == 'World'
+    assert items(result, 'today')[0].get('home_display_country') == 'Europa (UEFA)'
 
     from test_design02_r7_home_composition import render_home
     markup = render_home(app_module, {'home_matchday': result}, language)
     assert expected in markup
+    match_card = markup.split('data-v934-match-card="true"', 1)[1].split('</article>', 1)[0]
+    assert f'<small>{expected}</small>' in match_card
+    assert '<small>World</small>' not in match_card
     assert '>Mundial</span>' not in markup
 
 
