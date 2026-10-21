@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import unicodedata
 from functools import lru_cache
 from pathlib import Path
 from string import Formatter
@@ -65,6 +66,103 @@ def translate(source, language='es', **values):
         return translated.format_map(values) if values else translated
     except (KeyError, ValueError):
         return fallback.format_map(values) if values else fallback
+
+
+def _country_key(value):
+    text = unicodedata.normalize('NFKD', str(value or '').strip().casefold())
+    text = ''.join(char for char in text if not unicodedata.combining(char))
+    return re.sub(r'[^a-z0-9]+', ' ', text).strip()
+
+
+_COUNTRY_ROWS = (
+    ('Spain', 'España', 'Espagne'), ('England', 'Inglaterra', 'Angleterre'),
+    ('Scotland', 'Escocia', 'Écosse'), ('Wales', 'Gales', 'Pays de Galles'),
+    ('Northern Ireland', 'Irlanda del Norte', 'Irlande du Nord'),
+    ('Ireland', 'Irlanda', 'Irlande'), ('France', 'Francia', 'France'),
+    ('Germany', 'Alemania', 'Allemagne'), ('Italy', 'Italia', 'Italie'),
+    ('Portugal', 'Portugal', 'Portugal'), ('Netherlands', 'Países Bajos', 'Pays-Bas'),
+    ('Belgium', 'Bélgica', 'Belgique'), ('Switzerland', 'Suiza', 'Suisse'),
+    ('Austria', 'Austria', 'Autriche'), ('Poland', 'Polonia', 'Pologne'),
+    ('Ukraine', 'Ucrania', 'Ukraine'), ('Romania', 'Rumanía', 'Roumanie'),
+    ('Russia', 'Rusia', 'Russie'), ('Turkey', 'Turquía', 'Turquie'),
+    ('Greece', 'Grecia', 'Grèce'), ('Armenia', 'Armenia', 'Arménie'),
+    ('Azerbaijan', 'Azerbaiyán', 'Azerbaïdjan'),
+    ('Bosnia and Herzegovina', 'Bosnia y Herzegovina', 'Bosnie-Herzégovine'),
+    ('Croatia', 'Croacia', 'Croatie'), ('Serbia', 'Serbia', 'Serbie'),
+    ('Slovakia', 'Eslovaquia', 'Slovaquie'), ('Slovenia', 'Eslovenia', 'Slovénie'),
+    ('Hungary', 'Hungría', 'Hongrie'), ('Czech Republic', 'República Checa', 'Tchéquie'),
+    ('Bulgaria', 'Bulgaria', 'Bulgarie'), ('Cyprus', 'Chipre', 'Chypre'),
+    ('Malta', 'Malta', 'Malte'), ('Estonia', 'Estonia', 'Estonie'),
+    ('Finland', 'Finlandia', 'Finlande'), ('Norway', 'Noruega', 'Norvège'),
+    ('Denmark', 'Dinamarca', 'Danemark'), ('Sweden', 'Suecia', 'Suède'),
+    ('Iceland', 'Islandia', 'Islande'), ('Brazil', 'Brasil', 'Brésil'),
+    ('Argentina', 'Argentina', 'Argentine'), ('Chile', 'Chile', 'Chili'),
+    ('Colombia', 'Colombia', 'Colombie'), ('Ecuador', 'Ecuador', 'Équateur'),
+    ('Peru', 'Perú', 'Pérou'), ('Venezuela', 'Venezuela', 'Venezuela'),
+    ('Bolivia', 'Bolivia', 'Bolivie'), ('Paraguay', 'Paraguay', 'Paraguay'),
+    ('Uruguay', 'Uruguay', 'Uruguay'), ('Mexico', 'México', 'Mexique'),
+    ('United States', 'Estados Unidos', 'États-Unis'), ('Canada', 'Canadá', 'Canada'),
+    ('Costa Rica', 'Costa Rica', 'Costa Rica'), ('Panama', 'Panamá', 'Panama'),
+    ('Japan', 'Japón', 'Japon'), ('South Korea', 'Corea del Sur', 'Corée du Sud'),
+    ('Thailand', 'Tailandia', 'Thaïlande'), ('China', 'China', 'Chine'),
+    ('Indonesia', 'Indonesia', 'Indonésie'), ('Singapore', 'Singapur', 'Singapour'),
+    ('Malaysia', 'Malasia', 'Malaisie'), ('India', 'India', 'Inde'),
+    ('Australia', 'Australia', 'Australie'),
+    ('New Zealand', 'Nueva Zelanda', 'Nouvelle-Zélande'),
+    ('Egypt', 'Egipto', 'Égypte'), ('South Africa', 'Sudáfrica', 'Afrique du Sud'),
+    ('Morocco', 'Marruecos', 'Maroc'), ('Tunisia', 'Túnez', 'Tunisie'),
+    ('Algeria', 'Argelia', 'Algérie'), ('Nigeria', 'Nigeria', 'Nigeria'),
+    ('Ghana', 'Ghana', 'Ghana'), ('Senegal', 'Senegal', 'Sénégal'),
+    ('Cameroon', 'Camerún', 'Cameroun'), ('Kenya', 'Kenia', 'Kenya'),
+    ('Uganda', 'Uganda', 'Ouganda'), ('Rwanda', 'Ruanda', 'Rwanda'),
+    ('Ethiopia', 'Etiopía', 'Éthiopie'), ('Liberia', 'Liberia', 'Libéria'),
+    ('Congo DR', 'RD del Congo', 'RD Congo'), ('Ivory Coast', 'Costa de Marfil', 'Côte d’Ivoire'),
+    ('Angola', 'Angola', 'Angola'), ('Saudi Arabia', 'Arabia Saudí', 'Arabie saoudite'),
+    ('United Arab Emirates', 'Emiratos Árabes Unidos', 'Émirats arabes unis'),
+    ('Qatar', 'Catar', 'Qatar'), ('Iran', 'Irán', 'Iran'), ('Iraq', 'Irak', 'Irak'),
+    ('Turkmenistan', 'Turkmenistán', 'Turkménistan'),
+    ('Uzbekistan', 'Uzbekistán', 'Ouzbékistan'),
+    ('Kyrgyzstan', 'Kirguistán', 'Kirghizistan'), ('Kosovo', 'Kosovo', 'Kosovo'),
+    ('Guatemala', 'Guatemala', 'Guatemala'), ('Nicaragua', 'Nicaragua', 'Nicaragua'),
+    ('World', 'Mundial', 'Monde'), ('Global', 'Global', 'Global'),
+    ('International', 'Internacional', 'International'), ('Europe', 'Europa', 'Europe'),
+    ('South America', 'Sudamérica', 'Amérique du Sud'),
+    ('North America', 'Norteamérica', 'Amérique du Nord'),
+    ('Africa', 'África', 'Afrique'), ('Asia', 'Asia', 'Asie'),
+    ('Oceania', 'Oceanía', 'Océanie'),
+)
+
+_COUNTRY_ALIASES = {
+    'usa': 'United States', 'us': 'United States', 'united states of america': 'United States',
+    'korea republic': 'South Korea', 'republic of korea': 'South Korea',
+    'czechia': 'Czech Republic', 'holland': 'Netherlands',
+    'bosnia herzogovina': 'Bosnia and Herzegovina',
+    'bosnia herzegovina': 'Bosnia and Herzegovina',
+    'bosnia and herzegovina': 'Bosnia and Herzegovina',
+    'congo dr': 'Congo DR', 'congo drc': 'Congo DR', 'congo democratic republic': 'Congo DR',
+    'cote d ivoire': 'Ivory Coast', 'cote divoire': 'Ivory Coast',
+    'uae': 'United Arab Emirates', 'saudi arabia': 'Saudi Arabia',
+}
+_COUNTRY_DISPLAY_NAMES = {}
+for _english_name, _spanish_name, _french_name in _COUNTRY_ROWS:
+    for _alias in (_english_name, _spanish_name, _french_name):
+        _COUNTRY_DISPLAY_NAMES[_country_key(_alias)] = (_spanish_name, _english_name, _french_name)
+for _alias, _canonical in _COUNTRY_ALIASES.items():
+    _row = next(row for row in _COUNTRY_ROWS if row[0] == _canonical)
+    _COUNTRY_DISPLAY_NAMES[_country_key(_alias)] = (_row[1], _row[0], _row[2])
+
+
+def country_display_name(value, language='es'):
+    """Localize a known provider country only at display time; preserve unknown labels."""
+    source = str(value or '')
+    if not source.strip():
+        return ''
+    language = valid_language(language) or 'es'
+    localized = _COUNTRY_DISPLAY_NAMES.get(_country_key(source))
+    if localized:
+        return localized[{'es': 0, 'en': 1, 'fr': 2}[language]]
+    # This also handles explicitly catalogued region labels such as Europa (UEFA).
+    return translate(source, language)
 
 
 def catalogue_issues():

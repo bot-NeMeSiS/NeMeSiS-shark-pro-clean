@@ -2,7 +2,7 @@
 {% from "components/home_league_badge.html" import home_league_badge %}
 {% macro league_identity(group, show_date=false) -%}
 {% set name = group.competition or ui('Competición pendiente') %}
-{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}
+{% set country_label = ui_country(group.display_country if group.display_country and group.display_country != group.country else group.country) %}
 {% set logo = group.logo_url or url_for('asset_league_logo', league_key=group.logo_key, name=group.logo_name, country=group.country, provider=group.provider, league_id=group.provider_id) %}
 <div class="home-league-identity">
   {{ home_league_badge(name, logo, 'provider_cache' if group.logo_url else 'cache_lookup') }}
@@ -25,7 +25,7 @@
 <div class="home-league-browser" data-home-league-browser="{{ section }}">
 {% if primary|length > 1 %}
 <nav class="home-league-index home-featured-rail" aria-label="{{ ui('Ir a una liga') }}" data-home-primary-index>
-{% for group in primary %}{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}<a class="home-league-tone-{{ group.tone }}" href="#home-{{ section }}-{{ group.date }}-{{ group.anchor }}" title="{{ group.competition }}{% if country_label %} · {{ country_label }}{% endif %}"><i aria-hidden="true"></i><span>{{ group.competition or ui('Competición pendiente') }}{% if show_date %} · {{ ui_calendar_date(group.date) }}{% endif %}</span><small>{{ group.shown }}</small></a>{% endfor %}
+{% for group in primary %}{% set country_label = ui_country(group.display_country if group.display_country and group.display_country != group.country else group.country) %}<a class="home-league-tone-{{ group.tone }}" href="#home-{{ section }}-{{ group.date }}-{{ group.anchor }}" title="{{ group.competition }}{% if country_label %} · {{ country_label }}{% endif %}"><i aria-hidden="true"></i><span>{{ group.competition or ui('Competición pendiente') }}{% if show_date %} · {{ ui_calendar_date(group.date) }}{% endif %}</span><small>{{ group.shown }}</small></a>{% endfor %}
 </nav>
 {% endif %}
 <div class="home-competition-list" data-home-league-agenda="{{ section }}">
@@ -47,7 +47,7 @@
     {% if secondary_section.key %}</div></section>{% endif %}
     {% set secondary_section.key = section_key %}
     <section class="home-presentation-section home-presentation-section--{{ group.presentation_group_kind or 'country' }}" data-home-competition-section data-home-group-key="{{ section_key }}">
-      <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ group.presentation_group_label or group.display_country or group.country }}{% endif %}</h3>
+      <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ ui_country(group.presentation_group_label or group.display_country or group.country) }}{% endif %}</h3>
       <div class="home-presentation-section-items">
     {% endif %}
     {% set name = group.competition or ui('Competición pendiente') %}
@@ -72,11 +72,11 @@
 {% if primary_section.key %}</div></section>{% endif %}
 {% set primary_section.key = section_key %}
 <section class="home-presentation-section home-presentation-section--{{ group.presentation_group_kind or 'country' }}" data-home-competition-section data-home-group-key="{{ section_key }}">
-  <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ group.presentation_group_label or group.display_country or group.country }}{% endif %}</h3>
+  <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ ui_country(group.presentation_group_label or group.display_country or group.country) }}{% endif %}</h3>
   <div class="home-presentation-section-items">
 {% endif %}
 {% set name = group.competition or ui('Competición pendiente') %}
-{% set country_label = ui(group.display_country) if group.display_country and group.display_country != group.country else group.country %}
+{% set country_label = ui_country(group.display_country if group.display_country and group.display_country != group.country else group.country) %}
 <section class="home-competition-group home-league-tone-{{ group.tone }}" id="home-{{ section }}-{{ group.date }}-{{ group.anchor }}" aria-label="{{ name }}{% if country_label %} · {{ country_label }}{% endif %}" tabindex="-1" data-home-competition="{{ group.key }}" data-home-importance="primary">
   <header class="home-competition-header">
     {{ league_identity(group, show_date) }}

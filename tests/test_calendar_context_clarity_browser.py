@@ -19,7 +19,8 @@ def sample(app_module):
             rows.append({'id':f'{league[5:9]}-{index}','match_id':f'{league[5:9]}-{index}',
                 'match_date':day,'kickoff_time':hour,'home_team':f'Club {index}',
                 'away_team':'Visitante QA','competition_name':league,'country':'España',
-                'source':'fixture-test','v935_lifecycle':'UPCOMING'})
+                'source':'fixture-test','v935_lifecycle':'UPCOMING',
+                'home_score':'','away_score':''})
     return day,{'all_valid_matches':rows,'valid_upcoming_matches':rows,'valid_matches_available':rows,
         'valid_matches_today':[],'valid_live_events':[],'finished_matches':[],
         'valid_active_picks':[],'incident_matches':[],'incomplete_matches':[]}
@@ -74,7 +75,7 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
         sort.select_option('time')
         if javascript:assert page.locator('[data-v940-pending-filters]').is_visible()
         submit=page.locator('[data-v940-discovery-form] button[type=submit]')
-        submit.focus();page.keyboard.press('Enter');page.wait_for_url('**/*sort=time*')
+        submit.focus();page.keyboard.press('Enter');page.wait_for_url('**/*sort=time*',wait_until='domcontentloaded')
         assert parse_qs(urlsplit(page.url).query)['q']==['Club']
         groups=page.locator('[data-v940-calendar-section="league"]')
         assert groups.count()==2

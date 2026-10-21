@@ -16,7 +16,7 @@
     <label for="competition-country">{{ ui('País o región') }}
       <select id="competition-country" name="country">
         <option value="">{{ ui('Todos los países y regiones') }}</option>
-        {% for country in data.countries %}<option value="{{ country }}" {% if country == data.country %}selected{% endif %}>{{ country }}</option>{% endfor %}
+        {% for country in data.countries %}<option value="{{ country }}" {% if country == data.country %}selected{% endif %}>{{ ui_country(country) }}</option>{% endfor %}
       </select>
     </label>
     <button type="submit">{{ ui('Buscar') }}</button>
@@ -32,7 +32,7 @@
     <header class="competition-directory-section-heading">
       <div>
         <p>{{ ui('Torneos internacionales') if section.kind == 'international' else (ui('País sin confirmar') if section.kind == 'unknown' else ui('Ligas por país')) }}</p>
-        <h2 id="competition-section-{{ loop.index }}">{{ ui('Torneos internacionales') if section.kind == 'international' else (ui('País sin confirmar') if section.kind == 'unknown' else section.label) }}</h2>
+        <h2 id="competition-section-{{ loop.index }}">{{ ui('Torneos internacionales') if section.kind == 'international' else (ui('País sin confirmar') if section.kind == 'unknown' else ui_country(section.label)) }}</h2>
       </div>
       <span>{{ ui_plural('{count} competición', '{count} competiciones', section.count) }}</span>
     </header>
@@ -40,9 +40,9 @@
       {% for c in section.competitions %}
       <article class="competition-directory-card">
         {% if section.kind == 'international' and c.region and c.region|lower not in ['global', 'world', 'mundial'] %}
-        <p class="competition-directory-country">{{ c.region }}</p>
+        <p class="competition-directory-country">{{ ui_country(c.region) }}</p>
         {% elif section.kind == 'country' and c.region and c.region != c.country and c.region|lower not in ['europe', 'europa', 'world', 'global', 'mundial', 'south america', 'north america'] %}
-        <p class="competition-directory-country">{{ c.region }}</p>
+        <p class="competition-directory-country">{{ ui_country(c.region) }}</p>
         {% endif %}
         <h3><a href="/competition/{{ c.key|urlencode }}">{{ c.name }}</a></h3>
         <p>{{ ui('Con partidos registrados' if c.has_matches else 'Sin partidos asociados todavía') }}</p>
