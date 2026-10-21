@@ -120,6 +120,11 @@ def test_large_competition_navigation_keeps_every_target_in_native_overflow(app_
     assert len(overflow_links)==79
     assert summary['attrs']['data-v959-competition-overflow-count']=='79'
     assert summary_text in html
+    assert {
+        'es':'Mostrar menos competiciones',
+        'en':'Show fewer competitions',
+        'fr':'Voir moins de compétitions',
+    }[language] in html
     assert [node['attrs']['href'] for node in primary_links+overflow_links]==[item['href'] for item in navigation]
     assert all(overflow in node['parents'] for node in overflow_links)
     assert '<details class="v959-calendar-more-competitions"' in html

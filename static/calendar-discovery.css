@@ -32,6 +32,28 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
 [data-calendar-discovery="v1"] .v940-calendar-pending[hidden] { display: none; }
 [data-calendar-discovery="v1"] .ns-calendar-more-views > summary { display: flex; align-items: center; min-height: 44px; font-size: 14px; cursor: pointer; }
 [data-calendar-discovery="v1"] .ns-calendar-more-views > summary:focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 3px; }
+[data-calendar-discovery="v1"] [data-v959-more-competitions] > summary {
+  display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 5px 12px;
+  border: 1px solid rgba(107, 194, 226, .24); border-radius: 11px;
+  background: linear-gradient(110deg, rgba(22, 53, 75, .72), rgba(10, 25, 39, .74));
+  color: var(--ns-text); cursor: pointer; font-size: 13px; font-weight: 750;
+  line-height: 1.35; list-style: none; transition: border-color .16s ease, filter .16s ease;
+}
+[data-calendar-discovery="v1"] [data-v959-more-competitions] > summary::-webkit-details-marker { display: none; }
+[data-calendar-discovery="v1"] [data-v959-more-competitions] > summary::after {
+  display: grid; flex: 0 0 26px; width: 26px; height: 26px; margin-inline-start: auto;
+  place-items: center; border: 1px solid rgba(89, 210, 246, .3); border-radius: 8px;
+  color: var(--v933-cyan); content: "+"; font-size: 17px; line-height: 1;
+}
+[data-calendar-discovery="v1"] [data-v959-more-competitions][open] > summary::after { content: "−"; }
+[data-calendar-discovery="v1"] [data-v959-more-competitions] > summary:hover {
+  border-color: rgba(89, 210, 246, .48); filter: brightness(1.12);
+}
+[data-calendar-discovery="v1"] [data-v959-more-competitions][open] > summary { border-color: rgba(89, 210, 246, .42); }
+[data-calendar-discovery="v1"] [data-v959-more-competitions] > summary:focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 3px; }
+[data-calendar-discovery="v1"] [data-v959-more-competitions] .v959-competition-overflow-label--open,
+[data-calendar-discovery="v1"] [data-v959-more-competitions][open] .v959-competition-overflow-label--closed { display: none; }
+[data-calendar-discovery="v1"] [data-v959-more-competitions][open] .v959-competition-overflow-label--open { display: inline; }
 [data-calendar-discovery="v1"] .v940-calendar-filter-form :is(input,select,summary,a,button):focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 3px; }
 [data-calendar-discovery="v1"] :is(#v933-calendar-filters,#v940-calendar-search) { scroll-margin-top: calc(var(--v933-topbar,58px) + 14px); }
 /* Restore context explicitly over the retired display:none !important rule. */

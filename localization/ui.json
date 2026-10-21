@@ -3246,6 +3246,10 @@
       "en": "Show {count} more competitions",
       "fr": "Voir {count} autres compétitions"
     },
+    "Mostrar menos competiciones": {
+      "en": "Show fewer competitions",
+      "fr": "Voir moins de compétitions"
+    },
     "Confianza del dato": {
       "en": "Data confidence",
       "fr": "Fiabilité des données"
