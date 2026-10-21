@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V955_ADMIN_BACKUP_STAGE_DIAGNOSTICS'
+APP_VERSION = 'V956_HOME_FIXTURE_DEDUPLICATION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V955_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V956_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21520,6 +21520,7 @@ def home_matchday_context(summary, favorites=None):
                 continue
             source.append(item)
             status_by_object[id(item)] = status
+    source = _v956_unique_home_fixtures(source)
     result = build_matchday(source, now=datetime.now(MADRID_TZ),
         status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
         kickoff_for=match_kickoff_madrid_dt,
@@ -33374,6 +33375,44 @@ def _v565_unique_fixtures(matches):
             ),
         ))
     return unique
+
+
+def _v956_home_fixture_identity(match):
+    """Strict presentation-only key for cross-provider Home duplicates."""
+    identity = _v565_fixture_identity(match)
+    if identity is None:
+        return None
+    country = normalized_label(spanish_country_name(
+        (match or {}).get("country") or (match or {}).get("safe_country") or ""
+    ))
+    if not country:
+        return None
+    return (*identity, country)
+
+
+def _v956_unique_home_fixtures(matches):
+    """Hide confidently identical provider copies from Home without changing records.
+
+    A primary API-Football observation wins only when teams, competition, country,
+    and kickoff minute all match. Alternate-provider rows remain available when
+    there is no matching primary observation. Incomplete identities stay separate.
+    """
+    chosen = {}
+    unkeyed = []
+    for position, match in enumerate(matches or []):
+        identity = _v956_home_fixture_identity(match)
+        if identity is None:
+            unkeyed.append((position, match))
+            continue
+        current = chosen.get(identity)
+        provider_is_primary = provider_family((match or {}).get("source")) == "api-football"
+        rank = (provider_is_primary, match_quality_score(match),
+                bool((match or {}).get("external_id")), str((match or {}).get("id") or ""))
+        if current is None or rank > current[1]:
+            chosen[identity] = (position, rank, match)
+    selected = unkeyed + [(position, rank, match) for position, rank, match in chosen.values()]
+    selected.sort(key=lambda item: item[0])
+    return [match for _position, _rank, match in selected]
 
 
 def v565_recommendation_pool(limit=40):
