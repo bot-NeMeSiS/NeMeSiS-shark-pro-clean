@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V956_HOME_FIXTURE_DEDUPLICATION'
+APP_VERSION = 'V957_CALENDAR_FIXTURE_DEDUPLICATION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V956_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V957_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -22420,14 +22420,14 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         if has_request_context() and current_session_user()
         else {"team": set(), "league": set(), "match": set(), "all": []}
     )
-    prepared_all = [
+    prepared_all = _v957_unique_calendar_fixtures([
         _v940_calendar_prepare_match(item, pick_ids, favorites)
         for item in _dedupe_sports_matches(
             summary.get("all_valid_matches")
             or summary.get("valid_upcoming_matches")
             or []
         )
-    ]
+    ])
     prepared_by_id = {
         _sports_match_key(item): item
         for item in prepared_all
@@ -22436,6 +22436,17 @@ def v940_calendar_context(summary, lane="today", date_value=None):
     source_matches = _v940_calendar_source_matches(
         summary,
         filters,
+        prepared_all,
+        prepared_by_id,
+    )
+    display_today = _dedupe_sports_matches([
+        prepared_by_id[match_id]
+        for raw in summary.get("valid_matches_today") or []
+        if (match_id := _sports_match_key(raw)) in prepared_by_id
+    ])
+    display_live = _v940_calendar_source_matches(
+        summary,
+        {**filters, "lane": "live"},
         prepared_all,
         prepared_by_id,
     )
@@ -22470,14 +22481,14 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         "visible": len(sorted_matches),
         "days": len(day_groups),
         "leagues": league_count,
-        "today": sports_metrics["matches_today"],
+        "today": len(display_today),
         "tomorrow": int(date_counts.get(tomorrow) or 0),
         "week": sum(
             1 for item in prepared_all
             if today <= str(item.get("match_date") or "") <= week_end
         ),
-        "live": sports_metrics["live_confirmed"],
-        "picks": sports_metrics["matches_with_picks"],
+        "live": len(display_live),
+        "picks": sum(1 for item in prepared_all if item.get("has_pick")),
         "favorites": sum(1 for item in prepared_all if item.get("is_favorite")),
         "finished": sum(
             1 for item in prepared_all
@@ -33413,6 +33424,39 @@ def _v956_unique_home_fixtures(matches):
     selected = unkeyed + [(position, rank, match) for position, rank, match in chosen.values()]
     selected.sort(key=lambda item: item[0])
     return [match for _position, _rank, match in selected]
+
+
+def _v957_unique_calendar_fixtures(matches):
+    """Hide only confidently identical provider rows in customer calendar views.
+
+    Persisted rows are never changed. A row already linked to a pick or
+    favorite wins so its existing action remains available; otherwise the
+    primary API-Football row wins, followed by the richer existing observation.
+    Incomplete fixture identities are retained separately.
+    """
+    chosen = {}
+    unkeyed = []
+    for position, match in enumerate(matches or []):
+        identity = _v956_home_fixture_identity(match)
+        if identity is None:
+            unkeyed.append((position, match))
+            continue
+        rank = (
+            bool((match or {}).get("has_pick")),
+            bool((match or {}).get("is_favorite")),
+            provider_family((match or {}).get("source")) == "api-football",
+            match_quality_score(match),
+            bool((match or {}).get("external_id")),
+            str((match or {}).get("id") or ""),
+        )
+        current = chosen.get(identity)
+        if current is None or rank > current[1]:
+            chosen[identity] = (position, rank, match)
+    selected = unkeyed + [
+        (position, match) for position, _rank, match in chosen.values()
+    ]
+    selected.sort(key=lambda item: item[0])
+    return [match for _position, match in selected]
 
 
 def v565_recommendation_pool(limit=40):
