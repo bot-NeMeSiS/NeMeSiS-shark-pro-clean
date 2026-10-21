@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import re
 from datetime import date, timedelta
 
 
@@ -82,3 +83,34 @@ def test_calendar_api_does_not_compress_when_client_rejects_gzip(
     assert response.status_code == 200
     assert "Content-Encoding" not in response.headers
     assert response.get_json()["calendar"]["counts"]["visible"] == len(summary["all_valid_matches"])
+
+
+def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, monkeypatch):
+    summary = _calendar_summary(app_module, count=6)
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *_args, **_kwargs: ({}, summary),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_v940_hydrate_selected_date_results",
+        lambda value, _date: value,
+    )
+    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", lambda _summary: {})
+
+    response = client.get("/calendario")
+
+    assert response.status_code == 200
+    assert response.headers["X-Nemesis-Route-Phases"] == "calendar"
+    timing = response.headers["Server-Timing"]
+    for phase in (
+        "sports_context",
+        "historical_results",
+        "calendar_context",
+        "realtime_context",
+        "template_render",
+    ):
+        match = re.search(rf"(?:^|,\s*)calendar_{phase};dur=([0-9]+(?:\.[0-9]+)?)", timing)
+        assert match, f"Missing timing for {phase}: {timing}"
+        assert float(match.group(1)) >= 0
