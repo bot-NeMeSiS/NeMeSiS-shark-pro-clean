@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V963_COMPETITION_OVERFLOW_CONTROL'
+APP_VERSION = 'V964_CALENDAR_COMPETITION_ANCHORS'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V963_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V964_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -22303,16 +22303,29 @@ def _v940_calendar_group_navigation(day_groups):
             "count": int(day.get("matches_count") or day.get("total") or 0),
         })
         league_navigation = []
+        league_anchors = {}
         for league_index, league in enumerate(day.get("leagues") or []):
             league_name = league.get("label") or league.get("name") or "Competición"
             league_anchor = f"{day_anchor}-league-{league_index}-{slug(league_name) or 'competition'}"
             league["anchor_id"] = league_anchor
+            identity_key = str(league.get("key") or league.get("competition_id") or league_name)
+            league_anchors.setdefault(identity_key, league_anchor)
             league["context_label"] = f"{day['context_label']} - {league_name}"
             league_navigation.append({
                 "label": league_name,
                 "href": f"#{league_anchor}",
                 "count": len(league.get("matches") or []),
             })
+        # Presentation sections contain copies made before navigation is built.
+        # Carry the canonical IDs onto those rendered rows so every GET anchor
+        # resolves in the server HTML, including when JavaScript is unavailable.
+        for section in day.get("league_sections") or []:
+            for displayed_league in section.get("leagues") or []:
+                league_name = displayed_league.get("label") or displayed_league.get("name") or "Competición"
+                identity_key = str(displayed_league.get("key") or displayed_league.get("competition_id") or league_name)
+                anchor_id = league_anchors.get(identity_key)
+                if anchor_id:
+                    displayed_league["anchor_id"] = anchor_id
         day["league_navigation"] = league_navigation
     return day_navigation
 

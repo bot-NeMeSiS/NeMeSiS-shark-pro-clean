@@ -130,6 +130,29 @@ def test_large_competition_navigation_keeps_every_target_in_native_overflow(app_
     assert '<details class="v959-calendar-more-competitions"' in html
 
 
+def test_competition_navigation_targets_rendered_country_grouped_sections_without_javascript(app_module):
+    leagues=[
+        {'key':'laliga','competition_id':'spain-1','label':'LaLiga','country':'España','matches':[]},
+        {'key':'champions','competition_id':'uefa-1','label':'Champions League','country':'Europa','competition_type':'continental','matches':[]},
+        {'key':'ligue-1','competition_id':'france-1','label':'Ligue 1','country':'Francia','matches':[]},
+    ]
+    group={'date':'2026-10-21','label':'Hoy','matches_count':3,'leagues':leagues}
+    group['league_sections']=app_module.competition_presentation_sections(leagues,collection_key='leagues')
+    day_groups=[group]
+    app_module._v940_calendar_group_navigation(day_groups)
+
+    html,_=render_calendar(app_module,day_groups=day_groups)
+    dom=Structure(html)
+    ids={node['attrs'].get('id') for node in dom.nodes if node['attrs'].get('id')}
+    competition_links=[
+        node for node in dom.nodes
+        if node['tag']=='a' and 'data-v940-scroll-link' in node['attrs']
+        and node['attrs'].get('href','').startswith('#v940-day-2026-10-21-league-')
+    ]
+    assert len(competition_links)==3
+    assert all(node['attrs']['href'][1:] in ids for node in competition_links)
+
+
 def test_short_competition_navigation_keeps_existing_compact_layout(app_module):
     navigation=[{'label':f'Competición {i:02d}','href':f'#league-{i:02d}','count':1} for i in range(1,6)]
     groups=[{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':5,
