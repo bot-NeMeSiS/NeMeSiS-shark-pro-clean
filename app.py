@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V957_CALENDAR_FIXTURE_DEDUPLICATION'
+APP_VERSION = 'V958_ADMIN_HIGHLIGHTS_LEAN_READ'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V957_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V958_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21412,8 +21412,17 @@ def api_client_highlights_content_center():
 def admin_highlights_center_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/highlights-center")
-    data = dashboard_data("results", today_iso())
-    data["v769_highlights_center"] = v769_highlights_content_center(data, current_session_user(), limit=30)
+    user = current_session_user()
+    catalogue = v766_highlights_context(limit=30)
+    data = {
+        "session_user": user,
+        "v766_highlights": catalogue,
+        "v769_highlights_center": v769_highlights_content_center(
+            user=user,
+            limit=30,
+            highlights_context=catalogue,
+        ),
+    }
     return render_template("admin_highlights_center.html", data=data)
 
 
@@ -21421,8 +21430,14 @@ def admin_highlights_center_page():
 def api_admin_highlights_status():
     if not is_admin_session():
         return admin_json_forbidden()
-    data = dashboard_data("results", today_iso())
-    return jsonify({"ok": True, "version": APP_VERSION, "content_center": v769_highlights_content_center(data, current_session_user(), limit=30)})
+    user = current_session_user()
+    catalogue = v766_highlights_context(limit=30)
+    center = v769_highlights_content_center(
+        user=user,
+        limit=30,
+        highlights_context=catalogue,
+    )
+    return jsonify({"ok": True, "version": APP_VERSION, "content_center": center})
 
 @app.route("/api/growth/funnel-event", methods=["POST"])
 def api_growth_funnel_event():
