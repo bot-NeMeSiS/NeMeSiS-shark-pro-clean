@@ -161,3 +161,39 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
     padding-block: 6px;
   }
 }
+
+/* Wide calendar views use balanced columns instead of grid rows whose height
+   is dictated by the busiest league. Keep each league card intact and preserve
+   the single-column reading order on tablets and phones. */
+@media (min-width: 1000px) {
+  body.ns-app .v933-page[data-calendar-discovery="v1"] .v940-calendar-competition-section {
+    display: block;
+    column-count: 2;
+    column-width: 460px;
+    column-gap: 12px;
+    column-fill: balance;
+  }
+
+  body.ns-app .v933-page[data-calendar-discovery="v1"] .v940-calendar-competition-heading {
+    column-span: all;
+    grid-column: auto;
+    break-inside: avoid;
+  }
+
+  body.ns-app .v933-page[data-calendar-discovery="v1"] .v940-calendar-league {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    margin: 0 0 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  [data-calendar-discovery="v1"] .v940-calendar-sort select {
+    box-sizing: border-box;
+    min-width: 0;
+    padding-inline: 10px 30px;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
