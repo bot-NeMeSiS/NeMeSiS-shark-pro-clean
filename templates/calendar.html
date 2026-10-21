@@ -218,12 +218,31 @@
                data-v940-context-label="{{ day.get('context_label') }}">
         {% set day_count = day.get('matches_count') or day.get('total') or 0 %}
         {{ section_header(ui_calendar_date(day.get('date'), detail=true), '') }}
-        {% if (day.get('league_navigation') or [])|length > 1 %}
+        {% set competition_navigation = day.get('league_navigation') or [] %}
+        {% if competition_navigation|length > 1 %}
+        {% if competition_navigation|length > 12 %}
+        <div class="v959-calendar-league-navigation" data-v959-competition-navigation>
+          <nav class="v940-calendar-league-index v959-calendar-primary-competition-nav" aria-label="{{ ui('Competiciones principales de {date}', date=ui_calendar_date(day.get('date'))) }}">
+            {% for item in competition_navigation[:6] %}
+            <a href="{{ item.get('href') }}" data-v940-scroll-link>{{ item.get('label') }} <small>{{ item.get('count') }}</small></a>
+            {% endfor %}
+          </nav>
+          <details class="v959-calendar-more-competitions" data-v959-more-competitions>
+            <summary data-v959-competition-overflow-count="{{ competition_navigation|length - 6 }}">{{ ui_plural('Ver {count} competición más', 'Ver {count} competiciones más', competition_navigation|length - 6) }}</summary>
+            <nav class="v940-calendar-league-index v959-calendar-overflow-competition-nav" aria-label="{{ ui('Más competiciones de {date}', date=ui_calendar_date(day.get('date'))) }}">
+              {% for item in competition_navigation[6:] %}
+              <a href="{{ item.get('href') }}" data-v940-scroll-link>{{ item.get('label') }} <small>{{ item.get('count') }}</small></a>
+              {% endfor %}
+            </nav>
+          </details>
+        </div>
+        {% else %}
         <nav class="v940-calendar-league-index" aria-label="{{ ui('Competiciones de {date}', date=ui_calendar_date(day.get('date'))) }}">
-          {% for item in day.get('league_navigation') or [] %}
+          {% for item in competition_navigation %}
           <a href="{{ item.get('href') }}" data-v940-scroll-link>{{ item.get('label') }} <small>{{ item.get('count') }}</small></a>
           {% endfor %}
         </nav>
+        {% endif %}
         {% endif %}
         {% for collection in day.get('league_sections') or [] %}
         <section class="v940-calendar-competition-section v940-calendar-competition-section--{{ collection.get('kind') }}" data-calendar-competition-group="{{ collection.get('key') }}">

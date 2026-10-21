@@ -8,12 +8,13 @@ from test_design02_calendar_presentation import Structure
 
 ROOT=Path(__file__).resolve().parents[1]
 
-def render_calendar(app_module, query='', language='es', facets=None, summary=None):
+def render_calendar(app_module, query='', language='es', facets=None, summary=None, day_groups=None):
     env=app_module.app.jinja_env.overlay(loader=ChoiceLoader([
         DictLoader({'base.html':'{% block content %}{% endblock %}'}),app_module.app.jinja_env.loader]))
     with app_module.app.test_request_context('/calendar'+query, headers={'Accept-Language':language}):
         calendar=app_module.v940_calendar_context(summary or {},app_module.request.args.get('lane','today'))
         if facets is not None: calendar['facets']=facets
+        if day_groups is not None: calendar['day_groups']=deepcopy(day_groups)
         data={'calendar':calendar,'v925_calendar':{'has_real_data':False,'provider_status':'waiting_for_sync'}}
         params={'data':data};app_module.app.update_template_context(params)
         return env.get_template('calendar.html').render(**params), calendar
@@ -96,5 +97,43 @@ def test_calendar_preserves_non_search_contract_and_one_collection(app_module):
         assert marker in html
     assert html.count('data-v940-calendar-search')==1
     assert html.count('data-v940-calendar-collection')==1
+
+
+@pytest.mark.parametrize(('language','summary_text'),[
+    ('es','Ver 79 competiciones más'),
+    ('en','Show 79 more competitions'),
+    ('fr','Voir 79 autres compétitions'),
+])
+def test_large_competition_navigation_keeps_every_target_in_native_overflow(app_module,language,summary_text):
+    navigation=[{'label':f'Competición {i:02d}','href':f'#league-{i:02d}','count':1} for i in range(1,86)]
+    groups=[{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':85,
+             'league_navigation':navigation,'league_sections':[]}]
+    html,_=render_calendar(app_module,language=language,day_groups=groups)
+    dom=Structure(html)
+    primary,=dom.with_class('v959-calendar-primary-competition-nav')
+    overflow,=dom.with_class('v959-calendar-more-competitions')
+    overflow_nav,=dom.with_class('v959-calendar-overflow-competition-nav')
+    primary_links=[node for node in dom.nodes if node['tag']=='a' and primary in node['parents']]
+    overflow_links=[node for node in dom.nodes if node['tag']=='a' and overflow_nav in node['parents']]
+    summary,=[node for node in dom.nodes if node['tag']=='summary' and overflow in node['parents']]
+    assert len(primary_links)==6
+    assert len(overflow_links)==79
+    assert summary['attrs']['data-v959-competition-overflow-count']=='79'
+    assert summary_text in html
+    assert [node['attrs']['href'] for node in primary_links+overflow_links]==[item['href'] for item in navigation]
+    assert all(overflow in node['parents'] for node in overflow_links)
+    assert '<details class="v959-calendar-more-competitions"' in html
+
+
+def test_short_competition_navigation_keeps_existing_compact_layout(app_module):
+    navigation=[{'label':f'Competición {i:02d}','href':f'#league-{i:02d}','count':1} for i in range(1,6)]
+    groups=[{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':5,
+             'league_navigation':navigation,'league_sections':[]}]
+    html,_=render_calendar(app_module,day_groups=groups)
+    dom=Structure(html)
+    nav,=dom.with_class('v940-calendar-league-index')
+    links=[node for node in dom.nodes if node['tag']=='a' and nav in node['parents']]
+    assert len(links)==5
+    assert not dom.with_class('v959-calendar-more-competitions')
 
 

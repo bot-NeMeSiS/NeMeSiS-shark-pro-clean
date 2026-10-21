@@ -17454,6 +17454,15 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
 .v940-calendar-league-index { margin: 0 0 5px; padding-bottom: 2px; }
 
 .v940-calendar-league-index a { min-height: 30px; padding-inline: 9px; }
+.v959-calendar-league-navigation { display: grid; gap: 4px; margin: 0 0 5px; min-width: 0; }
+.v959-calendar-league-navigation > .v940-calendar-league-index { margin: 0; padding-bottom: 2px; }
+.v959-calendar-more-competitions { min-width: 0; }
+.v959-calendar-more-competitions > summary { align-items: center; color: #9fc5dc; cursor: pointer; display: flex; font-size: .66rem; font-weight: 800; gap: 8px; list-style: none; min-height: 40px; }
+.v959-calendar-more-competitions > summary::-webkit-details-marker { display: none; }
+.v959-calendar-more-competitions > summary::after { color: var(--v933-cyan); content: "+"; font-size: 1rem; margin-inline-start: auto; }
+.v959-calendar-more-competitions[open] > summary::after { content: "−"; }
+.v959-calendar-more-competitions > summary:focus-visible { outline: 2px solid var(--v933-cyan); outline-offset: 2px; }
+.v959-calendar-overflow-competition-nav { margin-top: 0; }
 
 .v940-calendar-closeout-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; margin-top: 10px; }
 
@@ -23661,6 +23670,8 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
   body.ns-app .v933-calendar-board .v933-kpi > .v933-icon { display: none; }
   body.ns-app .v933-calendar-board .v933-kpi > div > span { font-size: 10px; word-break: normal; overflow-wrap: normal; }
   .v940-calendar-league-index { display: none; }
+  .v959-calendar-league-navigation .v940-calendar-league-index { display: flex; }
+  .v959-calendar-more-competitions > summary { min-height: 44px; }
   body.ns-app .v933-picks-board > .v933-two-col,
   body.ns-app .v933-track-record > .v933-two-col,
   body.ns-app .ns16-account-layout,

@@ -3230,6 +3230,22 @@
       "en": "Competitions on {date}",
       "fr": "Compétitions du {date}"
     },
+    "Competiciones principales de {date}": {
+      "en": "Top competitions on {date}",
+      "fr": "Compétitions principales du {date}"
+    },
+    "Más competiciones de {date}": {
+      "en": "More competitions on {date}",
+      "fr": "Autres compétitions du {date}"
+    },
+    "Ver {count} competición más": {
+      "en": "Show {count} more competition",
+      "fr": "Voir {count} autre compétition"
+    },
+    "Ver {count} competiciones más": {
+      "en": "Show {count} more competitions",
+      "fr": "Voir {count} autres compétitions"
+    },
     "Confianza del dato": {
       "en": "Data confidence",
       "fr": "Fiabilité des données"

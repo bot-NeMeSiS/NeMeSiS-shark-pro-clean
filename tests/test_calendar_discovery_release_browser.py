@@ -17,11 +17,14 @@ def browser():
         b.close()
 
 
-def mount(browser,app_module,*,width=390,language='es',query='',before='',run_script=True):
-    html,_=render_calendar(app_module,query,language,summary=_summary(app_module,3))
+def mount(browser,app_module,*,width=390,language='es',query='',before='',run_script=True,day_groups=None):
+    html,_=render_calendar(app_module,query,language,summary=_summary(app_module,3),day_groups=day_groups)
     # The main Jinja template, main styles and scoped delivery styles; no providers.
     html=re.sub(r'<script\b[^>]*>.*?</script>','',html,flags=re.S|re.I)
-    css='\n'.join((ROOT/'static'/name).read_text() for name in ('v930-canonical.css','v933_design_tokens.css','v933-product.css','calendar-discovery.css','competition-grouping.css'))
+    if day_groups is not None:
+        css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')
+    else:
+        css='\n'.join((ROOT/'static'/name).read_text() for name in ('v930-canonical.css','v933_design_tokens.css','v933-product.css','calendar-discovery.css','competition-grouping.css'))
     page=browser.new_page(viewport={'width':width,'height':844}, reduced_motion='reduce')
     attempted=[]; errors=[]
     page.route('**/*',lambda route:(attempted.append(route.request.url),route.abort()))
@@ -121,6 +124,34 @@ def test_narrow_mobile_calendar_keeps_controls_stacked_and_selected_date(browser
         assert page.locator('.v933-calendar-date-navigation').is_visible()
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
         assert not errors
+    finally:page.close()
+
+
+@pytest.mark.parametrize('width',[390,1366])
+def test_large_competition_navigation_is_compact_and_reachable_without_javascript(browser,app_module,width):
+    navigation=[{'label':f'Competición {i:02d}','href':f'#league-{i:02d}','count':1} for i in range(1,14)]
+    leagues=[{'anchor_id':f'league-{i:02d}','label':f'Competición {i:02d}','matches':[]} for i in range(1,14)]
+    sections=[{'key':'qa','kind':'country','label':'QA','count':13,'leagues':leagues}]
+    groups=[{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':13,
+             'league_navigation':navigation,'league_sections':sections}]
+    page,requests,errors=mount(browser,app_module,width=width,day_groups=groups,run_script=False)
+    try:
+        primary=page.locator('[data-v959-competition-navigation] .v959-calendar-primary-competition-nav')
+        details=page.locator('[data-v959-more-competitions]')
+        summary=details.locator('summary')
+        overflow=details.locator('.v959-calendar-overflow-competition-nav a')
+        assert primary.is_visible() and summary.is_visible()
+        assert primary.locator('a').count()==6
+        assert overflow.count()==7
+        assert page.locator('[data-v959-competition-navigation] a').count()==13
+        assert not overflow.first.is_visible()
+        if width < 600:
+            assert summary.bounding_box()['height']>=44
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+        summary.click()
+        assert all(link.is_visible() for link in overflow.all())
+        assert [link.get_attribute('href') for link in page.locator('[data-v959-competition-navigation] a').all()]==[item['href'] for item in navigation]
+        assert not errors and not requests
     finally:page.close()
 
 
