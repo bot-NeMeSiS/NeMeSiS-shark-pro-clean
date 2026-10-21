@@ -147,7 +147,7 @@ def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
 
 
 def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(app_module, monkeypatch):
-    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    now = NOW
     kickoff = (now + timedelta(hours=2)).isoformat()
     api_fixture = {
         'id': 'af-1570389', 'external_id': '1570389', 'home_team': 'Levante',
@@ -165,12 +165,12 @@ def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(ap
     summary = {'all_valid_matches': [api_fixture, sportsdb_fixture],
                'valid_matches_today': [api_fixture, sportsdb_fixture]}
     original = deepcopy(summary)
-    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item, now=None: {
         'is_live': False, 'is_upcoming': True, 'is_finished': False,
         'is_stale': False, 'status_conflict': False,
     })
 
-    result = app_module.home_matchday_context(summary)
+    result = app_module.home_matchday_context(summary, now=now)
     shown = items(result, 'today')
 
     assert len(shown) == 1
@@ -208,7 +208,7 @@ def test_home_keeps_similar_fixtures_separate_when_country_or_kickoff_differs(
 
 
 def test_home_keeps_provider_rows_without_country_separate(app_module, monkeypatch):
-    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    now = NOW
     kickoff = (now + timedelta(hours=2)).isoformat()
     base = {
         'home_team': 'Levante', 'away_team': 'Athletic Club',
@@ -216,12 +216,12 @@ def test_home_keeps_provider_rows_without_country_separate(app_module, monkeypat
         'source': 'sportsdb', 'kickoff_iso': kickoff, 'status': 'NS',
     }
     rows = [{**base, 'id': 'provider-row-a'}, {**base, 'id': 'provider-row-b'}]
-    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item, now=None: {
         'is_live': False, 'is_upcoming': True, 'is_finished': False,
         'is_stale': False, 'status_conflict': False,
     })
 
-    result = app_module.home_matchday_context({'all_valid_matches': rows})
+    result = app_module.home_matchday_context({'all_valid_matches': rows}, now=now)
 
     assert result['today']['total'] == 2
 

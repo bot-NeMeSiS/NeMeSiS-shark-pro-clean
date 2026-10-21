@@ -10103,7 +10103,7 @@ def _cached_lineups_for_match(match, limit=120):
     if not identifiers or not identity_columns:
         return []
     placeholders = ",".join(["?"] * len(identifiers))
-    filters = [f"COALESCE({name},'') IN ({placeholders})" for name in identity_columns]
+    filters = [f"{name} IN ({placeholders})" for name in identity_columns]
     order = " ORDER BY COALESCE(captured_at,'' ) DESC" if "captured_at" in columns else ""
     params = tuple(value for _name in identity_columns for value in identifiers) + (int(limit),)
     return rows(
@@ -10156,7 +10156,7 @@ def _cached_match_statistics(match):
     latest = one(
         f"""SELECT captured_at
             FROM api_football_match_stats_history
-            WHERE COALESCE(fixture_id,'') IN ({placeholders})
+            WHERE fixture_id IN ({placeholders})
               AND trim(COALESCE(stat_name,''))<>''
               AND lower(trim(COALESCE(stat_value,''))) NOT IN ('','-','—','none','null','n/a','nan')
               AND julianday(captured_at) IS NOT NULL
@@ -10169,7 +10169,7 @@ def _cached_match_statistics(match):
         return empty
     snapshot_rows = rows(
         f"""SELECT * FROM api_football_match_stats_history
-            WHERE COALESCE(fixture_id,'') IN ({placeholders})
+            WHERE fixture_id IN ({placeholders})
               AND captured_at=?
             ORDER BY stat_name, team_name""",
         tuple(fixture_ids + [captured_at]),
