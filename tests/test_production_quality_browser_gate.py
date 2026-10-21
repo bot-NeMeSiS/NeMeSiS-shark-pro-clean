@@ -2,7 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from tools.run_production_quality_browser_gate import _visual_asset_contract, build_post_deploy_result
+from tools.run_production_quality_browser_gate import (
+    _image_failure_evidence,
+    _visual_asset_contract,
+    build_post_deploy_result,
+)
 from tools.run_production_quality_browser_gate import classify_browser_resources
 
 
@@ -185,6 +189,48 @@ def test_production_quality_gate_can_use_an_installed_browser():
 
     assert 'parser.add_argument("--browser-executable", default="")' in source
     assert 'launch_options["executable_path"]' in source
+
+
+def test_image_capture_retries_only_when_navigation_destroys_the_context():
+    class NavigatingPage:
+        url = "https://example.invalid/next"
+        _sentinel_resource_scope = {"page_id": 2, "document_id": 7}
+
+        def __init__(self):
+            self.evaluations = 0
+            self.waits = []
+
+        def evaluate(self, _script):
+            self.evaluations += 1
+            if self.evaluations == 1:
+                raise RuntimeError("Page.evaluate: Execution context was destroyed, most likely because of a navigation")
+            return [{"url": "https://example.invalid/next.png"}]
+
+        def wait_for_load_state(self, state, *, timeout):
+            self.waits.append((state, timeout))
+
+    page = NavigatingPage()
+    images = _image_failure_evidence(page)
+
+    assert page.evaluations == 2
+    assert page.waits == [("domcontentloaded", 10_000)]
+    assert images[0]["page_id"] == 2
+    assert images[0]["document_id"] == 7
+    assert images[0]["document_url"] == page.url
+
+
+def test_image_capture_does_not_hide_unrelated_browser_errors():
+    class BrokenPage:
+        url = "https://example.invalid/next"
+
+        def evaluate(self, _script):
+            raise RuntimeError("Target page, context or browser has been closed")
+
+        def wait_for_load_state(self, *_args, **_kwargs):
+            raise AssertionError("unrelated browser errors must not be retried")
+
+    with pytest.raises(RuntimeError, match="browser has been closed"):
+        _image_failure_evidence(BrokenPage())
 
 
 # Synthetic DOM evidence: these cases do not re-certify any production report.
