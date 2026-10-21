@@ -33402,7 +33402,7 @@ def _v956_unique_home_fixtures(matches):
     for position, match in enumerate(matches or []):
         identity = _v956_home_fixture_identity(match)
         if identity is None:
-            unkeyed.append((position, match))
+            unkeyed.append((position, None, match))
             continue
         current = chosen.get(identity)
         provider_is_primary = provider_family((match or {}).get("source")) == "api-football"

@@ -202,6 +202,25 @@ def test_home_keeps_similar_fixtures_separate_when_country_or_kickoff_differs(
     assert result['today']['total'] == 2
 
 
+def test_home_keeps_provider_rows_without_country_separate(app_module, monkeypatch):
+    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    kickoff = (now + timedelta(hours=2)).isoformat()
+    base = {
+        'home_team': 'Levante', 'away_team': 'Athletic Club',
+        'competition_name': 'LaLiga EA Sports', 'competition_key': 'laliga',
+        'source': 'sportsdb', 'kickoff_iso': kickoff, 'status': 'NS',
+    }
+    rows = [{**base, 'id': 'provider-row-a'}, {**base, 'id': 'provider-row-b'}]
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+        'is_live': False, 'is_upcoming': True, 'is_finished': False,
+        'is_stale': False, 'status_conflict': False,
+    })
+
+    result = app_module.home_matchday_context({'all_valid_matches': rows})
+
+    assert result['today']['total'] == 2
+
+
 @pytest.mark.parametrize('language',['es','en','fr'])
 def test_home_shows_three_secondary_live_competitions_without_opening_a_disclosure(app_module,language):
     from test_design02_r7_home_composition import render_home
