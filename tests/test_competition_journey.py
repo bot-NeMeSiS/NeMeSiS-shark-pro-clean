@@ -167,6 +167,17 @@ def test_directory_get_search_works_without_js_and_with_locales(app_module,monke
     assert 'method="get"' in html
 
 
+@pytest.mark.parametrize(('locale','expected'), [('es','Tailandia'),('en','Thailand'),('fr','Thaïlande')])
+def test_directory_localizes_country_labels_without_changing_filter_values(app_module,monkeypatch,locale,expected):
+    monkeypatch.setattr(app_module,'competitions',lambda:[
+        {'key':'thai-qa','name':'Thai League QA','country':'Thailand','scope':'domestic'}])
+    monkeypatch.setattr(app_module,'rows',lambda *a,**kw:[])
+    with app_module.app.test_request_context('/competiciones?country=Thailand',headers={'Accept-Language':locale}):
+        html=app_module.global_football()
+    assert f'<option value="Thailand" selected>{expected}</option>' in html
+    assert f'<h2 id="competition-section-1">{expected}</h2>' in html
+
+
 def test_directory_groups_countries_and_keeps_international_competitions_together(app_module, monkeypatch):
     monkeypatch.setattr(app_module, "competitions", lambda: [
         {"key":"laliga", "name":"LaLiga EA Sports", "country":"Spain", "scope":"domestic"},

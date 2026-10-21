@@ -94,6 +94,21 @@ def test_uefa_home_group_uses_europe_region_label_without_rewriting_source_count
     assert '>Mundial</span>' not in markup
 
 
+@pytest.mark.parametrize(('language','expected'), [
+    ('es','Japón'), ('en','Japan'), ('fr','Japon')])
+def test_home_country_heading_and_match_card_follow_ui_language_without_mutating_source(
+        app_module, language, expected):
+    source_row=match('japan-qa',('j1-qa','Liga QA','Japan'))
+    result=build([source_row])
+    original_country=source_row['country']
+    from test_design02_r7_home_composition import render_home
+    markup=render_home(app_module,{'home_matchday':result},language)
+    assert f'<h3 class="home-presentation-section-heading">{expected}</h3>' in markup
+    card=markup.split('data-v934-match-card="true"',1)[1].split('</article>',1)[0]
+    assert f'<small>{expected}</small>' in card
+    assert source_row['country']==original_country=='Japan'
+
+
 def test_unknown_and_lower_tiers_do_not_displace_known_major_competitions():
     rows=[match('local'+str(i),('local','Local','Spain')) for i in range(50)]
     rows += [match(l[0],l) for l in LEAGUES]
