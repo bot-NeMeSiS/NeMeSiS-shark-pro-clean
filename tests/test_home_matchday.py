@@ -185,7 +185,7 @@ def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(ap
 ])
 def test_home_keeps_similar_fixtures_separate_when_country_or_kickoff_differs(
         app_module, monkeypatch, country, kickoff_delta):
-    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    now = datetime(2026, 10, 21, 12, tzinfo=ZoneInfo('Europe/Madrid'))
     kickoff = now + timedelta(hours=2)
     base = {
         'home_team': 'Levante', 'away_team': 'Athletic Club',
@@ -197,12 +197,12 @@ def test_home_keeps_similar_fixtures_separate_when_country_or_kickoff_differs(
         {**base, 'id': 'match-b', 'country': country,
          'kickoff_iso': (kickoff + kickoff_delta - timedelta(hours=2)).isoformat()},
     ]
-    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item, now=None: {
         'is_live': False, 'is_upcoming': True, 'is_finished': False,
         'is_stale': False, 'status_conflict': False,
     })
 
-    result = app_module.home_matchday_context({'all_valid_matches': rows})
+    result = app_module.home_matchday_context({'all_valid_matches': rows}, now=now)
 
     assert result['today']['total'] == 2
 
