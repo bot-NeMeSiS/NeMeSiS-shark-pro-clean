@@ -324,6 +324,12 @@ def test_browser_reads_the_actual_flask_live_response(live_store, tmp_path, widt
                     assert cards.locator('a[href="/match/directo-http-qa"]').count() == 1
                 else:
                     assert page.locator('[data-canonical-live="true"]').count() == 0
+                    empty_panel = page.locator('.ns16-live-empty')
+                    assert empty_panel.is_visible()
+                    assert empty_panel.evaluate('(el) => getComputedStyle(el).minHeight') == '0px'
+                    empty_height = empty_panel.bounding_box()['height']
+                    assert empty_height <= (145 if width > 760 else 190)
+                    assert empty_panel.get_by_role('link', name='Abrir calendario').is_visible()
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
                 page.screenshot(path=str(tmp_path/f'directo-{mode}-{width}.png'), full_page=True)
             assert page_errors == []

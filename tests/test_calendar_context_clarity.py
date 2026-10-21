@@ -136,3 +136,33 @@ def test_global_context_describes_selection_not_first_league_and_adds_no_io(app_
         assert context["source_summary"] == "Partidos disponibles por día y competición. Horarios de Madrid."
         assert "LaLiga" not in context["default_context"]
     assert summary == original
+
+
+def test_competition_counter_keeps_equal_names_from_different_countries_distinct(app_module, monkeypatch):
+    england = row(app_module, "premier-england", "18:30")
+    england.update(competition_name="Premier League", league_name="Premier League", country="England")
+    spain = row(app_module, "premier-spain", "20:00")
+    spain.update(competition_name="Premier League", league_name="Premier League", country="Spain")
+    matches = [england, spain]
+    selected_day = app_module.today_iso(1)
+    summary = {
+        "all_valid_matches": matches,
+        "valid_upcoming_matches": matches,
+        "valid_matches_today": [],
+        "valid_live_events": [],
+        "valid_active_picks": [],
+    }
+    monkeypatch.setattr(app_module, "current_session_user", lambda: None)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Competition counting must reuse the current sports snapshot")
+
+    for name in ("db", "rows", "one", "favorite_sets", "dashboard_data", "get_public_home_sports_summary"):
+        monkeypatch.setattr(app_module, name, forbidden)
+
+    with app_module.app.test_request_context(f"/calendar?date={selected_day}"):
+        context = app_module.v940_calendar_context(summary, "today", selected_day)
+
+    assert context["counts"]["leagues"] == context["competition_count"] == 2
+    assert len(context["day_groups"][0]["leagues"]) == 2
+    assert {league["country"] for league in context["day_groups"][0]["leagues"]} == {"Inglaterra", "España"}
