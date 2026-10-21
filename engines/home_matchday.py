@@ -151,6 +151,9 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
                 for _, _, match, status in selected[key]:
                     item = deepcopy(match)
                     item['status_info'] = status
+                    # Keep provider identity untouched; only the Home card gets
+                    # the canonical regional label prepared for this group.
+                    item['home_display_country'] = group['display_country']
                     section['matches'].append(item)
                 section.update(shown=len(section['matches']), total=len(group['rows']),
                                home_priority_rank=group['rank'],
