@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V959_CALENDAR_COMPACT_COMPETITION_NAV'
+APP_VERSION = 'V960_CALENDAR_REAL_COMPETITION_BADGES'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17633,7 +17633,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V959_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V960_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21886,6 +21886,8 @@ def _calendar_facets(matches):
 
 
 def _calendar_group(matches, sort_key="importance"):
+    from engines.league_badge_read_model import match_badge
+
     date_buckets = []
     by_date = {}
     for item in matches:
@@ -21906,6 +21908,7 @@ def _calendar_group(matches, sort_key="importance"):
             "route_id": identity["route_id"],
             "identity_contract": identity["contract"],
             "competition_type": identity["competition_type"],
+            "logo_url": "",
             "rank": int(item.get("calendar_rank") or 80),
             "category": league_category(item),
             "matches": [],
@@ -21915,6 +21918,9 @@ def _calendar_group(matches, sort_key="importance"):
             int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80),
         )
         league["matches"].append(item)
+        # A later fixture can carry the real competition badge even when the
+        # first fixture in this group omitted its normalized logo field.
+        league["logo_url"] = league.get("logo_url") or match_badge(item)
     for key in sorted(by_date.keys()):
         bucket = by_date[key]
         leagues = list(bucket["leagues"].values())
