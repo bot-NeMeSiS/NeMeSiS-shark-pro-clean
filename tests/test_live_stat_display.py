@@ -425,7 +425,8 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
     assert "API-Football Pro" not in rendered
     assert "2026-10-17T16:01:00Z" in rendered
     assert "Estadísticas observadas" in rendered
-    assert "Partido observado" in rendered
+    assert 'data-realtime-freshness-label' in rendered
+    assert 'v968-realtime-meta' in rendered
     assert 'data-stat-updated-at="2026-10-17T16:01:00Z"' in rendered
     assert 'datetime="2026-10-17T16:02:00Z"' in rendered
 

@@ -281,12 +281,12 @@
       var meta = wrapper.querySelector('[data-realtime-freshness]');
       if (meta) {
         meta.setAttribute('data-realtime-freshness', expired ? 'STALE' : entry.withheld ? 'NOT_ESTABLISHED' : state.freshness_state);
-        // Keep the time node, but never retain an old 'updated/current' label.
-        var labelNode = meta.firstChild;
-        if (labelNode && labelNode.nodeType === Node.TEXT_NODE) {
+        // Keep the observation time visible while updating only its state label.
+        var labelNode = meta.querySelector('[data-realtime-freshness-label]');
+        if (labelNode) {
           var observationLabel = isLive ? 'Observación vigente' : expired ? 'Datos retrasados · Última lectura' :
             entry.withheld ? 'Información sin confirmar · Última lectura' : 'Observación registrada';
-          labelNode.textContent = (window.NemesisI18n ? window.NemesisI18n.text(observationLabel) : observationLabel) + ' · ';
+          text(labelNode, window.NemesisI18n ? window.NemesisI18n.text(observationLabel) : observationLabel);
         }
         var timeNode = meta.querySelector('time');
         if (timeNode) timeNode.hidden = !Number.isFinite(stamp(state.provider_observed_at));

@@ -155,6 +155,9 @@ def test_open_card_updates_in_place_and_preserves_navigation_and_focus(screen):
     assert page.locator('[data-directo-card-notice]').get_attribute('data-change-kind') == 'SCORE_UPDATE'
     assert 'No confirma un evento de gol' in page.locator('[data-directo-card-notice]').inner_text()
     assert page.locator('[data-v934-minute]').inner_text()=='Min 70'
+    assert page.locator('[data-realtime-freshness-label]').inner_text()=='Observación vigente'
+    expected_observed_at = row(NOW+timedelta(seconds=45),home_score=2,minute=70)['last_synced_at']
+    assert page.locator('[data-realtime-freshness] time').get_attribute('datetime')==expected_observed_at
     assert page.evaluate('savedArticle===document.querySelector("[data-canonical-live]")')
     assert link.evaluate('(node)=>node===document.activeElement')
     assert page.url == 'about:blank'
@@ -277,6 +280,11 @@ def test_product_styles_preserve_realtime_notice_visibility(screen, width):
     page.add_style_tag(content=(ROOT/'static/sports-match-density.css').read_text(encoding='utf-8'))
     assert refresh.is_hidden()
     assert page.locator('[data-directo-notice]').is_hidden()
+    freshness = page.locator('[data-realtime-freshness]')
+    assert freshness.locator('[data-realtime-freshness-label]').is_visible()
+    assert freshness.locator('time').is_visible()
+    assert freshness.evaluate('(el)=>getComputedStyle(el).display') == 'flex'
+    assert freshness.evaluate('(el)=>el.getBoundingClientRect().height') <= 24
     card = page.locator('.ns16-match-row .v933-match-card')
     assert card.locator('.v933-match-card-header').is_visible()
     assert card.locator('.v933-match-teams').is_visible()
