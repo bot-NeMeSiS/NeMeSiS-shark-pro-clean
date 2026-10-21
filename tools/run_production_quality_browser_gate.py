@@ -63,7 +63,16 @@ IMAGE_FAILURES_SCRIPT = """() => [...document.images]
 
 def _image_failure_evidence(page: Any) -> list[dict[str, Any]]:
     """Read a final DOM snapshot with the identity of this exact navigation."""
-    images = page.evaluate(IMAGE_FAILURES_SCRIPT)
+    try:
+        images = page.evaluate(IMAGE_FAILURES_SCRIPT)
+    except Exception as exc:
+        # A navigation can commit between the caller's URL check and evaluate.
+        # Wait for the replacement document before retrying once; unrelated
+        # browser errors still fail the gate and are never converted to a pass.
+        if "execution context was destroyed" not in str(exc).lower():
+            raise
+        page.wait_for_load_state("domcontentloaded", timeout=10_000)
+        images = page.evaluate(IMAGE_FAILURES_SCRIPT)
     scope = dict(getattr(page, "_sentinel_resource_scope", {}))
     scope.update(document_url=page.url, observed_at=time.perf_counter())
     return [dict(image, **scope) for image in images]
