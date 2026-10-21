@@ -209,6 +209,14 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
   }
 }
 
+/* A country with one competition should not leave its second lane empty. */
+@media (min-width: 1000px) {
+  body.ns-app .v933-page[data-calendar-discovery="v1"] .v940-calendar-competition-section:has(> .v940-calendar-league:only-of-type) {
+    column-count: 1;
+    column-width: auto;
+  }
+}
+
 @media (max-width: 480px) {
   [data-calendar-discovery="v1"] .v940-calendar-sort select {
     box-sizing: border-box;
