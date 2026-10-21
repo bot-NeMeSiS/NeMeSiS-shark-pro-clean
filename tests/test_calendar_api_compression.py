@@ -118,6 +118,13 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
 
 def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeypatch):
     summary = _calendar_summary(app_module, count=1)
+    match = summary["all_valid_matches"][0]
+    match["kickoff_iso"] = f"{app_module.today_iso()}T23:30:00Z"
+    with app_module.app.test_request_context(
+        "/calendario?lane=week",
+        headers={"Accept-Language": "en"},
+    ):
+        expected_label = app_module.ui_match_datetime(match)
     monkeypatch.setattr(
         app_module,
         "v932_safe_dashboard_data",
@@ -136,7 +143,8 @@ def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeyp
     monkeypatch.setitem(app_module.app.jinja_env.globals, "ui_match_datetime", unexpected_reformat)
     monkeypatch.setitem(app_module.app.jinja_env.globals, "ui_match_clock", unexpected_reformat)
 
-    response = client.get("/calendario")
+    response = client.get("/calendario?lane=week", headers={"Accept-Language": "en"})
 
     assert response.status_code == 200
-    assert b"12:00" in response.data
+    assert expected_label.endswith("· 01:30")
+    assert expected_label.encode("utf-8") in response.data
