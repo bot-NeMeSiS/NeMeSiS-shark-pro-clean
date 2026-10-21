@@ -513,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V971_NAVIGATION_SAFE_PRODUCTION_GATE'
+APP_VERSION = 'V972_CALENDAR_RENDER_DIAGNOSTICS'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -4746,19 +4746,30 @@ def apply_security_headers_and_csrf(response):
     except Exception:
         pass
     try:
-        shark_phases = getattr(g, "v937_shark_phase_metrics", {}) or {}
-        if shark_phases:
+        route_phase_namespace = str(getattr(g, "v935_route_phase_namespace", "") or "").strip().lower()
+        route_phases = getattr(g, "v935_route_phase_metrics", {}) or {}
+        if route_phase_namespace and route_phases:
             phase_header = ", ".join(
-                f"shark_{re.sub(r'[^a-z0-9_]', '_', str(name).lower())};dur={float(duration):.1f}"
-                for name, duration in shark_phases.items()
+                f"{route_phase_namespace}_{re.sub(r'[^a-z0-9_]', '_', str(name).lower())};dur={float(duration):.1f}"
+                for name, duration in route_phases.items()
             )
             current_timing = str(response.headers.get("Server-Timing") or "").strip()
             response.headers["Server-Timing"] = ", ".join(filter(None, (current_timing, phase_header)))
-            response.headers["X-Nemesis-Shark-Data"] = "db-cache-only"
-            response.headers["X-Nemesis-Shark-Cache"] = sanitize_http_header_value(
-                getattr(g, "v937_shark_cache_status", "request_cache"),
-                limit=40,
-            )
+            response.headers["X-Nemesis-Route-Phases"] = route_phase_namespace
+        else:
+            shark_phases = getattr(g, "v937_shark_phase_metrics", {}) or {}
+            if shark_phases:
+                phase_header = ", ".join(
+                    f"shark_{re.sub(r'[^a-z0-9_]', '_', str(name).lower())};dur={float(duration):.1f}"
+                    for name, duration in shark_phases.items()
+                )
+                current_timing = str(response.headers.get("Server-Timing") or "").strip()
+                response.headers["Server-Timing"] = ", ".join(filter(None, (current_timing, phase_header)))
+                response.headers["X-Nemesis-Shark-Data"] = "db-cache-only"
+                response.headers["X-Nemesis-Shark-Cache"] = sanitize_http_header_value(
+                    getattr(g, "v937_shark_cache_status", "request_cache"),
+                    limit=40,
+                )
     except Exception:
         pass
     return response
@@ -17634,7 +17645,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V971_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V972_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -22751,17 +22762,40 @@ def _v940_calendar_provider_context(summary):
 @app.route("/partidos")
 @app.route("/partidos/calendario")
 def calendar_page():
+    phase_metrics = {}
+
+    def timed_phase(name, callback):
+        started = time.perf_counter()
+        try:
+            return callback()
+        finally:
+            phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
+            g.v935_route_phase_namespace = "calendar"
+            g.v935_route_phase_metrics = dict(phase_metrics)
+
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
-    data, summary = v932_safe_dashboard_data(request.path, "today", date_value, compact=True)
-    summary = _v940_hydrate_selected_date_results(summary, date_value)
-    data["calendar"] = v940_calendar_context(summary, lane, date_value)
+    data, summary = timed_phase(
+        "sports_context",
+        lambda: v932_safe_dashboard_data(request.path, "today", date_value, compact=True),
+    )
+    summary = timed_phase(
+        "historical_results",
+        lambda: _v940_hydrate_selected_date_results(summary, date_value),
+    )
+    data["calendar"] = timed_phase(
+        "calendar_context",
+        lambda: v940_calendar_context(summary, lane, date_value),
+    )
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["v925_calendar"] = _v940_calendar_provider_context(summary)
-    data["v934_realtime"] = get_realtime_safe_matches_context(summary)
-    return render_template("calendar.html", data=data)
+    data["v934_realtime"] = timed_phase(
+        "realtime_context",
+        lambda: get_realtime_safe_matches_context(summary),
+    )
+    return timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
 
 @app.route("/sports-hub")
