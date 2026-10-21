@@ -69,7 +69,11 @@ def test_calendar_view_navigation_is_visible_and_responsive_without_javascript(b
                 and box["x"] + box["width"] <= parent_box["x"] + parent_box["width"] + 1
                 for box in boxes
             )
-            assert len({round(box["y"]) for box in boxes}) == 2
+            first_row = [box["y"] for box in boxes[:3]]
+            second_row = [box["y"] for box in boxes[3:]]
+            assert max(first_row) - min(first_row) <= 2
+            assert max(second_row) - min(second_row) <= 2
+            assert min(second_row) > max(first_row) + 10
             date_tabs = page.locator(".v933-calendar-date-navigation .v933-filter-tabs")
             if date_tabs.count():
                 assert date_tabs.first.evaluate("el => getComputedStyle(el).display") == "grid"
