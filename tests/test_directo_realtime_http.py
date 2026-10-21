@@ -376,6 +376,12 @@ def test_open_actual_live_route_updates_without_reload(live_store, width, height
             page.goto('http://directo-inplace-qa.invalid/live?f=live&q=Local',wait_until='networkidle')
             card=page.locator('[data-realtime-consumer="directo-v1"]')
             expect(card).to_have_count(1)
+            calendar_action = page.locator(
+                '.ns16-live-overview > .v933-page-header > .v933-page-actions a[href="/calendario"]'
+            )
+            expect(calendar_action).to_have_count(1)
+            expect(calendar_action).to_be_visible()
+            expect(calendar_action).to_contain_text('Calendario')
             link=card.locator('a[href="/match/directo-http-qa"]');link.focus()
             page.evaluate('window.originalCard=document.querySelector("[data-realtime-consumer]")')
             put(home_score=2, minute=70, last_synced_at=(now+timedelta(seconds=15)).isoformat())
