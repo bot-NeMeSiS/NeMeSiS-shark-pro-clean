@@ -1,0 +1,46 @@
+/* V968 keeps Directo's provenance explicit without spending three lines per match. */
+.v933-live-card > .v968-realtime-meta {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  line-height: 1.2;
+  margin: 0 10px 7px;
+  min-height: 18px;
+  text-align: right;
+}
+
+.v933-live-card > .v968-realtime-meta .v968-realtime-meta__status {
+  color: var(--v933-text-soft, #a9bacb);
+  display: inline-flex;
+  font-size: .59rem;
+  font-weight: 750;
+  text-transform: none;
+}
+
+.v933-live-card > .v968-realtime-meta > time:not([hidden]) {
+  color: var(--v933-muted, #91a4b8);
+  display: inline;
+  font-size: .59rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .v933-live-card > .v968-realtime-meta {
+    justify-content: space-between;
+    margin-inline: 8px;
+    text-align: left;
+  }
+}
+
+@media (max-width: 360px) {
+  .v933-live-card > .v968-realtime-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+    padding-bottom: 2px;
+  }
+}

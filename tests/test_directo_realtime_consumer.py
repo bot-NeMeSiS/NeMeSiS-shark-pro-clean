@@ -95,6 +95,10 @@ def test_observed_minutes_reach_the_actual_card(minute, extra, label):
     assert parsed.links.count('/match/live-consumer-qa') == 1
     assert len(parsed.wrappers) == 1
     assert parsed.wrappers[0]['data-realtime-observed-at'] == record()['last_synced_at']
+    assert 'data-realtime-freshness-label' in rendered
+    assert 'class="v968-realtime-meta__status"' in rendered
+    assert 'Partido observado' not in rendered
+    assert f'datetime="{record()["last_synced_at"]}"' in rendered
 
 
 def test_stale_aliases_cannot_override_the_snapshot_in_directo():
