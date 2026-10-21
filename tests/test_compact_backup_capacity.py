@@ -53,7 +53,7 @@ def test_compact_copy_fits_without_changing_source_or_previous_backup(tmp_path, 
     assert source.read_bytes() == original
 
 
-def test_compact_copy_rejects_insufficient_margin(tmp_path, monkeypatch):
+def test_compact_copy_rejects_insufficient_margin_with_diagnostic_metrics(tmp_path, monkeypatch, capsys):
     source = source_with_free_pages(tmp_path)
     original = source.read_bytes()
     folder = tmp_path / "backups"
@@ -63,6 +63,20 @@ def test_compact_copy_rejects_insufficient_margin(tmp_path, monkeypatch):
     assert result["error"] == "backup_storage_insufficient"
     assert source.read_bytes() == original
     assert {p.name for p in folder.iterdir()} == {".backup.lock"}
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    capacity = next(event for event in events
+                    if event["stage"] == "CAPACITY_PREFLIGHT" and event["status"] == "rejected")
+    compact = next(event for event in events
+                   if event["stage"] == "COMPACT_CAPACITY_PREFLIGHT" and event["status"] == "rejected")
+    assert capacity["snapshot_bytes"] > 0
+    assert capacity["required_bytes"] > capacity["snapshot_bytes"]
+    assert capacity["free_before"] == 1024
+    assert capacity["reason_code"] == "INSUFFICIENT_SPACE"
+    assert compact["compact_snapshot_bytes"] > 0
+    assert compact["required_bytes"] >= compact["compact_snapshot_bytes"]
+    assert compact["reusable_page_bytes"] > 0
+    assert compact["free_bytes"] == 1024
+    assert compact["reason_code"] == "INSUFFICIENT_SPACE"
 
 
 def test_compact_preflight_reports_when_no_pages_can_be_reused(tmp_path, monkeypatch):
