@@ -56,6 +56,31 @@ def test_zero_statistics_reach_the_rendered_match_panel(app_module):
     assert 'Equipo local' in rendered and 'Equipo visitante' in rendered
 
 
+def test_persisted_statistics_keep_only_their_own_valid_capture_clocks():
+    from engines.match_context_engine import _real_statistics
+
+    home_clock = "2026-10-18T10:01:00Z"
+    saved_clock = "2026-10-18T10:08:00Z"
+    stats = _real_statistics({}, {}, {
+        "available": True,
+        "source": "API-Football",
+        "updated_at": saved_clock,
+        "items": [{
+            "key": "fouls",
+            "label": "Faltas",
+            "home": 5,
+            "away": 8,
+            "home_captured_at": home_clock,
+            "away_captured_at": "invalid-clock",
+        }],
+    })
+
+    assert stats["snapshot_kind"] == "persisted"
+    assert stats["updated_at"] == saved_clock
+    assert stats["items"][0]["home_captured_at"] == home_clock
+    assert stats["items"][0]["away_captured_at"] is None
+
+
 def test_real_possession_is_rendered_as_a_labeled_pitch_share(app_module):
     stats = _real_statistics({'provider': 'API-Football Pro', 'stat_cards': [
         {'key': 'possession', 'label': 'Posesión', 'home': '61%', 'away': '39%'},

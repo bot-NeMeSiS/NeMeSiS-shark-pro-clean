@@ -250,6 +250,18 @@
       "en": "Input freshness is incomplete; a combined time is not shown.",
       "fr": "La fraîcheur des données sources est incomplète ; aucune heure commune n'est affichée."
     },
+    "Dato recibido:": {
+        "en": "Data received:",
+        "fr": "Donnée reçue :"
+    },
+    "Última señal observada:": {
+        "en": "Latest observed statistic:",
+        "fr": "Dernière statistique observée :"
+    },
+    "Última sincronización guardada:": {
+        "en": "Last saved synchronization:",
+        "fr": "Dernière synchronisation enregistrée :"
+    },
     "Hora de las señales no establecida.": {
       "en": "Input capture time not established.",
       "fr": "Heure de capture des données sources non établie."
