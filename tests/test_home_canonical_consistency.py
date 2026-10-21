@@ -54,6 +54,7 @@ def component_env(path='/'):
     env=Environment(loader=ChoiceLoader([DictLoader({'base.html':'{% block content %}{% endblock %}'}),
                     FileSystemLoader(ROOT/'templates')]),autoescape=select_autoescape(['html']))
     env.globals.update(ui=lambda value,**kw:translate(value,'es',**kw),
+        ui_country=lambda value:str(value or ''),
         ui_owned=lambda value:translate(value,'es'),
         request=SimpleNamespace(path=path),
         sports_match_team_href=lambda match,side:f"/team/{quote(str(match.get(side+'_team') or ''))}",

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from engines.madrid_time_engine import madrid_greeting, format_madrid_client_datetime_label
-from engines.ui_localization_engine import catalogue_issues, translate, valid_language
+from engines.ui_localization_engine import catalogue_issues, country_display_name, translate, valid_language
 
 
 def test_catalogue_has_complete_languages_and_matching_placeholders():
@@ -20,6 +20,23 @@ def test_explicit_ui_translation_only(language, expected):
     assert translate('Paris Saint-Germain', language) == 'Paris Saint-Germain'
     assert translate('NeMeSiS', language) == 'NeMeSiS'
     assert translate('Una frase pendiente', language) == 'Una frase pendiente'
+
+
+@pytest.mark.parametrize(('language','value','expected'), [
+    ('es','Thailand','Tailandia'), ('en','Tailandia','Thailand'),
+    ('fr','Azerbaijan','Azerbaïdjan'), ('es','México','México'),
+    ('en','Congo-DR','Congo DR'), ('es','Europe','Europa'),
+    ('en','Europa (UEFA)','Europe (UEFA)'),
+])
+def test_country_labels_are_localized_only_for_known_country_or_region_values(language,value,expected):
+    assert country_display_name(value,language)==expected
+
+
+@pytest.mark.parametrize('language',['es','en','fr'])
+def test_country_display_preserves_unknown_values_and_source(language):
+    provider_value=' Unknown Provider Region QA '
+    assert country_display_name(provider_value,language)==provider_value
+    assert provider_value==' Unknown Provider Region QA '
 
 
 @pytest.mark.parametrize('language', ['es','en','fr'])

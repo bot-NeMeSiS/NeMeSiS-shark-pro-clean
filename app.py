@@ -27,7 +27,7 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
 from werkzeug.security import check_password_hash, generate_password_hash
-from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label
+from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label, country_display_name as localize_country_display_name
 from engines.support_inbox_engine import submit as submit_support_request, admin_snapshot as support_inbox_snapshot, SupportRejected
 from engines.ui_localization_engine import identity_value as localize_identity_value, owned_text as localize_owned_text, entity_copy as localize_entity_copy
 import uuid
@@ -513,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V977_UEFA_MATCH_REGION_LABEL'
+APP_VERSION = 'V978_CALENDAR_COUNTRY_LABELS'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -13083,6 +13083,8 @@ def set_ui_language_headers(response):
 
 from engines.app_navigation import navigation_matches
 
+app.jinja_env.globals["ui_country"] = lambda value: localize_country_display_name(value, current_ui_locale())
+
 app.jinja_env.globals.update(navigation_matches=navigation_matches, ui=ui_text, ns_ui=ui_text, ui_match_datetime=ui_match_datetime, ui_match_clock=jinja_match_time_short, ui_calendar_date=ui_calendar_date,
                             ui_value=lambda value: localize_identity_value(value, current_ui_locale()),
                             ui_owned=lambda value: localize_owned_text(value, current_ui_locale()),
@@ -17647,7 +17649,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V977_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V978_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
