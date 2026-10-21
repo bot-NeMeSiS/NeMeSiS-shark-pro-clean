@@ -317,3 +317,51 @@ def test_storage_denial_keeps_the_search_usable(browser,app_module):
         assert page.locator('[data-v940-pending-filters]').is_visible()
         assert not errors
     finally:page.close()
+
+
+@pytest.mark.parametrize('width',[390,1440])
+def test_single_competition_uses_full_desktop_lane_and_mobile_layout_stays_responsive(browser,app_module,width):
+    def groups_for(matches):
+        league={'key':'qa-league','anchor_id':'qa-league','label':'Liga QA','country':'España','matches':matches}
+        return [{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':len(matches),
+                 'league_navigation':[],'league_sections':[{'key':'qa-spain','kind':'country','label':'España','count':1,'leagues':[league]}]}]
+
+    fixture={'id':'qa-match-1','home_team':'Equipo local QA','away_team':'Equipo visitante QA',
+             'competition_name':'Liga QA','country':'España','kickoff_time':'18:00','status':'Programado',
+             'status_info':{'key':'UPCOMING','is_live':False},'source':'SIMULATED_QA'}
+    page,requests,errors=mount(browser,app_module,width=width,day_groups=groups_for([fixture]),run_script=False)
+    try:
+        assert page.locator('link[href*="calendar-discovery.css?v=calendar-discovery-10"]').count()==1
+        grid=page.locator('.v940-calendar-league > .v933-match-grid')
+        card=grid.locator('> .v933-match-card')
+        measurements=page.evaluate('''() => {
+          const section=document.querySelector('.v940-calendar-competition-section');
+          const grid=document.querySelector('.v940-calendar-league > .v933-match-grid');
+          const card=grid?.querySelector(':scope > .v933-match-card');
+          return {section:section?.getBoundingClientRect().width,grid:grid?.getBoundingClientRect().width,
+            card:card?.getBoundingClientRect().width,columns:getComputedStyle(section).columnCount,
+            overflow:document.documentElement.scrollWidth>innerWidth};
+        }''')
+        assert card.count()==1
+        assert measurements['grid'] and measurements['card'] >= measurements['grid']-1, measurements
+        if width>=1000:
+            assert measurements['columns']=='1' and measurements['card'] >= measurements['section']-1, measurements
+        assert not measurements['overflow']
+        assert not errors and not requests
+    finally:
+        page.close()
+
+    if width>=1000:
+        fixtures=[{**fixture,'id':f'qa-match-{i}'} for i in range(1,4)]
+        page,requests,errors=mount(browser,app_module,width=width,day_groups=groups_for(fixtures),run_script=False)
+        try:
+            grid=page.locator('.v940-calendar-league > .v933-match-grid')
+            boxes=grid.locator('> .v933-match-card').evaluate_all('els=>els.map(el=>el.getBoundingClientRect().width)')
+            grid_width=grid.evaluate('el=>el.getBoundingClientRect().width')
+            assert len(boxes)==3
+            columns=page.locator('.v940-calendar-competition-section').evaluate('el=>getComputedStyle(el).columnCount')
+            assert columns=='1' and min(boxes)>=grid_width-1, {'grid':grid_width,'cards':boxes,'columns':columns}
+            assert not page.evaluate('document.documentElement.scrollWidth>innerWidth')
+            assert not errors and not requests
+        finally:
+            page.close()
