@@ -4843,7 +4843,54 @@
     "Se registró un archivo nuevo, pero el proceso no terminó correctamente. Revisa el diagnóstico.": {
       "en": "A new file was recorded, but the process did not finish successfully. Review diagnostics.",
       "fr": "Un nouveau fichier a été enregistré, mais le processus ne s'est pas terminé correctement. Consultez le diagnostic."
-    }
+    },
+    "Detalle técnico del último intento": {
+      "en": "Technical details of the latest attempt",
+      "fr": "Détails techniques de la dernière tentative"
+    },
+    "Datos seguros registrados por el proceso. Esta vista solo consulta el resultado guardado; no ejecuta ni vuelve a validar operaciones.": {
+      "en": "Safe process measurements. This view only reads the saved result; it does not run or revalidate operations.",
+      "fr": "Mesures sûres du processus. Cette vue consulte uniquement le résultat enregistré ; elle n'exécute ni ne revalide aucune opération."
+    },
+    "Duración de etapas": {
+      "en": "Stage duration",
+      "fr": "Durée des étapes"
+    },
+    "Medidas de capacidad": {
+      "en": "Capacity measurements",
+      "fr": "Mesures de capacité"
+    },
+    "Intento completo": {"en": "Whole attempt", "fr": "Tentative complète"},
+    "Bloqueo de exclusión": {"en": "Exclusive lock", "fr": "Verrou exclusif"},
+    "Recuperación temporal": {"en": "Temporary recovery", "fr": "Récupération temporaire"},
+    "Preparación": {"en": "Preparation", "fr": "Préparation"},
+    "Preanálisis de capacidad": {"en": "Capacity preflight", "fr": "Vérification préalable de capacité"},
+    "Estimación de base de datos": {"en": "Database estimate", "fr": "Estimation de la base de données"},
+    "Comprobación de espacio": {"en": "Disk space check", "fr": "Vérification de l'espace disque"},
+    "Inventario de copias previas": {"en": "Existing backup inventory", "fr": "Inventaire des sauvegardes existantes"},
+    "Verificación de copia previa": {"en": "Existing backup verification", "fr": "Vérification d'une sauvegarde existante"},
+    "Verificación del historial": {"en": "Backup history verification", "fr": "Vérification de l'historique des sauvegardes"},
+    "Recuperación de espacio": {"en": "Space recovery", "fr": "Récupération d'espace"},
+    "Estimación de copia compacta": {"en": "Compact backup estimate", "fr": "Estimation de sauvegarde compacte"},
+    "Preparación de copia": {"en": "Backup preparation", "fr": "Préparation de la sauvegarde"},
+    "Creación de copia": {"en": "Backup creation", "fr": "Création de la sauvegarde"},
+    "Comprobación de integridad": {"en": "Integrity check", "fr": "Contrôle d'intégrité"},
+    "Lectura de resumen": {"en": "Summary read", "fr": "Lecture du résumé"},
+    "Cálculo de huella": {"en": "Checksum calculation", "fr": "Calcul de l'empreinte"},
+    "Preparación de manifiesto": {"en": "Manifest preparation", "fr": "Préparation du manifeste"},
+    "Publicación": {"en": "Publication", "fr": "Publication"},
+    "Limpieza temporal": {"en": "Temporary cleanup", "fr": "Nettoyage temporaire"},
+    "Finalizada": {"en": "Finished", "fr": "Terminée"},
+    "Fallida": {"en": "Failed", "fr": "Échouée"},
+    "Rechazada": {"en": "Rejected", "fr": "Refusée"},
+    "Omitida": {"en": "Skipped", "fr": "Ignorée"},
+    "Tamaño estimado de la base": {"en": "Estimated database size", "fr": "Taille estimée de la base"},
+    "Tamaño estimado compacto": {"en": "Estimated compact size", "fr": "Taille compacte estimée"},
+    "Espacio requerido con margen": {"en": "Required space including margin", "fr": "Espace requis avec marge"},
+    "Espacio libre al inicio": {"en": "Free space at start", "fr": "Espace libre au départ"},
+    "Espacio libre tras el intento": {"en": "Free space after attempt", "fr": "Espace libre après la tentative"},
+    "Espacio libre medido": {"en": "Measured free space", "fr": "Espace libre mesuré"},
+    "Espacio reutilizable dentro de SQLite": {"en": "Reusable space inside SQLite", "fr": "Espace réutilisable dans SQLite"}
   },
   "home_matchday": {
     "Partidos, directos y resultados": {

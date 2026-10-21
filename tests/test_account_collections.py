@@ -75,13 +75,27 @@ def test_admin_backups_renders_recorded_failure_without_running_work(app_module,
     monkeypatch.setattr(app_module,'list_backups',lambda:[])
     monkeypatch.setattr(app_module,'backup_dir',lambda:'/synthetic/backups')
     monkeypatch.setattr(app_module,'automation_get_bounded',lambda *a: {
-        'time':'2026-10-09T04:30:00+02:00', 'result':{'ok':False,'failure_stage':'INTEGRITY','error':'RAW_SECRET'}})
+        'time':'2026-10-09T04:30:00+02:00', 'result':{
+            'ok':False,'failure_stage':'INTEGRITY','error':'RAW_SECRET',
+            'storage':{'snapshot_bytes':1048576,'required_bytes':73400320,
+                       'free_before':524288000,'unsafe_path':'/data/private.db'},
+            'diagnostic_stages':[
+                {'stage':'INTEGRITY','status':'failed','duration_ms':87,
+                 'error_type':'DatabaseError','message':'RAW_SECRET','path':'/data/private.db'},
+                {'stage':'UNTRUSTED_STAGE','status':'finished','duration_ms':999},
+            ]}})
     for name in ('dashboard_data','create_database_backup','restore_database_backup'):
         monkeypatch.setattr(app_module,name,forbidden)
     with app_module.app.test_request_context('/admin/backups',headers={'Accept-Language':language}):
         html=app_module.admin_backups_page()
     assert 'RAW_SECRET' not in html
     assert 'data-tone="warning"' in html
+    stage_label = {'es':'Comprobación de integridad','en':'Integrity check',
+                   'fr':"Contrôle d&#39;intégrité"}[language]
+    assert '87 ms' in html and stage_label in html
+    assert '1.0 MB' in html and '70.0 MB' in html
+    assert '/data/private.db' not in html and 'UNTRUSTED_STAGE' not in html
+    assert 'data-backup-diagnostics="read-only"' in html
     assert 'Sin operaciones registradas' not in html
     assert catalogue_issues() == []
     monkeypatch.setattr(app_module,'is_admin_session',lambda:False)

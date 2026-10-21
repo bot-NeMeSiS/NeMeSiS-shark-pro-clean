@@ -61,6 +61,11 @@ def test_compact_copy_rejects_insufficient_margin_with_diagnostic_metrics(tmp_pa
     result = vault.create_sqlite_backup(source, tmp_path, "SIMULATED_QA", directory=folder)
     assert not result["ok"] and not result["backup_created"]
     assert result["error"] == "backup_storage_insufficient"
+    stages = result["diagnostic_stages"]
+    assert any(item["stage"] == "CAPACITY_DISK_CHECK" and item["status"] == "finished"
+               for item in stages)
+    assert any(item["stage"] == "COMPACT_CAPACITY_PREFLIGHT" and item["status"] == "rejected"
+               for item in stages)
     assert source.read_bytes() == original
     assert {p.name for p in folder.iterdir()} == {".backup.lock"}
     events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]

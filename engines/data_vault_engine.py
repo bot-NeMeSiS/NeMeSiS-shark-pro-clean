@@ -12,6 +12,7 @@ import tempfile
 import time
 import uuid
 from contextlib import closing
+from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -27,6 +28,11 @@ CRITICAL_TABLES = [
     "team_identity_cache", "data_memory_errors", "persistent_cache",
     "pick_grading_results", "pick_grading_runs", "telegram_queue",
 ]
+
+_BACKUP_DIAGNOSTIC_EVENTS: ContextVar[list | None] = ContextVar(
+    "backup_diagnostic_events", default=None
+)
+_BACKUP_DIAGNOSTIC_EVENT_LIMIT = 32
 
 OWNERSHIP = {
     "users": "user_personal_data",
@@ -93,6 +99,11 @@ def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = No
             event[key] = value
     if reason_code and reason_code.replace("_", "").isalnum() and reason_code.upper() == reason_code:
         event["reason_code"] = reason_code[:48]
+    collector = _BACKUP_DIAGNOSTIC_EVENTS.get()
+    if collector is not None and status != "started":
+        collector.append(dict(event))
+        if len(collector) > _BACKUP_DIAGNOSTIC_EVENT_LIMIT:
+            del collector[:-_BACKUP_DIAGNOSTIC_EVENT_LIMIT]
     print(json.dumps(event, ensure_ascii=True, sort_keys=True), flush=True)
 
 
@@ -461,44 +472,56 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
     bdir = Path(directory) if directory is not None else backup_dir(root)
     attempt_started = time.monotonic()
+    diagnostic_events = []
+    context_token = _BACKUP_DIAGNOSTIC_EVENTS.set(diagnostic_events)
+
+    def with_diagnostics(result):
+        # These events contain only allowlisted stage names, timings, codes,
+        # and byte counts. Never include paths or exception messages here.
+        result["diagnostic_stages"] = list(diagnostic_events[-_BACKUP_DIAGNOSTIC_EVENT_LIMIT:])
+        return result
+
     _emit_backup_stage("ATTEMPT", "started")
     try:
-        bdir.mkdir(parents=True, exist_ok=True)
-        lock_started = time.monotonic()
-        _emit_backup_stage("LOCK", "started")
-        with backup_directory_lock(bdir):
-            _emit_backup_stage("LOCK", "finished", started_at=lock_started)
-            recovery_started = time.monotonic()
-            _emit_backup_stage("RECOVERY", "started")
-            recovery = recover_abandoned_workspaces(bdir, src)
-            _emit_backup_stage("RECOVERY", "finished" if not recovery["failed_count"] else "failed",
-                               started_at=recovery_started,
-                               error_type="recovery_failed" if recovery["failed_count"] else "")
-            if recovery["failed_count"]:
-                _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
-                                   error_type="recovery_failed")
-                return {"ok": False, "backup_created": False,
-                        "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
-                        "storage": {"temporary_recovery": recovery}}
-            result = _create_sqlite_backup_locked(src, root, app_version, backup_type, created_by,
-                                                  directory=bdir, max_files=max_files,
-                                                  snapshot_timeout=snapshot_timeout)
-            result.setdefault("storage", {})["temporary_recovery"] = recovery
-            _emit_backup_stage("ATTEMPT", "finished" if result.get("ok") else "failed",
-                               started_at=attempt_started,
-                               error_type=("backup_failed" if not result.get("ok") else ""))
-            return result
-    except BackupInProgress:
-        _emit_backup_stage("LOCK", "skipped", started_at=lock_started)
-        _emit_backup_stage("ATTEMPT", "skipped", started_at=attempt_started)
-        return {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"}
-    except OSError as exc:
-        _emit_backup_stage("PREPARATION", "failed", started_at=locals().get("lock_started"),
-                           error_type=type(exc).__name__)
-        _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
-                           error_type=type(exc).__name__)
-        return {"ok": False, "backup_created": False, "error": str(exc)[:300],
-                "failure_stage": "PREPARATION"}
+        try:
+            bdir.mkdir(parents=True, exist_ok=True)
+            lock_started = time.monotonic()
+            _emit_backup_stage("LOCK", "started")
+            with backup_directory_lock(bdir):
+                _emit_backup_stage("LOCK", "finished", started_at=lock_started)
+                recovery_started = time.monotonic()
+                _emit_backup_stage("RECOVERY", "started")
+                recovery = recover_abandoned_workspaces(bdir, src)
+                _emit_backup_stage("RECOVERY", "finished" if not recovery["failed_count"] else "failed",
+                                   started_at=recovery_started,
+                                   error_type="recovery_failed" if recovery["failed_count"] else "")
+                if recovery["failed_count"]:
+                    _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
+                                       error_type="recovery_failed")
+                    return with_diagnostics({"ok": False, "backup_created": False,
+                            "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
+                            "storage": {"temporary_recovery": recovery}})
+                result = _create_sqlite_backup_locked(src, root, app_version, backup_type, created_by,
+                                                      directory=bdir, max_files=max_files,
+                                                      snapshot_timeout=snapshot_timeout)
+                result.setdefault("storage", {})["temporary_recovery"] = recovery
+                _emit_backup_stage("ATTEMPT", "finished" if result.get("ok") else "failed",
+                                   started_at=attempt_started,
+                                   error_type=("backup_failed" if not result.get("ok") else ""))
+                return with_diagnostics(result)
+        except BackupInProgress:
+            _emit_backup_stage("LOCK", "skipped", started_at=locals().get("lock_started"))
+            _emit_backup_stage("ATTEMPT", "skipped", started_at=attempt_started)
+            return with_diagnostics({"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"})
+        except OSError as exc:
+            _emit_backup_stage("PREPARATION", "failed", started_at=locals().get("lock_started"),
+                               error_type=type(exc).__name__)
+            _emit_backup_stage("ATTEMPT", "failed", started_at=attempt_started,
+                               error_type=type(exc).__name__)
+            return with_diagnostics({"ok": False, "backup_created": False, "error": str(exc)[:300],
+                                     "failure_stage": "PREPARATION"})
+    finally:
+        _BACKUP_DIAGNOSTIC_EVENTS.reset(context_token)
 
 
 def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float) -> dict:
