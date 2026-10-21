@@ -216,6 +216,8 @@ def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
             "activity_index_method": "weighted_provider_statistics",
             "home_activity_index_pct": 63,
             "away_activity_index_pct": 37,
+            "activity_index_input_clock_state": "MIXED",
+            "activity_index_oldest_input_at": "2026-10-18T10:00:00Z",
         },
     }
     context = _context(_detail(), live_context=tracker)
@@ -227,7 +229,8 @@ def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
         "method": "weighted_provider_statistics",
         "home_pct": 63,
         "away_pct": 37,
-        "observed_at": "2026-10-18T10:15:00Z",
+        "observed_at": "2026-10-18T10:00:00Z",
+        "input_freshness": "MIXED",
         "provider_metric": False,
         "spatial_map_available": False,
     }
@@ -245,7 +248,42 @@ def test_derived_activity_index_is_separate_and_timestamped_in_match_center():
     assert 'data-provider-metric="false"' in html
     assert "Local 63%" in html and "Visitante 37%" in html
     assert "ni un mapa de zonas" in html
-    assert "2026-10-18T10:15:00Z" in html
+    assert "Dato más antiguo usado:" in html
+    assert 'datetime="2026-10-18T10:00:00Z"' in html
+    assert "2026-10-18T10:15:00Z" not in html
+
+
+def test_activity_index_does_not_borrow_latest_tracker_clock_for_untimed_inputs():
+    tracker = {
+        "provider": "api_football",
+        "statistics_updated_at": "2026-10-18T10:15:00Z",
+        "stat_cards": [
+            {"key": "shots_on_goal", "label": "Tiros a puerta", "home": "4", "away": "2"},
+        ],
+        "field_state": {
+            "activity_index_available": True,
+            "activity_index_method": "weighted_provider_statistics",
+            "home_activity_index_pct": 63,
+            "away_activity_index_pct": 37,
+        },
+    }
+    context = _context(_detail(), live_context=tracker)
+    activity = context["statistics"]["activity_index"]
+
+    assert activity["available"] is True
+    assert activity["observed_at"] is None
+    assert activity["input_freshness"] == "UNKNOWN"
+
+    environment = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True)
+    environment.globals.update(ui=lambda value, **kwargs: value)
+    environment.filters["sync_madrid_label"] = lambda value: f"Madrid: {value}"
+    environment.filters["madrid_datetime_label"] = lambda value: f"Madrid: {value}"
+    html = environment.from_string(
+        "{% from 'components/v944_match_center.html' import stats_panel %}"
+        "{{ stats_panel(context) }}"
+    ).render(context=context)
+    assert "Hora de las señales no establecida." in html
+    assert "2026-10-18T10:15:00Z" not in html
 
 
 def test_activity_index_rejects_invalid_or_uncontracted_values():

@@ -513,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V973_CALENDAR_TEMPORAL_FASTPATH'
+APP_VERSION = 'V974_ACTIVITY_INDEX_SOURCE_FRESHNESS'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -13124,6 +13124,8 @@ def inject_session_user():
             "Observación registrada", "Observación vigente", "Información sin confirmar",
             "Identidad pendiente de confirmar", "Cambio sin observación nueva",
             "Datos retrasados · Última lectura", "Información sin confirmar · Última lectura",
+            "Datos de señales con horas distintas. Dato más antiguo usado:", "Hora de las señales:",
+            "Frescura de las señales incompleta; no se muestra una hora conjunta.", "Hora de las señales no establecida.",
             "Fuera de la última lectura confirmada", "Estado de la observación. No mide probabilidad de ganar.",
             "Fuera del filtro actual. Se conserva la última lectura y el acceso al partido.",
             "Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.",
@@ -17645,7 +17647,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V973_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V974_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"

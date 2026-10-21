@@ -28,6 +28,10 @@ API_FOOTBALL_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TIMEZONE = "Europe/Madrid"
 LIVE_STATUS_SHORT = {"1H", "2H", "ET", "BT", "P", "LIVE", "HT"}
 FINISHED_STATUS_SHORT = {"FT", "AET", "PEN"}
+_ACTIVITY_INDEX_STAT_KEYS = (
+    "possession", "shots_on_goal", "total_shots", "shots_inside_box", "corners",
+    "attacks", "dangerous_attacks", "expected_goals", "red_cards", "yellow_cards",
+)
 
 
 def _now_iso() -> str:
@@ -1078,6 +1082,56 @@ def _has_stat(stats: Mapping[str, Any], key: str) -> bool:
     return False
 
 
+def _activity_index_input_clock(home: Mapping[str, Any], away: Mapping[str, Any]) -> dict[str, Any]:
+    """Describe capture clocks for the provider metrics used by the derived index.
+
+    The index can combine retained rows from different provider receipts. Its
+    timestamp must therefore describe the oldest dated input, never the most
+    recent unrelated statistic. Untimed inputs keep the overall age unknown.
+    """
+    captures: list[tuple[datetime, str]] = []
+    input_count = 0
+    untimed_count = 0
+    for team in (home, away):
+        team_stats = team.get("stats") or {}
+        if not isinstance(team_stats, Mapping):
+            continue
+        for key in _ACTIVITY_INDEX_STAT_KEYS:
+            stat = team_stats.get(key)
+            if not isinstance(stat, Mapping):
+                continue
+            # _pressure_from_stats scores only the normalized numeric value;
+            # a placeholder row that would contribute the default zero is not
+            # evidence for the displayed index.
+            if safe_live_stat_value(stat.get("numeric")) is None:
+                continue
+            input_count += 1
+            raw = str(stat.get("captured_at") or "").strip()
+            captured = _captured_at_datetime(raw)
+            if captured is None:
+                untimed_count += 1
+            else:
+                captures.append((captured, raw))
+
+    if not input_count or not captures:
+        state = "UNKNOWN"
+        oldest_input_at = None
+    elif untimed_count:
+        state = "PARTIAL"
+        oldest_input_at = None
+    else:
+        oldest = min(captured for captured, _raw in captures)
+        newest = max(captured for captured, _raw in captures)
+        state = "MIXED" if oldest != newest else "SAME"
+        oldest_input_at = next(raw for captured, raw in captures if captured == oldest)
+    return {
+        "activity_index_input_clock_state": state,
+        "activity_index_oldest_input_at": oldest_input_at,
+        "activity_index_input_count": input_count,
+        "activity_index_timestamped_input_count": len(captures),
+    }
+
+
 def _stat_cards(
     stats: Mapping[str, Any],
     home_name: str,
@@ -1274,6 +1328,12 @@ def _field_state(
         home_p = away_p = dominant = side = None
         diff = 0
     home, away = _team_blocks(stats, home_name, away_name, home_team_id, away_team_id)
+    activity_index_clock = _activity_index_input_clock(home, away) if pressure_available else {
+        "activity_index_input_clock_state": "UNKNOWN",
+        "activity_index_oldest_input_at": None,
+        "activity_index_input_count": 0,
+        "activity_index_timestamped_input_count": 0,
+    }
     da_home, da_away = _stat_pair(stats, "dangerous_attacks", home, away)
     attacks_home, attacks_away = _stat_pair(stats, "attacks", home, away)
     corners_home, corners_away = _stat_pair(stats, "corners", home, away)
@@ -1333,6 +1393,7 @@ def _field_state(
         "activity_index_method": "weighted_provider_statistics" if pressure_available else None,
         "home_activity_index_pct": home_p if pressure_available else None,
         "away_activity_index_pct": away_p if pressure_available else None,
+        **activity_index_clock,
         "last_event_label": latest,
         "dangerous_attacks_available": da_home is not None or da_away is not None,
         "attacks_available": attacks_home is not None or attacks_away is not None,

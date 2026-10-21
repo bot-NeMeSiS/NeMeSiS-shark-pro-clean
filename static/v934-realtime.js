@@ -638,10 +638,20 @@
       var note = document.createElement('small');
       setNodeText(note, 'Cálculo orientativo basado en las estadísticas disponibles. No representa posesión oficial, ubicación del balón ni zonas del campo.');
       activity.appendChild(note);
+      var freshness = document.createElement('small');
+      freshness.setAttribute('data-activity-freshness', '');
+      var freshnessLabel = document.createElement('span');
+      freshnessLabel.setAttribute('data-activity-freshness-label', '');
+      freshness.appendChild(freshnessLabel);
+      var oldestInput = document.createElement('time');
+      oldestInput.setAttribute('data-activity-oldest-input', '');
+      oldestInput.hidden = true;
+      freshness.appendChild(oldestInput);
+      activity.appendChild(freshness);
       section.insertBefore(activity, section.querySelector('.v934-live-stats__ribbon') || section.querySelector('[data-live-statistics-more]') || section.querySelector('.v934-live-stats__source'));
       return activity;
     }
-    function updateActivity(section, field, updatedAt, teamNames) {
+    function updateActivity(section, field, serverNow, teamNames) {
       var activity = section.querySelector('[data-live-stat-activity]');
       var home = field.home_activity_index_pct;
       var away = field.away_activity_index_pct;
@@ -668,7 +678,42 @@
       }
       var image = activity.querySelector('[role="img"]');
       if (image) image.setAttribute('aria-label', text('Índice estadístico orientativo: {homeTeam} {home}%, {awayTeam} {away}%.', {homeTeam:teamNames.home, home:homeActivity, awayTeam:teamNames.away, away:awayActivity}));
-      activity.setAttribute('data-activity-updated-at', updatedAt);
+      var freshnessState = typeof field.activity_index_input_clock_state === 'string'
+        ? field.activity_index_input_clock_state : 'UNKNOWN';
+      var rawOldestInput = field.activity_index_oldest_input_at;
+      var oldestInputClock = validStatClock(rawOldestInput, serverNow);
+      var hasOldestInput = Number.isFinite(oldestInputClock) && ['SAME', 'MIXED'].includes(freshnessState);
+      activity.setAttribute('data-activity-input-clock-state', hasOldestInput ? freshnessState : freshnessState === 'PARTIAL' ? 'PARTIAL' : 'UNKNOWN');
+      activity.setAttribute('data-activity-updated-at', hasOldestInput ? rawOldestInput : '');
+      var freshness = activity.querySelector('[data-activity-freshness]');
+      if (!freshness) {
+        freshness = document.createElement('small');
+        freshness.setAttribute('data-activity-freshness', '');
+        var label = document.createElement('span');
+        label.setAttribute('data-activity-freshness-label', '');
+        freshness.appendChild(label);
+        var time = document.createElement('time');
+        time.setAttribute('data-activity-oldest-input', '');
+        time.hidden = true;
+        freshness.appendChild(time);
+        activity.appendChild(freshness);
+      }
+      var labelNode = freshness.querySelector('[data-activity-freshness-label]');
+      var oldestNode = freshness.querySelector('[data-activity-oldest-input]');
+      var copy = hasOldestInput
+        ? freshnessState === 'MIXED' ? 'Datos de señales con horas distintas. Dato más antiguo usado:' : 'Hora de las señales:'
+        : freshnessState === 'PARTIAL' ? 'Frescura de las señales incompleta; no se muestra una hora conjunta.' : 'Hora de las señales no establecida.';
+      setNodeText(labelNode, copy);
+      if (oldestNode) {
+        oldestNode.hidden = !hasOldestInput;
+        if (hasOldestInput) {
+          oldestNode.setAttribute('datetime', rawOldestInput);
+          setNodeText(oldestNode, statTimeLabel(rawOldestInput));
+        } else {
+          oldestNode.removeAttribute('datetime');
+          setNodeText(oldestNode, '');
+        }
+      }
     }
     function updateLiveStatistics(wrapper, state, rawStats, serverNow) {
       if (!rawStats || rawStats.available !== true || rawStats.external_calls !== 0 ||
@@ -727,7 +772,7 @@
       });
       var possession = cards.find(function (card) { return card.key === 'possession'; });
       if (possession) updatePossession(section, possession, serverNow, teamNames);
-      updateActivity(section, rawStats.field_state || {}, rawStats.statistics_updated_at, teamNames);
+      updateActivity(section, rawStats.field_state || {}, serverNow, teamNames);
       updateStatTeamNames(section, teamNames);
       section.setAttribute('data-stat-updated-at', rawStats.statistics_updated_at);
       var latest = section.querySelector('[data-live-stats-latest]');
