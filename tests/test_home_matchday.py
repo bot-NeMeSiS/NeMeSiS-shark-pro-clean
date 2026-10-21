@@ -141,6 +141,86 @@ def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
     assert [item['id'] for item in items(result,'live')]==['confirmed']
 
 
+def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(app_module, monkeypatch):
+    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    kickoff = (now + timedelta(hours=2)).isoformat()
+    api_fixture = {
+        'id': 'af-1570389', 'external_id': '1570389', 'home_team': 'Levante',
+        'away_team': 'Athletic Club', 'competition_name': 'LaLiga EA Sports',
+        'competition_key': 'laliga', 'country': 'Spain', 'source': 'api_football',
+        'kickoff_iso': kickoff, 'status': 'NS',
+    }
+    sportsdb_fixture = {
+        'id': 'sportsdb-aef386a7c952757f58', 'external_id': '133727',
+        'home_team': 'Levante', 'away_team': 'Athletic Bilbao',
+        'competition_name': 'Spanish La Liga', 'competition_key': 'la-liga',
+        'country': 'España', 'source': 'sportsdb', 'kickoff_iso': kickoff,
+        'status': 'NS',
+    }
+    summary = {'all_valid_matches': [api_fixture, sportsdb_fixture],
+               'valid_matches_today': [api_fixture, sportsdb_fixture]}
+    original = deepcopy(summary)
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+        'is_live': False, 'is_upcoming': True, 'is_finished': False,
+        'is_stale': False, 'status_conflict': False,
+    })
+
+    result = app_module.home_matchday_context(summary)
+    shown = items(result, 'today')
+
+    assert len(shown) == 1
+    assert shown[0]['id'] == 'af-1570389'
+    assert shown[0]['source'] == 'api_football'
+    assert summary == original
+
+
+@pytest.mark.parametrize(('country', 'kickoff_delta'), [
+    ('France', timedelta(hours=2)),
+    ('Spain', timedelta(hours=3)),
+])
+def test_home_keeps_similar_fixtures_separate_when_country_or_kickoff_differs(
+        app_module, monkeypatch, country, kickoff_delta):
+    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    kickoff = now + timedelta(hours=2)
+    base = {
+        'home_team': 'Levante', 'away_team': 'Athletic Club',
+        'competition_name': 'LaLiga EA Sports', 'competition_key': 'laliga',
+        'country': 'Spain', 'source': 'api_football', 'status': 'NS',
+    }
+    rows = [
+        {**base, 'id': 'match-a', 'kickoff_iso': kickoff.isoformat()},
+        {**base, 'id': 'match-b', 'country': country,
+         'kickoff_iso': (kickoff + kickoff_delta - timedelta(hours=2)).isoformat()},
+    ]
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+        'is_live': False, 'is_upcoming': True, 'is_finished': False,
+        'is_stale': False, 'status_conflict': False,
+    })
+
+    result = app_module.home_matchday_context({'all_valid_matches': rows})
+
+    assert result['today']['total'] == 2
+
+
+def test_home_keeps_provider_rows_without_country_separate(app_module, monkeypatch):
+    now = datetime.now(ZoneInfo('Europe/Madrid'))
+    kickoff = (now + timedelta(hours=2)).isoformat()
+    base = {
+        'home_team': 'Levante', 'away_team': 'Athletic Club',
+        'competition_name': 'LaLiga EA Sports', 'competition_key': 'laliga',
+        'source': 'sportsdb', 'kickoff_iso': kickoff, 'status': 'NS',
+    }
+    rows = [{**base, 'id': 'provider-row-a'}, {**base, 'id': 'provider-row-b'}]
+    monkeypatch.setattr(app_module, 'canonical_match_status', lambda _item: {
+        'is_live': False, 'is_upcoming': True, 'is_finished': False,
+        'is_stale': False, 'status_conflict': False,
+    })
+
+    result = app_module.home_matchday_context({'all_valid_matches': rows})
+
+    assert result['today']['total'] == 2
+
+
 @pytest.mark.parametrize('language',['es','en','fr'])
 def test_home_shows_three_secondary_live_competitions_without_opening_a_disclosure(app_module,language):
     from test_design02_r7_home_composition import render_home

@@ -28,6 +28,8 @@ _PROVIDER_TEAM_IDENTITY_ALIASES = {
     "tottenham hotspur fc": "tottenham",
     "coventry city": "coventry",
     "coventry city fc": "coventry",
+    "athletic bilbao": "athletic club",
+    "athletic club bilbao": "athletic club",
 }
 
 
