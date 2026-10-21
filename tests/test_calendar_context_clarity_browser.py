@@ -25,7 +25,7 @@ def sample(app_module):
         'valid_active_picks':[],'incident_matches':[],'incomplete_matches':[]}
 
 
-@pytest.mark.parametrize('width',[320,1440])
+@pytest.mark.parametrize('width',[320,390,1440])
 @pytest.mark.parametrize('language',['es','en','fr'])
 @pytest.mark.parametrize('javascript',[True,False])
 def test_calendar_order_context_and_get_continuity(browser,app_module,width,language,javascript,tmp_path):
@@ -65,7 +65,8 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
             assert density['display']=='flex'
             assert density['wrap']=='nowrap'
             assert density['helper']=='none'
-            assert density['overflow']
+            if width==320:
+                assert density['overflow']
         assert page.locator('[data-results-calendar-tabs] a[href="/directo"]').count()==1
         assert '-calendar-context-2' in page.locator('script[src*="v940-calendar.js"]').get_attribute('src')
         sort=page.locator('select[name=sort]'); assert sort.count()==1 and sort.is_visible()
@@ -86,8 +87,22 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
         assert compact_card.locator('.v933-match-card-header').evaluate('(el)=>getComputedStyle(el).display')=='none'
         assert compact_card.locator('[data-match-kickoff-clock]').is_visible()
         if width<=760:
-            assert compact_card.bounding_box()['height']<=112
+            max_height=110
+            geometry=compact_card.evaluate("el=>({height:el.getBoundingClientRect().height,rows:getComputedStyle(el).gridTemplateRows,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height})")
+            assert geometry['height']<=max_height, geometry
             assert len(compact_card.locator('.v933-match-teams').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ")'))==3
+            assert all('Club ' in card.inner_text() and 'Visitante QA' in card.inner_text() for card in cards.all())
+            assert all(card.locator('a[href^="/match/"]').count()==1 for card in cards.all())
+            allocations=cards.evaluate_all("items=>items.map(el=>{const rows=getComputedStyle(el).gridTemplateRows.split(' ').map(parseFloat);return {rows,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height,footer:el.querySelector('.v933-match-card-footer').getBoundingClientRect().height}})")
+            assert all(len(item['rows'])==2 and item['rows'][0]+1>=item['teams'] and item['rows'][1]+1>=item['footer'] for item in allocations), allocations
+            before=geometry['height']
+            compact_card.evaluate("el=>{el.querySelector('[data-match-kickoff-clock]')?.remove();el.querySelector('[data-match-kickoff-zone]')?.remove()}")
+            without_optional_clock=compact_card.evaluate("el=>({height:el.getBoundingClientRect().height,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height})")
+            if width>=390:
+                assert before-without_optional_clock['height']>=10
+                assert without_optional_clock['teams']<42
+            else:
+                assert without_optional_clock['height']<=before
         else:
             assert compact_card.bounding_box()['height']<=84
         # Scroll position must never rewrite the selected collection title.

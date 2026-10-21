@@ -49,9 +49,11 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
     min-height: 0 !important;
     grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: minmax(42px, auto) auto !important;
-    gap: 3px !important;
-    padding: 6px 7px !important;
+    /* Size both rows to their content: short team rows do not waste height,
+       and long names/actions keep the space they need. */
+    grid-template-rows: auto auto !important;
+    gap: 2px !important;
+    padding: 5px 7px !important;
   }
 
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) > .v933-match-teams {
