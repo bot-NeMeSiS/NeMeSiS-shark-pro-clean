@@ -135,3 +135,35 @@ def test_home_secondary_sections_stay_accessible_without_js_and_respect_first_ru
         assert no_js_page.get_by_role('link',name='Resumen diario').is_visible()
     finally:
         no_js.close()
+
+
+@pytest.mark.parametrize('width',[390,1440])
+def test_home_secondary_competitions_do_not_create_a_dead_desktop_column(browser,width):
+    css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')+'\n'+(ROOT/'static/home-league-disclosure.css').read_text(encoding='utf-8')
+    html='''<!doctype html><html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+    <body><main class="home-agenda-focus"><div class="home-league-browser"><div class="home-competition-list" data-home-league-agenda="today">
+      <details class="home-leagues-more"><summary class="home-more-summary">Más competiciones</summary><div>Más partidos reales</div></details>
+      <section class="home-presentation-section"><h3 class="home-presentation-section-heading">España</h3><div class="home-presentation-section-items"><article class="home-competition-group">LaLiga</article></div></section>
+      <section class="home-presentation-section"><h3 class="home-presentation-section-heading">Torneos internacionales</h3><div class="home-presentation-section-items"><article class="home-competition-group">Champions League</article></div></section>
+    </div></div></main></body></html>'''
+    context=browser.new_context(viewport={'width':width,'height':800},service_workers='block')
+    page=context.new_page()
+    try:
+        page.set_content(html)
+        page.add_style_tag(content=css)
+        disclosure=page.locator('.home-competition-list > .home-leagues-more').bounding_box()
+        container=page.locator('.home-competition-list').bounding_box()
+        sections=page.locator('.home-competition-list > .home-presentation-section').evaluate_all(
+            '(nodes)=>nodes.map(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width}})')
+        assert disclosure and container and sections
+        if width > 1100:
+            assert abs(disclosure['width']-container['width'])<=1
+            assert sections[1]['x']>sections[0]['x']
+            assert abs(sections[1]['y']-sections[0]['y'])<=2
+        else:
+            assert abs(disclosure['width']-container['width'])<=1
+            assert abs(sections[1]['x']-sections[0]['x'])<=2
+            assert sections[1]['y']>sections[0]['y']
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+    finally:
+        context.close()
