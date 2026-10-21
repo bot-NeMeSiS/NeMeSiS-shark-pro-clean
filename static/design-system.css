@@ -24231,12 +24231,12 @@ body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro {
 body.ns-app .ns16-live-empty {
   min-height: 0;
   align-items: center;
-  padding-block: 8px;
+  padding-block: 6px;
 }
 
 body.ns-app .ns16-live-empty > .v933-empty-state {
   min-height: 0;
-  padding-block: 10px;
+  padding-block: 6px;
 }
 
 body.ns-app .v944-context-list[data-recent-form-contract] > div > dd:nth-of-type(n+2) {
