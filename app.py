@@ -513,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V975_MATCH_STATISTICS_CAPTURE_CLOCKS'
+APP_VERSION = 'V976_HOME_COMPETITION_GRID_BALANCE'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -5445,8 +5445,8 @@ def match_is_already_kicked_off(match):
     return elapsed is not None and elapsed >= 0
 
 
-def canonical_match_status(match):
-    truth = v935_match_status_truth(dict(match or {}))
+def canonical_match_status(match, now=None):
+    truth = v935_match_status_truth(dict(match or {}), now=now)
     lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
     states = {
         "LIVE": {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
@@ -17647,7 +17647,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V975_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V976_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21525,9 +21525,10 @@ def personal_home_agenda(summary):
                                 now=datetime.now(MADRID_TZ))
 
 
-def home_matchday_context(summary, favorites=None):
+def home_matchday_context(summary, favorites=None, *, now=None):
     """Present the full existing snapshot without new reads or provider calls."""
     from engines.home_matchday import build_matchday
+    agenda_now = now or datetime.now(MADRID_TZ)
     source = []
     status_by_object = {}
     canonical_live_ids = {
@@ -21544,13 +21545,16 @@ def home_matchday_context(summary, favorites=None):
             # that did not pass the stricter freshness and provider-evidence gate
             # used to populate valid_live_events. Never let Home promote that row
             # back into its live count or cards.
-            status = canonical_match_status(item)
+            if now is None:
+                status = canonical_match_status(item)
+            else:
+                status = canonical_match_status(item, now=agenda_now)
             if status.get("is_live") and _sports_match_key(item) not in canonical_live_ids:
                 continue
             source.append(item)
             status_by_object[id(item)] = status
     source = _v956_unique_home_fixtures(source)
-    result = build_matchday(source, now=datetime.now(MADRID_TZ),
+    result = build_matchday(source, now=agenda_now,
         status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
         kickoff_for=match_kickoff_madrid_dt,
         priority_for=sports_competition_priority,

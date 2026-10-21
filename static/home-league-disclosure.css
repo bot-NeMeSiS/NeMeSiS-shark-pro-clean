@@ -58,6 +58,8 @@
 }
 @media(min-width:1101px) {
   .home-agenda-focus .home-competition-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  /* Keep the long-tail disclosure out of the first primary league column. */
+  .home-agenda-focus .home-competition-list > .home-leagues-more { grid-column:1/-1; }
   .home-presentation-section { grid-column:auto; }
   .home-presentation-section-items { grid-template-columns:minmax(0,1fr); gap:8px; }
   .home-secondary-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
