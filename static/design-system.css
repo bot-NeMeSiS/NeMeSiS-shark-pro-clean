@@ -24226,3 +24226,27 @@ body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro {
   body[data-ns-design="core"] .brand.v949-brand .ns-brand-name { font-size: .94rem; }
   body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro { font-size: .52rem; }
 }
+
+/* V965: make every primary calendar view discoverable on narrow screens. */
+@media (max-width: 600px) {
+  .v940-results-calendar-tabs > .v933-filter-tabs {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+  .v940-results-calendar-tabs > .v933-filter-tabs > a {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 6px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+}
