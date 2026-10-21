@@ -24227,11 +24227,31 @@ body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro {
   body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro { font-size: .52rem; }
 }
 
-/* V966: let Directo's no-live state size to its content, not the shared hero minimum. */
+/* V966: keep the matchday journey compact without hiding information. */
 body.ns-app .ns16-live-empty {
   min-height: 0;
   align-items: center;
   padding-block: 8px;
+}
+
+body.ns-app .ns16-live-empty > .v933-empty-state {
+  min-height: 0;
+  padding-block: 10px;
+}
+
+body.ns-app .v944-context-list[data-recent-form-contract] > div > dd:nth-of-type(n+2) {
+  grid-column: 1 / -1;
+  min-width: 0;
+  text-align: left;
+}
+
+body.ns-app .v944-context-list[data-recent-form-contract] .v944-recent-results {
+  width: 100%;
+  min-width: 0;
+}
+
+body.ns-app .v944-context-list[data-recent-form-contract] .v944-recent-results li {
+  min-width: 0;
 }
 
 /* V965: make every primary calendar view discoverable on narrow screens. */

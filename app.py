@@ -512,7 +512,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V966_COMPACT_DIRECT_EMPTY_STATE'
+APP_VERSION = 'V966_MATCHDAY_JOURNEY_POLISH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -22500,15 +22500,13 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         match_date = str(item.get("match_date") or "")
         if match_date:
             date_counts[match_date] = int(date_counts.get(match_date) or 0) + 1
+    # Count the same canonical entities that _calendar_group renders. Display
+    # names are not unique (for example, several countries have a "Premier
+    # League"), so counting labels under-reports the competitions on screen.
     league_count = len({
-        normalized_label(
-            item.get("calendar_competition")
-            or item.get("competition_name")
-            or item.get("league_name")
-            or ""
-        )
+        identity["group_key"]
         for item in sorted_matches
-        if item.get("calendar_competition") or item.get("competition_name") or item.get("league_name")
+        if (identity := canonical_competition_surface_contract(item)).get("group_key")
     })
     counts = {
         "all": len(source_matches),
