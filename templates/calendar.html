@@ -258,8 +258,18 @@
           <header>
             {% set league_name = league.get('label') or league.get('name') or league.get('competition') or ui('Competición') %}
             {% set first_match = (league.get('matches') or [{}])[0] %}
-            {% set league_asset = {'name': league_name, 'league_logo': league.get('logo_url') or first_match.get('competition_logo') or first_match.get('league_logo') or ''}|v850_league_logo %}
-            <div>{{ competition_logo(league_name, league_asset) }}<strong>{{ league_name }}</strong></div>
+            {% set supplied_logo = league.get('logo_url') or first_match.get('competition_logo') or first_match.get('league_logo') or '' %}
+            {% set league_asset = {'name': league_name, 'league_logo': supplied_logo}|v850_league_logo %}
+            {% set league_badge_url = league_asset.get('logo_url') %}
+            {% set league_badge_source = league_asset.get('logo_state') or 'fallback' %}
+            {% if not league_badge_url and supplied_logo is string and supplied_logo.startswith('/static/') %}
+              {% set league_badge_url = league_asset.get('crest_url') %}
+              {% set league_badge_source = 'provider_cache' %}
+            {% elif not league_badge_url and league.get('country') and league.get('country') != 'Global' %}
+              {% set league_badge_url = url_for('asset_league_logo', league_key=league.get('key') or league_name, name=league_name, country=league.get('country')) %}
+              {% set league_badge_source = 'cache_lookup' %}
+            {% endif %}
+            <div>{{ competition_logo(league_name, league_asset, league_badge_url, league_badge_source) }}<strong>{{ league_name }}</strong></div>
             <span>{{ ui('{count} partido' if (league.get('matches') or [])|length == 1 else '{count} partidos', count=(league.get('matches') or [])|length) }}</span>
           </header>
           <div class="v933-match-grid">{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}</div>
