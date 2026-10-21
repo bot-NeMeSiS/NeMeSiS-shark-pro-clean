@@ -38,6 +38,24 @@ def test_new_dynamic_copy_is_delivered_to_the_canonical_browser_catalogue(app_mo
     assert '{score}' in translate(source,locale)
 
 
+@pytest.mark.parametrize('locale', ['en', 'fr'])
+@pytest.mark.parametrize('source', [
+    'Datos de señales con horas distintas. Dato más antiguo usado:',
+    'Hora de las señales:',
+    'Frescura de las señales incompleta; no se muestra una hora conjunta.',
+    'Hora de las señales no establecida.',
+])
+def test_activity_freshness_copy_is_available_to_live_browser_updates(app_module, locale, source):
+    from flask import g
+    with app_module.app.test_request_context('/directo'):
+        g.ui_locale = locale
+        context = {}
+        app_module.app.update_template_context(context)
+
+    assert context['ui_messages'][source] == translate(source, locale)
+    assert translate(source, locale) != source
+
+
 @pytest.mark.parametrize('locale', ['es','en','fr'])
 def test_match_center_keeps_observed_minute_zero_and_compacts_missing_context(app_module,locale):
     from flask import g, render_template_string

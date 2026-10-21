@@ -162,6 +162,69 @@ def test_field_keeps_possession_separate_from_derived_pressure_and_keeps_real_ze
     assert field["away_possession_bar_pct"] == 100
 
 
+def test_activity_index_uses_oldest_capture_when_provider_metrics_are_mixed():
+    home = _team("10", "Local", {
+        "possession": ("Ball Possession", "60%", 60),
+        "shots_on_goal": ("Shots on Goal", "4", 4),
+        "corners": ("Corner Kicks", "3", 3),
+    })
+    away = _team("20", "Visitante", {
+        "possession": ("Ball Possession", "40%", 40),
+        "shots_on_goal": ("Shots on Goal", "2", 2),
+        "corners": ("Corner Kicks", "1", 1),
+    })
+    for team in (home, away):
+        team["stats"]["possession"]["captured_at"] = "2026-10-20T10:00:00Z"
+        team["stats"]["shots_on_goal"]["captured_at"] = "2026-10-20T10:00:00Z"
+        team["stats"]["corners"]["captured_at"] = "2026-10-20T10:15:00Z"
+    stats = {"available": True, "teams": [home, away]}
+
+    pressure = _pressure_from_stats(stats, "Local", "Visitante", "10", "20")
+    field = _field_state(stats, [], pressure, "Local", "Visitante", "10", "20")
+
+    assert field["activity_index_input_clock_state"] == "MIXED"
+    assert field["activity_index_oldest_input_at"] == "2026-10-20T10:00:00Z"
+    assert field["activity_index_input_count"] == 6
+    assert field["activity_index_timestamped_input_count"] == 6
+
+
+def test_activity_index_does_not_claim_a_combined_time_when_an_input_is_untimed():
+    home = _team("10", "Local", {
+        "possession": ("Ball Possession", "60%", 60),
+        "corners": ("Corner Kicks", "3", 3),
+    })
+    away = _team("20", "Visitante", {
+        "possession": ("Ball Possession", "40%", 40),
+        "corners": ("Corner Kicks", "1", 1),
+    })
+    for team in (home, away):
+        team["stats"]["possession"]["captured_at"] = "2026-10-20T10:00:00Z"
+    stats = {"available": True, "teams": [home, away]}
+
+    pressure = _pressure_from_stats(stats, "Local", "Visitante", "10", "20")
+    field = _field_state(stats, [], pressure, "Local", "Visitante", "10", "20")
+
+    assert field["activity_index_input_clock_state"] == "PARTIAL"
+    assert field["activity_index_oldest_input_at"] is None
+    assert field["activity_index_input_count"] == 4
+    assert field["activity_index_timestamped_input_count"] == 2
+
+
+def test_activity_index_marks_inputs_with_one_capture_instant_as_same():
+    home = _team("10", "Local", {"possession": ("Ball Possession", "60%", 60)})
+    away = _team("20", "Visitante", {"possession": ("Ball Possession", "40%", 40)})
+    for team in (home, away):
+        team["stats"]["possession"]["captured_at"] = "2026-10-20T10:00:00Z"
+    stats = {"available": True, "teams": [home, away]}
+
+    pressure = _pressure_from_stats(stats, "Local", "Visitante", "10", "20")
+    field = _field_state(stats, [], pressure, "Local", "Visitante", "10", "20")
+
+    assert field["activity_index_input_clock_state"] == "SAME"
+    assert field["activity_index_oldest_input_at"] == "2026-10-20T10:00:00Z"
+    assert field["activity_index_input_count"] == field["activity_index_timestamped_input_count"] == 2
+
+
 def test_field_hides_incoherent_possession_pair_and_normalizes_only_bar_widths():
     rounded_stats = {
         "available": True,
@@ -418,6 +481,12 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
             "possession_available": True,
             "home_possession_pct": 61,
             "away_possession_pct": 39,
+            "activity_index_available": True,
+            "activity_index_method": "weighted_provider_statistics",
+            "home_activity_index_pct": 64,
+            "away_activity_index_pct": 36,
+            "activity_index_input_clock_state": "MIXED",
+            "activity_index_oldest_input_at": "2026-10-17T16:00:00Z",
         },
     }
     match = {
@@ -460,6 +529,10 @@ def test_directo_card_renders_cached_stats_with_provider_timestamp(app_module):
     assert "API-Football" in rendered
     assert "API-Football Pro" not in rendered
     assert 'data-possession-captured-at="2026-10-17T16:00:00Z"' in rendered
+    assert 'data-activity-input-clock-state="MIXED"' in rendered
+    assert 'data-activity-updated-at="2026-10-17T16:00:00Z"' in rendered
+    assert "Dato más antiguo usado:" in rendered
+    assert 'data-activity-oldest-input datetime="2026-10-17T16:00:00Z"' in rendered
     assert "2026-10-17T16:05:00Z" in rendered
     assert "Último dato recibido por NeMeSiS" in rendered
     assert 'data-realtime-freshness-label' in rendered

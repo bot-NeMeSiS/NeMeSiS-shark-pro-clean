@@ -75,7 +75,7 @@
       </div>
       {% endif %}
       {% if field.get('activity_index_available') %}
-      <section class="v934-live-activity" data-live-stat-activity data-activity-updated-at="{{ tracker.get('statistics_updated_at') or '' }}" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
+      <section class="v934-live-activity" data-live-stat-activity data-activity-updated-at="{{ field.get('activity_index_oldest_input_at') or '' }}" data-activity-input-clock-state="{{ field.get('activity_index_input_clock_state') or 'UNKNOWN' }}" data-activity-index="weighted-provider-statistics" data-provider-metric="false" data-spatial-map-available="false" aria-label="{{ ui('Índice estadístico orientativo de actividad') }}">
         <div class="v934-live-activity__heading"><strong>{{ ui('Actividad estadística orientativa') }}</strong><span>{{ ui('Estimación NeMeSiS · no es un dato del proveedor') }}</span></div>
         <div class="v934-live-activity__bar" role="img" aria-label="{{ ui('Índice estadístico orientativo:') }} {{ home_name }} {{ field.get('home_activity_index_pct') }}%, {{ away_name }} {{ field.get('away_activity_index_pct') }}%.">
           <span class="is-home" data-activity-home-bar style="width: {{ field.get('home_activity_index_pct') }}%"></span>
@@ -83,6 +83,7 @@
         </div>
         <div class="v934-live-activity__teams"><span>{{ home_name }} <b data-activity-home-value>{{ field.get('home_activity_index_pct') }}%</b></span><span>{{ away_name }} <b data-activity-away-value>{{ field.get('away_activity_index_pct') }}%</b></span></div>
         <small>{{ ui('Cálculo orientativo basado en las estadísticas disponibles. No representa posesión oficial, ubicación del balón ni zonas del campo.') }}</small>
+        <small data-activity-freshness><span data-activity-freshness-label>{% if field.get('activity_index_input_clock_state') == 'MIXED' and field.get('activity_index_oldest_input_at') %}{{ ui('Datos de señales con horas distintas. Dato más antiguo usado:') }}{% elif field.get('activity_index_input_clock_state') == 'SAME' and field.get('activity_index_oldest_input_at') %}{{ ui('Hora de las señales:') }}{% elif field.get('activity_index_input_clock_state') == 'PARTIAL' %}{{ ui('Frescura de las señales incompleta; no se muestra una hora conjunta.') }}{% else %}{{ ui('Hora de las señales no establecida.') }}{% endif %}</span>{% if field.get('activity_index_input_clock_state') in ['SAME', 'MIXED'] and field.get('activity_index_oldest_input_at') %} <time data-activity-oldest-input datetime="{{ field.get('activity_index_oldest_input_at') }}">{{ field.get('activity_index_oldest_input_at')|sync_madrid_label }}</time>{% endif %}</small>
       </section>
       {% endif %}
       <div class="v934-live-stats__ribbon" aria-label="Resumen de estadísticas del proveedor">

@@ -238,6 +238,22 @@
       "en": "Delayed data · Last observation",
       "fr": "Données retardées · Dernière observation"
     },
+    "Datos de señales con horas distintas. Dato más antiguo usado:": {
+      "en": "Input statistics have different capture times. Oldest input used:",
+      "fr": "Les statistiques sources ont des heures différentes. Donnée la plus ancienne utilisée :"
+    },
+    "Hora de las señales:": {
+      "en": "Input statistics captured:",
+      "fr": "Heure des statistiques sources :"
+    },
+    "Frescura de las señales incompleta; no se muestra una hora conjunta.": {
+      "en": "Input freshness is incomplete; a combined time is not shown.",
+      "fr": "La fraîcheur des données sources est incomplète ; aucune heure commune n'est affichée."
+    },
+    "Hora de las señales no establecida.": {
+      "en": "Input capture time not established.",
+      "fr": "Heure de capture des données sources non établie."
+    },
     "Estado de la observación. No mide probabilidad de ganar.": {
       "en": "Observation status. Not a probability of winning.",
       "fr": "État de l'observation. Ce n'est pas une probabilité de gain."

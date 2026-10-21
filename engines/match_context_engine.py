@@ -316,6 +316,7 @@ def _activity_index_context(live: Mapping[str, Any] | None) -> dict[str, Any]:
         "home_pct": None,
         "away_pct": None,
         "observed_at": None,
+        "input_freshness": "UNKNOWN",
     }
     tracker = _mapping(live)
     field = _mapping(tracker.get("field_state"))
@@ -335,14 +336,30 @@ def _activity_index_context(live: Mapping[str, Any] | None) -> dict[str, Any]:
         return unavailable
     if not (0 <= home <= 100 and 0 <= away <= 100 and abs(home + away - 100) <= 0.01):
         return unavailable
-    observed_at = _text(tracker.get("statistics_updated_at") or tracker.get("updated_at"))
+    input_freshness = _text(field.get("activity_index_input_clock_state")).upper()
+    raw_oldest_input_at = _text(field.get("activity_index_oldest_input_at"))
+    observed_at = (
+        raw_oldest_input_at
+        if input_freshness in {"SAME", "MIXED"}
+        and raw_oldest_input_at
+        and parse_datetime_to_madrid(raw_oldest_input_at) is not None
+        else None
+    )
+    reported_input_freshness = (
+        "PARTIAL"
+        if input_freshness == "PARTIAL"
+        else input_freshness
+        if observed_at and input_freshness in {"SAME", "MIXED"}
+        else "UNKNOWN"
+    )
     return {
         **unavailable,
         "available": True,
         "method": "weighted_provider_statistics",
         "home_pct": round(home),
         "away_pct": round(away),
-        "observed_at": observed_at or None,
+        "observed_at": observed_at,
+        "input_freshness": reported_input_freshness,
         "provider_metric": False,
         "spatial_map_available": False,
     }

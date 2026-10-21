@@ -166,6 +166,54 @@ def test_open_card_updates_in_place_and_preserves_navigation_and_focus(screen):
     assert status(page)==('LIVE','true')
 
 
+def test_live_activity_label_uses_oldest_input_clock_not_latest_statistics_receipt(screen):
+    page,t=screen
+    initial=normalize_match(row(source='api_football_live',fixture_id='777'),now=NOW)
+    page.set_content(document(initial=initial))
+    page.evaluate("""() => {
+      window.qa = {transport: {}, calls: []};
+      window.fetch = async function(url, options) {
+        qa.calls.push({url:String(url), method:options.method || 'GET', headers:options.headers});
+        const t = qa.transport;
+        return new Response(t.status === 304 ? null : JSON.stringify(t.payload),
+          {status:t.status, headers:{'Date':t.date, 'ETag':'\"qa-etag\"'}});
+      };
+    }""")
+    page.add_script_tag(content=(ROOT/'static/v934-realtime.js').read_text(encoding='utf-8'))
+    instant=NOW+timedelta(seconds=45)
+    oldest=(instant-timedelta(minutes=5)).isoformat()
+    payload=snapshot(instant,[row(instant,source='api_football_live',fixture_id='777')])
+    payload['matches'][0]['live_statistics']={
+        'available':True,
+        'external_calls':0,
+        'fixture_id':'777',
+        'statistics_updated_at':instant.isoformat(),
+        'stat_cards':[
+            {'key':'possession','label':'Posesión','home':'61%','away':'39%',
+             'home_captured_at':oldest,'away_captured_at':oldest},
+            {'key':'corners','label':'Córners','home':'4','away':'2',
+             'home_captured_at':instant.isoformat(),'away_captured_at':instant.isoformat()},
+        ],
+        'field_state':{
+            'activity_index_available':True,
+            'activity_index_method':'weighted_provider_statistics',
+            'home_activity_index_pct':64,
+            'away_activity_index_pct':36,
+            'activity_index_input_clock_state':'MIXED',
+            'activity_index_oldest_input_at':oldest,
+        },
+    }
+    t.update(payload=payload,date=instant,status=200)
+    advance(page,45000)
+
+    activity=page.locator('[data-live-stat-activity]')
+    assert activity.get_attribute('data-activity-input-clock-state')=='MIXED'
+    assert activity.get_attribute('data-activity-updated-at')==oldest
+    assert activity.locator('[data-activity-freshness-label]').inner_text()=='Datos de señales con horas distintas. Dato más antiguo usado:'
+    assert activity.locator('[data-activity-oldest-input]').get_attribute('datetime')==oldest
+    assert page.locator('[data-stat-updated-at]').get_attribute('data-stat-updated-at')==instant.isoformat()
+
+
 @pytest.mark.parametrize('changes,expected_score,expected_minute', [
     ({'home_score':0,'away_score':0,'minute':0},'0 - 0','Min 0'),
     ({'home_score':None,'away_score':0,'minute':70},'Resultado pendiente','Min 70'),
