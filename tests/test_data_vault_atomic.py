@@ -49,7 +49,7 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
     finished = {event["stage"] for event in events if event["status"] == "finished"}
     assert {"ATTEMPT", "LOCK", "RECOVERY", "CAPACITY_PREFLIGHT", "WORKSPACE", "SNAPSHOT",
             "INTEGRITY", "METADATA", "HASH", "MANIFEST", "PUBLICATION",
-            "RETENTION", "CLEANUP"} <= started
+            "RETENTION", "CLEANUP", "CAPACITY_DB_ESTIMATE", "CAPACITY_DISK_CHECK"} <= started
     assert started <= finished
     stage_events = [(event["stage"], event["status"]) for event in events]
     snapshot_finished = stage_events.index(("SNAPSHOT", "finished"))
@@ -59,6 +59,74 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
                if event["status"] in {"finished", "failed", "skipped", "rejected"})
     assert "do-not-log-this" not in output
     assert str(source) not in output
+
+
+def test_capacity_preflight_emits_safe_space_metrics(backup_source, capsys):
+    source, root = backup_source
+
+    result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+
+    assert result["ok"] is True, result
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    capacity = next(event for event in events
+                    if event["stage"] == "CAPACITY_PREFLIGHT" and event["status"] == "finished")
+    assert capacity["snapshot_bytes"] > 0
+    assert capacity["required_bytes"] > capacity["snapshot_bytes"]
+    assert capacity["free_before"] > 0
+    assert capacity["reason_code"] == "READY"
+    assert "compact_snapshot_bytes" not in capacity
+    assert not any(event["stage"] == "COMPACT_CAPACITY_PREFLIGHT" for event in events)
+    assert "free_bytes" in capacity
+
+
+def test_capacity_diagnostic_does_not_log_exception_message(capsys):
+    secret = "provider-token-do-not-log /data/private/database.db"
+
+    def fail_with_secret():
+        raise sqlite3.OperationalError(secret)
+
+    with pytest.raises(sqlite3.OperationalError):
+        vault._run_backup_diagnostic_stage(
+            "CAPACITY_BACKUP_VERIFY",
+            fail_with_secret,
+        )
+
+    output = capsys.readouterr().out
+    events = [json.loads(line) for line in output.splitlines()]
+    failure = next(event for event in events if event["status"] == "failed")
+    assert failure["error_type"] == "OperationalError"
+    assert secret not in output
+    assert "/data/private/database.db" not in output
+    assert "provider-token" not in output
+
+
+def test_capacity_preflight_attributes_slow_verified_copy(backup_source, monkeypatch, capsys):
+    source, root = backup_source
+    saved = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+    assert saved["ok"] is True, saved
+    capsys.readouterr()
+
+    original_validate = vault.validate_backup
+    def slow_validate(*args, **kwargs):
+        time.sleep(0.08)
+        return original_validate(*args, **kwargs)
+
+    monkeypatch.setattr(vault, "validate_backup", slow_validate)
+    monkeypatch.setattr(vault, "_sqlite_snapshot_estimate_bytes", lambda _path: 1024)
+    monkeypatch.setattr(
+        vault.shutil,
+        "disk_usage",
+        lambda _path: type("Disk", (), {"free": 1024, "total": 2**31})(),
+    )
+
+    result = vault.ensure_backup_capacity(source, root)
+
+    assert result["ok"] is False
+    events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    verify = next(event for event in events
+                  if event["stage"] == "CAPACITY_BACKUP_VERIFY" and event["status"] == "finished")
+    assert verify["duration_ms"] >= 70
+    assert "name" not in verify and "path" not in verify
 
 
 def test_slow_sqlite_snapshot_time_is_attributed_to_snapshot_stage(backup_source, monkeypatch, capsys):

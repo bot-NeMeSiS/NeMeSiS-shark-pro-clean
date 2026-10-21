@@ -65,7 +65,14 @@ def sha256_file(path: str | Path, *, deadline: float | None = None) -> str:
 
 
 def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = None,
-                       error_type: str = "", error_code: str = "") -> None:
+                       error_type: str = "", error_code: str = "",
+                       snapshot_bytes: int | None = None,
+                       compact_snapshot_bytes: int | None = None,
+                       required_bytes: int | None = None,
+                       free_before: int | None = None,
+                       free_bytes: int | None = None,
+                       reusable_page_bytes: int | None = None,
+                       reason_code: str = "") -> None:
     """Write low-cardinality backup timing without paths, data, or secrets."""
     event = {"event": "data_backup_stage", "stage": str(stage), "status": str(status)}
     if started_at is not None:
@@ -74,7 +81,38 @@ def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = No
         event["error_type"] = str(error_type)[:48]
     if error_code and error_code.startswith("SQLITE_") and error_code.replace("_", "").isalnum():
         event["error_code"] = error_code[:48]
+    for key, value in (
+        ("snapshot_bytes", snapshot_bytes),
+        ("compact_snapshot_bytes", compact_snapshot_bytes),
+        ("required_bytes", required_bytes),
+        ("free_before", free_before),
+        ("free_bytes", free_bytes),
+        ("reusable_page_bytes", reusable_page_bytes),
+    ):
+        if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+            event[key] = value
+    if reason_code and reason_code.replace("_", "").isalnum() and reason_code.upper() == reason_code:
+        event["reason_code"] = reason_code[:48]
     print(json.dumps(event, ensure_ascii=True, sort_keys=True), flush=True)
+
+
+def _run_backup_diagnostic_stage(stage: str, operation):
+    """Time a backup preflight operation without logging its inputs or result."""
+    started_at = time.monotonic()
+    _emit_backup_stage(stage, "started")
+    try:
+        result = operation()
+    except Exception as exc:
+        _emit_backup_stage(
+            stage,
+            "failed",
+            started_at=started_at,
+            error_type=type(exc).__name__,
+            error_code=getattr(exc, "sqlite_errorname", ""),
+        )
+        raise
+    _emit_backup_stage(stage, "finished", started_at=started_at)
+    return result
 
 
 def _backup_error_type(exc: Exception, *, deadline: float | None = None) -> str:
@@ -341,7 +379,8 @@ def ensure_backup_capacity(
     src = Path(db_path)
     bdir = Path(directory) if directory is not None else backup_dir(root)
     bdir.mkdir(parents=True, exist_ok=True)
-    snapshot_bytes = max(0, _sqlite_snapshot_estimate_bytes(src))
+    snapshot_bytes = max(0, _run_backup_diagnostic_stage(
+        "CAPACITY_DB_ESTIMATE", lambda: _sqlite_snapshot_estimate_bytes(src)))
     margin_bytes = max(64 * 1024 * 1024, snapshot_bytes // 10)
     required_bytes = snapshot_bytes + margin_bytes
 
@@ -349,7 +388,7 @@ def ensure_backup_capacity(
         usage = shutil.disk_usage(bdir)
         return int(usage.free), int(usage.total)
 
-    free_before, total_bytes = capacity()
+    free_before, total_bytes = _run_backup_diagnostic_stage("CAPACITY_DISK_CHECK", capacity)
     result = {
         "ok": free_before >= required_bytes,
         "snapshot_bytes": snapshot_bytes,
@@ -363,13 +402,24 @@ def ensure_backup_capacity(
     if result["ok"]:
         return result
 
-    backups = list_backups(root, directory=bdir)
+    backups = _run_backup_diagnostic_stage(
+        "CAPACITY_BACKUP_INVENTORY", lambda: list_backups(root, directory=bdir))
     verified = None
-    for item in backups:
-        if item.get("valid") and validate_backup(root, item["name"], directory=bdir).get("ok"):
-            verified = item
-            result["preserved_verified"] = item["name"]
-            break
+    def find_verified_backup():
+        for item in backups:
+            if not item.get("valid"):
+                continue
+            check = _run_backup_diagnostic_stage(
+                "CAPACITY_BACKUP_VERIFY",
+                lambda item=item: validate_backup(root, item["name"], directory=bdir),
+            )
+            if check.get("ok"):
+                return item
+        return None
+
+    verified = _run_backup_diagnostic_stage("CAPACITY_VERIFY_HISTORY", find_verified_backup)
+    if verified is not None:
+        result["preserved_verified"] = verified["name"]
 
     # Invalid/orphan files first; then oldest verified-history copies. The
     # newest independently verified backup is never removed for capacity.
@@ -379,19 +429,25 @@ def ensure_backup_capacity(
             item for item in reversed(backups)
             if item.get("valid") and item["name"] != verified["name"]
         )
-    seen = set()
-    for item in candidates:
-        name = str(item.get("name") or "")
-        if not name or name in seen:
-            continue
-        seen.add(name)
-        if _delete_backup_item(item):
-            result["removed"].append(name)
-        free_now, _ = capacity()
-        result["free_after"] = free_now
-        if free_now >= required_bytes:
-            result["ok"] = True
-            return result
+    def reclaim_known_backups():
+        seen = set()
+        for item in candidates:
+            name = str(item.get("name") or "")
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            if _delete_backup_item(item):
+                result["removed"].append(name)
+            free_now, _ = capacity()
+            result["free_after"] = free_now
+            if free_now >= required_bytes:
+                return True
+        return False
+
+    reclaimed = _run_backup_diagnostic_stage("CAPACITY_RECLAIM", reclaim_known_backups)
+    if reclaimed:
+        result["ok"] = True
+        return result
 
     result["ok"] = False
     result["error"] = "backup_storage_insufficient"
@@ -455,14 +511,24 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     _emit_backup_stage("CAPACITY_PREFLIGHT", "started")
     storage = ensure_backup_capacity(src, root, directory=bdir)
     _emit_backup_stage("CAPACITY_PREFLIGHT", "finished" if storage.get("ok") else "rejected",
-                       started_at=capacity_started)
+                       started_at=capacity_started,
+                       snapshot_bytes=storage.get("snapshot_bytes"),
+                       required_bytes=storage.get("required_bytes"),
+                       free_before=storage.get("free_before"),
+                       free_bytes=storage.get("free_after"),
+                       reason_code=("READY" if storage.get("ok") else "INSUFFICIENT_SPACE"))
     compact = False
     if not storage.get("ok"):
         compact_capacity_started = time.monotonic()
         _emit_backup_stage("COMPACT_CAPACITY_PREFLIGHT", "started")
         candidate = _compact_snapshot_capacity(src, bdir)
         _emit_backup_stage("COMPACT_CAPACITY_PREFLIGHT", "finished" if candidate.get("ok") else "rejected",
-                           started_at=compact_capacity_started)
+                           started_at=compact_capacity_started,
+                           compact_snapshot_bytes=candidate.get("compact_snapshot_bytes"),
+                           required_bytes=candidate.get("required_bytes"),
+                           free_bytes=candidate.get("free_bytes"),
+                           reusable_page_bytes=candidate.get("reusable_page_bytes"),
+                           reason_code=str(candidate.get("reason_code") or ""))
         storage["compact_candidate"] = candidate
         if not candidate.get("ok"):
             return {"ok": False, "backup_created": False,
