@@ -13,4 +13,14 @@
 .backup-evidence .backup-actions form{margin:0}
 .backup-evidence .backup-observation{border-left:3px solid #4ad9ed;padding:14px 18px}
 .backup-evidence .backup-observation[data-tone="warning"]{border-left-color:#ffc76b}
-@media(max-width:600px){.collection-toolbar .field{flex-basis:100%}.backup-evidence .backup-actions{width:100%}}
+.backup-evidence .backup-stage-list{display:grid;gap:5px;margin-top:10px;min-width:0}
+.backup-evidence .backup-stage-row{align-items:center;background:rgba(255,255,255,.035);border:1px solid rgba(151,185,215,.12);border-radius:10px;display:grid;gap:10px;grid-template-columns:minmax(0,1fr) auto 72px;min-width:0;padding:8px 10px}
+.backup-evidence .backup-stage-row strong{font-size:.83rem;min-width:0;overflow-wrap:anywhere}
+.backup-evidence .backup-stage-row time{color:#d7e7f7;font-variant-numeric:tabular-nums;font-size:.8rem;text-align:right;white-space:nowrap}
+.backup-evidence .backup-stage-status{border-radius:999px;color:#b9cadd;font-size:.68rem;font-weight:800;padding:3px 8px}
+.backup-evidence .backup-stage-row[data-stage-status="failed"] .backup-stage-status,.backup-evidence .backup-stage-row[data-stage-status="rejected"] .backup-stage-status{background:rgba(255,199,107,.12);color:#ffd48c}
+.backup-evidence .backup-metric-grid{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));margin-top:10px}
+.backup-evidence .backup-metric-grid>div{background:rgba(255,255,255,.035);border:1px solid rgba(151,185,215,.12);border-radius:10px;display:grid;gap:4px;min-width:0;padding:9px 11px}
+.backup-evidence .backup-metric-grid span{color:#a9bbcf;font-size:.72rem;line-height:1.35}
+.backup-evidence .backup-metric-grid strong{color:#f4fbff;font-variant-numeric:tabular-nums;font-size:.96rem}
+@media(max-width:600px){.collection-toolbar .field{flex-basis:100%}.backup-evidence .backup-actions{width:100%}.backup-evidence .backup-stage-row{grid-template-columns:minmax(0,1fr) auto;gap:5px 8px}.backup-evidence .backup-stage-row time{grid-column:2}.backup-evidence .backup-stage-status{grid-row:2;grid-column:1}}

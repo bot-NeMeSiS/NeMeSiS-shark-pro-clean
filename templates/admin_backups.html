@@ -19,6 +19,33 @@
     {% if observation.time %}<p class="small">{{ observation.time|madrid_datetime_label }} · {{ ui('Hora de la observación registrada') }}</p>{% endif %}
   </article>
 </section>
+{% set diagnostics = observation.diagnostics %}
+{% if diagnostics.stages or diagnostics.storage %}
+<section class="band compact-band" aria-labelledby="backup-stage-title" data-backup-diagnostics="read-only">
+  <div class="section-head"><h2 id="backup-stage-title">{{ ui('Detalle técnico del último intento') }}</h2></div>
+  <p class="small">{{ ui('Datos seguros registrados por el proceso. Esta vista solo consulta el resultado guardado; no ejecuta ni vuelve a validar operaciones.') }}</p>
+  {% if diagnostics.stages %}
+  <div class="backup-stage-list" role="list" aria-label="{{ ui('Duración de etapas') }}">
+    {% for stage in diagnostics.stages %}
+    <article class="backup-stage-row" role="listitem" data-stage-status="{{ stage.status|lower }}">
+      <strong>{{ ui(stage.label) }}</strong><span class="backup-stage-status">{{ ui(stage.status) }}</span><time>{{ stage.duration_ms }} ms</time>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if diagnostics.storage %}
+  <div class="backup-metric-grid" aria-label="{{ ui('Medidas de capacidad') }}">
+    {% if 'snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado de la base') }}</span><strong>{{ (diagnostics.storage.snapshot_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'compact_snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado compacto') }}</span><strong>{{ (diagnostics.storage.compact_snapshot_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'required_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio requerido con margen') }}</span><strong>{{ (diagnostics.storage.required_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'free_before' in diagnostics.storage %}<div><span>{{ ui('Espacio libre al inicio') }}</span><strong>{{ (diagnostics.storage.free_before / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'free_after' in diagnostics.storage %}<div><span>{{ ui('Espacio libre tras el intento') }}</span><strong>{{ (diagnostics.storage.free_after / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'free_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio libre medido') }}</span><strong>{{ (diagnostics.storage.free_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'reusable_page_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio reutilizable dentro de SQLite') }}</span><strong>{{ (diagnostics.storage.reusable_page_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
 <section class="band compact-band">
   <div class="section-head"><h2>{{ ui('Copias disponibles') }}</h2><span class="pill">{{ data.backups|length }}</span></div>
   <p class="small">{{ ui('El manifiesto recoge comprobaciones realizadas al crear la copia. Esta pantalla no vuelve a comprobar los archivos ni acredita una restauración.') }}</p>

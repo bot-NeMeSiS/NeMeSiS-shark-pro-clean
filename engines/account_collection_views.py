@@ -4,6 +4,59 @@ from datetime import datetime
 from engines.app_navigation import navigation_matches
 
 
+_BACKUP_STAGE_LABELS = {
+    'ATTEMPT': 'Intento completo', 'LOCK': 'Bloqueo de exclusión',
+    'RECOVERY': 'Recuperación temporal', 'PREPARATION': 'Preparación',
+    'CAPACITY_PREFLIGHT': 'Preanálisis de capacidad',
+    'CAPACITY_DB_ESTIMATE': 'Estimación de base de datos',
+    'CAPACITY_DISK_CHECK': 'Comprobación de espacio',
+    'CAPACITY_BACKUP_INVENTORY': 'Inventario de copias previas',
+    'CAPACITY_BACKUP_VERIFY': 'Verificación de copia previa',
+    'CAPACITY_VERIFY_HISTORY': 'Verificación del historial',
+    'CAPACITY_RECLAIM': 'Recuperación de espacio',
+    'COMPACT_CAPACITY_PREFLIGHT': 'Estimación de copia compacta',
+    'WORKSPACE': 'Preparación de copia', 'SNAPSHOT': 'Creación de copia',
+    'INTEGRITY': 'Comprobación de integridad', 'METADATA': 'Lectura de resumen',
+    'HASH': 'Cálculo de huella', 'MANIFEST': 'Preparación de manifiesto',
+    'PUBLICATION': 'Publicación', 'RETENTION': 'Retención',
+    'CLEANUP': 'Limpieza temporal',
+}
+_BACKUP_STAGE_STATUSES = {
+    'finished': 'Finalizada', 'failed': 'Fallida',
+    'rejected': 'Rechazada', 'skipped': 'Omitida',
+}
+_BACKUP_METRICS = (
+    'snapshot_bytes', 'compact_snapshot_bytes', 'required_bytes',
+    'free_before', 'free_after', 'free_bytes', 'reusable_page_bytes',
+)
+
+
+def _backup_diagnostic_summary(result):
+    result = result if isinstance(result, dict) else {}
+    stages = []
+    raw_stages = result.get('diagnostic_stages')
+    if isinstance(raw_stages, list):
+        for raw in raw_stages[-32:]:
+            if not isinstance(raw, dict):
+                continue
+            label = _BACKUP_STAGE_LABELS.get(raw.get('stage'))
+            status = _BACKUP_STAGE_STATUSES.get(raw.get('status'))
+            duration = raw.get('duration_ms')
+            if (not label or not status or isinstance(duration, bool)
+                    or not isinstance(duration, int) or not 0 <= duration <= 86_400_000):
+                continue
+            stages.append({'label': label, 'status': status, 'duration_ms': duration})
+
+    storage = result.get('storage')
+    storage = storage if isinstance(storage, dict) else {}
+    metrics = {}
+    for key in _BACKUP_METRICS:
+        value = storage.get(key)
+        if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 10**15:
+            metrics[key] = value
+    return {'stages': stages, 'storage': metrics}
+
+
 def favorite_collection(favorites, query='', kind=''):
     query = str(query or '').strip()[:90]
     kind = kind if kind in {'team', 'league', 'match'} else ''
@@ -44,4 +97,5 @@ def backup_observation(record):
         label, detail = 'Última ejecución sin copia nueva', 'Una ejecución omitida no acredita una copia nueva.'
     elif result.get('status') == 'DISABLED':
         label, detail = 'Copia automática desactivada', 'La última ejecución indicó que la copia automática estaba desactivada.'
-    return {'label': label, 'detail': detail, 'tone': tone, 'time': observed_at}
+    return {'label': label, 'detail': detail, 'tone': tone, 'time': observed_at,
+            'diagnostics': _backup_diagnostic_summary(result)}

@@ -51,7 +51,12 @@ vault.create_sqlite_backup(sys.argv[1], '.', 'QA', directory=sys.argv[2])
         interrupted = list(folder.glob(".backup-work-*"))
         assert len(interrupted) == 1
         concurrent = vault.create_sqlite_backup(source, tmp_path, "QA", directory=folder)
-        assert concurrent == {"ok": True, "backup_created": False, "status": "SKIPPED_ALREADY_RUNNING"}
+        assert concurrent["ok"] and not concurrent["backup_created"]
+        assert concurrent["status"] == "SKIPPED_ALREADY_RUNNING"
+        assert [
+            (stage["stage"], stage["status"])
+            for stage in concurrent["diagnostic_stages"]
+        ] == [("LOCK", "skipped"), ("ATTEMPT", "skipped")]
         assert interrupted[0].exists()
         assert len(vault.list_backups(tmp_path, directory=folder)) == 1
         process.kill()

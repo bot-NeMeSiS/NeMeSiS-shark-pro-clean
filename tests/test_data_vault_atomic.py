@@ -42,6 +42,16 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
     result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
 
     assert result["ok"] is True, result
+    diagnostics = result["diagnostic_stages"]
+    assert any(item["stage"] == "SNAPSHOT" and item["status"] == "finished"
+               for item in diagnostics)
+    assert any(item["stage"] == "INTEGRITY" and item["status"] == "finished"
+               for item in diagnostics)
+    assert all(set(item).issubset({"event", "stage", "status", "duration_ms", "error_type",
+                                  "error_code", "snapshot_bytes", "compact_snapshot_bytes",
+                                  "required_bytes", "free_before", "free_bytes",
+                                  "reusable_page_bytes", "reason_code"}) for item in diagnostics)
+    assert str(source) not in json.dumps(diagnostics)
     output = capsys.readouterr().out
     events = [json.loads(line) for line in output.splitlines()]
     assert all(event["event"] == "data_backup_stage" for event in events)
