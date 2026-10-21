@@ -24227,6 +24227,13 @@ body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro {
   body[data-ns-design="core"] .brand.v949-brand .ns-brand-pro { font-size: .52rem; }
 }
 
+/* V966: let Directo's no-live state size to its content, not the shared hero minimum. */
+body.ns-app .ns16-live-empty {
+  min-height: 0;
+  align-items: center;
+  padding-block: 8px;
+}
+
 /* V965: make every primary calendar view discoverable on narrow screens. */
 @media (max-width: 600px) {
   .v940-results-calendar-tabs > .v933-filter-tabs {
