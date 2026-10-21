@@ -114,3 +114,37 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
         match = re.search(rf"(?:^|,\s*)calendar_{phase};dur=([0-9]+(?:\.[0-9]+)?)", timing)
         assert match, f"Missing timing for {phase}: {timing}"
         assert float(match.group(1)) >= 0
+
+
+def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeypatch):
+    summary = _calendar_summary(app_module, count=1)
+    match = summary["all_valid_matches"][0]
+    match["kickoff_iso"] = f"{app_module.today_iso()}T23:30:00Z"
+    with app_module.app.test_request_context(
+        "/calendario?lane=week",
+        headers={"Accept-Language": "en"},
+    ):
+        expected_label = app_module.ui_match_datetime(match)
+    monkeypatch.setattr(
+        app_module,
+        "v932_safe_dashboard_data",
+        lambda *_args, **_kwargs: ({}, summary),
+    )
+    monkeypatch.setattr(
+        app_module,
+        "_v940_hydrate_selected_date_results",
+        lambda value, _date: value,
+    )
+    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", lambda _summary: {})
+
+    def unexpected_reformat(*_args, **_kwargs):
+        raise AssertionError("Prepared Calendar cards must reuse their Madrid labels")
+
+    monkeypatch.setitem(app_module.app.jinja_env.globals, "ui_match_datetime", unexpected_reformat)
+    monkeypatch.setitem(app_module.app.jinja_env.globals, "ui_match_clock", unexpected_reformat)
+
+    response = client.get("/calendario?lane=week", headers={"Accept-Language": "en"})
+
+    assert response.status_code == 200
+    assert expected_label.endswith("· 01:30")
+    assert expected_label.encode("utf-8") in response.data

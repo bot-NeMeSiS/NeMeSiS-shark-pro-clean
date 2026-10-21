@@ -513,7 +513,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V972_CALENDAR_RENDER_DIAGNOSTICS'
+APP_VERSION = 'V973_CALENDAR_TEMPORAL_FASTPATH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17645,7 +17645,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V972_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V973_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -21897,13 +21897,17 @@ def _calendar_facets(matches):
 
 
 
-def _calendar_group(matches, sort_key="importance"):
+def _calendar_group(matches, sort_key="importance", *, match_dates_prepared=False):
     from engines.league_badge_read_model import match_badge
 
     date_buckets = []
     by_date = {}
     for item in matches:
-        key = normalize_kickoff_for_display(item).get("madrid_date") or "sin-fecha"
+        key = (
+            str(item.get("madrid_date") or "")
+            if match_dates_prepared
+            else normalize_kickoff_for_display(item).get("madrid_date")
+        ) or "sin-fecha"
         label = item.get("calendar_date_label") or jinja_match_date_label(item)
         by_date.setdefault(key, {"date_key": key, "date": key, "date_label": label, "label": label, "matches_count": 0, "total": 0, "leagues": {}})
         bucket = by_date[key]
@@ -22204,7 +22208,7 @@ def _v940_calendar_href(filters=None, **overrides):
 
 
 def _v940_calendar_prepare_match(raw, pick_ids, favorites):
-    item = dict(raw or {})
+    item = normalize_kickoff_for_display(dict(raw or {}))
     status_info = canonical_match_status(item)
     live_minute = canonical_live_minute(item)
     item["status_info"] = status_info
@@ -22236,11 +22240,46 @@ def _v940_calendar_prepare_match(raw, pick_ids, favorites):
     item["safe_away"] = away
     item["calendar_competition"] = competition
     item["calendar_country"] = country
-    item["calendar_date_label"] = item.get("client_date_label") or jinja_match_date_label(item)
+    item["calendar_date_label"] = (
+        item.get("client_date_label")
+        or item.get("madrid_date_label")
+        or item.get("safe_date")
+        or item.get("match_date")
+        or "Sin fecha Madrid"
+    )
+    if "unresolved_provider_datetime" in (item.get("time_warnings") or []):
+        datetime_source = ""
+    else:
+        datetime_source = (
+            item.get("madrid_dt_iso")
+            or item.get("kickoff_iso_madrid")
+            or item.get("kickoff_iso")
+            or item.get("commence_time")
+            or item.get("start_time")
+            or item.get("event_time")
+            or (
+                madrid_local_iso(
+                    item.get("match_date"),
+                    item.get("kickoff_time") or item.get("match_time") or item.get("time"),
+                )
+                if item.get("match_date")
+                and (item.get("kickoff_time") or item.get("match_time") or item.get("time"))
+                else ""
+            )
+        )
+    item["calendar_datetime_label"] = (
+        format_madrid_client_datetime_label(datetime_source, locale=current_ui_locale())
+        or ui_text("Fecha pendiente")
+    )
     if status_info.get("is_live"):
         item["calendar_time"] = f"{live_minute}'" if live_minute else "En directo"
     else:
-        item["calendar_time"] = item.get("client_time_label") or jinja_match_time_short(item)
+        item["calendar_time"] = (
+            item.get("client_time_label")
+            or item.get("madrid_time")
+            or format_madrid_short_time(datetime_source)
+            or "Hora"
+        )
     item["calendar_status"] = status_info.get("label") or "Estado pendiente"
     item = apply_sports_relevance(item, pick_ids=pick_ids, favorites=favorites)
     item["calendar_rank"] = int((item.get("sports_relevance") or {}).get("competition_rank") or item.get("calendar_rank") or 80)
@@ -22500,7 +22539,11 @@ def v940_calendar_context(summary, lane="today", date_value=None):
     sorted_matches = _calendar_sort(filtered, filters.get("sort"))
     if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
         sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
-    day_groups = _calendar_group(sorted_matches, filters.get("sort"))
+    day_groups = _calendar_group(
+        sorted_matches,
+        filters.get("sort"),
+        match_dates_prepared=True,
+    )
     day_navigation = _v940_calendar_group_navigation(day_groups)
     facets = _calendar_facets(source_matches)
 
