@@ -22,7 +22,7 @@ def mount(browser,app_module,*,width=390,language='es',query='',before='',run_sc
     # The main Jinja template, main styles and scoped delivery styles; no providers.
     html=re.sub(r'<script\b[^>]*>.*?</script>','',html,flags=re.S|re.I)
     if day_groups is not None:
-        css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')
+        css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')+'\n'+(ROOT/'static/calendar-discovery.css').read_text(encoding='utf-8')
     else:
         css='\n'.join((ROOT/'static'/name).read_text() for name in ('v930-canonical.css','v933_design_tokens.css','v933-product.css','calendar-discovery.css','competition-grouping.css'))
     page=browser.new_page(viewport={'width':width,'height':844}, reduced_motion='reduce')
@@ -109,6 +109,40 @@ def test_mid_mobile_calendar_keeps_sort_and_submit_on_one_row(browser,app_module
         assert first_match['y'] < 740
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
         assert not errors
+    finally:page.close()
+
+
+def test_calendar_space_layout_balances_wide_competitions_and_keeps_mobile_sort_readable(browser,app_module):
+    leagues=[
+        {'key':f'league-{i}','anchor_id':f'league-{i}','label':f'Liga de prueba {i}','country':'España','matches':[]}
+        for i in range(1,5)
+    ]
+    day_groups=[{'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today','matches_count':0,
+                 'league_navigation':[],'league_sections':[{'key':'spain','kind':'country','label':'España','count':4,'leagues':leagues}]}]
+    page,requests,errors=mount(browser,app_module,width=1440,day_groups=day_groups)
+    try:
+        section=page.locator('[data-calendar-competition-group="spain"]')
+        assert section.count()==1
+        desktop=section.evaluate('(el)=>({columns:getComputedStyle(el).columnCount,display:getComputedStyle(el).display})')
+        assert desktop=={'columns':'2','display':'block'}
+        heading=section.locator('.v940-calendar-competition-heading')
+        assert heading.evaluate('(el)=>getComputedStyle(el).columnSpan')=='all'
+        assert section.locator('.v940-calendar-league').count()==4
+
+        page.set_viewport_size({'width':390,'height':844})
+        mobile=section.evaluate('(el)=>({columns:getComputedStyle(el).columnCount,display:getComputedStyle(el).display})')
+        assert mobile['display']=='block' and mobile['columns']=='auto'
+        sort=page.locator('#v940-calendar-sort')
+        assert sort.is_visible()
+        width=sort.evaluate('''el=>{
+          const style=getComputedStyle(el),canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
+          ctx.font=style.font;
+          const label=el.selectedOptions[0].textContent.trim();
+          return {actual:el.getBoundingClientRect().width,required:ctx.measureText(label).width+parseFloat(style.paddingLeft)+parseFloat(style.paddingRight)};
+        }''')
+        assert width['actual']>=width['required']
+        assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
+        assert not errors and not requests
     finally:page.close()
 
 

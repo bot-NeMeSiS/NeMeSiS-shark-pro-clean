@@ -4,7 +4,7 @@
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% from "components/sports_search.html" import suggestions with context %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-6">
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-7">
 <link rel="stylesheet" href="{{ url_for('static', filename='competition-grouping.css') }}?v={{ app_version }}-1">
 {# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
 {% set pending_copy = {'es': 'Cambios sin aplicar. Pulsa Encontrar partidos.', 'en': 'Changes not applied. Select Find matches.', 'fr': 'Modifications non appliquées. Choisissez Trouver des matchs.'} %}
@@ -84,7 +84,7 @@
       <label class="v940-calendar-sort" for="v940-calendar-sort">
         <span>{{ ui('Orden de partidos') }}</span>
         <select id="v940-calendar-sort" name="sort" aria-describedby="v940-sort-scope">
-          <option value="importance"{% if filters.get('sort', 'importance') == 'importance' %} selected{% endif %}>{{ ui('Destacados primero') }}</option>
+          <option value="importance"{% if filters.get('sort', 'importance') == 'importance' %} selected{% endif %}>{{ ui('Relevancia') }}</option>
           <option value="time"{% if filters.get('sort') == 'time' %} selected{% endif %}>{{ ui('Por hora') }}</option>
           {% if filters.get('sort') in ['league', 'picks'] %}<option value="{{ filters.get('sort') }}" selected>{{ ui('Por competición' if filters.get('sort') == 'league' else 'Con pronóstico primero') }}</option>{% endif %}
         </select>
