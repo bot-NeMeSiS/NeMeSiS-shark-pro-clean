@@ -32,6 +32,9 @@
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-2-canonical-core-4-home-leagues-live-statistics-lineup-grid-1-home-empty-state-1-admin-navigation-1" data-product-system="premium-1">
+  {% if request.path == '/admin/track-record' %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='v981-admin-grading-review.css') }}?v={{ app_version }}" data-v981-grading-review="1">
+  {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='v934-live-activity.css') }}?v={{ app_version }}-activity-index-2" data-live-activity-system="1">
   <link rel="stylesheet" href="{{ url_for('static', filename='v975-match-statistics-freshness.css') }}?v={{ app_version }}" data-match-statistics-freshness="1">
   <link rel="stylesheet" href="{{ url_for('static', filename='sports-match-density.css') }}?v=20261021-1">

@@ -33,6 +33,46 @@
   </article>
 </section>
 
+<section class="card v981-review-queue" aria-labelledby="v981-review-queue-title">
+  <div class="v981-review-queue__header">
+    <div>
+      <h2 id="v981-review-queue-title">Pendientes de revisión</h2>
+      <p class="muted">Se mantienen sin liquidar cuando falta evidencia suficiente. Revisa el partido, el mercado y el motivo antes de decidir.</p>
+    </div>
+    <span class="v981-review-queue__count">{{ data.track_record.pending }} {{ 'pendiente' if data.track_record.pending == 1 else 'pendientes' }}</span>
+  </div>
+  {% if data.track_record.pending_results %}
+  <div class="v981-review-queue__list">
+    {% for row in data.track_record.pending_results %}
+    <article class="v981-review-item">
+      <div class="v981-review-item__heading">
+        <div>
+          <h3>{{ row.home_team or 'Partido sin identificar' }} <span aria-hidden="true">vs</span> {{ row.away_team or 'rival sin identificar' }}</h3>
+          <p>{{ row.competition_name or 'Competición no indicada' }}</p>
+        </div>
+        <span class="v981-review-item__status">Revisión manual</span>
+      </div>
+      <dl class="v981-review-item__facts">
+        <div><dt>Mercado</dt><dd>{{ row.market or 'No indicado' }}</dd></div>
+        <div><dt>Selección</dt><dd>{{ row.selection or 'No indicada' }}</dd></div>
+        {% if row.event_datetime_label %}<div><dt>Inicio</dt><dd>{{ row.event_datetime_label }}</dd></div>{% endif %}
+        {% if row.match_status %}<div><dt>Estado del partido</dt><dd>{{ row.match_status }}</dd></div>{% endif %}
+        {% if row.score %}<div><dt>Marcador observado</dt><dd>{{ row.score }}</dd></div>{% endif %}
+      </dl>
+      <p class="v981-review-item__reason"><strong>Motivo guardado:</strong> {{ row.reason or 'El registro no incluyó un motivo. Ejecuta primero un análisis seguro para obtener evidencia actualizada.' }}</p>
+      <small>Pick {{ row.pick_id }} · última evaluación {{ row.graded_at|madrid_datetime_label if row.graded_at else 'sin fecha' }}</small>
+      {% if row.match_id %}<a class="v981-review-item__match-link" href="{{ url_for('match_detail_page', match_id=row.match_id) }}">Abrir ficha del partido</a>{% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% if data.track_record.pending > data.track_record.pending_results|length %}
+  <p class="muted v981-review-queue__more">Mostrando los {{ data.track_record.pending_results|length }} más recientes de {{ data.track_record.pending }} pendientes.</p>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">No hay pronósticos pendientes de revisión en esta muestra.</div>
+  {% endif %}
+</section>
+
 <section class="card">
   <h2>Últimos resultados</h2>
   {% if data.track_record.recent_results %}
@@ -51,6 +91,6 @@
     {% endfor %}
     </tbody>
   </table></div>
-  {% else %}<div class="empty-state">Todavía no hay picks evaluados. Ejecuta una revisión cuando existan partidos finalizados con resultado fiable.</div>{% endif %}
+  {% else %}<div class="empty-state">Todavía no hay resultados decididos para mostrar. Los picks pendientes se muestran arriba y no cuentan como aciertos o pérdidas.</div>{% endif %}
 </section>
 {% endblock %}

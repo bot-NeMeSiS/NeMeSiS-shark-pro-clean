@@ -507,13 +507,14 @@ from engines.madrid_time_engine import (
     format_madrid_sync_label,
     madrid_conversion_selftest,
     madrid_greeting,
+    madrid_local_from_parts,
     madrid_time_diagnostics,
     normalize_kickoff_for_display,
     parse_madrid_local_datetime,
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V980_PICK_STATUS_SAFETY'
+APP_VERSION = 'V981_ADMIN_GRADING_REVIEW_QUEUE'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17649,7 +17650,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V980_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V981_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -33061,9 +33062,160 @@ def v742_track_record_context():
                              AND COALESCE(stake,0)>0
                            GROUP BY substr(graded_at,1,7)
                            ORDER BY label DESC LIMIT 12""")
-        pending_results = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT * FROM eligible_grades
-                                  WHERE result_status='pending'
-                                  ORDER BY graded_at DESC LIMIT 12""")
+        grading_columns = {item.get("name", "") for item in rows("PRAGMA table_info(pick_grading_results)")}
+        pick_columns = {item.get("name", "") for item in rows("PRAGMA table_info(picks)")}
+        match_columns = (
+            {item.get("name", "") for item in rows("PRAGMA table_info(matches)")}
+            if db_table_exists("matches") else set()
+        )
+        if "id" not in match_columns:
+            match_columns = set()
+
+        def _pending_text(candidates, extra=(), prefer_extra=False):
+            expressions = [
+                f"NULLIF(TRIM(CAST({alias}.{column} AS TEXT)), '')"
+                for alias, column, available in candidates
+                if column in available
+            ]
+            expressions = ([*extra, *expressions] if prefer_extra else [*expressions, *extra])
+            if not expressions:
+                return "''"
+            return "COALESCE(" + ", ".join(expressions + ["''"]) + ")"
+
+        match_key = _pending_text((
+            ("p", "match_id", pick_columns),
+            ("g", "match_id", grading_columns),
+        ))
+        match_join = ""
+        if "id" in match_columns:
+            match_join = f"LEFT JOIN matches m ON m.id = {match_key}"
+
+        home_team = _pending_text((
+            ("m", "home_team", match_columns),
+            ("p", "home_team", pick_columns),
+        ))
+        away_team = _pending_text((
+            ("m", "away_team", match_columns),
+            ("p", "away_team", pick_columns),
+        ))
+        competition_name = _pending_text((
+            ("m", "competition_name", match_columns),
+            ("m", "league_name", match_columns),
+            ("p", "competition_name", pick_columns),
+            ("p", "league_name", pick_columns),
+        ))
+        market = _pending_text((
+            ("p", "market", pick_columns),
+            ("p", "pick_type", pick_columns),
+        ))
+        event_candidates = [
+            ("m", "kickoff_iso", match_columns),
+            ("p", "kickoff_at", pick_columns),
+        ]
+        event_expressions = []
+        for alias, column, available in (
+            ("m", "match_time", match_columns),
+            ("p", "match_time", pick_columns),
+        ):
+            if column in available:
+                value = f"NULLIF(TRIM(CAST({alias}.{column} AS TEXT)), '')"
+                event_expressions.append(
+                    f"CASE WHEN INSTR({value}, ':') > 0 AND "
+                    f"(INSTR({value}, '-') > 0 OR INSTR({value}, 'T') > 0) THEN {value} END"
+                )
+        date_expression = _pending_text((
+            ("m", "match_date", match_columns),
+            ("p", "match_date", pick_columns),
+        ))
+        time_expression = _pending_text((
+            ("m", "kickoff_time", match_columns),
+            ("m", "match_time", match_columns),
+            ("p", "kickoff_time", pick_columns),
+            ("p", "match_time", pick_columns),
+        ))
+        if date_expression != "''" and time_expression != "''":
+            event_expressions.append(
+                f"CASE WHEN NULLIF(TRIM({date_expression}), '') IS NOT NULL "
+                f"AND NULLIF(TRIM({time_expression}), '') IS NOT NULL "
+                f"AND INSTR({date_expression}, ':') = 0 "
+                f"THEN NULLIF(TRIM({date_expression} || ' ' || {time_expression}), '') END"
+            )
+        if "match_date" in pick_columns:
+            pick_event_datetime = "NULLIF(TRIM(CAST(p.match_date AS TEXT)), '')"
+            event_expressions.append(
+                f"CASE WHEN INSTR({pick_event_datetime}, ':') > 0 "
+                f"THEN {pick_event_datetime} END"
+            )
+        if date_expression != "''":
+            event_expressions.append(date_expression)
+        event_datetime = _pending_text(event_candidates, extra=event_expressions)
+        match_status = _pending_text((("m", "status", match_columns),))
+        score_extra = []
+        if {"home_score", "away_score"}.issubset(match_columns):
+            score_extra.append(
+                "CASE WHEN m.home_score IS NOT NULL AND m.away_score IS NOT NULL "
+                "THEN CAST(m.home_score AS TEXT) || '-' || CAST(m.away_score AS TEXT) ELSE '' END"
+            )
+        score = _pending_text((("m", "score", match_columns),), extra=score_extra)
+        pick_created_at = _pending_text((
+            ("p", "created_at", pick_columns),
+            ("p", "updated_at", pick_columns),
+        ))
+        reason = _pending_text((("g", "reason", grading_columns),))
+        grading_id = "g.id" if "id" in grading_columns else "g.pick_id"
+        grading_score = "g.grading_score" if "grading_score" in grading_columns else "NULL"
+        confidence_after = "g.confidence_after" if "confidence_after" in grading_columns else "NULL"
+        graded_at = "g.graded_at" if "graded_at" in grading_columns else "''"
+        pending_results = rows(LATEST_ELIGIBLE_GRADING_CTE + f"""SELECT
+                                      {grading_id} AS grading_id,
+                                      g.pick_id,
+                                      {match_key} AS match_id,
+                                      g.result_status,
+                                      {reason} AS reason,
+                                      {grading_score} AS grading_score,
+                                      {confidence_after} AS confidence_after,
+                                      {home_team} AS home_team,
+                                      {away_team} AS away_team,
+                                      {competition_name} AS competition_name,
+                                      {market} AS market,
+                                      {_pending_text((("p", "pick_type", pick_columns),))} AS pick_type,
+                                      {_pending_text((("p", "selection", pick_columns),))} AS selection,
+                                      {event_datetime} AS event_datetime,
+                                      {match_status} AS match_status,
+                                      {score} AS score,
+                                      {pick_created_at} AS pick_created_at,
+                                      {graded_at} AS graded_at
+                                  FROM eligible_grades g
+                                  JOIN picks p ON p.id = g.pick_id
+                                  {match_join}
+                                  WHERE g.result_status='pending'
+                                  ORDER BY COALESCE({graded_at},'') DESC,
+                                           {pick_created_at} DESC
+                                  LIMIT 12""")
+        for pending_row in pending_results:
+            raw_event = str(pending_row.get("event_datetime") or "").strip()
+            event_label = ""
+            local_datetime_match = re.fullmatch(
+                r"(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2})(?::\d{2})?", raw_event
+            )
+            date_only_match = re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_event)
+            if local_datetime_match:
+                local_datetime = madrid_local_from_parts(*local_datetime_match.groups())
+                if local_datetime:
+                    event_label = format_madrid_client_datetime_label(
+                        local_datetime, locale=current_ui_locale()
+                    )
+            elif date_only_match:
+                local_datetime = madrid_local_from_parts(raw_event, "12:00")
+                if local_datetime:
+                    event_label = format_madrid_client_date_label(
+                        local_datetime, locale=current_ui_locale()
+                    )
+            else:
+                event_label = format_madrid_client_datetime_label(
+                    raw_event, locale=current_ui_locale()
+                ) if raw_event else ""
+            pending_row["event_datetime_label"] = f"{event_label} · Madrid" if event_label else ""
     if db_table_exists("picks"):
         try:
             by_market = rows(f"""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
