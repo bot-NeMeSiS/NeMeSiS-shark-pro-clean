@@ -8,4 +8,4 @@ Validación local final: 189 pruebas de `test_pick_grading_truth_v941.py`, `test
 
 Revisión de seguridad local del diff: cero hallazgos reportables (ID `6168ad8d-82e0-49eb-ac97-5a6f38ded412`); el resultado avisa `rollout_unavailable` y cobertura agregada parcial, así que no se presenta como revisión de producción.
 
-V981 sigue siendo un candidato local en `codex/v981-admin-grading-review-queue`; no se ha creado PR, commit, push ni despliegue. CI e integración quedan pendientes de la publicación por el flujo habitual.
+V981 se integró mediante PR #276 y se desplegó en Render el 23 de octubre de 2026. La verificación confirmó runtime READY y versión alineada; el primer tick del Cron coincidió con el reemplazo de la instancia web y falló en el control de disponibilidad antes de ejecutar sus lanes. Los tres ticks naturales siguientes terminaron sin error de proceso, aunque siguieron PARTIAL en conjunto.

@@ -514,7 +514,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V981_ADMIN_GRADING_REVIEW_QUEUE'
+APP_VERSION = 'V982_ADMIN_GRADING_REVIEW_PAGINATION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17650,7 +17650,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V981_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V982_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -33039,7 +33039,7 @@ def api_admin_public_launch():
     return jsonify({"ok": True, "version": APP_VERSION, "public_launch": v734_public_launch_context()})
 
 
-def v742_track_record_context():
+def v742_track_record_context(pending_page=1, pending_page_size=12):
     summary = dict(pick_grading_summary(DB_PATH) or {})
     won = as_int(summary.get("won"), 0)
     lost = as_int(summary.get("lost"), 0)
@@ -33052,6 +33052,10 @@ def v742_track_record_context():
     by_league = []
     by_plan = []
     pending_results = []
+    pending_page_size = max(1, min(50, as_int(pending_page_size, 12)))
+    pending_page_count = max(1, (pending + pending_page_size - 1) // pending_page_size)
+    pending_page = max(1, min(pending_page_count, as_int(pending_page, 1)))
+    pending_offset = (pending_page - 1) * pending_page_size
     eligible_pick_statuses = "('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')"
     if db_table_exists("pick_grading_results") and db_table_exists("picks"):
         by_month = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
@@ -33190,8 +33194,9 @@ def v742_track_record_context():
                                   {match_join}
                                   WHERE g.result_status='pending'
                                   ORDER BY COALESCE({graded_at},'') DESC,
-                                           {pick_created_at} DESC
-                                  LIMIT 12""")
+                                           {pick_created_at} DESC,
+                                           g.pick_id DESC
+                                  LIMIT ? OFFSET ?""", (pending_page_size, pending_offset))
         for pending_row in pending_results:
             raw_event = str(pending_row.get("event_datetime") or "").strip()
             event_label = ""
@@ -33253,6 +33258,13 @@ def v742_track_record_context():
     summary["by_league"] = by_league
     summary["by_plan"] = by_plan
     summary["pending_results"] = pending_results
+    summary["pending_page"] = pending_page
+    summary["pending_page_size"] = pending_page_size
+    summary["pending_page_count"] = pending_page_count
+    summary["pending_range_start"] = pending_offset + 1 if pending else 0
+    summary["pending_range_end"] = pending_offset + len(pending_results)
+    summary["pending_has_previous"] = pending_page > 1
+    summary["pending_has_next"] = pending_page < pending_page_count
     summary["commercial_note"] = "Pendiente de resultados reales" if decided == 0 else "Rendimiento calculado solo con picks evaluables."
     if has_request_context() and not is_admin_session():
         user = current_session_user() or {"membership": "FREE", "role": "FREE"}
@@ -33325,7 +33337,8 @@ def admin_track_record_page():
         except Exception:
             pass
     data = dashboard_data()
-    data["track_record"] = v742_track_record_context()
+    pending_page = as_int(request.args.get("pending_page"), 1) if request.method == "GET" else 1
+    data["track_record"] = v742_track_record_context(pending_page=pending_page)
     data["last_run"] = last_run
     return render_template("admin_track_record.html", data=data)
 

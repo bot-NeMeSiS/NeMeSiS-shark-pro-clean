@@ -42,6 +42,7 @@
     <span class="v981-review-queue__count">{{ data.track_record.pending }} {{ 'pendiente' if data.track_record.pending == 1 else 'pendientes' }}</span>
   </div>
   {% if data.track_record.pending_results %}
+  <p class="muted v981-review-queue__range">Mostrando {{ data.track_record.pending_range_start }}–{{ data.track_record.pending_range_end }} de {{ data.track_record.pending }} pendientes.</p>
   <div class="v981-review-queue__list">
     {% for row in data.track_record.pending_results %}
     <article class="v981-review-item">
@@ -65,8 +66,16 @@
     </article>
     {% endfor %}
   </div>
-  {% if data.track_record.pending > data.track_record.pending_results|length %}
-  <p class="muted v981-review-queue__more">Mostrando los {{ data.track_record.pending_results|length }} más recientes de {{ data.track_record.pending }} pendientes.</p>
+  {% if data.track_record.pending_page_count > 1 %}
+  <nav class="v981-review-pagination" aria-label="Páginas de pronósticos pendientes">
+    {% if data.track_record.pending_has_previous %}
+    <a class="btn" href="{{ url_for('admin_track_record_page', pending_page=data.track_record.pending_page - 1) }}" rel="prev">Anteriores</a>
+    {% endif %}
+    <span aria-current="page">Página {{ data.track_record.pending_page }} de {{ data.track_record.pending_page_count }}</span>
+    {% if data.track_record.pending_has_next %}
+    <a class="btn" href="{{ url_for('admin_track_record_page', pending_page=data.track_record.pending_page + 1) }}" rel="next">Siguientes</a>
+    {% endif %}
+  </nav>
   {% endif %}
   {% else %}
   <div class="empty-state">No hay pronósticos pendientes de revisión en esta muestra.</div>
