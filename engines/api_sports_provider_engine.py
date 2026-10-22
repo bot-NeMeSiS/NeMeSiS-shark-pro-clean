@@ -14,12 +14,22 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Mapping
 
 from engines.api_usage_guard_engine import DEFAULT_API_FOOTBALL_DAILY_CALL_BUDGET
 
 API_SPORTS_BASE_URL = "https://v3.football.api-sports.io"
 DEFAULT_TTL_SECONDS = 900
+STATUS_READ_BUDGET_SECONDS = 0.3
+_STATUS_TABLES = (
+    "api_football_live_sync_state",
+    "api_football_live_snapshots",
+    "api_football_live_events",
+    "api_football_live_stats",
+    "api_football_fixture_index",
+    "api_exploitation_runs",
+)
 _MEMORY_CACHE: dict[str, dict[str, Any]] = {}
 
 
@@ -122,6 +132,102 @@ def sanitize_provider_error(value: Any, limit: int = 220) -> str:
     return text
 
 
+class _StatusReadBudgetExhausted(RuntimeError):
+    pass
+
+
+def _read_api_sports_status(db_path: str) -> dict[str, Any]:
+    """Read one coherent local snapshot within a cooperative SQLite budget.
+
+    Lock waits share the remaining allowance; the progress handler also stops
+    expensive SQL. This is not a wall-clock SLA for filesystem I/O, scheduling
+    or the page that consumes the snapshot. No cache reader or writer changes.
+    """
+    deadline = time.monotonic() + STATUS_READ_BUDGET_SECONDS
+
+    def remaining() -> float:
+        seconds = deadline - time.monotonic()
+        if seconds <= 0:
+            raise _StatusReadBudgetExhausted
+        return seconds
+
+    path = Path(db_path).expanduser().resolve()
+    if not path.exists():
+        raise FileNotFoundError
+    if not path.is_file():
+        raise OSError
+    conn = sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=remaining())
+    interrupted_for_budget = False
+
+    def progress() -> int:
+        nonlocal interrupted_for_budget
+        if time.monotonic() >= deadline:
+            interrupted_for_budget = True
+            return 1
+        return 0
+
+    try:
+        conn.row_factory = sqlite3.Row
+        conn.set_progress_handler(progress, 1000)
+
+        def read(sql: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
+            # Truncating to milliseconds never grants a fresh full allowance.
+            conn.execute(f"PRAGMA busy_timeout={int(remaining() * 1000)}")
+            records = conn.execute(sql, params).fetchall()
+            remaining()  # Do not publish work that finished after the deadline.
+            return records
+
+        read("PRAGMA query_only=ON")
+        read("BEGIN")
+        marks = ",".join("?" for _ in _STATUS_TABLES)
+        present = {
+            row[0] for row in read(
+                f"SELECT name FROM sqlite_master WHERE type='table' AND name IN ({marks})",
+                _STATUS_TABLES,
+            )
+        }
+
+        def count(table: str) -> int:
+            if table not in present:
+                return 0
+            return int(read(f"SELECT COUNT(*) FROM {table}")[0][0])
+
+        def one_value(table: str, column: str, order: str) -> str:
+            if table not in present:
+                return ""
+            records = read(f"SELECT {column} FROM {table} ORDER BY {order} DESC LIMIT 1")
+            return str(records[0][0] or "") if records else ""
+
+        observed = {
+            "tables_detected": [table for table in _STATUS_TABLES if table in present],
+            "live_cached": count("api_football_live_snapshots"),
+            "events_cached": count("api_football_live_events"),
+            "stats_cached": count("api_football_live_stats"),
+        }
+        observed["fixtures_cached"] = max(count("api_football_fixture_index"), observed["live_cached"])
+        sync_times = [
+            one_value("api_football_live_sync_state", "last_sync_at", "last_sync_at"),
+            one_value("api_exploitation_runs", "finished_at", "id"),
+        ]
+        observed["last_sync"] = next((item for item in sync_times if item), "")
+        errors = [
+            one_value("api_football_live_sync_state", "error", "last_sync_at"),
+            one_value("api_exploitation_runs", "error_message", "id"),
+        ]
+        observed["last_error"] = sanitize_provider_error(next((item for item in errors if item), ""))
+        remaining()
+        return observed
+    except sqlite3.Error as exc:
+        if interrupted_for_budget:
+            raise _StatusReadBudgetExhausted from exc
+        raise
+    finally:
+        try:
+            conn.set_progress_handler(None, 0)
+        finally:
+            conn.close()
+
+
 def get_api_sports_status(db_path: str | None = None) -> dict[str, Any]:
     configured = is_api_sports_configured()
     enabled = configured and _env_bool("ENABLE_API_FOOTBALL_PROVIDER", True)
@@ -137,46 +243,32 @@ def get_api_sports_status(db_path: str | None = None) -> dict[str, Any]:
         "api_sports_credit_guard_enabled": True,
         "last_sync": "",
         "last_error": "",
-        "fixtures_cached": 0,
-        "live_cached": 0,
-        "events_cached": 0,
-        "stats_cached": 0,
-        "tables_detected": [],
+        "fixtures_cached": None,
+        "live_cached": None,
+        "events_cached": None,
+        "stats_cached": None,
+        "tables_detected": None,
+        "read_state": "NOT_REQUESTED",
+        "read_error": "",
         "usage_guard": usage_guard(),
     }
     if not db_path:
         return summary
     try:
-        conn = _connect(db_path)
-        try:
-            tables = [
-                "api_football_live_sync_state",
-                "api_football_live_snapshots",
-                "api_football_live_events",
-                "api_football_live_stats",
-                "api_football_fixture_index",
-                "api_exploitation_runs",
-            ]
-            summary["tables_detected"] = [table for table in tables if _table_exists(conn, table)]
-            summary["live_cached"] = _count(conn, "api_football_live_snapshots")
-            summary["events_cached"] = _count(conn, "api_football_live_events")
-            summary["stats_cached"] = _count(conn, "api_football_live_stats")
-            summary["fixtures_cached"] = max(_count(conn, "api_football_fixture_index"), summary["live_cached"])
-            sync_times = [
-                _one_value(conn, "api_football_live_sync_state", "last_sync_at", "last_sync_at"),
-                _one_value(conn, "api_exploitation_runs", "finished_at", "id"),
-            ]
-            summary["last_sync"] = next((item for item in sync_times if item), "")
-            errors = [
-                _one_value(conn, "api_football_live_sync_state", "error", "last_sync_at"),
-                _one_value(conn, "api_exploitation_runs", "error_message", "id"),
-            ]
-            summary["last_error"] = sanitize_provider_error(next((item for item in errors if item), ""))
-        finally:
-            conn.close()
-    except Exception as exc:
-        summary["ok"] = False
-        summary["last_error"] = sanitize_provider_error(exc)
+        observed = _read_api_sports_status(db_path)
+    except FileNotFoundError:
+        summary.update(ok=False, read_state="NOT_INITIALIZED", read_error="storage_not_initialized")
+    except _StatusReadBudgetExhausted:
+        summary.update(ok=False, read_state="READ_UNAVAILABLE", read_error="read_budget_exhausted")
+    except sqlite3.Error as exc:
+        code = getattr(exc, "sqlite_errorcode", 0) or 0
+        busy = (code & 0xFF) in {sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED}
+        summary.update(ok=False, read_state="READ_UNAVAILABLE",
+                       read_error="storage_busy" if busy else "storage_unavailable")
+    except Exception:
+        summary.update(ok=False, read_state="READ_UNAVAILABLE", read_error="storage_unavailable")
+    else:
+        summary.update(observed, read_state="READY")
     return summary
 
 
@@ -292,15 +384,25 @@ def get_cached_api_sports_provider_summary(db_path: str | None = None) -> dict[s
     return get_api_sports_status(db_path)
 
 
-def explain_api_sports_provider_state(db_path: str | None = None) -> dict[str, Any]:
-    status = get_api_sports_status(db_path)
-    if not status["api_sports_configured"]:
+def explain_api_sports_provider_state(
+    db_path: str | None = None, *, status: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    status = get_api_sports_status(db_path) if status is None else dict(status)
+    if status.get("api_sports_configured") is False:
         label = "API-SPORTS no configurada"
         message = "Render debe incluir API_FOOTBALL_KEY o API_SPORTS_KEY para activar fixtures/live reales."
-    elif status["last_error"]:
+    elif (
+        status.get("ok") is False
+        or status.get("read_state") not in {None, "READY"}
+        or status.get("fixtures_cached") is None
+        or status.get("live_cached") is None
+    ):
+        label = "Estado local sin comprobar"
+        message = "No se ha podido leer el estado guardado del proveedor. La disponibilidad de su caché no se ha verificado."
+    elif status.get("last_error"):
         label = "Esperando proveedor"
         message = "La clave existe, pero el último estado del proveedor tiene error seguro. Se mantiene caché/fallback."
-    elif status["fixtures_cached"] or status["live_cached"]:
+    elif status.get("fixtures_cached") or status.get("live_cached"):
         label = "Proveedor activo con caché"
         message = "La app tiene datos API-SPORTS/API-Football cacheados y no necesita llamar al proveedor en cada render."
     else:
