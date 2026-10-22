@@ -77,7 +77,8 @@
 </header>
 <nav class="v933-admin-mobile-nav" aria-label="Navegación admin móvil">
   {% for label, href, icon_name in nav_contracts.ADMIN_MOBILE_LINKS %}
-  <a href="{{ href }}"{% if label == 'Más' %} data-open-explore{% endif %}{% if request.path == href or request.path.startswith(href ~ '/') %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+  {% set active = nav_contracts.is_active(href, request.path, 'admin') %}
+  <a href="{{ href }}"{% if label == 'Más' %} data-open-explore{% endif %}{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
   {% endfor %}
 </nav>
 {%- endmacro %}

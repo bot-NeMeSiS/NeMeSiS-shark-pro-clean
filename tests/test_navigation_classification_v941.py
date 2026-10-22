@@ -211,6 +211,21 @@ def test_navigation_contract_aliases_have_one_active_rule(app_module):
     assert contextual.render()=="|"
 
 
+def test_admin_entrypoint_alias_marks_only_the_shared_home_destination(app_module):
+    contract = app_module.app.jinja_env.get_template("components/navigation_contracts.html").module
+    for path in ("/admin/dashboard", "/admin/control-center"):
+        for entries, expected_label in (
+            (contract.ADMIN_LINKS, "Centro de mando"),
+            (contract.ADMIN_MOBILE_LINKS, "Panel"),
+        ):
+            active = [(label, href) for label, href, _ in entries
+                      if str(contract.is_active(href, path, "admin")).strip()]
+            assert active == [(expected_label, "/admin/dashboard")], (path, active)
+        # Contextual links are actions within the page, never a second current section.
+        for href in ("/admin/dashboard#master-audit-title", "/admin/dashboard?commands=1"):
+            assert not str(contract.is_active(href, path, "admin")).strip()
+
+
 def test_legacy_navigation_renderers_stay_purged_and_v933_is_canonical():
     from pathlib import Path
     root=Path(__file__).resolve().parents[1]
