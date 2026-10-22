@@ -62,6 +62,19 @@ vault.create_sqlite_backup(sys.argv[1], '.', 'QA', directory=sys.argv[2])
         process.kill()
         process.wait(timeout=10)
         assert interrupted[0].exists()  # No Python finally ran after termination.
+        # Windows may finish releasing the killed process's byte-range lock
+        # just after wait() returns. Wait for the OS lock itself, not a fixed
+        # sleep, and still fail if the lock is genuinely stranded.
+        lock_released = False
+        lock_deadline = time.monotonic() + 2
+        while time.monotonic() < lock_deadline:
+            try:
+                with staging.backup_directory_lock(folder):
+                    lock_released = True
+                break
+            except staging.BackupInProgress:
+                time.sleep(0.02)
+        assert lock_released, "backup lock remained held after the worker exited"
         recovered = vault.create_sqlite_backup(source, tmp_path, "QA", directory=folder)
         assert recovered["ok"] and recovered["backup_created"]
         recovery = recovered["storage"]["temporary_recovery"]

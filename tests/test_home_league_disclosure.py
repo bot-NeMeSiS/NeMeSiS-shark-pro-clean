@@ -49,6 +49,7 @@ def build(rows):
 def environment():
     env=Environment(loader=FileSystemLoader(ROOT/'templates'),autoescape=select_autoescape(['html']))
     env.globals.update(ui=lambda value,**values:str(value or '').format(**values),
+        ui_country=lambda value:str(value or ''),
         ui_owned=lambda value:str(value or ''),current_user=None,
         request=SimpleNamespace(path='/',endpoint='home'),
         ui_calendar_date=lambda value,**kw:str(value),

@@ -112,10 +112,10 @@
             <select id="v940-calendar-country" name="country">
               <option value="">{{ ui('Todos') }}</option>
               {% if filters.get('country') and filters.get('country') not in country_options|map(attribute='value')|list %}
-              <option value="{{ filters.get('country') }}" selected data-v940-retained-selection="true">{{ filters.get('country') }}</option>
+              <option value="{{ filters.get('country') }}" selected data-v940-retained-selection="true">{{ ui_country(filters.get('country')) }}</option>
               {% endif %}
               {% for item in country_options %}
-              <option value="{{ item.get('value') }}"{% if filters.get('country') == item.get('value') %} selected{% endif %}>{{ item.get('label') }} ({{ item.get('count') }})</option>
+              <option value="{{ item.get('value') }}"{% if filters.get('country') == item.get('value') %} selected{% endif %}>{{ ui_country(item.get('label')) }} ({{ item.get('count') }})</option>
               {% endfor %}
             </select>
           </label>
@@ -250,7 +250,7 @@
         {% for collection in day.get('league_sections') or [] %}
         <section class="v940-calendar-competition-section v940-calendar-competition-section--{{ collection.get('kind') }}" data-calendar-competition-group="{{ collection.get('key') }}">
           <header class="v940-calendar-competition-heading">
-            <h3>{{ ui('Torneos internacionales') if collection.get('kind') == 'international' else (ui('País sin confirmar') if collection.get('kind') == 'unknown' else collection.get('label')) }}</h3>
+            <h3>{{ ui('Torneos internacionales') if collection.get('kind') == 'international' else (ui('País sin confirmar') if collection.get('kind') == 'unknown' else ui_country(collection.get('label'))) }}</h3>
             <span>{{ ui_plural('{count} competición', '{count} competiciones', collection.get('count', 0)) }}</span>
           </header>
           {% for league in collection.get('leagues') or [] %}

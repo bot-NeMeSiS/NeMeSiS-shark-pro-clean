@@ -99,6 +99,26 @@ def test_calendar_preserves_non_search_contract_and_one_collection(app_module):
     assert html.count('data-v940-calendar-collection')==1
 
 
+@pytest.mark.parametrize(('language','expected'), [
+    ('es','Tailandia'), ('en','Thailand'), ('fr','Thaïlande')])
+def test_calendar_localizes_country_section_and_match_card_but_keeps_provider_value(
+        app_module, language, expected):
+    match={'id':'country-label-qa','competition_name':'Thai League QA','country':'Thailand',
+           'home_team':'Home QA','away_team':'Away QA','source':'SIMULATED_QA',
+           'status':'NS','kickoff_iso':'2026-10-21T18:00:00+02:00',
+           'calendar_datetime_label':'21/10/2026 18:00'}
+    league={'key':'thai-league-qa','label':'Thai League QA','country':'Thailand','matches':[match]}
+    sections=app_module.competition_presentation_sections([league],collection_key='leagues')
+    day={'date':'2026-10-21','context_label':'Hoy','anchor_id':'day-today',
+         'matches_count':1,'leagues':[league],'league_sections':sections}
+    app_module._v940_calendar_group_navigation([day])
+    html,_=render_calendar(app_module,language=language,day_groups=[day])
+    assert f'<h3>{expected}</h3>' in html
+    card=html.split('data-v934-match-card="true"',1)[1].split('</article>',1)[0]
+    assert f'<small>{expected}</small>' in card
+    assert match['country']=='Thailand' and league['country']=='Thailand'
+
+
 @pytest.mark.parametrize(('language','summary_text'),[
     ('es','Ver 79 competiciones más'),
     ('en','Show 79 more competitions'),
