@@ -236,72 +236,90 @@ def _load_candidates(conn: sqlite3.Connection, limit: int) -> list[Dict[str, Any
                        ORDER BY COALESCE(updated_at,snapshot_at,'') DESC LIMIT ?""", (int(limit),))
 
 
-def _settle_1x2(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
+def _selection_side(selection: str, home: str, away: str) -> str:
     sel = normalize_text(selection)
+    aliases = {
+        "draw": {"x", "draw", "empate"},
+        "home": {"1", "home", "local", "local gana", "gana local"},
+        "away": {"2", "away", "visitante", "visitante gana", "gana visitante"},
+    }
+    for side, team in (("home", home), ("away", away)):
+        name = normalize_text(team)
+        if name:
+            aliases[side].update({name, "gana " + name, name + " gana"})
+    matches = [side for side, labels in aliases.items() if sel in labels]
+    return matches[0] if len(matches) == 1 else ""
+
+
+def _settle_1x2(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
     if home_goals == away_goals:
         outcome = "draw"
     elif home_goals > away_goals:
         outcome = "home"
     else:
         outcome = "away"
-    home_t = normalize_text(home)
-    away_t = normalize_text(away)
-    if sel in {"x", "draw", "empate"}:
-        wanted = "draw"
-    elif home_t and home_t in sel:
-        wanted = "home"
-    elif away_t and away_t in sel:
-        wanted = "away"
-    elif sel in {"1", "home", "local"}:
-        wanted = "home"
-    elif sel in {"2", "away", "visitante"}:
-        wanted = "away"
-    else:
+    wanted = _selection_side(selection, home, away)
+    if not wanted:
         return "pending"
     return "won" if wanted == outcome else "lost"
 
 
-def _line_number(text: str) -> float | None:
-    import re
-    m = re.search(r"(\d+(?:[\.,]\d+)?)", str(text or ""))
-    if not m:
-        return None
-    return as_float(m.group(1).replace(",", "."), 0.0)
-
-
 def _settle_total_goals(selection: str, market: str, home_goals: int, away_goals: int) -> str:
-    text = normalize_text(f"{market} {selection}")
-    line = _line_number(text)
-    if line is None:
+    choice = re.fullmatch(
+        r"(over|under|m[aá]s(?: de)?|menos(?: de)?|mayor de|menor de|\+|-)\s*"
+        r"(\d+(?:[.,]\d+)?)\s*(?:goles|goals)?",
+        re.sub(r"\s+", " ", normalize_text(selection)),
+    )
+    if not choice:
         return "pending"
-    # Quarter-goal Asian lines can be half-won/half-lost. The current grading
-    # schema only represents won/lost/void, so they require manual review.
+    direction, raw_line = choice.groups()
+    try:
+        line = float(raw_line.replace(",", "."))
+    except (TypeError, ValueError):
+        return "pending"
+    if not math.isfinite(line):
+        return "pending"
+    # The stored result shape cannot represent split Asian lines or a quarter-line settlement.
     fraction = round(line - math.floor(line), 2)
-    if fraction in {0.25, 0.75}:
+    if fraction not in {0.0, 0.5}:
         return "pending"
+
+    canonical_lines = {"over_under_15": 1.5, "over_under_25": 2.5}
+    market_line = canonical_lines.get(market)
+    market_lines = [market_line] if market_line is not None else [
+        float(value.replace(",", "."))
+        for value in re.findall(r"(?<![\w.])\d+(?:[.,]\d+)?(?![\w.])", market)
+    ]
+    if market_lines and any(value != line for value in market_lines):
+        return "pending"
+
     total = home_goals + away_goals
-    is_over = any(x in text for x in ["over", "mas de", "más de", "+", "mayor de"])
-    is_under = any(x in text for x in ["under", "menos de", "-", "menor de"])
-    if total == line and (is_over or is_under):
+    is_over = direction in {"over", "mas de", "más de", "mas", "más", "mayor de", "+"}
+    if total == line:
         return "void"
     if is_over:
         return "won" if total > line else "lost"
-    if is_under:
-        return "won" if total < line else "lost"
-    return "pending"
+    return "won" if total < line else "lost"
 
 
 def _settle_btts(selection: str, market: str, home_goals: int, away_goals: int) -> str:
-    text = normalize_text(f"{market} {selection}")
+    text = re.sub(
+        r"^(?:ambos marcan|both teams(?: to score)?|btts)\s*[:·-]?\s*",
+        "",
+        re.sub(r"\s+", " ", normalize_text(selection)),
+    )
     both = home_goals > 0 and away_goals > 0
-    if any(x in text for x in ["no", "not", "sin ambos"]):
+    if text in {"no", "not", "sin ambos"}:
         return "won" if not both else "lost"
-    if any(x in text for x in ["ambos", "btts", "both teams"]):
+    if text in {"sí", "si", "yes"} or normalize_text(selection) in {"ambos marcan", "btts", "both teams to score"}:
         return "won" if both else "lost"
     return "pending"
 
 
 def _settle_dnb(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
+    selection = re.sub(r"\b(?:dnb|draw no bet|empate no apuesta|sin empate)\b", "", normalize_text(selection)).strip(" :·-()")
+    if _selection_side(selection, home, away) not in {"home", "away"}:
+        return "pending"
     if home_goals == away_goals:
         return "void"
     return _settle_1x2(selection, home_goals, away_goals, home, away)
@@ -309,29 +327,33 @@ def _settle_dnb(selection: str, home_goals: int, away_goals: int, home: str, awa
 
 def _settle_double_chance(selection: str, home_goals: int, away_goals: int, home: str, away: str) -> str:
     sel = normalize_text(selection)
+    aliases = {
+        "1x": {"1x", "local o empate", "local o empate · 1x"},
+        "x2": {"x2", "empate o visitante", "empate o visitante · x2"},
+        "12": {"12", "local o visitante", "sin empate", "local o visitante (sin empate)"},
+    }
     home_t = normalize_text(home)
     away_t = normalize_text(away)
+    if home_t and away_t and home_t != away_t:
+        aliases["1x"].add(home_t + " o empate")
+        aliases["x2"].add("empate o " + away_t)
+        aliases["12"].add(home_t + " o " + away_t)
     if home_goals == away_goals:
         outcome = "x"
     elif home_goals > away_goals:
         outcome = "1"
     else:
         outcome = "2"
-    wanted = set()
-    if "1x" in sel or "local o empate" in sel or (home_t and home_t in sel and "empate" in sel):
-        wanted = {"1", "x"}
-    elif "x2" in sel or "empate o visitante" in sel or (away_t and away_t in sel and "empate" in sel):
-        wanted = {"x", "2"}
-    elif "12" in sel or "local o visitante" in sel or "sin empate" in sel:
-        wanted = {"1", "2"}
-    if not wanted:
+    matches = [code for code, labels in aliases.items() if sel in labels]
+    if len(matches) != 1:
         return "pending"
+    wanted = set(matches[0])
     return "won" if outcome in wanted else "lost"
 
 
 def _automatic_grading_blocker(market: str, selection: str) -> str:
     joined = normalize_text(f"{market} {selection}")
-    if re.search(r"(?:^|\\s)(?:1h|2h|ht)(?:\\s|$)", joined) or any(token in joined for token in (
+    if re.search(r"\b(?:1h|2h|ht)\b", joined) or any(token in joined for token in (
         "primera parte", "primer tiempo", "1er tiempo", "first half", "1st half",
         "segunda parte", "segundo tiempo", "2do tiempo", "second half", "2nd half",
         "half time", "halftime", "descanso",
@@ -349,6 +371,8 @@ def _automatic_grading_blocker(market: str, selection: str) -> str:
         "primer gol", "first goalscorer",
     )):
         return "Mercado especial no soportado por el auto-grading."
+    if any(token in joined for token in ("combi", "combinada", "combined", "builder", "parlay", "multiple")):
+        return "Combinada sin resultado desglosado por selección; requiere revisión manual."
     if any(token in joined for token in (
         "team total", "total equipo", "total local", "total visitante",
         "goles del local", "goles del visitante", "goles local", "goles visitante",
@@ -365,33 +389,49 @@ def infer_result(pick: Dict[str, Any]) -> tuple[str, str, int]:
     explicit = normalize_status(pick.get("result_status"))
     if explicit in {"won", "lost", "void"}:
         return explicit, "Resultado ya marcado en el pick.", 90
-    match_status = normalize_status(pick.get("match_status"))
+    raw_match_status = re.sub(r"\s+", " ", normalize_text(pick.get("match_status")))
+    match_status = normalize_status(raw_match_status)
     home_goals, away_goals = parse_score(pick.get("score"), pick.get("home_score"), pick.get("away_score"))
     if match_status != "finished" or home_goals is None or away_goals is None:
         return "pending", "Partido sin resultado final fiable todavía.", 35
-    market = normalize_text(pick.get("pick_type") or pick.get("market"))
+    if raw_match_status in {
+        "aet", "pen", "finished after extra time", "match finished after extra time",
+        "finished after penalties", "finished after the penalty", "finished after the penalty shootout",
+        "match finished after penalties", "match finished after penalty",
+        "match finished after the penalty shootout", "finalizado tras prórroga", "finalizado tras prorroga",
+        "finalizada tras prórroga", "finalizada tras prorroga", "terminado tras prórroga",
+        "terminado tras prorroga", "terminada tras prórroga", "terminada tras prorroga",
+    }:
+        return "pending", "Marcador tras prórroga o penaltis; falta el resultado del periodo de la apuesta.", 55
+    raw_market = pick.get("market") or pick.get("pick_type")
+    if normalize_text(raw_market) in {"single", "simple"}:
+        raw_market = pick.get("pick_type") if normalize_text(pick.get("pick_type")) not in {"single", "simple"} else pick.get("selection")
+    market = normalize_text(raw_market)
     selection = str(pick.get("selection") or "")
-    joined = normalize_text(f"{market} {selection}")
     blocker = _automatic_grading_blocker(market, selection)
     if blocker:
         return "pending", blocker, 58
-    if any(x in joined for x in ["ambos marcan", "btts", "both teams"]):
+    if market in {"btts", "ambos marcan", "both teams", "both teams to score", "marcan ambos"}:
         res = _settle_btts(selection, market, home_goals, away_goals)
         if res != "pending":
             return res, "Validado automáticamente por marcador final: ambos marcan.", 84
-    if any(x in joined for x in ["over", "under", "mas de", "más de", "menos de", "+1.5", "+2.5", "goles"]):
+    elif market in {
+        "over_under_15", "over_under_25", "goles", "gol total", "goles totales",
+        "total goles", "total de goles", "total goals", "goals", "over/under",
+        "más/menos goles", "mas/menos goles",
+    } or re.fullmatch(r"(?:over|under|over\s*/\s*under|m[aá]s\s*/\s*menos)\s*\d+(?:[.,]\d+)?(?:\s*goles)?", market):
         res = _settle_total_goals(selection, market, home_goals, away_goals)
         if res != "pending":
             return res, "Validado automáticamente por marcador final: mercado de goles.", 84
-    if any(x in joined for x in ["dnb", "draw no bet", "empate no apuesta", "sin empate"]):
+    elif market in {"dnb", "draw no bet", "empate no apuesta", "sin empate"}:
         res = _settle_dnb(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
         if res != "pending":
             return res, "Validado automáticamente por marcador final: empate no apuesta/DNB.", 84
-    if any(x in joined for x in ["doble oportunidad", "double chance", "1x", "x2", "12"]):
+    elif market in {"doble oportunidad", "double chance", "double_chance", "1x", "x2", "12"}:
         res = _settle_double_chance(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
         if res != "pending":
             return res, "Validado automáticamente por marcador final: doble oportunidad.", 82
-    if any(x in joined for x in ["1x2", "winner", "ganador", "moneyline", "resultado", "gana", "local", "visitante"]):
+    elif market in {"1x2", "h2h", "match winner", "ganador", "ganador del partido", "moneyline", "resultado", "resultado final"}:
         res = _settle_1x2(selection, home_goals, away_goals, pick.get("home_team"), pick.get("away_team"))
         if res != "pending":
             return res, "Validado automáticamente por marcador final 1X2.", 82

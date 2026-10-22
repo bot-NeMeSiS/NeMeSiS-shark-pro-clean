@@ -211,8 +211,7 @@ def test_nonterminal_or_ambiguous_match_status_never_settles_pick(status):
 
 
 @pytest.mark.parametrize("status", [
-    "FT", "AET", "PEN", "Match Finished", "Finished after extra time",
-    "Match Finished After Penalty", "Finalizado tras prórroga",
+    "FT", "Match Finished", "Finished", "Finalizado",
 ])
 def test_explicit_terminal_match_status_can_settle_pick(status):
     grade = grading.grade_pick({
@@ -229,6 +228,73 @@ def test_explicit_terminal_match_status_can_settle_pick(status):
     assert grade["result_status"] == "won"
     assert grade["auto_validated"] == 1
     assert grade["profit"] == 1.0
+
+
+@pytest.mark.parametrize("status", [
+    "AET", "PEN", "Finished after extra time", "Match Finished After Penalty",
+    "Match Finished After Penalties", "Finalizado tras prórroga",
+])
+def test_terminal_extra_time_or_penalty_score_does_not_settle_regulation_market(status):
+    assert grading.normalize_status(status) == "finished"
+    grade = grading.grade_pick({
+        "match_status": status,
+        "score": "2-1",
+        "pick_type": "1x2",
+        "selection": "1",
+        "odds": 2.0,
+        "stake_units": 1,
+    })
+    assert grade["result_status"] == "pending"
+    assert grade["auto_validated"] == 0
+    assert grade["profit"] is None
+
+
+@pytest.mark.parametrize("market,selection", [
+    ("1H 1X2", "1"),
+    ("BTTS", "No disponible"),
+    ("1X2", "QA Home or QA Away"),
+    ("1X2", "QA Home no pierde"),
+    ("BTTS", "Yes or no"),
+])
+def test_ambiguous_period_or_selection_never_settles(market, selection):
+    grade = grading.grade_pick({
+        "match_status": "FT",
+        "score": "2-0",
+        "pick_type": market,
+        "selection": selection,
+        "home_team": "QA Home",
+        "away_team": "QA Away",
+        "odds": 2.0,
+        "stake_units": 1,
+    })
+    assert grade["result_status"] == "pending"
+    assert grade["auto_validated"] == 0
+    assert grade["profit"] is None
+
+
+@pytest.mark.parametrize("market,selection,score,expected", [
+    ("over_under_25", "Under 2.5", "2-0", "won"),
+    ("Más/Menos 2.5 goles", "Menos de 2.5 goles", "2-0", "won"),
+    ("Goles", "Más de 1.5 goles", "2-0", "won"),
+    ("BTTS", "No", "2-0", "won"),
+    ("BTTS", "Sí", "2-0", "lost"),
+    ("1X2", "Local gana", "2-0", "won"),
+    ("Doble oportunidad", "Local o visitante (sin empate)", "1-1", "lost"),
+    ("DNB", "Local empate no apuesta", "1-1", "void"),
+])
+def test_supported_market_and_selection_are_settled_only_from_exact_choices(market, selection, score, expected):
+    grade = grading.grade_pick({
+        "match_status": "FT",
+        "score": score,
+        "pick_type": "single",
+        "market": market,
+        "selection": selection,
+        "home_team": "QA Home",
+        "away_team": "QA Away",
+        "odds": 2.0,
+        "stake_units": 1,
+    })
+    assert grade["result_status"] == expected
 
 
 def test_apply_keeps_published_pick_pending_until_match_status_is_terminal(grading_db):
