@@ -139,7 +139,7 @@
 {% set raw_away_score = match.get('away_score') %}
 {% set home_score_present = raw_home_score is not none and (raw_home_score|string|trim) != '' %}
 {% set away_score_present = raw_away_score is not none and (raw_away_score|string|trim) != '' %}
-{% set has_score = home_score_present or away_score_present %}
+{% set has_score = home_score_present and away_score_present %}
 {% set kickoff_clock = match.get('calendar_time') or ui_match_clock(match) %}
 {% set show_kickoff = not has_score and canonical_status in ['UPCOMING', 'SCHEDULED', 'PREMATCH', 'NOT_STARTED', 'NS'] and kickoff_clock != 'Hora' %}
 {% set canonical_competition_id = match.get('client_competition_id') or match.get('calendar_competition_id') or (match.get('surface_contract') or {}).get('canonical_competition_id') or '' %}

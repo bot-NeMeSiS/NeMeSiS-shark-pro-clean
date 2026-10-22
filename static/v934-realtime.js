@@ -99,8 +99,8 @@
       ) && !match.is_live && !match.is_stale;
       var homeScorePresent = match.home_score !== null && match.home_score !== undefined && String(match.home_score).trim() !== '';
       var awayScorePresent = match.away_score !== null && match.away_score !== undefined && String(match.away_score).trim() !== '';
-      if (score && (homeScorePresent || awayScorePresent)) {
-        score.textContent = (homeScorePresent ? match.home_score : '—') + ' - ' + (awayScorePresent ? match.away_score : '—');
+      if (score && homeScorePresent && awayScorePresent) {
+        score.textContent = match.home_score + ' - ' + match.away_score;
         score.hidden = false;
         card.querySelectorAll('[data-match-kickoff-clock],[data-match-kickoff-zone]').forEach(function (node) { node.hidden = true; });
       } else if (score) {

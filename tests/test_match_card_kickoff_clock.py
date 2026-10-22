@@ -80,10 +80,8 @@ def test_upcoming_card_keeps_kickoff_when_provider_scores_are_blank(
 @pytest.mark.parametrize(("home_score", "away_score", "expected"), [
     (0, 0, "0 - 0"),
     ("0", "0", "0 - 0"),
-    (2, None, "2 - —"),
-    (None, 1, "— - 1"),
 ])
-def test_real_zero_and_partial_scores_remain_visible_without_kickoff(
+def test_confirmed_zero_scores_remain_visible_without_kickoff(
         app_module, home_score, away_score, expected):
     card = _render_card(app_module, home_score=home_score, away_score=away_score)
 
@@ -91,6 +89,16 @@ def test_real_zero_and_partial_scores_remain_visible_without_kickoff(
     assert card.score_hidden is False
     assert "".join(card.score_parts) == expected
     assert card.kickoff_parts == []
+
+
+@pytest.mark.parametrize(("home_score", "away_score"), [(2, None), (None, 1)])
+def test_upcoming_card_with_partial_scores_keeps_kickoff_without_inventing_result(
+        app_module, home_score, away_score):
+    card = _render_card(app_module, home_score=home_score, away_score=away_score)
+
+    assert card.score_hidden is True
+    assert "".join(card.score_parts) == "VS"
+    assert "".join(card.kickoff_parts) == "21:00"
 
 
 @pytest.mark.parametrize(("state", "home_score", "away_score", "expected_live"), [

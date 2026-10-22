@@ -25,15 +25,18 @@ login no certifica el funcionamiento del panel.
 Basado en V978 (`30f638d262bb89d45cfb2aa38cd98bf6988a19b5`) en el worktree
 `codex/v979-country-labels`. Localiza etiquetas de países conocidos en Inicio,
 Calendario y el directorio de competiciones sin alterar valores de filtro ni datos
-de proveedor. Las tarjetas conservan la hora de inicio ante marcadores vacíos y
-mantienen visibles los ceros y resultados parciales, incluso en actualización en
-vivo. Incluye una espera determinista de liberación del bloqueo de backup en una
-prueba Windows; no modifica el backup de producción.
+de proveedor. Las tarjetas conservan la hora de inicio ante marcadores vacíos o
+incompletos, y solo muestran resultado cuando ambos valores están presentes; los
+ceros siguen siendo válidos, también tras una actualización en vivo. Incluye una
+espera determinista de liberación del bloqueo de backup en una prueba Windows;
+no modifica el backup de producción.
 
-Regresión local delimitada: 108 PASS y 1 SKIP (enlace simbólico no disponible en
-Windows); `py_compile`, `node --check` y `git diff --check` PASS. El árbol aún no
-ha pasado la suite completa ni los workflows remotos. Integración y comprobación
-de auto despliegue quedan pendientes de esos gates; V979 todavía no está publicada.
+Regresión local inicial delimitada: 108 PASS y 1 SKIP (enlace simbólico no
+disponible en Windows). El CI detectó una incompatibilidad del tratamiento de
+marcadores parciales con la regla previa de no inferir resultados. Se corrigió en
+este candidato y pasó la batería focalizada de tarjeta/calendario/tiempo real,
+`node --check` y `git diff --check`. La revisión CI corregida y la suite completa
+siguen pendientes; V979 todavía no está publicada.
 
 ### Base existente que se reutiliza
 
