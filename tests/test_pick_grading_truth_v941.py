@@ -12,12 +12,13 @@ def grading_db(tmp_path):
     with sqlite3.connect(path) as conn:
         conn.executescript("""
             CREATE TABLE matches(id TEXT PRIMARY KEY,status TEXT,score TEXT,
-                home_score INTEGER,away_score INTEGER,updated_at TEXT);
+                home_score INTEGER,away_score INTEGER,match_date TEXT,kickoff_time TEXT,updated_at TEXT);
             CREATE TABLE picks(id TEXT PRIMARY KEY,match_id TEXT,match_date TEXT,
                 competition_name TEXT,home_team TEXT,away_team TEXT,pick_type TEXT,
                 market TEXT,selection TEXT,odds REAL,confidence INTEGER,stake_units REAL,
                 status TEXT,result_status TEXT,updated_at TEXT,created_at TEXT);
-            INSERT INTO matches VALUES('qa-match','FT','2-0',2,0,'2026-09-27T18:00:00+00:00');
+            INSERT INTO matches(id,status,score,home_score,away_score,match_date,kickoff_time,updated_at)
+            VALUES('qa-match','FT','2-0',2,0,'2026-09-27','19:00','2026-09-27T18:00:00+00:00');
         """)
     grading.ensure_pick_grading_schema(path)
     return path
@@ -127,17 +128,80 @@ def test_track_record_months_and_pending_use_same_latest_evaluations(app_module,
     add_pick(grading_db,"one")
     add_pick(grading_db,"two")
     with sqlite3.connect(grading_db) as conn:
+        conn.execute("""UPDATE picks SET match_date='2026-09-27 18:00',
+                       competition_name='QA League', market='Total goles',
+                       selection='Over 2.5' WHERE id='two'""")
+        conn.execute("UPDATE matches SET match_date='2026-09-27',kickoff_time='19:00' WHERE id='qa-match'")
         conn.executemany("""INSERT INTO pick_grading_results
-            (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
-            [("a","one","pending",2,1,None,"2026-08-01"),
-             ("b","one","won",2,1,1,"2026-08-02"),
-             ("c","one","lost",2,1,-1,"2026-09-01"),
-             ("d","two","pending",2,1,None,"2026-09-01")])
+            (id,pick_id,result_status,odds,stake,profit,reason,graded_at) VALUES(?,?,?,?,?,?,?,?)""",
+            [("a","one","pending",2,1,None,"obsolete pending","2026-08-01"),
+             ("b","one","won",2,1,1,"decided","2026-08-02"),
+             ("c","one","lost",2,1,-1,"decided","2026-09-01"),
+             ("d","two","pending",2,1,None,"Evidence is not conclusive yet.","2026-09-01")])
     record=app_module.v742_track_record_context()
     assert record["by_month"]==[{"label":"2026-09","total":1,"profit":-1.0}]
     assert record["roi"]==-100.0
     assert record["winrate"]==0.0
     assert [r["pick_id"] for r in record["pending_results"]]==["two"]
+    pending = record["pending_results"][0]
+    assert pending["home_team"] == "QA Home"
+    assert pending["away_team"] == "QA Away"
+    assert pending["competition_name"] == "QA League"
+    assert pending["market"] == "Total goles"
+    assert pending["selection"] == "Over 2.5"
+    assert pending["event_datetime"] == "2026-09-27 19:00"
+    assert pending["match_status"] == "FT"
+    assert pending["score"] == "2-0"
+    assert pending["reason"] == "Evidence is not conclusive yet."
+
+
+def test_admin_pending_context_tolerates_legacy_schema_without_optional_columns(app_module,monkeypatch,tmp_path):
+    path=str(tmp_path/"legacy-pending.sqlite")
+    with sqlite3.connect(path) as conn:
+        conn.executescript("""
+            CREATE TABLE picks(id TEXT PRIMARY KEY,status TEXT);
+            CREATE TABLE matches(home_team TEXT);
+            CREATE TABLE pick_grading_results(
+                id TEXT PRIMARY KEY,pick_id TEXT,match_id TEXT,result_status TEXT,
+                odds REAL,stake REAL,profit REAL,grading_score INTEGER,
+                auto_validated INTEGER,confidence_after INTEGER,graded_at TEXT
+            );
+            INSERT INTO picks(id,status) VALUES('legacy-pick','published');
+            INSERT INTO pick_grading_results(id,pick_id,result_status,odds,stake,profit,
+                grading_score,auto_validated,confidence_after,graded_at)
+                VALUES('legacy-grade','legacy-pick','pending',2,1,0,30,0,40,'2026-09-27');
+        """)
+    monkeypatch.setattr(app_module,"DB_PATH",path)
+    monkeypatch.setattr(app_module,"is_admin_session",lambda:True)
+    record=app_module.v742_track_record_context()
+    assert [row["pick_id"] for row in record["pending_results"]]==["legacy-pick"]
+    pending=record["pending_results"][0]
+    assert pending["home_team"]==pending["away_team"]==""
+    assert pending["market"]==pending["selection"]==""
+    assert pending["reason"]==pending["event_datetime"]==""
+
+
+def test_admin_pending_context_preserves_full_pick_match_time(app_module,monkeypatch,tmp_path):
+    path=str(tmp_path/"legacy-pick-datetime.sqlite")
+    with sqlite3.connect(path) as conn:
+        conn.executescript("""
+            CREATE TABLE picks(id TEXT PRIMARY KEY,status TEXT,match_date TEXT,match_time TEXT);
+            CREATE TABLE pick_grading_results(
+                id TEXT PRIMARY KEY,pick_id TEXT,match_id TEXT,result_status TEXT,
+                odds REAL,stake REAL,profit REAL,grading_score INTEGER,
+                auto_validated INTEGER,confidence_after INTEGER,reason TEXT,graded_at TEXT
+            );
+            INSERT INTO picks(id,status,match_date,match_time)
+                VALUES('legacy-datetime-pick','published','2026-10-25','2026-10-25 19:00');
+            INSERT INTO pick_grading_results(id,pick_id,result_status,reason,graded_at)
+                VALUES('legacy-datetime-grade','legacy-datetime-pick','pending','review','2026-10-22');
+        """)
+    monkeypatch.setattr(app_module,"DB_PATH",path)
+    monkeypatch.setattr(app_module,"is_admin_session",lambda:True)
+    pending=app_module.v742_track_record_context()["pending_results"][0]
+    assert pending["event_datetime"]=="2026-10-25 19:00"
+    assert "19:00" in pending["event_datetime_label"]
+    assert pending["event_datetime_label"].endswith("Madrid")
 
 
 @pytest.mark.parametrize("market,selection", [

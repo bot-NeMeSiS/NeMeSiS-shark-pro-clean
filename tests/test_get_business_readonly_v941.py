@@ -20,6 +20,7 @@ BUSINESS_TABLES=(
 CLIENT_ROUTES=("/app","/calendar","/live","/picks","/track-record","/shark","/telegram","/profile","/memberships","/mi-cuenta","/actividad","/alertas","/mi-dia","/briefing","/experiencia","/modo-app","/adaptive","/adaptativo")
 ADMIN_ROUTES=(
     "/admin/dashboard","/admin/matches","/admin/realtime-center","/admin/picks",
+    "/admin/track-record",
     "/admin/telegram/command-center","/admin/users","/admin/memberships","/admin/payments",
     "/admin/shark-center","/admin/data-center","/admin/automation-center","/admin/sentinel-issues",
     "/admin/highlights-center","/admin/system","/admin/final-release",
@@ -284,6 +285,64 @@ def test_canonical_admin_gets_do_not_mutate_business_tables(app_module,monkeypat
         assert response.status_code == 200,(route,response.status_code)
         assert snapshot(db)==before, route
         assert not writes, (route,writes)
+
+
+def test_admin_track_record_shows_real_pending_context_without_writes(app_module,monkeypatch,tmp_path):
+    from engines.pick_grading_engine import ensure_pick_grading_schema
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    ensure_pick_grading_schema(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute("""INSERT INTO picks
+            (id,match_id,home_team,away_team,competition_name,market,selection,status,membership_required,match_date)
+            VALUES(?,?,?,?,?,?,?,?,?,?)""",(
+                "qa-review-pick","qa-review-match","Granada","Malaga","QA League",
+                "Total goles","Over 2.5","published","ELITE","2026-10-25 18:00"))
+        conn.execute("""INSERT INTO matches(id,status,score,home_score,away_score,match_date,kickoff_time,competition_name)
+            VALUES(?,?,?,?,?,?,?,?)""",(
+                "qa-review-match","FT","2-0",2,0,"2026-10-25","19:00","QA League"))
+        conn.execute("""INSERT INTO pick_grading_results
+            (id,pick_id,match_id,result_status,reason,graded_at)
+            VALUES(?,?,?,?,?,?)""",(
+                "qa-review-grade","qa-review-pick","qa-review-match","pending",
+                "Evidence is not conclusive yet.","2026-10-22T10:00:00+00:00"))
+    monkeypatch.setattr(a,"get_public_home_sports_summary",lambda:{
+        "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],
+        "valid_live_events":[],"valid_upcoming_matches":[],"valid_active_picks":[],"all_picks":[]})
+    assert a.app.test_client().get("/admin/track-record").status_code==302
+    public_client=a.app.test_client()
+    public_api=public_client.get("/api/track-record")
+    assert public_api.status_code==200
+    assert public_api.get_json()["track_record"]["pending_results"]==[]
+    assert public_client.get("/api/admin/track-record").status_code==403
+    public_page=public_client.get("/track-record")
+    assert public_page.status_code==200
+    assert "Evidence is not conclusive yet." not in public_page.get_data(as_text=True)
+    assert "v981-admin-grading-review.css" not in public_page.get_data(as_text=True)
+    client=a.app.test_client()
+    with client.session_transaction() as state:
+        state.update(user_id="qa-admin-read",user_role="ADMIN",membership="ADMIN",
+                     user_membership="ADMIN",user_name="QA Admin")
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+    response=client.get("/admin/track-record")
+    assert response.status_code==200
+    body=response.get_data(as_text=True)
+    for marker in ("Pendientes de revisi\u00f3n","Granada","Malaga","QA League",
+                   "Total goles","Over 2.5","19:00","Madrid",
+                   "Revisi\u00f3n manual","Evidence is not conclusive yet."):
+        assert marker in body, (marker,body[body.find("Granada")-100:body.find("Granada")+800])
+    assert "2-0" in body
+    assert "href=\"/partido/qa-review-match\"" in body
+    assert 'data-v981-grading-review="1"' in body
+    stylesheet = client.get("/static/v981-admin-grading-review.css")
+    assert stylesheet.status_code == 200
+    assert "@media(max-width:820px)" in stylesheet.get_data(as_text=True)
+    assert "2026-10-22T10:00:00+00:00" not in body
+    admin_api=client.get("/api/admin/track-record")
+    assert admin_api.status_code==200
+    assert admin_api.get_json()["track_record"]["pending_results"][0]["pick_id"]=="qa-review-pick"
+    assert snapshot(db)==before
+    assert not writes,writes
 
 
 @pytest.mark.parametrize("state", ["missing", "expired", "valid", "linked"])

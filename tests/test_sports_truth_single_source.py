@@ -300,8 +300,19 @@ def test_realtime_snapshot_delegates_live_and_stale_to_sports_truth():
     assert snapshot["counts"]["stale_live"] == 1
 
 
-def test_calendar_cannot_restore_stale_live_from_legacy_live_depth(app_module):
-    now = datetime.now(MADRID)
+def test_calendar_cannot_restore_stale_live_from_legacy_live_depth(app_module, monkeypatch):
+    now = datetime(2026, 10, 22, 20, 0, tzinfo=MADRID)
+    actual_canonical_match_status = app_module.canonical_match_status
+
+    def _canonical_match_status_at_fixture_time(match, now=None):
+        return actual_canonical_match_status(match, now=now or datetime(2026, 10, 22, 20, 0, tzinfo=MADRID))
+
+    monkeypatch.setattr(app_module, "canonical_match_status", _canonical_match_status_at_fixture_time)
+    monkeypatch.setattr(
+        app_module,
+        "today_iso",
+        lambda offset=0: (now.date() + timedelta(days=int(offset or 0))).isoformat(),
+    )
     stale = {
         **_live_match(now, "calendar-stale-live"),
         "last_synced_at": (now - timedelta(minutes=5)).isoformat(),

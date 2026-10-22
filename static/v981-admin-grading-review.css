@@ -1,0 +1,21 @@
+/* V981: real, read-only grading queue in the existing admin track record. */
+.v981-review-queue{display:grid;gap:14px}
+.v981-review-queue__header{align-items:flex-start;display:flex;gap:14px;justify-content:space-between;min-width:0}
+.v981-review-queue__header h2,.v981-review-item h3{margin:0}
+.v981-review-queue__header p{line-height:1.5;margin:6px 0 0;max-width:70ch}
+.v981-review-queue__count,.v981-review-item__status{align-items:center;border:1px solid rgba(244,203,114,.48);border-radius:999px;color:#ffe3a0;display:inline-flex;flex:0 0 auto;font-size:.82rem;font-weight:800;min-height:36px;padding:5px 12px}
+.v981-review-queue__list{display:grid;gap:10px;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0}
+.v981-review-item{background:rgba(255,255,255,.025);border:1px solid var(--ns-border,#314660);border-radius:14px;display:grid;gap:12px;min-width:0;padding:14px}
+.v981-review-item__heading{align-items:flex-start;display:flex;gap:10px;justify-content:space-between;min-width:0}
+.v981-review-item__heading>div{min-width:0}
+.v981-review-item h3{font-size:1rem;line-height:1.4;overflow-wrap:anywhere}
+.v981-review-item__heading p{color:var(--ns-muted,#bfd0e0);font-size:.9rem;margin:4px 0 0}
+.v981-review-item__facts{display:grid;gap:8px;grid-template-columns:repeat(2,minmax(0,1fr));margin:0;min-width:0}
+.v981-review-item__facts>div{border-top:1px solid rgba(145,164,184,.22);min-width:0;padding-top:7px}
+.v981-review-item__facts dt{color:var(--ns-muted,#bfd0e0);font-size:.75rem;font-weight:700}
+.v981-review-item__facts dd{margin:3px 0 0;overflow-wrap:anywhere}
+.v981-review-item__reason{background:rgba(244,203,114,.07);border-inline-start:3px solid #f4cb72;border-radius:4px;line-height:1.5;margin:0;overflow-wrap:anywhere;padding:9px 11px}
+.v981-review-item>small,.v981-review-queue__more{color:var(--ns-muted,#bfd0e0);overflow-wrap:anywhere}
+.v981-review-item__match-link{justify-self:start;font-weight:800}
+@media(max-width:820px){.v981-review-queue__list{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.v981-review-queue__header{display:grid;gap:8px}.v981-review-queue__count{justify-self:start}.v981-review-item{padding:12px}.v981-review-item__heading{display:grid}.v981-review-item__facts{grid-template-columns:minmax(0,1fr)}}
