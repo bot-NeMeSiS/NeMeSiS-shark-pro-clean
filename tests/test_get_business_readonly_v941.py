@@ -345,6 +345,68 @@ def test_admin_track_record_shows_real_pending_context_without_writes(app_module
     assert not writes,writes
 
 
+def test_admin_track_record_pending_queue_paginates_without_writes_or_public_leaks(app_module,monkeypatch,tmp_path):
+    from engines.pick_grading_engine import ensure_pick_grading_schema
+    a,db=isolated(app_module,monkeypatch,tmp_path)
+    ensure_pick_grading_schema(db)
+    with sqlite3.connect(db) as conn:
+        for index in range(14):
+            pick_id=f"qa-page-pick-{index:02d}"
+            conn.execute("""INSERT INTO picks
+                (id,home_team,away_team,competition_name,market,selection,status,membership_required,created_at)
+                VALUES(?,?,?,?,?,?,?,?,?)""",(
+                    pick_id,f"Home {index}",f"Away {index}","QA League",
+                    "Total goles","Over 2.5","published","ELITE","2026-10-22T00:00:00+00:00"))
+            conn.execute("""INSERT INTO pick_grading_results
+                (id,pick_id,result_status,reason,graded_at)
+                VALUES(?,?,?,?,?)""",(
+                    f"qa-page-grade-{index:02d}",pick_id,"pending","Needs more evidence",
+                    "2026-10-22T00:00:00+00:00"))
+    monkeypatch.setattr(a,"get_public_home_sports_summary",lambda:{
+        "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],
+        "valid_live_events":[],"valid_upcoming_matches":[],"valid_active_picks":[],"all_picks":[]})
+    admin=a.app.test_client()
+    with admin.session_transaction() as state:
+        state.update(user_id="qa-admin-pagination",user_role="ADMIN",membership="ADMIN",
+                     user_membership="ADMIN",user_name="QA Admin")
+    before=snapshot(db)
+    writes=observe_business_writes(monkeypatch)
+
+    first=admin.get("/admin/track-record?pending_page=1")
+    assert first.status_code==200
+    first_body=first.get_data(as_text=True)
+    assert "Mostrando 1–12 de 14 pendientes." in first_body
+    assert "Página 1 de 2" in first_body
+    assert "pending_page=2" in first_body
+    assert "Pick qa-page-pick-13" in first_body
+    assert "Pick qa-page-pick-02" in first_body
+    assert "Pick qa-page-pick-01" not in first_body
+
+    second=admin.get("/admin/track-record?pending_page=2")
+    assert second.status_code==200
+    second_body=second.get_data(as_text=True)
+    assert "Mostrando 13–14 de 14 pendientes." in second_body
+    assert "Página 2 de 2" in second_body
+    assert 'rel="prev"' in second_body and "pending_page=1" in second_body
+    assert 'rel="next"' not in second_body
+    assert "Pick qa-page-pick-01" in second_body
+    assert "Pick qa-page-pick-00" in second_body
+    assert "Pick qa-page-pick-02" not in second_body
+
+    beyond=admin.get("/admin/track-record?pending_page=999")
+    assert beyond.status_code==200
+    assert "Página 2 de 2" in beyond.get_data(as_text=True)
+    assert "Pick qa-page-pick-00" in beyond.get_data(as_text=True)
+
+    public=a.app.test_client()
+    public_page=public.get("/track-record?pending_page=2")
+    assert public_page.status_code==200
+    assert "Needs more evidence" not in public_page.get_data(as_text=True)
+    assert "qa-page-pick-00" not in public_page.get_data(as_text=True)
+    assert snapshot(db)==before
+    assert not writes,writes
+
+
 @pytest.mark.parametrize("state", ["missing", "expired", "valid", "linked"])
 def test_telegram_reads_never_issue_or_rotate_codes(app_module,monkeypatch,tmp_path,state):
     a,db=isolated(app_module,monkeypatch,tmp_path)
